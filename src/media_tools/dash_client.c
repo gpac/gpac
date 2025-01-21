@@ -1329,7 +1329,7 @@ setup_multicast_clock:
 		current_time_rescale = current_time;
 		current_time_rescale *= timescale;
 		current_time_rescale /= 1000;
-		//warning, MPD time in SegmentTimeline is (t-pto), so add pto to current time rescaled before comaring to t@s
+		//warning, MPD time in SegmentTimeline is (t-pto), so add pto to current time rescaled before comparing to t@s
 		current_time_rescale += rep_pto;
 
 		count = gf_list_count(timeline->entries);
@@ -1376,7 +1376,10 @@ setup_multicast_clock:
 
 			repeat = 1+ent->repeat_count;
 			while (repeat) {
-				if ((current_time_rescale >= segtime) && (current_time_rescale < segtime + ent->duration)) {
+				Bool is_last = GF_FALSE;
+				if ((repeat==1) && (i+1==count)) is_last = GF_TRUE;
+
+				if ((current_time_rescale >= segtime) && (is_last || (current_time_rescale < segtime + ent->duration))) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found segment %d for current time "LLU" is in SegmentTimeline ["LLU"-"LLU"] (timecale %d - current index %d - startNumber %d)\n", seg_idx, current_time_rescale, start_segtime, segtime + ent->duration, timescale, group->download_segment_index, start_number));
 
 					group->download_segment_index = seg_idx;
@@ -1389,6 +1392,15 @@ setup_multicast_clock:
 					if (group->dash->utc_drift_estimate<0) {
 						group->ast_at_init -= (timeline_duration - (segtime-start_segtime)) *1000/timescale;
 					}
+
+					if ((current_time_rescale > segtime + ent->duration) /* <=> is_last*/) {
+						group->start_playback_range = 0;
+						u32 diff = (u32) (current_time_rescale - segtime - ent->duration);
+						if (diff>ent->duration) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Last segment end time is %u sec less than current time, using last entry in timeline\n", diff/timescale));
+						}
+					}
+
 					if (ent->nb_parts) {
 						dash_ssr_adjust_group_start(group, ((Double)ent->duration) / timescale, ent->nb_parts);
 					}
@@ -1401,8 +1413,8 @@ setup_multicast_clock:
 				segdur_in_timeline += ent->duration;
 			}
 		}
-		//check if we're ahead of time but "reasonably" ahead (max 1.5 seg) - otherwise consider the timing is broken
-		if ((current_time_rescale + last_s_dur >= segtime*3/2) && (current_time_rescale <= segtime + 60*timescale)) {
+		//check if we're ahead of time but "reasonably" ahead (max 1 seg) - otherwise consider the timing is broken
+		if ((current_time_rescale + last_s_dur >= segtime) && (current_time_rescale <= segtime + 60*timescale)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" by %g sec - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime, (Double) (current_time_rescale - segtime)/timescale ));
 			group->download_segment_index = (seg_idx > 2) ? (seg_idx-2) : 0;
 			group->nb_segments_in_rep = seg_idx;
@@ -2589,7 +2601,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			dash->manifest_pending = 0;
 
 			if (!dash->in_error) {
-				if (e==GF_URL_ERROR) {
+				if ((e==GF_URL_ERROR) || (e==GF_REMOTE_SERVICE_ERROR)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update manifest: %s, aborting\n", gf_error_to_string(e)));
 					dash->in_error = GF_TRUE;
 				} else {

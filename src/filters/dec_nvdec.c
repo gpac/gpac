@@ -943,6 +943,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	}
 
 	if (data && ctx->nal_size_length) {
+		u32 nb_nalsize_zero=0;
 		GF_BitStream *bs = gf_bs_new(ctx->nal_buffer, ctx->nal_buffer_alloc, GF_BITSTREAM_WRITE_DYN);
 		if (!bs) return GF_OUT_OF_MEM;
 
@@ -959,6 +960,12 @@ static GF_Err nvdec_process(GF_Filter *filter)
 				nal_size = (nal_size << 8) + ((u8)data[i]);
 			}
 			data += ctx->nal_size_length;
+			if (!nal_size) {
+				if (nb_nalsize_zero) break;
+				nb_nalsize_zero++;
+			} else {
+				nb_nalsize_zero=0;
+			}
 
 			if (pck_size < nal_size + ctx->nal_size_length) break;
 

@@ -444,39 +444,6 @@ GF_Err kind_box_dump(GF_Box *a, FILE * trace)
 }
 
 
-static char *format_duration(u64 dur, u32 timescale, char *szDur)
-{
-	u32 h, m, s, ms;
-	if (!timescale) return NULL;
-	dur = (u32) (( ((Double) (s64) dur)/timescale)*1000);
-	h = (u32) (dur / 3600000);
-	dur -= h*3600000;
-	m = (u32) (dur / 60000);
-	dur -= m*60000;
-	s = (u32) (dur/1000);
-	dur -= s*1000;
-	ms = (u32) (dur);
-
-	if (h<=24) {
-		sprintf(szDur, "%02d:%02d:%02d.%03d", h, m, s, ms);
-	} else {
-		u32 d = (u32) (dur / 3600000 / 24);
-		h = (u32) (dur/3600000)-24*d;
-		if (d<=365) {
-			sprintf(szDur, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
-		} else {
-			u32 y=0;
-			while (d>365) {
-				y++;
-				d-=365;
-				if (y%4) d--;
-			}
-			sprintf(szDur, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
-		}
-	}
-	return szDur;
-}
-
 static void dump_escape_string(FILE * trace, char *name)
 {
 	u32 i, len = name ? (u32) strlen(name) : 0;
@@ -496,18 +463,17 @@ GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 	if (p->size) {
 		count = gf_list_count(p->list);
 		for (i=0; i<count; i++) {
-			char szDur[50];
+			char szDur[100];
 			GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 			gf_fprintf(trace, "<Chapter name=\"");
 			dump_escape_string(trace, ce->name);
-			gf_fprintf(trace, "\" startTime=\"%s\" />\n", format_duration(ce->start_time, 1000*10000, szDur));
+			gf_fprintf(trace, "\" startTime=\"%s\" />\n", gf_format_duration(ce->start_time, 1000*10000, szDur));
 		}
 	} else {
 		gf_fprintf(trace, "<Chapter name=\"\" startTime=\"\"/>\n");
 	}
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
-		format_duration(0, 0, NULL);
 		dump_escape_string(NULL, NULL);
 	}
 #endif
@@ -575,14 +541,14 @@ GF_Err iods_box_dump(GF_Box *a, FILE * trace)
 GF_Err trak_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackBox *p;
-
 	p = (GF_TrackBox *)a;
-	gf_isom_box_dump_start(a, "TrackBox", trace);
+	const char *name = p->extl ? "ExternalTrackBox" : "TrackBox";
+	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, ">\n");
 	if (p->size && !p->Header) {
 		gf_fprintf(trace, "<!--INVALID FILE: Missing Track Header-->\n");
 	}
-	gf_isom_box_dump_done("TrackBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -4459,8 +4425,8 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 		if (!txt->len) continue;
 
 		if (dump_type==GF_TEXTDUMPTYPE_OGG_CHAP) {
-			char szDur[50];
-			fprintf(dump, "CHAPTER%02d=%s\n", i+1, format_duration(start, ts, szDur));
+			char szDur[100];
+			fprintf(dump, "CHAPTER%02d=%s\n", i+1, gf_format_duration(start, ts, szDur));
 			fprintf(dump, "CHAPTER%02dNAME=%s\n", i+1, txt->text);
 		} else {
 			fprintf(dump, "AddChapterBySecond("LLD",%s)\n", start / ts, txt->text);
@@ -6127,16 +6093,16 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, ">\n");
 
 			for (j=0; j<nb_subs; j++) {
-				u32 clear, crypt;
+				u32 clear, nb_crypt;
 				gf_fprintf(trace, "<SubSampleEncryptionEntry");
 				if (nb_keys>1) {
 					u32 kidx = gf_bs_read_u16(bs);
 					gf_fprintf(trace, " MultiKeyIndex=\"%u\"", kidx);
 				}
 				clear = gf_bs_read_u16(bs);
-				crypt = gf_bs_read_u32(bs);
-				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, crypt);
-				total_bytes+=clear+crypt;
+				nb_crypt = gf_bs_read_u32(bs);
+				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, nb_crypt);
+				total_bytes+=clear+nb_crypt;
 			}
 			if (!gf_sys_is_test_mode())
 				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
@@ -6541,7 +6507,10 @@ GF_Err grptype_box_dump(GF_Box *a, FILE * trace)
 		a->type = GF_4CC('u','k','n','w');
 	gf_isom_box_dump_start(a, "EntityToGroupTypeBox", trace);
 	a->type = GF_ISOM_BOX_TYPE_GRPT;
-	gf_fprintf(trace, "group_id=\"%d\">\n", ptr->group_id);
+	gf_fprintf(trace, "group_id=\"%d\"", ptr->group_id);
+	if (ptr->data) dump_data_attribute(trace, "data", ptr->data, ptr->data_len);
+	else if (!ptr->size) gf_fprintf(trace, " data=\"\"");
+	gf_fprintf(trace, ">\n");
 
 	for (i=0; i<ptr->entity_id_count ; i++)
 		gf_fprintf(trace, "<EntityToGroupTypeBoxEntry EntityID=\"%d\"/>\n", ptr->entity_ids[i]);
@@ -7480,6 +7449,18 @@ GF_Err empty_box_dump(GF_Box *a, FILE * trace)
 	}
 	gf_isom_box_dump_start(a, name, trace);
 	gf_isom_box_dump_done(name, a, trace);
+	return GF_OK;
+}
+
+GF_Err extl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ExternalTrackLocationBox", trace);
+	gf_fprintf(trace, " referenced_trackID=\"%u\" referenced_type=\"%s\"", ptr->referenced_track_ID, gf_4cc_to_str(ptr->referenced_handler_type));
+	gf_fprintf(trace, " media_timescale=\"%u\"", ptr->media_timescale);
+	gf_fprintf(trace, " location=\"%s\">\n", ptr->location ? ptr->location : "NONE");
+	gf_isom_box_dump_done("ExternalTrackLocationBox", a, trace);
 	return GF_OK;
 }
 

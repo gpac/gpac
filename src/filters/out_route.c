@@ -274,6 +274,7 @@ typedef struct
 	Bool push_frag_name;
 	Bool init_cfg_done;
 	u32 fdt_instance_id;
+	s32 diff_send_at_frame_start, diff_recv_at_frame_start;
 } ROUTEPid;
 
 
@@ -519,8 +520,8 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	}
 	if (manifest_type) {
-		if (manifest_type & 0x80000000) {
-			manifest_type &= 0x7FFFFFFF;
+		if (manifest_type & (1<<8)) {
+			manifest_type &= ~(1<<8);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Manifest file describes a static session, clients tune-in will likely fail !\n", ctx->log_name));
 		}
@@ -706,6 +707,11 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	gf_filter_pid_init_play_event(pid, &evt, 0, 1.0, "ROUTEOut");
 	gf_filter_pid_send_event(pid, &evt);
+	if (rpid->manifest_type) {
+		GF_FEVT_INIT(evt, GF_FEVT_NETWORK_HINT, pid);
+		evt.net_hint.sink_type = GF_4CC('M','A','B','R');
+		gf_filter_pid_send_event(pid, &evt);
+	}
 
 	if (ctx->llmode && !rpid->raw_file) {
 		rpid->carousel_time_us = ctx->carousel;
@@ -1948,6 +1954,12 @@ retry:
 	}
 
 	rpid->pck_data = gf_filter_pck_get_data(rpid->current_pck, &rpid->pck_size);
+	//this can happen with httpin and chunks
+	if (!rpid->pck_size || !rpid->pck_data) {
+		gf_filter_pck_unref(rpid->current_pck);
+		rpid->current_pck = NULL;
+		goto retry;
+	}
 	rpid->pck_offset = 0;
 
 	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_INIT);
@@ -2094,6 +2106,17 @@ retry:
 		rpid->cumulated_frag_size = rpid->pck_size;
 		rpid->push_init = GF_TRUE;
 		rpid->frag_offset = 0;
+
+		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_SENDER_NTP);
+		if (p) {
+			u64 ntp = gf_net_get_ntp_ts();
+			rpid->diff_send_at_frame_start = gf_net_ntp_diff_ms(ntp, p->value.longuint);
+			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_RECEIVER_NTP);
+			rpid->diff_recv_at_frame_start = p ? gf_net_ntp_diff_ms(ntp, p->value.longuint) : -1;
+		} else {
+			rpid->diff_send_at_frame_start = -1;
+			rpid->diff_recv_at_frame_start = -1;
+		}
 	} else {
 		rpid->frag_idx++;
 		if (ctx->dvb_mabr) {
@@ -2510,7 +2533,7 @@ next_packet:
 #ifndef GPAC_DISABLE_LOG
 			//print full object push info
 			if (rpid->full_frame_size && (gf_log_get_tool_level(GF_LOG_ROUTE)>=GF_LOG_INFO)) {
-				char szFInfo[1000], szSID[31];
+				char szFInfo[1000], szSID[31], szDelay[100];
 				u64 seg_clock, target_push_dur;
 
 				if (rpid->pck_dur_at_frame_start) {
@@ -2525,12 +2548,18 @@ next_packet:
 				else
 					szSID[0] = 0;
 
+				if (rpid->diff_send_at_frame_start>=0) {
+					sprintf(szDelay, " started %d ms after request (%d ms after reception)", rpid->diff_send_at_frame_start, rpid->diff_recv_at_frame_start);
+				} else {
+					szDelay[0] = 0;
+				}
+
 				if (rpid->frag_idx)
 					snprintf(szFInfo, 100, "%s%s (%d frags %d bytes)", szSID, rpid->seg_name, rpid->frag_idx+1, rpid->full_frame_size);
 				else
 					snprintf(szFInfo, 100, "%s%s (%d bytes)", szSID, rpid->seg_name, rpid->full_frame_size);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur));
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us%s\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur, szDelay));
 
 				//real-time stream, check we are not out of sync
 				if (!rpid->raw_file) {
@@ -2756,13 +2785,13 @@ static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Boo
 		if (rpid->raw_file) {
 			carousel_size += rpid->pck_size;
 			if (rpid->carousel_time_us) {
-				tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
+				tot_rate += (u32) (rpid->pck_size * 8000000 / rpid->carousel_time_us);
 			}
 		} else if (!rpid->manifest_type) {
 			tot_rate += rpid->bitrate;
 		}
 		if (rpid->carousel_time_us && (rpid->carousel_time_us < carousel_us))
-			carousel_us = rpid->carousel_time_us;
+			carousel_us = (u32) rpid->carousel_time_us;
 	}
 	if (out_tot_rate) *out_tot_rate = tot_rate;
 
@@ -3339,7 +3368,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- raw files are assigned TSI 1 and increasing number of TOI\n"
 		"- otherwise, the first PID found is assigned TSI 10, the second TSI 20 etc ...\n"
 		"\n"
-		"When [-splitlct]() is set to `mcast`, the IP multicast adress is computed as follows:\n"
+		"When [-splitlct]() is set to `mcast`, the IP multicast address is computed as follows:\n"
 		" - if `MCASTIP` is set on the PID and is different from the service multicast IP, it is used\n"
 		" - otherwise the service multicast IP plus one is used\n"
 		"The multicast port used is set as follows:\n"
@@ -3412,7 +3441,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"# Error simulation\n"
 		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
-		"for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.\n"
+		"This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
 	.max_extra_pids = -1,

@@ -623,6 +623,8 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return GF_OUT_OF_MEM;
 	}
 
+	//we use implicit mode, don't set any filter ID
+
 	sprintf(an_arg, "mp4dmx:mov=%p", mp4);
 	gf_dynstrcat(&szArgs, an_arg, NULL);
 	if (fragment_name) {
@@ -639,7 +641,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return e;
 	}
 
-	gf_dynstrcat(&szArgs, "cdcrypt:FID=1", NULL);
+	gf_dynstrcat(&szArgs, "cdcrypt", NULL);
 	if (drm_file) {
 		gf_dynstrcat(&szArgs, ":cfile=", NULL);
 		gf_dynstrcat(&szArgs, drm_file, NULL);
@@ -653,7 +655,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return e;
 	}
 
-	gf_dynstrcat(&szArgs, "SID=1", NULL);
+	gf_dynstrcat(&szArgs, "xps_inband=auto", NULL);
 	if (fragment_name) {
 		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000", NULL);
 	} else {
@@ -664,8 +666,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
-	gf_dynstrcat(&szArgs, ":xps_inband=auto", NULL);
-	
+
 	if (gf_isom_has_keep_utc_times(mp4))
 		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
@@ -745,7 +746,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	char an_arg[100];
 	char *arg_dst=NULL;
 	u32 progress = (u32) -1;
-	GF_Filter *src, *dst, *crypt;
+	GF_Filter *src, *dst, *cryptf;
 	GF_FilterSession *fsess;
 	GF_Err e = GF_OK;
 
@@ -774,12 +775,12 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 
 	gf_dynstrcat(&szArgs, "cecrypt:FID=1:cfile=", NULL);
 	gf_dynstrcat(&szArgs, drm_file, NULL);
-	crypt = gf_fs_load_filter(fsess, szArgs, &e);
+	cryptf = gf_fs_load_filter(fsess, szArgs, &e);
 
 	gf_free(szArgs);
 	szArgs = NULL;
 
-	if (!crypt) {
+	if (!cryptf) {
 		gf_fs_del(fsess);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Encrypter] Cannot load encryptor: %s\n", gf_error_to_string(e) ));
 		return e;

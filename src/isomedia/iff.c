@@ -749,6 +749,7 @@ void grptype_box_del(GF_Box *s)
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
 	if (!ptr) return;
 	if (ptr->entity_ids) gf_free(ptr->entity_ids);
+	if (ptr->data) gf_free(ptr->data);
 	gf_free(ptr);
 }
 
@@ -769,6 +770,15 @@ GF_Err grptype_box_read(GF_Box *s, GF_BitStream *bs)
 
 	for (i = 0; i < ptr->entity_id_count; i++) {
 		ptr->entity_ids[i] = gf_bs_read_u32(bs);
+		ISOM_DECREASE_SIZE(ptr, 4)
+	}
+
+	if (ptr->size) {
+		ptr->data = gf_malloc((u32) ptr->size);
+		if (!ptr->data) return GF_OUT_OF_MEM;
+		ptr->data_len = (u32) ptr->size;
+		gf_bs_read_data(bs, ptr->data, ptr->data_len);
+		ptr->size = 0;
 	}
 	return GF_OK;
 }
@@ -798,6 +808,7 @@ GF_Err grptype_box_write(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < ptr->entity_id_count; i++) {
 		gf_bs_write_u32(bs, ptr->entity_ids[i]);
 	}
+	if (ptr->data) gf_bs_write_data(bs, ptr->data, ptr->data_len);
 	return GF_OK;
 }
 
@@ -805,7 +816,7 @@ GF_Err grptype_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err grptype_box_size(GF_Box *s)
 {
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
-	ptr->size += 8 + 4*ptr->entity_id_count;
+	ptr->size += 8 + 4*ptr->entity_id_count + ptr->data_len;
 	return GF_OK;
 }
 

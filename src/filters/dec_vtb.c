@@ -1247,11 +1247,12 @@ static void vtbdec_delete_decoder(GF_VTBDecCtx *ctx)
 	ctx->VPSs = NULL;
 }
 
-static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
+static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char *inBuffer, u32 inBufferLength, u64 dts, char **out_buffer, u32 *out_size)
 {
 	u32 i, sc_size=0;
 	char *ptr = inBuffer;
 	u32 nal_size;
+	u32 nb_nal_size_zero = 0;
 	GF_Err e = GF_OK;
 	Bool reassign_bs = GF_TRUE;
 	Bool check_reconfig = GF_FALSE;
@@ -1278,7 +1279,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 
 		if (ctx->nalu_size_length) {
 			if (inBufferLength<ctx->nalu_size_length) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: sizeLength %u but %u bytes only in payload\n", ctx->nalu_size_length, inBufferLength));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL in sample DTS "LLU": sizeLength %u but %u bytes only in payload\n", dts, ctx->nalu_size_length, inBufferLength));
 				break;
 			}
 			nal_size = 0;
@@ -1287,7 +1288,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			}
 
 			if (nal_size > inBufferLength) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: size indicated %u but %u bytes only in payload\n", nal_size, inBufferLength));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL in sample DTS "LLU": size indicated %u but %u bytes only in payload\n", dts, nal_size, inBufferLength));
 				break;
 			}
 			ptr += ctx->nalu_size_length;
@@ -1296,7 +1297,10 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		}
 
         if (nal_size==0) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: size 0 shall never happen\n", nal_size));
+			//two consecutive nalsize 0 abirts
+			if (nb_nal_size_zero) break;
+			nb_nal_size_zero++;
+            GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL in sample DTS "LLU": size 0 shall never happen\n", dts));
 
             if (ctx->nalu_size_length) {
                 if (inBufferLength < ctx->nalu_size_length) break;
@@ -1307,8 +1311,9 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
                 ptr += sc_size;
             }
             continue;
-        }
-        
+		}
+		nb_nal_size_zero = 0;
+
 		if (ctx->is_avc) {
 			if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
 			else gf_bs_reassign_buffer(ctx->nal_bs, ptr, nal_size);
@@ -1661,7 +1666,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	//Always parse AVC data , remove SPS/PPS/... and reconfig if needed
 	if (ctx->is_annex_b || ctx->nalu_size_length) {
 
-		e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
+		e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, gf_filter_pck_get_dts(pck) , &in_data, &in_data_size);
 		if (e) {
 			gf_filter_pid_drop_packet(ref_pid);
 			return e;

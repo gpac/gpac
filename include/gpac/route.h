@@ -135,12 +135,14 @@ typedef struct
 	const char *mime;
 	/*! blob data pointer - the route user is responsible for setting the blob flags if desired*/
 	GF_Blob *blob;
-    /*! total size of object if known, 0 otherwise*/
+    /*! total size of object if known, 0 otherwise (TOL not received for route, last fragment not received for mabr+flute)*/
     u32 total_size;
 	/*! object TSI*/
 	u32 tsi;
 	/*! object TOI*/
 	u32 toi;
+	/*! start time in ms*/
+	u32 start_time;
 	/*! download time in ms*/
 	u32 download_ms;
 	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
@@ -157,6 +159,13 @@ typedef struct
 	
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
+
+	/*! for DASH,period ID, NULL otherwise*/
+	char *dash_period_id;
+	/*! for DASH, AS ID, -1 otherwise*/
+	s32 dash_as_id;
+	/*! for DASH, Representation ID, for HLS variant name, NULL otherwise*/
+	char *dash_rep_id;
 
 	/*partial state used for all calls
 		if event indicates a file transfer completion (GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG), this relects the corrupted state
@@ -239,6 +248,18 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 
+/*! Checks if there are some active multicast sockets
+\param routedmx the ROUTE demultiplexer
+\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
+ */
+Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
+
+/*! Checks for object being timeouts - this should only be called when \ref gf_route_dmx_process returns GF_IP_NETWORK_EMPTY for the first time in a batch
+\param routedmx the ROUTE demultiplexer
+\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
+ */
+void gf_route_dmx_check_timeouts(GF_ROUTEDmx *routedmx);
+
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
 \param reorder_needed if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
@@ -300,6 +321,16 @@ GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id,
 \return error if any, GF_NOT_FOUND if no such object
  */
 GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName);
+
+/*! Set force-keep flag on object by TSI and TOI - typically used for repair
+\param routedmx the ROUTE demultiplexer
+\param service_id ID of the service to query
+\param tsi transport service identifier
+\param toi transport object identifier
+\param force_keep force_keep flag. When set back to false, this does not trigger a cleanup, it is up to the application to do so
+\return error if any, GF_NOT_FOUND if no such object
+ */
+GF_Err gf_route_dmx_force_keep_object(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, Bool force_keep);
 
 /*! Removes the first object loaded in the service
 \param routedmx the ROUTE demultiplexer
@@ -377,6 +408,15 @@ void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
 \return error if any
  */
 GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
+
+/*! Patch object size after a repair - this might be needed by repair when the file size was not known
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param finfo file info event as passed to the caller. Only tsi and toi info are used to loacate the object. The frags and nb_frags fileds are updated by this function
+\param new_size the new size to set
+\return error if any
+ */
+GF_Err gf_route_dmx_patch_blob_size(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 new_size);
 
 /*! Set active status of a representation
 \param routedmx the ROUTE demultiplexer

@@ -5755,7 +5755,7 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
 		}
 		//also inject m4cc after init seg - cf issue 2482
-		//don't send as new packet as this wll break framing if init segment, just expand the packet
+		//don't send as new packet as this will break framing if init segment, just expand the packet
 		//the init segment packet is always an allocated one, so expanding it is safe
 		if (is_init && ctx->eos_marker) {
 			u8 *data;

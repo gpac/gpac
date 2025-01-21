@@ -2,7 +2,7 @@
  *                      GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Pierre Souchay
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom Paris 2000-2024
  *                                      All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -53,16 +53,12 @@ extern "C" {
  */
 typedef struct __DownloadedCacheEntryStruct * DownloadedCacheEntry;
 
-/*! cache object*/
-typedef struct __CacheReaderStruct * GF_CacheReader;
-
 /**
 
 Free The DownloadedCacheEntry handle
 \param entry The entry to delete
-\return GF_OK
  */
-GF_Err gf_cache_delete_entry( const DownloadedCacheEntry entry );
+void gf_cache_delete_entry( const DownloadedCacheEntry entry );
 
 /**
  * Get the ETag associated with this cache entry if any
@@ -168,14 +164,6 @@ u32 gf_cache_get_cache_filesize( const DownloadedCacheEntry entry );
 
 /*!
 
-Flushes The disk cache for this entry (by persisting the property file
-\param entry The entry
-\return error if any
-*/
-GF_Err gf_cache_flush_disk_cache( const DownloadedCacheEntry entry );
-
-/*!
-
 Set content length of resource
 \param entry The entry
 \param length size of the content in bytes
@@ -215,18 +203,10 @@ u64 gf_cache_get_size(const char * directory);
 /*!
 Delete all cached files in given directory starting with startpattern
 \param directory to clean up
-\return GF_OK if everything went fine
+\param max_size max size to achieve
+\return total number of bytes in cache after cleanup
  */
-GF_Err gf_cache_delete_all_cached_files(const char * directory);
-
-
-/*!
-
-Check if a given cache entry is corrupted (incomplete)
-\param entry The entry
-\return GF_TRUE if resource is corrupted
- */
-Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry);
+u64 gf_cache_cleanup(const char * directory, u32 max_size);
 
 /*!
 Mark associated files as "to be deleted" when the cache entry is removed
