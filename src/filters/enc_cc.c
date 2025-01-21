@@ -250,8 +250,8 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err err = GF_OK;
 	GF_BitStream *bs = NULL;
-	u8 *sei_data = NULL;
 	libcaption_stauts_t status;
+	u8 *sei_data = NULL;
 	u32 size;
 
 	// forward the video if we haven't yet received any captions

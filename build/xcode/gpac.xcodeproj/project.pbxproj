@@ -7,8 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
 		3F04FCBC2C9CB179002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */; };
+		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
+		3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5B82D402C0B006F0673 /* enc_cc.c */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
 		920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8C18D5A444003D1ACA /* bifs_node_tables.c */; };
@@ -647,8 +648,9 @@
 		28C5AA781A15FF3600372C59 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		28C5AA7A1A15FF4700372C59 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
 		28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.4.0.dylib; path = usr/lib/libiconv.2.4.0.dylib; sourceTree = SDKROOT; };
-		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
 		3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
+		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
+		3FDEA5B82D402C0B006F0673 /* enc_cc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = filters/enc_cc.c; sourceTree = "<group>"; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
 		9201000218D5A444003D1ACA /* isom_store.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_store.c; sourceTree = "<group>"; };
@@ -2052,6 +2054,7 @@
 				928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */,
 				92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */,
 				926998B31FEACE8F00AA759D /* dmx_vobsub.c */,
+				3FDEA5B82D402C0B006F0673 /* enc_cc.c */,
 				9239B8D5207369E5005F7264 /* enc_jpg.c */,
 				9239B8D72073AFEF005F7264 /* enc_png.c */,
 				920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */,
@@ -2869,6 +2872,7 @@
 				92B9A5841F8660D700A24FE4 /* mpeg4_form.c in Sources */,
 				928E0BD628E2FC1900F2BA27 /* unframer.c in Sources */,
 				92BB9A671F9C827600524E5B /* dmx_dash.c in Sources */,
+				3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */,
 				92B9A5A71F8660D700A24FE4 /* texturing_gl.c in Sources */,
 				92B9A5A51F8660D700A24FE4 /* mpeg4_gradients.c in Sources */,
 				9286070B23884A6B00FDA1ED /* ff_mx.c in Sources */,
@@ -3145,11 +3149,13 @@
 					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
 					"/opt/homebrew/include/openjpeg-2.5",
+					../../extra_lib/include/,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
 					/opt/homebrew/lib,
+					../../extra_lib/lib/gcc,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3223,27 +3229,17 @@
 					"-lsrt",
 					"-lvvdec",
 					"-lcaption",
-					"-lSYS",
-					"-lFDK",
-					"-lDRCdec",
-					"-lPCMutils",
 					"-lMpeghDec",
-					"-lIGFdec",
-					"-lArithCoding",
-					"-lFormatConverter",
-					"-lUIManager",
-					"-lgVBAPRenderer",
-					"-lMpegTPDec",
 					"-lxcb",
 					"-lxcb-shm",
 					"-lxcb-shape",
 					"-lxcb-xfixes",
-					"-lXv",
 					"-lX11",
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
 					"-lcaca",
+					"-lcaption",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3300,11 +3296,13 @@
 					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
 					"/opt/homebrew/include/openjpeg-2.5",
+					../../extra_lib/include/,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
 					/opt/homebrew/lib,
+					../../extra_lib/lib/gcc,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3378,27 +3376,17 @@
 					"-lsrt",
 					"-lvvdec",
 					"-lcaption",
-					"-lSYS",
-					"-lFDK",
-					"-lDRCdec",
-					"-lPCMutils",
 					"-lMpeghDec",
-					"-lIGFdec",
-					"-lArithCoding",
-					"-lFormatConverter",
-					"-lUIManager",
-					"-lgVBAPRenderer",
-					"-lMpegTPDec",
 					"-lxcb",
 					"-lxcb-shm",
 					"-lxcb-shape",
 					"-lxcb-xfixes",
-					"-lXv",
 					"-lX11",
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
 					"-lcaca",
+					"-lcaption",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
