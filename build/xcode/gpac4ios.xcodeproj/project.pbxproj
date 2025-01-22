@@ -22,7 +22,6 @@
 		2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2897039B1A13C4050063E9C0 /* libswresample.a */; };
 		3F04FCBA2C9CB139002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */; };
 		3F5F3F212C7EAD0C00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F202C7EAD0C00C58257 /* id3.c */; };
-		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		7141FF301292CB9200FCB27D /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7141FF2F1292CB9200FCB27D /* alloc.c */; };
 		7147426012B918C900DB5A59 /* cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 7147425F12B918C900DB5A59 /* cache.c */; };
 		71A19BB212797D1B00ACFF58 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BB112797D1B00ACFF58 /* OpenGLES.framework */; };
@@ -359,6 +358,7 @@
 		92359C8A250F657B00525A42 /* in_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C89250F657A00525A42 /* in_route.c */; };
 		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
 		92455F8E2A530F560080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8D2A530F560080321C /* dec_cc.c */; };
+		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		92455FDB2A540A640080321C /* libcaption.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92455FDA2A540A640080321C /* libcaption.a */; };
 		9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7624A1240600F72EAD /* filter_session_js.c */; };
 		924AB67F281438E100EC006F /* default.cfg in Resources */ = {isa = PBXBuildFile; fileRef = 924AB67E281438E000EC006F /* default.cfg */; };
@@ -621,7 +621,6 @@
 		2897039B1A13C4050063E9C0 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../extra_lib/lib/iOS/libswresample.a; sourceTree = "<group>"; };
 		3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F202C7EAD0C00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
-		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = enc_cc.c; sourceTree = "<group>"; };
 		7141FF2F1292CB9200FCB27D /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		7147425F12B918C900DB5A59 /* cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache.c; sourceTree = "<group>"; };
 		71847811127860F000917298 /* libc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libc.dylib; path = usr/lib/libc.dylib; sourceTree = SDKROOT; };
@@ -975,6 +974,7 @@
 		92359C89250F657A00525A42 /* in_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_route.c; path = ../../src/filters/in_route.c; sourceTree = "<group>"; };
 		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
 		92455F8D2A530F560080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = ../../src/filters/dec_cc.c; sourceTree = "<group>"; };
+		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = ../../src/filters/enc_cc.c; sourceTree = "<group>"; };
 		92455FDA2A540A640080321C /* libcaption.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcaption.a; path = ../../extra_lib/lib/iOS/libcaption.a; sourceTree = "<group>"; };
 		9246EE7624A1240600F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = ../../src/filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		924AB67E281438E000EC006F /* default.cfg */ = {isa = PBXFileReference; lastKnownFileType = text; name = default.cfg; path = ../../share/default.cfg; sourceTree = "<group>"; };

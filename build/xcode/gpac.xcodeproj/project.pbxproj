@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		3F04FCBC2C9CB179002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */; };
 		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
-		3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5B82D402C0B006F0673 /* enc_cc.c */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
 		920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8C18D5A444003D1ACA /* bifs_node_tables.c */; };
@@ -220,6 +219,7 @@
 		923E89D020B6F2D300F299B2 /* filter_props.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4721F71642E00616F7C /* filter_props.c */; };
 		923EB53223D1B78D00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53123D1B78D00E1FFA1 /* libbf.c */; };
 		92455F8C2A52B4B90080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8B2A52B4B90080321C /* dec_cc.c */; };
+		3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5B82D402C0B006F0673 /* enc_cc.c */; };
 		9246EE7524A0DA2700F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7424A0DA2700F72EAD /* filter_session_js.c */; };
 		92493D8020E2A64000203C2C /* crypt_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92493D7F20E2A64000203C2C /* crypt_tools.c */; };
 		92493D8220E2A81700203C2C /* crypt_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92493D8120E2A81700203C2C /* crypt_tools.h */; };
@@ -650,7 +650,6 @@
 		28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.4.0.dylib; path = usr/lib/libiconv.2.4.0.dylib; sourceTree = SDKROOT; };
 		3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
-		3FDEA5B82D402C0B006F0673 /* enc_cc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = filters/enc_cc.c; sourceTree = "<group>"; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
 		9201000218D5A444003D1ACA /* isom_store.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_store.c; sourceTree = "<group>"; };
@@ -860,6 +859,7 @@
 		923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_tinyaes.c; path = crypto/g_crypt_tinyaes.c; sourceTree = "<group>"; };
 		923EB53123D1B78D00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = quickjs/libbf.c; sourceTree = "<group>"; };
 		92455F8B2A52B4B90080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = filters/dec_cc.c; sourceTree = "<group>"; };
+		3FDEA5B82D402C0B006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = filters/enc_cc.c; sourceTree = "<group>"; };
 		9246EE7424A0DA2700F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		92493D7F20E2A64000203C2C /* crypt_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crypt_tools.c; sourceTree = "<group>"; };
 		92493D8120E2A81700203C2C /* crypt_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypt_tools.h; path = ../include/gpac/crypt_tools.h; sourceTree = "<group>"; };
