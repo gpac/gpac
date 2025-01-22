@@ -621,7 +621,7 @@
 		2897039B1A13C4050063E9C0 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../extra_lib/lib/iOS/libswresample.a; sourceTree = "<group>"; };
 		3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F202C7EAD0C00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
-		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = /Users/rbouqueau/works/gpac/gpac_public/src/filters/enc_cc.c; sourceTree = "<absolute>"; };
+		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = enc_cc.c; sourceTree = "<group>"; };
 		7141FF2F1292CB9200FCB27D /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		7147425F12B918C900DB5A59 /* cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache.c; sourceTree = "<group>"; };
 		71847811127860F000917298 /* libc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libc.dylib; path = usr/lib/libc.dylib; sourceTree = SDKROOT; };
