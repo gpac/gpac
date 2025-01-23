@@ -434,7 +434,7 @@ void dm_sess_sk_del(GF_DownloadSession *sess);
 void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
 
 GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char *url, u32 dl_flags,
-        gf_dm_user_io user_io, void *usr_cbk, GF_Socket *server, GF_Err *e);
+        gf_dm_user_io user_io, void *usr_cbk, GF_Socket *server, Bool force_server, GF_Err *e);
 
 
 //cache functions - NOT exported, only downloader has access to it

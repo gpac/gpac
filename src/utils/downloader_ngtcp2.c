@@ -43,23 +43,82 @@
 GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options,
 	u8 **dst_sock_addr, u32 *dst_sock_addr_len, u8 **src_sock_addr, u32 *src_sock_addr_len);
 
+GF_Err gf_sk_send_to(GF_Socket *sock, const u8 *buffer, u32 length, const u8 *addr, u32 addr_len, u32 *written);
 
 static u64 ngtcp2_timestamp()
 {
 	return 1000*gf_sys_clock_high_res();
 }
 
+
+#define NGTCP2_STATELESS_RESET_BURST 100
+#define NGTCP2_SV_SCIDLEN 18
+#define MAX_CONNID_LEN	255
+#define MAX_ADDR_LEN	100
+const u8 *gf_sk_get_address(GF_Socket *sock, u32 *addr_size);
+
+
+struct __gf_quic_server
+{
+	GF_Socket *sock;
+	GF_DownloadManager *dm;
+	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port);
+	void *udta;
+	SSL_CTX *ssl_ctx;
+
+	u8 *local_add;
+	u32 local_add_len;
+
+	GF_List *connections;
+	u8 secret[GF_SHA256_DIGEST_SIZE];
+	Bool validate_address;
+	u32 stateless_reset_count;
+
+};
+
+typedef struct __gf_quic_server GF_QuicServer;
+
+
+typedef struct __gf_quic_connection
+{
+	GF_QuicServer *server;
+
+	u8 dcid[MAX_CONNID_LEN];
+	u32 dcid_len;
+
+	u8 addr[MAX_ADDR_LEN];
+	u32 addr_len;
+
+	u64 drain_period_end;
+	u64 close_period_end;
+	u8 closebuf[NGTCP2_MAX_UDP_PAYLOAD_SIZE];
+	u32 closebuf_len;
+
+	GF_HMUX_Session *hmux;
+} GF_QUICConnection;
+
+
 typedef struct
 {
-	//keep parent
+	//if server, pointer to the server, NULL otherwise
+	GF_QUICConnection *serv_conn;
+
+	// parent hmux downlaoder session
 	GF_HMUX_Session *hmux;
 	ngtcp2_path path;
 	ngtcp2_conn *conn;
 	ngtcp2_crypto_conn_ref conn_ref;
 	nghttp3_conn *http_conn;
 	ngtcp2_ccerr last_error;
+
+	//for client
 	u32 handshake_state; //0: pending, 1: done, 2: error
+
+	//for server
+
 } NGTCP2Priv;
+
+static GF_Err quic_send_packet(GF_QuicServer *qs, const u8 *buf, u32 len, const u8 *to_a, u32 to_alen);
 
 static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *rand_ctx)
 {
@@ -70,10 +129,10 @@ static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *ra
 	}
 }
 
-static int ngq_get_new_connection_id_cb(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
+static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
 {
 	(void)conn;
-	(void)user_data;
+	NGTCP2Priv *qc = user_data;
 
 	if (RAND_bytes(cid->data, (int)cidlen) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
@@ -81,6 +140,11 @@ static int ngq_get_new_connection_id_cb(ngtcp2_conn *conn, ngtcp2_cid *cid, uint
 	cid->datalen = cidlen;
 	if (RAND_bytes(token, NGTCP2_STATELESS_RESET_TOKENLEN) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
+	}
+	//client
+	if (qc->serv_conn) {
+		memcpy(qc->serv_conn->dcid, cid->data, cid->datalen);
+		qc->serv_conn->dcid_len = cid->datalen;
 	}
 	return 0;
 }
@@ -323,6 +387,24 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	return 0;
 }
 
+static int ngh3_acked_stream_data(nghttp3_conn *conn, int64_t stream_id, uint64_t datalen,
+	void *conn_user_data, void *stream_user_data)
+{
+	NGTCP2Priv *qc = (NGTCP2Priv *)conn_user_data;
+	GF_DownloadSession *sess = stream_user_data;
+//	stream->http_acked_stream_data(datalen);
+	ngtcp2_conn_info ci;
+	ngtcp2_conn_get_conn_info(qc->conn, &ci);
+/*	if (stream->dynresp && stream->dynbuflen < ci.cwnd) {
+    	int rv = nghttp3_conn_resume_stream(qc->http_conn, sess->hmux_stream_id);
+    	if (rv != 0) {
+		  // TODO Handle error
+		}
+	}
+*/
+	return 0;
+}
+
 static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 {
 	NGTCP2Priv *qc = (NGTCP2Priv *)hmux_sess->hmux_udta;
@@ -345,7 +427,9 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 		.end_trailers = ngh3_end_trailers,
 		.stop_sending = ngh3_stop_sending,
 		.reset_stream = ngh3_reset_stream,
+		.acked_stream_data = ngh3_acked_stream_data
 	};
+
 	nghttp3_settings settings;
 	nghttp3_settings_default(&settings);
 	settings.qpack_max_dtable_capacity = 4096;
@@ -353,12 +437,20 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 
 	const nghttp3_mem *mem = nghttp3_mem_default();
 
-	int rv = nghttp3_conn_client_new(&qc->http_conn, &callbacks, &settings, mem, hmux_sess->hmux_udta);
-	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_client_new error %s\n", nghttp3_strerror(rv) ));
-		return GF_SERVICE_ERROR;
+	int rv;
+	if (qc->serv_conn) {
+		rv = nghttp3_conn_server_new(&qc->http_conn, &callbacks, &settings, mem, hmux_sess->hmux_udta);
+		if (rv != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_server_new error %s\n", nghttp3_strerror(rv) ));
+			return GF_SERVICE_ERROR;
+		}
+	} else {
+		rv = nghttp3_conn_client_new(&qc->http_conn, &callbacks, &settings, mem, hmux_sess->hmux_udta);
+		if (rv != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_client_new error %s\n", nghttp3_strerror(rv) ));
+			return GF_SERVICE_ERROR;
+		}
 	}
-
 	s64 ctrl_stream_id;
 	rv = ngtcp2_conn_open_uni_stream(qc->conn, &ctrl_stream_id, NULL);
 	if (rv != 0) {
@@ -483,9 +575,10 @@ static GF_Err h3_send_reply(GF_DownloadSession *sess, u32 reply_code, const char
 	return GF_OK;
 }
 
-static GF_Err h3_session_send(GF_DownloadSession *sess)
+static GF_Err h3_session_send_ex(GF_DownloadSession *sess, NGTCP2Priv *qc)
 {
-	NGTCP2Priv *qc = (NGTCP2Priv *)sess->hmux_sess->hmux_udta;
+	if (!qc) qc = (NGTCP2Priv *)sess->hmux_sess->hmux_udta;
+
 	u32 max_pay_size = ngtcp2_conn_get_max_tx_udp_payload_size(qc->conn);
 	u32 path_max_udp_size = ngtcp2_conn_get_path_max_tx_udp_payload_size(qc->conn);
 	u64 ts = ngtcp2_timestamp();
@@ -571,13 +664,25 @@ static GF_Err h3_session_send(GF_DownloadSession *sess)
 		}
 
 		u32 written=0;
-		GF_Err e = gf_sk_send_ex(sess->sock, buffer, nwrite, &written);
+		GF_Err e;
+		if (sess)
+			e = gf_sk_send_ex(sess->sock, buffer, nwrite, &written);
+		else {
+			e = quic_send_packet(qc->serv_conn->server, buffer, nwrite, (const u8 *) ps.path.remote.addr, (u32) ps.path.remote.addrlen);
+		}
 
 		if (e==GF_IP_NETWORK_EMPTY) {
 			break;
 		}
+		if (e) {
+			break;
+		}
 	}
 	return GF_OK;
+}
+static GF_Err h3_session_send(GF_DownloadSession *sess)
+{
+	return h3_session_send_ex(sess, NULL);
 }
 
 static void h3_stream_reset(GF_DownloadSession *sess)
@@ -783,15 +888,23 @@ int ngq_stream_reset(ngtcp2_conn *conn, int64_t stream_id, uint64_t final_size,
 	return 0;
 }
 
-static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_port)
+static int ngq_stream_open(ngtcp2_conn *conn, int64_t stream_id, void *user_data)
+{
+	NGTCP2Priv *qc = user_data;
+	if (!ngtcp2_is_bidi_stream(stream_id)) {
+		return 0;
+	}
+	return 0;
+}
+
+
+static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_port,
+	const ngtcp2_pkt_hd *srv_hd, const ngtcp2_cid *srv_ocid, u32 token_type, ngtcp2_path *srv_path, GF_QUICConnection *qsc)
 {
 	NGTCP2Priv *ng_quic;
+	GF_Err e;
 
-	//TODO
-	if (sess->server_mode)
-		return GF_NOT_SUPPORTED;
-
-	if (sess->dm && !sess->dm->ssl_ctx) {
+	if (!sess->server_mode && sess->dm && !sess->dm->ssl_ctx) {
 		gf_ssl_try_connect(sess, NULL);
 		if (!sess->ssl) return GF_IO_ERR;
 	}
@@ -804,55 +917,86 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		sess->hmux_sess = NULL;
 		return GF_OUT_OF_MEM;
 	}
+	ng_quic->serv_conn = qsc;
 	ng_quic->hmux = sess->hmux_sess;
 	sess->hmux_sess->hmux_udta = ng_quic;
 	ng_quic->conn_ref.get_conn = ngq_get_conn;
 	ng_quic->conn_ref.user_data = ng_quic;
 	SSL_set_app_data(sess->ssl, &ng_quic->conn_ref);
 
-	u8 *src, *dst;
-	u32 src_len, dst_len;
-	GF_Err e = gf_sk_bind_ex(sess->sock, "127.0.0.1", 1234, server, server_port, 0, &dst, &dst_len, &src, &src_len);
-	if (e) goto err;
+	if (qsc) qsc->hmux = sess->hmux_sess;
 
-	ng_quic->path.local.addr = (ngtcp2_sockaddr*)src;
-	ng_quic->path.local.addrlen = src_len;
-	ng_quic->path.remote.addr = (ngtcp2_sockaddr*)dst;
-	ng_quic->path.remote.addrlen = dst_len;
+	if (sess->server_mode) {
+		u8 *buf;
+		buf = gf_malloc(sizeof(u8) * srv_path->local.addrlen);
+		memcpy(buf, srv_path->local.addr, srv_path->local.addrlen);
+		ng_quic->path.local.addr = (ngtcp2_sockaddr *) buf;
+		ng_quic->path.local.addrlen = srv_path->local.addrlen;
+
+		buf = gf_malloc(sizeof(u8) * srv_path->remote.addrlen);
+		memcpy(buf, srv_path->remote.addr, srv_path->remote.addrlen);
+		ng_quic->path.remote.addr = (ngtcp2_sockaddr *) buf;
+		ng_quic->path.remote.addrlen = srv_path->remote.addrlen;
+	} else {
+		u8 *src, *dst;
+		u32 src_len, dst_len;
+		e = gf_sk_bind_ex(sess->sock, "127.0.0.1", 1234, server, server_port, 0, &dst, &dst_len, &src, &src_len);
+		if (e) goto err;
+		//UDP connect to make sure we only get datagrams for ourselves
+		e = gf_sk_connect(sess->sock, (char *) server, server_port, NULL);
+		if (e) goto err;
+
+		ng_quic->path.local.addr = (ngtcp2_sockaddr*)src;
+		ng_quic->path.local.addrlen = src_len;
+		ng_quic->path.remote.addr = (ngtcp2_sockaddr*)dst;
+		ng_quic->path.remote.addrlen = dst_len;
+	}
 
 
 	//setup callbacks
 	ngtcp2_callbacks callbacks = {
-		.client_initial = ngtcp2_crypto_client_initial_cb,
 		.handshake_completed = ngq_handshake_completed,
 		.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb,
 		.encrypt = ngtcp2_crypto_encrypt_cb,
 		.decrypt = ngtcp2_crypto_decrypt_cb,
 		.hp_mask = ngtcp2_crypto_hp_mask_cb,
 		.recv_stream_data = ngq_recv_stream_data,
-		.recv_retry = ngtcp2_crypto_recv_retry_cb,
 		.acked_stream_data_offset = ngq_acked_stream_data_offset,
 		.extend_max_local_streams_bidi = ngq_extend_max_local_streams_bidi,
 		.rand = ngq_rand_cb,
 		.extend_max_stream_data = ngq_extend_max_stream_data,
-		.get_new_connection_id = ngq_get_new_connection_id_cb,
 		.update_key = ngtcp2_crypto_update_key_cb,
 		.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb,
 		.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb,
 		.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb,
 		.version_negotiation = ngtcp2_crypto_version_negotiation_cb,
-		.recv_rx_key = ngq_recv_rx_key,
+		.get_new_connection_id = ngq_get_new_connection_id,
 		.stream_close = ngq_stream_close,
 		.stream_reset = ngq_stream_reset,
-		.stream_stop_sending = ngq_stream_stop_sending
+		.stream_stop_sending = ngq_stream_stop_sending,
 	};
-	//todo ?
+
+	if (sess->server_mode) {
+	    callbacks.recv_client_initial = ngtcp2_crypto_recv_client_initial_cb;
+		callbacks.recv_tx_key = ngq_recv_rx_key;
+		callbacks.stream_open = ngq_stream_open;
+//		callbacks.get_new_connection_id = ngq_get_new_connection_id_client;
+//    .remove_connection_id = remove_connection_id,
+//    .update_key = ::update_key,
+//		.path_validation
+	} else {
+		callbacks.recv_retry = ngtcp2_crypto_recv_retry_cb;
+		callbacks.client_initial = ngtcp2_crypto_client_initial_cb;
+		callbacks.recv_rx_key = ngq_recv_rx_key;
+		//todo ?
 //    .recv_version_negotiation = ::recv_version_negotiation,
 //    .path_validation = path_validation,
 //    .select_preferred_addr = ::select_preferred_address,
 //    .handshake_confirmed = ::handshake_confirmed,
 //    .recv_new_token = ::recv_new_token,
 //    .tls_early_data_rejected = ::early_data_rejected,
+
+	}
 
 
 	ngtcp2_cid dcid, scid;
@@ -892,6 +1036,15 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	settings.no_pmtud = 0;
 	settings.ack_thresh = 3;
 
+	//server config
+	if (sess->server_mode) {
+		settings.token = srv_hd->token;
+		settings.tokenlen = srv_hd->tokenlen;
+		settings.token_type = token_type;
+		settings.max_window = 6000000;
+		settings.max_stream_window = 6000000;
+	}
+
 	ngtcp2_transport_params_default(&params);
 
 	params.initial_max_streams_uni = 3;
@@ -905,12 +1058,39 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	params.active_connection_id_limit = 7;
 	params.grease_quic_bit = 1;
 
-	rv = ngtcp2_conn_client_new(&ng_quic->conn, &dcid, &scid, &ng_quic->path, NGTCP2_PROTO_VER_V1,
-						   &callbacks, &settings, &params, NULL, ng_quic);
-	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_client_new error %s\n", ngtcp2_strerror(rv) ));
-		e = GF_IP_CONNECTION_FAILURE;
-		goto err;
+	if (sess->server_mode) {
+		params.stateless_reset_token_present = 1;
+		if (srv_ocid) {
+			params.original_dcid = *srv_ocid;
+			params.retry_scid = srv_hd->dcid;
+			params.retry_scid_present = 1;
+		} else {
+			params.original_dcid = srv_hd->dcid;
+		}
+		params.original_dcid_present = 1;
+
+		rv = ngtcp2_crypto_generate_stateless_reset_token(params.stateless_reset_token, qsc->server->secret, GF_SHA256_DIGEST_SIZE, &scid);
+		if (rv != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_generate_stateless_reset_token error %s\n", ngtcp2_strerror(rv) ));
+			e = GF_IP_CONNECTION_FAILURE;
+			goto err;
+		}
+		rv = ngtcp2_conn_server_new(&ng_quic->conn, &srv_hd->scid, &scid, &ng_quic->path, NGTCP2_PROTO_VER_V1,
+							   &callbacks, &settings, &params, NULL, ng_quic);
+		if (rv != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_server_new error %s\n", ngtcp2_strerror(rv) ));
+			e = GF_IP_CONNECTION_FAILURE;
+			goto err;
+		}
+	} else {
+
+		rv = ngtcp2_conn_client_new(&ng_quic->conn, &dcid, &scid, &ng_quic->path, NGTCP2_PROTO_VER_V1,
+							   &callbacks, &settings, &params, NULL, ng_quic);
+		if (rv != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_client_new error %s\n", ngtcp2_strerror(rv) ));
+			e = GF_IP_CONNECTION_FAILURE;
+			goto err;
+		}
 	}
 
 	ngtcp2_conn_set_tls_native_handle(ng_quic->conn, sess->ssl);
@@ -941,6 +1121,9 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		sess->hmux_sess->mx = sess->mx;
 	}
 	sess->chunked = GF_FALSE;
+	//don't flush packets now in server mode
+	if (qsc) return GF_OK;
+
 	return h3_session_send(sess);
 
 err:
@@ -955,8 +1138,9 @@ err:
 GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 {
 	if (!sess->hmux_sess) {
-		GF_Err e = h3_initialize(sess, server, server_port);
+		GF_Err e = h3_initialize(sess, server, server_port, NULL, NULL, NULL, NULL, NULL);
 		if (e) return e;
+
 		return GF_IP_NETWORK_EMPTY;
 	}
 	if (!sess->hmux_sess)
@@ -974,5 +1158,506 @@ GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 	return h3_setup_http3(sess->hmux_sess);
 }
 
+
+
+void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, void *usr_cbk)
+{
+	if (!sess) return;
+	sess->user_proc = user_io;
+	sess->usr_cbk = usr_cbk;
+}
+
+GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServer **oq, const char *ip, u32 port, const char *netcap_id,
+	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port),
+	void *udta)
+{
+	GF_QuicServer *tmp;
+	if (!dm || !ssl_ctx || !accept_conn || !port) return GF_BAD_PARAM;
+
+	GF_SAFEALLOC(tmp, GF_QuicServer);
+	if (!tmp) return GF_OUT_OF_MEM;
+	tmp->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, netcap_id);
+	GF_Err e = gf_sk_bind_ex(tmp->sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT, NULL, NULL, &tmp->local_add, &tmp->local_add_len);
+	if (e) {
+		gf_sk_del(tmp->sock);
+		gf_free(tmp);
+		return e;
+	}
+	gf_sk_set_block_mode(tmp->sock, GF_TRUE);
+	gf_sk_server_mode(tmp->sock, GF_TRUE);
+	tmp->connections = gf_list_new();
+
+	u8 buf[50];
+	RAND_bytes(buf, 50);
+	gf_sha256_csum(buf, 50, tmp->secret);
+	tmp->stateless_reset_count = NGTCP2_STATELESS_RESET_BURST;
+
+	tmp->ssl_ctx = ssl_ctx;
+	tmp->dm = dm;
+	tmp->accept_conn = accept_conn;
+	tmp->udta = udta;
+
+	*oq = tmp;
+	return GF_OK;
+}
+void gf_dm_quic_server_del(GF_QuicServer *qs)
+{
+	gf_list_del(qs->connections);
+	gf_sk_del(qs->sock);
+	gf_free(qs);
+}
+GF_Socket *gf_dm_quic_get_socket(GF_QuicServer *qs)
+{
+	return qs ? qs->sock : NULL;
+}
+
+static int quic_verify_token(GF_QuicServer *qs, const ngtcp2_pkt_hd *hd, const u8 *sa, u32 salen)
+{
+	u64 ts = ngtcp2_timestamp();
+	if (ngtcp2_crypto_verify_regular_token(hd->token, hd->tokenlen,
+                                         qs->secret,  GF_SHA256_DIGEST_SIZE,
+                                         (const ngtcp2_sockaddr *)sa, (ngtcp2_socklen) salen,
+                                         3600 * NGTCP2_SECONDS, ts) != 0) {
+		return -1;
+	}
+	return 0;
+}
+static int quic_verify_retry_token(GF_QuicServer *qs, ngtcp2_cid *ocid, const ngtcp2_pkt_hd *hd, const u8 *sa, u32 salen)
+{
+	u64 ts = ngtcp2_timestamp();
+	int rv = ngtcp2_crypto_verify_retry_token2(
+		ocid, hd->token, hd->tokenlen,
+		qs->secret,  GF_SHA256_DIGEST_SIZE,
+		hd->version, (const ngtcp2_sockaddr *)sa, (ngtcp2_socklen) salen, &hd->dcid,
+		10 * NGTCP2_SECONDS, ts);
+
+	switch (rv) {
+	case 0:
+		break;
+	case NGTCP2_CRYPTO_ERR_VERIFY_TOKEN:
+		return -1;
+	default:
+		return 1;
+	}
+	return 0;
+}
+
+static GF_Err quic_send_packet(GF_QuicServer *qs, const u8 *buf, u32 len, const u8 *to_a, u32 to_alen)
+{
+	u32 written;
+	GF_Err e = gf_sk_send_to(qs->sock, buf, len, to_a, to_alen, &written);
+	if (e) return e;
+	if (written!=len)
+		return GF_IP_NETWORK_EMPTY;
+	return GF_OK;
+}
+static int quic_send_retry(GF_QuicServer *qs, const ngtcp2_pkt_hd *chd, const u8 *sa, u32 salen, u32 max_pktlen)
+{
+	ngtcp2_cid scid;
+	scid.datalen = NGTCP2_SV_SCIDLEN;
+	if (RAND_bytes(scid.data, scid.datalen) != 1) {
+		return -1;
+	}
+	u8 token[NGTCP2_CRYPTO_MAX_RETRY_TOKENLEN2];
+	u64 ts = ngtcp2_timestamp();
+
+	int tokenlen = ngtcp2_crypto_generate_retry_token2(token, qs->secret, GF_SHA256_DIGEST_SIZE, chd->version,
+		(const ngtcp2_sockaddr *)sa, (ngtcp2_socklen) salen, &scid, &chd->dcid, ts);
+
+	if (tokenlen < 0) {
+		return -1;
+	}
+
+	u32 blen = MIN(NGTCP2_MAX_UDP_PAYLOAD_SIZE, max_pktlen);
+	u8 buf[NGTCP2_MAX_UDP_PAYLOAD_SIZE];
+
+	int nwrite = ngtcp2_crypto_write_retry(buf, blen, chd->version, &chd->scid, &scid, &chd->dcid, token, tokenlen);
+	if (nwrite < 0) {
+		return -1;
+	}
+	GF_Err e = quic_send_packet(qs, buf, blen, sa, salen);
+	if (e) return -1;
+	return 0;
+}
+
+static int quic_send_stateless_reset(GF_QuicServer *qs, u32 pktlen, const u8 *dcid, u32 dcid_len, const u8 *sa, u32 salen)
+{
+	if (qs->stateless_reset_count == 0) return 0;
+	qs->stateless_reset_count--;
+
+	ngtcp2_cid cid;
+	ngtcp2_cid_init(&cid, dcid, dcid_len);
+	u8 token[NGTCP2_STATELESS_RESET_TOKENLEN];
+
+	if (ngtcp2_crypto_generate_stateless_reset_token(token, qs->secret, GF_SHA256_DIGEST_SIZE, &cid) != 0) {
+		return -1;
+	}
+
+	u32 max_rand_byteslen = NGTCP2_MAX_CIDLEN + 22 - NGTCP2_STATELESS_RESET_TOKENLEN;
+	u8 rand_bytes[NGTCP2_MAX_CIDLEN + 22 - NGTCP2_STATELESS_RESET_TOKENLEN];
+	u32 rand_byteslen;
+
+	if (pktlen <= 43) {
+		rand_byteslen = pktlen - NGTCP2_STATELESS_RESET_TOKENLEN - 1;
+	} else {
+		rand_byteslen = max_rand_byteslen;
+	}
+
+	if (RAND_bytes(rand_bytes, rand_byteslen) != 1) {
+		return -1;
+	}
+
+	u8 buf[NGTCP2_MAX_UDP_PAYLOAD_SIZE];
+	int nwrite = ngtcp2_pkt_write_stateless_reset(buf, NGTCP2_MAX_UDP_PAYLOAD_SIZE, token, rand_bytes, rand_byteslen);
+	if (nwrite < 0) {
+		return -1;
+	}
+	GF_Err e = quic_send_packet(qs, buf, nwrite, sa, salen);
+	if (e) return -1;
+	return 0;
+}
+
+enum
+{
+	QNET_OK = 0,
+	QNET_ERR_CLOSE_WAIT,
+	QNET_ERR_RETRY,
+	QNET_ERR_DROP_CONN
+};
+
+static int quic_send_stateless_connection_close(GF_QuicServer *qs, const ngtcp2_pkt_hd *chd, const u8 *sa, u32 salen)
+{
+	u8 buf[NGTCP2_MAX_UDP_PAYLOAD_SIZE];
+	int nwrite = ngtcp2_crypto_write_connection_close(buf, NGTCP2_MAX_UDP_PAYLOAD_SIZE, chd->version, &chd->scid, &chd->dcid, NGTCP2_INVALID_TOKEN, NULL, 0);
+	if (nwrite < 0) return -1;
+	GF_Err e = quic_send_packet(qs, buf, nwrite, sa, salen);
+	if (e) return -1;
+	return 0;
+}
+
+void quic_start_draining_period(NGTCP2Priv *qc)
+{
+	qc->serv_conn->drain_period_end = gf_sys_clock_high_res();
+	qc->serv_conn->drain_period_end += ngtcp2_conn_get_pto(qc->conn)/1000; //(*3);
+//call close_waitcb
+}
+int quic_start_closing_period(NGTCP2Priv *qc)
+{
+	if (!qc->conn || ngtcp2_conn_in_closing_period(qc->conn) || ngtcp2_conn_in_draining_period(qc->conn)) {
+		return 0;
+	}
+	qc->serv_conn->close_period_end = gf_sys_clock_high_res();
+	qc->serv_conn->close_period_end += ngtcp2_conn_get_pto(qc->conn)/1000; //(*3);
+//call close_waitcb
+	ngtcp2_path_storage ps;
+	ngtcp2_path_storage_zero(&ps);
+	ngtcp2_pkt_info pi;
+	int n = ngtcp2_conn_write_connection_close(qc->conn, &ps.path, &pi, qc->serv_conn->closebuf, NGTCP2_MAX_UDP_PAYLOAD_SIZE, &qc->last_error, ngtcp2_timestamp());
+	if (n<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_write_connection_close error %s\n", ngtcp2_strerror(n) ));
+		return -1;
+	}
+	if (n == 0) return 0;
+	qc->serv_conn->closebuf_len = n;
+	return 0;
+}
+
+static int quic_send_conn_close(NGTCP2Priv *qc)
+{
+	assert(qc->serv_conn && qc->serv_conn->closebuf_len);
+	assert(qc->conn);
+	assert(!ngtcp2_conn_in_draining_period(qc->conn));
+	const ngtcp2_path *path = ngtcp2_conn_get_path(qc->conn);
+	GF_Err e = quic_send_packet(qc->serv_conn->server, qc->serv_conn->closebuf, qc->serv_conn->closebuf_len, (const u8 *)&path->remote.addr, (u32) path->remote.addrlen);
+	if (e) return -1;
+	return 0;
+}
+
+static int quic_handle_error(NGTCP2Priv *qc)
+{
+	if (qc->last_error.type == NGTCP2_CCERR_TYPE_IDLE_CLOSE) {
+		return -1;
+	}
+	if (quic_start_closing_period(qc) != 0) {
+		return -1;
+	}
+
+	if (ngtcp2_conn_in_draining_period(qc->conn)) {
+		return QNET_ERR_CLOSE_WAIT;
+	}
+	int rv = quic_send_conn_close(qc);
+	if (rv != QNET_OK) {
+		return rv;
+	}
+	return QNET_ERR_CLOSE_WAIT;
+}
+
+static int gf_quic_on_data(GF_QUICConnection *c, const u8 *data, u32 nb_bytes)
+{
+	NGTCP2Priv *qc = (NGTCP2Priv *) c->hmux->hmux_udta;
+	ngtcp2_path path;
+	ngtcp2_pkt_info pi = {0};
+
+	path = qc->path;
+	int rv = ngtcp2_conn_read_pkt(qc->conn, &path, &pi, data, (size_t)nb_bytes, ngtcp2_timestamp() );
+	if (rv != 0) {
+		switch (rv) {
+		case NGTCP2_ERR_DRAINING:
+			quic_start_draining_period(qc);
+			return QNET_ERR_CLOSE_WAIT;
+		case NGTCP2_ERR_RETRY:
+			return QNET_ERR_RETRY;
+		case NGTCP2_ERR_DROP_CONN:
+			return QNET_ERR_DROP_CONN;
+		case NGTCP2_ERR_CRYPTO:
+			if (!qc->last_error.error_code) {
+				if (rv == NGTCP2_ERR_CRYPTO) {
+					ngtcp2_ccerr_set_tls_alert(&qc->last_error, ngtcp2_conn_get_tls_alert(qc->conn), NULL, 0);
+				} else {
+					ngtcp2_ccerr_set_liberr(&qc->last_error, rv, NULL, 0);
+				}
+			}
+			return GF_OK;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_read_pkt: %s\n", ngtcp2_strerror(rv) ));
+			return GF_IP_NETWORK_FAILURE;
+		}
+	}
+	return GF_OK;
+}
+
+static int quic_on_write(GF_QUICConnection *c)
+{
+	NGTCP2Priv *qc = (NGTCP2Priv *) c->hmux->hmux_udta;
+	if (ngtcp2_conn_in_closing_period(qc->conn) || ngtcp2_conn_in_draining_period(qc->conn)) {
+		return 0;
+	}
+
+/*	  if (tx_.send_blocked) {
+		if (auto rv = send_blocked_packet(); rv != 0) {
+		  return rv;
+		}
+
+		if (tx_.send_blocked) {
+		  return 0;
+		}
+	  }
+	ev_io_stop(loop_, &wev_);
+*/
+
+	GF_Err e = h3_session_send_ex(NULL, qc);
+	if (e) return -1;
+	return 0;
+}
+
+static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QUICConnection **oc, ngtcp2_version_cid *vc, const u8 *data, u32 data_len, const u8 *s_add, u32 s_add_len)
+{
+	GF_QUICConnection *c;
+	if (!s_add) return GF_IP_CONNECTION_FAILURE;
+	if (s_add_len>MAX_ADDR_LEN) return GF_BAD_PARAM;
+	if (vc->dcidlen>MAX_CONNID_LEN) return GF_BAD_PARAM;
+
+    ngtcp2_pkt_hd hd;
+    int rv = ngtcp2_accept(&hd, data, data_len);
+    if (rv != 0) {
+		if (!(data[0] & 0x80) && (data_len >= NGTCP2_SV_SCIDLEN + 22) ) {
+			quic_send_stateless_reset(qs, data_len, vc->dcid, vc->dcidlen, s_add, s_add_len);
+		}
+		return GF_IP_NETWORK_EMPTY;
+	}
+
+    ngtcp2_cid ocid;
+    ngtcp2_cid *pocid = NULL;
+    ngtcp2_token_type token_type = NGTCP2_TOKEN_TYPE_UNKNOWN;
+    assert(hd.type == NGTCP2_PKT_INITIAL);
+
+    if (qs->validate_address || hd.tokenlen) {
+		if (hd.tokenlen == 0) {
+			quic_send_retry(qs, &hd, s_add, s_add_len, data_len * 3);
+			return GF_IP_NETWORK_EMPTY;
+		}
+		if ((hd.token[0] != NGTCP2_CRYPTO_TOKEN_MAGIC_RETRY2) && (hd.dcid.datalen < NGTCP2_MIN_INITIAL_DCIDLEN)) {
+			quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+			return GF_IP_NETWORK_EMPTY;
+		}
+		switch (hd.token[0]) {
+		case NGTCP2_CRYPTO_TOKEN_MAGIC_RETRY2:
+			switch (quic_verify_retry_token(qs, &ocid, &hd, s_add, s_add_len)) {
+			case 0:
+				pocid = &ocid;
+				token_type = NGTCP2_TOKEN_TYPE_RETRY;
+				break;
+			case -1:
+				quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+				return GF_IP_NETWORK_EMPTY;
+			case 1:
+				hd.token = NULL;
+				hd.tokenlen = 0;
+				break;
+			}
+			break;
+		case NGTCP2_CRYPTO_TOKEN_MAGIC_REGULAR:
+			if (quic_verify_token(qs, &hd, s_add, s_add_len) != 0) {
+				if (qs->validate_address) {
+					quic_send_retry(qs, &hd, s_add, s_add_len, data_len * 3);
+					return GF_IP_NETWORK_EMPTY;
+				}
+				hd.token = NULL;
+				hd.tokenlen = 0;
+			} else {
+				token_type = NGTCP2_TOKEN_TYPE_NEW_TOKEN;
+			}
+			break;
+		default:
+			if (qs->validate_address) {
+				quic_send_retry(qs, &hd, s_add, s_add_len, data_len * 3);
+				return GF_IP_NETWORK_EMPTY;
+			}
+			hd.token = NULL;
+			hd.tokenlen = 0;
+			break;
+		}
+	}
+	//we have a new connection
+	char peer_address[GF_MAX_IP_NAME_LEN];
+	u32 peer_port;
+	gf_sk_get_remote_address_port(qs->sock, peer_address, &peer_port);
+
+	GF_Err e;
+	GF_DownloadSession *sess = gf_dm_sess_new_internal(qs->dm, NULL, GF_NETIO_SESSION_NO_BLOCK, NULL, NULL, NULL, GF_TRUE, &e);
+	if (e) {
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		return GF_IP_NETWORK_EMPTY;
+	}
+	if (!qs->accept_conn(qs->udta, sess, peer_address, peer_port)) {
+		gf_dm_sess_del(sess);
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		return GF_IP_NETWORK_EMPTY;
+	}
+	//setup SSL
+	sess->ssl = SSL_new(qs->ssl_ctx);
+	if (!sess->ssl) {
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		sess->status = GF_NETIO_DISCONNECTED;
+		return GF_IP_CONNECTION_FAILURE;
+	}
+	SSL_set_accept_state(sess->ssl);
+
+	GF_SAFEALLOC(c, GF_QUICConnection)
+	if (!c) return GF_OUT_OF_MEM;
+	memcpy(c->dcid, vc->dcid, vc->dcidlen);
+	c->dcid_len = vc->dcidlen;
+	memcpy(c->addr, s_add, s_add_len);
+	c->addr_len = s_add_len;
+	c->server = qs;
+	gf_list_add(qs->connections, c);
+
+	ngtcp2_path path;
+	path.local.addr = (ngtcp2_sockaddr *) qs->local_add;
+	path.local.addrlen = qs->local_add_len;
+	path.remote.addr = (ngtcp2_sockaddr *) s_add;
+	path.remote.addrlen = s_add_len;
+
+
+	e = h3_initialize(sess, NULL, 0, &hd, pocid, token_type, &path, c);
+	NGTCP2Priv *qc = sess->hmux_sess->hmux_udta;
+	if (e) {
+		gf_list_del_item(qs->connections, c);
+		qc->serv_conn = NULL;
+		gf_free(qc);
+		sess->status = GF_NETIO_DISCONNECTED;
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		return GF_IP_CONNECTION_FAILURE;
+	}
+	int res = gf_quic_on_data(c, data, data_len);
+    if (res) {
+		if (res == QNET_ERR_RETRY)
+			quic_send_retry(qs, &hd, s_add, s_add_len, data_len * 3);
+
+		return GF_IP_NETWORK_EMPTY;
+	}
+	if (quic_on_write(qc->serv_conn))
+		return GF_IP_NETWORK_EMPTY;
+	//todo: gather CIDs
+	return GF_OK;
+}
+
+GF_Err gf_dm_quic_process(GF_QuicServer *qs)
+{
+	GF_Err e;
+	u8 buf[5000];
+	u32 nb_read;
+
+restart:
+
+	nb_read=0;
+	e = gf_sk_receive(qs->sock, buf, 5000, &nb_read);
+	if (e) return e;
+	if (nb_read<22) return GF_IP_NETWORK_EMPTY;
+
+	u32 src_add_len = 0;
+	const u8 *src_add =  gf_sk_get_address(qs->sock, &src_add_len);
+	if (!src_add) return GF_IP_NETWORK_EMPTY;
+
+	ngtcp2_version_cid vc;
+	int rv = ngtcp2_pkt_decode_version_cid(&vc, buf, 5000, NGTCP2_SV_SCIDLEN);
+	switch (rv) {
+	case 0:
+		break;
+	case NGTCP2_ERR_VERSION_NEGOTIATION:
+		//send_version_negotiation(vc.version, {vc.scid, vc.scidlen}, {vc.dcid, vc.dcidlen}, ep, local_addr, sa, salen);
+		return GF_IP_NETWORK_EMPTY;
+	default:
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[QUIC] Could not decode version and CID: %s\n", ngtcp2_strerror(rv) ));
+		return GF_IP_NETWORK_EMPTY;
+	}
+
+	GF_QUICConnection *qc = NULL;
+	u32 i, count = gf_list_count(qs->connections);
+	for (i=0; i<count; i++) {
+		qc = gf_list_get(qs->connections, i);
+		if ((qc->dcid_len == vc.dcidlen) && !memcmp(qc->dcid, vc.dcid, qc->dcid_len)) break;
+		qc = NULL;
+	}
+	if (!qc) {
+		e = gf_quic_create_connection(qs, &qc, &vc, buf, nb_read, src_add, src_add_len);
+		if (e) return e;
+
+		goto restart;
+	}
+
+	NGTCP2Priv *q = qc->hmux->hmux_udta;
+	if (ngtcp2_conn_in_closing_period(q->conn)) {
+		if (quic_send_conn_close(q) != 0) {
+	//      remove(h);
+			return GF_IP_NETWORK_EMPTY;
+		}
+		return GF_IP_NETWORK_EMPTY;
+	}
+	if (ngtcp2_conn_in_draining_period(q->conn)) {
+		return GF_IP_NETWORK_EMPTY;
+	}
+	int res = gf_quic_on_data(qc, buf, nb_read);
+	if (res) {
+		if (res != QNET_ERR_CLOSE_WAIT) {
+			//remove(h);
+			return GF_IP_NETWORK_EMPTY;
+		}
+		return GF_IP_NETWORK_EMPTY;
+	}
+	if (quic_on_write(qc))
+		return GF_IP_NETWORK_EMPTY;
+
+	goto restart;
+
+	return GF_OK;
+}
+
+GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
+{
+	if (!qs) return GF_OK;
+
+	return GF_OK;
+}
 
 #endif // !defined(GPAC_DISABLE_NETWORK) && defined(GPAC_HAS_NGTCP2)
