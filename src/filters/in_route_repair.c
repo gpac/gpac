@@ -629,7 +629,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 				}
 				finfo->frags[0].size = valid_bytes;
 			}
-			fprintf(stderr, "direct dispatch1 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 			finfo->frags[0].size = true_size;
 			//remember we have a file in progress so that we don't dispatch packets from following file

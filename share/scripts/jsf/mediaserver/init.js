@@ -150,7 +150,7 @@ EX { 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
 # Multicast ABR Gateway with HTTP cache
 The server can be configured to use a multicast source as an alternate data source of a given HTTP streaming service.
 
-__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`active\` and \`keepalive\`.
+__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`active\`, \`keepalive\` and \`js\`.
 
 The multicast service can be dynamically loaded at run-time using the \`unload\` service configuration option:
 - if 0, the multicast is started when loading the server and never ended,
@@ -179,8 +179,26 @@ Configuration for caching a live HTTP streaming service with MABR backup:
 EX { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
 
 For such services, the custom HTTP header \`X-From-MABR\` is defined:
-- for client requests, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
+- for client request, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
 - for client response, a value of \`yes\` indicates the content comes from the MABR cache; if absent or value is \`no\`, the content comes from HTTP
+
+
+The \`js\` option can be set to a JS module exporting the following functions:
+- init : (mandatory) The function is called once at the start of the server. Parameters:
+  - scfg: the service configuration object
+  - return value: must be true if configuration and initialization are successful, false otherwise.
+
+- service_activation : (optional) The function is called when the service is activated or deactivated. Parameters:
+  - do_activate (boolean): if true, service is being loaded otherwise it is being unloaded
+  - return value: none
+
+- quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+  - do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
+  - service_id (integer): ID of the service as announced in the multicast
+  - period_id (string): ID of the DASH Period, ignored for HLS
+  - adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+  - representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
+  - return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
 
 # File Services
 A file system directory can be exposed as a service. 
@@ -208,7 +226,7 @@ return value must be true if configuration and initialization are successful, fa
 ## resolve (mandatory)
 Parameter: an HTTP request object from GPAC
 
-The function returns an array of two values:
+The function returns an array of two values \`[result, delay]\`:
 - result: null if error, a resolved string indicating either a local file or the reply body, or an object
 - delay: if true, the reply is being delayed by the module for later processing
 
@@ -1407,6 +1425,11 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	{
 		if (!this.mabr_service_id || !this.source || !rep) return;	
 
+		if (serv_cfg && serv_cfg.js_mod) {
+			let req_ok = serv_cfg.js_mod.quality_activation(do_activate, this.mabr_service_id, rep.period_id, rep.AS_ID, rep.ID);
+			if (!req_ok) return;
+		}
+
 		if (do_activate) {
 			this.nb_mabr_active++;
 			this.mabr_unload_timeout = 0;
@@ -1424,6 +1447,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			rep.mabr_active = true;
 			return;	
 		}
+
 		let evt = new FilterEvent(GF_FEVT_DASH_QUALITY_SELECT);
 		evt.service_id = this.mabr_service_id;
 		evt.period_id = rep.period_id;
@@ -1619,6 +1643,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//don't use dash client, we just need to get the files
 		this.sink.set_source(this.source);
 		do_log(GF_LOG_INFO, `Service ${this.id} loaded MABR for ${this.mabr}${this.repair ? ' with repair' : ''}`);
+
+		if (serv_cfg && serv_cfg.js_mod && typeof serv_cfg.js_mod.service_activation === 'function') {
+			serv_cfg.js_mod.service_activation(true);
+		}
 	};
 	s.unload_mabr = function() {
 		if (this.source) {
@@ -1629,6 +1657,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			this.source = null;
 			this.mabr_loaded = false;
 			this.mabr_failure = false;
+
+			if (serv_cfg && serv_cfg.js_mod && typeof serv_cfg.js_mod.service_activation === 'function') {
+				serv_cfg.js_mod.service_activation(false);
+			}
 		}
 	};
 
@@ -1754,7 +1786,6 @@ function do_init()
 				}
 				if (active_rep.mabr_active && s.mabr_min_active && (active_rep.nb_active<s.mabr_min_active) ) {
 					if (!mabr_canceled) {
-						do_log(GF_LOG_INFO, `Service ${s.id} Rep ${active_rep.ID} no longer on multicast`);
 						s.activate_mabr(active_rep, false);
 					} else {
 						active_rep.mabr_deactivate_timeout = sys.clock_ms() + 2000;
@@ -1964,8 +1995,12 @@ filter.initialize = function() {
 						if (!sys.file_exists(script_src)) throw "File " + sd.js + " does not exist";
 					}
 					import(script_src).then(obj_mod => {
-						if (typeof obj_mod.init !== 'function') throw "Invalid module, missing init function";
-						if (typeof obj_mod.resolve !== 'function') throw "Invalid module, missing resolve function";
+						if (typeof obj_mod.init !== 'function') throw "Invalid module, missing `init` function";
+						if (sd.mabr) {
+							if (typeof obj_mod.quality_activation !== 'function') throw "Invalid module, missing `quality_activation` function";
+						} else {
+							if (typeof obj_mod.resolve !== 'function') throw "Invalid module, missing `resolve` function";
+						}
 						mods_pending--;
 						sd.logname = sd.js;
 						sd.log = function(level, msg) {
