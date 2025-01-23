@@ -3575,7 +3575,7 @@ u32 mp4box_parse_args(int argc, char **argv)
 		}
 		//all deprecated options
 		else if (!stricmp(arg, "-grab-ts") || !stricmp(arg, "-atsc") || !stricmp(arg, "-rtp")) {
-			M4_LOG(GF_LOG_ERROR, ("Deprecated fuctionnality `%s` - use gpac application\n", arg));
+			M4_LOG(GF_LOG_ERROR, ("Deprecated functionality `%s` - use gpac application\n", arg));
 			return 2;
 		}
 		else if (!stricmp(arg, "-write-buffer")) {
