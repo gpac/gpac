@@ -370,7 +370,7 @@ GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stre
 	GF_DownloadSession *sub_sess;
 	if (!sess->hmux_sess || !stream_id) return NULL;
 	gf_mx_p(sess->mx);
-	sub_sess = gf_dm_sess_new_internal(NULL, NULL, 0, sess->user_proc, usr_cbk, sess->sock, e);
+	sub_sess = gf_dm_sess_new_internal(NULL, NULL, 0, sess->user_proc, usr_cbk, sess->sock, GF_TRUE, e);
 	if (!sub_sess) {
 		gf_mx_v(sess->mx);
 		return NULL;

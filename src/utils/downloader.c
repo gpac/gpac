@@ -1012,6 +1012,7 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
         gf_dm_user_io user_io,
         void *usr_cbk,
         GF_Socket *server,
+        Bool force_server,
         GF_Err *e)
 {
 	GF_DownloadSession *sess;
@@ -1040,7 +1041,7 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 	if (!sess->chunk_wnd_dur) sess->chunk_wnd_dur = 20000;
 
 	sess->dm = dm;
-	if (server) {
+	if (server || force_server) {
 		sess->sock = server;
 		sess->flags = GF_NETIO_SESSION_NOT_THREADED;
 		sess->status = GF_NETIO_CONNECTED;
@@ -1049,7 +1050,8 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 		if (e) *e = GF_OK;
 		if (dl_flags & GF_NETIO_SESSION_NO_BLOCK) {
 			sess->flags |= GF_NETIO_SESSION_NO_BLOCK;
-			gf_sk_set_block_mode(server, GF_TRUE);
+			if (server)
+				gf_sk_set_block_mode(server, GF_TRUE);
 		}
 		return sess;
 	}
@@ -1095,7 +1097,7 @@ GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *ser
         Bool async,
         GF_Err *e)
 {
-	GF_DownloadSession *sess = gf_dm_sess_new_internal(dm, NULL, async ? GF_NETIO_SESSION_NO_BLOCK : 0, user_io, usr_cbk, server, e);
+	GF_DownloadSession *sess = gf_dm_sess_new_internal(dm, NULL, async ? GF_NETIO_SESSION_NO_BLOCK : 0, user_io, usr_cbk, server, GF_TRUE, e);
 	if (!sess) return NULL;
 
 #ifdef GPAC_HAS_SSL
@@ -1143,7 +1145,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         void *usr_cbk,
         GF_Err *e)
 {
-	return gf_dm_sess_new_internal(dm, url, dl_flags, user_io, usr_cbk, NULL, e);
+	return gf_dm_sess_new_internal(dm, url, dl_flags, user_io, usr_cbk, NULL, GF_FALSE, e);
 }
 GF_EXPORT
 GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
@@ -4590,12 +4592,18 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm)
 	return 8*ret;
 }
 
-Bool gf_dm_sess_is_h2(GF_DownloadSession *sess)
+u32 gf_dm_sess_is_hmux(GF_DownloadSession *sess)
 {
 #ifdef GPAC_HTTPMUX
-	if (sess->hmux_sess) return GF_TRUE;
+	if (sess->hmux_sess) {
+		if (sess->hmux_sess->net_sess && sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC)
+			return 2;
+		if (sess->hmux_sess->net_sess && !sess->hmux_sess->net_sess->sock)
+			return 2;
+		return 1;
+	}
 #endif
-	return GF_FALSE;
+	return 0;
 }
 
 u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess)

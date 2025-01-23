@@ -28,6 +28,7 @@
 
 
 #ifdef GPAC_HAS_NGTCP2
+#include <ngtcp2/ngtcp2_crypto.h>
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
 #endif
 
@@ -362,8 +363,10 @@ error:
 }
 
 #ifdef GPAC_HAS_HTTP2
-
 void h2_initialize_session(GF_DownloadSession *sess);
+#endif
+
+#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 
 static unsigned char next_proto_list[256];
 static size_t next_proto_list_len;
@@ -382,15 +385,108 @@ static int next_proto_cb(SSL *ssl, const unsigned char **data, unsigned int *len
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg)
 {
-	int rv = nghttp2_select_next_protocol((unsigned char **)out, outlen, in, inlen);
-	if (rv != 1) {
-		return SSL_TLSEXT_ERR_NOACK;
+
+#ifdef GPAC_HAS_NGTCP2
+	ngtcp2_crypto_conn_ref *cref = (ngtcp2_crypto_conn_ref *) SSL_get_app_data(ssl);
+	if (cref) {
+		const uint8_t *alpn;
+		size_t alpnlen;
+		// This should be the negotiated version, but we have not set the
+		// negotiated version when this callback is called.
+		uint32_t version = ngtcp2_conn_get_client_chosen_version( cref->get_conn(cref) );
+
+		switch (version) {
+		case NGTCP2_PROTO_VER_V1:
+		case NGTCP2_PROTO_VER_V2:
+			alpn = "\x2h3";
+			alpnlen = 3;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Unexpected quic protocol version %X\n", version ));
+			return SSL_TLSEXT_ERR_ALERT_FATAL;
+		}
+		const unsigned char *p, *end;
+		for (p = in, end = in + inlen; p + alpnlen <= end; p += *p + 1) {
+			if (!strncmp(alpn, p, alpnlen)) {
+				*out = p + 1;
+				*outlen = *p;
+				return SSL_TLSEXT_ERR_OK;
+			}
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Client did not present ALPN %s\n", &alpn[1] ));
+		return SSL_TLSEXT_ERR_ALERT_FATAL;
 	}
-	return SSL_TLSEXT_ERR_OK;
+#endif
+
+
+#ifdef GPAC_HAS_NGHTTP2
+	int rv = nghttp2_select_next_protocol((unsigned char **)out, outlen, in, inlen);
+	if (rv == 1)
+		return SSL_TLSEXT_ERR_OK
+#endif
+	return SSL_TLSEXT_ERR_NOACK;
 }
+
 #endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
 
 #endif //GPAC_HAS_HTTP2
+
+
+#if !defined(LIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2)
+int ngq_gen_ticket_cb(SSL *ssl, void *arg)
+{
+	ngtcp2_crypto_conn_ref *cref = (ngtcp2_crypto_conn_ref *) SSL_get_app_data(ssl);
+	if (!cref) return 0;
+	int ver = htonl(ngtcp2_conn_get_negotiated_version(cref->get_conn(cref) ) );
+	if (!SSL_SESSION_set1_ticket_appdata(SSL_get0_session(ssl), &ver, sizeof(ver))) {
+		return 0;
+	}
+	return 1;
+}
+
+SSL_TICKET_RETURN ngq_decrypt_ticket_cb(SSL *ssl, SSL_SESSION *session, const unsigned char *keyname, size_t keynamelen, SSL_TICKET_STATUS status, void *arg)
+{
+	switch (status) {
+	case SSL_TICKET_EMPTY:
+	case SSL_TICKET_NO_DECRYPT:
+		return SSL_TICKET_RETURN_IGNORE_RENEW;
+	}
+
+	uint8_t *pver;
+	uint32_t ver;
+	size_t verlen;
+
+	if (!SSL_SESSION_get0_ticket_appdata(session, (void **) &pver, &verlen) || (verlen != sizeof(ver))) {
+		switch (status) {
+		case SSL_TICKET_SUCCESS:
+			return SSL_TICKET_RETURN_IGNORE;
+		case SSL_TICKET_SUCCESS_RENEW:
+		default:
+			return SSL_TICKET_RETURN_IGNORE_RENEW;
+		}
+	}
+	memcpy(&ver, pver, sizeof(ver));
+	ngtcp2_crypto_conn_ref *cref = (ngtcp2_crypto_conn_ref *) SSL_get_app_data(ssl);
+	if (!cref) return SSL_TICKET_RETURN_IGNORE_RENEW;
+
+	if (ngtcp2_conn_get_client_chosen_version(cref->get_conn(cref) ) != ntohl(ver)) {
+		switch (status) {
+		case SSL_TICKET_SUCCESS:
+			return SSL_TICKET_RETURN_IGNORE;
+		case SSL_TICKET_SUCCESS_RENEW:
+		default:
+			return SSL_TICKET_RETURN_IGNORE_RENEW;
+		}
+	}
+	switch (status) {
+	case SSL_TICKET_SUCCESS:
+		return SSL_TICKET_RETURN_USE;
+	case SSL_TICKET_SUCCESS_RENEW:
+	default:
+	return SSL_TICKET_RETURN_USE_RENEW;
+	}
+}
+#endif // !definedLIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2)
 
 
 void *gf_ssl_server_context_new(const char *cert, const char *key)
@@ -399,6 +495,9 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
     SSL_CTX *ctx;
 
     method = SSLv23_server_method();
+#ifdef GPAC_HAS_NGCTP2
+	method = TLS_server_method();
+#endif
 
     ctx = SSL_CTX_new(method);
     if (!ctx) {
@@ -406,6 +505,7 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 		ERR_print_errors_fp(stderr);
 		return NULL;
     }
+	SSL_CTX_set_default_verify_paths(ctx);
     SSL_CTX_set_ecdh_auto(ctx, 1);
 	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
 		ERR_print_errors_fp(stderr);
@@ -413,6 +513,11 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 		return NULL;
 	}
 	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) <= 0 ) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+	if (SSL_CTX_check_private_key(ctx) != 1) {
 		ERR_print_errors_fp(stderr);
 		SSL_CTX_free(ctx);
 		return NULL;
@@ -430,12 +535,48 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 		next_proto_list[0] = NGHTTP2_PROTO_VERSION_ID_LEN;
 		memcpy(&next_proto_list[1], NGHTTP2_PROTO_VERSION_ID, NGHTTP2_PROTO_VERSION_ID_LEN);
 		next_proto_list_len = 1 + NGHTTP2_PROTO_VERSION_ID_LEN;
+	}
+#endif
+
+
+#ifdef GPAC_HAS_NGTCP2
+	const char *opt = gf_opts_get_key("core", "h3");
+	if (!opt || strcmp(opt, "no")) {
+		ngtcp2_crypto_quictls_configure_server_context(ctx);
+
+		next_proto_list[next_proto_list_len] = 2;
+		memcpy(&next_proto_list[next_proto_list_len+1], "h3", 2);
+		next_proto_list_len = 1 + 2;
+
+		SSL_CTX_set_max_early_data(ctx, UINT32_MAX);
+
+		u64 ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
+                            SSL_OP_SINGLE_ECDH_USE |
+                            SSL_OP_CIPHER_SERVER_PREFERENCE
+#ifndef LIBRESSL_VERSION_NUMBER
+                            | SSL_OP_NO_ANTI_REPLAY
+#endif // !defined(LIBRESSL_VERSION_NUMBER)
+		;
+		SSL_CTX_set_options(ctx, ssl_opts);
+		SSL_CTX_set_mode(ctx, SSL_MODE_RELEASE_BUFFERS);
+
+		SSL_CTX_set_default_verify_paths(ctx);
+//		SSL_CTX_set_session_id_context(ctx, sid_ctx, sizeof(sid_ctx) - 1);
+
+#ifndef LIBRESSL_VERSION_NUMBER
+		SSL_CTX_set_session_ticket_cb(ctx, ngq_gen_ticket_cb, ngq_decrypt_ticket_cb, NULL);
+#endif // !defined(LIBRESSL_VERSION_NUMBER)
+
+	}
+#endif
+
+	if (next_proto_list_len) {
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
 	}
-#endif
+
     return ctx;
 }
 
