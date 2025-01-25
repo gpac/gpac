@@ -2590,7 +2590,7 @@ struct __gf_filter_register
 
 	/*! for filters having the same match of input capabilities for a PID, the filter with priority at the lowest value will be used
 	\note Scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
-	u8 priority;
+	s16 priority;
 
 	/*! hint class type for doc generation, one of GF_ClassTypeHint */
 	u8 hint_class_type;
