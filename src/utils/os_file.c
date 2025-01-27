@@ -1865,6 +1865,31 @@ u64 gf_fsize(FILE *fp)
 	return size;
 }
 
+
+GF_EXPORT
+u64 gf_fd_fsize(int fd)
+{
+	u64 size=0;
+#ifdef GPAC_HAS_FD
+
+	if (fd >= 0) {
+
+#if defined(WIN32)
+		struct _stat64  sb;
+		_fstat64(fd, &sb);
+#else
+		struct stat sb;
+		fstat(fd, &sb);
+#endif
+		size = (u64) sb.st_size;
+	}
+
+#endif
+	return size;
+}
+
+
+
 /**
   * Returns a pointer to the start of a filepath basename
  **/
