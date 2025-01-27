@@ -2433,7 +2433,7 @@ Bool av1_is_obu_header(ObuType obu_type) {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 	case OBU_METADATA:
-		// TODO add check based on the metadata type
+		// we're liberal in what we accept but we're conservative in what we send
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -2608,6 +2608,23 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
 	if (av1_is_obu_header(obu_type)) {
+		if (obu_type == OBU_METADATA) {
+			u64 cur_pos = gf_bs_get_position(bs);
+			gf_bs_seek(bs, pos);
+
+			Bool obu_extension_flag=GF_FALSE, obu_has_size_field=GF_FALSE;
+			u8 tid=0, sid=0;
+			gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &tid, &sid);
+			if (obu_has_size_field) gf_av1_leb128_read(bs, NULL);
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
+
+			gf_bs_seek(bs, cur_pos);
+
+			// TODO: filter out any metadata which values change
+			if (metadata_type == OBU_METADATA_TYPE_TIMECODE)
+				return;
+		}
+
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
 	}
 	if (!state->skip_frames && av1_is_obu_frame(state, obu_type)) {
