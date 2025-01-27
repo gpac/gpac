@@ -4173,7 +4173,7 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
-	u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+	ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 
 	switch (metadata_type) {
 	case OBU_METADATA_TYPE_ITUT_T35:
