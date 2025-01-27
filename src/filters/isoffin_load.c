@@ -1350,7 +1350,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (dsi) {
 		ch->dsi_crc = gf_crc_32(dsi, dsi_size);
 		//strip box header for these codecs
-		if (codec_id==GF_CODECID_SMPTE_VC1) {
+		if (codec_id==GF_CODECID_SMPTE_VC1 && dsi_size > 8) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(dsi+8, dsi_size-8));
 			gf_free(dsi);
 			dsi=NULL;

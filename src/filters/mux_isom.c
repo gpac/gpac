@@ -58,21 +58,20 @@ enum
 	CENC_SETUP_ERROR
 };
 
-enum{
+GF_OPT_ENUM (GF_MP4MuxTagInjectionMode,
 	TAG_NONE,
 	TAG_STRICT,
-	TAG_ALL
-};
+	TAG_ALL,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxInbandParamSetMode,
 	XPS_IB_NO = 0,
 	XPS_IB_PPS,
 	XPS_IB_ALL,
 	XPS_IB_BOTH,
 	XPS_IB_MIX,
-	XPS_IB_AUTO
-};
+	XPS_IB_AUTO,
+);
 
 typedef struct
 {
@@ -188,7 +187,7 @@ typedef struct
 	u32 max_cts_samp_dur;
 
 	u32 w_or_sr, h_or_ch, pf_or_af;
-	u32 xps_inband;
+	GF_MP4MuxInbandParamSetMode xps_inband;
 
 	u8 *dyn_pssh;
 	u32 dyn_pssh_len;
@@ -202,15 +201,14 @@ typedef struct
 	Bool has_deps;
 } TrackWriter;
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxFileStorageMode,
 	MP4MX_MODE_INTER=0,
 	MP4MX_MODE_FLAT,
 	MP4MX_MODE_FASTSTART,
 	MP4MX_MODE_TIGHT,
 	MP4MX_MODE_FRAG,
 	MP4MX_MODE_SFRAG,
-};
+);
 
 
 enum
@@ -220,43 +218,38 @@ enum
 	MP4MX_DASH_VOD,
 };
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxPsshStoreMode,
 	MP4MX_PSSH_MOOV=0,
 	MP4MX_PSSH_MOOF,
 	MP4MX_PSSH_BOTH,
 	MP4MX_PSSH_SKIP,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxCompositionOffsetMode,
 	MP4MX_CT_AUTO,
 	MP4MX_CT_EDIT=0,
 	MP4MX_CT_NOEDIT,
 	MP4MX_CT_NEGCTTS,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxTempStorageMode,
 	MP4MX_VODCACHE_ON=0,
 	MP4MX_VODCACHE_INSERT,
 	MP4MX_VODCACHE_REPLACE,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxCMAFMode,
 	MP4MX_CMAF_NO=0,
 	MP4MX_CMAF_CMFC,
 	MP4MX_CMAF_CMF2,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_MP4MuxChapterMode,
 	MP4MX_CHAPM_OFF=0,
 	MP4MX_CHAPM_TRACK,
 	MP4MX_CHAPM_UDTA,
-	MP4MX_CHAPM_BOTH
-};
+	MP4MX_CHAPM_BOTH,
+);
 
 enum
 {
@@ -273,11 +266,14 @@ typedef struct
 	GF_ISOFile *file;
 	Bool m4sys, dref;
 	GF_Fraction dur;
-	u32 pack3gp, ctmode;
+	u32 pack3gp;
+	GF_MP4MuxCompositionOffsetMode ctmode;
 	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband, rsot;
-	u32 xps_inband, moovpad;
+	GF_MP4MuxInbandParamSetMode xps_inband;
+	u32 moovpad;
 	u32 block_size;
-	u32 store, tktpl, mudta;
+	GF_MP4MuxFileStorageMode store;
+	u32 tktpl, mudta;
 	s32 subs_sidx;
 	GF_Fraction cdur;
 	s32 moovts;
@@ -287,20 +283,20 @@ typedef struct
 	GF_Fraction64 tfdt;
 	Bool nofragdef, straf, strun, sgpd_traf, noinit;
 	Bool prft;
-	u32 vodcache;
-	u32 psshs;
+	GF_MP4MuxTempStorageMode vodcache;
+	GF_MP4MuxPsshStoreMode psshs;
 	u32 trackid;
 	Bool fragdur;
 	Bool btrt;
 	Bool ssix;
 	Bool ccst;
 	s32 mediats;
-	u32 ase;
+	GF_AudioSampleEntryImportMode ase;
 	char *styp;
 	Bool sseg;
 	Bool noroll, norap;
 	Bool saio32, tfdt64;
-	u32 compress;
+	GF_ISOCompressMode compress;
 	Bool trun_inter;
 	Bool truns_first;
 	char *boxpatch;
@@ -309,7 +305,7 @@ typedef struct
 	Bool mvex;
 	Bool trunv1;
 	u32 sdtp_traf;
-	u32 cmaf;
+	GF_MP4MuxCMAFMode cmaf;
 #ifdef GF_ENABLE_CTRN
 	Bool ctrn;
 	Bool ctrni;
@@ -318,9 +314,9 @@ typedef struct
 	u32 uncv;
 	Bool forcesync, refrag, pad_sparse;
 	Bool force_dv, tsalign, dvsingle, patch_dts;
-	u32 itags;
+	GF_MP4MuxTagInjectionMode itags;
 	Double start;
-	u32 chapm;
+	GF_MP4MuxChapterMode chapm;
 
 
 	//internal
@@ -1005,7 +1001,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	GF_AudioSampleEntryImportMode ase_mode = ctx->ase;
 	TrackWriter *tkw;
-	u32 xps_inband = XPS_IB_NO;
+	GF_MP4MuxInbandParamSetMode xps_inband = XPS_IB_NO;
 
 	if (ctx->owns_mov && !ctx->opid) {
 		char *dst;
@@ -8596,7 +8592,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming PID.\n"
 	"The built-in tag names are indicated by `MP4Box -h tags`.\n"
 	"QT tags can be specified using `qtt_NAME` property names, and will be added using formatting specified in `MP4Box -h tags`.\n"
-	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
+	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-itags]() is set to `all` using:\n"
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
 	"- `NAME` as a box 4CC if `NAME` is 3 characters long, and will be prefixed by 0xA9\n"
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"

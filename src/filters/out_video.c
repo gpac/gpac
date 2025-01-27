@@ -69,23 +69,21 @@ static char *default_glsl_vertex = "\
 
 #endif
 
-typedef enum
-{
+GF_OPT_ENUM (GF_VideoOutMode,
 	MODE_GL,
 	MODE_GL_PBO,
 	MODE_2D,
 	MODE_2D_SOFT,
-} GF_VideoOutMode;
+);
 
 
-enum
-{
+GF_OPT_ENUM (GF_VideoFlipMode,
 	FLIP_NO,
 	FLIP_VERT,
 	FLIP_HORIZ,
 	FLIP_BOTH,
 	FLIP_BOTH2,
-};
+);
 
 static u32 nb_vout_inst=0;
 
@@ -93,11 +91,12 @@ typedef struct
 {
 	//options
 	char *drv;
-	u32 disp;
+	GF_VideoOutMode disp;
 	Bool vsync, linear, fullscreen, drop, hide, step, vjs, async;
 	GF_Fraction64 dur;
 	Double speed, hold;
-	u32 back, vflip, vrot;
+	u32 back, vrot;
+	GF_VideoFlipMode vflip; 
 	GF_PropVec2i wsize, owsize;
 	GF_PropVec2i wpos;
 	Double start;
@@ -181,7 +180,8 @@ typedef struct
 	u64 rebuffer;
 
 	Bool force_reconfig_pid;
-	u32 pid_vflip, pid_vrot;
+	GF_VideoFlipMode pid_vflip;
+	u32 pid_vrot;
 	Bool too_slow;
 } GF_VideoOutCtx;
 

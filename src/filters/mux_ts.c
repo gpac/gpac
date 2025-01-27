@@ -80,12 +80,11 @@ enum
 	TEMI_TC64_ALWAYS,
 };
 
-enum
-{
+GF_OPT_ENUM (GF_TSMuxInputDescriptorAction,
 	IN_TEMI_DROP=0,
 	IN_TEMI_FWD,
-	IN_TEMI_NTP
-};
+	IN_TEMI_NTP,
+);
 
 typedef struct
 {
@@ -103,7 +102,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pmt_version, sdt_rate, breq, mpeg4;
 	u64 pcr_offset, first_pts;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes;
-	u32 pes_pack;
+	GF_M2TS_PackMode pes_pack;
 	Bool flush_rap, realtime, pcr_only, disc, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;
@@ -111,7 +110,7 @@ typedef struct
 	s32 subs_sidx;
 	Bool keepts;
 	GF_Fraction cdur;
-	u32 temi_fwd;
+	GF_TSMuxInputDescriptorAction temi_fwd;
 
 	//internal
 	GF_FilterPid *opid;
@@ -2346,7 +2345,7 @@ GF_FilterRegister TSMuxRegister = {
 		"\n"
 		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
 		"\n"
-		"When input TEMI properties are found, they can be removed using [-drop_temi](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
+		"When input TEMI properties are found, they can be removed using [-temi_fwd](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
 		"# Adaptive Streaming\n"
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"

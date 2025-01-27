@@ -19,7 +19,7 @@ __Service configuration additional parameters__
 Sources are described using the \`sources\` array in the service configuration.
 
 CGI parameters for request are:
-- fmt: (string, same as service configuration \`fmt\`) multiplexing format. If \src\`, all other CGI parameters are ignored.
+- fmt: (string, same as service configuration \`fmt\`) multiplexing format. If set to \`src\`, all other CGI parameters are ignored.
 - start: (number, default 0) start time in second of re-multiplexed content.
 - speed: (number, default 1) speed (>=0), keep video stream only and remove non SAP frames.
 - media: (string, default \`${DEF_FILTERING}\`) media filtering type
@@ -28,7 +28,7 @@ CGI parameters for request are:
   - 'v': keep only video
 
 
-Exemple configuration for serving a directory with remultiplexing to mp4:
+Configuration for serving a directory with remultiplexing to mp4:
 EX {'local': '/service1/', 'js': 'remux', 'sources': ['name': 'vids', 'url': '/path/to/vids/'}], 'fmt': 'mp4'}
 `;
 
