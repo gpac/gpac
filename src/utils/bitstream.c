@@ -253,12 +253,9 @@ GF_BitStream *gf_bs_from_fd(int fd, u32 mode)
 	tmp->position = 0;
 	tmp->fd = fd;
 
-	struct stat sb;
-	fstat(fd, &sb);
-
 	/*get the size of this file (for read streams)*/
 	tmp->position = lseek_64(fd, 0, SEEK_CUR);
-	tmp->size = sb.st_size;
+	tmp->size = gf_fd_fsize(fd);
 
 	if (mode == GF_BITSTREAM_FILE_READ) {
 		tmp->cache_read_alloc = gf_opts_get_int("core", "bs-cache-size");
@@ -1621,9 +1618,7 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 
 #ifdef GPAC_HAS_FD
 		if (bs->fd>=0) {
-			struct stat sb;
-			fstat(bs->fd, &sb);
-			bs->size = sb.st_size;
+			bs->size = gf_fd_fsize(bs->fd);
 			return bs->size;
 		}
 #endif

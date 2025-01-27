@@ -1688,6 +1688,15 @@ Gets the file size given a FILE object. The FILE object position will be reset t
 u64 gf_fsize(FILE *fp);
 
 /*!
+\brief file size helper for a file descriptor
+
+Gets the file size given a file descriptor.
+\param fd file descriptor to check
+\return file size in bytes
+*/
+u64 gf_fd_fsize(int fd);
+
+/*!
 \brief file IO checker
 
 Checks if the given FILE object is a native FILE or a GF_FileIO wrapper.

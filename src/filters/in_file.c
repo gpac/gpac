@@ -206,9 +206,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 #ifdef GPAC_HAS_FD
 	if (ctx->fd>=0) {
-		struct stat sb;
-		fstat(ctx->fd, &sb);
-		ctx->file_size = sb.st_size;
+		ctx->file_size = gf_fd_fsize(ctx->fd);
 	} else
 #endif
 		ctx->file_size = gf_fsize(ctx->file);
@@ -776,4 +774,3 @@ const GF_FilterRegister *fin_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_FIN
-

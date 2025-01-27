@@ -153,6 +153,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fgets) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fsize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fd_fsize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fgetc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fputc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fputs) )
