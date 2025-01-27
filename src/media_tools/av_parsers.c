@@ -2594,7 +2594,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		}
 	}
 	if (!obu_list) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] internal error, no OBU list cannot add\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] internal error, no OBU list: cannot add\n"));
 		gf_free(a->obu);
 		gf_free(a);
 		return;
@@ -3246,7 +3246,6 @@ static void av1_decode_frame_wrapup(AV1State *state)
 
 		//gm_params[ ref ][ j ] is set equal to SavedGmParams[ frame_to_show_map_idx ][ ref ][ j ] for ref = LAST_FRAME..ALTREF_FRAME, for j = 0..5.
 		state->GmParams = state->SavedGmParams[state->frame_state.frame_to_show_map_idx];
-
 	}
 }
 
@@ -3689,7 +3688,6 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 			//ignore all init steps
 		}
-
 	}
 
 	//delta_q_params():
