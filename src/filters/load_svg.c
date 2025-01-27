@@ -488,7 +488,7 @@ GF_FilterRegister SVGInRegister = {
 	GF_FS_SET_DESCRIPTION("SVG decoder")
 	GF_FS_SET_HELP("This filter parses SVG files directly into the scene graph of the compositor.\n"
 	"\n"
-	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
+	"When [-sax_dur]() is set to `N`, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
 	.private_size = sizeof(SVGIn),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = SVGInArgs,

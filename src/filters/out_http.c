@@ -73,19 +73,17 @@ Bool gf_ssl_init_lib();
 
 #endif
 
-enum
-{
+GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,
 	MODE_PUSH,
 	MODE_SOURCE,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_HTTPOutCORSMode,
 	CORS_AUTO=0,
 	CORS_OFF,
 	CORS_ON,
-};
+);
 
 enum
 {
@@ -114,7 +112,9 @@ typedef struct
 #endif
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice, reopen, blockio, cte, norange;
-	u32 block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka, zmax, maxs;
+	u32 block_size, maxc, maxp, timeout, sutc, max_client_errors, max_async_buf, ka, zmax, maxs;
+	GF_HTTPOutFilterOperationMode hmode;
+	GF_HTTPOutCORSMode cors;
 	s32 max_cache_segs;
 	GF_PropStringList hdrs;
 	GF_PropUIntList port;
@@ -5505,7 +5505,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"  \n"
 		"Custom headers can be specified using [-hdrs](), they apply to all requests. For more advanced control on requests, use a javascript binding (see [-js]() and howtos).\n"
 		"  \n"
-		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-no_z]() is set.\n"
+		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-zmax]() is set to 0.\n"
 		"  \n"
 		"# Simple HTTP server\n"
 		"In this mode, the filter does not need any input connection and exposes all files in the directories given by [-rdirs]().\n"
