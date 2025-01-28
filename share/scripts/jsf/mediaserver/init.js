@@ -1464,7 +1464,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//load routein in no-cache mode, single pid per TSI
 		let args = 'src=' + this.mabr;
 		if (this.mabr.indexOf('gpac:')<0) args += ':gpac';
-		args += ':gcache=0:stsi';
+		//set require source ID in case we use a capture file, we could get the first PID before returning from the add_filter function
+		args += ':gcache=0:stsi:RSID';
 		//multicast is dynamically enabled/disabled, start with all services tuned but disabled
 		//only do this if HTTP mirror - otherwise, activate everything to make sure we fetch the manifests and init segments
 		if (this.url && this.mabr_min_active>0) args += ':tunein=-3';
