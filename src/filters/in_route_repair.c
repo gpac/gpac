@@ -536,12 +536,22 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 {
 	Bool drop_if_first = GF_FALSE;
 	Bool in_transfer = GF_FALSE;
+	//remove corrupted flags and set in_transfer to avoid dispatch when using internal cache
 	if (finfo->blob->mx) {
 		gf_mx_p(finfo->blob->mx);
 		finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
 		if (finfo->blob->flags & GF_BLOB_IN_TRANSFER) in_transfer = GF_TRUE;
 		else finfo->blob->flags |= GF_BLOB_IN_TRANSFER;
 	}
+	//file received with no losses
+	if ((finfo->nb_frags==1) && !finfo->frags[0].offset && (finfo->frags[0].size == finfo->total_size)) {
+		if (finfo->blob->mx) {
+			finfo->blob->flags &= ~GF_BLOB_IN_TRANSFER;
+			gf_mx_v(finfo->blob->mx);
+		}
+		return GF_FALSE;
+	}
+
 	if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
 		drop_if_first = routein_repair_segment_ts_local(ctx, evt_param, finfo, start_only);
 	} else {
