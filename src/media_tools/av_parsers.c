@@ -4550,7 +4550,7 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
         Bool obu_redundant_copy;
         Bool obu_trimming_status_flag;
         Bool obu_extension_flag;
-        u32 extension_header_size;
+        u64 extension_header_size;
         u8 leb128_size;
         int i;
 
@@ -4601,7 +4601,10 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 	}
 
 	if (obu_extension_flag) {
-		extension_header_size = (u32)gf_av1_leb128_read(bs, NULL);
+		extension_header_size = gf_av1_leb128_read(bs, NULL);
+                if (gf_bs_available(bs) < extension_header_size) {
+			return GF_BUFFER_TOO_SMALL;
+		}
 		for (i = 0; i < extension_header_size; ++i) {
 			/*extension_header_bytes=*/gf_bs_read_u8(bs);
 		}
@@ -4813,6 +4816,10 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 
 	if (!state->bs) {
 		state->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (!state->bs) {
+			gf_free(a);
+			return;
+		}
 	} else {
 		gf_bs_reassign_buffer(state->bs, state->temporal_unit_obus, state->temporal_unit_obus_alloc);
 		//make sure we don't attempt at freeing this buffer while assigned to the bitstream - cf gf_iamf_reset_state
