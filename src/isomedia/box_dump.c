@@ -7007,12 +7007,12 @@ GF_Err udts_box_dump(GF_Box *a, FILE * trace)
 	u32 byte;
 	u8 i;
 	u8 *data;
-	gf_isom_box_dump_start(a, "UDTSpecificBox", trace);
+	gf_isom_box_dump_start(a, "UDTSSpecificBox", trace);
 	gf_fprintf(trace,
 		"DecoderProfileCode=\"%d\" FrameDurationCode=\"%d\" MaxPayloadCode=\"%d\" "
 		"NumPresentationsCode=\"%d\" ChannelMask=\"%d\" BaseSamplingFrequencyCode=\"%d\" "
 		"SampleRateMod=\"%d\" RepresentationType=\"%d\" StreamIndex=\"%d\" "
-		"ExpansionBoxPresent=\"%d\"",
+		"ExpansionBoxPresent=\"%d\">\n",
 		ptr->cfg.DecoderProfileCode, ptr->cfg.FrameDurationCode, ptr->cfg.MaxPayloadCode,
 		ptr->cfg.NumPresentationsCode, ptr->cfg.ChannelMask,
 		ptr->cfg.BaseSamplingFrequencyCode, ptr->cfg.SampleRateMod,
