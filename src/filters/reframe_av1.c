@@ -166,8 +166,10 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (!ctx->state.config)
 		ctx->state.config = gf_odf_av1_cfg_new();
 
-	if (!ctx->iamfstate.config)
+	if (!ctx->iamfstate.config) {
 		ctx->iamfstate.config = gf_odf_ia_cfg_new();
+		if (!ctx->iamfstate.config) return GF_OUT_OF_MEM;
+	}
 
 	ctx->is_av1 = ctx->is_vp9 = ctx->is_iamf = GF_FALSE;
 	ctx->codecid = 0;
@@ -409,6 +411,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	case IAMF:
 		gf_iamf_init_state(iamfstate);
 		iamfstate->config = gf_odf_ia_cfg_new();
+		if (!iamfstate->config) return;
 		break;
 	default:
 		gf_av1_init_state(av1state);

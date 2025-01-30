@@ -1942,6 +1942,10 @@ GF_IAConfig *gf_odf_ia_cfg_new()
         cfg->configurationVersion = 1;
         cfg->configOBUs_size = 0;
         cfg->configOBUs = gf_list_new();
+        if (!cfg->configOBUs) {
+		gf_free(cfg);
+		return NULL;
+	}
         return cfg;
 }
 

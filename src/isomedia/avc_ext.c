@@ -1422,14 +1422,19 @@ static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg)
 static GF_IAConfig* IAMF_DuplicateConfig(GF_IAConfig const * const cfg)
 {
 	u32 i = 0;
-	GF_IAConfig *out = gf_malloc(sizeof(GF_IAConfig));
+	GF_IAConfig *out = gf_odf_ia_cfg_new();
+	if (!out) return NULL;
 
 	out->configurationVersion = cfg->configurationVersion;
 	out->configOBUs_size = cfg->configOBUs_size;
 
-	out->configOBUs = gf_list_new();
 	for (i = 0; i<gf_list_count(cfg->configOBUs); ++i) {
 		GF_IamfObu *dst = gf_malloc(sizeof(GF_IamfObu)), *src = gf_list_get(cfg->configOBUs, i);
+		if (!dst) {
+			gf_odf_ia_cfg_del(out);
+			return NULL;
+		}
+
 		dst->obu_length = src->obu_length;
 		dst->obu_type = src->obu_type;
 		dst->raw_obu_bytes = gf_malloc((size_t)dst->obu_length);
