@@ -133,7 +133,7 @@ The \`local\` service configuration option can be set to:
 - or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
 
 # Multicast ABR Gateway
-The server can be configured to use a multicast ANR source for an HTTP streaming service, without any HTTP source.
+The server can be configured to use a multicast ABR source for an HTTP streaming service, without any HTTP source.
 
 __Service configuration parameters used :__ \`mabr\` (mandatory), \`local\` (mandatory), \`corrupted\`, \`timeshift\` and \`keepalive\`.
 
@@ -173,7 +173,7 @@ If \`check_ip\` is set to true, the remote IP address+port are used instead of t
 
 If \`timeshift\` is 0 for the service, multicast segments will be trashed as soon as not in use (potentially before the client request).
 
-Note: Manifests files coming from multicast are currently never cached.
+Note: Manifest files coming from multicast are currently never cached.
 
 Configuration for caching a live HTTP streaming service with MABR backup:
 EX { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
