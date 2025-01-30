@@ -6986,12 +6986,12 @@ GF_Err ddts_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)a;
 
-	gf_isom_box_dump_start(a, "DTSpecificBox", trace);
+	gf_isom_box_dump_start(a, "DTSSpecificBox", trace);
 	gf_fprintf(trace, "SamplingFrequency=\"%d\" MaxBitrate=\"%d\" AvgBitrate=\"%d\" "
 		"SampleDepth=\"%d\" FrameDuration=\"%d\" StreamConstruction=\"%d\" "
 		"CoreLFEPresent=\"%d\" CoreLayout=\"%d\" CoreSize=\"%d\" StereoDownmix=\"%d\" "
 		"RepresentationType=\"%d\" ChannelLayout=\"%d\" MultiAssetFlag=\"%d\" "
-		"LBRDurationMod=\"%d\"",
+		"LBRDurationMod=\"%d\">\n",
 		ptr->cfg.SamplingFrequency, ptr->cfg.MaxBitrate, ptr->cfg.AvgBitrate,
 		ptr->cfg.SampleDepth, ptr->cfg.FrameDuration, ptr->cfg.StreamConstruction,
 		ptr->cfg.CoreLFEPresent, ptr->cfg.CoreLayout, ptr->cfg.CoreSize,
