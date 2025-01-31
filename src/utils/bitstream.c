@@ -86,6 +86,7 @@ struct __tag_bitstream
 #endif
 };
 
+GF_NOT_EXPORTED
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 {
 	if (!bs) return GF_BAD_PARAM;
@@ -233,9 +234,6 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 }
 
 #ifdef GPAC_HAS_FD
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 GF_EXPORT
 GF_BitStream *gf_bs_from_fd(int fd, u32 mode)
@@ -255,12 +253,9 @@ GF_BitStream *gf_bs_from_fd(int fd, u32 mode)
 	tmp->position = 0;
 	tmp->fd = fd;
 
-	struct stat sb;
-	fstat(fd, &sb);
-
 	/*get the size of this file (for read streams)*/
-	tmp->position = lseek(fd, 0, SEEK_CUR);
-	tmp->size = sb.st_size;
+	tmp->position = lseek_64(fd, 0, SEEK_CUR);
+	tmp->size = gf_fd_fsize(fd);
 
 	if (mode == GF_BITSTREAM_FILE_READ) {
 		tmp->cache_read_alloc = gf_opts_get_int("core", "bs-cache-size");
@@ -1274,7 +1269,7 @@ u64 gf_bs_available(GF_BitStream *bs)
 
 #ifdef GPAC_HAS_FD
 	if (bs->fd>=0) {
-		cur = lseek(bs->fd, 0, SEEK_CUR);
+		cur = lseek_64(bs->fd, 0, SEEK_CUR);
 		end = bs->position;
 	} else
 #endif
@@ -1402,7 +1397,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 		}
 #ifdef GPAC_HAS_FD
 		if (bs->fd>=0) {
-			lseek(bs->fd, bs->position, SEEK_SET);
+			lseek_64(bs->fd, bs->position, SEEK_SET);
 		} else
 #endif
 		{
@@ -1496,7 +1491,7 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 	s64 res;
 #ifdef GPAC_HAS_FD
 	if (bs->fd>=0) {
-		res = lseek(bs->fd, offset, SEEK_SET);
+		res = lseek_64(bs->fd, offset, SEEK_SET);
 		if (res>=0) res = 0;
 	} else
 #endif
@@ -1623,9 +1618,7 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 
 #ifdef GPAC_HAS_FD
 		if (bs->fd>=0) {
-			struct stat sb;
-			fstat(bs->fd, &sb);
-			bs->size = sb.st_size;
+			bs->size = gf_fd_fsize(bs->fd);
 			return bs->size;
 		}
 #endif

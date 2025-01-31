@@ -1185,6 +1185,7 @@ enum
 	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
 	GF_PROP_PID_REDIRECT_URL = GF_4CC('R','E','L','O'),
 	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
+	GF_PROP_PID_FILEALIAS = GF_4CC('F','A','L','I'),
 	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
 	GF_PROP_PID_OUTPATH = GF_4CC('F','D','S','T'),
@@ -1246,6 +1247,7 @@ enum
 	GF_PROP_PCK_REFS = GF_4CC('P','R','F','S'),
 	GF_PROP_PCK_UDTA = GF_4CC('P','U','D','T'),
 	GF_PROP_PCK_LLHAS_TEMPLATE = GF_4CC('P','S','R','T'),
+	GF_PROP_PCK_TIMECODES = GF_4CC('T','C','O','D'),
 
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 	GF_PROP_PID_AVG_FRAME_SIZE = GF_4CC('A','F','R','S'),
@@ -1808,6 +1810,7 @@ typedef struct
 		0: range is in media time
 		1: range is in timesatmps
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
+		3: range is in media time and seeking is disabled (closest RAP is used and no seek flags on packets)
 	*/
 	u8 timestamp_based;
 	/*! GF_FEVT_PLAY / GF_FEVT_PLAY_HINT, indicates the consumer only cares for the full file, not packets*/
@@ -2587,7 +2590,7 @@ struct __gf_filter_register
 
 	/*! for filters having the same match of input capabilities for a PID, the filter with priority at the lowest value will be used
 	\note Scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
-	u8 priority;
+	s16 priority;
 
 	/*! hint class type for doc generation, one of GF_ClassTypeHint */
 	u8 hint_class_type;
@@ -4311,6 +4314,12 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 \return the temporary alias filter private stack, NULL otherwise
 */
 void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
+
+/*! Gets the filter owning the PID
+\param PID the target filter PID
+\return the filter owning the PID or NULL if error
+*/
+GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *PID);
 
 /*! Gets the filter owning the  input PID
 \param PID the target filter PID

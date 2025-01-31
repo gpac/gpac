@@ -32,19 +32,17 @@
 
 #ifndef GPAC_DISABLE_FOUT
 
-enum
-{
+GF_OPT_ENUM (GF_FileOutConcatMode,
 	FOUT_CAT_NONE = 0,
 	FOUT_CAT_AUTO,
-	FOUT_CAT_ALL
-};
+	FOUT_CAT_ALL,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_FileOutOverwriteMode,
 	FOUT_OW_YES = 0,
 	FOUT_OW_NO,
-	FOUT_OW_ASK
-};
+	FOUT_OW_ASK,
+);
 
 typedef struct
 {
@@ -52,7 +50,8 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext;
 	Bool append, dynext, redund, noinitraw, force_null;
-	u32 cat, ow;
+	GF_FileOutConcatMode cat;
+	GF_FileOutOverwriteMode ow;
 	u32 mvbk;
 	s32 max_cache_segs;
 
@@ -95,15 +94,6 @@ typedef struct
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
-
-#else //WIN32
-
-#ifdef GPAC_HAS_FD
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#endif
-
 #endif
 
 static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
@@ -222,7 +212,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		) {
 			//make sure output dir exists
 			gf_fopen(szFinalName, "mkdir");
-			ctx->fd = open(szFinalName, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
+			ctx->fd = gf_fd_open(szFinalName, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 		} else
 #endif
 			ctx->file = gf_fopen_ex(szFinalName, ctx->original_url, append ? "a+b" : "w+b", GF_FALSE);
@@ -490,7 +480,7 @@ restart:
 					evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 #ifdef GPAC_HAS_FD
 					if (ctx->fd>=0) {
-						evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR);
+						evt.seg_size.media_range_end = lseek_64(ctx->fd, 0, SEEK_CUR);
 					} else
 #endif
 					if (ctx->file) {
@@ -576,7 +566,7 @@ restart:
 				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 #ifdef GPAC_HAS_FD
 				if (ctx->fd>=0) {
-					evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR);
+					evt.seg_size.media_range_end = lseek_64(ctx->fd, 0, SEEK_CUR);
 				} else
 #endif
 				if (ctx->file) {
@@ -728,8 +718,8 @@ check_gfio:
 #ifdef GPAC_HAS_FD
 						if (ctx->fd>=0) {
 							nb_write = (u32) write(ctx->fd, pck_data, pck_size);
-							cur_w = lseek(ctx->fd, 0, SEEK_CUR);
-							lseek(ctx->fd, pos, SEEK_SET);
+							cur_w = lseek_64(ctx->fd, 0, SEEK_CUR);
+							lseek_64(ctx->fd, pos, SEEK_SET);
 						} else
 #endif
 						{
@@ -757,7 +747,7 @@ check_gfio:
 
 #ifdef GPAC_HAS_FD
 								if (ctx->fd>=0) {
-									lseek(ctx->fd, cur_r - move_bytes, SEEK_SET);
+									lseek_64(ctx->fd, cur_r - move_bytes, SEEK_SET);
 									nb_write = (u32) read(ctx->fd, block, (size_t) move_bytes);
 								} else
 #endif
@@ -773,7 +763,7 @@ check_gfio:
 
 #ifdef GPAC_HAS_FD
 								if (ctx->fd>=0) {
-									lseek(ctx->fd, cur_w - move_bytes, SEEK_SET);
+									lseek_64(ctx->fd, cur_w - move_bytes, SEEK_SET);
 									nb_write = (u32) write(ctx->fd, block, (size_t) move_bytes);
 								} else
 #endif
@@ -795,9 +785,9 @@ check_gfio:
 
 #ifdef GPAC_HAS_FD
 					if (ctx->fd>=0) {
-						lseek(ctx->fd, bo, SEEK_SET);
+						lseek_64(ctx->fd, bo, SEEK_SET);
 						nb_write = (u32) write(ctx->fd, pck_data, pck_size);
-						lseek(ctx->fd, pos, SEEK_SET);
+						lseek_64(ctx->fd, pos, SEEK_SET);
 					} else
 #endif
 					{
@@ -897,7 +887,7 @@ check_gfio:
 		if (ctx->dash_mode) {
 #ifdef GPAC_HAS_FD
 			if (ctx->fd>=0) {
-				ctx->last_file_size = lseek(ctx->fd, 0, SEEK_CUR);
+				ctx->last_file_size = lseek_64(ctx->fd, 0, SEEK_CUR);
 			} else
 #endif
 				ctx->last_file_size = gf_ftell(ctx->file);

@@ -80,12 +80,11 @@ enum
 	TEMI_TC64_ALWAYS,
 };
 
-enum
-{
+GF_OPT_ENUM (GF_TSMuxInputDescriptorAction,
 	IN_TEMI_DROP=0,
 	IN_TEMI_FWD,
-	IN_TEMI_NTP
-};
+	IN_TEMI_NTP,
+);
 
 typedef struct
 {
@@ -103,7 +102,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pmt_version, sdt_rate, breq, mpeg4;
 	u64 pcr_offset, first_pts;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes;
-	u32 pes_pack;
+	GF_M2TS_PackMode pes_pack;
 	Bool flush_rap, realtime, pcr_only, disc, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;
@@ -111,7 +110,7 @@ typedef struct
 	s32 subs_sidx;
 	Bool keepts;
 	GF_Fraction cdur;
-	u32 temi_fwd;
+	GF_TSMuxInputDescriptorAction temi_fwd;
 
 	//internal
 	GF_FilterPid *opid;
@@ -1433,6 +1432,9 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			m2pid->ctx->pmt_update_pending = GF_TRUE;
 			m2pid->ctx->update_mux = GF_TRUE;
 		}
+		if (codec_id == GF_CODECID_SCTE35) {
+			streamtype = GF_STREAM_METADATA; // necessary when importing from NHML
+		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
@@ -2343,7 +2345,7 @@ GF_FilterRegister TSMuxRegister = {
 		"\n"
 		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
 		"\n"
-		"When input TEMI properties are found, they can be removed using [-drop_temi](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
+		"When input TEMI properties are found, they can be removed using [-temi_fwd](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
 		"# Adaptive Streaming\n"
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"

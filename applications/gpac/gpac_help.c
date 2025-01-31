@@ -814,7 +814,17 @@ static GF_GPACArg gpac_args[] =
  	GF_DEF_ARG("alias", NULL, "assign a new alias or remove an alias. Can be specified several times. See [alias usage (-h alias)](#using-aliases)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optional). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
- 	GF_DEF_ARG("uncache", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cache-info", NULL, "show cache info. Argument can be:\n"
+	"- absent: the entire cache is inspected\n"
+	"- B: filter entries created after `B`, with `B` a number of seconds prior to now or a date (0 means now)\n"
+	"- B;C: filter entries created after `B` but before `C`, with `B` and `C` either a number of seconds prior to now or a date\n"
+	"  - If `B` is 0, min time is UTC=0\n"
+	"  - If `C` is 0, max time is now\n"
+	"The argument syntax is the same for all cache options"
+	, NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cache-unflat", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("cache-list", NULL, "list entries in cache", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cache-clean", NULL, "clean cache", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("wc", NULL, "write all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -856,7 +866,7 @@ void gpac_usage(GF_SysArgMode argmode)
 		"\n"
 		"The possible options for gpac are:\n\n",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
-			(gen_doc==1) ? "[gpac -h doc](filters_general#explicit-links-between-filters-link)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-linking-link)" : "`gpac -h doc`",
 			(gen_doc==1) ? "[gpac -hx](gpac_general#h)" : "`gpac -hx`",
 			(gen_doc==1) ? "[gpac -hx core](core_options)" : "`gpac -hx core`",
 			(gen_doc==1) ? "[gpac -h doc](core_config#global-filter-options)" : "`gpac -h doc`",
@@ -905,7 +915,7 @@ static const char *gpac_defer =
 "This mode can be used to test loading filters one by one and asking for link resolution explicitly.\n"
 "This is mostly used to reproduce how sessions are build in more complex applications.\n"
 "\n"
-"The options `rl`, `pi`, `pl` and `pd` allow adressing a filter by index `F` in a list.\n"
+"The options `rl`, `pi`, `pl` and `pd` allow addressing a filter by index `F` in a list.\n"
 "- if the option is suffixed with an `x` (e.g. `rlx=`), `F=0` means the last filter in the list of filters in the session\n"
 "- otherwise, `F=0` means the last filter declared before the option\n"
 "\n"
@@ -2136,7 +2146,7 @@ static void patch_mkdocs_yml()
 	if (!gf_file_exists("../../mkdocs.yml")) {
 		yml_src = "mkdocs.yml";
 		FILE *t = gf_fopen(yml_src, "w");
-		gf_fprintf(t, "    - All filters:\n");
+		gf_fprintf(t, "    - Filters:\n");
 		gf_fclose(t);
 	}
 
@@ -2150,7 +2160,7 @@ static void patch_mkdocs_yml()
 		if (in_filter_list && !strncmp(szLine, "  - ", 4))
 			in_filter_list = GF_FALSE;
 
-		if (!strncmp(szLine, "    - All filters:", 18)) {
+		if (!strncmp(szLine, "    - Filters:", 14)) {
 			gf_dynstrcat(&oyml, szLine, NULL);
 			in_filter_list = GF_TRUE;
 

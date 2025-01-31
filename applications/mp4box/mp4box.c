@@ -227,7 +227,7 @@ Bool mvex_after_traks, daisy_chain_sidx, use_ssix, single_segment, single_file, 
 Bool strict_cues, use_url_template, seg_at_rap, frag_at_rap, memory_frags, keep_utc, has_next_arg, no_cache, no_loop;
 Bool conv_type_from_ext, dump_keep_comp;
 
-u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
+u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt_type, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
 u32 nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, minor_version, conv_type, nb_tsel_acts;
 u32 program_number, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps_mode, force_new, compress_moov;
 u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type, do_flat, print_info;
@@ -294,7 +294,7 @@ static void init_global_vars()
 
 	//u32
 	arg_parse_res = nb_mpd_base_urls = nb_dash_inputs = help_flags = 0;
-	stat_level = hint_flags = import_flags = nb_add = nb_cat = crypt = 0;
+	stat_level = hint_flags = import_flags = nb_add = nb_cat = crypt_type = 0;
 	agg_samples = nb_sdp_ex = max_ptime = split_size = nb_meta_act = nb_track_act = 0;
 	rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = old_interleave = minor_version = 0;
 	conv_type = nb_tsel_acts = program_number = time_shift_depth = initial_moof_sn = dump_std = 0;
@@ -608,7 +608,7 @@ void PrintGeneralUsage()
 		"By default, MP4Box rewrites the input file. You can change this behavior by using the [-out]() option.\n"
 		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov` ...) at the beginning, making it suitable for HTTP download-and-play. This may however takes longer to store the file, use [-flat]() to change this behavior.\n"
 		"  \n"
-		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp]().\n"
+		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp](CORE).\n"
 		"  \n"
 		"Track identifier for track-based operations (usually referred to as `tkID` in the help) use the following syntax:\n"
 		"- INT: target is track with ID `INT`\n"
@@ -739,7 +739,7 @@ MP4BoxArg m4b_dash_args[] =
 	MP4BOX_ARG("run-for", "run for given ms  the dash-live session then exits", GF_ARG_INT, 0, &run_for, 0, 0),
 	MP4BOX_ARG("min-buffer", "specify MPD min buffer time in ms", GF_ARG_INT, 0, &min_buffer, 0, ARG_DIV_1000),
 	MP4BOX_ARG("ast-offset", "specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative", GF_ARG_INT, 0, &ast_offset_ms, 0, 0),
-	MP4BOX_ARG("dash-scale", "specify that timing for [-dash](),  [-dash-live](), [-subdur]() and [-do_frag]() are expressed in given timescale (units per seconds) rather than ms", GF_ARG_INT, 0, &dash_scale, 0, ARG_NON_ZERO),
+	MP4BOX_ARG("dash-scale", "specify that timing for [-dash](),  [-dash-live](), [-subdur]() and [-frag]() are expressed in given timescale (units per seconds) rather than ms", GF_ARG_INT, 0, &dash_scale, 0, ARG_NON_ZERO),
 	MP4BOX_ARG("mem-frags", "fragmentation happens in memory rather than on disk before flushing to disk", GF_ARG_BOOL, 0, &memory_frags, 0, 0),
 	MP4BOX_ARG("pssh", "set pssh store mode\n"
 	"- v: initial movie\n"
@@ -897,7 +897,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("agg", NULL, "`X` same as [-agg]()", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("dref", NULL, "`XC` same as [-dref]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("keep_refs", NULL, "`C` keep track reference when importing a single track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("nodrop", NULL, "same as [-nodrop]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("nodrop", NULL, "same as [-no-drop]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("packed", NULL, "`X` same as [-packed]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("sbr", NULL, "same as [-sbr]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("sbrx", NULL, "same as [-sbrx]()", NULL, NULL, GF_ARG_BOOL, 0),
@@ -1002,7 +1002,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("edits", NULL, "`SE` override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("edits", NULL, "`SE` override edit list, same syntax as [-edits](MP4B_GEN)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("lastsampdur", NULL, "`S` set duration of the last sample. Value is formatted as:\n"
 		"  - no value: use the previous sample duration\n"
 		"  - integer: indicate the duration in milliseconds\n"
@@ -1045,7 +1045,7 @@ void PrintImportUsage()
 		"  \n"
 		"By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding original ISOBMF file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using [-flat](MP4B_GEN) option, but this disables media interleaving.\n"
 		"  \n"
-		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new]() since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
+		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new](MP4B_GEN) since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
 		" - Some multiplexing options (marked with `X` below) will be activated for all inputs (e.g. it is not possible to import one AVC track with `xps_inband` and another without).\n"
 		" - Some multiplexing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
 		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perform more complex cat/add operations without temp file, use a [playlist](flist).\n"
@@ -1232,7 +1232,7 @@ MP4BoxArg m4b_hint_args[] =
  	MP4BOX_ARG("ts", "signal AU Time Stamps in RTP packets (MPEG-4 Systems)", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_SIGNAL_TS, ARG_BIT_MASK),
 	MP4BOX_ARG("size", "signal AU size in RTP packets (MPEG-4 Systems)", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_SIGNAL_SIZE, ARG_BIT_MASK),
  	MP4BOX_ARG("idx", "signal AU sequence numbers in RTP packets (MPEG-4 Systems)", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_SIGNAL_AU_IDX, ARG_BIT_MASK),
- 	MP4BOX_ARG("iod", "prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with [-isma]()", GF_ARG_BOOL, 0, &regular_iod, 0, 0),
+ 	MP4BOX_ARG("iod", "prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with [-isma](MP4B_GEN)", GF_ARG_BOOL, 0, &regular_iod, 0, 0),
 #endif
  	{0}
 };
@@ -1418,7 +1418,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- keep_props=4CCs: coma-separated list of properties types to keep when replacing the image, e.g. `keep_props=auxC`\n"
 		"- auxt=URN: mark image as auxiliary using given `URN`\n"
 		"- auxd=FILE: use data from `FILE` as auxiliary extensions (cf `auxC` box)\n"
-		"- any other options will be passed as options to the media importer, see [-add]()"
+		"- any other options will be passed as options to the media importer, see [-add](MP4B_IMP)"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG("add-derived-image", "create an image grid, overlay or identity item, with parameter syntax `:type=(grid|iovl|iden)[:opt1:optN]`\n"
 		"- image-grid-size=rxc: set the number of rows and columns of the grid\n"
@@ -2913,13 +2913,13 @@ u32 parse_cryp(char *arg_val, u32 opt)
 {
 	open_edit = GF_TRUE;
 	if (!opt) {
-		crypt = 1;
+		crypt_type = 1;
 		drm_file = arg_val;
 		open_edit = GF_TRUE;
 		return 0;
 	}
-	crypt = 2;
-	if (arg_val && get_file_type_by_ext(arg_val) != 1) {
+	crypt_type = 2;
+	if (arg_val && get_file_type_by_ext(arg_val) != GF_FILE_TYPE_ISO_MEDIA) {
 		drm_file = arg_val;
 		return 0;
 	}
@@ -3575,7 +3575,7 @@ u32 mp4box_parse_args(int argc, char **argv)
 		}
 		//all deprecated options
 		else if (!stricmp(arg, "-grab-ts") || !stricmp(arg, "-atsc") || !stricmp(arg, "-rtp")) {
-			M4_LOG(GF_LOG_ERROR, ("Deprecated fuctionnality `%s` - use gpac application\n", arg));
+			M4_LOG(GF_LOG_ERROR, ("Deprecated functionality `%s` - use gpac application\n", arg));
 			return 2;
 		}
 		else if (!stricmp(arg, "-write-buffer")) {
@@ -3964,11 +3964,14 @@ void remove_systems_tracks(GF_ISOFile *file)
 GF_FileType get_file_type_by_ext(char *inName)
 {
 	GF_FileType type = GF_FILE_TYPE_NOT_SUPPORTED;
-	char *ext = strrchr(inName, '.');
+	char *ext = gf_file_ext_start(inName);
+	char *sep_opt = ext ? strchr(ext, ':') : NULL;
+	if (sep_opt) sep_opt[0] = 0;
+
 	if (ext) {
 		char *sep;
-		if (!strcmp(ext, ".gz")) ext = strrchr(ext-1, '.');
 		ext+=1;
+		//remove .gz if any
 		sep = strchr(ext, '.');
 		if (sep) sep[0] = 0;
 
@@ -3986,6 +3989,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 			type = GF_FILE_TYPE_SWF;
 		} else if (!stricmp(ext, "jp2")) {
 			if (sep) sep[0] = '.';
+			if (sep_opt) sep_opt[0] = ':';
 			return GF_FILE_TYPE_NOT_SUPPORTED;
 		}
 		else type = GF_FILE_TYPE_NOT_SUPPORTED;
@@ -3996,6 +4000,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 
 	/*try open file in read mode*/
 	if (!type && gf_isom_probe_file(inName)) type = GF_FILE_TYPE_ISO_MEDIA;
+	if (sep_opt) sep_opt[0] = ':';
 	return type;
 }
 
@@ -4267,6 +4272,7 @@ static u32 do_raw_cat()
 
 	fout = gf_fopen(inName, "a+b");
 	if (!fout) {
+		fprintf(stderr, "Error opening file %s\n", inName);
 		gf_fclose(fin);
 		return mp4box_cleanup(1);
 	}
@@ -4278,7 +4284,7 @@ static u32 do_raw_cat()
 		u32 nb_bytes = (u32) gf_fread(chunk, 4096, fin);
 		if (gf_fwrite(chunk, nb_bytes, fout) != nb_bytes) {
 			ret = 1;
-			fprintf(stderr, "Error appengin file\n");
+			fprintf(stderr, "Error appending file\n");
 			break;
 		}
 		done += nb_bytes;
@@ -4747,7 +4753,7 @@ static GF_Err do_dash()
 	u32 do_abort = 0;
 	GF_DASHSegmenter *dasher=NULL;
 
-	if (crypt) {
+	if (crypt_type) {
 		M4_LOG(GF_LOG_ERROR, ("MP4Box cannot use -crypt and -dash in the same pass. Please encrypt your content first, or specify encryption filters on dash sources.\n"));
 		return GF_BAD_PARAM;
 	}
@@ -6361,6 +6367,13 @@ int mp4box_main(int argc, char **argv)
 
 	//need to open input
 	if (!file && !do_hash) {
+		char *ext = gf_file_ext_start(inName);
+		char *sep_opt = ext ? strchr(ext, ':') : NULL;
+		if (sep_opt) {
+			M4_LOG(GF_LOG_WARNING, ("Input name should not use options, ignoring %s\n", sep_opt));
+			sep_opt[0] = 0;
+		}
+
 		FILE *st = gf_fopen(inName, "rb");
 		Bool file_exists = 0;
 		GF_ISOOpenMode omode;
@@ -6369,18 +6382,18 @@ int mp4box_main(int argc, char **argv)
 			gf_fclose(st);
 		}
 		switch (get_file_type_by_ext(inName)) {
-		case 1:
+		case GF_FILE_TYPE_ISO_MEDIA:
 			omode = (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
 			if ((dump_isom>0) && dump_keep_comp)
 				omode = GF_ISOM_OPEN_READ_DUMP_NO_COMP;
 
-			if (crypt) {
+			if (crypt_type) {
 				//keep fragment signaling in moov
 				omode = GF_ISOM_OPEN_READ;
 				if (use_init_seg)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, NULL);
 			}
-			if (!crypt && use_init_seg) {
+			if (!crypt_type && use_init_seg) {
 				file = gf_isom_open(use_init_seg, omode, NULL);
 				if (file) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -6423,15 +6436,15 @@ int mp4box_main(int argc, char **argv)
 #endif
 			break;
 		/*allowed for bt<->xmt*/
-		case 2:
-		case 3:
+		case GF_FILE_TYPE_BT_WRL_X3DV:
+		case GF_FILE_TYPE_XMT_X3D:
 		/*allowed for svg->lsr**/
-		case 4:
+		case GF_FILE_TYPE_SVG:
 		/*allowed for swf->bt, swf->xmt, swf->svg*/
-		case 5:
+		case GF_FILE_TYPE_SWF:
 			break;
 		/*used for .saf / .lsr dump*/
-		case 6:
+		case GF_FILE_TYPE_LSR_SAF:
 #ifndef GPAC_DISABLE_SCENE_DUMP
 			if ((dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
 				break;
@@ -6444,13 +6457,12 @@ int mp4box_main(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */
 #ifndef GPAC_DISABLE_SCENE_DUMP
-			         && dump_mode == GF_SM_DUMP_NONE
+				 && dump_mode == GF_SM_DUMP_NONE
 #endif //GPAC_DISABLE_SCENE_DUMP
-			        ) {
+			) {
 				/*************************************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-				if(dvbhdemux)
-				{
+				if(dvbhdemux) {
 					GF_MediaImporter *import;
 					file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 					GF_SAFEALLOC(import, GF_MediaImporter);
@@ -6775,7 +6787,7 @@ int mp4box_main(int argc, char **argv)
 		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
 			M4_LOG(GF_LOG_INFO, ("Converting to ISMA Audio-Video MP4 file\n"));
 			/*keep ESIDs when doing ISMACryp*/
-			e = gf_media_make_isma(file, crypt ? 1 : 0, GF_FALSE, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
+			e = gf_media_make_isma(file, crypt_type ? 1 : 0, GF_FALSE, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
 			if (e) goto err_exit;
 			do_save = GF_TRUE;
 		}
@@ -6857,19 +6869,19 @@ int mp4box_main(int argc, char **argv)
 	}
 
 #ifndef GPAC_DISABLE_CRYPTO
-	if (crypt) {
-		if (!drm_file && (crypt==1) ) {
-			M4_LOG(GF_LOG_ERROR, ("Missing DRM file location - usage '-%s drm_file input_file\n", (crypt==1) ? "crypt" : "decrypt"));
+	if (crypt_type) {
+		if (!drm_file && (crypt_type==1) ) {
+			M4_LOG(GF_LOG_ERROR, ("Missing DRM file location - usage '-%s drm_file input_file\n", (crypt_type==1) ? "crypt" : "decrypt"));
 			e = GF_BAD_PARAM;
 			goto err_exit;
 		}
-		if (crypt == 1) {
+		if (crypt_type == 1) {
 			if (use_init_seg) {
 				e = gf_crypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
 			} else {
 				e = gf_crypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
 			}
-		} else if (crypt ==2) {
+		} else if (crypt_type ==2) {
 			if (use_init_seg) {
 				e = gf_decrypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
 			} else {

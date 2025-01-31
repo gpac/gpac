@@ -735,6 +735,26 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (parameter->value) {
 			ctx->statusText = gf_strdup(parameter->value);
 		}
+
+#ifndef GPAC_DISABLE_SVG
+		/*prepare SAX parser*/
+		if (ctx->sess && (ctx->responseType == XHR_RESPONSETYPE_SAX)) {
+			const char *type = gf_dm_sess_get_header(ctx->sess, "Content-Type");
+			if (!strncmp(type, "application/xml", 15)
+		        || !strncmp(type, "text/xml", 8)
+		        || strstr(type, "+xml")
+		        || strstr(type, "/xml")
+			) {
+				gf_assert(!ctx->sax);
+				ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
+				ctx->node_stack = gf_list_new();
+				ctx->document = gf_sg_new();
+				/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
+				ctx->document->reference_count = 1;
+			}
+		}
+#endif
+
 		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
 		xml_http_state_change(ctx);
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
@@ -760,28 +780,6 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			parameter->data = ctx->data;
 			parameter->size = ctx->size;
 		}
-		goto exit;
-	case GF_NETIO_PARSE_HEADER:
-		/*prepare SAX parser*/
-		if (ctx->responseType != XHR_RESPONSETYPE_SAX) goto exit;
-		if (strcmp(parameter->name, "Content-Type")) goto exit;
-
-#ifndef GPAC_DISABLE_SVG
-		if (!strncmp(parameter->value, "application/xml", 15)
-		        || !strncmp(parameter->value, "text/xml", 8)
-		        || strstr(parameter->value, "+xml")
-		        || strstr(parameter->value, "/xml")
-//			|| !strncmp(parameter->value, "text/plain", 10)
-		   ) {
-			gf_assert(!ctx->sax);
-			ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
-			ctx->node_stack = gf_list_new();
-			ctx->document = gf_sg_new();
-			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
-			ctx->document->reference_count = 1;
-		}
-#endif
-
 		goto exit;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (ctx->readyState == XHR_READYSTATE_HEADERS_RECEIVED) {
@@ -829,7 +827,14 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				}
 
 				JSValue rval = JS_Call(ctx->c, ctx->onprogress, ctx->_this, 1, &prog_evt);
-				if (JS_IsException(rval)) js_dump_error(ctx->c);
+				if (JS_IsException(rval)) {
+					js_dump_error(ctx->c);
+				} else if (JS_IsNumber(rval)) {
+					s32 throttle;
+					JS_ToInt32(ctx->c, &throttle, rval);
+					if (throttle>=0)
+						gf_dm_sess_set_max_rate(ctx->sess, (u32) throttle);
+				}
 				JS_FreeValue(ctx->c, rval);
 				if (ctx->responseType==XHR_RESPONSETYPE_PUSH) {
 					JS_DetachArrayBuffer(ctx->c, buffer_ab);
@@ -841,6 +846,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_DATA_TRANSFERED:
 		/* No return, go till the end of the function */
 		break;
+	case GF_NETIO_ICY_META:
+		goto exit;
 	case GF_NETIO_DISCONNECTED:
 		goto exit;
 	case GF_NETIO_STATE_ERROR:
@@ -868,7 +875,6 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	/* For XML Http Requests to files, we fake the processing by calling the HTTP callbacks */
 	GF_NETIO_Parameter par;
 	u64 fsize;
-	char contentLengthHeader[256];
 	FILE *responseFile;
 
 	/*opera-style local host*/
@@ -904,25 +910,18 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	ctx->data[fsize] = 0;
 	ctx->size = (u32)fsize;
 
-	memset(&par, 0, sizeof(GF_NETIO_Parameter));
-	par.msg_type = GF_NETIO_PARSE_HEADER;
-	par.name = "Content-Type";
-	if (ctx->responseType == XHR_RESPONSETYPE_SAX) {
-		par.value = "application/xml";
-	} else if (ctx->responseType == XHR_RESPONSETYPE_DOCUMENT) {
-		par.value = "application/xml";
-	} else {
-		par.value = "application/octet-stream";
+#ifndef GPAC_DISABLE_SVG
+	if ((ctx->responseType == XHR_RESPONSETYPE_SAX)
+		|| (ctx->responseType == XHR_RESPONSETYPE_DOCUMENT)
+	) {
+		gf_assert(!ctx->sax);
+		ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
+		ctx->node_stack = gf_list_new();
+		ctx->document = gf_sg_new();
+		/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
+		ctx->document->reference_count = 1;
 	}
-	xml_http_on_data(ctx, &par);
-
-	memset(&par, 0, sizeof(GF_NETIO_Parameter));
-	par.msg_type = GF_NETIO_PARSE_HEADER;
-	par.name = "Content-Length";
-	sprintf(contentLengthHeader, "%d", ctx->size);
-	par.value = contentLengthHeader;
-	xml_http_on_data(ctx, &par);
-
+#endif
 
 	if (ctx->sax) {
 		memset(&par, 0, sizeof(GF_NETIO_Parameter));

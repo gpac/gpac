@@ -577,7 +577,10 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	if ((filter->freg->flags & GF_FS_REG_SCRIPT) && filter->freg->update_arg) {
 		GF_Err e;
 		gf_filter_parse_args(filter, args, arg_type, GF_TRUE);
+		char *next_args = strchr(args, filter->session->sep_args);
+		filter->orig_args = (char*)next_args;
 		e = filter->freg->update_arg(filter, NULL, NULL);
+		filter->orig_args = NULL;
 		if (e) return e;
 	}
 
@@ -777,6 +780,7 @@ void gf_filter_del(GF_Filter *filter)
 			}
 			gf_free( (void *) filter->forced_caps);
 		}
+		gf_filter_sess_reset_graph(filter->session, filter->freg);
 		gf_free( (char *) filter->freg->name);
 		gf_free( (void *) filter->freg);
 	}
@@ -1339,6 +1343,7 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 		u32 i, level = 0;
 		char *l_str=NULL;
 		char *l_tool=NULL;
+		char *l_strict=NULL;
 
 		char *sep = strchr(logs, '@');
 		char *next = sep ? strchr(sep, ':') : NULL;
@@ -1349,6 +1354,8 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 			sep[0] = 0;
 			l_str = sep+1;
 			l_tool = logs;
+			l_strict = strstr(l_str, "+strict");
+			if (l_strict) l_strict[0] = 0;
 		} else {
 			l_tool = "all";
 		}
@@ -1359,13 +1366,20 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 		else if (!strcmp(l_str, "debug")) level = GF_LOG_DEBUG;
 		else if (!strcmp(l_str, "quiet")) level = GF_LOG_QUIET;
 		else if (!strcmp(l_str, "ncl") || !strcmp(l_str, "cl")) {
-			if (!next) break;
+			if (!next) {
+				if (l_strict) l_strict[0] = '+';
+				break;
+			}
 			logs = next+1;
 		} else if (!strcmp(l_str, "strict")) {
 			lf->strict = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unsupported log level %s, ignoring\n", l_str));
 			l_tool=NULL;
+		}
+		if (l_strict) {
+			lf->strict = GF_TRUE;
+			l_strict[0] = '+';
 		}
 
 		while (l_tool) {
@@ -1843,6 +1857,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 					if ((u32) (sep - args)>=3) {
 						prev_date = sep-3;
 						if (prev_date[0]=='T') {}
+						else if (prev_date[0]=='C') { prev_date ++; }
 						else if (prev_date[1]=='T') { prev_date ++; }
 						else { prev_date = NULL; }
 					}
@@ -2622,7 +2637,12 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	gf_assert(filter);
 
 	if (!filter_dst) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
+		//if no destinations, the filter was removed while negociating
+		//this happens for example when doing 'src enc_audio enc_video VIDEOONLY_DST'
+		//the removal of enc_audio is triggered after potential capacity negotiation with an adaptation filter
+		if (pid->num_destinations) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
+		}
 		return;
 	}
 
@@ -3925,14 +3945,17 @@ static void gf_filter_remove_local(GF_FSTask *task)
 	}
 	safe_int_dec(&filter->session->remove_tasks);
 
+	Bool can_unload = GF_TRUE;
 	//disconnect all output pids, this will remove all filters up the chain if no more inputs and outputs
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		gf_filter_pid_remove(pid);
+		can_unload = GF_FALSE;
 	}
 	//locate source filter(s)
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		can_unload = GF_FALSE;
 		//fanout, only disconnect this pid instance
 		if (pidi->pid->num_destinations>1) {
 			//post STOP and disconnect
@@ -3967,6 +3990,10 @@ static void gf_filter_remove_local(GF_FSTask *task)
 		}
 	}
 	filter->sticky = 0;
+	if (can_unload && !filter->removed && !filter->finalized) {
+		gf_filter_post_remove(filter);
+	}
+	filter->removed = 1;
 	gf_mx_v(filter->tasks_mx);
 }
 

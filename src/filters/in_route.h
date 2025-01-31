@@ -34,14 +34,24 @@
 
 #ifndef GPAC_DISABLE_ROUTE
 
+enum
+{
+	TSIO_FILE_PROGRESS = 1,
+	TSIO_REPAIR_SCHEDULED = (1<<1)
+};
+
 typedef struct
 {
 	u32 sid;
 	u32 tsi;
 	GF_FilterPid *opid;
+	//TOI of file being received - moved back to 0 once file is done being dispatched
 	u32 current_toi;
 	u32 bytes_sent;
+	char *dash_rep_id;
 	GF_List *pending_repairs;
+	u32 flags_progress;
+	Bool delete_first;
 } TSI_Output;
 
 typedef struct
@@ -50,13 +60,12 @@ typedef struct
 	char *seg_name;
 } SegInfo;
 
-enum
-{
+GF_OPT_ENUM (ROUTEInRepairMode,
 	ROUTEIN_REPAIR_NO = 0,
 	ROUTEIN_REPAIR_SIMPLE,
 	ROUTEIN_REPAIR_STRICT,
 	ROUTEIN_REPAIR_FULL,
-};
+);
 
 typedef struct _route_repair_seg_info RepairSegmentInfo;
 
@@ -68,13 +77,22 @@ typedef struct
 	u32 priority;
 } RouteRepairRange;
 
-typedef struct 
+typedef enum
+{
+	RANGE_SUPPORT_NO = 0,
+	RANGE_SUPPORT_PROBE,
+	RANGE_SUPPORT_YES,
+} RouteServerRangeSupport;
+
+typedef struct
 {
 	char *url;
-	Bool accept_ranges, is_up, support_h2;
+	RouteServerRangeSupport accept_ranges;
+	Bool is_up, support_h2;
 	u32 nb_req_success, nb_bytes, latency;
 } RouteRepairServer;
 
+#define REPAIR_BUF_SIZE	50000
 typedef struct
 {
 	GF_DownloadSession *dld;
@@ -82,6 +100,8 @@ typedef struct
 
 	RouteRepairRange *range;
 	RouteRepairServer *server;
+	u32 initial_retry, retry_in;
+	char http_buf[REPAIR_BUF_SIZE];
 } RouteRepairSession;
 
 typedef struct
@@ -89,11 +109,12 @@ typedef struct
 	//options
 	char *src, *ifce, *odir;
 	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
-	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
-	u32 max_sess;
+	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
+	ROUTEInRepairMode repair;
+	u32 max_sess, range_merge, minrecv;
 	s32 tunein, stsi;
 	GF_PropStringList repair_urls;
-	
+
 	//internal
 	GF_Filter *filter;
 	GF_DownloadManager *dm;
@@ -122,6 +143,7 @@ typedef struct
 	GF_List *seg_range_reservoir;
 	GF_List *repair_servers;
 
+	Bool has_data;
 	const char *log_name;
 } ROUTEInCtx;
 
@@ -138,6 +160,10 @@ struct _route_repair_seg_info
 	GF_List *ranges;
 	u32 nb_errors;
 	TSI_Output *tsio;
+	//set to true if repair session is over but kept in list for TSIO reordering purposes
+	Bool done;
+	//if true this is a local repair, otherwise an http base one
+	Bool local_repair;
 };
 
 
@@ -155,4 +181,3 @@ TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileI
 #endif /* GPAC_DISABLE_ROUTE */
 
 #endif //#define IN_ROUTE_H
-

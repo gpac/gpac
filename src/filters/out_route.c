@@ -32,28 +32,27 @@
 
 #if !defined(GPAC_DISABLE_ROUTE)
 
-enum
-{
+GF_OPT_ENUM (DVBFluteChecksumMode, 
 	DVB_CSUM_NO=0,
 	DVB_CSUM_META,
 	DVB_CSUM_ALL,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (LCTChannelSplitMode,
 	LCT_SPLIT_NONE=0,
 	LCT_SPLIT_TYPE,
 	LCT_SPLIT_ALL,
 	LCT_SPLIT_MCAST,
-};
+);
 
 typedef struct
 {
 	//options
 	char *dst, *ext, *mime, *ifce, *ip;
-	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
+	u32 carousel, first_port, bsid, mtu, ttl, brinc, runfor;
+	LCTChannelSplitMode splitlct;
 	Bool korean, llmode, noreg, nozip, furl, flute, use_inband, ssm;
-	u32 csum;
+	DVBFluteChecksumMode csum;
 	u32 recv_obj_timeout;
 
 	//caps, overloaded at init
@@ -521,8 +520,8 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	}
 	if (manifest_type) {
-		if (manifest_type & 0x80000000) {
-			manifest_type &= 0x7FFFFFFF;
+		if (manifest_type & (1<<8)) {
+			manifest_type &= ~(1<<8);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Manifest file describes a static session, clients tune-in will likely fail !\n", ctx->log_name));
 		}
@@ -2786,13 +2785,13 @@ static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Boo
 		if (rpid->raw_file) {
 			carousel_size += rpid->pck_size;
 			if (rpid->carousel_time_us) {
-				tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
+				tot_rate += (u32) (rpid->pck_size * 8000000 / rpid->carousel_time_us);
 			}
 		} else if (!rpid->manifest_type) {
 			tot_rate += rpid->bitrate;
 		}
 		if (rpid->carousel_time_us && (rpid->carousel_time_us < carousel_us))
-			carousel_us = rpid->carousel_time_us;
+			carousel_us = (u32) rpid->carousel_time_us;
 	}
 	if (out_tot_rate) *out_tot_rate = tot_rate;
 
@@ -3369,7 +3368,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- raw files are assigned TSI 1 and increasing number of TOI\n"
 		"- otherwise, the first PID found is assigned TSI 10, the second TSI 20 etc ...\n"
 		"\n"
-		"When [-splitlct]() is set to `mcast`, the IP multicast adress is computed as follows:\n"
+		"When [-splitlct]() is set to `mcast`, the IP multicast address is computed as follows:\n"
 		" - if `MCASTIP` is set on the PID and is different from the service multicast IP, it is used\n"
 		" - otherwise the service multicast IP plus one is used\n"
 		"The multicast port used is set as follows:\n"
@@ -3379,8 +3378,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"Init segments and HLS child playlists are sent before each new segment, independently of [-carousel]().\n"
 		"# ATSC 3.0 mode\n"
 		"In this mode, the filter allows multiple service multiplexing, identified through the `ServiceID` property.\n"
-		"By default, a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
-		"The filter will look for `MCASTIP` and `MCASTPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
+		"By default (see above), a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
 		"\n"
 		"ATSC 3.0 attributes set by using the following PID properties:\n"
 		"- ATSC3ShortServiceName: set the short service name, maxiumu of 7 characters.  If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"
@@ -3442,7 +3440,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"# Error simulation\n"
 		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
-		"for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.\n"
+		"This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
 	.max_extra_pids = -1,

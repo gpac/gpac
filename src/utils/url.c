@@ -465,7 +465,8 @@ char *gf_url_percent_encode(const char *path)
 	for (i=0; i<len; i++) {
 		u8 c = path[i];
 		if (strchr(pce_special, c) != NULL) {
-			if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
+			if (c==' ') count+=2;
+			else if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
 				count+=2;
 			}
 		} else if (c>>7) {
@@ -482,7 +483,9 @@ char *gf_url_percent_encode(const char *path)
 		u8 c = path[i];
 
 		if (strchr(pce_special, c) != NULL) {
-			if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
+			if (c==' ')
+				do_enc = GF_TRUE;
+			else if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
 				do_enc = GF_TRUE;
 			}
 		} else if (c>>7) {
@@ -519,25 +522,27 @@ char *gf_url_percent_decode(const char *path)
 		}
 		count++;
 	}
-	if (!count) return gf_strdup(path);
+	if (count==len) return gf_strdup(path);
 	outpath = (char*)gf_malloc(sizeof(char) * (count + 1));
 
+	u32 d_idx=0;
 	for (i=0; i<len; i++) {
 		u8 c = path[i];
 		if (c=='%') {
 			u32 res;
 			char szChar[3];
 			szChar[0] = path[i+1];
-			szChar[1] = path[i+1];
+			szChar[1] = path[i+2];
 			szChar[2] = 0;
 			sscanf(szChar, "%02X", &res);
 			i += 2;
-			outpath[i] = (char) res;
+			outpath[d_idx] = (char) res;
 		} else {
-			outpath[i] = c;
+			outpath[d_idx] = c;
 		}
+		d_idx++;
 	}
-	outpath[count] = 0;
+	outpath[d_idx] = 0;
 	return outpath;
 }
 

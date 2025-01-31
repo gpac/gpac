@@ -858,7 +858,7 @@ static GF_Err gf_netcap_record(GF_NetcapFilter *nf)
 	if (!gf_opts_get_bool("core", "no-fd")) {
 		//make sure output dir exists
 		gf_fopen(nf->dst, "mkdir");
-		nf->fd = open(nf->dst, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
+		nf->fd = gf_fd_open(nf->dst, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 		if (nf->fd>=0) nf->cap_bs = gf_bs_from_fd(nf->fd, GF_BITSTREAM_WRITE);
 	} else
 #endif
@@ -1685,7 +1685,7 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 {
 #ifdef GPAC_HAS_FD
 	if (!gf_opts_get_bool("core", "no-fd")) {
-		nf->fd = open(nf->src, O_RDONLY);
+		nf->fd = gf_fd_open(nf->src, O_RDONLY | O_BINARY , S_IRUSR | S_IWUSR);
 		if (nf->fd>=0) nf->cap_bs = gf_bs_from_fd(nf->fd, GF_BITSTREAM_READ);
 	} else
 #endif

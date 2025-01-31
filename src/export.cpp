@@ -69,6 +69,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_cfg_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_localized) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_process_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_check_process_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_create_lockfile) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )
@@ -151,6 +153,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fgets) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fsize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fd_fsize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fgetc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fputc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fputs) )
@@ -159,6 +162,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fflush) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_feof) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ferror) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fd_open) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_exists) )
@@ -185,6 +189,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_greater) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_greater_or_equal) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_equal) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_format_duration) )
 
 /* Memory */
 #ifdef GPAC_MEMORY_TRACKING
@@ -470,6 +475,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_header_sizes_and_times) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_enum_headers) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_max_rate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_max_rate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_is_regulated) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_set_data_rate) )
@@ -2387,6 +2395,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_to_qt_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_is_wide_depth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_probe) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_downsampling) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
@@ -2696,6 +2705,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negotiate_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negotiate_property_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negotiate_property_dyn) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_owner) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_source_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_enum_destinations) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_discard_block) )

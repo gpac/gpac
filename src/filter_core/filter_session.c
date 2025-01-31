@@ -1494,6 +1494,7 @@ static void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
 		break;
 	case TASK_TYPE_SETUP: fprintf(stderr, " SetupFailure"); break;
 	case TASK_TYPE_USER: fprintf(stderr, " UserData"); break;
+	case TASK_TYPE_NONE: break;
 	}
 
 	fprintf(stderr, "\n");
@@ -2459,7 +2460,7 @@ GF_Err gf_fs_run(GF_FilterSession *fsess)
 	nb_threads = gf_list_count(fsess->threads);
 	for (i=0;i<nb_threads; i++) {
 		GF_SessionThread *sess_th = gf_list_get(fsess->threads, i);
-		if ( gf_th_run(sess_th->th, (gf_thread_run) gf_fs_thread_proc, sess_th) ==GF_OK) {
+		if ( gf_th_run(sess_th->th, (gf_thread_run) gf_fs_thread_proc, sess_th) == GF_OK ) {
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 			if (fsess->non_blocking) {
 				safe_int_inc(&fsess->pending_threads);

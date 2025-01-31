@@ -97,16 +97,14 @@ typedef struct
 	u32 bytes_in_wnd, max_rate;
 } PidCtx;
 
-enum
-{
+GF_OPT_ENUM (GF_InspectDumpMode,
 	INSPECT_MODE_PCK=0,
 	INSPECT_MODE_BLOCK,
 	INSPECT_MODE_REFRAME,
-	INSPECT_MODE_RAW
-};
+	INSPECT_MODE_RAW,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_InspectSkipPropsMode,
 	INSPECT_TEST_NO=0,
 	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
@@ -114,16 +112,15 @@ enum
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
 	INSPECT_TEST_NOCRC,
-	INSPECT_TEST_NOBR
-};
+	INSPECT_TEST_NOBR,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_InspectSampleAnalyzeMode,
 	INSPECT_ANALYZE_OFF=0,
 	INSPECT_ANALYZE_ON,
 	INSPECT_ANALYZE_BS,
 	INSPECT_ANALYZE_BS_BITS,
-};
+);
 
 typedef struct
 {
@@ -134,10 +131,10 @@ typedef struct
 	Bool stats;
 	char *log;
 	char *fmt;
-	u32 analyze;
+	GF_InspectSampleAnalyzeMode analyze;
 	Bool props, hdr, allp, info, pcr, xml, full;
 	Double speed, start;
-	u32 test;
+	GF_InspectSkipPropsMode test;
 	GF_Fraction dur;
 	Bool crc, dtype;
 	Bool fftmcd;
@@ -816,7 +813,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 }
 
 
-static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, u32 full_bs_dump, PidCtx *pctx)
+static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -1539,7 +1536,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 	inspect_printf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
 }
 
-static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
+static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
 	if (!pctx && (obu_size <= 1))
@@ -2539,7 +2536,7 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 	scte35_dump(ctx, dump, pctx->bs);
 
 	if (ctx->xml) {
-		inspect_printf(dump, " </SCTE35");
+		inspect_printf(dump, " </SCTE35>\n");
 	} else {
 		inspect_printf(dump, "\n");
 	}
@@ -2765,7 +2762,6 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			}
 			gf_free(pname_no_space);
 		} else if (!p4cc && !strncmp(pname, "scte35", 6)) {
-			inspect_printf(dump, ">\n");
 			dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
 		/*} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
 			dump_temi_loc(ctx, pctx, dump, pname, att);
@@ -3058,6 +3054,29 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 		else if (!strcmp(key, "fn")) {
 			inspect_printf(dump, "%s", gf_filter_get_name(filter) );
 		}
+		else if (!strcmp(key, "tmcd")) {
+			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			if (prop && prop->value.uint_list.nb_items) {
+				u32 i;
+				for (i=0; i<prop->value.uint_list.nb_items; i++) {
+					if (i) inspect_printf(dump, ", ");
+					u32 tc = prop->value.uint_list.vals[i]; // seconds * 1000 + frames
+					u32 frames = tc % 1000;
+					tc /= 1000;
+					u32 seconds = tc % 60;
+					tc /= 60;
+					u32 minutes = tc % 60;
+					u32 hours = tc / 60;
+
+					char *tc_str = gf_malloc(32);
+					snprintf(tc_str, 32, "%02d:%02d:%02d:%02d", hours, minutes, seconds, frames);
+					inspect_printf(dump, "%s", tc_str);
+					gf_free(tc_str);
+				}
+			} else {
+				inspect_printf(dump, "N/A");
+			}
+		}
 		else {
 			const GF_PropertyValue *prop = NULL;
 			u32 prop_4cc = gf_props_get_id(key);
@@ -3311,6 +3330,8 @@ static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data,
 			}
 			gf_isom_box_dump(a, dump);
 			data += a->size;
+			gf_isom_box_del(a);
+			a=NULL;
 		}
 		gf_bs_del(bs);
 	}
@@ -3610,6 +3631,9 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		if (!p) break;
 		if (idx==0) inspect_printf(dump, "properties:\n");
 
+		//SCTE35 requires a specific description (e.g. a XML Element): process after Packet is fully described
+		if (!prop_4cc && !strncmp(prop_name, "scte35", 6)) continue;
+
 		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
 	}
 
@@ -3622,6 +3646,18 @@ props_done:
 		return;
 	}
 	inspect_printf(dump, ">\n");
+
+	// special props requiring specific description (e.g. a XML Element)
+	idx=0;
+	while (1) {
+		u32 prop_4cc;
+		const char *prop_name;
+		const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+		if (!p) break;
+		if (prop_4cc || strncmp(prop_name, "scte35", 6)) continue;
+
+		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
+	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (pctx->hevc_state || pctx->avc_state || pctx->vvc_state) {
@@ -3865,7 +3901,6 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 
 static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 {
-	u32 h, m, s, ms;
 	const char *name = "duration";
 	if (dur==-1) {
 		inspect_printf(dump, " duration unknown");
@@ -3879,35 +3914,15 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 		name = "estimated duration";
 	}
 
-	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
-	h = (u32) (dur / 3600000);
-	m = (u32) (dur/ 60000) - h*60;
-	s = (u32) (dur/1000) - h*3600 - m*60;
-	ms = (u32) (dur) - h*3600000 - m*60000 - s*1000;
+	char szDur[100];
+	gf_format_duration(dur, timescale, szDur);
 	if (skip_name)
 		inspect_printf(dump, " (");
 	else
 		inspect_printf(dump, " %s ", name);
-	if (h<=24) {
-		if (h)
-			inspect_printf(dump, "%02d:%02d:%02d.%03d", h, m, s, ms);
-		else
-			inspect_printf(dump, "%02d:%02d.%03d", m, s, ms);
-	} else {
-		u32 d = (u32) (dur / 3600000 / 24);
-		h = (u32) (dur/3600000)-24*d;
-		if (d<=365) {
-			inspect_printf(dump, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
-		} else {
-			u32 y=0;
-			while (d>365) {
-				y++;
-				d-=365;
-				if (y%4) d--;
-			}
-			inspect_printf(dump, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
-		}
-	}
+
+	inspect_printf(dump, "%s", szDur);
+
 	if (skip_name)
 		inspect_printf(dump, ")");
 }
@@ -5560,7 +5575,7 @@ const GF_FilterRegister InspectRegister = {
 	GF_FS_SET_HELP("The inspect filter can be used to dump PID and packets. It may also be used to check parts of payload of the packets.\n"
 	"\n"
 	"The default options inspect only PID changes.\n"
-	"If [-full]() is not set, [-mode=frame]() is forced and PID properties are formatted in human-readable form, one PID per line.\n"
+	"If [-full]() is not set, [-mode]() is forced to `frame` and PID properties are formatted in human-readable form, one PID per line.\n"
 	"Otherwise, all properties are dumped.\n"
 	"Note: specifying [-xml](), [-analyze](), [-fmt]() or using `-for-test` will force [-full]() to true.\n"
 	"\n"
@@ -5574,6 +5589,7 @@ const GF_FilterRegister InspectRegister = {
 	"- cts: composition time stamp in stream timescale, N/A if not available\n"
 	"- dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available\n"
 	"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"
+	"- tmcd: timecode as provided in SEI, N/A if not available (requires reframer)\n"
 	"- dur: duration in stream timescale\n"
 	"- frame: framing status\n"
 	"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"

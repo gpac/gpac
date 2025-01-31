@@ -31,8 +31,7 @@
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
-typedef enum
-{
+GF_OPT_ENUM (GF_HTTPInStoreMode,
 	GF_HTTPIN_STORE_AUTO=0,
 	GF_HTTPIN_STORE_DISK,
 	GF_HTTPIN_STORE_DISK_KEEP,
@@ -40,7 +39,7 @@ typedef enum
 	GF_HTTPIN_STORE_MEM_KEEP,
 	GF_HTTPIN_STORE_NONE,
 	GF_HTTPIN_STORE_NONE_KEEP,
-} GF_HTTPInStoreMode;
+);
 
 enum
 {
@@ -53,7 +52,8 @@ typedef struct
 {
 	//options
 	char *src;
-	u32 block_size, cache, idelay;
+	u32 block_size, idelay;
+	GF_HTTPInStoreMode cache;
 	GF_Fraction64 range;
 	char *ext;
 	char *mime;
@@ -508,7 +508,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 					gf_dm_sess_get_stats(ctx->sess, NULL, NULL, NULL, NULL, &bytes_per_sec, NULL);
 					gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 				}
-				gf_filter_ask_rt_reschedule(filter, 1000);
+				gf_filter_ask_rt_reschedule(filter, gf_dm_sess_is_regulated(ctx->sess) ? 100000 : 1000);
 				return GF_OK;
 			}
 			if (! ctx->nb_read)
@@ -659,7 +659,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- auto: cache to disk if content length is known, no cache otherwise\n"
-	"- disk: cache to disk,  discard once session is no longer used\n"
+	"- disk: cache to disk, discard once session is no longer used\n"
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"

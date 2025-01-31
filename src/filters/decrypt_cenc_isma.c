@@ -48,27 +48,26 @@ enum
 	DECRYPT_STATE_PLAY,
 };
 
-enum
-{
+GF_OPT_ENUM (CENCDecDecryptMode, 
 	DECRYPT_FULL=0,
 	DECRYPT_NOKEY,
 	DECRYPT_SKIP,
 	DECRYPT_PAD0,
 	DECRYPT_PAD1,
 	DECRYPT_PADSC,
-};
+);
 
 typedef struct
 {
 	GF_Crypt *crypt;
 	bin128 key;
-	u32 key_valid;
+	Bool key_valid;
 } CENCDecKey;
 
 typedef struct
 {
 	const char *cfile;
-	u32 decrypt;
+	CENCDecDecryptMode decrypt;
 	GF_PropUIntList drop_keys;
 	GF_PropStringList kids;
 	GF_PropStringList keys;
@@ -761,7 +760,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 				memset(cstr->crypts, 0, sizeof(CENCDecKey));
 			}
 			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
-			cstr->crypts[0].key_valid = 1;
+			cstr->crypts[0].key_valid = GF_TRUE;
 		} else {
 			cstr->state = DECRYPT_STATE_ERROR;
 		}
@@ -860,7 +859,7 @@ static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
 				memset(cstr->crypts, 0, sizeof(CENCDecKey));
 			}
 			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
-			cstr->crypts[0].key_valid = 1;
+			cstr->crypts[0].key_valid = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Invalid key size, greater than 16 bytes\n"))
 			cstr->state = DECRYPT_STATE_ERROR;
@@ -971,7 +970,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 		memset(cstr->crypts, 0, sizeof(CENCDecKey));
 	}
 	memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
-	cstr->crypts[0].key_valid = 1;
+	cstr->crypts[0].key_valid = GF_TRUE;
 
 	return GF_OK;
 }
@@ -1184,7 +1183,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	)
 		return GF_NOT_SUPPORTED;
 
-	if (scheme_version != 0x00010000) {
+	if ((scheme_type != GF_HLS_SAMPLE_AES_SCHEME) && (scheme_version != 0x00010000)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid scheme version %08X for scheme type %s, results might be wrong\n", scheme_version, gf_4cc_to_str(scheme_type) ));
 	}
 
@@ -1504,7 +1503,7 @@ static GF_Err cenc_dec_access_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 		//if (!ctx->nb_allow_play) return GF_AUTHENTICATION_FAILURE;
 		//ctx->nb_allow_play--;
 
-		/*open decrypter - we do NOT initialize decrypter; it wil be done when we decrypt the first crypted sample*/
+		/*open decrypter - we do NOT initialize decrypter; it will be done when we decrypt the first crypted sample*/
 		for (i=0; i<cstr->nb_crypts; i++) {
 			gf_assert(!cstr->crypts[i].crypt);
 			if (cstr->is_cenc)
@@ -1960,6 +1959,12 @@ static GF_Err cenc_dec_process_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cs
 		if (e) goto exit;
 		memcpy(cstr->hls_IV, cstr->cenc_ki->value.data.ptr + 21, 16);
 	} else {
+		//no KID sent, typically seen when decrypting SAES MPEG-2 TS without a HLS manifest
+		//we default to first key specified in DRM config
+		if ((cstr->nb_crypts==1) && !cstr->crypts[0].key_valid && !cstr->inband_keys) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HLS_SAES] No KID signaled, using first key supplied\n" ) );
+			cstr->crypts[0].key_valid = GF_TRUE;
+		}
 		e = cenc_dec_push_iv(cstr, 0, cstr->hls_IV, 16, 0, NULL);
 		if (e) goto exit;
 	}

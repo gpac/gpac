@@ -444,39 +444,6 @@ GF_Err kind_box_dump(GF_Box *a, FILE * trace)
 }
 
 
-static char *format_duration(u64 dur, u32 timescale, char *szDur)
-{
-	u32 h, m, s, ms;
-	if (!timescale) return NULL;
-	dur = (u32) (( ((Double) (s64) dur)/timescale)*1000);
-	h = (u32) (dur / 3600000);
-	dur -= h*3600000;
-	m = (u32) (dur / 60000);
-	dur -= m*60000;
-	s = (u32) (dur/1000);
-	dur -= s*1000;
-	ms = (u32) (dur);
-
-	if (h<=24) {
-		sprintf(szDur, "%02d:%02d:%02d.%03d", h, m, s, ms);
-	} else {
-		u32 d = (u32) (dur / 3600000 / 24);
-		h = (u32) (dur/3600000)-24*d;
-		if (d<=365) {
-			sprintf(szDur, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
-		} else {
-			u32 y=0;
-			while (d>365) {
-				y++;
-				d-=365;
-				if (y%4) d--;
-			}
-			sprintf(szDur, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
-		}
-	}
-	return szDur;
-}
-
 static void dump_escape_string(FILE * trace, char *name)
 {
 	u32 i, len = name ? (u32) strlen(name) : 0;
@@ -496,18 +463,17 @@ GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 	if (p->size) {
 		count = gf_list_count(p->list);
 		for (i=0; i<count; i++) {
-			char szDur[50];
+			char szDur[100];
 			GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 			gf_fprintf(trace, "<Chapter name=\"");
 			dump_escape_string(trace, ce->name);
-			gf_fprintf(trace, "\" startTime=\"%s\" />\n", format_duration(ce->start_time, 1000*10000, szDur));
+			gf_fprintf(trace, "\" startTime=\"%s\" />\n", gf_format_duration(ce->start_time, 1000*10000, szDur));
 		}
 	} else {
 		gf_fprintf(trace, "<Chapter name=\"\" startTime=\"\"/>\n");
 	}
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
-		format_duration(0, 0, NULL);
 		dump_escape_string(NULL, NULL);
 	}
 #endif
@@ -4459,8 +4425,8 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 		if (!txt->len) continue;
 
 		if (dump_type==GF_TEXTDUMPTYPE_OGG_CHAP) {
-			char szDur[50];
-			fprintf(dump, "CHAPTER%02d=%s\n", i+1, format_duration(start, ts, szDur));
+			char szDur[100];
+			fprintf(dump, "CHAPTER%02d=%s\n", i+1, gf_format_duration(start, ts, szDur));
 			fprintf(dump, "CHAPTER%02dNAME=%s\n", i+1, txt->text);
 		} else {
 			fprintf(dump, "AddChapterBySecond("LLD",%s)\n", start / ts, txt->text);
@@ -6148,16 +6114,16 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, ">\n");
 
 			for (j=0; j<nb_subs; j++) {
-				u32 clear, crypt;
+				u32 clear, nb_crypt;
 				gf_fprintf(trace, "<SubSampleEncryptionEntry");
 				if (nb_keys>1) {
 					u32 kidx = gf_bs_read_u16(bs);
 					gf_fprintf(trace, " MultiKeyIndex=\"%u\"", kidx);
 				}
 				clear = gf_bs_read_u16(bs);
-				crypt = gf_bs_read_u32(bs);
-				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, crypt);
-				total_bytes+=clear+crypt;
+				nb_crypt = gf_bs_read_u32(bs);
+				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, nb_crypt);
+				total_bytes+=clear+nb_crypt;
 			}
 			if (!gf_sys_is_test_mode())
 				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
@@ -7041,12 +7007,12 @@ GF_Err ddts_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)a;
 
-	gf_isom_box_dump_start(a, "DTSpecificBox", trace);
+	gf_isom_box_dump_start(a, "DTSSpecificBox", trace);
 	gf_fprintf(trace, "SamplingFrequency=\"%d\" MaxBitrate=\"%d\" AvgBitrate=\"%d\" "
 		"SampleDepth=\"%d\" FrameDuration=\"%d\" StreamConstruction=\"%d\" "
 		"CoreLFEPresent=\"%d\" CoreLayout=\"%d\" CoreSize=\"%d\" StereoDownmix=\"%d\" "
 		"RepresentationType=\"%d\" ChannelLayout=\"%d\" MultiAssetFlag=\"%d\" "
-		"LBRDurationMod=\"%d\"",
+		"LBRDurationMod=\"%d\">\n",
 		ptr->cfg.SamplingFrequency, ptr->cfg.MaxBitrate, ptr->cfg.AvgBitrate,
 		ptr->cfg.SampleDepth, ptr->cfg.FrameDuration, ptr->cfg.StreamConstruction,
 		ptr->cfg.CoreLFEPresent, ptr->cfg.CoreLayout, ptr->cfg.CoreSize,
@@ -7062,12 +7028,12 @@ GF_Err udts_box_dump(GF_Box *a, FILE * trace)
 	u32 byte;
 	u8 i;
 	u8 *data;
-	gf_isom_box_dump_start(a, "UDTSpecificBox", trace);
+	gf_isom_box_dump_start(a, "UDTSSpecificBox", trace);
 	gf_fprintf(trace,
 		"DecoderProfileCode=\"%d\" FrameDurationCode=\"%d\" MaxPayloadCode=\"%d\" "
 		"NumPresentationsCode=\"%d\" ChannelMask=\"%d\" BaseSamplingFrequencyCode=\"%d\" "
 		"SampleRateMod=\"%d\" RepresentationType=\"%d\" StreamIndex=\"%d\" "
-		"ExpansionBoxPresent=\"%d\"",
+		"ExpansionBoxPresent=\"%d\">\n",
 		ptr->cfg.DecoderProfileCode, ptr->cfg.FrameDurationCode, ptr->cfg.MaxPayloadCode,
 		ptr->cfg.NumPresentationsCode, ptr->cfg.ChannelMask,
 		ptr->cfg.BaseSamplingFrequencyCode, ptr->cfg.SampleRateMod,

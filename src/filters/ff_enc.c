@@ -47,6 +47,7 @@ typedef struct _gf_ffenc_ctx
 	char *c;
 	Bool ls, rld;
 	u32 pfmt;
+	s32 round;
 	GF_Fraction fintra;
 	Bool rc;
 
@@ -1675,6 +1676,26 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->infmt_negotiate = GF_TRUE;
 		} else {
 			ctx->infmt_negotiate = GF_FALSE;
+			u32 downsample_w=0, downsample_h=0;
+			if ((ctx->round==1) || (ctx->round==-1))
+				gf_pixel_get_downsampling(ffmpeg_pixfmt_to_gpac(ctx->pixel_fmt, GF_FALSE), &downsample_w, &downsample_h);
+			else if (ctx->round>0)
+				downsample_h = downsample_w = ctx->round;
+			else if (ctx->round<0)
+				downsample_h = downsample_w = (u32) -ctx->round;
+
+			if (downsample_w && (ctx->width % downsample_w)) {
+				u32 w = (ctx->width/downsample_w) * downsample_w;
+				if (ctx->round>0) w+=downsample_w;
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_WIDTH, &PROP_UINT(w) );
+				ctx->infmt_negotiate = GF_TRUE;
+			}
+			if (downsample_h && (ctx->height % downsample_h)) {
+				u32 h = (ctx->height/downsample_h) * downsample_h;
+				if (ctx->round>0) h+=downsample_h;
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(h) );
+				ctx->infmt_negotiate = GF_TRUE;
+			}
 		}
 	} else {
 		u32 change_input_sr = 0;
@@ -2288,6 +2309,12 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(ls), "log stats", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rc), "reset encoder when forcing intra frame (some encoders might not support intra frame forcing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rld), "force reloading of encoder when arguments are updated", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(round), "round video up or down\n"
+	"- 0: no rounding\n"
+	"- 1: round up to match codec YUF format requirements\n"
+	"- -1: round down to match codec YUF format requirements\n"
+	"- other: round to lower (negative value) or higher (positive value), for example CTU size"
+	, GF_PROP_SINT, "1", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}

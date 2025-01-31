@@ -847,6 +847,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "font-dirs", szPath);
 
 	gf_cfg_set_key(cfg, "core", "cache-size", "100M");
+	gf_cfg_set_key(cfg, "core", "cache-check", "0");
 
 #if defined(_WIN32_WCE)
 	gf_cfg_set_key(cfg, "core", "video-output", "gapi");
@@ -1406,7 +1407,7 @@ GF_Err gf_opts_save()
 #endif
 
 GF_GPACArg GPAC_Args[] = {
- GF_DEF_ARG("tmp", NULL, "specify directory for temporary file creation instead of OS-default temporary file management", NULL, NULL, GF_ARG_STRING, 0),
+ GF_DEF_ARG("tmp", NULL, "specify directory for temporary file creation instead of OS-default temporary file management", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("noprog", NULL, "disable progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("quiet", NULL, "disable all messages, including errors", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("log-file", "lf", LOGFILE_HELP, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
@@ -1422,6 +1423,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- warning: logs error+warning messages\n"
 	        "- info: logs error+warning+info messages\n"
 	        "- debug: logs all messages\n"
+	        "- strict: exit if error for this log tool and use default log level if tool\n"
 	        "\n`toolX` can be one of:\n"
 	        "- core: libgpac core\n"
 	        "- mutex: log all mutex calls\n"
@@ -1449,9 +1451,10 @@ GF_GPACArg GPAC_Args[] = {
 	        "- ctime: media and SMIL timing info from composition engine\n"
 	        "- interact: interaction messages (UI events and triggered DOM events and VRML route)\n"
 	        "- rti: run-time stats of compositor\n"
-	        "- all: all tools logged - other tools can be specified afterwards.  \n"
+	        "- all: all tools logged - other tools can be specified afterwards\n"
 	        "The special keyword `ncl` can be set to disable color logs.  \n"
-	        "The special keyword `strict` can be set to exit at first error.  \n"
+	        "The special keyword `strict` can be set to exit at first error on any tool.  \n"
+	        "`levelX` can accept the suffix `+strict` to force strict error only for the given log tool(s).   \n"
 	        "\nEX -logs=all@info:dash@debug:ncl\n"
 			"This moves all log to info level, dash to debug level and disable color logs"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
@@ -1498,6 +1501,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-fd", NULL, "use buffered IO instead of file descriptor for read/write - this can speed up operations on small files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-mx", NULL, "disable all mutexes, threads and semaphores (do not use if unsure about threading used)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("xml-max-csize", NULL, "maximum XML content or attribute size", "100k", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("users", NULL, "authentication configuration file for users and groups", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+
 
 #ifndef GPAC_DISABLE_NETCAP
  GF_DEF_ARG("netcap", NULL, "set packet capture and filtering rules formatted as [CFG][RULES]. Each `-netcap` argument will define a configuration\n"
@@ -1532,7 +1537,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-cache", NULL, "disable HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no re-validation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("clean-cache", NULL, "indicate if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("cache-size", NULL, "specify cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cache-size", NULL, "specify maximum cache size on disk in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cache-check", NULL, "cache clean interval in seconds, 0 only clean cache at startup", "60", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("tcp-timeout", NULL, "time in milliseconds to wait for HTTP/RTSP connect before error", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("req-timeout", NULL, "time in milliseconds to wait on HTTP/RTSP request before error (0 disables timeout)", "10000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-timeout", NULL, "ignore HTTP 1.1 timeout in keep-alive", "false", NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
@@ -1627,6 +1633,7 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
  GF_DEF_ARG("vvdec-annexb", NULL, "hack for old vvdec+libavcodec supporting only annexB format", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("heif-hevc-urn", NULL, "use HEVC URN for alpha and depth in HEIF instead of MPEG-B URN (HEIF first edition)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("boxdir", NULL, "use box definitions in the given directory for XML dump", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+ GF_DEF_ARG("no-mabr-patch", NULL, "disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
 
 
  {0}
@@ -2163,6 +2170,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 	Bool escape_pipe = GF_FALSE;
 	Bool prev_was_example = GF_FALSE;
 	Bool prev_has_line_after = GF_FALSE;
+	Bool prev_has_colon = GF_FALSE;
 	u32 list_depth = 0;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
@@ -2282,13 +2290,13 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			console_code = GF_CONSOLE_YELLOW;
 
 			if (gen_doc==1) {
-				header_string = "Example\n```\n";
+				header_string = prev_has_colon ? "```\n" : "Example\n```\n";
 				footer_string = "\n```\n";
 			} else if (gen_doc==2) {
-				header_string = "Example\n.br\n";
+				header_string = prev_has_colon ? ".br\n" : "Example\n.br\n";
 				footer_string = "\n.br\n";
 			} else {
-				header_string = "Example:\n";
+				header_string = prev_has_colon ? NULL : "Example:\n";
 			}
 
 			if (prev_was_example) {
@@ -2593,6 +2601,9 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 					} else if (!strncmp(link, "MP4B_GEN", 8)) {
 						fprintf(helpout, "[-%s](mp4box-gen-opts/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-gen-opts");
+					} else if (!strncmp(link, "MP4B_IMP", 8)) {
+						fprintf(helpout, "[-%s](mp4box-import-opts/#%s)", line, line);
+						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-import-opts");
 					} else if (strlen(link)) {
 						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen(link);
@@ -2658,6 +2669,10 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 		}
 
 		if (!next_line) break;
+		prev_has_colon = GF_FALSE;
+		if (line[0] && line[strlen(line)-1]==':')
+			prev_has_colon = GF_TRUE;
+
 		next_line[0]=0;
 		if (gen_doc==1) fprintf(helpout, "  ");
 		line = next_line+1;

@@ -37,14 +37,13 @@
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
 
-enum
-{
+GF_OPT_ENUM (GF_DolbyVisionSignalingMode,
 	DVMODE_NONE=0,
 	DVMODE_AUTO,
 	DVMODE_FORCE,
 	DVMODE_CLEAN,
 	DVMODE_SINGLE,
-};
+);
 
 typedef struct
 {
@@ -60,11 +59,11 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
-enum {
+GF_OPT_ENUM (GF_GOPBufferingMode,
 	STRICT_POC_OFF = 0,
 	STRICT_POC_ON,
 	STRICT_POC_ERROR,
-};
+);
 
 typedef struct
 {
@@ -73,10 +72,11 @@ typedef struct
 	Double index;
 	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
 	u32 nal_length;
-	u32 strict_poc;
+	GF_GOPBufferingMode strict_poc;
 	u32 bsdbg;
 	GF_Fraction dur;
-	u32 dv_mode, dv_profile, dv_compatid;
+	GF_DolbyVisionSignalingMode dv_mode;
+	u32 dv_profile, dv_compatid;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -2444,7 +2444,37 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 				p.value.sint_list.vals = refs;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_REFS, &p);
 			}
+		}
 
+		if (ctx->hevc_state || ctx->avc_state) {
+			u8 num_clock_ts = 0;
+			AVCSeiPicTimingTimecode *tcs = NULL;
+
+			if (ctx->hevc_state) {
+				num_clock_ts = ctx->hevc_state->sei.pic_timing.num_clock_ts;
+				tcs = ctx->hevc_state->sei.pic_timing.timecodes;
+			} else if (ctx->avc_state) {
+				num_clock_ts = ctx->avc_state->sei.pic_timing.num_clock_ts;
+				tcs = ctx->avc_state->sei.pic_timing.timecodes;
+			}
+
+			if (num_clock_ts) {
+				GF_PropUIntList p;
+				p.nb_items = num_clock_ts;
+				p.vals = gf_malloc(sizeof(u32) * num_clock_ts);
+
+				for (u32 i=0; i<num_clock_ts; i++) {
+					AVCSeiPicTimingTimecode *tc = &tcs[i];
+					p.vals[i] = tc->hours*3600 + tc->minutes*60 + tc->seconds;
+					p.vals[i] = p.vals[i]*1000 + tc->n_frames;
+				}
+
+				GF_PropertyValue pv;
+				pv.type = GF_PROP_UINT_LIST;
+				pv.value.uint_list = p;
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
+				gf_free(p.vals);
+			}
 		}
 	} else {
 		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);

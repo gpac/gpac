@@ -235,7 +235,7 @@ except OSError:
             print('Failed to locate libgpac (.so/.dll/.dylib) - make sure it is in your system path')
             os._exit(1)
 
-#change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
+#change this to reflect API we encapsulate. An incompatibility in either of these will throw a warning
 GF_ABI_MAJOR=12
 GF_ABI_MINOR=16
 
@@ -1946,6 +1946,9 @@ _libgpac.gf_stream_type_name.restype = c_char_p
 _libgpac.gf_codecid_file_ext.argtypes = [c_uint]
 _libgpac.gf_codecid_file_ext.restype = c_char_p
 
+_libgpac.gf_filter_pid_get_owner.argtypes = [_gf_filter_pid]
+_libgpac.gf_filter_pid_get_owner.restype = _gf_filter
+
 _libgpac.gf_filter_pid_get_source_filter.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_get_source_filter.restype = _gf_filter
 
@@ -2060,7 +2063,7 @@ class HTTPOutRequest:
         pass
 
     ## close callback for the request - if not overriden by subclass, not used
-    #\param reason GPAC error code of the end of session
+    #\param reason GPAC error code of the end of session. If 1 (GF_EOS), the session is ended but underlying network is kept alive, otherwise session is destroyed
     #\return
     def close(self, reason):
         pass
