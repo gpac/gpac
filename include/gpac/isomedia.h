@@ -2287,8 +2287,7 @@ GF_Err gf_isom_set_interleave_time(GF_ISOFile *isom_file, u32 InterleaveTime);
 GF_Err gf_isom_force_64bit_chunk_offset(GF_ISOFile *isom_file, Bool set_on);
 
 /*! compression mode of top-level boxes*/
-typedef enum
-{
+GF_OPT_ENUM (GF_ISOCompressMode,
 	/*! no compression is used*/
 	GF_ISOM_COMP_NONE=0,
 	/*! only moov box is compressed*/
@@ -2301,7 +2300,7 @@ typedef enum
 	GF_ISOM_COMP_MOOF_SSIX,
 	/*! all (moov, moof,  sidx and ssix) boxes are compressed*/
 	GF_ISOM_COMP_ALL,
-} GF_ISOCompressMode;
+);
 
 enum
 {
@@ -2684,7 +2683,7 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32
 
 
 /*! Audio Sample Description signaling mode*/
-typedef enum {
+GF_OPT_ENUM (GF_AudioSampleEntryImportMode,
 	/*! use ISOBMF sample entry v0*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
 	/*! use ISOBMF sample entry v0*/
@@ -2695,7 +2694,7 @@ typedef enum {
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG,
 	/*! use QTFF sample entry v1*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF
-} GF_AudioSampleEntryImportMode;
+);
 
 
 /*! sets audio format  information for a sample description

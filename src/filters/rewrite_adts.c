@@ -31,18 +31,17 @@
 
 #include <gpac/avparse.h>
 
-enum
-{
+GF_OPT_ENUM (GF_Mpeg2AACSignalMode,
 	AAC_MPEG2_NO=0,
 	AAC_MPEG2_YES,
 	AAC_MPEG2_AUTO,
-};
+);
 
 typedef struct
 {
 	//opts
 	Bool exporter;
-	u32 mpeg2;
+	GF_Mpeg2AACSignalMode mpeg2;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;

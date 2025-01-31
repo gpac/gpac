@@ -53,19 +53,19 @@
 
 typedef struct __txtin_ctx GF_TXTIn;
 
-enum
-{
+GF_OPT_ENUM (GF_TXTInTextStreamMode,
 	STXT_MODE_STXT=0,
 	STXT_MODE_SBTT,
 	STXT_MODE_TX3G,
 	STXT_MODE_VTT,
 	STXT_MODE_WEBVTT,
-};
+);
 
 struct __txtin_ctx
 {
 	//opts
-	u32 width, height, txtx, txty, fontsize, stxtmod;
+	u32 width, height, txtx, txty, fontsize;
+	GF_TXTInTextStreamMode stxtmod;
 	s32 zorder;
 	const char *fontname, *lang, *ttml_zero;
 	Bool nodefbox, noflush, ttml_embed, no_empty;
@@ -4544,7 +4544,7 @@ GF_Err txtin_initialize(GF_Filter *filter)
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
 	ctx->has_forced = 2;
-	//WEBVTT name used for backward comaptibility with old :webvtt option
+	//WEBVTT name used for backward compatibility with old :webvtt option
 	if (ctx->stxtmod==STXT_MODE_WEBVTT) ctx->stxtmod = STXT_MODE_VTT;
 	return GF_OK;
 }

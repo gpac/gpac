@@ -41,7 +41,7 @@ void print(long log_level, DOMString log_str);
 
 The JSFilter interface has a single instance exposed to the script under the name "filter".
 It implements binding to the underlying filter object, see \ref GF_Filter.
-The JSFilter provides callback functions mapping the functionnalities of \ref __gf_filter_register.
+The JSFilter provides callback functions mapping the functionalities of \ref __gf_filter_register.
 */
 interface JSFilter {
 /*! initialize the filter. This is a callback function assignable by the script. It is called once all filter arguments have been parsed.
@@ -100,6 +100,8 @@ readonly attribute DOMString sep_args;
 readonly attribute DOMString sep_name;
 /*! see \ref gf_filter_get_sep*/
 readonly attribute DOMString sep_list;
+/*! source args, only valid during initialize callback - see \ref gf_filter_get_src_args*/
+readonly attribute DOMString src_args;
 /*! see \ref gf_filter_get_dst_args*/
 readonly attribute DOMString dst_args;
 /*! see \ref gf_filter_get_dst_name*/
@@ -291,13 +293,13 @@ void abort();
 
 /*! assigns source name to a filter - see \ref gf_filter_set_source
 \param from a Filter or a FilterInstance object to set a a source for this filter
-\param source_id the source ID to assign
+\param source_id the source ID to assign - empty string means no source_id
 */
 void set_source(Filter from, optional DOMString source_id=null);
 
 /*! assigns restricted source name to a filter - see \ref gf_filter_set_source_restricted
 \param from a Filter or a FilterInstance object to set a a source for this filter
-\param source_id the source ID to assign
+\param source_id the source ID to assign - empty string means no source_id
 */
 void set_source_restricted(Filter from, optional DOMString source_id=null);
 
@@ -398,6 +400,8 @@ attribute boolean eos;
 readonly attribute boolean eos_seen;
 /*! end of stream pending state - see \ref gf_filter_pid_eos_received*/
 readonly attribute boolean eos_received;
+/*! true if end of stream is a flush event - see \ref gf_filter_pid_is_flush_eos*/
+readonly attribute boolean is_flush;
 /*! blocking state - see \ref gf_filter_pid_would_block*/
 readonly attribute boolean would_block;
 /*! sparse status - see \ref gf_filter_pid_is_sparse*/

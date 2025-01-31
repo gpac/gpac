@@ -100,7 +100,7 @@ attribute signed long read(ArrayBuffer buffer);
 attribute void write(ArrayBuffer buffer);
 
 /*! callback function used to monitor end of session. It is set to null by default
-\param error GPAC error code for the session
+\param error GPAC error code for the session. If 1 (GF_EOS), the session is ended but underlying network is kept alive, otherwise session is destroyed
 */
 attribute void close(unsigned long error);
 

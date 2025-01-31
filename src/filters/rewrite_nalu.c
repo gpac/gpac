@@ -468,6 +468,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 	if (ctx->vvc_state) ctx->vvc_state->s_info.slice_type = 0;
 #endif
 
+	u32 nb_nalsize_zero=0;
+
 	while (gf_bs_available((ctx->bs_r))) {
 		Bool skip_nal = GF_FALSE;
 		Bool is_nalu_delim = GF_FALSE;
@@ -478,7 +480,12 @@ GF_Err nalumx_process(GF_Filter *filter)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		//we allow nal_size=0 for incomplete files, abort as soon as we see one to avoid parsing thousands of 0 bytes
-		if (!nal_size) break;
+		if (!nal_size) {
+			if (nb_nalsize_zero) break;
+			nb_nalsize_zero++;
+		} else {
+			nb_nalsize_zero=0;
+		}
 
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim

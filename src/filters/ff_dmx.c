@@ -38,13 +38,12 @@
 #define FFMPEG_NO_DOVI
 #endif
 
-enum
-{
+GF_OPT_ENUM(GF_FFDemuxRawFrameCopyMode,
 	COPY_NO,
 	COPY_A,
 	COPY_V,
-	COPY_AV
-};
+	COPY_AV,
+);
 
 typedef struct
 {
@@ -62,7 +61,8 @@ typedef struct
 	//options
 	const char *src;
 	u32 block_size;
-	u32 copy, probes;
+	GF_FFDemuxRawFrameCopyMode copy;
+	u32 probes;
 	Bool sclock;
 	const char *fmt, *dev;
 	Bool reparse;
@@ -2208,7 +2208,7 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 	const AVInputFormat *fmt;
 
     if (!dev_name) return;
-    fmt = av_find_input_format(dev_name);
+    fmt = (const AVInputFormat *) av_find_input_format(dev_name);
     if (!fmt) return;
 
     if (!fmt || !fmt->priv_class || !AV_IS_INPUT_DEVICE(fmt->priv_class->category)) {

@@ -132,7 +132,7 @@ void gf_js_call_gc(JSContext *c)
 	gf_js_lock(c, 0);
 }
 
-Bool gs_js_context_is_valid(JSContext *ctx)
+Bool gf_js_context_is_valid(JSContext *ctx)
 {
 	if (gf_list_find(js_rt->allocated_contexts, ctx) < 0)
 		return GF_FALSE;
@@ -1759,7 +1759,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	if (argc<1) return GF_JS_EXCEPTION(ctx);
 	size_t ab_size;
 	const char *data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
-	if (!data || !gf_utf8_is_legal(data, ab_size)) {
+	if (!data || !gf_utf8_is_legal(data, (u32) ab_size)) {
 		return JS_NULL;
 	}
 	char *str = gf_malloc(sizeof(char)*(ab_size+1));
@@ -1813,7 +1813,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				if (is_master) {
 					JS_SetPropertyStr(ctx, var, "xlink", JS_NewString(ctx, cur) );
 					JS_SetPropertyStr(ctx, var, "ID", JS_NewString(ctx, gf_file_basename(cur) ) );
-					JS_SetPropertyStr(ctx, var, "ASID", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "AS_ID", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "as_idx", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "URLs", JS_NewArray(ctx) );
 					JS_SetPropertyStr(ctx, var, "segments", JS_NewArray(ctx) );
@@ -1879,7 +1879,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					vidx++;
 					JS_SetPropertyStr(ctx, var, "xlink", JS_NewString(ctx, uri) );
 					JS_SetPropertyStr(ctx, var, "ID", JS_NewString(ctx, gf_file_basename(uri) ) );
-					JS_SetPropertyStr(ctx, var, "ASID", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "AS_ID", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "as_idx", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "URLs", JS_NewArray(ctx) );
 					JS_SetPropertyStr(ctx, var, "segments", JS_NewArray(ctx) );
@@ -1957,7 +1957,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 		JS_SetPropertyStr(ctx, po, "reps", reps );
 
 		u32 mpd_timescale = 0;
-		u32 seg_duration = 0;
+		u64 seg_duration = 0;
 		GF_MPD_SegmentTimeline *mpd_stl = NULL;
 		if (p->segment_template) {
 			if (p->segment_template->duration) seg_duration = p->segment_template->duration;
@@ -1993,7 +1993,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				cur_rep++;
 
 				JS_SetPropertyStr(ctx, repo, "ID", rep->id ? JS_NewString(ctx, rep->id) : JS_NULL);
-				JS_SetPropertyStr(ctx, repo, "ASID", JS_NewInt32(ctx, set->id) );
+				JS_SetPropertyStr(ctx, repo, "AS_ID", JS_NewInt32(ctx, set->id) );
 				JS_SetPropertyStr(ctx, repo, "as_idx", JS_NewInt32(ctx, j+1) );
 				JS_SetPropertyStr(ctx, repo, "xlink", JS_NULL);
 				JSValue urls_o = JS_NewArray(ctx);
@@ -2014,7 +2014,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					}
 				}
 				JS_SetPropertyStr(ctx, repo, "timescale", JS_NewInt32(ctx, mpd_timescale ? mpd_timescale : 1) );
-				JS_SetPropertyStr(ctx, repo, "duration", JS_NewInt32(ctx, seg_duration) );
+				JS_SetPropertyStr(ctx, repo, "duration", JS_NewInt64(ctx, seg_duration) );
 				JS_SetPropertyStr(ctx, repo, "bandwidth", JS_NewInt32(ctx, rep->bandwidth) );
 
 				gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE, 0, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
@@ -2044,7 +2044,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
 
 							JS_SetPropertyStr(ctx, sego, "url", JS_NewString(ctx, seg_url) );
-							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, segdur_ms) );
+							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, (u32) segdur_ms) );
 
 							JS_SetPropertyUint32(ctx, segs, cur_seg, sego );
 							cur_seg++;
@@ -4079,4 +4079,3 @@ static void qjs_uninit_runtime_libc(JSRuntime *rt)
 }
 
 #endif
-
