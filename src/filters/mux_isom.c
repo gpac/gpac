@@ -198,6 +198,8 @@ typedef struct
 	GF_FilterPacket *dgl_copy;
 	u32 all_stsd_crc;
 
+	GF_Fraction last_cdur;
+
 	Bool has_deps;
 } TrackWriter;
 
@@ -6317,6 +6319,16 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		}
 		else if (ctx->insert_pssh)
 			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 1);
+
+		// send encode hints
+		Bool same_cdur = gf_timestamp_equal(tkw->last_cdur.num, tkw->last_cdur.den, ctx->cdur.num, ctx->cdur.den);
+		if (!tkw->last_cdur.num || !same_cdur) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_ENCODE_HINTS, tkw->ipid);
+			evt.encode_hints.intra_period = ctx->cdur;
+			gf_filter_pid_send_event(tkw->ipid, &evt);
+			tkw->last_cdur = ctx->cdur;
+		}
 	}
 	ctx->fragment_started = GF_TRUE;
 	ctx->insert_tfdt = GF_FALSE;
