@@ -251,6 +251,9 @@ enum
 	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
 	GF_ISOM_SUBTYPE_FLAC = GF_4CC( 'f', 'L', 'a', 'C' ),
 
+        /*IAMF media type*/
+        GF_ISOM_SUBTYPE_IAMF = GF_4CC('i', 'a', 'm', 'f'),
+
 	/* VP */
 	GF_ISOM_SUBTYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_SUBTYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
@@ -486,6 +489,8 @@ enum
 	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
 
 	GF_ISOM_BRAND_OPUS = GF_4CC( 'O', 'p', 'u', 's'),
+
+        GF_ISOM_BRAND_IAMF = GF_4CC( 'i', 'a', 'm', 'f'),
 
 	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
 
@@ -3820,6 +3825,17 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VPConfig
 \return error if any
 */
 GF_Err gf_isom_av1_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AV1Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! creates new IAMF config
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the IA config for this sample description
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_ia_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_IAConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
