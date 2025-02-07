@@ -1825,7 +1825,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_ID, "RefID", "packet identifier for dependency (usually POC for video)", GF_PROP_SINT, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_REFS, "Refs", "list of packet identifier this packet depends on", GF_PROP_SINT_LIST, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_UDTA, "UDTA", "User data for the packet", GF_PROP_POINTER, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PCK_TIMECODES, "Timecodes", "list of timecodes as extracted from SEI (if present)", GF_PROP_UINT_LIST, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_TIMECODES, "Timecodes", "list of timecodes as extracted from SEI (if present)", GF_PROP_DATA_NO_COPY, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PID_DOLBY_VISION, "DOVI", "DolbyVision configuration", GF_PROP_DATA, 0),
 	DEC_PROP_F( GF_PROP_PID_OUTPATH, "OutPath", "Output file name of PID used by some filters creating additional raw PIDs", GF_PROP_STRING, 0),

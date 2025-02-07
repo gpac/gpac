@@ -2459,21 +2459,31 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 			}
 
 			if (num_clock_ts) {
-				GF_PropUIntList p;
-				p.nb_items = num_clock_ts;
-				p.vals = gf_malloc(sizeof(u32) * num_clock_ts);
+				GF_PropData p;
+				p.size = sizeof(GF_TimeCode) * num_clock_ts;
+				p.ptr = gf_malloc(p.size);
+				memset(p.ptr, 0, p.size);
 
 				for (u32 i=0; i<num_clock_ts; i++) {
 					AVCSeiPicTimingTimecode *tc = &tcs[i];
-					p.vals[i] = tc->hours*3600 + tc->minutes*60 + tc->seconds;
-					p.vals[i] = p.vals[i]*1000 + tc->n_frames;
+					GF_TimeCode *tc_dst = (GF_TimeCode *) p.ptr + i;
+					tc_dst->hours = tc->hours;
+					tc_dst->minutes = tc->minutes;
+					tc_dst->seconds = tc->seconds;
+					tc_dst->n_frames = tc->n_frames;
+					tc_dst->max_fps = tc->max_fps;
+					tc_dst->drop_frame = tc->counting_type==4;
+
+					// store as timestamp as well
+					tc_dst->as_timestamp = tc->hours*3600 + tc->minutes*60 + tc->seconds;
+					tc_dst->as_timestamp *= 1000;
+					tc_dst->as_timestamp += tc->n_frames;
 				}
 
 				GF_PropertyValue pv;
-				pv.type = GF_PROP_UINT_LIST;
-				pv.value.uint_list = p;
+				pv.type = GF_PROP_DATA_NO_COPY;
+				pv.value.data = p;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
-				gf_free(p.vals);
 			}
 		}
 	} else {

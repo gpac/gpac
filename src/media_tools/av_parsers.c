@@ -6513,8 +6513,8 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 			if (gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i)) {
 				AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
 				gf_bs_read_int_log_idx(bs, 2, "ct_type", i);
-				gf_bs_read_int_log_idx(bs, 1, "nuit_field_based_flag", i);
-				gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
+				Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "unit_field_based_flag", i);
+				tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 				Bool full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
@@ -6537,6 +6537,7 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0)
 						gf_bs_read_int_log_idx(bs, avc->sps[sps_id].vui.hrd.time_offset_length, "time_offset", i);
 				}
+				tc->max_fps = gf_ceil(avc->sps[sps_id].vui.time_scale / ((1 + unit_field_based_flag) * avc->sps[sps_id].vui.num_units_in_tick));
 			}
 		}
 	}
@@ -6546,16 +6547,17 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 {
+	int sps_id = hevc->sps_active_idx;
 	AVCSeiPicTiming *pt = &hevc->sei.pic_timing;
 
 	pt->num_clock_ts = gf_bs_read_int(bs, 2);
 	for (int i = 0; i < pt->num_clock_ts; i++) {
 		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
 		if (clock_timestamp_flag) {
-			gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
+			Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
 
 			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
-			gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
+			tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 			Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
 			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 			gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
@@ -6576,6 +6578,7 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 					}
 				}
 			}
+			tc->max_fps = gf_ceil(hevc->sps[sps_id].time_scale / ((1 + unit_field_based_flag) * hevc->sps[sps_id].num_units_in_tick));
 		}
 	}
 	return 0;

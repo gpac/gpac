@@ -232,6 +232,8 @@ typedef struct
 {
 	u8 hours, minutes, seconds;
 	u16 n_frames;
+	Float max_fps;
+	u8 counting_type;
 } AVCSeiPicTimingTimecode;
 
 typedef struct
