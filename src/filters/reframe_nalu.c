@@ -2516,7 +2516,7 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 	memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
 
 	if (avc_sei_rewrite) {
-		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state);
+		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, NULL);
 		if (rw_sei_size < size) {
 			gf_bs_seek(ctx->bs_w, 0);
 			gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
