@@ -26,7 +26,6 @@
 #include <gpac/internal/isomedia_dev.h>
 
 
-
 #ifndef GPAC_DISABLE_ISOM
 
 void co64_box_del(GF_Box *s)
@@ -12762,6 +12761,52 @@ GF_Err dOps_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *iacb_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_IAConfigurationBox, GF_ISOM_BOX_TYPE_IACB);
+	return (GF_Box *)tmp;
+}
+
+void iacb_box_del(GF_Box *s)
+{
+	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+	if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
+	gf_free(ptr);
+}
+
+GF_Err iacb_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+	if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
+	ptr->cfg = gf_odf_ia_cfg_read_bs_size(bs, (u32)ptr->size);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err iacb_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	if (!ptr->cfg) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	return gf_odf_ia_cfg_write_bs(ptr->cfg, bs);
+}
+
+GF_Err iacb_box_size(GF_Box *s)
+{
+        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+        if (!ptr->cfg) {
+		ptr->size = 0;
+		return GF_BAD_PARAM;
+        }
+        ptr->size += gf_odf_ia_cfg_size(ptr->cfg);
+        return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void dfla_box_del(GF_Box *s)
 {
