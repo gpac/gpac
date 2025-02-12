@@ -4729,7 +4729,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				evt.file_del.url = sctx->filepath;
 				gf_filter_pid_send_event(ds->opid, &evt);
 				//purge LLHLS frags
-				if (sctx->frags && (ctx->llhls>1 || ds->set->ssr_mode)) {
+				if (sctx->frags && (ctx->llhls>1)) {
 					u32 k;
 					for (k=0; k<sctx->nb_frags; k++) {
 						char szTmp[100];
