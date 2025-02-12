@@ -65,7 +65,7 @@ jobs:
         working-directory: gpac_public
         shell: bash
         run: |
-          make distclean
+          make distclean && ./configure --enable-debug
           echo "debian/tmp/usr/include" >> debian/gpac.install
           make deb
           mv -vf gpac*.deb /binaries/
