@@ -1780,7 +1780,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PID_STEREO_TYPE, "Stereo", "Stereo type of video", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_PROJECTION_TYPE, "Projection", "Projection type of video", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_VR_POSE, "InitalPose", "Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)", GF_PROP_VEC3I, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_VR_POSE, "InitialPose", "Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)", GF_PROP_VEC3I, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_CUBE_MAP_PAD, "CMPad", "Number of pixels to pad from edge of each face in cube map", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_EQR_CLAMP, "EQRClamp", "Clamping of frame for EQR as 0.32 fixed point (x is top, y is bottom, z is left and w is right)", GF_PROP_VEC4I, GF_PROP_FLAG_GSF_REM),

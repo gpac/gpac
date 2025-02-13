@@ -1074,7 +1074,7 @@ static u64 convert_ts (mpeg2ps_stream_t *sptr,
 
 /*
  * find_stream_from_id - given the stream, get the sptr.
- * only used in inital set up, really.  APIs use index into
+ * only used in initial set up, really.  APIs use index into
  * video_streams and audio_streams arrays.
  */
 static mpeg2ps_stream_t *find_stream_from_id (mpeg2ps_t *ps,

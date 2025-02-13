@@ -3585,7 +3585,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 
 	if (input_only) return GF_OK;
 
-	/*initalize default streams in the context*/
+	/*initialize default streams in the context*/
 
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
