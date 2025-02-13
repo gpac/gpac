@@ -1396,7 +1396,7 @@ Bool gf_ssl_init_lib() {
 #endif
 
 	_ssl_is_initialized = GF_TRUE;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPS] Initalization of SSL library complete.\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPS] Initialization of SSL library complete.\n"));
 	return GF_FALSE;
 }
 

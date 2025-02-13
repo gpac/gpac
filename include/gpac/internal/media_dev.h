@@ -260,7 +260,7 @@ typedef struct
 typedef struct
 {
 	AVC_SPS sps[32]; /* range allowed in the spec is 0..31 */
-	s8 sps_active_idx, pps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
+	s8 sps_active_idx, pps_active_idx;	/*currently active sps; must be initialized to -1 in order to discard not yet decodable SEIs*/
 
 	AVC_PPS pps[255];
 
@@ -582,7 +582,7 @@ typedef struct _hevc_state
 	//all other vars set by parser
 
 	HEVC_SPS sps[16]; /* range allowed in the spec is 0..15 */
-	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
+	s8 sps_active_idx;	/*currently active sps; must be initialized to -1 in order to discard not yet decodable SEIs*/
 
 	HEVC_PPS pps[64];
 
@@ -849,7 +849,7 @@ typedef struct
 /*TODO once we add HLS parsing (FDIS) */
 typedef struct _vvc_state
 {
-	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
+	s8 sps_active_idx;	/*currently active sps; must be initialized to -1 in order to discard not yet decodable SEIs*/
 
 	//-1 or the value of the vps/sps/pps ID of the nal just parsed
 	s32 last_parsed_vps_id;
