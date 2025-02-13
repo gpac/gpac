@@ -709,7 +709,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 					else
 						snprintf(szName, 30, "udta_%s", gf_4cc_to_str(type));
 					szName[30]=0;
-					if (gf_utf8_is_legal(udta, udta_size)) {
+					if (gf_utf8_is_legal(udta, udta_size) && type != GF_ISOM_BOX_TYPE_KIND) {
 						if (!udta[udta_size-1]) {
 							gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(udta));
 						} else {

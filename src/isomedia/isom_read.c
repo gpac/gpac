@@ -2823,12 +2823,19 @@ found:
 			return GF_OK;
 		} else if (ptr->type == GF_ISOM_BOX_TYPE_KIND) {
 			GF_KindBox *kind = (GF_KindBox *)ptr;
-			u32 lenSchemeURI = (u32) strlen(kind->schemeURI) + 1;
-			u32 lenValue = (u32) strlen(kind->value) + 1;
-			*userData = (char *)gf_malloc(sizeof(char) * (lenSchemeURI+lenValue));
+			u32 len, lenSchemeURI;
+			len = lenSchemeURI = (kind->schemeURI ? strlen(kind->schemeURI) : 0) + 1;
+			len += (kind->value ? strlen(kind->value) + 1 : 0);
+			len += sizeof(kind->flags);
+			*userData = (char *)gf_malloc(sizeof(char) * len);
 			if (!*userData) return GF_OUT_OF_MEM;
-			memcpy(*userData, kind->schemeURI, sizeof(char)*lenSchemeURI);
-			memcpy(*userData + lenSchemeURI, kind->value, sizeof(char)*lenValue);
+			memcpy(*userData, &(kind->flags), sizeof(kind->flags));
+			if (kind->schemeURI)
+				strcpy(*userData + sizeof(kind->flags), kind->schemeURI);
+			else
+				*(*userData + sizeof(kind->flags)) = 0;
+			if (kind->value) strcpy(*userData + sizeof(kind->flags) + lenSchemeURI, kind->value);
+			*userDataSize = len;
 			return GF_OK;
 		} else {
 			char *str = NULL;
