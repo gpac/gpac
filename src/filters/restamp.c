@@ -111,6 +111,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_udta(pid, pctx);
 		pctx->opid = gf_filter_pid_new(filter);
 		if (!pctx->opid) return GF_OUT_OF_MEM;
+		gf_filter_pid_set_udta(pctx->opid, pctx);
 		ctx->config_timing = GF_TRUE;
 		if (ctx->reorder)
 			pctx->packets = gf_list_new();
@@ -544,6 +545,18 @@ static GF_Err restamp_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static Bool restamp_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	if (!evt->base.on_pid) return GF_FALSE;
+	RestampPid *pctx = gf_filter_pid_get_udta(evt->base.on_pid);
+	if (pctx) {
+		GF_FilterEvent fwd_evt = *evt;
+		fwd_evt.base.on_pid = pctx->ipid;
+		gf_filter_pid_send_event(pctx->ipid, &fwd_evt);
+	}
+	return GF_TRUE;
+}
+
 static GF_Err restamp_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
 {
 	RestampCtx *ctx = (RestampCtx *) gf_filter_get_udta(filter);
@@ -664,6 +677,7 @@ const GF_FilterRegister RestampRegister = {
 	.finalize = restamp_finalize,
 	.configure_pid = restamp_configure_pid,
 	.process = restamp_process,
+	.process_event = restamp_process_event,
 	.update_arg = restamp_update_arg,
 	.hint_class_type = GF_FS_CLASS_STREAM
 };
