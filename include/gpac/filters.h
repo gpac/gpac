@@ -1367,7 +1367,7 @@ enum
 	//internal for low latency HLS abd DASH:
 	//0 or not present: no low latency
 	//1: LL-HLS byte-range mode
-	//2: LL-HLS or DASH SSR seperate parts mode
+	//2: LL-HLS or DASH SSR separate parts mode
 	GF_PROP_PID_LLHAS_MODE = GF_4CC('H','L','H','S'),
 	// part number for LLHLS or DSH-SSR
 	GF_PROP_PCK_LLHAS_FRAG_NUM = GF_4CC('H','L','S','N'),

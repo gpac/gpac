@@ -1744,7 +1744,7 @@ enum
 	GF_LLHAS_NONE = 0,
 	/*! LL-HLS using byte ranges */
 	GF_LLHAS_BYTERANGES = 1,
-	/*! LL-HLS using seperate parts  */
+	/*! LL-HLS using separate parts  */
 	GF_LLHAS_PARTS = 2,
 	/*! DASH SSR mode (only sub-parts are generated  */
 	GF_LLHAS_SUBSEG = 3

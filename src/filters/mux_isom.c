@@ -3709,7 +3709,7 @@ sample_entry_done:
 							ref_id = gf_isom_get_track_id(ctx->file, tkw_base->track_num);
 							gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_4CC('v','d','e','p'), ref_id);
 
-							//dolby requires seperate moof for each track fragment for base and el
+							//dolby requires separate moof for each track fragment for base and el
 							if (ctx->store>=MP4MX_MODE_FRAG) {
 								ctx->straf = GF_TRUE;
 							}
