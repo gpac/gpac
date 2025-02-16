@@ -193,7 +193,7 @@ typedef struct __httpout_input
 	char range_hdr[100];
 	Bool seg_info_sent;
 
-	//because of LLHLS/DASH SSR with seperate parts, we cannot use packet aggregation from fiter core
+	//because of LLHLS/DASH SSR with separate parts, we cannot use packet aggregation from fiter core
 	GF_FilterPacket *no_cte_cache, *no_cte_llhas_cache;
 	u32 no_cte_cache_size, no_cte_llhas_cache_size;
 	Bool no_cte_flush_pending;
@@ -4250,7 +4250,7 @@ static void httpout_input_in_error(GF_HTTPOutInput *in, GF_Err e)
 	}
 }
 
-//for upload of LLHAS in seperate file mode only
+//for upload of LLHAS in separate file mode only
 static void httpout_close_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	GF_Err e;
@@ -4366,7 +4366,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 }
 
 
-//for upload of LLHAS in seperate file mode only
+//for upload of LLHAS in separate file mode only
 static Bool httpout_open_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, char *dst)
 {
 	GF_Err e = gf_dm_sess_setup_from_url(in->llhas_upload, dst, GF_FALSE);
@@ -4422,7 +4422,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 
 			const char *loc_path = s_idx ? in->llhas_url : (in->local_path ? in->local_path : in->path);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[HTTPOut] Writing %d bytes to output %s\n", pck_size, loc_path));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[HTTPOut] Writing %u bytes to output %s\n", pck_size, loc_path));
 
 retry:
 			if (!in->is_h2 && in->use_cte) {
