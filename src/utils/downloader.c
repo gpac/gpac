@@ -4640,8 +4640,12 @@ GF_HTTPSessionType gf_dm_sess_is_hmux(GF_DownloadSession *sess)
 
 Bool gf_dm_sess_use_tls(GF_DownloadSession * sess)
 {
+#ifdef GPAC_HAS_SSL
 	if (sess->ssl) return GF_TRUE;
+#endif
+#ifdef GPAC_HTTPMUX
 	if (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC) return GF_TRUE;
+#endif
 	return GF_FALSE;
 }
 
