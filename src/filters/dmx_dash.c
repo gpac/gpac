@@ -1807,6 +1807,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 				tsb *= timescale;
 				tsb /= segdur;
 				tsb /= 1000; //tsb given in ms
+			} else if (gf_dash_get_max_segment_duration(ctx->dash)) {
+				tsb /= gf_dash_get_max_segment_duration(ctx->dash);
 			} else {
 				tsb = 0;
 			}
