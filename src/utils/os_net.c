@@ -381,7 +381,7 @@ enum
 	/*socket is bound to a specific dest (server) or source (client) */
 	GF_SOCK_HAS_PEER = 1<<14,
 	GF_SOCK_IS_UN = 1<<15,
-	GF_SOCK_HAS_CONNECT = 1<<16,
+	GF_SOCK_HAS_CONNECT = 1<<16
 };
 
 #ifndef GPAC_DISABLE_NETCAP
@@ -2315,6 +2315,9 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 conn_ok:
 		if (sock->flags & GF_SOCK_IS_TCP) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
+		} else {
+			//udp+connect, do not use HAS_PEER
+			sock->flags &= ~GF_SOCK_HAS_PEER;
 		}
 		sock->flags &= ~GF_SOCK_HAS_CONNECT;
 
@@ -2857,10 +2860,7 @@ static GF_Err gf_sk_send_internal(GF_Socket *sock, const u8 *buffer, u32 length,
 		sflags = MSG_NOSIGNAL;
 #endif
 		if (sock->flags & GF_SOCK_HAS_PEER) {
-			if (sock->flags & GF_SOCK_IS_TCP)
-				res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
-			else
-				res = (s32) send(sock->socket, (char *) buffer+count, length - count, sflags);
+			res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
 		} else if (address && address_len) {
 			res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) address, address_len);
 		} else {
@@ -4015,6 +4015,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		switch (res) {
 		case EAGAIN:
 		case EINTR:
+		case ECONNREFUSED:
 			return GF_IP_NETWORK_EMPTY;
 
 #if defined(WIN32) || defined(_WIN32_WCE)

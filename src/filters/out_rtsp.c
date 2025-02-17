@@ -39,11 +39,7 @@
 #include "out_rtp.h"
 
 #ifdef GPAC_HAS_SSL
-
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void *gf_ssl_server_context_new(const char *cert, const char *key);
-void gf_ssl_server_context_del(void *ssl_server_ctx);
-Bool gf_ssl_init_lib();
+#include "../utils/downloader.h"
 
 #endif
 
@@ -564,7 +560,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] Failed to initialize OpenSSL library\n"));
 			return GF_IO_ERR;
 		}
-		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey);
+		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey, GF_FALSE);
 		if (!ctx->ssl_ctx) return GF_IO_ERR;
 
 		if (!ctx->port || (ctx->port==554))
