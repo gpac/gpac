@@ -35,6 +35,7 @@
 #endif
 
 
+static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf);
 
 static int h2_header_callback(nghttp2_session *session,
 								const nghttp2_frame *frame, const uint8_t *name,
@@ -57,7 +58,7 @@ static int h2_header_callback(nghttp2_session *session,
 
 			GF_SAFEALLOC(hdrp, GF_HTTPHeader);
 			if (hdrp) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d got header %s: %s\n", sess->hmux_stream_id, name, value));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id "LLD" got header %s: %s\n", sess->hmux_stream_id, name, value));
 				hdrp->name = gf_strdup(name);
 				hdrp->value = gf_strdup(value);
 				gf_list_add(sess->headers, hdrp);
@@ -124,15 +125,15 @@ static int h2_frame_recv_callback(nghttp2_session *session, const nghttp2_frame 
 		) {
 			sess->hmux_headers_seen = 1;
 			if (sess->server_mode) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID %d\n", sess->hmux_stream_id));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID %d\n", sess->hmux_stream_id));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
 			}
 		}
 		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
 			sess->hmux_data_done = 1;
-			sess->hmux_is_eos = GF_FALSE;
+			sess->hmux_is_eos = 0;
 			sess->hmux_send_data = NULL;
 			sess->hmux_send_data_len = 0;
 		}
@@ -181,7 +182,7 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 	}
 	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, len);
 	sess->hmux_buf.size += (u32) len;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d received %d bytes (%d/%d total) - flags %d\n", sess->hmux_stream_id, len, sess->hmux_buf.size, sess->total_size, flags));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id "LLD" received %d bytes (%d/%d total) - flags %d\n", sess->hmux_stream_id, len, sess->hmux_buf.size, sess->total_size, flags));
 	return 0;
 }
 
@@ -214,7 +215,7 @@ static int h2_stream_close_callback(nghttp2_session *session, int32_t stream_id,
 		SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
 		sess->put_state = 0;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) closed (put state)\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, sess->put_state));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) closed (put state %d)\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, sess->put_state));
 		//except for PUT/POST, keep status in DATA_EXCHANGE as this frame might have been pushed while processing another session
 
 		if (sess->put_state) {
@@ -225,7 +226,7 @@ static int h2_stream_close_callback(nghttp2_session *session, int32_t stream_id,
 	}
 
 	//stream closed
-	sess->hmux_stream_id = 0;
+	sess->hmux_stream_id = -1;
 	gf_mx_v(sess->mx);
 	return 0;
 }
@@ -283,9 +284,9 @@ ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t stream_id
 	if (!sess->hmux_send_data_len) {
 		sess->hmux_send_data = NULL;
 		if (!sess->local_buf_len && sess->hmux_is_eos) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send EOS for stream_id %d\n", sess->hmux_stream_id));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send EOS for stream_id "LLD"\n", sess->hmux_stream_id));
 			*data_flags = NGHTTP2_DATA_FLAG_EOF;
-			sess->hmux_is_eos = GF_FALSE;
+			sess->hmux_is_eos = 0;
 			return 0;
 		}
 		sess->hmux_data_paused = 1;
@@ -352,7 +353,7 @@ err:
 	return (int) rv;
 }
 
-static GF_Err h2_session_send(GF_DownloadSession *sess)
+static GF_Err h2_session_write(GF_DownloadSession *sess)
 {
 	gf_assert(sess->hmux_sess);
 	int rv = nghttp2_session_send(sess->hmux_sess->hmux_udta);
@@ -371,14 +372,16 @@ static GF_Err h2_session_send(GF_DownloadSession *sess)
 	return GF_OK;
 }
 
-static void h2_stream_reset(GF_DownloadSession *sess)
+static void h2_stream_reset(GF_DownloadSession *sess, Bool is_abort)
 {
-	nghttp2_submit_rst_stream(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, sess->hmux_stream_id, NGHTTP2_NO_ERROR);
+	nghttp2_submit_rst_stream(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, sess->hmux_stream_id, is_abort ? NGHTTP2_CANCEL : NGHTTP2_NO_ERROR);
 }
 
-static void h2_resume_stream(GF_DownloadSession *sess)
+static GF_Err h2_resume_stream(GF_DownloadSession *sess)
 {
+	sess->hmux_data_paused = 0;
 	nghttp2_session_resume_data(sess->hmux_sess->hmux_udta, sess->hmux_stream_id);
+	return GF_OK;
 }
 
 static void h2_destroy(struct _http_mux_session *hmux_sess)
@@ -388,11 +391,17 @@ static void h2_destroy(struct _http_mux_session *hmux_sess)
 
 static GF_Err h2_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_bytes)
 {
-	ssize_t read_len = nghttp2_session_mem_recv(sess->hmux_sess->hmux_udta, data, nb_bytes);
-	if (read_len < 0 ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error:  %s\n", nghttp2_strerror((int) read_len)));
-		return GF_IO_ERR;
+	if (nb_bytes) {
+		ssize_t read_len = nghttp2_session_mem_recv(sess->hmux_sess->hmux_udta, data, nb_bytes);
+		if (read_len < 0 ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error:  %s\n", nghttp2_strerror((int) read_len)));
+			return GF_IO_ERR;
+		}
 	}
+	/* send pending frames - hmux_sess may be NULL at this point if the connection was reset during processing of the above
+		this typically happens if we have a refused stream
+	*/
+	h2_session_write(sess);
 	return GF_OK;
 }
 
@@ -453,7 +462,7 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send request (has_body %d) for new stream_id %d:\n", has_body, sess->hmux_stream_id));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send request (has_body %d) for new stream_id "LLD":\n", has_body, sess->hmux_stream_id));
 		for (i=0; i<nb_hdrs+4; i++) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("\t%s: %s\n", hdrs[i].name, hdrs[i].value));
 		}
@@ -488,13 +497,13 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 		no_body = GF_FALSE;
 		sess->hmux_send_data = (u8 *) response_body;
 		sess->hmux_send_data_len = body_len;
-		sess->hmux_is_eos = GF_TRUE;
+		sess->hmux_is_eos = 1;
 	} else if (!no_body) {
 		switch (reply_code) {
 		case 200:
 		case 206:
 			no_body = GF_FALSE;
-			sess->hmux_is_eos = GF_FALSE;
+			sess->hmux_is_eos = 0;
 			break;
 		default:
 			no_body = GF_TRUE;
@@ -506,7 +515,7 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 
 	sprintf(szFmt, "%d", reply_code);
 	NV_HDR(hdrs[0], ":status", szFmt);
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id %d (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id "LLD" (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
 	for (i=0; i<count; i++) {
 		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
 		NV_HDR(hdrs[i+1], hdr->name, hdr->value)
@@ -525,13 +534,60 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] Failed to submit reply: %s\n", nghttp2_strerror(rv)));
 		return GF_SERVICE_ERROR;
 	}
-	sess->hmux_sess->send(sess);
+	h2_session_write(sess);
 	//in case we have a body already setup with this reply
-	hmux_flush_send(sess, GF_FALSE);
+	h2_flush_send_ex(sess, GF_FALSE);
 
 	gf_mx_v(sess->mx);
 
 	return GF_OK;
+}
+
+static GF_Err h2_async_flush(GF_DownloadSession *sess, Bool for_close)
+{
+	if (!sess->local_buf_len && !sess->hmux_is_eos) return GF_OK;
+	gf_assert(sess->hmux_send_data==NULL);
+
+	//HTTP2: resume data sending, set data to local copy send packets and check what was sent
+	GF_Err ret = GF_OK;
+	u8 was_eos = sess->hmux_is_eos;
+	gf_assert(sess->hmux_send_data==NULL);
+	gf_mx_p(sess->mx);
+
+	sess->hmux_send_data = sess->local_buf;
+	sess->hmux_send_data_len = sess->local_buf_len;
+	if (sess->hmux_data_paused) {
+		sess->hmux_data_paused = 0;
+		sess->hmux_sess->resume(sess);
+	}
+	h2_flush_send_ex(sess, GF_TRUE);
+	gf_mx_v(sess->mx);
+
+	if (sess->hmux_send_data_len) {
+		//we will return empty to avoid pushing data too fast, but we also need to flush the async buffer
+		ret = GF_IP_NETWORK_EMPTY;
+		if (sess->hmux_send_data_len<sess->local_buf_len) {
+			memmove(sess->local_buf, sess->hmux_send_data, sess->hmux_send_data_len);
+			sess->local_buf_len = sess->hmux_send_data_len;
+		} else {
+			//nothing sent, check socket
+			ret = gf_sk_probe(sess->sock);
+		}
+		sess->hmux_send_data = NULL;
+		sess->hmux_send_data_len = 0;
+		sess->hmux_is_eos = was_eos;
+	} else {
+		sess->local_buf_len = 0;
+		sess->hmux_send_data = NULL;
+		sess->hmux_send_data_len = 0;
+		if (was_eos && !sess->hmux_is_eos) {
+			if (sess->put_state==1) {
+				sess->put_state = 2;
+				sess->status = GF_NETIO_WAIT_FOR_REPLY;
+			}
+		}
+	}
+	return ret;
 }
 
 static GF_Err h2_setup_session(GF_DownloadSession *sess, Bool is_destroy)
@@ -551,6 +607,93 @@ static GF_Err h2_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 	data_io->read_callback = h2_data_source_read_callback;
 	data_io->source.ptr = sess;
 	return GF_OK;
+}
+
+static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf)
+{
+	char h2_flush[1024];
+	u32 res;
+
+	while (sess->hmux_send_data) {
+		GF_Err e;
+		u32 nb_bytes = sess->hmux_send_data_len;
+
+		if (!sess->local_buf_len || flush_local_buf) {
+			//read any frame pending from remote peer (window update and co)
+			e = gf_dm_read_data(sess, h2_flush, 1023, &res);
+			if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
+				sess->status = GF_NETIO_STATE_ERROR;
+				SET_LAST_ERR(sess->last_error)
+				break;
+			}
+
+			h2_session_write(sess);
+
+			//error or regular eos
+			if (sess->hmux_stream_id<0)
+				break;
+			if (sess->status==GF_NETIO_STATE_ERROR)
+				break;
+		}
+
+		if (nb_bytes > sess->hmux_send_data_len) continue;
+		if (!(sess->flags & GF_NETIO_SESSION_NO_BLOCK)) continue;
+
+		if (flush_local_buf) return;
+
+		//stream will now block, no choice but do a local copy...
+		if (sess->local_buf_len + nb_bytes > sess->local_buf_alloc) {
+			sess->local_buf_alloc = sess->local_buf_len + nb_bytes;
+			sess->local_buf = gf_realloc(sess->local_buf, sess->local_buf_alloc);
+			if (!sess->local_buf) {
+				sess->status = GF_NETIO_STATE_ERROR;
+				SET_LAST_ERR(sess->last_error)
+				break;
+			}
+		}
+		if (nb_bytes) {
+			memcpy(sess->local_buf + sess->local_buf_len, sess->hmux_send_data, nb_bytes);
+			sess->local_buf_len+=nb_bytes;
+		}
+		sess->hmux_send_data = NULL;
+		sess->hmux_send_data_len = 0;
+	}
+}
+static GF_Err h2_data_pending(GF_DownloadSession *sess)
+{
+	GF_Err e = h2_session_write(sess);
+	if (e) return e;
+	h2_flush_send_ex(sess, GF_FALSE);
+	return GF_OK;
+}
+static void h2_close_session(GF_DownloadSession *sess)
+{
+	nghttp2_submit_shutdown_notice(sess->hmux_sess->hmux_udta);
+	h2_session_write(sess);
+
+#if 1
+	u64 in_time;
+	in_time = gf_sys_clock_high_res();
+	while (nghttp2_session_want_read(sess->hmux_sess->hmux_udta)) {
+		u32 res;
+		char h2_flush[2024];
+		GF_Err e;
+		if (gf_sys_clock_high_res() - in_time > 100000)
+			break;
+
+		//read any frame pending from remote peer (window update and co)
+		e = gf_dm_read_data(sess, h2_flush, 2023, &res);
+		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
+			if (e!=GF_IP_CONNECTION_CLOSED) {
+				SET_LAST_ERR(e)
+				sess->status = GF_NETIO_STATE_ERROR;
+			}
+			break;
+		}
+		h2_session_write(sess);
+	}
+#endif
+	sess->status = GF_NETIO_DISCONNECTED;
 }
 
 void h2_initialize_session(GF_DownloadSession *sess)
@@ -590,12 +733,16 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	//setup function pointers
 	sess->hmux_sess->submit_request = h2_submit_request;
 	sess->hmux_sess->send_reply = h2_send_reply;
-	sess->hmux_sess->send = h2_session_send;
+	sess->hmux_sess->write = h2_session_write;
 	sess->hmux_sess->destroy = h2_destroy;
 	sess->hmux_sess->stream_reset = h2_stream_reset;
 	sess->hmux_sess->resume = h2_resume_stream;
 	sess->hmux_sess->data_received = h2_data_received;
 	sess->hmux_sess->setup_session = h2_setup_session;
+	sess->hmux_sess->send_pending_data = h2_data_pending;
+	sess->hmux_sess->async_flush = h2_async_flush;
+	sess->hmux_sess->close_session = h2_close_session;
+
 	sess->hmux_sess->connected = GF_TRUE;
 
 	gf_list_add(sess->hmux_sess->sessions, sess);
@@ -633,7 +780,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
 		SET_LAST_ERR((rv==NGHTTP2_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_SERVICE_ERROR)
 		return;
 	}
-	sess->hmux_sess->send(sess);
+	h2_session_write(sess);
 }
 
 
@@ -692,7 +839,7 @@ GF_Err http2_do_upgrade(GF_DownloadSession *sess, const char *body, u32 body_len
 		//stay in WAIT_FOR_REPLY state and do not flush data, cache is not fully configured yet
 	}
 	//send pending frames
-	GF_Err e = sess->hmux_sess->send(sess);
+	GF_Err e = h2_session_write(sess);
 	if (e) return e;
 	sess->connection_close = GF_FALSE;
 	sess->h2_upgrade_state = 2;

@@ -119,23 +119,30 @@ typedef struct _http_mux_session
 	//underying implementation - all callbacks must be set
 
 	GF_Err (*setup_session)(GF_DownloadSession *sess, Bool is_destroy);
+	void (*close_session)(GF_DownloadSession *sess);
 
 	//format request and submit it
 	GF_Err (*submit_request)(GF_DownloadSession *sess, char *req_name, const char *url, const char *param_string, Bool has_body);
 	//send reply and submit it
 	GF_Err (*send_reply)(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
-	//send any pending packets
-	GF_Err (*send)(GF_DownloadSession *sess);
+	//write and send any pending packets / signaling / etc
+	GF_Err (*write)(GF_DownloadSession *sess);
 	//send stream reset
-	void (*stream_reset)(GF_DownloadSession *sess);
+	void (*stream_reset)(GF_DownloadSession *sess, Bool is_abort);
 	//move to active state if hmux_data_paused was set
-	void (*resume)(GF_DownloadSession *sess);
+	GF_Err (*resume)(GF_DownloadSession *sess);
 	//close underlying connection (QUIC), can be NULL
 	void (*close)(struct _http_mux_session *hmux);
 	//destroy underlying muxed session object
 	void (*destroy)(struct _http_mux_session *hmux);
 	//notify that some data has been received for the parent muxed session
 	GF_Err (*data_received)(GF_DownloadSession *sess, const u8 *data, u32 nb_bytes);
+	//signal new data in hmux_send_data is available (data can be NULL for requests with no body)
+	GF_Err (*send_pending_data)(GF_DownloadSession *sess);
+
+	//try to flush pending data, return GF_IP_NETWORK_EMPTY if not all data is sent
+	GF_Err (*async_flush)(GF_DownloadSession *sess, Bool for_close);
+
 	//underlying muxed session object (nghttp2 session, h3 session, etc...)
 	void *hmux_udta;
 } GF_HMUX_Session;
@@ -145,12 +152,6 @@ typedef struct _http_mux_session
 #define GF_NETIO_SESSION_USE_QUIC	(1<<28)
 #define GF_NETIO_SESSION_RETRY_QUIC	(1<<29)
 #define GF_NETIO_SESSION_NO_STORE	(1<<30)
-
-void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload);
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
-GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
-GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
-void gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
 
 /*internal flags*/
 enum
@@ -323,6 +324,7 @@ struct __gf_download_session
 	GF_HMUX_Session *hmux_sess;
 	hmux_reagg_buffer hmux_buf;
 
+	//negative value means detached
 	s64 hmux_stream_id;
 	u8 hmux_headers_seen, hmux_ready_to_send, hmux_is_eos, hmux_data_paused, hmux_data_done, hmux_switch_sess;
 	u8 *hmux_send_data;
@@ -364,11 +366,6 @@ struct __gf_download_session
 		gf_list_add(sess->headers, hdr);\
 	}
 
-
-
-
-GF_Err dm_sess_write(GF_DownloadSession *sess, const u8 *buffer, u32 size);
-GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *written);
 
 struct __gf_download_manager
 {
@@ -429,13 +426,6 @@ struct __gf_download_manager
 
 #endif
 
-void dm_sess_sk_del(GF_DownloadSession *sess);
-
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
-
-GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char *url, u32 dl_flags,
-        gf_dm_user_io user_io, void *usr_cbk, GF_Socket *server, Bool force_server, GF_Err *e);
-
 
 //cache functions - NOT exported, only downloader has access to it
 s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
@@ -480,6 +470,23 @@ void gf_cache_remove_entry_from_session(GF_DownloadSession * sess);
 
 
 
+
+void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload);
+GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
+GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
+GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
+GF_Err gf_dm_sess_flush_close(GF_DownloadSession *sess);
+void gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
+
+GF_Err dm_sess_write(GF_DownloadSession *sess, const u8 *buffer, u32 size);
+GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *written);
+
+void dm_sess_sk_del(GF_DownloadSession *sess);
+
+void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
+
+GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char *url, u32 dl_flags,
+        gf_dm_user_io user_io, void *usr_cbk, GF_Socket *server, Bool force_server, GF_Err *e);
 void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnload_status, GF_Err error);
 void gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
 void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
@@ -487,7 +494,7 @@ void gf_dm_sess_reload_cached_headers(GF_DownloadSession *sess);
 
 GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
 
-
+Bool gf_dm_sess_use_tls(GF_DownloadSession * sess);
 
 typedef enum
 {
@@ -507,12 +514,11 @@ void gf_dm_configure_cache(GF_DownloadSession *sess);
 #ifdef GPAC_HTTPMUX
 GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_reassign);
 void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess);
-void hmux_fetch_flush_data(GF_DownloadSession *sess, u8 *obuffer, u32 size, u32 *nb_bytes);
-
-void hmux_flush_send(GF_DownloadSession *sess, Bool flush_local_buf);
+//get data from hmux session
+void hmux_fetch_data(GF_DownloadSession *sess, u8 *obuffer, u32 size, u32 *nb_bytes);
+//call gf_dm_data_received with local hmux buffer and set it to 0
 void hmux_flush_internal_data(GF_DownloadSession *sess, Bool store_in_init);
-GF_Err hmux_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_bytes);
-GF_Err hmux_async_flush(GF_DownloadSession *sess);
+
 GF_Err hmux_send_payload(GF_DownloadSession *sess, u8 *data, u32 size);
 #endif
 
@@ -538,7 +544,7 @@ GF_Err curl_process_reply(GF_DownloadSession *sess, u32 *ContentLength);
 #endif
 
 #ifdef GPAC_HAS_SSL
-void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode);
+void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
 void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess);
 GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
@@ -552,6 +558,62 @@ typedef enum
 SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy);
 
 #endif
+
+
+//exported for httpout
+
+//socket and SSL context ownership is transfered to the download session object
+GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
+GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stream_id, void *usr_cbk, GF_Err *e);
+u32 gf_dm_sess_subsession_count(GF_DownloadSession *);
+
+void gf_dm_sess_set_timeout(GF_DownloadSession *sess, u32 timeout);
+
+GF_Socket *gf_dm_sess_get_socket(GF_DownloadSession *);
+GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
+void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
+void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
+void  gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
+GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
+u32 gf_dm_sess_async_pending(GF_DownloadSession *sess);
+
+GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
+void gf_dm_sess_server_reset(GF_DownloadSession *sess);
+
+typedef enum
+{
+	GF_SESS_TYPE_HTTP=0,
+	GF_SESS_TYPE_HTTP2,
+	GF_SESS_TYPE_HTTP3,
+} GF_HTTPSessionType;
+GF_HTTPSessionType gf_dm_sess_is_hmux(GF_DownloadSession *sess);
+void gf_dm_sess_close_hmux(GF_DownloadSession *sess);
+
+void gf_dm_sess_set_sock_group(GF_DownloadSession *sess, GF_SockGroup *sg);
+
+#ifdef GPAC_HAS_SSL
+
+void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
+void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic);
+void gf_ssl_server_context_del(void *ssl_server_ctx);
+Bool gf_ssl_init_lib();
+
+#endif
+
+#ifdef GPAC_HAS_NGTCP2
+
+typedef struct __gf_quic_server GF_QuicServer;
+GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServer **oq, const char *ip, u32 port, const char *netcap_id,
+	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port),
+	void *udta);
+
+void gf_dm_quic_server_del(GF_QuicServer *qs);
+GF_Socket *gf_dm_quic_get_socket(GF_QuicServer *qs);
+GF_Err gf_dm_quic_process(GF_QuicServer *qs);
+GF_Err gf_dm_quic_verify(GF_QuicServer *qs);
+void gf_dm_sess_set_callback(GF_DownloadSession *sess, gf_dm_user_io user_io, void *usr_cbk);
+#endif
+
 
 
 //end GPAC_DISABLE_NETWORK, start EMSCRIPTEN

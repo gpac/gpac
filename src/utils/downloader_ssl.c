@@ -232,7 +232,7 @@ static void ssl_on_log(int write_p, int version, int content_type, const void *b
 
 static char ALPN_PROTOS[20];
 
-void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
+void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic)
 {
 #if OPENSSL_VERSION_NUMBER > 0x00909000
 	const
@@ -253,30 +253,11 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 		goto error;
 	}
 
-	switch (mode) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-	case 0:
-		meth = SSLv23_client_method();
-		break;
-#if 0 /*SSL v2 is no longer supported in OpenSSL 1.0*/
-	case 1:
-		meth = SSLv2_client_method();
-		break;
+	meth = SSLv23_client_method();
+#else
+	meth = TLS_client_method();
 #endif
-	case 2:
-		meth = SSLv3_client_method();
-		break;
-	case 3:
-		meth = TLSv1_client_method();
-		break;
-#else /* for openssl 1.1+ this is the preferred method */
-	case 0:
-		meth = TLS_client_method();
-		break;
-#endif
-	default:
-		goto error;
-	}
 
 	dm->ssl_ctx = SSL_CTX_new(meth);
 	if (!dm->ssl_ctx) goto error;
@@ -332,7 +313,7 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 #endif
 
 	//configure H3
-	if (dm->h3_mode) {
+	if (dm->h3_mode && !no_quic) {
 #ifdef GPAC_HAS_NGTCP2
 		if (ngtcp2_crypto_quictls_configure_client_context(dm->ssl_ctx) != 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
@@ -489,14 +470,19 @@ SSL_TICKET_RETURN ngq_decrypt_ticket_cb(SSL *ssl, SSL_SESSION *session, const un
 #endif // !definedLIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2)
 
 
-void *gf_ssl_server_context_new(const char *cert, const char *key)
+void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic)
 {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 
     method = SSLv23_server_method();
-#ifdef GPAC_HAS_NGCTP2
-	method = TLS_server_method();
+
+#ifdef GPAC_HAS_NGTCP2
+	if (for_quic) {
+		method = TLS_server_method();
+	}
+#else
+	if (for_quic) return NULL;
 #endif
 
     ctx = SSL_CTX_new(method);
@@ -505,23 +491,6 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 		ERR_print_errors_fp(stderr);
 		return NULL;
     }
-	SSL_CTX_set_default_verify_paths(ctx);
-    SSL_CTX_set_ecdh_auto(ctx, 1);
-	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
-		ERR_print_errors_fp(stderr);
-		SSL_CTX_free(ctx);
-		return NULL;
-	}
-	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) <= 0 ) {
-		ERR_print_errors_fp(stderr);
-		SSL_CTX_free(ctx);
-		return NULL;
-	}
-	if (SSL_CTX_check_private_key(ctx) != 1) {
-		ERR_print_errors_fp(stderr);
-		SSL_CTX_free(ctx);
-		return NULL;
-	}
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG) ) {
@@ -531,7 +500,7 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 
 	//configure H2
 #ifdef GPAC_HAS_HTTP2
-	if (!gf_opts_get_bool("core", "no-h2")) {
+	if (!for_quic && !gf_opts_get_bool("core", "no-h2")) {
 		next_proto_list[0] = NGHTTP2_PROTO_VERSION_ID_LEN;
 		memcpy(&next_proto_list[1], NGHTTP2_PROTO_VERSION_ID, NGHTTP2_PROTO_VERSION_ID_LEN);
 		next_proto_list_len = 1 + NGHTTP2_PROTO_VERSION_ID_LEN;
@@ -540,8 +509,7 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 
 
 #ifdef GPAC_HAS_NGTCP2
-	const char *opt = gf_opts_get_key("core", "h3");
-	if (!opt || strcmp(opt, "no")) {
+	if (for_quic) {
 		ngtcp2_crypto_quictls_configure_server_context(ctx);
 
 		next_proto_list[next_proto_list_len] = 2;
@@ -558,23 +526,47 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 #endif // !defined(LIBRESSL_VERSION_NUMBER)
 		;
 		SSL_CTX_set_options(ctx, ssl_opts);
-		SSL_CTX_set_mode(ctx, SSL_MODE_RELEASE_BUFFERS);
 
-		SSL_CTX_set_default_verify_paths(ctx);
-//		SSL_CTX_set_session_id_context(ctx, sid_ctx, sizeof(sid_ctx) - 1);
+		SSL_CTX_set_mode(ctx, SSL_MODE_RELEASE_BUFFERS);
 
 #ifndef LIBRESSL_VERSION_NUMBER
 		SSL_CTX_set_session_ticket_cb(ctx, ngq_gen_ticket_cb, ngq_decrypt_ticket_cb, NULL);
 #endif // !defined(LIBRESSL_VERSION_NUMBER)
 
+		SSL_CTX_set_ciphersuites(ctx, "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256");
+		SSL_CTX_set1_groups_list(ctx, "X25519:P-256:P-384:P-521");
 	}
 #endif
+
+	if (!for_quic)
+		SSL_CTX_set_quic_method(ctx, NULL);
 
 	if (next_proto_list_len) {
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
+	}
+
+
+	SSL_CTX_set_default_verify_paths(ctx);
+    SSL_CTX_set_ecdh_auto(ctx, 1);
+
+//	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
+	if (SSL_CTX_use_certificate_chain_file(ctx, cert) != 1) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) <= 0 ) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+	if (SSL_CTX_check_private_key(ctx) != 1) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
 	}
 
     return ctx;
@@ -733,7 +725,7 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 {
 	u64 now = gf_sys_clock_high_res();
 	if (sess->dm && !sess->dm->ssl_ctx)
-		gf_dm_ssl_init(sess->dm, 0);
+		gf_dm_ssl_init(sess->dm, (sess->flags & GF_NETIO_SESSION_USE_QUIC) ? GF_FALSE : GF_TRUE);
 
 	/*socket is connected, configure SSL layer*/
 	if (!sess->dm || !sess->dm->ssl_ctx) return SSL_CONNECT_OK;

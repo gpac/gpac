@@ -76,6 +76,7 @@ GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
 #ifdef GPAC_HAS_SSL
 	if (session->ssl) {
 		e = gf_ssl_write(session, buffer, size, &written);
+		if (e==GF_IP_NETWORK_FAILURE) e = GF_IP_CONNECTION_CLOSED;
 	} else
 #endif
 	{
@@ -303,8 +304,8 @@ void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 			do_close = (close_type==HTTP_RESET_CONN) ? GF_TRUE : GF_FALSE;
 		}
 		//if H2 stream is still valid, issue a reset stream
-		if (sess->hmux_sess && sess->hmux_stream_id && (sess->put_state!=2))
-			sess->hmux_sess->stream_reset(sess);
+		if (sess->hmux_sess && (sess->hmux_stream_id>=0) && (sess->put_state!=2))
+			sess->hmux_sess->stream_reset(sess, GF_FALSE);
 #endif
 
 #ifdef GPAC_HAS_CURL
@@ -1021,6 +1022,9 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 	if (!sess) {
 		return NULL;
 	}
+#ifdef GPAC_HTTPMUX
+	sess->hmux_stream_id = -1;
+#endif
 	sess->headers = gf_list_new();
 	sess->flags = dl_flags;
 	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA)
@@ -1209,6 +1213,9 @@ GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 
 	if (!sess)
 		return GF_BAD_PARAM;
 
+	if (sess->server_mode && (sess->flags & GF_NETIO_SESSION_USE_QUIC))
+		return GF_IP_NETWORK_EMPTY;
+
 	gf_mx_p(sess->mx);
 	if (!sess->sock) {
 		sess->status = GF_NETIO_DISCONNECTED;
@@ -1227,16 +1234,15 @@ GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 
 		}
 	} else
 #endif
-
 		e = gf_sk_receive(sess->sock, data, data_size, out_read);
 
 #ifdef GPAC_HTTPMUX
 	if (sess->hmux_sess) {
-		GF_Err h2e = hmux_data_received(sess, data, *out_read);
-		if (h2e) {
+		GF_Err hme = sess->hmux_sess->data_received(sess, data, *out_read);
+		if (hme) {
 			gf_mx_v(sess->mx);
 			*out_read = 0;
-			return h2e;
+			return hme;
 		}
 	}
 #endif //GPAC_HTTPMUX
@@ -1280,14 +1286,14 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		if (sess->num_retry) {
 			SET_LAST_ERR(GF_OK)
 			sess->num_retry--;
-			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) refused by server, retrying and marking session as no longer available\n", sess->hmux_stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] stream_id "LLD" (%s) refused by server, retrying and marking session as no longer available\n", sess->log_name, sess->hmux_stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
 
-			sess->hmux_stream_id = 0;
+			sess->hmux_stream_id = -1;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) refused by server after all retries, marking session as no longer available\n", sess->hmux_stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("%s] stream_id "LLD" (%s) refused by server after all retries, marking session as no longer available\n", sess->log_name, sess->hmux_stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
 			sess->status = GF_NETIO_STATE_ERROR;
 			SET_LAST_ERR(GF_REMOTE_SERVICE_ERROR)
-			sess->hmux_stream_id = 0;
+			sess->hmux_stream_id = -1;
 			return;
 		}
 	}
@@ -1344,7 +1350,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 			if (a_sess->hmux_sess->do_shutdown) continue;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] associating session %s to existing http2 session\n", sess->remote_path ? sess->remote_path : sess->orig_url));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing http2 session\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url));
 
 			u32 nb_locks=0;
 			if (sess->mx) {
@@ -1376,9 +1382,11 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 
 			sess->connect_time = 0;
-			sess->status = GF_NETIO_CONNECTED;
-			gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
-			gf_dm_configure_cache(sess);
+			if (sess->hmux_sess->connected) {
+				sess->status = GF_NETIO_CONNECTED;
+				gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
+				gf_dm_configure_cache(sess);
+			}
 			gf_mx_v(sess->dm->cache_mx);
 			return;
 		}
@@ -1465,9 +1473,13 @@ resetup_socket:
 			sess->start_time = now;
 
 #ifdef GPAC_HAS_NGTCP2
-		if (sess->flags & GF_NETIO_SESSION_USE_QUIC)
+		if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
 			e = http3_connect(sess, (char *) proxy, proxy_port);
-		else
+			if (sess->num_retry && (e==GF_IP_CONNECTION_FAILURE) ) {
+				register_sock = GF_FALSE;
+				e = GF_IP_NETWORK_EMPTY;
+			}
+		} else
 #endif
 			e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, NULL);
 
@@ -1512,6 +1524,7 @@ resetup_socket:
 				sess->sock = NULL;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Failed to connect through TCP (%s), retrying with QUIC\n", sess->log_name, gf_error_to_string(e)));
 				sess->flags |= GF_NETIO_SESSION_USE_QUIC;
+				sess->flags &= ~GF_NETIO_SESSION_RETRY_QUIC;
 				goto resetup_socket;
 			}
 			if ((sess->flags & GF_NETIO_SESSION_USE_QUIC)
@@ -1793,7 +1806,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 #ifdef GPAC_HTTPMUX
 			if (sess->hmux_sess && sess->server_mode) {
 				gf_dm_sess_flush_input(sess);
-				sess->hmux_sess->send(sess);
+				sess->hmux_sess->write(sess);
 			}
 			//in put and waiting for EOS flush
 			if ((sess->put_state==1) && sess->hmux_is_eos) return GF_IP_NETWORK_EMPTY;
@@ -2312,9 +2325,9 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
 		u64 run_time;
 
-#if 0 //def GPAC_HTTPMUX
-		if (0 && sess->hmux_sess && sess->hmux_stream_id)
-			return;
+#ifdef GPAC_HTTPMUX
+		if (sess->hmux_sess && !sess->server_mode)
+			sess->hmux_stream_id = -1;
 #endif
 
 		if (sess->use_cache_file) {
@@ -2610,6 +2623,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			single_read = 0;
 
 #ifdef GPAC_HTTPMUX
+			//do NOT call data received if hmux, done once input is empty
 			if (!sess->hmux_sess || sess->cached_file)
 #endif
 				gf_dm_data_received(sess, (u8 *) buffer + nb_read, size, GF_FALSE, &single_read, buffer + nb_read);
@@ -2622,13 +2636,14 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		}
 
 #ifdef GPAC_HTTPMUX
+		//process any received data
 		if (sess->hmux_sess) {
 			nb_read = 0;
-			hmux_fetch_flush_data(sess, buffer, buffer_size, &nb_read);
-			sess->hmux_sess->send(sess);
+			hmux_fetch_data(sess, buffer, buffer_size, &nb_read);
+			sess->hmux_sess->write(sess);
 
 			//stream is over and all data flushed, move to GF_NETIO_DATA_TRANSFERED in client mode
-			if (!sess->hmux_stream_id && sess->hmux_data_done && !sess->hmux_buf.size && !sess->server_mode) {
+			if ((sess->hmux_stream_id<0) && sess->hmux_data_done && !sess->hmux_buf.size && !sess->server_mode) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
 				SET_LAST_ERR(GF_OK)
 			}
@@ -2653,7 +2668,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 #ifdef GPAC_HTTPMUX
 			if (sess->hmux_sess && !sess->total_size
 				//for client, wait for close - for server move to data_transfered as soon as we're done pushing data
-				&& ((!sess->hmux_stream_id && sess->bytes_done) || (sess->hmux_data_done && sess->server_mode))
+				&& (((sess->hmux_stream_id<0) && sess->bytes_done) || (sess->hmux_data_done && sess->server_mode))
 			) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
 				SET_LAST_ERR(GF_OK)
@@ -2667,6 +2682,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 					return GF_IP_NETWORK_EMPTY;
 			} else
 #endif
+			if (sess->sock)
 				e = gf_sk_probe(sess->sock);
 
 			if ((e==GF_IP_CONNECTION_CLOSED)
@@ -2756,8 +2772,8 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 
 #ifdef GPAC_HTTPMUX
 		if (sess->hmux_sess && (sess->status==GF_NETIO_DATA_EXCHANGE)) {
-			sess->hmux_sess->stream_reset(sess);
-			sess->hmux_sess->send(sess);
+			sess->hmux_sess->stream_reset(sess, GF_TRUE);
+			sess->hmux_sess->write(sess);
 		}
 #endif
 		gf_dm_disconnect(sess, HTTP_CLOSE);
@@ -3063,28 +3079,27 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 
 		gf_mx_p(sess->mx);
 
-		sess->hmux_is_eos = GF_FALSE;
+		sess->hmux_is_eos = 0;
 		sess->hmux_send_data = NULL;
 		if (par.data && par.size) {
 			has_body = GF_TRUE;
 			sess->hmux_send_data = (u8 *) par.data;
 			sess->hmux_send_data_len = par.size;
-			sess->hmux_is_eos = GF_TRUE;
+			sess->hmux_is_eos = 1;
 		} else if (sess->put_state==1) {
 			has_body = GF_TRUE;
 		}
 		e = sess->hmux_sess->submit_request(sess, req_name, url, param_string, has_body);
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] Sending request %s %s%s\n", req_name, sess->server_name, url));
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Sending request %s %s%s\n", req_name, sess->server_name, url));
 
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
-		if (!e)
-			e = sess->hmux_sess->send(sess);
 
-		//in case we have a body already setup with this request
-		hmux_flush_send(sess, GF_FALSE);
+		if (!e || (e==GF_IP_NETWORK_EMPTY)) {
+			e = sess->hmux_sess->send_pending_data(sess);
+			if (e==GF_IP_NETWORK_EMPTY) e = GF_OK;
+		}
 
 		gf_mx_v(sess->mx);
-
 		goto req_sent;
 	}
 #endif // GPAC_HTTPMUX
@@ -3305,7 +3320,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 #ifdef GPAC_HTTPMUX
 		if (sess->hmux_sess) {
 			hmux_flush_internal_data(sess, GF_FALSE);
-			if (!sess->hmux_stream_id) {
+			if (sess->hmux_stream_id<0) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
 				SET_LAST_ERR(GF_OK)
 			}
@@ -3452,7 +3467,14 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 
 	while (1) {
 		Bool probe = (!bytesRead || (sess->flags & GF_NETIO_SESSION_NO_BLOCK) ) ? GF_TRUE : GF_FALSE;
-		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
+#ifdef GPAC_HTTPMUX
+		if (sess->server_mode && sess->hmux_sess && (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC)) {
+			GF_Err h3_check_sess(GF_DownloadSession *sess);
+			probe = GF_FALSE;
+			e = h3_check_sess(sess);
+		} else
+#endif
+			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 
 #ifdef GPAC_HTTPMUX
 		/* break as soon as we have a header frame*/
@@ -4008,7 +4030,11 @@ process_reply:
 	}
 #endif
 #ifdef GPAC_HAS_HTTP2
-	else if (sess->server_mode && !gf_opts_get_bool("core", "no-h2") && !gf_opts_get_bool("core", "no-h2c")) {
+	else if (sess->server_mode
+		&& !gf_opts_get_bool("core", "no-h2")
+		&& !gf_opts_get_bool("core", "no-h2c")
+		&& !(sess->flags & GF_NETIO_SESSION_USE_QUIC)
+	) {
 		Bool is_upgradeable = GF_FALSE;
 		char *h2_settings = NULL;
 		u32 count = gf_list_count(sess->headers);
@@ -4522,8 +4548,14 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
 		dnload->range_end = end_range;
 		dnload->needs_range = GF_TRUE;
 	}
-	if (e == GF_OK) {
+	while (e == GF_OK) {
 		e = gf_dm_sess_process(dnload);
+		if (e && (e!=GF_IP_NETWORK_EMPTY))
+			break;
+		if (dnload->status>=GF_NETIO_DATA_TRANSFERED) break;
+		e = GF_OK;
+		if (dnload->connect_pending)
+			gf_sleep(100);
 	}
 	if (e==GF_OK)
 		gf_cache_set_content_length(dnload->cache_entry, dnload->total_size);
@@ -4592,18 +4624,25 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm)
 	return 8*ret;
 }
 
-u32 gf_dm_sess_is_hmux(GF_DownloadSession *sess)
+GF_HTTPSessionType gf_dm_sess_is_hmux(GF_DownloadSession *sess)
 {
 #ifdef GPAC_HTTPMUX
 	if (sess->hmux_sess) {
 		if (sess->hmux_sess->net_sess && sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC)
-			return 2;
+			return GF_SESS_TYPE_HTTP3;
 		if (sess->hmux_sess->net_sess && !sess->hmux_sess->net_sess->sock)
-			return 2;
-		return 1;
+			return GF_SESS_TYPE_HTTP3;
+		return GF_SESS_TYPE_HTTP2;
 	}
 #endif
-	return 0;
+	return GF_SESS_TYPE_HTTP;
+}
+
+Bool gf_dm_sess_use_tls(GF_DownloadSession * sess)
+{
+	if (sess->ssl) return GF_TRUE;
+	if (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC) return GF_TRUE;
+	return GF_FALSE;
 }
 
 u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess)
@@ -4668,17 +4707,18 @@ void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_keep)
 }
 
 
-GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
+static GF_Err gf_dm_sess_flush_async_close(GF_DownloadSession *sess, Bool no_select, Bool for_close)
 {
 	if (!sess) return GF_OK;
 
-	if (!no_select && (gf_sk_select(sess->sock, GF_SK_SELECT_WRITE)!=GF_OK)) {
-		return GF_IP_NETWORK_EMPTY;
+	if (!no_select && sess->sock && (gf_sk_select(sess->sock, GF_SK_SELECT_WRITE)!=GF_OK)) {
+		return sess->async_buf_size ? GF_IP_NETWORK_EMPTY : GF_OK;
 	}
 	GF_Err ret = GF_OK;
 
 #ifdef GPAC_HTTPMUX
-	ret = hmux_async_flush(sess);
+	if(sess->hmux_sess)
+		ret = sess->hmux_sess->async_flush(sess, for_close);
 
 	//if H2 flush the parent session holding the http2 session
 	if (sess->hmux_sess)
@@ -4691,6 +4731,15 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
 		if (sess->async_buf_size) return GF_IP_NETWORK_EMPTY;
 	}
 	return ret;
+}
+
+GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
+{
+	return gf_dm_sess_flush_async_close(sess, no_select, GF_FALSE);
+}
+GF_Err gf_dm_sess_flush_close(GF_DownloadSession *sess)
+{
+	return gf_dm_sess_flush_async_close(sess, GF_TRUE, GF_TRUE);
 }
 
 u32 gf_dm_sess_async_pending(GF_DownloadSession *sess)
