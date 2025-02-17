@@ -420,7 +420,7 @@ static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char
 			//stop at first used io, or first LLHAS chunk, if any
 			if (old->nb_used || old->is_llhas_chunk) break;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_cache_seg %d\n", gf_fileio_resource_url(old->fio), count));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_cache_segs %d\n", gf_fileio_resource_url(old->fio), count));
 			gf_list_rem(ioctx->in->mem_files, i);
 			httpio_del(old);
 			i--;
