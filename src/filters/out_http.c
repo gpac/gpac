@@ -3472,9 +3472,11 @@ static void httpout_finalize(GF_Filter *filter)
 	if (ctx->ssl_ctx) {
 		gf_ssl_server_context_del(ctx->ssl_ctx);
 	}
+#ifdef GPAC_HAS_NGTCP2
 	if (ctx->ssl_ctx_quic) {
 		gf_ssl_server_context_del(ctx->ssl_ctx_quic);
 	}
+#endif
 #endif
 
 

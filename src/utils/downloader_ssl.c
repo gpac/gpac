@@ -538,9 +538,9 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 	}
 #endif
 
-	if (!for_quic)
+/*	if (!for_quic)
 		SSL_CTX_set_quic_method(ctx, NULL);
-
+*/
 	if (next_proto_list_len) {
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L

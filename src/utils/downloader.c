@@ -3467,7 +3467,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 
 	while (1) {
 		Bool probe = (!bytesRead || (sess->flags & GF_NETIO_SESSION_NO_BLOCK) ) ? GF_TRUE : GF_FALSE;
-#ifdef GPAC_HTTPMUX
+#ifdef GPAC_HAS_NGTCP2
 		if (sess->server_mode && sess->hmux_sess && (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC)) {
 			GF_Err h3_check_sess(GF_DownloadSession *sess);
 			probe = GF_FALSE;
