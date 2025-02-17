@@ -384,6 +384,7 @@ static int ngh3_begin_headers(nghttp3_conn *conn, int64_t stream_id, void *conn_
 
 		nghttp3_conn_set_stream_user_data(conn, stream_id, sess);
 		sess->hmux_stream_id = stream_id;
+		sess->flags |= GF_NETIO_SESSION_USE_QUIC;
 	}
 
 	GF_QuicDataRead *qr = sess->hmux_priv;
