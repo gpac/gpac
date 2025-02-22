@@ -800,6 +800,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_parse) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_find_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_xml_metadata_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_dims_description) )

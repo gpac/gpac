@@ -2416,7 +2416,7 @@ Bool gf_isom_box_is_file_level(GF_Box *s)
 }
 #endif
 
-
+GF_EXPORT
 GF_Box *gf_isom_box_find_child(GF_List *children, u32 code)
 {
 	u32 i, count;
