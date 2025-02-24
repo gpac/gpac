@@ -24,6 +24,7 @@
  */
 
 import * as evg from 'evg'
+import { Bitstream as BS } from 'gpaccore'
 import { Sys as sys } from 'gpaccore'
 import { File as File } from 'gpaccore'
 
@@ -508,6 +509,29 @@ function process_text()
 	text_cts += filter.fps.n * 2;
 }
 
+function get_empty_emsg()
+{
+	let pck = evte_pid.new_packet(24);
+	pck.cts = evte_cts;
+	pck.dur = 1;
+	pck.sap = GF_FILTER_SAP_1;
+
+	//create an empty emsg
+	let bs = new BS(pck.data, true);
+	bs.put_u16(24); //size
+	bs.put_u32(1701671783); //emsg
+	bs.put_u8(0); //version
+	bs.put_bits(0, 24); //flags
+	bs.put_u8(0); //scheme_id_uri
+	bs.put_u8(0); //value
+	bs.put_u32(filter.fps.n); //timescale
+	bs.put_u32(0); //presentation_time_delta
+	bs.put_u32(1); //event_duration
+	bs.put_u32(1); //id
+
+	return pck;
+}
+
 function process_event()
 {
 	if (!evte_pid || evte_pid.would_block)
@@ -516,10 +540,7 @@ function process_event()
 	//just create the stream
 	if (filter.evte < 0) {
 		if (!evte_sent) {
-			let pck = evte_pid.new_packet(1);
-			pck.cts = 0;
-			pck.dur = 0;
-			pck.sap = GF_FILTER_SAP_1;
+			let pck = get_empty_emsg();
 			pck.send();
 			evte_sent = true;
 		}
@@ -536,10 +557,7 @@ function process_event()
 	//send event for the period
 	if (nb_sec % filter.evte) return;
 
-	let pck = evte_pid.new_packet(1);
-	pck.cts = evte_cts;
-	pck.dur = 1;
-	pck.sap = GF_FILTER_SAP_1;
+	let pck = get_empty_emsg();
 	pck.send();
 
 	evte_cts += filter.evte * filter.fps.n;
