@@ -69,6 +69,7 @@ filter.set_help(
 
 filter.set_arg({ name: "type", desc: "output selection\n- a: audio only\n- v: video only\n- av: audio and video", type: GF_PROP_UINT, def: "av", minmax_enum: "a|v|av"} );
 filter.set_arg({ name: "text", desc: "output text stream", type: GF_PROP_BOOL, def: "false"} );
+filter.set_arg({ name: "evte", desc: "output event stream\n- -1: empty event stream\n- 0: disable\n- 1+: period (sec) of dummy events", type: GF_PROP_SINT, def: "0"} );
 filter.set_arg({ name: "freq", desc: "frequency of beep", type: GF_PROP_UINT, def: "440"} );
 filter.set_arg({ name: "freq2", desc: "frequency of odd beep", type: GF_PROP_UINT, def: "659"} );
 filter.set_arg({ name: "sr", desc: "output samplerate", type: GF_PROP_UINT, def: "44100"} );
@@ -95,6 +96,10 @@ let text_cts = 0;
 let text_pid = null;
 let lipsum = [];
 let lipsum_idx = 0;
+
+let evte_cts = 0;
+let evte_pid = null;
+let evte_sent = false;
 
 let audio_osize=0;
 let audio_cts=0;
@@ -137,6 +142,9 @@ filter.initialize = function() {
 	if (filter.text) {
 		this.set_cap({id: "StreamType", value: "Text", output: true} );
 	}
+	if (filter.evte) {
+		this.set_cap({id: "StreamType", value: "Metadata", output: true} );
+	}
 	this.set_cap({id: "CodecID", value: "raw", output: true} );
 
 	let gpac_help = sys.get_opt("temp", "gpac-help");
@@ -176,6 +184,21 @@ filter.initialize = function() {
 		let bitrate = Math.floor((size / lipsum.length) * 8 / 2);
 		text_pid.set_prop('Bitrate', bitrate);
 	}
+
+	//setup event
+	if (filter.evte) {
+		evte_pid = this.new_pid();
+		evte_pid.set_prop('StreamType', 'Metadata');
+		evte_pid.set_prop('CodecID', 'evte');
+		evte_pid.set_prop('Cached', true);
+		evte_pid.set_prop('Timescale', filter.fps.n);
+		evte_pid.name = "event";
+		evte_pid.set_prop('ID', pid_id_offset++);
+
+		//we send 1 byte dummy events
+		let period = filter.evte > 0 ? filter.evte : filter.dur.n;
+		let bitrate = Math.max(Math.floor(8 / period), 1);
+		evte_pid.set_prop('Bitrate', bitrate);
 	}
 
 	//setup audio
@@ -439,6 +462,7 @@ filter.process = function()
 
 	if (video_playing || audio_playing) {
 		process_text();
+		process_event();
 	}
 
 	//start by processing video, adjusting start time
@@ -483,6 +507,42 @@ function process_text()
 
 	text_cts += filter.fps.n * 2;
 }
+
+function process_event()
+{
+	if (!evte_pid || evte_pid.would_block)
+		return;
+
+	//just create the stream
+	if (filter.evte < 0) {
+		if (!evte_sent) {
+			let pck = evte_pid.new_packet(1);
+			pck.cts = 0;
+			pck.dur = 0;
+			pck.sap = GF_FILTER_SAP_1;
+			pck.send();
+			evte_sent = true;
+		}
+		return;
+	}
+
+	let nb_sec;
+	if (filter.type == 0) {
+		nb_sec = audio_cts * filter.dur.d / filter.sr;
+	} else {
+		nb_sec = video_cts * filter.fps.d / filter.fps.n;
+	}
+
+	//send event for the period
+	if (nb_sec % filter.evte) return;
+
+	let pck = evte_pid.new_packet(1);
+	pck.cts = evte_cts;
+	pck.dur = 1;
+	pck.sap = GF_FILTER_SAP_1;
+	pck.send();
+
+	evte_cts += filter.evte * filter.fps.n;
 }
 
 function process_audio()
