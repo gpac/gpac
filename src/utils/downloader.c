@@ -5534,7 +5534,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		return e;
 	}
 
-	/*setup authentification*/
+	/*setup authentication*/
 	strcpy(pass_buf, "");
 	sess->creds = gf_user_credentials_find_for_site( sess->dm, sess->server_name, NULL);
 	if (sess->creds && sess->creds->valid) {
