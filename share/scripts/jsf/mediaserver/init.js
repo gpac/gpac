@@ -548,7 +548,7 @@ globalThis.cat_buffer = cat_buffer;
 let httpout = {};
 httpout.on_request = (req) => 
 {
-	//use pre-authentifcation done by server
+	//use pre-authentication done by server
 	if (req.auth_code!=200) {
 		req.reply = req.auth_code;
 		req.send();

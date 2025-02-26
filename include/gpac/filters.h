@@ -874,7 +874,7 @@ typedef enum
 	GF_PROP_VEC4I		=	13,
 	/*! string property, memory is duplicated when setting the property and managed internally*/
 	GF_PROP_STRING		=	14,
-	/*! string property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
+	/*! string property, memory is NOT duplicated when setting the property but is then managed (and freed) internally.
 	Only used when setting a property, the type then defaults to GF_PROP_STRING
 	DO NOT USE the associate string field upon return from setting the property, it might have been destroyed*/
 	GF_PROP_STRING_NO_COPY=	15,
