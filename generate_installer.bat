@@ -49,8 +49,8 @@ echo diff = %diff%
 if not "%diff%"=="" echo Local and remote revisions not in sync, consider pushing or pulling changes
 
 REM execute git and check if the result if found within revision.h
-for /f "delims=" %%a in ('git describe --tags --long') do @set VERSION=%%a
-for /f "delims=" %%a in ('git describe --tags --abbrev^=0') do @set TAG=%%a-
+for /f "delims=" %%a in ('git describe --tags --long  --match "v*" ') do @set VERSION=%%a
+for /f "delims=" %%a in ('git describe --tags --abbrev^=0  --match "v*"  ') do @set TAG=%%a-
 for /f "delims=" %%a in ('git rev-parse --abbrev-ref HEAD') do @set BRANCH=%%a
 REM remove anotated tag from VERSION
 setlocal enabledelayedexpansion
