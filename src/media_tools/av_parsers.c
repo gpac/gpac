@@ -6537,7 +6537,11 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0)
 						gf_bs_read_int_log_idx(bs, avc->sps[sps_id].vui.hrd.time_offset_length, "time_offset", i);
 				}
-				tc->max_fps = gf_ceil(avc->sps[sps_id].vui.time_scale / ((1 + unit_field_based_flag) * avc->sps[sps_id].vui.num_units_in_tick));
+				if (avc->sps[sps_id].vui.num_units_in_tick)
+					tc->max_fps = gf_ceil(avc->sps[sps_id].vui.time_scale / ((1 + unit_field_based_flag) * avc->sps[sps_id].vui.num_units_in_tick));
+				else
+					tc->max_fps = 0;
+
 			}
 		}
 	}
