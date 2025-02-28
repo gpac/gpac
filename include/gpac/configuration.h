@@ -72,6 +72,11 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_CURL
 #define GPAC_HAS_FD
 
+#ifdef _WIN64
+#define GPAC_HAS_NGTCP2
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #define GPAC_MEMORY_TRACKING
 
 /*Win32 IPv6 is evaluated at compile time, !! do not uncomment !!*/

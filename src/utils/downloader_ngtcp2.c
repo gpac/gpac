@@ -35,6 +35,12 @@
 
 #if !defined(GPAC_DISABLE_NETWORK) && defined(GPAC_HAS_NGTCP2)
 
+#if defined(WIN32) && !defined(__GNUC__)
+#pragma comment(lib, "libnghttp3.lib")
+#pragma comment(lib, "libngtcp2_crypto_quictls.lib")
+#pragma comment(lib, "libngtcp2.lib")
+#endif
+
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto.h>
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
@@ -160,7 +166,7 @@ static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *ra
 	size_t i;
 	(void)rand_ctx;
 	for (i = 0; i < destlen; ++i) {
-		*dest = (uint8_t)random();
+		*dest = (uint8_t)gf_rand();
 	}
 }
 
