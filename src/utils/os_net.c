@@ -4204,7 +4204,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 		sock->dest_addr_len = sizeof(struct sockaddr);
 #endif
 		if (sock->flags & GF_SOCK_IS_IPV6) {
-#if defined(IPV6_MTU_DISCOVER)
+#if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO)
 			val = IPV6_PMTUDISC_DO;
 			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &val, sizeof(val)) == -1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IPV6_MTU_DISCOVER: %s\n", gf_errno_str(LASTSOCKERROR) ));
