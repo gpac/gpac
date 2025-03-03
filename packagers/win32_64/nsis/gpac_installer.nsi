@@ -218,8 +218,10 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\gm_dx_hw.dll"
 
   ;all our deps
-  File "${GPAC_BIN}\libcryptoMD.dll"
-  File "${GPAC_BIN}\libsslMD.dll"
+  File "${GPAC_BIN}\libcrypto*.dll"
+  File "${GPAC_BIN}\libssl*.dll"
+  File /nonfatal "${GPAC_BIN}\libnghttp3*.dll"
+  File /nonfatal "${GPAC_BIN}\libngtcp2*.dll"
   File "${GPAC_BIN}\avcodec-*.dll"
   File "${GPAC_BIN}\avdevice-*.dll"
   File "${GPAC_BIN}\avfilter-*.dll"
