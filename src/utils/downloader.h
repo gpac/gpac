@@ -40,7 +40,9 @@
 #include <gpac/crypt.h>
 
 #ifdef GPAC_HAS_SSL
+#ifdef GPAC_HAS_NGTCP2
 #include <openssl/types.h>
+#endif
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>

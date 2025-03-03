@@ -1541,6 +1541,8 @@ if test "$static_bin" = "yes"; then
 
     #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
     append disabled_packages "ssl"
+    # these need ssl
+    append disabled_packages "nghttp3 ngtcp2"
     #we cannot use ipv6 due to getaddrinfo not being present
     append disabled_packages "ipv6"
 
