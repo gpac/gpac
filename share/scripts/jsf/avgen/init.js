@@ -511,15 +511,15 @@ function process_text()
 
 function get_empty_emsg()
 {
-	let pck = evte_pid.new_packet(24);
+	let pck = evte_pid.new_packet(30);
 	pck.cts = evte_cts;
-	pck.dur = 1;
+	pck.dur = 25;
 	pck.sap = GF_FILTER_SAP_1;
 
 	//create an empty emsg
 	let bs = new BS(pck.data, true);
-	bs.put_u16(24); //size
-	bs.put_u32(1701671783); //emsg
+	bs.put_u32(30); //size
+	bs.put_u32(1701668194); //emeb
 	bs.put_u8(0); //version
 	bs.put_bits(0, 24); //flags
 	bs.put_u8(0); //scheme_id_uri
