@@ -75,7 +75,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_FD
 
 #ifdef _WIN64
-#define GPAC_HAS_NGTCP2
+//#define GPAC_HAS_NGTCP2
 #endif
 
 #define GPAC_MEMORY_TRACKING
