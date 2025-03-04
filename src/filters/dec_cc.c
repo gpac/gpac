@@ -76,6 +76,7 @@ typedef struct
 	u32 agg;
 	u8 txtdata[2/*double for aggregation*/*CAPTION_FRAME_TEXT_BYTES+1];
 	u32 txtlen;
+	Bool rcl;
 
 	u32 timescale;
 #ifdef GPAC_HAS_LIBCAPTION
@@ -233,10 +234,7 @@ static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
 	if (crc!=ctx->cc_last_crc) {
 		ctx->cc_last_crc = crc;
 	} else {
-		size=0;
-	}
-	if (!size) {
-		ctx->last_ts_plus_one = ts+1;
+		if (!ctx->rcl) ctx->last_ts_plus_one = ts+1;
 		return GF_TRUE;
 	}
 	return GF_FALSE;
@@ -246,7 +244,7 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 {
 	// look for overlaps if case we aggregate: we couldn't rely on libcaption's popon/painton/rollup reliably
 	Bool overlap = GF_FALSE;
-	if (ctx->agg>0 && ctx->txtlen>0) {
+	if (ctx->agg==1 && ctx->txtlen>0) {
 		if (!strncmp(ctx->txtdata, ctx->txtdata+ctx->txtlen, ctx->txtlen)) {
 			memmove(ctx->txtdata, ctx->txtdata+ctx->txtlen, size+1);
 			overlap = GF_TRUE;
@@ -266,7 +264,7 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 	if (ctx->agg == 0) {
 		// no aggregation: dispatch now
 		return ccdec_post(ctx, size, ts);
-	} else {
+	} else if (ctx->agg == 1) {
 		int len = -1;
 		if ( (len = find_last_separator(ctx->txtdata+ctx->txtlen)) >= 0 ) {
 			GF_Err e = ccdec_post(ctx, ctx->txtlen+len, ts);
@@ -277,6 +275,13 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 			ctx->txtlen = size;
 		} else {
 			ctx->txtlen += size;
+		}
+	} else if (ctx->agg == 2) {
+		if (ctx->rcl) {
+			ctx->txtlen = size;
+		} else {
+			ccdec_post(ctx, ctx->txtlen, ts);
+			ctx->txtlen = 0;
 		}
 	}
 
@@ -305,9 +310,7 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	Double timestamp = (Double) cc->timestamp;
 	timestamp /= ctx->timescale;
 	Bool dump_frame = GF_FALSE;
-	if (!ctx->last_ts_plus_one)
-		ctx->last_ts_plus_one = ts+1;
-
+	ctx->rcl = GF_FALSE;
 	for (i = 0; i < count; ++i) {
 		int valid;
 		cea708_cc_type_t type;
@@ -316,6 +319,13 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 		if (valid
 			&& ((cc_type_ntsc_cc_field_1 == type) || (cc_type_ntsc_cc_field_2 == type))
 		) {
+			if (eia608_is_control(cc_data)) {
+				int cc;
+				eia608_control_t cmd = eia608_parse_control(cc_data, &cc);
+				if (cmd == eia608_control_resume_caption_loading)
+					ctx->rcl = GF_TRUE;
+			}
+
 			status = libcaption_status_update(status, caption_frame_decode(ctx->ccframe, cc_data, timestamp));
 			if (status == LIBCAPTION_READY) {
 				dump_frame = GF_TRUE;
@@ -327,7 +337,14 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 
 	if (!dump_frame) return GF_OK;
 
-	u32 size = (u32) caption_frame_to_text(ctx->ccframe, ctx->txtdata+ctx->txtlen);
+	if (!ctx->last_ts_plus_one) {
+		if (!ctx->rcl) return GF_OK;
+		ctx->last_ts_plus_one = ts+1;
+	}
+
+	u32 size = 0;
+	if (ctx->rcl)
+		size = (u32) caption_frame_to_text(ctx->ccframe, ctx->txtdata+ctx->txtlen);
 
 	return text_aggregate_and_post(ctx, size, ts);
 }
@@ -399,7 +416,7 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 
 static void ccdec_flush(CCDecCtx *ctx)
 {
-	if (ctx->agg == 0)
+	if (ctx->agg != 1)
 		return;
 
 	if (strlen(ctx->txtdata))
@@ -664,7 +681,8 @@ static const GF_FilterArgs CCDecArgs[] =
 {
 	{ OFFS(agg), "output aggregation mode\n"
 		"- none: forward data as decoded (default)\n"
-		"- word: aggregate words (separated by a space)", GF_PROP_UINT, "none", "none|word", 0},
+		"- word: aggregate words (separated by a space)\n"
+		"- eoc: wait for end of caption control cmd", GF_PROP_UINT, "none", "none|word|eoc", 0},
 	{0}
 };
 
