@@ -182,8 +182,8 @@ static GF_Err ccenc_enqueue_cc_clear(GF_Filter *filter, u64 cts)
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 
 	// Find the insertion point
-	u32 pos;
-	CCItem *item;
+	u32 pos = 0;
+	CCItem *item = NULL;
 	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
 		// new caption would clear the previous one
 		if (item->cts == cts) return GF_OK;
@@ -230,8 +230,8 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 	memset(cc->text + len, 0, 1);
 
 	// If there is a clear command with the same timestamp, remove it
-	u32 pos;
-	CCItem *item;
+	u32 pos = 0;
+	CCItem *item = NULL;
 	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
 		if (item->cts == cc->cts && item->is_clear) {
 			gf_list_rem(ctx->cc_queue, pos - 1);
@@ -352,8 +352,8 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	if (cur_dts > min_dts) {
 		// place the new packet in the queue, sorted
 		// next flush will forward it
-		u32 pos;
-		GF_FilterPacket *item;
+		u32 pos = 0;
+		GF_FilterPacket *item = NULL;
 		while ((item = gf_list_enum(ctx->frame_queue, &pos)))
 			if (gf_filter_pck_get_dts(item) > cur_dts) break;
 		gf_list_insert(ctx->frame_queue, new_vpck, pos - 1);
@@ -557,6 +557,7 @@ static GF_Err ccenc_initialize(GF_Filter *filter)
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 	ctx->is_cc_eos = GF_FALSE;
 	ctx->cc_queue = gf_list_new();
+	ccenc_enqueue_cc_clear(filter, 0);
 	if (!ctx->cc_queue) return GF_OUT_OF_MEM;
 	ctx->frame_queue = gf_list_new();
 	if (!ctx->frame_queue) return GF_OUT_OF_MEM;
