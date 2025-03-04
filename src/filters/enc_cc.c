@@ -229,6 +229,11 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 	memcpy(cc->text, data + GPAC_TX3G_DATA_OFFSET, len);
 	memset(cc->text + len, 0, 1);
 
+	if (len > SCREEN_COLS * SCREEN_ROWS) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Caption at CTS=%llu exceeds maximum length of %u bytes. Truncating\n", cc->cts, SCREEN_COLS * SCREEN_ROWS));
+		cc->text[(SCREEN_COLS * SCREEN_ROWS) - 1] = 0;
+	}
+
 	// If there is a clear command with the same timestamp, remove it
 	u32 pos = 0;
 	CCItem *item = NULL;
