@@ -27,6 +27,7 @@
 #include "dx_hw.h"
 #include <gpac/utf.h>
 #include "resource.h"
+#include <shellapi.h>
 
 /*crude redef of winuser.h due to windows/winsock2 conflicts*/
 #ifndef WM_MOUSEWHEEL

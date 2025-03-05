@@ -341,6 +341,8 @@ s32 __gettimeofday(struct timeval *tp, void *tz)
 
 #elif defined(WIN32)
 
+#include <WinSock2.h>
+
 static s32 gettimeofday(struct timeval *tp, void *tz)
 {
 	struct _timeb timebuffer;
@@ -742,6 +744,8 @@ u64 gf_sys_clock_high_res()
 
 
 #ifdef WIN32
+
+#include <timeapi.h>
 
 static u32 OS_GetSysClockHIGHRES()
 {

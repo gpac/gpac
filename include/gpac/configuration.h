@@ -46,6 +46,8 @@ This section documents the base data types of GPAC.
 /*Configuration for visual studio, 32/64 bits */
 #if defined(_WIN32) && !defined(_WIN32_WCE)
 
+#define WIN32_LEAN_AND_MEAN
+
 #ifndef GPAC_MP4BOX_MINI
 
 #define GPAC_HAS_SSL
@@ -71,6 +73,10 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_LIBCACA
 #define GPAC_HAS_CURL
 #define GPAC_HAS_FD
+
+#ifdef _WIN64
+//#define GPAC_HAS_NGTCP2
+#endif
 
 #define GPAC_MEMORY_TRACKING
 
@@ -161,6 +167,8 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_POLL
 #define GPAC_HAS_LIBCACA
+
+#define GPAC_HAS_NGTCP2
 
 #define GPAC_MEMORY_TRACKING
 
