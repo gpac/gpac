@@ -1900,11 +1900,15 @@ GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 #endif
 
 	dm->disable_http2 = gf_opts_get_bool("core", "no-h2");
+#ifdef GPAC_HAS_NGTCP2
 	opt = gf_opts_get_key("core", "h3");
 	if (!opt || !strcmp(opt, "auto")) dm->h3_mode = H3_MODE_AUTO;
 	else if (!strcmp(opt, "first")) dm->h3_mode = H3_MODE_FIRST;
 	else if (!strcmp(opt, "only")) dm->h3_mode = H3_MODE_ONLY;
 	else dm->h3_mode = H3_MODE_NO;
+#else
+	dm->h3_mode = H3_MODE_NO;
+#endif
 
 	opt = gf_opts_get_key("core", "cache");
 
