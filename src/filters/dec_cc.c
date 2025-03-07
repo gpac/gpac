@@ -309,6 +309,9 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	Double timestamp = (Double) cc->timestamp;
 	timestamp /= ctx->timescale;
 	Bool dump_frame = GF_FALSE;
+	if (!ctx->last_ts_plus_one)
+		ctx->last_ts_plus_one = ts+1;
+
 	for (i = 0; i < count; ++i) {
 		int valid;
 		cea708_cc_type_t type;
@@ -329,11 +332,6 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	if (!dump_frame) return GF_OK;
 
 	u32 size = (u32) caption_frame_to_text(ctx->ccframe, ctx->txtdata+ctx->txtlen);
-
-	if (!ctx->last_ts_plus_one) {
-		if (!size) return GF_OK;
-		ctx->last_ts_plus_one = ts+1;
-	}
 
 	return text_aggregate_and_post(ctx, size, ts);
 }
