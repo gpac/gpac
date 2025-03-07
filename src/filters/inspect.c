@@ -3756,6 +3756,8 @@ props_done:
 		}
 			break;
 		case GF_CODECID_TX3G:
+			data += 2;
+			size -= 2;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
 		case GF_CODECID_SIMPLE_TEXT:
