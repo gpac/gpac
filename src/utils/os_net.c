@@ -2161,8 +2161,7 @@ struct hostent *gf_gethostbyname(const char *PeerName)
 static u32 inet_addr_from_name(const char *local_interface);
 
 //connects a socket to a remote peer on a given port
-GF_EXPORT
-GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name)
+GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name, Bool use_udp_connect)
 {
 	s32 ret;
 #ifdef GPAC_HAS_IPV6
@@ -2277,6 +2276,8 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 
 		if (sock->flags & GF_SOCK_IS_TCP) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
+		} else if (!use_udp_connect) {
+			goto conn_ok;
 		}
 		ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
@@ -2402,6 +2403,8 @@ conn_ok:
 
 	if (sock->flags & GF_SOCK_IS_TCP) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
+	} else if (!use_udp_connect) {
+		return GF_OK;
 	}
 	ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 	if (ret == SOCKET_ERROR) {
@@ -2457,6 +2460,12 @@ conn_ok:
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name)
+{
+	return gf_sk_connect_ex(sock, PeerName, PortNumber, ifce_ip_or_name, GF_FALSE);
+
+}
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
 GF_EXPORT

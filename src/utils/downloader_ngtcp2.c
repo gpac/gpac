@@ -57,6 +57,7 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 	u8 **dst_sock_addr, u32 *dst_sock_addr_len, u8 **src_sock_addr, u32 *src_sock_addr_len);
 
 GF_Err gf_sk_send_to(GF_Socket *sock, const u8 *buffer, u32 length, const u8 *addr, u32 addr_len, u32 *written);
+GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name, Bool use_udp_connect);
 
 
 #define SOCK_BUF_SIZE	100000
@@ -1425,7 +1426,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		e = gf_sk_bind_ex(sess->sock, "127.0.0.1", 1234, server, server_port, GF_SOCK_REUSE_PORT, &dst, &dst_len, &src, &src_len);
 		if (e) goto err;
 		//UDP connect to make sure we only get datagrams for ourselves
-		e = gf_sk_connect(sess->sock, (char *) server, server_port, NULL);
+		e = gf_sk_connect_ex(sess->sock, (char *) server, server_port, NULL, GF_TRUE);
 		if (e) goto err;
 
 		ng_quic->path.local.addr = (ngtcp2_sockaddr*)src;
