@@ -1738,7 +1738,7 @@ GF_Err nhmldmx_update_document(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	//update the root node
 	gf_xml_dom_append_child(ctx->root, gf_xml_dom_node_clone(root));
 	gf_xml_dom_del(parser);
-	gf_fclose(fio);
+	gf_fclose((FILE*)fio);
 
 	return GF_OK;
 }
