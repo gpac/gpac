@@ -549,8 +549,8 @@ GF_Err ccenc_process(GF_Filter *filter)
 	ccenc_flush(filter, GF_FALSE);
 
 	// if we couldn't process the current "blocking" video frame, forward it
-	if (vpck && gf_filter_pck_is_blocking_ref(vpck)) {
-		if (gf_list_last(ctx->frame_queue) == vpck)
+	if (gf_list_last(ctx->frame_queue) == vpck) {
+		if (gf_filter_pck_is_blocking_ref(vpck))
 			ccenc_forward_video(filter, gf_list_pop_back(ctx->frame_queue));
 	}
 
