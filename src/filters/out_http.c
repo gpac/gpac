@@ -1042,11 +1042,13 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, s64 stream_id)
 {
 	GF_HTTPOutSession *sub_sess;
 	GF_Err e;
-	//warning, sess->is_hmux might not be set yet
-	if (!sess || !sess->http_sess || !gf_dm_sess_is_hmux(sess->http_sess))
+	//warning, sess->http_type might not be set yet
+	if (!sess->http_type) {
+		sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
+	}
+	if (!sess || !sess->http_sess || !sess->http_type)
 		return GF_BAD_PARAM;
 
-	gf_assert(sess->http_type);
 	GF_SAFEALLOC(sub_sess, GF_HTTPOutSession);
 	if (!sub_sess) return GF_OUT_OF_MEM;
 	sub_sess->socket = sess->socket;
