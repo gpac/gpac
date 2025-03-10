@@ -233,10 +233,7 @@ static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
 	if (crc!=ctx->cc_last_crc) {
 		ctx->cc_last_crc = crc;
 	} else {
-		size=0;
-	}
-	if (!size) {
-		ctx->last_ts_plus_one = ts+1;
+		if (!size) ctx->last_ts_plus_one = ts+1;
 		return GF_TRUE;
 	}
 	return GF_FALSE;
@@ -246,7 +243,7 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 {
 	// look for overlaps if case we aggregate: we couldn't rely on libcaption's popon/painton/rollup reliably
 	Bool overlap = GF_FALSE;
-	if (ctx->agg>0 && ctx->txtlen>0) {
+	if (ctx->agg==1 && ctx->txtlen>0) {
 		if (!strncmp(ctx->txtdata, ctx->txtdata+ctx->txtlen, ctx->txtlen)) {
 			memmove(ctx->txtdata, ctx->txtdata+ctx->txtlen, size+1);
 			overlap = GF_TRUE;
@@ -266,7 +263,7 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 	if (ctx->agg == 0) {
 		// no aggregation: dispatch now
 		return ccdec_post(ctx, size, ts);
-	} else {
+	} else if (ctx->agg == 1) {
 		int len = -1;
 		if ( (len = find_last_separator(ctx->txtdata+ctx->txtlen)) >= 0 ) {
 			GF_Err e = ccdec_post(ctx, ctx->txtlen+len, ts);
@@ -277,6 +274,13 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 			ctx->txtlen = size;
 		} else {
 			ctx->txtlen += size;
+		}
+	} else if (ctx->agg == 2) {
+		if (size) {
+			ctx->txtlen = size;
+		} else {
+			ccdec_post(ctx, ctx->txtlen, ts);
+			ctx->txtlen = 0;
 		}
 	}
 
@@ -399,7 +403,7 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 
 static void ccdec_flush(CCDecCtx *ctx)
 {
-	if (ctx->agg == 0)
+	if (ctx->agg != 1)
 		return;
 
 	if (strlen(ctx->txtdata))
@@ -664,7 +668,8 @@ static const GF_FilterArgs CCDecArgs[] =
 {
 	{ OFFS(agg), "output aggregation mode\n"
 		"- none: forward data as decoded (default)\n"
-		"- word: aggregate words (separated by a space)", GF_PROP_UINT, "none", "none|word", 0},
+		"- word: aggregate words (separated by a space)\n"
+		"- eoc: wait for end of caption control cmd", GF_PROP_UINT, "none", "none|word|eoc", 0},
 	{0}
 };
 
