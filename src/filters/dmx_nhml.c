@@ -1740,6 +1740,10 @@ GF_Err nhmldmx_update_document(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	gf_xml_dom_del(parser);
 	gf_fclose((FILE*)fio);
 
+	// Update the child index
+	u32 new_idx = MAX(gf_list_count(ctx->root->content) - 1, 0);
+	ctx->current_child_idx = MIN(new_idx, ctx->current_child_idx);
+
 	return GF_OK;
 }
 
