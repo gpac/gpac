@@ -4602,7 +4602,7 @@ static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 		if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE))
 			continue;
 		nb_ready++;
-		//data still pending, flush. If flush not full, check how many btes are still pending
+		//data still pending, flush. If flush not full, check how many bytes are still pending
 		if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE)==GF_IP_NETWORK_EMPTY) {
 			//decide what to do if one source is not reading fast enough
 			u32 bytes_pending = gf_dm_sess_async_pending(sess->http_sess);
