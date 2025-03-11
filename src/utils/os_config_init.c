@@ -1521,7 +1521,7 @@ GF_GPACArg GPAC_Args[] = {
  "- f=K: drop first `n` packets every `K`\n"
  "- d=K: reorder `n` packets after the next `K` packets, can be used with `f` or `r` rules\n"
  "- p=K: filter packets on port `K` only, if not set the rule applies to all packets\n"
- "- o=K: patch packet instead of droping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
+ "- o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
  "- v=K: set patch byte value to `K` (hexa) or negative value for random (default)\n"
  "\nEX -netcap=dst=dump.gpc\n"
  "This will record packets to dump.gpc\n"
