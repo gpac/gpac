@@ -6537,11 +6537,12 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0)
 						gf_bs_read_int_log_idx(bs, avc->sps[sps_id].vui.hrd.time_offset_length, "time_offset", i);
 				}
-				if (avc->sps[sps_id].vui.num_units_in_tick)
+				fprintf(stderr, "avc->sps[sps_id].vui.num_units_in_tick %u unit_field_based_flag %u den %u\n", avc->sps[sps_id].vui.num_units_in_tick, unit_field_based_flag, ((1 + unit_field_based_flag) * avc->sps[sps_id].vui.num_units_in_tick));
+				if ((1 + unit_field_based_flag) * avc->sps[sps_id].vui.num_units_in_tick) {
 					tc->max_fps = gf_ceil(avc->sps[sps_id].vui.time_scale / ((1 + unit_field_based_flag) * avc->sps[sps_id].vui.num_units_in_tick));
-				else
+				} else {
 					tc->max_fps = 0;
-
+				}
 			}
 		}
 	}
@@ -6582,7 +6583,11 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 					}
 				}
 			}
-			tc->max_fps = gf_ceil(hevc->sps[sps_id].time_scale / ((1 + unit_field_based_flag) * hevc->sps[sps_id].num_units_in_tick));
+			if ((1 + unit_field_based_flag) * hevc->sps[sps_id].num_units_in_tick) {
+				tc->max_fps = gf_ceil(hevc->sps[sps_id].time_scale / ((1 + unit_field_based_flag) * hevc->sps[sps_id].num_units_in_tick));
+			} else {
+				tc->max_fps = 0;
+			}
 		}
 	}
 	return 0;
