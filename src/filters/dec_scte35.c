@@ -172,14 +172,15 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	ctx->pck_send(pck);
+	ctx->clock = ctx->last_dispatched_dts + ctx->last_pck_dur;
 }
 
-static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
+static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 {
 	GF_FilterPacket *seg_emeb = ctx->pck_new_shared(ctx->opid, ctx->emeb_box, sizeof(ctx->emeb_box), NULL);
 	if (!seg_emeb) return GF_OUT_OF_MEM;
 
-	scte35dec_send_pck(ctx, seg_emeb, dts, (u32) (dts - ctx->last_dispatched_dts));
+	scte35dec_send_pck(ctx, seg_emeb, dts, dur != UINT32_MAX ? dur : (u32)(dts - ctx->last_dispatched_dts));
 
 	return GF_OK;
 }
@@ -238,7 +239,6 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			u64 emib_dts = IS_SEGMENTED ? evt->dts : dts;
 			scte35dec_send_pck(ctx, pck_dst, emib_dts, emib_dur);
 
-			ctx->clock += emib_dur;
 			evt->dts += emib_dur;
 			evt->emib->presentation_time_delta -= emib_dur;
 			dts += emib_dur;
@@ -270,8 +270,7 @@ static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt
 	if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
 	gf_assert(timestamp + dur >= first_evt->dts);
 	dur -= first_evt->dts - timestamp;
-	ctx->last_dispatched_dts = timestamp - dur;
-	GF_Err e = scte35dec_flush_emeb(ctx, timestamp);
+	GF_Err e = scte35dec_flush_emeb(ctx, timestamp, dur);
 	ctx->clock += dur;
 	return e;
 }
@@ -279,7 +278,7 @@ static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt
 static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 {
 	if (gf_list_count(ctx->ordered_events) == 0)
-		return scte35dec_flush_emeb(ctx, timestamp);
+		return scte35dec_flush_emeb(ctx, timestamp, dur);
 
 	GF_Err e = GF_OK;
 	Event *first_evt = gf_list_get(ctx->ordered_events, 0);
@@ -312,7 +311,7 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 
 	if (IS_SEGMENTED && ctx->clock < timestamp + dur ) {
 		// complete the segment with an empty box
-		return scte35dec_flush_emeb(ctx, ctx->clock);
+		return scte35dec_flush_emeb(ctx, ctx->clock, dur);
 	} else {
 		return GF_OK;
 	}
@@ -593,7 +592,7 @@ static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
 	return is_splice;
 }
 
-static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
+static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 {
 	if (!IS_SEGMENTED) {
 		// unsegmented: dispatch at each frame
@@ -615,7 +614,7 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 			ctx->segnum = 0;
 		} else {
 			GF_Fraction64 ts_diff = { ctx->clock - ctx->orig_ts, ctx->timescale };
-			if ((s64) (ts_diff.num * ctx->segdur.den) >= (s64) ( (ctx->segnum+1) * ctx->segdur.num * ts_diff.den))
+			if ((s64) (ts_diff.num * ctx->segdur.den) + dur >= (s64) ( (ctx->segnum+1) * ctx->segdur.num * ts_diff.den))
 				return new_segment(ctx);
 		}
 	}
@@ -642,11 +641,12 @@ static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
 	if (ctx->pass)
 		return; //pass-through mode
-	if (ctx->clock == ctx->last_dispatched_dts)
+	if (!gf_list_count(ctx->ordered_events) && ctx->clock == ctx->last_dispatched_dts + ctx->last_pck_dur)
 		return; //nothing to flush
 
 	if (IS_SEGMENTED) {
-		new_segment(ctx);
+		ctx->segnum++;
+		scte35dec_push_box(ctx, ctx->clock, ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - ctx->clock);
 	} else {
 		scte35dec_push_box(ctx, 0, UINT32_MAX);
 	}
@@ -667,7 +667,8 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	}
 
 	u64 dts = gf_filter_pck_get_dts(pck);
-	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), gf_filter_pck_get_duration(pck));
+	u32 dur = gf_filter_pck_get_duration(pck);
+	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), dur);
 
 	u32 size = 0;
 	const u8 *data = NULL;
@@ -689,7 +690,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	if (ctx->pass) {
 		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
-		e = scte35dec_process_dispatch(ctx, dts);
+		e = scte35dec_process_dispatch(ctx, dts, dur);
 	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);

@@ -53,7 +53,7 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 #define SEND_VIDEO(num_frames) { \
         for (int i=0; i<num_frames; ++i) { \
             scte35dec_process_timing(&ctx, pts, TIMESCALE, TIMESCALE/FPS); \
-            scte35dec_process_dispatch(&ctx, pts); \
+            scte35dec_process_dispatch(&ctx, pts, TIMESCALE/FPS); \
             pts += TIMESCALE/FPS; \
         } \
     }
@@ -62,7 +62,7 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
         scte35dec_process_timing(&ctx, pts, TIMESCALE, SCTE35_DUR); \
         scte35dec_process_emsg(&ctx, emsg.value.data.ptr, emsg.value.data.size, pts); \
-        if (!ctx.pass) scte35dec_process_dispatch(&ctx, pts); \
+        if (!ctx.pass) scte35dec_process_dispatch(&ctx, pts, SCTE35_DUR); \
         pts = SCTE35_PTS + SCTE35_DUR; \
     }
 
@@ -273,7 +273,7 @@ static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
     static u32 expected_dur [expected_calls] = {    SCTE35_PTS, TIMESCALE-SCTE35_PTS, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 2*TIMESCALE-(SCTE35_PTS+SCTE35_DUR) };
     static u32 expected_size[expected_calls] = { EMIB_BOX_SIZE,        EMIB_BOX_SIZE,                   EMIB_BOX_SIZE, EMEB_BOX_SIZE };
     static s64 expected_event_pts_delta[expected_calls] = { SCTE35_PTS, 0, 0, 0 };
-    static u32 expected_event_duration [expected_calls] = { SCTE35_DUR, SCTE35_DUR, SCTE35_DUR, 0, };
+    static u32 expected_event_duration [expected_calls] = { SCTE35_DUR, SCTE35_DUR, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 0, };
     static u32 expected_event_id       [expected_calls] = { SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, 0 };
 
     if (pck == NULL) {
