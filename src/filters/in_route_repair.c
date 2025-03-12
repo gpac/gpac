@@ -367,7 +367,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 			u32 erase_size = box_size-8;
 			if (erase_size>SAFETY_ERASE_BYTES) erase_size = SAFETY_ERASE_BYTES;
-			memset(data+pos+8, 0, erase_size);
+			memset(data+pos+8, 0, MIN(erase_size, size-pos-8));
 		}
         pos += box_size;
     }
