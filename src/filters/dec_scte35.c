@@ -496,7 +496,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 		}
 	}
 
-exit:;
+exit:
 	gf_bs_del(bs);
 }
 
@@ -566,7 +566,11 @@ static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
 	Event *evt = gf_list_get(ctx->ordered_events, 0);
 	if (!evt) return GF_FALSE;
 	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == cts);
-	if (is_splice) gf_list_pop_front(ctx->ordered_events);
+	if (is_splice) {
+		Event *evt = gf_list_pop_front(ctx->ordered_events);
+		gf_isom_box_del((GF_Box*)evt->emib);
+		gf_free(evt);
+	}
 	return is_splice;
 }
 
