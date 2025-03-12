@@ -989,19 +989,22 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 }
 
 static GF_Err meta_add_item_property_association(GF_ItemPropertyAssociationBox *ipma, u32 item_ID, u32 prop_index, Bool essential) {
-	u32 i, count;
+	u32 i, count, insert_pos;
 	GF_ItemPropertyAssociationEntry *found_entry = NULL;
 
 	count = gf_list_count(ipma->entries);
+	insert_pos = 0;
 	for (i = 0; i < count; i++) {
 		found_entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
 		if (found_entry->item_id == item_ID) break;
+		// item ids must appear in increasing order
+		if (item_ID > found_entry->item_id) ++insert_pos;
 		found_entry = NULL;
 	}
 	if (!found_entry) {
 		GF_SAFEALLOC(found_entry, GF_ItemPropertyAssociationEntry);
 		if (!found_entry) return GF_OUT_OF_MEM;
-		gf_list_add(ipma->entries, found_entry);
+		gf_list_insert(ipma->entries, found_entry, insert_pos);
 		found_entry->item_id = item_ID;
 	}
 	found_entry->associations = gf_realloc(found_entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (found_entry->nb_associations+1));
