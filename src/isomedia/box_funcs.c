@@ -894,6 +894,8 @@ ISOM_BOX_IMPL_DECL(auxi)
 ISOM_BOX_IMPL_DECL(hvcc)
 ISOM_BOX_IMPL_DECL(av1c)
 ISOM_BOX_IMPL_DECL(dOps)
+ISOM_BOX_IMPL_DECL(iamf)
+ISOM_BOX_IMPL_DECL(iacb)
 ISOM_BOX_IMPL_DECL(prft)
 ISOM_BOX_IMPL_DECL(vvcc)
 ISOM_BOX_IMPL_DECL(vvnc)
@@ -1442,6 +1444,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_OPUS, audio_sample_entry, "stsd", "Opus"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DOPS, dOps, "Opus wave enca", "Opus"),
 #endif
+
+	// IAMF boxes
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_IAMF, audio_sample_entry, "stsd", "iamf"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_IACB, iacb, "iamf", "iamf"),
 
 	//part20 boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_LSR1, lsr1, "stsd", "p20"),
@@ -2410,7 +2416,7 @@ Bool gf_isom_box_is_file_level(GF_Box *s)
 }
 #endif
 
-
+GF_EXPORT
 GF_Box *gf_isom_box_find_child(GF_List *children, u32 code)
 {
 	u32 i, count;

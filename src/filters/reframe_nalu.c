@@ -37,14 +37,13 @@
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
 
-enum
-{
+GF_OPT_ENUM (GF_DolbyVisionSignalingMode,
 	DVMODE_NONE=0,
 	DVMODE_AUTO,
 	DVMODE_FORCE,
 	DVMODE_CLEAN,
 	DVMODE_SINGLE,
-};
+);
 
 typedef struct
 {
@@ -60,11 +59,11 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
-enum {
+GF_OPT_ENUM (GF_GOPBufferingMode,
 	STRICT_POC_OFF = 0,
 	STRICT_POC_ON,
 	STRICT_POC_ERROR,
-};
+);
 
 typedef struct
 {
@@ -73,10 +72,11 @@ typedef struct
 	Double index;
 	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
 	u32 nal_length;
-	u32 strict_poc;
+	GF_GOPBufferingMode strict_poc;
 	u32 bsdbg;
 	GF_Fraction dur;
-	u32 dv_mode, dv_profile, dv_compatid;
+	GF_DolbyVisionSignalingMode dv_mode;
+	u32 dv_profile, dv_compatid;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -2459,21 +2459,31 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 			}
 
 			if (num_clock_ts) {
-				GF_PropUIntList p;
-				p.nb_items = num_clock_ts;
-				p.vals = gf_malloc(sizeof(u32) * num_clock_ts);
+				GF_PropData p;
+				p.size = sizeof(GF_TimeCode) * num_clock_ts;
+				p.ptr = gf_malloc(p.size);
+				memset(p.ptr, 0, p.size);
 
 				for (u32 i=0; i<num_clock_ts; i++) {
 					AVCSeiPicTimingTimecode *tc = &tcs[i];
-					p.vals[i] = tc->hours*3600 + tc->minutes*60 + tc->seconds;
-					p.vals[i] = p.vals[i]*1000 + tc->n_frames;
+					GF_TimeCode *tc_dst = (GF_TimeCode *) p.ptr + i;
+					tc_dst->hours = tc->hours;
+					tc_dst->minutes = tc->minutes;
+					tc_dst->seconds = tc->seconds;
+					tc_dst->n_frames = tc->n_frames;
+					tc_dst->max_fps = tc->max_fps;
+					tc_dst->drop_frame = tc->counting_type==4;
+
+					// store as timestamp as well
+					tc_dst->as_timestamp = tc->hours*3600 + tc->minutes*60 + tc->seconds;
+					tc_dst->as_timestamp *= 1000;
+					tc_dst->as_timestamp += tc->n_frames;
 				}
 
 				GF_PropertyValue pv;
-				pv.type = GF_PROP_UINT_LIST;
-				pv.value.uint_list = p;
+				pv.type = GF_PROP_DATA_NO_COPY;
+				pv.value.data = p;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
-				gf_free(p.vals);
 			}
 		}
 	} else {
@@ -2516,7 +2526,7 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 	memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
 
 	if (avc_sei_rewrite) {
-		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state);
+		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, NULL);
 		if (rw_sei_size < size) {
 			gf_bs_seek(ctx->bs_w, 0);
 			gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);

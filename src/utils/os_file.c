@@ -1460,6 +1460,7 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	return res;
 }
 
+GF_EXPORT
 GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
 {
 	GF_FileIOBlob *gfio_blob;
@@ -1864,6 +1865,31 @@ u64 gf_fsize(FILE *fp)
 	gf_fseek(fp, 0, SEEK_SET);
 	return size;
 }
+
+
+GF_EXPORT
+u64 gf_fd_fsize(int fd)
+{
+	u64 size=0;
+#ifdef GPAC_HAS_FD
+
+	if (fd >= 0) {
+
+#if defined(WIN32)
+		struct _stat64  sb;
+		_fstat64(fd, &sb);
+#else
+		struct stat sb;
+		fstat(fd, &sb);
+#endif
+		size = (u64) sb.st_size;
+	}
+
+#endif
+	return size;
+}
+
+
 
 /**
   * Returns a pointer to the start of a filepath basename

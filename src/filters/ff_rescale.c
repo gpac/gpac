@@ -30,12 +30,11 @@
 #include "ff_common.h"
 #include <gpac/evg.h>
 
-enum
-{
+GF_OPT_ENUM (GF_FFSWScaleAspectRatioMode,
 	FFSWS_KEEPAR_OFF=0,
 	FFSWS_KEEPAR_FULL,
 	FFSWS_KEEPAR_NOSRC,
-};
+);
 
 typedef struct
 {
@@ -49,7 +48,7 @@ typedef struct
 	//internal data
 	Bool initialized;
 	char *padclr;
-	u32 keepar;
+	GF_FFSWScaleAspectRatioMode keepar;
 	GF_Fraction osar;
 
 	GF_FilterPid *ipid, *opid;
@@ -1025,21 +1024,21 @@ GF_FilterRegister FFSWSRegister = {
 	"## Output size assignment\n"
 	"If [-osize]() is {0,0}, the output dimensions will be set to the input size, and input aspect ratio will be ignored.\n"
 	"\n"
-	"If [-osize]() is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If [-keepar=nosrc](), input sample aspect ratio is ignored.\n"
+	"If [-osize]() is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If [-keepar]() = `nosrc`, input sample aspect ratio is ignored.\n"
 	"## Aspect Ratio and Sample Aspect Ratio\n"
 	"When output sample aspect ratio is set, the output dimensions are divided by the output sample aspect ratio.\n"
 	"EX ffsws:osize=288x240:osar=3/2\n"
 	"The output dimensions will be 192x240.\n"
 	"\n"
-	"When aspect ratio is not kept ([-keepar=off]()):\n"
+	"When aspect ratio is not kept ([-keepar]() = `off`):\n"
 	"- source is resampled to desired dimensions\n"
 	"- if output aspect ratio is not set, output will use source sample aspect ratio\n"
 	"\n"
-	"When aspect ratio is partially kept ([-keepar=nosrc]()):\n"
+	"When aspect ratio is partially kept ([-keepar]() = `nosrc`):\n"
 	"- resampling is done on the input data without taking input sample aspect ratio into account\n"
-	"- if output sample aspect ratio is not set ([-osar=0/N]()), source aspect ratio is forwarded to output.\n"
+	"- if output sample aspect ratio is not set ([-osar]() = `0/N`), source aspect ratio is forwarded to output.\n"
 	"\n"
-	"When aspect ratio is fully kept ([-keepar=full]()), output aspect ratio is force to 1/1 if not set.\n"
+	"When aspect ratio is fully kept ([-keepar]() = `full`), output aspect ratio is force to 1/1 if not set.\n"
 	"\n"
 	"When sample aspect ratio is kept, the filter will:\n"
 	"- center the rescaled input frame on the output frame\n"

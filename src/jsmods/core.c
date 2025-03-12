@@ -1813,7 +1813,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				if (is_master) {
 					JS_SetPropertyStr(ctx, var, "xlink", JS_NewString(ctx, cur) );
 					JS_SetPropertyStr(ctx, var, "ID", JS_NewString(ctx, gf_file_basename(cur) ) );
-					JS_SetPropertyStr(ctx, var, "ASID", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "AS_ID", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "as_idx", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "URLs", JS_NewArray(ctx) );
 					JS_SetPropertyStr(ctx, var, "segments", JS_NewArray(ctx) );
@@ -1879,7 +1879,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					vidx++;
 					JS_SetPropertyStr(ctx, var, "xlink", JS_NewString(ctx, uri) );
 					JS_SetPropertyStr(ctx, var, "ID", JS_NewString(ctx, gf_file_basename(uri) ) );
-					JS_SetPropertyStr(ctx, var, "ASID", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "AS_ID", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "as_idx", JS_NewInt32(ctx, ASID) );
 					JS_SetPropertyStr(ctx, var, "URLs", JS_NewArray(ctx) );
 					JS_SetPropertyStr(ctx, var, "segments", JS_NewArray(ctx) );
@@ -1993,7 +1993,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				cur_rep++;
 
 				JS_SetPropertyStr(ctx, repo, "ID", rep->id ? JS_NewString(ctx, rep->id) : JS_NULL);
-				JS_SetPropertyStr(ctx, repo, "ASID", JS_NewInt32(ctx, set->id) );
+				JS_SetPropertyStr(ctx, repo, "AS_ID", JS_NewInt32(ctx, set->id) );
 				JS_SetPropertyStr(ctx, repo, "as_idx", JS_NewInt32(ctx, j+1) );
 				JS_SetPropertyStr(ctx, repo, "xlink", JS_NULL);
 				JSValue urls_o = JS_NewArray(ctx);

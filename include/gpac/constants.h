@@ -646,7 +646,10 @@ typedef enum
 	GF_CODECID_DNXHD = GF_4CC('D','N','x','H'),
 
 	//fake codec IDs for RTP
-	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
+	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T'),
+
+	/*! codecid for IAMF*/
+	GF_CODECID_IAMF = GF_4CC('i','a','m','f')
 } GF_CodecID;
 
 /*! Gets a textual description for the given codecID
@@ -1741,7 +1744,7 @@ enum
 	GF_LLHAS_NONE = 0,
 	/*! LL-HLS using byte ranges */
 	GF_LLHAS_BYTERANGES = 1,
-	/*! LL-HLS using seperate parts  */
+	/*! LL-HLS using separate parts  */
 	GF_LLHAS_PARTS = 2,
 	/*! DASH SSR mode (only sub-parts are generated  */
 	GF_LLHAS_SUBSEG = 3

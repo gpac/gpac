@@ -73,6 +73,8 @@ static void routein_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->received_seg_names);
 	}
+	if (!ctx->seg_repair_reservoir && ctx->seg_repair_queue)
+		ctx->seg_repair_reservoir = gf_list_new();
 	gf_list_transfer(ctx->seg_repair_reservoir, ctx->seg_repair_queue);
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->repair_servers)) {
@@ -82,6 +84,8 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_del(ctx->repair_servers);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
 		RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
+		if (!ctx->seg_range_reservoir && rsi->ranges)
+			ctx->seg_range_reservoir = gf_list_new();
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
 		gf_list_del(rsi->ranges);
 		if (rsi->filename) gf_free(rsi->filename);
@@ -909,7 +913,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(odir), "output directory for standalone mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "consider packets are not always in order - if false, this will evaluate an LCT object as done when TOI changes", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cloop), "check for loops based on TOI (used for capture replay)", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "500000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rtimeout), "default timeout in µs to wait when gathering out-of-order packets", GF_PROP_UINT, "500000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repair), "repair mode for corrupted files\n"
 		"- no: no repair is performed\n"

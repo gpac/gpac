@@ -73,19 +73,17 @@ Bool gf_ssl_init_lib();
 
 #endif
 
-enum
-{
+GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,
 	MODE_PUSH,
 	MODE_SOURCE,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_HTTPOutCORSMode,
 	CORS_AUTO=0,
 	CORS_OFF,
 	CORS_ON,
-};
+);
 
 enum
 {
@@ -114,7 +112,9 @@ typedef struct
 #endif
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice, reopen, blockio, cte, norange;
-	u32 block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka, zmax, maxs;
+	u32 block_size, maxc, maxp, timeout, sutc, max_client_errors, max_async_buf, ka, zmax, maxs;
+	GF_HTTPOutFilterOperationMode hmode;
+	GF_HTTPOutCORSMode cors;
 	s32 max_cache_segs;
 	GF_PropStringList hdrs;
 	GF_PropUIntList port;
@@ -193,7 +193,7 @@ typedef struct __httpout_input
 	char range_hdr[100];
 	Bool seg_info_sent;
 
-	//because of LLHLS/DASH SSR with seperate parts, we cannot use packet aggregation from fiter core
+	//because of LLHLS/DASH SSR with separate parts, we cannot use packet aggregation from fiter core
 	GF_FilterPacket *no_cte_cache, *no_cte_llhas_cache;
 	u32 no_cte_cache_size, no_cte_llhas_cache_size;
 	Bool no_cte_flush_pending;
@@ -420,7 +420,7 @@ static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char
 			//stop at first used io, or first LLHAS chunk, if any
 			if (old->nb_used || old->is_llhas_chunk) break;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_cache_seg %d\n", gf_fileio_resource_url(old->fio), count));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_cache_segs %d\n", gf_fileio_resource_url(old->fio), count));
 			gf_list_rem(ioctx->in->mem_files, i);
 			httpio_del(old);
 			i--;
@@ -4250,7 +4250,7 @@ static void httpout_input_in_error(GF_HTTPOutInput *in, GF_Err e)
 	}
 }
 
-//for upload of LLHAS in seperate file mode only
+//for upload of LLHAS in separate file mode only
 static void httpout_close_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	GF_Err e;
@@ -4366,7 +4366,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 }
 
 
-//for upload of LLHAS in seperate file mode only
+//for upload of LLHAS in separate file mode only
 static Bool httpout_open_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, char *dst)
 {
 	GF_Err e = gf_dm_sess_setup_from_url(in->llhas_upload, dst, GF_FALSE);
@@ -4422,7 +4422,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 
 			const char *loc_path = s_idx ? in->llhas_url : (in->local_path ? in->local_path : in->path);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[HTTPOut] Writing %d bytes to output %s\n", pck_size, loc_path));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[HTTPOut] Writing %u bytes to output %s\n", pck_size, loc_path));
 
 retry:
 			if (!in->is_h2 && in->use_cte) {
@@ -5505,7 +5505,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"  \n"
 		"Custom headers can be specified using [-hdrs](), they apply to all requests. For more advanced control on requests, use a javascript binding (see [-js]() and howtos).\n"
 		"  \n"
-		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-no_z]() is set.\n"
+		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-zmax]() is set to 0.\n"
 		"  \n"
 		"# Simple HTTP server\n"
 		"In this mode, the filter does not need any input connection and exposes all files in the directories given by [-rdirs]().\n"

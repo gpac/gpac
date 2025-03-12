@@ -427,6 +427,28 @@ Formats a duration into a string
 */
 const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
 
+/*!
+\brief timecode type
+ */
+typedef struct
+{
+	u8 hours, minutes, seconds;
+	u16 n_frames;
+	Float max_fps;
+	Bool drop_frame;
+	u32 as_timestamp;
+} GF_TimeCode;
+
+/*!
+\brief formats a timecode
+
+Formats a timecode into a string
+\param tc timecode to format
+\param szTimecode the buffer to format
+\return the formated input buffer
+*/
+const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
+
 /*! @} */
 
 /*!
@@ -1686,6 +1708,15 @@ Gets the file size given a FILE object. The FILE object position will be reset t
 \return file size in bytes
 */
 u64 gf_fsize(FILE *fp);
+
+/*!
+\brief file size helper for a file descriptor
+
+Gets the file size given a file descriptor.
+\param fd file descriptor to check
+\return file size in bytes
+*/
+u64 gf_fd_fsize(int fd);
 
 /*!
 \brief file IO checker

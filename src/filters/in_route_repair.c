@@ -367,7 +367,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 			u32 erase_size = box_size-8;
 			if (erase_size>SAFETY_ERASE_BYTES) erase_size = SAFETY_ERASE_BYTES;
-			memset(data+pos+8, 0, erase_size);
+			memset(data+pos+8, 0, MIN(erase_size, size-pos-8));
 		}
         pos += box_size;
     }
@@ -536,12 +536,22 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 {
 	Bool drop_if_first = GF_FALSE;
 	Bool in_transfer = GF_FALSE;
+	//remove corrupted flags and set in_transfer to avoid dispatch when using internal cache
 	if (finfo->blob->mx) {
 		gf_mx_p(finfo->blob->mx);
 		finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
 		if (finfo->blob->flags & GF_BLOB_IN_TRANSFER) in_transfer = GF_TRUE;
 		else finfo->blob->flags |= GF_BLOB_IN_TRANSFER;
 	}
+	//file received with no losses
+	if ((finfo->nb_frags==1) && !finfo->frags[0].offset && (finfo->frags[0].size == finfo->total_size)) {
+		if (finfo->blob->mx) {
+			finfo->blob->flags &= ~GF_BLOB_IN_TRANSFER;
+			gf_mx_v(finfo->blob->mx);
+		}
+		return GF_FALSE;
+	}
+
 	if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
 		drop_if_first = routein_repair_segment_ts_local(ctx, evt_param, finfo, start_only);
 	} else {
@@ -656,7 +666,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 				}
 				finfo->frags[0].size = valid_bytes;
 			}
-			fprintf(stderr, "direct dispatch1 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 			finfo->frags[0].size = true_size;
 			//remember we have a file in progress so that we don't dispatch packets from following file
@@ -691,7 +700,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		// push fragment if no pending and data is contiguous with prev
 		//this ensures we push data asap in the output pids
 		else if ((finfo->partial!=GF_LCTO_PARTIAL_ANY) && can_flush_fragment) {
-			fprintf(stderr, "direct dispatch2 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 		} else {
 			//remember we have a file in progress so that we don't dispatch packets from following file
@@ -779,6 +787,9 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 			gf_list_add(rsi->tsio->pending_repairs, rsi);
 	}
 
+	if (!ctx->seg_repair_queue)
+		ctx->seg_repair_queue = gf_list_new();
+
 	//inject by start time
 	count = gf_list_count(ctx->seg_repair_queue);
 	for (i=0; i<count; i++) {
@@ -792,7 +803,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 }
 
 
-static void repair_session_unqueue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
+static void repair_session_dequeue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
 {
 	Bool unprotect;
 	TSI_Output *tsio;
@@ -850,9 +861,9 @@ restart:
 
 
 	if (!tsio) return;
-	//get next in list, if existing and done or if removed, unqueue
+	//get next in list, if existing and done or if removed, dequeue
 	rsi = gf_list_get(tsio->pending_repairs, 0);
-	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)) )
+	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)))
 		goto restart;
 }
 
@@ -923,17 +934,17 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 		rsi->local_repair = GF_FALSE;
 	}
 
-	//make sure we unqueue in order
+	//make sure we dequeue in order
 	if (rsi->tsio) {
 		s32 idx = gf_list_find(rsi->tsio->pending_repairs, rsi);
-		//not first in list, do not unqueue now
+		//not first in list, do not dequeue now
 		//this happens if multiple repair sessions are activated, they will likely not finish at the same time
 		if (idx > 0) {
 			rsi->done = GF_TRUE;
 			return;
 		}
 	}
-	repair_session_unqueue(ctx, rsess, rsi);
+	repair_session_dequeue(ctx, rsess, rsi);
 }
 
 static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
@@ -962,7 +973,7 @@ restart:
 
 			nb_ranges = gf_list_count(rsi->ranges);
 			//no more ranges, done with session
-			//this happens when enqued repair had no losses when using progressive dispatch
+			//this happens when enqueued repair had no losses when using progressive dispatch
 			if (!nb_ranges) {
 				rsess->current_si = rsi;
 				rsi->pending++;
@@ -970,7 +981,7 @@ restart:
 				rsess->current_si = NULL;
 				goto restart;
 			}
-			//if TSIO, always unqueue in order
+			//if TSIO, always dequeue in order
 			if (rsi->tsio) {
 				rr = gf_list_get(rsi->ranges, 0);
 			} else {
