@@ -48,14 +48,14 @@ typedef struct {
 	u32 mode;
 	Bool pass;
 
-	GF_List *ordered_events; /*Event, ordered by dispatch time*/
+	GF_List *ordered_events; // Event: events ordered by dispatch time
 	u64 clock;
 	u32 last_event_id;
 
-	// used to compute event duration
+	// used to compute immediate dispatch event duration
 	u32 timescale;
 	u32 last_pck_dur;
-	u64 last_dispatched_dts;
+	s64 last_dispatched_dts;
 	Bool last_dispatched_dts_init;
 
 	// used to segment empty boxes
@@ -63,7 +63,7 @@ typedef struct {
 	u8 emeb_box[8];
 	Bool seg_setup;
 	u64 orig_ts;
-	u32 nb_forced;
+	u32 segnum;
 } SCTE35DecCtx;
 
 static GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
@@ -303,10 +303,10 @@ static GF_Err new_segment(SCTE35DecCtx *ctx)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n",
 		ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
-	u64 dts = ctx->orig_ts + ctx->nb_forced * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
-	if (dts == ctx->last_dispatched_dts) // first segment
-		ctx->last_dispatched_dts -= (ctx->segdur.num * ctx->timescale / ctx->segdur.den);
-	ctx->nb_forced++;
+	u64 dts = ctx->orig_ts + ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+	if (ctx->segnum == 0) // first segment: adjust last_dispatched_dts to the previous virtual segment
+		ctx->last_dispatched_dts = (-1 * ctx->segdur.num * ctx->timescale / ctx->segdur.den);
+	ctx->segnum++;
 	ctx->clock = dts;
 	return scte35dec_push_box(ctx, dts, ctx->segdur.num * ctx->timescale / ctx->segdur.den);
 }
@@ -505,7 +505,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	// handle internal clock, timescale and duration
 	if (!ctx->last_dispatched_dts_init) {
 		ctx->timescale = timescale;
-		ctx->last_dispatched_dts = dts;
+		ctx->last_dispatched_dts = dts - dur;
 		ctx->last_pck_dur = dur;
 		ctx->last_dispatched_dts_init = GF_TRUE;
 	} else if (ctx->clock < dts && !IS_SEGMENTED &&
@@ -580,14 +580,14 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 		if (!ctx->seg_setup) {
 			ctx->seg_setup = GF_TRUE;
 			ctx->orig_ts = ctx->clock;
-			ctx->nb_forced = 0;
+			ctx->segnum = 0;
 		} else if (ctx->clock < ctx->orig_ts) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timestamps not increasing monotonuously, resetting segmentation state !\n"));
 			ctx->orig_ts = ctx->clock;
-			ctx->nb_forced = 0;
+			ctx->segnum = 0;
 		} else {
 			GF_Fraction64 ts_diff = { ctx->clock - ctx->orig_ts, ctx->timescale };
-			if ((s64) (ts_diff.num * ctx->segdur.den) >= (s64) ( (ctx->nb_forced+1) * ctx->segdur.num * ts_diff.den))
+			if ((s64) (ts_diff.num * ctx->segdur.den) >= (s64) ( (ctx->segnum+1) * ctx->segdur.num * ts_diff.den))
 				return new_segment(ctx);
 		}
 	}
