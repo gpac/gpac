@@ -10022,7 +10022,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				dst = gf_filter_pck_new_ref(ds->opid, 0, 0, pck);
 				if (!dst) {
 					if (ds && ds->rep) {
-						gf_list_del_item(ds->set->representations, ds->rep);
+						if (ds->set)
+							gf_list_del_item(ds->set->representations, ds->rep);
 						gf_mpd_representation_free(ds->rep);
 						ds->rep = NULL;
 					}
