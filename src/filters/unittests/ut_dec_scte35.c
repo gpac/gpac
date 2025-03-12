@@ -254,7 +254,7 @@ unittest(scte35dec_simple)
     u64 pts = 0;
 
     SEND_VIDEO(1); // video (1 frame)
-    SEND_EVENT();  // scte35 event at "pts=1 frame" scheduled for pts=59583 with dur=66220
+    SEND_EVENT();  // scte35 event at "pts=1 frame" scheduled for pts=59583 with dur=36637
     SEND_VIDEO(1); // video (1 frame)
     SEND_VIDEO(1);
 
@@ -325,7 +325,7 @@ unittest(scte35dec_segmentation_beginning)
     ctx.segdur = (GF_Fraction){1, 1};
     u64 pts = 0;
 
-    SEND_EVENT();  // scte35 event scheduled for pts=59583 with dur=66220
+    SEND_EVENT();  // scte35 event scheduled for pts=59583 with dur=36637
     SEND_VIDEO(1); // video (1 frame)
 
     scte35dec_flush(&ctx);
@@ -337,14 +337,18 @@ unittest(scte35dec_segmentation_beginning)
 
 static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
 {
-    #define expected_calls 2 //FIXME: FPS
+    #define expected_calls 6
     static int calls = 0;
-    static u64 expected_dts [expected_calls] = { 0, TIMESCALE/FPS/*SCTE35_PTS*/ };//, TIMESCALE/FPS+SCTE35_DUR };
-    static u32 expected_dur [expected_calls] = { 5*TIMESCALE/FPS/*FIXME: TIMESCALE/FPS*/, SCTE35_DUR/*this is what the algorithm infers*/ }; //FIXME
-    static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMIB_BOX_SIZE };//, EMEB_BOX_SIZE };
-    static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_PTS-TIMESCALE/FPS };//, 0 };
-    static u32 expected_event_duration [expected_calls] = { 0, SCTE35_DUR };//, 0 };
-    static u32 expected_event_id       [expected_calls] = { 0, SCTE35_LAST_EVENT_ID };//, 0 };
+    //scte35 event at pts=30000 scheduled for pts=59583 with dur=36637, segment_dur=30000
+    //v[0:30000] emeb[30000:59583] emib[59583:60000] emib[60000:90000] emib[90000:96220] emeb[96220:120000]
+    static u64 expected_dts [expected_calls] = {             0,            TIMESCALE/FPS,                 SCTE35_PTS,
+                                                 2*TIMESCALE/FPS,                       3*TIMESCALE/FPS, SCTE35_PTS+SCTE35_DUR };
+    static u32 expected_dur [expected_calls] = { TIMESCALE/FPS, SCTE35_PTS-TIMESCALE/FPS, 2*TIMESCALE/FPS-SCTE35_PTS,
+                                                   TIMESCALE/FPS, SCTE35_PTS+SCTE35_DUR-3*TIMESCALE/FPS, 4*TIMESCALE/FPS-SCTE35_PTS-SCTE35_DUR };
+    static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMEB_BOX_SIZE };
+    static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_PTS-TIMESCALE/FPS, 0, 0, 0, 0 };
+    static u32 expected_event_duration [expected_calls] = { 0, SCTE35_DUR, SCTE35_DUR, SCTE35_DUR-(2*TIMESCALE/FPS-SCTE35_PTS), SCTE35_DUR-(3*TIMESCALE/FPS-SCTE35_PTS), 0 };
+    static u32 expected_event_id       [expected_calls] = { SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID };
 
     if (pck == NULL) {
         // checks at termination
@@ -389,16 +393,17 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
     return GF_OK;
 }
 
-unittest(scte35dec_segmentation_end)
+unittest(scte35dec_short_segmentation_end)
 {
     UT_SCTE35_INIT(pck_send_segmentation_end);
-    ctx.segdur = (GF_Fraction){1, 1};
+    ctx.segdur = (GF_Fraction){1, FPS};
     u64 pts = 0;
 
-    SEND_VIDEO(1); // video (1 frame)
-    SEND_EVENT();  // scte35 event at "pts=1 frame" scheduled for pts=59583 with dur=66220
+    SEND_VIDEO(1); // video (1 frame) 
+    SEND_EVENT();  // scte35 event at "pts=1 frame" scheduled for pts=59583 with dur=36637
 
     scte35dec_flush(&ctx);
+    scte35dec_flush(&ctx); // this test requires an additional segment
     scte35dec_finalize_internal(&ctx);
     ctx.pck_send(NULL); // trigger final checks
 }
