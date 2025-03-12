@@ -54,7 +54,7 @@ int run_tests(int argc, char *argv[])
       }
       selected_tests = atoi(argv[++i]);
       if(selected_tests != (unsigned)-1 && selected_tests >= test_count) {
-        fprintf(stderr, "Test idx %u not found returning.\n", selected_tests);
+        fprintf(stderr, "Test idx %u not found. Exiting.\n", selected_tests);
         return EXIT_FAILURE;
       }
       printf("Selected test: %s... \n", tests[selected_tests].name);
@@ -93,6 +93,8 @@ int run_tests(int argc, char *argv[])
   printf("Tests failed: %d\n", tests_failed);
   printf("Checks passed: %d\n", checks_passed);
   printf("Checks failed: %d\n", checks_failed);
+
+  gf_sys_close();
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (gf_memory_size() || gf_file_handles_count() ) {
