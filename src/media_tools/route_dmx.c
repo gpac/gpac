@@ -2875,6 +2875,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		}
 		if(!payload[0]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] End of package has been prematurely reached\n", s->log_name));
+			gf_free(boundary);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		payload += 4;
