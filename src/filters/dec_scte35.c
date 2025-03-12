@@ -31,7 +31,6 @@
 
 typedef struct {
 	u64 dts;
-	u32 consumed_duration;
 	GF_EventMessageBox *emib;
 } Event;
 
@@ -185,50 +184,6 @@ static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
 	return GF_OK;
 }
 
-static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
-{
-	gf_fatal_assert(gf_list_count(ctx->ordered_events) > 0);
-
-	GF_Err e = GF_OK;
-	Event *evt;
-	GF_List *purged_event_list = gf_list_new();
-	while ( (evt = gf_list_pop_front(ctx->ordered_events)) ) {
-		if (evt->dts + evt->emib->presentation_time_delta >= dts) {
-			u8 *output = NULL;
-			GF_FilterPacket *pck_dst = ctx->pck_new_alloc(ctx->opid, (u32) evt->emib->size, &output);
-			if (!pck_dst) {
-				e = GF_OUT_OF_MEM;
-				goto exit;
-			}
-
-			GF_BitStream *bs = gf_bs_new(output, evt->emib->size, GF_BITSTREAM_WRITE);
-			e = gf_isom_box_write((GF_Box*)evt->emib, bs);
-			gf_bs_del(bs);
-			if (e) goto exit;
-
-			u32 dur = MIN(evt->emib->event_duration == 0xFFFFFFFF ? ctx->last_pck_dur : evt->emib->event_duration, max_dur);
-			u64 emib_dts = IS_SEGMENTED ? evt->dts + evt->consumed_duration : dts;
-			scte35dec_send_pck(ctx, pck_dst, emib_dts, dur);
-			ctx->clock += dur;
-			evt->consumed_duration += dur;
-			evt->emib->presentation_time_delta -= dur;
-		}
-
-		if (evt->emib->event_duration != 0xFFFFFFFF && dts < evt->dts + evt->emib->event_duration - evt->consumed_duration) {
-			gf_list_add(purged_event_list, evt);
-		} else {
-			gf_isom_box_del((GF_Box*)evt->emib);
-			gf_free(evt);
-		}
-		gf_list_rem_last(ctx->ordered_events);
-	}
-
-exit:
-	gf_list_del(ctx->ordered_events);
-	ctx->ordered_events = purged_event_list;
-	return e;
-}
-
 static void scte35dec_schedule(SCTE35DecCtx *ctx, u64 dts, GF_EventMessageBox *emib)
 {
 	Event *evt_new;
@@ -244,6 +199,70 @@ static void scte35dec_schedule(SCTE35DecCtx *ctx, u64 dts, GF_EventMessageBox *e
 		}
 	}
 	gf_list_add(ctx->ordered_events, evt_new);
+}
+
+static u32 compute_emib_duration(u64 dts, u64 evt_dts, u32 max_dur, u32 evt_dur)
+{
+	gf_assert(dts <= evt_dts);
+	if (dts < evt_dts) {
+		return MIN(evt_dts - dts, max_dur);
+	} else if (max_dur != UINT32_MAX && evt_dur > max_dur) {
+		return max_dur;
+	} else {
+		return evt_dur;
+	}
+}
+
+static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
+{
+	gf_fatal_assert(gf_list_count(ctx->ordered_events) > 0);
+
+	GF_Err e = GF_OK;
+	Event *evt;
+	while ( (evt = gf_list_pop_front(ctx->ordered_events)) ) {
+		u32 evt_dur = evt->emib->event_duration == 0xFFFFFFFF ? 1 : evt->emib->event_duration;
+		if (evt->dts + evt->emib->presentation_time_delta >= dts) {
+			u8 *output = NULL;
+			GF_FilterPacket *pck_dst = ctx->pck_new_alloc(ctx->opid, (u32) evt->emib->size, &output);
+			if (!pck_dst) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+
+			GF_BitStream *bs = gf_bs_new(output, evt->emib->size, GF_BITSTREAM_WRITE);
+			e = gf_isom_box_write((GF_Box*)evt->emib, bs);
+			gf_bs_del(bs);
+			if (e) goto exit;
+
+			u32 emib_dur = compute_emib_duration(dts, evt->dts+evt->emib->presentation_time_delta, max_dur, evt_dur);
+			u64 emib_dts = IS_SEGMENTED ? evt->dts : dts;
+			scte35dec_send_pck(ctx, pck_dst, emib_dts, emib_dur);
+
+			ctx->clock += emib_dur;
+			evt->dts += emib_dur;
+			evt->emib->presentation_time_delta -= emib_dur;
+			dts += emib_dur;
+			max_dur -= emib_dur;
+		}
+
+		if (evt->emib->presentation_time_delta < 0) {
+			// we're past pts, hence we're done with the event
+			gf_isom_box_del((GF_Box*)evt->emib);
+			gf_free(evt);
+		} else if (max_dur != UINT32_MAX && max_dur > 0) {
+			 // still time within time scope: re-schedule and continue to process
+			scte35dec_schedule(ctx, evt->dts, evt->emib);
+			gf_free(evt);
+			continue;
+		}
+	}
+
+exit:
+	if (e) {
+		gf_isom_box_del((GF_Box*)evt->emib);
+		gf_free(evt);
+	}
+	return e;
 }
 
 static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt, u64 timestamp, u64 dur)
@@ -583,12 +602,14 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 		gf_list_rem_last(ctx->ordered_events);
 		return e;
 	} else {
-		// segmented: we can only flush at the end of the segment
 		if (!ctx->seg_setup) {
 			ctx->seg_setup = GF_TRUE;
 			ctx->orig_ts = ctx->clock;
 			ctx->segnum = 0;
-		} else if (ctx->clock < ctx->orig_ts) {
+		}
+
+		// segmented: we can only flush at the end of the segment
+		if (ctx->clock < ctx->orig_ts) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timestamps not increasing monotonuously, resetting segmentation state !\n"));
 			ctx->orig_ts = ctx->clock;
 			ctx->segnum = 0;
@@ -619,7 +640,8 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 
 static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
-	if (ctx->pass) return; //pass-through mode
+	if (ctx->pass)
+		return; //pass-through mode
 	if (ctx->clock == ctx->last_dispatched_dts)
 		return; //nothing to flush
 
