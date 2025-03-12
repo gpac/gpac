@@ -1560,6 +1560,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						if (e) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
 							gf_list_del(rsess->channels);
+							if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 							gf_free(rsess);
 							gf_list_del(old_sessions);
 							goto exit;
@@ -2441,6 +2442,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						gf_list_del_item(s->route_sessions, rsess);
 						gf_list_del(remove_sessions);
 						gf_list_del(remove_channels);
+						if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 						gf_free(rsess);
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
 						return e;
@@ -3211,7 +3213,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 	u32 start_offset=0;
 	GF_ROUTELCTChannel *rlct=NULL;
 	GF_LCTObject *gather_object=NULL;
-	u32 /*SBN,*/ESI; //Source Block Length  | Encoding Symbol  
+	u32 /*SBN,*/ESI; //Source Block Length  | Encoding Symbol
 
 	if (route_sess) {
 		e = gf_sk_receive_no_select(route_sess->sock, routedmx->buffer, routedmx->buffer_size, &nb_read);
@@ -3362,8 +3364,8 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) transfert_length, B, GF_FALSE, rlct, &gather_object, ESI, fdt_symbol_length);
 
-	start_offset += (nb_read ) * ESI; 
-	
+	start_offset += (nb_read ) * ESI;
+
 	if (e==GF_EOS) {
 		gf_route_dmx_process_object(routedmx, s, gather_object);
 	}
