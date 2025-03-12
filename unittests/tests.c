@@ -64,6 +64,7 @@ int run_tests(int argc, char *argv[])
   int ret = EXIT_SUCCESS;
   for(unsigned i = 0; i < test_count; i++) {
     printf("Test %04d: %s... ", i, tests[i].name);
+    fflush(stdout);
 
     if(selected_tests != (unsigned)-1 && selected_tests != i) {
       printf("Skipping\n");
