@@ -35,6 +35,10 @@ int register_test(const char *name, void (*test_function)(void))
 
 int run_tests(int argc, char *argv[])
 {
+#ifdef GPAC_MEMORY_TRACKING
+  gf_sys_init(GF_MemTrackerSimple, NULL);
+#endif
+
   unsigned selected_tests = -1; // all
   for(int i = 1; i < argc; ++i) {
     if(!strcmp(argv[i], "--list") || !strcmp(argv[i], "-l")) {
@@ -89,6 +93,13 @@ int run_tests(int argc, char *argv[])
   printf("Tests failed: %d\n", tests_failed);
   printf("Checks passed: %d\n", checks_passed);
   printf("Checks failed: %d\n", checks_failed);
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (gf_memory_size() || gf_file_handles_count() ) {
+		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+		gf_memory_print();
+	}
+#endif
 
   return ret;
 }
