@@ -8522,7 +8522,7 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		gf_bs_align(bs);
 		consumed = (u32) (gf_bs_get_position(bs) - start);
 		consumed -= nb_zeros;
-		psize-=consumed;
+		psize = (consumed < psize) ? psize-consumed : 0;
 		//do not use skip bytes due to possible EPB
 		while (psize) {
 			gf_bs_read_u8(bs);
