@@ -251,7 +251,7 @@ static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt
 	if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
 	gf_assert(timestamp + dur >= first_evt->dts);
 	dur -= first_evt->dts - timestamp;
-	ctx->last_dispatched_dts -= dur;
+	ctx->last_dispatched_dts = timestamp - dur;
 	GF_Err e = scte35dec_flush_emeb(ctx, timestamp);
 	ctx->clock += dur;
 	return e;
@@ -516,6 +516,9 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
 		ctx->last_dispatched_dts += drift;
 		dts += drift;
+	} else if (!IS_SEGMENTED && dur != ctx->last_pck_dur) {
+		// variable duration packets
+		ctx->last_dispatched_dts = dts - dur;
 	}
 
 	ctx->clock = MAX(ctx->clock, dts);
