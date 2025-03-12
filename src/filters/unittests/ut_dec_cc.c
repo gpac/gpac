@@ -67,7 +67,7 @@ static GF_Err pck_send_default(GF_FilterPacket *pck)
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal_str(data, expected[calls]);
-    gf_free(data);
+    gf_free((u8*)data);
     gf_free(pck);
     calls++;
     assert_equal(size, calls);
@@ -97,7 +97,7 @@ static GF_Err pck_send_aggregation(GF_FilterPacket *pck)
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal_str(data, expected[calls]);
-    gf_free(data);
+    gf_free((u8*)data);
     gf_free(pck);
     calls++;
     return GF_OK;
@@ -130,7 +130,7 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal_str(data, expected[calls]);
-    gf_free(data);
+    gf_free((u8*)data);
     gf_free(pck);
     calls++;
     return GF_OK;
