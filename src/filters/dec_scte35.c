@@ -240,20 +240,29 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			scte35dec_send_pck(ctx, pck_dst, emib_dts, emib_dur);
 
 			evt->dts += emib_dur;
-			evt->emib->presentation_time_delta -= emib_dur;
 			dts += emib_dur;
-			max_dur -= emib_dur;
+			if (evt->emib->presentation_time_delta <= 0)
+				if (evt->emib->event_duration != UINT32_MAX)
+					evt->emib->event_duration -= emib_dur;
+			evt->emib->presentation_time_delta -= emib_dur;
+			if (evt->emib->presentation_time_delta < 0)
+				evt->emib->presentation_time_delta = 0;
+			if (max_dur != UINT32_MAX)
+				max_dur -= emib_dur;
 		}
 
-		if (evt->emib->presentation_time_delta < 0) {
-			// we're past pts, hence we're done with the event
+		if (!IS_SEGMENTED ||
+		    (evt->emib->presentation_time_delta <= 0 && (evt->emib->event_duration == UINT32_MAX || evt->emib->event_duration <= 0))) {
+			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
-		} else if (max_dur != UINT32_MAX && max_dur > 0) {
-			 // still time within time scope: re-schedule and continue to process
+		} else {
 			scte35dec_schedule(ctx, evt->dts, evt->emib);
 			gf_free(evt);
-			continue;
+			if (max_dur != UINT32_MAX && max_dur > 0)
+				continue; // still time within time scope: re-schedule and continue to process
+			else
+				break;    // process later
 		}
 	}
 
@@ -269,9 +278,8 @@ static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt
 {
 	if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
 	gf_assert(timestamp + dur >= first_evt->dts);
-	dur -= first_evt->dts - timestamp;
 	GF_Err e = scte35dec_flush_emeb(ctx, timestamp, dur);
-	ctx->clock += dur;
+	ctx->clock = timestamp + dur;
 	return e;
 }
 
@@ -286,15 +294,14 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 		// pre-signal events in each segment
 		if (timestamp < first_evt->dts) {
 			u64 curr_dur = dur;
-			u64 curr_timestamp = timestamp;
 			u64 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
 			while (curr_dur > 0) {
 				u64 emeb_dur = curr_dur % segdur;
 				if (!emeb_dur) emeb_dur = segdur;
-				e = scte35_insert_emeb_before_emib(ctx, first_evt, curr_timestamp, emeb_dur);
+				e = scte35_insert_emeb_before_emib(ctx, first_evt, timestamp, emeb_dur);
 				if (e) return e;
 				curr_dur -= emeb_dur;
-				curr_timestamp += emeb_dur;
+				timestamp += emeb_dur;
 			}
 		}
 	} else {
@@ -309,9 +316,9 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 	e = scte35dec_flush_emib(ctx, timestamp, dur);
 	if (e) return e;
 
-	if (IS_SEGMENTED && ctx->clock < timestamp + dur ) {
+	if (IS_SEGMENTED && ctx->clock < timestamp + dur) {
 		// complete the segment with an empty box
-		return scte35dec_flush_emeb(ctx, ctx->clock, dur);
+		return scte35dec_flush_emeb(ctx, ctx->clock, timestamp + dur - ctx->clock);
 	} else {
 		return GF_OK;
 	}
@@ -598,6 +605,7 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 		// unsegmented: dispatch at each frame
 		gf_assert(gf_list_count(ctx->ordered_events) <= 1);
 		GF_Err e = scte35dec_push_box(ctx, dts, UINT32_MAX);
+
 		gf_list_rem_last(ctx->ordered_events);
 		return e;
 	} else {
@@ -645,7 +653,7 @@ static void scte35dec_flush(SCTE35DecCtx *ctx)
 		return; //nothing to flush
 
 	if (IS_SEGMENTED) {
-		ctx->segnum++;
+		ctx->segnum = 1 + ctx->clock * ctx->segdur.den / (ctx->segdur.num * ctx->timescale);
 		scte35dec_push_box(ctx, ctx->clock, ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - ctx->clock);
 	} else {
 		scte35dec_push_box(ctx, 0, UINT32_MAX);
