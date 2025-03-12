@@ -1460,6 +1460,7 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	return res;
 }
 
+GF_EXPORT
 GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
 {
 	GF_FileIOBlob *gfio_blob;
