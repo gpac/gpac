@@ -73,6 +73,8 @@ static void routein_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->received_seg_names);
 	}
+	if (!ctx->seg_repair_reservoir && ctx->seg_repair_queue)
+		ctx->seg_repair_reservoir = gf_list_new();
 	gf_list_transfer(ctx->seg_repair_reservoir, ctx->seg_repair_queue);
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->repair_servers)) {
@@ -82,6 +84,8 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_del(ctx->repair_servers);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
 		RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
+		if (!ctx->seg_range_reservoir && rsi->ranges)
+			ctx->seg_range_reservoir = gf_list_new();
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
 		gf_list_del(rsi->ranges);
 		if (rsi->filename) gf_free(rsi->filename);

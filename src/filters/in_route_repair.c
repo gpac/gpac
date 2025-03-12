@@ -700,7 +700,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		// push fragment if no pending and data is contiguous with prev
 		//this ensures we push data asap in the output pids
 		else if ((finfo->partial!=GF_LCTO_PARTIAL_ANY) && can_flush_fragment) {
-			fprintf(stderr, "direct dispatch2 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 		} else {
 			//remember we have a file in progress so that we don't dispatch packets from following file
@@ -787,6 +786,9 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		if (!found)
 			gf_list_add(rsi->tsio->pending_repairs, rsi);
 	}
+
+	if (!ctx->seg_repair_queue)
+		ctx->seg_repair_queue = gf_list_new();
 
 	//inject by start time
 	count = gf_list_count(ctx->seg_repair_queue);
