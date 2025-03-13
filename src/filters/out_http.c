@@ -527,6 +527,7 @@ static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session
 		}
 		GF_Err e = gf_dm_sess_flush_close(sess->http_sess);
 		if (e == GF_IP_NETWORK_EMPTY) {
+			sess->ctx->next_wake_us = 1;
 			return GF_FALSE;
 		}
 		//done closing, restore close_session flag
@@ -4012,6 +4013,7 @@ resend:
 			if (!file_in_progress && last_range && (remain==read)) {
 				if (sess->http_type && (gf_dm_sess_flush_async(sess->http_sess, GF_FALSE)!=GF_OK)) {
 					sess->last_active_time = gf_sys_clock_high_res();
+					ctx->next_wake_us = 1;
 					return;
 				}
 				goto session_done;
@@ -4021,6 +4023,7 @@ resend:
 				goto resend;
 			}
 		}
+		ctx->next_wake_us=1;
 		return;
 	}
 	//file not done yet ...

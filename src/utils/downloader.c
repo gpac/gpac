@@ -734,6 +734,10 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		socket_changed = GF_TRUE;
 		sess->port = info.port;
 	}
+#ifdef GPAC_HTTPMUX
+	//safety in case we had a previous error but underlying stream_id was not reset
+	sess->hmux_stream_id = -1;
+#endif
 
 	if (sess->cached_file) {
 		socket_changed = GF_TRUE;
@@ -1350,7 +1354,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 			if (a_sess->hmux_sess->do_shutdown) continue;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing http2 session\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing %s session\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url, a_sess->log_name));
 
 			u32 nb_locks=0;
 			if (sess->mx) {

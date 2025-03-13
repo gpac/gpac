@@ -60,9 +60,8 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const u8 *buffer, u32 length, const u8 *ad
 GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name, Bool use_udp_connect);
 
 
-#define SOCK_BUF_SIZE	100000
-#define USE_DOUBLE_BUF
-#define CHECK_CWND
+//amount of bytes we store internally
+#define SOCK_BUF_SIZE	200000
 
 struct __gf_quic_server
 {
@@ -144,13 +143,16 @@ typedef struct
 typedef struct
 {
 	nghttp3_data_reader data_read;
-	u32 local_buf_pending, local_buf_ack;
+	u32 local_buf_sent, local_buf_ack;
 	Bool wait_ack;
 	Bool is_put;
-#ifdef USE_DOUBLE_BUF
+
+	//we use a double buffer so that we can write to the second buffer while sending the first one:
+	//- we cannot reallocate the first buffer if commited for sent
+	//- if first buffer is done sending, we aggregate data in secnd buffer if not larger than SOCK_BUF_SIZE/2
+	//- when the first buffer is fully acked, we swap first and second
 	u8 *second_local_buf;
 	u32 second_local_buf_len, second_local_buf_alloc;
-#endif
 } GF_QuicDataRead;
 
 static GF_Err quic_handle_error(GF_QuicConnection *qc);
@@ -248,6 +250,8 @@ static void ngq_debug_trace_noop(const char *format, va_list args)
 {
 }
 
+
+
 static nghttp3_ssize ngh3_data_source_read_callback(
   nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
   uint32_t *pflags, void *conn_user_data, void *stream_user_data)
@@ -255,43 +259,33 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 	GF_DownloadSession *sess = stream_user_data;
 	GF_QuicDataRead *qr = sess->hmux_priv;
 
-	if (!sess->hmux_is_eos && !sess->local_buf_len
-#ifdef USE_DOUBLE_BUF
-		&& !qr->second_local_buf_len
-#endif
+	if (!sess->hmux_is_eos && !sess->local_buf_len && !qr->second_local_buf_len
 	) {
 		sess->hmux_data_paused = 1;
 		return NGHTTP3_ERR_WOULDBLOCK;
 	}
 
-#ifdef CHECK_CWND
-	ngtcp2_conn_info ci;
-	GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
-	ngtcp2_conn_get_conn_info(qc->conn, &ci);
-	if (qr->local_buf_pending > ci.cwnd) {
-		sess->hmux_data_paused = 1;
-		return NGHTTP3_ERR_WOULDBLOCK;
-	}
-#endif
-
-	vec[0].len = sess->local_buf_len - qr->local_buf_pending;
+	vec[0].len = sess->local_buf_len - qr->local_buf_sent;
 	if (!vec[0].len) {
-		if (sess->hmux_is_eos
-#ifdef USE_DOUBLE_BUF
-			&& !qr->second_local_buf_len
-#endif
+		if (sess->hmux_is_eos && !qr->second_local_buf_len
 		) {
 			*pflags |= NGHTTP3_DATA_FLAG_EOF;
 			sess->hmux_is_eos = 0;
 			sess->hmux_data_done = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLD" sending EOS\n", stream_id));
+
+			gf_free(qr->second_local_buf);
+			qr->second_local_buf = NULL;
+			qr->second_local_buf_len = 0;
+			qr->second_local_buf_alloc = 0;
 			return 0;
 		}
 		sess->hmux_data_paused = 1;
 		qr->wait_ack = GF_TRUE;
 		return NGHTTP3_ERR_WOULDBLOCK;
 	}
-	vec[0].base = sess->local_buf + qr->local_buf_pending;
-	qr->local_buf_pending += vec[0].len;
+	vec[0].base = sess->local_buf + qr->local_buf_sent;
+	qr->local_buf_sent += vec[0].len;
 	return 1;
 }
 
@@ -299,10 +293,8 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 {
 	if (is_destroy) {
 		if (sess->hmux_priv) {
-#ifdef USE_DOUBLE_BUF
 			GF_QuicDataRead *qr = sess->hmux_priv;
 			if (qr->second_local_buf) gf_free(qr->second_local_buf);
-#endif
 			gf_free(sess->hmux_priv);
 			sess->hmux_priv = NULL;
 		}
@@ -483,7 +475,7 @@ static int ngh3_stop_sending(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	if (!qc->http_conn) return 0;
 	int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_shutdown_stream_read failed %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_shutdown_stream_read failed %s\n", nghttp3_strerror(rv) ));
 		return NGHTTP3_ERR_CALLBACK_FAILURE;
 	}
 	//TODO : abort put/post or server mode
@@ -497,7 +489,7 @@ static int ngh3_reset_stream(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	if (!qc->http_conn) return 0;
 	int rv = ngtcp2_conn_shutdown_stream_write(qc->conn, 0, stream_id, app_error_code);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_shutdown_stream_write failed %s\n", ngtcp2_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] ngtcp2_conn_shutdown_stream_write failed %s\n", ngtcp2_strerror(rv) ));
 		return NGHTTP3_ERR_CALLBACK_FAILURE;
 	}
 	return 0;
@@ -507,7 +499,7 @@ static int ngh3_end_stream(nghttp3_conn *conn, int64_t stream_id, void *conn_use
 {
 	GF_DownloadSession *sess = stream_user_data;
 	//session may have been detached once we detect EOS, ignore streamid mismatch
-	if (!sess|| (sess->hmux_stream_id != stream_id))
+	if (!sess || (sess->hmux_stream_id != stream_id))
 		return 0;
 
 	GF_QuicDataRead *qr = sess->hmux_priv;
@@ -518,6 +510,7 @@ static int ngh3_end_stream(nghttp3_conn *conn, int64_t stream_id, void *conn_use
 	}
 	if ((!sess->server_mode || qr->is_put) && !sess->hmux_data_done)
 		sess->hmux_is_eos = 1;
+
 	return 0;
 }
 
@@ -526,6 +519,7 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 {
 	Bool do_retry = GF_FALSE;
 	GF_DownloadSession *sess = stream_user_data;
+
 	//session may have been detached once we detect EOS, ignore streamid mismatch
 	if (!sess|| (sess->hmux_stream_id != stream_id))
 		return 0;
@@ -589,30 +583,30 @@ static int ngh3_acked_stream_data(nghttp3_conn *conn, int64_t stream_id, uint64_
 	gf_assert(sess->hmux_stream_id == stream_id);
 
 	qr->local_buf_ack += datalen;
-	assert(qr->local_buf_pending >= qr->local_buf_ack);
+	assert(qr->local_buf_sent >= qr->local_buf_ack);
 	//only memove once ack
-	if (qr->local_buf_pending == qr->local_buf_ack) {
+	if (qr->local_buf_sent == qr->local_buf_ack) {
 		gf_mx_p(sess->mx);
-		assert(sess->local_buf_len >= qr->local_buf_pending);
-		if (sess->local_buf_len)
-			sess->local_buf_len -= qr->local_buf_pending;
-		memmove(sess->local_buf, sess->local_buf+qr->local_buf_pending, sess->local_buf_len);
-		qr->local_buf_pending = 0;
+		assert(sess->local_buf_len >= qr->local_buf_sent);
+		if (sess->local_buf_len) {
+			sess->local_buf_len -= qr->local_buf_sent;
+			if (sess->local_buf_len)
+				memmove(sess->local_buf, sess->local_buf + qr->local_buf_sent, sess->local_buf_len);
+		}
+		qr->local_buf_sent = 0;
 		qr->local_buf_ack = 0;
 
-#ifdef USE_DOUBLE_BUF
 		//swap buffers
 		if (!sess->local_buf_len && qr->second_local_buf_len) {
 			u8 *tmp_buf = sess->local_buf;
-			u32 tmp_buf_alloc = sess->local_buf_alloc;
+			u32 tmp = sess->local_buf_alloc;
 			sess->local_buf = qr->second_local_buf;
 			sess->local_buf_alloc = qr->second_local_buf_alloc;
 			sess->local_buf_len = qr->second_local_buf_len;
 			qr->second_local_buf = tmp_buf;
-			qr->second_local_buf_alloc = tmp_buf_alloc;
+			qr->second_local_buf_alloc = tmp;
 			qr->second_local_buf_len = 0;
 		}
-#endif
 		gf_mx_v(sess->mx);
 	}
 	qr->wait_ack = GF_FALSE;
@@ -660,7 +654,7 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 	if (qc->serv_conn) {
 		rv = nghttp3_conn_server_new(&qc->http_conn, &callbacks, &settings, mem, hmux_sess->hmux_udta);
 		if (rv != 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_server_new error %s\n", nghttp3_strerror(rv) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_server_new error %s\n", nghttp3_strerror(rv) ));
 			return GF_SERVICE_ERROR;
 		}
 		const ngtcp2_transport_params *params = ngtcp2_conn_get_local_transport_params(qc->conn);
@@ -669,7 +663,7 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 	} else {
 		rv = nghttp3_conn_client_new(&qc->http_conn, &callbacks, &settings, mem, hmux_sess->hmux_udta);
 		if (rv != 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_client_new error %s\n", nghttp3_strerror(rv) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_client_new error %s\n", nghttp3_strerror(rv) ));
 			return GF_SERVICE_ERROR;
 		}
 	}
@@ -683,7 +677,7 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 
 	rv = nghttp3_conn_bind_control_stream(qc->http_conn, ctrl_stream_id);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_bind_control_stream error %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_bind_control_stream error %s\n", nghttp3_strerror(rv) ));
 		return GF_SERVICE_ERROR;
 	}
 	s64 qpack_enc_stream_id, qpack_dec_stream_id;
@@ -699,7 +693,7 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 	}
 	rv = nghttp3_conn_bind_qpack_streams(qc->http_conn, qpack_enc_stream_id, qpack_dec_stream_id);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_bind_qpack_streams error %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_bind_qpack_streams error %s\n", nghttp3_strerror(rv) ));
 		return GF_SERVICE_ERROR;
 	}
 	return GF_OK;
@@ -758,7 +752,7 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 
 	gf_assert((sess->hmux_stream_id<0) || sess->hmux_data_done);
 	qr = sess->hmux_priv;
-	gf_assert(qr->local_buf_pending == qr->local_buf_ack);
+	gf_assert(qr->local_buf_sent == qr->local_buf_ack);
 	qr=NULL;
 	if (has_body) {
 		qr = (GF_QuicDataRead*)sess->hmux_priv;
@@ -767,22 +761,24 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	sess->hmux_data_done = 0;
 	sess->hmux_headers_seen = 0;
 	sess->hmux_ready_to_send = 0;
+	GF_Err e = GF_OK;
     int rv = ngtcp2_conn_open_bidi_stream(qc->conn, &sess->hmux_stream_id, sess);
     if (rv != 0) {
-		return GF_SERVICE_ERROR;
+		e = GF_SERVICE_ERROR;
 	}
 
-	rv = nghttp3_conn_submit_request(qc->http_conn, sess->hmux_stream_id, hdrs, nb_hdrs+4,
-			qr ? &qr->data_read : NULL, sess);
-	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP3] nghttp3_conn_submit_request error %s\n", nghttp3_strerror(rv) ));
-		return GF_SERVICE_ERROR;
+	if (!e) {
+		rv = nghttp3_conn_submit_request(qc->http_conn, sess->hmux_stream_id, hdrs, nb_hdrs+4,
+				qr ? &qr->data_read : NULL, sess);
+		if (rv != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_submit_request error %s\n", nghttp3_strerror(rv) ));
+			e = GF_SERVICE_ERROR;
+		}
 	}
-
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP3] send request (has_body %d) for new stream_id "LLD":\n", has_body, sess->hmux_stream_id));
+	if (!e && gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_DEBUG)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] send request (has_body %d) for new stream_id "LLD":\n", has_body, sess->hmux_stream_id));
 		for (i=0; i<nb_hdrs+4; i++) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("\t%s: %s\n", hdrs[i].name, hdrs[i].value));
 		}
@@ -792,6 +788,9 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	gf_free(hdrs);
 	gf_free(hostport);
 	if (path) gf_free(path);
+
+	if (e)
+		return e;
 
 	if (sess->hmux_stream_id < 0) {
 		return GF_IP_NETWORK_FAILURE;
@@ -805,7 +804,6 @@ static GF_Err h3_data_pending(GF_DownloadSession *sess)
 	//always move pending data to local buffer
 	if (sess->hmux_send_data) {
 		gf_mx_p(sess->mx);
-#ifdef USE_DOUBLE_BUF
 		GF_QuicDataRead *qr = sess->hmux_priv;
 		Bool use_main = GF_FALSE;
 		if (!qr->second_local_buf_len) {
@@ -815,16 +813,11 @@ static GF_Err h3_data_pending(GF_DownloadSession *sess)
 				use_main = GF_TRUE;
 		}
 
-		if (use_main) assert(qr->second_local_buf_len==0);
+		if (use_main) gf_assert(qr->second_local_buf_len==0);
 
 		u8 **buf = use_main ? &sess->local_buf : &qr->second_local_buf;
 		u32 *size = use_main ? &sess->local_buf_len : &qr->second_local_buf_len;
 		u32 *allocated = use_main ? &sess->local_buf_alloc : &qr->second_local_buf_alloc;
-#else
-		u8 **buf = &sess->local_buf;
-		u32 *size = &sess->local_buf_len;
-		u32 *allocated = &sess->local_buf_alloc;
-#endif
 
 		if (! *buf || *size + sess->hmux_send_data_len > *allocated) {
 			*allocated = *size + sess->hmux_send_data_len;
@@ -921,10 +914,8 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 	if (!qc) return GF_BAD_PARAM;
 	if (qc->serv_conn && qc->serv_conn->closed) {
 		sess->local_buf_len = 0;
-#ifdef USE_DOUBLE_BUF
 		GF_QuicDataRead *qr = sess->hmux_priv;
 		qr->second_local_buf_len = 0;
-#endif
 		return GF_IP_CONNECTION_CLOSED;
 	}
 
@@ -964,7 +955,7 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 		if (qc->http_conn && ngtcp2_conn_get_max_data_left(qc->conn)) {
 			s32 rv = nghttp3_conn_writev_stream(qc->http_conn, &stream_id, &fin, vec, GF_ARRAY_LENGTH(vec) );
 			if (rv < 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP3] nghttp3_conn_writev_stream error %s\n", nghttp3_strerror(rv) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_writev_stream error %s\n", nghttp3_strerror(rv) ));
 				ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 
 				return quic_handle_error(qc);
@@ -1000,7 +991,7 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 				assert(ndatalen >= 0);
 				rv = nghttp3_conn_add_write_offset(qc->http_conn, stream_id, ndatalen);
 				if (rv != 0) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Error in nghttp3_conn_add_write_offset: %s\n", nghttp3_strerror(rv)));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] Error in nghttp3_conn_add_write_offset: %s\n", nghttp3_strerror(rv)));
 					ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 					if (!qc->handshake_state) qc->handshake_state = QUIC_HANDSHAKE_ERROR;
 
@@ -1018,7 +1009,7 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 		if (ndatalen >= 0) {
 			s32 rv = nghttp3_conn_add_write_offset(qc->http_conn, stream_id, ndatalen);
 			if (rv != 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Error in nghttp3_conn_add_write_offset: %s\n", nghttp3_strerror(rv) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] Error in nghttp3_conn_add_write_offset: %s\n", nghttp3_strerror(rv) ));
 				ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 				if (!qc->handshake_state) qc->handshake_state = QUIC_HANDSHAKE_ERROR;
 				return quic_handle_error(qc);
@@ -1066,31 +1057,12 @@ static void h3_stream_reset(GF_DownloadSession *sess, Bool is_abort)
 static GF_Err h3_resume_stream(GF_DownloadSession *sess)
 {
 	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
-#ifdef USE_DOUBLE_BUF
 	GF_QuicDataRead *qr = sess->hmux_priv;
-#endif
 	if (!qc->http_conn || (sess->hmux_stream_id<0) || (qc->serv_conn && qc->serv_conn->closed))
 		return GF_IP_CONNECTION_CLOSED;
 
 	if (qr->wait_ack) return GF_OK;
 
-#ifdef CHECK_CWND
-	ngtcp2_conn_info ci;
-	ngtcp2_conn_get_conn_info(qc->conn, &ci);
-	if (qr->local_buf_pending - qr->local_buf_ack > ci.cwnd) {
-		return GF_OK;
-	}
-#endif
-
-
-/*
-	if (sess->local_buf_len || sess->hmux_send_data
-#ifdef USE_DOUBLE_BUF
-		|| qr->second_local_buf_len
-#endif
-	) {
-	}
-*/
 	sess->hmux_data_paused = 0;
 	nghttp3_conn_resume_stream(qc->http_conn, sess->hmux_stream_id);
 
@@ -1159,9 +1131,10 @@ static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 
 	GF_QuicDataRead *qr = sess->hmux_priv;
 	if (for_close) {
-		if (qr->local_buf_pending>qr->local_buf_ack)
+		if (qr->local_buf_sent>qr->local_buf_ack)
 			return GF_IP_NETWORK_EMPTY;
 	}
+
 	if (!sess->local_buf_len && !sess->hmux_is_eos) return GF_OK;
 	gf_assert(sess->hmux_send_data==NULL);
 
@@ -1170,21 +1143,13 @@ static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 		return GF_OK;
 	}
 	//EOS signaled on session, wait for everything to be acked
-	if (sess->hmux_is_eos || sess->local_buf_len
-#ifdef USE_DOUBLE_BUF
-		|| qr->second_local_buf_len
-#endif
-	) {
+	if (sess->hmux_is_eos && (sess->local_buf_len || qr->second_local_buf_len)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
 
-#ifdef USE_DOUBLE_BUF
-	if (sess->local_buf_len + qr->second_local_buf_len > SOCK_BUF_SIZE)
+	if (sess->local_buf_len + qr->second_local_buf_len > SOCK_BUF_SIZE) {
 		return GF_IP_NETWORK_EMPTY;
-#else
-	if (qr->local_buf_pending || (sess->local_buf_len>SOCK_BUF_SIZE))
-		return GF_IP_NETWORK_EMPTY;
-#endif
+	}
 	return GF_OK;
 }
 
@@ -1242,7 +1207,7 @@ int ngq_recv_stream_data(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id,
 
 	int rv = nghttp3_conn_read_stream(qc->http_conn, stream_id, data, datalen, flags & NGTCP2_STREAM_DATA_FLAG_FIN);
 	if (rv < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP3] nghttp3_conn_read_stream error %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_read_stream error %s\n", nghttp3_strerror(rv) ));
 		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
@@ -1258,7 +1223,7 @@ static int ngq_acked_stream_data_offset(ngtcp2_conn *conn, int64_t stream_id,
 	GF_QuicConnection *qc = user_data;
 	int rv = nghttp3_conn_add_ack_offset(qc->http_conn, stream_id, datalen);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_add_ack_offset error %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_add_ack_offset error %s\n", nghttp3_strerror(rv) ));
 		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
@@ -1272,7 +1237,7 @@ int ngq_extend_max_stream_data(ngtcp2_conn *conn, int64_t stream_id,
 	GF_QuicConnection *qc = user_data;
 	int rv = nghttp3_conn_unblock_stream(qc->http_conn, stream_id);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_unblock_stream error %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_unblock_stream error %s\n", nghttp3_strerror(rv) ));
 		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
@@ -1298,7 +1263,7 @@ static int ngq_stream_stop_sending(ngtcp2_conn *conn, int64_t stream_id,
 	if (!qc->http_conn) return 0;
 	int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
 	if (rv != 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_shutdown_stream_read error %s\n", nghttp3_strerror(rv) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_shutdown_stream_read error %s\n", nghttp3_strerror(rv) ));
 		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
@@ -1332,7 +1297,7 @@ static int ngq_stream_close(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id
 		}
 		break;
 	default:
-      GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_close_stream error %s\n", nghttp3_strerror(rv) ));
+      GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_close_stream error %s\n", nghttp3_strerror(rv) ));
       ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
       return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
@@ -1348,7 +1313,7 @@ int ngq_stream_reset(ngtcp2_conn *conn, int64_t stream_id, uint64_t final_size,
 
     int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
     if (rv != 0) {
-      GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_shutdown_stream_read error %s\n", nghttp3_strerror(rv) ));
+      GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_shutdown_stream_read error %s\n", nghttp3_strerror(rv) ));
       return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	return 0;
@@ -1423,11 +1388,28 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	} else {
 		u8 *src, *dst;
 		u32 src_len, dst_len;
-		e = gf_sk_bind_ex(sess->sock, "127.0.0.1", 1234, server, server_port, GF_SOCK_REUSE_PORT, &dst, &dst_len, &src, &src_len);
-		if (e) goto err;
+
+		//bind to first avail port - we don't use port reuse here as we could bind two clients
+		//to the same server on a single machine, blocking the second client connection
+		u32 loc_port = 1234;
+		while (loc_port<0xFFFF) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[QUIC] try binding port %u\n", loc_port));
+			e = gf_sk_bind_ex(sess->sock, "127.0.0.1", loc_port, server, server_port, 0, &dst, &dst_len, &src, &src_len);
+			if (e==GF_IP_CONNECTION_FAILURE) {
+				loc_port++;
+				continue;
+			}
+			break;
+		}
 		//UDP connect to make sure we only get datagrams for ourselves
-		e = gf_sk_connect_ex(sess->sock, (char *) server, server_port, NULL, GF_TRUE);
-		if (e) goto err;
+		if (!e) {
+			e = gf_sk_connect_ex(sess->sock, (char *) server, server_port, NULL, GF_TRUE);
+		}
+		if (e) {
+			if (src) gf_free(src);
+			if (dst) gf_free(dst);
+			goto err;
+		}
 
 		ng_quic->path.local.addr = (ngtcp2_sockaddr*)src;
 		ng_quic->path.local.addrlen = src_len;
@@ -1888,6 +1870,15 @@ static GF_Err quic_handle_error(GF_QuicConnection *qc)
 	return GF_IP_NETWORK_EMPTY;
 }
 
+static void detach_connection(GF_QuicServerConnection *c)
+{
+	u32 i;
+	for (i=0;i<MAC_CONN_ID;i++)
+		c->conn_ids[i].associated = 0;
+
+	//freeing the connection is done later
+}
+
 static GF_Err gf_quic_on_data(GF_QuicServerConnection *c, const u8 *data, u32 nb_bytes)
 {
 	GF_QuicConnection *qc = (GF_QuicConnection *) c->hmux->hmux_udta;
@@ -2140,7 +2131,7 @@ restart:
 	GF_QuicConnection *q = qc->hmux->hmux_udta;
 	if (ngtcp2_conn_in_closing_period(q->conn)) {
 		if (quic_send_conn_close(q) != 0) {
-	//      remove(h);
+			detach_connection(qc);
 			return GF_IP_NETWORK_EMPTY;
 		}
 		return GF_IP_NETWORK_EMPTY;
@@ -2148,14 +2139,12 @@ restart:
 	if (ngtcp2_conn_in_draining_period(q->conn)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
+
 	e = gf_quic_on_data(qc, buf, nb_read);
-
-//	if (quic_on_write(qc)) {}
-
 	if (e) {
 		if (e != GF_IP_NETWORK_EMPTY) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[QUIC] packet decode error %s\n", gf_error_to_string(e) ));
-			//remove(h);
+			detach_connection(qc);
 			return GF_IP_NETWORK_EMPTY;
 		}
 		return GF_IP_NETWORK_EMPTY;
@@ -2180,6 +2169,7 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 				continue;
 			}
 			qc->close_period_end = 0;
+			detach_connection(qc);
 			continue;
 		}
 		if (qc->drain_period_end && (qc->drain_period_end>gf_sys_clock_high_res()) ) {
@@ -2188,6 +2178,7 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 				continue;
 			}
 			qc->drain_period_end = 0;
+			detach_connection(qc);
 			continue;
 		}
 		if (qc->closed) continue;
