@@ -449,7 +449,8 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 	}
 
 	u16 descriptor_loop_length = gf_bs_read_u16(bs);
-	for (u16 i=0; i<descriptor_loop_length; i++) {
+	u32 descriptor_start_pos = gf_bs_get_position(bs);
+	while (gf_bs_get_position(bs) - descriptor_start_pos < descriptor_loop_length) {
 		u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 		u8 descriptor_length = gf_bs_read_u8(bs);
 
@@ -470,8 +471,16 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 				if (segmentation_event_cancel_indicator == 0) {
 					Bool program_segmentation_flag = gf_bs_read_int(bs, 1);
 					Bool segmentation_duration_flag = gf_bs_read_int(bs, 1);
-					/*Bool delivery_not_restricted_flag = */gf_bs_read_int(bs, 1);
-					gf_bs_skip_bytes(bs, 5);
+					Bool delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
+
+					if (delivery_not_restricted_flag == 0) {
+						/*u8 web_delivery_allowed_flag = */gf_bs_read_int(bs, 1);
+						/*u8 no_regional_blackout_flag = */gf_bs_read_int(bs, 1);
+						/*u8 archive_allowed_flag = */gf_bs_read_int(bs, 1);
+						/*u8 device_restrictions = */gf_bs_read_int(bs, 2);
+					} else {
+						/*reserved = */gf_bs_read_int(bs, 5);
+					}
 
 					if (program_segmentation_flag == 0) { //deprecated
 						u8 component_count = gf_bs_read_u8(bs);
@@ -637,7 +646,7 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 
 	u64 cts = gf_filter_pck_get_cts(pck);
 	if (scte35dec_is_splice_point(ctx, cts)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU " - adding cue start property\n", cts));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU " - adding cue start property\n", cts));
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
 
