@@ -1995,19 +1995,30 @@ sourceid_reassign:
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
 						char *frag_sep = strchr(frag_name, dst_filter->session->sep_name);
 						gf_assert(frag_sep);
+						u32 frag_sep_len = frag_sep-frag_name+1 ;
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
 						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
-						u32 clen = (u32) (1+frag_sep - sid);
+						u32 clen = (u32) sublen + frag_sep_len + 1;
 						strncpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
 						strcat(new_source_ids, prop_dump_buffer);
 						if (next_frag) strcat(new_source_ids, next_frag);
 
-						if (resolved_source_ids) gf_free(resolved_source_ids);
+						if (resolved_source_ids) {
+
+							// avoid infinte loop if new_source_ids has not changed
+							if ( !strcmp(resolved_source_ids, new_source_ids) ) {
+								gf_free(new_source_ids);
+								break;
+							}
+
+							gf_free(resolved_source_ids);
+						}
 						resolved_source_ids = new_source_ids;
 						if (frag_clone) gf_free(frag_clone);
 						goto sourceid_reassign;
+
 					}
 				}
 				else {

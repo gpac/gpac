@@ -4797,8 +4797,10 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	if (!rep->segment_list && !set->segment_list && !period->segment_list && !rep->segment_template && !set->segment_template && !period->segment_template) {
 		GF_MPD_URL *res_url;
 		GF_MPD_SegmentBase *base_seg = NULL;
-		if (item_index > 0)
+		if (item_index > 0) {
+			gf_free(url);
 			return GF_EOS;
+		}
 		switch (resolve_type) {
 		case GF_MPD_RESOLVE_URL_MEDIA:
 		case GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE:

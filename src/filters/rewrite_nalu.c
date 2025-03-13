@@ -487,6 +487,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 			nb_nalsize_zero=0;
 		}
 
+		if (!gf_bs_available(ctx->bs_r))
+			break;
+
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
 		skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, &delim_flags);
@@ -648,7 +651,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 
-		sprintf(szStatus, "%s Annex-B %dx%d % 10d NALU", (ctx->vtype==UFNAL_HEVC) ? "HEVC" : ((ctx->vtype==UFNAL_VVC) ? "VVC" : "AVC|H264"), ctx->width, ctx->height, ctx->nb_nalu);
+		snprintf(szStatus, sizeof(szStatus), "%s Annex-B %dx%d % 10d NALU", (ctx->vtype==UFNAL_HEVC) ? "HEVC" : ((ctx->vtype==UFNAL_VVC) ? "VVC" : "AVC|H264"), ctx->width, ctx->height, ctx->nb_nalu);
 		gf_filter_update_status(filter, -1, szStatus);
 
 	}
@@ -763,4 +766,3 @@ const GF_FilterRegister *ufnalu_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_UFNALU
-

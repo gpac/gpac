@@ -697,7 +697,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		char szStatus[1024], *szSrc;
 		szSrc = gf_file_basename(ctx->src);
 
-		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
+		snprintf(szStatus, sizeof(szStatus), "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
 		gf_filter_update_status(filter, (u32) (ctx->file_pos*10000/ctx->file_size), szStatus);
 	}
 

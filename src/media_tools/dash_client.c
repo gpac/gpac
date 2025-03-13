@@ -887,7 +887,7 @@ setup_multicast_clock:
 
 				dyn_period->duration = dur;
 
-				size_t seg_url_len = strlen(seg_url);
+				size_t seg_url_len = seg_url ? strlen(seg_url) : 0;
 
 				sep = seg_url ? strstr(seg_url, "987") : NULL;
 				if (!sep) {
