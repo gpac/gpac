@@ -2821,15 +2821,28 @@ found:
 			memcpy(*userData, p_uuid->data, sizeof(char)*p_uuid->dataSize);
 			*userDataSize = p_uuid->dataSize;
 			return GF_OK;
+		} else if (ptr->type == GF_ISOM_BOX_TYPE_KIND) {
+			GF_KindBox *kind = (GF_KindBox *)ptr;
+			u32 len, lenSchemeURI;
+			len = lenSchemeURI = (kind->schemeURI ? strlen(kind->schemeURI) : 0) + 1;
+			len += (kind->value ? strlen(kind->value) + 1 : 0);
+			len += sizeof(kind->flags);
+			*userData = (char *)gf_malloc(sizeof(char) * len);
+			if (!*userData) return GF_OUT_OF_MEM;
+			memcpy(*userData, &(kind->flags), sizeof(kind->flags));
+			if (kind->schemeURI)
+				strcpy(*userData + sizeof(kind->flags), kind->schemeURI);
+			else
+				*(*userData + sizeof(kind->flags)) = 0;
+			if (kind->value) strcpy(*userData + sizeof(kind->flags) + lenSchemeURI, kind->value);
+			*userDataSize = len;
+			return GF_OK;
 		} else {
 			char *str = NULL;
 			switch (ptr->type) {
 			case GF_ISOM_BOX_TYPE_NAME:
 			//case GF_QT_BOX_TYPE_NAME: same as above
 				str = ((GF_NameBox *)ptr)->string;
-				break;
-			case GF_ISOM_BOX_TYPE_KIND:
-				str = ((GF_KindBox *)ptr)->value;
 				break;
 			}
 			if (str) {
