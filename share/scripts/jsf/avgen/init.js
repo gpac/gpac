@@ -513,7 +513,7 @@ function get_empty_emsg()
 {
 	let pck = evte_pid.new_packet(30);
 	pck.cts = evte_cts;
-	pck.dur = 25;
+	pck.dur = filter.fps.n;
 	pck.sap = GF_FILTER_SAP_1;
 
 	//create an empty emsg
