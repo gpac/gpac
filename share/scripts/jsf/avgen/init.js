@@ -70,7 +70,7 @@ filter.set_help(
 
 filter.set_arg({ name: "type", desc: "output selection\n- a: audio only\n- v: video only\n- av: audio and video", type: GF_PROP_UINT, def: "av", minmax_enum: "a|v|av"} );
 filter.set_arg({ name: "text", desc: "output text stream", type: GF_PROP_BOOL, def: "false"} );
-filter.set_arg({ name: "evte", desc: "output event stream\n- -1: empty event stream\n- 0: disable\n- 1+: period (sec) of dummy events", type: GF_PROP_SINT, def: "0"} );
+filter.set_arg({ name: "evte", desc: "output event stream\n- 0: disable\n- 1+: period (sec) of dummy events", type: GF_PROP_UINT, def: "0"} );
 filter.set_arg({ name: "freq", desc: "frequency of beep", type: GF_PROP_UINT, def: "440"} );
 filter.set_arg({ name: "freq2", desc: "frequency of odd beep", type: GF_PROP_UINT, def: "659"} );
 filter.set_arg({ name: "sr", desc: "output samplerate", type: GF_PROP_UINT, def: "44100"} );
@@ -197,8 +197,7 @@ filter.initialize = function() {
 		evte_pid.set_prop('ID', pid_id_offset++);
 
 		//we send 1 byte dummy events
-		let period = filter.evte > 0 ? filter.evte : filter.dur.n;
-		let bitrate = Math.max(Math.floor(8 / period), 1);
+		let bitrate = Math.max(Math.floor(8 / filter.evte), 1);
 		evte_pid.set_prop('Bitrate', bitrate);
 	}
 
@@ -536,16 +535,6 @@ function process_event()
 {
 	if (!evte_pid || evte_pid.would_block)
 		return;
-
-	//just create the stream
-	if (filter.evte < 0) {
-		if (!evte_sent) {
-			let pck = get_empty_emsg();
-			pck.send();
-			evte_sent = true;
-		}
-		return;
-	}
 
 	let nb_sec;
 	if (filter.type == 0) {
