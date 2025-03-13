@@ -29,7 +29,7 @@
 
 #ifdef GPAC_HTTPMUX
 
-//detach session from HTTP2 session - the session mutex SHALL be grabbed before calling this
+//detach session from parent h2 / h3 session - the session mutex SHALL be grabbed before calling this
 void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 {
 	if (!hmux_sess || !sess) return;
@@ -210,8 +210,10 @@ GF_Err hmux_send_payload(GF_DownloadSession *sess, u8 *data, u32 size)
 		sess->hmux_is_eos = 0;
 		//send the data
 		e = sess->hmux_sess->send_pending_data(sess);
-		if (e && (e!=GF_IP_NETWORK_EMPTY))
+		if (e && (e!=GF_IP_NETWORK_EMPTY)) {
+			gf_mx_v(sess->mx);
 			return e;
+		}
 	}
 	gf_mx_v(sess->mx);
 

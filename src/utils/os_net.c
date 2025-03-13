@@ -2557,7 +2557,13 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 	}
 
 	res = gf_sk_get_ifce_ipv6_addr(ifce_ip_or_name, port, af, AI_PASSIVE, type);
-	if (!res) return GF_IP_ADDRESS_NOT_FOUND;
+	if (!res) {
+		if (dst_sock_addr && *dst_sock_addr) {
+			gf_free(*dst_sock_addr);
+			*dst_sock_addr = NULL;
+		}
+		return GF_IP_ADDRESS_NOT_FOUND;
+	}
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
@@ -2590,6 +2596,10 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 				else sock->flags &= ~GF_SOCK_IS_IPV6;
 
 				freeaddrinfo(res);
+				if (dst_sock_addr && *dst_sock_addr) {
+					gf_free(*dst_sock_addr);
+					*dst_sock_addr = NULL;
+				}
 				return GF_OK;
 			}
 		}
@@ -2623,8 +2633,15 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 		{
 			ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				if (dst_sock_addr && *dst_sock_addr) {
+					gf_free(*dst_sock_addr);
+					*dst_sock_addr = NULL;
+				}
 				sock_close(sock);
+				if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+					return GF_IP_CONNECTION_FAILURE;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
 				continue;
 			}
 		}
@@ -2641,8 +2658,12 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 		return GF_OK;
 	}
 	freeaddrinfo(res);
+	if (dst_sock_addr && *dst_sock_addr) {
+		gf_free(*dst_sock_addr);
+		*dst_sock_addr = NULL;
+	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Cannot bind to ifce %s port %d\n", ifce_ip_or_name ? ifce_ip_or_name : "any", port));
-	return GF_IP_CONNECTION_FAILURE;
+	return GF_IP_NETWORK_FAILURE;
 
 #else
 
@@ -2711,8 +2732,15 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 	{
 		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
 		if (ret == SOCKET_ERROR) {
+			if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+				if (src_sock_addr && *src_sock_addr) {
+					gf_free(*src_sock_addr);
+					*src_sock_addr = NULL;
+				}
+				return GF_IP_CONNECTION_FAILURE;
+			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
-			ret = GF_IP_CONNECTION_FAILURE;
+			ret = GF_IP_NETWORK_FAILURE;
 		}
 	}
 
@@ -2727,7 +2755,7 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 		}
 		sock->flags |= GF_SOCK_HAS_PEER;
 
-		if (dst_sock_addr) {
+		if (dst_sock_addr && !ret) {
 			*dst_sock_addr = gf_malloc(sizeof(u8) * sock->dest_addr_len);
 			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
 			*dst_sock_addr_len = sock->dest_addr_len;
