@@ -329,7 +329,7 @@ static GF_Err new_segment(SCTE35DecCtx *ctx)
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n",
 		ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
 	u64 dts = ctx->orig_ts + ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
-	if (ctx->segnum == 0) // first segment: adjust last_dispatched_dts to the previous virtual segment
+	if (ctx->segnum == 0) // first segment: adjust last_dispatched_dts to a previous fictive segment
 		ctx->last_dispatched_dts = (-1 * ctx->segdur.num * ctx->timescale / ctx->segdur.den);
 	ctx->segnum++;
 	ctx->clock = dts;
@@ -605,7 +605,6 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 		// unsegmented: dispatch at each frame
 		gf_assert(gf_list_count(ctx->ordered_events) <= 1);
 		GF_Err e = scte35dec_push_box(ctx, dts, UINT32_MAX);
-
 		gf_list_rem_last(ctx->ordered_events);
 		return e;
 	} else {
@@ -725,7 +724,6 @@ static const GF_FilterArgs SCTE35DecArgs[] =
 	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
 	{0}
 };
-
 
 GF_FilterRegister SCTE35DecRegister = {
 	.name = "scte35dec",

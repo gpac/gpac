@@ -48,7 +48,7 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 };
 
 #define TIMESCALE 90000 // usual value
-#define FPS 3           // allows to put event at the beginning, midlle, and end
+#define FPS 3           // allows to put event at the beginning, middle, and end
 
 #define SEND_VIDEO(num_frames) { \
         for (int i=0; i<num_frames; ++i) { \
@@ -72,6 +72,12 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
     ctx.pck_new_shared = pck_new_shared;\
     ctx.pck_new_alloc = pck_new_alloc; \
     ctx.pck_send = pck_send_fct;
+
+#define UT_SCTE35_PCK_SEND_FINALIZE() \
+    if (!pck->filter_owns_mem) gf_free(pck->data); \
+    gf_free(pck); \
+    calls++; \
+    return GF_OK;
 
 /*************************************/
 
@@ -107,12 +113,8 @@ static GF_Err pck_send_no_event(GF_FilterPacket *pck)
     assert_equal(size, EMEB_BOX_SIZE);
     assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 
-    // update context
-    if (!pck->filter_owns_mem) gf_free(pck->data);
-    gf_free(pck);
-    calls++;
+    UT_SCTE35_PCK_SEND_FINALIZE();
     #undef expected_calls
-    return GF_OK;
 }
 
 unittest(scte35dec_no_event)
@@ -154,13 +156,8 @@ static GF_Err pck_send_segmentation_no_event(GF_FilterPacket *pck)
     assert_equal(size, EMEB_BOX_SIZE);
     assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 
-    // update context
-    if (!pck->filter_owns_mem) gf_free(pck->data);
-    gf_free(pck);
-    calls++;
+    UT_SCTE35_PCK_SEND_FINALIZE();
     #undef expected_calls
-
-    return GF_OK;
 }
 
 unittest(scte35dec_segmentation_no_event)
@@ -240,12 +237,8 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
         default: assert_true(0);
     }
 
-    // update context
-    if (!pck->filter_owns_mem) gf_free(pck->data);
-    gf_free(pck);
-    calls++;
+    UT_SCTE35_PCK_SEND_FINALIZE();
     #undef expected_calls
-    return GF_OK;
 }
 
 unittest(scte35dec_simple)
@@ -256,7 +249,7 @@ unittest(scte35dec_simple)
     SEND_VIDEO(1); // video (1 frame)
     SEND_EVENT();  // scte35 event at "pts=1 frame" scheduled for pts=59583 with dur=36637
     SEND_VIDEO(1); // video (1 frame)
-    SEND_VIDEO(1);
+    SEND_VIDEO(1); // video (1 frame)
 
     scte35dec_flush(&ctx);
     scte35dec_finalize_internal(&ctx);
@@ -273,7 +266,7 @@ static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
     static u32 expected_dur [expected_calls] = {    SCTE35_PTS, TIMESCALE-SCTE35_PTS, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 2*TIMESCALE-(SCTE35_PTS+SCTE35_DUR) };
     static u32 expected_size[expected_calls] = { EMIB_BOX_SIZE,        EMIB_BOX_SIZE,                   EMIB_BOX_SIZE, EMEB_BOX_SIZE };
     static s64 expected_event_pts_delta[expected_calls] = { SCTE35_PTS, 0, 0, 0 };
-    static u32 expected_event_duration [expected_calls] = { SCTE35_DUR, SCTE35_DUR, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 0, };
+    static u32 expected_event_duration [expected_calls] = { SCTE35_DUR, SCTE35_DUR, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 0 };
     static u32 expected_event_id       [expected_calls] = { SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, 0 };
 
     if (pck == NULL) {
@@ -311,12 +304,8 @@ static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
         default: assert_true(0);
     }
 
-    // update context
-    if (!pck->filter_owns_mem) gf_free(pck->data);
-    gf_free(pck);
-    calls++;
+    UT_SCTE35_PCK_SEND_FINALIZE();
     #undef expected_calls
-    return GF_OK;
 }
 
 unittest(scte35dec_segmentation_beginning)
@@ -385,12 +374,8 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
         default: assert_true(0);
     }
 
-    // update context
-    if (!pck->filter_owns_mem) gf_free(pck->data);
-    gf_free(pck);
-    calls++;
+    UT_SCTE35_PCK_SEND_FINALIZE();
     #undef expected_calls
-    return GF_OK;
 }
 
 unittest(scte35dec_short_segmentation_end)
