@@ -70,6 +70,7 @@ typedef struct
 	u32 reorder_delay;
 #endif
 	GF_PropStringList ssm, ssmx;
+	GF_PropVec2i mwait;
 
 	GF_SockInClient sock_c;
 	GF_List *clients;
@@ -82,6 +83,8 @@ typedef struct
 	GF_SockGroup *active_sockets;
 	u32 last_rcv_time;
 	u32 last_timeout_sec;
+
+	u64 rcv_time_diff, last_pck_time;
 } GF_SockInCtx;
 
 
@@ -95,7 +98,10 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
-
+	if ((ctx->mwait.x < ctx->mwait.y) || (ctx->mwait.x<0) || (ctx->mwait.y<0)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Invalid `mwait`, max %d must be greater than min %d\n", ctx->mwait.x, ctx->mwait.y));
+		return GF_IO_ERR;
+	}
 	ctx->active_sockets = gf_sk_group_new();
 	if (!ctx->active_sockets) return GF_OUT_OF_MEM;
 
@@ -282,7 +288,7 @@ static Bool sockin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockInClient *sock_c)
 {
-	u32 nb_read, pos;
+	u32 nb_read, pos, nb_pck=100;
 	u64 now;
 	GF_Err e;
 	GF_FilterPacket *dst_pck;
@@ -298,6 +304,8 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	}
 
 	if (!sock_c->start_time) sock_c->start_time = gf_sys_clock_high_res();
+
+refetch:
 	pos = 0;
 	nb_read=0;
 	while (pos < ctx->block_size) {
@@ -436,7 +444,11 @@ do_stats:
 		sock_c->nb_bytes = 0;
 	}
 
-	return GF_OK;
+	if (e || (!ctx->is_udp && ctx->block)) return e;
+	nb_pck--;
+	if (nb_pck) goto refetch;
+
+	return e;
 }
 
 static GF_Err sockin_check_eos(GF_Filter *filter, GF_SockInCtx *ctx)
@@ -491,11 +503,14 @@ static GF_Err sockin_process(GF_Filter *filter)
 				return GF_OK;
 			}
 		} else if (!gf_list_count(ctx->clients)) {
-			gf_filter_ask_rt_reschedule(filter, 1000);
+			gf_filter_ask_rt_reschedule(filter, 5000);
 			return GF_OK;
 		}
-
-		gf_filter_ask_rt_reschedule(filter, 1000);
+		u64 sleep_for = 2*ctx->rcv_time_diff/3000;
+		if (sleep_for > ctx->mwait.x) sleep_for = ctx->mwait.x;
+		if (sleep_for < ctx->mwait.y) sleep_for = ctx->mwait.y;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SockIn] empty - sleeping for "LLU" ms\n", sleep_for ));
+		gf_filter_ask_rt_reschedule(filter, sleep_for*1000);
 		return GF_OK;
 	}
 	else if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_EOS)) {
@@ -510,9 +525,14 @@ static GF_Err sockin_process(GF_Filter *filter)
 
 	ctx->last_rcv_time = 0;
 	if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket, GF_SK_SELECT_READ)) {
+		u64 rcv_time = gf_sys_clock_high_res();
+		if (ctx->last_pck_time) {
+			ctx->rcv_time_diff = rcv_time - ctx->last_pck_time;
+		}
+		ctx->last_pck_time = rcv_time;
 		if (!ctx->listen) {
 			e = sockin_read_client(filter, ctx, &ctx->sock_c);
-			gf_filter_ask_rt_reschedule(filter, 1);
+			if (e==GF_IP_NETWORK_EMPTY) return GF_OK;
 			return e;
 		}
 
@@ -612,6 +632,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(mime), "indicate mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "set timeout in ms for UDP socket(s), 0 to disable timeout", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mwait), "set min and max wait times in ms to avoid too frequent polling", GF_PROP_VEC2I, "30x1", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_STREAMING
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -655,6 +676,9 @@ GF_FilterRegister SockInRegister = {
 #ifdef GPAC_CONFIG_DARWIN
 		"\nOn OSX with VM packet replay you will need to force multicast routing, e.g. `route add -net 239.255.1.4/32 -interface vboxnet0`"
 #endif
+		"\n"
+		"# Time Regulation\n"
+		"The filter uses the time between the last two received packets to estimates how often it should check for inputs. The maximum and minimum times to wait between two calls is given by the [-mwait]() option. The maximum time may need to be reduced for very high bitrates sources.\n"
 	""
 	,
 #endif //GPAC_DISABLE_DOC
