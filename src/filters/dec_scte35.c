@@ -615,6 +615,8 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 
 	if (!ctx->pass || (ctx->pass && needs_idr))
 		scte35dec_schedule(ctx, dts, emib);
+	else
+		gf_isom_box_del((GF_Box*)emib);
 
 	return GF_OK;
 }
