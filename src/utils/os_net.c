@@ -2624,9 +2624,8 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 			sock->flags |= GF_SOCK_HAS_PEER;
 		}
 
-#ifdef GPAC_CONFIG_LINUX
-		//weird bug in linux  (at least on our VMs) when reusing UDP port and binding,
-		//poll/select for read fails in the other program reusing the port
+#if defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
+		//we use implicit bind (assign on first sendto) - not doing so makes poll/select fail in readers lanched after the sender
 		if (peer_name && !strcmp(peer_name, "127.0.0.1") && (options & GF_SOCK_IS_SENDER)) {
 		} else
 #endif
