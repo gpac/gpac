@@ -27,6 +27,8 @@
 
 #if !defined(GPAC_DISABLE_NETWORK) && defined(GPAC_HAS_HTTP2)
 
+#include <nghttp2/nghttp2.h>
+
 #define HTTP2_BUFFER_SETTINGS_SIZE 128
 
 //link for msvc
