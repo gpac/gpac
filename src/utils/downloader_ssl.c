@@ -26,6 +26,9 @@
 #include "downloader.h"
 #ifndef GPAC_DISABLE_NETWORK
 
+#ifdef GPAC_HAS_HTTP2
+#include <nghttp2/nghttp2.h>
+#endif
 
 #ifdef GPAC_HAS_NGTCP2
 #include <ngtcp2/ngtcp2_crypto.h>

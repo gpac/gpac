@@ -72,7 +72,6 @@ typedef SSIZE_T ssize_t;
 #define NGHTTP2_STATICLIB
 #endif
 #endif
-#include <nghttp2/nghttp2.h>
 #endif
 
 #ifdef __USE_POSIX
