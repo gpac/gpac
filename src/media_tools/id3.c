@@ -29,7 +29,7 @@ GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 dat
     tag->scheme_uri_length = (u32) strlen(ID3_PROP_SCHEME_URI) + 1; // plus null character
 
     // test if the data is a Nielsen ID3 tag
-    if (memcmp(data, NIELSEN_ID3_TAG_PREFIX, NIELSEN_ID3_TAG_PREFIX_LEN) == 0)
+    if ((data_length >= NIELSEN_ID3_TAG_PREFIX_LEN) && !memcmp(data, NIELSEN_ID3_TAG_PREFIX, NIELSEN_ID3_TAG_PREFIX_LEN))
     {
         tag->value_uri = gf_strdup(ID3_PROP_VALUE_URI_NIELSEN);
     }
