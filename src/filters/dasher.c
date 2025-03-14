@@ -918,6 +918,46 @@ static Bool dasher_template_use_source_url(const char *template)
 	return GF_FALSE;
 }
 
+static Bool dasher_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+	GF_DasherCtx *ctx = (GF_DasherCtx *) cbk;
+
+	switch (prop_4cc) {
+	case GF_PROP_PID_FILE_EXT:
+	case GF_PROP_PID_MIME:
+	case GF_PROP_PID_DASH_SEGMENTS:
+	case GF_PROP_PID_HLS_REF:
+	case GF_PROP_PID_REP_ID:
+	case GF_PROP_PID_DASH_DUR:
+	case GF_PROP_PID_PERIOD_ID:
+	case GF_PROP_PID_AS_ID:
+	case GF_PROP_PID_ID:
+	case GF_PROP_PID_DEPENDENCY_ID:
+	case GF_PROP_PID_DASH_SPARSE:
+	case GF_PROP_PID_MUX_SRC:
+	case GF_PROP_PID_DASH_MODE:
+	case GF_PROP_PID_FORCE_SEG_SYNC:
+	case GF_PROP_PID_NO_INIT:
+	case GF_PROP_PID_PREMUX_STREAM_TYPE:
+	case GF_PROP_PID_TEMPLATE:
+	case GF_PROP_PID_BITRATE:
+	case GF_PROP_PID_INIT_NAME:
+	case GF_PROP_PID_CODEC:
+	case GF_PROP_PID_DASH_MULTI_PID:
+	case GF_PROP_PID_DASH_MULTI_PID_IDX:
+	case GF_PROP_PID_DASH_MULTI_TRACK:
+	case GF_PROP_PID_LLHAS_MODE:
+	case GF_PROP_PID_TIMESHIFT_SEGS:
+	case GF_PROP_PID_TIMESCALE:
+	case GF_PROP_PID_DASH_CUE:
+		return GF_FALSE;
+	case GF_PROP_PID_CENC_PSSH:
+		if (ctx->pssh == GF_DASH_PSSH_MPD) return GF_FALSE;
+		return GF_TRUE;
+	}
+	return GF_TRUE;
+}
+
 static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool period_switch = GF_FALSE;
@@ -1822,22 +1862,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!period_switch) {
 		if (ds->opid) {
-			gf_filter_pid_copy_properties(ds->opid, pid);
-			//for route out
-			if (ctx->do_m3u8)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
-			if (ctx->llhls)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHAS_MODE, &PROP_UINT(ctx->llhls) );
-			if (ds->rep && ds->rep->segment_template)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->rep->segment_template->media));
-			else if (ds->set && ds->set->segment_template)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
-			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_REP_ID, &PROP_STRING( ds->rep_id ) );
-			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC( ds->dash_dur ) );
-			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(ds->stream_type) );
-			//end route
-			if (ctx->gencues)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
+			//merge props, filtering out props setup by dasher
+			//do NOT copy properties as this will reset properties setup at PID creation
+			gf_filter_pid_merge_properties(ds->opid, pid, dasher_merge_prop, ctx);
 		}
 		if (ds->rep)
 			dasher_update_rep(ctx, ds);
@@ -9393,8 +9420,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Representation not initialized, dropping non-SAP1/2 packet CTS "LLU"/%u\n", cts, ds->timescale));
 					dasher_drop_input(ctx, ds, GF_FALSE);
+					//reset ast until we get SAP
+					ctx->mpd->availabilityStartTime = 0;
 					break;
 				}
+				//ast was reset, resetup
+				if (!ctx->mpd->availabilityStartTime)
+					ctx->mpd->availabilityStartTime = dasher_get_utc(ctx);
 
 				set_start_with_sap = ctx->sseg ? base_ds->set->subsegment_starts_with_sap : base_ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
