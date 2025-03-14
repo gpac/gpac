@@ -258,6 +258,54 @@ unittest(scte35dec_simple)
 
 /*************************************/
 
+static GF_Err pck_send_initial_delay(GF_FilterPacket *pck)
+{
+    #define expected_calls 7
+    static int calls = 0;
+    static u64 expected_dts [expected_calls] = {             0, TIMESCALE/FPS,            TIMESCALE/FPS*3/2, SCTE35_PTS,
+                                               TIMESCALE/FPS*2, TIMESCALE/FPS*3, SCTE35_PTS+SCTE35_DUR };
+    static u32 expected_dur [expected_calls] = { TIMESCALE/FPS, TIMESCALE/FPS/2, SCTE35_PTS-TIMESCALE/FPS*3/2, TIMESCALE/FPS*2-SCTE35_PTS,
+                                                 TIMESCALE/FPS, SCTE35_PTS+SCTE35_DUR-TIMESCALE/FPS*3, TIMESCALE/FPS*4-(SCTE35_PTS+SCTE35_DUR) };
+    static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMEB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE,
+                                                 EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMEB_BOX_SIZE };
+
+    if (pck == NULL) {
+        // checks at termination
+        assert_equal(calls, expected_calls);
+        return GF_OK;
+    }
+
+    // dynamic checks
+    assert_less(calls, expected_calls);
+    assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
+    assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+
+    u32 size = 0;
+    const u8 *data = gf_filter_pck_get_data(pck, &size);
+    assert_equal(size, expected_size[calls]);
+
+    UT_SCTE35_PCK_SEND_FINALIZE();
+    #undef expected_calls
+}
+
+unittest(scte35dec_initial_delay)
+{
+    UT_SCTE35_INIT(pck_send_initial_delay);
+    ctx.segdur = (GF_Fraction){1, FPS};
+    u64 pts = 0;
+
+    SEND_VIDEO(1);         // video (1 frame)
+    pts=TIMESCALE/FPS*3/2; // introduce a delay before the first scte35 event
+    SEND_EVENT();          // scte35 event scheduled at pts=59583 w/ dur=36637
+
+    scte35dec_flush(&ctx);
+    scte35dec_flush(&ctx);
+    scte35dec_finalize_internal(&ctx);
+    ctx.pck_send(NULL); // trigger final checks
+}
+
+/*************************************/
+
 static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
 {
     #define expected_calls 4
