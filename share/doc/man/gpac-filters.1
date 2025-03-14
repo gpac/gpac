@@ -1519,6 +1519,11 @@ When the socket is listening in keep-alive .I ka mode:
 .br
 On OSX with VM packet replay you will need to force multicast routing, e.g. route add -net 239.255.1.4/32 -interface vboxnet0
 .br
+.SH Time Regulation
+.LP
+.br
+The filter uses the time between the last two received packets to estimates how often it should check for inputs. The maximum and minimum times to wait between two calls is given by the .I mwait option. The maximum time may need to be reduced for very high bitrates sources.
+.br
 
 .br
 .SH Options (expert):
@@ -1547,6 +1552,8 @@ mime (str):                    indicate mime type of udp data
 block (bool, default: false):  set blocking mode for socket(s)
 .br
 timeout (uint, default: 10000): set timeout in ms for UDP socket(s), 0 to disable timeout
+.br
+mwait (v2di, default: 30x1):   set min and max wait times in ms to avoid too frequent polling
 .br
 reorder_pck (uint, default: 100): number of packets delay for RTP reordering (M2TS over RTP) 
 .br
@@ -5903,7 +5910,7 @@ muxtype (enum, default: auto): muxtype to use for the segments
 .br
 * raw: uses raw media format (disables multiplexed representations)
 .br
-* auto: guess format based on extension, default to mp4 if no extension
+* auto: guesses format based on extension, defaults to mp4 if no extension is provided
 .br
 
 .br
@@ -6682,11 +6689,11 @@ ttl (uint, default: 0, minmax: 0-127): multicast TTL
 .SH rfav1
 .LP
 .br
-Description: AV1/IVF/VP9 reframer
+Description: AV1/IVF/VP9/IAMF reframer
 .br
 
 .br
-This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames.
+This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames. It also parses IAMF OBU and outputs corresponding temporal units containing audio frames and parameter blocks.
 .br
 
 .br
@@ -6988,7 +6995,7 @@ reorder (bool, default: true): consider packets are not always in order - if fal
 .br
 cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
 .br
-rtimeout (uint, default: 500000): default timeout in us to wait when gathering out-of-order packets
+rtimeout (uint, default: 500000): default timeout in µs to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
@@ -8082,6 +8089,8 @@ pidc (sint, default: -1, updatable): profile IDC for HEVC and VVC
 pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
+.br
+seis (uintl, updatable):       list of SEI message types (4,137,144,...). When used with rmsei, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist
 .br
 rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264, HEVC and VVC
 .br
@@ -9998,6 +10007,8 @@ Only a subset of CEA 608/708 is supported.
 .SH Options (expert):
 .LP
 .br
+field (uint, default: 1):      field to decode
+.br
 agg (enum, default: none):     output aggregation mode
 .br
 * none: forward data as decoded (default)
@@ -10771,7 +10782,7 @@ The local service configuration option can be set to:
 .SH Multicast ABR Gateway
 .LP
 .br
-The server can be configured to use a multicast ANR source for an HTTP streaming service, without any HTTP source.
+The server can be configured to use a multicast ABR source for an HTTP streaming service, without any HTTP source.
 .br
 
 .br
@@ -10809,7 +10820,7 @@ The server can be configured to use a multicast source as an alternate data sour
 .br
 
 .br
-Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active and keepalive.
+Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active, keepalive and js.
 .br
 
 .br
@@ -10855,7 +10866,7 @@ If timeshift is 0 for the service, multicast segments will be trashed as soon as
 .br
 
 .br
-Note: Manifests files coming from multicast are currently never cached.
+Note: Manifest files coming from multicast are currently never cached.
 .br
 
 .br
@@ -10870,9 +10881,43 @@ Configuration for caching a live HTTP streaming service with MABR backup:
 .br
 For such services, the custom HTTP header X-From-MABR is defined:
 .br
-- for client requests, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
+- for client request, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
 .br
 - for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no, the content comes from HTTP
+.br
+
+.br
+The js option can be set to a JS module exporting the following functions:
+.br
+* init : (mandatory) The function is called once at the start of the server. Parameters:
+.br
+  * scfg: the service configuration object
+.br
+  * return value: must be true if configuration and initialization are successful, false otherwise.
+.br
+
+.br
+* service_activation : (optional) The function is called when the service is activated or deactivated. Parameters:
+.br
+  * do_activate (boolean): if true, service is being loaded otherwise it is being unloaded
+.br
+  * return value: none
+.br
+
+.br
+* quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+.br
+  * do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
+.br
+  * service_id (integer): ID of the service as announced in the multicast
+.br
+  * period_id (string): ID of the DASH Period, ignored for HLS
+.br
+  * adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+.br
+  * representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
+.br
+  * return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
 .br
 
 .br
@@ -10933,7 +10978,7 @@ Parameter: an HTTP request object from GPAC
 .br
 
 .br
-The function returns an array of two values:
+The function returns an array of two values [result, delay]:
 .br
 * result: null if error, a resolved string indicating either a local file or the reply body, or an object
 .br

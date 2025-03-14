@@ -1264,9 +1264,22 @@ enable intermediate copy of data in nghttp2 (default is disabled but may report 
 use CURL instead of GPAC HTTP stack
 .br
 .TP
-.B \-no-h3
+.B \-h3 (Enum, default: auto)
 .br
-disable HTTP3 (CURL only)
+set HTTP/3 mode
+.br
+* no: disable HTTP/3
+.br
+* first: force trying first with HTTP/3
+.br
+* auto: connect using HTTP 1 or 2 and use HTTP/3 for next request(s) if announced
+.br
+* only: only use HTTP/3
+.br
+.TP
+.B \-h3-trace
+.br
+trace QUIC and HTTP3
 .br
 .TP
 .B \-dbg-edges
@@ -4220,7 +4233,7 @@ Stereo type of video
 Projection type of video
 .br
 .TP
-.B InitalPose (PPOS,v3di,D )
+.B InitialPose (PPOS,v3di,D )
 .br
 Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)
 .br
@@ -4374,7 +4387,7 @@ list of packet identifier this packet depends on
 User data for the packet
 .br
 .TP
-.B Timecodes (TCOD,uintl, P)
+.B Timecodes (TCOD,mem, P)
 .br
 list of timecodes as extracted from SEI (if present)
 .br
