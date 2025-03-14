@@ -8710,18 +8710,21 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 						if (!item_id) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] Inserting box in ipco without itemID, no association added\n"));
 						} else if (ipma) {
-							u32 nb_asso, k;
+							u32 nb_asso, k, insert_pos;
 							GF_ItemPropertyAssociationEntry *entry = NULL;
 							nb_asso = gf_list_count(ipma->entries);
+							insert_pos = 0;
 							for (k=0; k<nb_asso;k++) {
 								entry = gf_list_get(ipma->entries, k);
 								if (entry->item_id==item_id) break;
+								// item ids must appear in increasing order
+								if (item_id>entry->item_id) ++insert_pos;
 								entry = NULL;
 							}
 							if (!entry) {
 								GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
 								if (!entry) return GF_OUT_OF_MEM;
-								gf_list_add(ipma->entries, entry);
+								gf_list_insert(ipma->entries, entry, insert_pos);
 								entry->item_id = item_id;
 							}
 							entry->associations = gf_realloc(entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (entry->nb_associations+1));
