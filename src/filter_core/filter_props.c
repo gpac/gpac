@@ -1357,6 +1357,9 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 
+					//remove existing property if any
+					gf_props_remove_property(dst_props, gf_props_hash_djb2(prop->p4cc, prop->pname), prop->p4cc, prop->pname);
+
 #if GF_PROPS_HASHTABLE_SIZE
 					if (!dst_props->hash_table[idx]) {
 						dst_props->hash_table[idx] = gf_props_get_list(dst_props);
