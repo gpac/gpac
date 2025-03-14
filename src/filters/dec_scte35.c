@@ -571,10 +571,10 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 
 	if (IS_SEGMENTED) {
 		// check if we moved forward by more than one segment (which may happen with scarse streams/no heartbeat/'native' mode)
-		while ((dts - ctx->clock) * ctx->segdur.den > ctx->segdur.num * ctx->timescale) {
+		while ((dts - ctx->clock) * ctx->segdur.den >= ctx->segdur.num * ctx->timescale) {
 			ctx->segnum = 1 + ctx->clock * ctx->segdur.den / (ctx->segdur.num * ctx->timescale);
 			u32 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
-			segdur = MIN(dts - ctx->clock - (ctx->segnum-1) * segdur, segdur);
+			segdur = MIN(dts - ctx->clock * segdur, segdur);
 			scte35dec_push_box(ctx, ctx->clock, segdur);
 		}
 	}
