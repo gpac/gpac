@@ -2324,7 +2324,7 @@ conn_ok:
 
 #ifdef SO_NOSIGPIPE
 		int value = 1;
-		setsockopt(sock->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+		setsockopt(sock->socket, SOL_SOCKET, SO_NOSIGPIPE, SSO_CAST &value, sizeof(value));
 #endif
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = (u32) aip->ai_addrlen;
@@ -4177,7 +4177,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 
 #ifdef SO_NOSIGPIPE
 	int value = 1;
-	setsockopt((*newConnection)->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt((*newConnection)->socket, SOL_SOCKET, SO_NOSIGPIPE, SSO_CAST &value, sizeof(value));
 #endif
 
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -4242,27 +4242,27 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 		if (sock->flags & GF_SOCK_IS_IPV6) {
 #if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO)
 			val = IPV6_PMTUDISC_DO;
-			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &val, sizeof(val)) == -1) {
+			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, SSO_CAST &val, sizeof(val)) == -1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IPV6_MTU_DISCOVER: %s\n", gf_errno_str(LASTSOCKERROR) ));
 			}
 #endif
 #ifdef IPV6_DONTFRAG
 			val = 1;
-			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_DONTFRAG, &val, sizeof(val) ) == -1) {
+			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_DONTFRAG, SSO_CAST &val, sizeof(val) ) == -1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IPV6_DONTFRAG: %s\n", gf_errno_str(LASTSOCKERROR) ));
 			}
 #endif
 		} else {
 #ifdef IP_MTU_DISCOVER
 			val = IP_PMTUDISC_DO;
-			if (setsockopt(sock->socket, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val)) == -1) {
+			if (setsockopt(sock->socket, IPPROTO_IP, IP_MTU_DISCOVER, SSO_CAST &val, sizeof(val)) == -1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] Failed to set IP_MTU_DISCOVER: %s\n", gf_errno_str(LASTSOCKERROR) ));
 				return GF_OK;
 			}
 #endif
 #ifdef IP_DONTFRAG
 			val = 1;
-			if (setsockopt(sock->socket, IPPROTO_IP, IP_DONTFRAG, &val, sizeof(val) ) == -1) {
+			if (setsockopt(sock->socket, IPPROTO_IP, IP_DONTFRAG, SSO_CAST &val, sizeof(val) ) == -1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IP_DONTFRAG: %s\n", gf_errno_str(LASTSOCKERROR) ));
 			}
 #endif
