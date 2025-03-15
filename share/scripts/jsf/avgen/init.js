@@ -69,7 +69,6 @@ filter.set_help(
 );
 
 filter.set_arg({ name: "type", desc: "output selection\n- a: audio only\n- v: video only\n- av: audio and video", type: GF_PROP_UINT, def: "av", minmax_enum: "a|v|av"} );
-filter.set_arg({ name: "text", desc: "output text stream", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "evte", desc: "output event stream\n- 0: disable\n- 1+: period (sec) of dummy events", type: GF_PROP_UINT, def: "0"} );
 filter.set_arg({ name: "freq", desc: "frequency of beep", type: GF_PROP_UINT, def: "440"} );
 filter.set_arg({ name: "freq2", desc: "frequency of odd beep", type: GF_PROP_UINT, def: "659"} );
@@ -93,14 +92,9 @@ filter.set_arg({ name: "views", desc: "number of views", type: GF_PROP_UINT, def
 filter.set_arg({ name: "rates", desc: "number of target bitrates to assign, one per size", type: GF_PROP_STRING_LIST} );
 filter.set_arg({ name: "logt", desc: "log frame time to console", type: GF_PROP_BOOL} );
 
-let text_cts = 0;
-let text_pid = null;
-let lipsum = [];
-let lipsum_idx = 0;
-
 let evte_cts = 0;
 let evte_pid = null;
-let evte_sent = false;
+let evte_playing = false;
 
 let audio_osize=0;
 let audio_cts=0;
@@ -140,9 +134,6 @@ filter.initialize = function() {
 	if (filter.type != 0) {
 		this.set_cap({id: "StreamType", value: "Video", output: true} );
 	}
-	if (filter.text) {
-		this.set_cap({id: "StreamType", value: "Text", output: true} );
-	}
 	if (filter.evte) {
 		this.set_cap({id: "StreamType", value: "Metadata", output: true} );
 	}
@@ -160,31 +151,6 @@ filter.initialize = function() {
 	text.lineSpacing=0;
 
 	let pid_id_offset = 1;
-
-	//setup text
-	if (filter.text) {
-		text_pid = this.new_pid();
-		text_pid.set_prop('StreamType', 'Text');
-		text_pid.set_prop('CodecID', 'txt');
-		text_pid.set_prop('Unframed', true);
-		text_pid.set_prop('Cached', true);
-		text_pid.set_prop('Timescale', filter.fps.n);
-		text_pid.name = "text";
-		text_pid.set_prop('ID', pid_id_offset++);
-		
-		// Load lipsum text
-		let file = new File(filter.jspath + '/lipsum.txt', 'r');
-		let size = file.size;
-		while (!file.eof) {
-			let line = file.gets();
-			if (line) lipsum.push(line.trim());
-		}
-		file.close();
-
-		//subtitle at every 2 seconds
-		let bitrate = Math.floor((size / lipsum.length) * 8 / 2);
-		text_pid.set_prop('Bitrate', bitrate);
-	}
 
 	//setup event
 	if (filter.evte) {
@@ -447,10 +413,12 @@ filter.process_event = function(pid, evt)
 {
 	if (evt.type == GF_FEVT_STOP) {
 		if (pid === audio_pid) audio_playing = false;
+		else if (pid === evte_pid) evte_playing = false;
 		else video_playing = false;
 	} 
 	else if (evt.type == GF_FEVT_PLAY) {
 		if (pid === audio_pid) audio_playing = true;
+		else if (pid === evte_pid) evte_playing = true;
 		else video_playing = true;
 		filter.reschedule();
 	} 
@@ -460,52 +428,16 @@ filter.process = function()
 {
 	if (!audio_playing && !video_playing) return GF_EOS;
 
-	if (video_playing || audio_playing) {
-		process_text();
-		process_event();
-	}
-
 	//start by processing video, adjusting start time
 	if (video_playing) 
 		process_video();
 
 	if (audio_playing)
 		process_audio();
+
+	if (evte_playing)
+		process_event();
 	return GF_OK;
-}
-
-function process_text()
-{
-	if (!text_pid || text_pid.would_block)
-		return;
-
-	let nb_sec;
-	if (filter.type == 0) {
-		nb_sec = audio_cts * filter.dur.d / filter.sr;
-	} else {
-		nb_sec = video_cts * filter.fps.d / filter.fps.n;
-	}
-
-	//send text every 2 seconds
-	if (nb_sec % 2) return;
-
-	let text = lipsum[lipsum_idx++ % lipsum.length];
-	if (text == '\n') {
-		text_cts += filter.fps.n * 2;
-		return;
-	}
-
-	let pck = text_pid.new_packet(text.length);
-	let farray = new Uint8Array(pck.data);
-	for (let i=0; i<text.length; i++) {
-		farray[i] = text.charCodeAt(i);
-	}
-	pck.cts = text_cts;
-	pck.dur = filter.fps.n * 2;
-	pck.sap = GF_FILTER_SAP_1;
-	pck.send();
-
-	text_cts += filter.fps.n * 2;
 }
 
 function get_empty_emsg()
