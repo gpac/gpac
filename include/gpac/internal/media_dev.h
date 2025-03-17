@@ -240,7 +240,7 @@ typedef struct
 {
 	u8 pic_struct;
 	u8 num_clock_ts;
-	AVCSeiPicTimingTimecode timecodes[3]; 
+	AVCSeiPicTimingTimecode timecodes[3];
 	/*to be eventually completed by other pic_timing members*/
 } AVCSeiPicTiming;
 
