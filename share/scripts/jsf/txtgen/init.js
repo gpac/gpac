@@ -35,6 +35,8 @@ filter.set_version("1.0");
 filter.set_author("GPAC Team");
 filter.set_help(
   "This filter generates text streams based on the provided [-src]() file. By default, the filter uses a lipsum text file\n" +
+    "The [-type]() parameter sets the type of text to generate. If set to 'txt', the filter will generate text based on the source file\n" +
+    "If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time\n" +
     "When the [-unit]() is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines\n" +
     "The [-fps]() parameter sets the frame rate of the text stream. As in 1/2, the duration of each text frame is 2 seconds. " +
     "Total duration of the text stream is set by the [-dur]() parameter. If set to 0/0, the text stream will be infinite\n" +
@@ -49,6 +51,13 @@ filter.set_arg({
   desc: "source of text. If not set, the filter will use lorem ipsum text",
   type: GF_PROP_STRING,
   def: filter.jspath + "/lipsum.txt",
+});
+filter.set_arg({
+  name: "type",
+  desc: "type of text to generate\n- txt: plain text (uses src option)\n- utc: UTC time\n- ntp: NTP time",
+  type: GF_PROP_UINT,
+  def: "txt",
+  minmax_enum: "txt|utc|ntp",
 });
 filter.set_arg({
   name: "unit",
@@ -81,6 +90,12 @@ filter.set_arg({
   type: GF_PROP_UINT,
   def: 0,
 });
+filter.set_arg({
+  name: "lock",
+  desc: "lock timing to text generation",
+  type: GF_PROP_BOOL,
+  def: "false",
+});
 
 let text_cts = 0;
 let text_pid = null;
@@ -88,6 +103,13 @@ let text_pid = null;
 let text = [];
 let text_idx = 0;
 let text_playing = false;
+let acc_text = "";
+let acc_cts = 0;
+
+let start_date = 0;
+let utc_init = 0;
+let ntp_init = 0;
+let last_utc = 0;
 
 filter.frame_pending = 0;
 
@@ -116,6 +138,24 @@ filter.initialize = function () {
   text_pid.set_prop("Timescale", 1000);
   text_pid.name = "text";
   text_pid.set_prop("ID", 1);
+  text_pid.set_prop("Bitrate", 1);
+
+  //using UTC or NTP
+  if (filter.type != 0) {
+    if (filter.unit == 1) {
+      print(
+        GF_LOG_DEBUG,
+        "UTC/NTP mode does not support line unit, switching to word unit"
+      );
+      filter.unit = 0; //since "line" is the default, don't warn
+    }
+    if (filter.acc || filter.rollup) {
+      print(GF_LOG_WARNING, "UTC/NTP mode does not support acc/rollup");
+      filter.acc = false;
+      filter.rollup = 0;
+    }
+    return;
+  }
 
   //load lipsum text
   let file = new File(filter.src, "r");
@@ -184,7 +224,6 @@ filter.initialize = function () {
       }
 
       if (text.length - 1 != i) {
-        print(accumulatedText);
         newText.push(accumulatedText.trim());
       }
     }
@@ -208,25 +247,62 @@ filter.process_event = function (pid, evt) {
   }
 };
 
-let acc_text = "";
-let acc_cts = 0;
+function getTimes() {
+  let date = new Date();
+  let utc, ntp;
+  if (filter.lock) {
+    let elapsed_us = 1000 * text_cts;
+    let elapsed_ms = Math.floor(elapsed_us / 1000);
+    date.setTime(start_date + elapsed_ms);
+    utc = utc_init + elapsed_ms;
+    ntp = sys.ntp_shift(ntp_init, elapsed_us);
+  } else {
+    utc = sys.get_utc();
+    ntp = sys.get_ntp();
+  }
+  return [utc, ntp];
+}
 
 filter.process = function () {
   if (!text_playing) return GF_EOS;
   if (!text_pid || text_pid.would_block) return GF_OK;
 
-  // handle accumulation
-  let unit_dur = Math.floor((1000 * filter.fps.d) / filter.fps.n);
-  let unit = text[text_idx++ % text.length];
+  //init times
+  if (!start_date) {
+    start_date = new Date().getTime();
+    utc_init = sys.get_utc();
+    ntp_init = sys.get_ntp();
+  }
+
+  //regulate text generation
+  let interval_ms = Math.floor((1000 * filter.fps.d) / filter.fps.n);
+  if (last_utc && sys.get_utc() - last_utc < interval_ms) return GF_OK;
+  last_utc = sys.get_utc();
+  filter.reschedule(interval_ms);
+
+  //decide on unit
+  let unit;
+  if (filter.type == 0) {
+    unit = text[text_idx++ % text.length];
+  } else {
+    let times = getTimes();
+    if (filter.type == 1) {
+      unit = new Date(times[0]).toUTCString();
+    } else {
+      unit = times[1].n + "." + times[1].d.toString(16);
+    }
+  }
+
+  //handle accumulation
   if (filter.acc && filter.unit == 0) {
     if (unit != null) {
       if (acc_text.length) acc_text += " ";
       acc_text += unit;
-      acc_cts += unit_dur;
+      acc_cts += interval_ms;
       return GF_OK;
     }
   } else if (unit == null) {
-    text_cts += unit_dur;
+    text_cts += interval_ms;
     return GF_OK;
   }
 
@@ -237,7 +313,7 @@ filter.process = function () {
   for (let i = 0; i < text_to_send.length; i++) {
     farray[i] = text_to_send.charCodeAt(i);
   }
-  let dur = acc_cts || unit_dur;
+  let dur = acc_cts || interval_ms;
   pck.cts = text_cts;
   pck.dur = dur;
   pck.sap = GF_FILTER_SAP_1;
@@ -251,7 +327,7 @@ filter.process = function () {
   pck.send();
 
   //put a pause during acc
-  if (filter.acc) text_cts += unit_dur;
+  if (filter.acc) text_cts += interval_ms;
 
   //check if we should stop
   if (
