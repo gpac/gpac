@@ -2434,7 +2434,7 @@ Bool av1_is_obu_header(ObuType obu_type) {
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 	case OBU_METADATA:
-		// TODO add check based on the metadata type
+		// we're liberal in what we accept but we're conservative in what we send
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -2624,7 +2624,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		}
 	}
 	if (!obu_list) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] internal error, no OBU list cannot add\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] internal error, no OBU list: cannot add\n"));
 		gf_free(a->obu);
 		gf_free(a);
 		return;
@@ -2638,6 +2638,23 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
 	if (av1_is_obu_header(obu_type)) {
+		if (obu_type == OBU_METADATA) {
+			u64 cur_pos = gf_bs_get_position(bs);
+			gf_bs_seek(bs, pos);
+
+			Bool obu_extension_flag=GF_FALSE, obu_has_size_field=GF_FALSE;
+			u8 tid=0, sid=0;
+			gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &tid, &sid);
+			if (obu_has_size_field) gf_av1_leb128_read(bs, NULL);
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
+
+			gf_bs_seek(bs, cur_pos);
+
+			// TODO: filter out any metadata which values change
+			if (metadata_type == OBU_METADATA_TYPE_TIMECODE)
+				return;
+		}
+
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
 	}
 	if (!state->skip_frames && av1_is_obu_frame(state, obu_type)) {
@@ -2667,6 +2684,8 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 		if (e)
 			return e;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", state->obu_type, obu_size, pos));
+
 
 		if (obu_size != gf_bs_get_position(bs) - pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] OBU (Section 5) frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
@@ -2806,6 +2825,8 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 
 			e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 			if (e) return e;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] AnnexB: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", state->obu_type, obu_size, pos));
+
 
 			if (obu_size != gf_bs_get_position(bs) - pos) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Annex B frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
@@ -2835,7 +2856,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 	if (gf_bs_available(bs)<12) return GF_EOS;
 	e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts_ignored);
 	if (e) return e;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF frame detected (size "LLU")\n", frame_size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF: frame detected (size "LLU", PTS "LLU")\n", frame_size, pts_ignored));
 
 	if (gf_bs_available(bs) < frame_size) return GF_EOS;
 
@@ -2845,6 +2866,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 		if (e != GF_OK)
 			return e;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", state->obu_type, obu_size, pos));
 
 		if (obu_size != gf_bs_get_position(bs) - pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] IVF frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
@@ -3271,7 +3293,6 @@ static void av1_decode_frame_wrapup(AV1State *state)
 
 		//gm_params[ ref ][ j ] is set equal to SavedGmParams[ frame_to_show_map_idx ][ ref ][ j ] for ref = LAST_FRAME..ALTREF_FRAME, for j = 0..5.
 		state->GmParams = state->SavedGmParams[state->frame_state.frame_to_show_map_idx];
-
 	}
 }
 
@@ -3714,7 +3735,6 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 			//ignore all init steps
 		}
-
 	}
 
 	//delta_q_params():
@@ -4286,7 +4306,7 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
-	u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+	ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 
 	switch (metadata_type) {
 	case OBU_METADATA_TYPE_ITUT_T35:
