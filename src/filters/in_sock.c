@@ -98,8 +98,8 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
-	if ((ctx->mwait.x < ctx->mwait.y) || (ctx->mwait.x<0) || (ctx->mwait.y<0)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Invalid `mwait`, max %d must be greater than min %d\n", ctx->mwait.x, ctx->mwait.y));
+	if ((ctx->mwait.y < ctx->mwait.x) || (ctx->mwait.x<0) || (ctx->mwait.y<0)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Invalid `mwait`, max %d must be greater than min %d\n", ctx->mwait.y, ctx->mwait.x));
 		return GF_IO_ERR;
 	}
 	ctx->active_sockets = gf_sk_group_new();
@@ -507,8 +507,8 @@ static GF_Err sockin_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		u64 sleep_for = 2*ctx->rcv_time_diff/3000;
-		if (sleep_for > ctx->mwait.x) sleep_for = ctx->mwait.x;
-		if (sleep_for < ctx->mwait.y) sleep_for = ctx->mwait.y;
+		if (sleep_for > ctx->mwait.y) sleep_for = ctx->mwait.y;
+		if (sleep_for < ctx->mwait.x) sleep_for = ctx->mwait.x;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SockIn] empty - sleeping for "LLU" ms\n", sleep_for ));
 		gf_filter_ask_rt_reschedule(filter, sleep_for*1000);
 		return GF_OK;
@@ -632,7 +632,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(mime), "indicate mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "set timeout in ms for UDP socket(s), 0 to disable timeout", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mwait), "set min and max wait times in ms to avoid too frequent polling", GF_PROP_VEC2I, "30x1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mwait), "set min and max wait times in ms to avoid too frequent polling", GF_PROP_VEC2I, "1x30", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_STREAMING
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
