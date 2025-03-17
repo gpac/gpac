@@ -1413,13 +1413,15 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 {
 	/*write STYP if we write to a different file or if we write the last segment*/
-	if (movie->use_segments && !movie->append_segment && !movie->segment_start && movie->write_styp) {
+	if (!movie->append_segment && !movie->segment_start && movie->write_styp) {
 		GF_Err e;
 
 		/*modify brands STYP*/
 		if (movie->write_styp==1) {
-			/*"msix" brand: this is a DASH Initialization Segment*/
-			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, GF_TRUE);
+			if (movie->use_segments) {
+				/*"msix" brand: this is a DASH Initialization Segment*/
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, GF_TRUE);
+			}
 			if (last_segment) {
 				/*"lmsg" brand: this is the last DASH Segment*/
 				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, GF_TRUE);
