@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU (AVC, HEVC, VVC)  reframer filter
@@ -276,13 +276,15 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
+		u32 old_timescale = ctx->timescale;
 		ctx->timescale = p->value.uint;
-		ctx->cur_fps.den = 0;
-		ctx->cur_fps.num = ctx->timescale;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) {
 			ctx->cur_fps = p->value.frac;
+		} else if (!old_timescale || (old_timescale != ctx->timescale)) {
+			ctx->cur_fps.den = 0;
+			ctx->cur_fps.num = ctx->timescale;
 		}
 	}
 
@@ -405,10 +407,12 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 		}
-		ctx->nal_store_size = 0;
-
-		if (ctx->timescale != 0)
-			ctx->resume_from = 0;
+		if (old_codecid != ctx->codecid) {
+			ctx->nal_store_size = 0;
+			if (ctx->timescale != 0)
+				ctx->resume_from = 0;
+			ctx->crc_cfg = ctx->crc_cfg_enh = 0;
+		}
 
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		//don't change codec type if reframing an ES (for HLS SAES)
@@ -422,7 +426,6 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
 		ctx->ps_modified = GF_TRUE;
-		ctx->crc_cfg = ctx->crc_cfg_enh = 0;
 	}
 
 	return GF_OK;
