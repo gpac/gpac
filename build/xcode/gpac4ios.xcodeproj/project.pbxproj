@@ -2294,7 +2294,7 @@
 				LastUpgradeCheck = 1020;
 				TargetAttributes = {
 					71A19B1912796B5600ACFF58 = {
-						DevelopmentTeam = Q46G522WGV;
+						DevelopmentTeam = Y3MQ824CRS;
 					};
 				};
 			};
@@ -2811,7 +2811,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = Q46G522WGV;
+				DEVELOPMENT_TEAM = Y3MQ824CRS;
 				ENABLE_BITCODE = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = YES;
@@ -2842,7 +2842,7 @@
 				OTHER_CFLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = "";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.telecom-paristech.gpac";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.telecom-paris.gpac";
 				PRODUCT_NAME = gpac4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
@@ -2860,7 +2860,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = Q46G522WGV;
+				DEVELOPMENT_TEAM = Y3MQ824CRS;
 				ENABLE_BITCODE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
@@ -2889,7 +2889,7 @@
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.telecom-paristech.gpac";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.telecom-paris.gpac";
 				PRODUCT_NAME = gpac4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
