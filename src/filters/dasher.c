@@ -4317,6 +4317,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		//get final segment template with path resolution - output file name is NULL, we already have solved this
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ds->stl, ctx->tpl_force);
+		if (ds->seg_template) gf_free(ds->seg_template);
 		ds->seg_template = gf_strdup(szSegmentName);
 
 		//get final segment template - output file name is NULL, we already have solved this
@@ -4495,6 +4496,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			}
 		}
 
+		if (ds->init_seg) gf_free(ds->init_seg);
 		ds->init_seg = gf_strdup(szInitSegmentFilename);
 
 		//we use segment template
@@ -8180,6 +8182,11 @@ u64 dasher_translate_cts(GF_DashStream *ds, u64 cts)
 		} else {
 			cts = 0;
 		}
+	}
+	/*special cases when pts offset is not signaled and SAP2 is used, first CTS is higher than the CTS of the few following frame
+	we will still disptach withthe source cts, but we use 0 for these frames to avoid crazy timings */
+	else if ((s64) cts <  (s64) ds->first_cts) {
+		cts = 0;
 	} else {
 		cts -= ds->first_cts;
 	}
@@ -9777,6 +9784,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			else if (
 				(base_ds->force_rep_end && gf_timestamp_greater_or_equal(cts, ds->timescale, base_ds->force_rep_end, base_ds->timescale) )
 				|| (base_ds->clamped_dur.num && (cts + o_dur > ds->ts_offset + base_ds->clamped_dur.num * ds->timescale / base_ds->clamped_dur.den))
+				//for non-audio stream, also check by duration (mostly for sap2 visual streams with broken timing)
+				|| ((base_ds->clamped_dur.num && ds->stream_type!=GF_STREAM_AUDIO) && (dts - ds->ts_offset >= base_ds->clamped_dur.num * ds->timescale / base_ds->clamped_dur.den))
 			) {
 				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Inputs duration do not match, %s truncated to %g duration\n", ds->src_url, ((Double)base_ds->force_rep_end)/base_ds->timescale ));
