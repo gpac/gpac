@@ -1534,6 +1534,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (!read->frag_type)
 				read->refresh_fragmented = GF_FALSE;
 		}
+	} else {
+		isor_check_producer_ref_time(read);
 	}
 
 	for (i=0; i<count; i++) {
