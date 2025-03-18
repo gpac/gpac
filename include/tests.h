@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gpac/setup.h>
+#include <gpac/tools.h>
 
 #define unittest(suffix) void test_##suffix(void)
 
