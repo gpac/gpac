@@ -442,23 +442,15 @@ filter.process = function()
 
 function get_empty_emsg()
 {
-	let pck = evte_pid.new_packet(30);
+	let pck = evte_pid.new_packet(8);
 	pck.cts = evte_cts;
 	pck.dur = filter.fps.n;
 	pck.sap = GF_FILTER_SAP_1;
 
 	//create an empty emsg
 	let bs = new BS(pck.data, true);
-	bs.put_u32(30); //size
-	bs.put_u32(1701668194); //emeb
-	bs.put_u8(0); //version
-	bs.put_bits(0, 24); //flags
-	bs.put_u8(0); //scheme_id_uri
-	bs.put_u8(0); //value
-	bs.put_u32(filter.fps.n); //timescale
-	bs.put_u32(0); //presentation_time_delta
-	bs.put_u32(1); //event_duration
-	bs.put_u32(1); //id
+	bs.put_u32(8); //size
+	bs.put_4cc("emeb"); //type
 
 	return pck;
 }
@@ -480,6 +472,11 @@ function process_event()
 
 	let pck = get_empty_emsg();
 	pck.send();
+
+	if ((!audio_playing || !video_playing) && evte_cts > 0) {
+		evte_playing = false
+		evte_pid.eos = true;
+	}
 
 	evte_cts += filter.evte * filter.fps.n;
 }
