@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2025
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -1512,6 +1512,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							break;
 						case GF_M2TS_RA_STREAM_SCTE35:
 							es->stream_type = GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS;
+							break;
+						case GF_M2TS_RA_STREAM_SRT:
+							es->stream_type = GF_M2TS_METADATA_SRT;
+							break;
+						case GF_M2TS_RA_STREAM_TXT:
+							es->stream_type = GF_M2TS_METADATA_TEXT;
 							break;
 
 						case GF_M2TS_RA_STREAM_GPAC:
