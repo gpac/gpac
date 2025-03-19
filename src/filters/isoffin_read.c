@@ -872,6 +872,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						//try to locate sync after current time in base
 						resume_at = base->static_sample ? gf_timestamp_rescale(base->static_sample->DTS, base->timescale, ch->timescale) : 0;
 						e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+
 						//found, rewind so that next fetch is the sync
 						if (e==GF_OK) {
 							ch->sample = NULL;
@@ -879,6 +880,13 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						//no further sync found, realign with base timescale
 						else if (e==GF_EOS) {
 							e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+						}
+						//trash sample
+						if (ch->static_sample && ch->static_sample->data) {
+							gf_free(ch->static_sample->data);
+							ch->static_sample->data = NULL;
+							ch->static_sample->dataLength = 0;
+							ch->static_sample->alloc_size = 0;
 						}
 						//unknown state, realign sample num with base
 						if (e<0) {
