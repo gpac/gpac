@@ -109,21 +109,24 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
-	ctx->cur_fps = ctx->fps;
-	if (!ctx->fps.num || !ctx->fps.den) {
-		ctx->cur_fps.num = 25000;
-		ctx->cur_fps.den = 1000;
+	if (!ctx->cur_fps.num) {
+		ctx->cur_fps = ctx->fps;
+		if (!ctx->fps.num || !ctx->fps.den) {
+			ctx->cur_fps.num = 25000;
+			ctx->cur_fps.den = 1000;
+		}
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
 		u32 old_timescale = ctx->timescale;
-		ctx->timescale = ctx->cur_fps.num = p->value.uint;
+		ctx->timescale = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) {
 			ctx->cur_fps = p->value.frac;
 		} else if (!old_timescale || (old_timescale != ctx->timescale)) {
 			ctx->cur_fps.den = 0;
+			ctx->cur_fps.num = ctx->timescale;
 		}
 		p = gf_filter_pid_get_property_str(pid, "nocts");
 		if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
