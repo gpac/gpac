@@ -612,6 +612,10 @@ static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	}
 
 	if (!memcmp(uuid, tmcd_uuid, 16)) {
+		if (nb_read < 4) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in timecode unregistered SEI\n"));
+			goto finish;
+		}
 		inspect_printf(dump, " timecode=\"");
 		inspect_printf(dump, "%02x:%02x:%02x:%02x", payload[3], payload[2], payload[1], payload[0]);
 		inspect_printf(dump, "\"");
