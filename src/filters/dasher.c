@@ -431,7 +431,7 @@ typedef struct _dash_stream
 	u64 seg_start_time;
 	Bool split_set_names;
 	Bool skip_tpl_reuse;
-	u64 max_period_dur;
+	u64 max_period_dur, current_max_period_dur;
 
 	GF_Filter *dst_filter;
 
@@ -4676,6 +4676,7 @@ static void dasher_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimel
 		u64 start_time = stl_e->start_time + stl_e->duration;
 		gf_list_rem(stl->entries, 0);
 		gf_free(stl_e);
+
 		stl_e = gf_list_get(stl->entries, 0);
 		if (!stl_e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] No timeline entry after currently removed segment, cannot update start time\n" ));
@@ -4716,6 +4717,12 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 		if (!ds->rep) continue;
 		if (!ds->rep->state_seg_list) continue;
 
+		Double max_ptime = (Double) ds->max_period_dur;
+		max_ptime /= 1000;
+		//don't try to suppress last segment
+		if (min_valid_mpd_time < max_ptime)
+			max_ptime = min_valid_mpd_time;
+
 		ds->rep->tsb_first_entry = 0;
 		u32 state_idx=0;
 		while (1) {
@@ -4729,8 +4736,8 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			time = (Double) sctx->time;
 			time /= ds->mpd_timescale;
 			dur = (Double) sctx->dur;
-			dur/= ds->timescale;
-			if (time + dur >= min_valid_mpd_time) {
+			dur /= ds->timescale;
+			if (time + dur >= max_ptime) {
 				if (ctx->keep_segs) {
 					ds->rep->tsb_first_entry = state_idx;
 
@@ -4890,7 +4897,9 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Adaptation sets in period are of unequal duration min %g max %g seconds\n", ((Double)min_dur)/1000, ((Double)pdur)/1000));
 		}
 	}
-
+	//if multiple reps and not done yet, use minimum duration as some reps could be ahead of others by one segment
+	if (!all_done && (count>1))
+		pdur = min_dur;
 	dasher_purge_segments(ctx, &pdur);
 
 	if (ctx->current_period->period && !ctx->index_media_duration) {
@@ -7502,7 +7511,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
-		ds->first_cts = ds->first_dts = ds->max_period_dur = 0;
+		ds->first_cts = ds->first_dts = ds->max_period_dur = ds->current_max_period_dur = 0;
 
 		//simulate N loops of the source
 		if (ctx->nb_secs_to_discard) {
@@ -7516,7 +7525,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			ds->ts_offset += nb_skip*seg_dur;
 			ds->seg_number += nb_skip;
 
-			ds->max_period_dur = ds->cumulated_dur;
+			ds->max_period_dur = ds->current_max_period_dur = ds->cumulated_dur;
 			ds->adjusted_next_seg_start += ds->ts_offset;
 			ds->next_seg_start += ds->ts_offset;
 		}
@@ -7931,6 +7940,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			}
 		}
 		dasher_insert_timeline_entry(ctx, base_ds, GF_FALSE);
+
+		//store max duration in period at end of segment
+		ds->max_period_dur = ds->current_max_period_dur;
 
 		if (ctx->do_m3u8) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
@@ -10005,8 +10017,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 					ds->est_first_cts_in_next_seg = ncts;
 
 				ncts = gf_timestamp_rescale(ncts, ds->timescale, 1000);
-				if (ncts>base_ds->max_period_dur)
-					base_ds->max_period_dur = ncts;
+				if (ncts > base_ds->current_max_period_dur)
+					base_ds->current_max_period_dur = ncts;
 
 				ds->last_cts = cts + (split_dur ? split_dur : dur);
 				ds->last_dts = dts;
@@ -10118,6 +10130,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u64 ts = gf_filter_pck_get_cts(pck);
 
 				if (ts != GF_FILTER_NO_TS) {
+					//add ts_offset as cts already has ts_offset included (when using state)
+					ts += ds->ts_offset;
 					cts += ds->first_cts;
 					gf_assert(cts >= ts);
 					diff = cts - ts;
@@ -10130,7 +10144,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					pck_orig_dur.den = split_dur ? gf_filter_pck_get_duration(pck) : 0;
 					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
 
-					gf_filter_pck_set_cts(dst, cts + ds->ts_offset);
+					gf_filter_pck_set_cts(dst, cts);
 
 					ts = gf_filter_pck_get_dts(pck);
 					if (ts != GF_FILTER_NO_TS)
