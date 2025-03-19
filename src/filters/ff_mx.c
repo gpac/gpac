@@ -364,7 +364,13 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 		if (len>19) len=19;
 		strncpy(szProto, url, len);
 		szProto[len] = 0;
-		ofmt = av_guess_format(szProto, url, ctx->mime);
+		if (strncpy(szProto, "srt", len)) {
+			ofmt = av_guess_format("mpegts", url, ctx->mime);
+		} else if (strncpy(szProto, "rtmp", len)) {
+			ofmt = av_guess_format("flv", url, ctx->mime);
+		} else {
+			ofmt = av_guess_format(szProto, url, ctx->mime);
+		}
 	}
 	if (!ofmt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to guess output format for %s, cannot run\n", ctx->dst));
