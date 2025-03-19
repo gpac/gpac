@@ -576,6 +576,51 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	}
 }
 
+static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
+{
+	/* original timecode unregistered SEI UUID */
+	bin128 tmcd_uuid = {
+		0x42, 0x45, 0x3a, 0x42, 0x3b, 0xaa, 0xa6, 0xf1,
+		0xbb, 0x3b, 0x13, 0x42, 0x0e, 0x08, 0xc7, 0x62
+	};
+
+	//uuid
+	u32 i;
+	bin128 uuid = {0};
+	inspect_printf(dump, " uuid=\"");
+	for (i=0; i<16; i++) {
+		uuid[i] = gf_bs_read_u8(bs);
+		inspect_printf(dump, "%02x", uuid[i]);
+	}
+	inspect_printf(dump, "\"");
+
+	//payload
+	u32 nb_read = 0;
+	u8 *payload = gf_malloc(sei_size - 16);
+	if (!payload) return;
+	inspect_printf(dump, " payload=\"");
+	for (i=0; i<sei_size - 16 && gf_bs_available(bs); i++) {
+		payload[i] = gf_bs_read_u8(bs);
+		inspect_printf(dump, "%02x", payload[i]);
+		nb_read++;
+	}
+	inspect_printf(dump, "\"");
+
+	if (nb_read != sei_size - 16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in unregistered SEI\n"));
+		goto finish;
+	}
+
+	if (!memcmp(uuid, tmcd_uuid, 16)) {
+		inspect_printf(dump, " timecode=\"");
+		inspect_printf(dump, "%02x:%02x:%02x:%02x", payload[3], payload[2], payload[1], payload[0]);
+		inspect_printf(dump, "\"");
+	}
+
+finish:
+	gf_free(payload);
+}
+
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
 
@@ -792,8 +837,9 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 			dump_time_code_hevc(dump, bs);
 		} else if (sei_type == 4) {
 			dump_t35(dump, bs, sei_size);
-		}
-		else if (avc && (sei_type==6)) {
+		} else if (sei_type == 5) {
+			dump_unregistered_sei(dump, bs, sei_size);
+		} else if (avc && (sei_type==6)) {
 			u32 frame_cnt = gf_bs_read_ue(bs);
 			inspect_printf(dump, " frame_count=\"%u\"", frame_cnt);
 		}
