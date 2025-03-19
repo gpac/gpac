@@ -587,7 +587,7 @@ static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	//uuid
 	u32 i;
 	bin128 uuid = {0};
-	inspect_printf(dump, " uuid=\"");
+	inspect_printf(dump, " uuid=\"0x");
 	for (i=0; i<16; i++) {
 		uuid[i] = gf_bs_read_u8(bs);
 		inspect_printf(dump, "%02x", uuid[i]);
@@ -598,7 +598,7 @@ static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	u32 nb_read = 0;
 	u8 *payload = gf_malloc(sei_size - 16);
 	if (!payload) return;
-	inspect_printf(dump, " payload=\"");
+	inspect_printf(dump, " payload=\"0x");
 	for (i=0; i<sei_size - 16 && gf_bs_available(bs); i++) {
 		payload[i] = gf_bs_read_u8(bs);
 		inspect_printf(dump, "%02x", payload[i]);
