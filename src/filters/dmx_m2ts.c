@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -222,6 +222,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	Bool has_scal_layer = GF_FALSE;
 	Bool unframed = GF_FALSE;
 	Bool unframed_latm = GF_FALSE;
+	Bool unframed_srt = GF_FALSE;
 	char szName[20];
 	const char *stname;
 	if (stream->user) return;
@@ -416,6 +417,18 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_DVB_TELETEXT;
 			stream->flags |= GF_M2TS_ES_FULL_AU;
 			break;
+		case GF_M2TS_METADATA_SRT:
+			stype = GF_STREAM_TEXT;
+			codecid = GF_CODECID_SUBS_TEXT;
+			unframed = GF_TRUE;
+			unframed_srt = GF_TRUE;
+			break;
+		case GF_M2TS_METADATA_TEXT:
+			stype = GF_STREAM_TEXT;
+			codecid = GF_CODECID_SIMPLE_TEXT;
+			unframed = GF_TRUE;
+			break;
+
 		case GF_M2TS_METADATA_ID3_HLS:
 		case GF_M2TS_METADATA_ID3_KLVA:
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
@@ -485,6 +498,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, unframed ? &PROP_BOOL(GF_TRUE) : NULL);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_LATM, unframed_latm ? &PROP_BOOL(GF_TRUE) : NULL );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_SRT, unframed_srt ? &PROP_BOOL(GF_TRUE) : NULL );
 
 		if (orig_stype) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(orig_stype) );

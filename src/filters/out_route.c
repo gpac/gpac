@@ -66,7 +66,7 @@ typedef struct
 	//clock is sampled at each process() begin or before each LCT packet to be send
 	u64 clock_init, clock;
 
-	//preallocated buffer for LCT packet formating
+	//preallocated buffer for LCT packet formatting
 	u8 *lct_buffer;
 	GF_BitStream *lct_bs;
 

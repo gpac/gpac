@@ -3125,6 +3125,11 @@ The unframed media still has correct AU boundaries: one packet is one full AU, b
 Media is unframed AAC in LATM format
 .br
 .TP
+.B USRT (USRT,bool,  )
+.br
+Media is unframed SRT, header is in payload with 0 start time
+.br
+.TP
 .B Duration (PDUR,lfrac,  )
 .br
 Media duration
@@ -4135,7 +4140,7 @@ Start and end position in bytes of fragment if packet is a fragment or segment s
 .TP
 .B FragTFDT (PFRT,luint,DP)
 .br
-Decode time of first packet in fragmentt
+Decode time of first packet in fragment
 .br
 .TP
 .B SIDXRange (PFSR,lfrac,DP)
