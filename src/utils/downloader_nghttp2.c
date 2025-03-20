@@ -451,11 +451,13 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
 		NV_HDR(hdrs[4+i], hdr->name, hdr->value);
 	}
+#ifndef NDEBUG
 	if (has_body) {
 		nghttp2_data_provider *data_io = (nghttp2_data_provider*)sess->hmux_priv;
 		gf_assert(data_io->read_callback);
 		gf_assert(data_io->source.ptr != NULL);
 	}
+#endif
 	sess->hmux_data_done = 0;
 	sess->hmux_headers_seen = 0;
 	sess->hmux_stream_id = nghttp2_submit_request(sess->hmux_sess->hmux_udta, NULL, hdrs, nb_hdrs+4,

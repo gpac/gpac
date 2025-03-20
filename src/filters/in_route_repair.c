@@ -814,9 +814,8 @@ restart:
 
 	//done with this repair, remove force_keep flag from object
 	if (tsio) {
-		s32 idx = gf_list_find(tsio->pending_repairs, rsi);
-		assert(idx == 0);
-		assert (!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
+		gf_assert(gf_list_find(tsio->pending_repairs, rsi) == 0);
+		gf_assert(!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
 		unprotect = GF_TRUE;
 	}
 	//remove before calling route_on_event, as it may trigger a delete
