@@ -722,7 +722,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		while (gf_list_count(ctx->iamfstate.frame_state.descriptor_obus)) {
 			GF_IamfObu *a = (GF_IamfObu*) gf_list_get(ctx->iamfstate.frame_state.descriptor_obus, 0);
 			gf_list_add(ctx->iamfstate.config->configOBUs, a);
-			ctx->iamfstate.config->configOBUs_size += a->obu_length;
+			ctx->iamfstate.config->configOBUs_size += (u32) a->obu_length;
 			gf_list_rem(ctx->iamfstate.frame_state.descriptor_obus, 0);
 		}
 
@@ -747,7 +747,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->is_iamf) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_AUDIO));
 		if(ctx->iamfstate.pre_skip > 0) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY,  &PROP_LONGSINT(-ctx->iamfstate.pre_skip));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY,  &PROP_LONGSINT(- (s64)ctx->iamfstate.pre_skip));
 		}
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
@@ -1071,7 +1071,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
                 }
 		if (ctx->iamfstate.frame_state.num_samples_to_trim_at_end > 0) {
 			u64 trimmed_duration = ctx->iamfstate.num_samples_per_frame - ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
-			gf_filter_pck_set_duration(pck, trimmed_duration);
+			gf_filter_pck_set_duration(pck, (u32) trimmed_duration);
 		}
 	} else {
 		memcpy(output, ctx->state.frame_obus, pck_size);

@@ -206,7 +206,7 @@ static u32 compute_emib_duration(u64 dts, u64 evt_dts, u32 max_dur, u32 evt_dur)
 {
 	gf_assert(dts <= evt_dts);
 	if (dts < evt_dts) {
-		return MIN(evt_dts - dts, max_dur);
+		return (u32) MIN(evt_dts - dts, max_dur);
 	} else if (max_dur != UINT32_MAX && evt_dur > max_dur) {
 		return max_dur;
 	} else {
@@ -278,7 +278,7 @@ static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt
 {
 	if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
 	gf_assert(timestamp + dur >= first_evt->dts);
-	GF_Err e = scte35dec_flush_emeb(ctx, timestamp, dur);
+	GF_Err e = scte35dec_flush_emeb(ctx, timestamp, (u32) dur);
 	ctx->clock = timestamp + dur;
 	return e;
 }
@@ -312,12 +312,12 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, const u64 ts, const u32 dur)
 		}
 	}
 
-	e = scte35dec_flush_emib(ctx, curr_ts, curr_dur);
+	e = scte35dec_flush_emib(ctx, curr_ts, (u32) curr_dur);
 	if (e) return e;
 
 	if (IS_SEGMENTED && ctx->clock < ts + dur) {
 		// complete the segment with an empty box
-		return scte35dec_flush_emeb(ctx, ctx->clock, ts + dur - ctx->clock);
+		return scte35dec_flush_emeb(ctx, ctx->clock, (u32) (ts + dur - ctx->clock));
 	}
 
 	return GF_OK;
@@ -347,7 +347,7 @@ static GF_Err new_segment(SCTE35DecCtx *ctx)
 		ctx->last_dispatched_dts = (-1 * ctx->segdur.num * ctx->timescale / ctx->segdur.den);
 	ctx->segnum++;
 	ctx->clock = dts;
-	return scte35dec_push_box(ctx, dts, ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - dts);
+	return scte35dec_push_box(ctx, dts, (u32) ( ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - dts) );
 }
 
 static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
@@ -463,7 +463,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 	}
 
 	u16 descriptor_loop_length = gf_bs_read_u16(bs);
-	u32 descriptor_start_pos = gf_bs_get_position(bs);
+	u32 descriptor_start_pos = (u32) gf_bs_get_position(bs);
 	while (gf_bs_get_position(bs) - descriptor_start_pos < descriptor_loop_length) {
 		u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 		u8 descriptor_length = gf_bs_read_u8(bs);
@@ -572,9 +572,9 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	if (IS_SEGMENTED) {
 		// check if we moved forward by more than one segment (which may happen with scarse streams/no heartbeat/'native' mode)
 		while ((dts - ctx->clock) * ctx->segdur.den >= ctx->segdur.num * ctx->timescale) {
-			ctx->segnum = 1 + ctx->clock * ctx->segdur.den / (ctx->segdur.num * ctx->timescale);
+			ctx->segnum = 1 + (u32) (ctx->clock * ctx->segdur.den / (ctx->segdur.num * ctx->timescale) );
 			u32 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
-			segdur = MIN(dts - ctx->clock * segdur, segdur);
+			segdur = (u32) MIN(dts - ctx->clock * segdur, segdur);
 			scte35dec_push_box(ctx, ctx->clock, segdur);
 		}
 	}

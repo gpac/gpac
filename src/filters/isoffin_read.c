@@ -1047,7 +1047,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					GF_ISOSample s={0};
 					gf_isom_get_sample_info_ex(read->mov, ch->track, sample_num, NULL, NULL, &s);
 					ch->start = s.DTS+s.CTS_Offset;
-					start_range = ch->start;
+					start_range = (Double) ch->start;
 					start_range /= ch->timescale;
 					ch->sample_num = sample_num;
 				}

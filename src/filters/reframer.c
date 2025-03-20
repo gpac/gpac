@@ -424,7 +424,7 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		tc->minutes = m;
 		tc->seconds = s;
 		tc->n_frames = n_frames;
-		tc->as_timestamp = v;
+		tc->as_timestamp = (u32) v;
 		*as_timecode = tc;
 		return GF_TRUE;
 	}
