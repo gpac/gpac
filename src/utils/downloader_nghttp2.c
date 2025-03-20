@@ -376,13 +376,13 @@ static GF_Err h2_session_write(GF_DownloadSession *sess)
 
 static void h2_stream_reset(GF_DownloadSession *sess, Bool is_abort)
 {
-	nghttp2_submit_rst_stream(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, sess->hmux_stream_id, is_abort ? NGHTTP2_CANCEL : NGHTTP2_NO_ERROR);
+	nghttp2_submit_rst_stream(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, (int32_t) sess->hmux_stream_id, is_abort ? NGHTTP2_CANCEL : NGHTTP2_NO_ERROR);
 }
 
 static GF_Err h2_resume_stream(GF_DownloadSession *sess)
 {
 	sess->hmux_data_paused = 0;
-	nghttp2_session_resume_data(sess->hmux_sess->hmux_udta, sess->hmux_stream_id);
+	nghttp2_session_resume_data(sess->hmux_sess->hmux_udta, (int32_t) sess->hmux_stream_id);
 	return GF_OK;
 }
 
@@ -529,7 +529,7 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 
 	gf_mx_p(sess->mx);
 
-	int rv = nghttp2_submit_response(sess->hmux_sess->hmux_udta, sess->hmux_stream_id, hdrs, count+1, no_body ? NULL : sess->hmux_priv);
+	int rv = nghttp2_submit_response(sess->hmux_sess->hmux_udta, (int32_t) sess->hmux_stream_id, hdrs, count+1, no_body ? NULL : sess->hmux_priv);
 
 	gf_free(hdrs);
 

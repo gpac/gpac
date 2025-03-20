@@ -243,7 +243,7 @@ static Bool gather_cache_files(void *cbck, char *item_name, char *item_path, GF_
 	return 0;
 }
 
-u64 gf_cache_cleanup(const char * directory, u32 max_size)
+u64 gf_cache_cleanup(const char * directory, u64 max_size)
 {
 	char szLOCK[GF_MAX_PATH];
 	sprintf(szLOCK, "%s/.lock", directory);
@@ -253,7 +253,7 @@ u64 gf_cache_cleanup(const char * directory, u32 max_size)
 	CacheGather gci = {0};
 	gci.files = gf_list_new();
 	gf_enum_directory(directory, GF_FALSE, gather_cache_files, &gci, "*.txt");
-	u32 cache_size = gci.tot_size;
+	u64 cache_size = gci.tot_size;
 
 	while (gf_list_count(gci.files)) {
 		CacheInfo *ci = gf_list_pop_back(gci.files);

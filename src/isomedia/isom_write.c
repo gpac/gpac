@@ -7807,7 +7807,7 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 	else
 	{
 		cslg = trak->Media->information->sampleTable->CompositionToDecode;
-		shift = cslg->compositionToDTSShift;
+		shift = (s32) cslg->compositionToDTSShift;
 		for (i=0; i<ctts->nb_entries; i++) {
 			s64 new_ts = ctts->entries[i].decodingOffset;
 			new_ts += shift;

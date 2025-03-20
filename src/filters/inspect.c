@@ -3911,7 +3911,7 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 	}
 
 	char szDur[100];
-	gf_format_duration(dur, timescale, szDur);
+	gf_format_duration(dur, (u32) timescale, szDur);
 	if (skip_name)
 		inspect_printf(dump, " (");
 	else

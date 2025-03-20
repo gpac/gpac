@@ -2054,11 +2054,12 @@ void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
 GF_EXPORT
 GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
+	u32 i;
         if (!cfg || !bs) return GF_BAD_PARAM;
 
         gf_bs_write_u8(bs, cfg->configurationVersion);
         gf_av1_leb128_write(bs, cfg->configOBUs_size);
-        for (int i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
+        for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
                 GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
                 gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
         }

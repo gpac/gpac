@@ -2650,7 +2650,7 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 		if (src_sock_addr) {
 			*src_sock_addr = gf_malloc(sizeof(u8) * res->ai_addrlen);
 			memcpy(*src_sock_addr, res->ai_addr, res->ai_addrlen);
-			*src_sock_addr_len = res->ai_addrlen;
+			*src_sock_addr_len = (u32) res->ai_addrlen;
 		}
 
 		freeaddrinfo(res);
