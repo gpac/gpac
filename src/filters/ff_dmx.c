@@ -2207,7 +2207,7 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 {
 	const AVInputFormat *fmt;
 
-    if (!dev_name) return;
+	if (!dev_name) return;
     fmt = (const AVInputFormat *) av_find_input_format(dev_name);
     if (!fmt) return;
 
@@ -2216,7 +2216,11 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 	}
 
 	AVDeviceInfoList *dev_list = NULL;
+#if LIBAVDEVICE_VERSION_MAJOR<59
+	int res = avdevice_list_input_sources((AVInputFormat *)fmt, dev_name, NULL, &dev_list);
+#else
 	int res = avdevice_list_input_sources(fmt, dev_name, NULL, &dev_list);
+#endif
 	if (res<0) {
 		//device doesn't implement avdevice_list_devices, try loading the context using "list_devices=1" option
 		if (-res == ENOSYS) {
