@@ -606,7 +606,7 @@ static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	}
 	inspect_printf(dump, "\"");
 
-	if (nb_read != sei_size - 16) {
+	if (nb_read < sei_size - 16) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in unregistered SEI\n"));
 		goto finish;
 	}
@@ -617,7 +617,7 @@ static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
 			goto finish;
 		}
 		inspect_printf(dump, " timecode=\"");
-		inspect_printf(dump, "%02x:%02x:%02x:%02x", payload[3], payload[2], payload[1], payload[0]);
+		inspect_printf(dump, "%02u:%02u:%02u:%02u", payload[3], payload[2], payload[1], payload[0]);
 		inspect_printf(dump, "\"");
 	}
 
