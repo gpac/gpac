@@ -510,7 +510,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 		if (sleep_for > ctx->mwait.y) sleep_for = ctx->mwait.y;
 		if (sleep_for < ctx->mwait.x) sleep_for = ctx->mwait.x;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SockIn] empty - sleeping for "LLU" ms\n", sleep_for ));
-		gf_filter_ask_rt_reschedule(filter, sleep_for*1000);
+		gf_filter_ask_rt_reschedule(filter, (u32) (sleep_for*1000) );
 		return GF_OK;
 	}
 	else if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_EOS)) {

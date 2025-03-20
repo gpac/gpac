@@ -7807,7 +7807,7 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 	else
 	{
 		cslg = trak->Media->information->sampleTable->CompositionToDecode;
-		shift = cslg->compositionToDTSShift;
+		shift = (s32) cslg->compositionToDTSShift;
 		for (i=0; i<ctts->nb_entries; i++) {
 			s64 new_ts = ctts->entries[i].decodingOffset;
 			new_ts += shift;
@@ -8877,10 +8877,10 @@ Bool gf_isom_is_inplace_rewrite(GF_ISOFile *movie)
 		if (movie->editFileMap && gf_bs_get_size(movie->editFileMap->bs))
 			movie->no_inplace_rewrite = GF_TRUE;
 		//block redirect (used by mp4mx), no inplace rewrite
-		else if (movie->on_block_out || !strcmp(movie->finalName, "_gpac_isobmff_redirect"))
+		else if (movie->on_block_out || (movie->finalName && !strcmp(movie->finalName, "_gpac_isobmff_redirect")))
 			movie->no_inplace_rewrite = GF_TRUE;
 		//stdout redirect, no inplace rewrite
-		else if (!strcmp(movie->finalName, "std"))
+		else if (movie->finalName && !strcmp(movie->finalName, "std"))
 			movie->no_inplace_rewrite = GF_TRUE;
 		//new file, no inplace rewrite
 		else if (!movie->fileName)

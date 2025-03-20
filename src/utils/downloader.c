@@ -1188,7 +1188,7 @@ GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 
 	GF_Err e;
 
 	if (sess->cached_file) {
-		*out_read = gf_fread(data, data_size, sess->cached_file);
+		*out_read = (u32) gf_fread(data, data_size, sess->cached_file);
 		if (! *out_read && gf_cache_is_done(sess->cache_entry)) {
 			sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 			if (sess->total_size != sess->bytes_done) {

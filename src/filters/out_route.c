@@ -501,16 +501,23 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	if (p) service_id = p->value.uint;
 
-	rserv = NULL;
-	for (i=0; i<gf_list_count(ctx->services); i++) {
-		rserv = gf_list_get(ctx->services, i);
-		if (service_id == rserv->service_id) break;
-		rserv = NULL;
-	}
-
 	manifest_type = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
 	if (p) manifest_type = p->value.uint;
+
+	rserv = NULL;
+	for (i=0; i<gf_list_count(ctx->services); i++) {
+		rserv = gf_list_get(ctx->services, i);
+		if (service_id == rserv->service_id) {
+			if (rserv->manifest_type && manifest_type) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service, not supported - please set `ServiceID` on sources !\n", ctx->log_name));
+				gf_filter_abort(filter);
+				return GF_BAD_PARAM;
+			}
+			break;
+		}
+		rserv = NULL;
+	}
 
 	if (manifest_type) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
@@ -533,7 +540,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		const char *service_ip = ctx->ip;
 
 		//cannot have 2 manifest pids connecting in route mode
-		if (!ctx->sock_atsc_lls && gf_list_count(ctx->services) && manifest_type) {
+		if (!ctx->sock_atsc_lls && !ctx->dvb_mabr && gf_list_count(ctx->services) && manifest_type) {
 			if (strchr(ctx->dst, '$')) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple services in route mode, creating a new output filter\n", ctx->log_name));
 				return GF_REQUIRES_NEW_INSTANCE;
@@ -3202,7 +3209,10 @@ static GF_Err routeout_process(GF_Filter *filter)
 		ROUTEService *serv = gf_list_get(ctx->services, i);
 		if (serv->is_done) continue;
 		e = routeout_check_service_updates(ctx, serv);
-		if (!serv->service_ready || (e==GF_NOT_READY)) return GF_OK;
+		if (!serv->service_ready || (e==GF_NOT_READY)) {
+			gf_filter_ask_rt_reschedule(filter, 10000);
+			return GF_OK;
+		}
 	}
 	if (ctx->sock_dvb_mabr) {
 		routeout_send_mabr_manifest(ctx);

@@ -3269,7 +3269,7 @@ GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
 #endif
 		if (f) {
-			s32 wlen = fwrite(szPID, 1, len, f);
+			s32 wlen = (s32) fwrite(szPID, 1, len, f);
 			fclose(f);
 			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
 			continue;

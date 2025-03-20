@@ -1989,8 +1989,8 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
 			parse_track_id(&meta->track_id, szSlot+3, GF_FALSE);
-			if (act_type == META_ACTION_ADD_ITEM)
-				meta->root_meta = 0;
+			//allowed for all action types
+			meta->root_meta = 0;
 		}
 		else if (!strnicmp(szSlot, "id=", 3)) {
 			meta->item_id = parse_u32(szSlot+3, "id");
@@ -5180,7 +5180,10 @@ static GF_Err do_meta_act()
 					if (e) break;
 				}
 			}
-
+			if (!meta->szPath) {
+				M4_LOG(GF_LOG_ERROR, ("No item path specified\n", meta->item_id));
+				return GF_BAD_PARAM;
+			}
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
 			                          meta->szName,

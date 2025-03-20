@@ -449,7 +449,7 @@ u32 gf_cache_get_cache_filesize(const DownloadedCacheEntry entry);
 GF_Err gf_cache_set_content_length(const DownloadedCacheEntry entry, u32 length );
 u32 gf_cache_get_content_length(const DownloadedCacheEntry entry);
 GF_Err gf_cache_get_http_headers(const DownloadedCacheEntry entry, const char **etag, const char **last_modif);
-u64 gf_cache_cleanup(const char * directory, u32 max_size);
+u64 gf_cache_cleanup(const char * directory, u64 max_size);
 void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry);
 u64 gf_cache_get_start_range( const DownloadedCacheEntry entry );
 u64 gf_cache_get_end_range( const DownloadedCacheEntry entry );

@@ -1995,7 +1995,7 @@ sourceid_reassign:
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
 						char *frag_sep = strchr(frag_name, dst_filter->session->sep_name);
 						gf_assert(frag_sep);
-						u32 frag_sep_len = frag_sep-frag_name+1 ;
+						u32 frag_sep_len = (u32) (frag_sep-frag_name+1);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
 						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
@@ -2134,7 +2134,7 @@ static Bool cap_code_match(u32 c1, u32 c2)
 }
 
 
-Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegister *freg, GF_Filter *filter_inst, s16 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -2745,7 +2745,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 GF_EXPORT
 Bool gf_filter_pid_check_caps(GF_FilterPid *_pid)
 {
-	u8 priority;
+	s16 priority;
 	Bool res;
 	GF_Filter *on_filter;
 	if (PID_IS_OUTPUT(_pid)) return GF_FALSE;
@@ -3341,7 +3341,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 			//connection from source, disable edge if pid caps mismatch
 			if (edge->src_reg->freg == pid->filter->freg) {
-				u8 priority=0;
+				s16 priority=0;
 				u32 dst_bundle_idx;
 				//check path weight for the given dst cap - we MUST give the target cap otherwise we might get a default match to another cap
 				path_weight = gf_filter_pid_caps_match(pid, freg, NULL, &priority, &dst_bundle_idx, pid->filter->dst_filter, edge->dst_cap_idx);
@@ -3397,7 +3397,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 		//connection from source, disable edge if pid caps mismatch
 		if (edge->src_reg->freg == pid->filter->freg) {
-			u8 priority=0;
+			s16 priority=0;
 			u32 dst_bundle_idx;
 			path_weight = gf_filter_pid_caps_match(pid, dst->freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, -1);
 			if (!path_weight) {
@@ -3517,7 +3517,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 		//compute distances
 		for (i=0; i<current_node->nb_edges; i++) {
-			u8 priority=0;
+			s16 priority=0;
 			GF_FilterRegEdge *redge = &current_node->edges[i];
 			u32 dist;
 			Bool do_switch = GF_FALSE;

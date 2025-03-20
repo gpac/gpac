@@ -4662,7 +4662,7 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 	GF_Err e = GF_OK;
 	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
 	u32 codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
-	state->num_samples_per_frame = gf_av1_leb128_read(bs, NULL);
+	state->num_samples_per_frame = (int) gf_av1_leb128_read(bs, NULL);
 	state->audio_roll_distance = gf_bs_read_int_log(bs, 16, "roll_distance");
 	switch (codec_id) {
 	case GF_4CC('O', 'p', 'u', 's'):
@@ -4733,7 +4733,7 @@ static void iamf_parse_audio_element(GF_BitStream *bs, IAMFState *state)
 	gf_bs_read_int_log(bs, 5, "reserved_for_future_use");
 	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
 	const u64 num_substreams = gf_av1_leb128_read(bs, NULL);
-	state->total_substreams += num_substreams;
+	state->total_substreams += (int) num_substreams;
 	// OK to skip over the rest.
 	return;
 }

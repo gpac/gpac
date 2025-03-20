@@ -746,7 +746,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			consumed = au_start;
 			ctx->nb_frames ++;
 
-			mhas_dmx_update_cts(ctx, pck_dur);
+			mhas_dmx_update_cts(ctx,(u32)  pck_dur);
 			has_cfg = 0;
 
 			if (prev_pck_size) {
