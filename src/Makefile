@@ -26,9 +26,9 @@ LIBGPAC_UTILS+=utils/sha1.o utils/sha256.o utils/md5.o utils/base_encoding.o uti
 
 LIBGPAC_DOWNLOADER=
 ifeq ($(CONFIG_EMSCRIPTEN),yes)
-LIBGPAC_DOWNLOADER+=utils/downloader_emscripten.o 
+LIBGPAC_DOWNLOADER+=utils/downloader_emscripten.o
 else
-LIBGPAC_DOWNLOADER+=utils/downloader.o utils/downloader_cache.o utils/downloader_curl.o utils/downloader_hmux.o utils/downloader_nghttp2.o utils/downloader_ngtcp2.o utils/downloader_ssl.o 
+LIBGPAC_DOWNLOADER+=utils/downloader.o utils/downloader_cache.o utils/downloader_curl.o utils/downloader_hmux.o utils/downloader_nghttp2.o utils/downloader_ngtcp2.o utils/downloader_ssl.o
 endif
 
 # ifeq ($(DISABLE_PLAYER),no)
@@ -195,7 +195,7 @@ ifeq ($(DISABLE_SCENE_ENCODE),no)
 LIBGPAC_SCENEMANAGER+=scene_manager/encode_isom.o
 endif
 
-LIBGPAC_COMPOSITOR=compositor/audio_mixer.o compositor/font_engine.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o 
+LIBGPAC_COMPOSITOR=compositor/audio_mixer.o compositor/font_engine.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o
 
 ifeq ($(DISABLE_COMPOSITOR),no)
 ## libgpac objects gathering: src/compositor
@@ -238,7 +238,7 @@ endif
 OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_DOWNLOADER) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_FFMPEG) $(LIBGPAC_FILTERS_LIBCAPTION) $(LIBGPAC_FILTERS_MPEGHDEC) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS)
 
 ##to improve - we move ngtcp2 first because we likely have a custom SSL
-EXTRALIBS=$(ngtcp2_ldflags) $(nghttp3_ldflags)
+EXTRALIBS:=$(ngtcp2_ldflags) $(nghttp3_ldflags) $(EXTRALIBS)
 
 ##include static modules and other deps for libgpac
 include ../static.mak
