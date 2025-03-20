@@ -10362,6 +10362,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			ctx->is_eos = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->opid);
+
+			if (ctx->update_report == 0)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error: EOS found but no data sent\n"));
 		}
 	}
 	return e;
