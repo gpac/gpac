@@ -174,17 +174,15 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git remote add gh-token "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
 
-          git tag -d $new_minor || true
-          git tag -d $new_major || true
+          if ! git rev-parse -q --verify "refs/tags/$new_minor" >/dev/null; then
+            git tag -a $new_minor -m "ABI version ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" ${{ github.sha }}
+            git push origin $new_minor
+          fi
 
-          git push origin :$new_minor || true
-          git push origin :$new_major || true
-
-          git tag -a $new_minor -m "ABI version ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" ${{ github.sha }}
-          git tag -a $new_major -m "ABI version ${{ steps.decide-abi.outputs.major }}" ${{ github.sha }}
-
-          git push origin $new_minor
-          git push origin $new_major
+          if ! git rev-parse -q --verify "refs/tags/$new_major" >/dev/null; then
+            git tag -a $new_major -m "ABI version ${{ steps.decide-abi.outputs.major }}" ${{ github.sha }}
+            git push origin $new_major
+          fi
 
   create-pr:
     runs-on: ubuntu-latest
