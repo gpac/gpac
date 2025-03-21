@@ -2783,7 +2783,10 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		for (k=0; k<ipids; k++) {
 			GF_FilterPidInst *pid = gf_list_get(f->input_pids, k);
 			if (!pid->pid) continue;
-			if (pid->requires_full_data_block && (pid->nb_reagg_pck != pid->pid->nb_pck_sent) ) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(pid->pid, GF_PROP_PID_FAKE);
+			if (p && p->value.boolean) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: Fake\n", pid->pid->name));
+			} else if (pid->requires_full_data_block && (pid->nb_reagg_pck != pid->pid->nb_pck_sent) ) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d frames (%d packets) received\n", pid->pid->name, pid->nb_reagg_pck, pid->pid->nb_pck_sent));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent));
@@ -2792,7 +2795,12 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 #ifndef GPAC_DISABLE_LOG
 		for (k=0; k<opids; k++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent));
+			const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+			if (p && p->value.boolean) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* output PID %s: Fake\n", pid->name));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent));
+			}
 		}
 		if (f->nb_errors) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t\t%d errors while processing\n", f->nb_errors));
