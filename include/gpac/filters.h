@@ -1428,6 +1428,9 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
+
+	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE

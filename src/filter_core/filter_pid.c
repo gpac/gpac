@@ -2145,6 +2145,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	Bool mime_matched = GF_FALSE;
 	Bool has_file_ext_cap = GF_FALSE;
 	Bool ext_not_trusted;
+	Bool is_fake = GF_FALSE;
 	GF_FilterPid *src_pid = src_pid_or_ipid->pid;
 	const GF_FilterCapability *in_caps;
 	u32 nb_in_caps;
@@ -2195,10 +2196,17 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	if (!in_caps)
 		return GF_TRUE;
 
+
+	const GF_PropertyValue *p = gf_filter_pid_get_property(src_pid_or_ipid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean) {
+		is_fake = GF_TRUE;
+	}
+
 	//check all input caps of dst filter
 	for (i=0; i<nb_in_caps; i++) {
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &in_caps[i];
+		Bool has_cap_fake = GF_FALSE;
 
 		/*end of cap bundle*/
 		if (i && !(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
@@ -2237,6 +2245,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		nb_subcaps++;
 		//no match for this cap, go on until new one or end
 		if (!all_caps_matched) continue;
+
+		if (is_fake && (cap->code==GF_PROP_PID_FAKE)) has_cap_fake = GF_TRUE;
 
 		if (cap->code) {
 			pid_cap = gf_filter_pid_get_property_first(src_pid_or_ipid, cap->code);
@@ -2355,6 +2365,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		) {
 			all_caps_matched=GF_FALSE;
 		}
+
+		if (is_fake && !has_cap_fake) all_caps_matched = GF_FALSE;
 	}
 
 	if (has_file_ext_cap && ext_not_trusted && !mime_matched)
@@ -4646,6 +4658,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_Filter *dynamic_filter_clone = NULL;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
 	Bool possible_link_found_implicit_mode = GF_FALSE;
+	Bool is_fake = GF_FALSE;
 	u32 pid_is_file = 0;
 	const char *filter_id;
 
@@ -4680,6 +4693,11 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		const GF_PropertyValue *st = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 		if (st && (st->value.uint==GF_STREAM_FILE))
 			pid_is_file = 1;
+	}
+
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean) {
+		is_fake = GF_TRUE;
 	}
 
 	//get filter ID:
@@ -5233,6 +5251,8 @@ single_retry:
 		//we have a match, check if caps are OK
 		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
 
+		if (!cap_matched && is_fake) continue;
+
 		//dst filter forces demuxing, pid is file and caps matched, do not test and do not activate link resolution
 		//if can_try_link_resolution is still false at end of pass one, we will insert a reframer
 		if (cap_matched && filter_dst->force_demux && pid_is_file) {
@@ -5660,6 +5680,12 @@ single_retry:
 		pid->is_sparse = 0;
 	}
 
+	if (is_fake) {
+		pid->not_connected = 1;
+		gf_filter_pid_set_eos(pid);
+		safe_int_dec(&pid->init_task_pending);
+		return;
+	}
 	GF_FilterEvent evt;
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists

@@ -4297,6 +4297,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean)
+		inspect_printf(dump, " fake");
 
 	inspect_printf(dump, "\n");
 }
@@ -5389,6 +5392,7 @@ static const GF_FilterCapability InspecterDemuxedCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterReframeCaps[] =
@@ -5398,6 +5402,7 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterRawCaps[] =
@@ -5407,6 +5412,7 @@ static const GF_FilterCapability InspecterRawCaps[] =
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_MIME, "*"),
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_FILE_EXT, "*"),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
@@ -5581,6 +5587,8 @@ static const GF_FilterCapability InspectCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 const GF_FilterRegister InspectRegister = {

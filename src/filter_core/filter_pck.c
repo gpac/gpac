@@ -888,6 +888,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		gf_filter_pck_discard(pck);
 		return GF_BAD_PARAM;
 	}
+	if (pid->not_connected) {
+		gf_filter_pck_discard(pck);
+		return GF_OK;
+	}
 
 	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 
