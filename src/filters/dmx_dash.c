@@ -1206,6 +1206,9 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
 				} else if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:dash:ssr:2023")) {
 				} else if (desc_scheme && !strcmp(desc_scheme, "http://dashif.org/guidelines/trickmode")) {
+				} else if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:mpegB:cicp:ColourPrimaries") ) {
+				} else if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:mpegB:cicp:TransferCharacteristics") ) {
+				} else if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:mpegB:cicp:MatrixCoefficients") ) {
 				} else {
 					playable = GF_FALSE;
 					break;
