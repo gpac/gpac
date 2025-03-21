@@ -5436,6 +5436,7 @@ Bool gf_isom_box_equal(GF_Box *a, GF_Box *b)
 
 	if (a == b) return GF_TRUE;
 	if (!a || !b) return GF_FALSE;
+	if (a->size != b->size) return GF_FALSE;
 
 	data1 = data2 = NULL;
 
