@@ -509,10 +509,9 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	for (i=0; i<gf_list_count(ctx->services); i++) {
 		rserv = gf_list_get(ctx->services, i);
 		if (service_id == rserv->service_id) {
-			if (rserv->manifest_type && manifest_type) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service, not supported - please set `ServiceID` on sources !\n", ctx->log_name));
-				gf_filter_abort(filter);
-				return GF_BAD_PARAM;
+			//throw warning if same manifest type is detected
+			if (rserv->manifest_type && (manifest_type==rserv->manifest_type)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service - if not desired set `ServiceID` on sources !\n", ctx->log_name));
 			}
 			break;
 		}
