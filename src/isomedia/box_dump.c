@@ -695,22 +695,18 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, " DataReferenceIndex=\"%d\" Width=\"%d\" Height=\"%d\"", p->dataReferenceIndex, p->Width, p->Height);
 
 	if (full_dump) {
-		Float dpih, dpiv;
 		gf_fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
-
-		dpih = (Float) (p->horiz_res&0xFFFF);
-		dpih /= 0xFFFF;
-		dpih += (p->vert_res>>16);
-		dpiv = (Float) (p->vert_res&0xFFFF);
-		dpiv /= 0xFFFF;
-		dpiv += (p->vert_res>>16);
-
-		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
-	} else {
-		//dump reserved info
-		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	}
+	
+	Float dpih, dpiv;
+	dpih = (Float) (p->horiz_res&0xFFFF);
+	dpih /= 0xFFFF;
+	dpih += (p->vert_res>>16);
+	dpiv = (Float) (p->vert_res&0xFFFF);
+	dpiv /= 0xFFFF;
+	dpiv += (p->vert_res>>16); 
+	gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);	
 	if (strlen((const char*)p->compressor_name) ) {
 		if (isalnum(p->compressor_name[0])) {
 			gf_fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
