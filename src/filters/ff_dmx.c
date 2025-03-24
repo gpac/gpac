@@ -507,7 +507,18 @@ restart:
 		FF_FREE_PCK(pkt);
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->nb_streams; i++) {
-				if (ctx->pids_ctx[i].pid) gf_filter_pid_set_eos(ctx->pids_ctx[i].pid);
+				PidCtx *pctx = &ctx->pids_ctx[i];
+				if (!pctx->pid) continue;
+
+				if (pctx->pck_queue) {
+					while (gf_list_count(pctx->pck_queue)) {
+						GF_FilterPacket *pck_q = gf_list_pop_front(pctx->pck_queue);
+						gf_filter_pck_send(pck_q);
+					}
+					gf_list_del(pctx->pck_queue);
+					pctx->pck_queue = NULL;
+				}
+				gf_filter_pid_set_eos(ctx->pids_ctx[i].pid);
 			}
 			return GF_EOS;
 		}

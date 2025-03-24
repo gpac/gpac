@@ -217,6 +217,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 {
 	u32 i, count, codecid=0, stype=0, orig_stype=0;
 	GF_FilterPid *opid;
+	u32 fake_stream = 0;
 	Bool m4sys_stream = GF_FALSE;
 	Bool m4sys_iod_stream = GF_FALSE;
 	Bool has_scal_layer = GF_FALSE;
@@ -431,10 +432,16 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 		case GF_M2TS_METADATA_ID3_HLS:
 		case GF_M2TS_METADATA_ID3_KLVA:
-			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
-			//fallthrough
+			stype = GF_STREAM_METADATA;
+			codecid = GF_CODECID_NONE;
+			fake_stream = 1;
+			break;
 		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
-			return; //ignore actively: these streams will be attached verbatim as properties to audio and/or video packets
+			stype = GF_STREAM_METADATA;
+			codecid = GF_CODECID_SCTE35;
+			stream->flags |= GF_M2TS_ES_IS_SECTION|GF_M2TS_ES_FULL_AU;
+			fake_stream = 2;
+			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
@@ -604,6 +611,15 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_ISOM_SUBTYPE, dvtype ? &PROP_4CC(dvtype) : NULL);
 	} else {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DOLBY_VISION, NULL);
+	}
+
+	if (fake_stream) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_FAKE, &PROP_BOOL(GF_TRUE) );
+		//gf_filter_pid_set_eos(opid);
+		if (fake_stream==2) {
+			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_SKIP);
+			return;
+		}
 	}
 
 	m2tsdmx_update_sdt(ctx->ts, opid);

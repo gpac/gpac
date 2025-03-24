@@ -2233,7 +2233,10 @@ void print_udta(GF_ISOFile *file, u32 track_number, Bool has_meta_tags)
 			u32 type;
 			bin128 uuid;
 			gf_isom_get_udta_type(file, track_number, i+1, &type, &uuid);
-			if ((type == GF_ISOM_BOX_TYPE_META) || (type==GF_ISOM_UDTA_GPAC_SRD)) {
+			if ((type == GF_ISOM_BOX_TYPE_META)
+				|| (type==GF_ISOM_UDTA_GPAC_SRD)
+				|| (type==GF_ISOM_BOX_TYPE_KIND)
+			) {
 				count--;
 			}
 		}
@@ -3840,7 +3843,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, "\n");
 	}
 
-	print_udta(file, trackNum, GF_FALSE);
+	print_udta(file, trackNum, GF_TRUE);
 
 	DumpMetaItem(file, 0, trackNum, "\tTrack Meta");
 

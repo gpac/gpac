@@ -4557,6 +4557,7 @@ GF_Err mvex_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
 GF_Err stsd_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
 GF_Err hnti_on_child_box(GF_Box *hnti, GF_Box *a, Bool is_rem);
 GF_Err udta_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err udta_on_child_box_ex(GF_Box *s, GF_Box *a, Bool is_rem, Bool rem_same_type);
 GF_Err edts_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
 GF_Err stdp_box_read(GF_Box *s, GF_BitStream *bs);
 GF_Err stbl_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
