@@ -38,12 +38,12 @@ filter.set_help(
     "The [-type]() parameter sets the type of text to generate. If set to 'txt', the filter will generate text based on the source file\n" +
     "If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time\n" +
     "When the [-unit]() is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines\n" +
-    "The [-fps]() parameter sets the frame rate of the text stream. As in 1/2, the duration of each text frame is 2 seconds. " +
+    "The [-udur]() parameter sets the unit duration of the text stream. " +
     "Total duration of the text stream is set by the [-dur]() parameter. If set to 0/0, the text stream will be infinite\n" +
-    "The [-acc]() parameter accumulates text until a line is composed (ignored if unit is line). If set, the filter will accumulate text until a line is composed or an empty line is seen in the source\n" +
     "The [-rollup]() parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.\n" +
     "When the number of lines is reached, the filter will remove the first line and continue accumulating text\n" +
-    "You would use [-rollup]() in combination with [-unit]() set to 'l' to create a roll-up subtitle effect. Or set [-unit]() to 'w' to create a roll-up text effect"
+    "You would use [-rollup]() in combination with [-unit]() set to 'l' to create a roll-up subtitle effect. Or set [-unit]() to 'w' to create a roll-up text effect.\n" +
+    "The [-lmax]() parameter sets the maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit\n"
 );
 
 filter.set_arg({
@@ -67,22 +67,22 @@ filter.set_arg({
   minmax_enum: "w|l",
 });
 filter.set_arg({
-  name: "fps",
-  desc: "frame rate of the text stream",
+  name: "udur",
+  desc: "The duration of each text unit",
   type: GF_PROP_FRACTION,
-  def: "1/2",
+  def: "1/1",
+});
+filter.set_arg({
+  name: "lmax",
+  desc: "maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit",
+  type: GF_PROP_UINT,
+  def: 80,
 });
 filter.set_arg({
   name: "dur",
   desc: "duration of the text stream",
   type: GF_PROP_FRACTION,
   def: "0/0",
-});
-filter.set_arg({
-  name: "acc",
-  desc: "accumulate text until a line is composed (ignored if unit is line). If set, the filter will accumulate text until a line is composed or an empty line is seen in the source",
-  type: GF_PROP_BOOL,
-  def: false,
 });
 filter.set_arg({
   name: "rollup",
@@ -121,8 +121,8 @@ filter.initialize = function () {
   let gpac_doc = sys.get_opt("temp", "gendoc") == "yes" ? true : false;
   if (gpac_help || gpac_doc) return;
 
-  if (filter.fps.n <= 0) {
-    print(GF_LOG_ERROR, "Text duration cannot be 0 or negative");
+  if (filter.udur.n <= 0) {
+    print(GF_LOG_ERROR, "Unit duration cannot be 0 or negative");
     return GF_BAD_PARAM;
   } else if (filter.dur.n < 0) {
     print(GF_LOG_ERROR, "Stream duration cannot be negative");
@@ -149,9 +149,8 @@ filter.initialize = function () {
       );
       filter.unit = 0; //since "line" is the default, don't warn
     }
-    if (filter.acc || filter.rollup) {
+    if (filter.rollup) {
       print(GF_LOG_WARNING, "UTC/NTP mode does not support acc/rollup");
-      filter.acc = false;
       filter.rollup = 0;
     }
     return;
@@ -164,7 +163,7 @@ filter.initialize = function () {
     let line = file.gets();
     if (line) {
       if (line.trim().length == 0) {
-        text.push(null);
+        if (filter.unit == 1) text.push(null);
         continue;
       }
 
@@ -180,6 +179,48 @@ filter.initialize = function () {
   }
   text.push(null);
   file.close();
+
+  if (filter.lmax > 0) {
+    let newText = [];
+    let prevWarped = false;
+    for (let i = 0; i < text.length; i++) {
+      let cur = text[i];
+      if (cur) {
+        let words = cur.split(" ");
+        let line = "";
+        if (prevWarped && newText.length) {
+          if (newText[newText.length - 1] != null) {
+            line = newText.pop();
+          }
+        }
+        for (let j = 0; j < words.length; j++) {
+          if (line.length + words[j].length > filter.lmax) {
+            if (!line.length) {
+              print(
+                GF_LOG_WARNING,
+                "Encountered a word longer than lmax (" +
+                  words[j].length +
+                  " > " +
+                  filter.lmax +
+                  "), adjusting lmax"
+              );
+              filter.lmax = words[j].length + 1;
+            } else {
+              newText.push(line);
+              line = "";
+              prevWarped = true;
+            }
+          }
+          if (line.length) line += " ";
+          line += words[j];
+        }
+        newText.push(line);
+      } else {
+        newText.push(null);
+      }
+    }
+    text = newText;
+  }
 
   //rollup algorithm
   if (filter.rollup > 0) {
@@ -233,7 +274,7 @@ filter.initialize = function () {
 
   //subtitle at every N ms
   let bitrate = Math.floor(
-    ((size / text.length) * 8) / (filter.fps.d / filter.fps.n)
+    ((size / text.length) * 8) / (filter.udur.n / filter.udur.d)
   );
   text_pid.set_prop("Bitrate", bitrate);
 };
@@ -275,7 +316,7 @@ filter.process = function () {
   }
 
   //regulate text generation
-  let interval_ms = Math.floor((1000 * filter.fps.d) / filter.fps.n);
+  let interval_ms = Math.floor((1000 * filter.udur.n) / filter.udur.d);
   if (last_utc && sys.get_utc() - last_utc < interval_ms) return GF_OK;
   last_utc = sys.get_utc();
   filter.reschedule(interval_ms);
@@ -293,15 +334,8 @@ filter.process = function () {
     }
   }
 
-  //handle accumulation
-  if (filter.acc && filter.unit == 0) {
-    if (unit != null) {
-      if (acc_text.length) acc_text += " ";
-      acc_text += unit;
-      acc_cts += interval_ms;
-      return GF_OK;
-    }
-  } else if (unit == null) {
+  //handle gaps
+  if (unit == null) {
     text_cts += interval_ms;
     return GF_OK;
   }
@@ -325,9 +359,6 @@ filter.process = function () {
 
   //send packet
   pck.send();
-
-  //put a pause during acc
-  if (filter.acc) text_cts += interval_ms;
 
   //check if we should stop
   if (
