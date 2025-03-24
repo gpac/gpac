@@ -103,8 +103,7 @@ let text_pid = null;
 let text = [];
 let text_idx = 0;
 let text_playing = false;
-let acc_text = "";
-let acc_cts = 0;
+let dyn_rp_text = "";
 
 let start_date = 0;
 let utc_init = 0;
@@ -148,10 +147,6 @@ filter.initialize = function () {
         "UTC/NTP mode does not support line unit, switching to word unit"
       );
       filter.unit = 0; //since "line" is the default, don't warn
-    }
-    if (filter.rollup) {
-      print(GF_LOG_WARNING, "UTC/NTP mode does not support acc/rollup");
-      filter.rollup = 0;
     }
     return;
   }
@@ -335,27 +330,32 @@ filter.process = function () {
   }
 
   //handle gaps
-  if (unit == null) {
+  if (filter.rollup && filter.type > 0) {
+    let lineCount = dyn_rp_text.split("\n").length;
+    if (lineCount >= filter.rollup) {
+      dyn_rp_text = dyn_rp_text.substring(dyn_rp_text.indexOf("\n") + 1);
+    }
+    if (dyn_rp_text.length) dyn_rp_text += "\n";
+    dyn_rp_text += unit;
+  } else if (unit == null) {
     text_cts += interval_ms;
     return GF_OK;
   }
 
   //prepare packet
-  let text_to_send = acc_text.length ? acc_text : unit;
+  let text_to_send = dyn_rp_text.length ? dyn_rp_text : unit;
   let pck = text_pid.new_packet(text_to_send.length);
   let farray = new Uint8Array(pck.data);
   for (let i = 0; i < text_to_send.length; i++) {
     farray[i] = text_to_send.charCodeAt(i);
   }
-  let dur = acc_cts || interval_ms;
+  let dur = interval_ms;
   pck.cts = text_cts;
   pck.dur = dur;
   pck.sap = GF_FILTER_SAP_1;
 
   //update text cts and reset acc
   text_cts += dur;
-  acc_text = "";
-  acc_cts = 0;
 
   //send packet
   pck.send();
