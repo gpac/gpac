@@ -286,6 +286,7 @@ typedef struct
 	Bool force_period_switch;
 	GF_Fraction64 period_switch_cts;
 	Bool period_not_ready;
+	Bool period_pck_sent;
 	Bool check_connections;
 
 	//-1 forces report update, otherwise this is a packet count
@@ -7532,6 +7533,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	}
 
 	ctx->nb_secs_to_discard = 0;
+	ctx->period_pck_sent = GF_FALSE;
 
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
@@ -9041,8 +9043,10 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 	dasher_mark_segment_start(ctx, ds, pck, NULL);
 	ds->segment_started = GF_TRUE;
-	if (pck)
+	if (pck) {
 		gf_filter_pck_send(pck);
+		ctx->period_pck_sent = GF_TRUE;
+	}
 
 	if (ctx->do_index) {
 		GF_MPD_SegmentURL *s = gf_list_last(ds->rep->segment_list->segment_URLs);
@@ -10219,8 +10223,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			//send packet
-			if (dst)
+			if (dst) {
 				gf_filter_pck_send(dst);
+				ctx->period_pck_sent = GF_TRUE;
+			}
 
 			if (ctx->update_report>=0)
 				ctx->update_report++;
@@ -10363,7 +10369,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			ctx->is_eos = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->opid);
 
-			if (ctx->update_report == 0)
+			if (!ctx->period_pck_sent)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error: EOS found but no data sent\n"));
 		}
 	}
