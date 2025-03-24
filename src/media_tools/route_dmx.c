@@ -2899,6 +2899,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 				return e ? e : GF_SERVICE_ERROR;
 			}
 		} else if (!strcmp(szContentType, "application/mbms-user-service-description+xml")) {
+		} else if (!strcmp(szContentType, "application/route-usd+xml")) {
 		} else if (!strcmp(szContentType, "application/dash+xml")
 			|| !strcmp(szContentType, "video/vnd.3gpp.mpd")
 			|| !strcmp(szContentType, "audio/mpegurl")

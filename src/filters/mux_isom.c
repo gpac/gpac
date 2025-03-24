@@ -913,6 +913,19 @@ static void mp4_mux_set_udta(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set udta %s: %s\n", udta_name, gf_error_to_string(e)));
 		}
 	}
+	//set kinds
+	const GF_PropertyValue *role = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ROLE);
+	if (!role) return;
+	for (idx=0; idx<role->value.string_list.nb_items; idx++) {
+		char *scheme_val = role->value.string_list.vals[idx];
+		if (!scheme_val) continue;
+		char *scheme_sep = strrchr(scheme_val, ':');
+		if (scheme_sep) scheme_sep[0] = 0;
+		char *scheme = scheme_sep ? scheme_val : NULL;
+		char *value = scheme_sep ? scheme_sep+1 : scheme_val;
+		gf_isom_add_track_kind(ctx->file, tkw->track_num, scheme, value);
+		if (scheme_sep) scheme_sep[0] = ':';
+	}
 }
 
 static void update_chap_refs(GF_MP4MuxCtx *ctx)
