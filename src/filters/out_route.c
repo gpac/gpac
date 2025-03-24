@@ -2624,7 +2624,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	u32 i, count, len, comp_size;
 	s32 timezone, h, m;
 	u64 diff = ctx->clock - ctx->last_lls_clock;
-	if (diff < ctx->carousel) {
+	if (ctx->last_lls_clock && (diff < ctx->carousel)) {
 		u64 next_sched = ctx->carousel - diff;
 		if (next_sched < ctx->reschedule_us)
 			ctx->reschedule_us = next_sched;

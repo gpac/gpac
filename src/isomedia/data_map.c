@@ -413,7 +413,9 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!strncmp(sPath, "gmem://", 7)) {
 		if (sscanf(sPath, "gmem://%p", &tmp->blob) != 1)
 			return NULL;
+		gf_mx_p(tmp->blob->mx);
 		tmp->bs = gf_bs_new(tmp->blob->data, tmp->blob->size, GF_BITSTREAM_READ);
+		gf_mx_v(tmp->blob->mx);
 		if (!tmp->bs) {
 			gf_free(tmp);
 			return NULL;
@@ -588,6 +590,9 @@ static Bool gf_isom_fdm_check_top_level(GF_FileDataMap *ptr)
 	}
 	gf_bs_seek(ptr->bs, fileOffset);
 	u32 size = gf_bs_peek_bits(ptr->bs, 32, 0);
+	//no size: either range is invalid or the box extends till end of blob
+	if (!size)
+		size = ptr->blob->size - fileOffset;
 	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, size);
 	gf_mx_v(ptr->blob->mx);
 	if (rs==GF_BLOB_RANGE_IN_TRANSFER)
