@@ -505,20 +505,20 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 	}
 	ctx->muxer->pb->seekable = 0;
 
-    if (ctx->muxer->oformat->priv_class && ctx->muxer->priv_data)
-        av_opt_set(ctx->muxer->priv_data, "mpegts_flags", "+resend_headers", 0);
+	if (ctx->muxer->oformat->priv_class && ctx->muxer->priv_data)
+		av_opt_set(ctx->muxer->priv_data, "mpegts_flags", "+resend_headers", 0);
 
-    if (ctx->ffiles) {
-        AVDictionary *options = NULL;
-        av_dict_copy(&options, ctx->options, 0);
-        av_dict_set(&options, "fflags", "-autobsf", 0);
-        res = avformat_write_header(ctx->muxer, &options);
+	if (ctx->ffiles) {
+		AVDictionary *options = NULL;
+		av_dict_copy(&options, ctx->options, 0);
+		av_dict_set(&options, "fflags", "-autobsf", 0);
+		res = avformat_write_header(ctx->muxer, &options);
 		if (options) av_dict_free(&options);
-        if (res < 0) {
+		if (res < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to configure segment %s - error %s\n", seg_name, av_err2str(res) ));
 			return GF_IO_ERR;
 		}
-    }
+	}
 	ctx->status = FFMX_STATE_HDR_DONE;
 	return GF_OK;
 }
@@ -958,14 +958,14 @@ static GF_Err ffmx_process(GF_Filter *filter)
 
 //dovi_meta.h not exported in old releases, just redefine
 typedef struct {
-    u8 dv_version_major;
-    u8 dv_version_minor;
-    u8 dv_profile;
-    u8 dv_level;
-    u8 rpu_present_flag;
-    u8 el_present_flag;
-    u8 bl_present_flag;
-    u8 dv_bl_signal_compatibility_id;
+	u8 dv_version_major;
+	u8 dv_version_minor;
+	u8 dv_profile;
+	u8 dv_level;
+	u8 rpu_present_flag;
+	u8 el_present_flag;
+	u8 bl_present_flag;
+	u8 dv_bl_signal_compatibility_id;
 } Ref_FFAVDoviRecord;
 
 
@@ -1392,8 +1392,8 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			data->min_luminance.num = gf_bs_read_u32(bs);
 			data->min_luminance.den = luma_den;
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (u8*) data, sizeof(AVMasteringDisplayMetadata));
-    	}
-    	gf_bs_del(bs);
+		}
+		gf_bs_del(bs);
 	}
 	//dolby vision
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
