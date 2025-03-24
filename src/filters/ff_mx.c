@@ -81,7 +81,7 @@ typedef struct
 	char *dst, *mime, *ffmt, *ext;
 	Double start, speed;
 	u32 block_size;
-	Bool nodisc, ffiles, noinit, keepts;
+	Bool nodisc, ffiles, noinit, keepts, proto;
 	GF_Fraction ileave;
 
 	AVFormatContext *muxer;
@@ -112,6 +112,9 @@ typedef struct
 #else
 	AVPacket *pkt;
 #endif
+
+	//for protocol-only caps override
+	GF_FilterCapability proto_caps[3];
 } GF_FFMuxCtx;
 
 static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -350,6 +353,33 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	sep = strchr(url, '$');
 	if (sep && strchr(sep+1, '$'))
 		use_templates = GF_TRUE;
+
+	if (ctx->proto) {
+		//special mode: open protocol and bypass muxer
+		AVDictionary *opts = NULL;
+		int ret = avio_open2(&ctx->avio_ctx, url, AVIO_FLAG_WRITE, NULL, &opts);
+		av_dict_free(&opts);
+		if (ret < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to open protocol URL %s, cannot run\n", url));
+			return GF_SERVICE_ERROR;
+		}
+
+		ctx->proto_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+		ctx->proto_caps[0].val = PROP_UINT(GF_STREAM_FILE);
+		ctx->proto_caps[0].flags = GF_CAPS_INPUT_STATIC;
+
+		ctx->proto_caps[1].code = ctx->mime ? GF_PROP_PID_MIME : GF_PROP_PID_FILE_EXT;
+		ctx->proto_caps[1].val = ctx->mime ? PROP_STRING(ctx->mime) : PROP_STRING(ctx->ext ? ctx->ext : ctx->ffmt);
+		ctx->proto_caps[1].flags = GF_CAPS_INPUT_STATIC;
+
+		ctx->proto_caps[2].code = GF_PROP_PID_FILE_EXT;
+		ctx->proto_caps[2].val = PROP_STRING("ts");
+		ctx->proto_caps[2].flags = GF_CAPS_INPUT_STATIC;
+
+		gf_filter_override_caps(filter, ctx->proto_caps, 3);
+
+		return GF_OK;
+	}
 
 	ofmt = av_guess_format(ctx->ext ? ctx->ext : ctx->ffmt, url, ctx->mime);
 	//if protocol is present, we may fail at guessing the format
@@ -702,6 +732,26 @@ static GF_Err ffmx_process(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
 	u32 nb_done, nb_segs_done, nb_suspended, i, nb_pids = gf_filter_get_ipid_count(filter);
+
+	if (ctx->proto) {
+		//special protocol mode: bypass muxer
+		for (i=0; i<nb_pids; i++) {
+			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+			while (1) {
+				GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
+				if (!ipck) {
+					if (gf_filter_pid_is_eos(ipid))
+						return GF_EOS;
+					break;
+				}
+
+				int size = 0;
+				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
+				avio_write(ctx->avio_ctx, data, size);
+			}
+		}
+		return GF_OK;
+	}
 
 	if (ctx->status<FFMX_STATE_HDR_DONE) {
 		Bool all_ready = GF_TRUE;
@@ -1467,7 +1517,7 @@ static void ffmx_finalize(GF_Filter *filter)
 	gf_list_del(ctx->streams);
 	if (ctx->avio_ctx) {
 		if (ctx->avio_ctx->buffer) av_freep(&ctx->avio_ctx->buffer);
-		av_freep(&ctx->avio_ctx);
+		avio_context_free(&ctx->avio_ctx);
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
 	return;
@@ -1574,6 +1624,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepts), "do not shift input timeline back to 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(proto), "use protocol only: do not try to mux (useful when sending a SRT stream with remuxing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ext), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes (see `gpac -hx ffmx` and `gpac -hx ffmx:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
