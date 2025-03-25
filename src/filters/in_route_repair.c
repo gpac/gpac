@@ -215,6 +215,10 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
         u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
+			//first top-level not present in first range to repair, wa cannot patch now
+			if (!pos && repair_start_only) {
+				return;
+			}
 			if (patch_first_range_size) {
 				gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
 				return;
@@ -421,9 +425,8 @@ exit:
 	}
 	//remove corrupted flag
 	finfo->partial = GF_LCTO_PARTIAL_NONE;
-	gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
-
-
+	//we keep ranges in order to identify corrupted ISOBMF samples after repair - whether they are dispatched is governed by keepc option of isobmf demuxer
+	//gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
 }
 
 static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
@@ -550,6 +553,10 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 			gf_mx_v(finfo->blob->mx);
 		}
 		return GF_FALSE;
+	}
+
+	if (!start_only) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s (TSI=%u, TOI=%u) corrupted, patching\n", finfo->filename, finfo->tsi, finfo->toi));
 	}
 
 	if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
