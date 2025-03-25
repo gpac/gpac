@@ -3268,7 +3268,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		if (group->eos_detected) check_eos = GF_TRUE;
 	}
 
-	if (!ctx->mpd_pid)
+	if (!ctx->mpd_pid || ctx->in_error)
 		return GF_EOS;
 
 	//this needs further testing
