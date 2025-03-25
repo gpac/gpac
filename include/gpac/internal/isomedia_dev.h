@@ -2172,6 +2172,7 @@ typedef struct
 	u64 moof_start;
 	u64 mdat_end;
 	u64 first_dts;
+	u8 is_predicted_offset;
 } GF_TrafMapEntry;
 
 typedef struct
@@ -2181,6 +2182,8 @@ typedef struct
 	//read cache
 	u32 r_cur_sample, r_cur_idx;
 } GF_TrafToSampleMap;
+
+void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end, Bool is_pred);
 
 typedef struct
 {
