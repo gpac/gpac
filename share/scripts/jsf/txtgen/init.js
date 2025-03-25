@@ -76,7 +76,7 @@ filter.set_arg({
   name: "lmax",
   desc: "maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit",
   type: GF_PROP_UINT,
-  def: 80,
+  def: 32,
 });
 filter.set_arg({
   name: "dur",
@@ -175,7 +175,7 @@ filter.initialize = function () {
   text.push(null);
   file.close();
 
-  if (filter.lmax > 0) {
+  if (filter.lmax > 0 && !filter.rollup) {
     let newText = [];
     let prevWarped = false;
     for (let i = 0; i < text.length; i++) {
@@ -229,6 +229,12 @@ filter.initialize = function () {
         if (filter.unit == 0) {
           if (accumulatedText.length > 0) accumulatedText += " ";
           else lineCount++;
+        }
+        let lastLine = accumulatedText.lastIndexOf("\n") + 1;
+        let lastLineLength = accumulatedText.length - lastLine;
+        if (lastLineLength + cur.length > filter.lmax) {
+          lineCount++;
+          accumulatedText += "\n";
         }
         accumulatedText += cur;
       }
