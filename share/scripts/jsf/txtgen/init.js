@@ -34,7 +34,7 @@ filter.set_desc("Text Generator");
 filter.set_version("1.0");
 filter.set_author("GPAC Team");
 filter.set_help(
-  "This filter generates text streams based on the provided [-src]() file. By default, the filter uses a lipsum text file\n" +
+  "This filter generates text streams based on the provided [-src]() file. By default, the filter uses a lorem ipsum text file\n" +
     "The [-type]() parameter sets the type of text to generate. If set to 'txt', the filter will generate text based on the source file\n" +
     "If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time\n" +
     "When the [-unit]() is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines\n" +
