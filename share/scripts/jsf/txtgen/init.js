@@ -43,7 +43,8 @@ filter.set_help(
     "The [-rollup]() parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.\n" +
     "When the number of lines is reached, the filter will remove the first line and continue accumulating text\n" +
     "You would use [-rollup]() in combination with [-unit]() set to 'l' to create a roll-up subtitle effect. Or set [-unit]() to 'w' to create a roll-up text effect.\n" +
-    "The [-lmax]() parameter sets the maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit\n"
+    "The [-lmax]() parameter sets the maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit\n" +
+    "When [-rt]() is set to true, the filter will generate text in real-time. If set to false, the filter will generate text as fast as possible"
 );
 
 filter.set_arg({
@@ -95,6 +96,12 @@ filter.set_arg({
   desc: "lock timing to text generation",
   type: GF_PROP_BOOL,
   def: "false",
+});
+filter.set_arg({
+  name: "rt",
+  desc: "real-time mode",
+  type: GF_PROP_BOOL,
+  def: "true",
 });
 
 let text_cts = 0;
@@ -318,9 +325,11 @@ filter.process = function () {
 
   //regulate text generation
   let interval_ms = Math.floor((1000 * filter.udur.n) / filter.udur.d);
-  if (last_utc && sys.get_utc() - last_utc < interval_ms) return GF_OK;
-  last_utc = sys.get_utc();
-  filter.reschedule(interval_ms);
+  if (filter.rt) {
+    if (last_utc && sys.get_utc() - last_utc < interval_ms) return GF_OK;
+    last_utc = sys.get_utc();
+    filter.reschedule(interval_ms);
+  }
 
   //decide on unit
   let unit;
