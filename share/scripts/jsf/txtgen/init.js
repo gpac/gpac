@@ -175,7 +175,7 @@ filter.initialize = function () {
   text.push(null);
   file.close();
 
-  if (filter.lmax > 0 && !filter.rollup) {
+  if (filter.lmax > 0) {
     let newText = [];
     let prevWarped = false;
     for (let i = 0; i < text.length; i++) {
