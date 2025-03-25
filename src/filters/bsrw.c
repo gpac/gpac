@@ -33,6 +33,12 @@
 typedef struct _bsrw_pid_ctx BSRWPid;
 typedef struct _bsrw_ctx GF_BSRWCtx;
 
+GF_OPT_ENUM (BsrwTimecodeMode,
+	BSRW_TC_NONE=0,
+	BSRW_TC_INSERT,
+	BSRW_TC_REMOVE
+);
+
 struct _bsrw_pid_ctx
 {
 	GF_FilterPid *ipid, *opid;
@@ -42,6 +48,7 @@ struct _bsrw_pid_ctx
 	GF_Err (*rewrite_packet)(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck);
 
 	s32 prev_cprim, prev_ctfc, prev_cmx, prev_sar;
+	GF_Fraction fps;
 
 	u32 nalu_size_length;
 
@@ -61,6 +68,8 @@ struct _bsrw_ctx
 
 	GF_List *pids;
 	Bool reconfigure;
+
+	BsrwTimecodeMode tc;
 };
 
 static GF_Err none_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -261,6 +270,113 @@ static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 static GF_Err vvc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
 	return nalu_rewrite_packet(ctx, pctx, pck, 2);
+}
+
+static void obumx_write_metadata_timecode(GF_BitStream *bs, u64 cts, GF_Fraction fps)
+{
+	u32 n_frames = (cts * fps.den) % fps.num;
+	n_frames /= fps.den;
+	cts = cts * fps.den / fps.num;
+	u8 s = cts % 60;
+	cts /= 60;
+	u8 m = cts % 60;
+	cts /= 60;
+	u8 h = (u8) cts;
+	gf_bs_write_int(bs, 0/*counting_type*/, 5);
+	gf_bs_write_int(bs, 1/*full_timestamp_flag*/, 1);
+	gf_bs_write_int(bs, 0/*discontinuity_flag*/, 1);
+	gf_bs_write_int(bs, 0/*cnt_dropped_flag*/, 1);
+	gf_bs_write_int(bs, n_frames, 9);
+	gf_bs_write_int(bs, s, 6);
+	gf_bs_write_int(bs, m, 6);
+	gf_bs_write_int(bs, h, 5);
+	gf_bs_write_int(bs, 0/*time_offset_length*/, 5);
+	gf_bs_align(bs);
+}
+
+static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
+{
+	u32 pck_size;
+	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
+
+	//for the time being, we only support timecode manipulation
+	if (!data || !ctx->tc)
+		return gf_filter_pck_forward(pck, pctx->opid);
+
+	GF_BitStream *bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	//probe data
+	if (gf_media_probe_iamf(bs) || gf_media_probe_ivf(bs) || gf_media_aom_probe_annexb(bs)) {
+		gf_bs_del(bs);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Timecode manipulation is only supported for AV1 Section 5 bitstreams\n"));
+		return gf_filter_pck_forward(pck, pctx->opid);
+	}
+
+	//remove existing timecode metadata
+	GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	while (gf_bs_available(bs)) {
+		u64 to_copy;
+		u64 pos = gf_bs_get_position(bs);
+
+		//read header
+		Bool forbidden = gf_bs_read_int(bs, 1);
+		if (forbidden) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		ObuType obu_type = gf_bs_read_int(bs, 4);
+		Bool obu_extension_flag = gf_bs_read_int(bs, 1);
+		Bool obu_has_size_field = gf_bs_read_int(bs, 1);
+		if (gf_bs_read_int(bs, 1) /*obu_reserved_1bit*/) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (obu_extension_flag) gf_bs_read_int(bs, 8);
+		gf_assert(obu_has_size_field);
+
+		//read size
+		u64 obu_size = gf_av1_leb128_read(bs, NULL);
+		u32 hdr_size = (u32)(gf_bs_get_position(bs) - pos);
+
+		//check if timecode metadata
+		Bool is_metadata = obu_type == OBU_METADATA;
+		if (!is_metadata) goto transfer;
+		u64 metadata_type = gf_av1_leb128_read(bs, NULL);
+		if (metadata_type != OBU_METADATA_TYPE_TIMECODE) goto transfer;
+
+		//skip timecode metadata
+		gf_bs_seek(bs, pos + hdr_size + obu_size);
+		continue;
+
+	transfer:
+		gf_bs_seek(bs, pos);
+		to_copy = hdr_size + obu_size;
+		while (to_copy--) {
+			u32 byte = gf_bs_read_u8(bs);
+			gf_bs_write_u8(bs_w, byte);
+		}
+	}
+
+	if (ctx->tc == BSRW_TC_INSERT) {
+		u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), pctx->fps.den * gf_filter_pck_get_timescale(pck), pctx->fps.num);
+		gf_bs_write_u8(bs_w, 0x2a);
+		gf_av1_leb128_write(bs_w, 6/*8+39 bits*/);
+		gf_av1_leb128_write(bs_w, OBU_METADATA_TYPE_TIMECODE);
+		obumx_write_metadata_timecode(bs_w, cts, pctx->fps);
+	}
+
+	//send packet
+	u8* output = NULL;
+	pck_size = gf_bs_get_position(bs_w);
+	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
+	gf_filter_pck_merge_properties(pck, dst);
+	gf_bs_seek(bs_w, 0);
+	gf_bs_read_data(bs_w, output, pck_size);
+
+	gf_bs_del(bs_w);
+	gf_bs_del(bs);
+
+	return gf_filter_pck_send(dst);
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -599,6 +715,9 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_CODECID_MPEG4_PART2:
 		pctx->rewrite_pid_config = m4v_rewrite_pid_config;
 		break;
+	case GF_CODECID_AV1:
+		pctx->rewrite_packet = av1_rewrite_packet;
+		break;
 	case GF_CODECID_AP4H:
 	case GF_CODECID_AP4X:
 	case GF_CODECID_APCH:
@@ -613,6 +732,13 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		pctx->rewrite_pid_config = none_rewrite_pid_config;
 		pctx->rewrite_packet = none_rewrite_packet;
 		break;
+	}
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+	if (prop) pctx->fps = prop->value.frac;
+	if (!pctx->fps.num || !pctx->fps.den) {
+		pctx->fps.num = 25;
+		pctx->fps.den = 1;
 	}
 
 	gf_filter_pid_copy_properties(pctx->opid, pctx->ipid);
@@ -705,6 +831,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(pidc), "profile IDC for HEVC and VVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tc), "timecode manipulation mode", GF_PROP_UINT, "none", "none|insert|remove", GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(seis), "list of SEI message types (4,137,144,...). When used with `rmsei`, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
@@ -755,6 +882,8 @@ GF_FilterRegister BSRWRegister = {
 	"  - profile, level, profile compatibility\n"
 	"  - video format, video fullrange\n"
 	"  - color primaries, transfer characteristics and matrix coefficients (or remove all info)\n"
+	"- AV1:\n"
+	"  - timecode\n"
 	"- ProRes:\n"
 	"  - sample aspect ratio\n"
 	"  - color primaries, transfer characteristics and matrix coefficients\n"
