@@ -206,6 +206,8 @@ struct __route_service
 
 	char *service_identifier;
 	char *log_name;
+
+	Bool in_reset;
 };
 
 //maximum segs we keep in cache when playing from pcap in no realtime: this accounts for
@@ -3617,6 +3619,8 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 		s = NULL;
 	}
 	if (!s) return GF_BAD_PARAM;
+	if (is_locate) s->in_reset = GF_FALSE;
+
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
@@ -3696,7 +3700,9 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 		return GF_NOT_FOUND;
 	}
 	if (is_remove) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
+		if (!s->in_reset) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
+		}
 		return GF_NOT_FOUND;
 	}
 	return GF_OK;
@@ -4108,6 +4114,7 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 	for (i=0; i<count; i++) {
 		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
 		j=0;
+		s->in_reset = GF_TRUE;
 		GF_LCTObject *obj;
 		while ((obj=gf_list_enum(s->objects, &j))) {
 			obj->status = GF_LCT_OBJ_DONE_ERR;
