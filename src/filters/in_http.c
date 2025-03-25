@@ -608,7 +608,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	//nb_read may be 0 and error = GF_OK to signal data has been patched somewhere on the reception buffer but not in a contiguous area since last fetch
 	//we send empty packets in this case for filters using the underlying cache object directly (eg isobmf demux)
+	//but only if we started dispatching bytes
 	ctx->nb_read += nb_read;
+	if (!ctx->nb_read) return GF_OK;
+
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
 		if (net_status!=GF_NETIO_DATA_EXCHANGE)
 			ctx->is_end = GF_TRUE;
