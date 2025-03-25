@@ -422,7 +422,7 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, u32 meta_type)
 	meta = (GF_MetaBox *)gf_isom_box_new(udta_subtype);
 
 	if (meta) {
-		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE);
+		udta_on_child_box_ex((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE, GF_TRUE);
 		if (meta_type!=1) {
 			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 			if(meta->handler == NULL) {

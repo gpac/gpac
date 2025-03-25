@@ -293,6 +293,7 @@ typedef struct
 	s32 mediats;
 	GF_AudioSampleEntryImportMode ase;
 	char *styp;
+	Bool lmsg;
 	Bool sseg;
 	Bool noroll, norap;
 	Bool saio32, tfdt64;
@@ -911,6 +912,19 @@ static void mp4_mux_set_udta(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set udta %s: %s\n", udta_name, gf_error_to_string(e)));
 		}
+	}
+	//set kinds
+	const GF_PropertyValue *role = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ROLE);
+	if (!role) return;
+	for (idx=0; idx<role->value.string_list.nb_items; idx++) {
+		char *scheme_val = role->value.string_list.vals[idx];
+		if (!scheme_val) continue;
+		char *scheme_sep = strrchr(scheme_val, ':');
+		if (scheme_sep) scheme_sep[0] = 0;
+		char *scheme = scheme_sep ? scheme_val : NULL;
+		char *value = scheme_sep ? scheme_sep+1 : scheme_val;
+		gf_isom_add_track_kind(ctx->file, tkw->track_num, scheme, value);
+		if (scheme_sep) scheme_sep[0] = ':';
 	}
 }
 
@@ -7025,7 +7039,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		}
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
-			gf_isom_flush_fragments(ctx->file, GF_FALSE);
+			if (ctx->lmsg && is_eos && !ctx->dash_mode)
+				ctx->file->write_styp = GF_TRUE;
+			gf_isom_flush_fragments(ctx->file, is_eos);
 			flush_refs = GF_TRUE;
 			//if not in dash and EOS marker is set, inject marker after each fragment
 			if (!ctx->dash_mode && ctx->eos_marker && ctx->fragment_started) {
@@ -8519,6 +8535,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(fragdur), "fragment based on fragment duration rather than CTS. Mostly used for `MP4Box -frag` option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(btrt), "set `btrt` box in sample description", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(styp), "set segment `styp` major brand (and optionally version) to the given 4CC[.version]", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(lmsg), "set `lmsg` brand for the last segment or fragment", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from PID, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"
 			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"

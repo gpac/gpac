@@ -3213,7 +3213,7 @@ static Bool napi_filter_cbk_process_event(GF_Filter *filter, const GF_FilterEven
 	if (!has_fun) return GF_FALSE;
 
 	status = napi_get_named_property(napi_f->env, obj, "process_event", &fun_val);
-	if (status != napi_ok) return GF_BAD_PARAM;
+	if (status != napi_ok) return GF_FALSE;
 
 	arg = wrap_filterevent(napi_f->env, (GF_FilterEvent *)evt, NULL);
 	status = napi_make_callback(napi_f->env, napi_f->async_ctx, obj, fun_val, 1, &arg, &res);

@@ -27,6 +27,11 @@
 
 #ifdef GPAC_HAS_FFMPEG
 
+#ifdef GPAC_CONFIG_WIN32
+ //avoid warning in bswap.h
+#define av_bswap64
+#endif
+
 #include "ff_common.h"
 #include <gpac/evg.h>
 

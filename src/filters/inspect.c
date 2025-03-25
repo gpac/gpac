@@ -1554,7 +1554,6 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 		}
 		gf_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
 
-
 		if (full_dump>=INSPECT_ANALYZE_BS) {
 			gf_bs_set_logger(pctx->bs, NULL, NULL);
 		} else {
@@ -1645,7 +1644,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 	case OBU_METADATA:
 		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
-			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
 				case OBU_METADATA_TYPE_TIMECODE:
@@ -3756,6 +3755,8 @@ props_done:
 		}
 			break;
 		case GF_CODECID_TX3G:
+			data += 2;
+			size -= 2;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
 		case GF_CODECID_SIMPLE_TEXT:
@@ -3910,7 +3911,7 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 	}
 
 	char szDur[100];
-	gf_format_duration(dur, timescale, szDur);
+	gf_format_duration(dur, (u32) timescale, szDur);
 	if (skip_name)
 		inspect_printf(dump, " (");
 	else
@@ -4296,6 +4297,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean)
+		inspect_printf(dump, " fake");
 
 	inspect_printf(dump, "\n");
 }
@@ -5388,6 +5392,7 @@ static const GF_FilterCapability InspecterDemuxedCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterReframeCaps[] =
@@ -5397,6 +5402,7 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterRawCaps[] =
@@ -5406,6 +5412,7 @@ static const GF_FilterCapability InspecterRawCaps[] =
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_MIME, "*"),
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_FILE_EXT, "*"),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
@@ -5580,6 +5587,8 @@ static const GF_FilterCapability InspectCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 const GF_FilterRegister InspectRegister = {

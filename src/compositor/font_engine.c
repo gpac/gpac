@@ -182,6 +182,7 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 	for (i=0; i<nb_fonts; i++) {
 		char *font_name;
 		const char *opt;
+		Bool is_def_font=GF_FALSE;
 		u32 weight_diff = 0xFFFFFFFF;
 		GF_Font *best_font = NULL;
 		GF_Font *font = fm->font;
@@ -191,24 +192,30 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 		if (!stricmp(font_name, "SERIF")) {
 			opt = gf_opts_get_key("FontCache", "FontSerif");
 			if (opt) font_name = (char*)opt;
+			is_def_font = GF_TRUE;
 		}
 		else if (!stricmp(font_name, "SANS") || !stricmp(font_name, "sans-serif")) {
 			opt = gf_opts_get_key("FontCache", "FontSans");
 			if (opt) font_name = (char*)opt;
+			is_def_font = GF_TRUE;
 		}
 		else if (!stricmp(font_name, "TYPEWRITER") || !stricmp(font_name, "monospace")) {
 			opt = gf_opts_get_key("FontCache", "FontFixed");
 			if (opt) font_name = (char*)opt;
+			is_def_font = GF_TRUE;
 		}
 
-		while (font) {
+		while (font && font_name) {
 			if (fm->wait_font_load && font->not_loaded && !check_only && !stricmp(font->name, font_name)) {
 				GF_Font *a_font = NULL;
 				if (font->get_alias) a_font = font->get_alias(font->udta);
 				if (!a_font || a_font->not_loaded)
 					return font;
 			}
-			if ((check_only || !font->not_loaded) && font->name && !stricmp(font->name, font_name)) {
+			if ((check_only || !font->not_loaded) && font->name
+				//def font may have a style concatenated if only fonts with styles other than none/italic/bold are present
+				&& (!stricmp(font->name, font_name) || (is_def_font && strncmp(font->name, font_name, strlen(font_name))))
+			) {
 				s32 fw;
 				s32 w;
 				u32 diff;

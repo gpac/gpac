@@ -1109,7 +1109,7 @@ set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap a
 .br
 * p=K: filter packets on port K only, if not set the rule applies to all packets
 .br
-* o=K: patch packet instead of droping (always true for TCP), replacing byte at offset K (0 is first byte, <0 for random)
+* o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset K (0 is first byte, <0 for random)
 .br
 * v=K: set patch byte value to K (hexa) or negative value for random (default)
 .br
@@ -1264,9 +1264,22 @@ enable intermediate copy of data in nghttp2 (default is disabled but may report 
 use CURL instead of GPAC HTTP stack
 .br
 .TP
-.B \-no-h3
+.B \-h3 (Enum, default: auto)
 .br
-disable HTTP3 (CURL only)
+set HTTP/3 mode
+.br
+* no: disable HTTP/3
+.br
+* first: force trying first with HTTP/3
+.br
+* auto: connect using HTTP 1 or 2 and use HTTP/3 for next request(s) if announced
+.br
+* only: only use HTTP/3
+.br
+.TP
+.B \-h3-trace
+.br
+trace QUIC and HTTP3
 .br
 .TP
 .B \-dbg-edges
@@ -3112,6 +3125,11 @@ The unframed media still has correct AU boundaries: one packet is one full AU, b
 Media is unframed AAC in LATM format
 .br
 .TP
+.B USRT (USRT,bool,  )
+.br
+Media is unframed SRT, header is in payload with 0 start time
+.br
+.TP
 .B Duration (PDUR,lfrac,  )
 .br
 Media duration
@@ -4122,7 +4140,7 @@ Start and end position in bytes of fragment if packet is a fragment or segment s
 .TP
 .B FragTFDT (PFRT,luint,DP)
 .br
-Decode time of first packet in fragmentt
+Decode time of first packet in fragment
 .br
 .TP
 .B SIDXRange (PFSR,lfrac,DP)
@@ -4220,7 +4238,7 @@ Stereo type of video
 Projection type of video
 .br
 .TP
-.B InitalPose (PPOS,v3di,D )
+.B InitialPose (PPOS,v3di,D )
 .br
 Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)
 .br
@@ -4374,7 +4392,7 @@ list of packet identifier this packet depends on
 User data for the packet
 .br
 .TP
-.B Timecodes (TCOD,uintl, P)
+.B Timecodes (TCOD,mem, P)
 .br
 list of timecodes as extracted from SEI (if present)
 .br
@@ -4507,6 +4525,11 @@ Template for DASH-SSR and LLHLS sub-segments
 .B PartialRepair (PCPR,bool, P)
 .br
 indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)
+.br
+.TP
+.B Fake (PFAK,bool,D )
+.br
+Indicate a stream present in the source but not delivered as a PID
 .br
 .SH Pixel formats
 .LP

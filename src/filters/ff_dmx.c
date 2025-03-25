@@ -507,7 +507,18 @@ restart:
 		FF_FREE_PCK(pkt);
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->nb_streams; i++) {
-				if (ctx->pids_ctx[i].pid) gf_filter_pid_set_eos(ctx->pids_ctx[i].pid);
+				PidCtx *pctx = &ctx->pids_ctx[i];
+				if (!pctx->pid) continue;
+
+				if (pctx->pck_queue) {
+					while (gf_list_count(pctx->pck_queue)) {
+						GF_FilterPacket *pck_q = gf_list_pop_front(pctx->pck_queue);
+						gf_filter_pck_send(pck_q);
+					}
+					gf_list_del(pctx->pck_queue);
+					pctx->pck_queue = NULL;
+				}
+				gf_filter_pid_set_eos(ctx->pids_ctx[i].pid);
 			}
 			return GF_EOS;
 		}
@@ -2207,7 +2218,7 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 {
 	const AVInputFormat *fmt;
 
-    if (!dev_name) return;
+	if (!dev_name) return;
     fmt = (const AVInputFormat *) av_find_input_format(dev_name);
     if (!fmt) return;
 
@@ -2216,7 +2227,11 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 	}
 
 	AVDeviceInfoList *dev_list = NULL;
+#if LIBAVDEVICE_VERSION_MAJOR<59
+	int res = avdevice_list_input_sources((AVInputFormat *)fmt, dev_name, NULL, &dev_list);
+#else
 	int res = avdevice_list_input_sources(fmt, dev_name, NULL, &dev_list);
+#endif
 	if (res<0) {
 		//device doesn't implement avdevice_list_devices, try loading the context using "list_devices=1" option
 		if (-res == ENOSYS) {

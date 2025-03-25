@@ -367,7 +367,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 			u32 erase_size = box_size-8;
 			if (erase_size>SAFETY_ERASE_BYTES) erase_size = SAFETY_ERASE_BYTES;
-			memset(data+pos+8, 0, erase_size);
+			memset(data+pos+8, 0, MIN(erase_size, size-pos-8));
 		}
         pos += box_size;
     }
@@ -700,7 +700,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		// push fragment if no pending and data is contiguous with prev
 		//this ensures we push data asap in the output pids
 		else if ((finfo->partial!=GF_LCTO_PARTIAL_ANY) && can_flush_fragment) {
-			fprintf(stderr, "direct dispatch2 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 		} else {
 			//remember we have a file in progress so that we don't dispatch packets from following file
@@ -788,6 +787,9 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 			gf_list_add(rsi->tsio->pending_repairs, rsi);
 	}
 
+	if (!ctx->seg_repair_queue)
+		ctx->seg_repair_queue = gf_list_new();
+
 	//inject by start time
 	count = gf_list_count(ctx->seg_repair_queue);
 	for (i=0; i<count; i++) {
@@ -812,9 +814,8 @@ restart:
 
 	//done with this repair, remove force_keep flag from object
 	if (tsio) {
-		s32 idx = gf_list_find(tsio->pending_repairs, rsi);
-		assert(idx == 0);
-		assert (!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
+		gf_assert(gf_list_find(tsio->pending_repairs, rsi) == 0);
+		gf_assert(!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
 		unprotect = GF_TRUE;
 	}
 	//remove before calling route_on_event, as it may trigger a delete

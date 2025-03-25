@@ -874,7 +874,7 @@ typedef enum
 	GF_PROP_VEC4I		=	13,
 	/*! string property, memory is duplicated when setting the property and managed internally*/
 	GF_PROP_STRING		=	14,
-	/*! string property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
+	/*! string property, memory is NOT duplicated when setting the property but is then managed (and freed) internally.
 	Only used when setting a property, the type then defaults to GF_PROP_STRING
 	DO NOT USE the associate string field upon return from setting the property, it might have been destroyed*/
 	GF_PROP_STRING_NO_COPY=	15,
@@ -1139,6 +1139,7 @@ enum
 	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
 	GF_PROP_PID_AUDIO_SPEED = GF_4CC('A','S','P','D'),
 	GF_PROP_PID_UNFRAMED_LATM = GF_4CC('L','A','T','M'),
+	GF_PROP_PID_UNFRAMED_SRT = GF_4CC('U','S','R','T'),
 	GF_PROP_PID_DELAY = GF_4CC('M','D','L','Y'),
 	GF_PROP_PID_CTS_SHIFT = GF_4CC('M','D','T','S'),
 	GF_PROP_PID_NO_PRIMING = GF_4CC('A','S','K','P'),
@@ -1427,6 +1428,9 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
+
+	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE

@@ -272,7 +272,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 
 	ctx->gen_dsi = GF_FALSE;
 	switch (ctx->codecid) {
-	//reframe all these codecs for proper ISOBMFF+DSI formating
+	//reframe all these codecs for proper ISOBMFF+DSI formatting
 	case GF_CODECID_AVC:
 	case GF_CODECID_HEVC:
 	case GF_CODECID_VVC:

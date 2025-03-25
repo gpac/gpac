@@ -1357,6 +1357,9 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 
+					//remove existing property if any
+					gf_props_remove_property(dst_props, gf_props_hash_djb2(prop->p4cc, prop->pname), prop->p4cc, prop->pname);
+
 #if GF_PROPS_HASHTABLE_SIZE
 					if (!dst_props->hash_table[idx]) {
 						dst_props->hash_table[idx] = gf_props_get_list(dst_props);
@@ -1543,6 +1546,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_UNFRAMED, "Unframed", "The media data is not framed, i.e. each packet is not a complete AU/frame or is not in internal format (e.g. annexB for avc/hevc, adts for aac)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_UNFRAMED_FULL_AU, "UnframedAU", "The unframed media still has correct AU boundaries: one packet is one full AU, but the packet format might not be the internal one (e.g. annexB for avc/hevc, adts for aac)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_UNFRAMED_LATM, "LATM", "Media is unframed AAC in LATM format", GF_PROP_BOOL),
+	DEC_PROP( GF_PROP_PID_UNFRAMED_SRT, "USRT", "Media is unframed SRT, header is in payload with 0 start time", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_DURATION, "Duration", "Media duration", GF_PROP_FRACTION64),
 	DEC_PROP( GF_PROP_PID_DURATION_AVG, "EstimatedDuration", "Media duration is an estimated duration based on rate", GF_PROP_BOOL),
 	DEC_PROP_F( GF_PROP_PID_NB_FRAMES, "NumFrames", "Number of frames in the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
@@ -1753,7 +1757,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_FRAG_START, "FragStart", "Packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_FRAG_RANGE, "FragRange", "Start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PCK_FRAG_TFDT, "FragTFDT", "Decode time of first packet in fragmentt", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_FRAG_TFDT, "FragTFDT", "Decode time of first packet in fragment", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_SIDX_RANGE, "SIDXRange", "Start and end position in bytes of sidx in segment if any", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_VOD_SIDX_RANGE, "VODSIDXRange", "Start and end position in bytes of root sidx", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM),
@@ -1858,6 +1862,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_LLHAS_TEMPLATE, "LLHASTemplate", "Template for DASH-SSR and LLHLS sub-segments", GF_PROP_STRING, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_PARTIAL_REPAIR, "PartialRepair", "indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PID_FAKE, "Fake", "Indicate a stream present in the source but not delivered as a PID", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

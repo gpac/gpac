@@ -529,11 +529,11 @@ GF_Err cslg_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	if (s->version == 0) {
-		gf_bs_write_int(bs, ptr->compositionToDTSShift, 32);
-		gf_bs_write_int(bs, ptr->leastDecodeToDisplayDelta, 32);
-		gf_bs_write_int(bs, ptr->greatestDecodeToDisplayDelta, 32);
-		gf_bs_write_int(bs, ptr->compositionStartTime, 32);
-		gf_bs_write_int(bs, ptr->compositionEndTime, 32);
+		gf_bs_write_int(bs, (s32) ptr->compositionToDTSShift, 32);
+		gf_bs_write_int(bs, (s32) ptr->leastDecodeToDisplayDelta, 32);
+		gf_bs_write_int(bs, (s32) ptr->greatestDecodeToDisplayDelta, 32);
+		gf_bs_write_int(bs, (s32) ptr->compositionStartTime, 32);
+		gf_bs_write_int(bs, (s32) ptr->compositionEndTime, 32);
 		return GF_OK;
 	} else if (s->version == 1) {
 		gf_bs_write_long_int(bs, ptr->compositionToDTSShift, 64);
@@ -8370,7 +8370,7 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid)
 	return NULL;
 }
 
-GF_Err udta_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
+GF_Err udta_on_child_box_ex(GF_Box *s, GF_Box *a, Bool is_rem, Bool rem_same_type)
 {
 	GF_Err e;
 	u32 box_type;
@@ -8412,22 +8412,29 @@ GF_Err udta_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		gf_list_del_item(map->boxes, a);
 		return GF_OK;
 	}
-	u32 i, count = gf_list_count(map->boxes);
-	for (i=0; i<count; i++) {
-		GF_Box *b = gf_list_get(map->boxes, i);
-		u32 btype = b->type;
-		if (b->type==GF_ISOM_BOX_TYPE_UNKNOWN) btype = ((GF_UnknownBox*)b)->original_4cc;
-		if (btype != box_type) continue;
-		if (box_type == GF_ISOM_BOX_TYPE_UUID) {
-			if (memcmp( ((GF_UUIDBox *)a)->uuid, ((GF_UUIDBox *)b)->uuid, 16)) continue;
+
+	if (rem_same_type) {
+		u32 i, count = gf_list_count(map->boxes);
+		for (i=0; i<count; i++) {
+			GF_Box *b = gf_list_get(map->boxes, i);
+			u32 btype = b->type;
+			if (b->type==GF_ISOM_BOX_TYPE_UNKNOWN) btype = ((GF_UnknownBox*)b)->original_4cc;
+			if (btype != box_type) continue;
+			if (box_type == GF_ISOM_BOX_TYPE_UUID) {
+				if (memcmp( ((GF_UUIDBox *)a)->uuid, ((GF_UUIDBox *)b)->uuid, 16)) continue;
+			}
+			gf_isom_box_del(b);
+			gf_list_rem(map->boxes, i);
+			break;
 		}
-		gf_isom_box_del(b);
-		gf_list_rem(map->boxes, i);
-		break;
 	}
+
 	return gf_list_add(map->boxes, a);
 }
-
+GF_Err udta_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
+{
+	return udta_on_child_box_ex(s, a, is_rem, GF_FALSE);
+}
 
 GF_Err udta_box_read(GF_Box *s, GF_BitStream *bs)
 {

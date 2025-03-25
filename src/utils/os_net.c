@@ -381,7 +381,7 @@ enum
 	/*socket is bound to a specific dest (server) or source (client) */
 	GF_SOCK_HAS_PEER = 1<<14,
 	GF_SOCK_IS_UN = 1<<15,
-	GF_SOCK_HAS_CONNECT = 1<<16,
+	GF_SOCK_HAS_CONNECT = 1<<16
 };
 
 #ifndef GPAC_DISABLE_NETCAP
@@ -2161,8 +2161,7 @@ struct hostent *gf_gethostbyname(const char *PeerName)
 static u32 inet_addr_from_name(const char *local_interface);
 
 //connects a socket to a remote peer on a given port
-GF_EXPORT
-GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name)
+GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name, Bool use_udp_connect)
 {
 	s32 ret;
 #ifdef GPAC_HAS_IPV6
@@ -2263,60 +2262,70 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			}
 		}
 
-		if (sock->flags & GF_SOCK_IS_TCP) {
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 			//on winsock we must check writability between two connects for non-blocking sockets
-			if (sock->flags & GF_SOCK_HAS_CONNECT) {
-				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY) {
-					GF_Err e = gf_sk_probe(sock);
-					if (e && (e != GF_IP_NETWORK_EMPTY)) return e;
+		if ((sock->flags & GF_SOCK_IS_TCP) &&  (sock->flags & GF_SOCK_HAS_CONNECT)) {
+			if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY) {
+				GF_Err e = gf_sk_probe(sock);
+				if (e && (e != GF_IP_NETWORK_EMPTY)) return e;
+				return GF_IP_NETWORK_EMPTY;
+			}
+		}
+#endif
+
+		if (sock->flags & GF_SOCK_IS_TCP) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
+		} else if (!use_udp_connect) {
+			goto conn_ok;
+		}
+		ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
+		if (ret == SOCKET_ERROR) {
+			int err = LASTSOCKERROR;
+			if (sock->flags & GF_SOCK_NON_BLOCKING) {
+				switch (err) {
+				case EINPROGRESS:
+#if defined(WIN32) || defined(_WIN32_WCE)
+				case WSAEWOULDBLOCK:
+#endif
+					freeaddrinfo(res);
+					if (lip) freeaddrinfo(lip);
+					//remember we issued a first connect
+					sock->flags |= GF_SOCK_HAS_CONNECT;
+					return GF_IP_NETWORK_EMPTY;
+
+				case EISCONN:
+				case EALREADY:
+#if defined(WIN32) || defined(_WIN32_WCE)
+				case WSAEISCONN:
+#endif
+					if (sock->flags & GF_SOCK_IS_TCP) {
+						if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
+							goto conn_ok;
+					}
+					freeaddrinfo(res);
+					if (lip) freeaddrinfo(lip);
 					return GF_IP_NETWORK_EMPTY;
 				}
 			}
-#endif
+			sock_close(sock);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying with next host address\n", PeerName, gf_errno_str(err), err ));
+			continue;
+		}
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
-			ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
-			if (ret == SOCKET_ERROR) {
-				int err = LASTSOCKERROR;
-				if (sock->flags & GF_SOCK_NON_BLOCKING) {
-					switch (err) {
-					case EINPROGRESS:
-#if defined(WIN32) || defined(_WIN32_WCE)
-					case WSAEWOULDBLOCK:
-#endif
-						freeaddrinfo(res);
-						if (lip) freeaddrinfo(lip);
-						//remember we issued a first connect
-						sock->flags |= GF_SOCK_HAS_CONNECT;
-						return GF_IP_NETWORK_EMPTY;
-
-					case EISCONN:
-					case EALREADY:
-#if defined(WIN32) || defined(_WIN32_WCE)
-					case WSAEISCONN:
-#endif
-						if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
-							goto conn_ok;
-						freeaddrinfo(res);
-						if (lip) freeaddrinfo(lip);
-						return GF_IP_NETWORK_EMPTY;
-					}
-				}
-				sock_close(sock);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying with next host address\n", PeerName, gf_errno_str(err), err ));
-				continue;
-			}
 conn_ok:
+		if (sock->flags & GF_SOCK_IS_TCP) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
-			sock->flags &= ~GF_SOCK_HAS_CONNECT;
+		} else {
+			//udp+connect, do not use HAS_PEER
+			sock->flags &= ~GF_SOCK_HAS_PEER;
+		}
+		sock->flags &= ~GF_SOCK_HAS_CONNECT;
 
 #ifdef SO_NOSIGPIPE
-			int value = 1;
-			setsockopt(sock->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+		int value = 1;
+		setsockopt(sock->socket, SOL_SOCKET, SO_NOSIGPIPE, SSO_CAST &value, sizeof(value));
 #endif
-		}
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = (u32) aip->ai_addrlen;
 		freeaddrinfo(res);
@@ -2383,19 +2392,20 @@ conn_ok:
 		GF_Err e = gf_sk_bind(sock, ifce_ip_or_name, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
 		if (e) return e;
 	}
-	if (!(sock->flags & GF_SOCK_IS_TCP)) {
-		return GF_OK;
-	}
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 	//on winsock we must check writability between two connects for non-blocking sockets
-	if (sock->flags & GF_SOCK_HAS_CONNECT) {
+	if ((sock->flags & GF_SOCK_IS_TCP) && (sock->flags & GF_SOCK_HAS_CONNECT)) {
 		if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY)
 			return GF_IP_NETWORK_EMPTY;
 	}
 #endif
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
+	if (sock->flags & GF_SOCK_IS_TCP) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
+	} else if (!use_udp_connect) {
+		return GF_OK;
+	}
 	ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 	if (ret == SOCKET_ERROR) {
 		u32 res = LASTSOCKERROR;
@@ -2414,8 +2424,10 @@ conn_ok:
 #if defined(WIN32) || defined(_WIN32_WCE)
 			case WSAEISCONN:
 #endif
-				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
-					return GF_OK;
+				if (sock->flags & GF_SOCK_IS_TCP) {
+					if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
+						return GF_OK;
+				}
 				return GF_IP_NETWORK_EMPTY;
 			}
 		}
@@ -2441,16 +2453,24 @@ conn_ok:
 		}
 	}
 	sock->flags &= ~GF_SOCK_HAS_CONNECT;
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connected to %s:%d\n", PeerName, PortNumber));
-
+	if (sock->flags & GF_SOCK_IS_TCP) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connected to %s:%d\n", PeerName, PortNumber));
+	}
 #endif
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *ifce_ip_or_name)
+{
+	return gf_sk_connect_ex(sock, PeerName, PortNumber, ifce_ip_or_name, GF_FALSE);
+
+}
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
 GF_EXPORT
-GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options)
+GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options,
+	u8 **dst_sock_addr, u32 *dst_sock_addr_len, u8 **src_sock_addr, u32 *src_sock_addr_len)
 {
 #ifdef GPAC_HAS_IPV6
 	struct addrinfo *res, *aip;
@@ -2465,6 +2485,14 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	s32 ret = 0;
 	s32 optval;
 
+	if (dst_sock_addr) {
+		*dst_sock_addr = NULL;
+		*dst_sock_addr_len = 0;
+	}
+	if (src_sock_addr) {
+		*src_sock_addr = NULL;
+		*src_sock_addr_len = 0;
+	}
 	//socket must not be created
 	if (!sock || !SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	if (ifce_ip_or_name && !strcmp(ifce_ip_or_name, "127.0.0.1"))
@@ -2520,10 +2548,22 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 		memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
 		sock->dest_addr_len = (u32) res->ai_addrlen;
 		freeaddrinfo(res);
+
+		if (dst_sock_addr) {
+			*dst_sock_addr = gf_malloc(sizeof(u8) * sock->dest_addr_len);
+			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
+			*dst_sock_addr_len = sock->dest_addr_len;
+		}
 	}
 
 	res = gf_sk_get_ifce_ipv6_addr(ifce_ip_or_name, port, af, AI_PASSIVE, type);
-	if (!res) return GF_IP_ADDRESS_NOT_FOUND;
+	if (!res) {
+		if (dst_sock_addr && *dst_sock_addr) {
+			gf_free(*dst_sock_addr);
+			*dst_sock_addr = NULL;
+		}
+		return GF_IP_ADDRESS_NOT_FOUND;
+	}
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
@@ -2556,6 +2596,10 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 				else sock->flags &= ~GF_SOCK_IS_IPV6;
 
 				freeaddrinfo(res);
+				if (dst_sock_addr && *dst_sock_addr) {
+					gf_free(*dst_sock_addr);
+					*dst_sock_addr = NULL;
+				}
 				return GF_OK;
 			}
 		}
@@ -2580,29 +2624,45 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 			sock->flags |= GF_SOCK_HAS_PEER;
 		}
 
-#ifdef GPAC_CONFIG_LINUX
-		//weird bug in linux  (at least on our VMs) when reusing UDP port and binding,
-		//poll/select for read fails in the other program reusing the port
+#if defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
+		//we use implicit bind (assign on first sendto) - not doing so makes poll/select fail in readers lanched after the sender
 		if (peer_name && !strcmp(peer_name, "127.0.0.1") && (options & GF_SOCK_IS_SENDER)) {
 		} else
 #endif
 		{
 			ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				if (dst_sock_addr && *dst_sock_addr) {
+					gf_free(*dst_sock_addr);
+					*dst_sock_addr = NULL;
+				}
 				sock_close(sock);
+				if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+					return GF_IP_CONNECTION_FAILURE;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
 				continue;
 			}
 		}
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
+		if (src_sock_addr) {
+			*src_sock_addr = gf_malloc(sizeof(u8) * res->ai_addrlen);
+			memcpy(*src_sock_addr, res->ai_addr, res->ai_addrlen);
+			*src_sock_addr_len = (u32) res->ai_addrlen;
+		}
+
 		freeaddrinfo(res);
 		return GF_OK;
 	}
 	freeaddrinfo(res);
+	if (dst_sock_addr && *dst_sock_addr) {
+		gf_free(*dst_sock_addr);
+		*dst_sock_addr = NULL;
+	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Cannot bind to ifce %s port %d\n", ifce_ip_or_name ? ifce_ip_or_name : "any", port));
-	return GF_IP_CONNECTION_FAILURE;
+	return GF_IP_NETWORK_FAILURE;
 
 #else
 
@@ -2647,6 +2707,11 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	LocalAdd.sin_addr.s_addr = ip_add;
 	addrlen = sizeof(struct sockaddr_in);
 
+	if (src_sock_addr) {
+		*src_sock_addr = gf_malloc(sizeof(u8) * addrlen);
+		memcpy(*src_sock_addr, &LocalAdd, addrlen);
+		*src_sock_addr_len = addrlen;
+	}
 
 	if (options & GF_SOCK_REUSE_PORT) {
 		optval = 1;
@@ -2666,8 +2731,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	{
 		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
 		if (ret == SOCKET_ERROR) {
+			if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+				if (src_sock_addr && *src_sock_addr) {
+					gf_free(*src_sock_addr);
+					*src_sock_addr = NULL;
+				}
+				return GF_IP_CONNECTION_FAILURE;
+			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
-			ret = GF_IP_CONNECTION_FAILURE;
+			ret = GF_IP_NETWORK_FAILURE;
 		}
 	}
 
@@ -2681,6 +2753,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 			else memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 		}
 		sock->flags |= GF_SOCK_HAS_PEER;
+
+		if (dst_sock_addr && !ret) {
+			*dst_sock_addr = gf_malloc(sizeof(u8) * sock->dest_addr_len);
+			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
+			*dst_sock_addr_len = sock->dest_addr_len;
+		}
 	}
 	if (sock->flags & GF_SOCK_HAS_PEER) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] socket bound to %08X - port %d - remote peer: %s:%d\n", ip_add, port, peer_name, peer_port));
@@ -2689,6 +2767,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	}
 	return ret;
 #endif
+}
+
+GF_EXPORT
+GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options)
+{
+	return gf_sk_bind_ex(sock, ifce_ip_or_name, port, peer_name, peer_port, options, NULL, NULL, NULL, NULL);
 }
 
 Bool gpac_use_poll=GF_TRUE;
@@ -2770,8 +2854,7 @@ static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Boo
 }
 
 //send length bytes of a buffer
-GF_EXPORT
-GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
+static GF_Err gf_sk_send_internal(GF_Socket *sock, const u8 *buffer, u32 length, const u8 *address, u32 address_len, u32 *written)
 {
 	u32 count;
 	s32 res;
@@ -2808,13 +2891,15 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 	//direct writing
 	count = 0;
 	while (count < length) {
+		int sflags = 0;
+#ifdef MSG_NOSIGNAL
+		sflags = MSG_NOSIGNAL;
+#endif
 		if (sock->flags & GF_SOCK_HAS_PEER) {
 			res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
+		} else if (address && address_len) {
+			res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) address, address_len);
 		} else {
-			int sflags = 0;
-#ifdef MSG_NOSIGNAL
-			sflags = MSG_NOSIGNAL;
-#endif
 			res = (s32) send(sock->socket, (char *) buffer+count, length - count, sflags);
 		}
 		if (res == SOCKET_ERROR) {
@@ -2850,11 +2935,21 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 }
 
 GF_EXPORT
+GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
+{
+	return gf_sk_send_internal(sock, buffer, length, NULL, 0, written);
+}
+GF_EXPORT
 GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 {
-	return gf_sk_send_ex(sock, buffer, length, NULL);
-
+	return gf_sk_send_internal(sock, buffer, length, NULL, 0, NULL);
 }
+GF_EXPORT
+GF_Err gf_sk_send_to(GF_Socket *sock, const u8 *buffer, u32 length, const u8 *addr, u32 addr_len, u32 *written)
+{
+	return gf_sk_send_internal(sock, buffer, length, addr, addr_len, written);
+}
+
 
 GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode)
 {
@@ -3943,19 +4038,20 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 	}
 	if (!buffer) return GF_OK;
 
-	if (sock->flags & GF_SOCK_HAS_PEER)
+	if ((sock->flags & GF_SOCK_HAS_PEER) || sock->dest_addr_len) {
 		res = (s32) recvfrom(sock->socket, (char *) buffer, length, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
-	else {
+	} else {
 		res = (s32) recv(sock->socket, (char *) buffer, length, 0);
-		if (!do_select && (res == 0))
-			return GF_IP_CONNECTION_CLOSED;
 	}
+	if (!do_select && (res == 0))
+		return GF_IP_CONNECTION_CLOSED;
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;
 		switch (res) {
 		case EAGAIN:
 		case EINTR:
+		case ECONNREFUSED:
 			return GF_IP_NETWORK_EMPTY;
 
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -4081,7 +4177,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 
 #ifdef SO_NOSIGPIPE
 	int value = 1;
-	setsockopt((*newConnection)->socket, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt((*newConnection)->socket, SOL_SOCKET, SO_NOSIGPIPE, SSO_CAST &value, sizeof(value));
 #endif
 
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -4133,8 +4229,46 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 {
 	u32 one;
 
-	if (!sock || !(sock->flags & GF_SOCK_IS_TCP) || SOCKET_INVALID(sock->socket))
+	if (!sock || SOCKET_INVALID(sock->socket))
 		return GF_BAD_PARAM;
+
+	if (!(sock->flags & GF_SOCK_IS_TCP)) {
+		int val;
+#ifdef GPAC_HAS_IPV6
+		sock->dest_addr_len = sizeof(struct sockaddr_storage);
+#else
+		sock->dest_addr_len = sizeof(struct sockaddr);
+#endif
+		if (sock->flags & GF_SOCK_IS_IPV6) {
+#if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO)
+			val = IPV6_PMTUDISC_DO;
+			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MTU_DISCOVER, SSO_CAST &val, sizeof(val)) == -1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IPV6_MTU_DISCOVER: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			}
+#endif
+#ifdef IPV6_DONTFRAG
+			val = 1;
+			if (setsockopt(sock->socket, IPPROTO_IPV6, IPV6_DONTFRAG, SSO_CAST &val, sizeof(val) ) == -1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IPV6_DONTFRAG: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			}
+#endif
+		} else {
+#ifdef IP_MTU_DISCOVER
+			val = IP_PMTUDISC_DO;
+			if (setsockopt(sock->socket, IPPROTO_IP, IP_MTU_DISCOVER, SSO_CAST &val, sizeof(val)) == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] Failed to set IP_MTU_DISCOVER: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				return GF_OK;
+			}
+#endif
+#ifdef IP_DONTFRAG
+			val = 1;
+			if (setsockopt(sock->socket, IPPROTO_IP, IP_DONTFRAG, SSO_CAST &val, sizeof(val) ) == -1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] Failed to set IP_DONTFRAG: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			}
+#endif
+		}
+		return GF_OK;
+	}
 
 	one = serverOn ? 1 : 0;
 	setsockopt(sock->socket, IPPROTO_TCP, TCP_NODELAY, SSO_CAST &one, sizeof(u32));
@@ -4173,6 +4307,13 @@ GF_EXPORT
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 {
 	return gf_sk_get_remote_address_port(sock, buf, NULL);
+}
+
+const u8 *gf_sk_get_address(GF_Socket *sock, u32 *addr_size)
+{
+	if (!sock || !addr_size) return NULL;
+	*addr_size = sock->dest_addr_len;
+	return (const u8 *) &sock->dest_addr;
 }
 
 

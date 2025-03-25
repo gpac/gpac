@@ -872,6 +872,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						//try to locate sync after current time in base
 						resume_at = base->static_sample ? gf_timestamp_rescale(base->static_sample->DTS, base->timescale, ch->timescale) : 0;
 						e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+
 						//found, rewind so that next fetch is the sync
 						if (e==GF_OK) {
 							ch->sample = NULL;
@@ -879,6 +880,13 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						//no further sync found, realign with base timescale
 						else if (e==GF_EOS) {
 							e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+						}
+						//trash sample
+						if (ch->static_sample && ch->static_sample->data) {
+							gf_free(ch->static_sample->data);
+							ch->static_sample->data = NULL;
+							ch->static_sample->dataLength = 0;
+							ch->static_sample->alloc_size = 0;
 						}
 						//unknown state, realign sample num with base
 						if (e<0) {
@@ -1039,7 +1047,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					GF_ISOSample s={0};
 					gf_isom_get_sample_info_ex(read->mov, ch->track, sample_num, NULL, NULL, &s);
 					ch->start = s.DTS+s.CTS_Offset;
-					start_range = ch->start;
+					start_range = (Double) ch->start;
 					start_range /= ch->timescale;
 					ch->sample_num = sample_num;
 				}
@@ -1534,6 +1542,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (!read->frag_type)
 				read->refresh_fragmented = GF_FALSE;
 		}
+	} else {
+		isor_check_producer_ref_time(read);
 	}
 
 	for (i=0; i<count; i++) {
@@ -1885,7 +1895,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(ctso), "value to add to CTS offset for tracks using negative ctts\n"
 	"- set to `-1` to use the `cslg` box info or the minimum cts offset present in the track\n"
 	"- set to `-2` to use the minimum cts offset present in the track (`cslg` ignored)", GF_PROP_SINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(norw), "skip reformating of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(norw), "skip reformatting of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepc), "keep corrupted samples - should only be used in multicast modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };

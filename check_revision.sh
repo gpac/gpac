@@ -4,8 +4,8 @@ version="`grep '#define GPAC_VERSION ' \"./include/gpac/version.h\" | cut -d '"'
 
 #check for .git - if so use nb commits till last tag for rev + commit id
 if [ -d ".git" ]; then
-TAG=$(git describe --tags --abbrev=0 2>>gtmp)
-VERSION=$(echo `git describe --tags --long 2>>gtmp || echo "UNKNOWN"` | sed "s/^$TAG-//")
+TAG=$(git describe --tags --abbrev=0 --match "v*"  2>>gtmp)
+VERSION=$(echo `git describe --tags --long --match "v*"  2>>gtmp || echo "UNKNOWN"` | sed "s/^$TAG-//")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>>gtmp || echo "UNKNOWN")
 revision="$VERSION-$BRANCH"
 

@@ -1,0 +1,234 @@
+name: abi version updater
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: update-abi
+  cancel-in-progress: false
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      latest_abi: ${{ steps.get-tags.outputs.latest_abi }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: ""
+
+      - name: Get latest `abi-*` tags
+        id: get-tags
+        run: |
+          git fetch --tags
+          latest_tag=$(git tag -l 'abi-*' --sort=-creatordate | head -n 1)
+          echo "latest_abi=$(git rev-parse $latest_tag)" >> $GITHUB_OUTPUT
+
+  build-commits:
+    runs-on: ubuntu-latest
+    container: gpac/ubuntu-deps:latest
+    needs: prepare-matrix
+    strategy:
+      matrix:
+        ref:
+          - ${{ needs.prepare-matrix.outputs.latest_abi }}
+          - ${{ github.sha }}
+    steps:
+      - name: Setup Node
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y nodejs
+
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          path: gpac_public
+
+      - name: Retrieve dependencies
+        shell: bash
+        run: cp -av /gpac-deps/gpac_public/extra_lib/* gpac_public/extra_lib/
+
+      - name: Build GPAC
+        working-directory: gpac_public
+        shell: bash
+        run: |
+          make distclean && ./configure --enable-debug && make -j$(nproc)
+          mkdir -p /binaries
+          cp -vf bin/gcc/* /binaries/ || true
+
+      - name: Make debian package
+        working-directory: gpac_public
+        shell: bash
+        run: |
+          make distclean && ./configure --enable-debug
+          echo "debian/tmp/usr/include" >> debian/gpac.install
+          make deb
+          mv -vf gpac*.deb /binaries/
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.ref }}-binaries
+          path: /binaries/
+          retention-days: 1
+
+  compare:
+    runs-on: ubuntu-latest
+    needs: [prepare-matrix, build-commits]
+    outputs:
+      changed: ${{ steps.compare-abi.outputs.changed }}
+      incompatible: ${{ steps.compare-abi.outputs.incompatible }}
+    steps:
+      - name: Download latest ABI binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.prepare-matrix.outputs.latest_abi }}-binaries
+          path: ${{ runner.temp }}/latest-abi
+
+      - name: Download current commit binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.sha }}-binaries
+          path: ${{ runner.temp }}/current-commit
+
+      - name: Install abigail-tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y abigail-tools
+
+      - name: Compare ABI
+        id: compare-abi
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        run: |
+          set +e
+          abipkgdiff latest-abi/gpac*.deb current-commit/gpac*.deb > abi-diff.txt
+          ret=$?
+          set -e
+
+          error=$(( (ret >> 0) & 1 ))
+          changed=$(( (ret >> 2) & 1 ))
+          incompatible=$(( (ret >> 3) & 1 ))
+
+          if [ $error -ne 0 ]; then
+            echo "Error running abipkgdiff"
+            exit 1
+          fi
+
+          echo "changed=$changed" >> $GITHUB_OUTPUT
+          echo "incompatible=$incompatible" >> $GITHUB_OUTPUT
+
+      - name: Upload ABI diff
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-diff
+          path: ${{ runner.temp }}/abi-diff.txt
+          retention-days: 1
+
+  update-tags:
+    runs-on: ubuntu-latest
+    needs: compare
+    permissions:
+      contents: write
+    outputs:
+      abi_major: ${{ steps.decide-abi.outputs.major }}
+      abi_minor: ${{ steps.decide-abi.outputs.minor }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: ""
+
+      - name: Decide on new ABI version
+        id: decide-abi
+        shell: bash
+        run: |
+          latest_abi=$(git tag -l 'abi-*.*' --sort=-creatordate | head -n 1)
+          latest_abi=${latest_abi:4}
+          major=$(echo $latest_abi | cut -d. -f1)
+          minor=$(echo $latest_abi | cut -d. -f2)
+
+          if [ ${{ needs.compare.outputs.incompatible }} -eq 1 ]; then
+            major=$((major + 1))
+            minor=0
+          elif [ ${{ needs.compare.outputs.changed }} -eq 1 ]; then
+            minor=$((minor + 1))
+          fi
+
+          echo "minor=$minor" >> $GITHUB_OUTPUT
+          echo "major=$major" >> $GITHUB_OUTPUT
+
+      - name: Update ABI tags
+        shell: bash
+        run: |
+          new_minor=abi-${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}
+          new_major=abi-${{ steps.decide-abi.outputs.major }}
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git remote add gh-token "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+          if ! git rev-parse -q --verify "refs/tags/$new_minor" >/dev/null; then
+            git tag -a $new_minor -m "ABI version ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" ${{ github.sha }}
+            git push origin $new_minor
+          fi
+
+          if ! git rev-parse -q --verify "refs/tags/$new_major" >/dev/null; then
+            git tag -a $new_major -m "ABI version ${{ steps.decide-abi.outputs.major }}" ${{ github.sha }}
+            git push origin $new_major
+          fi
+
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    needs: [compare, update-tags]
+    if: ${{ needs.compare.outputs.changed == '1' || needs.compare.outputs.incompatible == '1' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Retrieve the ABI diff
+        uses: actions/download-artifact@v4
+        with:
+          name: abi-diff
+          path: ${{ runner.temp }}
+
+      - name: Read the ABI diff
+        id: read-abi-diff
+        run: |
+          echo 'body<<EOF' >> $GITHUB_OUTPUT
+          cat ${{ runner.temp }}/abi-diff.txt >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - name: Update the version
+        shell: bash
+        working-directory: include/gpac
+        run: |
+          sed -i "s/#define GPAC_VERSION_MAJOR [0-9]*/#define GPAC_VERSION_MAJOR ${{ needs.update-tags.outputs.abi_major }}/g" version.h
+          sed -i "s/#define GPAC_VERSION_MINOR [0-9]*/#define GPAC_VERSION_MINOR ${{ needs.update-tags.outputs.abi_minor }}/g" version.h
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "Update ABI version to ${{ needs.update-tags.outputs.abi_major }}.${{ needs.update-tags.outputs.abi_minor }}"
+          title: "Update ABI version"
+          body: |
+            This PR updates the ABI version to ${{ needs.update-tags.outputs.abi_major }}.${{ needs.update-tags.outputs.abi_minor }}.
+
+            **Output of `abipkgdiff`**:
+            ```
+            ${{ steps.read-abi-diff.outputs.body }}
+            ```
+          branch: "abi-bump"
+          base: "master"
+          labels: "abi"
+          draft: false
+          add-paths: "include/gpac/version.h"

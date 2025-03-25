@@ -228,9 +228,6 @@
     <ClInclude Include="..\..\include\gpac\bitstream.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\cache.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\color.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -1007,9 +1004,6 @@
     <ClCompile Include="..\..\src\utils\bitstream.c">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\utils\cache.c">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\utils\color.c">
       <Filter>utils</Filter>
     </ClCompile>
@@ -1020,6 +1014,24 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\downloader.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_cache.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_curl.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_hmux.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_nghttp2.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_ngtcp2.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_ssl.c">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\error.c">

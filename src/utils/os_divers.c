@@ -341,6 +341,8 @@ s32 __gettimeofday(struct timeval *tp, void *tz)
 
 #elif defined(WIN32)
 
+#include <WinSock2.h>
+
 static s32 gettimeofday(struct timeval *tp, void *tz)
 {
 	struct _timeb timebuffer;
@@ -742,6 +744,8 @@ u64 gf_sys_clock_high_res()
 
 
 #ifdef WIN32
+
+#include <timeapi.h>
 
 static u32 OS_GetSysClockHIGHRES()
 {
@@ -3265,7 +3269,7 @@ GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
 #endif
 		if (f) {
-			s32 wlen = fwrite(szPID, 1, len, f);
+			s32 wlen = (s32) fwrite(szPID, 1, len, f);
 			fclose(f);
 			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
 			continue;
