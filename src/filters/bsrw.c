@@ -198,6 +198,11 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		return gf_filter_pck_forward(pck, pctx->opid);
 	}
 
+#ifdef GPAC_DISABLE_AV_PARSERS
+	gf_bs_del(bs);
+	return GF_NOT_SUPPORTED;
+#endif
+
 	u32 tc_sei_type = codec_type == 0 ? 1 : 136;
 	SEI_Filter sei_filter = {
 		.is_whitelist = !ctx->rmsei,
@@ -430,6 +435,7 @@ static GF_Err vvc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 
 static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
+	GF_Err e;
 	u32 pck_size;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
 
@@ -447,6 +453,11 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		return gf_filter_pck_forward(pck, pctx->opid);
 	}
 
+#ifdef GPAC_DISABLE_AV_PARSERS
+	gf_bs_del(bs);
+	return GF_NOT_SUPPORTED;
+#endif
+
 	//remove existing timecode metadata
 	GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	while (gf_bs_available(bs)) {
@@ -454,22 +465,28 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		u64 pos = gf_bs_get_position(bs);
 
 		//read header
-		Bool forbidden = gf_bs_read_int(bs, 1);
-		if (forbidden) {
-			return GF_NON_COMPLIANT_BITSTREAM;
+		ObuType obu_type = OBU_RESERVED_0;
+		Bool obu_extension_flag = GF_FALSE, obu_has_size_field = GF_FALSE;
+		u8 tid = 0, sid = 0;
+		e = gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &tid, &sid);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Error parsing AV1 OBU header, forwarding packet\n"));
+			gf_bs_del(bs_w);
+			gf_bs_del(bs);
+			return gf_filter_pck_forward(pck, pctx->opid);
 		}
 
-		ObuType obu_type = gf_bs_read_int(bs, 4);
-		Bool obu_extension_flag = gf_bs_read_int(bs, 1);
-		Bool obu_has_size_field = gf_bs_read_int(bs, 1);
-		if (gf_bs_read_int(bs, 1) /*obu_reserved_1bit*/) {
-			return GF_NON_COMPLIANT_BITSTREAM;
+		// read size
+		u64 obu_size = pck_size;
+		if (obu_has_size_field) {
+			obu_size = gf_av1_leb128_read(bs, NULL);
+			if (obu_size > pck_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] OBU size exceeds packet size, forwarding packet\n"));
+				gf_bs_del(bs_w);
+				gf_bs_del(bs);
+				return gf_filter_pck_forward(pck, pctx->opid);
+			}
 		}
-		if (obu_extension_flag) gf_bs_read_int(bs, 8);
-		gf_assert(obu_has_size_field);
-
-		//read size
-		u64 obu_size = gf_av1_leb128_read(bs, NULL);
 		u32 hdr_size = (u32)(gf_bs_get_position(bs) - pos);
 
 		//check if timecode metadata
