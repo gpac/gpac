@@ -193,16 +193,19 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	}
 
 	if (ctx->tc == BSRW_TC_INSERT) {
+		if (codec_type == 0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Timecode insertion not supported for AVC\n"));
+			gf_bs_del(bs);
+			gf_bs_del(bs_w);
+			return gf_filter_pck_forward(pck, pctx->opid);
+		}
+
 		u32 n_frames;
 		u8 h, m, s;
 		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s);
 		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
 
-		if (codec_type == 0) {
-			gf_bs_write_int(bs_w, 0, 1);
-			gf_bs_write_int(bs_w, 0, 2);
-			gf_bs_write_int(bs_w, GF_AVC_NALU_SEI, 5);
-		} else if (codec_type == 1) {
+		if (codec_type == 1) {
 			gf_bs_write_int(bs_w, 0, 1);
 			gf_bs_write_int(bs_w, GF_HEVC_NALU_SEI_PREFIX, 6);
 			gf_bs_write_int(bs_w, 0, 6);
@@ -221,25 +224,19 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		u64 size_pos = gf_bs_get_position(bs_w);
 		gf_bs_write_int(bs_w, 0, 8);
 
-		if (codec_type == 0) {
-			// FIXME: AVC timecode SEI is not yet supported
-			gf_bs_del(bs);
-			gf_bs_del(bs_w);
-			return GF_NOT_SUPPORTED;
-		} else {
-			gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
-			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
-			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
-			gf_bs_write_int(bs_w, n_frames, 9);
-			gf_bs_write_int(bs_w, s, 6);
-			gf_bs_write_int(bs_w, m, 6);
-			gf_bs_write_int(bs_w, h, 5);
-			gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
-		}
+		gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
+		gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+		gf_bs_write_int(bs_w, n_frames, 9);
+		gf_bs_write_int(bs_w, s, 6);
+		gf_bs_write_int(bs_w, m, 6);
+		gf_bs_write_int(bs_w, h, 5);
+		gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+
 		gf_bs_write_int(bs_w, 0x80, 8);
 		gf_bs_align(bs_w);
 
