@@ -1140,6 +1140,7 @@ void gf_dm_sess_server_reset(GF_DownloadSession *sess)
 		gf_dm_sess_clear_headers(sess);
 
 	sess->total_size = sess->bytes_done = 0;
+	sess->async_buf_size = 0;
 	sess->chunk_bytes = 0;
 	sess->chunk_header_bytes = 0;
 	sess->chunked = GF_FALSE;
@@ -4722,6 +4723,7 @@ void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_keep)
 static GF_Err gf_dm_sess_flush_async_close(GF_DownloadSession *sess, Bool no_select, Bool for_close)
 {
 	if (!sess) return GF_OK;
+	if (sess->status==GF_NETIO_STATE_ERROR) return sess->last_error;
 
 	if (!no_select && sess->sock && (gf_sk_select(sess->sock, GF_SK_SELECT_WRITE)!=GF_OK)) {
 		return sess->async_buf_size ? GF_IP_NETWORK_EMPTY : GF_OK;
