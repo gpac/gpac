@@ -54,6 +54,7 @@ struct _bsrw_pid_ctx
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_VUIInfo vui;
+	AVCState *avc;
 #endif
 	Bool rewrite_vui;
 };
@@ -159,6 +160,16 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		if (codec_type==0) {
 			nal_type = gf_bs_read_u8(bs) & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEI) is_sei = GF_TRUE;
+
+			//populate the avc state
+			GF_BitStream *bs_nal = gf_bs_new(data + pos, nal_size, GF_BITSTREAM_READ);
+			s32 res = gf_avc_parse_nalu(bs_nal, pctx->avc);
+			gf_bs_del(bs_nal);
+			if (res < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC NALU\n"));
+				gf_bs_del(bs);
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 		}
 		//HEVC
 		else if (codec_type==1) {
@@ -180,10 +191,11 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		return gf_filter_pck_forward(pck, pctx->opid);
 	}
 
+	u32 tc_sei_type = codec_type == 0 ? 1 : 136;
 	SEI_Filter sei_filter = {
 		.is_whitelist = !ctx->rmsei,
 		.seis = ctx->seis,
-		.extra_filter = ctx->tc ? -136 : 0
+		.extra_filter = ctx->tc ? -tc_sei_type : 0
 	};
 
 	GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -193,19 +205,16 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	}
 
 	if (ctx->tc == BSRW_TC_INSERT) {
-		if (codec_type == 0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Timecode insertion not supported for AVC\n"));
-			gf_bs_del(bs);
-			gf_bs_del(bs_w);
-			return gf_filter_pck_forward(pck, pctx->opid);
-		}
-
 		u32 n_frames;
 		u8 h, m, s;
 		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s);
 		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
 
-		if (codec_type == 1) {
+		if (codec_type == 0) {
+			gf_bs_write_int(bs_w, 0, 1);
+			gf_bs_write_int(bs_w, 0, 2);
+			gf_bs_write_int(bs_w, GF_AVC_NALU_SEI, 5);
+		} else if (codec_type == 1) {
 			gf_bs_write_int(bs_w, 0, 1);
 			gf_bs_write_int(bs_w, GF_HEVC_NALU_SEI_PREFIX, 6);
 			gf_bs_write_int(bs_w, 0, 6);
@@ -218,24 +227,45 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		}
 
 		//write SEI type
-		gf_bs_write_int(bs_w, 136, 8);
+		gf_bs_write_int(bs_w, tc_sei_type, 8);
 
 		//save position for size
 		u64 size_pos = gf_bs_get_position(bs_w);
 		gf_bs_write_int(bs_w, 0, 8);
 
-		gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
-		gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
-		gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
-		gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
-		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
-		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
-		gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
-		gf_bs_write_int(bs_w, n_frames, 9);
-		gf_bs_write_int(bs_w, s, 6);
-		gf_bs_write_int(bs_w, m, 6);
-		gf_bs_write_int(bs_w, h, 5);
-		gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+		if (codec_type == 0) {
+			int sps_id = pctx->avc->sps_active_idx;
+			AVC_SPS *sps = &pctx->avc->sps[sps_id];
+			if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag) {
+				gf_bs_write_int(bs_w, 0, 1 + sps->vui.hrd.cpb_removal_delay_length_minus1);
+				gf_bs_write_int(bs_w, 0, 1 + sps->vui.hrd.dpb_output_delay_length_minus1);
+			}
+			gf_bs_write_int(bs_w, 0/*pic_struct*/, 4);
+			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*ct_type*/, 2);
+			gf_bs_write_int(bs_w, 0/*nuit_field_based_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, n_frames, 8);
+			gf_bs_write_int(bs_w, s, 6);
+			gf_bs_write_int(bs_w, m, 6);
+			gf_bs_write_int(bs_w, h, 5);
+		} else {
+			gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
+			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, n_frames, 9);
+			gf_bs_write_int(bs_w, s, 6);
+			gf_bs_write_int(bs_w, m, 6);
+			gf_bs_write_int(bs_w, h, 5);
+			gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+		}
 
 		gf_bs_write_int(bs_w, 0x80, 8);
 		gf_bs_align(bs_w);
@@ -334,6 +364,45 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
+	if (ctx->tc == BSRW_TC_INSERT) {
+	#ifdef GPAC_DISABLE_AV_PARSERS
+		return GF_NOT_SUPPORTED;
+	#endif
+
+		//parse the sps/pps
+		if (pctx->avc)
+			goto finish;
+
+		const GF_PropertyValue *prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
+		if (!prop) return GF_NOT_SUPPORTED;
+
+		GF_AVCConfig *avcc = gf_odf_avc_cfg_read(prop->value.data.ptr, prop->value.data.size);
+		if (!avcc) return GF_NOT_SUPPORTED;
+
+		GF_SAFEALLOC(pctx->avc, AVCState);
+		for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); ++i) {
+			GF_NALUFFParam *slc = gf_list_get(avcc->sequenceParameterSets, i);
+			s32 idx = gf_avc_read_sps(slc->data, slc->size, pctx->avc, 0, NULL);
+			if (idx < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC SPS\n"));
+				gf_odf_avc_cfg_del(avcc);
+				return GF_NOT_SUPPORTED;
+			}
+		}
+		for (u32 i=0; i<gf_list_count(avcc->pictureParameterSets); ++i) {
+			GF_NALUFFParam *slc = gf_list_get(avcc->pictureParameterSets, i);
+			s32 idx = gf_avc_read_pps(slc->data, slc->size, pctx->avc);
+			if (idx < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC PPS\n"));
+				gf_odf_avc_cfg_del(avcc);
+				return GF_NOT_SUPPORTED;
+			}
+		}
+
+		gf_odf_avc_cfg_del(avcc);
+	}
+
+finish:
 	return nalu_rewrite_packet(ctx, pctx, pck, 0);
 }
 static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -644,6 +713,12 @@ static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 	pctx->rewrite_vui = GF_TRUE;
+	if (ctx->tc) {
+		if (pctx->codec_id == GF_CODECID_AVC) {
+			pctx->vui.enable_pic_struct = ctx->tc != BSRW_TC_REMOVE;
+			return;
+		}
+	}
 	if (ctx->sar.num>=0) return;
 	if ((s32) ctx->sar.den>=0) return;
 	if (ctx->cmx>-1) return;
@@ -744,6 +819,10 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	gf_fatal_assert(prop);
+	u32 codec_id = prop->value.uint;
+
 	if (!pctx) {
 		GF_SAFEALLOC(pctx, BSRWPid);
 		if (!pctx) return GF_OUT_OF_MEM;
@@ -754,12 +833,11 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_list_add(ctx->pids, pctx);
 		pctx->opid = gf_filter_pid_new(filter);
 		if (!pctx->opid) return GF_OUT_OF_MEM;
+		pctx->codec_id = codec_id;
 		init_vui(ctx, pctx);
 	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	gf_fatal_assert(prop);
-	switch (prop->value.uint) {
+	switch (codec_id) {
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
 	case GF_CODECID_MVC:
@@ -804,7 +882,7 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 
 	gf_filter_pid_copy_properties(pctx->opid, pctx->ipid);
-	pctx->codec_id = prop->value.uint;
+	pctx->codec_id = codec_id;
 	pctx->reconfigure = GF_FALSE;
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	//rewrite asap - waiting for first packet could lead to issues further down the chain, especially for movie fragments
@@ -870,6 +948,7 @@ static void bsrw_finalize(GF_Filter *filter)
 	GF_BSRWCtx *ctx = (GF_BSRWCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->pids)) {
 		BSRWPid *pctx = gf_list_pop_back(ctx->pids);
+		if (pctx->avc) gf_free(pctx->avc);
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->pids);
@@ -947,7 +1026,7 @@ GF_FilterRegister BSRWRegister = {
 	"  - profile, level, profile compatibility\n"
 	"  - video format, video fullrange\n"
 	"  - color primaries, transfer characteristics and matrix coefficients (or remove all info)\n"
-	"  - (HEVC|VVC only) timecode"
+	"  - timecode"
 	"- AV1:\n"
 	"  - timecode\n"
 	"- ProRes:\n"

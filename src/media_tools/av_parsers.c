@@ -7311,8 +7311,6 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				time_scale = gf_bs_read_int(orig, 32);
 				if (codec == GF_CODECID_AVC) {
 					fixed_frame_rate_flag = gf_bs_read_int(orig, 1);
-
-					//LAST bit read for AVC
 				} else if (codec == GF_CODECID_HEVC) {
 					poc_proportional_to_timing_flag = gf_bs_read_int(orig, 1);
 					if (poc_proportional_to_timing_flag)
@@ -7552,13 +7550,70 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 	}
 
+	//transfer hrd parameters (if any)
+	if (codec == GF_CODECID_AVC) {
+		if (vui_present_flag) {
+			AVC_HRD hrd;
+			Bool nal_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, nal_hrd_parameters_present_flag, 1);
+			if (nal_hrd_parameters_present_flag) {
+				u32 pos_bp = gf_bs_get_bit_position(orig);
+				u32 pos = gf_bs_get_position(orig);
+				u32 start = gf_bs_get_bit_offset(orig);
+				avc_parse_hrd_parameters(orig, &hrd);
+				u32 size = gf_bs_get_bit_offset(orig) - start;
+
+				//seek back
+				gf_bs_seek(orig, pos);
+				while (pos_bp--) gf_bs_read_int(orig, 1);
+
+				//copy over nal hrd parameters
+				while (size--) {
+					u8 val = gf_bs_read_int(orig, 1);
+					gf_bs_write_int(mod, val, 1);
+				}
+			}
+
+			Bool vcl_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, vcl_hrd_parameters_present_flag, 1);
+			if (vcl_hrd_parameters_present_flag) {
+				u32 pos_bp = gf_bs_get_bit_position(orig);
+				u32 pos = gf_bs_get_position(orig);
+				u32 start = gf_bs_get_bit_offset(orig);
+				avc_parse_hrd_parameters(orig, &hrd);
+				u32 size = gf_bs_get_bit_offset(orig) - start;
+
+				//seek back
+				gf_bs_seek(orig, pos);
+				while (pos_bp--) gf_bs_read_int(orig, 1);
+
+				//copy over nal hrd parameters
+				while (size--) {
+					u8 val = gf_bs_read_int(orig, 1);
+					gf_bs_write_int(mod, val, 1);
+				}
+			}
+
+			if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
+				u8 low_delay_hrd_flag = gf_bs_read_int(orig, 1);
+				gf_bs_write_int(mod, low_delay_hrd_flag, 1);
+			}
+
+			gf_bs_read_int(orig, 1); /*pic_struct_present*/
+
+			//LAST bit read for AVC
+		} else {
+			gf_bs_write_int(mod, 0, 1); /*nal_hrd_parameters_present*/
+			gf_bs_write_int(mod, 0, 1); /*vcl_hrd_parameters_present*/
+		}
+
+		gf_bs_write_int(mod, vui_info->enable_pic_struct, 1);
+	}
+
 	/*no VUI in input bitstream but we just inserted one, set all remaining vui flags to 0*/
 	if (!vui_present_flag) {
 		if (codec == GF_CODECID_AVC) {
-			gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
-			gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
-			gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
-			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+			gf_bs_write_int(mod, 0, 1); /*bitstream_restriction*/
 		} else if (codec == GF_CODECID_HEVC) {
 			if (timing_info_present_flag) {
 				gf_bs_write_int(mod, 0, 1);		/*vui_hrd_parameters_present_flag*/
