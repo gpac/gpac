@@ -947,6 +947,7 @@ GF_FilterRegister BSRWRegister = {
 	"  - profile, level, profile compatibility\n"
 	"  - video format, video fullrange\n"
 	"  - color primaries, transfer characteristics and matrix coefficients (or remove all info)\n"
+	"  - (HEVC|VVC only) timecode"
 	"- AV1:\n"
 	"  - timecode\n"
 	"- ProRes:\n"
