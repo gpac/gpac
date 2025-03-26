@@ -120,103 +120,179 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
+static void bsrw_pck_tc_components(GF_FilterPacket *pck, GF_Fraction fps, u32 *n_frames, u8 *h, u8 *m, u8 *s)
+{
+	u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), fps.den * gf_filter_pck_get_timescale(pck), fps.num);
+	*n_frames = (cts * fps.den) % fps.num;
+	*n_frames /= fps.den;
+	cts = cts * fps.den / fps.num;
+	*s = cts % 60;
+	cts /= 60;
+	*m = cts % 60;
+	cts /= 60;
+	*h = (u8) cts;
+}
+
 static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck, u32 codec_type)
 {
 	Bool is_sei = GF_FALSE;
-	u32 size, pck_size, final_size;
+	u32 pck_size;
 	GF_FilterPacket *dst;
 	u8 *output;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!data)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
-	size=0;
-	while (size<pck_size && !is_sei) {
+	GF_BitStream *bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	//skip probe if we'll insert a timecode
+	if (ctx->tc == BSRW_TC_INSERT)
+		is_sei = GF_TRUE;
+
+	while (gf_bs_available(bs) && !is_sei) {
 		u8 nal_type=0;
-		u32 nal_hdr = pctx->nalu_size_length;
-		u32 nal_size = 0;
-		while (nal_hdr) {
-			nal_size |= data[size];
-			size++;
-			nal_hdr--;
-			if (!nal_hdr) break;
-			nal_size<<=8;
-		}
+		u32 nal_size = gf_bs_read_int(bs, 8*pctx->nalu_size_length);
+		u64 pos = gf_bs_get_position(bs);
 		is_sei = GF_FALSE;
 		//AVC
 		if (codec_type==0) {
-			nal_type = data[size] & 0x1F;
+			nal_type = gf_bs_read_u8(bs) & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEI) is_sei = GF_TRUE;
 		}
 		//HEVC
 		else if (codec_type==1) {
-			nal_type = (data[size] & 0x7E) >> 1;
+			nal_type = (gf_bs_read_u8(bs) & 0x7E) >> 1;
 			if ((nal_type == GF_HEVC_NALU_SEI_PREFIX) || (nal_type == GF_HEVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 		//VVC
 		else if (codec_type==2) {
-			nal_type = data[size+1] >> 3;
+			gf_bs_skip_bytes(bs, 1);
+			nal_type = gf_bs_read_u8(bs) >> 3;
 			if ((nal_type == GF_VVC_NALU_SEI_PREFIX) || (nal_type == GF_VVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
-
-		size += nal_size;
+		gf_bs_seek(bs, pos + nal_size);
 	}
 	if (!is_sei)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
-	dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
-	if (!dst) return GF_OUT_OF_MEM;
-
-	gf_filter_pck_merge_properties(pck, dst);
-
 	SEI_Filter sei_filter = {
 		.is_whitelist = !ctx->rmsei,
-		.seis = ctx->seis
+		.seis = ctx->seis,
+		.extra_filter = ctx->tc ? -136 : 0
 	};
+
+	GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs_w) {
+		gf_bs_del(bs);
+		return GF_OUT_OF_MEM;
+	}
+
+	if (ctx->tc == BSRW_TC_INSERT) {
+		u32 n_frames;
+		u8 h, m, s;
+		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s);
+		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
+
+		if (codec_type == 0) {
+			gf_bs_write_int(bs_w, 0, 1);
+			gf_bs_write_int(bs_w, 0, 2);
+			gf_bs_write_int(bs_w, GF_AVC_NALU_SEI, 5);
+		} else if (codec_type == 1) {
+			gf_bs_write_int(bs_w, 0, 1);
+			gf_bs_write_int(bs_w, GF_HEVC_NALU_SEI_PREFIX, 6);
+			gf_bs_write_int(bs_w, 0, 6);
+			gf_bs_write_int(bs_w, 1, 3);
+		} else if (codec_type == 2) {
+			gf_bs_write_int(bs_w, 0, 1);
+			gf_bs_write_int(bs_w, GF_VVC_NALU_SEI_PREFIX, 6);
+			gf_bs_write_int(bs_w, 0, 6);
+			gf_bs_write_int(bs_w, 1, 3);
+		}
+
+		//write SEI type
+		gf_bs_write_int(bs_w, 136, 8);
+
+		//save position for size
+		u64 size_pos = gf_bs_get_position(bs_w);
+		gf_bs_write_int(bs_w, 0, 8);
+
+		if (codec_type == 0) {
+			// FIXME: AVC timecode SEI is not yet supported
+			gf_bs_del(bs);
+			gf_bs_del(bs_w);
+			return GF_NOT_SUPPORTED;
+		} else {
+			gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
+			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, n_frames, 9);
+			gf_bs_write_int(bs_w, s, 6);
+			gf_bs_write_int(bs_w, m, 6);
+			gf_bs_write_int(bs_w, h, 5);
+			gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+		}
+		gf_bs_write_int(bs_w, 0x80, 8);
+		gf_bs_align(bs_w);
+
+		//write the SEI size
+		u64 pos = gf_bs_get_position(bs_w);
+		u32 sei_size = pos - size_pos - 1;
+		gf_bs_seek(bs_w, size_pos);
+		gf_bs_write_int(bs_w, sei_size, 8);
+
+		//write the NAL size
+		u32 nal_size = pos - pctx->nalu_size_length;
+		gf_bs_seek(bs_w, 0);
+		gf_bs_write_int(bs_w, nal_size, 8*pctx->nalu_size_length);
+		gf_bs_seek(bs_w, pos);
+	}
 
 	u32 rw_sei_size = 0;
 	u8 *rw_sei_payload = NULL;
-	final_size=0;
-	size=0;
-	while (size<pck_size) {
+	gf_bs_seek(bs, 0);
+	while (gf_bs_available(bs)) {
 		u8 nal_type=0;
-		u32 nal_hdr = pctx->nalu_size_length;
-		u32 nal_size = 0;
-		while (nal_hdr) {
-			nal_size |= data[size];
-			size++;
-			nal_hdr--;
-			if (!nal_hdr) break;
-			nal_size<<=8;
-		}
+		u32 nal_size = gf_bs_read_int(bs, 8*pctx->nalu_size_length);
+		u64 payload_pos = gf_bs_get_position(bs);
 		is_sei = GF_FALSE;
 
 		//AVC
 		if (codec_type==0) {
-			nal_type = data[size] & 0x1F;
+			nal_type = gf_bs_read_u8(bs) & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEI) is_sei = GF_TRUE;
 		}
 		//HEVC
 		else if (codec_type==1) {
-			nal_type = (data[size] & 0x7E) >> 1;
+			nal_type = (gf_bs_read_u8(bs) & 0x7E) >> 1;
 			if ((nal_type == GF_HEVC_NALU_SEI_PREFIX) || (nal_type == GF_HEVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 		//VVC
 		else if (codec_type==2) {
-			nal_type = data[size+1] >> 3;
+			gf_bs_skip_bytes(bs, 1);
+			nal_type = gf_bs_read_u8(bs) >> 3;
 			if ((nal_type == GF_VVC_NALU_SEI_PREFIX) || (nal_type == GF_VVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 
-		if (is_sei) {
-			rw_sei_size = nal_size;
-			if (rw_sei_payload) rw_sei_payload = gf_realloc(rw_sei_payload, rw_sei_size);
-			else rw_sei_payload = gf_malloc(rw_sei_size);
-			memcpy(rw_sei_payload, &data[size], rw_sei_size);
+		//allocate the temporary storage
+		rw_sei_size = nal_size;
+		if (rw_sei_payload) rw_sei_payload = gf_realloc(rw_sei_payload, rw_sei_size);
+		else rw_sei_payload = gf_malloc(rw_sei_size);
 
+		//copy the NAL payload
+		gf_bs_seek(bs, payload_pos);
+		gf_bs_read_data(bs, rw_sei_payload, rw_sei_size);
+
+		//reformat the SEI
+		if (is_sei) {
 			switch (codec_type)
 			{
 			case 0:
@@ -231,31 +307,27 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			default:
 				break;
 			}
-
-			if (rw_sei_size) {
-				// write the NAL length
-				u32 bytes = pctx->nalu_size_length;
-				while (bytes--) {
-					output[0] = (rw_sei_size >> (bytes * 8)) & 0xFF;
-					output++;
-					final_size++;
-				}
-
-				// write the NAL
-				memcpy(output, rw_sei_payload, rw_sei_size);
-				output += rw_sei_size;
-				final_size += rw_sei_size;
-			}
-		} else {
-			memcpy(output, &data[size-pctx->nalu_size_length], pctx->nalu_size_length+nal_size);
-			output += pctx->nalu_size_length+nal_size;
-			final_size += pctx->nalu_size_length+nal_size;
 		}
 
-		size += nal_size;
+		// write the new NAL
+		if (rw_sei_size) {
+			gf_bs_write_int(bs_w, rw_sei_size, 8*pctx->nalu_size_length);
+			gf_bs_write_data(bs_w, rw_sei_payload, rw_sei_size);
+		}
 	}
-	if (rw_sei_payload) gf_free(rw_sei_payload);
-	gf_filter_pck_truncate(dst, final_size);
+
+	pck_size = gf_bs_get_position(bs_w);
+	dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
+	if (!dst) return GF_OUT_OF_MEM;
+	gf_filter_pck_merge_properties(pck, dst);
+
+	//copy the new data
+	gf_bs_seek(bs_w, 0);
+	gf_bs_read_data(bs_w, output, pck_size);
+	gf_free(rw_sei_payload);
+	gf_bs_del(bs_w);
+	gf_bs_del(bs);
+
 	return gf_filter_pck_send(dst);
 }
 
@@ -270,28 +342,6 @@ static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 static GF_Err vvc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
 	return nalu_rewrite_packet(ctx, pctx, pck, 2);
-}
-
-static void obumx_write_metadata_timecode(GF_BitStream *bs, u64 cts, GF_Fraction fps)
-{
-	u32 n_frames = (cts * fps.den) % fps.num;
-	n_frames /= fps.den;
-	cts = cts * fps.den / fps.num;
-	u8 s = cts % 60;
-	cts /= 60;
-	u8 m = cts % 60;
-	cts /= 60;
-	u8 h = (u8) cts;
-	gf_bs_write_int(bs, 0/*counting_type*/, 5);
-	gf_bs_write_int(bs, 1/*full_timestamp_flag*/, 1);
-	gf_bs_write_int(bs, 0/*discontinuity_flag*/, 1);
-	gf_bs_write_int(bs, 0/*cnt_dropped_flag*/, 1);
-	gf_bs_write_int(bs, n_frames, 9);
-	gf_bs_write_int(bs, s, 6);
-	gf_bs_write_int(bs, m, 6);
-	gf_bs_write_int(bs, h, 5);
-	gf_bs_write_int(bs, 0/*time_offset_length*/, 5);
-	gf_bs_align(bs);
 }
 
 static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -358,11 +408,22 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 	}
 
 	if (ctx->tc == BSRW_TC_INSERT) {
-		u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), pctx->fps.den * gf_filter_pck_get_timescale(pck), pctx->fps.num);
 		gf_bs_write_u8(bs_w, 0x2a);
 		gf_av1_leb128_write(bs_w, 6/*8+39 bits*/);
 		gf_av1_leb128_write(bs_w, OBU_METADATA_TYPE_TIMECODE);
-		obumx_write_metadata_timecode(bs_w, cts, pctx->fps);
+		u32 n_frames;
+		u8 h, m, s;
+		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s);
+		gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+		gf_bs_write_int(bs_w, n_frames, 9);
+		gf_bs_write_int(bs_w, s, 6);
+		gf_bs_write_int(bs_w, m, 6);
+		gf_bs_write_int(bs_w, h, 5);
+		gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+		gf_bs_align(bs_w);
 	}
 
 	//send packet
@@ -454,7 +515,7 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei || ctx->seis.nb_items) {
+	if (ctx->rmsei || ctx->seis.nb_items || ctx->tc) {
 		pctx->rewrite_packet = avc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -500,7 +561,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei || ctx->seis.nb_items) {
+	if (ctx->rmsei || ctx->seis.nb_items || ctx->tc) {
 		pctx->rewrite_packet = hevc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -542,7 +603,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei || ctx->seis.nb_items) {
+	if (ctx->rmsei || ctx->seis.nb_items || ctx->tc) {
 		pctx->rewrite_packet = vvc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -831,7 +892,10 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(pidc), "profile IDC for HEVC and VVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(tc), "timecode manipulation mode", GF_PROP_UINT, "none", "none|insert|remove", GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(tc), "timecode manipulation mode\n"
+	"- none: do not change anything\n"
+	"- insert: insert timecodes based on cts\n"
+	"- remove: remove timecodes", GF_PROP_UINT, "none", "none|insert|remove", GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(seis), "list of SEI message types (4,137,144,...). When used with `rmsei`, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},

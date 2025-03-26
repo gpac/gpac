@@ -6970,6 +6970,8 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 					break;
 				}
 			}
+			if (sei_filter->extra_filter == -ptype)
+				do_copy = GF_FALSE;
 		}
 
 		start = (u32)gf_bs_get_position(bs);
@@ -8355,6 +8357,8 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 					break;
 				}
 			}
+			if (sei_filter->extra_filter == -ptype)
+				do_copy = GF_FALSE;
 		}
 
 		start = gf_bs_get_position(bs);

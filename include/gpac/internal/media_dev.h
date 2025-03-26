@@ -285,6 +285,7 @@ typedef struct
 {
 	Bool is_whitelist;
 	GF_PropUIntList seis;
+	s32 extra_filter; //- removes the sei, + keeps the sei
 } SEI_Filter;
 
 
