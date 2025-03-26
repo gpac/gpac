@@ -100,6 +100,7 @@ typedef struct
 
 	u8 *avio_ctx_buffer;
 	AVIOContext *avio_ctx;
+	u32 nb_avio_err;
 	FILE *gfio;
 
 	u32 cur_file_idx_plus_one;
@@ -364,20 +365,30 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 			return GF_SERVICE_ERROR;
 		}
 
+		u32 cap_idx=1;
 		ctx->proto_caps[0].code = GF_PROP_PID_STREAM_TYPE;
 		ctx->proto_caps[0].val = PROP_UINT(GF_STREAM_FILE);
 		ctx->proto_caps[0].flags = GF_CAPS_INPUT_STATIC;
+		if (ctx->mime) {
+			ctx->proto_caps[1].code = GF_PROP_PID_MIME;
+			ctx->proto_caps[1].val = PROP_STRING(ctx->mime);
+			ctx->proto_caps[1].flags = GF_CAPS_INPUT_STATIC;
+			cap_idx++;
+		}
+		const char *fmt = ctx->ext;
+		if (!fmt && !ctx->mime) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[FFMux] Format not specified, defaulting to MPEG-2 TS - try setting `ext=` to set GPAC mux format\n", ctx->dst));
+			fmt = "ts";
+		}
+		if (fmt) {
+			ctx->proto_caps[cap_idx].code = GF_PROP_PID_FILE_EXT;
+			ctx->proto_caps[cap_idx].val = PROP_STRING(fmt);
+			ctx->proto_caps[cap_idx].flags = GF_CAPS_INPUT_STATIC;
+			cap_idx++;
+		}
 
-		ctx->proto_caps[1].code = ctx->mime ? GF_PROP_PID_MIME : GF_PROP_PID_FILE_EXT;
-		ctx->proto_caps[1].val = ctx->mime ? PROP_STRING(ctx->mime) : PROP_STRING(ctx->ext ? ctx->ext : ctx->ffmt);
-		ctx->proto_caps[1].flags = GF_CAPS_INPUT_STATIC;
-
-		ctx->proto_caps[2].code = GF_PROP_PID_FILE_EXT;
-		ctx->proto_caps[2].val = PROP_STRING("ts");
-		ctx->proto_caps[2].flags = GF_CAPS_INPUT_STATIC;
-
-		gf_filter_override_caps(filter, ctx->proto_caps, 3);
-
+		gf_filter_override_caps(filter, ctx->proto_caps, cap_idx);
+		gf_filter_set_max_extra_input_pids(filter, 0);
 		return GF_OK;
 	}
 
@@ -748,6 +759,27 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				int size = 0;
 				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
 				avio_write(ctx->avio_ctx, data, size);
+
+				if (ctx->avio_ctx->eof_reached) {
+					gf_filter_pid_drop_packet(ipid);
+					gf_filter_abort(filter);
+					return GF_EOS;
+				}
+				if (ctx->avio_ctx->error) {
+					ctx->nb_avio_err++;
+					if (ctx->nb_avio_err>10) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[FFMX] Write error %s - aborting\n", av_err2str(ctx->avio_ctx->error)));
+						gf_filter_abort(filter);
+						return GF_IO_ERR;
+					}
+					//we keep trying to send this packet, no drop
+					return GF_OK;
+				}
+				//it looks like ctx->avio_ctx->error is handled internally in FFMpeg
+				//so reseting it here xould not trigger an error an the next call
+
+				ctx->nb_avio_err = 0;
+				gf_filter_pid_drop_packet(ipid);
 			}
 		}
 		return GF_OK;
@@ -1056,11 +1088,23 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_NOT_SUPPORTED;
 	}
 
+	const AVCodec *c = NULL;
+	Bool stream_ready = GF_TRUE;
+	codec_id = GF_CODECID_NONE;
+
+	if (ctx->proto) {
+		if (streamtype!=GF_STREAM_FILE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Cannot use proto with non-file format (got %s)\n", gf_stream_type_name(streamtype)));
+			return GF_NOT_SUPPORTED;
+		}
+		goto setup_stream;
+	}
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
 	codec_id = p->value.uint;
 
-	Bool stream_ready = GF_TRUE;
+	stream_ready = GF_TRUE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!p) {
 		//we must wait for decoder config to be present for these codecs
@@ -1171,8 +1215,10 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_NOT_SUPPORTED;
 	}
 
-	const AVCodec *c = avcodec_find_decoder(ff_codec_id);
+	c = avcodec_find_decoder(ff_codec_id);
 	if (!c) return GF_NOT_SUPPORTED;
+
+setup_stream:
 
 	if (!st) {
 		GF_FilterEvent evt;
@@ -1189,6 +1235,11 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "FFMux");
 		gf_filter_pid_send_event(pid, &evt);
+		if (ctx->proto) {
+			st->ready = GF_TRUE;
+			ctx->status = FFMX_STATE_TRAILER_DONE;
+			return GF_OK;
+		}
 	}
 	st->ready =  stream_ready;
 
@@ -1593,6 +1644,11 @@ GF_FilterRegister FFMuxRegister = {
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
 		"\n"
 		"All PID properties prefixed with `meta:` will be added as metadata.\n"
+		"\n"
+		"The [-proto]() flag will disable FFmpeg muxer and use GPAC instead. Default format is MPEG-2 TS and can be specified using [-ext]() or [-mime]().\n"
+		"EX gpac -i SRC -o srt://127.0.0.1:1234:gpac:proto[:ext=mp4:frag]"
+		"This will use the SRT protocol handler but GPAC m2ts multiplexer or mp4 muxer if `ext=mp4:frag` is set\n"
+		"\n"
 	)
 	.private_size = sizeof(GF_FFMuxCtx),
 	SETCAPS(FFMuxCaps),
