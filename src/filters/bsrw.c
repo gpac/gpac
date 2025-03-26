@@ -121,17 +121,24 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
-static void bsrw_pck_tc_components(GF_FilterPacket *pck, GF_Fraction fps, u32 *n_frames, u8 *h, u8 *m, u8 *s)
+static void bsrw_pck_tc_components(GF_FilterPacket *pck, GF_Fraction fps, u32 *n_frames, u8 *h, u8 *m, u8 *s, GF_TimeCode *tc)
 {
 	u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), fps.den * gf_filter_pck_get_timescale(pck), fps.num);
 	*n_frames = (cts * fps.den) % fps.num;
 	*n_frames /= fps.den;
+	tc->n_frames = *n_frames;
 	cts = cts * fps.den / fps.num;
 	*s = cts % 60;
+	tc->seconds = *s;
 	cts /= 60;
 	*m = cts % 60;
+	tc->minutes = *m;
 	cts /= 60;
 	*h = (u8) cts;
+	tc->hours = *h;
+	tc->as_timestamp = tc->hours*3600 + tc->minutes*60 + tc->seconds;
+	tc->as_timestamp *= 1000;
+	tc->as_timestamp += tc->n_frames;
 }
 
 static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck, u32 codec_type)
@@ -204,10 +211,11 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		return GF_OUT_OF_MEM;
 	}
 
+	GF_TimeCode tc_w;
 	if (ctx->tc == BSRW_TC_INSERT) {
 		u32 n_frames;
 		u8 h, m, s;
-		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s);
+		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s, &tc_w);
 		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
 
 		if (codec_type == 0) {
@@ -350,6 +358,12 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	if (!dst) return GF_OUT_OF_MEM;
 	gf_filter_pck_merge_properties(pck, dst);
 
+	if (ctx->tc == BSRW_TC_INSERT) {
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, &PROP_DATA((u8*)&tc_w, sizeof(GF_TimeCode)));
+	} else if (ctx->tc == BSRW_TC_REMOVE) {
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, NULL);
+	}
+
 	//copy the new data
 	gf_bs_seek(bs_w, 0);
 	gf_bs_read_data(bs_w, output, pck_size);
@@ -477,13 +491,14 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		}
 	}
 
+	GF_TimeCode tc_w;
 	if (ctx->tc == BSRW_TC_INSERT) {
 		gf_bs_write_u8(bs_w, 0x2a);
 		gf_av1_leb128_write(bs_w, 6/*8+39 bits*/);
 		gf_av1_leb128_write(bs_w, OBU_METADATA_TYPE_TIMECODE);
 		u32 n_frames;
 		u8 h, m, s;
-		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s);
+		bsrw_pck_tc_components(pck, pctx->fps, &n_frames, &h, &m, &s, &tc_w);
 		gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
 		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
@@ -501,9 +516,18 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 	pck_size = gf_bs_get_position(bs_w);
 	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
 	gf_filter_pck_merge_properties(pck, dst);
+
+	if (ctx->tc == BSRW_TC_INSERT) {
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, &PROP_DATA((u8*)&tc_w, sizeof(GF_TimeCode)));
+	} else if (ctx->tc == BSRW_TC_REMOVE) {
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, NULL);
+	}
+
+	//copy the new data
 	gf_bs_seek(bs_w, 0);
 	gf_bs_read_data(bs_w, output, pck_size);
 
+	//cleanup
 	gf_bs_del(bs_w);
 	gf_bs_del(bs);
 
