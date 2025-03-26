@@ -1943,7 +1943,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (sess->do_log) {
 				sess->req_id = ++sess->ctx->req_id;
 				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s DELETE %s\n", sess->req_id, sess->peer_address, url+1));
-				sess->do_log = GF_FALSE;
+				sess->do_log = 0;
 			}
 		} else {
 			e = GF_URL_ERROR;
@@ -3608,6 +3608,7 @@ static void log_request_done(GF_HTTPOutSession *sess)
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] %sREQ#"LLU" %s done: reply %d - "LLU" bytes in %d ms at %g %s\n", sprefix, sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 	}
+	sess->do_log = 2;
 }
 
 static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HTTPOutSession *sess)
