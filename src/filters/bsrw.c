@@ -175,8 +175,10 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		}
 		gf_bs_seek(bs, pos + nal_size);
 	}
-	if (!is_sei)
+	if (!is_sei) {
+		gf_bs_del(bs);
 		return gf_filter_pck_forward(pck, pctx->opid);
+	}
 
 	SEI_Filter sei_filter = {
 		.is_whitelist = !ctx->rmsei,
@@ -324,6 +326,8 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	//copy the new data
 	gf_bs_seek(bs_w, 0);
 	gf_bs_read_data(bs_w, output, pck_size);
+
+	//cleanup
 	gf_free(rw_sei_payload);
 	gf_bs_del(bs_w);
 	gf_bs_del(bs);
