@@ -100,7 +100,6 @@ typedef struct
 
 	u8 *avio_ctx_buffer;
 	AVIOContext *avio_ctx;
-	u32 nb_avio_err;
 	FILE *gfio;
 
 	u32 cur_file_idx_plus_one;
@@ -116,6 +115,7 @@ typedef struct
 
 	//for protocol-only caps override
 	GF_FilterCapability proto_caps[3];
+	u32 pck_offset;
 } GF_FFMuxCtx;
 
 static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -358,7 +358,7 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	if (ctx->proto) {
 		//special mode: open protocol and bypass muxer
 		AVDictionary *opts = NULL;
-		int ret = avio_open2(&ctx->avio_ctx, url, AVIO_FLAG_WRITE, NULL, &opts);
+		int ret = avio_open2(&ctx->avio_ctx, url, AVIO_FLAG_WRITE|AVIO_FLAG_NONBLOCK|AVIO_FLAG_DIRECT, NULL, &opts);
 		av_dict_free(&opts);
 		if (ret < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to open protocol URL %s, cannot run\n", url));
@@ -758,28 +758,36 @@ static GF_Err ffmx_process(GF_Filter *filter)
 
 				int size = 0;
 				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
-				avio_write(ctx->avio_ctx, data, size);
+				u32 to_write = size - ctx->pck_offset;
+				if (to_write > ctx->avio_ctx->buffer_size)
+					to_write = ctx->avio_ctx->buffer_size;
 
+				avio_write(ctx->avio_ctx, data + ctx->pck_offset, to_write);
+
+				if (ctx->avio_ctx->error == AVERROR(EAGAIN)) {
+					ctx->avio_ctx->error = 0;
+					ctx->avio_ctx->eof_reached = 0;
+					gf_filter_ask_rt_reschedule(filter, 1000);
+					return GF_OK;
+				}
 				if (ctx->avio_ctx->eof_reached) {
 					gf_filter_pid_drop_packet(ipid);
 					gf_filter_abort(filter);
 					return GF_EOS;
 				}
 				if (ctx->avio_ctx->error) {
-					ctx->nb_avio_err++;
-					if (ctx->nb_avio_err>10) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[FFMX] Write error %s - aborting\n", av_err2str(ctx->avio_ctx->error)));
-						gf_filter_abort(filter);
-						return GF_IO_ERR;
-					}
-					//we keep trying to send this packet, no drop
-					return GF_OK;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[FFMX] Write error %s - aborting\n", av_err2str(ctx->avio_ctx->error)));
+					gf_filter_abort(filter);
+					return GF_IO_ERR;
 				}
 				//it looks like ctx->avio_ctx->error is handled internally in FFMpeg
-				//so reseting it here xould not trigger an error an the next call
+				//so a reset here would not trigger an error an the next call
 
-				ctx->nb_avio_err = 0;
-				gf_filter_pid_drop_packet(ipid);
+				ctx->pck_offset += to_write;
+				if (ctx->pck_offset == size) {
+					ctx->pck_offset = 0;
+					gf_filter_pid_drop_packet(ipid);
+				}
 			}
 		}
 		return GF_OK;
