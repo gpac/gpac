@@ -544,16 +544,17 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 /*	if (!for_quic)
 		SSL_CTX_set_quic_method(ctx, NULL);
 */
+#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 	if (next_proto_list_len) {
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
 	}
-
+#endif
 
 	SSL_CTX_set_default_verify_paths(ctx);
-    SSL_CTX_set_ecdh_auto(ctx, 1);
+	SSL_CTX_set_ecdh_auto(ctx, 1);
 
 //	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
 	if (SSL_CTX_use_certificate_chain_file(ctx, cert) != 1) {
