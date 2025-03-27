@@ -276,23 +276,29 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		//AVC
 		if (codec_type==0) {
 			//populate the avc state
-			GF_BitStream *bs_nal = gf_bs_new(data + pos, nal_size, GF_BITSTREAM_READ);
-			s32 res = gf_avc_parse_nalu(bs_nal, pctx->avc);
-			gf_bs_del(bs_nal);
-			if (res < 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC NALU\n"));
-				gf_bs_del(bs);
-				return GF_NON_COMPLIANT_BITSTREAM;
+			if (ctx->tc) {
+				GF_BitStream *bs_nal = gf_bs_new(data + pos, nal_size, GF_BITSTREAM_READ);
+				s32 res = gf_avc_parse_nalu(bs_nal, pctx->avc);
+				gf_bs_del(bs_nal);
+				if (res < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC NALU\n"));
+					gf_bs_del(bs);
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+				gf_bs_seek(bs, pos);
 			}
 
 			// Check if the NALU is a SEI
-			gf_bs_seek(bs, pos);
 			nal_type = gf_bs_read_u8(bs) & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEI)
 				is_sei = GF_TRUE;
 			else goto skip;
 
+			//skip if not doing timecode manipulation
+			if (!ctx->tc) goto skip;
+
 			//parse the sei
+			//even though we might remove it, we need it for timecode manipulation range
 			u8* nal = gf_malloc(nal_size);
 			gf_bs_seek(bs, pos);
 			gf_bs_read_data(bs, nal, nal_size);
@@ -321,6 +327,9 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 				is_sei = GF_TRUE;
 			else goto skip;
 
+			//skip if not doing timecode manipulation
+			if (!ctx->tc) goto skip;
+
 			//parse the sei
 			HEVCState *hevc;
 			GF_SAFEALLOC(hevc, HEVCState);
@@ -343,8 +352,8 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 				tc_in->minutes = hevc_tc->minutes;
 				tc_in->seconds = hevc_tc->seconds;
 				tc_in->n_frames = hevc_tc->n_frames;
-				gf_free(hevc);
 			}
+			gf_free(hevc);
 		}
 		//VVC
 		else if (codec_type==2) {
@@ -542,7 +551,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
-	if (ctx->tc == BSRW_TC_INSERT) {
+	if (ctx->tc) {
 	#ifdef GPAC_DISABLE_AV_PARSERS
 		return GF_NOT_SUPPORTED;
 	#endif
@@ -1231,7 +1240,7 @@ static GF_Err bsrw_parse_date(const char *date_in, GF_TimeCode *tc_out)
 
 	u8 h, m, s;
 	u16 n_frames;
-	if (sscanf(date, "TC%u:%u:%u:%u", &h, &m, &s, &n_frames) != 4)
+	if (sscanf(date, "TC%hhu:%hhu:%hhu:%hu", &h, &m, &s, &n_frames) != 4)
 		return GF_BAD_PARAM;
 
 	// Express timecode to timestamp
