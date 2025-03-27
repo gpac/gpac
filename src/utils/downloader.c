@@ -1715,6 +1715,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 	return GF_OK;
 }
 
+#ifdef GPAC_HTTPMUX
 static void gf_dm_sess_flush_input(GF_DownloadSession *sess)
 {
 	u32 res;
@@ -1730,7 +1731,7 @@ static void gf_dm_sess_flush_input(GF_DownloadSession *sess)
 		return;
 	}
 }
-
+#endif
 
 GF_EXPORT
 GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
