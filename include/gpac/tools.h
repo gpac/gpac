@@ -435,7 +435,7 @@ typedef struct
 	u8 hours, minutes, seconds;
 	u16 n_frames;
 	Float max_fps;
-	Bool drop_frame;
+	Bool drop_frame, negative;
 	u32 as_timestamp;
 } GF_TimeCode;
 
