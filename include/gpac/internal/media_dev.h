@@ -234,6 +234,7 @@ typedef struct
 	u16 n_frames;
 	Float max_fps;
 	u8 counting_type;
+	Bool clock_timestamp_flag;
 } AVCSeiPicTimingTimecode;
 
 typedef struct

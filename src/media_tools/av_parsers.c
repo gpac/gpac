@@ -6530,8 +6530,10 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 		pt->num_clock_ts = NumClockTS[pt->pic_struct];
 		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
-			if (gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i)) {
+			Bool clock_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i);
+			if (clock_timestamp_flag) {
 				AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
+				tc->clock_timestamp_flag = clock_timestamp_flag;
 				gf_bs_read_int_log_idx(bs, 2, "ct_type", i);
 				Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "unit_field_based_flag", i);
 				tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
@@ -6579,9 +6581,9 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 	for (int i = 0; i < pt->num_clock_ts; i++) {
 		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
 		if (clock_timestamp_flag) {
-			Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
-
 			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
+			tc->clock_timestamp_flag = clock_timestamp_flag;
+			Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
 			tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 			Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
 			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
