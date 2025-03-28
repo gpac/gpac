@@ -8281,6 +8281,10 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ntpts));
 		} else if (ctx->ntp==DASHER_NTP_REM) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, NULL);
+		} else if (ctx->ntp==DASHER_NTP_KEEP) {
+			const GF_PropertyValue *v = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
+			if (v)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, v);
 		}
 		if (!ctx->gencues) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, NULL );
