@@ -217,7 +217,7 @@ napi_value gpac_sys_keyname(napi_env env, napi_callback_info info)
 	NARG_S32(code, 0, 0);
 	NAPI_CALL( napi_create_string_utf8(env, gf_dom_get_friendly_name(code), NAPI_AUTO_LENGTH, &val) );
 #else
-	NAPI_CALL( napi_create_string_utf8(env, "unknwon", NAPI_AUTO_LENGTH, &val) );
+	NAPI_CALL( napi_create_string_utf8(env, "unknown", NAPI_AUTO_LENGTH, &val) );
 #endif
 	return val;
 }

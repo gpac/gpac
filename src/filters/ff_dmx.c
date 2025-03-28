@@ -1296,7 +1296,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 						names.vals[j] = gf_strdup(ent->value);
 					}
 				}
-				if (!names.vals[j]) names.vals[j] = gf_strdup("Unknwon");
+				if (!names.vals[j]) names.vals[j] = gf_strdup("Unknown");
 			}
 			p.type = GF_PROP_UINT_LIST;
 			p.value.uint_list = times;
