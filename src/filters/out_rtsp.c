@@ -39,11 +39,7 @@
 #include "out_rtp.h"
 
 #ifdef GPAC_HAS_SSL
-
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void *gf_ssl_server_context_new(const char *cert, const char *key);
-void gf_ssl_server_context_del(void *ssl_server_ctx);
-Bool gf_ssl_init_lib();
+#include "../utils/downloader.h"
 
 #endif
 
@@ -54,21 +50,19 @@ enum
 	SDP_LOADED
 };
 
-enum
-{
+GF_OPT_ENUM(GF_RTSPOutMulticastMode,
 	MCAST_OFF = 0,
 	MCAST_ON,
 	MCAST_MIRROR,
 	//describe does not ened authenticate but multicast setup does
 	MCAST_AUTHENTICATE_SETUP,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_RTSPOutTransportMode,
 	TRP_BOTH=0,
 	TRP_UDP_ONLY,
-	TRP_TCP_ONLY
-};
+	TRP_TCP_ONLY,
+);
 
 typedef struct
 {
@@ -96,7 +90,8 @@ typedef struct
 	u32 maxc;
 	u32 block_size;
 	Bool close, loop, mpeg4, quit, htun, dynurl;
-	u32 mcast, trp;
+	GF_RTSPOutMulticastMode mcast;
+	GF_RTSPOutTransportMode trp;
 	Bool latm;
 
 	GF_Filter *filter;
@@ -164,7 +159,7 @@ typedef struct __rtspout_session
 	Bool request_pending;
 	char *multicast_ip;
 	u64 sdp_id;
-	u32 mcast_mode;
+	GF_RTSPOutMulticastMode mcast_mode;
 	char *mcast_sname;
 
 	u32 last_active_time;
@@ -564,7 +559,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] Failed to initialize OpenSSL library\n"));
 			return GF_IO_ERR;
 		}
-		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey);
+		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey, GF_FALSE);
 		if (!ctx->ssl_ctx) return GF_IO_ERR;
 
 		if (!ctx->port || (ctx->port==554))
@@ -991,7 +986,7 @@ static GF_RTSPOutSession *rtspout_locate_mcast(GF_RTSPOutCtx *ctx, char *res_pat
 	return NULL;
 }
 
-static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_RTSPCommand *com, u32 *err_code, u32 *mcast_mode)
+static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_RTSPCommand *com, u32 *err_code, GF_RTSPOutMulticastMode *mcast_mode)
 {
 	u32 i, count, di_len;
 	RTSP_DIRInfo *di = NULL;
@@ -1202,7 +1197,7 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 			if (transport->destination && !gf_sk_is_multicast_address(transport->destination)) {
 				rsp_code = NC_RTSP_Bad_Request;
 			} else {
-				u32 mcast_mode = ctx->mcast;
+				GF_RTSPOutMulticastMode mcast_mode = ctx->mcast;
 				if (sess->mcast_mode) mcast_mode = sess->mcast_mode;
 
 				if (mcast_mode==MCAST_AUTHENTICATE_SETUP) {
@@ -1415,7 +1410,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 		|| (!sess->service_name && !sess->sessionID && !strcmp(sess->command->method, GF_RTSP_SETUP))
 	) {
 		u32 rsp_code = NC_RTSP_OK;
-		u32 mcast_mode=MCAST_OFF;
+		GF_RTSPOutMulticastMode mcast_mode=MCAST_OFF;
 		Bool is_setup = !strcmp(sess->command->method, GF_RTSP_SETUP);
 
 		char *res_path = NULL;

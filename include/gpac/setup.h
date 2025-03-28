@@ -459,7 +459,7 @@ typedef u8 bin128[16];
 #define MAX(X, Y) ((X)>(Y)?(X):(Y))
 #endif
 
-/*! get the absolute difference betwee two numbers*/
+/*! get the absolute difference between two numbers*/
 #define ABSDIFF(a, b)	( ( (a) > (b) ) ? ((a) - (b)) : ((b) - (a)) )
 
 #ifndef ABS
@@ -474,6 +474,10 @@ typedef enum {
 	GF_TRUE
 } Bool;
 #endif
+
+#define GF_OPT_ENUM(name, ...)						\
+        typedef enum { __VA_ARGS__ } name##_t;		\
+        typedef u32 name
 
 /*! 32 bit fraction*/
 typedef struct {

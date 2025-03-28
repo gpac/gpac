@@ -33,8 +33,8 @@ const DEFAULT_CHECKIP = false;
 
 //metadata
 filter.set_name("mediaserver");
-filter.set_class_hint(GF_FS_CLASS_MM_IO);
-filter.set_desc("Streaming Media Gateway and Server");
+filter.set_class_hint(GF_FS_CLASS_NETWORK_IO);
+filter.set_desc("Media Server");
 filter.set_version("1.0");
 filter.set_author("GPAC team - (c) Telecom Paris 2024 - license LGPL v2");
 
@@ -47,34 +47,34 @@ The file \`.gpac_auth\`, if present in current working directory, will be used f
 If more options need to be specified for the HTTP output filter, they can be passed as local options or using global options:
 EX gpac mediaserver:cors=on --user_agent=MyUser
 
-Although not recommended, a server may be specified explicitly.
+Although not recommended, a server may be specified explicitly:
 EX gpac mediaserver httpout:OPTS
-In this case, the first httpout filter created will be used.
+In this case, the first \`httpout\` filter created will be used.
 
 Default request handling of \`httpout\` filter through read / write directories is disabled.
 
 # Services Configuration
 The service configuration is set using [-scfg](). It shall be a JSON file containing a single array of services.
 Each service is a JSON object with one or more of the following properties:
- - id: (string, default null) Service identifier used for logs
- - active: (boolean, default true) service is ignored if false
- - http: (string, default null) URL of remote service to proxy (either resource name or server path)
- - gcache: (boolean, default ${DEFAULT_GCACHE}) use gpac local disk cache when fetching media from HTTP for this service
- - local: (string, default null) local mount point of this service
- - keepalive: (number, default ${DEFAULT_KEEPALIVE_SEC}) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
- - mabr: (string, default null) address of multicast ABR source for this service
- - timeshift: (number, default ${DEFAULT_TIMESHIFT}) time in seconds a cached file remains in memory
- - unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC} multicast unload policy
- - activate: (number, default ${DEFAULT_ACTIVATE_CLIENTS}) multicast activation policy
- - repair: (boolean, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
- - mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files (experimental)
- - corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
- - check_ip: (boolean, , default ${DEFAULT_CHECKIP} monitor IP address and port rather than connection when tracking active clients
- - noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
- - sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
-  - name: name as used in resource path,
-  - url: local or remote URL to use for this resource.
- - js: (string, default null) built-in or custom request resolver
+- id: (string, default null) Service identifier used for logs
+- active: (boolean, default true) service is ignored if false
+- http: (string, default null) URL of remote service to proxy (either resource name or server path)
+- gcache: (boolean, default ${DEFAULT_GCACHE}) use gpac local disk cache when fetching media from HTTP for this service
+- local: (string, default null) local mount point of this service
+- keepalive: (number, default ${DEFAULT_KEEPALIVE_SEC}) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
+- mabr: (string, default null) address of multicast ABR source for this service
+- timeshift: (number, default ${DEFAULT_TIMESHIFT}) time in seconds a cached file remains in memory
+- unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC} multicast unload policy
+- activate: (number, default ${DEFAULT_ACTIVATE_CLIENTS}) multicast activation policy
+- repair: (boolean, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
+- mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files (experimental)
+- corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
+- check_ip: (boolean, , default ${DEFAULT_CHECKIP} monitor IP address and port rather than connection when tracking active clients
+- noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
+- sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
+- name: name as used in resource path,
+- url: local or remote URL to use for this resource.
+- js: (string, default null) built-in or custom request resolver
 
 Any JSON object with the property \`comment\` set will be ignored.
 
@@ -104,13 +104,13 @@ The server can act as a proxy for HTTP requests, either for any requests or by d
 
 __Service configuration parameters used :__ \`http\` (mandatory), \`gcache\`, \`local\`.
 
-Exemple configuration for activating proxy for a specific network path:
+Configuration for activating proxy for a specific network path:
 EX { 'http': 'https://test.com/video/'}
 
-Exemple configuration for activating proxy for any network path:
+Configuration for activating proxy for any network path:
 EX { 'http': '*'}
 
-Exemple configuration for a relay on a given path:
+Configuration for a relay on a given path:
 EX { 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
 
 This will resolve any request \`http://localhost/myvids/*\` to \`https://test.com/some/path/to/video/*\`
@@ -122,10 +122,10 @@ The server can act as a cache for live HTTP streaming sessions. The live edge ca
 
 __Service configuration parameters used :__ \`http\` ( mandatory), \`timeshift\`, \`mcache\`, \`gcache\`, \`keepalive\` and \`local\`.
 
-Exemple configuration for proxying while caching a live HTTP streaming service:
+Configuration for proxying while caching a live HTTP streaming service:
 EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
 
-Exemple configuration for relay caching a live HTTP streaming service:
+Configuration for relay caching a live HTTP streaming service:
 EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
 
 The \`local\` service configuration option can be set to:
@@ -133,7 +133,7 @@ The \`local\` service configuration option can be set to:
 - or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
 
 # Multicast ABR Gateway
-The server can be configured to use a multicast ANR source for an HTP streaming service, without any HTTP source.
+The server can be configured to use a multicast ABR source for an HTTP streaming service, without any HTTP source.
 
 __Service configuration parameters used :__ \`mabr\` (mandatory), \`local\` (mandatory), \`corrupted\`, \`timeshift\` and \`keepalive\`.
 
@@ -144,13 +144,13 @@ The multicast source can be DVB-MABR (e.g. \`mabr://235.0.0.1:1234/\`), ATSC3.0 
 For example, with \`local\` set to \`/service/live.mpd\` with \`mabr\` set, the server will expose the multicast service as \`http://localhost/service/live.mpd\`.
 The manifest name can be omitted, in which case the exact manifest name used in the broadcast shall be used (and known to the client).
 
-Exemple configuration for exposing a MABR session:
+Configuration for exposing a MABR session:
 EX { 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
 
 # Multicast ABR Gateway with HTTP cache
 The server can be configured to use a multicast source as an alternate data source of a given HTTP streaming service.
 
-__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`active\` and \`keepalive\`.
+__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`active\`, \`keepalive\` and \`js\`.
 
 The multicast service can be dynamically loaded at run-time using the \`unload\` service configuration option:
 - if 0, the multicast is started when loading the server and never ended,
@@ -173,14 +173,32 @@ If \`check_ip\` is set to true, the remote IP address+port are used instead of t
 
 If \`timeshift\` is 0 for the service, multicast segments will be trashed as soon as not in use (potentially before the client request).
 
-Note: Manifests files coming from multicast are currently never cached.
+Note: Manifest files coming from multicast are currently never cached.
 
-Exemple configuration for caching a live HTTP streaming service with MABR backup:
+Configuration for caching a live HTTP streaming service with MABR backup:
 EX { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
 
 For such services, the custom HTTP header \`X-From-MABR\` is defined:
-- for client requests, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
+- for client request, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
 - for client response, a value of \`yes\` indicates the content comes from the MABR cache; if absent or value is \`no\`, the content comes from HTTP
+
+
+The \`js\` option can be set to a JS module exporting the following functions:
+- init : (mandatory) The function is called once at the start of the server. Parameters:
+  - scfg: the service configuration object
+  - return value: must be true if configuration and initialization are successful, false otherwise.
+
+- service_activation : (optional) The function is called when the service is activated or deactivated. Parameters:
+  - do_activate (boolean): if true, service is being loaded otherwise it is being unloaded
+  - return value: none
+
+- quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+  - do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
+  - service_id (integer): ID of the service as announced in the multicast
+  - period_id (string): ID of the DASH Period, ignored for HLS
+  - adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+  - representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
+  - return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
 
 # File Services
 A file system directory can be exposed as a service. 
@@ -190,7 +208,7 @@ __Service configuration parameters used :__ \`local\` (mandatory), \`sources\` (
 The \`local\` service configuration option must be set to the desired service path, and the \`sources\` service configuration option must one or more valid sources.
 Each source is either a file, a directory or a remote URL.
 
-Example configuration for exposing a directory
+Configuration for exposing a directory:
 EX { 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
 This service will expose the content of directory \`my_dir/*\` as \`http://localhost/dserv/foo/*\`.
 
@@ -208,7 +226,7 @@ return value must be true if configuration and initialization are successful, fa
 ## resolve (mandatory)
 Parameter: an HTTP request object from GPAC
 
-The function returns an array of two values:
+The function returns an array of two values \`[result, delay]\`:
 - result: null if error, a resolved string indicating either a local file or the reply body, or an object
 - delay: if true, the reply is being delayed by the module for later processing
 
@@ -530,7 +548,7 @@ globalThis.cat_buffer = cat_buffer;
 let httpout = {};
 httpout.on_request = (req) => 
 {
-	//use pre-authentifcation done by server
+	//use pre-authentication done by server
 	if (req.auth_code!=200) {
 		req.reply = req.auth_code;
 		req.send();
@@ -1407,6 +1425,11 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	{
 		if (!this.mabr_service_id || !this.source || !rep) return;	
 
+		if (serv_cfg && serv_cfg.js_mod) {
+			let req_ok = serv_cfg.js_mod.quality_activation(do_activate, this.mabr_service_id, rep.period_id, rep.AS_ID, rep.ID);
+			if (!req_ok) return;
+		}
+
 		if (do_activate) {
 			this.nb_mabr_active++;
 			this.mabr_unload_timeout = 0;
@@ -1424,6 +1447,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			rep.mabr_active = true;
 			return;	
 		}
+
 		let evt = new FilterEvent(GF_FEVT_DASH_QUALITY_SELECT);
 		evt.service_id = this.mabr_service_id;
 		evt.period_id = rep.period_id;
@@ -1440,7 +1464,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//load routein in no-cache mode, single pid per TSI
 		let args = 'src=' + this.mabr;
 		if (this.mabr.indexOf('gpac:')<0) args += ':gpac';
-		args += ':gcache=0:stsi';
+		//set require source ID in case we use a capture file, we could get the first PID before returning from the add_filter function
+		args += ':gcache=0:stsi:RSID';
 		//multicast is dynamically enabled/disabled, start with all services tuned but disabled
 		//only do this if HTTP mirror - otherwise, activate everything to make sure we fetch the manifests and init segments
 		if (this.url && this.mabr_min_active>0) args += ':tunein=-3';
@@ -1619,6 +1644,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//don't use dash client, we just need to get the files
 		this.sink.set_source(this.source);
 		do_log(GF_LOG_INFO, `Service ${this.id} loaded MABR for ${this.mabr}${this.repair ? ' with repair' : ''}`);
+
+		if (serv_cfg && serv_cfg.js_mod && typeof serv_cfg.js_mod.service_activation === 'function') {
+			serv_cfg.js_mod.service_activation(true);
+		}
 	};
 	s.unload_mabr = function() {
 		if (this.source) {
@@ -1629,6 +1658,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			this.source = null;
 			this.mabr_loaded = false;
 			this.mabr_failure = false;
+
+			if (serv_cfg && serv_cfg.js_mod && typeof serv_cfg.js_mod.service_activation === 'function') {
+				serv_cfg.js_mod.service_activation(false);
+			}
 		}
 	};
 
@@ -1754,7 +1787,6 @@ function do_init()
 				}
 				if (active_rep.mabr_active && s.mabr_min_active && (active_rep.nb_active<s.mabr_min_active) ) {
 					if (!mabr_canceled) {
-						do_log(GF_LOG_INFO, `Service ${s.id} Rep ${active_rep.ID} no longer on multicast`);
 						s.activate_mabr(active_rep, false);
 					} else {
 						active_rep.mabr_deactivate_timeout = sys.clock_ms() + 2000;
@@ -1964,8 +1996,12 @@ filter.initialize = function() {
 						if (!sys.file_exists(script_src)) throw "File " + sd.js + " does not exist";
 					}
 					import(script_src).then(obj_mod => {
-						if (typeof obj_mod.init !== 'function') throw "Invalid module, missing init function";
-						if (typeof obj_mod.resolve !== 'function') throw "Invalid module, missing resolve function";
+						if (typeof obj_mod.init !== 'function') throw "Invalid module, missing `init` function";
+						if (sd.mabr) {
+							if (typeof obj_mod.quality_activation !== 'function') throw "Invalid module, missing `quality_activation` function";
+						} else {
+							if (typeof obj_mod.resolve !== 'function') throw "Invalid module, missing `resolve` function";
+						}
 						mods_pending--;
 						sd.logname = sd.js;
 						sd.log = function(level, msg) {

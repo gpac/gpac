@@ -180,8 +180,8 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 	u32 prev_mdat_pos = 0;
 	u32 last_box_size = 0;
 	u32 nb_patches = 0;
-	u32 was_partial = finfo->partial==GF_LCTO_PARTIAL_NONE ? GF_FALSE : GF_TRUE;
-	u32 patch_first_range_size = GF_FALSE;
+	Bool was_partial = finfo->partial!=GF_LCTO_PARTIAL_NONE;
+	u32 patch_first_range_size = 0;
 
 	if (repair_start_only) {
 		size = finfo->frags[0].offset + finfo->frags[0].size;
@@ -215,6 +215,10 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
         u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
+			//first top-level not present in first range to repair, wa cannot patch now
+			if (!pos && repair_start_only) {
+				return;
+			}
 			if (patch_first_range_size) {
 				gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
 				return;
@@ -367,7 +371,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 			u32 erase_size = box_size-8;
 			if (erase_size>SAFETY_ERASE_BYTES) erase_size = SAFETY_ERASE_BYTES;
-			memset(data+pos+8, 0, erase_size);
+			memset(data+pos+8, 0, MIN(erase_size, size-pos-8));
 		}
         pos += box_size;
     }
@@ -410,7 +414,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			}
 		}
 	}
-    assert(pos == finfo->total_size);
+    gf_assert(pos == finfo->total_size);
 
 exit:
 	if ((ctx->repair == ROUTEIN_REPAIR_STRICT) && was_partial && !nb_patches) {
@@ -421,9 +425,12 @@ exit:
 	}
 	//remove corrupted flag
 	finfo->partial = GF_LCTO_PARTIAL_NONE;
-	gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
-
-
+	//in gcache mode, we keep ranges in order to identify corrupted ISOBMF samples after repair - whether they are dispatched is governed by keepc option of isobmf demuxer
+	//in other modes (dispatch to PID or write to file) we currently reset the info
+	//WARNING: if removing this, asserts in routein_send_file will need to be removed
+	if (!ctx->gcache) {
+		gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
+	}
 }
 
 static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
@@ -431,16 +438,19 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	u32 i, nb_bytes_ok=0;
 	u32 bytes_overlap=0;
 	RouteRepairRange *prev_br = NULL;
+
+	//unused for now - goal is to adjust range priorities based on upper-chain buffer levels
+#if 0
 	//collect decoder stats, or if not found direct output
 	if (ctx->opid && !rsi->tsio) {
 		GF_FilterPidStatistics stats;
 		GF_Err e = gf_filter_pid_get_statistics(ctx->opid, &stats, GF_STATS_DECODER_SINK);
 		if (e) e = gf_filter_pid_get_statistics(ctx->opid, &stats, GF_STATS_SINK);
 		if (!e) {
-			//log is set as warning for now as this is work in progress
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Repairing segment %s - buffer status: %d ms (%u for rebuffer %u max buffer)\n", finfo->filename, (u32) (stats.buffer_time/1000) , (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Repairing segment %s - buffer status: %d ms (%u for rebuffer %u max buffer)\n", finfo->filename, (u32) (stats.buffer_time/1000) , (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000) ));
 		}
 	}
+#endif
 
 	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
 	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
@@ -536,12 +546,26 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 {
 	Bool drop_if_first = GF_FALSE;
 	Bool in_transfer = GF_FALSE;
+	//remove corrupted flags and set in_transfer to avoid dispatch when using internal cache
 	if (finfo->blob->mx) {
 		gf_mx_p(finfo->blob->mx);
 		finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
 		if (finfo->blob->flags & GF_BLOB_IN_TRANSFER) in_transfer = GF_TRUE;
 		else finfo->blob->flags |= GF_BLOB_IN_TRANSFER;
 	}
+	//file received with no losses
+	if ((finfo->nb_frags==1) && !finfo->frags[0].offset && (finfo->frags[0].size == finfo->total_size)) {
+		if (finfo->blob->mx) {
+			finfo->blob->flags &= ~GF_BLOB_IN_TRANSFER;
+			gf_mx_v(finfo->blob->mx);
+		}
+		return GF_FALSE;
+	}
+
+	if (!start_only) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s (TSI=%u, TOI=%u) corrupted, patching\n", finfo->filename, finfo->tsi, finfo->toi));
+	}
+
 	if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
 		drop_if_first = routein_repair_segment_ts_local(ctx, evt_param, finfo, start_only);
 	} else {
@@ -656,7 +680,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 				}
 				finfo->frags[0].size = valid_bytes;
 			}
-			fprintf(stderr, "direct dispatch1 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 			finfo->frags[0].size = true_size;
 			//remember we have a file in progress so that we don't dispatch packets from following file
@@ -691,7 +714,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		// push fragment if no pending and data is contiguous with prev
 		//this ensures we push data asap in the output pids
 		else if ((finfo->partial!=GF_LCTO_PARTIAL_ANY) && can_flush_fragment) {
-			fprintf(stderr, "direct dispatch2 for file %s TOI %u\n", finfo->filename, finfo->toi);
 			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 		} else {
 			//remember we have a file in progress so that we don't dispatch packets from following file
@@ -741,7 +763,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	rsi->filename = gf_strdup(finfo->filename);
 	rsi->finfo.filename = rsi->filename;
 	rsi->tsio = tsio;
-	rsi->local_repair = fast_repair;
 
 	if (finfo->partial && !fast_repair)
 		route_repair_build_ranges_full(ctx, rsi, finfo);
@@ -779,6 +800,9 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 			gf_list_add(rsi->tsio->pending_repairs, rsi);
 	}
 
+	if (!ctx->seg_repair_queue)
+		ctx->seg_repair_queue = gf_list_new();
+
 	//inject by start time
 	count = gf_list_count(ctx->seg_repair_queue);
 	for (i=0; i<count; i++) {
@@ -792,7 +816,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 }
 
 
-static void repair_session_unqueue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
+static void repair_session_dequeue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
 {
 	Bool unprotect;
 	TSI_Output *tsio;
@@ -803,9 +827,8 @@ restart:
 
 	//done with this repair, remove force_keep flag from object
 	if (tsio) {
-		s32 idx = gf_list_find(tsio->pending_repairs, rsi);
-		assert(idx == 0);
-		assert (!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
+		gf_assert(gf_list_find(tsio->pending_repairs, rsi) == 0);
+		gf_assert(!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
 		unprotect = GF_TRUE;
 	}
 	//remove before calling route_on_event, as it may trigger a delete
@@ -826,11 +849,6 @@ restart:
 		//flush
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repair done for object %s (TSI=%u, TOI=%u)%s\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi, rsi->nb_errors ? " - errors remain" : ""));
 
-		if (rsi->evt==GF_ROUTE_EVT_DYN_SEG) {
-			gf_assert(rsi->finfo.nb_frags == 1);
-			gf_assert(rsi->finfo.frags[0].offset == 0);
-			gf_assert(rsi->finfo.frags[0].size == rsi->finfo.blob->size);
-		}
 		routein_on_event_file(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_TRUE, GF_FALSE);
 	}
 
@@ -850,9 +868,9 @@ restart:
 
 
 	if (!tsio) return;
-	//get next in list, if existing and done or if removed, unqueue
+	//get next in list, if existing and done or if removed, dequeue
 	rsi = gf_list_get(tsio->pending_repairs, 0);
-	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)) )
+	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)))
 		goto restart;
 }
 
@@ -863,16 +881,20 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 
 	if (rsess->range) {
 		//notify routedmx we have received a byte range
-		if (!rsi->removed) {
-			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
+		if (!rsi->removed && rsess->range->done) {
+			u64 patch_end = rsess->range->br_start + rsess->range->done;
+			if (patch_end > rsess->range->br_end)
+				patch_end = rsess->range->br_end;
+
+			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, patch_end);
 		}
 
 		rsess->server->nb_bytes += rsess->range->done;
 		rsess->server->nb_req_success += (rsess->range->done==rsess->range->br_end-rsess->range->br_start)?1:0;
 
 		gf_list_add(ctx->seg_range_reservoir, rsess->range);
-
-		rsess->server->accept_ranges = RANGE_SUPPORT_YES;
+		if (!res_code && (rsess->server->accept_ranges == RANGE_SUPPORT_PROBE))
+			rsess->server->accept_ranges = RANGE_SUPPORT_YES;
 	}
 
 	rsess->initial_retry = 0;
@@ -918,22 +940,17 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 		rsi->finfo.blob->flags &= ~GF_BLOB_IN_TRANSFER;
 	gf_mx_v(rsi->finfo.blob->mx);
 
-	if (rsi->local_repair) {
-		routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
-		rsi->local_repair = GF_FALSE;
-	}
-
-	//make sure we unqueue in order
+	//make sure we dequeue in order
 	if (rsi->tsio) {
 		s32 idx = gf_list_find(rsi->tsio->pending_repairs, rsi);
-		//not first in list, do not unqueue now
+		//not first in list, do not dequeue now
 		//this happens if multiple repair sessions are activated, they will likely not finish at the same time
 		if (idx > 0) {
 			rsi->done = GF_TRUE;
 			return;
 		}
 	}
-	repair_session_unqueue(ctx, rsess, rsi);
+	repair_session_dequeue(ctx, rsess, rsi);
 }
 
 static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
@@ -962,7 +979,7 @@ restart:
 
 			nb_ranges = gf_list_count(rsi->ranges);
 			//no more ranges, done with session
-			//this happens when enqued repair had no losses when using progressive dispatch
+			//this happens when enqueued repair had no losses when using progressive dispatch
 			if (!nb_ranges) {
 				rsess->current_si = rsi;
 				rsi->pending++;
@@ -970,7 +987,7 @@ restart:
 				rsess->current_si = NULL;
 				goto restart;
 			}
-			//if TSIO, always unqueue in order
+			//if TSIO, always dequeue in order
 			if (rsi->tsio) {
 				rr = gf_list_get(rsi->ranges, 0);
 			} else {
@@ -1000,8 +1017,7 @@ restart:
 		}
 
 		if (!url) {
-			//TODO: do a full patch using the entire file ?
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for %s - Repair abort \n", rsi->finfo.filename));
+			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for %s - Repair abort \n", rsi->finfo.filename));
 			rsi->nb_errors++;
 			repair_session_done(ctx, rsess, e);
 			return;

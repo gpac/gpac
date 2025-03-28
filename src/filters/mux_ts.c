@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -80,12 +80,11 @@ enum
 	TEMI_TC64_ALWAYS,
 };
 
-enum
-{
+GF_OPT_ENUM (GF_TSMuxInputDescriptorAction,
 	IN_TEMI_DROP=0,
 	IN_TEMI_FWD,
-	IN_TEMI_NTP
-};
+	IN_TEMI_NTP,
+);
 
 typedef struct
 {
@@ -103,7 +102,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pmt_version, sdt_rate, breq, mpeg4;
 	u64 pcr_offset, first_pts;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes;
-	u32 pes_pack;
+	GF_M2TS_PackMode pes_pack;
 	Bool flush_rap, realtime, pcr_only, disc, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;
@@ -111,7 +110,7 @@ typedef struct
 	s32 subs_sidx;
 	Bool keepts;
 	GF_Fraction cdur;
-	u32 temi_fwd;
+	GF_TSMuxInputDescriptorAction temi_fwd;
 
 	//internal
 	GF_FilterPid *opid;
@@ -1059,7 +1058,12 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	p = gf_filter_pid_get_property_str(tspid->ipid, "M2TSRA");
 	if (p) {
 		if ((p->type==GF_PROP_UINT) || (p->type==GF_PROP_4CC)) m2ts_ra = p->value.uint;
-		else if (p->type==GF_PROP_STRING) m2ts_ra = gf_4cc_parse(p->value.string);
+		else if (p->type==GF_PROP_STRING) {
+			if (!stricmp(p->value.string, "srt"))
+				m2ts_ra = GF_M2TS_RA_STREAM_SRT;
+			else
+				m2ts_ra = gf_4cc_parse(p->value.string);
+		}
 	}
 	if (m2ts_ra != tspid->esi.ra_code) {
 		changed = GF_TRUE;
@@ -2346,7 +2350,7 @@ GF_FilterRegister TSMuxRegister = {
 		"\n"
 		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
 		"\n"
-		"When input TEMI properties are found, they can be removed using [-drop_temi](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
+		"When input TEMI properties are found, they can be removed using [-temi_fwd](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
 		"# Adaptive Streaming\n"
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"
@@ -2354,11 +2358,20 @@ GF_FilterRegister TSMuxRegister = {
 		"- `pes_pack=none` is forced since some demultiplexers have issues with non-aligned ADTS PES.\n"
 		"\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files, or new segments in DASH mode.\n"
+		"# Custom streams\n"
 		"The filter will look for property `M2TSRA` set on the input stream.\n"
 		"The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknown media types.\n"
+		"The value `SRT ` (alias: `srt`, `SRT`) will inject an SRT header with frame number increasing at each packet and start time 0.\n"
+		"EX gpac -i source.srt:#M2TSRA='SRT ' -o mux.ts\n"
+		"This will inject the content of the source SRT as a PES data stream, removing any markup.\n"
+		"EX gpac -i source.srt:stxtmod=sbtt:#M2TSRA='SRT ' -o mux.ts\n"
+		"This will inject the content of the source SRT as a PES data stream, keeping the markup.\n"
 		"\n"
 		"# Notes\n"
 		"In LATM mux mode, the decoder configuration is inserted at the given [-repeat_rate]() or `CarouselRate` PID property if defined.\n"
+		"\n"
+		"By default text streams are embeded using HLS ID3 schemes, use `M2TSRA` property to use raw private PES.\n"
+		"WebVTT header and TX3G formatting are removed, only the text data is injected.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,

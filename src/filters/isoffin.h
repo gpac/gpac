@@ -41,26 +41,31 @@
 
 //#define DASH_USE_PULL
 
-enum
-{
+GF_OPT_ENUM (ISOMReaderScalableTileLoadMode,
 	MP4DMX_SPLIT=0,
 	MP4DMX_SPLIT_EXTRACTORS,
 	MP4DMX_SINGLE,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (ISOMReaderParamSetsExtractMode,
 	MP4DMX_XPS_AUTO=0,
 	MP4DMX_XPS_KEEP,
 	MP4DMX_XPS_REMOVE,
-};
+);
+
+GF_OPT_ENUM (ISOMReaderEditListMode,
+	EDITS_AUTO=0,
+	EDITS_NO,
+	EDITS_STRICT,
+);
 
 typedef struct
 {
 	//options
 	char *src, *initseg;
 	Bool allt, itt, itemid;
-	u32 smode, edits;
+	ISOMReaderScalableTileLoadMode smode;
+	ISOMReaderEditListMode edits;
 	u32 stsd;
 	Bool expart;
 	Bool alltk, keepc;
@@ -68,7 +73,7 @@ typedef struct
 	char* tkid;
 	u32 analyze;
 	Bool norw;
-	u32 xps_check;
+	ISOMReaderParamSetsExtractMode xps_check;
 	char *catseg;
 	Bool sigfrag;
 	Bool nocrypt, strtxt, lightp;

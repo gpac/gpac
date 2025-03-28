@@ -67,6 +67,7 @@ static Bool dump_graph = GF_FALSE;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
+static Bool loop_if_error = GF_FALSE;
 static s32 runfor = 0;
 static Bool runfor_exit = GF_FALSE;
 static Bool runfor_fast = GF_FALSE;
@@ -575,6 +576,7 @@ int gpac_main(int _argc, char **_argv)
 	//bools
 	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
 	runfor_exit = runfor_fast = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
+	loop_if_error = GF_FALSE;
 	//s32
 	nb_loops = runfor = 0;
 	//u32
@@ -986,8 +988,9 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-wfx")) {
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
-		} else if (!strcmp(arg, "-sloop")) {
+		} else if (!strcmp(arg, "-sloop") || !strcmp(arg, "-eloop")) {
 			nb_loops = -1;
+			if (!strcmp(arg, "-eloop")) loop_if_error = GF_TRUE;
 			if (arg_val) nb_loops = get_s32(arg_val, "sloop");
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*get_u32(arg_val, "runfor");
@@ -1699,11 +1702,15 @@ exit:
 	loaded_filters=NULL;
 
 	cleanup_file_io();
+	if (loop_if_error && nb_loops && e)
+		e = GF_OK;
 
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
 		loops_done++;
 		fprintf(stderr, "session done, restarting (loop %d)\n", loops_done);
+		gf_net_reload_netcap();
+
 
 #ifndef GPAC_CONFIG_ANDROID
 		fflush(stderr);

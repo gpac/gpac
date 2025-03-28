@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2006-2024
+ *			Copyright (c) Telecom ParisTech 2006-2025
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -298,6 +298,8 @@ typedef enum
 	GF_M2TS_DVB_SUBTITLE				= 0x154,
 	GF_M2TS_METADATA_ID3_HLS			= 0x155,
 	GF_M2TS_METADATA_ID3_KLVA			= 0x156,
+	GF_M2TS_METADATA_SRT				= 0x157,
+	GF_M2TS_METADATA_TEXT				= 0x158,
 
 } GF_M2TSStreamType;
 
@@ -317,7 +319,9 @@ enum
 	GF_M2TS_RA_STREAM_AV1		= GF_4CC('A','V','0','1'),
 	GF_M2TS_RA_STREAM_SCTE35	= GF_4CC('C','U','E','I'),
 
-	GF_M2TS_RA_STREAM_GPAC		= GF_4CC('G','P','A','C')
+	GF_M2TS_RA_STREAM_GPAC		= GF_4CC('G','P','A','C'),
+	GF_M2TS_RA_STREAM_SRT		= GF_4CC('S','R','T',' '),
+	GF_M2TS_RA_STREAM_TXT		= GF_4CC('T','E','X','T')
 };
 
 
@@ -1705,6 +1709,9 @@ typedef struct __m2ts_mux_stream {
 	/*! list of GF_M2TSDescriptor to add to the MPEG-2 stream. By default set to NULL*/
 	GF_List *loop_descriptors;
 
+	/*! frame number for SRT encapsulation*/
+	u32 num_frame;
+
 	/*! packet SAP type when segmenting the TS*/
 	u32 pck_sap_type;
 	/*! packet SAP time (=PTS) when segmenting the TS*/
@@ -1792,15 +1799,14 @@ struct __m2ts_mux_program {
 };
 
 /*! AU packing per pes configuration*/
-typedef enum
-{
+GF_OPT_ENUM (GF_M2TS_PackMode,
 	/*! only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
 	GF_M2TS_PACK_AUDIO_ONLY=0,
 	/*! never pack AUs in a single PES*/
 	GF_M2TS_PACK_NONE,
 	/*! always try to pack AUs in a single PES*/
-	GF_M2TS_PACK_ALL
-} GF_M2TS_PackMode;
+	GF_M2TS_PACK_ALL,
+);
 
 /*! MPEG-2 TS muxer*/
 struct __m2ts_mux {

@@ -32,28 +32,27 @@
 
 #if !defined(GPAC_DISABLE_ROUTE)
 
-enum
-{
+GF_OPT_ENUM (DVBFluteChecksumMode, 
 	DVB_CSUM_NO=0,
 	DVB_CSUM_META,
 	DVB_CSUM_ALL,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (LCTChannelSplitMode,
 	LCT_SPLIT_NONE=0,
 	LCT_SPLIT_TYPE,
 	LCT_SPLIT_ALL,
 	LCT_SPLIT_MCAST,
-};
+);
 
 typedef struct
 {
 	//options
 	char *dst, *ext, *mime, *ifce, *ip;
-	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
+	u32 carousel, first_port, bsid, mtu, ttl, brinc, runfor;
+	LCTChannelSplitMode splitlct;
 	Bool korean, llmode, noreg, nozip, furl, flute, use_inband, ssm;
-	u32 csum;
+	DVBFluteChecksumMode csum;
 	u32 recv_obj_timeout;
 
 	//caps, overloaded at init
@@ -67,7 +66,7 @@ typedef struct
 	//clock is sampled at each process() begin or before each LCT packet to be send
 	u64 clock_init, clock;
 
-	//preallocated buffer for LCT packet formating
+	//preallocated buffer for LCT packet formatting
 	u8 *lct_buffer;
 	GF_BitStream *lct_bs;
 
@@ -502,16 +501,22 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	if (p) service_id = p->value.uint;
 
-	rserv = NULL;
-	for (i=0; i<gf_list_count(ctx->services); i++) {
-		rserv = gf_list_get(ctx->services, i);
-		if (service_id == rserv->service_id) break;
-		rserv = NULL;
-	}
-
 	manifest_type = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
 	if (p) manifest_type = p->value.uint;
+
+	rserv = NULL;
+	for (i=0; i<gf_list_count(ctx->services); i++) {
+		rserv = gf_list_get(ctx->services, i);
+		if (service_id == rserv->service_id) {
+			//throw warning if same manifest type is detected
+			if (rserv->manifest_type && (manifest_type==rserv->manifest_type)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service - if not desired set `ServiceID` on sources !\n", ctx->log_name));
+			}
+			break;
+		}
+		rserv = NULL;
+	}
 
 	if (manifest_type) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
@@ -534,7 +539,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		const char *service_ip = ctx->ip;
 
 		//cannot have 2 manifest pids connecting in route mode
-		if (!ctx->sock_atsc_lls && gf_list_count(ctx->services) && manifest_type) {
+		if (!ctx->sock_atsc_lls && !ctx->dvb_mabr && gf_list_count(ctx->services) && manifest_type) {
 			if (strchr(ctx->dst, '$')) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple services in route mode, creating a new output filter\n", ctx->log_name));
 				return GF_REQUIRES_NEW_INSTANCE;
@@ -2619,7 +2624,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	u32 i, count, len, comp_size;
 	s32 timezone, h, m;
 	u64 diff = ctx->clock - ctx->last_lls_clock;
-	if (diff < ctx->carousel) {
+	if (ctx->last_lls_clock && (diff < ctx->carousel)) {
 		u64 next_sched = ctx->carousel - diff;
 		if (next_sched < ctx->reschedule_us)
 			ctx->reschedule_us = next_sched;
@@ -3203,7 +3208,10 @@ static GF_Err routeout_process(GF_Filter *filter)
 		ROUTEService *serv = gf_list_get(ctx->services, i);
 		if (serv->is_done) continue;
 		e = routeout_check_service_updates(ctx, serv);
-		if (!serv->service_ready || (e==GF_NOT_READY)) return GF_OK;
+		if (!serv->service_ready || (e==GF_NOT_READY)) {
+			gf_filter_ask_rt_reschedule(filter, 10000);
+			return GF_OK;
+		}
 	}
 	if (ctx->sock_dvb_mabr) {
 		routeout_send_mabr_manifest(ctx);
@@ -3379,8 +3387,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"Init segments and HLS child playlists are sent before each new segment, independently of [-carousel]().\n"
 		"# ATSC 3.0 mode\n"
 		"In this mode, the filter allows multiple service multiplexing, identified through the `ServiceID` property.\n"
-		"By default, a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
-		"The filter will look for `MCASTIP` and `MCASTPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
+		"By default (see above), a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
 		"\n"
 		"ATSC 3.0 attributes set by using the following PID properties:\n"
 		"- ATSC3ShortServiceName: set the short service name, maxiumu of 7 characters.  If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"

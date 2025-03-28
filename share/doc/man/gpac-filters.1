@@ -28,7 +28,7 @@ The inspect filter can be used to dump PID and packets. It may also be used to c
 .br
 The default options inspect only PID changes.
 .br
-If .I full is not set, .I mode=frame is forced and PID properties are formatted in human-readable form, one PID per line.
+If .I full is not set, .I mode is forced to frame and PID properties are formatted in human-readable form, one PID per line.
 .br
 Otherwise, all properties are dumped.
 .br
@@ -54,6 +54,8 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 * dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available
 .br
 * ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available
+.br
+* tmcd: timecode as provided in SEI, N/A if not available (requires reframer)
 .br
 * dur: duration in stream timescale
 .br
@@ -411,7 +413,6 @@ For views:// syntax, the number of rendered views is set by .I nbviews:
 .br
 The compositor can act as a source filter when the .I src option is explicitly set, independently from the operating mode:
 .br
-Example
 .br
 gpac compositor:src=source.mp4 vout
 .br
@@ -421,7 +422,6 @@ gpac compositor:src=source.mp4 vout
 .br
 The compositor can act as a source filter when the source url uses one of the compositor built-in protocol schemes:
 .br
-Example
 .br
 gpac -i mosaic://URL1:URL2 vout
 .br
@@ -944,9 +944,9 @@ ctso (sint):                   value to add to CTS offset for tracks using negat
 .br
 
 .br
-norw (bool, default: false):   skip reformating of samples - should only be used when rewriting fragments
+norw (bool, default: false):   skip reformatting of samples - should only be used when rewriting fragments
 .br
-keepc (bool, default: false):  keep corrupted samples - should only be used in multicast modes
+keepc (bool, default: true):   keep corrupted samples (for multicast sources only)
 .br
 
 .br
@@ -1057,7 +1057,7 @@ This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files 
 .br
 
 .br
-When .I sax_dur=N is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than N.
+When .I sax_dur is set to N, the filter will do a progressive load of the source and cancel current loading when processing time is higher than N.
 .br
 
 .br
@@ -1139,7 +1139,7 @@ This filter parses SVG files directly into the scene graph of the compositor.
 .br
 
 .br
-When .I sax_dur=N is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than N.
+When .I sax_dur is set to N, the filter will do a progressive load of the source and cancel current loading when processing time is higher than N.
 .br
 
 .br
@@ -1519,6 +1519,11 @@ When the socket is listening in keep-alive .I ka mode:
 .br
 On OSX with VM packet replay you will need to force multicast routing, e.g. route add -net 239.255.1.4/32 -interface vboxnet0
 .br
+.SH Time Regulation
+.LP
+.br
+The filter uses the time between the last two received packets to estimates how often it should check for inputs. The maximum and minimum times to wait between two calls is given by the .I mwait option. The maximum time may need to be reduced for very high bitrates sources.
+.br
 
 .br
 .SH Options (expert):
@@ -1547,6 +1552,8 @@ mime (str):                    indicate mime type of udp data
 block (bool, default: false):  set blocking mode for socket(s)
 .br
 timeout (uint, default: 10000): set timeout in ms for UDP socket(s), 0 to disable timeout
+.br
+mwait (v2di, default: 1x30):   set min and max wait times in ms to avoid too frequent polling
 .br
 reorder_pck (uint, default: 100): number of packets delay for RTP reordering (M2TS over RTP) 
 .br
@@ -1730,7 +1737,6 @@ Warning: This mode cannot be set through inheritance as it changes the link capa
 .br
 To expose a live DASH session to route:
 .br
-Example
 .br
 gpac -i MANIFEST_URL dashin:forward=file -o route://225.0.0.1:8000/
 .br
@@ -2144,7 +2150,6 @@ gpac -i source.mp4:itemid=false -o file.mp4
 .br
 To force non-item streams to be multiplexed as items, use #ItemID option on that PID:
 .br
-Example
 .br
 gpac -i source.jpg:#ItemID=1 -o file.mp4
 .br
@@ -2211,7 +2216,7 @@ The built-in tag names are indicated by MP4Box -h tags.
 .br
 QT tags can be specified using qtt_NAME property names, and will be added using formatting specified in MP4Box -h tags.
 .br
-Other tag class may be specified using tag_NAME property names, and will be added if .I tags is set to all using:
+Other tag class may be specified using tag_NAME property names, and will be added if .I itags is set to all using:
 .br
 - NAME as a box 4CC if NAME is four characters long
 .br
@@ -2496,6 +2501,8 @@ fragdur (bool, default: false): fragment based on fragment duration rather than 
 btrt (bool, default: true):    set btrt box in sample description
 .br
 styp (str):                    set segment styp major brand (and optionally version) to the given 4CC[.version]
+.br
+lmsg (bool, default: false):   set lmsg brand for the last segment or fragment
 .br
 mediats (sint, default: 0):    set media timescale. A value of 0 means inherit from PID, a value of -1 means derive from samplerate or frame rate
 .br
@@ -2968,7 +2975,6 @@ Warning: Original time formatting (tick, frames/subframe ...) will be lost when 
 .br
 The subtitle zero time must be prefixed with T when the option is not set as a global argument:
 .br
-Example
 .br
 gpac -i test.ttml:ttml_zero=T10:00:00 [...]
 .br
@@ -2989,7 +2995,6 @@ MP4Box -add test.ttml --ttml_zero=10:00:00 [...]
 .br
 The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:
 .br
-Example
 .br
 gpac -i test.txt:#CodecID=stxt  [...]
 .br
@@ -3061,9 +3066,9 @@ stxtdur (frac, default: 1):    duration for simple text
 .br
 stxtmod (enum, default: tx3g): text stream mode for simple text streams and SRT inputs
 .br
-* stxt: output PID formatted as simple text stream
+* stxt: output PID formatted as simple text stream (remove markup in VTT/SRT payload)
 .br
-* sbtt: output PID formatted as subtitle text stream
+* sbtt: output PID formatted as subtitle text stream (keep markup in VTT/SRT payload)
 .br
 * tx3g: output PID formatted as TX3G/Apple stream
 .br
@@ -3536,7 +3541,6 @@ The filter can perform real-time regulation of input packets, based on their tim
 .br
 For example to simulate a live DASH:
 .br
-Example
 .br
 gpac -i m.mp4 reframer:rt=on -o live.mpd:dynamic
 .br
@@ -3880,6 +3884,8 @@ vtth (enum, default: seg):     vtt header injection mode
 .br
 
 .br
+add_nl (bool, default: false): add new line after each packet when dumping text streams
+.br
 
 .br
 .SH ufnalu
@@ -3950,7 +3956,7 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 merge_cues (bool, default: true): merge VTT cues (undo ISOBMFF cue split)
 .br
-noempty (bool, default: true): do not create an empty file if no VTT cues are present
+noempty (bool, default: false): do not create an empty file if no VTT cues are present
 .br
 
 .br
@@ -4992,7 +4998,7 @@ Warning: multipliers (k,m,g) are not supported in TEMI options.
 .br
 
 .br
-When input TEMI properties are found, they can be removed using .I drop_temi. When rewritten, any NTP information present is rewritten to the current NTP.
+When input TEMI properties are found, they can be removed using .I temi_fwd. When rewritten, any NTP information present is rewritten to the current NTP.
 .br
 .SH Adaptive Streaming
 .LP
@@ -5009,9 +5015,30 @@ In DASH and HLS mode:
 .br
 The filter watches the property FileNumber on incoming packets to create new files, or new segments in DASH mode.
 .br
+.SH Custom streams
+.LP
+.br
 The filter will look for property M2TSRA set on the input stream.
 .br
 The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknown media types.
+.br
+The value SRT  (alias: srt, SRT) will inject an SRT header with frame number increasing at each packet and start time 0.
+.br
+Example
+.br
+gpac -i source.srt:#M2TSRA='SRT ' -o mux.ts
+.br
+
+.br
+This will inject the content of the source SRT as a PES data stream, removing any markup.
+.br
+Example
+.br
+gpac -i source.srt:stxtmod=sbtt:#M2TSRA='SRT ' -o mux.ts
+.br
+
+.br
+This will inject the content of the source SRT as a PES data stream, keeping the markup.
 .br
 
 .br
@@ -5019,6 +5046,12 @@ The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration
 .LP
 .br
 In LATM mux mode, the decoder configuration is inserted at the given .I repeat_rate or CarouselRate PID property if defined.
+.br
+
+.br
+By default text streams are embeded using HLS ID3 schemes, use M2TSRA property to use raw private PES.
+.br
+WebVTT header and TX3G formatting are removed, only the text data is injected.
 .br
 
 .br
@@ -5316,7 +5349,6 @@ Note:  this can be used to inject most DASH descriptors not natively handled by 
 .br
 The segmenter handles the XML descriptor as a string and does not attempt to validate it. Descriptors, as well as some segmenter filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
 .br
-Example
 .br
 gpac -i m1.mp4:#RDesc=<Elem attribute="1"/>,<Elem2>text</Elem2> -o test.mpd
 .br
@@ -5470,7 +5502,6 @@ This will create DASH segments of 2 seconds made of fragments of 200 ms and prod
 .br
 You can combine LL-HLS and DASH-LL generation:
 .br
-Example
 .br
 gpac -i source.mp4 reframer:rt=on -o live.mpd:dual:segdur=2:cdur=0.2:asto=1.8:llhls=br:profile=live:dmode=dynamic
 .br
@@ -5538,7 +5569,6 @@ If the DashCue property of a PID equals inband, the PID will be segmented accord
 .br
 This feature is typically combined with a list of files as input:
 .br
-Example
 .br
 gpac -i list.m3u:sigcues -o res/live.mpd
 .br
@@ -5883,7 +5913,7 @@ bs_switch (enum, default: def): bitstream switching mode (single init segment)
 .br
 * both: inband and outband parameter sets
 .br
-* pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)
+* pps: moves PPS and APS inband, keep VPS, SPS and DCI out of band (used for VVC RPR)
 .br
 * force: enables it even if only one representation
 .br
@@ -5911,7 +5941,7 @@ muxtype (enum, default: auto): muxtype to use for the segments
 .br
 * raw: uses raw media format (disables multiplexed representations)
 .br
-* auto: guess format based on extension, default to mp4 if no extension
+* auto: guesses format based on extension, defaults to mp4 if no extension is provided
 .br
 
 .br
@@ -6021,7 +6051,7 @@ strict_sap (enum, default: off): strict mode for sap
 .br
 * off: ignore SAP types for PID other than video, enforcing AdaptationSet@startsWithSAP=1
 .br
-* sig: same as .I off but keep AdaptationSet@startsWithSAP to the true SAP value
+* sig: same as -off but keep AdaptationSet@startsWithSAP to the true SAP value
 .br
 * on: warn if any PID uses SAP 3 or 4 and switch to FULL profile
 .br
@@ -6466,7 +6496,6 @@ The header/tunein packet may get quite big when all PID properties are kept. In 
 .br
 The .I skp option may also be used to specify which property to drop:
 .br
-Example
 .br
 skp="4CC1,Name2
 .br
@@ -6491,7 +6520,6 @@ This will DASH the source and store every files produced as PIDs in the GSF mux.
 .br
 In order to demultiplex such a file, the gsfdmxfilter will likely need to be explicitly loaded:
 .br
-Example
 .br
 gpac -i mux.gsf gsfdmx -o dump/$File$:dynext
 .br
@@ -6505,7 +6533,6 @@ By default when working in file mode, the filter only accepts PIDs of type file 
 .br
 To allow a mix of files and streams, use .I mixed:
 .br
-Example
 .br
 gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed -o dump.gsf
 .br
@@ -6693,11 +6720,11 @@ ttl (uint, default: 0, minmax: 0-127): multicast TTL
 .SH rfav1
 .LP
 .br
-Description: AV1/IVF/VP9 reframer
+Description: AV1/IVF/VP9/IAMF reframer
 .br
 
 .br
-This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames.
+This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames. It also parses IAMF OBU and outputs corresponding temporal units containing audio frames and parameter blocks.
 .br
 
 .br
@@ -6940,7 +6967,6 @@ On some systems (OSX), when using VM packet replay, you may need to force multic
 .br
 For ATSC, you will have to do this for the base signaling multicast (224.0.23.60):
 .br
-Example
 .br
 route add -net 224.0.23.60/32 -interface vboxnet0
 .br
@@ -6948,7 +6974,6 @@ route add -net 224.0.23.60/32 -interface vboxnet0
 .br
 Then for each multicast service in the multicast:
 .br
-Example
 .br
 route add -net 239.255.1.4/32 -interface vboxnet0
 .br
@@ -7001,7 +7026,7 @@ reorder (bool, default: true): consider packets are not always in order - if fal
 .br
 cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
 .br
-rtimeout (uint, default: 500000): default timeout in us to wait when gathering out-of-order packets
+rtimeout (uint, default: 500000): default timeout in µs to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
@@ -7160,7 +7185,6 @@ The server can run over TLS by specifying .I cert and .I pkey, in which case the
 .br
 The filter can work as a simple output filter by specifying the .I dst option:
 .br
-Example
 .br
 gpac -i source -o rtsp://myip/sessionname
 .br
@@ -7177,7 +7201,6 @@ In this mode, only one session is possible. It is possible to .I loop the input 
 .br
 The filter can work as a regular RTSP server by specifying the .I mounts option to indicate paths of media file to be served:
 .br
-Example
 .br
 gpac rtspout:mounts=mydir1,mydir2
 .br
@@ -7441,7 +7464,7 @@ Custom headers can be specified using .I hdrs, they apply to all requests. For m
 .br
   
 .br
-Text files are compressed using gzip or deflate if the client accepts these encodings, unless .I no_z is set.
+Text files are compressed using gzip or deflate if the client accepts these encodings, unless .I zmax is set to 0.
 .br
   
 .br
@@ -7491,7 +7514,6 @@ The filter does not use any read directory in this mode.
 .br
 This mode is mostly useful to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other multiplexed representations:
 .br
-Example
 .br
 gpac -i MP3_SOURCE -o http://localhost/live.mp3 --hold
 .br
@@ -8099,6 +8121,8 @@ pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
 .br
+seis (uintl, updatable):       list of SEI message types (4,137,144,...). When used with rmsei, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist
+.br
 rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264, HEVC and VVC
 .br
 vidfmt (sint, default: -1, Enum: component|pal|ntsc|secam|mac|undef, updatable): video format for AVC|H264, HEVC and VVC
@@ -8571,7 +8595,6 @@ gpac -i av://:fmt=libndi_newtek:dev=MY_NDI_TEST ...
 .br
 You may need to escape the .I dev option if the format uses ':' as separator, as is the case for AVFoundation:
 .br
-Example
 .br
 gpac -i av://::dev=0:1 ...
 .br
@@ -8625,7 +8648,7 @@ If .I osize is {0,0}, the output dimensions will be set to the input size, and i
 .br
 
 .br
-If .I osize is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If .I keepar=nosrc, input sample aspect ratio is ignored.
+If .I osize is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If .I keepar = nosrc, input sample aspect ratio is ignored.
 .br
 .SS Aspect Ratio and Sample Aspect Ratio
 .br
@@ -8641,7 +8664,7 @@ The output dimensions will be 192x240.
 .br
 
 .br
-When aspect ratio is not kept (.I keepar=off):
+When aspect ratio is not kept (.I keepar = off):
 .br
 - source is resampled to desired dimensions
 .br
@@ -8649,15 +8672,15 @@ When aspect ratio is not kept (.I keepar=off):
 .br
 
 .br
-When aspect ratio is partially kept (.I keepar=nosrc):
+When aspect ratio is partially kept (.I keepar = nosrc):
 .br
 - resampling is done on the input data without taking input sample aspect ratio into account
 .br
-- if output sample aspect ratio is not set (.I osar=0/N), source aspect ratio is forwarded to output.
+- if output sample aspect ratio is not set (.I osar = 0/N), source aspect ratio is forwarded to output.
 .br
 
 .br
-When aspect ratio is fully kept (.I keepar=full), output aspect ratio is force to 1/1 if not set.
+When aspect ratio is fully kept (.I keepar = full), output aspect ratio is force to 1/1 if not set.
 .br
 
 .br
@@ -8934,7 +8957,6 @@ ffavf::f=anullsrc=channel_layout=5.1:sample_rate=48000
 .br
 For complex filter graphs, it is possible to store options in a file (e.g. opts.txt):
 .br
-Example
 .br
 :f=anullsrc=channel_layout=5.1:sample_rate=48000
 .br
@@ -8942,7 +8964,6 @@ Example
 .br
 And load arguments from file:
 .br
-Example
 .br
 ffavf:opts.txt aout
 .br
@@ -9164,7 +9185,6 @@ Example
 .br
 If multiple services with different formats are needed, you will need to explicit your filters:
 .br
-Example
 .br
 gpac -i DASH_URL:#ServiceID=1 dashin:forward=file:FID=1 -i HLS_URL:#ServiceID=2 dashin:forward=file:FID=2 -o atsc://:SID=1,2
 .br
@@ -9194,7 +9214,7 @@ TSI are assigned as follows:
 .br
 
 .br
-When .I splitlct is set to mcast, the IP multicast adress is computed as follows:
+When .I splitlct is set to mcast, the IP multicast address is computed as follows:
 .br
  - if MCASTIP is set on the PID and is different from the service multicast IP, it is used
 .br
@@ -9213,9 +9233,7 @@ Init segments and HLS child playlists are sent before each new segment, independ
 .br
 In this mode, the filter allows multiple service multiplexing, identified through the ServiceID property.
 .br
-By default, a single multicast IP is used for route sessions, each service will be assigned a different port.
-.br
-The filter will look for MCASTIP and MCASTPort properties on the incoming PID. If not found, the default .I ip and .I port will be used.
+By default (see above), a single multicast IP is used for route sessions, each service will be assigned a different port.
 .br
 
 .br
@@ -9297,7 +9315,6 @@ Since the ROUTE filter only consumes files, it is required to insert:
 .br
 Multiplexing an existing DASH session in route:
 .br
-Example
 .br
 gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/
 .br
@@ -9305,7 +9322,6 @@ gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/
 .br
 Multiplexing an existing DASH session in atsc:
 .br
-Example
 .br
 gpac -i source.mpd dashin:forward=file -o atsc://
 .br
@@ -9313,7 +9329,6 @@ gpac -i source.mpd dashin:forward=file -o atsc://
 .br
 Dashing and multiplexing in route:
 .br
-Example
 .br
 gpac -i source.mp4 dasher:profile=live -o route://225.1.1.0:6000/manifest.mpd
 .br
@@ -9321,7 +9336,6 @@ gpac -i source.mp4 dasher:profile=live -o route://225.1.1.0:6000/manifest.mpd
 .br
 Dashing and multiplexing in route Low Latency:
 .br
-Example
 .br
 gpac -i source.mp4 dasher -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode
 .br
@@ -9331,7 +9345,6 @@ gpac -i source.mp4 dasher -o route://225.1.1.0:6000/manifest.mpd:profile=live:cd
 .br
 Sending a single file in ROUTE using half a second upload time, 2 seconds carousel:
 .br
-Example
 .br
 gpac -i URL:#MCASTUpload=0.5:#MCASTCarousel=2 -o route://225.1.1.0:6000/
 .br
@@ -9341,7 +9354,6 @@ gpac -i URL:#MCASTUpload=0.5:#MCASTCarousel=2 -o route://225.1.1.0:6000/
 .br
 Common mistakes:
 .br
-Example
 .br
 gpac -i source.mpd -o route://225.1.1.0:6000/
 .br
@@ -9374,7 +9386,6 @@ These will demultiplex the input, re-dash it and send the output of the dasher t
 .br
 It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:
 .br
-Example
 .br
 gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0
 .br
@@ -9560,11 +9571,11 @@ The specified .I fps can be either 0, positive or negative.
 .br
 - otherwise (video PID), constant frame rate is assumed and:
 .br
-  - if .I rawv=no, video frame rate is changed to the specified rate (speed-up or slow-down).
+  - if .I rawv = no, video frame rate is changed to the specified rate (speed-up or slow-down).
 .br
-  - if .I rawv=force, input video stream is decoded and video frames are dropped/copied to match the new rate.
+  - if .I rawv = force, input video stream is decoded and video frames are dropped/copied to match the new rate.
 .br
-  - if .I rawv=dyn, input video stream is decoded if not all-intra and video frames are dropped/copied to match the new rate.
+  - if .I rawv = dyn, input video stream is decoded if not all-intra and video frames are dropped/copied to match the new rate.
 .br
 
 .br
@@ -9825,7 +9836,6 @@ The filter outputs are PIDs using framed packets marked with segment boundaries 
 .br
 If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:
 .br
-Example
 .br
 gpac -i src.ghi inspect:full
 .br
@@ -9885,7 +9895,7 @@ Indexing supports fragmented and non-fragmented MP4, MPEG-2 TS and seekable inpu
 .br
 - If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.
 .br
-- MPEG-2 TS sources will be slower since they require PES reframing and AU reformating, resulting in more IOs than with mp4.
+- MPEG-2 TS sources will be slower since they require PES reframing and AU reformatting, resulting in more IOs than with mp4.
 .br
 - other seekable sources will likely be slower (seeking, reframing) and are not recommended.
 .br
@@ -9935,7 +9945,7 @@ If .I osize is {0,0}, the output dimensions will be set to the input size, and i
 .br
 
 .br
-If .I osize is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If .I keepar=nosrc, input sample aspect ratio is ignored.
+If .I osize is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If .I keepar = nosrc, input sample aspect ratio is ignored.
 .br
 .SS Aspect Ratio and Sample Aspect Ratio
 .br
@@ -9951,7 +9961,7 @@ The output dimensions will be 192x240.
 .br
 
 .br
-When aspect ratio is not kept (.I keepar=off):
+When aspect ratio is not kept (.I keepar = off):
 .br
 - source is resampled to desired dimensions
 .br
@@ -9959,15 +9969,15 @@ When aspect ratio is not kept (.I keepar=off):
 .br
 
 .br
-When aspect ratio is partially kept (.I keepar=nosrc):
+When aspect ratio is partially kept (.I keepar = nosrc):
 .br
 - resampling is done on the input data without taking input sample aspect ratio into account
 .br
-- if output sample aspect ratio is not set (.I osar=0/N), source aspect ratio is forwarded to output.
+- if output sample aspect ratio is not set (.I osar = 0/N), source aspect ratio is forwarded to output.
 .br
 
 .br
-When aspect ratio is fully kept (.I keepar=full), output aspect ratio is force to 1/1 if not set.
+When aspect ratio is fully kept (.I keepar = full), output aspect ratio is force to 1/1 if not set.
 .br
 
 .br
@@ -10025,7 +10035,18 @@ Only a subset of CEA 608/708 is supported.
 .br
 
 .br
-No options
+.SH Options (expert):
+.LP
+.br
+field (uint, default: 1):      field to decode
+.br
+agg (enum, default: none):     output aggregation mode
+.br
+* none: forward data as decoded (default)
+.br
+* word: aggregate words (separated by a space)
+.br
+
 .br
 
 .br
@@ -10557,10 +10578,80 @@ lxy (bool, default: false):    add explicit x and y in json export
 .br
 
 .br
+.SH txtgen
+.LP
+.br
+Description: Text Generator
+.br
+Version: 1.0
+.br
+Author: GPAC Team
+.br
+
+.br
+This filter generates text streams based on the provided .I src file. By default, the filter uses a lorem ipsum text file
+.br
+The .I type parameter sets the text generation mode. If set to 'txt', the filter will generate text based on the source file
+.br
+If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time
+.br
+When the .I unit is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines
+.br
+The .I udur parameter sets the frame duration of the text stream. Total duration of the text stream is set by the .I dur parameter. If set to 0/0, the text stream will be infinite
+.br
+The .I rollup parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.
+.br
+When the number of lines is reached, the filter will remove the first line and continue accumulating text
+.br
+You would use .I rollup in combination with .I unit set to 'l' to create a roll-up subtitle effect. Or set .I unit to 'w' to create a roll-up text effect.
+.br
+The .I lmax parameter sets the maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit
+.br
+When .I rt is set to true, the filter will generate text in real-time. If set to false, the filter will generate text as fast as possible
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+src (str, default: /usr/local/share/gpac/scripts/jsf/txtgen//lipsum.txt): source of text. If not set, the filter will use lorem ipsum text
+.br
+type (enum, default: txt):     type of text to generate
+.br
+* txt: plain text (uses src option)
+.br
+* utc: UTC time
+.br
+* ntp: NTP time
+.br
+
+.br
+unit (enum, default: l):       minimum unit of text from the source
+.br
+* w: word
+.br
+* l: line
+.br
+
+.br
+udur (frac, default: 1/1):     duration of each text unit
+.br
+lmax (uint, default: 32):      maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit
+.br
+dur (frac, default: 0/0):      duration of the text stream
+.br
+rollup (uint, default: 0):     enable roll-up mode up to the specified number of lines
+.br
+lock (bool, default: false):   lock timing to text generation
+.br
+rt (bool, default: true):      real-time mode
+.br
+
+.br
 .SH mediaserver
 .LP
 .br
-Description: Streaming Media Gateway and Server
+Description: Media Server
 .br
 Version: 1.0
 .br
@@ -10582,7 +10673,6 @@ The file .gpac_auth, if present in current working directory, will be used for a
 .br
 If more options need to be specified for the HTTP output filter, they can be passed as local options or using global options:
 .br
-Example
 .br
 gpac mediaserver:cors=on --user_agent=MyUser
 .br
@@ -10590,9 +10680,8 @@ gpac mediaserver:cors=on --user_agent=MyUser
 .br
 
 .br
-Although not recommended, a server may be specified explicitly.
+Although not recommended, a server may be specified explicitly:
 .br
-Example
 .br
 gpac mediaserver httpout:OPTS
 .br
@@ -10613,43 +10702,43 @@ The service configuration is set using .I scfg. It shall be a JSON file containi
 .br
 Each service is a JSON object with one or more of the following properties:
 .br
- * id: (string, default null) Service identifier used for logs
+* id: (string, default null) Service identifier used for logs
 .br
- * active: (boolean, default true) service is ignored if false
+* active: (boolean, default true) service is ignored if false
 .br
- * http: (string, default null) URL of remote service to proxy (either resource name or server path)
+* http: (string, default null) URL of remote service to proxy (either resource name or server path)
 .br
- * gcache: (boolean, default false) use gpac local disk cache when fetching media from HTTP for this service
+* gcache: (boolean, default false) use gpac local disk cache when fetching media from HTTP for this service
 .br
- * local: (string, default null) local mount point of this service
+* local: (string, default null) local mount point of this service
 .br
- * keepalive: (number, default 4) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
+* keepalive: (number, default 4) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
 .br
- * mabr: (string, default null) address of multicast ABR source for this service
+* mabr: (string, default null) address of multicast ABR source for this service
 .br
- * timeshift: (number, default 10) time in seconds a cached file remains in memory
+* timeshift: (number, default 10) time in seconds a cached file remains in memory
 .br
- * unload: (number, default 4 multicast unload policy
+* unload: (number, default 4 multicast unload policy
 .br
- * activate: (number, default 1) multicast activation policy
+* activate: (number, default 1) multicast activation policy
 .br
- * repair: (boolean, default false) enable unicast repair in MABR stack
+* repair: (boolean, default false) enable unicast repair in MABR stack
 .br
- * mcache: (boolean, default false) cache manifest files (experimental)
+* mcache: (boolean, default false) cache manifest files (experimental)
 .br
- * corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
+* corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
 .br
- * check_ip: (boolean, , default false monitor IP address and port rather than connection when tracking active clients
+* check_ip: (boolean, , default false monitor IP address and port rather than connection when tracking active clients
 .br
- * noproxy: (boolean) disable proxy for service when local mount point is set. Default is true if both local and http are set, false otherwise
+* noproxy: (boolean) disable proxy for service when local mount point is set. Default is true if both local and http are set, false otherwise
 .br
- * sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
+* sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
 .br
-  * name: name as used in resource path,
+* name: name as used in resource path,
 .br
-  * url: local or remote URL to use for this resource.
+* url: local or remote URL to use for this resource.
 .br
- * js: (string, default null) built-in or custom request resolver
+* js: (string, default null) built-in or custom request resolver
 .br
 
 .br
@@ -10719,9 +10808,8 @@ Service configuration parameters used : http (mandatory), gcache, local.
 .br
 
 .br
-Exemple configuration for activating proxy for a specific network path:
+Configuration for activating proxy for a specific network path:
 .br
-Example
 .br
 { 'http': 'https://test.com/video/'}
 .br
@@ -10729,9 +10817,8 @@ Example
 .br
 
 .br
-Exemple configuration for activating proxy for any network path:
+Configuration for activating proxy for any network path:
 .br
-Example
 .br
 { 'http': '*'}
 .br
@@ -10739,9 +10826,8 @@ Example
 .br
 
 .br
-Exemple configuration for a relay on a given path:
+Configuration for a relay on a given path:
 .br
-Example
 .br
 { 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
 .br
@@ -10768,9 +10854,8 @@ Service configuration parameters used : http ( mandatory), timeshift, mcache, gc
 .br
 
 .br
-Exemple configuration for proxying while caching a live HTTP streaming service:
+Configuration for proxying while caching a live HTTP streaming service:
 .br
-Example
 .br
 { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
 .br
@@ -10778,9 +10863,8 @@ Example
 .br
 
 .br
-Exemple configuration for relay caching a live HTTP streaming service:
+Configuration for relay caching a live HTTP streaming service:
 .br
-Example
 .br
 { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
 .br
@@ -10799,7 +10883,7 @@ The local service configuration option can be set to:
 .SH Multicast ABR Gateway
 .LP
 .br
-The server can be configured to use a multicast ANR source for an HTP streaming service, without any HTTP source.
+The server can be configured to use a multicast ABR source for an HTTP streaming service, without any HTTP source.
 .br
 
 .br
@@ -10821,9 +10905,8 @@ The manifest name can be omitted, in which case the exact manifest name used in 
 .br
 
 .br
-Exemple configuration for exposing a MABR session:
+Configuration for exposing a MABR session:
 .br
-Example
 .br
 { 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
 .br
@@ -10838,7 +10921,7 @@ The server can be configured to use a multicast source as an alternate data sour
 .br
 
 .br
-Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active and keepalive.
+Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active, keepalive and js.
 .br
 
 .br
@@ -10884,13 +10967,12 @@ If timeshift is 0 for the service, multicast segments will be trashed as soon as
 .br
 
 .br
-Note: Manifests files coming from multicast are currently never cached.
+Note: Manifest files coming from multicast are currently never cached.
 .br
 
 .br
-Exemple configuration for caching a live HTTP streaming service with MABR backup:
+Configuration for caching a live HTTP streaming service with MABR backup:
 .br
-Example
 .br
 { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
 .br
@@ -10900,9 +10982,43 @@ Example
 .br
 For such services, the custom HTTP header X-From-MABR is defined:
 .br
-- for client requests, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
+- for client request, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
 .br
 - for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no, the content comes from HTTP
+.br
+
+.br
+The js option can be set to a JS module exporting the following functions:
+.br
+* init : (mandatory) The function is called once at the start of the server. Parameters:
+.br
+  * scfg: the service configuration object
+.br
+  * return value: must be true if configuration and initialization are successful, false otherwise.
+.br
+
+.br
+* service_activation : (optional) The function is called when the service is activated or deactivated. Parameters:
+.br
+  * do_activate (boolean): if true, service is being loaded otherwise it is being unloaded
+.br
+  * return value: none
+.br
+
+.br
+* quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+.br
+  * do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
+.br
+  * service_id (integer): ID of the service as announced in the multicast
+.br
+  * period_id (string): ID of the DASH Period, ignored for HLS
+.br
+  * adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+.br
+  * representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
+.br
+  * return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
 .br
 
 .br
@@ -10923,9 +11039,8 @@ Each source is either a file, a directory or a remote URL.
 .br
 
 .br
-Example configuration for exposing a directory
+Configuration for exposing a directory:
 .br
-Example
 .br
 { 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
 .br
@@ -10964,7 +11079,7 @@ Parameter: an HTTP request object from GPAC
 .br
 
 .br
-The function returns an array of two values:
+The function returns an array of two values [result, delay]:
 .br
 * result: null if error, a resolved string indicating either a local file or the reply body, or an object
 .br
@@ -11023,7 +11138,7 @@ Sources are described using the sources array in the service configuration.
 .br
 CGI parameters for request are:
 .br
-* fmt: (string, same as service configuration fmt) multiplexing format. If src, all other CGI parameters are ignored.
+* fmt: (string, same as service configuration fmt) multiplexing format. If set to src, all other CGI parameters are ignored.
 .br
 * start: (number, default 0) start time in second of re-multiplexed content.
 .br
@@ -11039,9 +11154,8 @@ CGI parameters for request are:
 .br
 
 .br
-Exemple configuration for serving a directory with remultiplexing to mp4:
+Configuration for serving a directory with remultiplexing to mp4:
 .br
-Example
 .br
 {'local': '/service1/', 'js': 'remux', 'sources': ['name': 'vids', 'url': '/path/to/vids/'}], 'fmt': 'mp4'}
 .br
@@ -12933,7 +13047,6 @@ A size can be specified more than once, resulting in packet references when .I c
 .br
 Target encoding bitrates can be assigned to each output using .I rates. This can be useful when generating dash:
 .br
-Example
 .br
 gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M c=aac:FID=1 c=264:FID=2:clone -o live.mpd:SID=1,2
 .br
@@ -12977,6 +13090,14 @@ type (enum, default: av):      output selection
 * v: video only
 .br
 * av: audio and video
+.br
+
+.br
+evte (uint, default: 0):       output event stream
+.br
+* 0: disable
+.br
+* 1+: period (sec) of dummy events
 .br
 
 .br

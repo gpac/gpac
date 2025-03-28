@@ -80,8 +80,8 @@ version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut 
 
 cur_dir=`pwd`
 cd $source_path
-TAG=$(git describe --tags --abbrev=0 2> /dev/null)
-REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
+TAG=$(git describe --tags --abbrev=0 --match "v*"  2> /dev/null)
+REVISION=$(echo `git describe --tags --long --match "v*"  2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 rev="$REVISION-$BRANCH"
 cd $cur_dir
@@ -121,5 +121,3 @@ chmod 755 $pck_name
 echo "$pck_name ready"
 rm -rf tmpdmg
 rm -rf tmppkg.pkg
-
-

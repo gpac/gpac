@@ -41,7 +41,7 @@ void print(long log_level, DOMString log_str);
 
 The JSFilter interface has a single instance exposed to the script under the name "filter".
 It implements binding to the underlying filter object, see \ref GF_Filter.
-The JSFilter provides callback functions mapping the functionnalities of \ref __gf_filter_register.
+The JSFilter provides callback functions mapping the functionalities of \ref __gf_filter_register.
 */
 interface JSFilter {
 /*! initialize the filter. This is a callback function assignable by the script. It is called once all filter arguments have been parsed.

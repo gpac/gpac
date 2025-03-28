@@ -97,16 +97,14 @@ typedef struct
 	u32 bytes_in_wnd, max_rate;
 } PidCtx;
 
-enum
-{
+GF_OPT_ENUM (GF_InspectDumpMode,
 	INSPECT_MODE_PCK=0,
 	INSPECT_MODE_BLOCK,
 	INSPECT_MODE_REFRAME,
-	INSPECT_MODE_RAW
-};
+	INSPECT_MODE_RAW,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_InspectSkipPropsMode,
 	INSPECT_TEST_NO=0,
 	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
@@ -114,16 +112,15 @@ enum
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
 	INSPECT_TEST_NOCRC,
-	INSPECT_TEST_NOBR
-};
+	INSPECT_TEST_NOBR,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_InspectSampleAnalyzeMode,
 	INSPECT_ANALYZE_OFF=0,
 	INSPECT_ANALYZE_ON,
 	INSPECT_ANALYZE_BS,
 	INSPECT_ANALYZE_BS_BITS,
-};
+);
 
 typedef struct
 {
@@ -134,10 +131,10 @@ typedef struct
 	Bool stats;
 	char *log;
 	char *fmt;
-	u32 analyze;
+	GF_InspectSampleAnalyzeMode analyze;
 	Bool props, hdr, allp, info, pcr, xml, full;
 	Double speed, start;
-	u32 test;
+	GF_InspectSkipPropsMode test;
 	GF_Fraction dur;
 	Bool crc, dtype;
 	Bool fftmcd;
@@ -816,7 +813,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 }
 
 
-static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, u32 full_bs_dump, PidCtx *pctx)
+static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -1539,7 +1536,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 	inspect_printf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
 }
 
-static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
+static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
 	if (!pctx && (obu_size <= 1))
@@ -1556,7 +1553,6 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 			inspect_printf(dump, "   <OBU");
 		}
 		gf_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
-
 
 		if (full_dump>=INSPECT_ANALYZE_BS) {
 			gf_bs_set_logger(pctx->bs, NULL, NULL);
@@ -1648,7 +1644,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 	case OBU_METADATA:
 		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
-			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
 				case OBU_METADATA_TYPE_TIMECODE:
@@ -2591,6 +2587,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	}
 
 	switch (p4cc) {
+	case GF_PROP_PCK_TIMECODES:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
@@ -3059,22 +3056,15 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 		}
 		else if (!strcmp(key, "tmcd")) {
 			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-			if (prop && prop->value.uint_list.nb_items) {
-				u32 i;
-				for (i=0; i<prop->value.uint_list.nb_items; i++) {
-					if (i) inspect_printf(dump, ", ");
-					u32 tc = prop->value.uint_list.vals[i]; // seconds * 1000 + frames
-					u32 frames = tc % 1000;
-					tc /= 1000;
-					u32 seconds = tc % 60;
-					tc /= 60;
-					u32 minutes = tc % 60;
-					u32 hours = tc / 60;
-
-					char *tc_str = gf_malloc(32);
-					snprintf(tc_str, 32, "%02d:%02d:%02d:%02d", hours, minutes, seconds, frames);
-					inspect_printf(dump, "%s", tc_str);
-					gf_free(tc_str);
+			if (prop && prop->value.data.size) {
+				GF_TimeCode *tc = (GF_TimeCode *) prop->value.data.ptr;
+				u32 index = 0;
+				u32 num_timecodes = prop->value.data.size / sizeof(GF_TimeCode);
+				while (index < num_timecodes) {
+					if (index) inspect_printf(dump, ",");
+					char tcBuf[100];
+					inspect_printf(dump, "%s", gf_format_timecode(&tc[index], tcBuf));
+					index++;
 				}
 			} else {
 				inspect_printf(dump, "N/A");
@@ -3333,6 +3323,8 @@ static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data,
 			}
 			gf_isom_box_dump(a, dump);
 			data += a->size;
+			gf_isom_box_del(a);
+			a=NULL;
 		}
 		gf_bs_del(bs);
 	}
@@ -3762,6 +3754,9 @@ props_done:
 			gf_bs_del(bs);
 		}
 			break;
+		case GF_CODECID_TX3G:
+			data += 2;
+			size -= 2;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
 		case GF_CODECID_SIMPLE_TEXT:
@@ -3916,7 +3911,7 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 	}
 
 	char szDur[100];
-	gf_format_duration(dur, timescale, szDur);
+	gf_format_duration(dur, (u32) timescale, szDur);
 	if (skip_name)
 		inspect_printf(dump, " (");
 	else
@@ -4302,6 +4297,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean)
+		inspect_printf(dump, " fake");
 
 	inspect_printf(dump, "\n");
 }
@@ -4689,6 +4687,24 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 		inspect_printf(dump, "\n </XMLTextConfig>\n");
 		break;
+	case GF_CODECID_TX3G: {
+		GF_TextSampleDescriptor *tx3g = NULL;
+		if (dsi) tx3g = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!tx3g) {
+			inspect_printf(dump, "/>\n");
+			return;
+		}
+		inspect_printf(dump, ">\n");
+		inspect_printf(dump, " <TextConfig displayFlags=\"%d\" horizontalJustification=\"%d\" verticalJustification=\"%d\" backgroundColor=\"%d\">\n", tx3g->displayFlags, tx3g->horiz_justif, tx3g->vert_justif, tx3g->back_color);
+		inspect_printf(dump, "  <BoxRecord top=\"%d\" left=\"%d\" bottom=\"%d\" right=\"%d\"/>\n", tx3g->default_pos.top, tx3g->default_pos.left, tx3g->default_pos.bottom, tx3g->default_pos.right);
+		inspect_printf(dump, "  <StyleRecord startCharOffset=\"%d\" endCharOffset=\"%d\" fontID=\"%d\" styleFlags=\"%d\" fontSize=\"%d\" textColor=\"%d\"/>\n", tx3g->default_style.startCharOffset, tx3g->default_style.endCharOffset, tx3g->default_style.fontID, tx3g->default_style.style_flags, tx3g->default_style.font_size, tx3g->default_style.text_color);
+		for (i=0; i<tx3g->font_count; i++) {
+			inspect_printf(dump, "  <FontRecord fontID=\"%d\" name=\"%s\"/>\n", tx3g->fonts[i].fontID, tx3g->fonts[i].fontName);
+		}
+		inspect_printf(dump, " </TextConfig>\n");
+		gf_odf_desc_del((GF_Descriptor *)tx3g);
+		break;
+	}
 	case GF_CODECID_WEBVTT:
 		dsi_is_text = GF_TRUE;
 	case GF_CODECID_SUBS_TEXT:
@@ -5376,6 +5392,7 @@ static const GF_FilterCapability InspecterDemuxedCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterReframeCaps[] =
@@ -5385,6 +5402,7 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterRawCaps[] =
@@ -5394,6 +5412,7 @@ static const GF_FilterCapability InspecterRawCaps[] =
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_MIME, "*"),
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_FILE_EXT, "*"),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
@@ -5568,6 +5587,8 @@ static const GF_FilterCapability InspectCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 const GF_FilterRegister InspectRegister = {
@@ -5576,7 +5597,7 @@ const GF_FilterRegister InspectRegister = {
 	GF_FS_SET_HELP("The inspect filter can be used to dump PID and packets. It may also be used to check parts of payload of the packets.\n"
 	"\n"
 	"The default options inspect only PID changes.\n"
-	"If [-full]() is not set, [-mode=frame]() is forced and PID properties are formatted in human-readable form, one PID per line.\n"
+	"If [-full]() is not set, [-mode]() is forced to `frame` and PID properties are formatted in human-readable form, one PID per line.\n"
 	"Otherwise, all properties are dumped.\n"
 	"Note: specifying [-xml](), [-analyze](), [-fmt]() or using `-for-test` will force [-full]() to true.\n"
 	"\n"

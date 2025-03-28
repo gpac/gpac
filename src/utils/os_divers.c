@@ -341,6 +341,8 @@ s32 __gettimeofday(struct timeval *tp, void *tz)
 
 #elif defined(WIN32)
 
+#include <WinSock2.h>
+
 static s32 gettimeofday(struct timeval *tp, void *tz)
 {
 	struct _timeb timebuffer;
@@ -742,6 +744,8 @@ u64 gf_sys_clock_high_res()
 
 
 #ifdef WIN32
+
+#include <timeapi.h>
 
 static u32 OS_GetSysClockHIGHRES()
 {
@@ -3241,7 +3245,7 @@ Bool gf_sys_check_process_id(u32 pid)
 #endif
 
 GF_EXPORT
-GF_LockStatus gs_sys_create_lockfile(const char *lockname)
+GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 {
 	char szPID[20];
 	u32 retry = 10;
@@ -3259,13 +3263,13 @@ GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 			continue;
 		}
 #else
-#if defined __STDC_VERSION__ 
+#if defined __STDC_VERSION__
 		FILE *f = fopen(lockname, "wx");
 #else
 		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
 #endif
 		if (f) {
-			s32 wlen = fwrite(szPID, 1, len, f);
+			s32 wlen = (s32) fwrite(szPID, 1, len, f);
 			fclose(f);
 			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
 			continue;
@@ -3273,10 +3277,10 @@ GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 #endif
 
 		//existing, check pid
-		u8 *data;
-		u32 size, pid;
-		gf_file_load_data(lockname, &data, &size);
-		if (!data || !size) continue;
+		u8 *data=NULL;
+		u32 size=0, pid;
+		GF_Err e = gf_file_load_data(lockname, &data, &size);
+		if (!data || !size || e!=GF_OK) continue;
 
 		sscanf(data, "%u", &pid);
 		gf_free(data);

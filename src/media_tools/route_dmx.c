@@ -206,6 +206,8 @@ struct __route_service
 
 	char *service_identifier;
 	char *log_name;
+
+	Bool in_reset;
 };
 
 //maximum segs we keep in cache when playing from pcap in no realtime: this accounts for
@@ -1560,6 +1562,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						if (e) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
 							gf_list_del(rsess->channels);
+							if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 							gf_free(rsess);
 							gf_list_del(old_sessions);
 							goto exit;
@@ -2441,6 +2444,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						gf_list_del_item(s->route_sessions, rsess);
 						gf_list_del(remove_sessions);
 						gf_list_del(remove_channels);
+						if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 						gf_free(rsess);
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
 						return e;
@@ -2873,6 +2877,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		}
 		if(!payload[0]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] End of package has been prematurely reached\n", s->log_name));
+			gf_free(boundary);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		payload += 4;
@@ -2896,6 +2901,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 				return e ? e : GF_SERVICE_ERROR;
 			}
 		} else if (!strcmp(szContentType, "application/mbms-user-service-description+xml")) {
+		} else if (!strcmp(szContentType, "application/route-usd+xml")) {
 		} else if (!strcmp(szContentType, "application/dash+xml")
 			|| !strcmp(szContentType, "video/vnd.3gpp.mpd")
 			|| !strcmp(szContentType, "audio/mpegurl")
@@ -3211,7 +3217,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 	u32 start_offset=0;
 	GF_ROUTELCTChannel *rlct=NULL;
 	GF_LCTObject *gather_object=NULL;
-	u32 /*SBN,*/ESI; //Source Block Length  | Encoding Symbol  
+	u32 /*SBN,*/ESI; //Source Block Length  | Encoding Symbol
 
 	if (route_sess) {
 		e = gf_sk_receive_no_select(route_sess->sock, routedmx->buffer, routedmx->buffer_size, &nb_read);
@@ -3362,8 +3368,8 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) transfert_length, B, GF_FALSE, rlct, &gather_object, ESI, fdt_symbol_length);
 
-	start_offset += (nb_read ) * ESI; 
-	
+	start_offset += (nb_read ) * ESI;
+
 	if (e==GF_EOS) {
 		gf_route_dmx_process_object(routedmx, s, gather_object);
 	}
@@ -3613,6 +3619,8 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 		s = NULL;
 	}
 	if (!s) return GF_BAD_PARAM;
+	if (is_locate) s->in_reset = GF_FALSE;
+
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
@@ -3692,7 +3700,9 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 		return GF_NOT_FOUND;
 	}
 	if (is_remove) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
+		if (!s->in_reset) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
+		}
 		return GF_NOT_FOUND;
 	}
 	return GF_OK;
@@ -4104,6 +4114,7 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 	for (i=0; i<count; i++) {
 		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
 		j=0;
+		s->in_reset = GF_TRUE;
 		GF_LCTObject *obj;
 		while ((obj=gf_list_enum(s->objects, &j))) {
 			obj->status = GF_LCT_OBJ_DONE_ERR;

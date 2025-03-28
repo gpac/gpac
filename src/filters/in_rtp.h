@@ -43,12 +43,11 @@
 typedef struct _rtsp_session GF_RTPInRTSP;
 typedef struct __rtpin_stream GF_RTPInStream;
 
-enum
-{
+GF_OPT_ENUM (GF_RTPInRTSP_Mode,
 	RTP_TRANSPORT_AUTO=0,
 	RTP_TRANSPORT_TCP_ONLY,
 	RTP_TRANSPORT_UDP_ONLY,
-};
+);
 
 enum
 {
@@ -72,7 +71,7 @@ typedef struct
 	u32 udp_timeout, rtcp_timeout, stats;
 	Bool forceagg;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
-	u32 transport;
+	GF_RTPInRTSP_Mode transport;
 	s32 max_sleep, loss_rate;
 	Bool rtcpsync;
 	GF_PropStringList ssm, ssmx;
@@ -388,7 +387,7 @@ void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size);
 void rtpin_satip_get_server_ip(const char *sURL, char *Server);
 
 #ifdef GPAC_HAS_SSL
-void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode);
+void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
 GF_Err gf_rtsp_set_ssl_ctx(GF_RTSPSession *sess, void *ssl_CTX);
 Bool gf_rtsp_session_needs_ssl(GF_RTSPSession *sess);
 #endif

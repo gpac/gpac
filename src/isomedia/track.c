@@ -671,6 +671,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		store_traf_map = GF_TRUE;
 	}
 
+	u64 max_end = 0;
 #ifdef GF_ENABLE_CTRN
 	sample_index = 0;
 #endif
@@ -876,6 +877,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			e = stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 			if (e) return e;
 		}
+
+		u64 data_offset_end = data_offset + chunk_size;
+		if (!max_end || (max_end<data_offset_end))
+			max_end = data_offset_end;
 	}
 
 	//remember target next dts - last_dts is the duration in media timescale, dos not include tfdt
@@ -1182,6 +1187,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					e = gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, samp_num, offset, size);
 					if (e) return e;
 
+					if (offset + size > max_end)
+						max_end = offset + size;
+
 					//we no longer load sai, this will be loaded through saio/saiz when fecthing it
 					//this avoids too high mem usage
 					//we do keep it if edit mode to rewrite senc
@@ -1293,8 +1301,17 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 			//always increment size even for saio.nb_entries>1
 			offset += size;
+
+		if (offset > max_end)
+			max_end = offset;
+
 		}
 		if (sai) gf_free(sai);
+	}
+	//signal max offset from what we could gather - this is just an estimation, as there could be hidden data at the end of
+	//the containing mdat
+	if (trak->moov->mov->signal_frag_bounds && !(trak->moov->mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
+		gf_isom_push_mdat_end(trak->moov->mov, max_end, GF_TRUE);
 	}
 
 	return GF_OK;
