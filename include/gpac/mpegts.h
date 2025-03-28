@@ -75,6 +75,7 @@ enum
 	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR						= 0x0A,
 	GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR				= 0x0C,
 	GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR	= 0x0D,
+	GF_M2TS_MAX_BITRATE_DESCRIPTOR	= 0x0E,
 	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR			= 0x0F,
 	/* ... */
 	GF_M2TS_DVB_STREAM_LOCATION_DESCRIPTOR        =0x13,
@@ -141,7 +142,9 @@ enum
 	GF_M2TS_DVB_EAC3_DESCRIPTOR				= 0x7A,
 	GF_M2TS_DVB_LOGICAL_CHANNEL_DESCRIPTOR = 0x83,
 
-	GF_M2TS_DOLBY_VISION_DESCRIPTOR = 0xB0
+	GF_M2TS_DOLBY_VISION_DESCRIPTOR = 0xB0,
+
+	GF_M2TS_DVB_EXT_DESCRIPTOR = 0x7f
 };
 
 /*! Reserved PID values */
@@ -511,6 +514,11 @@ enum
 	/*! a generic ID3 tag has been found*/
 	GF_M2TS_EVT_ID3,
 
+	/*! a generic section  has been found*/
+	GF_M2TS_EVT_SECTION,
+	/*! a generic section  has been updated*/
+	GF_M2TS_EVT_SECTION_UPDATE,
+
 	/*! a stream is about to be removed -  - associated parameter: pointer to GF_M2TS_ES being removed*/
 	GF_M2TS_EVT_STREAM_REMOVED
 };
@@ -834,6 +842,13 @@ typedef struct tag_m2ts_metadata_descriptor {
 	u8 decoder_config_service_id;
 } GF_M2TS_MetadataDescriptor;
 
+enum {
+	GF_M2TS_AUDIO_SUBSTREAM_COMP = 1,
+	GF_M2TS_AUDIO_DESCRIPTION = 1<<1,
+	GF_M2TS_AUDIO_SUB_DESCRIPTION = 1<<2,
+	GF_M2TS_AUDIO_HEARING_IMPAIRED = 1<<3,
+};
+
 //! @cond Doxygen_Suppress
 
 /*! MPEG-2 TS ES object*/
@@ -904,6 +919,9 @@ typedef struct tag_m2ts_pes
 
 	/*! flag set to indicate the last PES packet was not flushed (HLS) to avoid warning on same PTS/DTS used*/
 	Bool is_resume;
+
+	Bool is_protected;
+	u32 audio_flags;
 
 	/*! DolbyVison info, last byte set to 1 if non-compatible signaling*/
 	u8 dv_info[25];
@@ -1091,6 +1109,24 @@ typedef struct
 	u16 ex_table_id;
 } GF_M2TS_SectionInfo;
 
+typedef struct
+{
+	u8 version_number;
+	u8 table_id;
+	u16 ex_table_id;
+	u32 num_sections;
+	/*parent stream*/
+	GF_M2TS_ES *stream;
+	//section index from 0 to num_sections
+	u32 section_idx;
+	//section data
+	u8 *section_data;
+	u32 section_data_len;
+	//pts estimated at table completion
+	u64 pts;
+} GF_M2TS_GenericSectionInfo;
+
+
 /*! raw TS demux options*/
 typedef enum
 {
@@ -1167,6 +1203,7 @@ struct tag_m2ts_demux
 	struct __gf_dvb_mpe_ip_platform *ip_platform;
 	/*! current TS packet number*/
 	u32 pck_number;
+	u32 pck_errors;
 
 	/*! TS packet number of last seen packet containing PAT start */
 	u32 last_pat_start_num;
