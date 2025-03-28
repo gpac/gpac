@@ -936,11 +936,6 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	u32 dsi_size;
 	const GF_PropertyValue *prop;
 
-	if (ctx->tc) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Timecode manipulation is not supported for VVC\n"));
-		return GF_BAD_PARAM;
-	}
-
 	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!prop) return GF_OK;
 	pctx->reconfigure = GF_FALSE;
@@ -966,7 +961,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei || ctx->seis.nb_items || ctx->tc) {
+	if (ctx->rmsei || ctx->seis.nb_items) {
 		pctx->rewrite_packet = vvc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
