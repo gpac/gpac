@@ -2265,10 +2265,13 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dm_sess_set_header(sess->http_sess, "icy-br", szFmt);
 			}
 			gf_dm_sess_set_header(sess->http_sess, "icy-pub", "1");
-			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_SERVICE_NAME);
+			GF_PropertyEntry *pe=NULL;
+			p = gf_filter_pid_get_info(sess->in_source->ipid, GF_PROP_PID_SERVICE_NAME, &pe);
 			if (p && p->value.string) {
 				gf_dm_sess_set_header(sess->http_sess, "icy-name", p->value.string);
 			}
+			gf_filter_release_property(pe);
+
 			p_idx = 0;
 			while (1) {
 				const char *pname;

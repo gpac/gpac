@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -503,7 +503,7 @@ const char *gf_stream_type_short_name(u32 streamType)
 		if (GF_StreamTypes[i].st == streamType)
 			return GF_StreamTypes[i].sname;
 	}
-	return "unkn";
+	return "unknown";
 }
 
 GF_EXPORT

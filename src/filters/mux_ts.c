@@ -1256,13 +1256,6 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	service_id = p ? p->value.uint : ctx->sid;
 
-	sname = ctx->name;
-	pname = ctx->provider;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
-	if (p) sname = p->value.string;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
-	if (p) pname = p->value.string;
-
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_name(ctx->opid, "ts_mux");
@@ -1387,7 +1380,15 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		prog = gf_m2ts_mux_program_add(ctx->mux, service_id, pmt_id, ctx->pmt_rate, pcr_offset, ctx->mpeg4, ctx->pmt_version, ctx->disc, first_pts_val);
 
+		pe = NULL;
+		sname = ctx->name;
+		pname = ctx->provider;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_NAME, &pe);
+		if (p) sname = p->value.string;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_PROVIDER, &pe);
+		if (p) pname = p->value.string;
 		if (sname) gf_m2ts_mux_program_set_name(prog, sname, pname);
+		gf_filter_release_property(pe);
 
 		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DASH_SPARSE);
 		if (p && p->value.boolean) ctx->keepts = GF_TRUE;
