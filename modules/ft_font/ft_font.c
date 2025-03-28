@@ -516,6 +516,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	char *fontName;
 	const char *opt;
 	Bool is_def_font = GF_FALSE;
+	Bool no_style_check = GF_FALSE;
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
 	fontName = (char *) OrigFontName;
@@ -538,6 +539,11 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 		fontName = ftpriv->font_fixed;
 		is_def_font = GF_TRUE;
 		OrigFontName = "TYPEWRITER";
+	}
+	if (!styles) {
+		if (ftpriv->font_fixed && !strcmp(fontName, ftpriv->font_fixed)) no_style_check = GF_TRUE;
+		else if (ftpriv->font_sans && !strcmp(fontName, ftpriv->font_sans)) no_style_check = GF_TRUE;
+		else if (ftpriv->font_serif && !strcmp(fontName, ftpriv->font_serif)) no_style_check = GF_TRUE;
 	}
 
 	/*first look in loaded fonts*/
@@ -584,7 +590,7 @@ checkFont:
 		//handle collections, figure out which face matches our styles
 		num_faces = face->num_faces;
 		for (i=0; i<num_faces; i++) {
-			if ( ft_check_face(face, NULL, checkStyles)) {
+			if (no_style_check || ft_check_face(face, NULL, checkStyles)) {
 				gf_free(fname);
 				gf_list_add(ftpriv->loaded_fonts, face);
 				ftpriv->active_face = face;

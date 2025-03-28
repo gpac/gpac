@@ -1988,8 +1988,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			for(i=0; i<hdrl_len;)
 			{
-				/* List tags are completly ignored */
+				if (i+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
+				/* List tags are completly ignored */
 #ifdef DEBUG_ODML
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] TAG %c%c%c%c\n", (hdrl_data+i)[0], (hdrl_data+i)[1], (hdrl_data+i)[2], (hdrl_data+i)[3]));
 #endif
@@ -1998,7 +1999,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					i+= 12;
 					continue;
 				}
-				if (i+4>=hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
+				if (i+8>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 				n = str2ulong(hdrl_data+i+4);
 				n = PAD_EVEN(n);
@@ -2010,6 +2012,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				if(strnicmp((char *)hdrl_data+i,"strh",4)==0)
 				{
 					i += 8;
+					if (i+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 #ifdef DEBUG_ODML
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] TAG   %c%c%c%c\n", (hdrl_data+i)[0], (hdrl_data+i)[1], (hdrl_data+i)[2], (hdrl_data+i)[3]));
 #endif
@@ -2070,6 +2073,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					num_stream++;
 				}
 				else if(strnicmp((char*)hdrl_data+i,"dmlh",4) == 0) {
+
+					if (i+12>hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
 					AVI->total_frames = str2ulong(hdrl_data+i+8);
 #ifdef DEBUG_ODML
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] real number of frames %d\n", AVI->total_frames));

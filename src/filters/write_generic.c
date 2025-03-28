@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream to file filter
@@ -33,27 +33,27 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-enum
-{
+GF_OPT_ENUM (GF_DecoderConfigInsertMode,
 	DECINFO_NO=0,
 	DECINFO_FIRST,
 	DECINFO_SAP,
-	DECINFO_AUTO
-};
+	DECINFO_AUTO,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_VttHeaderInjectionMode,
 	VTTH_SINGLE=0,
 	VTTH_SEG,
 	VTTH_ALL,
-};
+);
 
 typedef struct
 {
 	//opts
-	Bool exporter, frame, split, merge_region;
-	u32 sstart, send, vtth;
-	u32 pfmt, afmt, decinfo;
+	Bool exporter, frame, split, merge_region, add_nl;
+	u32 sstart, send;
+	GF_VttHeaderInjectionMode vtth;
+	u32 pfmt, afmt;
+	GF_DecoderConfigInsertMode decinfo;
 	GF_Fraction dur;
 
 	//only one input pid declared
@@ -107,7 +107,7 @@ typedef struct
 GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 cid, chan, sr, w, h, stype, pf, sfmt, av1mode, nb_bps;
-	const char *name, *mimetype;
+	const char *name, *mimetype, *out_ext=NULL;
 	char szExt[GF_4CC_MSIZE], szCodecExt[30], *sep;
 	const GF_PropertyValue *p;
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
@@ -148,6 +148,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	stype = p ? p->value.uint : 0;
+	if (stype!=GF_STREAM_TEXT) ctx->add_nl = GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	sr = p ? p->value.uint : 0;
@@ -209,7 +210,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->dump_srt = GF_FALSE;
 	p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 	if (p && p->value.string) {
-		if (!strcmp(p->value.string, "srt")) {
+		out_ext = p->value.string;
+		if (!strcmp(out_ext, "srt")) {
 			ctx->dump_srt = GF_TRUE;
 			strcpy(szCodecExt, "srt");
 		}
@@ -276,9 +278,11 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		if (ctx->decinfo == DECINFO_AUTO)
 			ctx->decinfo = DECINFO_FIRST;
 
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
-		if (p && p->value.boolean)
-			ctx->dump_srt = GF_TRUE;
+		if (!out_ext || stricmp(out_ext, "txt")) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+			if (p && p->value.boolean)
+				ctx->dump_srt = GF_TRUE;
+		}
 		break;
 
 	case GF_CODECID_TX3G:
@@ -1558,6 +1562,14 @@ GF_Err writegen_process(GF_Filter *filter)
 	gf_filter_pck_set_seek_flag(dst_pck, 0);
 	gf_filter_pck_send(dst_pck);
 
+	if (ctx->add_nl) {
+		u8 *output;
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 1, &output);
+		output[0] = '\n';
+		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+		gf_filter_pck_send(dst_pck);
+	}
+
 	if (split && ctx->need_ttxt_footer)
 		writegen_flush_ttxt(ctx);
 	ctx->nb_bytes += pck_size;
@@ -1988,6 +2000,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- single: inject only at first frame of the stream\n"
 	"- seg: inject at each non-empty segment\n"
 	"- all: inject at each segment even empty ones", GF_PROP_UINT, "seg", "single|seg|all", 0},
+	{ OFFS(add_nl), "add new line after each packet when dumping text streams", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

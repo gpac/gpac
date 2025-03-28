@@ -733,6 +733,7 @@ static GF_GPACArg gpac_args[] =
 #endif
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("sloop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing, breaking at first error. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("eloop", NULL, "same as sloop but does not break if error", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds, exit with full session flush", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("runforf", NULL, "run for the given amount of milliseconds, exit with fast session flush", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("runforx", NULL, "run for the given amount of milliseconds and exit with no cleanup", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
@@ -866,7 +867,7 @@ void gpac_usage(GF_SysArgMode argmode)
 		"\n"
 		"The possible options for gpac are:\n\n",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
-			(gen_doc==1) ? "[gpac -h doc](filters_general#explicit-links-between-filters-link)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-linking-link)" : "`gpac -h doc`",
 			(gen_doc==1) ? "[gpac -hx](gpac_general#h)" : "`gpac -hx`",
 			(gen_doc==1) ? "[gpac -hx core](core_options)" : "`gpac -hx core`",
 			(gen_doc==1) ? "[gpac -h doc](core_config#global-filter-options)" : "`gpac -h doc`",
@@ -2146,7 +2147,7 @@ static void patch_mkdocs_yml()
 	if (!gf_file_exists("../../mkdocs.yml")) {
 		yml_src = "mkdocs.yml";
 		FILE *t = gf_fopen(yml_src, "w");
-		gf_fprintf(t, "    - All filters:\n");
+		gf_fprintf(t, "    - Filters:\n");
 		gf_fclose(t);
 	}
 
@@ -2160,7 +2161,7 @@ static void patch_mkdocs_yml()
 		if (in_filter_list && !strncmp(szLine, "  - ", 4))
 			in_filter_list = GF_FALSE;
 
-		if (!strncmp(szLine, "    - All filters:", 18)) {
+		if (!strncmp(szLine, "    - Filters:", 14)) {
 			gf_dynstrcat(&oyml, szLine, NULL);
 			in_filter_list = GF_TRUE;
 

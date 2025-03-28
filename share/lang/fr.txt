@@ -1884,7 +1884,7 @@ desc=MPEG-DASH and HLS segmenter
 desc_crc=839712355
 help=@GPAC DASH and HLS segmenter
 The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)
-The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files
+The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for separate segment files
 	EX template=Great_$File$_$Width$_$Number$
 If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template
 	EX template=Great_$File$_$Width$

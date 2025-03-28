@@ -686,7 +686,7 @@ struct __gf_filter
 	//!this mutex protects:
 	//- the filter task queue, when reordering tasks for later processing while other threads try to post to the filter task queue
 	//- the list of input pid and output pid destinations, which can be added from different threads for a same pid (fan-out)
-	//-the blocking state of the filter
+	//- the blocking state of the filter
 	GF_Mutex *tasks_mx;
 
 	//list of output pids to be configured
@@ -1197,7 +1197,7 @@ GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter 
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst, Bool check_reconfig_only);
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
-Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, s16 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
 
 void gf_filter_relink_dst(GF_FilterPidInst *pidinst, GF_Err reason);
 
@@ -1244,8 +1244,8 @@ typedef struct
 	u16 dst_cap_idx;
 	u8 weight;
 	u8 status;
-	u8 priority;
 	u8 loaded_filter_only;
+	s16 priority;
 	u32 disabled_depth;
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
@@ -1263,7 +1263,7 @@ typedef struct __freg_desc
 	struct __freg_desc *destination;
 	u32 cap_idx;
 	GF_BundleCache *bundle_cache;
-	u8 priority;
+	s16 priority;
 	u8 in_edges_enabling;
 	u8 has_input; //cache value of gf_filter_has_in_caps
 	u8 has_output; //cache value of gf_filter_has_out_caps

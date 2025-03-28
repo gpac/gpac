@@ -346,6 +346,15 @@ Returns text description of given errno code
  */
 const char *gf_errno_str(int errnoval);
 
+
+/*!
+\brief reloads netcap filters
+
+Reloads netcap filters, closing all attached files and deassociating sockets - this should only be done called when reloading a session
+\return error if any
+ */
+GF_Err gf_net_reload_netcap();
+
 /*! @} */
 
 #ifndef GPAC_DISABLE_NETWORK

@@ -688,12 +688,13 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		}
 
 
-		nb_udta =  gf_isom_get_udta_count(read->mov, ch->track);
+		nb_udta = gf_isom_get_udta_count(read->mov, ch->track);
 		if (nb_udta) {
 			for (i=0; i<nb_udta; i++) {
 				u32 j, type, nb_items;
 				bin128 uuid;
 				gf_isom_get_udta_type(read->mov, ch->track, i+1, &type, &uuid);
+				if (type==GF_ISOM_BOX_TYPE_KIND) continue;
 				nb_items = gf_isom_get_user_data_count(read->mov, ch->track, type, uuid);
 				//we only export 4CC udta boxes
 				if (!type) continue;
@@ -725,6 +726,22 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				}
 			}
 		}
+		GF_PropertyValue kinds;
+		kinds.type = GF_PROP_STRING_LIST;
+		kinds.value.string_list.nb_items = nb_udta = gf_isom_get_user_data_count(read->mov, ch->track, GF_ISOM_BOX_TYPE_KIND, NULL);
+		if (nb_udta) {
+			kinds.value.string_list.vals = gf_malloc(sizeof(char*)*nb_udta);
+			for (i=0; i<nb_udta; i++) {
+				char *scheme=NULL, *val=NULL;
+				gf_isom_get_track_kind(read->mov, ch->track, i, &scheme, &val);
+				if (scheme) gf_dynstrcat(&kinds.value.string_list.vals[i], scheme, NULL);
+				gf_dynstrcat(&kinds.value.string_list.vals[i], val ? val : "", scheme ? ":" : NULL);
+				if (scheme) gf_free(scheme);
+				if (val) gf_free(val);
+			}
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ROLE, &kinds);
+		}
+
 
 		//delcare track groups
 		u32 idx=0;
@@ -1350,7 +1367,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (dsi) {
 		ch->dsi_crc = gf_crc_32(dsi, dsi_size);
 		//strip box header for these codecs
-		if (codec_id==GF_CODECID_SMPTE_VC1) {
+		if (codec_id==GF_CODECID_SMPTE_VC1 && dsi_size > 8) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(dsi+8, dsi_size-8));
 			gf_free(dsi);
 			dsi=NULL;

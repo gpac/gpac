@@ -157,7 +157,7 @@ typedef struct _video_out
 	GF_EVENT_SET_CURSOR: sets cursor
 	GF_EVENT_SET_CAPTION: sets caption
 	GF_EVENT_SHOWHIDE: show/hide output window for self-managed output
-	GF_EVENT_SIZE:  inital window resize upon scene load
+	GF_EVENT_SIZE:  initial window resize upon scene load
 	GF_EVENT_VIDEO_SETUP: all HW related setup:
 		* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
 		* for 3D output, this means re-setup of OpenGL context (depending on HW constraints).

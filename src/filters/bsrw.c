@@ -57,6 +57,7 @@ struct _bsrw_ctx
 	s32 m4vpl, prof, lev, pcomp, pidc, pspace, gpcflags;
 	s32 cprim, ctfc, cmx, vidfmt;
 	Bool rmsei, fullrange, novsi, novuitiming;
+	GF_PropUIntList seis;
 
 	GF_List *pids;
 	Bool reconfigure;
@@ -112,7 +113,7 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck, u32 codec_type)
 {
-	Bool is_sei;
+	Bool is_sei = GF_FALSE;
 	u32 size, pck_size, final_size;
 	GF_FilterPacket *dst;
 	u8 *output;
@@ -120,10 +121,8 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	if (!data)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
-
-	final_size = 0;
 	size=0;
-	while (size<pck_size) {
+	while (size<pck_size && !is_sei) {
 		u8 nal_type=0;
 		u32 nal_hdr = pctx->nalu_size_length;
 		u32 nal_size = 0;
@@ -153,19 +152,24 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 				is_sei = GF_TRUE;
 		}
 
-		if (!is_sei) {
-			final_size += nal_size+pctx->nalu_size_length;
-		}
 		size += nal_size;
 	}
-	if (final_size == pck_size)
+	if (!is_sei)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
-	dst = gf_filter_pck_new_alloc(pctx->opid, final_size, &output);
+	dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
 	if (!dst) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(pck, dst);
 
+	SEI_Filter sei_filter = {
+		.is_whitelist = !ctx->rmsei,
+		.seis = ctx->seis
+	};
+
+	u32 rw_sei_size = 0;
+	u8 *rw_sei_payload = NULL;
+	final_size=0;
 	size=0;
 	while (size<pck_size) {
 		u8 nal_type=0;
@@ -199,13 +203,50 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		}
 
 		if (is_sei) {
-			size += nal_size;
-			continue;
+			rw_sei_size = nal_size;
+			if (rw_sei_payload) rw_sei_payload = gf_realloc(rw_sei_payload, rw_sei_size);
+			else rw_sei_payload = gf_malloc(rw_sei_size);
+			memcpy(rw_sei_payload, &data[size], rw_sei_size);
+
+			switch (codec_type)
+			{
+			case 0:
+				rw_sei_size = gf_avc_reformat_sei(rw_sei_payload, rw_sei_size, GF_TRUE, NULL, &sei_filter);
+				break;
+			case 1:
+				rw_sei_size = gf_hevc_reformat_sei(rw_sei_payload, rw_sei_size, GF_TRUE, &sei_filter);
+				break;
+			case 2:
+				rw_sei_size = gf_vvc_reformat_sei(rw_sei_payload, rw_sei_size, GF_TRUE, &sei_filter);
+				break;
+			default:
+				break;
+			}
+
+			if (rw_sei_size) {
+				// write the NAL length
+				u32 bytes = pctx->nalu_size_length;
+				while (bytes--) {
+					output[0] = (rw_sei_size >> (bytes * 8)) & 0xFF;
+					output++;
+					final_size++;
+				}
+
+				// write the NAL
+				memcpy(output, rw_sei_payload, rw_sei_size);
+				output += rw_sei_size;
+				final_size += rw_sei_size;
+			}
+		} else {
+			memcpy(output, &data[size-pctx->nalu_size_length], pctx->nalu_size_length+nal_size);
+			output += pctx->nalu_size_length+nal_size;
+			final_size += pctx->nalu_size_length+nal_size;
 		}
-		memcpy(output, &data[size-pctx->nalu_size_length], pctx->nalu_size_length+nal_size);
-		output += pctx->nalu_size_length+nal_size;
+
 		size += nal_size;
 	}
+	if (rw_sei_payload) gf_free(rw_sei_payload);
+	gf_filter_pck_truncate(dst, final_size);
 	return gf_filter_pck_send(dst);
 }
 
@@ -297,7 +338,7 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei) {
+	if (ctx->rmsei || ctx->seis.nb_items) {
 		pctx->rewrite_packet = avc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -343,7 +384,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei) {
+	if (ctx->rmsei || ctx->seis.nb_items) {
 		pctx->rewrite_packet = hevc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -385,7 +426,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei) {
+	if (ctx->rmsei || ctx->seis.nb_items) {
 		pctx->rewrite_packet = vvc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -664,6 +705,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(pidc), "profile IDC for HEVC and VVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(seis), "list of SEI message types (4,137,144,...). When used with `rmsei`, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
 	{0}
@@ -698,7 +740,6 @@ static const GF_FilterCapability BSRWCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 #endif
-
 };
 
 GF_FilterRegister BSRWRegister = {

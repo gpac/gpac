@@ -68,6 +68,7 @@ typedef struct
 	GF_Err (*pck_truncate)(GF_FilterPacket *pck, u32 size);
 	GF_Err (*pck_send)(GF_FilterPacket *pck);
 
+	u32 field;
 	u32 cctype;
 	u32 nalu_size_len;
 	GF_List *cc_queue;
@@ -222,9 +223,9 @@ static int find_last_separator(const char *input)
 	if (!space && !newline)
 		return -1;
 	if (!space || space < newline)
-		return newline-input+1/*include the '\n'*/;
+		return (int) (newline-input+1)/*include the '\n'*/;
 	else
-		return space-input;
+		return (int) (space-input);
 }
 
 static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
@@ -312,10 +313,10 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 		int valid;
 		cea708_cc_type_t type;
 		uint16_t cc_data = cea708_cc_data(&scc.user_data, i, &valid, &type);
+		Bool use_field1 = (ctx->field == 1 && (cc_type_ntsc_cc_field_1 == type));
+		Bool use_field2 = (ctx->field == 2 && (cc_type_ntsc_cc_field_2 == type));
 
-		if (valid
-			&& ((cc_type_ntsc_cc_field_1 == type) || (cc_type_ntsc_cc_field_2 == type))
-		) {
+		if (valid && (use_field1 || use_field2)) {
 			status = libcaption_status_update(status, caption_frame_decode(ctx->ccframe, cc_data, timestamp));
 			if (status == LIBCAPTION_READY) {
 				dump_frame = GF_TRUE;
@@ -403,7 +404,7 @@ static void ccdec_flush(CCDecCtx *ctx)
 		return;
 
 	if (strlen(ctx->txtdata))
-		ccdec_post(ctx, strlen(ctx->txtdata), ctx->last_ts_plus_one);
+		ccdec_post(ctx, (u32) strlen(ctx->txtdata), ctx->last_ts_plus_one);
 }
 
 GF_Err ccdec_process(GF_Filter *filter)
@@ -662,6 +663,7 @@ static const GF_FilterCapability CCDecCaps[] =
 #define OFFS(_n)	#_n, offsetof(CCDecCtx, _n)
 static const GF_FilterArgs CCDecArgs[] =
 {
+	{ OFFS(field), "field to decode", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(agg), "output aggregation mode\n"
 		"- none: forward data as decoded (default)\n"
 		"- word: aggregate words (separated by a space)", GF_PROP_UINT, "none", "none|word", 0},

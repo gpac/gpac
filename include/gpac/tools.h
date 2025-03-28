@@ -73,7 +73,7 @@ Macro formatting a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
-/*! Macro formating 4CC from compiler-constant string of 4 characters
+/*! Macro formatting 4CC from compiler-constant string of 4 characters
 \hideinitializer
  */
 #define GF_4CC_CSTR(s) GF_4CC(s[0],s[1],s[2],s[3])
@@ -426,6 +426,28 @@ Formats a duration into a string
 \return the formated input buffer
 */
 const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
+
+/*!
+\brief timecode type
+ */
+typedef struct
+{
+	u8 hours, minutes, seconds;
+	u16 n_frames;
+	Float max_fps;
+	Bool drop_frame;
+	u32 as_timestamp;
+} GF_TimeCode;
+
+/*!
+\brief formats a timecode
+
+Formats a timecode into a string
+\param tc timecode to format
+\param szTimecode the buffer to format
+\return the formated input buffer
+*/
+const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
 
 /*! @} */
 
@@ -1397,7 +1419,7 @@ Lock files are removed using \ref gf_file_delete
 \param lockfile name of the lockfile
 \return return status
 */
-GF_LockStatus gs_sys_create_lockfile(const char *lockfile);
+GF_LockStatus gf_sys_create_lockfile(const char *lockfile);
 
 /*!
 \brief Checks a process is valid
@@ -1686,6 +1708,15 @@ Gets the file size given a FILE object. The FILE object position will be reset t
 \return file size in bytes
 */
 u64 gf_fsize(FILE *fp);
+
+/*!
+\brief file size helper for a file descriptor
+
+Gets the file size given a file descriptor.
+\param fd file descriptor to check
+\return file size in bytes
+*/
+u64 gf_fd_fsize(int fd);
 
 /*!
 \brief file IO checker

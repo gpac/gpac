@@ -36,19 +36,18 @@
 #include <zlib.h>
 #endif
 
-typedef enum
-{
+GF_OPT_ENUM (GF_NHMLChksum,
 	NO_CHKSUM,
 	CRC32_CHKSUM,
 	SHA1_CHKSUM,
-} GF_NHMLChksum;
+);
 
 typedef struct
 {
 	//opts
 	const char *name;
 	Bool exporter, dims, pckp, nhmlonly, payload;
-	u32 chksum;
+	GF_NHMLChksum chksum;
 	FILE *filep;
 
 
@@ -903,6 +902,8 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 				}
 				gf_isom_box_dump(a, f);
 				data += a->size;
+				gf_isom_box_del(a);
+				a=NULL;
 			}
 			gf_bs_del(bs);
 

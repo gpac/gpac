@@ -390,7 +390,6 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	GF_ISOFile *outfile;
 	GF_Err e;
 	Bool add_to_iod, is_stdout;
-	char szName[1000];
 	u32 track;
 	GF_ISOOpenMode mode;
 
@@ -406,25 +405,27 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		dumper->flags |= GF_EXPORT_MERGE;
 		return GF_OK;
 	}
+	char *in_name = NULL;
 	if (dumper->out_name && gf_file_ext_start(dumper->out_name)) {
-		strcpy(szName, dumper->out_name);
+		gf_dynstrcat(&in_name, dumper->out_name, NULL);
 	} else {
 		char *ext = (char *) gf_isom_get_filename(dumper->file);
 		if (ext) ext = gf_file_ext_start(ext);
-		sprintf(szName, "%s%s", dumper->out_name, ext ? ext : ".mp4");
+		gf_dynstrcat(&in_name, dumper->out_name, NULL);
+		gf_dynstrcat(&in_name, ext ? ext : ".mp4", NULL);
 	}
 	is_stdout = (dumper->out_name && !strcmp(dumper->out_name, "std")) ? 1 : 0;
 	add_to_iod = 1;
 	mode = GF_ISOM_WRITE_EDIT;
 	if (!is_stdout && (dumper->flags & GF_EXPORT_MERGE)) {
-		FILE *t = gf_fopen(szName, "rb");
+		FILE *t = gf_fopen(in_name, "rb");
 		if (t) {
 			add_to_iod = 0;
 			mode = GF_ISOM_OPEN_EDIT;
 			gf_fclose(t);
 		}
 	}
-	outfile = gf_isom_open(is_stdout ? "std" : szName, mode, NULL);
+	outfile = gf_isom_open(is_stdout ? "std" : in_name, mode, NULL);
 
 	if (mode == GF_ISOM_WRITE_EDIT) {
 		gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, 0xFF);
@@ -452,8 +453,9 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 		gf_isom_keep_utc_times(outfile, GF_TRUE);
 
 	if (e) gf_isom_delete(outfile);
-	else gf_isom_close(outfile);
+	else e = gf_isom_close(outfile);
 
+	gf_free(in_name);
 	return e;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

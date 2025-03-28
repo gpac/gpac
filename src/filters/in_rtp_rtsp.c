@@ -109,7 +109,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 
 #ifdef GPAC_HAS_SSL
 				if (gf_rtsp_session_needs_ssl(sess->session) ) {
-					gf_rtsp_set_ssl_ctx(sess->session, gf_dm_ssl_init(sess->rtpin->dm, 0) );
+					gf_rtsp_set_ssl_ctx(sess->session, gf_dm_ssl_init(sess->rtpin->dm, GF_TRUE) );
 				}
 #endif
 				return;

@@ -887,7 +887,7 @@ setup_multicast_clock:
 
 				dyn_period->duration = dur;
 
-				size_t seg_url_len = strlen(seg_url);
+				size_t seg_url_len = seg_url ? strlen(seg_url) : 0;
 
 				sep = seg_url ? strstr(seg_url, "987") : NULL;
 				if (!sep) {
@@ -6760,11 +6760,13 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:ssr:2023") ) {
 				group->has_ssr = 1;
 			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:adaptation-set-switching:2016") ) {
+			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:ColourPrimaries")
+				|| !strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:MatrixCoefficients")
+				|| !strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:TransferCharacteristics")
+			) {
 			} else {
-				//we don't know any defined scheme for now
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));
-				disabled = 1;
-				break;
+				//we still load this as we could be use for anything but playback - we let the client decide
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty %s\n", mpd_desc->scheme_id_uri));
 			}
 		}
 		if (disabled) {

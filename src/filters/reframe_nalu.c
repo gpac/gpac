@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU (AVC, HEVC, VVC)  reframer filter
@@ -37,14 +37,13 @@
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
 
-enum
-{
+GF_OPT_ENUM (GF_DolbyVisionSignalingMode,
 	DVMODE_NONE=0,
 	DVMODE_AUTO,
 	DVMODE_FORCE,
 	DVMODE_CLEAN,
 	DVMODE_SINGLE,
-};
+);
 
 typedef struct
 {
@@ -60,11 +59,11 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
-enum {
+GF_OPT_ENUM (GF_GOPBufferingMode,
 	STRICT_POC_OFF = 0,
 	STRICT_POC_ON,
 	STRICT_POC_ERROR,
-};
+);
 
 typedef struct
 {
@@ -73,10 +72,11 @@ typedef struct
 	Double index;
 	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
 	u32 nal_length;
-	u32 strict_poc;
+	GF_GOPBufferingMode strict_poc;
 	u32 bsdbg;
 	GF_Fraction dur;
-	u32 dv_mode, dv_profile, dv_compatid;
+	GF_DolbyVisionSignalingMode dv_mode;
+	u32 dv_profile, dv_compatid;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -156,8 +156,10 @@ typedef struct
 
 	//list of param sets found
 	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci, *vvc_opi, *sei_prefix;
-	//set to true if one of the PS has been modified, will potentially trigger a PID reconfigure
-	Bool ps_modified;
+	//set if one of the PS has been modified, will potentially trigger a PID reconfigure
+	//if bit 1 is set, PS changed in bitstream
+	//if bit 2 is set, this is a source PID reconfiguration
+	u32 ps_modified;
 	//set to true if one PS has been changed - if false and ps_modified is set, only new PS have been added
 	Bool ps_changed;
 
@@ -276,13 +278,15 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
+		u32 old_timescale = ctx->timescale;
 		ctx->timescale = p->value.uint;
-		ctx->cur_fps.den = 0;
-		ctx->cur_fps.num = ctx->timescale;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) {
 			ctx->cur_fps = p->value.frac;
+		} else if (!old_timescale || (old_timescale != ctx->timescale)) {
+			ctx->cur_fps.den = 0;
+			ctx->cur_fps.num = ctx->timescale;
 		}
 	}
 
@@ -405,10 +409,11 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 		}
-		ctx->nal_store_size = 0;
-
-		if (ctx->timescale != 0)
-			ctx->resume_from = 0;
+		if (old_codecid != ctx->codecid) {
+			ctx->nal_store_size = 0;
+			if (ctx->timescale != 0)
+				ctx->resume_from = 0;
+		}
 
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		//don't change codec type if reframing an ES (for HLS SAES)
@@ -421,7 +426,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
 
-		ctx->ps_modified = GF_TRUE;
+		//force re-export of properties
+		ctx->ps_modified = 1<<1;
 		ctx->crc_cfg = ctx->crc_cfg_enh = 0;
 	}
 
@@ -1804,6 +1810,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	Bool has_hevc_base = GF_TRUE;
 	Bool has_colr_info = GF_FALSE;
 	Bool res;
+	Bool is_reconfig_only;
 	Bool dsi_is_superset = (!ctx->crc_cfg || ctx->ps_changed) ? GF_FALSE : GF_TRUE;
 
 	if (ctx->analyze) {
@@ -1813,7 +1820,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		if (ctx->opid && (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps)))
 			return;
 	}
-	ctx->ps_modified = GF_FALSE;
+	is_reconfig_only = (ctx->ps_modified == (1<<1)) ? GF_TRUE : GF_FALSE;
+	ctx->ps_modified = 0;
 	ctx->ps_changed = GF_FALSE;
 
 	dsi = dsi_enh = NULL;
@@ -1877,9 +1885,10 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 	}
 
-	if (!ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
+	if (!is_reconfig_only && !ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
 		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
 	}
+
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
@@ -2221,7 +2230,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		memcpy(sl->data, data, size);
 		sl->size = size;
 		sl->crc = crc;
-		ctx->ps_modified = GF_TRUE;
+		ctx->ps_modified |= 1;
 		ctx->ps_changed = GF_TRUE;
 		//flush AU if we have a slice
 		if (ctx->opid && flush_au && ctx->first_pck_in_au && ctx->nb_slices_in_au) {
@@ -2243,7 +2252,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	sl->id = ps_id;
 	sl->crc = crc;
 
-	ctx->ps_modified = GF_TRUE;
+	ctx->ps_modified |= 1;
 	//flush AU if we have a slice
 	if (ctx->opid && flush_au && ctx->first_pck_in_au && ctx->nb_slices_in_au) {
 		naludmx_end_access_unit(ctx);
@@ -2459,21 +2468,31 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 			}
 
 			if (num_clock_ts) {
-				GF_PropUIntList p;
-				p.nb_items = num_clock_ts;
-				p.vals = gf_malloc(sizeof(u32) * num_clock_ts);
+				GF_PropData p;
+				p.size = sizeof(GF_TimeCode) * num_clock_ts;
+				p.ptr = gf_malloc(p.size);
+				memset(p.ptr, 0, p.size);
 
 				for (u32 i=0; i<num_clock_ts; i++) {
 					AVCSeiPicTimingTimecode *tc = &tcs[i];
-					p.vals[i] = tc->hours*3600 + tc->minutes*60 + tc->seconds;
-					p.vals[i] = p.vals[i]*1000 + tc->n_frames;
+					GF_TimeCode *tc_dst = (GF_TimeCode *) p.ptr + i;
+					tc_dst->hours = tc->hours;
+					tc_dst->minutes = tc->minutes;
+					tc_dst->seconds = tc->seconds;
+					tc_dst->n_frames = tc->n_frames;
+					tc_dst->max_fps = tc->max_fps;
+					tc_dst->drop_frame = tc->counting_type==4;
+
+					// store as timestamp as well
+					tc_dst->as_timestamp = tc->hours*3600 + tc->minutes*60 + tc->seconds;
+					tc_dst->as_timestamp *= 1000;
+					tc_dst->as_timestamp += tc->n_frames;
 				}
 
 				GF_PropertyValue pv;
-				pv.type = GF_PROP_UINT_LIST;
-				pv.value.uint_list = p;
+				pv.type = GF_PROP_DATA_NO_COPY;
+				pv.value.data = p;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
-				gf_free(p.vals);
 			}
 		}
 	} else {
@@ -2516,7 +2535,7 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 	memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
 
 	if (avc_sei_rewrite) {
-		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state);
+		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, NULL);
 		if (rw_sei_size < size) {
 			gf_bs_seek(ctx->bs_w, 0);
 			gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
@@ -3018,7 +3037,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 					i--;
 					if (!ctx->pps_svc) ctx->pps_svc = gf_list_new();
 					gf_list_add(ctx->pps_svc, slc);
-					ctx->ps_modified = GF_TRUE;
+					ctx->ps_modified |= 1;
 					ctx->ps_changed = GF_TRUE;
 				}
 			}

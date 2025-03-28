@@ -526,8 +526,8 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 				obu_size += obu_hdr_size;
 				if (obu_type==OBU_METADATA) {
 					gf_bs_seek(bs, obu_start+obu_hdr_size);
-					u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
-					if (metadata_type==OBU_METADATA_TYPE_ITUT_T35) {
+					ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
+					if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
 						//cf issue #2549
 						if (gf_bs_read_u8(bs)==0xB5) {
 							const u8 rpu_hdr[] = {0x00, 0x3B, 0x00, 0x00, 0x08, 0x00, 0x37, 0xCD, 0x08};

@@ -874,7 +874,7 @@ typedef enum
 	GF_PROP_VEC4I		=	13,
 	/*! string property, memory is duplicated when setting the property and managed internally*/
 	GF_PROP_STRING		=	14,
-	/*! string property, memory is NOT duplicated when setting the property but is then managed (and free) internally.
+	/*! string property, memory is NOT duplicated when setting the property but is then managed (and freed) internally.
 	Only used when setting a property, the type then defaults to GF_PROP_STRING
 	DO NOT USE the associate string field upon return from setting the property, it might have been destroyed*/
 	GF_PROP_STRING_NO_COPY=	15,
@@ -1139,6 +1139,7 @@ enum
 	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
 	GF_PROP_PID_AUDIO_SPEED = GF_4CC('A','S','P','D'),
 	GF_PROP_PID_UNFRAMED_LATM = GF_4CC('L','A','T','M'),
+	GF_PROP_PID_UNFRAMED_SRT = GF_4CC('U','S','R','T'),
 	GF_PROP_PID_DELAY = GF_4CC('M','D','L','Y'),
 	GF_PROP_PID_CTS_SHIFT = GF_4CC('M','D','T','S'),
 	GF_PROP_PID_NO_PRIMING = GF_4CC('A','S','K','P'),
@@ -1367,7 +1368,7 @@ enum
 	//internal for low latency HLS abd DASH:
 	//0 or not present: no low latency
 	//1: LL-HLS byte-range mode
-	//2: LL-HLS or DASH SSR seperate parts mode
+	//2: LL-HLS or DASH SSR separate parts mode
 	GF_PROP_PID_LLHAS_MODE = GF_4CC('H','L','H','S'),
 	// part number for LLHLS or DSH-SSR
 	GF_PROP_PCK_LLHAS_FRAG_NUM = GF_4CC('H','L','S','N'),
@@ -1427,6 +1428,9 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
+
+	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -2590,7 +2594,7 @@ struct __gf_filter_register
 
 	/*! for filters having the same match of input capabilities for a PID, the filter with priority at the lowest value will be used
 	\note Scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
-	u8 priority;
+	s16 priority;
 
 	/*! hint class type for doc generation, one of GF_ClassTypeHint */
 	u8 hint_class_type;

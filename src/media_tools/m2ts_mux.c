@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
@@ -1658,6 +1658,29 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	case GF_M2TS_METADATA_ID3_KLVA:
 	case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 		// nothing to do
+		if ((stream->ifce->stream_type==GF_STREAM_TEXT) && (stream->ifce->ra_code==GF_M2TS_RA_STREAM_SRT)) {
+			if (!stream->curr_pck.data_len || !gf_utf8_is_legal(stream->curr_pck.data, stream->curr_pck.data_len))
+				return stream->scheduling_priority;
+
+			char szHeader[100], szDur[100];
+			stream->num_frame++;
+			sprintf(szHeader, "%u\n00:00:00,000 --> ", stream->num_frame);
+			char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt);
+			tx3g_format_time(stream->curr_pck.duration, stream->ifce->timescale, szDur, GF_TRUE);
+			strcat(szHeader, szDur);
+			strcat(szHeader, "\n");
+			u32 hlen = (u32) strlen(szHeader);
+			u8 *data = gf_malloc(stream->curr_pck.data_len+hlen+1);
+			memcpy(data, szHeader, hlen);
+			if (stream->curr_pck.data_len)
+				memcpy(data+hlen, stream->curr_pck.data, stream->curr_pck.data_len);
+			data[stream->curr_pck.data_len + hlen] = 0;
+
+			stream->curr_pck.data_len = stream->curr_pck.data_len+hlen+1;
+			gf_free(stream->curr_pck.data);
+			stream->curr_pck.data = data;
+			stream->discard_data = GF_TRUE;
+		}
 		break;
 	default:
 		if (stream->ifce->codecid==GF_CODECID_DVB_SUBS) {
@@ -2831,8 +2854,12 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			break;
 		default:
 			stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
-			gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
-			gf_m2ts_stream_add_metadata_descriptor(stream);
+			if (stream->ifce->ra_code) {
+				stream->force_reg_desc = GF_TRUE;
+			} else {
+				gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
+				gf_m2ts_stream_add_metadata_descriptor(stream);
+			}
 			break;
 		}
 		break;

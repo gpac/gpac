@@ -40,22 +40,20 @@
 
 #define DASHIN_FILE_EXT "mpd|m3u8|3gm|ism"
 
-enum
-{
+GF_OPT_ENUM (GF_DASHSegmentForwardMode,
 	DFWD_OFF = 0,
 	DFWD_FILE,
 	//all modes below forward frames, not files
 	DFWD_SBOUND,
 	DFWD_SBOUND_MANIFEST,
-};
+);
 
 
-enum
-{
+GF_OPT_ENUM (GF_DASHPlayoutBufferMode,
 	BMIN_NO = 0,
 	BMIN_AUTO,
 	BMIN_MPD,
-};
+);
 
 enum {
 	FLAG_PERIOD_SWITCH = 1,
@@ -65,11 +63,11 @@ enum {
 
 
 
-enum {
-    BURL_STRIP,
+GF_OPT_ENUM (GF_DASHBaseURLControlMode,
+    BURL_STRIP = 0,
     BURL_KEEP,
     BURL_INJECT,
-};
+);
 
 typedef struct
 {
@@ -79,16 +77,18 @@ typedef struct
 	s32 auto_switch;
 	s32 init_timeshift;
 	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, asloop;
-	u32 chain_mode, forward, xas;
+	u32 chain_mode;
+	GF_DASHCrossASMode xas;
+	GF_DASHSegmentForwardMode forward;
 	GF_PropUIntList debug_as;
-	u32 start_with;
-	u32 tile_mode;
+	GF_DASHInitialSelectionMode start_with;
+	GF_DASHTileAdaptationMode tile_mode;
 	char *algo;
 	Bool max_res, abort;
-	u32 use_bmin;
+	GF_DASHPlayoutBufferMode use_bmin;
 	char *query;
 	Bool noxlink, split_as, noseek, groupsel, bsmerge;
-	u32 lowlat;
+	GF_DASHLowLatencyMode lowlat;
 
 	GF_FilterPid *mpd_pid;
 	GF_Filter *filter;
@@ -146,7 +146,7 @@ typedef struct
 	GF_FileIO *fio;
 	GF_FilterPacket *mpd_pck_ref;
 
-	u32 keep_burl; // Option to control <BaseURL>
+	GF_DASHBaseURLControlMode keep_burl; // Option to control <BaseURL>
 	char *relative_url; // Relative string to inject before <BaseURL> if keep_base_url is set to inject
 } GF_DASHDmxCtx;
 
@@ -1009,7 +1009,7 @@ static void dashdmx_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 #endif
 }
 
-void process_base_url(char *manifest_payload, u32 manifest_payload_len,u32 keep_base_url, const char *relative_url)
+void process_base_url(char *manifest_payload, u32 manifest_payload_len, GF_DASHBaseURLControlMode keep_base_url, const char *relative_url)
 {
 	if (keep_base_url == BURL_KEEP) {
 		// Do nothing, keep BaseURL as is
@@ -1807,6 +1807,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 				tsb *= timescale;
 				tsb /= segdur;
 				tsb /= 1000; //tsb given in ms
+			} else if (gf_dash_get_max_segment_duration(ctx->dash)) {
+				tsb /= gf_dash_get_max_segment_duration(ctx->dash);
 			} else {
 				tsb = 0;
 			}
@@ -3266,7 +3268,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		if (group->eos_detected) check_eos = GF_TRUE;
 	}
 
-	if (!ctx->mpd_pid)
+	if (!ctx->mpd_pid || ctx->in_error)
 		return GF_EOS;
 
 	//this needs further testing
@@ -3700,6 +3702,8 @@ static const GF_FilterCapability DASHDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, DASHIN_MIMES),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 	//accept any stream but files, framed

@@ -206,9 +206,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 #ifdef GPAC_HAS_FD
 	if (ctx->fd>=0) {
-		struct stat sb;
-		fstat(ctx->fd, &sb);
-		ctx->file_size = sb.st_size;
+		ctx->file_size = gf_fd_fsize(ctx->fd);
 	} else
 #endif
 		ctx->file_size = gf_fsize(ctx->file);
@@ -699,7 +697,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		char szStatus[1024], *szSrc;
 		szSrc = gf_file_basename(ctx->src);
 
-		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
+		snprintf(szStatus, sizeof(szStatus), "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f)", szSrc, (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
 		gf_filter_update_status(filter, (u32) (ctx->file_pos*10000/ctx->file_size), szStatus);
 	}
 
@@ -776,4 +774,3 @@ const GF_FilterRegister *fin_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_FIN
-

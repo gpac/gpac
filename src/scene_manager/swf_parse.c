@@ -2035,7 +2035,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		bytes[3] = swf_read_int(read, 8);
 		hdr = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
 		size = gf_mp3_frame_size(hdr);
-		if (!size || tot_size >= read->size) {
+		if (!size || size < 4 || tot_size >= read->size) {
 			e = GF_ISOM_INVALID_MEDIA;
 			break;
 		}
@@ -2046,9 +2046,16 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		/*watchout for truncated framesif */
 		if (tot_size + size >= read->size) size = read->size - tot_size;
 
-		swf_read_data(read, frame, size-4);
-		if (gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output)!=4) e = GF_IO_ERR;
-		if (gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output) != size-4) e = GF_IO_ERR;
+		if (size > 4) {
+			u32 size_read = swf_read_data(read, frame, size-4);
+
+			if (size_read == size-4) {
+				if (gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output)!=4) e = GF_IO_ERR;
+				if (gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output) != size-4) e = GF_IO_ERR;
+			}
+			else
+				e = GF_IO_ERR;
+		}
 		if (tot_size + size >= read->size) break;
 		tot_size += size;
 	}

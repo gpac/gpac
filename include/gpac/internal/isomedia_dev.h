@@ -219,6 +219,10 @@ enum
 	GF_ISOM_BOX_TYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
 	GF_ISOM_BOX_TYPE_DOPS = GF_4CC('d', 'O', 'p', 's'),
 
+	/*IAMF*/
+	GF_ISOM_BOX_TYPE_IAMF = GF_4CC('i', 'a', 'm', 'f'),
+	GF_ISOM_BOX_TYPE_IACB = GF_4CC('i', 'a', 'c', 'b'),
+
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
@@ -1792,6 +1796,13 @@ typedef struct
 
 typedef struct
 {
+        GF_ISOM_BOX
+        GF_IAConfig *cfg;
+} GF_IAConfigurationBox;
+
+
+typedef struct
+{
 	GF_ISOM_BOX
 	GF_DTSConfig cfg;
 } GF_DTSSpecificBox;
@@ -1854,7 +1865,10 @@ typedef struct __full_audio_sample_entry
 
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
-	
+
+        //for IAMF
+        GF_IAConfigurationBox *cfg_iamf;
+
 	//for generic audio sample entry
 	//box type as specified in the file (not this box's type!!)
 	u32 EntryType;
@@ -2158,6 +2172,7 @@ typedef struct
 	u64 moof_start;
 	u64 mdat_end;
 	u64 first_dts;
+	u8 is_predicted_offset;
 } GF_TrafMapEntry;
 
 typedef struct
@@ -2167,6 +2182,8 @@ typedef struct
 	//read cache
 	u32 r_cur_sample, r_cur_idx;
 } GF_TrafToSampleMap;
+
+void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end, Bool is_pred);
 
 typedef struct
 {
@@ -4543,6 +4560,7 @@ GF_Err mvex_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
 GF_Err stsd_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
 GF_Err hnti_on_child_box(GF_Box *hnti, GF_Box *a, Bool is_rem);
 GF_Err udta_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err udta_on_child_box_ex(GF_Box *s, GF_Box *a, Bool is_rem, Bool rem_same_type);
 GF_Err edts_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
 GF_Err stdp_box_read(GF_Box *s, GF_BitStream *bs);
 GF_Err stbl_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);

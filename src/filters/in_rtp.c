@@ -494,7 +494,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 				if (gf_rtsp_session_reset(ctx->session->session, 1)<10) {
 #ifdef GPAC_HAS_SSL
 					if (gf_rtsp_session_needs_ssl(ctx->session->session) ) {
-						gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, 0) );
+						gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, GF_TRUE) );
 					}
 #endif
 					e = GF_OK;
@@ -863,7 +863,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 			gf_rtsp_session_needs_ssl(ctx->session->session);
 #endif
 
-		GF_Err e = gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, 0) );
+		GF_Err e = gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, GF_TRUE) );
 		if (e) return e;
 #else
 		return GF_NOT_SUPPORTED;
