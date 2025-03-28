@@ -71,7 +71,7 @@ enum
 	DMX_TUNE_WAIT_SEEK,
 };
 
-GF_OPT_ENUM(UnknowPesMode,
+GF_OPT_ENUM(UnknownPesMode,
 	UPES_MODE_NO = 0,
 	UPES_MODE_INFO,
 	UPES_MODE_ALL
@@ -82,7 +82,7 @@ typedef struct
 	//opts
 	const char *temi_url;
 	Bool dsmcc, seeksrc, sigfrag, dvbtxt;
-	UnknowPesMode upes;
+	UnknownPesMode upes;
 	Double index;
 
 	GF_Filter *filter;
@@ -1844,7 +1844,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfrag), "signal segment boundaries on output packets for DASH or HLS sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvbtxt), "export DVB teletext streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(upes), "keep unknwon PES streams\n"
+	{ OFFS(upes), "keep unknown PES streams\n"
 		"- no: ignored the streams\n"
 		"- info: declare the stream as fake (no data forward), turns on dvbtxt\n"
 		"- full: declare the stream and sends data", GF_PROP_UINT, "no", "no|info|full", GF_FS_ARG_HINT_EXPERT},

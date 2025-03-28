@@ -929,7 +929,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 Gets log  tool name
 \param log_tool tool to check
-\return name, or "unknwon" if not known
+\return name, or "unknown" if not known
 */
 const char *gf_log_tool_name(GF_LOG_Tool log_tool);
 
