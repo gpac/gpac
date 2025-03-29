@@ -447,12 +447,18 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
 		}
 
-		gf_bs_write_int(bs_w, 0x80, 8);
+		//align to byte boundary
 		gf_bs_align(bs_w);
 
-		//write the SEI size
+		//store the payload size
 		u64 pos = gf_bs_get_position(bs_w);
-		u32 sei_size = pos - size_pos - 1;
+		u64 sei_size = pos - size_pos - 1;
+
+		//trailing bits
+		gf_bs_write_int(bs_w, 0x80, 8);
+
+		//write the SEI size
+		pos = gf_bs_get_position(bs_w);
 		gf_bs_seek(bs_w, size_pos);
 		gf_bs_write_int(bs_w, sei_size, 8);
 
