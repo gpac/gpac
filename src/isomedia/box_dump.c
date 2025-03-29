@@ -706,7 +706,12 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	dpiv = (Float) (p->vert_res&0xFFFF);
 	dpiv /= 0xFFFF;
 	dpiv += (p->vert_res>>16); 
-	gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);	
+	if (gf_sys_is_test_mode()) {
+		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
+	} else {
+		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
+	}
+
 	if (strlen((const char*)p->compressor_name) ) {
 		if (isalnum(p->compressor_name[0])) {
 			gf_fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
