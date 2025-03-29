@@ -139,8 +139,8 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	}
 
 	//get the current timecode components
-	u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), pctx->fps.den * gf_filter_pck_get_timescale(pck), pctx->fps.num);
-	u16 n_frames = (cts * pctx->fps.den) % pctx->fps.num;
+	u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), (u64) pctx->fps.den * gf_filter_pck_get_timescale(pck), pctx->fps.num);
+	u64 n_frames = (cts * pctx->fps.den) % pctx->fps.num;
 	n_frames /= pctx->fps.den;
 	cts = cts * pctx->fps.den / pctx->fps.num;
 	u8 seconds = cts % 60;
