@@ -435,7 +435,7 @@ typedef struct
 	u8 hours, minutes, seconds;
 	u16 n_frames;
 	Float max_fps;
-	Bool drop_frame;
+	Bool drop_frame, negative;
 	u32 as_timestamp;
 } GF_TimeCode;
 
@@ -448,6 +448,56 @@ Formats a timecode into a string
 \return the formated input buffer
 */
 const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly less than value2
+ */
+Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly less than or equal to value2
+ */
+Bool gf_timecode_less_or_equal(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly greater than value2
+ */
+Bool gf_timecode_greater(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly greater than or equal to value2
+ */
+Bool gf_timecode_greater_or_equal(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is equal to value2
+ */
+Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2);
 
 /*! @} */
 

@@ -2825,3 +2825,39 @@ const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100])
 	snprintf(szTimecode, 99, "%02d:%02d:%02d%c%0*d", tc->hours, tc->minutes, tc->seconds, tc->drop_frame ? ';' : '.', frame_digits, tc->n_frames);
 	return szTimecode;
 }
+
+#define TIMECODE_COMPARE(_op) \
+	if (value1->hours != value2->hours) return value1->hours _op value2->hours; \
+	if (value1->minutes != value2->minutes) return value1->minutes _op value2->minutes; \
+	if (value1->seconds != value2->seconds) return value1->seconds _op value2->seconds; \
+	return value1->n_frames _op value2->n_frames;
+
+GF_EXPORT
+Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(<)
+}
+
+GF_EXPORT
+Bool gf_timecode_less_or_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(<=)
+}
+
+GF_EXPORT
+Bool gf_timecode_greater(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(>)
+}
+
+GF_EXPORT
+Bool gf_timecode_greater_or_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(>=)
+}
+
+GF_EXPORT
+Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(==)
+}
