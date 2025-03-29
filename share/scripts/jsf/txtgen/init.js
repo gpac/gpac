@@ -35,10 +35,10 @@ filter.set_version("1.0");
 filter.set_author("GPAC Team");
 filter.set_help(
   "This filter generates text streams based on the provided [-src]() file. By default, the filter uses a lorem ipsum text file\n" +
-    "The [-type]() parameter sets the type of text to generate. If set to 'txt', the filter will generate text based on the source file\n" +
+    "The [-type]() parameter sets the text generation mode. If set to 'txt', the filter will generate text based on the source file\n" +
     "If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time\n" +
     "When the [-unit]() is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines\n" +
-    "The [-udur]() parameter sets the unit duration of the text stream. " +
+    "The [-udur]() parameter sets the frame duration of the text stream. " +
     "Total duration of the text stream is set by the [-dur]() parameter. If set to 0/0, the text stream will be infinite\n" +
     "The [-rollup]() parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.\n" +
     "When the number of lines is reached, the filter will remove the first line and continue accumulating text\n" +
@@ -69,7 +69,7 @@ filter.set_arg({
 });
 filter.set_arg({
   name: "udur",
-  desc: "The duration of each text unit",
+  desc: "duration of each text unit",
   type: GF_PROP_FRACTION,
   def: "1/1",
 });
@@ -87,7 +87,7 @@ filter.set_arg({
 });
 filter.set_arg({
   name: "rollup",
-  desc: "enables roll-up mode up to the specified number of lines",
+  desc: "enable roll-up mode up to the specified number of lines",
   type: GF_PROP_UINT,
   def: 0,
 });

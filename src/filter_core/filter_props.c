@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1535,8 +1535,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_TILE_BASE, "TileBase", "Tile base stream", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_TILE_ID, "TileID", "ID of the tile for hvt1/hvt2 PIDs", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_LANGUAGE, "Language", "Language code: ISO639 2/3 character code or RFC 4646", GF_PROP_NAME),
-	DEC_PROP_F( GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service, signled as PID info", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service, signled as PID info", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_STREAM_TYPE, "StreamType", "Media stream type", GF_PROP_UINT),
 	DEC_PROP_F( GF_PROP_PID_SUBTYPE, "StreamSubtype", "Media subtype 4CC (auxiliary, pic sequence, etc ..), matches ISOM handler type", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_ISOM_SUBTYPE, "ISOMSubtype", "ISOM media subtype 4CC (avc1 avc2...)", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM),

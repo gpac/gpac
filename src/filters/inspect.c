@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -44,7 +44,7 @@ typedef struct
 	u8 init_pid_config_done;
 	u64 pck_for_config;
 	u64 prev_dts, prev_cts, init_ts;
-	u32 codec_id;
+	u32 codec_id, service_id;
 	u32 stream_type;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -2016,14 +2016,20 @@ static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_
 #endif
 
 
-static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
+static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat, u32 for_service_id)
 {
 	char szLine[1025];
 	u32 i, count = gf_list_count(ctx->src_pids);
+
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		//already done
 		if (!pctx->tmp) continue;
+
+		//if service ID, dump by service
+		if (for_service_id) {
+			if (for_service_id!=pctx->service_id) continue;
+		}
 		//not our streamtype
 		if (streamtype && (pctx->stream_type!=streamtype)) continue;
 
@@ -2051,6 +2057,16 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 
 static void inspect_dump_stats(GF_InspectCtx *ctx);
 
+static u32 next_service_to_dump(GF_InspectCtx *ctx)
+{
+	u32 i, count = gf_list_count(ctx->src_pids);
+	for (i=0; i<count; i++) {
+		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+		if (!pctx->tmp) continue;
+		return pctx->service_id;
+	}
+	return 0;
+}
 
 static void inspect_finalize(GF_Filter *filter)
 {
@@ -2080,12 +2096,16 @@ static void inspect_finalize(GF_Filter *filter)
 		if (ctx->stats) {
 			inspect_dump_stats(ctx);
 		} else if (!ctx->interleave && ctx->dump) {
-			finalize_dump(ctx, GF_STREAM_AUDIO, concat);
-			finalize_dump(ctx, GF_STREAM_VISUAL, concat);
-			finalize_dump(ctx, GF_STREAM_SCENE, concat);
-			finalize_dump(ctx, GF_STREAM_OD, concat);
-			finalize_dump(ctx, GF_STREAM_TEXT, concat);
-			finalize_dump(ctx, 0, concat);
+			while (1) {
+				u32 for_service_id = next_service_to_dump(ctx);
+				finalize_dump(ctx, GF_STREAM_AUDIO, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_VISUAL, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_SCENE, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_OD, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_TEXT, concat, for_service_id);
+				finalize_dump(ctx, 0, concat, for_service_id);
+				if (!for_service_id) break;
+			}
 		}
 	}
 
@@ -3930,6 +3950,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	const GF_PropertyValue *p, *dsi, *dsi_enh, *sr;
 	Bool is_raw=GF_FALSE;
 	Bool is_protected=GF_FALSE;
+	Bool is_unknown=GF_FALSE;
 	u32 codec_id=0;
 
 	if (!ctx->dump_log && !dump) return;
@@ -3960,16 +3981,20 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			is_protected = GF_TRUE;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 		}
-		if (p)
+		if (p) {
 			inspect_printf(dump, " %s", gf_stream_type_short_name(p->value.uint));
+			if (p->value.uint==GF_STREAM_UNKNOWN) is_unknown = GF_TRUE;
+		}
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	if (p) {
+		GF_PropertyEntry *pe=NULL;
 		inspect_printf(dump, " service %d", p->value.uint);
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " \"%s\"", p->value.string);
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_PROVIDER, &pe);
 		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " (%s)", p->value.string);
+		gf_filter_release_property(pe);
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLED);
@@ -4039,7 +4064,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		inspect_printf(dump, " %d Hz", sr->value.uint);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p) {
-			inspect_printf(dump, " %s chan", gf_audio_fmt_get_layout_name(p->value.longuint));
+			inspect_printf(dump, " %s", gf_audio_fmt_get_layout_name(p->value.longuint));
 		} else {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 			if (p) inspect_printf(dump, " %d chan", p->value.uint);
@@ -4067,6 +4092,13 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " %d/%d pattern", p->value.frac.num, p->value.frac.den);
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROLE);
+	if (p && p->value.string_list.nb_items) {
+		char *urn_sep = strrchr(p->value.string_list.vals[0], ':');
+		if (!urn_sep) urn_sep = p->value.string_list.vals[0];
+		inspect_printf(dump, " role %s", urn_sep);
+	}
+
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 	if (is_raw) {
@@ -4076,8 +4108,14 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	if (codec_id) {
 		inspect_printf(dump, " codec");
-		if (szCodec[0] && strcmp(szCodec, "unkn"))
+		if (szCodec[0] && strcmp(szCodec, "unkn")) {
 			inspect_printf(dump, " %s", szCodec);
+		} else {
+			if ((codec_id & 0xFFFFFF00) == GF_4CC('M','2','T', 0)) {
+				inspect_printf(dump, " m2ts_type 0x%02X", (codec_id&0xFF));
+				codec_id = 0;
+			}
+		}
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -4299,7 +4337,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
 	if (p && p->value.boolean)
-		inspect_printf(dump, " fake");
+		inspect_printf(dump, (is_unknown || is_protected) ? " ignored" : " fake");
 
 	inspect_printf(dump, "\n");
 }
@@ -5267,6 +5305,10 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx->stream_type = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	pctx->codec_id = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
+	pctx->service_id = p ? p->value.uint : 0;
+	if (gf_sys_is_test_mode())
+		pctx->service_id = 0;
 
 	if (!ctx->buffer) {
 		pctx->buffer_done = GF_TRUE;
@@ -5306,7 +5348,12 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			Bool insert = GF_FALSE;
 			PidCtx *actx = gf_list_get(ctx->src_pids, i);
 
-			if (pctx->codec_id < actx->codec_id) {
+			if (pctx->service_id && actx->service_id) {
+				if (pctx->service_id == actx->service_id)
+					insert = GF_TRUE;
+				else
+					continue;
+			} else if (pctx->codec_id < actx->codec_id) {
 				insert = GF_TRUE;
 			}
 			//same codec ID, sort by increasing width/height/samplerate/channels

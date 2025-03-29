@@ -2157,7 +2157,7 @@ restart:
 
 GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 {
-	if (!qs) return GF_OK;
+	if (!qs) return GF_IP_NETWORK_EMPTY;
 	GF_Err e = GF_IP_NETWORK_EMPTY;
 
 	u32 i, count = gf_list_count(qs->connections);

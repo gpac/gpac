@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom ParisTech 2007-2025
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript Compositor extensions
@@ -917,9 +917,13 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 
 	case GJS_OM_PROP_SERVICE_NAME:
 		if (odm->pid) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_SERVICE_NAME);
+			GF_PropertyEntry *pe=NULL;
+			JSValue ret = JS_NULL;
+			const GF_PropertyValue *p = gf_filter_pid_get_info(odm->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 			if (p && p->value.string)
-				return JS_NewString(ctx, p->value.string);
+				ret = JS_NewString(ctx, p->value.string);
+			gf_filter_release_property(pe);
+			return ret;
 		}
 		return JS_NULL;
 
