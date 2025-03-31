@@ -10370,8 +10370,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 			ctx->is_eos = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->opid);
 
-			if (!ctx->period_pck_sent)
+			//Warn if no packets emitted but only on regular modes:
+			//no GHI generation
+			//no manifest-only generation
+			//no init-seg or manifest generation from GHI
+			if (!ctx->period_pck_sent && !ctx->do_index && !ctx->sigfrag
+				&& (!ctx->from_index || (ctx->from_index==IDXMODE_SEG))
+			) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error: EOS found but no data sent\n"));
+			}
 		}
 	}
 	return e;
