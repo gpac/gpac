@@ -3335,7 +3335,7 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 		if ((nb_pck<2) || (ts->pck_number + 2 < nb_pck))
 			e = GF_BAD_PARAM;
 		//accept if we have not too few errors (triggered on error bit and corrupted AF fields)
-		else if (ts->pck_errors*3<ts->pck_number)
+		else if ((nb_pck>3) && ts->pck_errors*3<ts->pck_number)
 			e = GF_OK;
 	}
 	gf_m2ts_demux_del(ts);
