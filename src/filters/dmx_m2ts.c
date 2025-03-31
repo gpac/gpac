@@ -704,7 +704,6 @@ static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 i, count;
-	Bool do_ignore = GF_TRUE;
 	count = gf_list_count(prog->streams);
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
@@ -717,14 +716,6 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 			prog->is_scalable = GF_TRUE;
 			break;
 		}
-	}
-
-	if (do_ignore) {
-		for (i=0; i<count; i++) {
-			GF_M2TS_PES *es = gf_list_get(prog->streams, i);
-			gf_m2ts_set_pes_framing(es, GF_M2TS_PES_FRAMING_SKIP);
-		}
-		return;
 	}
 
 	for (i=0; i<count; i++) {
