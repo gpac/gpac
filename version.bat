@@ -28,7 +28,7 @@ goto done
 echo "not a git dir"
 find /c "-DEV" include\gpac\version.h >nul
 if %errorlevel% equ 1 goto rel_tag
-echo "unknwon tag"
+echo "unknown tag"
 @echo off
 echo #define GPAC_GIT_REVISION "UNKNOWN_REV" > test.h
 goto write_file

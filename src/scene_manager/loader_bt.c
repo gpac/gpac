@@ -1622,7 +1622,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 
 		if ( (!prev_is_insert && !strcmp(str, "AT")) || !strcmp(str, "PROTO") ) {
 			/*only check in current command (but be aware of conditionals..)*/
-			if (gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
+			if (parser->bifs_au && gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
 				break;
 			}
 			continue;
@@ -3436,7 +3436,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (!parser->stream_id) parser->stream_id = parser->base_bifs_id;
 			if (!parser->stream_id || (parser->od_es && (parser->stream_id==parser->od_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
 
-			if (parser->bifs_es->ESID != parser->stream_id) {
+			if (parser->bifs_es && parser->bifs_es->ESID != parser->stream_id) {
 				GF_StreamContext *prev = parser->bifs_es;
 				parser->bifs_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_SCENE, GF_CODECID_BIFS);
 				/*force new AU if stream changed*/
@@ -3445,14 +3445,20 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 					parser->bifs_au = NULL;
 				}
 			}
-			if (force_new_com) {
+			if (parser->bifs_es && force_new_com) {
 				force_new_com = 0;
 				parser->bifs_au = gf_list_last(parser->bifs_es->AUs);
 				parser->au_time = (u32) (parser->bifs_au ? parser->bifs_au->timing : 0) + 1;
 				parser->bifs_au = NULL;
 			}
 
-			if (!parser->bifs_au) parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, parser->au_time, 0, parser->au_is_rap);
+			if (!parser->bifs_au) {
+				if (!parser->bifs_es) {
+					parser->last_error = GF_BAD_PARAM;
+					break;
+				}
+				parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, parser->au_time, 0, parser->au_is_rap);
+			}
 			gf_bt_parse_bifs_command(parser, str, parser->bifs_au->commands);
 			if (is_base_stream) parser->stream_id= 0;
 		}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE output filter
@@ -509,10 +509,9 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	for (i=0; i<gf_list_count(ctx->services); i++) {
 		rserv = gf_list_get(ctx->services, i);
 		if (service_id == rserv->service_id) {
-			if (rserv->manifest_type && manifest_type) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service, not supported - please set `ServiceID` on sources !\n", ctx->log_name));
-				gf_filter_abort(filter);
-				return GF_BAD_PARAM;
+			//throw warning if same manifest type is detected
+			if (rserv->manifest_type && (manifest_type==rserv->manifest_type)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service - if not desired set `ServiceID` on sources !\n", ctx->log_name));
 			}
 			break;
 		}
@@ -558,8 +557,10 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			else ctx->first_port++;
 		}
 
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
+		GF_PropertyEntry *pe=NULL;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		rserv = routeout_create_service(filter, ctx, service_id, p ? p->value.string : NULL, service_ip, port, &e);
+		gf_filter_release_property(pe);
 		if (!rserv) return e;
 		rserv->dash_mode = pid_dash_mode;
 	}
@@ -1281,7 +1282,8 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		gf_dynstrcat(&payload_text, "\r\nContent-Location: usbd.xml\r\n\r\n", NULL);
 
 		rpid = gf_list_get(serv->pids, 0);
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
+		GF_PropertyEntry *pe=NULL;
+		p = gf_filter_pid_get_info(rpid->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		if (p && p->value.string)
 			service_name = p->value.string;
 		else
@@ -1296,6 +1298,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		gf_dynstrcat(&payload_text, "</Name>\n"
 				"  <DeliveryMethod>\n"
 				"   <BroadcastAppService>\n", NULL);
+		gf_filter_release_property(pe);
 
 		for (i=0;i<nb_pids; i++) {
 			rpid = gf_list_get(serv->pids, i);
@@ -2625,7 +2628,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	u32 i, count, len, comp_size;
 	s32 timezone, h, m;
 	u64 diff = ctx->clock - ctx->last_lls_clock;
-	if (diff < ctx->carousel) {
+	if (ctx->last_lls_clock && (diff < ctx->carousel)) {
 		u64 next_sched = ctx->carousel - diff;
 		if (next_sched < ctx->reschedule_us)
 			ctx->reschedule_us = next_sched;
@@ -2696,14 +2699,16 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 
 			rpid = gf_list_get(serv->pids, 0);
 
+			GF_PropertyEntry *pe=NULL;
 			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3ShortServiceName");
 			if (!p)
-				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
+				p = gf_filter_pid_get_info(rpid->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 			service_name = (p && p->value.string) ? p->value.string : "GPAC";
 			len = (u32) strlen(service_name);
 			if (len>7) len = 7;
 			strncpy(szIP, service_name, len);
 			szIP[len] = 0;
+			gf_filter_release_property(pe);
 
 			// ATSC 3.0 major channel number starts at 2. This really should be set rather than using the default.
 			u32 major = 2;

@@ -946,7 +946,7 @@ ctso (sint):                   value to add to CTS offset for tracks using negat
 .br
 norw (bool, default: false):   skip reformatting of samples - should only be used when rewriting fragments
 .br
-keepc (bool, default: false):  keep corrupted samples - should only be used in multicast modes
+keepc (bool, default: true):   keep corrupted samples (for multicast sources only)
 .br
 
 .br
@@ -10578,6 +10578,76 @@ lxy (bool, default: false):    add explicit x and y in json export
 .br
 
 .br
+.SH txtgen
+.LP
+.br
+Description: Text Generator
+.br
+Version: 1.0
+.br
+Author: GPAC Team
+.br
+
+.br
+This filter generates text streams based on the provided .I src file. By default, the filter uses a lorem ipsum text file
+.br
+The .I type parameter sets the text generation mode. If set to 'txt', the filter will generate text based on the source file
+.br
+If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time
+.br
+When the .I unit is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines
+.br
+The .I udur parameter sets the frame duration of the text stream. Total duration of the text stream is set by the .I dur parameter. If set to 0/0, the text stream will be infinite
+.br
+The .I rollup parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.
+.br
+When the number of lines is reached, the filter will remove the first line and continue accumulating text
+.br
+You would use .I rollup in combination with .I unit set to 'l' to create a roll-up subtitle effect. Or set .I unit to 'w' to create a roll-up text effect.
+.br
+The .I lmax parameter sets the maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit
+.br
+When .I rt is set to true, the filter will generate text in real-time. If set to false, the filter will generate text as fast as possible
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+src (str, default: /usr/local/share/gpac/scripts/jsf/txtgen//lipsum.txt): source of text. If not set, the filter will use lorem ipsum text
+.br
+type (enum, default: txt):     type of text to generate
+.br
+* txt: plain text (uses src option)
+.br
+* utc: UTC time
+.br
+* ntp: NTP time
+.br
+
+.br
+unit (enum, default: l):       minimum unit of text from the source
+.br
+* w: word
+.br
+* l: line
+.br
+
+.br
+udur (frac, default: 1/1):     duration of each text unit
+.br
+lmax (uint, default: 32):      maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit
+.br
+dur (frac, default: 0/0):      duration of the text stream
+.br
+rollup (uint, default: 0):     enable roll-up mode up to the specified number of lines
+.br
+lock (bool, default: false):   lock timing to text generation
+.br
+rt (bool, default: true):      real-time mode
+.br
+
+.br
 .SH mediaserver
 .LP
 .br
@@ -13020,6 +13090,14 @@ type (enum, default: av):      output selection
 * v: video only
 .br
 * av: audio and video
+.br
+
+.br
+evte (uint, default: 0):       output event stream
+.br
+* 0: disable
+.br
+* 1+: period (sec) of dummy events
 .br
 
 .br

@@ -719,6 +719,7 @@ typedef struct
 {
 	u32 send_recv;
 	u32 pck_start, pck_end;
+	Bool pck_start_is_loop, pck_end_is_loop;
 	s32 rand_every;
 	u32 nb_pck;
 	u32 port;
@@ -740,6 +741,7 @@ struct __netcap_filter
 	Bool rt;
 	GF_List *rules;
 	u32 nb_rules;
+	u32 nb_reloads;
 
 
 	//target bitstream for read/write
@@ -1365,6 +1367,9 @@ GF_Err gf_netcap_setup(char *rules)
 		s32 patch_val=-1;
 		s32 rand_every = 0;
 		s32 delay = 0;
+		Bool pck_start_is_loop = GF_FALSE;
+		Bool pck_end_is_loop = GF_FALSE;
+
 		char *rule_str;
 		char *sep = strchr(rules, '[');
 		if (!sep) break;
@@ -1390,9 +1395,13 @@ GF_Err gf_netcap_setup(char *rules)
 			case 'p':
 				port = atoi(rule_str+2);
 				break;
+			case 'S':
+				pck_start_is_loop = GF_TRUE;
 			case 's':
 				pck_start = atoi(rule_str+2);
 				break;
+			case 'E':
+				pck_end_is_loop = GF_TRUE;
 			case 'e':
 				pck_end = atoi(rule_str+2);
 				break;
@@ -1416,7 +1425,7 @@ GF_Err gf_netcap_setup(char *rules)
 				break;
 			case 'd':
 				if (!nf->src) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Reoder rule only supported from pcap playback, ignoring\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Reorder rule only supported from pcap playback, ignoring\n"));
 					break;
 				}
 				delay = atoi(rule_str+2);
@@ -1438,6 +1447,8 @@ GF_Err gf_netcap_setup(char *rules)
 		rule->patch_val = patch_val;
 		rule->pck_start = pck_start;
 		rule->pck_end = pck_end>pck_start ? pck_end : 0;
+		rule->pck_start_is_loop = pck_start_is_loop;
+		rule->pck_end_is_loop = pck_end_is_loop;
 		rule->rand_every = rand_every;
 		rule->nb_pck = num_pck;
 		rule->delay = delay;
@@ -1489,12 +1500,20 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 			cur_pck = for_send ? nf->pck_idx_w : nf->pck_idx_r;
 		}
 		//check range
-		if (r->pck_start && (cur_pck < r->pck_start)) continue;
-		if (r->pck_end && (cur_pck >= r->pck_end)) continue;
+		u32 pck_start = r->pck_start;
+		if (r->pck_start && r->pck_start_is_loop)
+			pck_start += nf->nb_reloads;
+		if (!pck_start && r->pck_start_is_loop) continue;
+		u32 pck_end = pck_start ? r->pck_end : 0;
+		if (r->pck_end && r->pck_end_is_loop)
+			pck_end += nf->nb_reloads;
+
+		if (pck_start && (cur_pck < pck_start)) continue;
+		if (pck_end && (cur_pck >= pck_end)) continue;
 
 		//not repeated pattern case
 		if (!r->rand_every) {
-			if ((cur_pck >= r->pck_start) && (r->pck_start + r->nb_pck > cur_pck)) {}
+			if ((cur_pck >= pck_start) && (pck_start + r->nb_pck > cur_pck)) {}
 			else continue;
 		}
 		//repeated pattern case
@@ -1502,8 +1521,8 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 			u32 next_pck_range = ci ? ci->next_pck_range : nf->next_pck_range;
 			u32 next_rand = ci ? ci->next_rand : nf->next_rand;
 			//in range, check if we need to recompute
-			if (next_pck_range < r->pck_start)
-				next_pck_range = r->pck_start;
+			if (next_pck_range < pck_start)
+				next_pck_range = pck_start;
 
 			if (next_pck_range <= cur_pck) {
 				if (r->rand_every>0) {
@@ -1573,6 +1592,7 @@ refetch:
 		nf->read_sock_selected = NULL;
 
 		if (nf->loops && !gf_bs_available(nf->cap_bs)) {
+			nf->nb_reloads++;
 			if (nf->loops>0)
 				nf->loops--;
 
@@ -4491,6 +4511,52 @@ char *gf_net_bump_ip_address(const char *in_ip, u32 increment)
 #include <arpa/inet.h>
 #endif //GPAC_DISABLE_NETWORK
 
+GF_EXPORT
+GF_Err gf_net_reload_netcap()
+{
+#if !defined(GPAC_DISABLE_NETWORK) && !defined(GPAC_DISABLE_NETCAP)
+	u32 i, count = gf_list_count(netcap_filters);
+	for (i=0; i<count; i++) {
+		GF_NetcapFilter *nf = gf_list_get(netcap_filters, i);
+
+		if (nf->cap_bs) gf_bs_del(nf->cap_bs);
+#ifdef GPAC_HAS_FD
+		if (nf->fd>=0) close(nf->fd);
+#endif
+		if (nf->file) gf_fclose(nf->file);
+		gf_list_del(nf->read_socks);
+		nf->read_socks = NULL;
+		nf->nb_reloads++;
+		nf->init_time = 0;
+		nf->is_eos = GF_FALSE;
+		nf->pck_start_offset = 0;
+		nf->pck_len = 0;
+		nf->pck_flags = 0;
+		nf->pck_time = 0;
+		nf->pcap_num_interfaces = 0;
+		nf->pcapng_trail = 0;
+		nf->pcap_trail = 0;
+		nf->pck_idx_r = 0;
+		nf->pck_idx_w = 0;
+		nf->next_pck_range = 0;
+		nf->next_rand = 0;
+		nf->reorder_max_pck = 0;
+		nf->reorder_nb_pck = 0;
+		nf->delay_nb_pck = 0;
+		nf->reorder_seek_pos = 0;
+		nf->reorder_resume_pos = 0;
+		GF_Err e = GF_OK;
+		if (nf->dst) {
+			e = gf_netcap_record(nf);
+		}
+		else if (nf->src) {
+			e = gf_netcap_playback(nf);
+		}
+		if (e) return e;
+	}
+#endif
+	return GF_OK;
+}
 
 GF_EXPORT
 u32 gf_htonl(u32 val)

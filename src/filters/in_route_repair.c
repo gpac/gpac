@@ -215,6 +215,10 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
         u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
+			//first top-level not present in first range to repair, wa cannot patch now
+			if (!pos && repair_start_only) {
+				return;
+			}
 			if (patch_first_range_size) {
 				gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
 				return;
@@ -410,7 +414,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			}
 		}
 	}
-    assert(pos == finfo->total_size);
+    gf_assert(pos == finfo->total_size);
 
 exit:
 	if ((ctx->repair == ROUTEIN_REPAIR_STRICT) && was_partial && !nb_patches) {
@@ -421,9 +425,12 @@ exit:
 	}
 	//remove corrupted flag
 	finfo->partial = GF_LCTO_PARTIAL_NONE;
-	gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
-
-
+	//in gcache mode, we keep ranges in order to identify corrupted ISOBMF samples after repair - whether they are dispatched is governed by keepc option of isobmf demuxer
+	//in other modes (dispatch to PID or write to file) we currently reset the info
+	//WARNING: if removing this, asserts in routein_send_file will need to be removed
+	if (!ctx->gcache) {
+		gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
+	}
 }
 
 static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
@@ -431,16 +438,19 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	u32 i, nb_bytes_ok=0;
 	u32 bytes_overlap=0;
 	RouteRepairRange *prev_br = NULL;
+
+	//unused for now - goal is to adjust range priorities based on upper-chain buffer levels
+#if 0
 	//collect decoder stats, or if not found direct output
 	if (ctx->opid && !rsi->tsio) {
 		GF_FilterPidStatistics stats;
 		GF_Err e = gf_filter_pid_get_statistics(ctx->opid, &stats, GF_STATS_DECODER_SINK);
 		if (e) e = gf_filter_pid_get_statistics(ctx->opid, &stats, GF_STATS_SINK);
 		if (!e) {
-			//log is set as warning for now as this is work in progress
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Repairing segment %s - buffer status: %d ms (%u for rebuffer %u max buffer)\n", finfo->filename, (u32) (stats.buffer_time/1000) , (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Repairing segment %s - buffer status: %d ms (%u for rebuffer %u max buffer)\n", finfo->filename, (u32) (stats.buffer_time/1000) , (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000) ));
 		}
 	}
+#endif
 
 	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
 	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
@@ -550,6 +560,10 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 			gf_mx_v(finfo->blob->mx);
 		}
 		return GF_FALSE;
+	}
+
+	if (!start_only) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s (TSI=%u, TOI=%u) corrupted, patching\n", finfo->filename, finfo->tsi, finfo->toi));
 	}
 
 	if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
@@ -749,7 +763,6 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	rsi->filename = gf_strdup(finfo->filename);
 	rsi->finfo.filename = rsi->filename;
 	rsi->tsio = tsio;
-	rsi->local_repair = fast_repair;
 
 	if (finfo->partial && !fast_repair)
 		route_repair_build_ranges_full(ctx, rsi, finfo);
@@ -836,11 +849,6 @@ restart:
 		//flush
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repair done for object %s (TSI=%u, TOI=%u)%s\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi, rsi->nb_errors ? " - errors remain" : ""));
 
-		if (rsi->evt==GF_ROUTE_EVT_DYN_SEG) {
-			gf_assert(rsi->finfo.nb_frags == 1);
-			gf_assert(rsi->finfo.frags[0].offset == 0);
-			gf_assert(rsi->finfo.frags[0].size == rsi->finfo.blob->size);
-		}
 		routein_on_event_file(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_TRUE, GF_FALSE);
 	}
 
@@ -873,16 +881,20 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 
 	if (rsess->range) {
 		//notify routedmx we have received a byte range
-		if (!rsi->removed) {
-			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
+		if (!rsi->removed && rsess->range->done) {
+			u64 patch_end = rsess->range->br_start + rsess->range->done;
+			if (patch_end > rsess->range->br_end)
+				patch_end = rsess->range->br_end;
+
+			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, patch_end);
 		}
 
 		rsess->server->nb_bytes += rsess->range->done;
 		rsess->server->nb_req_success += (rsess->range->done==rsess->range->br_end-rsess->range->br_start)?1:0;
 
 		gf_list_add(ctx->seg_range_reservoir, rsess->range);
-
-		rsess->server->accept_ranges = RANGE_SUPPORT_YES;
+		if (!res_code && (rsess->server->accept_ranges == RANGE_SUPPORT_PROBE))
+			rsess->server->accept_ranges = RANGE_SUPPORT_YES;
 	}
 
 	rsess->initial_retry = 0;
@@ -927,11 +939,6 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	if (rsi->evt!=GF_ROUTE_EVT_DYN_SEG_FRAG)
 		rsi->finfo.blob->flags &= ~GF_BLOB_IN_TRANSFER;
 	gf_mx_v(rsi->finfo.blob->mx);
-
-	if (rsi->local_repair) {
-		routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
-		rsi->local_repair = GF_FALSE;
-	}
 
 	//make sure we dequeue in order
 	if (rsi->tsio) {
@@ -1010,8 +1017,7 @@ restart:
 		}
 
 		if (!url) {
-			//TODO: do a full patch using the entire file ?
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for %s - Repair abort \n", rsi->finfo.filename));
+			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for %s - Repair abort \n", rsi->finfo.filename));
 			rsi->nb_errors++;
 			repair_session_done(ctx, rsess, e);
 			return;

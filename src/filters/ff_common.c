@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -67,6 +67,7 @@ typedef struct
 	const char *ff_name;
 	u32 gpac_p4cc;
 	u32 gpac_tag;
+	Bool is_info;
 } GF_FF_TAGREG;
 
 static const GF_FF_TAGREG FF2GPAC_Tags[] =
@@ -85,8 +86,8 @@ static const GF_FF_TAGREG FF2GPAC_Tags[] =
 	{"genre", 0, GF_ISOM_ITUNE_GENRE},
 	{"language", GF_PROP_PID_LANGUAGE, 0},
 	{"performer", 0, GF_ISOM_ITUNE_PERFORMER},
-	{"service_name", GF_PROP_PID_SERVICE_NAME, 0},
-	{"service_provider", GF_PROP_PID_SERVICE_PROVIDER, 0},
+	{"service_name", GF_PROP_PID_SERVICE_NAME, 0, GF_TRUE},
+	{"service_provider", GF_PROP_PID_SERVICE_PROVIDER, 0, GF_TRUE},
 	{"title", 0, GF_ISOM_ITUNE_NAME},
 	{"track", 0, GF_ISOM_ITUNE_TRACK},
 	{NULL, 0, 0}
@@ -97,9 +98,14 @@ void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata)
 	const GF_PropertyValue *p;
 	u32 i=0;
 	while (FF2GPAC_Tags[i].ff_name) {
+		GF_PropertyEntry *pe=NULL;
 		p = NULL;
 		if (FF2GPAC_Tags[i].gpac_p4cc) {
-			p = gf_filter_pid_get_property(pid, FF2GPAC_Tags[i].gpac_p4cc);
+			if (FF2GPAC_Tags[i].is_info) {
+				p = gf_filter_pid_get_info(pid, FF2GPAC_Tags[i].gpac_p4cc, &pe);
+			} else {
+				p = gf_filter_pid_get_property(pid, FF2GPAC_Tags[i].gpac_p4cc);
+			}
 		} else {
 			const char *name = gf_itags_get_name(FF2GPAC_Tags[i].gpac_tag);
 			if (name)
@@ -116,6 +122,7 @@ void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata)
 				break;
 			}
 		}
+		gf_filter_release_property(pe);
 		i++;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_HANDLER);
@@ -163,7 +170,11 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
 				continue;
 			}
 			if (FF2GPAC_Tags[i].gpac_p4cc) {
-				gf_filter_pid_set_property(pid, FF2GPAC_Tags[i].gpac_p4cc, &PROP_STRING(ent->value) );
+				if (FF2GPAC_Tags[i].is_info) {
+					gf_filter_pid_set_info(pid, FF2GPAC_Tags[i].gpac_p4cc, &PROP_STRING(ent->value) );
+				} else {
+					gf_filter_pid_set_property(pid, FF2GPAC_Tags[i].gpac_p4cc, &PROP_STRING(ent->value) );
+				}
 			} else {
 				const char *name = gf_itags_get_name(FF2GPAC_Tags[i].gpac_tag);
 				if (name)

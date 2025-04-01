@@ -1523,6 +1523,8 @@ GF_GPACArg GPAC_Args[] = {
  "- p=K: filter packets on port `K` only, if not set the rule applies to all packets\n"
  "- o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
  "- v=K: set patch byte value to `K` (hexa) or negative value for random (default)\n"
+ "- S=K: same as `s` but adds number of capture file reload/loop\n"
+ "- E=K: same as `e` but adds number of capture file reload/loop\n"
  "\nEX -netcap=dst=dump.gpc\n"
  "This will record packets to dump.gpc\n"
  "\nEX -netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp\n"

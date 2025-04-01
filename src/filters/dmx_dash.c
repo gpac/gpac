@@ -3268,7 +3268,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		if (group->eos_detected) check_eos = GF_TRUE;
 	}
 
-	if (!ctx->mpd_pid)
+	if (!ctx->mpd_pid || ctx->in_error)
 		return GF_EOS;
 
 	//this needs further testing
@@ -3702,6 +3702,8 @@ static const GF_FilterCapability DASHDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, DASHIN_MIMES),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 	//accept any stream but files, framed

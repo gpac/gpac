@@ -249,7 +249,7 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 }
 #endif //GPAC_DISABLE_ISOM_FRAGMENTS
 
-void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
+void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end, Bool is_pred)
 {
 	u32 i, count;
 	if (!mov || !mov->moov) return;
@@ -263,8 +263,16 @@ void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 
 		traf_map = trak->Media->information->sampleTable->traf_map;
 		for (j=traf_map->nb_entries; j>0; j--) {
-			if (!traf_map->frag_starts[j-1].mdat_end) {
-				traf_map->frag_starts[j-1].mdat_end = mdat_end;
+			GF_TrafMapEntry *finfo = &traf_map->frag_starts[j-1];
+			if (finfo->is_predicted_offset) {
+				finfo->is_predicted_offset = is_pred ? 1 : 0;
+				if (mdat_end > finfo->mdat_end)
+					finfo->mdat_end = 0;
+			}
+
+			if (!finfo->mdat_end) {
+				finfo->mdat_end = mdat_end;
+				finfo->is_predicted_offset = is_pred ? 1 : 0;
 				break;
 			}
 		}
@@ -357,6 +365,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 	GF_Box *a;
 	u64 top_start, mdat_end=0;
 	GF_Err e = GF_OK;
+	u32 btype;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (mov->single_moof_mode && mov->single_moof_state == 2) {
@@ -385,7 +394,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Parsing a top-level box at position %d\n", mov->current_top_box_start));
 #endif
 
-		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, boxType, bytesMissing, progressive_mode);
+		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, &btype, bytesMissing, progressive_mode);
+		if (boxType) *boxType = btype;
 
 		if (e >= 0) {
 			//safety check, should never happen
@@ -396,6 +406,18 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete MDAT while file is not read-only\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
+
+			if ((btype == GF_ISOM_BOX_TYPE_MDAT)
+				&& mov->signal_frag_bounds
+				&& !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)
+			) {
+				//signal mdat end - note that if multiple mdats are used per fragment and hidden data is present at the end of
+				//N(>1) mdats, the prediction may not be true and we will expose offsets that could be incomplete when
+				//processing non-local files (http, pipes...)
+				u64 mdat_end = gf_bs_get_size(mov->movieFileMap->bs) + *bytesMissing;
+				gf_isom_push_mdat_end(mov, mdat_end, GF_TRUE);
+			}
+
 			if ((mov->openMode == GF_ISOM_OPEN_READ) && !progressive_mode) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete file while reading for dump - aborting parsing\n"));
 				break;
@@ -476,7 +498,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			}
 
             if (mdat_end && mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
-                gf_isom_push_mdat_end(mov, mdat_end);
+                gf_isom_push_mdat_end(mov, mdat_end, GF_FALSE);
                 mdat_end=0;
             }
 			break;
@@ -528,7 +550,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				if (mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
                     mdat_end = gf_bs_get_position(mov->movieFileMap->bs);
                     if (mov->moov) {
-                        gf_isom_push_mdat_end(mov, mdat_end);
+                        gf_isom_push_mdat_end(mov, mdat_end, GF_FALSE);
                         mdat_end=0;
                     }
 				}
@@ -655,7 +677,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				} else {
 					gf_isom_box_del(a);
 				}
-				gf_isom_push_mdat_end(mov, mov->current_top_box_start);
+				gf_isom_push_mdat_end(mov, mov->current_top_box_start, GF_FALSE);
 			} else if (!mov->NextMoofNumber && (a->type==GF_ISOM_BOX_TYPE_SIDX)) {
 				if (mov->main_sidx) gf_isom_box_del( (GF_Box *) mov->main_sidx);
 				mov->main_sidx = (GF_SegmentIndexBox *) a;

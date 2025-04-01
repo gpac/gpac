@@ -24,7 +24,7 @@ else
 fi
 
 echo "*** Compile and archive gpac4ios ***"
-xcodebuild archive -project gpac4ios.xcodeproj -scheme gpac4ios -archivePath gpac4ios.xcarchive
+xcodebuild archive -project gpac4ios.xcodeproj -scheme gpac4ios -archivePath gpac4ios.xcarchive -allowProvisioningUpdates
 if [ $? != 0 ] ; then
 	exit 1
 fi

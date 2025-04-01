@@ -849,6 +849,37 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	}
 }
 
+static void gf_m2ts_process_generic_section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
+{
+	GF_M2TS_GenericSectionInfo sinfo;
+	u32 i, nb_sec, evt_type;
+	if (!ts->on_event) return;
+
+	/*skip if already received*/
+	if (status & GF_M2TS_TABLE_REPEAT)
+		if (!(es->flags & GF_M2TS_ES_SEND_REPEATED_SECTIONS))
+			return;
+
+	evt_type = (status & GF_M2TS_TABLE_UPDATE) ? GF_M2TS_EVT_SECTION_UPDATE : GF_M2TS_EVT_SECTION;
+
+	memset(&sinfo, 0, sizeof(GF_M2TS_GenericSectionInfo));
+	sinfo.stream = (GF_M2TS_ES *) es;
+	sinfo.table_id = table_id;
+	sinfo.version_number = version_number;
+	sinfo.ex_table_id = ex_table_id;
+	sinfo.pts = es->program->last_pcr_value/300;
+	sinfo.num_sections = nb_sec = gf_list_count(sections);
+	for (i=0; i<nb_sec; i++) {
+		GF_M2TS_Section *section = (GF_M2TS_Section *)gf_list_get(sections, i);
+		sinfo.section_idx = i;
+		sinfo.section_data = section->data;
+		sinfo.section_data_len = section->data_size;
+
+		ts->on_event(ts, evt_type, &sinfo);
+	}
+}
+
+
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] NIT table processing (not yet implemented)"));
@@ -1138,13 +1169,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	data = section->data;
 	data_size = section->data_size;
 
-	if (data_size < 6) {
+	if (data_size < 4) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT header data size %d\n", data_size ) );
 		return;
 	}
 
 	pmt->program->pcr_pid = ((data[0] & 0x1f) << 8) | data[1];
 
+	Bool is_scrambled = GF_FALSE;
 	info_length = ((data[2]&0xf)<<8) | data[3];
 	if (info_length + 4 > data_size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PMT first loop, %d bytes avail but first loop size %d\n", data_size, info_length));
@@ -1153,6 +1185,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		/* ...Read Descriptors ... */
 		u32 tag, len;
 		u32 first_loop_len = 0;
+		if (data_size < 6) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT header data size %d\n", data_size ) );
+			return;
+		}
+
 		tag = (u32) data[4];
 		len = (u32) data[5];
 		while (info_length > first_loop_len) {
@@ -1208,6 +1245,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			} else if(tag == GF_M2TS_REGISTRATION_DESCRIPTOR && len >= 4 && data_size>9) {
 				u32 reg_desc_format = GF_4CC(data[6], data[7], data[8], data[9]);
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Registration descriptor with format_identifier \"%s\"\n", gf_4cc_to_str(reg_desc_format)));
+			} else if (tag==GF_M2TS_CA_DESCRIPTOR) {
+				is_scrambled = GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) and others not supported\n", tag));
 			}
@@ -1219,14 +1258,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	data_size -= 4 + info_length;
 	pos = 0;
 
-	/* count de number of program related PMT received */
-	for(i=0; i<gf_list_count(ts->programs); i++) {
-		GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
-		if(prog->pmt_pid == pmt->pid) {
-			break;
-		}
-	}
-
+	
 	nb_hevc_temp = nb_shvc = nb_shvc_temp = nb_mhvc = nb_mhvc_temp = 0;
 	while (pos<data_size) {
 		GF_M2TS_PES *pes = NULL;
@@ -1563,7 +1595,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
 					if (len>=1) {
 						es->component_tag = data[2];
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d\n", es->component_tag, es->program->number));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d PID %d\n", es->component_tag, es->program->number, es->pid));
 					}
 					break;
 				case GF_M2TS_DVB_TELETEXT_DESCRIPTOR:
@@ -1653,6 +1685,39 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						gf_bs_del(hbs);
 					}
 					break;
+				case GF_M2TS_MAX_BITRATE_DESCRIPTOR:
+					break;
+
+				case GF_M2TS_DVB_EXT_DESCRIPTOR:
+					if ((len>4) && (data[2] == 0x06)) {
+						u32 flags = data[3];
+						u32 aflags = (flags >> 2) & 0x1F;
+						if ((flags & 0x80) == 0)
+							pes->audio_flags |= GF_M2TS_AUDIO_SUBSTREAM_COMP;
+
+						switch (aflags) {
+						case 0x01:
+							pes->audio_flags |= GF_M2TS_AUDIO_DESCRIPTION;
+							break;
+						case 0x02:
+							pes->audio_flags |= GF_M2TS_AUDIO_HEARING_IMPAIRED;
+							break;
+						case 0x03:
+							pes->audio_flags |= GF_M2TS_AUDIO_SUB_DESCRIPTION;
+							break;
+						}
+
+						if ((flags & 0x01) && (len>=7)) {
+							pes->lang = ' ';
+							pes->lang <<= 8;
+							pes->lang = data[4];
+							pes->lang <<= 8;
+							pes->lang = data[5];
+							pes->lang <<= 8;
+							pes->lang = data[6];
+						}
+					}
+					break;
 
 				default:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping descriptor (0x%x) not supported\n", tag));
@@ -1669,9 +1734,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			desc_len-=len+2;
 		}
 		if (es && !es->stream_type) {
+#if 0
 			gf_free(es);
 			es = NULL;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Private Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
+#else
+			es->stream_type = stream_type;
+#endif
+
 		}
 		if (!es) continue;
 
@@ -1679,6 +1749,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			//non-compatible base layer dolby vision
 			pes->dv_info[24] = 1;
 		}
+		if (pes) pes->is_protected = is_scrambled;
 
 		if (ts->ess[pid]) {
 			//this is component reuse across programs, overwrite the previously declared stream ...
@@ -2204,8 +2275,12 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 				pes->prev_data_len = remain;
 			}
 		}
-	} else if (pes->pck_data_len) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Bad PES Header, discarding packet (maybe stream is encrypted ?)\n", pes->pid));
+	} else if (pes->pck_data_len < 4) {
+		if (pes->pck_data_len) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d invalid PES header size %u\n", pes->pid, pes->pck_data_len));
+		}
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d invalid PES startcode %02x%02x%02x\n", pes->pid, pes->pck_data[0], pes->pck_data[1], pes->pck_data[2]));
 	}
 
 exit:
@@ -2508,6 +2583,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.sync = data[0];
 	if (hdr.sync != 0x47) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d does not start with sync marker\n", ts->pck_number));
+		ts->pck_number--;
 		return GF_CORRUPTED_DATA;
 	}
 	hdr.error = (data[1] & 0x80) ? 1 : 0;
@@ -2519,7 +2595,8 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.continuity_counter = data[3] & 0xf;
 
 	if (hdr.error) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d has error (PID could be %d)\n", ts->pck_number, hdr.pid));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d has error (PID could be %d)\n", ts->pck_number, hdr.pid));
+		ts->pck_errors++;
 		return GF_CORRUPTED_DATA;
 	}
 //#if DEBUG_TS_PACKET
@@ -2527,8 +2604,15 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 //#endif
 
 	if (hdr.scrambling_ctrl) {
-		//TODO add decyphering
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d is scrambled - not supported\n", ts->pck_number, hdr.pid));
+		if (ts->raw_mode==GF_M2TS_RAW_FORWARD) {
+			GF_M2TS_TSPCK tspck;
+			memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
+			tspck.data = data - pos;
+			ts->on_event(ts, GF_M2TS_EVT_PCK, &tspck);
+			return GF_OK;
+		}
+		//TODO add decyphering API ?
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d is scrambled - not supported\n", ts->pck_number, hdr.pid));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -2542,6 +2626,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		if (af_size>183) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d AF field larger than 183  for AF type 3!\n", ts->pck_number));
 			//error
+			ts->pck_errors++;
 			return GF_CORRUPTED_DATA;
 		}
 		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
@@ -2556,6 +2641,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		af_size = data[4];
 		if (af_size != 183) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d AF size is %d when it must be 183 for AF type 2\n", ts->pck_number, af_size));
+			ts->pck_errors++;
 			return GF_CORRUPTED_DATA;
 		}
 		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
@@ -3006,6 +3092,11 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 				((GF_M2TS_SECTION_ES *)pes)->sec->process_section = NULL;
 			}
 		}
+		else if (mode==GF_M2TS_PES_FRAMING_DEFAULT) {
+			((GF_M2TS_SECTION_ES *)pes)->sec->process_section = gf_m2ts_process_generic_section;
+		} else {
+			((GF_M2TS_SECTION_ES *)pes)->sec->process_section = NULL;
+		}
 		return GF_OK;
 	}
 
@@ -3243,6 +3334,9 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 		//probe success if after align we have nb_pck - 2 and at least 2 packets
 		if ((nb_pck<2) || (ts->pck_number + 2 < nb_pck))
 			e = GF_BAD_PARAM;
+		//accept if we have not too few errors (triggered on error bit and corrupted AF fields)
+		else if ((nb_pck>3) && ts->pck_errors*3<ts->pck_number)
+			e = GF_OK;
 	}
 	gf_m2ts_demux_del(ts);
 

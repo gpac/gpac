@@ -1428,6 +1428,9 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
+
+	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -3662,7 +3665,7 @@ GF_Err gf_filter_pid_set_property_str(GF_FilterPid *PID, const char *name, const
 GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *PID, char *name, const GF_PropertyValue *value);
 
 /*! Sets a new info property on an output PID for built-in property names.
-Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and to not trigger PID reconfiguration.
+Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and do not trigger PID reconfiguration.
 First packet dispatched after calling this function will be marked, and its fetching by the consuming filter will trigger a process_event notification.
 If the consuming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
 

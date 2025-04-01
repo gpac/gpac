@@ -733,6 +733,7 @@ static GF_GPACArg gpac_args[] =
 #endif
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("sloop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing, breaking at first error. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("eloop", NULL, "same as sloop but does not break if error", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds, exit with full session flush", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("runforf", NULL, "run for the given amount of milliseconds, exit with fast session flush", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("runforx", NULL, "run for the given amount of milliseconds and exit with no cleanup", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),

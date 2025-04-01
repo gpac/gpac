@@ -62,6 +62,11 @@ load test-unit filters (used for for unit tests only)
 loop execution of session, creating a session at each loop, mainly used for testing, breaking at first error. If no value is given, loops forever
 .br
 .TP
+.B \-eloop (int)
+.br
+same as sloop but does not break if error
+.br
+.TP
 .B \-runfor (int)
 .br
 run for the given amount of milliseconds, exit with full session flush
@@ -1112,6 +1117,10 @@ set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap a
 * o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset K (0 is first byte, <0 for random)
 .br
 * v=K: set patch byte value to K (hexa) or negative value for random (default)
+.br
+* S=K: same as s but adds number of capture file reload/loop
+.br
+* E=K: same as e but adds number of capture file reload/loop
 .br
 
 .br
@@ -4525,6 +4534,11 @@ Template for DASH-SSR and LLHLS sub-segments
 .B PartialRepair (PCPR,bool, P)
 .br
 indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)
+.br
+.TP
+.B Fake (PFAK,bool,D )
+.br
+Indicate a stream present in the source but not delivered as a PID
 .br
 .SH Pixel formats
 .LP

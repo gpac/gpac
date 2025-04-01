@@ -155,15 +155,15 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 	udta = trak->udta;
 
 	//HNTI
-	e = udta_on_child_box((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE);
+	e = udta_on_child_box_ex((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE, GF_TRUE);
 	if (e) return e;
 
 	/*
 		//NAME
-		e = udta_on_child_box((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME));
+		e = udta_on_child_box_ex((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME), GF_FALSE, GF_TRUE);
 		if (e) return e;
 		//HINF
-		return udta_on_child_box((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF));
+		return udta_on_child_box_ex((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF), GF_FALSE, GF_TRUE);
 	*/
 	return GF_OK;
 }
@@ -838,14 +838,14 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	//find a hnti in the udta
 	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) {
-		e = udta_on_child_box((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE);
+		e = udta_on_child_box_ex((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE, GF_TRUE);
 		if (e) return e;
 		map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	}
 
 	//there should be one and only one hnti
 	if (!gf_list_count(map->boxes) ) {
-		e = udta_on_child_box((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE);
+		e = udta_on_child_box_ex((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE, GF_TRUE);
 		if (e) return e;
 	}
 	else if (gf_list_count(map->boxes) < 1) return GF_ISOM_INVALID_FILE;
