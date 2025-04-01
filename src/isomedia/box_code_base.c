@@ -459,6 +459,8 @@ GF_Err ctts_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
+	if (ptr->nb_entries && !ptr->entries)
+		return GF_ISOM_INVALID_MEDIA;
 	gf_bs_write_u32(bs, ptr->nb_entries);
 	for (i=0; i<ptr->nb_entries; i++ ) {
 		gf_bs_write_u32(bs, ptr->entries[i].sampleCount);
