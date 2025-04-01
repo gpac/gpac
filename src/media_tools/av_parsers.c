@@ -11401,7 +11401,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 min = 0;
-                max = header->nb_frames-1;
+                max = header->nb_frames ? header->nb_frames-1 : 0;
             }
             for (i = min; i < max; i++) {
                 if (data_length <= header->size) {
@@ -11417,12 +11417,12 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 }
                 sum += header->frame_lengths[i];
             }
-            if (!self_delimited) {
+            if (!self_delimited && header->nb_frames) {
                 header->frame_lengths[header->nb_frames-1] = data_length - header->size - header->code3_padding_length - sum;
                 sum += header->frame_lengths[header->nb_frames-1];
             }
         } else {
-            u32 cbr_length;
+            u32 cbr_length=0;
             if (self_delimited) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -11448,7 +11448,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 cbr_length = header->self_delimited_length;
-            } else {
+            } else if (header->nb_frames) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
