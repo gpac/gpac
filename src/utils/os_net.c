@@ -4457,7 +4457,7 @@ char *gf_net_bump_ip_address(const char *in_ip, u32 increment)
 	if (!increment) return gf_strdup(in_ip);
 
 	u32 new_range=0;
-	
+
 	char *alloc_ip=NULL;
 	if (!strnicmp(in_ip, "ff", 2)) {
 		char *add_end = strstr(in_ip, "::");

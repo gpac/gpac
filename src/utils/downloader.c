@@ -222,6 +222,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	case 206: gf_dynstrcat(&rsp_buf, "Partial Content", NULL); break;
 	case 200: gf_dynstrcat(&rsp_buf, "OK", NULL); break;
 	case 201: gf_dynstrcat(&rsp_buf, "Created", NULL); break;
+	case 101: gf_dynstrcat(&rsp_buf, "Switching Protocols", NULL); break;
 	default:
 		gf_dynstrcat(&rsp_buf, "ERROR", NULL); break;
 	}

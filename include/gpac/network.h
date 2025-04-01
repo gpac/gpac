@@ -146,7 +146,7 @@ Bool gf_url_is_relative(const char *url);
 Returns a pointer to the first colon at the end of a filename or URL, if any.
 
 If assign_sep is specified, for example '=', the function will make sure that the colon is after the file extension if found and that '=' is not present between colon and file ext.
-This is used to parse 'a:b.mp4:c' (expected result ':c...' and not ':b...') vs 'a:b=c.mp4' ' (expected result ':b') 
+This is used to parse 'a:b.mp4:c' (expected result ':c...' and not ':b...') vs 'a:b=c.mp4' ' (expected result ':b')
 
 \param URL path or URL to inspect
 \param assign_sep value of assignment operand character. If 0, only checks for colon, otherwise chec that no assign sep or colon is present before file extension, if present
@@ -785,4 +785,3 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode 
 
 
 #endif		/*_GF_NET_H_*/
-

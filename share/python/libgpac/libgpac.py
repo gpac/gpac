@@ -292,10 +292,11 @@ _libgpac.gf_props_get_type_name.restype = c_char_p
 _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
-_libgpac.gf_sys_profiler_log.argtypes = [c_char_p]
-_libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
-_libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
-_libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
+_libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
+_libgpac.rmt_get_peer_address.argtypes = [c_void_p]
+_libgpac.rmt_get_peer_address.restype = c_char_p
+_libgpac.rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
+
 
 _libgpac.gf_4cc_to_str.argtypes = [c_uint]
 _libgpac.gf_4cc_to_str.restype = c_char_p
@@ -403,57 +404,115 @@ def set_args(args):
     _libgpac.gf_sys_set_args(nb_args, cast(_libgpac._args, POINTER(POINTER(c_char))) )
 
 
+
+## enables websocket monitoring server
+# \param value True/False enable or disable server
+# \return
+def enable_rmtws(enable=True):
+    _libgpac.user_init = True
+    _libgpac.gf_sys_enable_rmtws(enable)
+
+
 ##\cond private
-_libgpac.gf_sys_profiler_set_callback.argtypes = [py_object, c_void_p]
-@CFUNCTYPE(c_int, c_void_p, c_char_p)
-def rmt_fun_cbk(_udta, text):
+_libgpac.rmt_client_set_on_del_cbk.argtypes = [c_void_p, py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p)
+def rmt_fun_on_client_close_cbk(_udta):
+    print("rmt_fun_on_client_close_cbk")
     obj = cast(_udta, py_object).value
-    obj.on_rmt_event(text.decode('utf-8'))
+    obj.on_delete()
+    return 0
+##\endcond private
+
+##\cond private
+_libgpac.rmt_client_set_on_data_cbk.argtypes = [c_void_p, py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p, c_void_p, c_uint64, gf_bool)
+def rmt_fun_on_client_data_cbk(_udta, data, size, is_binary):
+    obj = cast(_udta, py_object).value
+    data = string_at(data, size)
+    print(f"raw data: {data}")
+    obj.on_data(data, size, is_binary)
     return 0
 ##\endcond private
 
 
-## set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
-# \param callback_obj object to call back, must have a method `on_rmt_event` taking a single string parameter
-# \return True if success, False if no Remotery support
-def set_rmt_fun(callback_obj):
+## RMTClient object representing a websocket client
+# will be passed as parameter on rmt_ws callbacks
+class RMTClient():
+    def __init__(self, handler, client):
+        self._handler = handler
+        self._client = client
+
+        if hasattr(self._handler, 'on_client_close'):
+            err = _libgpac.rmt_client_set_on_del_cbk(self._client, py_object(self), rmt_fun_on_client_close_cbk)
+            if err<0:
+                return False
+
+        if hasattr(self._handler, 'on_client_data'):
+            err = _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
+            if err<0:
+                return False
+
+    def on_data(self, data, size, is_binary):
+        print(f"rmtclient {self} got data {data} size {size} is_binary {is_binary}")
+        if hasattr(self._handler, 'on_client_data'):
+            if not is_binary:
+                data = data.decode("utf-8")
+            self._handler.on_client_data(self, data)
+
+
+    def on_delete(self):
+        print("on_delete")
+        if hasattr(self._handler, 'on_client_data'):
+            err = _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(), None)
+
+        if hasattr(self._handler, 'on_client_close'):
+            err = _libgpac.rmt_client_set_on_del_cbk(self._client, py_object(), None)
+            self._handler.on_client_close(self)
+
+        self._client = None
+
+    ## get the ip+port of the client (can be used as client id)
+    def peer_address(self):
+        if self._client:
+            return _libgpac.rmt_get_peer_address(self._client).decode("utf-8")
+        pass
+
+    ## send data to the client on the websocket
+    def send(self, data):
+        print(f"client {self._client} sending {data} type {type(data)}")
+        if self._client:
+            is_binary = True
+            if type(data) == str:
+                data = data.encode('utf-8')
+                is_binary = False
+
+            return _libgpac.rmt_client_send_to_ws(self._client, data, len(data), is_binary)
+        pass
+
+##\cond private
+_libgpac.rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p, c_void_p)
+def rmt_fun_on_new_client_cbk(_udta, client):
+    obj = cast(_udta, py_object).value
+
+    rmt_client = RMTClient(obj, client)
+    obj.on_new_client(rmt_client)
+    return 0
+##\endcond private
+
+## set the handler for rmt_ws
+# can define 3 callbacks:
+# - on_new_client(client): called on a new websocket connection
+# - on_client_close(client): when client disconnects
+# - on_client_data(client, data): when client receives data
+def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
-    if hasattr(callback_obj, 'on_rmt_event')==False:
-        raise Exception('No on_rmt_event function on callback')
-    err = _libgpac.gf_sys_profiler_set_callback(py_object(callback_obj), rmt_fun_cbk)
-    if err<0:
-        return False
+    if hasattr(callback_obj, 'on_new_client'):
+        err = _libgpac.rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        if err<0:
+            return False
+
     return True
-
-## send message to profiler (Remotery) - see \ref gf_sys_profiler_log
-# \param text text to send
-# \return True if success, False if no Remotery support
-def rmt_log(text):
-    err = _libgpac.gf_sys_profiler_log(text.encode('utf-8'))
-    if err<0:
-        return False
-    return True
-
-## send message to profiler (Remotery) - see \ref gf_sys_profiler_send
-# \param text text to send
-# \return True if success, False if no Remotery support
-def rmt_send(text):
-    err = _libgpac.gf_sys_profiler_send(text.encode('utf-8'))
-    if err<0:
-        return False
-    return True
-
-## check if profiler (Remotery) sampling is enabled - see \ref gf_sys_profiler_sampling_enabled
-# \return True if enabled, False otherwise
-def rmt_on():
-    return _libgpac.gf_sys_profiler_sampling_enabled()
-
-## enable or disable sampling in profiler (Remotery) - see \ref gf_sys_profiler_enable_sampling
-# \param value enable or disable sampling
-# \return
-def rmt_enable(value):
-    _libgpac.user_init = True
-    _libgpac.gf_sys_profiler_enable_sampling(value)
 
 
 ## sleep for given time in milliseconds

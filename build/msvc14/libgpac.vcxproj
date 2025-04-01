@@ -104,7 +104,7 @@
     <ClInclude Include="..\..\include\gpac\nodes_svg.h" />
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h" />
     <ClInclude Include="..\..\include\gpac\path2d.h" />
-    <ClInclude Include="..\..\include\gpac\Remotery.h" />
+    <ClInclude Include="..\..\include\gpac\rmt_ws.h" />
     <ClInclude Include="..\..\include\gpac\revision.h" />
     <ClInclude Include="..\..\include\gpac\rtp_streamer.h" />
     <ClInclude Include="..\..\include\gpac\scenegraph.h" />
@@ -592,7 +592,7 @@
     <ClCompile Include="..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\src\utils\path2d.c" />
     <ClCompile Include="..\..\src\utils\path2d_stroker.c" />
-    <ClCompile Include="..\..\src\utils\Remotery.c" />
+    <ClCompile Include="..\..\src\utils\rmt_ws.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\sha256.c" />
     <ClCompile Include="..\..\src\utils\md5.c" />

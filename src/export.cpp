@@ -74,11 +74,18 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_set_callback) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_log) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_send) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_enable_sampling) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_sampling_enabled) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_enable_rmtws) )
+
+#pragma comment (linker, EXPORT_SYMBOL(rmt_get_settings) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_set_on_new_client_cbk) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_get_on_new_client_task) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_get_peer_address) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_client_send_to_ws) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_client_set_on_data_cbk) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_client_get_on_data_task) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_client_set_on_del_cbk) )
+#pragma comment (linker, EXPORT_SYMBOL(rmt_client_get_on_del_task) )
+
 
 #ifdef GPAC_ENABLE_COVERAGE
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_cov_mode) )

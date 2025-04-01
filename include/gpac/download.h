@@ -627,6 +627,16 @@ Forces HTTP headers for a given cache entry
 */
 GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry entry, const char *headers);
 
+// /*!
+// Writes buffer to session socket
+
+// \param session the download session
+// \param buffer the raw buffer to write to the socket
+// \param size size of the buffer payload
+// \return error code if any
+// */
+// GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
+
 /*! HTTP methods*/
 enum
 {

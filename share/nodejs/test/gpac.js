@@ -89,6 +89,7 @@ print_usage = () => {
 	console.log();
 	console.log('GPAC NodeJS version ' + gpac.version + ' libgpac ' + gpac.abi_major + ':' + gpac.abi_minor + '.' + gpac.abi_micro);
 	console.log('' + gpac.copyright_cite);
+
 	process.exit(0);
 }
 bad_param = (v) => {
@@ -315,10 +316,66 @@ if (custom_httpout) {
 }
 
 
-gpac.set_rmt_fun( (msg) => {
-	console.log('RMT got message ' + msg);
-	gpac.rmt_send('ACK for ' + msg);
-}); 
+////////// RMT_WS example /////////
+gpac.enable_rmtws(true);
+
+let all_clients = [];
+let cid = 0;
+
+let on_client_data = function(js_client, msg) {
+
+	console.log("All clients:");
+	for (let jc of all_clients) {
+		console.log("Client ", jc.id, jc.gpac.peer_address );
+	}
+
+	console.log("on_client_data on client id ", js_client.id, " len ", msg.length, msg);
+	console.log("this has peer:", js_client.gpac.peer_address);
+
+	js_client.gpac.send("reply from this function on client" + js_client.id + " orig: " + msg);
+}
+
+let remove_client = function(client_id)  {
+	for (let i = 0; i<all_clients.length; i++) {
+		if (all_clients[i].id == client_id) {
+			all_clients.splice(i,1);
+			return
+		}
+	}
+}
+
+gpac.rmt_on_new_client = function(client) {
+	console.log("rmt on client");
+	console.log(typeof(client));
+
+	let js_client = {
+		id: ++cid,
+		gpac: client
+
+	}
+
+	all_clients.push(js_client);
+
+	console.log("New ws client ", js_client.id, " gpac peer ", js_client.gpac.peer_address);
+
+	js_client.gpac.on_data = (msg) =>  {
+		if (typeof(msg) == "string")
+			on_client_data(js_client, msg);
+		else {
+			let buf = new Uint8Array(msg)
+			console.log("Got binary message of type", typeof(msg), "len ", buf.length, "with data:", buf);
+
+		}
+	}
+
+	js_client.gpac.on_close = function() {
+		console.log("ON_CLOSE on client ", js_client.id, " ", client.peer_address);
+		remove_client(js_client.id);
+	}
+
+
+}
+///////////////////
 
 let fs;
 if (run_mode==RUN_SYNC) {
@@ -329,7 +386,7 @@ if (run_mode==RUN_SYNC) {
 
 fs.on_filter_new = function(f)
 {
-	if (is_verbose) 
+	if (is_verbose)
 		console.log('New filter created: ' + f.name);
 	if (dash_algo && (f.name=="dashin")) {
 		try {
@@ -347,7 +404,7 @@ fs.on_filter_new = function(f)
 	}
 }
 fs.on_filter_del = function(f) {
-	if (is_verbose) 
+	if (is_verbose)
 		console.log('Filter deleted: ' + f.name);
 }
 

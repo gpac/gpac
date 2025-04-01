@@ -3189,7 +3189,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
-	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
 	filter->in_process_callback = GF_TRUE;
 
@@ -3201,7 +3200,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 		e = filter->freg->process(filter);
 
 	filter->in_process_callback = GF_FALSE;
-	gf_rmt_end();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done\n", filter->name));
 
 	//flush all pending pid init requests following the call to init

@@ -390,7 +390,7 @@
     <ClInclude Include="..\..\src\filters\dec_nvdec_sdk.h">
       <Filter>filters\nvdec</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\Remotery.h">
+    <ClInclude Include="..\..\include\gpac\rmt_ws.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\quickjs\cutils.h">
@@ -1508,7 +1508,7 @@
     <ClCompile Include="..\..\src\filters\dec_nvdec_sdk.c">
       <Filter>filters\nvdec</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\utils\Remotery.c">
+    <ClCompile Include="..\..\src\utils\rmt_ws.c">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\in_route.c">
