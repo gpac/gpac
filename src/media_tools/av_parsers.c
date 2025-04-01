@@ -11323,6 +11323,10 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 return 0;
             }
             if (data[header->size] == 255) {
+                if (data_length <= header->size+1) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
+                    return 0;
+                }
                 header->code3_padding_length = 254 + data[header->size+1];
                 header->size += 2;
             } else {
