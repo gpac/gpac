@@ -693,7 +693,7 @@ static GF_FilterArgs BSRWArgs[] =
 	///do not change order of the first 3
 	{ OFFS(cprim), "color primaries according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_PRIM, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(ctfc), "color transfer characteristics according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_TFC, "-1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(cmx), "color matrix coeficients according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_MX, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(cmx), "color matrix coefficients according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_MX, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(sar), "aspect ratio to rewrite", GF_PROP_FRACTION, "-1/-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(m4vpl), "set ProfileLevel for MPEG-4 video part two", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fullrange), "video full range flag", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},

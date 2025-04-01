@@ -2582,7 +2582,7 @@ GF_Err gf_isom_set_track_layout_info(GF_ISOFile *isom_file, u32 trackNumber, u32
 /*! sets track matrix
 \param isom_file the target ISO file
 \param trackNumber the target track number
-\param matrix the transformation matrix of the track on the movie canvas; all coeficients are expressed as 16.16 floating points
+\param matrix the transformation matrix of the track on the movie canvas; all coefficients are expressed as 16.16 floating points
 \return error if any
  */
 GF_Err gf_isom_set_track_matrix(GF_ISOFile *isom_file, u32 trackNumber, s32 matrix[9]);
