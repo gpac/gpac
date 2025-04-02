@@ -2237,6 +2237,9 @@ static u32 FILTER_PROP_NAME = 0;
 static u32 FILTER_PROP_ID = 1;
 static u32 FILTER_PROP_IPIDS = 2;
 static u32 FILTER_PROP_OPIDS = 3;
+static u32 FILTER_PROP_STATUS = 4;
+static u32 FILTER_PROP_BYTES_DONE = 5;
+
 
 #define FILTER\
 	GF_Filter *f=NULL;\
@@ -2292,6 +2295,18 @@ napi_value filter_getter(napi_env env, napi_callback_info info)
 	}
 	if (magic == &FILTER_PROP_OPIDS) {
 		NAPI_CALL( napi_create_uint32(env, gf_filter_get_opid_count(f), &ret) );
+		return ret;
+	}
+
+	if (magic == &FILTER_PROP_STATUS) {
+		const char* statusstr = gf_filter_get_status(f);
+		NAPI_CALL( napi_create_string_utf8(env, statusstr, NAPI_AUTO_LENGTH, &ret) );
+		return ret;
+	}
+
+	if (magic == &FILTER_PROP_BYTES_DONE) {
+		u64 bytes_dones = gf_filter_get_bytes_done(f);
+		NAPI_CALL( napi_create_int64(env, bytes_dones, &ret) );
 		return ret;
 	}
 
@@ -3139,6 +3154,29 @@ napi_value filter_get_pid_property(napi_env env, char *pname, GF_FilterPid *pid,
 			prop = gf_filter_pid_get_property_str(pid, pname);
 	}
 	if (!prop) {
+
+		if (!strcmp(pname, "buffer")) {
+			NAPI_CALL( napi_create_int64(env, (s64) gf_filter_pid_query_buffer_duration(pid, GF_FALSE), &res) );
+			return res;
+		}
+		if (!strcmp(pname, "buffer_total")) {
+			NAPI_CALL( napi_create_int64(env, (s64) gf_filter_pid_query_buffer_duration(pid, GF_TRUE), &res) );
+			return res;
+		}
+		if (!strcmp(pname, "name")) {
+			const char *fname = gf_filter_pid_get_name(pid);
+			if (fname) {
+				NAPI_CALL( napi_create_string_utf8(env, fname, NAPI_AUTO_LENGTH, &res) );
+			} else {
+				NAPI_CALL( napi_get_null(env, &res) );
+			}
+			return res;
+		}
+		if (!strcmp(pname, "eos")) {
+			NAPI_CALL( napi_get_boolean(env, gf_filter_pid_is_eos(pid), &res) );
+			return res;
+		}
+
 		napi_value res;
 		NAPI_CALL(napi_get_null(env, &res) );
 		return res;
@@ -3349,6 +3387,13 @@ napi_value filter_all_args(napi_env env, napi_callback_info info)
 
 		NAPI_CALL( napi_create_int32(env, arg->flags, &val) );
 		NAPI_CALL(napi_set_named_property(env, n_arg, "flags", val) );
+
+		char argval[GF_PROP_DUMP_ARG_SIZE];
+		gf_filter_get_arg_str(f, arg->arg_name, argval);
+		NAPI_CALL( napi_create_string_utf8(env, argval, NAPI_AUTO_LENGTH, &val) );
+		NAPI_CALL(napi_set_named_property(env, n_arg, "value", val) );
+
+
 
 		NAPI_CALL(napi_set_element(env, res, a_idx, n_arg) );
 		a_idx++;
@@ -3915,6 +3960,8 @@ napi_value fs_wrap_filter(napi_env env, GF_FilterSession *fs, GF_Filter *filter)
 		{ "ID", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_ID},
 		{ "nb_ipid", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_IPIDS},
 		{ "nb_opid", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_OPIDS},
+		{ "status", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_STATUS},
+		{ "bytes_done", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_BYTES_DONE},
 		{ "remove", 0, filter_remove, 0, 0, 0, napi_enumerable, 0 },
 		{ "update", 0, filter_update, 0, 0, 0, napi_enumerable, 0 },
 		{ "set_source", 0, filter_set_source, 0, 0, 0, napi_enumerable, 0 },

@@ -443,14 +443,11 @@ class RMTClient():
         self._client = client
 
         if hasattr(self._handler, 'on_client_close'):
-            err = _libgpac.rmt_client_set_on_del_cbk(self._client, py_object(self), rmt_fun_on_client_close_cbk)
-            if err<0:
-                return False
+            _libgpac.rmt_client_set_on_del_cbk(self._client, py_object(self), rmt_fun_on_client_close_cbk)
 
         if hasattr(self._handler, 'on_client_data'):
-            err = _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
-            if err<0:
-                return False
+            _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
+
 
     def on_data(self, data, size, is_binary):
         print(f"rmtclient {self} got data {data} size {size} is_binary {is_binary}")
@@ -1953,6 +1950,10 @@ _libgpac.gf_filter_get_id.argtypes = [_gf_filter]
 _libgpac.gf_filter_get_id.restype = c_char_p
 _libgpac.gf_filter_get_ipid_count.argtypes = [_gf_filter]
 _libgpac.gf_filter_get_opid_count.argtypes = [_gf_filter]
+_libgpac.gf_filter_get_status.argtypes = [_gf_filter]
+_libgpac.gf_filter_get_status.restype = c_char_p
+_libgpac.gf_filter_get_bytes_done.argtypes = [_gf_filter]
+
 
 
 
@@ -2021,6 +2022,9 @@ _libgpac.gf_filter_get_info.argtypes = [_gf_filter, c_uint, POINTER(POINTER(_gf_
 _libgpac.gf_filter_get_info.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_get_info_str.argtypes = [_gf_filter, c_char_p, POINTER(POINTER(_gf_property_entry))]
 _libgpac.gf_filter_get_info_str.restype = POINTER(PropertyValue)
+
+_libgpac.gf_filter_get_arg.argtypes = [_gf_filter, c_char_p, POINTER(PropertyValue)]
+_libgpac.gf_filter_get_arg.restype = gf_bool
 
 _libgpac.gf_filter_require_source_id.argtypes = [_gf_filter]
 
@@ -2587,7 +2591,7 @@ def _prop_to_python(pname, prop):
     if ptype==GF_PROP_VEC4I:
         return prop.value.vec4i
     if ptype==GF_PROP_STRING or ptype==GF_PROP_STRING_NO_COPY or ptype==GF_PROP_NAME:
-        return prop.value.string.decode('utf-8')
+        return prop.value.string.decode('utf-8') if prop.value.string else ""
     if ptype==GF_PROP_DATA or ptype==GF_PROP_DATA_NO_COPY or ptype==GF_PROP_CONST_DATA:
         return prop.value.data
     if ptype==GF_PROP_POINTER:
@@ -2649,6 +2653,12 @@ class Filter:
             ##number of output pids for that filter, readonly - see \ref gf_filter_get_opid_count
             #\hideinitializer
             self.nb_opid=0
+            ##status string for some filters, readonly - see \ref gf_filter_get_status
+            #\hideinitializer
+            self.status=0
+            ##bytes processed, readonly - see \ref gf_filter_get_bytes_done
+            #\hideinitializer
+            self.bytes_done=0
 
 
     ## \cond  private
@@ -2740,6 +2750,11 @@ class Filter:
             prop = _libgpac.gf_filter_pid_get_property_str(pid, _name)
         if prop:
             return _prop_to_python(prop_name, prop.contents)
+        else:
+            pypid = FilterPid(self, pid, None)
+            if hasattr(pypid, prop_name):
+                return getattr(pypid, prop_name)
+
         return None
 
     def _pid_prop(self, idx, prop_name, IsInput):
@@ -2883,6 +2898,40 @@ class Filter:
             a_idx+=1
         return res
 
+    ##gets the current value of an argument of the filter - see \ref gf_filter_get_arg
+    #\param arg_name name of argument (as python str)
+    #\return argument value or None if not found
+    def get_arg_value(self, arg_name):
+        prop = PropertyValue()
+        res = _libgpac.gf_filter_get_arg(self._filter, arg_name.encode('utf-8'), byref(prop))
+        if res:
+            return _prop_to_python(arg_name, prop)
+        else:
+            return None
+
+
+    ##gets all arguments of filter with type, description, and value as a python dict
+    #\return array of dictionnary structure containing arguments details
+    def all_args_value(self):
+        res = []
+
+        for arg in self.all_args():
+            arg_name = arg.name.decode('utf-8')
+            argval = self.get_arg_value(arg_name)
+
+            res.append( {
+                'name': arg_name,
+                'type': _libgpac.gf_props_get_type_name(arg.type).decode('utf-8'),
+                'value': str(argval),
+                'description': arg.description.decode('utf-8'),
+                'default': "" if not arg.default else arg.default.decode('utf-8'),
+                'min_max_enum': "" if not arg.min_max_enum else arg.min_max_enum.decode('utf-8'),
+            })
+
+        return res
+
+
+
     ##gets a property info on a filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str
     #\param prop_name property to query
     #\return property value or None if not found
@@ -3004,6 +3053,14 @@ class Filter:
     @property
     def nb_opid(self):
         return _libgpac.gf_filter_get_opid_count(self._filter)
+
+    @property
+    def status(self):
+        return _libgpac.gf_filter_get_status(self._filter).decode('utf-8')
+
+    @property
+    def bytes_done(self):
+        return _libgpac.gf_filter_get_bytes_done(self._filter)
 
     ##\endcond
 
@@ -3687,6 +3744,9 @@ class FilterPid:
             ##True if buffer is full, readonly - see \ref gf_filter_pid_query_buffer_duration
             #\hideinitializer
             self.buffer_full=0
+            ##total level of buffer, readonly - see \ref gf_filter_pid_query_buffer_duration
+            #\hideinitializer
+            self.buffer_total=0
             ##True if no pending packet, readonly - see \ref gf_filter_pid_first_packet_is_empty
             #\hideinitializer
             self.first_empty=0
@@ -4168,6 +4228,12 @@ class FilterPid:
             return True
         else:
             return False
+
+    ##total buffer level - see \ref gf_filter_pid_query_buffer_duration
+    #\return
+    @property
+    def buffer_total(self):
+        return _libgpac.gf_filter_pid_query_buffer_duration(self._pid, True)
 
     ##True if no pending packet - see \ref gf_filter_pid_first_packet_is_empty
     #\return
