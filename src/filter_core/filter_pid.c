@@ -7814,6 +7814,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		//update number of playing/paused pids
 		for (i=0; i<pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			if (!pidi) continue;
 			if (pidi->is_playing) nb_playing++;
 			if (pidi->is_paused) nb_paused++;
 		}
