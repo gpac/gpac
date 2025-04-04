@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1136,30 +1136,6 @@ void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **val
 	}
 }
 
-Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH])
-{
-	char *path;
-#ifdef WIN32
-	path = getenv("HOMEPATH");
-#elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
-	path = (char *) gf_opts_get_key("core", "docs-dir");
-#else
-	path = getenv("HOME");
-#endif
-
-	if (path && path[0]) {
-		strncpy(szPath, path, GF_MAX_PATH-1);
-		szPath[GF_MAX_PATH-1] = 0;
-		u32 len = (u32) strlen(szPath);
-		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
-			szPath[len-1]=0;
-
-		strncat(szPath, url+6, GF_MAX_PATH-strlen(szPath)-1);
-		return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
 GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values)
 {
 	char szPath[GF_MAX_PATH];
@@ -1183,8 +1159,8 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
 			}
 		}
-		else if (!strnicmp(value, "$GDOCS", 6)) {
-			if (filter_solve_gdocs(value, szPath)) {
+		else if (!strnicmp(value, "$GDOCS", 6) || !strnicmp(value, "$GCFG", 5)) {
+			if (gf_sys_solve_path(value, szPath)) {
 				value = szPath;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC user document directory location\n"));
