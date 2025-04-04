@@ -7208,9 +7208,11 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, ">\n");
 
 #ifndef GPAC_DISABLE_INSPECT
-		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
-		scte35_dump_xml(trace, bs);
-		gf_bs_del(bs);
+		if (p->scheme_id_uri && !strcmp(p->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
+			GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
+			scte35_dump_xml(trace, bs);
+			gf_bs_del(bs);
+		}
 #endif
 	} else {
 		gf_fprintf(trace, ">\n");

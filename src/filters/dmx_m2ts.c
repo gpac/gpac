@@ -114,6 +114,7 @@ typedef struct
 	u32 nb_stopped_at_init;
 
 	u32 logflags;
+	u32 forward_for;
 } GF_M2TSDmxCtx;
 
 static void m2tsdmx_prop_free(GF_M2TS_Prop *prop) {
@@ -704,9 +705,11 @@ static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 i, count;
+	 Bool do_ignore = GF_TRUE;
 	count = gf_list_count(prog->streams);
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
+		if (!ctx->forward_for || (es->pid==ctx->forward_for)) do_ignore = GF_FALSE;
 
 		if (es->pid==prog->pmt_pid) continue;
 		if (! (es->flags & GF_M2TS_ES_IS_PES)) continue;
@@ -714,8 +717,14 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 		if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL ) continue;
 		if (es->depends_on_pid ) {
 			prog->is_scalable = GF_TRUE;
-			break;
 		}
+	}
+	if (do_ignore) {
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *es = gf_list_get(prog->streams, i);
+			gf_m2ts_set_pes_framing(es, GF_M2TS_PES_FRAMING_SKIP);
+		}
+		return;
 	}
 
 	for (i=0; i<count; i++) {
@@ -1501,6 +1510,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 			gf_filter_pid_send_event(pid, &evt);
 		}
+	}
+	if (!ctx->ipid) {
+		p = gf_filter_pid_get_property_str(pid, "filter_pid");
+		if (p) ctx->forward_for = p->value.uint;
 	}
 	ctx->ipid = pid;
 	return GF_OK;

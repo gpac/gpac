@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -3328,8 +3328,6 @@ static GF_Filter *locate_alias_sink(GF_Filter *filter, const char *url, const ch
 	return NULL;
 }
 
-Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH]);
-
 GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
@@ -3390,8 +3388,8 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		char szSolvedPath[GF_MAX_PATH];
 		Bool is_local;
 
-		if (!strncmp(url, "$GDOCS", 6)) {
-			if (filter_solve_gdocs(url, szSolvedPath))
+		if (!strncmp(url, "$GDOCS", 6) || !strncmp(url, "$GCFG", 5)) {
+			if (gf_sys_solve_path(url, szSolvedPath))
 				url = szSolvedPath;
 		}
 		/*used by GUIs scripts to skip URL concatenation*/

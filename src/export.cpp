@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -86,6 +86,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(rmt_client_set_on_del_cbk) )
 #pragma comment (linker, EXPORT_SYMBOL(rmt_client_get_on_del_task) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_solve_path) )
 
 #ifdef GPAC_ENABLE_COVERAGE
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_cov_mode) )

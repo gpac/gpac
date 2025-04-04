@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -479,6 +479,7 @@ const char *gpac_doc =
 "  - application document directory for iOS\n"
 "  - `EXTERNAL_STORAGE` environment variable if present or `/sdcard` otherwise for Android\n"
 "  - user home directory for other platforms\n"
+"- $GCFG: replaced by system path to folder containing GPAC config\n"
 "- $GLANG: replaced by the global config language option [-lang](CORE)\n"
 "- $GUA: replaced by the global config user agent option [-user-agent](CORE)\n"
 "- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created.\n"

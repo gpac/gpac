@@ -65,6 +65,7 @@ typedef struct
 	Bool is_adobe_protected;
 	Bool is_cenc_protected;
 	Bool aborted;
+	Bool is_fake;
 
 	GF_Fraction tmcd_rate;
 	u32 tmcd_flags;
@@ -124,7 +125,7 @@ GF_OPT_ENUM (GF_InspectSampleAnalyzeMode,
 
 typedef struct
 {
-	u32 mode;
+	u32 mode, timeout;
 	Bool interleave;
 	Bool dump_data;
 	Bool deep;
@@ -148,6 +149,9 @@ typedef struct
 	Bool is_prober, probe_done, hdr_done, dump_pck;
 	Bool args_updated;
 	Bool has_seen_eos;
+
+	u32 last_config_time;
+
 } GF_InspectCtx;
 
 static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name);
@@ -576,6 +580,55 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	}
 }
 
+static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
+{
+	/* original timecode unregistered SEI UUID */
+	bin128 tmcd_uuid = {
+		0x42, 0x45, 0x3a, 0x42, 0x3b, 0xaa, 0xa6, 0xf1,
+		0xbb, 0x3b, 0x13, 0x42, 0x0e, 0x08, 0xc7, 0x62
+	};
+
+	//uuid
+	u32 i;
+	bin128 uuid = {0};
+	inspect_printf(dump, " uuid=\"0x");
+	for (i=0; i<16; i++) {
+		uuid[i] = gf_bs_read_u8(bs);
+		inspect_printf(dump, "%02x", uuid[i]);
+	}
+	inspect_printf(dump, "\"");
+
+	//payload
+	u32 nb_read = 0;
+	u8 *payload = gf_malloc(sei_size - 16);
+	if (!payload) return;
+	inspect_printf(dump, " payload=\"0x");
+	for (i=0; i<sei_size - 16 && gf_bs_available(bs); i++) {
+		payload[i] = gf_bs_read_u8(bs);
+		inspect_printf(dump, "%02x", payload[i]);
+		nb_read++;
+	}
+	inspect_printf(dump, "\"");
+
+	if (nb_read < sei_size - 16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in unregistered SEI\n"));
+		goto finish;
+	}
+
+	if (!memcmp(uuid, tmcd_uuid, 16)) {
+		if (nb_read < 4) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in timecode unregistered SEI\n"));
+			goto finish;
+		}
+		inspect_printf(dump, " timecode=\"");
+		inspect_printf(dump, "%02u:%02u:%02u:%02u", payload[3], payload[2], payload[1], payload[0]);
+		inspect_printf(dump, "\"");
+	}
+
+finish:
+	gf_free(payload);
+}
+
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
 
@@ -792,8 +845,9 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 			dump_time_code_hevc(dump, bs);
 		} else if (sei_type == 4) {
 			dump_t35(dump, bs, sei_size);
-		}
-		else if (avc && (sei_type==6)) {
+		} else if (sei_type == 5) {
+			dump_unregistered_sei(dump, bs, sei_size);
+		} else if (avc && (sei_type==6)) {
 			u32 frame_cnt = gf_bs_read_ue(bs);
 			inspect_printf(dump, " frame_count=\"%u\"", frame_cnt);
 		}
@@ -4335,8 +4389,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
 	}
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
-	if (p && p->value.boolean)
+	if (pctx->is_fake)
 		inspect_printf(dump, (is_unknown || is_protected) ? " ignored" : " fake");
 
 	inspect_printf(dump, "\n");
@@ -5163,11 +5216,16 @@ static GF_Err inspect_process(GF_Filter *filter)
 		GF_FilterPacket *pck = NULL;
 		pck = pctx->src_pid ? gf_filter_pid_get_packet(pctx->src_pid) : NULL;
 
-		if (pctx->init_pid_config_done)
+		if (pctx->init_pid_config_done) {
 			nb_hdr_done++;
+		} else if (!ctx->deep && !ctx->allp && !ctx->fmt
+			&& (gf_sys_clock() - ctx->last_config_time >= ctx->timeout+ctx->buffer)
+		) {
+			nb_hdr_done++;
+		}
 
 		if (!pck) {
-			if (pctx->src_pid && !gf_filter_pid_is_eos(pctx->src_pid))
+			if (!pctx->is_fake && pctx->src_pid && !gf_filter_pid_is_eos(pctx->src_pid))
 				continue;
 			else
 				ctx->has_seen_eos = GF_TRUE;
@@ -5281,6 +5339,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->src_pids) ctx->src_pids = gf_list_new();
+	ctx->last_config_time = gf_sys_clock();
 
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
@@ -5427,6 +5486,9 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	if (ctx->pcr)
 		gf_filter_pid_set_clock_mode(pid, GF_TRUE);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	pctx->is_fake = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->deep)
 		gf_filter_post_process_task(filter);
@@ -5616,6 +5678,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(stats), "compute statistics for PIDs", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in ms when doing simple inspection in case no packets are received on some PIDs", GF_PROP_UINT, "5000", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"

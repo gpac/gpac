@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -2351,4 +2351,42 @@ const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)
                data = next+1;
        }
        return NULL;
+}
+
+GF_EXPORT
+Bool gf_sys_solve_path(const char *url, char szPath[GF_MAX_PATH])
+{
+	char *path;
+	u32 radlen=6;
+	Bool rem_name=GF_FALSE;
+	if (!strncmp(url, "$GCFG", 5)) {
+		path = (char *)gf_opts_get_filename();
+		rem_name = GF_TRUE;
+		radlen=5;
+	} else {
+#ifdef WIN32
+		path = getenv("HOMEPATH");
+#elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
+		path = (char *) gf_opts_get_key("core", "docs-dir");
+#else
+		path = getenv("HOME");
+#endif
+	}
+
+	if (path && path[0]) {
+		strncpy(szPath, path, GF_MAX_PATH-1);
+		szPath[GF_MAX_PATH-1] = 0;
+		if (rem_name) {
+			char *sep = strrchr(szPath, '/');
+			if (!sep) sep = strrchr(szPath, '\\');
+			if (sep) sep[0] = 0;
+		}
+		u32 len = (u32) strlen(szPath);
+		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
+			szPath[len-1]=0;
+
+		strncat(szPath, url+radlen, GF_MAX_PATH-strlen(szPath)-1);
+		return GF_TRUE;
+	}
+	return GF_FALSE;
 }
