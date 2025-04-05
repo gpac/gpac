@@ -5581,6 +5581,11 @@ GF_Err inspect_initialize(GF_Filter *filter)
 		ctx->mode = INSPECT_MODE_REFRAME;
 	}
 
+	//force reframer if working with "tmcd"
+	if (ctx->fmt && strstr(ctx->fmt, "$tmcd$") && (ctx->mode!=INSPECT_MODE_RAW)) {
+		ctx->mode = INSPECT_MODE_REFRAME;
+	}
+
 	switch (ctx->mode) {
 	case INSPECT_MODE_RAW:
 		gf_filter_override_caps(filter, InspecterRawCaps,  sizeof(InspecterRawCaps)/sizeof(GF_FilterCapability) );
