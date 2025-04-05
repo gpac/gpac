@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -9364,7 +9364,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps_ext_or_max_sub_layers_minus1 = 0;
 	if (layer_id == 0)
 		max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1");
-	else if (hevc && hevc->vps) {
+	else if (hevc && hevc->vps[vps_id].state) {
 		sps_ext_or_max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "sps_ext_or_max_sub_layers_minus1");
 		max_sub_layers_minus1 = sps_ext_or_max_sub_layers_minus1 == 7 ? hevc->vps[vps_id].max_sub_layers - 1 : sps_ext_or_max_sub_layers_minus1;
 	}
@@ -11384,6 +11384,10 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 return 0;
             }
             if (data[header->size] == 255) {
+                if (data_length <= header->size+1) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
+                    return 0;
+                }
                 header->code3_padding_length = 254 + data[header->size+1];
                 header->size += 2;
             } else {
@@ -11462,7 +11466,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 min = 0;
-                max = header->nb_frames-1;
+                max = header->nb_frames ? header->nb_frames-1 : 0;
             }
             for (i = min; i < max; i++) {
                 if (data_length <= header->size) {
@@ -11478,12 +11482,12 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 }
                 sum += header->frame_lengths[i];
             }
-            if (!self_delimited) {
+            if (!self_delimited && header->nb_frames) {
                 header->frame_lengths[header->nb_frames-1] = data_length - header->size - header->code3_padding_length - sum;
                 sum += header->frame_lengths[header->nb_frames-1];
             }
         } else {
-            u32 cbr_length;
+            u32 cbr_length=0;
             if (self_delimited) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -11509,7 +11513,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 cbr_length = header->self_delimited_length;
-            } else {
+            } else if (header->nb_frames) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11571,7 +11575,7 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 	u32 i;
 	s32 sync_pos=-1;
 
-	if (!ptr || !size) return 0;
+	if (!ptr || !size || size<=3) return 0;
 
 	for (i=0; i<size-3; i++) {
 		if ((ptr[i]==0xC0) && (ptr[i+1]== 0x01) && (ptr[i+2]==0xA5)) {

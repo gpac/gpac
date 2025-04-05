@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -706,6 +706,19 @@ u32 gf_sys_is_quiet();
 \return the list of features.
 */
 const char *gf_sys_features(Bool disabled);
+
+/*! solves path starting with replacement keywords:
+ - $GDOCS: replaced by path to user document , OS-specific
+	 - application document directory for iOS
+	 - EXTERNAL_STORAGE environment variable if present or '/sdcard'  otherwise for Android
+	 - user home directory for other platforms
+ - $GCFG: replaced by path to GPAC config directory for the current profile
+
+\param tpl_path url to translate, must start with $GDOCS or $GCFG
+\param szPath path to store the result
+\return GF_TRUE if success, GF_FALSE otherwise.
+*/
+Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 
 /*! callback function for remotery profiler
  \param udta user data passed by \ref gf_sys_profiler_set_callback

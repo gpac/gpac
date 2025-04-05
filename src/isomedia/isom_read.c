@@ -2751,7 +2751,7 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 	while ((map = (GF_UserDataMap*)gf_list_enum(udta->recordList, &i))) {
 		count = gf_list_count(map->boxes);
 
-		if ((map->boxType == GF_ISOM_BOX_TYPE_UUID) && !memcmp(map->uuid, UUID, 16)) return count;
+		if ((map->boxType == GF_ISOM_BOX_TYPE_UUID) && UUID && !memcmp(map->uuid, UUID, 16)) return count;
 		else if (map->boxType == UserDataType) return count;
 	}
 	return 0;
