@@ -234,6 +234,7 @@ typedef struct
 	u16 n_frames;
 	Float max_fps;
 	u8 counting_type;
+	Bool clock_timestamp_flag;
 } AVCSeiPicTimingTimecode;
 
 typedef struct
@@ -285,6 +286,7 @@ typedef struct
 {
 	Bool is_whitelist;
 	GF_PropUIntList seis;
+	s32 extra_filter; //- removes the sei, + keeps the sei
 } SEI_Filter;
 
 
@@ -327,6 +329,8 @@ typedef struct
 	Bool remove_video_info;
 	//if set timing info is removed
 	Bool remove_vui_timing_info;
+	//if set pic_struct is enabled
+	Bool enable_pic_struct;
 	//new fullrange, -1 to use info from bitstream
 	s32 fullrange;
 	//new vidformat flag, -1 to use info from bitstream
