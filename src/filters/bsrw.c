@@ -54,6 +54,10 @@ struct _bsrw_pid_ctx
 
 	u32 nalu_size_length;
 
+	u64 drop_change_cts;
+	u32 tc_drop_count;
+	Bool tc_dropped;
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_VUIInfo vui;
 	AVCState *avc;
@@ -73,6 +77,7 @@ struct _bsrw_ctx
 	Bool reconfigure;
 
 	Bool tcsc_inferred;
+	Bool tcdf;
 	char *tcxs, *tcxe, *tcsc;
 	GF_TimeCode tcxs_val, tcxe_val, tcsc_val;
 	BsrwTimecodeMode tc;
@@ -180,11 +185,13 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		}
 	}
 
+	//reset the output timecode
+	memset(tc_out, 0, sizeof(GF_TimeCode));
+
 	//apply the timecode manipulation
 	switch (ctx->tc)
 	{
 	case BSRW_TC_REMOVE:
-		memset(tc_out, 0, sizeof(GF_TimeCode));
 		break;
 	case BSRW_TC_INSERT:
 		if (!ctx->tcsc_inferred) {
@@ -251,6 +258,44 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Unsupported timecode mode\n"));
 		return GF_FALSE;
+	}
+
+	if (ctx->tcdf) {
+		Float fps = (Float) pctx->fps.num / pctx->fps.den;
+		u32 max_fps = gf_ceil(fps);
+		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
+
+		//apply existing drop frame rollover
+		if (pctx->tc_drop_count) {
+			s32 drop_adj = gf_filter_pck_get_cts(pck) < pctx->drop_change_cts ? -frame_drift : 0;
+			tc_out->n_frames += pctx->tc_drop_count + drop_adj;
+			tc_out->seconds += tc_out->n_frames / max_fps;
+			tc_out->n_frames %= max_fps;
+			tc_out->minutes += tc_out->seconds / 60;
+			tc_out->seconds %= 60;
+			tc_out->hours += tc_out->minutes / 60;
+			tc_out->minutes %= 60;
+			tc_out->hours %= 24;
+			tc_out->as_timestamp = (tc_out->hours * 3600 + tc_out->minutes * 60 + tc_out->seconds) * 1000 + tc_out->n_frames;
+		}
+
+		if (tc_out->minutes % 10 && tc_out->seconds == 0) {
+			if (frame_drift > 0 && !pctx->tc_dropped) {
+				//rewind to 0th frame
+				pctx->drop_change_cts = gf_filter_pck_get_cts(pck);
+				pctx->drop_change_cts -= tc_out->n_frames * gf_filter_pck_get_duration(pck);
+
+				//apply the drop frame adjustment
+				tc_out->n_frames += frame_drift;
+				pctx->tc_drop_count += frame_drift;
+				pctx->tc_dropped = GF_TRUE;
+			}
+			if (tc_out->n_frames == frame_drift)
+				tc_out->drop_frame = GF_TRUE;
+		} else if (tc_out->seconds == 2) {
+			//clear the flag when safe
+			pctx->tc_dropped = GF_FALSE;
+		}
 	}
 
 	return GF_TRUE;
@@ -424,10 +469,10 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*ct_type*/, 2);
 			gf_bs_write_int(bs_w, 0/*nuit_field_based_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, ctx->tcdf ? 4 : 0/*counting_type*/, 5);
 			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
 			gf_bs_write_int(bs_w, tc_out.n_frames, 8);
 			gf_bs_write_int(bs_w, tc_out.seconds, 6);
 			gf_bs_write_int(bs_w, tc_out.minutes, 6);
@@ -436,10 +481,10 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
 			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, ctx->tcdf ? 4 : 0/*counting_type*/, 5);
 			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
-			gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
 			gf_bs_write_int(bs_w, tc_out.n_frames, 9);
 			gf_bs_write_int(bs_w, tc_out.seconds, 6);
 			gf_bs_write_int(bs_w, tc_out.minutes, 6);
@@ -721,10 +766,10 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		gf_bs_write_u8(bs_w, 0x2a);
 		gf_av1_leb128_write(bs_w, 6/*8+39 bits*/);
 		gf_av1_leb128_write(bs_w, OBU_METADATA_TYPE_TIMECODE);
-		gf_bs_write_int(bs_w, 0/*counting_type*/, 5);
+		gf_bs_write_int(bs_w, ctx->tcdf ? 4 : 0/*counting_type*/, 5);
 		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
-		gf_bs_write_int(bs_w, 0/*cnt_dropped_flag*/, 1);
+		gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
 		gf_bs_write_int(bs_w, tc_out.n_frames, 9);
 		gf_bs_write_int(bs_w, tc_out.seconds, 6);
 		gf_bs_write_int(bs_w, tc_out.minutes, 6);
@@ -1176,6 +1221,16 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		pctx->fps.den = 1;
 	}
 
+	if (ctx->tcdf) {
+		Float fps = (Float) pctx->fps.num / pctx->fps.den;
+		u32 max_fps = gf_ceil(fps);
+		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
+		if (!frame_drift) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Requested to use NTSC drop-frame timecode, but fps does not impose any drift. Disabling drop-frame timecode\n"));
+			ctx->tcdf = GF_FALSE;
+		}
+	}
+
 	gf_filter_pid_copy_properties(pctx->opid, pctx->ipid);
 	pctx->codec_id = codec_id;
 	pctx->reconfigure = GF_FALSE;
@@ -1315,6 +1370,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(tcxs), "timecode manipulation start", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(tcxe), "timecode manipulation end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tcdf), "use NTSC drop-frame counting for timecodes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(tcsc), "timecode constant for use with shift/constant modes", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(tc), "timecode manipulation mode\n"
 	"- none: do not change anything\n"
