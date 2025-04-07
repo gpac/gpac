@@ -89,6 +89,7 @@ typedef struct
 
 	u64 ts_at_range_start_plus_one;
 	u64 ts_at_range_end;
+	u64 ts_tc_offset;
 
 	GF_List *pck_queue;
 	//0: not computed, 1: computed and valid TS, 2: end of stream on pid
@@ -1037,6 +1038,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				ts += st->tk_delay;
 				ts += st->ts_at_range_end;
 				ts -= st->ts_at_range_start_plus_one - 1;
+				ts += st->ts_tc_offset;
 
 				if (ts<0) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while splitting, something went wrong during range estimation, forcing to 0\n"));
@@ -1059,6 +1061,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				ts += st->tk_delay;
 				ts -= st->ts_at_range_start_plus_one - 1;
 				ts += st->ts_at_range_end;
+				ts += st->ts_tc_offset;
 				gf_filter_pck_set_dts(new_pck, (u64) ts);
 			}
 		}
@@ -1756,7 +1759,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 				//try to get the timecode
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
-				if (!pck) continue;
+				if (!pck) return GF_OK;
 				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 				if (!p || !p->value.data.ptr || !p->value.data.size) continue;
 				GF_TimeCode *pck_tc = (GF_TimeCode*) p->value.data.ptr;
@@ -1797,9 +1800,13 @@ GF_Err reframer_process(GF_Filter *filter)
 						//start from the first frame since timecode is out-of-bounds
 						frac->num = ts;
 						frac->den = pck_ts;
+						if (tc == ctx->cur_start_tc)
+							st->ts_tc_offset = cur_ts - target_ts;
 					} else {
 						frac->num = ts + (target_ts - cur_ts);
 						frac->den = pck_ts;
+						if (tc == ctx->cur_start_tc)
+							st->ts_tc_offset = 0;
 					}
 
 					*valid = GF_TRUE;
