@@ -518,6 +518,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 				}
 			}
 			if (pck) {
+				gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 				gf_filter_pck_truncate(pck, size);
 			} else {
 				u8 *output;
