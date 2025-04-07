@@ -2661,7 +2661,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	}
 
 	switch (p4cc) {
-	case GF_PROP_PCK_TIMECODES:
+	case GF_PROP_PCK_TIMECODE:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
@@ -3129,17 +3129,11 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 			inspect_printf(dump, "%s", gf_filter_get_name(filter) );
 		}
 		else if (!strcmp(key, "tmcd")) {
-			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (prop && prop->value.data.size) {
+				char tcBuf[100];
 				GF_TimeCode *tc = (GF_TimeCode *) prop->value.data.ptr;
-				u32 index = 0;
-				u32 num_timecodes = prop->value.data.size / sizeof(GF_TimeCode);
-				while (index < num_timecodes) {
-					if (index) inspect_printf(dump, ",");
-					char tcBuf[100];
-					inspect_printf(dump, "%s", gf_format_timecode(&tc[index], tcBuf));
-					index++;
-				}
+				inspect_printf(dump, "%s", gf_format_timecode(tc, tcBuf));
 			} else {
 				inspect_printf(dump, "N/A");
 			}

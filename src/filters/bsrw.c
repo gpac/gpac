@@ -583,9 +583,9 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 	if (tc_change) {
 		if (ctx->tc == BSRW_TC_REMOVE)
-			gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, NULL);
+			gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, NULL);
 		else
-			gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, &PROP_DATA((u8*)&tc_out, sizeof(GF_TimeCode)));
+			gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, &PROP_DATA((u8*)&tc_out, sizeof(GF_TimeCode)));
 	}
 
 	//copy the new data
@@ -835,9 +835,9 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 	gf_filter_pck_merge_properties(pck, dst);
 
 	if (ctx->tc == BSRW_TC_REMOVE)
-		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, NULL);
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, NULL);
 	else
-		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODES, &PROP_DATA((u8*)&tc_out, sizeof(GF_TimeCode)));
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, &PROP_DATA((u8*)&tc_out, sizeof(GF_TimeCode)));
 
 	//copy the new data
 	gf_bs_seek(bs_w, 0);

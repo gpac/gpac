@@ -2456,43 +2456,26 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 		}
 
 		if (ctx->hevc_state || ctx->avc_state) {
-			u8 num_clock_ts = 0;
-			AVCSeiPicTimingTimecode *tcs = NULL;
+			AVCSeiPicTimingTimecode *tcs = 
+				ctx->hevc_state 
+					? ctx->hevc_state->sei.pic_timing.timecodes 
+					: ctx->avc_state->sei.pic_timing.timecodes;
 
-			if (ctx->hevc_state) {
-				num_clock_ts = ctx->hevc_state->sei.pic_timing.num_clock_ts;
-				tcs = ctx->hevc_state->sei.pic_timing.timecodes;
-			} else if (ctx->avc_state) {
-				num_clock_ts = ctx->avc_state->sei.pic_timing.num_clock_ts;
-				tcs = ctx->avc_state->sei.pic_timing.timecodes;
-			}
+			if (tcs[0].clock_timestamp_flag) {
+				GF_TimeCode tc_dst = {0};
+				tc_dst.hours = tcs[0].hours;
+				tc_dst.minutes = tcs[0].minutes;
+				tc_dst.seconds = tcs[0].seconds;
+				tc_dst.n_frames = tcs[0].n_frames;
+				tc_dst.max_fps = tcs[0].max_fps;
+				tc_dst.drop_frame = tcs[0].counting_type==4 && tcs[0].cnt_dropped_flag;
 
-			if (num_clock_ts) {
-				GF_PropData p;
-				p.size = sizeof(GF_TimeCode) * num_clock_ts;
-				p.ptr = gf_malloc(p.size);
-				memset(p.ptr, 0, p.size);
+				// store as timestamp as well
+				tc_dst.as_timestamp = tcs[0].hours*3600 + tcs[0].minutes*60 + tcs[0].seconds;
+				tc_dst.as_timestamp *= 1000;
+				tc_dst.as_timestamp += tcs[0].n_frames;
 
-				for (u32 i=0; i<num_clock_ts; i++) {
-					AVCSeiPicTimingTimecode *tc = &tcs[i];
-					GF_TimeCode *tc_dst = (GF_TimeCode *) p.ptr + i;
-					tc_dst->hours = tc->hours;
-					tc_dst->minutes = tc->minutes;
-					tc_dst->seconds = tc->seconds;
-					tc_dst->n_frames = tc->n_frames;
-					tc_dst->max_fps = tc->max_fps;
-					tc_dst->drop_frame = tc->counting_type==4;
-
-					// store as timestamp as well
-					tc_dst->as_timestamp = tc->hours*3600 + tc->minutes*60 + tc->seconds;
-					tc_dst->as_timestamp *= 1000;
-					tc_dst->as_timestamp += tc->n_frames;
-				}
-
-				GF_PropertyValue pv;
-				pv.type = GF_PROP_DATA_NO_COPY;
-				pv.value.data = p;
-				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODE, &PROP_DATA((u8*)&tc_dst, sizeof(GF_TimeCode)));
 			}
 		}
 	} else {
