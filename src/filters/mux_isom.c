@@ -5918,7 +5918,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
-			//eos (wether real or flush event), continue setup
+			//eos (whether real or flush event), continue setup
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
 				if (tkw->dgl_copy) {
 					gf_filter_pck_discard(tkw->dgl_copy);
@@ -6063,7 +6063,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		mp4_mux_set_hevc_groups(ctx, tkw);
 
-		//use 1 for the default sample description index. If no multi stsd, this is always the case
+		//use GF_TRUE for the default sample description index. If no multi stsd, this is always the case
 		//otherwise we need to update the stsd idx in the traf headers
 		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, tkw->stsd_idx, def_pck_dur, def_samp_size, def_is_rap, 0, 0, ctx->nofragdef ? GF_TRUE : GF_FALSE);
 		if (e) {
@@ -7313,7 +7313,7 @@ retry_pck:
 		}
 
 		if (!pck) {
-			//eos (wether real or flush event), setup cenc
+			//eos (whether real or flush event), setup cenc
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
 				if (tkw->cenc_state==CENC_NEED_SETUP)
 					mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0, 0);
