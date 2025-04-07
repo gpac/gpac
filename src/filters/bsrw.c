@@ -153,9 +153,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	u8 minutes = cts % 60;
 	cts /= 60;
 	u8 hours = (u8) cts;
-	u32 as_timestamp = hours*3600 + minutes*60 + seconds;
-	as_timestamp *= 1000;
-	as_timestamp += n_frames;
 
 	//get the current timecode
 	GF_TimeCode now = {0};
@@ -164,7 +161,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		now.seconds = seconds;
 		now.minutes = minutes;
 		now.hours = hours;
-		now.as_timestamp = as_timestamp;
 	} else {
 		memcpy(&now, tc_in, sizeof(GF_TimeCode));
 	}
@@ -185,8 +181,14 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		}
 	}
 
+	//get max fps
+	Float fps = (Float) pctx->fps.num / pctx->fps.den;
+	u32 max_fps = gf_ceil(fps);
+
 	//reset the output timecode
 	memset(tc_out, 0, sizeof(GF_TimeCode));
+	tc_out->max_fps = max_fps;
+	tc_out->counting_type = ctx->tcdf ? 4 : 0;
 
 	//apply the timecode manipulation
 	switch (ctx->tc)
@@ -199,7 +201,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 			tc_out->seconds = seconds;
 			tc_out->minutes = minutes;
 			tc_out->hours = hours;
-			tc_out->as_timestamp = as_timestamp;
 			break;
 		} else {
 			//reset now, we will overwrite what we have
@@ -207,7 +208,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 			now.seconds = seconds;
 			now.minutes = minutes;
 			now.hours = hours;
-			now.as_timestamp = as_timestamp;
 		}
 		//fallthrough
 	case BSRW_TC_SHIFT: {
@@ -242,9 +242,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		s32 hour_adjustment = ctx->tcsc_val.negative ? -ctx->tcsc_val.hours : ctx->tcsc_val.hours;
 		s32 total_hours = now.hours + hour_adjustment + hour_carry;
 		tc_out->hours = (total_hours + 24) % 24;
-
-		// Calculate the timestamp
-		tc_out->as_timestamp = (tc_out->hours * 3600 + tc_out->minutes * 60 + tc_out->seconds) * 1000 + tc_out->n_frames;
 		break;
 	}
 	case BSRW_TC_CONSTANT:
@@ -252,7 +249,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		tc_out->seconds = ctx->tcsc_val.seconds;
 		tc_out->minutes = ctx->tcsc_val.minutes;
 		tc_out->hours = ctx->tcsc_val.hours;
-		tc_out->as_timestamp = ctx->tcsc_val.as_timestamp;
 		break;
 
 	default:
@@ -261,8 +257,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	}
 
 	if (ctx->tcdf) {
-		Float fps = (Float) pctx->fps.num / pctx->fps.den;
-		u32 max_fps = gf_ceil(fps);
 		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
 
 		//apply existing drop frame rollover
@@ -276,7 +270,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 			tc_out->hours += tc_out->minutes / 60;
 			tc_out->minutes %= 60;
 			tc_out->hours %= 24;
-			tc_out->as_timestamp = (tc_out->hours * 3600 + tc_out->minutes * 60 + tc_out->seconds) * 1000 + tc_out->n_frames;
 		}
 
 		if (tc_out->minutes % 10 && tc_out->seconds == 0) {
@@ -469,7 +462,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*ct_type*/, 2);
 			gf_bs_write_int(bs_w, 0/*nuit_field_based_flag*/, 1);
-			gf_bs_write_int(bs_w, ctx->tcdf ? 4 : 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, tc_out.counting_type/*counting_type*/, 5);
 			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
 			gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
@@ -481,7 +474,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
 			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
-			gf_bs_write_int(bs_w, ctx->tcdf ? 4 : 0/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, tc_out.counting_type/*counting_type*/, 5);
 			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
 			gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
@@ -766,7 +759,7 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		gf_bs_write_u8(bs_w, 0x2a);
 		gf_av1_leb128_write(bs_w, 6/*8+39 bits*/);
 		gf_av1_leb128_write(bs_w, OBU_METADATA_TYPE_TIMECODE);
-		gf_bs_write_int(bs_w, ctx->tcdf ? 4 : 0/*counting_type*/, 5);
+		gf_bs_write_int(bs_w, tc_out.counting_type/*counting_type*/, 5);
 		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
 		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
 		gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
@@ -1300,16 +1293,10 @@ static GF_Err bsrw_parse_date(const char *date_in, GF_TimeCode *tc_out)
 	if (sscanf(date, "TC%hhu:%hhu:%hhu:%hu", &h, &m, &s, &n_frames) != 4)
 		return GF_BAD_PARAM;
 
-	// Express timecode to timestamp
-	u64 v = h*3600 + m*60 + s;
-	v *= 1000;
-	v += n_frames;
-
 	tc_out->hours = h;
 	tc_out->minutes = m;
 	tc_out->seconds = s;
 	tc_out->n_frames = n_frames;
-	tc_out->as_timestamp = v;
 	return GF_OK;
 }
 
