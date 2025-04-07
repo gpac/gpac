@@ -1282,34 +1282,22 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 		}
 		// check timecodes
 		if (ctx->cur_start_tc) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (p && p->value.data.size) {
 				before = GF_TRUE;
 				GF_TimeCode *tc = (GF_TimeCode *) p->value.data.ptr;
-				u32 index = 0;
-				u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
-				while (index < num_timecodes) {
-					if (gf_timestamp_greater_or_equal(tc[index].as_timestamp, 1000, ctx->cur_start.num, ctx->cur_start.den)) {
-						before = GF_FALSE;
-						break;
-					}
-					index++;
+				if (gf_timestamp_greater_or_equal(tc->as_timestamp, 1000, ctx->cur_start.num, ctx->cur_start.den)) {
+					before = GF_FALSE;
 				}
 			}
 		}
 		if ((ctx->range_type!=RANGE_OPEN) && ctx->cur_end_tc) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (p && p->value.data.size) {
 				after = GF_TRUE;
-				GF_TimeCode *ptc = (GF_TimeCode *) p->value.data.ptr;
-				u32 index = 0;
-				u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
-				while (index < num_timecodes) {
-					if (gf_timestamp_less_or_equal(ptc[index].as_timestamp, 1000, ctx->cur_end.num, ctx->cur_end.den)) {
-						after = GF_FALSE;
-						break;
-					}
-					index++;
+				GF_TimeCode *tc = (GF_TimeCode *) p->value.data.ptr;
+				if (gf_timestamp_less_or_equal(tc->as_timestamp, 1000, ctx->cur_end.num, ctx->cur_end.den)) {
+					after = GF_FALSE;
 				}
 			}
 		}
@@ -2018,17 +2006,11 @@ refetch_streams:
 								Bool at_frame = GF_FALSE;
 
 								if (ctx->cur_start_tc) {
-									const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+									const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 									if (p && p->value.data.size) {
-										GF_TimeCode *ptc = (GF_TimeCode *) p->value.data.ptr;
-										u32 index = 0;
-										u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
-										while (index < num_timecodes) {
-											if (ptc[index].as_timestamp == ctx->cur_start.num) {
-												at_frame = GF_TRUE;
-												break;
-											}
-											index++;
+										GF_TimeCode *tc = (GF_TimeCode *) p->value.data.ptr;
+										if (tc->as_timestamp == ctx->cur_start.num) {
+											at_frame = GF_TRUE;
 										}
 									}
 								} else {
