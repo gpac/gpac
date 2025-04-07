@@ -2469,12 +2469,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 				tc_dst.n_frames = tcs[0].n_frames;
 				tc_dst.max_fps = tcs[0].max_fps;
 				tc_dst.drop_frame = tcs[0].counting_type==4 && tcs[0].cnt_dropped_flag;
-
-				// store as timestamp as well
-				tc_dst.as_timestamp = tcs[0].hours*3600 + tcs[0].minutes*60 + tcs[0].seconds;
-				tc_dst.as_timestamp *= 1000;
-				tc_dst.as_timestamp += tcs[0].n_frames;
-
+				tc_dst.counting_type = tcs[0].counting_type;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODE, &PROP_DATA((u8*)&tc_dst, sizeof(GF_TimeCode)));
 			}
 		}
