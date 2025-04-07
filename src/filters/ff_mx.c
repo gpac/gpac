@@ -82,6 +82,7 @@ typedef struct
 	Double start, speed;
 	u32 block_size;
 	Bool nodisc, ffiles, noinit, keepts, proto;
+	u32 psleep;
 	GF_Fraction ileave;
 
 	AVFormatContext *muxer;
@@ -737,7 +738,6 @@ static void ffmx_inject_webvtt(GF_FilterPacket *ipck, AVPacket *pkt)
 	}
 }
 
-
 static GF_Err ffmx_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
@@ -751,8 +751,15 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			while (1) {
 				GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
 				if (!ipck) {
-					if (gf_filter_pid_is_eos(ipid))
+					if (gf_filter_pid_is_eos(ipid)) {
+						avio_flush(ctx->avio_ctx);
+						if (ctx->psleep) {
+							gf_filter_ask_rt_reschedule(filter, ctx->psleep*1000);
+							ctx->psleep = 0;
+							return GF_OK;
+						}
 						return GF_EOS;
+					}
 					break;
 				}
 
@@ -1689,6 +1696,8 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepts), "do not shift input timeline back to 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(proto), "use protocol only: do not try to mux (useful when sending a SRT stream with remuxing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(psleep), "in protocol only mode, sleep for given amount of ms before EOS (do not kill connection right away for some protocols)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{ OFFS(ext), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes (see `gpac -hx ffmx` and `gpac -hx ffmx:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
