@@ -4163,6 +4163,23 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			}
 		}
 
+		//update startNumber based on first cts
+		if (ctx->segcts) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
+			if (pck) {
+				u64 seg_dur = (u64) (ds->dash_dur.num) * ds->timescale / ds->dash_dur.den;
+				u64 cts = gf_filter_pck_get_cts(pck);
+				if (ds->stream_type == GF_STREAM_AUDIO)
+					cts += ds->presentation_time_offset;
+				if (ds->timescale != ds->mpd_timescale)
+					cts = gf_timestamp_rescale(cts, ds->timescale, ds->mpd_timescale);
+				ds->startNumber = (u32) (cts / seg_dur) + 1;
+				ds->moof_sn = ds->startNumber;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
+			}
+		}
+
 		if (ds->nb_repeat && !ctx->loop) {
 			if (split_set_names) {
 				sprintf(szDASHSuffix, "%sp%d_", szSetFileSuffix, ds->nb_repeat+1);
@@ -7507,22 +7524,6 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
 		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
-		}
-
-		//update startNumber based on first cts
-		if (ctx->segcts) {
-			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
-			if (pck) {
-				u64 seg_dur = (u64) (ds->dash_dur.num) * ds->timescale / ds->dash_dur.den;
-				u64 cts = gf_filter_pck_get_cts(pck);
-				if (ds->stream_type == GF_STREAM_AUDIO)
-					cts += ds->presentation_time_offset;
-				if (ds->timescale != ds->mpd_timescale)
-					cts = gf_timestamp_rescale(cts, ds->timescale, ds->mpd_timescale);
-				ds->startNumber = (u32) (cts / seg_dur) + 1;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
-			}
 		}
 
 		ds->adjusted_next_seg_start = ds->next_seg_start;
