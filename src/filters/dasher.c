@@ -216,7 +216,7 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, sreg, ttml_agg;
+	Bool cmpd, dual, segcts, sreg, ttml_agg;
 	char *styp;
 	Bool sigfrag;
 	DasherTSSHandlingMode sbound;
@@ -7509,6 +7509,22 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
 		}
 
+		//update startNumber based on first cts
+		if (ctx->segcts) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
+			if (pck) {
+				u64 seg_dur = (u64) (ds->dash_dur.num) * ds->timescale / ds->dash_dur.den;
+				u64 cts = gf_filter_pck_get_cts(pck);
+				if (ds->stream_type == GF_STREAM_AUDIO)
+					cts += ds->presentation_time_offset;
+				if (ds->timescale != ds->mpd_timescale)
+					cts = gf_timestamp_rescale(cts, ds->timescale, ds->mpd_timescale);
+				ds->startNumber = (u32) (cts / seg_dur) + 1;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
+			}
+		}
+
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
@@ -11174,6 +11190,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(segcts), "compute segment number based on first packet", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "use manifest generation only mode", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
