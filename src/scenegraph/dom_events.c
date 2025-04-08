@@ -173,7 +173,8 @@ GF_Err gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target,
 	if (!event_target) return GF_BAD_PARAM;
 	if (event_target->ptr_type == GF_DOM_EVENT_TARGET_NODE) {
 		GF_Node *node = (GF_Node *)event_target->ptr;
-		node->sgprivate->UserPrivate = NULL;
+		if (node && node == listener)
+			node->sgprivate->UserPrivate = NULL;
 	}
 	gf_list_del_item(event_target->listeners, listener);
 
@@ -846,7 +847,7 @@ GF_DOMText *gf_dom_new_text_node(GF_SceneGraph *sg)
 	GF_DOMText *text;
 	GF_SAFEALLOC(text, GF_DOMText);
 	if (!text) return NULL;
-	
+
 	gf_node_setup((GF_Node *)text, TAG_DOMText);
 	text->sgprivate->scenegraph = sg;
 	return text;
@@ -903,7 +904,7 @@ GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 	GF_DOMUpdates *update;
 	GF_SAFEALLOC(update, GF_DOMUpdates);
 	if (!update) return NULL;
-	
+
 	gf_node_setup((GF_Node *)update, TAG_DOMUpdates);
 	update->sgprivate->scenegraph = parent->sgprivate->scenegraph;
 	update->updates = gf_list_new();
@@ -988,4 +989,3 @@ GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n)
 
 
 #endif	//GPAC_DISABLE_SVG
-
