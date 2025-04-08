@@ -449,6 +449,7 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 	has_quote = 0;
 	while (go) {
 		if (parser->line_pos+i>=parser->line_size) break;
+		if (i>=499) break;
 
 		if (parser->line_buffer[parser->line_pos + i] == '\"') {
 			if (!has_quote) has_quote = 1;
