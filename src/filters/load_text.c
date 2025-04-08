@@ -2913,9 +2913,14 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			start_p = szLine;
 			nb_c=8;
 		}
+
 		if (nb_c>=6)
 			state=0;
-		if (strstr(szLine, ",Default,")) {
+		if (strstr(szLine, ",Default,")
+			|| strncmp(szLine, "Default", 7)
+			|| strstr(szLine, ",Dialogue,")
+			|| strncmp(szLine, "Dialogue", 8)
+			) {
 			state=1;
 		} else if (state!=1) {
 			state = 2;
