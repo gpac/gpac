@@ -449,7 +449,7 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 	has_quote = 0;
 	while (go) {
 		if (parser->line_pos+i>=parser->line_size) break;
-		if (i>=499) break;
+		if (i>=GF_ARRAY_LENGTH(parser->cur_buffer)) break;
 
 		if (parser->line_buffer[parser->line_pos + i] == '\"') {
 			if (!has_quote) has_quote = 1;
@@ -477,11 +477,13 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 			}
 			if (!go) break;
 		}
+		if (i >= GF_ARRAY_LENGTH(parser->cur_buffer))
+			break;
 		parser->cur_buffer[i] = parser->line_buffer[parser->line_pos + i];
 		i++;
 		if (parser->line_pos+i==parser->line_size) break;
 	}
-	parser->cur_buffer[i] = 0;
+	parser->cur_buffer[MIN(i, GF_ARRAY_LENGTH(parser->cur_buffer)-1)] = 0;
 	parser->line_pos += i;
 	return parser->cur_buffer;
 }
@@ -1742,6 +1744,7 @@ GF_Err gf_bt_parse_proto(GF_BTParser *parser, char *proto_code, GF_List *proto_l
 	str = gf_bt_get_next(parser, 0);
 	name = gf_strdup(str);
 	if (!gf_bt_check_code(parser, '[')) {
+		gf_free(name);
 		return gf_bt_report(parser, GF_BAD_PARAM, "[ expected in proto declare");
 	}
 	pID = gf_bt_get_next_proto_id(parser);
