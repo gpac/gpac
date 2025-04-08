@@ -77,12 +77,12 @@ typedef struct
 	u64 filesize;
 	u64 process_clock;
 	u32 resched_next;
+	u32 ts_pck_size;
 	GF_Fraction64 duration;
 	Bool initial_play_done;
 } GF_M2TSSplitCtx;
 
 static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
-
 
 void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *data, u32 size, u64 pcr_plus_one)
 {
@@ -138,10 +138,15 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 				return;
 			}
 		}
-		u32 osize = size*stream->nb_pck;
+		if (size)
+			ctx->ts_pck_size = size;
+		else
+			size = ctx->ts_pck_size;
+
+		u32 osize = size * stream->nb_pck;
 		pck = gf_filter_pck_new_alloc(stream->opid, osize, &buffer);
 		if (pck) {
-			gf_filter_pck_set_framing(pck, stream->start_sent, GF_FALSE);
+			gf_filter_pck_set_framing(pck, !stream->start_sent, GF_FALSE);
 			stream->start_sent = GF_TRUE;
 			memcpy(buffer, stream->pck_buffer, osize);
 
