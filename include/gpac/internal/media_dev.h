@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -255,8 +255,13 @@ typedef struct
 	AVCSeiRecoveryPoint recovery_point;
 	AVCSeiPicTiming pic_timing;
 	AVCSeiItuTT35DolbyVision dovi;
-	/*to be eventually completed by other sei*/
-} AVCSei;
+
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
+	u8 has_3d_ref_disp_info;
+
+} GF_SEIInfo;
 
 typedef struct
 {
@@ -266,7 +271,7 @@ typedef struct
 	AVC_PPS pps[255];
 
 	AVCSliceInfo s_info;
-	AVCSei sei;
+	GF_SEIInfo sei;
 
 	Bool is_svc;
 	u8 last_nal_type_parsed;
@@ -537,13 +542,6 @@ typedef struct
 
 typedef struct
 {
-	AVCSeiRecoveryPoint recovery_point;
-	AVCSeiPicTiming pic_timing;
-	AVCSeiItuTT35DolbyVision dovi;
-} HEVC_SEI;
-
-typedef struct
-{
 	u8 nal_unit_type;
 	u32 frame_num, poc_lsb, slice_type, header_size_with_emulation;
 	
@@ -593,17 +591,13 @@ typedef struct _hevc_state
 	HEVC_VPS vps[16];
 
 	HEVCSliceInfo s_info;
-	HEVC_SEI sei;
+	GF_SEIInfo sei;
 
 	//-1 or the value of the vps/sps/pps ID of the nal just parsed
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
 
-	u8 clli_data[4];
-	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid;
-	u8 has_3d_ref_disp_info;
 } HEVCState;
 
 typedef struct hevc_combine{
@@ -867,15 +861,12 @@ typedef struct _vvc_state
 
 	VVCSliceInfo s_info;
 
+	GF_SEIInfo sei;
+
 	//0: minimal parsing, used by most tools. Slice header and picture header are skipped
 	//1: full parsing, error check: used to retrieve end of slice header
 	//2: full parsing, no error check (used by dumpers)
 	u32 parse_mode;
-
-
-	u8 clli_data[4];
-	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid;
 } VVCState;
 
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
@@ -1026,9 +1017,7 @@ typedef struct
 	u32 layer_size[4];
 
 
-	u8 clli_data[4];
-	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid;
+	GF_SEIInfo sei;
 
 	//set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
 	u8 has_temporal_delim;
@@ -1294,6 +1283,22 @@ GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 
 /*build isobmf dec info from sequence header+ephdr (only seq hdr is parsed, only advanced profile is supprted) */
 GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **dsi, u32 *dsi_size);
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+typedef struct _gf_sei_loader GF_SEILoader;
+GF_SEILoader *gf_sei_loader_new();
+void gf_sei_loader_del(GF_SEILoader *sei);
+GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid);
+GF_Err gf_sei_init_from_avc(GF_SEILoader *sei, AVCState *avc);
+GF_Err gf_sei_init_from_hevc(GF_SEILoader *sei, HEVCState *hevc);
+GF_Err gf_sei_init_from_vvc(GF_SEILoader *sei, VVCState *vvc);
+GF_Err gf_sei_init_from_av1(GF_SEILoader *sei, AV1State *av1);
+
+GF_Err gf_sei_load_from_state(GF_SEILoader *sei, GF_FilterPacket *pck);
+GF_Err gf_sei_load_from_packet(GF_SEILoader *sei, GF_FilterPacket *pck);
+
+void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24]);
+#endif
 
 
 #endif		/*_GF_MEDIA_DEV_H_*/

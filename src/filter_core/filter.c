@@ -2758,6 +2758,11 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (filter->is_pid_adaptation_filter) {
 		//do not remove from destination_filters, needed for end of pid_init task
 		if (!filter->dst_filter) filter->dst_filter = gf_list_get(filter->destination_filters, 0);
+		//in case the adaptation filter is not defining an explicit stream type or codec type
+		if (!filter->dst_filter && filter->cap_dst_filter) {
+			filter->dst_filter = filter->cap_dst_filter;
+			gf_list_add(filter->destination_filters, filter->cap_dst_filter);
+		}
 		gf_assert(filter->dst_filter);
 		gf_assert(filter->num_input_pids==1);
 	}

@@ -2662,6 +2662,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 	switch (p4cc) {
 	case GF_PROP_PCK_TIMECODE:
+	case GF_PROP_PID_SEI_LOADED:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
@@ -5324,7 +5325,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_FilterEvent evt;
 	PidCtx *pctx;
@@ -5381,7 +5382,20 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		pctx->buf_start_time = gf_sys_clock();
 	}
 
-
+	//example requesting PID_SEI_LOAD on source
+	if (ctx->fmt && strstr(ctx->fmt, "tcmd"))
+	{
+		switch (pctx->codec_id) {
+		case GF_CODECID_AVC:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
+		case GF_CODECID_HEVC:
+		case GF_CODECID_LHVC:
+		case GF_CODECID_VVC:
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SEI_LOADED);
+			if (!p) gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+		}
+	}
 
 	w = h = sr = ch = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
@@ -5785,7 +5799,7 @@ const GF_FilterRegister InspectRegister = {
 	.finalize = inspect_finalize,
 	.process = inspect_process,
 	.process_event = inspect_process_event,
-	.configure_pid = inspect_config_input,
+	.configure_pid = inspect_configure_pid,
 	.update_arg = inspect_update_arg,
 	.hint_class_type = GF_FS_CLASS_TOOL
 };
@@ -5841,7 +5855,7 @@ const GF_FilterRegister ProbeRegister = {
 	SETCAPS(ProberCaps),
 	.finalize = inspect_finalize,
 	.process = inspect_process,
-	.configure_pid = inspect_config_input,
+	.configure_pid = inspect_configure_pid,
 	.hint_class_type = GF_FS_CLASS_TOOL,
 };
 

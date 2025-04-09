@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream metadata rewrite filter
@@ -284,7 +284,7 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 				pctx->tc_dropped = GF_TRUE;
 			}
 			if (tc_out->n_frames == frame_drift)
-				tc_out->drop_frame = GF_TRUE;
+				tc_out->drop_frame = 1;
 		} else if (tc_out->seconds == 2) {
 			//clear the flag when safe
 			pctx->tc_dropped = GF_FALSE;
@@ -1284,7 +1284,7 @@ static GF_Err bsrw_parse_date(const char *date_in, GF_TimeCode *tc_out)
 		return GF_BAD_PARAM;
 
 	if (date[0] == '-') {
-		tc_out->negative = GF_TRUE;
+		tc_out->negative = 1;
 		date++;
 	}
 

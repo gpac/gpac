@@ -383,6 +383,7 @@
 		9272B50627E4EFAD00D9D304 /* mux_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9272B50527E4EFAD00D9D304 /* mux_ogg.c */; };
 		92734635235084A50081AF74 /* storage.c in Sources */ = {isa = PBXBuildFile; fileRef = 92734634235084A50081AF74 /* storage.c */; };
 		9274295A24647B98009ADD8D /* bsrw.c in Sources */ = {isa = PBXBuildFile; fileRef = 9274295924647B98009ADD8D /* bsrw.c */; };
+		9279EA3B2DA6F06D00E13C5E /* sei_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279EA3A2DA6F06D00E13C5E /* sei_load.c */; };
 		9281B63021C92D00006B0FD5 /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62E21C92D00006B0FD5 /* gui */; };
 		9281B63121C92D00006B0FD5 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62F21C92D00006B0FD5 /* shaders */; };
 		92852443237ACC2700165130 /* raster3d.c in Sources */ = {isa = PBXBuildFile; fileRef = 92852442237ACC2700165130 /* raster3d.c */; };
@@ -1004,6 +1005,7 @@
 		9272B50527E4EFAD00D9D304 /* mux_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_ogg.c; path = ../../src/filters/mux_ogg.c; sourceTree = "<group>"; };
 		92734634235084A50081AF74 /* storage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = storage.c; path = ../../src/jsmods/storage.c; sourceTree = "<group>"; };
 		9274295924647B98009ADD8D /* bsrw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bsrw.c; path = ../../src/filters/bsrw.c; sourceTree = "<group>"; };
+		9279EA3A2DA6F06D00E13C5E /* sei_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sei_load.c; path = ../../src/filters/sei_load.c; sourceTree = "<group>"; };
 		9281B62E21C92D00006B0FD5 /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../share/gui; sourceTree = "<group>"; };
 		9281B62F21C92D00006B0FD5 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../share/shaders; sourceTree = "<group>"; };
 		92852442237ACC2700165130 /* raster3d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster3d.c; path = ../../src/evg/raster3d.c; sourceTree = "<group>"; };
@@ -2093,6 +2095,7 @@
 				92EB6D9E20E4E19500A97A49 /* rewrite_mp4v.c */,
 				92EB6DB420E4E19600A97A49 /* rewrite_nalu.c */,
 				8959AC83211C9C3C004D2C87 /* rewrite_obu.c */,
+				9279EA3A2DA6F06D00E13C5E /* sei_load.c */,
 				92EB6DB520E4E19600A97A49 /* tileagg.c */,
 				92C236E72576DC4E00CD59A9 /* tilesplit.c */,
 				928607102395C0DE00FDA1ED /* tssplit.c */,
@@ -2755,6 +2758,7 @@
 				71CCF33C1277045100339E12 /* path2d_stroker.c in Sources */,
 				92D6C5A72343BF6A00262217 /* scene_js.c in Sources */,
 				92AB30C127ADA66F00A5CCCB /* restamp.c in Sources */,
+				9279EA3B2DA6F06D00E13C5E /* sei_load.c in Sources */,
 				71CCF33F1277045100339E12 /* token.c in Sources */,
 				71CCF3401277045100339E12 /* uni_bidi.c in Sources */,
 				71CCF3411277045100339E12 /* url.c in Sources */,
