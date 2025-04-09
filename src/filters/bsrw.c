@@ -136,13 +136,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	gf_assert(tc_out);
 	if (ctx->tc == BSRW_TC_NONE) return GF_FALSE;
 
-	//check if we are infering `tcsc` from the first timecode
-	if (ctx->tcsc && strstr(ctx->tcsc, "first") && !ctx->tcsc_inferred) {
-		if (!tc_in) return GF_FALSE;
-		memcpy(&ctx->tcsc_val, tc_in, sizeof(GF_TimeCode));
-		ctx->tcsc_inferred = GF_TRUE;
-	}
-
 	//get the current timecode components
 	u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), (u64) pctx->fps.den * gf_filter_pck_get_timescale(pck), pctx->fps.num);
 	u64 n_frames = (cts * pctx->fps.den) % pctx->fps.num;
@@ -176,6 +169,13 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	if (ctx->tcxe && gf_timecode_greater(&now, &ctx->tcxe_val))
 		tc_change = GF_FALSE;
 	if (!tc_change) return GF_FALSE;
+
+	//check if we are infering `tcsc` from the first timecode
+	if (ctx->tcsc && strstr(ctx->tcsc, "first") && !ctx->tcsc_inferred) {
+		if (!tc_in) return GF_FALSE;
+		memcpy(&ctx->tcsc_val, tc_in, sizeof(GF_TimeCode));
+		ctx->tcsc_inferred = GF_TRUE;
+	}
 
 	//check few more constraints
 	if (ctx->tc == BSRW_TC_SHIFT || ctx->tc == BSRW_TC_CONSTANT) {
