@@ -4167,14 +4167,32 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ctx->segcts) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (pck) {
-				u64 seg_dur = (u64) (ds->dash_dur.num) * ds->timescale / ds->dash_dur.den;
+				u64 seg_dur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+				u64 cdur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->timescale);
 				u64 cts = gf_filter_pck_get_cts(pck);
 				if (ds->stream_type == GF_STREAM_AUDIO)
 					cts += ds->presentation_time_offset;
-				if (ds->timescale != ds->mpd_timescale)
+				if (ds->timescale != ds->mpd_timescale) {
+					seg_dur = gf_timestamp_rescale(seg_dur, ds->timescale, ds->mpd_timescale);
+					cdur = gf_timestamp_rescale(cdur, ds->timescale, ds->mpd_timescale);
 					cts = gf_timestamp_rescale(cts, ds->timescale, ds->mpd_timescale);
-				ds->startNumber = (u32) (cts / seg_dur) + 1;
+				}
+
+				//decide on start number
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
+				ds->startNumber = p ? p->value.uint : 0;
+				ds->startNumber += (u32) gf_floor(cts / seg_dur) + 1;
+
+				//set the fragment sequence number
 				ds->moof_sn = ds->startNumber;
+				if (ctx->cdur.num>0 && ctx->cdur.den>0) {
+					u32 chunk_per_segment = (u32) gf_floor(seg_dur / cdur);
+					ds->moof_sn = (ds->startNumber - 1) * chunk_per_segment + 1;
+
+					//add the sn offset within the segment
+					Float progress_in_seg = (Float) (cts % seg_dur) / (Float) seg_dur;
+					ds->moof_sn += (u32) gf_floor(progress_in_seg * chunk_per_segment);
+				}
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
 			}
