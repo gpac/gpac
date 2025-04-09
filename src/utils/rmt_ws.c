@@ -93,7 +93,7 @@ struct __rmt_clientctx {
 
 GF_EXPORT
 const char* rmt_get_peer_address(RMT_ClientCtx* client) {
-    if (client && client->peer_address)
+    if (client)
         return client->peer_address;
     return NULL;
 }
@@ -484,7 +484,7 @@ GF_Err rmt_client_send_payload(RMT_ClientCtx* client, const u8* payload, u64 siz
         gf_bs_write_long_int(respbs, size, 64);
     }
 
-    gf_bs_write_data(respbs, payload, size);
+    gf_bs_write_data(respbs, payload, (u32)size);
 
     u8* respbuf=NULL;
     u32 respsize=0;
@@ -550,7 +550,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         e = GF_OK;
         while (!e && extra_read < extra_size) {
             u32 new_read = 0;
-            e = gf_dm_read_data(client->http_sess, extra_payload + extra_read, extra_size-extra_read, &new_read);
+            e = gf_dm_read_data(client->http_sess, extra_payload + extra_read, (u32)(extra_size-extra_read), &new_read);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("extra gf_dm_read_data => %d e=%s\n",extra_read, gf_error_to_string(e)));
             extra_read += new_read;
         }
@@ -594,7 +594,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
             break;
 
 
-        case RMT_WEBSOCKET_PING:
+        case RMT_WEBSOCKET_PING:;
 
             GF_BitStream* respbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE_DYN);
             gf_bs_write_int(respbs, 1, 1); //FIN=1
@@ -602,7 +602,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
             gf_bs_write_int(respbs, RMT_WEBSOCKET_PONG, 4); //opcode=pong
             gf_bs_write_int(respbs, 0, 1); //masked=0
             gf_bs_write_int(respbs, (s32)payload_size, 7);
-            gf_bs_write_data(respbs, unmasked_payload, payload_size);
+            gf_bs_write_data(respbs, unmasked_payload, (u32)payload_size);
 
             u8* respbuf=NULL;
             u32 respsize=0;

@@ -293,7 +293,7 @@ static JSValue jsfs_rmt_client_prop_get(JSContext *ctx, JSValueConst this_val, i
 		return JS_UNDEFINED;
 
 	switch (magic) {
-		case JSFS_RMT_CLIENT_PEER_ADDRESS:
+		case JSFS_RMT_CLIENT_PEER_ADDRESS:;
 			const char* peer_address = rmt_get_peer_address(client);
 			if (peer_address) {
 				return JS_NewString(ctx, peer_address);
@@ -310,7 +310,7 @@ static JSValue jsfs_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val, J
 		return GF_JS_EXCEPTION(ctx);
 
 	switch (magic) {
-		case JSFS_RMT_CLIENT_ON_DATA:
+		case JSFS_RMT_CLIENT_ON_DATA:;
 
 			JSFS_Task* oldtask = (JSFS_Task*) rmt_client_get_on_data_task(client);
 			if (oldtask && oldtask->type == RMT_CALLBACK_JS) {

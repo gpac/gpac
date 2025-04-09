@@ -429,6 +429,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/path2d.c \
 	../../../../src/utils/path2d_stroker.c \
+	../../../../src/utils/rmt_ws.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/sha256.c \
 	../../../../src/utils/md5.c \
