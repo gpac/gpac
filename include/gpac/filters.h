@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1428,8 +1428,12 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
-
 	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
+	GF_PROP_PID_SEI_LOADED = GF_4CC('P','S','E','I'),
+	GF_PROP_PCK_SEI_LOADED = GF_4CC('S','E','I','P'),
+	GF_PROP_PCK_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','P'),
+	GF_PROP_PCK_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','P'),
 
 };
 

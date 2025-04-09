@@ -2380,6 +2380,34 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 	return GF_OK;
 }
 
+
+void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
+{
+	u32 i;
+	u64 val;
+	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
+	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
+
+	//3x{display_primaries_x, display_primaries_y} + whitePoint_x + whitePoint_y
+	//translate from AV1 representation 0.16 float to MPEG in increments of 0.00002 (1/50000)
+	for (i=0; i<8; i++) {
+		val = gf_bs_read_u16(bs_r);
+		val = (50000 * val) / 65536;
+		gf_bs_write_u16(bs_w, (u32) val);
+	}
+	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
+	val = gf_bs_read_u32(bs_r);
+	val = (10000 * val) / 256;
+	gf_bs_write_u32(bs_w, (u32) val);
+
+	//min_display_mastering_luminance: 18.14 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
+	val = gf_bs_read_u32(bs_r);
+	val = (10000 * val) / 16384;
+	gf_bs_write_u32(bs_w, (u32) val);
+	gf_bs_del(bs_r);
+	gf_bs_del(bs_w);
+}
+
 GF_EXPORT
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
@@ -4312,12 +4340,12 @@ static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 	case OBU_METADATA_TYPE_ITUT_T35:
 		break;
 	case OBU_METADATA_TYPE_HDR_CLL:
-		gf_bs_read_data(bs, state->clli_data, 4);
-		state->clli_valid = 1;
+		gf_bs_read_data(bs, state->sei.clli_data, 4);
+		state->sei.clli_valid = 1;
 		break;
 	case OBU_METADATA_TYPE_HDR_MDCV:
-		gf_bs_read_data(bs, state->mdcv_data, 24);
-		state->mdcv_valid = 1;
+		gf_bs_read_data(bs, state->sei.mdcv_data, 24);
+		state->sei.mdcv_valid = 1;
 		break;
 	default:
 		break;
@@ -8514,9 +8542,9 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
 {
 	u32 ptype, psize, hdr, i;
-	u8 *dst_ptr;
 	u64 start;
 	GF_BitStream *bs;
+	GF_SEIInfo *sei = hevc ? &hevc->sei : &vvc->sei;
 
 	hdr = buffer[0];
 	if (((hdr & 0x7e) >> 1) != GF_HEVC_NALU_SEI_PREFIX) return;
@@ -8549,46 +8577,30 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		}
 
 		nb_zeros = gf_bs_get_emulation_byte_removed(bs);
-		if (hevc) {
-			hevc->has_3d_ref_disp_info = 0;
-		}
+		sei->has_3d_ref_disp_info = 0;
 		switch (ptype) {
 		case 4: /*user registered ITU-T T35*/
-			if (hevc) {
-				avc_parse_itu_t_t35_sei(bs, &hevc->sei.dovi);
-			}
+			avc_parse_itu_t_t35_sei(bs, &sei->dovi);
 			break;
 		//clli
 		case 144:
-			dst_ptr = hevc ? hevc->clli_data : vvc->clli_data;
 			//do not use read data due to possible EPB
 			for (i=0; i<4; i++)
-				dst_ptr[i] = gf_bs_read_u8(bs);
+				sei->clli_data[i] = gf_bs_read_u8(bs);
 
-			if (hevc) {
-				hevc->clli_valid = 1;
-			} else {
-				vvc->clli_valid = 1;
-			}
+			sei->clli_valid = 1;
 			break;
 		//mdcv
 		case 137:
-			dst_ptr = hevc ? hevc->mdcv_data : vvc->mdcv_data;
 			//do not use read data due to possible EPB
 			for (i=0; i<24; i++)
-				dst_ptr[i] = gf_bs_read_u8(bs);
+				sei->mdcv_data[i] = gf_bs_read_u8(bs);
 
-			if (hevc) {
-				hevc->mdcv_valid = 1;
-			} else {
-				vvc->mdcv_valid = 1;
-			}
+			sei->mdcv_valid = 1;
 			break;
 		// three_dimensional_reference_displays_info
 		case 176:
-			if (hevc) {
-				hevc->has_3d_ref_disp_info = 1;
-			}
+			sei->has_3d_ref_disp_info = 1;
 			break;
 		// time_code
 		case 136:

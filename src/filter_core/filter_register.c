@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -194,6 +194,7 @@ REG_DEC(evgs)
 REG_DEC(ccdec)
 REG_DEC(scte35dec)
 REG_DEC(mpeghdec)
+REG_DEC(seiload)
 
 typedef const GF_FilterRegister *(*filter_reg_fun)(GF_FilterSession *session);
 
@@ -354,6 +355,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(evgs),
 	REG_IT(ccdec),
 	REG_IT(scte35dec),
+	REG_IT(seiload),
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 	REG_IT(wcdec),

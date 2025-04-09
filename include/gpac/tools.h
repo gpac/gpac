@@ -432,10 +432,10 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
  */
 typedef struct
 {
-	u8 hours, minutes, seconds;
-	u16 n_frames;
 	Float max_fps;
-	Bool drop_frame, negative;
+	u16 n_frames;
+	u8 hours, minutes, seconds;
+	u8 drop_frame, negative;
 	u8 counting_type;
 } GF_TimeCode;
 
