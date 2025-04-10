@@ -262,6 +262,10 @@ Section "GPAC Core" SecGPAC
   SetOutPath $INSTDIR\share\lang
   File /r /x .git ${GPAC_ROOT}\share\lang\*
 
+  ;copy rmtws
+  SetOutPath $INSTDIR\share\rmtws
+  File /r /x .git ${GPAC_ROOT}\share\rmtws\*
+
   ;create default cache
   SetOutPath $INSTDIR\cache
   SetOutPath $INSTDIR

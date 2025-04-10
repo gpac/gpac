@@ -160,14 +160,6 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	gf_js_lock(task->ctx, GF_FALSE);
 }
 
-static void jsfs_rmt_user_callback(void *udta, const char* text)
-{
-	JSFS_Task *task = udta;
-	if (!task) return;
-	jsfs_exec_task_custom(task, text, NULL, NULL);
-}
-
-
 //// RMTClient js class ////
 
 static JSClassID jsfs_rmt_client_class_id;
