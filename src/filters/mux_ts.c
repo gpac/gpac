@@ -774,11 +774,10 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				//we don't have reliable dts - double the diff should make sure we don't try to adjust too often
 				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
 				diff = gf_timestamp_rescale(diff, tspid->esi.timescale, 1000000);
-				gf_assert(tspid->prog->cts_offset <= diff);
+
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d (prev offset "LLU" us)\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale, tspid->prog->cts_offset));
+
 				tspid->prog->cts_offset += (u32) diff;
-
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
-
 				es_pck.cts += cts_diff;
 			}
 			if (tspid->esi.stream_type!=GF_STREAM_VISUAL) {

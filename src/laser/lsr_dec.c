@@ -554,6 +554,10 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 {
 	XMLRI *iri;
 	char *text, *sep, *sep2, *cur;
+	if (!l) {
+		lsr->last_error = GF_BAD_PARAM;
+		return;
+	}
 	while (gf_list_count(l)) {
 		char *str = (char *)gf_list_last(l);
 		gf_list_rem_last(l);

@@ -2835,6 +2835,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 i, j, len, line;
+	u32 state = 0;
 	GF_TextSample *samp;
 	char szLine[2048], szText[2048];
 
@@ -2913,13 +2914,26 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			nb_c=8;
 		}
 
+		if (nb_c>=6)
+			state=0;
+		if (strstr(szLine, ",Default,")
+			|| strncmp(szLine, "Default", 7)
+			|| strstr(szLine, ",Dialogue,")
+			|| strncmp(szLine, "Dialogue", 8)
+			) {
+			state=1;
+		} else if (state!=1) {
+			state = 2;
+		}
+		if (state==2) continue;
+
 		while (nb_c) {
 			end_p = strchr(start_p, ',');
 			if (!end_p) break;
 			start_p = end_p+1;
 			nb_c--;
 		}
-		if (nb_c) continue;
+		if (nb_c || !start_p[0]) continue;
 
 		if (ctx->start > ctx->end) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SSA frame (line %d) - ends (at %u ms) before start of current frame (%u ms) - skipping\n", line, ctx->end, ctx->start));
@@ -3041,7 +3055,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 		}
 	}
 	/*final flush*/
-	if (ctx->end && !ctx->noflush) {
+	if (ctx->end && !ctx->noflush && !ctx->pid_framed) {
 		samp = gf_isom_new_text_sample();
 		txtin_process_send_text_sample(ctx, samp, ctx->end, 0, GF_TRUE);
 		gf_isom_delete_text_sample(samp);

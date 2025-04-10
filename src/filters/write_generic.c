@@ -333,6 +333,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			ctx->decinfo = DECINFO_FIRST;
 		break;
 
+	case GF_CODECID_SUBS_SSA:
+		ctx->add_nl = GF_TRUE;
+		break;
+
 	case GF_CODECID_AV1:
 		av1mode = 0;
 		p = gf_filter_pid_get_property_str(ctx->ipid, "obu:mode");
@@ -1854,6 +1858,12 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "ttxt"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "x-subtitle/ttxt|subtitle/ttxt|text/ttxt"),
+	{0},
+
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SUBS_SSA),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "ssa|ass"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "x-subtitle/ssa"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),

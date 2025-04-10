@@ -9126,13 +9126,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
 			u64 ts = gf_filter_pck_get_cts(pck);
-			//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
-			//Not doing so will set the rep PTO to the delay, canceling the delay ...
-			if (ds->pts_minus_cts<0)
-				ts = ts + ds->pts_minus_cts;
-			if (!min_ts || gf_timestamp_less(ts, ds->timescale, min_ts, min_timescale)) {
-				min_ts = ts;
-				min_timescale = ds->timescale;
+			if (ts != GF_FILTER_NO_TS) {
+				//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
+				//Not doing so will set the rep PTO to the delay, canceling the delay ...
+				if (ds->pts_minus_cts<0)
+					ts = ts + ds->pts_minus_cts;
+				if (!min_ts || gf_timestamp_less(ts, ds->timescale, min_ts, min_timescale)) {
+					min_ts = ts;
+					min_timescale = ds->timescale;
+				}
 			}
 			num_ready++;
 			if (gf_filter_pid_would_block(ds->ipid)) num_blocked++;

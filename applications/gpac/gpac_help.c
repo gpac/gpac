@@ -3261,7 +3261,6 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 		for (i=0; i<count; i++) {
 			const char *f = gf_opts_get_key_name(sname, i);
 			if (!f) continue;
-			if ((argmode<GF_ARGMODE_EXPERT) && strchr(f, ':')) continue;
 
 			char *proto = (char*)gf_opts_get_key(sname, f);
 			if (!proto) continue;
@@ -3320,13 +3319,19 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 				if (gen_doc!=1)
 					gf_sys_format_help(helpout, help_flags, " %s", lab);
 
-				if ((gen_doc==1) || (argmode==GF_ARGMODE_ADVANCED) || (argmode==GF_ARGMODE_ALL)) {
+				if ((gen_doc==1) || (argmode>=GF_ARGMODE_ADVANCED) || (argmode==GF_ARGMODE_ALL)) {
 					if (gen_doc!=1)
 						gf_sys_format_help(helpout, help_flags, " (");
 					for (j=0;j<c2; j++) {
 						char *f = gf_list_get(list, j);
 						if (j) gf_sys_format_help(helpout, help_flags, " ");
+						char *sep = NULL;
+						if (!gen_doc && (argmode==GF_ARGMODE_ADVANCED)) {
+							sep = strchr(f, ':');
+							if (sep) sep[0]=0;
+						}
 						gf_sys_format_help(helpout, help_flags, "%s", f);
+						if (sep) sep[0]=':';
 					}
 					if (gen_doc!=1)
 						gf_sys_format_help(helpout, help_flags, ")");

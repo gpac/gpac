@@ -4574,6 +4574,41 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 	return (filter->session->blocking_mode==GF_FS_NOBLOCK) ? GF_FALSE : GF_TRUE;
 }
 
+static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, const char *for_mime)
+{
+	u32 i, j, count = gf_list_count(sess->registry);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *reg = gf_list_get(sess->registry, i);
+		const char *mime=NULL;
+		const char *ext=NULL;
+
+		for (j=0; j<reg->nb_caps; j++) {
+			char szExt[20];
+			const GF_FilterCapability *cap = &reg->caps[j];
+			if ((cap->val.type != GF_PROP_NAME)
+				&& (cap->val.type != GF_PROP_STRING)
+				&& (cap->val.type != GF_PROP_STRING_NO_COPY)
+			) {
+				continue;
+			}
+			if (reg->caps[j].code == GF_PROP_PID_FILE_EXT) ext = cap->val.value.string;
+			else if (reg->caps[j].code == GF_PROP_PID_MIME) mime = cap->val.value.string;
+			else continue;
+
+			if (!mime || !ext) continue;
+			if (!strstr(mime, for_mime)) continue;
+			char *sep = strchr(ext, '|');
+			u32 len = strlen(ext);
+			if (sep) len = (u32) (sep - ext);
+			if (len>19) len=19;
+			strncpy(szExt, ext, len);
+			szExt[len] = 0;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szExt));
+			return;
+		}
+	}
+}
+
 GF_EXPORT
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, const u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
 {
@@ -4724,6 +4759,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
 		//we have a mime, disable extension checking
 		pid->ext_not_trusted = GF_TRUE;
+		if (!ext_len && !fext) {
+			filter_guess_file_ext(filter->session, pid, mime_type);
+		}
 	}
 
 	return GF_OK;
