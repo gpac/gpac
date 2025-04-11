@@ -5391,7 +5391,7 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//- tmcd dump
 	//- props with no analyze
 	if ((ctx->fmt && strstr(ctx->fmt, "$tmcd$"))
-		|| (!ctx->analyze && ctx->props)
+		|| (!ctx->analyze && ctx->props && !gf_sys_is_test_mode() )
 	) {
 		switch (pctx->codec_id) {
 		case GF_CODECID_AVC:
