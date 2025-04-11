@@ -1829,7 +1829,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_ID, "RefID", "packet identifier for dependency (usually POC for video)", GF_PROP_SINT, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_REFS, "Refs", "list of packet identifier this packet depends on", GF_PROP_SINT_LIST, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_UDTA, "UDTA", "User data for the packet", GF_PROP_POINTER, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PCK_TIMECODES, "Timecodes", "list of timecodes as extracted from SEI (if present)", GF_PROP_DATA_NO_COPY, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_TIMECODE, "Timecode", "First timecode extracted from SEI (if present)", GF_PROP_DATA, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PID_DOLBY_VISION, "DOVI", "DolbyVision configuration", GF_PROP_DATA, 0),
 	DEC_PROP_F( GF_PROP_PID_OUTPATH, "OutPath", "Output file name of PID used by some filters creating additional raw PIDs", GF_PROP_STRING, 0),
@@ -1862,7 +1862,13 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_LLHAS_TEMPLATE, "LLHASTemplate", "Template for DASH-SSR and LLHLS sub-segments", GF_PROP_STRING, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_PARTIAL_REPAIR, "PartialRepair", "indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PID_SEI_LOADED, "SEILoaded", "indicate that PID is extracting SEI/inband data from packets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_FAKE, "Fake", "Indicate a stream present in the source but not delivered as a PID", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_CONTENT_LIGHT_LEVEL, "ContentLightLevel", "Content light level, payload of clli box (see ISO/IEC 14496-12), can be set as a list of 2 integers in fragment declaration (e.g. \"=max_cll,max_pic_avg_ll\")", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_MASTER_DISPLAY_COLOUR, "MasterDisplayColour", "Master display colour info, payload of mdcv box (see ISO/IEC 14496-12), can be set as a list of 10 integers in fragment declaration (e.g. \"=dpx0,dpy0,dpx1,dpy1,dpx2,dpy2,wpx,wpy,max,min\")", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_SEI_LOADED, "SEILoaded", "indicate that packet has SEI/inband data in its properties", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+
+
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
@@ -1958,6 +1964,11 @@ Bool gf_props_sanity_check()
 				res = GF_FALSE;
 			}
 			if (GF_BuiltInProps[i].name && GF_BuiltInProps[j].name && !strcmp(GF_BuiltInProps[i].name, GF_BuiltInProps[j].name)) {
+				//we allow same name for properties assigned to PIDs or Packets
+				u32 f1 = GF_BuiltInProps[i].flags & GF_PROP_FLAG_PCK;
+				u32 f2 = GF_BuiltInProps[j].flags & GF_PROP_FLAG_PCK;
+				if (f1 != f2) continue;
+
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s and %s have the same name %s\n", gf_4cc_to_str(GF_BuiltInProps[i].type), gf_4cc_to_str(GF_BuiltInProps[j].type), GF_BuiltInProps[i].name));
 				res = GF_FALSE;
 			}

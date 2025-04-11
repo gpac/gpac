@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1248,7 +1248,7 @@ enum
 	GF_PROP_PCK_REFS = GF_4CC('P','R','F','S'),
 	GF_PROP_PCK_UDTA = GF_4CC('P','U','D','T'),
 	GF_PROP_PCK_LLHAS_TEMPLATE = GF_4CC('P','S','R','T'),
-	GF_PROP_PCK_TIMECODES = GF_4CC('T','C','O','D'),
+	GF_PROP_PCK_TIMECODE = GF_4CC('T','C','O','D'),
 
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 	GF_PROP_PID_AVG_FRAME_SIZE = GF_4CC('A','F','R','S'),
@@ -1428,8 +1428,12 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
-
 	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
+	GF_PROP_PID_SEI_LOADED = GF_4CC('P','S','E','I'),
+	GF_PROP_PCK_SEI_LOADED = GF_4CC('S','E','I','P'),
+	GF_PROP_PCK_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','P'),
+	GF_PROP_PCK_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','P'),
 
 };
 
@@ -2218,6 +2222,12 @@ enum
 	GF_CAPFLAG_OPTIONAL = 1<<6,
 	/*! Only checks presence of capability */
 	GF_CAPFLAG_PRESENT = 1<<7,
+	/*! Indicates this capability is only used on reconfigure - ignored for graph resolution - reconfig caps shall be placed last
+		The value of such caps is ignored, only the type/name is used
+
+	This cap should only be set for reconfigurable filters intended to be dynamically loaded for adaptation (eg resamplers, color-space conversion, rescalers)
+	*/
+	GF_CAPFLAG_RECONFIG = 1<<8,
 };
 
 /*! Shortcut macro to set for input capability flags*/
@@ -2564,7 +2574,8 @@ struct __gf_filter_register
 	*/
 	Bool (*process_event)(GF_Filter *filter, const GF_FilterEvent *evt);
 
-	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation
+	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation, checking for filters with
+ this function set and with reconfigurable caps matching the negotiated set of properties.
 
 	\param filter the target filter
 	\param PID the filter output PID being reconfigured

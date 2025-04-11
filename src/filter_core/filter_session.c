@@ -1088,6 +1088,8 @@ Bool gf_fs_check_filter_register_cap_ex(const GF_FilterRegister *f_reg, u32 inco
 	u32 has_exclude_cid_out = 0;
 	for (j=0; j<f_reg->nb_caps; j++) {
 		const GF_FilterCapability *cap = &f_reg->caps[j];
+		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
+
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			//CID not excluded, raw in present and CID explicit match or not included in excluded set
 			if (!exclude_cid_out && has_raw_in && (has_cid_match || (!exact_match_only && has_exclude_cid_out) ) ) {

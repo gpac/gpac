@@ -1566,6 +1566,8 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		char szDump[GF_PROP_DUMP_ARG_SIZE];
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) && i+1==nb_caps) break;
+		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
+
 		if (!i) gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
 		else if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
@@ -2770,6 +2772,7 @@ void dump_all_codecs(GF_SysArgMode argmode)
 			if (! (reg->flags & GF_FS_REG_META)) continue;
 			for (j=0; j<reg->nb_caps; j++) {
 				if (!(reg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE)) continue;
+				if (reg->caps[j].flags & GF_CAPFLAG_RECONFIG) break;
 				if (reg->caps[j].code != GF_PROP_PID_CODECID) continue;
 				if (reg->caps[j].val.type != GF_PROP_NAME) continue;
 				if (gf_list_find(meta_codecs, (void *)reg)<0)
@@ -3068,6 +3071,8 @@ void dump_all_formats(GF_SysArgMode argmode)
 		if ((argmode<GF_ARGMODE_EXPERT) && (reg->flags&GF_FS_REG_META)) continue;
 
 		for (j=0; j<reg->nb_caps; j++) {
+			if (reg->caps[j].flags & GF_CAPFLAG_RECONFIG) break;
+
 			if (!(reg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE)) {
 				//special case for meta filters, declaring only input ext (demux) or output ext (mux)
 				if (reg->flags & GF_FS_REG_META) {

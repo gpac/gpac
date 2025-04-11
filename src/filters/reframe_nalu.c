@@ -239,6 +239,7 @@ typedef struct
 	//layer and temporal ID of last VCL nal
 	u8 last_layer_id, last_temporal_id;
 
+	//only used to set the first clli / mdcv
 	u32 clli_crc, mdcv_crc;
 
 	u32 nb_dv_rpu, nb_dv_el;
@@ -250,6 +251,8 @@ typedef struct
 	Bool sap2_as_sap1;
 
 	GF_FilterPacket *prev_sap;
+
+	GF_SEILoader *sei_loader;
 } GF_NALUDmxCtx;
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
@@ -360,6 +363,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->min_layer_id = 0xFF;
 		if (ctx->refs)
 			ctx->hevc_state->full_slice_header_parse = GF_TRUE;
+
+		gf_sei_init_from_hevc(ctx->sei_loader, ctx->hevc_state);
 	} else if (ctx->codecid==GF_CODECID_VVC) {
 		ctx->log_name = "VVC";
 		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
@@ -369,6 +374,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			//use parse mode 2 as we don't need the exact slice header length
 			ctx->vvc_state->parse_mode = 2;
 		}
+		gf_sei_init_from_vvc(ctx->sei_loader, ctx->vvc_state);
 	} else {
 		ctx->log_name = "AVC|H264";
 		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
@@ -378,7 +384,9 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] reference picture list parsing not supported, patch welcome\n", ctx->log_name));
 			ctx->refs = 0;
 		}
+		gf_sei_init_from_avc(ctx->sei_loader, ctx->avc_state);
 	}
+
 	if (ctx->timescale && !ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		ctx->nb_slices_in_au = 0;
@@ -425,6 +433,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED_FULL_AU, NULL);
 		if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
+
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
 
 		//force re-export of properties
 		ctx->ps_modified = 1<<1;
@@ -1638,24 +1648,23 @@ static void naludmx_update_clli_mdcv(GF_NALUDmxCtx *ctx, Bool reset_crc)
 {
 	if (!ctx->opid) return;
 
+	GF_SEIInfo *sei = NULL;
+	if (ctx->avc_state) sei = &ctx->avc_state->sei;
+	else if (ctx->hevc_state) sei = &ctx->hevc_state->sei;
+	else if (ctx->vvc_state) sei = &ctx->vvc_state->sei;
+
 	if (reset_crc)
 		ctx->clli_crc = 0;
-	if ((ctx->hevc_state && ctx->hevc_state->clli_valid)
-		|| (ctx->vvc_state && ctx->vvc_state->clli_valid)
-	) {
-		u8 *clli = ctx->hevc_state ? ctx->hevc_state->clli_data : ctx->vvc_state->clli_data;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(clli, 4));
-		ctx->clli_crc = gf_crc_32(clli, 4);
+	if (sei && sei->clli_valid) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(sei->clli_data, 4));
+		ctx->clli_crc = gf_crc_32(sei->clli_data, 4);
 	}
+
 	if (reset_crc)
 		ctx->mdcv_crc = 0;
-
-	if ((ctx->hevc_state && ctx->hevc_state->mdcv_valid)
-		|| (ctx->vvc_state && ctx->vvc_state->mdcv_valid)
-	) {
-		u8 *mdcv = ctx->hevc_state ? ctx->hevc_state->mdcv_data : ctx->vvc_state->mdcv_data;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(mdcv, 24));
-		ctx->mdcv_crc = gf_crc_32(mdcv, 24);
+	if (sei && sei->mdcv_valid) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(sei->mdcv_data, 24));
+		ctx->mdcv_crc = gf_crc_32(sei->mdcv_data, 24);
 	}
 }
 
@@ -1898,6 +1907,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_ID))
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(1));
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
 
 	ctx->width = w;
 	ctx->height = h;
@@ -2333,36 +2344,17 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 	ctx->has_ref_slices = GF_FALSE;
 	ctx->has_redundant = GF_FALSE;
 
-	if ((ctx->hevc_state && ctx->hevc_state->clli_valid)
-		|| (ctx->vvc_state && ctx->vvc_state->clli_valid)
-	) {
-		u8 *clli = ctx->hevc_state ? ctx->hevc_state->clli_data : ctx->vvc_state->clli_data;
-		u32 crc = gf_crc_32(clli, 4);
-		if (!ctx->clli_crc) {
-			naludmx_update_clli_mdcv(ctx, GF_FALSE);
-		}
 
-		if (crc != ctx->clli_crc) {
-			gf_filter_pck_set_property(ctx->first_pck_in_au, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(clli, 4));
-		}
+	if (!ctx->clli_crc) {
+		naludmx_update_clli_mdcv(ctx, GF_FALSE);
 	}
-	if ((ctx->hevc_state && ctx->hevc_state->mdcv_valid)
-		|| (ctx->vvc_state && ctx->vvc_state->mdcv_valid)
-	) {
-		u8 *mdcv = ctx->hevc_state ? ctx->hevc_state->mdcv_data : ctx->vvc_state->mdcv_data;
-		u32 crc = gf_crc_32(mdcv, 24);
-		if (!ctx->mdcv_crc) {
-			naludmx_update_clli_mdcv(ctx, GF_FALSE);
-		}
-		if (crc != ctx->mdcv_crc) {
-			gf_filter_pck_set_property(ctx->first_pck_in_au, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(mdcv, 24));
-		}
-	}
-	if (ctx->hevc_state)
-		ctx->hevc_state->clli_valid = ctx->hevc_state->mdcv_valid = 0;
-	if (ctx->vvc_state)
-		ctx->vvc_state->clli_valid = ctx->vvc_state->mdcv_valid = 0;
 
+	if (!ctx->mdcv_crc) {
+		naludmx_update_clli_mdcv(ctx, GF_FALSE);
+	}
+
+	//set all SEIs from state - this will reset the various valid flags in the SEI structure
+	gf_sei_load_from_state(ctx->sei_loader, ctx->first_pck_in_au);
 
 	//if we reuse input packets timing, we can dispatch asap.
 	//otherwise if poc probe is done (we know the min_poc_diff between images) and we are not in strict mode, dispatch asap
@@ -2452,47 +2444,6 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 				p.value.sint_list.nb_items = nb_refs;
 				p.value.sint_list.vals = refs;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_REFS, &p);
-			}
-		}
-
-		if (ctx->hevc_state || ctx->avc_state) {
-			u8 num_clock_ts = 0;
-			AVCSeiPicTimingTimecode *tcs = NULL;
-
-			if (ctx->hevc_state) {
-				num_clock_ts = ctx->hevc_state->sei.pic_timing.num_clock_ts;
-				tcs = ctx->hevc_state->sei.pic_timing.timecodes;
-			} else if (ctx->avc_state) {
-				num_clock_ts = ctx->avc_state->sei.pic_timing.num_clock_ts;
-				tcs = ctx->avc_state->sei.pic_timing.timecodes;
-			}
-
-			if (num_clock_ts) {
-				GF_PropData p;
-				p.size = sizeof(GF_TimeCode) * num_clock_ts;
-				p.ptr = gf_malloc(p.size);
-				memset(p.ptr, 0, p.size);
-
-				for (u32 i=0; i<num_clock_ts; i++) {
-					AVCSeiPicTimingTimecode *tc = &tcs[i];
-					GF_TimeCode *tc_dst = (GF_TimeCode *) p.ptr + i;
-					tc_dst->hours = tc->hours;
-					tc_dst->minutes = tc->minutes;
-					tc_dst->seconds = tc->seconds;
-					tc_dst->n_frames = tc->n_frames;
-					tc_dst->max_fps = tc->max_fps;
-					tc_dst->drop_frame = tc->counting_type==4;
-
-					// store as timestamp as well
-					tc_dst->as_timestamp = tc->hours*3600 + tc->minutes*60 + tc->seconds;
-					tc_dst->as_timestamp *= 1000;
-					tc_dst->as_timestamp += tc->n_frames;
-				}
-
-				GF_PropertyValue pv;
-				pv.type = GF_PROP_DATA_NO_COPY;
-				pv.value.data = p;
-				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
 			}
 		}
 	} else {
@@ -2605,7 +2556,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		break;
 	case GF_HEVC_NALU_SEI_PREFIX:
 		gf_hevc_parse_sei(data, size, ctx->hevc_state);
-		if (ctx->hevc_state->has_3d_ref_disp_info) {
+		if (ctx->hevc_state->sei.has_3d_ref_disp_info) {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
 		}
 		if (!ctx->nosei) {
@@ -4126,6 +4077,7 @@ static GF_Err naludmx_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] DV profile forced but compatID in auto mode, using no compatibility\n", ctx->log_name));
 		}
 	}
+	ctx->sei_loader = gf_sei_loader_new();
 	return GF_OK;
 }
 
@@ -4236,6 +4188,7 @@ static void naludmx_finalize(GF_Filter *filter)
 	if (ctx->avc_state) gf_free(ctx->avc_state);
 	if (ctx->hevc_state) gf_free(ctx->hevc_state);
 	if (ctx->vvc_state) gf_free(ctx->vvc_state);
+	gf_sei_loader_del(ctx->sei_loader);
 }
 
 

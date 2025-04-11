@@ -89,6 +89,7 @@ typedef struct
 
 	u64 ts_at_range_start_plus_one;
 	u64 ts_at_range_end;
+	u64 ts_tc_offset;
 
 	GF_List *pck_queue;
 	//0: not computed, 1: computed and valid TS, 2: end of stream on pid
@@ -171,8 +172,8 @@ typedef struct
 	//if cur_start.den is 0, cur_start.num is UTC start time
 	//if cur_end.den is 0, cur_start.num is UTC stop time, only if cur_start uses UTC
 	GF_Fraction64 cur_start, cur_end;
-	GF_TimeCode *cur_start_tc;
-	GF_TimeCode *cur_end_tc;
+	GF_TimeCode *cur_start_tc, *cur_end_tc;
+	Bool cur_start_valid, cur_end_valid;
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 
 	Bool in_range;
@@ -403,6 +404,8 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		*extract_mode = EXTRACT_RANGE;
 	if (is_dur)
 		*is_dur = GF_FALSE;
+	if (*as_timecode)
+		gf_free(*as_timecode);
 
 	if (strlen(date)>2 && date[0]=='T' && date[1]=='C') {
 		u32 h=0, m=0, s=0, n_frames=0;
@@ -410,7 +413,8 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 			goto exit;
 		}
 
-		// Express timecode to timestamp
+		// Express timecode as timestamp
+		// cur_start/end will be overwritten later. This ensures checks after this parser can work
 		v = h*3600 + m*60 + s;
 		v *= 1000;
 		v += n_frames;
@@ -418,14 +422,11 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		value->den = 1000;
 
 		// Encode timecode as 4 bytes
-		GF_TimeCode *tc;
-		GF_SAFEALLOC(tc, GF_TimeCode);
-		tc->hours = h;
-		tc->minutes = m;
-		tc->seconds = s;
-		tc->n_frames = n_frames;
-		tc->as_timestamp = (u32) v;
-		*as_timecode = tc;
+		GF_SAFEALLOC(*as_timecode, GF_TimeCode);
+		(*as_timecode)->hours = h;
+		(*as_timecode)->minutes = m;
+		(*as_timecode)->seconds = s;
+		(*as_timecode)->n_frames = n_frames;
 		return GF_TRUE;
 	}
 	if (date[0] == 'T') {
@@ -524,6 +525,8 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	GF_Fraction64 prev_end;
 	char *start_date=NULL, *end_date=NULL;
 
+	ctx->cur_start_valid = GF_TRUE;
+	ctx->cur_end_valid = GF_TRUE;
 	ctx->nb_video_frames_since_start_at_range_start = ctx->nb_video_frames_since_start;
 
 	if (ctx->extract_mode==EXTRACT_DUR) {
@@ -578,6 +581,10 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 		return;
 	}
 
+	//start will be adjusted
+	if (ctx->cur_start_tc)
+		ctx->cur_start_valid = GF_FALSE;
+
 	//range in frame
 	if (ctx->start_frame_idx_plus_one) {
 		//either range is before or prev range was not frame-based
@@ -602,11 +609,6 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	}
 	if (!ctx->cur_start.den)
 		do_seek = GF_FALSE;
-
-	if (ctx->cur_start_tc && do_seek) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] ranges not in order and timecode is used, aborting extraction\n"));
-		goto range_done;
-	}
 
 	if (!ctx->seekable && do_seek) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] ranges not in order and input not seekable, aborting extraction\n"));
@@ -647,10 +649,9 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
 		} else {
-			if (is_dur && ctx->cur_start_tc) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] duration range with timecode start, aborting extraction\n"));
-				goto range_done;
-			}
+			//end will be adjusted
+			if (ctx->cur_end_tc)
+				ctx->cur_end_valid = GF_FALSE;
 			if (is_dur) {
 				ctx->cur_end.num = gf_timestamp_rescale(ctx->cur_end.num, ctx->cur_end.den, ctx->cur_start.den);
 				ctx->cur_end.den = ctx->cur_start.den;
@@ -1037,6 +1038,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				ts += st->tk_delay;
 				ts += st->ts_at_range_end;
 				ts -= st->ts_at_range_start_plus_one - 1;
+				ts += st->ts_tc_offset;
 
 				if (ts<0) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while splitting, something went wrong during range estimation, forcing to 0\n"));
@@ -1059,6 +1061,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				ts += st->tk_delay;
 				ts -= st->ts_at_range_start_plus_one - 1;
 				ts += st->ts_at_range_end;
+				ts += st->ts_tc_offset;
 				gf_filter_pck_set_dts(new_pck, (u64) ts);
 			}
 		}
@@ -1279,39 +1282,6 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 				*nb_audio_samples_to_keep = (u32)nb_samp;
 			}
 			after = GF_TRUE;
-		}
-		// check timecodes
-		if (ctx->cur_start_tc) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-			if (p && p->value.data.size) {
-				before = GF_TRUE;
-				GF_TimeCode *tc = (GF_TimeCode *) p->value.data.ptr;
-				u32 index = 0;
-				u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
-				while (index < num_timecodes) {
-					if (gf_timestamp_greater_or_equal(tc[index].as_timestamp, 1000, ctx->cur_start.num, ctx->cur_start.den)) {
-						before = GF_FALSE;
-						break;
-					}
-					index++;
-				}
-			}
-		}
-		if ((ctx->range_type!=RANGE_OPEN) && ctx->cur_end_tc) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-			if (p && p->value.data.size) {
-				after = GF_TRUE;
-				GF_TimeCode *ptc = (GF_TimeCode *) p->value.data.ptr;
-				u32 index = 0;
-				u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
-				while (index < num_timecodes) {
-					if (gf_timestamp_less_or_equal(ptc[index].as_timestamp, 1000, ctx->cur_end.num, ctx->cur_end.den)) {
-						after = GF_FALSE;
-						break;
-					}
-					index++;
-				}
-			}
 		}
 	}
 
@@ -1779,6 +1749,74 @@ GF_Err reframer_process(GF_Filter *filter)
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			RTStream *st = gf_filter_pid_get_udta(ipid);
 			st->fetch_done = GF_FALSE;
+
+			//range includes timecode
+			if (!ctx->cur_start_valid || !ctx->cur_end_valid) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_CODECID);
+				u32 codec_id = p ? p->value.uint : GF_CODECID_NONE;
+				if (codec_id != GF_CODECID_AVC && codec_id != GF_CODECID_HEVC && codec_id != GF_CODECID_AV1)
+					continue;
+
+				//try to get the timecode
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
+				if (!pck) return GF_OK;
+				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+				if (!p || !p->value.data.ptr || !p->value.data.size) continue;
+				GF_TimeCode *pck_tc = (GF_TimeCode*) p->value.data.ptr;
+				u64 pck_cts = gf_filter_pck_get_cts(pck);
+				u32 pck_ts = gf_filter_pck_get_timescale(pck);
+
+				//get the pid fps
+				GF_Fraction fps;
+				p = gf_filter_pid_get_property(ipid, GF_PROP_PID_FPS);
+				if (p) fps = p->value.frac;
+				if (!fps.num || !fps.den) {
+					fps.num = 25;
+					fps.den = 1;
+				}
+
+				//calculate the correct cts for packet
+				u64 ts = pck_cts + st->tk_delay;
+				if (ts > st->ts_sub) ts -= st->ts_sub;
+				else ts = 0;
+
+				//process both start and end timecodes
+				GF_TimeCode *tc_list[2] = {ctx->cur_start_tc, ctx->cur_end_tc};
+				Bool *valid_list[2] = {&ctx->cur_start_valid, &ctx->cur_end_valid};
+				GF_Fraction64 *frac_list[2] = {&ctx->cur_start, &ctx->cur_end};
+
+				for (int tc_idx = 0; tc_idx < 2; tc_idx++) {
+					GF_TimeCode *tc = tc_list[tc_idx];
+					Bool *valid = valid_list[tc_idx];
+					GF_Fraction64 *frac = frac_list[tc_idx];
+
+					if (!tc || *valid) continue;
+
+					tc->max_fps = pck_tc->max_fps;
+					u64 cur_ts = gf_timecode_to_timestamp(pck_tc, pck_ts);
+					u64 target_ts = gf_timecode_to_timestamp(tc, pck_ts);
+
+					if (gf_timecode_less_or_equal(tc, pck_tc)) {
+						//start from the first frame since timecode is out-of-bounds
+						frac->num = ts;
+						frac->den = pck_ts;
+						if (tc == ctx->cur_start_tc)
+							st->ts_tc_offset = cur_ts - target_ts;
+					} else {
+						frac->num = ts + (target_ts - cur_ts);
+						frac->den = pck_ts;
+						if (tc == ctx->cur_start_tc)
+							st->ts_tc_offset = 0;
+					}
+
+					*valid = GF_TRUE;
+				}
+			}
+		}
+
+		if (!ctx->cur_start_valid || !ctx->cur_end_valid) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] No timecode for the first packet in the range, aborting\n"));
+			return GF_BAD_PARAM;
 		}
 
 refetch_streams:
@@ -2015,28 +2053,8 @@ refetch_streams:
 							st->sap_ts_plus_one = (ctx->nosap ? ts : st->prev_sap_ts) + 1;
 
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
-								Bool at_frame = GF_FALSE;
-
-								if (ctx->cur_start_tc) {
-									const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-									if (p && p->value.data.size) {
-										GF_TimeCode *ptc = (GF_TimeCode *) p->value.data.ptr;
-										u32 index = 0;
-										u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
-										while (index < num_timecodes) {
-											if (ptc[index].as_timestamp == ctx->cur_start.num) {
-												at_frame = GF_TRUE;
-												break;
-											}
-											index++;
-										}
-									}
-								} else {
-									u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
-									at_frame = (ts+ts_adj == start_range_ts);
-								}
-
-								if (at_frame) {
+								u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
+								if (ts + ts_adj == start_range_ts) {
 									st->sap_ts_plus_one = ts+ts_adj+1;
 									st->nb_frames_until_start = 0;
 								}

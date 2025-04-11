@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -2668,6 +2668,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 				case GF_PROP_PID_CHAP_TIMES:
 				case GF_PROP_PID_CHAP_NAMES:
 				case GF_PROP_PID_ISOM_UDTA:
+				case GF_PROP_PID_SEI_LOADED:
 					continue;
 				case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 					//for text streams, only used for SDP config by tx3g and we don't need it
@@ -5313,6 +5314,7 @@ static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
 			case GF_PROP_PID_PLAYBACK_MODE:
 			case GF_PROP_PID_CHAP_TIMES:
 			case GF_PROP_PID_CHAP_NAMES:
+			case GF_PROP_PID_SEI_LOADED:
 				continue;
 			default:
 				break;
