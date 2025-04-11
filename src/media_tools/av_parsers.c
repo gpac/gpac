@@ -4332,6 +4332,42 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
+static void av1_parse_timecode_obu(AV1State *state, GF_BitStream *bs)
+{
+	AVCSeiPicTiming *pt = &state->sei.pic_timing;
+	pt->num_clock_ts = 1;
+	AVCSeiPicTimingTimecode *tc = &pt->timecodes[0];
+
+	tc->counting_type = gf_bs_read_int_log(bs, 5, "counting_type");
+	Bool full_timestamp_flag = gf_bs_read_int_log(bs, 1, "full_timestamp_flag");
+	gf_bs_read_int_log(bs, 1, "discontinuity_flag");
+	tc->cnt_dropped_flag = gf_bs_read_int_log(bs, 1, "cnt_dropped_flag");
+	tc->n_frames = gf_bs_read_int_log(bs, 9, "n_frames");
+
+	if (full_timestamp_flag) {
+		tc->seconds = gf_bs_read_int_log(bs, 6, "seconds_value");
+		tc->minutes = gf_bs_read_int_log(bs, 6, "minutes_value");
+		tc->hours = gf_bs_read_int_log(bs, 5, "hours_value");
+	} else {
+		Bool seconds_flag = gf_bs_read_int_log(bs, 1, "seconds_flag");
+		if (seconds_flag) {
+			tc->seconds = gf_bs_read_int_log(bs, 6, "seconds_value");
+			Bool minutes_flag = gf_bs_read_int_log(bs, 1, "minutes_flag");
+			if (minutes_flag) {
+				tc->minutes = gf_bs_read_int_log(bs, 6, "minutes_value");
+				Bool hours_flag = gf_bs_read_int_log(bs, 1, "hours_flag");
+				if (hours_flag) {
+					tc->hours = gf_bs_read_int_log(bs, 5, "hours_value");
+				}
+			}
+		}
+	}
+	u8 time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
+	if (time_offset_length) {
+		gf_bs_read_int_log(bs, time_offset_length, "time_offset_value");
+	}
+}
+
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
 	ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
@@ -4346,6 +4382,10 @@ static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 	case OBU_METADATA_TYPE_HDR_MDCV:
 		gf_bs_read_data(bs, state->sei.mdcv_data, 24);
 		state->sei.mdcv_valid = 1;
+		break;
+	case OBU_METADATA_TYPE_TIMECODE:
+		av1_parse_time_code_obu(state, bs);
+		state->sei.timecode_valid = 1;
 		break;
 	default:
 		break;
