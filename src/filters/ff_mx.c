@@ -1112,6 +1112,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Cannot use proto with non-file format (got %s)\n", gf_stream_type_name(streamtype)));
 			return GF_NOT_SUPPORTED;
 		}
+		ff_st = 0;
+		ff_codec_id = 0;
+		check_disc = GF_FALSE;
 		goto setup_stream;
 	}
 
