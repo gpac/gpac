@@ -4332,9 +4332,9 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
-static void av1_parse_timecode_obu(AV1State *state, GF_BitStream *bs)
+static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
 {
-	AVCSeiPicTiming *pt = &state->sei.pic_timing;
+	AVCSeiPicTiming *pt = &sei->pic_timing;
 	pt->num_clock_ts = 1;
 	AVCSeiPicTimingTimecode *tc = &pt->timecodes[0];
 
@@ -4384,8 +4384,7 @@ static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 		state->sei.mdcv_valid = 1;
 		break;
 	case OBU_METADATA_TYPE_TIMECODE:
-		av1_parse_time_code_obu(state, bs);
-		state->sei.timecode_valid = 1;
+		av1_parse_timecode_obu(&state->sei, bs);
 		break;
 	default:
 		break;
@@ -4453,6 +4452,14 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	/* for AVIF a1lx */
 	for (i = state->spatial_id; i < 4; i++) {
 		state->layer_size[i] = (u32) (pos + *obu_size);
+	}
+	if (state->parse_metadata_filter) {
+		//for now no dependency on metadat to state
+		if (*obu_type != OBU_METADATA) {
+			gf_bs_seek(bs, pos + *obu_size);
+			return e;
+		}
+		state->parse_metadata_filter = 2;
 	}
 
 	switch (*obu_type) {
@@ -7072,7 +7079,6 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		case 1: /*pic_timing*/
 			if (avc) {
 				avc_parse_pic_timing_sei(bs, avc);
-				avc->sei.timecode_valid = 1;
 			}
 			break;
 
@@ -8648,7 +8654,6 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		// time_code
 		case 136:
 			hevc_parse_pic_timing_sei(bs, hevc);
-			sei->timecode_valid = 1;
 			break;
 		default:
 			break;

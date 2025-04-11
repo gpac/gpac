@@ -138,6 +138,8 @@ GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid)
 	}
 	if (!p) return GF_OK;
 
+	sei->nalu_size = 0;
+
 	switch (codec_id) {
 	case GF_CODECID_AVC:
 	{
@@ -185,7 +187,18 @@ GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid)
 	}
 		sei->is_identity = GF_FALSE;
 		break;
-	//todo, extract for AV1 as well
+	case GF_CODECID_AV1:
+	{
+		GF_AV1Config *av1c = gf_odf_av1_cfg_read(p->value.data.ptr, p->value.data.size);
+		if (av1c) {
+			seiloader_set_type(sei, COD_TYPE_AV1);
+			sei->av1_state->config = av1c;
+			//for now no need to load the OBUs
+		}
+	}
+		sei->is_identity = GF_FALSE;
+		break;
+
 	}
 
 	return GF_OK;
@@ -204,7 +217,7 @@ static GF_Err gf_sei_load_from_state_internal(GF_SEILoader *ctx, GF_FilterPacket
 {
 	GF_SEIInfo *sei = get_sei_info(ctx);
 	if (!sei) return GF_OK;
-	if (!skip_check && gf_filter_pck_get_property(pck, GF_PROP_PID_SEI_LOADED))
+	if (!skip_check && gf_filter_pck_get_property(pck, GF_PROP_PCK_SEI_LOADED))
 		return GF_OK;
 
 	skip_check = GF_FALSE;
@@ -251,14 +264,10 @@ GF_Err gf_sei_load_from_state(GF_SEILoader *ctx, GF_FilterPacket *pck)
 	return gf_sei_load_from_state_internal(ctx, pck, GF_FALSE);
 }
 
-GF_Err gf_sei_load_from_packet(GF_SEILoader *sei, GF_FilterPacket *pck)
+static GF_Err gf_sei_load_from_packet_nalu(GF_SEILoader *sei, GF_FilterPacket *pck, Bool *needs_load)
 {
-	Bool has_sei = GF_FALSE;
 	u32 data_len;
 	u8 *data = (u8*) gf_filter_pck_get_data(pck, &data_len);
-
-	if (!sei->nalu_size) return GF_OK;
-	if (sei->is_identity) return GF_OK;
 
 	u32 pos=0;
 	while (pos<data_len) {
@@ -317,7 +326,7 @@ GF_Err gf_sei_load_from_packet(GF_SEILoader *sei, GF_FilterPacket *pck)
 			pos += sei->nalu_size + data_len;
 			continue;
 		}
-		has_sei = GF_TRUE;
+		*needs_load = GF_TRUE;
 #if 0
 		//if needed, load SEIs not handled by avparser ?
 		gf_bs_seek(sei->bs, 0);
@@ -353,7 +362,50 @@ GF_Err gf_sei_load_from_packet(GF_SEILoader *sei, GF_FilterPacket *pck)
 
 		pos += sei->nalu_size + data_len;
 	}
-	if (has_sei)
+	return GF_OK;
+}
+
+static GF_Err gf_sei_load_from_packet_av1(GF_SEILoader *sei, GF_FilterPacket *pck, Bool *needs_load)
+{
+	u32 data_len;
+	u8 *data = (u8*) gf_filter_pck_get_data(pck, &data_len);
+
+	while (data_len) {
+		ObuType obu_type = 0;
+		u64 obu_size = 0;
+		u32 hdr_size = 0;
+		gf_bs_reassign_buffer(sei->bs, data, data_len);
+
+		sei->av1_state->parse_metadata_filter = 1;
+		GF_Err e = gf_av1_parse_obu(sei->bs, &obu_type, &obu_size, &hdr_size, sei->av1_state);
+		if (e) break;
+		if (sei->av1_state->parse_metadata_filter == 2)
+			*needs_load = GF_TRUE;
+
+		if (!obu_size || (obu_size > data_len)) {
+			break;
+		}
+
+		data += obu_size;
+		data_len -= (u32)obu_size;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_sei_load_from_packet(GF_SEILoader *sei, GF_FilterPacket *pck)
+{
+	Bool needs_load = GF_FALSE;
+	GF_Err e = GF_OK;
+	if (sei->is_identity)
+		return GF_OK;
+
+	if (sei->nalu_size)
+		e = gf_sei_load_from_packet_nalu(sei, pck, &needs_load);
+	else if (sei->av1_state)
+		e = gf_sei_load_from_packet_av1(sei, pck, &needs_load);
+
+	if (e) return e;
+	if (needs_load)
 		return gf_sei_load_from_state_internal(sei, pck, GF_TRUE);
 	return GF_OK;
 }
@@ -467,7 +519,7 @@ static GF_Err seiload_process(GF_Filter *filter)
 				break;
 			}
 			if (loader->is_identity
-				|| (gf_filter_pck_get_property(pck, GF_PROP_PID_SEI_LOADED)!=NULL)
+				|| (gf_filter_pck_get_property(pck, GF_PROP_PCK_SEI_LOADED)!=NULL)
 			) {
 				gf_filter_pck_forward(pck, opid);
 			} else {
@@ -517,9 +569,11 @@ static const GF_FilterCapability SEILoadCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_BOOL(GF_CAPFLAG_RECONFIG, GF_PROP_PID_SEI_LOADED, GF_TRUE),
 };
 
 GF_FilterRegister SEILoadRegister = {
@@ -529,7 +583,6 @@ GF_FilterRegister SEILoadRegister = {
 	)
 	.private_size = sizeof(SEILoadCtx),
 	.max_extra_pids = 0xFFFFFFFF,
-	.flags = GF_FS_REG_HIDE_WEIGHT,
 	.args = SEILoadArgs,
 	SETCAPS(SEILoadCaps),
 	.initialize = seiload_initialize,
@@ -537,6 +590,9 @@ GF_FilterRegister SEILoadRegister = {
 	.configure_pid = seiload_configure_pid,
 	.process = seiload_process,
 	.reconfigure_output = seiload_reconfigure_output,
+	//assign lowest priority so that we don't get picked up in graph solving
+	//if a better chain is possible
+	.priority = 0x7FFF,
 	.hint_class_type = GF_FS_CLASS_STREAM
 };
 

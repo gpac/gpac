@@ -253,12 +253,13 @@ typedef struct
 typedef struct
 {
 	AVCSeiRecoveryPoint recovery_point;
+	//valid if num_clock_ts is set
 	AVCSeiPicTiming pic_timing;
 	AVCSeiItuTT35DolbyVision dovi;
 
 	u8 clli_data[4];
 	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid, timecode_valid;
+	u8 clli_valid, mdcv_valid;
 	u8 has_3d_ref_disp_info;
 
 } GF_SEIInfo;
@@ -1016,7 +1017,8 @@ typedef struct
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];
 
-
+	//if set to ono, only parse OBU_METADATA and skip the rest. If OBU_METADAT is present, the value is set to 2
+	u32 parse_metadata_filter;
 	GF_SEIInfo sei;
 
 	//set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
