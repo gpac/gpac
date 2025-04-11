@@ -2613,7 +2613,7 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	gf_assert(filter);
 
 	if (!filter_dst) {
-		//if no destinations, the filter was removed while negociating
+		//if no destinations, the filter was removed while negotiating
 		//this happens for example when doing 'src enc_audio enc_video VIDEOONLY_DST'
 		//the removal of enc_audio is triggered after potential capacity negotiation with an adaptation filter
 		if (pid->num_destinations) {
@@ -2758,6 +2758,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (filter->is_pid_adaptation_filter) {
 		//do not remove from destination_filters, needed for end of pid_init task
 		if (!filter->dst_filter) filter->dst_filter = gf_list_get(filter->destination_filters, 0);
+		//in case the adaptation filter is not defining an explicit stream type or codec type
+		if (!filter->dst_filter && filter->cap_dst_filter) filter->dst_filter = filter->cap_dst_filter;
 		gf_assert(filter->dst_filter);
 		gf_assert(filter->num_input_pids==1);
 	}
@@ -2783,7 +2785,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 
 	//success !
 	if (src_pid->adapters_blacklist) {
-		gf_list_del(pid->adapters_blacklist);
+		gf_list_del(src_pid->adapters_blacklist);
 		src_pid->adapters_blacklist = NULL;
 	}
 	gf_assert(pid->caps_negotiate->reference_count);
@@ -4692,6 +4694,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				for (k=0;k<freg->nb_caps && !ext_not_trusted && ext_len; k++) {
 					const char *value;
 					const GF_FilterCapability *cap = &freg->caps[k];
+					if (cap->flags & GF_CAPFLAG_RECONFIG) break;
 					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
 					if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 					if (cap->code != GF_PROP_PID_FILE_EXT) continue;

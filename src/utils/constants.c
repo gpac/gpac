@@ -2826,6 +2826,16 @@ const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100])
 	return szTimecode;
 }
 
+GF_EXPORT
+u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale)
+{
+	if (!timescale) timescale = 1;
+	u64 res = (u64) tc->hours * 3600 + (u64) tc->minutes * 60 + (u64) tc->seconds;
+	res *= timescale;
+	res += gf_timestamp_rescale(tc->n_frames, gf_ceil(tc->max_fps), timescale);
+	return res;
+}
+
 #define TIMECODE_COMPARE(_op) \
 	if (value1->hours != value2->hours) return value1->hours _op value2->hours; \
 	if (value1->minutes != value2->minutes) return value1->minutes _op value2->minutes; \

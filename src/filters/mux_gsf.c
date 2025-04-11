@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -464,6 +464,14 @@ static GFINLINE Bool gsfmx_is_prop_skip(GSFMxCtx *ctx, u32 prop_4cc, const char 
 {
 	if (prop_name && !strcmp(prop_name, "reframer_rem_edits"))
 		return GF_TRUE;
+
+	if (gf_sys_is_test_mode()) {
+		switch (prop_4cc) {
+		case GF_PROP_PID_SEI_LOADED:
+		case GF_PROP_PCK_SEI_LOADED:
+			return GF_TRUE;
+		}
+	}
 
 	if (ctx->minp) {
 		u8 flags;
