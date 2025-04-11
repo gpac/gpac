@@ -2662,6 +2662,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 	switch (p4cc) {
 	case GF_PROP_PCK_TIMECODE:
+	case GF_PROP_PCK_SEI_LOADED:
 	case GF_PROP_PID_SEI_LOADED:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
 	case GF_PROP_PID_MUX_INDEX:
@@ -5383,7 +5384,7 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	//example requesting PID_SEI_LOAD on source
-	if (ctx->fmt && strstr(ctx->fmt, "tcmd"))
+	if (ctx->fmt && strstr(ctx->fmt, "_tmcd"))
 	{
 		switch (pctx->codec_id) {
 		case GF_CODECID_AVC:
