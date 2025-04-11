@@ -7070,7 +7070,10 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			break;
 
 		case 1: /*pic_timing*/
-			if (avc) avc_parse_pic_timing_sei(bs, avc);
+			if (avc) {
+				avc_parse_pic_timing_sei(bs, avc);
+				avc->sei.timecode_valid = 1;
+			}
 			break;
 
 		case 0: /*buffering period*/
@@ -8645,6 +8648,7 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		// time_code
 		case 136:
 			hevc_parse_pic_timing_sei(bs, hevc);
+			sei->timecode_valid = 1;
 			break;
 		default:
 			break;
