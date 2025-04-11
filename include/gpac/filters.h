@@ -2222,6 +2222,12 @@ enum
 	GF_CAPFLAG_OPTIONAL = 1<<6,
 	/*! Only checks presence of capability */
 	GF_CAPFLAG_PRESENT = 1<<7,
+	/*! Indicates this capability is only used on reconfigure - ignored for graph resolution - reconfig caps shall be placed last
+		The value of such caps is ignored, only the type/name is used
+
+	This cap should only be set for reconfigurable filters intended to be dynamically loaded for adaptation (eg resamplers, color-space conversion, rescalers)
+	*/
+	GF_CAPFLAG_RECONFIG = 1<<8,
 };
 
 /*! Shortcut macro to set for input capability flags*/
@@ -2568,7 +2574,8 @@ struct __gf_filter_register
 	*/
 	Bool (*process_event)(GF_Filter *filter, const GF_FilterEvent *evt);
 
-	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation
+	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation, checking for filters with
+ this function set and with reconfigurable caps matching the negotiated set of properties.
 
 	\param filter the target filter
 	\param PID the filter output PID being reconfigured
