@@ -2662,6 +2662,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 	switch (p4cc) {
 	case GF_PROP_PCK_TIMECODE:
+		//dump raw timecode when inspecting the
+		if (!ctx->analyze && ctx->props && (!ctx->fmt || !strstr(ctx->fmt, "$tmcd$")))
+			break;
+		return;
 	case GF_PROP_PCK_SEI_LOADED:
 	case GF_PROP_PID_SEI_LOADED:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
@@ -5383,9 +5387,12 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->buf_start_time = gf_sys_clock();
 	}
 
-	//example requesting PID_SEI_LOAD on source
-	if (ctx->fmt && strstr(ctx->fmt, "_tmcd"))
-	{
+	//Load SEIs for:
+	//- tmcd dump
+	//- props with no analyze
+	if ((ctx->fmt && strstr(ctx->fmt, "$tmcd$"))
+		|| (!ctx->analyze && ctx->props)
+	) {
 		switch (pctx->codec_id) {
 		case GF_CODECID_AVC:
 		case GF_CODECID_SVC:
@@ -5393,8 +5400,10 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		case GF_CODECID_HEVC:
 		case GF_CODECID_LHVC:
 		case GF_CODECID_VVC:
+		case GF_CODECID_AV1:
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SEI_LOADED);
-			if (!p) gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+			if (!p)
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
 		}
 	}
 

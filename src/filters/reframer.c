@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -177,6 +177,7 @@ typedef struct
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 
 	Bool in_range;
+	Bool load_sei;
 
 	Bool seekable;
 
@@ -347,6 +348,22 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!p || (p->value.uint < GF_PLAYBACK_MODE_FASTFORWARD))
 		ctx->seekable = GF_FALSE;
 
+	//trigger SEI loading if needed
+	if (ctx->load_sei) {
+		switch (st->codec_id) {
+		case GF_CODECID_AVC:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
+		case GF_CODECID_HEVC:
+		case GF_CODECID_LHVC:
+		case GF_CODECID_VVC:
+		case GF_CODECID_AV1:
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SEI_LOADED);
+			if (!p)
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+		}
+	}
+
 
 	ctx->filter_sap1 = ctx->filter_sap2 = ctx->filter_sap3 = ctx->filter_sap4 = ctx->filter_sap_none = GF_FALSE;
 	for (i=0; i<ctx->saps.nb_items; i++) {
@@ -393,7 +410,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	return GF_OK;
 }
 
-static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur, GF_TimeCode **as_timecode)
+static Bool reframer_parse_date(GF_ReframerCtx *ctx, char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur, GF_TimeCode **as_timecode)
 {
 	u64 v;
 	*as_timecode = NULL;
@@ -410,8 +427,11 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 	if (strlen(date)>2 && date[0]=='T' && date[1]=='C') {
 		u32 h=0, m=0, s=0, n_frames=0;
 		if (sscanf(date, "TC%u:%u:%u:%u", &h, &m, &s, &n_frames) != 4) {
+		
 			goto exit;
 		}
+		//we use timecodes, load SEI
+		ctx->load_sei = GF_TRUE;
 
 		// Express timecode as timestamp
 		// cur_start/end will be overwritten later. This ensures checks after this parser can work
@@ -574,7 +594,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (!end_date) ctx->range_type = RANGE_OPEN;
 	else ctx->range_type = RANGE_CLOSED;
 
-	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL, &ctx->cur_start_tc)) {
+	if (!reframer_parse_date(ctx, start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL, &ctx->cur_start_tc)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse start date, assuming end of ranges\n"));
 		//done
 		ctx->range_type = RANGE_DONE;
@@ -645,7 +665,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (end_date) {
 		Bool is_dur = GF_FALSE;
 		ctx->end_frame_idx_plus_one = 0;
-		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur, &ctx->cur_end_tc)) {
+		if (!reframer_parse_date(ctx, end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur, &ctx->cur_end_tc)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
 		} else {
@@ -1816,6 +1836,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 		if (!ctx->cur_start_valid || !ctx->cur_end_valid) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] No timecode for the first packet in the range, aborting\n"));
+			gf_filter_abort(filter);
 			return GF_BAD_PARAM;
 		}
 
