@@ -1775,6 +1775,10 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 			gf_dm_connect(sess);
 			if (sess->connect_pending) {
 				go = GF_FALSE;
+				if (!sess->last_error) {
+					//in case someone forgot to set this - if no error we must be in network empty state while connection is pending
+					sess->last_error = GF_IP_NETWORK_EMPTY;
+				}
 			}
 			break;
 		case GF_NETIO_WAIT_FOR_REPLY:
