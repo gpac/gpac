@@ -5301,6 +5301,15 @@ single_retry:
 			pid_is_file = 2;
 			continue;
 		}
+		//a connection to a sink dst has already been made requiring a filter chain and this pid is from a source filter
+		//we force demultiplexing - this avoids (see #3207) the following:
+		//gpac -i HTTP1 -i HTTP2 -o HTPOUT/live.mpd
+		//in which case HTTP2->httpout could match directly as httpout can accept any FILE connection
+		else if (is_sink && cap_matched && (filter_dst->force_demux==3) && !pid->filter->num_input_pids
+		) {
+			pid_is_file = 2;
+			continue;
+		}
 
 		can_try_link_resolution = GF_TRUE;
 
@@ -5494,6 +5503,10 @@ single_retry:
 					continue;
 				}
 			}
+
+			//demux was needed, force a demux for all further resolution
+			if (is_sink && !filter_dst->force_demux)
+				filter_dst->force_demux = 3;
 
 			//in implicit link, if target is not here push it (we have no SID/FID to solve that later)
 			if ((filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)
