@@ -5504,8 +5504,8 @@ single_retry:
 				}
 			}
 
-			//demux was needed, force a demux for all further resolution
-			if (is_sink && !filter_dst->force_demux)
+			//demux was needed on a filter using alias (httpout, routeout, ...), force a demux for all further resolution
+			if (is_sink && !filter_dst->force_demux && filter_dst->freg->use_alias)
 				filter_dst->force_demux = 3;
 
 			//in implicit link, if target is not here push it (we have no SID/FID to solve that later)
