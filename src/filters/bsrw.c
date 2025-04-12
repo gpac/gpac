@@ -297,7 +297,6 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck, u32 codec_type)
 {
 	Bool is_sei = GF_FALSE;
-	GF_TimeCode *tc_in = NULL;
 	u8 *output;
 	u32 pck_size;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
@@ -326,72 +325,15 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 				gf_bs_seek(bs, pos);
 			}
 
-			// Check if the NALU is a SEI
 			nal_type = gf_bs_read_u8(bs) & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEI)
 				is_sei = GF_TRUE;
-			else goto skip;
-
-			//skip if not doing timecode manipulation
-			if (!ctx->tc) goto skip;
-
-			//parse the sei
-			//even though we might remove it, we need it for timecode manipulation range
-			u8* nal = gf_malloc(nal_size);
-			gf_bs_seek(bs, pos);
-			gf_bs_read_data(bs, nal, nal_size);
-			memset(&pctx->avc->sei.pic_timing, 0, sizeof(AVCSeiPicTiming));
-			gf_avc_reformat_sei(nal, nal_size, GF_FALSE, pctx->avc, NULL);
-			gf_free(nal);
-
-			AVCSeiPicTimingTimecode *avc_tc = &pctx->avc->sei.pic_timing.timecodes[0];
-			if (avc_tc->clock_timestamp_flag) {
-				if (tc_in) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Multiple timecodes in the same AU, ignoring\n"));
-					goto skip;
-				}
-
-				GF_SAFEALLOC(tc_in, GF_TimeCode);
-				tc_in->hours = avc_tc->hours;
-				tc_in->minutes = avc_tc->minutes;
-				tc_in->seconds = avc_tc->seconds;
-				tc_in->n_frames = avc_tc->n_frames;
-			}
 		}
 		//HEVC
 		else if (codec_type==1) {
 			nal_type = (gf_bs_read_u8(bs) & 0x7E) >> 1;
 			if ((nal_type == GF_HEVC_NALU_SEI_PREFIX) || (nal_type == GF_HEVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
-			else goto skip;
-
-			//skip if not doing timecode manipulation
-			if (!ctx->tc) goto skip;
-
-			//parse the sei
-			HEVCState *hevc;
-			GF_SAFEALLOC(hevc, HEVCState);
-			u8* nal = gf_malloc(nal_size);
-			gf_bs_seek(bs, pos);
-			gf_bs_read_data(bs, nal, nal_size);
-			gf_hevc_parse_sei(nal, nal_size, hevc);
-			gf_free(nal);
-
-			AVCSeiPicTimingTimecode *hevc_tc = &hevc->sei.pic_timing.timecodes[0];
-			if (hevc_tc->clock_timestamp_flag) {
-				if (tc_in) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Multiple timecodes in the same AU, ignoring\n"));
-					gf_free(hevc);
-					goto skip;
-				}
-
-				GF_SAFEALLOC(tc_in, GF_TimeCode);
-				tc_in->hours = hevc_tc->hours;
-				tc_in->minutes = hevc_tc->minutes;
-				tc_in->seconds = hevc_tc->seconds;
-				tc_in->n_frames = hevc_tc->n_frames;
-			}
-			gf_free(hevc);
 		}
 		//VVC
 		else if (codec_type==2) {
@@ -401,7 +343,6 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 				is_sei = GF_TRUE;
 		}
 
-	skip:
 		gf_bs_seek(bs, pos + nal_size);
 	}
 	if (!is_sei && ctx->tc <= BSRW_TC_REMOVE) {
@@ -426,6 +367,10 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		gf_bs_del(bs);
 		return GF_OUT_OF_MEM;
 	}
+
+	//get the existing timecode
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+	GF_TimeCode *tc_in = p ? (GF_TimeCode*) p->value.data.ptr : NULL;
 
 	GF_TimeCode tc_out;
 	Bool tc_change = bsrw_manipulate_tc(pck, ctx, pctx, tc_in, &tc_out);
@@ -650,9 +595,7 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 {
 	u32 pck_size;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
-
-	//for the time being, we only support timecode manipulation
-	if (!data || !ctx->tc)
+	if (!data)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
 #ifdef GPAC_DISABLE_AV_PARSERS
@@ -669,77 +612,9 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		return gf_filter_pck_forward(pck, pctx->opid);
 	}
 
-	//look for existing timecode
-	GF_TimeCode *tc_in = NULL;
-	while (gf_bs_available(bs)) {
-		u64 pos = gf_bs_get_position(bs);
-
-		//read header
-		ObuType obu_type = OBU_RESERVED_0;
-		Bool obu_extension_flag = GF_FALSE, obu_has_size_field = GF_FALSE;
-		u8 tid = 0, sid = 0;
-		GF_Err e = gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &tid, &sid);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Error parsing AV1 OBU header, forwarding packet\n"));
-			gf_bs_del(bs);
-			return gf_filter_pck_forward(pck, pctx->opid);
-		}
-
-		// read size
-		u64 obu_size = pck_size;
-		if (obu_has_size_field) {
-			obu_size = gf_av1_leb128_read(bs, NULL);
-			if (obu_size > pck_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] OBU size exceeds packet size, forwarding packet\n"));
-				gf_bs_del(bs);
-				return gf_filter_pck_forward(pck, pctx->opid);
-			}
-		}
-		u32 hdr_size = (u32)(gf_bs_get_position(bs) - pos);
-
-		//check if timecode metadata
-		Bool is_metadata = obu_type == OBU_METADATA;
-		if (!is_metadata) goto skip;
-		u64 metadata_type = gf_av1_leb128_read(bs, NULL);
-		if (metadata_type != OBU_METADATA_TYPE_TIMECODE) goto skip;
-
-		//allocate the timecode
-		if (tc_in) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Multiple timecodes in the same TU, ignoring\n"));
-			goto skip;
-		}
-		GF_SAFEALLOC(tc_in, GF_TimeCode);
-
-		//parse timecode metadata
-		gf_bs_read_int(bs, 5); //counting_type
-		Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
-		gf_bs_read_int(bs, 1); //discontinuity_flag
-		gf_bs_read_int(bs, 1); //cnt_dropped_flag
-		tc_in->n_frames = gf_bs_read_int(bs, 9);
-
-		if (full_timestamp_flag) {
-			tc_in->seconds = gf_bs_read_int(bs, 6);
-			tc_in->minutes = gf_bs_read_int(bs, 6);
-			tc_in->hours = gf_bs_read_int(bs, 5);
-		} else {
-			Bool seconds_flag = gf_bs_read_int(bs, 1);
-			if (seconds_flag) {
-				tc_in->seconds = gf_bs_read_int(bs, 6);
-				Bool minutes_flag = gf_bs_read_int(bs, 1);
-				if (minutes_flag) {
-					tc_in->minutes = gf_bs_read_int(bs, 6);
-					Bool hours_flag = gf_bs_read_int(bs, 1);
-					if (hours_flag) {
-						tc_in->hours = gf_bs_read_int(bs, 5);
-					}
-				}
-			}
-		}
-		//skip rest of the metadata
-
-	skip:
-		gf_bs_seek(bs, pos + hdr_size + obu_size);
-	}
+	//get the existing timecode
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+	GF_TimeCode *tc_in = p ? (GF_TimeCode*) p->value.data.ptr : NULL;
 
 	GF_TimeCode tc_out;
 	Bool tc_change = bsrw_manipulate_tc(pck, ctx, pctx, tc_in, &tc_out);
@@ -871,6 +746,12 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	u32 dsi_size;
 	const GF_PropertyValue *prop;
 
+	if (ctx->tc) {
+		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
+		if (!prop)
+			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
+	}
+
 	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!prop) return GF_OK;
 	pctx->reconfigure = GF_FALSE;
@@ -933,6 +814,12 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	u8 *dsi;
 	u32 dsi_size;
 	const GF_PropertyValue *prop;
+
+	if (ctx->tc) {
+		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
+		if (!prop)
+			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
+	}
 
 	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!prop) return GF_OK;
@@ -1015,6 +902,24 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 #else
 	return GF_NOT_SUPPORTED;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
+}
+
+static GF_Err av1_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	const GF_PropertyValue *prop;
+
+	if (ctx->tc) {
+		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
+		if (!prop)
+			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
+	}
+
+	if (ctx->tc) {
+		pctx->rewrite_packet = av1_rewrite_packet;
+	} else {
+		pctx->rewrite_packet = none_rewrite_packet;
+	}
+	return GF_OK;
 }
 
 static GF_Err none_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
@@ -1189,7 +1094,7 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		pctx->rewrite_pid_config = m4v_rewrite_pid_config;
 		break;
 	case GF_CODECID_AV1:
-		pctx->rewrite_packet = av1_rewrite_packet;
+		pctx->rewrite_pid_config = av1_rewrite_pid_config;
 		break;
 	case GF_CODECID_AP4H:
 	case GF_CODECID_AP4X:
