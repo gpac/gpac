@@ -8369,6 +8369,12 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUPID);
 			if (p)
 				ds->rep->groupID = p->value.string;
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUP_REND);
+			if (p) {
+				ds->rep->nb_group_ids_rend = p->value.string_list.nb_items;
+				ds->rep->group_ids_rend = (const char**) p->value.string_list.vals;
+			}
+
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_FORCE_INF);
 			if (p)
 				ds->rep->hls_forced = p->value.string;
