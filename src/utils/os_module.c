@@ -322,7 +322,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 #ifdef WIN32
 		gf_enum_directory(pm->dirs[i], GF_FALSE, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || (defined(TARGET_IPHONE_SIMULATOR) && TARGET_IPHONE_SIMULATOR)
 		/*we are in static build for modules by default*/
 #else
 		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dylib");
