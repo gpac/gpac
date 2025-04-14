@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -159,9 +159,6 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 	if (e) return e;
 
 	/*
-		//NAME
-		e = udta_on_child_box_ex((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME), GF_FALSE, GF_TRUE);
-		if (e) return e;
 		//HINF
 		return udta_on_child_box_ex((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF), GF_FALSE, GF_TRUE);
 	*/
