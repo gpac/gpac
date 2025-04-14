@@ -195,6 +195,7 @@ GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid)
 			sei->av1_state->config = av1c;
 			//for now no need to load the OBUs
 		}
+		gf_odf_av1_cfg_del(av1c);
 	}
 		sei->is_identity = GF_FALSE;
 		break;
