@@ -306,6 +306,7 @@ static GF_Err gf_sei_load_from_packet_nalu(GF_SEILoader *sei, GF_FilterPacket *p
 			case GF_HEVC_NALU_SEI_PREFIX:
 			case GF_HEVC_NALU_SEI_SUFFIX:
 				is_sei = GF_TRUE;
+				gf_hevc_parse_sei(data+pos+sei->nalu_size, size, sei->hevc_state);
 			case GF_HEVC_NALU_SEQ_PARAM: //for pic timing full parse we need SPS...
 				gf_hevc_parse_nalu_bs(sei->bs, sei->hevc_state, &nal_type, &temporal_id, &layer_id);
 				break;
@@ -315,9 +316,10 @@ static GF_Err gf_sei_load_from_packet_nalu(GF_SEILoader *sei, GF_FilterPacket *p
 			u8 temporal_id, layer_id;
 			u8 nal_unit_type = gf_bs_peek_bits(sei->bs, 8, 1) >> 3;
 			switch (nal_unit_type) {
-			case GF_HEVC_NALU_SEI_PREFIX:
-			case GF_HEVC_NALU_SEI_SUFFIX:
+			case GF_VVC_NALU_SEI_PREFIX:
+			case GF_VVC_NALU_SEI_SUFFIX:
 				is_sei = GF_TRUE;
+				gf_vvc_parse_sei(data+pos+sei->nalu_size, size, sei->vvc_state);
 				gf_vvc_parse_nalu_bs(sei->bs, sei->vvc_state, &nal_unit_type, &temporal_id, &layer_id);
 				break;
 			}
