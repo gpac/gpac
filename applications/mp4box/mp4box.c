@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -1543,6 +1543,9 @@ void PrintTags()
 	"Tags are specified as a colon-separated list `tag_name=tag_value[:tag2=val2]`\n"
 	"Setting a tag with no value or value `NULL` removes the tag.\n"
 	"Special tag value `clear` (or `reset`) removes all tags.\n"
+	"Special tag value `cust` indicates a custom domain tag, in which case the tag value must start with `DOMAIN,MEAN,`.\n"
+	"EX -itags cust='com.apple.iTunes,iTunEXTC,My Tag Value'\n"
+	"The `DOMAIN` and/or `NAME` strings can be empty.\n"
 	"Unsupported tags can be added using their four character code as a tag name, and string value will be assumed.\n"
 	"If the tag name length is 3, the prefix 0xA9 is used to create the four character code.\n"
 	"  \n"

@@ -952,6 +952,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_find_od_id_for_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_get_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_enum_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_enum_tag_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_wma_enum_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_udta_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_data_size) )

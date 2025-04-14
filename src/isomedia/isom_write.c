@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -6246,7 +6246,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
 
 
 GF_EXPORT
-GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2)
+GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2, const char *in_cust_name, const char *in_cust_mean, u32 locale)
 {
 	GF_Err e;
 	GF_ItemListBox *ilst;
@@ -6258,6 +6258,9 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	u8 loc_data[10];
 	u32 int_flags = 0x15;
 	GF_DataBox *dbox;
+	char *cust_mean=NULL, *cust_name=NULL;
+
+	if (in_cust_name || in_cust_mean) tag = GF_4CC('c','u','s','t');
 
 	e = CanAccessMovie(mov, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -6297,12 +6300,57 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 			}
 		}
 		btype = data ? GF_ISOM_ITUNE_GENRE_USER : GF_ISOM_ITUNE_GENRE;
+	} else if (tag==GF_4CC('c','u','s','t') ) {
+		if (in_cust_name || in_cust_mean) {
+			if (in_cust_mean[0])
+				cust_mean = gf_strdup(in_cust_mean);
+			if (in_cust_name[0])
+				cust_name = gf_strdup(in_cust_name);
+			btype = GF_ISOM_BOX_TYPE_iTunesSpecificInfo;
+		} else {
+			char *sep = strchr(data, ',');
+			if (sep) {
+				sep[0] = 0;
+				if (data[0])
+					cust_mean = gf_strdup(data);
+				sep[0] = ',';
+				sep++;
+
+				char *sep2 = strchr(sep+1, ',');
+				if (sep2) {
+					sep2[0] = 0;
+					if (sep[0])
+						cust_name = gf_strdup(sep);
+					sep2[0] = ',';
+					data_len -= (u32) (sep2-(char*)data) +1;
+					data = sep2+1;
+				} else {
+					data_len -= (u32) (sep-(char*)data)+1;
+					data = sep+1;
+				}
+				btype = GF_ISOM_BOX_TYPE_iTunesSpecificInfo;
+			}
+		}
 	} else {
 		btype = tag;
 	}
 	/*remove tag*/
 	i = 0;
 	while ((info = (GF_ListItemBox*)gf_list_enum(ilst->child_boxes, &i))) {
+		if (info->type==GF_ISOM_BOX_TYPE_iTunesSpecificInfo) {
+
+			if (info->name && cust_name && !strcmp(info->name->string, cust_name)) {}
+			else if (!info->name && !cust_name) {}
+			else continue;
+
+			if (info->mean && cust_mean && !strcmp(info->mean->string, cust_mean)) {}
+			else if (!info->mean && !cust_mean) {}
+			else continue;
+
+			gf_isom_box_del_parent(&ilst->child_boxes, (GF_Box *) info);
+			info = NULL;
+			break;
+		}
 		if (info->type==btype) {
 			gf_isom_box_del_parent(&ilst->child_boxes, (GF_Box *) info);
 			info = NULL;
@@ -6321,6 +6369,8 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	if (!data && data_len) {
 		if (!gf_list_count(ilst->child_boxes) )
 			gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) ilst);
+		if (cust_mean) gf_free(cust_mean);
+		if (cust_name) gf_free(cust_name);
 		return GF_OK;
 	}
 
@@ -6331,15 +6381,32 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	} else {
 		info = (GF_ListItemBox *)gf_isom_box_new(btype);
 	}
-	if (info == NULL) return GF_OUT_OF_MEM;
+	if (info == NULL) {
+		if (cust_mean) gf_free(cust_mean);
+		if (cust_name) gf_free(cust_name);
+		return GF_OUT_OF_MEM;
+	}
 
 	dbox = (GF_DataBox *)gf_isom_box_new_parent(&info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
 	if (!dbox) {
 		gf_isom_box_del((GF_Box *)info);
+		if (cust_mean) gf_free(cust_mean);
+		if (cust_name) gf_free(cust_name);
 		return GF_OUT_OF_MEM;
 	}
+	dbox->locale = locale;
+
 	if (info->type!=GF_ISOM_BOX_TYPE_UNKNOWN) {
 		info->data = dbox;
+
+		if (cust_name) {
+			info->name = (GF_NameBox *)gf_isom_box_new_parent(&info->child_boxes, GF_QT_BOX_TYPE_NAME);
+			info->name->string = cust_name;
+		}
+		if (cust_mean) {
+			info->mean = (GF_NameBox *)gf_isom_box_new_parent(&info->child_boxes, GF_QT_BOX_TYPE_MEAN);
+			info->mean->string = cust_mean;
+		}
 	}
 
 	switch (itype) {
@@ -6459,6 +6526,12 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	if (!ilst->child_boxes) ilst->child_boxes = gf_list_new();
 
 	return gf_list_add(ilst->child_boxes, info);
+}
+
+GF_EXPORT
+GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2)
+{
+	return gf_isom_apple_set_tag_ex(mov, tag, data, data_len, int_val, int_val2, NULL, NULL, 0);
 }
 
 #include <gpac/utf.h>

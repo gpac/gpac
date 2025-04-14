@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -4152,16 +4152,23 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 		i=0;
 		while (1) {
 			u32 int_val2, flags, itype;
+			const char *mean=NULL, *name=NULL;
 			GF_ISOiTunesTag tag;
 			u64 int_val;
+			u32 locale=0;
 			s32 tag_idx;
-			GF_Err e = gf_isom_apple_enum_tag(file, i, &tag, &data, &data_len, &int_val, &int_val2, &flags);
+			GF_Err e = gf_isom_apple_enum_tag_ex(file, i, &tag, &data, &data_len, &int_val, &int_val2, &flags, &mean, &name, &locale);
 			if (e) break;
 			i++;
 
 			tag_idx = gf_itags_find_by_itag(tag);
 			if (tag_idx<0) {
-				fprintf(stderr, "\t%s: %s\n", gf_4cc_to_str(tag), data);
+				if (mean && name)
+					fprintf(stderr, "\t%s (%s): %s\n", name, mean, data);
+				else if (mean || name)
+					fprintf(stderr, "\t%s: %s\n", name ? name : mean, data);
+				else
+					fprintf(stderr, "\t%s: %s\n", gf_4cc_to_str(tag), data);
 				continue;
 			}
 			fprintf(stderr, "\t%s: ", gf_itags_get_name(tag_idx) );
