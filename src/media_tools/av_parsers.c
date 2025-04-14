@@ -4337,6 +4337,7 @@ static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
 	AVCSeiPicTiming *pt = &sei->pic_timing;
 	pt->num_clock_ts = 1;
 	AVCSeiPicTimingTimecode *tc = &pt->timecodes[0];
+	tc->clock_timestamp_flag = 1;
 
 	tc->counting_type = gf_bs_read_int_log(bs, 5, "counting_type");
 	Bool full_timestamp_flag = gf_bs_read_int_log(bs, 1, "full_timestamp_flag");
