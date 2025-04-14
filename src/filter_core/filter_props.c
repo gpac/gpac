@@ -1719,6 +1719,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_CLAMP_DUR, "ClampDur", "Max media duration to process from PID in DASH mode", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_GROUPID, "HLSGroup", "Name of HLS Group of a stream", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_HLS_GROUP_REND, "HLSRend", "List of HLS group allowed in group rendition - when not set, all groups are allowed", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_FORCE_INF, "HLSForce", "Force writing EXT-X-STREAM-INF if stream is in a rendition group, value is the name of associated groups (can be empty)", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_EXT_MASTER, "HLSMExt", "List of extensions to add to the master playlist for this PID", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_EXT_VARIANT, "HLSVExt", "List of extensions to add to the variant playlist for this PID", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
