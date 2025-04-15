@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1255,6 +1255,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	if (ifps>= 2996 && ifps<=2998) target_ts = 30000;	//29.97
 	else if (ifps>= 2999 && ifps<=3001) target_ts = 3000; //30
 	else if (ifps>= 2495 && ifps<=2505) target_ts = 2500; //25
+	else if (!(def_dur%125) && !(timescale % 2997)) target_ts = 2997; //23.97
 	else if (ifps >= 2396 && ifps<=2398) target_ts = 24000; //23.97
 	else if ((ifps>=2399) && (ifps<=2401)) target_ts = 2400; //24
 	else if (ifps>= 4990 && ifps<=5010) target_ts = 5000; //50
