@@ -2562,6 +2562,9 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		if (ctx->hevc_state->sei.has_3d_ref_disp_info) {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
 		}
+		if (ctx->hevc_state->sei.alternative_transfer_characteristics) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->sei.alternative_transfer_characteristics) );
+		}
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 			naludmx_push_prefix(ctx, data, size, GF_FALSE);

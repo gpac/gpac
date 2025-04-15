@@ -3060,7 +3060,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			gf_list_add(set->essential_properties, desc);
 			
 		}
-		if (ds->color_transfer_characteristics_alt){
+		if (ds->color_transfer_characteristics_alt > GF_COLOR_TRC_UNSPECIFIED){
 				sprintf(value, "%d", ds->color_transfer_characteristics_alt);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->supplemental_properties, desc);			
