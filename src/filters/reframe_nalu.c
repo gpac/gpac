@@ -1972,8 +1972,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(sps->transfer_characteristic) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(sps->matrix_coeffs) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(sps->video_full_range_flag) );
-			if (ctx->hevc_state->alternative_transfer_characteristics){
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->alternative_transfer_characteristics) );
+			if (ctx->hevc_state->sei.alternative_transfer_characteristics){
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->sei.alternative_transfer_characteristics) );
 			}
 			has_colr_info = GF_TRUE;
 		}

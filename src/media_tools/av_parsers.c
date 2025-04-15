@@ -8651,9 +8651,9 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		// atc
 		case 147:
 			if (hevc){
-				hevc->alternative_transfer_characteristics = gf_bs_read_u8(bs);
+				hevc->sei.alternative_transfer_characteristics = gf_bs_read_u8(bs);
 			} else {
-				vvc->alternative_transfer_characteristics = gf_bs_read_u8(bs);
+				vvc->sei.alternative_transfer_characteristics = gf_bs_read_u8(bs);
 			}
 			break;
 		// three_dimensional_reference_displays_info
