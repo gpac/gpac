@@ -4171,8 +4171,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				u64 seg_dur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
 				u64 cdur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->timescale);
 				u64 cts = gf_filter_pck_get_cts(pck);
-				if (ds->stream_type == GF_STREAM_AUDIO)
-					cts += ds->presentation_time_offset;
+				cts += ds->presentation_time_offset;
 				if (ds->timescale != ds->mpd_timescale) {
 					seg_dur = gf_timestamp_rescale(seg_dur, ds->timescale, ds->mpd_timescale);
 					cdur = gf_timestamp_rescale(cdur, ds->timescale, ds->mpd_timescale);
@@ -11219,7 +11218,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(segcts), "compute segment number based on first packet", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(segcts), "compute the segment number by dividing the first CTS by [-segdur]()", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "use manifest generation only mode", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
