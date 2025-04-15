@@ -362,6 +362,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_set_ntp_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_ntp_to_utc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_net_ntp_add_usec) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_reload_netcap) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_errno_str) )
