@@ -1743,6 +1743,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Color primaries", GF_PROP_CICP_COL_PRIM, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Color transfer characteristics", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_COLR_TRANSFER_ALT, "ColorTransferAlternative", "Alternative Color transfer characteristics", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_MX, "ColorMatrix", "Color matrix coefficient", GF_PROP_CICP_COL_MX, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_RANGE, "FullRange", "Color full range flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_CHROMAFMT, "Chroma", "Chroma format (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
