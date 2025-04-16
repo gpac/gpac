@@ -1357,8 +1357,17 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 		gf_bs_write_int(bs, dims.fullRequestHost, 1);
 		gf_bs_write_int(bs, dims.streamType, 1);
 		gf_bs_write_int(bs, dims.containsRedundant, 2);
-		gf_bs_write_data(bs, (char*)dims.textEncoding, (u32) strlen(dims.textEncoding)+1);
-		gf_bs_write_data(bs, (char*)dims.contentEncoding, (u32) strlen(dims.contentEncoding)+1);
+
+		if (dims.textEncoding)
+			gf_bs_write_data(bs, (char*)dims.textEncoding, (u32) strlen(dims.textEncoding)+1);
+		else
+			gf_bs_write_data(bs, "", 1);
+
+		if (dims.contentEncoding)
+			gf_bs_write_data(bs, (char*)dims.contentEncoding, (u32) strlen(dims.contentEncoding)+1);
+		else
+			gf_bs_write_data(bs, "", 1);
+
 		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
