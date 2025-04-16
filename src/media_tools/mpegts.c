@@ -773,7 +773,6 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		sdt->free_CA_mode = (data[pos+3]>>4) & 0x1;
 		descs_size = ((data[pos+3]&0xf)<<8) | data[pos+4];
 		pos += 5;
-
 		if (pos+descs_size > data_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
 			return;
@@ -792,16 +791,39 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 				sdt->service = NULL;
 
 				d_pos+=2;
+				if (pos+d_pos+1 >= data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					return;
+				}
 				sdt->service_type = data[pos+d_pos];
 				ulen = data[pos+d_pos+1];
+
 				d_pos += 2;
+				if (pos+d_pos+ulen > data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					return;
+				}
 				sdt->provider = (char*)gf_malloc(sizeof(char)*(ulen+1));
 				memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->provider[ulen] = 0;
+
 				d_pos += ulen;
+				if (pos+d_pos >= data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					gf_free(sdt->provider);
+					sdt->provider = NULL;
+					return;
+				}
 
 				ulen = data[pos+d_pos];
 				d_pos += 1;
+				if (pos+d_pos+ulen > data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					gf_free(sdt->provider);
+					sdt->provider = NULL;
+					return;
+				}
+
 				sdt->service = (char*)gf_malloc(sizeof(char)*(ulen+1));
 				memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->service[ulen] = 0;
@@ -1258,7 +1280,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	data_size -= 4 + info_length;
 	pos = 0;
 
-	
+
 	nb_hevc_temp = nb_shvc = nb_shvc_temp = nb_mhvc = nb_mhvc_temp = 0;
 	while (pos<data_size) {
 		GF_M2TS_PES *pes = NULL;
