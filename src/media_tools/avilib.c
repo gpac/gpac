@@ -2454,7 +2454,10 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 		for (j=0; j<AVI->video_superindex->nEntriesInUse; j++) {
 
 			// read from file
-			chunk_start = en = (char*) gf_malloc ((u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len) );
+			u32 chunk_size = (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
+			if (!chunk_size)
+				continue;
+			chunk_start = en = (char*) gf_malloc(chunk_size);
 
 			if (gf_fseek(AVI->fdes, AVI->video_superindex->aIndex[j].qwOffset, SEEK_SET) == (u64)-1) {
 				gf_free(chunk_start);
@@ -2482,6 +2485,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			}
 
 			while (k < nvi) {
+
+				if (en-chunk_start+8 > chunk_size)
+					break;
 
 				AVI->video_index[k].pos = offset + str2ulong((unsigned char*)en);
 				en += 4;
