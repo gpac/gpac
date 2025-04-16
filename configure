@@ -675,6 +675,10 @@ for opt do
             ;;
         --disable-alsa) append disabled_packages "alsa"
             ;;
+        --disable-oss) append disabled_packages "oss"
+            ;;
+        --disable-dvb4linux) append disabled_packages "dvb4linux"
+            ;;
         --enable-gprof) gprof_build="yes";
             ;;
         --static-build) static_build="yes";
@@ -1483,7 +1487,7 @@ config_package ()
     pck_ldflags=""
 
     pname="$1"
-    case "$disabled_packages" in
+    case "$disabled_packages " in
     *"$pname "*) shift
         eval "has_$pname=\"no\""
         return
@@ -1771,14 +1775,14 @@ EOF
 
 else
 
-check_has_lib oss "" '#include <sys/ioctl.h>
+config_package oss "" "" "" "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/soundcard.h>
 int main( void ) { return 0; }'
 
 if test "$has_oss" = "no" ; then
-check_has_lib oss "" '#include <sys/ioctl.h>
+config_package oss "" "" "" "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <soundcard.h>
@@ -1813,19 +1817,17 @@ return 0;
 }'
 
 
-
-check_has_lib dvb4linux "" '#include <linux/dvb/dmx.h>
+config_package dvb4linux "" "" "" "" '#include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
 int main( void ) {return 0;}'
 
-check_has_lib alsa "" '#include <alsa/asoundlib.h>
+config_package alsa "libasound" "" "" "" '#include <alsa/asoundlib.h>
 int main( void ) {return 0;}'
 
-
-check_has_lib pulseaudio "" '#include <pulse/pulseaudio.h>
+config_package pulseaudio "libpulse" "" "" "" '#include <pulse/pulseaudio.h>
 int main( void ) {return 0;}'
 
-check_has_lib jack "" '#include <jack/jack.h>
+config_package jack "libjack" "" "" "" '#include <jack/jack.h>
 int main( void ) {return 0;}'
 
 
