@@ -1039,7 +1039,9 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 			char *name;
 			entityEnd = strstr(current, ";");
 			if (!entityEnd) return xml_sax_append_string(parser, current);
+
 			entityStart = strrchr(parser->buffer, '&');
+			if (!entityStart) return xml_sax_append_string(parser, current);
 
 			entityEnd[0] = 0;
 			len = (u32) strlen(entityStart) + (u32) strlen(current) + 1;
