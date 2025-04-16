@@ -1986,7 +1986,7 @@ fi
 
 
 #look for SDL support - we don't use check_has_lib for the time being
-case "$disabled_packages" in
+case "$disabled_packages " in
 *"sdl "*) has_sdl=no
     ;;
 *) sdl_too_old=no
