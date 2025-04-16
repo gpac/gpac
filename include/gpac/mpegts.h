@@ -282,6 +282,11 @@ typedef enum
 	GF_M2TS_HLS_AAC_CRYPT		= 0xcf,
 	GF_M2TS_HLS_AVC_CRYPT		= 0xdb,
 
+	GF_M2TS_VIDEO_AVS2          = 0xD2,
+	GF_M2TS_AUDIO_AVS2          = 0xD3,
+	GF_M2TS_VIDEO_AVS3          = 0xD4,
+	GF_M2TS_AUDIO_AVS3          = 0xD5,
+
 	/*the rest is internal use*/
 
 	GF_M2TS_VIDEO_VC1					= 0xEA,

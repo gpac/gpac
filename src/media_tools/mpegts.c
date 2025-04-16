@@ -1400,6 +1400,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_HLS_AAC_CRYPT:
 		case GF_M2TS_HLS_AC3_CRYPT:
 		case GF_M2TS_HLS_EC3_CRYPT:
+		case GF_M2TS_VIDEO_AVS2:
+		case GF_M2TS_AUDIO_AVS2:
+		case GF_M2TS_VIDEO_AVS3:
+		case GF_M2TS_AUDIO_AVS3:
 		case 0xA1:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			if (!pes) {

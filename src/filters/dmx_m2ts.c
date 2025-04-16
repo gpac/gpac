@@ -371,6 +371,22 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_OPUS;
 			break;
+		case GF_M2TS_VIDEO_AVS2:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_AVS2_VIDEO;
+			break;
+		case GF_M2TS_AUDIO_AVS2:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AVS2_AUDIO;
+			break;
+		case GF_M2TS_VIDEO_AVS3:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_AVS3_VIDEO;
+			break;
+		case GF_M2TS_AUDIO_AVS3:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AVS3_AUDIO;
+			break;
 		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 			((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
 			//fallthrough

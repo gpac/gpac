@@ -607,6 +607,12 @@ typedef enum
 	GF_CODECID_VP9 = GF_4CC('V','P','0','9'),
 	GF_CODECID_VP10 = GF_4CC('V','P','1','0'),
 
+	/*AVS2/3*/
+	GF_CODECID_AVS2_VIDEO = GF_4CC('A','V','V','2'),
+	GF_CODECID_AVS2_AUDIO = GF_4CC('A','V','A','2'),
+	GF_CODECID_AVS3_VIDEO = GF_4CC('A','V','V','3'),
+	GF_CODECID_AVS3_AUDIO = GF_4CC('A','V','A','3'),
+
 	/*MPEG-H audio*/
 	GF_CODECID_MPHA = GF_4CC('m','p','h','a'),
 	/*MPEG-H mux audio*/
