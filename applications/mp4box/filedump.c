@@ -4383,6 +4383,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program number %d found - %d streams:\n", prog->number, count));
 		for (i=0; i<count; i++) {
 			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+			if (!es) continue;
 			if (es->pid == prog->pmt_pid) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tPID %d: Program Map Table\n", es->pid));
 			} else {
