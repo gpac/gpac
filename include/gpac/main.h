@@ -140,7 +140,7 @@ typedef struct
 #define GF_ARG_SUBSYS_AUDIO 		(1<<10)
 /*! argument applies to the font and text subsystem*/
 #define GF_ARG_SUBSYS_TEXT 		(1<<11)
-/*! argument applies to the remotery subsystem*/
+/*! argument applies to the rmtws subsystem*/
 #define GF_ARG_SUBSYS_RMT 		(1<<12)
 /*! argument belongs to hack tools, usually never used*/
 #define GF_ARG_SUBSYS_HACKS 		(1<<13)
@@ -265,4 +265,3 @@ Bool gf_sys_word_match(const char *orig, const char *dst);
 #endif
 
 #endif	//_GF_MAIN_H_
-

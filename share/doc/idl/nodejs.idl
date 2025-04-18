@@ -67,14 +67,16 @@ unsigned long long sys_clock_high_res();
 void set_args(Array args);
 
 /*! enables websocket monitoring server - see \ref gf_sys_enable_rmtws
+*
+* define the \ref rmt_on_new_client attribute to set callbacks
 \param enable enable or disable server
 */
 void enable_rmtws(boolean enable);
 
 /*! set the callback function when new clients connect to the websocket server
-* the function shall take one parameter of type _RMT_Client
+* the function shall take one parameter of type \ref _RMTClient
 */
-attribute function rmt_on_new_client;
+optional attribute function rmt_on_new_client;
 
 /*! GPAC event proc callback, initially set to null
 \param evt the user event being dispatched
@@ -108,6 +110,35 @@ attribute _FilterEvent FilterEvent;
 
 /*! FileIO constructor*/
 attribute _FileIO FileIO;
+
+
+
+/*! Object representing a monitoring websocket client
+*
+* will be passed to the session \ref rmt_on_new_client callback
+*/
+interface _RMTClient {
+
+	/*! a callback called when the client receives data
+	 *
+	 * the function shall be of type function(data)
+	 * where data will be either of type string (for utf8 data) or arraybuffer (for binary data)
+	 */
+	optional attribute function on_data;
+
+	/*! a callback called when the client disconnects or is deleted */
+	optional attribute function on_close;
+
+	/*! a string of format ip:port representing the client */
+	readonly attribute string peer_address;
+
+	/*! sends data to the client on the websocket
+	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
+	*/
+	void send(data);
+
+
+}
 
 /*! @} */
 

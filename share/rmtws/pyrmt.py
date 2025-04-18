@@ -50,7 +50,7 @@ gpac.enable_rmtws()
 import pprint
 import json
 
-class MyRMTHandler():
+class MyRMTHandler(gpac.RMTHandler):
 
     def __init__(self):
         self.clients = []

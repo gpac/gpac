@@ -407,7 +407,6 @@ def set_args(args):
 
 ## enables websocket monitoring server
 # \param value True/False enable or disable server
-# \return
 def enable_rmtws(enable=True):
     _libgpac.user_init = True
     _libgpac.gf_sys_enable_rmtws(enable)
@@ -419,7 +418,7 @@ _libgpac.rmt_client_set_on_del_cbk.argtypes = [c_void_p, py_object, c_void_p]
 def rmt_fun_on_client_close_cbk(_udta):
     print("rmt_fun_on_client_close_cbk")
     obj = cast(_udta, py_object).value
-    obj.on_delete()
+    obj._on_delete()
     return 0
 ##\endcond private
 
@@ -430,7 +429,7 @@ def rmt_fun_on_client_data_cbk(_udta, data, size, is_binary):
     obj = cast(_udta, py_object).value
     data = string_at(data, size)
     print(f"raw data: {data}")
-    obj.on_data(data, size, is_binary)
+    obj._on_data(data, size, is_binary)
     return 0
 ##\endcond private
 
@@ -449,16 +448,14 @@ class RMTClient():
             _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
 
 
-    def on_data(self, data, size, is_binary):
-        print(f"rmtclient {self} got data {data} size {size} is_binary {is_binary}")
+    def _on_data(self, data, size, is_binary):
         if hasattr(self._handler, 'on_client_data'):
             if not is_binary:
                 data = data.decode("utf-8")
             self._handler.on_client_data(self, data)
 
 
-    def on_delete(self):
-        print("on_delete")
+    def _on_delete(self):
         if hasattr(self._handler, 'on_client_data'):
             err = _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(), None)
 
@@ -486,6 +483,29 @@ class RMTClient():
             return _libgpac.rmt_client_send_to_ws(self._client, data, len(data), is_binary)
         pass
 
+## RMTHandler object handling the callbacks for rmtws events
+#
+# to be passed to \ref set_rmt_handler()
+class RMTHandler():
+
+    ## called when a new client connects to the websocket
+    # \param client an object of type \ref RMTClient representing the new client
+    def on_new_client(self, client: RMTClient):
+        pass
+
+    ## called when a client disconnects from the websocket
+    # \param client an object of type \ref RMTClient representing the client
+    def on_client_close(self, client: RMTClient):
+        pass
+
+    ## called when a client receives data on its websocket
+    # \param client an object of type \ref RMTClient representing the client
+    # \param data the received data, can be either str or bytes depending on the exchanged data
+    def on_client_data(self, client: RMTClient, data):
+        pass
+
+
+
 ##\cond private
 _libgpac.rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
 @CFUNCTYPE(c_int, c_void_p, c_void_p)
@@ -498,10 +518,7 @@ def rmt_fun_on_new_client_cbk(_udta, client):
 ##\endcond private
 
 ## set the handler for rmt_ws
-# can define 3 callbacks:
-# - on_new_client(client): called on a new websocket connection
-# - on_client_close(client): when client disconnects
-# - on_client_data(client, data): when client receives data
+# \param callback_obj an object of type \ref RMTHandler implementing the desired callbacks
 def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
     if hasattr(callback_obj, 'on_new_client'):
