@@ -260,6 +260,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/rewrite_mp4v.c \
 	../../../../src/filters/rewrite_nalu.c \
 	../../../../src/filters/rewrite_obu.c \
+	../../../../src/filters/sei_load.c \
 	../../../../src/filters/tileagg.c \
 	../../../../src/filters/tilesplit.c \
 	../../../../src/filters/tssplit.c \

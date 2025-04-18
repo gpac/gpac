@@ -797,6 +797,7 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
 			sess->status = GF_NETIO_SETUP;
 			sess->connect_pending = 2;
+			sess->last_error = GF_IP_NETWORK_EMPTY;
 			return SSL_CONNECT_WAIT;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));

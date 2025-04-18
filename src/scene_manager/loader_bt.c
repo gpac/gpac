@@ -397,12 +397,20 @@ next_line:
 				for (i=0; i<count; i++) {
 					u32 symb_len, val_len, copy_len;
 					BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
+					if (!def->name) continue;
 					char *start = strstr(parser->line_buffer, def->name);
 					if (!start) continue;
+
 					symb_len = (u32) strlen(def->name);
 					if (!strchr(" \n\r\t,[]{}\'\"", start[symb_len])) continue;
 					val_len = (u32) strlen(def->value);
+
+					if (val_len >= BT_LINE_SIZE || symb_len >= BT_LINE_SIZE) continue;
+
 					copy_len = (u32) strlen(start + symb_len) + 1;
+
+					if ((start-parser->line_buffer) + val_len + copy_len > BT_LINE_SIZE) continue;
+
 					memmove(start + val_len, start + symb_len, sizeof(char)*copy_len);
 					memcpy(start, def->value, sizeof(char)*val_len);
 					parser->line_size = (u32) strlen(parser->line_buffer);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Telecom ParisTech 2023-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / EVG rescaler filter
@@ -480,7 +480,11 @@ static GF_FilterArgs EVGSArgs[] =
 static const GF_FilterCapability EVGSCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW)
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_WIDTH, 0),
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_HEIGHT, 0),
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_PIXFMT, 0),
 };
 
 

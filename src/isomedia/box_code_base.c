@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2739,7 +2739,7 @@ GF_Err name_box_read(GF_Box *s, GF_BitStream *bs)
 }
 GF_Box *name_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_NameBox, GF_ISOM_BOX_TYPE_NAME);
+	ISOM_DECL_BOX_ALLOC(GF_NameBox, GF_QT_BOX_TYPE_NAME);
 	return (GF_Box *)tmp;
 }
 #ifndef GPAC_DISABLE_ISOM_WRITE

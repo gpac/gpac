@@ -184,9 +184,11 @@ typedef struct
 	u32 id, delay, timescale;
 	u64 offset, init_val;
 	char *url;
-	Bool ntp, use_init_val;
+	u32 ntp_mode;
+	Bool use_init_val;
 	u32 mode_64bits;
 	u64 cts_at_init_val_plus_one;
+	u64 ntp_init_ts, ntp_init_cts;
 } TEMIDesc;
 
 enum
@@ -667,8 +669,22 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 						tc += temi->offset;
 				}
 
-				if (temi->ntp) {
+				if (temi->ntp_mode==1) {
 					ntp = gf_net_get_ntp_ts();
+				}
+				else if (temi->ntp_mode==2) {
+					u64 pck_ts = 0;
+					if ((s64) cts + tspid->media_delay >= 0)
+						pck_ts = gf_timestamp_rescale(cts + tspid->media_delay, ifce->timescale, 1000000);
+
+					if (!temi->ntp_init_ts) {
+						temi->ntp_init_ts = gf_net_get_ntp_ts();
+						temi->ntp_init_cts = pck_ts;
+					}
+
+					s64 diff_usec = pck_ts;
+					diff_usec -= temi->ntp_init_cts;
+					ntp = gf_net_ntp_add_usec(temi->ntp_init_ts, diff_usec);
 				}
 				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url, GF_FALSE, GF_FALSE, NULL, GF_FALSE, GF_FALSE);
 			}
@@ -1099,7 +1115,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		u32 temi_delay=1000;
 		u64 temi_offset=0;
 		u32 temi_timescale=0;
-		Bool temi_ntp=GF_FALSE;
+		u32 temi_ntp=0;
 		u32 temi_64bits=TEMI_TC64_AUTO;
 		Bool temi_use_init_val=GF_FALSE;
 		u64 temi_init_val = 0;
@@ -1123,7 +1139,10 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				service_id = atoi(temi_cfg+2);
 				break;
 			case 'N':
-				temi_ntp = GF_TRUE;
+				temi_ntp = 1;
+				break;
+			case 'n':
+				temi_ntp = 2;
 				break;
 			case 'D':
 				temi_delay = atoi(temi_cfg+2);
@@ -1186,7 +1205,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				temi->url = gf_strdup(temi_cfg);
 				temi->id = temi_id+1;
 			}
-			temi->ntp = temi_ntp;
+			temi->ntp_mode = temi_ntp;
 			temi->offset = temi_offset;
 			temi->delay = temi_delay;
 			temi->timescale = temi_timescale;
@@ -2335,6 +2354,7 @@ GF_FilterRegister TSMuxRegister = {
 		"  - `Y`: use 64 bit signaling only.\n"
 		"  - `N`: use 32 bit signaling only and wrap around timecode value.\n"
 		"- N: insert NTP timestamp in TEMI timeline descriptor\n"
+		"- n: insert NTP timestamp using NTP for first packet than incrementing based on media timestamp (for non real-time)\n"
 		"- ID_OR_URL: If number, indicate the TEMI ID to use for external timeline. Otherwise, give the URL to insert\n"
 		"  \n"
 		"EX temi=\"url\"\n"

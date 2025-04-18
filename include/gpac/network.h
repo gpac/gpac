@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -326,6 +326,16 @@ Gets diff in milliseconds between NTP time and current time
 \return diff in milliseconds with the current time
  */
 s32 gf_net_get_ntp_diff_ms(u64 ntp);
+
+/*!
+
+Adds or remove a given amount of microseconds to an NTP timestamp
+\param ntp NTP timestamp
+\param usec microseconds to add/remove
+\return adjusted NTP timestamp
+ */
+GF_EXPORT
+u64 gf_net_ntp_add_usec(u64 ntp, s32 usec);
 
 
 /*!

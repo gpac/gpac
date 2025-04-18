@@ -5641,6 +5641,8 @@ GF_FilterRegister HTTPOutRegister = {
 		"When multiple read directories are specified, the server root `/` contains the list of the mount points with their directory names.\n"
 		"When a write directory is specified, the upload resource name identifies a file in this directory (the write directory name is not present in the URL).\n"
 		"  \n"
+		"Warning: files uploaded / created in the write directory are always created in non-atomic modes.\n"
+		"  \n"
 		"A directory rule file (cf `gpac -h creds`) can be specified in [-rdirs]() but NOT in [-wdir](). When rules are used:\n"
 		"- if a directory has a `name` rule, it will be used in the URL\n"
 		"- otherwise, the directory is directly available under server root `/`\n"

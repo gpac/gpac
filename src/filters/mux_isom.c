@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -740,7 +740,10 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		u32 prop_4cc=0;
 		u32 itag;
 		s32 tag_idx;
+		const char *domain = NULL;
+		const char *mean = NULL;
 		const char *tag_name=NULL;
+		char *sep_dom=NULL;
 		const GF_PropertyValue *tag = gf_filter_pid_enum_properties(tkw->ipid, &idx, &prop_4cc, &tag_name);
 		if (!tag) break;
 
@@ -799,23 +802,31 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 			}
 			continue;
 		} else {
-			if (ctx->itags==TAG_STRICT)
-				continue;
+			if (!strnicmp(tag_name, "tag_", 4)) {
+				if (ctx->itags==TAG_STRICT)
+					continue;
+				tag_name += 4;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized tag %s: %s\n", tag_name, tag->value.string));
 
-			if (strnicmp(tag_name, "tag_", 4))
-				continue;
-
-			tag_name += 4;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized tag %s: %s\n", tag_name, tag->value.string));
-
-			if (strlen(tag_name)==4) {
-				itag = GF_4CC(tag_name[0], tag_name[1], tag_name[2], tag_name[3]);
-			} else if (strlen(tag_name)==3) {
-				itag = GF_4CC(0xA9, tag_name[0], tag_name[1], tag_name[2]);
+				if (strlen(tag_name)==4) {
+					itag = GF_4CC(tag_name[0], tag_name[1], tag_name[2], tag_name[3]);
+				} else if (strlen(tag_name)==3) {
+					itag = GF_4CC(0xA9, tag_name[0], tag_name[1], tag_name[2]);
+				} else {
+					itag = gf_crc_32(tag_name, (u32) strlen(tag_name));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Tag name %s is not a 4CC, using CRC32 %08X as value\n", tag_name, itag));
+				}
+			} else if (!strnicmp(tag_name, "cust_", 4)) {
+				tag_name += 5;
+				itag = GF_4CC('c', 'u', 's', 't');
+				domain = tag_name;
+				sep_dom = strchr(tag_name, '@');
+				if (sep_dom) {
+					sep_dom[0] = 0;
+					mean = sep_dom+1;
+				}
 			} else {
-				itag = gf_crc_32(tag_name, (u32) strlen(tag_name));
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Tag name %s is not a 4CC, using CRC32 %08X as value\n", tag_name, itag));
+				continue;
 			}
 		}
 
@@ -827,30 +838,31 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		case GF_PROP_STRING:
 		case GF_PROP_NAME:
 			len = tag->value.string ? (u32) strlen(tag->value.string) : 0;
-			e = gf_isom_apple_set_tag(ctx->file, itag, tag->value.string, len, 0, 0);
+			e = gf_isom_apple_set_tag_ex(ctx->file, itag, tag->value.string, len, 0, 0, domain, mean, 0);
 			break;
 		case GF_PROP_BOOL:
-			e = gf_isom_apple_set_tag(ctx->file, itag, NULL, 0, tag->value.boolean, 0);
+			e = gf_isom_apple_set_tag_ex(ctx->file, itag, NULL, 0, tag->value.boolean, 0, domain, mean, 0);
 			break;
 		case GF_PROP_UINT:
 		case GF_PROP_4CC:
-			e = gf_isom_apple_set_tag(ctx->file, itag, NULL, 0, tag->value.uint, 0);
+			e = gf_isom_apple_set_tag_ex(ctx->file, itag, NULL, 0, tag->value.uint, 0, domain, mean, 0);
 			break;
 		case GF_PROP_LUINT:
-			e = gf_isom_apple_set_tag(ctx->file, itag, NULL, 0, tag->value.longuint, 0);
+			e = gf_isom_apple_set_tag_ex(ctx->file, itag, NULL, 0, tag->value.longuint, 0, domain, mean, 0);
 			break;
 		case GF_PROP_FRACTION:
-			e = gf_isom_apple_set_tag(ctx->file, itag, NULL, 0, tag->value.frac.num, tag->value.frac.den);
+			e = gf_isom_apple_set_tag_ex(ctx->file, itag, NULL, 0, tag->value.frac.num, tag->value.frac.den, domain, mean, 0);
 			break;
 		case GF_PROP_DATA:
 		case GF_PROP_CONST_DATA:
-			e = gf_isom_apple_set_tag(ctx->file, itag, tag->value.data.ptr, tag->value.data.size, 0, 0);
+			e = gf_isom_apple_set_tag_ex(ctx->file, itag, tag->value.data.ptr, tag->value.data.size, 0, 0, domain, mean, 0);
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set tag %s: invalid data format\n", gf_itags_get_name(tag_idx) ));
 			e = GF_OK;
 			break;
 		}
+			if (sep_dom) sep_dom[0] = ',';
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set tag %s: %s\n", tag_name, gf_error_to_string(e)));
@@ -1374,6 +1386,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				else if (inc * 5000 == ts * 100) target_timescale = 5000;
 				else if (inc * 60000 == ts * 1001) target_timescale = 60000;
 				else if (inc * 5994 == ts * 100) target_timescale = 60000;
+				else if (inc * 2997 == ts * 125) target_timescale = 2997;
 				else if (is_prores) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ProRes] Unrecognized frame rate %g\n", ((Double)ts)/inc ));
 					return GF_NON_COMPLIANT_BITSTREAM;
@@ -8664,6 +8677,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"- `NAME` as a box 4CC if `NAME` is 3 characters long, and will be prefixed by 0xA9\n"
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"
 	"  \n"
+	"Property names formatted as `cust_NAME@MEAN` are added as a custom tag with name `NAME` and mean `MEAN`. Both `NAME` and `MEAN` can be empty.\n"
 	"# User data\n"
 	"The filter will look for the following PID properties to create user data entries:\n"
 	"- `udtab`: set the track user-data box to the property value which __must__ be a serialized box array blob\n"

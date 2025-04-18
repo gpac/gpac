@@ -432,11 +432,11 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
  */
 typedef struct
 {
-	u8 hours, minutes, seconds;
-	u16 n_frames;
 	Float max_fps;
-	Bool drop_frame, negative;
-	u32 as_timestamp;
+	u16 n_frames;
+	u8 hours, minutes, seconds;
+	u8 drop_frame, negative;
+	u8 counting_type;
 } GF_TimeCode;
 
 /*!
@@ -448,6 +448,16 @@ Formats a timecode into a string
 \return the formated input buffer
 */
 const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
+
+/*!
+\brief converts a timecode to timestamp
+
+Converts a timecode to a timestamp in the given timescale
+\param tc timecode to convert
+\param timescale timescale to convert to
+\return the timestamp in the given timescale
+*/
+u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale);
 
 /*!
 \brief compare timecodes

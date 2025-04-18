@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -216,7 +216,7 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, sreg, ttml_agg;
+	Bool cmpd, dual, segcts, sreg, ttml_agg;
 	char *styp;
 	Bool sigfrag;
 	DasherTSSHandlingMode sbound;
@@ -2668,6 +2668,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 				case GF_PROP_PID_CHAP_TIMES:
 				case GF_PROP_PID_CHAP_NAMES:
 				case GF_PROP_PID_ISOM_UDTA:
+				case GF_PROP_PID_SEI_LOADED:
 					continue;
 				case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 					//for text streams, only used for SDP config by tx3g and we don't need it
@@ -4163,6 +4164,40 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			}
 		}
 
+		//update startNumber based on first cts
+		if (ctx->segcts) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
+			if (pck) {
+				u64 seg_dur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+				u64 cdur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->timescale);
+				u64 cts = gf_filter_pck_get_cts(pck);
+				cts += ds->presentation_time_offset;
+				if (ds->timescale != ds->mpd_timescale) {
+					seg_dur = gf_timestamp_rescale(seg_dur, ds->timescale, ds->mpd_timescale);
+					cdur = gf_timestamp_rescale(cdur, ds->timescale, ds->mpd_timescale);
+					cts = gf_timestamp_rescale(cts, ds->timescale, ds->mpd_timescale);
+				}
+
+				//decide on start number
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
+				ds->startNumber = p ? p->value.uint : 0;
+				ds->startNumber += (u32) gf_floor(cts / seg_dur) + 1;
+
+				//set the fragment sequence number
+				ds->moof_sn = ds->startNumber;
+				if (ctx->cdur.num>0 && ctx->cdur.den>0) {
+					u32 chunk_per_segment = (u32) gf_floor(seg_dur / cdur);
+					ds->moof_sn = (ds->startNumber - 1) * chunk_per_segment + 1;
+
+					//add the sn offset within the segment
+					Float progress_in_seg = (Float) (cts % seg_dur) / (Float) seg_dur;
+					ds->moof_sn += (u32) gf_floor(progress_in_seg * chunk_per_segment);
+				}
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
+			}
+		}
+
 		if (ds->nb_repeat && !ctx->loop) {
 			if (split_set_names) {
 				sprintf(szDASHSuffix, "%sp%d_", szSetFileSuffix, ds->nb_repeat+1);
@@ -5313,6 +5348,7 @@ static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
 			case GF_PROP_PID_PLAYBACK_MODE:
 			case GF_PROP_PID_CHAP_TIMES:
 			case GF_PROP_PID_CHAP_NAMES:
+			case GF_PROP_PID_SEI_LOADED:
 				continue;
 			default:
 				break;
@@ -8332,6 +8368,12 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUPID);
 			if (p)
 				ds->rep->groupID = p->value.string;
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUP_REND);
+			if (p) {
+				ds->rep->nb_group_ids_rend = p->value.string_list.nb_items;
+				ds->rep->group_ids_rend = (const char**) p->value.string_list.vals;
+			}
+
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_FORCE_INF);
 			if (p)
 				ds->rep->hls_forced = p->value.string;
@@ -11176,6 +11218,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(segcts), "compute the segment number by dividing the first CTS by [-segdur]()", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "use manifest generation only mode", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},

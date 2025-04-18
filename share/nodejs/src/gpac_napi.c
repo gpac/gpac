@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021-2024
+ *			Copyright (c) Telecom ParisTech 2021-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / NodeJS module
@@ -5547,6 +5547,7 @@ static napi_status InitConstants(napi_env env, napi_value exports)
 	DEF_CONST(GF_CAPFLAG_LOADED_FILTER)
 	DEF_CONST(GF_CAPFLAG_STATIC)
 	DEF_CONST(GF_CAPFLAG_OPTIONAL)
+	DEF_CONST(GF_CAPFLAG_RECONFIG)
 	DEF_CONST(GF_CAPS_INPUT)
 	DEF_CONST(GF_CAPS_INPUT_OPT)
 	DEF_CONST(GF_CAPS_INPUT_STATIC)
