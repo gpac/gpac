@@ -6,6 +6,8 @@
 #include <gpac/download.h>
 #include <gpac/base_coding.h>
 
+#ifndef GPAC_DISABLE_RMTWS
+
 
 // Global settings
 static RMT_Settings g_Settings;
@@ -900,3 +902,35 @@ RMT_WS* rmt_ws_new() {
 
 
 }
+
+#else //GPAC_DISABLE_RMTWS
+
+void rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
+
+}
+void* rmt_get_on_new_client_task() {
+    return NULL;
+}
+
+const char* rmt_get_peer_address(RMT_ClientCtx* client) {
+    return NULL;
+}
+GF_Err rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
+    return GF_NOT_SUPPORTED;
+}
+
+void rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk) {
+
+}
+void* rmt_client_get_on_data_task(RMT_ClientCtx* client) {
+    return NULL;
+}
+
+void rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk) {
+
+}
+void* rmt_client_get_on_del_task(RMT_ClientCtx* client) {
+    return NULL;
+}
+
+#endif
