@@ -8361,9 +8361,13 @@ GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
 				memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
 			}
 			pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
-			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
-			if (!pssh->private_data) return GF_OUT_OF_MEM;
-			memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
+			if (!pssh->private_data_size) {
+				pssh->private_data = NULL;
+			} else {
+				pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
+				if (!pssh->private_data) return GF_OUT_OF_MEM;
+				memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
+			}
 		}
 	}
 	return GF_OK;
