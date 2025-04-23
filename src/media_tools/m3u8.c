@@ -952,7 +952,9 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				while (codec) {
 					char *sep = strchr(codec, ',');
 					if (sep) sep[0] = 0;
-					if (!strstr(curr_playlist->codecs, codec))
+					if (!curr_playlist->codecs)
+						gf_dynstrcat(&curr_playlist->codecs, codec, NULL);
+					else if (!strstr(curr_playlist->codecs, codec))
 						gf_dynstrcat(&curr_playlist->codecs, codec, ",");
 					else if (!curr_playlist->main_codecs || !strstr(curr_playlist->main_codecs, codec))
 						gf_dynstrcat(&curr_playlist->main_codecs, codec, ",");

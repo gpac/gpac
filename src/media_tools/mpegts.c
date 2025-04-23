@@ -1711,7 +1711,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					break;
 
 				case GF_M2TS_DVB_EXT_DESCRIPTOR:
-					if ((len>4) && (data[2] == 0x06)) {
+					if ((len>4) && (data[2] == 0x06) && pes) {
 						u32 flags = data[3];
 						u32 aflags = (flags >> 2) & 0x1F;
 						if ((flags & 0x80) == 0)
