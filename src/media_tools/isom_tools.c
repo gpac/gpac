@@ -3909,18 +3909,18 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 	sprintf(szArgs, "mp4dmx:mov=%p", input);
 	f = gf_fs_load_filter(fsess, szArgs, &e);
-	if (!f) return e;
+	if (!f) { gf_fs_del(fsess); return e; }
 
 	strcpy(szArgs, "reframer:FID=1");
 	f = gf_fs_load_filter(fsess, szArgs, &e);
-	if (!f) return e;
+	if (!f) { gf_fs_del(fsess); return e; }
 
 	sprintf(szArgs, "%s:SID=1:frag:cdur=%g:abs_offset:fragdur", output_file, max_duration_sec);
 	if (use_mfra)
 		strcat(szArgs, ":mfra");
 
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
-	if (!f) return e;
+	if (!f) { gf_fs_del(fsess); return e; }
 
 	if (!gf_sys_is_test_mode()
 #ifndef GPAC_DISABLE_LOG
