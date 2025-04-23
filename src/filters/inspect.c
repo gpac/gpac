@@ -1910,6 +1910,7 @@ static void gf_inspect_dump_opus_internal(FILE *dump, u8 *ptr, u32 size, u32 cha
 		if (self_delimited) {
 			if (pck_offset+pckh.packet_size >= size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Opus] Not enough data to parse next self-delimited packet!\n"));
+				break;
 			}
 			pck_offset += pckh.packet_size;
 		}
