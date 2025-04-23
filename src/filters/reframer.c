@@ -1842,15 +1842,17 @@ GF_Err reframer_process(GF_Filter *filter)
 					// Start from the first frame since timecode is out-of-bounds
 					frac->num = ts;
 					frac->den = pck_ts;
-					if (tc == ctx->cur_start_tc)
+					if (tc == ctx->cur_start_tc) {
 						ctx->ts_tc_offset.num = cur_ts - target_ts;
 						ctx->ts_tc_offset.den = pck_ts;
+					}
 				} else {
 					frac->num = ts + (target_ts - cur_ts);
 					frac->den = pck_ts;
-					if (tc == ctx->cur_start_tc)
+					if (tc == ctx->cur_start_tc) {
 						ctx->ts_tc_offset.num = 0;
 						ctx->ts_tc_offset.den = pck_ts;
+					}
 				}
 
 				*valid = GF_TRUE;
