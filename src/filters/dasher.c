@@ -334,13 +334,6 @@ typedef struct
 	Bool inband_event;
 } GF_DasherCtx;
 
-typedef enum
-{
-	DASHER_HDR_NONE=0,
-	DASHER_HDR_PQ10,
-	DASHER_HDR_HLG,
-} DasherHDRType;
-
 typedef struct _dash_stream
 {
 	GF_FilterPid *ipid, *opid;
@@ -364,7 +357,7 @@ typedef struct _dash_stream
 	u32 nb_surround, nb_lfe, atmos_complexity_type;
 	u64 ch_layout;
 	GF_PropVec4i srd;
-	DasherHDRType hdr_type;
+	u32 color_primaries, color_transfer_characteristics, color_matrix, color_transfer_characteristics_alt;
 	Bool sscale;
 	Bool skip_sap;
 
@@ -1531,36 +1524,36 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				ds->hls_vp_name = NULL;
 			}
 		}
-
-		//HDR
+		
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
+		if(p){
+			ds->color_primaries = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER);
+		if(p){
+			ds->color_transfer_characteristics = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER_ALT);
+		if(p){
+			ds->color_transfer_characteristics_alt = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
+		if(p){
+			ds->color_matrix = p->value.uint;
+		}
+		
+		
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (dsi) {
 			if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
 				GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 				if (hevccfg) {
-					Bool is_interlaced;
-					HEVCState *hvc_state;
-					HEVC_SPS* sps;
-					GF_SAFEALLOC(hvc_state, HEVCState);
-					if (hvc_state) {
-						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_VID_PARAM);
-						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_SEQ_PARAM);
-						sps = &hvc_state->sps[hvc_state->sps_active_idx];
-						if (sps && sps->colour_description_present_flag) {
-							DasherHDRType old_hdr_type = ds->hdr_type;
-							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-								if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
-								if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
-							}
-							if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
-						}
-						is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
-						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+					Bool is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
+					if (ds->interlaced != is_interlaced){
 						ds->interlaced = is_interlaced;
-
-						gf_odf_hevc_cfg_del(hevccfg);
-						gf_free(hvc_state);
+						period_switch = GF_TRUE;
 					}
+					gf_odf_hevc_cfg_del(hevccfg);
 				}
 			}
 			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
@@ -3046,31 +3039,31 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				gf_list_add(set->supplemental_properties, desc);
 			}
 		}
-		//set HDR
-		if (ds->hdr_type > DASHER_HDR_NONE) {
-			char value[256];
-			GF_MPD_Descriptor* desc;
-			sprintf(value, "9");
+
+		// ETSI TS 103 285 v1.4.1 - 5.2.5 Colour format and transfer characteristics signalling
+		// TODO: add "urn:dvb:dash:profile:dvb-dash:2017" to profiles_string
+		char value[256];
+		GF_MPD_Descriptor* desc;
+		if (ds->color_primaries > GF_COLOR_PRIM_UNSPECIFIED){
+			sprintf(value, "%d", ds->color_primaries);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ColourPrimaries", value);
 			gf_list_add(set->essential_properties, desc);
-			sprintf(value, "9");
+		}
+		if (ds->color_transfer_characteristics > GF_COLOR_TRC_UNSPECIFIED){ 
+			sprintf(value, "%d", ds->color_transfer_characteristics);
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
+				gf_list_add(set->essential_properties, desc);			
+		}
+		if (ds->color_matrix > GF_COLOR_MX_UNSPECIFIED){
+			sprintf(value, "%d", ds->color_matrix);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:MatrixCoefficients", value);
 			gf_list_add(set->essential_properties, desc);
-
-			if (ds->hdr_type==DASHER_HDR_PQ10) {
-				sprintf(value, "16");
+			
+		}
+		if (ds->color_transfer_characteristics_alt > GF_COLOR_TRC_UNSPECIFIED){
+				sprintf(value, "%d", ds->color_transfer_characteristics_alt);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->essential_properties, desc);
-			}
-
-			if (ds->hdr_type == DASHER_HDR_HLG) {
-				sprintf(value, "14");
-				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->essential_properties, desc);
-				sprintf(value, "18");
-				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->supplemental_properties, desc);
-			}
+				gf_list_add(set->supplemental_properties, desc);			
 		}
 
 		//add custom inband event in manifest
