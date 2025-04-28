@@ -691,7 +691,7 @@ int live_session(int argc, char **argv)
 					case GF_IP_NETWORK_EMPTY:
 						gf_sleep(10);
 						break;
-					case GF_OK:
+					case GF_OK:;
 						u32 to_copy = MIN(bytes_read, update_buffer_size-bytes_received);
 						memcpy(update_buffer+bytes_received, buffer, to_copy);
 						bytes_received += to_copy;
