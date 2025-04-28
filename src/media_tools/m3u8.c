@@ -468,7 +468,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					attributes->key_url = gf_strdup(&(ret[1][5]));
 					if (attributes->key_url) {
 						u32 klen = (u32) strlen(attributes->key_url);
-						attributes->key_url[klen-1] = 0;
+						attributes->key_url[klen ? klen-1 : 0] = 0;
 					}
 				}
 			}
