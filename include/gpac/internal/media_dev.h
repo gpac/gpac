@@ -261,7 +261,7 @@ typedef struct
 	u8 mdcv_data[24];
 	u8 clli_valid, mdcv_valid;
 	u8 has_3d_ref_disp_info;
-
+	u8 alternative_transfer_characteristics;
 } GF_SEIInfo;
 
 typedef struct
@@ -598,7 +598,6 @@ typedef struct _hevc_state
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
-
 } HEVCState;
 
 typedef struct hevc_combine{

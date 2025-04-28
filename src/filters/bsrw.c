@@ -831,6 +831,31 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
+static GF_Err reconfigure_alternative_transfer_characteristic(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	// skip if not applicable
+	const GF_PropertyValue *prop;
+	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_COLR_TRANSFER_ALT);
+	if (!prop) return GF_OK;
+	Bool rm_alt_trc_sei;
+	if(ctx->seis.nb_items > 0){
+		// atc SEI explicitly listed
+		for (u32 i = 0; i < ctx->seis.nb_items; i++) {
+			if (ctx->seis.vals[i] == 147) {
+				rm_alt_trc_sei = ctx->rmsei;
+				break;
+			}
+		}	
+	} else {
+		// explicit removal
+		rm_alt_trc_sei = ctx->rmsei;
+	}
+	if (rm_alt_trc_sei){
+		return gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, NULL);
+	}
+	return GF_OK;
+}
+
 static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
 	GF_HEVCConfig *hvcc;
@@ -866,7 +891,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if (ctx->pidc>=0) hvcc->profile_idc = ctx->pidc;
 	if (ctx->pspace>=0) hvcc->profile_space = ctx->pspace;
 	if (ctx->gpcflags>=0) hvcc->general_profile_compatibility_flags = ctx->gpcflags;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_hevc_cfg_write(hvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = hvcc->nal_unit_size;
@@ -908,7 +933,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	if (ctx->pidc>=0) vvcc->general_profile_idc = ctx->pidc;
 	if (ctx->lev>=0) vvcc->general_level_idc = ctx->pidc;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_vvc_cfg_write(vvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = vvcc->nal_unit_size;
