@@ -358,6 +358,15 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			data[pos+5] = 'r';
 			data[pos+6] = 'e';
 			data[pos+7] = 'e';
+			u32 max_s = MAX(size, finfo->total_size);
+			if (pos+box_size>max_s) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat size from %u to %u (truncated file)\n", finfo->filename, pos, box_size, max_s - pos));
+				box_size = max_s - pos;
+				data[pos] = (box_size>>24) & 0xFF;
+				data[pos+1] = (box_size>>16) & 0xFF;
+				data[pos+2] = (box_size>>8) & 0xFF;
+				data[pos+3] = (box_size) & 0xFF;
+			}
 			nb_patches++;
 		} else {
 			//incomplete box, move to free and erase begining of payload
@@ -421,7 +430,7 @@ exit:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s was partially received but no modifications during fast-repair, please report to GPAC devs\n", finfo->filename));
 	}
 	if (was_partial) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s fast-repair done (%d patches)\n", finfo->filename, pos));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s fast-repair done (%d patches)\n", finfo->filename, nb_patches));
 	}
 	//remove corrupted flag
 	finfo->partial = GF_LCTO_PARTIAL_NONE;
