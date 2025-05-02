@@ -781,10 +781,9 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		if (root) root[0] = '/';
 
 		if (!gf_sk_is_multicast_address(ctx->src+prot_offset)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] %s is not a multicast address\n", ctx->log_name, ctx->src));
-			sep[0] = ':';
-			return GF_BAD_PARAM;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] %s is not a multicast address\n", ctx->log_name, ctx->src));
 		}
+
 		if (is_mabr)
 			ctx->route_dmx = gf_dvb_mabr_dmx_new(ctx->src+prot_offset, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		else
