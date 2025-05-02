@@ -277,6 +277,22 @@ typedef struct
 	s32 diff_send_at_frame_start, diff_recv_at_frame_start;
 } ROUTEPid;
 
+static GF_Err routemx_setup_socket(GF_ROUTEOutCtx *ctx, GF_Socket *sock, const char *dst_ip, u32 dst_port)
+{
+	GF_Err e;
+	if (gf_sk_is_multicast_address(dst_ip)) {
+		e = gf_sk_setup_multicast(sock, dst_ip, dst_port, ctx->ttl, GF_FALSE, ctx->ifce);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup multicast %s:%u on %s interface\n", ctx->log_name, dst_ip, dst_port, ctx->ifce ? ctx->ifce : "default"));
+		}
+	} else {
+		e = gf_sk_bind(sock, ctx->ifce, dst_port, dst_ip, dst_port, GF_SOCK_REUSE_PORT|GF_SOCK_IS_SENDER);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind socket %s:%u on %s interface\n", ctx->log_name, dst_ip, dst_port, ctx->ifce ? ctx->ifce : "default"));
+		}
+	}
+	return e;
+}
 
 ROUTELCT *route_create_lct_channel(GF_Filter *filter, GF_ROUTEOutCtx *ctx, const char *ip, u32 port, GF_Err *e)
 {
@@ -297,7 +313,7 @@ ROUTELCT *route_create_lct_channel(GF_Filter *filter, GF_ROUTEOutCtx *ctx, const
 	if (rlct->ip) {
 		rlct->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
 		if (rlct->sock) {
-			*e = gf_sk_setup_multicast(rlct->sock, rlct->ip, rlct->port, ctx->ttl, GF_FALSE, ctx->ifce);
+			*e = routemx_setup_socket(ctx, rlct->sock, rlct->ip, rlct->port);
 			if (*e) {
 				gf_sk_del(rlct->sock);
 				rlct->sock = NULL;
@@ -821,8 +837,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	}
 
 	if (!gf_sk_is_multicast_address(ctx->ip)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] IP %s is not a multicast address\n", ctx->log_name, ctx->ip));
-		return GF_BAD_PARAM;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] IP %s is not a multicast address\n", ctx->log_name, ctx->ip));
 	}
 
 	if (ext || ctx->mime) {
@@ -856,11 +871,13 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 
 	if (is_atsc) {
 		ctx->sock_atsc_lls = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
-		gf_sk_setup_multicast(ctx->sock_atsc_lls, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 0, GF_FALSE, ctx->ifce);
+		GF_Err e = routemx_setup_socket(ctx, ctx->sock_atsc_lls, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT);
+		if (e) return e;
 	}
 	if (ctx->dvb_mabr) {
 		ctx->sock_dvb_mabr = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
-		gf_sk_setup_multicast(ctx->sock_dvb_mabr, ctx->ip, ctx->first_port, 0, GF_FALSE, ctx->ifce);
+		GF_Err e = routemx_setup_socket(ctx, ctx->sock_dvb_mabr, ctx->ip, ctx->first_port);
+		if (e) return e;
 		ctx->dvb_mabr_port = ctx->first_port;
 		ctx->first_port++;
 		ctx->dvb_mabr_tsi = 1;

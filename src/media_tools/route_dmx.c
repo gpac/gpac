@@ -360,6 +360,27 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 	gf_free(routedmx);
 }
 
+static GF_Err routedmx_setup_socket(GF_ROUTEDmx *routedmx, const char *log_name, GF_Socket *sock, const char *dst_ip, u32 dst_port)
+{
+	if (!dst_ip || !dst_port) return GF_BAD_PARAM;
+	GF_Err e;
+	if (gf_sk_is_multicast_address(dst_ip)) {
+		e = gf_sk_setup_multicast(sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind to multicast address %s:%u on %s interface\n", log_name, dst_ip, dst_port, routedmx->ip_ifce ? routedmx->ip_ifce : "default"));
+		}
+	} else {
+		e = gf_sk_bind(sock, (char*) routedmx->ip_ifce, dst_port, dst_ip, dst_port, GF_SOCK_REUSE_PORT);
+		if (e) return e;
+		if (!e)
+			e = gf_sk_connect(sock, dst_ip, dst_port, NULL);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind socket %s:%u on %s interface\n", log_name, dst_ip, dst_port, routedmx->ip_ifce ? routedmx->ip_ifce : "default"));
+		}
+	}
+	return e;
+}
+
 static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_size, const char *netcap_id, Bool is_atsc,
 							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
 							  void *udta, const char *log_name)
@@ -443,10 +464,10 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 	gf_sk_set_usec_wait(routedmx->atsc_sock, 1);
-	e = gf_sk_setup_multicast(routedmx->atsc_sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 1, GF_FALSE, (char *) ifce);
+
+	e = routedmx_setup_socket(routedmx, log_name, routedmx->atsc_sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT);
 	if (e) {
 		gf_route_dmx_del(routedmx);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind to multicast address on interface %s\n", log_name, ifce ? ifce : "default"));
 		return NULL;
 	}
 	gf_sk_set_buffer_size(routedmx->atsc_sock, GF_FALSE, sock_buffer_size);
@@ -522,9 +543,9 @@ static GF_ROUTEService *gf_route_create_service(GF_ROUTEDmx *routedmx, const cha
 			routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 		gf_sk_set_usec_wait(service->sock, 1);
-		e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
+
+		e = routedmx_setup_socket(routedmx, service->log_name, service->sock, dst_ip, dst_port);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup multicast on %s:%d\n", service->log_name, dst_ip, dst_port));
 			gf_route_service_del(routedmx, service);
 			return NULL;
 		}
@@ -1558,9 +1579,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 							routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 						gf_sk_set_usec_wait(rsess->sock, 1);
-						e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+
+						e = routedmx_setup_socket(routedmx, new_service->log_name, rsess->sock, dst_add, dst_port);
 						if (e) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
 							gf_list_del(rsess->channels);
 							if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 							gf_free(rsess);
@@ -2437,7 +2458,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 					gf_sk_set_usec_wait(rsess->sock, 1);
-					e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+					e = routedmx_setup_socket(routedmx, s->log_name, rsess->sock, dst_ip, dst_port);
 					if (e) {
 						gf_sk_del(rsess->sock);
 						gf_list_del(rsess->channels);
@@ -2446,7 +2467,6 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						gf_list_del(remove_channels);
 						if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 						gf_free(rsess);
-						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
 						return e;
 					}
 					gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
@@ -4052,6 +4072,10 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 	}
 	if (!mcast_sess)
 		return GF_OK;
+
+	if (!gf_sk_is_multicast_address(mcast_sess->mcast_addr ? mcast_sess->mcast_addr : s->dst_ip))
+		return GF_OK;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s MCAST %s:%d TSI %u\n", s->log_name,
 		is_selected ? "Activating" : "Deactivating",
 		rep_id,
