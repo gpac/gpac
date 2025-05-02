@@ -837,7 +837,7 @@ static GF_Err reconfigure_alternative_transfer_characteristic(GF_BSRWCtx *ctx, B
 	const GF_PropertyValue *prop;
 	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_COLR_TRANSFER_ALT);
 	if (!prop) return GF_OK;
-	Bool rm_alt_trc_sei;
+	Bool rm_alt_trc_sei=GF_FALSE;
 	if(ctx->seis.nb_items > 0){
 		// atc SEI explicitly listed
 		for (u32 i = 0; i < ctx->seis.nb_items; i++) {
