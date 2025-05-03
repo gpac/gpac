@@ -1462,6 +1462,249 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	return gf_fs_load_filter_internal(fsess, name, err_code, NULL);
 }
 
+static GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
+{
+	char *link_prev_filter_ext = NULL;
+	GF_Filter *link_from;
+	Bool reverse_order = GF_FALSE;
+	s32 link_filter_idx = -1;
+
+	if (!filter) {
+		u32 idx=0, count = gf_list_count(loaded_filters);
+		if (!ext_link || !count) return GF_BAD_PARAM;
+		ext_link[0] = 0;
+		if (link[1] == GF_FS_DEFAULT_SEPS[5]) {
+			idx = atoi(link+2);
+		} else {
+			idx = atoi(link+1);
+			if (count - 1 < idx) return GF_BAD_PARAM;
+			idx = count-1-idx;
+		}
+		ext_link[0] = GF_FS_DEFAULT_SEPS[5];
+		filter = gf_list_get(loaded_filters, idx);
+		link = ext_link;
+	}
+
+	char *ext = strchr(link, filter->session->sep_frag);
+	if (ext) {
+		ext[0] = 0;
+		link_prev_filter_ext = ext+1;
+	}
+	if (strlen(link)>1) {
+		if (link[1] == GF_FS_DEFAULT_SEPS[5] ) {
+			reverse_order = GF_TRUE;
+			link++;
+		}
+		link_filter_idx = 0;
+		if (strlen(link)>1) {
+			u32 res;
+			if (sscanf(link+1, "%u", &res)==1) link_filter_idx = (s32) res;
+			else {
+				link_filter_idx = 0;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Link filter index must be an unsigned integer (got %s), using 0\n", link+1));
+			}
+			if (link_filter_idx < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
+				return GF_BAD_PARAM;
+			}
+		}
+	} else {
+		link_filter_idx = 0;
+	}
+	if (ext) ext[0] = filter->session->sep_frag;
+
+	if (reverse_order)
+		link_from = gf_list_get(loaded_filters, link_filter_idx);
+	else
+		link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
+
+	if (!link_from) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
+		return GF_BAD_PARAM;
+	}
+	gf_filter_set_source(filter, link_from, link_prev_filter_ext);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[], GF_List **out_loaded_filters, GF_List **out_links_directive)
+{
+	if (!fsess || !argv || (argc<1)) return GF_BAD_PARAM;
+
+	GF_Err e;
+	Bool has_xopt = GF_FALSE;
+	GF_List *loaded_filters = NULL;
+	GF_List *links_directive = NULL;
+
+	Bool prev_filter_is_sink = 0;
+	u32 current_subsession_id = 0;
+	Bool prev_filter_is_not_source = 0;
+	u32 current_source_id = 0;
+
+	if (out_loaded_filters) loaded_filters = *out_loaded_filters;
+	loaded_filters = gf_list_new();
+	if (!loaded_filters) return GF_OUT_OF_MEM;
+
+	if (out_links_directive) links_directive = *out_links_directive;
+	links_directive = gf_list_new();
+	if (!links_directive) {
+		gf_list_del(loaded_filters);
+		return GF_OUT_OF_MEM;
+	}
+
+	for (u32 i=0; i<argc; i++) {
+		GF_Filter *filter=NULL;
+		Bool is_simple=GF_FALSE;
+		Bool f_loaded = GF_FALSE;
+		char *arg = argv[i];
+
+		if (!strcmp(arg, "-src") || !strcmp(arg, "-i")) {
+			filter = gf_fs_load_source(fsess, argv[i+1], NULL, NULL, &e);
+			arg = argv[i+1];
+			i++;
+			f_loaded = GF_TRUE;
+		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o")) {
+			filter = gf_fs_load_destination(fsess, argv[i+1], NULL, NULL, &e);
+			arg = argv[i+1];
+			i++;
+			f_loaded = GF_TRUE;
+		}
+		//appart from the above src/dst, other args starting with - are not filters
+		else if (arg[0]=='-') {
+			if (!strcmp(arg, "-xopt")) has_xopt = GF_TRUE;
+			continue;
+		}
+		if (!f_loaded && !has_xopt) {
+			if (arg[0] == GF_FS_DEFAULT_SEPS[5]) {
+				char *next_sep = NULL;
+				if (arg[1]==GF_FS_DEFAULT_SEPS[5]) {
+					next_sep = strchr(arg+2, GF_FS_DEFAULT_SEPS[5]);
+				} else {
+					next_sep = strchr(arg+1, GF_FS_DEFAULT_SEPS[5]);
+				}
+				if (next_sep) {
+					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					if (e) goto exit;
+					continue;
+				}
+				gf_list_add(links_directive, arg);
+				continue;
+			}
+
+			if (!strncmp(arg, "src=", 4) ) {
+				filter = gf_fs_load_source(fsess, arg+4, NULL, NULL, &e);
+			} else if (!strncmp(arg, "dst=", 4) ) {
+				filter = gf_fs_load_destination(fsess, arg+4, NULL, NULL, &e);
+			} else {
+				e = GF_EOS;
+				char *need_gfio = strstr(arg, "@gfi://");
+				if (!need_gfio) need_gfio = strstr(arg, "@gfo://");
+				if (need_gfio) {
+					e = GF_NOT_SUPPORTED;
+					goto exit;
+				} else {
+					filter = gf_fs_load_filter(fsess, arg, &e);
+				}
+				is_simple=GF_TRUE;
+				if (!filter && has_xopt)
+					continue;
+			}
+		}
+
+		if (!filter) {
+			if (has_xopt)
+				continue;
+			if (!e) e = GF_FILTER_NOT_FOUND;
+
+			if (e!=GF_FILTER_NOT_FOUND) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load filter%s \"%s\": %s\n", is_simple ? "" : " for",  arg, gf_error_to_string(e) ));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to find filter%s \"%s\"\n", is_simple ? "" : " for",  arg));
+			}
+			goto exit;
+		}
+
+		if (!(fsess->flags & GF_FS_FLAG_NO_IMPLICIT))
+			gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
+
+		while (gf_list_count(links_directive)) {
+			char *link = gf_list_pop_front(links_directive);
+			e = process_link_directive(link, filter, loaded_filters, NULL);
+			if (e) goto exit;
+		}
+		gf_list_add(loaded_filters, filter);
+
+		//implicit mode, check changes of source and sinks
+		if (!(fsess->flags & GF_FS_FLAG_NO_IMPLICIT)) {
+			if (gf_filter_is_source(filter)) {
+				if (prev_filter_is_not_source) {
+					current_source_id++;
+					gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
+				}
+				prev_filter_is_not_source = 0;
+			} else {
+				prev_filter_is_not_source = 1;
+			}
+
+			if (gf_filter_is_sink(filter)) {
+				prev_filter_is_sink = GF_TRUE;
+			}
+			else if (prev_filter_is_sink && gf_filter_is_source(filter)) {
+				prev_filter_is_sink = GF_FALSE;
+				current_subsession_id++;
+				current_source_id=0;
+				prev_filter_is_not_source = 0;
+				gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
+			}
+		}
+	}
+
+exit:
+	if (!out_loaded_filters) gf_list_del(loaded_filters);
+	if (!out_links_directive) gf_list_del(links_directive);
+
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_fs_parse_filter_graph_str(GF_FilterSession *fsess, char *graph_str, GF_List **out_loaded_filters, GF_List **out_links_directive)
+{
+	if (!graph_str) return GF_BAD_PARAM;
+
+	char **argv = NULL;
+	int argc = 0;
+	char *token = graph_str;
+	char *end = NULL;
+
+	while (*token) {
+		// Skip leading whitespace
+		while (*token && isspace(*token)) token++;
+
+		// Handle quoted strings
+		if (*token == '"' || *token == '\'') {
+			char quote = *token++;
+			end = token;
+			while (*end && *end != quote) end++;
+			if (*end) *end++ = '\0';
+		} else {
+			end = token;
+			while (*end && !isspace(*end)) end++;
+			if (*end) *end++ = '\0';
+		}
+
+		if (*token) {
+			argv = gf_realloc(argv, sizeof(char *) * (argc + 1));
+			if (!argv) return GF_OUT_OF_MEM;
+			argv[argc++] = token;
+		}
+		token = end;
+	}
+
+	GF_Err result = gf_fs_parse_filter_graph(fsess, argc, (char **)argv, out_loaded_filters, out_links_directive);
+	gf_free(argv);
+	return result;
+}
+
 static void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
 {
 	(*taskn)++;
