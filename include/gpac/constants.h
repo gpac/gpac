@@ -50,7 +50,7 @@ This section documents some constants used in the GPAC framework which are not r
 
 Supported media stream types for media objects.
 */
-enum
+typedef enum
 {
 	/*!Unknown stream type*/
 	GF_STREAM_UNKNOWN = 0,
@@ -104,7 +104,7 @@ enum
 	GF_STREAM_FILE		= 0xE1,
 
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
-};
+} GF_StreamType;
 
 /*! Gets the stream type name based on stream type
 \param streamType stream type GF_STREAM_XXX as defined in constants.h
