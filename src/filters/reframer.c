@@ -1086,6 +1086,10 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				gf_filter_pck_set_dts(new_pck, (u64) ts);
 			}
 		}
+
+		// In case we do encoding after reframer, preserve the adjusted cts on a dynamic property
+		if (ctx->utc_ref==UTCREF_TC) gf_filter_pck_set_property_dyn(new_pck, "reframer_cts", &PROP_UINT(ts));
+
 		//packet was split or was re-inserted
 		if (st->split_start) {
 			if (!dur) {
@@ -1774,8 +1778,15 @@ GF_Err reframer_process(GF_Filter *filter)
 
 			const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_CODECID);
 			u32 codec_id = p ? p->value.uint : GF_CODECID_NONE;
-			if (codec_id != GF_CODECID_AVC && codec_id != GF_CODECID_HEVC && codec_id != GF_CODECID_AV1)
-				continue;
+			switch (codec_id) {
+				case GF_CODECID_AVC:
+				case GF_CODECID_HEVC:
+				case GF_CODECID_AV1:
+				case GF_CODECID_RAW:
+					break;
+				default:
+					continue;
+			}
 
 			//try to get the timecode
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);

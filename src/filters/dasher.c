@@ -4163,7 +4163,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (pck) {
 				u64 seg_dur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
 				u64 cdur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->timescale);
-				u64 cts = gf_filter_pck_get_cts(pck);
+
+				// Get the adjusted cts from reframer (if available) or from the packet
+				const GF_PropertyValue *p = gf_filter_pck_get_property_str(pck, "reframer_cts");
+				u64 cts = p ? p->value.uint : gf_filter_pck_get_cts(pck);
+
 				cts += ds->presentation_time_offset;
 				if (ds->timescale != ds->mpd_timescale) {
 					seg_dur = gf_timestamp_rescale(seg_dur, ds->timescale, ds->mpd_timescale);
@@ -4172,7 +4176,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				}
 
 				//decide on start number
-				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
+				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
 				ds->startNumber = p ? p->value.uint : 0;
 				ds->startNumber += (u32) gf_floor(cts / seg_dur) + 1;
 
