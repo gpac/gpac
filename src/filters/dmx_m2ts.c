@@ -558,8 +558,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			u32 dsi_len = gf_bs_read_u32(bs);
 			if (dsi_len) {
 				u32 pos = (u32) gf_bs_get_position(bs);
-				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
-				gf_bs_skip_bytes(bs, dsi_len);
+				if (pos < stream->gpac_meta_dsi_size && dsi_len < stream->gpac_meta_dsi_size-pos) {
+					gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
+					gf_bs_skip_bytes(bs, dsi_len);
+				}
 			} else {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 			}
