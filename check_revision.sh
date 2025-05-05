@@ -7,7 +7,11 @@ if [ -d ".git" ]; then
 TAG=$(git describe --tags --abbrev=0 --match "v*"  2>>gtmp)
 VERSION=$(echo `git describe --tags --long --match "v*"  2>>gtmp || echo "UNKNOWN"` | sed "s/^$TAG-//")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>>gtmp || echo "UNKNOWN")
-revision="$VERSION-$BRANCH"
+
+#sanitize branch name for filenames
+DHBRANCH=$(echo "$BRANCH" | sed 's/[^-+.0-9a-zA-Z~]/-/g' )
+
+revision="$VERSION-$DHBRANCH"
 
 rm gtmp
 

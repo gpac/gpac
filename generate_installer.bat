@@ -52,6 +52,16 @@ REM execute git and check if the result if found within revision.h
 for /f "delims=" %%a in ('git describe --tags --long  --match "v*" ') do @set VERSION=%%a
 for /f "delims=" %%a in ('git describe --tags --abbrev^=0  --match "v*"  ') do @set TAG=%%a-
 for /f "delims=" %%a in ('git rev-parse --abbrev-ref HEAD') do @set BRANCH=%%a
+
+REM sanitize BRANCH for filename
+set "BRANCH=%BRANCH:/=-%"
+set "BRANCH=%BRANCH:"=-%"
+set "BRANCH=%BRANCH:<=-%"
+set "BRANCH=%BRANCH:>=-%"
+set "BRANCH=%BRANCH:|=-%"
+set "BRANCH=%BRANCH:@=-%"
+
+
 REM remove anotated tag from VERSION
 setlocal enabledelayedexpansion
 call set VERSION=%%VERSION:!TAG!=%%
