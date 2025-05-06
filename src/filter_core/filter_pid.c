@@ -1354,7 +1354,9 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 
-	if (!task->filter->removed)
+	//note that a filter can be marked as removed but PID not yet removed (when disconnecting a chain)
+	//we need to disconnect it in this case
+	if (!task->filter->removed || !task->pid->pid->removed)
 		gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
 
 	gf_mx_p(task->filter->tasks_mx);
