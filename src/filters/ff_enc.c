@@ -862,6 +862,22 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 	memcpy(output, pkt->data + offset, to_copy);
 
+	//check if we have ts offset
+	u64 cts_offset = 0;
+	u64 dts_offset = 0;
+	if (src_pck) {
+		const GF_PropertyValue *prop = gf_filter_pck_get_property_str(src_pck, "rf_cts_offset");
+		if (prop) {
+			cts_offset = prop->value.longuint;
+			gf_filter_pck_set_property_str(dst_pck, "rf_cts_offset", NULL);
+		}
+		prop = gf_filter_pck_get_property_str(src_pck, "rf_dts_offset");
+		if (prop) {
+			dts_offset = prop->value.longuint;
+			gf_filter_pck_set_property_str(dst_pck, "rf_dts_offset", NULL);
+		}
+	}
+
 	if (src_pck) {
 		if (ctx->disc_pck_ref == src_pck) {
 			ctx->disc_pck_ref = NULL;
@@ -893,8 +909,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	} else if (ctx->prev_dts>=dts) {
 		dts = ctx->prev_dts + 1;
 	}
-	gf_filter_pck_set_cts(dst_pck, pkt->pts + ctx->ts_shift);
-	gf_filter_pck_set_dts(dst_pck, dts);
+	gf_filter_pck_set_cts(dst_pck, pkt->pts + ctx->ts_shift + cts_offset);
+	gf_filter_pck_set_dts(dst_pck, dts + dts_offset);
 	ctx->prev_dts = dts;
 
 	//this is not 100% correct since we don't have any clue if this is SAP1/2/3/4 ...

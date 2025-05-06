@@ -442,6 +442,22 @@ restart:
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, outsize, &out_buffer);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
+	//check if we have ts offset
+	u64 cts_offset = 0;
+	u64 dts_offset = 0;
+	if (pck_src) {
+		const GF_PropertyValue *prop = gf_filter_pck_get_property_str(pck_src, "rf_cts_offset");
+		if (prop) {
+			cts_offset = prop->value.longuint;
+			gf_filter_pck_set_property_str(dst_pck, "rf_cts_offset", NULL);
+		}
+		prop = gf_filter_pck_get_property_str(pck_src, "rf_dts_offset");
+		if (prop) {
+			dts_offset = prop->value.longuint;
+			gf_filter_pck_set_property_str(dst_pck, "rf_dts_offset", NULL);
+		}
+	}
+
 	if (pck_src) {
 		gf_filter_pck_merge_properties(pck_src, dst_pck);
 		gf_filter_pck_set_dependency_flags(dst_pck, 0);
@@ -452,8 +468,8 @@ restart:
 	}
 
     //rewrite dts and pts to PTS value
-    gf_filter_pck_set_dts(dst_pck, out_cts);
-    gf_filter_pck_set_cts(dst_pck, out_cts);
+    gf_filter_pck_set_dts(dst_pck, out_cts + dts_offset);
+    gf_filter_pck_set_cts(dst_pck, out_cts + cts_offset);
 
 	ff_pfmt = ctx->decoder->pix_fmt;
 	if (ff_pfmt==AV_PIX_FMT_YUVJ420P) {
