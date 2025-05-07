@@ -144,6 +144,7 @@ typedef struct
 	GF_ForceInputDecodingMode raw;
 	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
+	GF_Fraction sdsap;
 	GF_ExtractionStartAdjustment xround;
 	GF_UTCReferenceMode utc_ref;
 	u32 utc_probe;
@@ -1127,7 +1128,22 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (sap > 0 && sap <= ctx->sapcue)
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
-		gf_filter_pck_send(new_pck);
+		//if all saps, using the the final timestamp, decide if we should send the packet
+		if (st->all_saps && !ctx->nosap && ctx->sdsap.num>0 && ctx->sdsap.den>0) {
+			u64 ts = gf_filter_pck_get_cts(new_pck);
+			if (ts != GF_FILTER_NO_TS) {
+				u32 segdur = gf_timestamp_rescale(ctx->sdsap.num, ctx->sdsap.den, st->timescale);
+				if (ts % segdur != 0) {
+					// this frame wouldn't be considered as sap because it's within the segment duration
+					gf_filter_pck_discard(new_pck);
+					new_pck = NULL;
+				} else {
+					st->all_saps = GF_FALSE;
+				}
+			}
+		}
+
+		if (new_pck) gf_filter_pck_send(new_pck);
 	} else {
 		GF_FilterPacket *dst = ctx->copy ? gf_filter_pck_new_copy(st->opid, pck, NULL) : gf_filter_pck_new_ref(st->opid, 0, 0, pck);
 		if (dst) {
@@ -1772,15 +1788,10 @@ GF_Err reframer_process(GF_Filter *filter)
 			st->fetch_done = GF_FALSE;
 			if (ctx->cur_start_valid && ctx->cur_end_valid) continue;
 
-			const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_CODECID);
-			u32 codec_id = p ? p->value.uint : GF_CODECID_NONE;
-			if (codec_id != GF_CODECID_AVC && codec_id != GF_CODECID_HEVC && codec_id != GF_CODECID_AV1)
-				continue;
-
 			//try to get the timecode
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) return GF_OK;
-			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (!p || !p->value.data.ptr || !p->value.data.size) continue;
 			GF_TimeCode *pck_tc = (GF_TimeCode*) p->value.data.ptr;
 			u64 pck_cts = gf_filter_pck_get_cts(pck);
@@ -2940,6 +2951,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(xots), "keep original timestamps after extraction", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xdts), "compute start times based on DTS and not CTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sdsap), "use the value as segment duration to derive saps", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sure the I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
