@@ -198,10 +198,10 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		break;
 	case BSRW_TC_INSERT:
 		if (!ctx->tcsc_inferred) {
-			tc_out->n_frames = n_frames;
-			tc_out->seconds = seconds;
-			tc_out->minutes = minutes;
-			tc_out->hours = hours;
+			tc_out->n_frames = now.n_frames;
+			tc_out->seconds = now.seconds;
+			tc_out->minutes = now.minutes;
+			tc_out->hours = now.hours;
 			break;
 		} else {
 			//reset now, we will overwrite what we have
