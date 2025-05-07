@@ -1,4 +1,5 @@
 name: abi version updater
+run-name: abi version updater
 on:
   push:
     branches:
