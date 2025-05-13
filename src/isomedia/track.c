@@ -1275,12 +1275,16 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			if (nb_saio != 1) {
 				u32 saio_idx = saio_get_index(traf, i);
 				if (saio_idx>=saio->entry_count) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of offset less than number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of offset less than number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
 					break;
 				}
 				offset = saio->offsets[j] + moof_offset;
 			}
 			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+			if (!size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] SAI of size 0 cannot be merged\n"));
+				continue;
+			}
 
 			u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
 			gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);

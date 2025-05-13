@@ -241,7 +241,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (stream->flags & GF_M2TS_GPAC_CODEC_ID) {
 		codecid = stream->stream_type;
 		stype = gf_codecid_type(codecid);
-		if (stream->gpac_meta_dsi)
+		if ((stream->flags & GF_M2TS_ES_IS_PES) && stream->gpac_meta_dsi)
 			stype = stream->gpac_meta_dsi[4];
 		if (!stype) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unrecognized gpac codec %s - ignoring pid %u\n", gf_4cc_to_str(codecid) , stream->pid));
@@ -558,8 +558,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			u32 dsi_len = gf_bs_read_u32(bs);
 			if (dsi_len) {
 				u32 pos = (u32) gf_bs_get_position(bs);
-				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
-				gf_bs_skip_bytes(bs, dsi_len);
+				if (pos < stream->gpac_meta_dsi_size && dsi_len < stream->gpac_meta_dsi_size-pos) {
+					gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
+					gf_bs_skip_bytes(bs, dsi_len);
+				}
 			} else {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 			}

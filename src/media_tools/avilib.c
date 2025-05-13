@@ -1769,7 +1769,6 @@ int AVI_close(avi_t *AVI)
 		}
 		gf_free(AVI->video_superindex);
 	}
-
 	for (j=0; j<AVI->anum; j++)
 	{
 		if(AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
@@ -2616,6 +2615,7 @@ multiple_riff:
 
 		for(j=0; j<AVI->anum; ++j) {
 			if(AVI->track[j].audio_chunks) {
+				if (AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 				AVI->track[j].audio_index = (audio_index_entry *) gf_malloc((nai[j]+1)*sizeof(audio_index_entry));
 				memset(AVI->track[j].audio_index, 0, (nai[j]+1)*(sizeof(audio_index_entry)));
 				if(AVI->track[j].audio_index==0) ERR_EXIT(AVI_ERR_NO_MEM);
@@ -2644,11 +2644,15 @@ multiple_riff:
 				aud_chunks += AVI->total_frames;
 				AVI->track[j].audio_index = (audio_index_entry *)
 				                            gf_realloc( AVI->track[j].audio_index, (aud_chunks+1)*sizeof(audio_index_entry));
+
 				if (!AVI->track[j].audio_index) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Internal error in avilib -- no mem\n"));
 					AVI_errno = AVI_ERR_NO_MEM;
 					return -1;
 				}
+
+				if (AVI->anum <= j)
+					AVI->anum = j+1;
 			}
 
 			/* Check if we got a tag ##db, ##dc or ##wb */
@@ -2734,6 +2738,7 @@ multiple_riff:
 
 		for(j=0; j<AVI->anum; ++j) {
 			if(AVI->track[j].audio_chunks) {
+				if (AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 				AVI->track[j].audio_index = (audio_index_entry *) gf_malloc((nai[j]+1)*sizeof(audio_index_entry));
 				memset(AVI->track[j].audio_index, 0, (nai[j]+1)*(sizeof(audio_index_entry)));
 				if(AVI->track[j].audio_index==0) ERR_EXIT(AVI_ERR_NO_MEM);

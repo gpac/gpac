@@ -91,6 +91,7 @@ filter.set_arg({ name: "disparity", desc: "disparity in pixels between left-most
 filter.set_arg({ name: "views", desc: "number of views", type: GF_PROP_UINT, def: "1"} );
 filter.set_arg({ name: "rates", desc: "number of target bitrates to assign, one per size", type: GF_PROP_STRING_LIST} );
 filter.set_arg({ name: "logt", desc: "log frame time to console", type: GF_PROP_BOOL} );
+filter.set_arg({ name: "banner", desc: "banner text to display", type: GF_PROP_STRING, def: "many thanks to QuickJS, FreeType, OpenSSL, SDL, FFmpeg, OpenHEVC, libjpeg, libpng, faad2, libmad, a52dec, xvid, OGG ..."} );
 
 let evte_cts = 0;
 let evte_pid = null;
@@ -115,7 +116,6 @@ let video_frame=0;
 let brush = new evg.SolidBrush();
 let video_playing=false;
 let start_date = 0;
-let banner = 'many thanks to QuickJS, FreeType, OpenSSL, SDL, FFmpeg, OpenHEVC, libjpeg, libpng, faad2, libmad, a52dec, xvid, OGG ...';
 let frame_offset = 0;
 let nb_frame_init = 0;
 let utc_init = 0;
@@ -840,10 +840,10 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 		mx.scale(1, 0.5);
 
 	if (!filter.dyn) {
-		text.set_text([sys.copyright, banner]);
-		mx.translate(0, text.fontsize/2);
+		text.set_text([sys.copyright, filter.banner]);
+		mx.translate(sys.copyright.length*text.fontsize/2.5, text.fontsize/2);
 	} else {
-		text.set_text([sys.copyright + ' - ' + banner]);
+		text.set_text([sys.copyright + ' - ' + filter.banner]);
 	}
 	mx.translate(t_x + pos_x, t_y -disp_h/2 + text.fontsize);
 

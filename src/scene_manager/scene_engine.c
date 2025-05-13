@@ -671,7 +671,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
 	sc = gf_list_get(seng->ctx->streams, 0);
-	if (sc->codec_id == GF_CODECID_DIMS) {
+	if (sc && sc->codec_id == GF_CODECID_DIMS) {
 		gf_seng_create_new_au(sc, 0);
 	}
 
@@ -1158,4 +1158,3 @@ GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng)
 
 
 #endif /*GPAC_DISABLE_SENG*/
-

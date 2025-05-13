@@ -882,7 +882,7 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 
 	GF_SAFEALLOC(hvc_state, HEVCState);
 	if (!hvc_state) return;
-	
+
 	hvc_state->sps_active_idx = -1;
 
 	use_tiles = 0;
@@ -1972,6 +1972,9 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(sps->transfer_characteristic) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(sps->matrix_coeffs) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(sps->video_full_range_flag) );
+			if (ctx->hevc_state->sei.alternative_transfer_characteristics){
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->sei.alternative_transfer_characteristics) );
+			}
 			has_colr_info = GF_TRUE;
 		}
 	} else if (ctx->codecid==GF_CODECID_VVC) {
@@ -2558,6 +2561,9 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		gf_hevc_parse_sei(data, size, ctx->hevc_state);
 		if (ctx->hevc_state->sei.has_3d_ref_disp_info) {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
+		}
+		if (ctx->hevc_state->sei.alternative_transfer_characteristics && ctx->opid) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->sei.alternative_transfer_characteristics) );
 		}
 		if (!ctx->nosei) {
 			ctx->nb_sei++;

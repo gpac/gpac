@@ -38,7 +38,8 @@ GF_OPT_ENUM (BsrwTimecodeMode,
 	BSRW_TC_REMOVE,
 	BSRW_TC_INSERT,
 	BSRW_TC_SHIFT,
-	BSRW_TC_CONSTANT
+	BSRW_TC_CONSTANT,
+	BSRW_TC_UTC
 );
 
 struct _bsrw_pid_ctx
@@ -197,10 +198,10 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		break;
 	case BSRW_TC_INSERT:
 		if (!ctx->tcsc_inferred) {
-			tc_out->n_frames = n_frames;
-			tc_out->seconds = seconds;
-			tc_out->minutes = minutes;
-			tc_out->hours = hours;
+			tc_out->n_frames = now.n_frames;
+			tc_out->seconds = now.seconds;
+			tc_out->minutes = now.minutes;
+			tc_out->hours = now.hours;
 			break;
 		} else {
 			//reset now, we will overwrite what we have
@@ -250,6 +251,30 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		tc_out->minutes = ctx->tcsc_val.minutes;
 		tc_out->hours = ctx->tcsc_val.hours;
 		break;
+	case BSRW_TC_UTC: {
+		u64 now = 0;
+		//check sender NTP on packet
+		const GF_PropertyValue *date = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
+		if (date) now = gf_net_ntp_to_utc(date->value.longuint);
+		//otherwise check UTC date mapping
+		else {
+			date = gf_filter_pck_get_property(pck, GF_PROP_PCK_UTC_TIME);
+			if (date) now = date->value.longuint;
+			//otherwise use the current time
+			else now = gf_net_get_utc();
+		}
+
+		//get tm struct
+		time_t utc_now = (time_t) (now / 1000);
+		struct tm *tm = gf_gmtime(&utc_now);
+
+		//convert to timecode
+		tc_out->n_frames = (u16) gf_timestamp_rescale(now % 1000, 1000, max_fps);
+		tc_out->seconds = (u8) tm->tm_sec;
+		tc_out->minutes = (u8) tm->tm_min;
+		tc_out->hours = (u8) tm->tm_hour;
+		break;
+	}
 
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Unsupported timecode mode\n"));
@@ -806,6 +831,31 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
+static GF_Err reconfigure_alternative_transfer_characteristic(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	// skip if not applicable
+	const GF_PropertyValue *prop;
+	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_COLR_TRANSFER_ALT);
+	if (!prop) return GF_OK;
+	Bool rm_alt_trc_sei=GF_FALSE;
+	if(ctx->seis.nb_items > 0){
+		// atc SEI explicitly listed
+		for (u32 i = 0; i < ctx->seis.nb_items; i++) {
+			if (ctx->seis.vals[i] == 147) {
+				rm_alt_trc_sei = ctx->rmsei;
+				break;
+			}
+		}	
+	} else {
+		// explicit removal
+		rm_alt_trc_sei = ctx->rmsei;
+	}
+	if (rm_alt_trc_sei){
+		return gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, NULL);
+	}
+	return GF_OK;
+}
+
 static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
 	GF_HEVCConfig *hvcc;
@@ -841,7 +891,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if (ctx->pidc>=0) hvcc->profile_idc = ctx->pidc;
 	if (ctx->pspace>=0) hvcc->profile_space = ctx->pspace;
 	if (ctx->gpcflags>=0) hvcc->general_profile_compatibility_flags = ctx->gpcflags;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_hevc_cfg_write(hvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = hvcc->nal_unit_size;
@@ -883,7 +933,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	if (ctx->pidc>=0) vvcc->general_profile_idc = ctx->pidc;
 	if (ctx->lev>=0) vvcc->general_level_idc = ctx->pidc;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_vvc_cfg_write(vvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = vvcc->nal_unit_size;
@@ -1268,7 +1318,8 @@ static GF_FilterArgs BSRWArgs[] =
 	"- remove: remove timecodes\n"
 	"- insert: insert timecodes based on cts or `tcsc` (if provided)\n"
 	"- shift: shift timecodes based by `tcsc`\n"
-	"- constant: overwrite timecodes with `tcsc`", GF_PROP_UINT, "none", "none|remove|insert|shift|constant", GF_FS_ARG_UPDATE},
+	"- constant: overwrite timecodes with `tcsc`\n"
+	"- utc: insert timecodes based on the utc time on the packet or the current time", GF_PROP_UINT, "none", "none|remove|insert|shift|constant|utc", GF_FS_ARG_UPDATE},
 	{ OFFS(seis), "list of SEI message types (4,137,144,...). When used with `rmsei`, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
@@ -1350,6 +1401,9 @@ GF_FilterRegister BSRWRegister = {
 	"### Constant\n"
 	"Set all timecodes to the value defined in [-tcsc]().\n"
 	"Again, this mode wouldn't insert new timecodes.\n"
+	"### UTC\n"
+	"Uses the `SenderNTP` property, `UTC` property on the packet, or the current UTC time to set the timecode.\n"
+	"This mode will overwrite existing timecodes (if any).\n"
 	"## Examples\n"
 	"EX gpac -i in.mp4 bsrw:tc=insert [dst]\n"
 	"EX gpac -i in.mp4 bsrw:tc=insert:tcsc=TC00:00:10:00 [dst]\n"

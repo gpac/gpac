@@ -763,6 +763,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		kinds.value.string_list.nb_items = nb_udta = gf_isom_get_user_data_count(read->mov, ch->track, GF_ISOM_BOX_TYPE_KIND, NULL);
 		if (nb_udta) {
 			kinds.value.string_list.vals = gf_malloc(sizeof(char*)*nb_udta);
+			memset(kinds.value.string_list.vals, 0, sizeof(char*)*nb_udta);
 			for (i=0; i<nb_udta; i++) {
 				char *scheme=NULL, *val=NULL;
 				gf_isom_get_track_kind(read->mov, ch->track, i, &scheme, &val);

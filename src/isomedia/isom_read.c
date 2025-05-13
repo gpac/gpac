@@ -1842,7 +1842,8 @@ Bool gf_isom_enable_raw_pack(GF_ISOFile *the_file, u32 trackNumber, u32 pack_num
 					gf_4cc_to_str(entry->type),
 					from_qt ? " (as indicated in QT sample description)" : ""
 				));
-			trak->Media->information->sampleTable->SampleSize->sampleSize = bps * nb_ch;
+			if (nb_ch)
+				trak->Media->information->sampleTable->SampleSize->sampleSize = bps * nb_ch;
 		}
 	}
 	return GF_TRUE;
@@ -4136,7 +4137,11 @@ u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 	}
 	if (stsz->sampleSize) return stsz->sampleSize*stsz->sampleCount;
 	size = 0;
-	for (i=0; i<stsz->sampleCount; i++) size += stsz->sizes[i];
+	if (stsz->sizes) {
+		for (i=0; i<stsz->sampleCount; i++) {
+			size += stsz->sizes[i];
+		}
+	}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->moov->mvex) return size;
 #endif
@@ -6024,7 +6029,7 @@ GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription) return GF_ISOM_INVALID_FILE;
 	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDesc-1);
-	if (!entry || !entry->jp2h) return GF_BAD_PARAM;
+	if (!entry || entry->type == GF_ISOM_BOX_TYPE_GNRA || !entry->jp2h) return GF_BAD_PARAM;
 	if (!entry->jp2h->ihdr) return GF_ISOM_INVALID_FILE;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
