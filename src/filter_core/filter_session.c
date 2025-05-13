@@ -3239,14 +3239,29 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
 }
 
-static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fsess, GF_FilterRegister *freg, const char *url, const char *mime, char *fargs)
+static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fsess, GF_FilterRegister *freg, const char *url, const char *_mime, char *fargs)
 {
-	char szExt[100];
-	const char *ext = gf_file_ext_start(url);
+	char szExt[100], s_ext[20], szMime[100];
+	const char *mime = NULL;
+	const char *ext = NULL;
+	const char *_ext = gf_file_ext_start(url);
 	u32 len=0, i, j, count = gf_list_count(fsess->registry);
-	if (ext) {
-		ext++;
-		len = (u32) strlen(ext);
+
+	//lowercase ext
+	if (_ext) {
+		_ext++;
+		strncpy(s_ext, _ext, 19);
+		s_ext[19]=0;
+		strlwr(s_ext);
+		len = (u32) strlen(s_ext);
+		ext = s_ext;
+	}
+	//lowercase mime in case it is provided through external means
+	if (_mime) {
+		strncpy(szMime, _mime, 99);
+		szMime[99] = 0;
+		strlwr(szMime);
+		mime = szMime;
 	}
 	//check in filter args if we have a format set, in which case replace URL ext by the given format
 	if (fargs) {
