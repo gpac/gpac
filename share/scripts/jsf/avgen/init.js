@@ -162,9 +162,12 @@ filter.initialize = function() {
 		evte_pid.name = "event";
 		evte_pid.set_prop('ID', pid_id_offset++);
 
-		//we send 1 byte dummy events
-		let bitrate = Math.max(Math.floor(8 / filter.evte), 1);
-		evte_pid.set_prop('Bitrate', bitrate);
+		//we send 8 bytes empty events
+		let bps = Math.max(Math.floor(8*8 / filter.evte), 1);
+		evte_pid.set_prop('Bitrate', bps);
+
+		//send first at cts=0
+		evte_cts -= filter.evte * filter.fps.n;
 	}
 
 	//setup audio
@@ -428,28 +431,27 @@ filter.process = function()
 {
 	if (!audio_playing && !video_playing) return GF_EOS;
 
-	//start by processing video, adjusting start time
+	//start by processing event, then video (adjusting start time)
+	if (evte_playing)
+		process_event();
+
 	if (video_playing) 
 		process_video();
 
 	if (audio_playing)
 		process_audio();
-
-	if (evte_playing)
-		process_event();
 	return GF_OK;
 }
 
-function get_empty_emsg()
+function get_emeb_box()
 {
 	let pck = evte_pid.new_packet(8);
 	pck.cts = evte_cts;
-	pck.dur = filter.fps.n;
+	pck.dur = filter.evte * filter.fps.n;
 	pck.sap = GF_FILTER_SAP_1;
 
-	//create an empty emsg
 	let bs = new BS(pck.data, true);
-	bs.put_u32(8); //size
+	bs.put_u32(8);      //size
 	bs.put_4cc("emeb"); //type
 
 	return pck;
@@ -468,17 +470,16 @@ function process_event()
 	}
 
 	//send event for the period
-	if (nb_sec % filter.evte) return;
+	if (nb_sec * filter.fps.n < evte_cts + filter.evte * filter.fps.n) return;
+	evte_cts += filter.evte * filter.fps.n;
 
-	let pck = get_empty_emsg();
+	let pck = get_emeb_box();
 	pck.send();
 
 	if ((!audio_playing || !video_playing) && evte_cts > 0) {
 		evte_playing = false
 		evte_pid.eos = true;
 	}
-
-	evte_cts += filter.evte * filter.fps.n;
 }
 
 function process_audio()
@@ -861,4 +862,3 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 
 	vsrc.canvas.clipper = null;
 }
-
