@@ -3273,7 +3273,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	//1: select all eligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
 	count = gf_list_count(fsess->links);
 	for (i=0; i<count; i++) {
-		u32 j;
+		u32 j, reg_flags;
 		Bool disable_filter = GF_FALSE;
 		Bool reconf_only = reconfigurable_only;
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
@@ -3314,13 +3314,18 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		if (freg == pid->filter->freg)
 			result = reg_desc;
 
+		//if reconfigure onlu (pid prop adaptation), check filter even if explicit only
+		reg_flags = freg->flags;
+		if (reconf_only && freg->reconfigure_output)
+			reg_flags &= ~GF_FS_REG_EXPLICIT_ONLY;
+
 		//don't add source filters except if PID is from source
 		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
 			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//freg shall be instantiated
-		else if ((freg->flags & (GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
+		else if ((reg_flags & (GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
 			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
