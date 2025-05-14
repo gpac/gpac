@@ -793,6 +793,10 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 	if (!strncmp(line, "#EXT-X-RENDITION-REPORT", strlen("#EXT-X-RENDITION-REPORT") )) {
 		return NULL;
 	}
+	//TODO for now we don't support interstitials
+	if (!strncmp(line, "#EXT-X-DATERANGE", strlen("#EXT-X-DATERANGE") )) {
+		return NULL;
+	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unsupported directive %s\n", line));
 	return NULL;
 }
