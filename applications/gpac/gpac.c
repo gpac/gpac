@@ -1361,7 +1361,7 @@ restart:
 					next_sep = strchr(arg+1, separator_set[SEP_LINK]);
 				}
 				if (next_sep) {
-					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					e = gf_fs_process_link_directive(arg, NULL, loaded_filters, next_sep);
 					if (e) {
 						ERR_EXIT
 					}
@@ -1433,7 +1433,7 @@ restart:
 
 		while (gf_list_count(links_directive)) {
 			char *link = gf_list_pop_front(links_directive);
-			e = process_link_directive(link, filter, loaded_filters, NULL);
+			e = gf_fs_process_link_directive(link, filter, loaded_filters, NULL);
 			if (e) {
 				ERR_EXIT
 			}
