@@ -1141,7 +1141,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			u64 ts = gf_filter_pck_get_cts(new_pck);
 			if (ts != GF_FILTER_NO_TS) {
 				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
-				if (ts % segdur < gf_filter_pck_get_duration(new_pck)) {
+				if (ts % segdur > gf_filter_pck_get_duration(new_pck)) {
 					// this frame wouldn't be considered as sap because it's within the segment duration
 					gf_filter_pck_discard(new_pck);
 					new_pck = NULL;
