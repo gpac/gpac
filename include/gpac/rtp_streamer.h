@@ -74,7 +74,7 @@ Constructs a new RTP file streamer
 \param sample_rate audio sample rate
 \param nb_ch number of channels in audio streams
 \param is_crypted Boolean indicating if the stream is crypted
-\param IV_length lenght of the Initialisation Vector used for encryption
+\param IV_length length of the Initialisation Vector used for encryption
 \param KI_length length of the key index
 \param MinSize minimum AU size, 0 if unknown
 \param MaxSize maximum AU size, 0 if unknown

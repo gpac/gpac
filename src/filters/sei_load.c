@@ -588,7 +588,7 @@ GF_FilterRegister SEILoadRegister = {
 	.private_size = sizeof(SEILoadCtx),
 	.max_extra_pids = 0xFFFFFFFF,
 	//only allow explicit loading or as PID adaptation filter: since the caps allow any codec and any stream type, the filter could
-	//otherwise get ellected in place of a transcoding chain
+	//otherwise get elected in place of a transcoding chain
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = SEILoadArgs,
 	SETCAPS(SEILoadCaps),
@@ -610,4 +610,3 @@ const GF_FilterRegister *seiload_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_SEILOAD
-
