@@ -235,7 +235,7 @@ FILTERS_OHEVC_CFLAGS=$(openhevc_cflags)
 endif
 
 ## libgpac objects gathering:
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_DOWNLOADER) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_FFMPEG) $(LIBGPAC_FILTERS_LIBCAPTION) $(LIBGPAC_FILTERS_MPEGHDEC) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS)
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_DOWNLOADER) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_FFMPEG) $(LIBGPAC_FILTERS_LIBCAPTION) $(LIBGPAC_FILTERS_MPEGHDEC) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS) ../share/swig/node/gpac_wrap.o
 
 ##to improve - we move ngtcp2 first because we likely have a custom SSL
 EXTRALIBS:=$(ngtcp2_ldflags) $(nghttp3_ldflags) $(EXTRALIBS)
@@ -387,6 +387,11 @@ downloader: $(LIBGPAC_DOWNLOADER)
 .deps/utils/%: CFLAGS += $(nghttp2_cflags) $(ngtcp2_cflags) $(nghttp3_cflags) $(ssl_cflags)
 
 endif
+
+
+../share/swig/node/gpac_wrap.o: ../share/swig/node/gpac_wrap.cxx
+CFLAGS += -I/usr/include/node
+# LDFLAGS += -L/usr/lib/python3.12/config-3.12-x86_64-linux-gnu/ -lpython3.12
 
 crypto/g_crypt_openssl.o: CFLAGS += $(ssl_cflags)
 crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
