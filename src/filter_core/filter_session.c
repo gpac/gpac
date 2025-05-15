@@ -1462,7 +1462,8 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	return gf_fs_load_filter_internal(fsess, name, err_code, NULL);
 }
 
-static GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
+GF_EXPORT
+GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
 {
 	char *link_prev_filter_ext = NULL;
 	GF_Filter *link_from;
