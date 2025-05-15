@@ -4193,7 +4193,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					ds->moof_sn += (u32) gf_floor(progress_in_seg * chunk_per_segment);
 				}
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for PID %s\n", gf_filter_pid_get_name(ds->ipid)));
 			}
 		}
 
