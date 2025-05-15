@@ -615,7 +615,7 @@ GF_EXPORT
 GF_Err gf_fs_set_separators(GF_FilterSession *session, const char *separator_set)
 {
 	if (!session) return GF_BAD_PARAM;
-	if (separator_set && (strlen(separator_set)<5)) return GF_BAD_PARAM;
+	if (separator_set && (strlen(separator_set)<6)) return GF_BAD_PARAM;
 
 	if (separator_set) {
 		session->sep_args = separator_set[0];
@@ -623,12 +623,14 @@ GF_Err gf_fs_set_separators(GF_FilterSession *session, const char *separator_set
 		session->sep_frag = separator_set[2];
 		session->sep_list = separator_set[3];
 		session->sep_neg = separator_set[4];
+		session->sep_link = separator_set[5];
 	} else {
 		session->sep_args = ':';
 		session->sep_name = '=';
 		session->sep_frag = '#';
 		session->sep_list = ',';
 		session->sep_neg = '!';
+		session->sep_link = '@';
 	}
 	return GF_OK;
 }
@@ -1474,14 +1476,14 @@ GF_Err gf_fs_process_link_directive(char *link, GF_Filter *filter, GF_List *load
 		u32 idx=0, count = gf_list_count(loaded_filters);
 		if (!ext_link || !count) return GF_BAD_PARAM;
 		ext_link[0] = 0;
-		if (link[1] == GF_FS_DEFAULT_SEPS[5]) {
+		if (link[1] == filter->session->sep_link) {
 			idx = atoi(link+2);
 		} else {
 			idx = atoi(link+1);
 			if (count - 1 < idx) return GF_BAD_PARAM;
 			idx = count-1-idx;
 		}
-		ext_link[0] = GF_FS_DEFAULT_SEPS[5];
+		ext_link[0] = filter->session->sep_link;
 		filter = gf_list_get(loaded_filters, idx);
 		link = ext_link;
 	}
@@ -1492,7 +1494,7 @@ GF_Err gf_fs_process_link_directive(char *link, GF_Filter *filter, GF_List *load
 		link_prev_filter_ext = ext+1;
 	}
 	if (strlen(link)>1) {
-		if (link[1] == GF_FS_DEFAULT_SEPS[5] ) {
+		if (link[1] == filter->session->sep_link ) {
 			reverse_order = GF_TRUE;
 			link++;
 		}
@@ -1576,12 +1578,12 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 			continue;
 		}
 		if (!f_loaded && !has_xopt) {
-			if (arg[0] == GF_FS_DEFAULT_SEPS[5]) {
+			if (arg[0] == fsess->sep_link) {
 				char *next_sep = NULL;
-				if (arg[1]==GF_FS_DEFAULT_SEPS[5]) {
-					next_sep = strchr(arg+2, GF_FS_DEFAULT_SEPS[5]);
+				if (arg[1]==fsess->sep_link) {
+					next_sep = strchr(arg+2, fsess->sep_link);
 				} else {
-					next_sep = strchr(arg+1, GF_FS_DEFAULT_SEPS[5]);
+					next_sep = strchr(arg+1, fsess->sep_link);
 				}
 				if (next_sep) {
 					e = gf_fs_process_link_directive(arg, NULL, loaded_filters, next_sep);
