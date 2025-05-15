@@ -10639,7 +10639,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
 			if (!sctx || !ctx->nb_seg_url_pending) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer, received segment size info event but no pending segments\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer (PID#%u %s), received segment size info event but no pending segments\n", i, gf_filter_pid_get_name(ds->ipid)));
 				return GF_TRUE;
 			}
 			ctx->nb_seg_url_pending--;
@@ -10754,7 +10754,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_MPD_SegmentURL *url = gf_list_pop_front(ds->pending_segment_urls);
 			if (!url || !ctx->nb_seg_url_pending) {
 				if (!ds->done) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer, received segment size info event but no pending segments\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer (PID#%u %s), received segment size info event but no pending segments\n", i, gf_filter_pid_get_name(ds->ipid)));
 				}
 				return GF_TRUE;
 			}
