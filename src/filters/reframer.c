@@ -144,7 +144,7 @@ typedef struct
 	GF_ForceInputDecodingMode raw;
 	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
-	GF_Fraction sdsap;
+	GF_Fraction segdur;
 	GF_ExtractionStartAdjustment xround;
 	GF_UTCReferenceMode utc_ref;
 	u32 utc_probe;
@@ -1129,10 +1129,10 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
 		//if all saps, using the the final timestamp, decide if we should send the packet
-		if (st->all_saps && !ctx->nosap && ctx->sdsap.num>0 && ctx->sdsap.den>0) {
+		if (st->all_saps && !ctx->nosap && ctx->segdur.num>0 && ctx->segdur.den>0) {
 			u64 ts = gf_filter_pck_get_cts(new_pck);
 			if (ts != GF_FILTER_NO_TS) {
-				u32 segdur = gf_timestamp_rescale(ctx->sdsap.num, ctx->sdsap.den, st->timescale);
+				u32 segdur = gf_timestamp_rescale(ctx->segdur.num, ctx->segdur.den, st->timescale);
 				if (ts % segdur != 0) {
 					// this frame wouldn't be considered as sap because it's within the segment duration
 					gf_filter_pck_discard(new_pck);
@@ -2872,6 +2872,8 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		st->sys_clock_at_init = 0;
 		if (ctx->speed==0)
 			ctx->rt_speed = evt->play.speed;
+	} else if (evt->base.type==GF_FEVT_TRANSPORT_HINTS) {
+		ctx->segdur = evt->transport_hints.seg_duration;
 	}
 
 	gf_filter_pid_send_event(st->ipid, &fevt);
@@ -2951,7 +2953,6 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(xots), "keep original timestamps after extraction", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xdts), "compute start times based on DTS and not CTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(sdsap), "use the value as segment duration to derive saps", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sure the I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},

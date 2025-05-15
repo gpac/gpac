@@ -1769,6 +1769,8 @@ typedef enum
 
 	/*! Encoder hints*/
 	GF_FEVT_ENCODE_HINTS,
+	/*! Transport hints*/
+	GF_FEVT_TRANSPORT_HINTS,
 	/*! NTP source clock send by other services (eg from TS to dash using TEMI) */
 	GF_FEVT_NTP_REF,
 	/*! Event sent by DASH/HLS demux to source to notify a quality change  - used for ROUTE/MABR only */
@@ -1990,6 +1992,15 @@ typedef struct
 	Bool gen_dsi_only;
 } GF_FEVT_EncodeHints;
 
+/*! Event structure for GF_FEVT_TRANSPORT_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*! segment duration */
+	GF_Fraction seg_duration;
+} GF_FEVT_TransportHints;
+
 
 /*! Event structure for GF_FEVT_NTP_REF*/
 typedef struct
@@ -2058,6 +2069,7 @@ union __gf_filter_event
 	GF_FEVT_FragmentSize frag_size;
 	GF_FEVT_FileDelete file_del;
 	GF_FEVT_EncodeHints encode_hints;
+	GF_FEVT_TransportHints transport_hints;
 	GF_FEVT_NTPRef ntp;
 	GF_FEVT_DASHQualitySelection dash_select;
 	GF_FEVT_NetworkHint net_hint;
