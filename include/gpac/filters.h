@@ -2417,7 +2417,8 @@ typedef enum
 	a GL context (currently only in main thread) upon init, but not requiring it for the decode. Such decoders get their GL frames mapped
 	(through get_gl_texture callback) in the main GL thread*/
 	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
-	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
+	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter
+	A filter with this flag and a \ref reconfigure_output callback set will be checked when loading a chain for PID property adaptation*/
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
 	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing so that the weight of the reframer+decoder is the same as the weight of other decoders*/
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
