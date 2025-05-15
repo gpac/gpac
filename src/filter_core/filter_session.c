@@ -1463,7 +1463,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 }
 
 GF_EXPORT
-GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
+GF_Err gf_fs_process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
 {
 	char *link_prev_filter_ext = NULL;
 	GF_Filter *link_from;
@@ -1584,7 +1584,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 					next_sep = strchr(arg+1, GF_FS_DEFAULT_SEPS[5]);
 				}
 				if (next_sep) {
-					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					e = gf_fs_process_link_directive(arg, NULL, loaded_filters, next_sep);
 					if (e) goto exit;
 					continue;
 				}
@@ -1630,7 +1630,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 
 		while (gf_list_count(links_directive)) {
 			char *link = gf_list_pop_front(links_directive);
-			e = process_link_directive(link, filter, loaded_filters, NULL);
+			e = gf_fs_process_link_directive(link, filter, loaded_filters, NULL);
 			if (e) goto exit;
 		}
 		gf_list_add(loaded_filters, filter);
