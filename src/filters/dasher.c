@@ -902,6 +902,7 @@ static void dasher_send_encode_transport_hints(GF_DasherCtx *ctx, GF_DashStream 
 		//send transport hints to upstream filters
 		GF_FEVT_INIT(evt, GF_FEVT_TRANSPORT_HINTS, ds->ipid);
 		evt.transport_hints.seg_duration = ds->dash_dur;
+		evt.transport_hints.wait_seg_boundary = ctx->segcts;
 
 		gf_filter_pid_send_event(ds->ipid, &evt);
 	}

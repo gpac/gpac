@@ -1999,6 +1999,9 @@ typedef struct
 
 	/*! segment duration */
 	GF_Fraction seg_duration;
+
+	/* if TRUE reframer should hold packets until theoritical segment boundary */
+	Bool wait_seg_boundary;
 } GF_FEVT_TransportHints;
 
 

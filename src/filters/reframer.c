@@ -42,6 +42,12 @@ GF_OPT_ENUM (GF_ExtractionStartAdjustment,
 	REFRAME_ROUND_CLOSEST,
 );
 
+GF_OPT_ENUM (GF_WaitSegmentState,
+	WAIT_SEG_BOUNDARY_NONE=0,
+	WAIT_SEG_BOUNDARY_ACTIVE,
+	WAIT_SEG_BOUNDARY_DONE,
+);
+
 enum
 {
 	RANGE_NONE=0,
@@ -101,6 +107,9 @@ typedef struct
 	u64 sap_ts_plus_one;
 	Bool first_pck_sent;
 
+	GF_Fraction segdur;
+	GF_WaitSegmentState wait_seg_boundary;
+
 	//only positive delay here
 	u64 tk_delay;
 	//only media skip (video, audio priming)
@@ -144,7 +153,6 @@ typedef struct
 	GF_ForceInputDecodingMode raw;
 	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
-	GF_Fraction segdur;
 	GF_ExtractionStartAdjustment xround;
 	GF_UTCReferenceMode utc_ref;
 	u32 utc_probe;
@@ -1129,16 +1137,16 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
 		//if all saps, using the the final timestamp, decide if we should send the packet
-		if (st->all_saps && !ctx->nosap && ctx->segdur.num>0 && ctx->segdur.den>0) {
+		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.num>0 && st->segdur.den>0) {
 			u64 ts = gf_filter_pck_get_cts(new_pck);
 			if (ts != GF_FILTER_NO_TS) {
-				u32 segdur = gf_timestamp_rescale(ctx->segdur.num, ctx->segdur.den, st->timescale);
+				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
 				if (ts % segdur < gf_filter_pck_get_duration(new_pck)) {
 					// this frame wouldn't be considered as sap because it's within the segment duration
 					gf_filter_pck_discard(new_pck);
 					new_pck = NULL;
 				} else {
-					st->all_saps = GF_FALSE;
+					st->wait_seg_boundary = WAIT_SEG_BOUNDARY_DONE;
 				}
 			}
 		}
@@ -2873,7 +2881,18 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->speed==0)
 			ctx->rt_speed = evt->play.speed;
 	} else if (evt->base.type==GF_FEVT_TRANSPORT_HINTS) {
-		ctx->segdur = evt->transport_hints.seg_duration;
+		if (evt->transport_hints.wait_seg_boundary) {
+			//this applies to all streams
+			u32 ipid_count = gf_filter_get_ipid_count(filter);
+			for (u32 i=0; i<ipid_count; i++) {
+				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+				RTStream *ist = gf_filter_pid_get_udta(ipid);
+				if (ist && ist->wait_seg_boundary==WAIT_SEG_BOUNDARY_NONE) {
+					ist->wait_seg_boundary = WAIT_SEG_BOUNDARY_ACTIVE;
+					ist->segdur = evt->transport_hints.seg_duration;
+				}
+			}
+		}
 	}
 
 	gf_filter_pid_send_event(st->ipid, &fevt);
