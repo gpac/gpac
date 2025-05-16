@@ -4754,7 +4754,7 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		gf_bs_read_int_log(bs, 24, "minimum_frame_size");
 		gf_bs_read_int_log(bs, 24, "maximum_frame_size");
 		state->sample_rate = gf_bs_read_int_log(bs, 20, "sample_rate");
-		gf_bs_read_int_log(bs, 3, "num_of_channels");
+		/*state->num_of_channels = 1 + */gf_bs_read_int_log(bs, 3, "num_of_channels");
 		state->sample_size = gf_bs_read_int_log(bs, 5, "bits_per_sample") + 1;
 		break;
 	// LPCM.
