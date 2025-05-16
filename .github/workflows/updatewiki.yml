@@ -1,0 +1,32 @@
+name: update wiki
+run-name: update wiki
+on:
+  workflow_run:
+    workflows: [master actions]
+    types:
+      - completed
+
+
+jobs:
+    update-wiki:
+      runs-on: ubuntu-latest
+      container: gpac/ubuntu:latest
+      steps:
+        - name: Check out wiki
+          run:
+            git clone https://ga:${{ secrets.GPAC_WIKI_TOKEN }}@github.com/$GITHUB_REPOSITORY_OWNER/wiki.git wiki
+        - name: Run genmd
+          working-directory: wiki/scripts
+          run: sh -x ./genmd.sh
+        - name: Commit if changes
+          working-directory: wiki
+          run: |
+            env
+            git config --unset-all http.https://github.com/.extraheader  || true
+            git config user.name "GitHub Actions Bot"
+            git config user.email "<>"
+            git status
+            git commit -m "update from $GITHUB_REPOSITORY@$GITHUB_SHA" || true
+        - name: Push wiki
+          working-directory: wiki
+          run: git push
