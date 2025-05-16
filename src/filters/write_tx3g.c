@@ -257,7 +257,7 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 	if (txtd->font_table && txtd->font_table->entry_count && txtd->font_table->fonts[0].fontName)
 		gf_fprintf(dump, " tts:fontFamily=\"%s\"", txtd->font_table->fonts[0].fontName);
 
-	gf_fprintf(dump, "/>\n  </layout>\n </head>\n <body>\n  <div>\n");
+	gf_fprintf(dump, "/>\n  </layout>\n </head>\n <body region=\"Default\">\n  <div>\n");
 
 	tx3g_format_time(start_ts, 1000, szTime, GF_FALSE);
 	gf_fprintf(dump, "  <p begin=\"%s\"", szTime);
