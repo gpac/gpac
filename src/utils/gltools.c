@@ -197,10 +197,7 @@ void gf_opengl_init()
 {
 	if (gl_fun_loaded) return;
 	gl_fun_loaded = GF_TRUE;
-	
-	if (gf_opts_get_bool("core", "rmt-ogl")) {
-		rmt_BindOpenGL();
-	}
+
 
 #ifndef GPAC_USE_TINYGL
 
@@ -1488,7 +1485,7 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 					glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 				}
 
-				
+
 				if (pV) {
 					glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, tx->PBOs[2]);
 					ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
