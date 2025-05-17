@@ -2222,18 +2222,29 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
-	if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
-		if (evt->encode_hints.gen_dsi_only) {
+	if (evt->base.type==GF_FEVT_TRANSPORT_HINTS) {
+		if (evt->transport_hints.flags & GF_TRANSPORT_HINTS_SAW_ENCODER) {
+			// this is a pass-through event, ignore it
+			return GF_FALSE;
+		}
+
+		if (evt->transport_hints.gen_dsi_only) {
 			ctx->generate_dsi_only = GF_TRUE;
 		}
-		else if ((ctx->fintra.num<0) && evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
-			ctx->fintra = evt->encode_hints.intra_period;
+		else if ((ctx->fintra.num<0) && evt->transport_hints.seg_duration.den && evt->transport_hints.seg_duration.num) {
+			ctx->fintra = evt->transport_hints.seg_duration;
 
 			if (!ctx->rc || (gf_list_count(ctx->src_packets) && !ctx->force_reconfig)) {
 				ctx->reconfig_pending = GF_TRUE;
 				ctx->force_reconfig = GF_TRUE;
 			}
 		}
+
+		//send the event upstream (in case any other filter is interested in it)
+		GF_FilterEvent new_evt = *evt;
+		new_evt.base.on_pid = ctx->in_pid;
+		new_evt.transport_hints.flags |= GF_TRANSPORT_HINTS_SAW_ENCODER;
+		gf_filter_pid_send_event(ctx->in_pid, &new_evt);
 		return GF_TRUE;
 	}
 	return GF_FALSE;

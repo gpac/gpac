@@ -150,11 +150,22 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
-		SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
-		if (evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
-			ctx->segdur = evt->encode_hints.intra_period;
+	if (evt->base.type==GF_FEVT_TRANSPORT_HINTS) {
+		if (evt->transport_hints.flags & GF_TRANSPORT_HINTS_SAW_ENCODER) {
+			// this is a pass-through event, ignore it
+			return GF_FALSE;
 		}
+
+		SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
+		if (evt->transport_hints.seg_duration.den && evt->transport_hints.seg_duration.num) {
+			ctx->segdur = evt->transport_hints.seg_duration;
+		}
+
+		//send the event upstream (in case any other filter is interested in it)
+		GF_FilterEvent new_evt = *evt;
+		new_evt.base.on_pid = ctx->ipid;
+		new_evt.transport_hints.flags |= GF_TRANSPORT_HINTS_SAW_ENCODER;
+		gf_filter_pid_send_event(ctx->ipid, &new_evt);
 		return GF_TRUE;
 	}
 	return GF_FALSE;

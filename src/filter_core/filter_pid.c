@@ -7578,7 +7578,6 @@ const char *gf_filter_event_name(GF_FEventType type)
 	case GF_FEVT_CONNECT_FAIL: return "CONNECT_FAIL";
 	case GF_FEVT_FILE_DELETE: return "FILE_DELETE";
 	case GF_FEVT_PLAY_HINT: return "PLAY_HINT";
-	case GF_FEVT_ENCODE_HINTS: return "ENCODE_HINTS";
 	case GF_FEVT_TRANSPORT_HINTS: return "TRANSPORT_HINTS";
 	case GF_FEVT_NTP_REF: return "NTP_REF";
 	case GF_FEVT_NETWORK_HINT: return "NETWORK_HINT";
