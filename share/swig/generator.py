@@ -1,7 +1,6 @@
 import os
 import re
 import json
-import shutil
 import subprocess
 import tempfile
 import argparse
@@ -567,7 +566,7 @@ typedef int8_t    s8;
             f"Renaming {sname.internal_name} to {sname.internal_name.replace('__', '_')} for compatibility. Please check the generated file."
         )
 
-    if "go" in lang:
+    if "go" == lang:
         swig_out += "\n// Rename non-compliant types for Go\n"
         swig_out += f"%rename(gf_type) type;\n"
         logger.warning(
@@ -629,7 +628,12 @@ typedef int8_t    s8;
             public = ", ".join(
                 map(
                     csn,
-                    [arg["type"] + " " + arg["name"] for arg in fn.args[offset:]],
+                    [
+                        arg["type"] + " " + arg["name"]
+                        for arg in filter(
+                            lambda x: x["type"] != "GF_Err *", fn.args[offset:]
+                        )
+                    ],
                 )
             )
             internal = ", ".join(
@@ -640,6 +644,57 @@ typedef int8_t    s8;
                 )
             )
             return public, internal
+
+        def wrap_gf_err(fn, returns):
+            # There must be only one "GF_Err *" argument
+            errp_count = 0
+            for arg in fn.args:
+                if arg["type"] == "GF_Err *":
+                    errp_count += 1
+            assert (
+                errp_count <= 1
+            ), f"Function {fn.name} has more than one GF_Err * argument"
+
+            if errp_count == 0 and fn.return_type != "GF_Err":
+                internal = get_args(fn)[1]
+                return f"\t\treturn {fn.name}({internal});"
+
+            if errp_count == 1:
+                assert (
+                    fn.return_type != "GF_Err"
+                ), f"Function {fn.name} has GF_Err * argument and returns GF_Err"
+
+                # Get the error variable name
+                err_var = None
+                for arg in fn.args:
+                    if arg["type"] == "GF_Err *":
+                        err_var = arg["name"]
+                        break
+
+                # Convert the error variable to a pointer
+                new_args = get_args(fn)[1].split(", ")
+                for i in range(len(new_args)):
+                    if new_args[i] == err_var:
+                        new_args[i] = f"&{err_var}"
+                new_args = ", ".join(new_args)
+
+                out = f"\t\tGF_Err {err_var} = GF_OK;\n"
+                out += f"\t\t{returns} swig_ret = {fn.name}({new_args});\n"
+                out += f"\t\tif ({err_var} != GF_OK) {{\n"
+                out += f"\t\t\tSWIG_exception(SWIG_RuntimeError, gf_error_to_string({err_var}));\n"
+                out += f"\t\t}}\n"
+                out += "\t\tfail:\n"
+                out += f"\t\treturn swig_ret;"
+
+                return out
+            else:
+                out = f"\t\tGF_Err swig_ret = {fn.name}({get_args(fn)[1]});\n"
+                out += f"\t\tif (swig_ret != GF_OK) {{\n"
+                out += f"\t\t\tSWIG_exception(SWIG_RuntimeError, gf_error_to_string(swig_ret));\n"
+                out += f"\t\t}}\n"
+                out += "\t\tfail:\n"
+                out += f"\t\t\t(void)swig_ret;"
+                return out
 
         # Add the constructor
         for i, fn in enumerate(
@@ -657,13 +712,13 @@ typedef int8_t    s8;
             if fn.ctor:
                 swig_out += f"""
 \t{csn(struct_name, True)}({public}) {{
-\t\treturn {fn.name}({internal});
+{wrap_gf_err(fn, csn(struct_name) + " *")}
 \t}}
 """
             elif fn.static:
                 swig_out += f"""
 \tstatic {csn(fn.return_type)} {fn.alias}({public}) {{
-\t\treturn {fn.name}({internal});
+{wrap_gf_err(fn, csn(fn.return_type))}
 \t}}
 """
             else:
@@ -695,11 +750,13 @@ typedef int8_t    s8;
                 )
                 continue
 
-            swig_out += f"""
-\t{"static " if fn.static else ""}{csn(fn.return_type)} {fn.alias}({public}) {{
-\t\treturn {fn.name}({internal});
-\t}}
-"""
+            if csn(fn.return_type) == "GF_Err":
+                swig_out += f"""
+\t{"static " if fn.static else ""}void {fn.alias}({public}) {{"""
+            else:
+                swig_out += f"""
+\t{"static " if fn.static else ""}{csn(fn.return_type)} {fn.alias}({public}) {{"""
+            swig_out += f"""\n{wrap_gf_err(fn, csn(fn.return_type))}\n\t}}\n"""
 
         swig_out += "}\n"
 
@@ -755,39 +812,37 @@ def main(args):
     logger.info(f"SWIG file generated at {swig_file}")
 
     # Create the language bindings
-    logger.info("Creating language bindings.")
-    for lang, options in {
-        "python": ["-python"],
-        "go": ["-go"],
-        "node": ["-javascript", "-v8"],
-    }.items():
-        # Check if the language is enabled
-        if lang not in args.lang:
-            logger.info(f"Skipping {lang} language bindings.")
-            continue
+    logger.info(f"Creating language bindings for {args.lang}.")
+    if args.lang not in ["python", "go", "node"]:
+        logger.error(f"Unsupported language: {args.lang}")
+        exit(1)
+    if args.lang == "node":
+        options = ["-javascript", "-node"]
+    elif args.lang == "go":
+        options = ["-go"]
+    else:
+        options = ["-python"]
 
-        # Create or empty the output directory
-        output_dir = os.path.join(SWIG_DIR, lang)
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        os.makedirs(output_dir, exist_ok=True)
+    # Create or empty the output directory
+    output_dir = os.path.join(SWIG_DIR, args.lang)
+    os.makedirs(output_dir, exist_ok=True)
 
-        # Generate the language bindings
-        cmd = [
-            "swig",
-            *options,
-            "-I" + ROOT_DIR,
-            *["-I" + os.path.join(ROOT_DIR, d) for d in INCLUDE_DIRS],
-            "-outdir",
-            output_dir,
-            "-o",
-            os.path.join(
-                output_dir, "gpac_wrap" + (".cxx" if lang == "node" else ".c")
-            ),
-            os.path.join(SWIG_DIR, "gpac.i"),
-        ]
-        subprocess.run(cmd, check=True)
-        logger.info(f"Language bindings for {lang} created in {lang}/gpac_wrap.c")
+    # Generate the language bindings
+    cmd = [
+        "swig",
+        *options,
+        "-I" + ROOT_DIR,
+        *["-I" + os.path.join(ROOT_DIR, d) for d in INCLUDE_DIRS],
+        "-outdir",
+        output_dir,
+        "-o",
+        os.path.join(
+            output_dir, "gpac_wrap" + (".cpp" if args.lang == "node" else ".c")
+        ),
+        os.path.join(SWIG_DIR, "gpac.i"),
+    ]
+    subprocess.run(cmd, check=True)
+    logger.info(f"Language bindings for {args.lang} created in {args.lang}/gpac_wrap.c")
     logger.info("SWIG generation completed.")
 
 
@@ -801,9 +856,8 @@ if __name__ == "__main__":
         "--language",
         "-l",
         dest="lang",
-        nargs="*",
-        default=["python", "go", "node"],
-        help="Specify the languages to generate bindings for.",
+        default="node",
+        help="Specify the language to generate bindings for.",
         choices=["python", "go", "node"],
     )
     args = parser.parse_args()
