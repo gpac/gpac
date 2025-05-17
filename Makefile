@@ -80,6 +80,13 @@ doc:
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
+swig: lib
+ifneq ($(SWIG),"no")
+	@echo "Generating SWIG files"
+	@cd $(SRC_PATH)/share/swig && python3 generator.py -s
+	@cd $(SRC_PATH)/share/swig && npm -C node --silent install
+	@echo "Try running 'node test.js' in share/swig/node"
+endif
 
 UT_CFG_PATH:=unittests/build/config
 

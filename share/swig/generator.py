@@ -297,7 +297,7 @@ def prepare_structs(structs, functions):
             skip = False
             for arg in fn.args:
                 if re.search(r"\s*\(.*\)$", arg["type"]):
-                    logger.warning(
+                    logger.info(
                         f"Skipping {fn.name} because it has a function pointer argument(s)"
                     )
                     IGNORE_FNS.append(fn.name)
@@ -852,6 +852,7 @@ if __name__ == "__main__":
         description="Generate language bindings using SWIG."
     )
     parser.add_argument("--no-cache", action="store_true", help="Disable caching.")
+    parser.add_argument("-s", "--silent", action="store_true", help="Suppress output.")
     parser.add_argument(
         "--language",
         "-l",
@@ -861,4 +862,10 @@ if __name__ == "__main__":
         choices=["python", "go", "node"],
     )
     args = parser.parse_args()
+
+    if args.silent:
+        logger.setLevel(logging.WARNING)
+    else:
+        logger.setLevel(logging.DEBUG)
+
     main(args)

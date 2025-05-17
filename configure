@@ -123,6 +123,7 @@ is_emcfg="no"
 has_remotery="yes"
 em_type="js"
 em_size="0"
+swig="no"
 fatal_assert="no"
 
 #flags not set by generic lib config
@@ -403,6 +404,7 @@ GPAC build options:
   --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
+  --swig=LANG              enable SWIG bindings for language LANG (python, node) - requires SWIG 4.0 or later
 
 GPAC core configuration:
   --static-modules         embed modules in libgpac rather than using dynamic library modules
@@ -727,6 +729,9 @@ for opt do
         --em-type=*) em_type=`echo $opt | cut -d '=' -f 2`
             ;;
         --em-size=*) em_size=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --swig=*) swig=`echo $opt | cut -d '=' -f 2`
+            want_pic="yes"
             ;;
         *) echo "! Unrecognized option $opt, ignoring !"
             ;;
@@ -1750,6 +1755,14 @@ int main( void ) { HANDLE_MPEGH_DECODER_CONTEXT codec = mpeghdecoder_init(2); re
 config_package curl "curl" "" "-lcurl" "" '#include <curl/curl.h>
 int main( void ) { CURLM *curl_multi = curl_multi_init(); int fn_opt = CURLOPT_PREREQFUNCTION; const struct curl_easyoption *opt = curl_easy_option_next(NULL); return 0; }'
 
+if test "$swig" = "node" ; then
+    #check if nodejs is available
+    node_ver=$(node -v 2>>$logs)
+    if test "$node_ver" = "" ; then
+        echo "Node.js not found, please install it"
+        swig="no"
+    fi
+fi
 
 
 #look for VideoToolBox support
@@ -2201,6 +2214,9 @@ echo "C++ compiler: $cxx_naked"
 echo "make: $make"
 echo "CPU: $cpu"
 echo "Big Endian: $bigendian"
+if test "$swig" != "no" ; then
+    echo "SWIG: $swig"
+fi
 if test $cpu = "mips"; then
     echo "MMI enabled: $mmi"
 fi
@@ -2776,6 +2792,10 @@ elif test "$is_em" = "yes" ; then
     echo "#define GPAC_CONFIG_EMSCRIPTEN" >> $TMPH
 else
     echo "#define GPAC_CONFIG_GENERIC" >> $TMPH
+fi
+
+if test "$swig" != "no" ; then
+    echo "SWIG=$swig" >> config.mak
 fi
 
 if test "$win32" = "no" ; then
