@@ -113,6 +113,8 @@ ifeq ($(UNIT_TESTS),yes)
 	@if [ -e $(UT_CFG_PATH).h ]; then \
 		if ! diff -q $(UT_CFG_PATH).h $(UT_CFG_PATH).h.new >/dev/null ; then \
 			mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
+		else \
+			rm $(UT_CFG_PATH).h.new; \
 		fi; \
 	else \
 		mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
