@@ -6,6 +6,7 @@
   "author": "",
   "type": "commonjs",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "install": "node-gyp rebuild",
     "configure": "node-gyp configure",

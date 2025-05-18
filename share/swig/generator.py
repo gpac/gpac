@@ -266,6 +266,64 @@ def search_structs(node, structs=[]):
     return structs
 
 
+@dataclass
+class Enum:
+    name: str
+    values: dict = field(default_factory=dict)
+
+    def __str__(self):
+        """
+        Generate the enum name.
+        """
+        return f"{self.name} ({', '.join(self.values.keys())})"
+
+
+def search_enums(node, enums=[], stack=[]):
+    """
+    Recursively search for enum declarations in the AST.
+    """
+    if isinstance(node, dict):
+        if node.get("kind") == "EnumDecl":
+            stack.clear()
+            inner = node.get("inner", [])
+            for item in inner:
+                if item.get("kind") == "EnumConstantDecl":
+                    val_name = item.get("name", "")
+
+                    if not val_name.startswith("GF_"):
+                        continue
+
+                    val_value = item.get("value", None)
+                    # Check if we have a value for this value
+                    for token in item.get("inner", []):
+                        if token.get("kind") == "ConstantExpr":
+                            val_value = token.get("value", "")
+                            break
+                    stack.append({"name": val_name, "value": val_value})
+
+        if node.get("kind") == "TypedefDecl":
+            type = node.get("type", {}).get("qualType", "")
+            if type.startswith("enum "):
+                name = node.get("name", "")
+                if stack:
+                    # Create the enum
+                    enum = Enum(name=name)
+                    for item in stack:
+                        enum.values[item["name"]] = item["value"]
+                    enums.append(enum)
+                    stack.clear()
+                else:
+                    logger.warning(f"Enum {name} has no values, skipping")
+
+        for key, value in node.items():
+            if isinstance(value, (dict, list)):
+                search_enums(value, enums, stack)
+    elif isinstance(node, list):
+        for item in node:
+            search_enums(item, enums, stack)
+    return enums
+
+
 def prepare_structs(structs, functions):
     # Collect functions for structs
     struct_functions = {}
@@ -778,12 +836,164 @@ typedef int8_t    s8;
     return swig_out
 
 
+def generate_dts_file(struct_functions, functions, enums):
+    out = ""
+
+    symbols = """declare const voidp: unique symbol;
+type VoidPointer = {
+    /* Do not use this type directly, use the appropriate type instead */
+    [voidp]: never;
+} & number;
+
+declare const unexported: unique symbol;
+type UnexportedStruct = {
+    /* Do not use this type directly, use the appropriate type instead */
+    [unexported]: never;
+} & number;
+"""
+
+    # Add the enums
+    for enum in sorted(enums, key=lambda e: e.name):
+        out += f"export enum {enum.name} {{\n"
+
+        # Sort: value==0 first, then by increasing value, then by name if value is None
+        def enum_sort_key(item):
+            name, value = item
+            # Value 0 comes first
+            if value == 0:
+                return (0, 0, name)
+            # If value is not None, sort by value
+            if value is not None:
+                return (1, int(value), name)
+            # If value is None, sort alphabetically after all valued items
+            return (2, float("inf"), name)
+
+        for name, value in sorted(enum.values.items(), key=enum_sort_key):
+            if value is None:
+                out += f"\t{name},\n"
+            else:
+                out += f"\t{name} = {value},\n"
+        out += "}\n\n"
+
+    def jsify_type(type):
+        type = type.replace("*", "")
+        type = type.replace("const", "")
+        type = type.strip()
+
+        if "()" in type:
+            # Function pointer
+            return "VoidPointer"
+        if type == "time_t":
+            return "UnexportedStruct"
+        if type == "char":
+            return "string"
+        if type in [
+            "int",
+            "size_t",
+            "unsigned int",
+            "unsigned short",
+            "u8",
+            "u16",
+            "u32",
+            "u64",
+            "s8",
+            "s16",
+            "s32",
+            "s64",
+        ]:
+            return "number"
+        if type.startswith("gf_"):
+            return "VoidPointer"
+        if type in STRUCT_MERGES:
+            return STRUCT_MERGES[type]
+        if type.startswith("gfio_"):
+            return "VoidPointer"
+
+        # Check if the type is an enum
+        for enum in enums:
+            if type == enum.name:
+                return enum.name
+
+        # Check if the type is a struct
+        for struct_name, struct_info in struct_functions.items():
+            if type == struct_name:
+                return type
+
+        if type.startswith("GF_"):
+            # This is most likely an enum that we weren't able to map
+            return "number"
+
+        # If it starts with uppercase, we don't know what it is
+        if type[0].isupper():
+            return "VoidPointer"
+
+        if "struct " in type:
+            # we don't know what this is
+            return "UnexportedStruct"
+
+        return type
+
+    # Track decelerations
+    fns_decl = set()
+
+    # Add the structs
+    for struct_name, struct_info in sorted(
+        struct_functions.items(), key=lambda s: s[0]
+    ):
+        out += f"export class {struct_name} {{\n"
+        for fn in struct_info["constructors"]:
+            if fn.ctor:
+                out += f"\tconstructor("
+                out += ", ".join(
+                    f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args
+                )
+                out += f");\n"
+                fns_decl.add(fn.name)
+            elif fn.static:
+                out += f"\tstatic {fn.alias}("
+                out += ", ".join(
+                    f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args
+                )
+                out += f"): {jsify_type(fn.return_type)};\n"
+                fns_decl.add(fn.name)
+        out += "\n"
+        for fn in sorted(struct_info["functions"], key=lambda f: f.name):
+            out += f"\t{fn.alias}("
+            out += ", ".join(
+                f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args
+            )
+            out += f"): {jsify_type(fn.return_type)};\n"
+            fns_decl.add(fn.name)
+        out += "}\n\n"
+
+    # Add rest of the functions
+    for fn in sorted(functions, key=lambda f: f.name):
+        if fn.name in fns_decl:
+            continue
+        out += f"export function {fn.alias}("
+        out += ", ".join(f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args)
+        out += f"): {jsify_type(fn.return_type)};\n"
+
+    # Close the module
+    indented = out.splitlines(keepends=True)
+    out = "".join(f"\t{line}" if line.strip() else line for line in indented)
+
+    return f"""// TypeScript definitions for GPAC
+// This file is generated by the SWIG generator
+// Do not edit this file manually
+
+{symbols}
+declare module "gpac" {{
+{out}}}
+"""
+
+
 def main(args):
     PICKLE_FILE = os.path.join(tempfile.gettempdir(), "swig_generator_objects.pickle")
     if os.path.exists(PICKLE_FILE) and not args.no_cache:
         logger.info("Loading cached functions and structs from pickle file.")
         with open(PICKLE_FILE, "rb") as f:
-            functions, structs = pickle.load(f)
+            functions, structs, enums = pickle.load(f)
     else:
         # Preprocess the headers
         ast = preprocess_headers(PUBLIC_HEADERS)
@@ -792,10 +1002,11 @@ def main(args):
         logger.info("Searching for functions and structs in the AST.")
         functions = search_functions(ast)
         structs = search_structs(ast)
+        enums = search_enums(ast)
 
         # Save the functions and structs to a pickle file
         with open(PICKLE_FILE, "wb") as f:
-            pickle.dump((functions, structs), f)
+            pickle.dump((functions, structs, enums), f)
 
     # Prepare the structs
     logger.info("Preparing structs.")
@@ -843,6 +1054,13 @@ def main(args):
     ]
     subprocess.run(cmd, check=True)
     logger.info(f"Language bindings for {args.lang} created in {args.lang}/gpac_wrap.c")
+
+    # Generate .d.ts file for TypeScript
+    if args.lang == "node":
+        with open(os.path.join(output_dir, "index.d.ts"), "w") as f:
+            f.write(generate_dts_file(struct_functions, functions, enums))
+            logger.info("TypeScript definition file generated.")
+
     logger.info("SWIG generation completed.")
 
 

@@ -2,3 +2,4 @@ package-lock.json
 build
 node_modules
 gpac_wrap.cpp
+index.d.ts

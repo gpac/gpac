@@ -1,4 +1,4 @@
-const gpac = require("./build/Release/gpac");
+const gpac = require("./index.js");
 
 gpac.gf_sys_init(gpac.GF_MemTrackerNone, "");
 
@@ -14,6 +14,4 @@ try {
 }
 
 fs.stop();
-delete fs;
-
 console.log("Filter session stopped and deleted");
