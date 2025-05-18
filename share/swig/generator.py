@@ -52,6 +52,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PUBLIC_HEADERS = [
     "gpac/filters.h",
     "gpac/tools.h",
+    "gpac/version.h",
 ]
 
 # Include directories during SWIG generation

@@ -1,6 +1,6 @@
 {
   "name": "gpac",
-  "version": "0.1.0",
+  "version": "12.19.0",
   "description": "Node.js bindings for GPAC",
   "license": "LGPL-2.1-or-later",
   "author": "",
