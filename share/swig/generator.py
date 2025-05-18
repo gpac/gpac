@@ -123,6 +123,18 @@ RESERVED_KEYWORDS = ["register", "del"]
 # These are used to generate pointer functions for the types
 EXTRA_TYPE_DEFINITIONS = []
 
+# Create pointer functions for the types
+POINTER_FUNCTIONS = [
+    ("uint64_t", "u64"),
+    ("uint32_t", "u32"),
+    ("uint16_t", "u16"),
+    ("uint8_t", "u8"),
+    ("int64_t", "s64"),
+    ("int32_t", "s32"),
+    ("int16_t", "s16"),
+    ("int8_t", "s8"),
+]
+
 
 def preprocess_headers(headers):
     """
@@ -560,32 +572,18 @@ def generate_swig_file(struct_functions, structs, lang):
     swig_out += "%}\n"
 
     # Add type definitions for scalar types
-    swig_out += """
-// Handle scalar types
-%include "stdint.i"
-typedef uint64_t  u64;
-typedef int64_t   s64;
-typedef uint32_t  u32;
-typedef int32_t   s32;
-typedef uint16_t  u16;
-typedef int16_t   s16;
-typedef uint8_t   u8;
-typedef int8_t    s8;
-
-%include <cpointer.i>
-%pointer_functions(uint64_t, u64p);
-%pointer_functions(uint32_t, u32p);
-%pointer_functions(uint16_t, u16p);
-%pointer_functions(uint8_t, u8p);
-%pointer_functions(int64_t, s64p);
-%pointer_functions(int32_t, s32p);
-%pointer_functions(int16_t, s16p);
-%pointer_functions(int8_t, s8p);
-"""
+    swig_out += "\n// Handle scalar types\n"
+    swig_out += "%include <stdint.i>\n"
+    for type, alias in POINTER_FUNCTIONS:
+        swig_out += f"typedef {type} {alias};\n"
+    swig_out += "\n"
+    swig_out += "%include <cpointer.i>\n"
+    for type, alias in POINTER_FUNCTIONS:
+        swig_out += f"%pointer_functions({type}, {alias}p);\n"
 
     # Add extra type definitions
     if EXTRA_TYPE_DEFINITIONS:
-        swig_out += "\n// Extra type definitions\n"
+        swig_out += "// Extra type definitions\n"
         for type in sorted(EXTRA_TYPE_DEFINITIONS):
             swig_out += f"%pointer_functions({type}, {type}p);\n"
     swig_out += "\n"
@@ -850,6 +848,12 @@ type VoidPointer = {
     [voidp]: never;
 } & number;
 
+declare const nump: unique symbol;
+type NumberPointer = {
+    /* Do not use this type directly, use the appropriate type instead */
+    [nump]: never;
+} & number;
+
 declare const unexported: unique symbol;
 type UnexportedStruct = {
     /* Do not use this type directly, use the appropriate type instead */
@@ -953,6 +957,14 @@ type UnexportedStruct = {
             out += f"): {jsify_type(fn.return_type)};\n"
             fns_decl.add(fn.name)
         out += "}\n\n"
+
+    # Add pointer_functions for the types
+    for _, alias in POINTER_FUNCTIONS:
+        out += f"export function new_{alias}p(): NumberPointer;\n"
+        out += f"export function copy_{alias}p(p: number): NumberPointer;\n"
+        out += f"export function delete_{alias}p(p: NumberPointer): void;\n"
+        out += f"export function {alias}p_assign(p: NumberPointer, v: number): void;\n"
+        out += f"export function {alias}p_value(p: NumberPointer): number;\n"
 
     # Add rest of the functions
     for fn in sorted(functions, key=lambda f: f.name):
