@@ -11,12 +11,17 @@
             "cflags!": ["-fno-exceptions"],
             "cflags_cc!": ["-fno-exceptions"],
             "cflags_cc": ["-std=c++17", "-DGPAC_HAVE_CONFIG_H"],
-            'conditions': [ ['OS=="mac"', {
-                'xcode_settings': {
-                    'OTHER_CFLAGS!': ["-fno-exceptions"],
-                    'OTHER_CFLAGS': ["-std=c++17", "-DGPAC_HAVE_CONFIG_H"],
-                }
-            }]]
+            "conditions": [
+                [
+                    'OS=="mac"',
+                    {
+                        "xcode_settings": {
+                            "OTHER_CFLAGS!": ["-fno-exceptions"],
+                            "OTHER_CFLAGS": ["-std=c++17", "-DGPAC_HAVE_CONFIG_H"],
+                        }
+                    },
+                ]
+            ],
         }
     ],
 }
