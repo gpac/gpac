@@ -57,7 +57,7 @@ depend:
 	$(MAKE) -C applications dep
 	$(MAKE) -C modules dep
 
-clean: unit_tests_clean
+clean: unit_tests_clean swigclean
 	$(MAKE) -C src clean
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
@@ -79,6 +79,10 @@ doc:
 
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
+
+swigclean:
+	@echo "Cleaning SWIG files"
+	@cd $(SRC_PATH)/share/swig && git clean -fdX
 
 swig: lib
 ifneq ($(strip $(SWIG)),)
