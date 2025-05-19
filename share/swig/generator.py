@@ -55,6 +55,9 @@ PUBLIC_HEADERS = [
     "gpac/version.h",
 ]
 
+# Extra headers to include in the SWIG file
+EXTRA_HEADERS = ["stdexcept"]
+
 # Include directories during SWIG generation
 # These directories are relative to the root directory
 INCLUDE_DIRS = ["include"]
@@ -569,6 +572,9 @@ def generate_swig_file(struct_functions, structs, lang):
     swig_out += "%{\n"
     for header in sorted(set(PUBLIC_HEADERS)):
         swig_out += f"#include <{header}>\n"
+    swig_out += "\n"
+    for header in sorted(EXTRA_HEADERS):
+        swig_out += f"#include <{header}>\n"
     swig_out += "%}\n"
 
     # Add type definitions for scalar types
@@ -587,6 +593,16 @@ def generate_swig_file(struct_functions, structs, lang):
         for type in sorted(EXTRA_TYPE_DEFINITIONS):
             swig_out += f"%pointer_functions({type}, {type}p);\n"
     swig_out += "\n"
+
+    # Add exception handler
+    swig_out += """%exception {
+    try {
+        $action
+    } catch (const std::exception& e) {
+        SWIG_exception(SWIG_RuntimeError, e.what());
+    }
+}\n
+"""
 
     # Add the forward declarations
     swig_out += "// Forward declarations\n"
@@ -742,19 +758,20 @@ def generate_swig_file(struct_functions, structs, lang):
                 out = f"\t\tGF_Err {err_var} = GF_OK;\n"
                 out += f"\t\t{returns} swig_ret = {fn.name}({new_args});\n"
                 out += f"\t\tif ({err_var} != GF_OK) {{\n"
-                out += f"\t\t\tSWIG_exception(SWIG_RuntimeError, gf_error_to_string({err_var}));\n"
+                out += (
+                    f"\t\t\tthrow std::runtime_error(gf_error_to_string({err_var}));\n"
+                )
                 out += f"\t\t}}\n"
-                out += "\t\tfail:\n"
                 out += f"\t\treturn swig_ret;"
 
                 return out
             else:
                 out = f"\t\tGF_Err swig_ret = {fn.name}({get_args(fn)[1]});\n"
                 out += f"\t\tif (swig_ret != GF_OK) {{\n"
-                out += f"\t\t\tSWIG_exception(SWIG_RuntimeError, gf_error_to_string(swig_ret));\n"
-                out += f"\t\t}}\n"
-                out += "\t\tfail:\n"
-                out += f"\t\t\t(void)swig_ret;"
+                out += (
+                    f"\t\t\tthrow std::runtime_error(gf_error_to_string(swig_ret));\n"
+                )
+                out += f"\t\t}}"
                 return out
 
         # Add the constructor
@@ -861,11 +878,17 @@ type UnexportedStruct = {
 } & number;
 """
 
+    # Track exports
+    consts = set()
+    fns = set()
+    classes = set()
+
     # Add the enums
-    enum_decls = ""
+    const_decls = ""
     for enum in sorted(enums, key=lambda e: e.name):
         for name in enum.values.keys():
-            enum_decls += f"declare const {name}: number;\n"
+            const_decls += f"\tconst {name}: number;\n"
+            consts.add(name)
 
     def jsify_type(type):
         type = type.replace("*", "")
@@ -932,7 +955,7 @@ type UnexportedStruct = {
     for struct_name, struct_info in sorted(
         struct_functions.items(), key=lambda s: s[0]
     ):
-        out += f"export class {struct_name} {{\n"
+        out += f"class {struct_name} {{\n"
         for fn in struct_info["constructors"]:
             if fn.ctor:
                 out += f"\tconstructor("
@@ -956,23 +979,41 @@ type UnexportedStruct = {
             )
             out += f"): {jsify_type(fn.return_type)};\n"
             fns_decl.add(fn.name)
+        classes.add(struct_name)
         out += "}\n\n"
 
     # Add pointer_functions for the types
     for _, alias in POINTER_FUNCTIONS:
-        out += f"export function new_{alias}p(): NumberPointer;\n"
-        out += f"export function copy_{alias}p(p: number): NumberPointer;\n"
-        out += f"export function delete_{alias}p(p: NumberPointer): void;\n"
-        out += f"export function {alias}p_assign(p: NumberPointer, v: number): void;\n"
-        out += f"export function {alias}p_value(p: NumberPointer): number;\n"
+        out += f"function new_{alias}p(): NumberPointer;\n"
+        out += f"function copy_{alias}p(p: number): NumberPointer;\n"
+        out += f"function delete_{alias}p(p: NumberPointer): void;\n"
+        out += f"function {alias}p_assign(p: NumberPointer, v: number): void;\n"
+        out += f"function {alias}p_value(p: NumberPointer): number;\n"
+        fns.add(f"new_{alias}p")
+        fns.add(f"copy_{alias}p")
+        fns.add(f"delete_{alias}p")
+        fns.add(f"{alias}p_assign")
+        fns.add(f"{alias}p_value")
 
     # Add rest of the functions
     for fn in sorted(functions, key=lambda f: f.name):
         if fn.name in fns_decl:
             continue
-        out += f"export function {fn.alias}("
+        out += f"function {fn.alias}("
         out += ", ".join(f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args)
         out += f"): {jsify_type(fn.return_type)};\n"
+        fns.add(fn.alias)
+
+    # Declare the default export
+    out += "\nconst _default: {\n"
+    for class_name in sorted(classes):
+        out += f"\t{class_name}: typeof {class_name};\n"
+    for fn in sorted(fns):
+        out += f"\t{fn}: typeof {fn};\n"
+    for const_name in sorted(consts):
+        out += f"\t{const_name}: typeof {const_name};\n"
+    out += "};\n"
+    out += "\nexport default _default;\n"
 
     # Close the module
     indented = out.splitlines(keepends=True)
@@ -983,8 +1024,8 @@ type UnexportedStruct = {
 // Do not edit this file manually
 
 {symbols}
-{enum_decls}
-declare module "gpac" {{
+declare module "gpac-js" {{
+{const_decls}
 {out}}}
 """
 
@@ -1029,7 +1070,7 @@ def main(args):
         logger.error(f"Unsupported language: {args.lang}")
         exit(1)
     if args.lang == "node":
-        options = ["-javascript", "-node"]
+        options = ["-javascript", "-napi"]
     elif args.lang == "go":
         options = ["-go"]
     else:

@@ -1,19 +1,55 @@
 {
-  "name": "gpac",
-  "version": "12.19.0",
-  "description": "Node.js bindings for GPAC",
+  "name": "gpac-js",
+  "version": "12.19.5",
   "license": "LGPL-2.1-or-later",
-  "author": "",
-  "type": "commonjs",
+  "keywords": [
+    "media",
+    "packaging",
+    "video",
+    "audio",
+    "streaming",
+    "gpac",
+    "nodejs",
+    "bindings"
+  ],
+  "gypfile": true,
+  "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
-  "scripts": {
-    "install": "node-gyp rebuild",
-    "configure": "node-gyp configure",
-    "build": "node-gyp build"
+  "files": [
+    "prebuilds/",
+    "binding.gyp",
+    "gpac_wrap.cpp",
+    "index.d.ts"
+  ],
+  "exports": {
+    "import": "./index.js",
+    "require": "./index.js",
+    "types": "./index.d.ts"
   },
-  "gypfile": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gpac/gpac.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gpac/gpac/issues"
+  },
+  "homepage": "https://gpac.io",
+  "description": "Node.js bindings for GPAC",
+  "author": "Team GPAC",
+  "scripts": {
+    "prepublishOnly": "cp ../../../README.md .",
+    "install": "node-gyp-build",
+    "configure": "node-gyp configure",
+    "build": "node-gyp build",
+    "prebuild": "prebuildify --strip --napi"
+  },
   "dependencies": {
-    "node-gyp": "^11.2.0"
+    "node-addon-api": "^8.3.1",
+    "node-gyp": "^11.2.0",
+    "node-gyp-build": "^4.8.4"
+  },
+  "devDependencies": {
+    "prebuildify": "^6.0.1"
   }
 }

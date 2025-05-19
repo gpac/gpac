@@ -81,11 +81,12 @@ man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
 swig: lib
-ifneq ($(SWIG),"no")
+ifneq ($(strip $(SWIG)),)
 	@echo "Generating SWIG files"
 	@cd $(SRC_PATH)/share/swig && python3 generator.py -s -l $(SWIG)
-ifeq ($(SWIG),"node")
-	@cd $(SRC_PATH)/share/swig && npm -C node --silent install
+ifeq ($(SWIG),node)
+	@cd $(SRC_PATH)/share/swig && npm -C node --silent --ignore-scripts install
+	@cd $(SRC_PATH)/share/swig && npm -C node run prebuild
 	@echo "Try running 'node test.js' in share/swig/node"
 endif
 endif

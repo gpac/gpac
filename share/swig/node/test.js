@@ -1,4 +1,4 @@
-const gpac = require("./index.js");
+import gpac from "./index.js";
 
 gpac.gf_sys_init(gpac.GF_MemTrackerNone, "");
 
