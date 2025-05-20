@@ -971,7 +971,7 @@ type UnexportedStruct = {
                 )
                 out += f"): {jsify_type(fn.return_type)};\n"
                 fns_decl.add(fn.name)
-        out += "\n"
+        out += "\n" if len(struct_info["constructors"]) > 0 else ""
         for fn in sorted(struct_info["functions"], key=lambda f: f.name):
             out += f"\t{fn.alias}("
             out += ", ".join(
@@ -997,7 +997,7 @@ type UnexportedStruct = {
 
     # Add rest of the functions
     for fn in sorted(functions, key=lambda f: f.name):
-        if fn.name in fns_decl:
+        if fn.name in fns_decl or fn.alias in fns:
             continue
         out += f"function {fn.alias}("
         out += ", ".join(f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args)
@@ -1006,12 +1006,12 @@ type UnexportedStruct = {
 
     # Declare the default export
     out += "\nconst _default: {\n"
+    for const_name in sorted(consts):
+        out += f"\t{const_name}: typeof {const_name};\n"
     for class_name in sorted(classes):
         out += f"\t{class_name}: typeof {class_name};\n"
     for fn in sorted(fns):
         out += f"\t{fn}: typeof {fn};\n"
-    for const_name in sorted(consts):
-        out += f"\t{const_name}: typeof {const_name};\n"
     out += "};\n"
     out += "\nexport default _default;\n"
 
