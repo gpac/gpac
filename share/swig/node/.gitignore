@@ -4,4 +4,5 @@ node_modules
 gpac_wrap.cpp
 index.d.ts
 prebuilds
+dist
 README.md

@@ -1,6 +1,6 @@
 {
   "name": "gpac-js",
-  "version": "12.19.6",
+  "version": "12.19.7",
   "license": "LGPL-2.1-or-later",
   "keywords": [
     "media",
@@ -14,18 +14,22 @@
   ],
   "gypfile": true,
   "type": "module",
-  "main": "index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
   "types": "index.d.ts",
   "files": [
     "prebuilds/",
+    "dist/",
     "binding.gyp",
     "gpac_wrap.cpp",
     "index.d.ts"
   ],
   "exports": {
-    "import": "./index.js",
-    "require": "./index.js",
-    "types": "./index.d.ts"
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
   },
   "repository": {
     "type": "git",
@@ -40,9 +44,10 @@
   "scripts": {
     "prepublishOnly": "cp ../../../README.md .",
     "install": "node-gyp-build",
-    "configure": "node-gyp configure",
-    "build": "node-gyp build",
-    "prebuild": "prebuildify --strip --napi"
+    "prebuild": "prebuildify --strip --napi",
+    "build": "npm run build:esm && npm run build:cjs",
+    "build:esm": "esbuild --platform=node --format=esm --outfile=dist/index.mjs index.js",
+    "build:cjs": "esbuild --platform=node --format=cjs --outfile=dist/index.cjs index.js"
   },
   "dependencies": {
     "node-addon-api": "^8.3.1",
@@ -50,6 +55,7 @@
     "node-gyp-build": "^4.8.4"
   },
   "devDependencies": {
+    "esbuild": "^0.25.4",
     "prebuildify": "^6.0.1"
   }
 }

@@ -1,19 +1,30 @@
 import nodeGypBuild from "node-gyp-build";
 import fs from "fs";
-import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
+import url from "url";
+import path from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const scriptDir =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : path.dirname(
+        (() => {
+          try {
+            return url.fileURLToPath(import.meta.url);
+          } catch {
+            return __filename;
+          }
+        })()
+      );
+const packageDir = path.resolve(scriptDir, "..");
 
 // Check the package version
-const packageJSONPath = resolve(__dirname, "package.json");
+const packageJSONPath = path.resolve(packageDir, "package.json");
 const packageJSON = JSON.parse(fs.readFileSync(packageJSONPath, "utf8"));
 const { version } = packageJSON;
 const [major, minor, _] = version.split(".").map(Number);
 
 // Check the ABI version
-const gpac = nodeGypBuild(__dirname);
+const gpac = nodeGypBuild(packageDir);
 const gpac_major = gpac.gf_gpac_abi_major();
 const gpac_minor = gpac.gf_gpac_abi_minor();
 

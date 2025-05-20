@@ -90,7 +90,7 @@ ifneq ($(strip $(SWIG)),)
 	@cd $(SRC_PATH)/share/swig && python3 generator.py -s -l $(SWIG)
 ifeq ($(SWIG),node)
 	@cd $(SRC_PATH)/share/swig && npm -C node --silent --ignore-scripts install
-	@cd $(SRC_PATH)/share/swig && npm -C node run prebuild
+	@cd $(SRC_PATH)/share/swig && npm -C node run build
 	@echo "Try running 'node test.js' in share/swig/node"
 endif
 endif
