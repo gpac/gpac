@@ -4323,6 +4323,11 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 
 		if (kid_count>=max_keys) {
 			max_keys = kid_count;
+			if ( (max_keys > SIZE_MAX / 16) || (max_keys > gf_bs_available(ctx->bs_r)/16)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] kid count invalid\n" ));
+				break;
+			}
+
 			keyIDs = gf_realloc(keyIDs, sizeof(bin128)*max_keys);
 		}
 		for (j=0; j<kid_count; j++) {
