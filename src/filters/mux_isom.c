@@ -4334,6 +4334,10 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 			gf_bs_read_data(ctx->bs_r, keyIDs[j], 16);
 		}
 		len = gf_bs_read_u32(ctx->bs_r);
+		if (len>gf_bs_available(ctx->bs_r)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] pssh length invalid\n" ));
+			break;
+		}
 		data = p->value.data.ptr + gf_bs_get_position(ctx->bs_r);
 
 		if (tkw->is_item) mode = 2;
