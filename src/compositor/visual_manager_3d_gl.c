@@ -127,7 +127,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	if (CHECK_GL_EXT("EXT_unpack_subimage") ) {
 		compositor->gl_caps.gles2_unpack = 1;
 	}
-	
+
 	if (!has_gl_context) return;
 
 
@@ -1329,7 +1329,7 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 		glHint(GL_POINT_SMOOTH, GL_DONT_CARE);
 		glHint(GL_LINE_SMOOTH, GL_DONT_CARE);
 		glHint(GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
-	
+
 		glDisable( GL_MULTISAMPLE_ARB);
 */
 	}
@@ -2489,7 +2489,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 					yuv_mode = 2;
 					break;
 				}
-			
+
 				glUniform1i(loc, yuv_mode);
 			}
 			GL_CHECK_ERR()
@@ -3169,7 +3169,6 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	GL_CHECK_ERR()
 
-	gf_rmt_begin_gl(visual_3d_mesh_paint);
 	glGetError();
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
@@ -3215,7 +3214,6 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 
-	gf_rmt_end_gl();
 	glGetError();
 }
 
