@@ -1144,12 +1144,12 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.den>0) {
 			u64 ts = gf_filter_pck_get_cts(new_pck);
 			if (ts != GF_FILTER_NO_TS) {
-				Bool is_seg_boundary = GF_FALSE;
-				if (ctx->wait_seg_boundary_ts.den>0) {
-					is_seg_boundary = gf_timestamp_greater_or_equal(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den);
-				} else {
-					u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
-					is_seg_boundary = ts % segdur <= gf_filter_pck_get_duration(new_pck);
+				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
+				Bool is_seg_boundary = ts % segdur == 0;
+
+				//fallback, check if other tracks are currently sending
+				if (!is_seg_boundary && ctx->wait_seg_boundary_ts.den>0) {
+					is_seg_boundary = gf_timestamp_equal(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den);
 				}
 
 				if (is_seg_boundary) {
@@ -1841,7 +1841,6 @@ GF_Err reframer_process(GF_Filter *filter)
 
 			//convert tc to UTC
 			u64 now = gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
-			now += gf_timestamp_rescale(pck_tc->n_frames * 1000, fps.num, fps.den);
 
 			//process both start and end timecodes
 			GF_TimeCode *tc_list[2] = {ctx->cur_start_tc, ctx->cur_end_tc};
