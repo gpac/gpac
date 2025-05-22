@@ -186,6 +186,10 @@ typedef struct
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 	GF_Fraction64 ts_tc_offset;
 
+	//when we are waiting for segment boundary, we want other PIDs to
+	//short circuit and start sending when one of them can
+	GF_Fraction64 wait_seg_boundary_ts;
+
 	Bool in_range;
 	Bool load_sei;
 
@@ -1137,16 +1141,28 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
 		//if all saps, using the the final timestamp, decide if we should send the packet
-		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.num>0 && st->segdur.den>0) {
+		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.den>0) {
 			u64 ts = gf_filter_pck_get_cts(new_pck);
 			if (ts != GF_FILTER_NO_TS) {
-				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
-				if (ts % segdur > gf_filter_pck_get_duration(new_pck)) {
+				Bool is_seg_boundary = GF_FALSE;
+				if (ctx->wait_seg_boundary_ts.den>0) {
+					is_seg_boundary = gf_timestamp_greater_or_equal(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den);
+				} else {
+					u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
+					is_seg_boundary = ts % segdur <= gf_filter_pck_get_duration(new_pck);
+				}
+
+				if (is_seg_boundary) {
+					// first packet to be sent adjusts the start time
+					if (ctx->wait_seg_boundary_ts.den==0 || gf_timestamp_less(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den)) {
+						ctx->wait_seg_boundary_ts.num = ts;
+						ctx->wait_seg_boundary_ts.den = st->timescale;
+					}
+					st->wait_seg_boundary = WAIT_SEG_BOUNDARY_DONE;
+				} else {
 					// this frame wouldn't be considered as sap because it's within the segment duration
 					gf_filter_pck_discard(new_pck);
 					new_pck = NULL;
-				} else {
-					st->wait_seg_boundary = WAIT_SEG_BOUNDARY_DONE;
 				}
 			}
 		}
