@@ -1202,7 +1202,7 @@ static void xml_sax_reset(GF_SAXParser *parser)
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
 	GF_Err e = GF_EOS;
-	unsigned char szLine[XML_INPUT_SIZE+2];
+	unsigned char szLine[XML_INPUT_SIZE+2]={0};
 
 #ifdef NO_GZIP
 	if (!parser->f_in) return GF_BAD_PARAM;
