@@ -55,9 +55,6 @@ GF_OPT_ENUM (DasherBSSwitchingMode,
 	DASHER_BS_SWITCH_FORCE,
 	DASHER_BS_SWITCH_MULTI,
 );
-/**
- * ssss
- */
 
 typedef enum
 {
