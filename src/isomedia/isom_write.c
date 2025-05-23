@@ -6252,7 +6252,7 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 	GF_ItemListBox *ilst;
 	GF_MetaBox *meta;
 	GF_ListItemBox *info;
-	u32 btype, i, itype;
+	u32 btype=0, i, itype;
 	s32 tag_idx;
 	u32 n=0, d=0;
 	u8 loc_data[10];
