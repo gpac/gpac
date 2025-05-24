@@ -672,9 +672,9 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 	if (!cue)
 		return GF_BAD_PARAM;
 
-	sample_end = 0;
 	cue_start = gf_webvtt_timestamp_get(&cue->start);
 	cue_end   = gf_webvtt_timestamp_get(&cue->end);
+	sample_end = cue_start;
 	/* samples in the samples list are contiguous: sample(n)->start == sample(n-1)->end */
 	for (i = 0; i < (s32)gf_list_count(samples); i++) {
 		GF_WebVTTSample *sample;
