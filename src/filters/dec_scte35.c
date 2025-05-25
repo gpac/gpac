@@ -34,10 +34,16 @@ typedef struct {
 	GF_EventMessageBox *emib;
 } Event;
 
+GF_OPT_ENUM (SCTE35DecDataMode,
+	PROP=0, // scte35 data is carried as a property
+	RAW,    // packet data contains the scte35 payload (m2ts section)
+	BOX,    // packet data contains the emib/emeb boxes
+);
+
 typedef struct {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
-	Bool native; // using pck data instead of properties
+	SCTE35DecDataMode data_mode;
 
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_shared)(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
@@ -138,8 +144,12 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (ctx->pass) return GF_OK;
 
 	const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
-	if (p && p->value.uint == GF_CODECID_SCTE35)
-		ctx->native = GF_TRUE;
+	if (p) {
+		if (p->value.uint == GF_CODECID_SCTE35)
+			ctx->data_mode = RAW;
+		else if (p->value.uint == GF_CODECID_EVTE)
+			ctx->data_mode = BOX;
+	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SCTE35) );
@@ -355,10 +365,10 @@ static GF_Err new_segment(SCTE35DecCtx *ctx)
 		ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
 	u64 dts = ctx->orig_ts + ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
 	if (ctx->segnum == 0) // first segment: adjust last_dispatched_dts to a previous fictive segment
-		ctx->last_dispatched_dts = (-1 * ctx->segdur.num * ctx->timescale / ctx->segdur.den);
+		ctx->last_dispatched_dts = ctx->orig_ts - ctx->segdur.num * ctx->timescale / ctx->segdur.den;
 	ctx->segnum++;
 	ctx->clock = dts;
-	return scte35dec_push_box(ctx, dts, (u32) ( ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - dts) );
+	return scte35dec_push_box(ctx, dts, (u32) ( ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - (dts - ctx->orig_ts)) );
 }
 
 static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
@@ -567,6 +577,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 		ctx->last_dispatched_dts = dts - dur;
 		ctx->last_pck_dur = dur;
 		ctx->last_dispatched_dts_init = GF_TRUE;
+		ctx->clock = dts;
 	} else if (ctx->clock < dts && !IS_SEGMENTED &&
 	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
 		// drift control
@@ -581,7 +592,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	}
 
 	if (IS_SEGMENTED) {
-		// check if we moved forward by more than one segment (which may happen with scarce streams/no heartbeat/'native' mode)
+		// check if we moved forward by more than one segment (which may happen with sparse streams/no heartbeat/non-prop data_mode)
 		while ((dts - ctx->clock) * ctx->segdur.den >= ctx->segdur.num * ctx->timescale) {
 			ctx->segnum = 1 + (u32) (ctx->clock * ctx->segdur.den / (ctx->segdur.num * ctx->timescale) );
 			u32 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
@@ -690,6 +701,51 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 	return ctx->pck_send(dst_pck);
 }
 
+static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u32 *size)
+{
+	const u8 *data = NULL;
+
+	if (ctx->data_mode != PROP) {
+		data = gf_filter_pck_get_data(pck, size); // RAW data_mode
+
+		if (ctx->data_mode == BOX) {
+			GF_BitStream *bs = gf_bs_new(data, *size, GF_BITSTREAM_READ);
+
+			// not RAW: reset
+			data = NULL;
+			*size = 0;
+
+			// parse boxes
+			while (gf_bs_available(bs) > 0) {
+				GF_Box *a = NULL;
+				GF_Err e = gf_isom_box_parse(&a, bs);
+				if (e) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] parsing data boxes failed\n"));
+					break; //don't parse any further
+				}
+				if (a->type == GF_ISOM_BOX_TYPE_EMIB) {
+					if (data && *size)
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' box while parsing data boxes: not supported\n"));
+					GF_EventMessageBox *emib = (GF_EventMessageBox*)a;
+					data = emib->message_data;
+					*size = emib->message_data_size;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
+				}
+				gf_isom_box_del(a);
+			}
+			gf_bs_del(bs);
+		}
+	} else {
+		const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+		if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
+			data = emsg->value.data.ptr;
+			*size = emsg->value.data.size;
+		}
+	}
+
+	return data;
+}
+
 static GF_Err scte35dec_process(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
@@ -705,23 +761,20 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	}
 
 	u64 dts = gf_filter_pck_get_dts(pck);
+	if (dts == GF_FILTER_NO_TS) {
+		// sometimes packets from the dasher have no ts...
+		dts = ctx->last_dispatched_dts + ctx->last_pck_dur;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] packet with no DTS. Inferring value "LLU".\n", dts));
+	}
 	u32 dur = gf_filter_pck_get_duration(pck);
 	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), dur);
 
 	u32 size = 0;
-	const u8 *data = NULL;
-	if (ctx->native) {
-		data = gf_filter_pck_get_data(pck, &size);
-	} else {
-		const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
-		if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-			data = emsg->value.data.ptr;
-			size = emsg->value.data.size;
-		}
-	}
+	const u8 *data = scte35dec_pck_get_data(ctx, pck, &size);
+
 	if (data && size) {
 		GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
-		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while 'emsg' at dts="LLU"\n", dts));
+		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
 	}
 
 	GF_Err e;

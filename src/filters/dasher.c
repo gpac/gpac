@@ -3723,7 +3723,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	}
 
 	//inject scte35dec filter
-	if (ds->codec_id==GF_CODECID_SCTE35)
+	if (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE)
 		dasher_inject_scte35_processor(filter, ds, szSRC);
 }
 
