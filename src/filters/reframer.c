@@ -1841,6 +1841,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 			//convert tc to UTC
 			u64 now = gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
+			now += gf_timestamp_rescale(pck_tc->n_frames * 1000, fps.num, fps.den);
 
 			//process both start and end timecodes
 			GF_TimeCode *tc_list[2] = {ctx->cur_start_tc, ctx->cur_end_tc};
