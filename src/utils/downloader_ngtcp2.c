@@ -2085,7 +2085,7 @@ restart:
 	u32 src_add_len = 0;
 	const u8 *src_add =  gf_sk_get_address(qs->sock, &src_add_len);
 	if (!src_add) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[QUIC] Failed to fecth packet adress\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[QUIC] Failed to fecth packet address\n"));
 		return GF_IP_NETWORK_EMPTY;
 	}
 	ngtcp2_version_cid vc;
