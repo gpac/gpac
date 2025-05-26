@@ -2353,7 +2353,6 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 {
 	u32 i, count, nb_done;
-	Bool manifest_sent=GF_FALSE;
 	if (!serv->service_ready) return GF_OK;
 
 	//carousel STSID bundle
@@ -2444,15 +2443,13 @@ next_packet:
 						init_tsi = ctx->dvb_mabr_tsi;
 					}
 
-					if (!manifest_sent) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
-						manifest_sent = GF_TRUE;
-						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+					//always send manifest before init
+					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s (TOI %u PID type %u)\n", serv->log_name, serv->manifest_name, serv->manifest_toi, rpid->stream_type));
+					routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
 
-						if (serv->manifest_alt) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
-							routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
-						}
+					if (serv->manifest_alt) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
+						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
 					}
 					init_toi = rpid->init_toi;
 				}
@@ -3470,7 +3467,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"These will demultiplex the input, re-dash it and send the output of the dasher to ROUTE\n"
 		"\n"
 		"# Error simulation\n"
-		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
+		"It is possible to simulate errors with (-errsim)[]. In this mode the LCT network sender implements a 2-state Markov chain:\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
 		"This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.\n"
 	)
