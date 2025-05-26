@@ -534,6 +534,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 
+		//special case for no data
+		if ((e==GF_EOS) && !nb_read && !ctx->nb_read && !total_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPIn] No data in stream\n"));
+			httpin_notify_error(filter, ctx, GF_EOS);
+			ctx->is_end = GF_TRUE;
+			return GF_EOS;
+		}
+
 		if (!ctx->pid || ctx->do_reconfigure) {
 			u32 idx;
 			GF_Err cfg_e;
@@ -586,6 +594,17 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 			/*in test mode don't expose http headers (they contain date/version/etc)*/
 			if (! gf_sys_is_test_mode()) {
+				//remove old headers
+				idx=0;
+				while (1) {
+					u32 p4cc;
+					const char *pname;
+					const GF_PropertyValue *p = gf_filter_pid_enum_properties(ctx->pid, &idx, &p4cc, &pname);
+					if (!p) break;
+					if (p4cc) continue;
+					gf_filter_pid_set_property_str(ctx->pid, pname, NULL);
+					idx--;
+				}
 				idx = 0;
 				while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
 					gf_filter_pid_set_property_dyn(ctx->pid, (char *) hname, & PROP_STRING(hval));

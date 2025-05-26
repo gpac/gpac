@@ -382,11 +382,15 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	}
 
 	isor_check_producer_ref_time(read);
+	prop = gf_filter_pid_get_property_str(read->pid, "X-From-MABR");
+
 
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
 		ch->eos_sent = 0;
+		if (ch->pid)
+			gf_filter_pid_set_property_str(ch->pid, "X-From-MABR", prop);
 
 		//old code from master, currently no longer used
 		//in filters we don't use extractors for the time being, we only do implicit reconstruction at the decoder side

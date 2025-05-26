@@ -499,8 +499,21 @@ function update_play()
 	let last_ts_f = vout.last_ts_drop;
 	if (!last_ts_f && aout)
 		last_ts_f = aout.last_ts_drop;
+
 	if (!last_ts_f) {
-		vout.update('oltxt', null);
+		let str = 'No input connected';
+		if (use_libcaca) {
+			vout.update('oltxt', str);
+			return;
+		}
+		text.fontsize = 20;
+		text.set_text(str);
+		let mx = new evg.Matrix2D();
+		mx.translate(- str.length * text.fontsize/3, -10);
+		ol_canvas.matrix = mx;
+		ol_canvas.path = text;
+		ol_canvas.fill(brush);
+		vout.update('oldata', ol_buffer);
 		return;
 	}
 
@@ -601,6 +614,22 @@ function update_play()
 		ol_canvas.fill(brush);
 		brush.set_color('white');
 	}
+
+	let src = vout ? vout.ipid_source(0) : aout.ipid_source(0);
+	let hdr = src.ipid_props(0, 'X-From-MABR');
+	if (hdr) {
+		text.fontsize = 16;
+		let msg = 'MABR ' + ((hdr=='yes') ? 'on' : ((hdr=='no') ? 'off' : hdr));
+		text.set_text(msg);
+		let mx = new evg.Matrix2D();
+		mx.translate(ol_width/2-10*msg.length, 5-ol_height/2);
+		ol_canvas.matrix = mx;
+		ol_canvas.path = text;
+		brush.set_color((hdr=='yes') ? 'green' : 'red');
+		ol_canvas.fill(brush);
+		brush.set_color('white');
+	}
+
 	//we could lock vout to avoid any tearing ...
 	vout.update('oldata', ol_buffer);
 }
@@ -1086,7 +1115,7 @@ function process_keyboard(evt)
 		}
 		overlay_type=OL_HELP;
 		toggle_overlay();
-		//show player player
+		//show player
 		if (!ol_visible && audio_only) {
 			overlay_type=OL_PLAY;
 			toggle_overlay();
@@ -1100,7 +1129,7 @@ function process_keyboard(evt)
 		}
 		overlay_type=OL_STATS;
 		toggle_overlay();
-		//show player player
+		//show player
 		if (!ol_visible && audio_only) {
 			overlay_type=OL_PLAY;
 			toggle_overlay();
