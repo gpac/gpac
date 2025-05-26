@@ -4172,7 +4172,7 @@ GF_Err gf_fs_get_last_connect_error(GF_FilterSession *fs)
 	if (!fs) return GF_BAD_PARAM;
 	e = fs->last_connect_error;
 	fs->last_connect_error = GF_OK;
-	return e;
+	return e<0 ? e : GF_OK;
 }
 
 GF_EXPORT

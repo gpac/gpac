@@ -3665,7 +3665,9 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	if (notif_filter->setup_notified) return;
 	notif_filter->setup_notified = GF_TRUE;
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s failed to setup: %s\n", notif_filter->name, gf_error_to_string(reason)));
+	if (reason<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s failed to setup: %s\n", notif_filter->name, gf_error_to_string(reason)));
+	}
 
 	gf_filter_notification_failure(notif_filter, reason, GF_TRUE);
 	//if we used the source, also send a notif failure on the filter (to trigger removal)
