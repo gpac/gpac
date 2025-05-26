@@ -1804,28 +1804,6 @@ static JSValue jsfs_get_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	return jsfs_new_filter_obj(ctx, f);
 }
 
-#ifndef GPAC_DISABLE_ROUTE
-Bool routein_is_valid_url(GF_Filter *f, u32 service_id, const char *url);
-#endif
-static JSValue jsff_source_probe_url(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	Bool ret = GF_FALSE;
-	s32 serviceID;
-	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
-	if (!f || (argc<2))
-		return GF_JS_EXCEPTION(ctx);
-
-#ifndef GPAC_DISABLE_ROUTE
-	JS_ToInt32(ctx, &serviceID, argv[0]);
-	const char *url = JS_ToCString(ctx, argv[1]);
-
-	ret = routein_is_valid_url(f, (u32) serviceID, url);
-
-	JS_FreeCString(ctx, url);
-#endif
-
-	return ret ? JS_TRUE : JS_FALSE;
-}
 static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *fname, *link_args;
@@ -1887,12 +1865,6 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	gf_fs_lock_filters(fs, GF_FALSE);
 
 	JSValue fobj = jsfs_new_filter_obj(ctx, new_f);
-	if (is_source) {
-		//ugly hack
-		if (!strcmp(new_f->freg->name, "routein")) {
-			JS_SetPropertyStr(ctx, fobj, "probe_url", JS_NewCFunction(ctx, jsff_source_probe_url, "probe_url", 1));
-		}
-	}
 	return fobj;
 }
 

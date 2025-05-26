@@ -1824,7 +1824,9 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					JS_SetPropertyStr(ctx, var, "live_seg_num", JS_NewInt64(ctx, 0) );
 				} else {
 					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, cur) );
-					JS_SetPropertyStr(ctx, var, "duration", JS_NewFloat64(ctx, cur_dur ? cur_dur : target_dur) );
+					if (!cur_dur) cur_dur = target_dur;
+					JS_SetPropertyStr(ctx, var, "duration", JS_NewFloat64(ctx, cur_dur) );
+					cur_dur = 0;
 				}
 				vidx++;
 				if (!sep) break;
@@ -1901,6 +1903,11 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 			JS_SetPropertyStr(ctx, mpdo, "seq_start", JS_NewInt32(ctx, media_seq) );
 			JS_SetPropertyStr(ctx, mpdo, "live_seg_num", JS_NewInt32(ctx, media_seq+vidx) );
 		}
+		if (!is_master) {
+			JS_SetPropertyStr(ctx, mpdo, "min_update", JS_NewInt64(ctx, (s32) (cur_dur * 1000) ) );
+		} else {
+			JS_SetPropertyStr(ctx, mpdo, "min_update", JS_NewInt64(ctx, -1 ) );
+		}
 		gf_free(str);
 		return mpdo;
 	} else if (!strstr(str, "<MPD ")) {
@@ -1929,6 +1936,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_SetPropertyStr(ctx, mpdo, "ast", JS_NewInt64(ctx, mpd->availabilityStartTime) );
 	JS_SetPropertyStr(ctx, mpdo, "tsb", JS_NewInt32(ctx, mpd->time_shift_buffer_depth) );
 	JS_SetPropertyStr(ctx, mpdo, "live", JS_NewBool(ctx, mpd->type==GF_MPD_TYPE_DYNAMIC) );
+	JS_SetPropertyStr(ctx, mpdo, "min_update", JS_NewInt64(ctx, mpd->minimum_update_period) );
 
 	u64 now = gf_net_get_utc();
 	JS_SetPropertyStr(ctx, mpdo, "live_utc", JS_NewInt64(ctx, now) );
@@ -2043,6 +2051,8 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 							JSValue sego = JS_NewObject(ctx);
 							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
 
+							//move back to timescale
+							segdur_ms = gf_timestamp_rescale(segdur_ms, 1000, mpd_timescale ? mpd_timescale : 1);
 							JS_SetPropertyStr(ctx, sego, "url", JS_NewString(ctx, seg_url) );
 							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, (u32) segdur_ms) );
 
