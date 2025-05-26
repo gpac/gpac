@@ -937,7 +937,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 				break;
 			}
 			//no start, end is a file size
-			if (sess->ranges[i].end >= (s64) known_file_size) {
+			if (sess->ranges[i].end > (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
@@ -2192,7 +2192,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_fseek(sess->resource, 0, SEEK_SET);
 		}
 		//only put content length if not using chunk transfer - bytes_in_req may be > 0 if we have a byte range on a chunk-transfer session
-		if (sess->bytes_in_req && !sess->use_chunk_transfer) {
+		if ((sess->bytes_in_req || (sess->nb_ranges==1)) && !sess->use_chunk_transfer) {
 			sprintf(szFmt, LLU, sess->bytes_in_req);
 			gf_dm_sess_set_header(sess->http_sess, "Content-Length", szFmt);
 		}
@@ -2208,7 +2208,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 		if (!is_head && sess->nb_ranges) {
 			char *ranges = NULL;
-			gf_dynstrcat(&ranges, "bytes=", NULL);
+			//BNF: UNIT SP range, no bytes= as in request Range header ...
+			gf_dynstrcat(&ranges, "bytes ", NULL);
 			for (i=0; i<sess->nb_ranges; i++) {
 				if (sess->ranges[i].end==-1) {
 					sprintf(szFmt, LLD"-/*", sess->ranges[i].start);
@@ -2408,6 +2409,10 @@ exit:
 
 	if (sess->reply_code == 401) {
 		gf_dm_sess_set_header(sess->http_sess, "WWW-Authenticate", "Basic");
+	}
+	if (sess->reply_code == 416) {
+		sprintf(szFmt, "bytes */"LLU, sess->file_size);
+		gf_dm_sess_set_header(sess->http_sess, "Content-Range", szFmt);
 	}
 
 	if (response_body || sess->body_or_file) {
@@ -3919,7 +3924,7 @@ resend:
 		Bool range_done=GF_FALSE;
 		//current range is done
 		if ((sess->ranges[sess->range_idx].end>0)
-			&& ((s64) sess->file_pos >= sess->ranges[sess->range_idx].end)
+			&& ((s64) sess->file_pos > sess->ranges[sess->range_idx].end)
 		) {
 			//load next range, seeking file
 			if (sess->range_idx+1<sess->nb_ranges) {
