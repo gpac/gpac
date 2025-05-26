@@ -1711,7 +1711,9 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	status = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, in_data, in_data_size, kCFAllocatorNull, NULL, 0, in_data_size, 0, &block_buffer);
 
 	if (status ||  (block_buffer == NULL) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Failed to allocate block buffer of %d bytes\n", in_data_size));
+		if (in_data_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Failed to allocate block buffer of %d bytes\n", in_data_size));
+		}
 		gf_filter_pid_drop_packet(ref_pid);
 		return GF_IO_ERR;
 	}
