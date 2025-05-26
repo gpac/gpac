@@ -99,6 +99,13 @@ static void routein_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->seg_range_reservoir);
 
+	while (gf_list_count(ctx->sample_deps_reservoir)) {
+		SampleDepInfo *sr = gf_list_pop_back(ctx->sample_deps_reservoir);
+		if (sr->refs) gf_free(sr->refs);
+		gf_free(sr);
+	}
+	gf_list_del(ctx->sample_deps_reservoir);
+
 	for (i=0; i<ctx->max_sess; i++) {
 		if (ctx->http_repair_sessions && ctx->http_repair_sessions[i].dld)
 			gf_dm_sess_del(ctx->http_repair_sessions[i].dld);
@@ -194,7 +201,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
 		if (!finfo) return;
 
-		assert(finfo->filename);
+		gf_assert(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
 		ext = gf_file_ext_start(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
@@ -226,7 +233,9 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_assert(finfo->frags[0].offset == 0);
 		if (evt_type != GF_ROUTE_EVT_DYN_SEG_FRAG) {
 			//full file, we shall have a single fragment with same size as the file
+			gf_assert(finfo->nb_frags == 1);
 			gf_assert(finfo->frags[0].size == finfo->blob->size);
+			gf_assert(finfo->frags[0].size == finfo->total_size);
 		} else if (tsio) {
 			//we can only disptach from first block
 			to_write = finfo->frags[0].size;
@@ -279,8 +288,10 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		}
 	}
 	//release current TOI in case we have data from next segment being progressively dispatched
-	if (tsio && is_end)
+	if (tsio && is_end) {
 		tsio->current_toi = 0;
+		tsio->bytes_sent = 0;
+	}
 
 	if (ctx->max_segs && (evt_type==GF_ROUTE_EVT_DYN_SEG))
 		push_seg_info(ctx, pid, finfo);
@@ -404,6 +415,9 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		break;
 	case GF_ROUTE_EVT_DYN_SEG:
 
+		if (!finfo->channel_hint) {
+			routein_check_type(ctx, finfo, evt_param);
+		}
 		if (ctx->odir) {
 			routein_write_to_disk(ctx, evt_param, finfo, evt);
 			break;
@@ -420,6 +434,10 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		//fallthrough
 
     case GF_ROUTE_EVT_DYN_SEG_FRAG:
+		if (!finfo->channel_hint) {
+			routein_check_type(ctx, finfo, evt_param);
+		}
+
         //for now we only write complete files
         if (ctx->odir) {
             break;
@@ -642,11 +660,12 @@ static GF_Err routein_process(GF_Filter *filter)
 
 	ctx->evt_interrupt = GF_FALSE;
 
-	u32 nb_calls=0;
+	gf_route_dmx_check_timeouts(ctx->route_dmx);
+
 	while (1) {
 		e = gf_route_dmx_process(ctx->route_dmx);
 		if (e == GF_IP_NETWORK_EMPTY) {
-			if (ctx->tune_time) {
+			if (!ctx->ka && ctx->tune_time) {
 				if (!ctx->last_timeout) ctx->last_timeout = gf_sys_clock();
 				else {
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
@@ -656,9 +675,6 @@ static GF_Err routein_process(GF_Filter *filter)
 						return GF_EOS;
 					}
 				}
-			}
-			if (nb_calls==0) {
-				gf_route_dmx_check_timeouts(ctx->route_dmx);
 			}
 			//with decent buffer size >=50kB we should sustain at least 80 mbps per multicast stream with 5ms reschedule
 			if (gf_route_dmx_has_active_multicast(ctx->route_dmx))
@@ -681,7 +697,6 @@ static GF_Err routein_process(GF_Filter *filter)
 		} else {
 			break;
 		}
-		nb_calls++;
 	}
 	if (!ctx->tune_time) {
 	 	u32 diff = gf_sys_clock() - ctx->start_time;
@@ -834,7 +849,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	ctx->initial_play_forced = GF_TRUE;
 	if (ctx->repair_urls.nb_items > 0) {
 		u8 i;
-		ctx->repair = ROUTEIN_REPAIR_FULL;
+		if (ctx->repair<ROUTEIN_REPAIR_FULL)
+			ctx->repair = ROUTEIN_REPAIR_FULL;
 		ctx->repair_servers = gf_list_new();
 		for(i=0; i<ctx->repair_urls.nb_items; i++) {
 			RouteRepairServer* server;
@@ -847,7 +863,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		}
 	}
 
-	if ((ctx->repair == ROUTEIN_REPAIR_FULL) || ctx->stsi) {
+	if ((ctx->repair >= ROUTEIN_REPAIR_FULL) || ctx->stsi) {
 		if (!ctx->max_sess) ctx->max_sess = 1;
 		//we need at least one session in fast repair mode
 		else if (ctx->repair < ROUTEIN_REPAIR_FULL) ctx->max_sess = 1;
@@ -860,6 +876,11 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->seg_range_reservoir = gf_list_new();
 	} else {
 		ctx->max_sess = 0;
+		if (ctx->riso >= REPAIR_ISO_SIMPLE) {
+			ctx->seg_repair_queue = gf_list_new();
+			ctx->seg_repair_reservoir = gf_list_new();
+			ctx->seg_range_reservoir = gf_list_new();
+		}
 	}
 	//TODO, pass any repair URL info coming from broadcast
 	if (!ctx->repair_servers) {
@@ -884,16 +905,6 @@ static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		gf_route_dmx_mark_active_quality(ctx->route_dmx, evt->dash_select.service_id, evt->dash_select.period_id, evt->dash_select.as_id, evt->dash_select.rep_id, (evt->dash_select.select_type==GF_QUALITY_SELECTED) ? GF_TRUE : GF_FALSE);
 	}
 	return GF_TRUE;
-}
-
-GF_Err gf_route_dmx_has_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, const char *fileName);
-Bool routein_is_valid_url(GF_Filter *filter, u32 service_id, const char *url)
-{
-	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
-	GF_Err e = gf_route_dmx_has_object_by_name(ctx->route_dmx, service_id, url);
-	if (e==GF_OK)
-		return GF_TRUE;
-	return GF_FALSE;
 }
 
 #define OFFS(_n)	#_n, offsetof(ROUTEInCtx, _n)
@@ -933,6 +944,13 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(dynsel), "dynamically enable and disable multicast groups based on their selection state", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(range_merge), "merge ranges in HTTP repair if distant from less than given amount of bytes", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(minrecv), "redownload full file in HTTP repair if received bytes is less than given percentage of file size", GF_PROP_UINT, "20", NULL, 0},
+	{ OFFS(riso), "advanced options for ISOBMFF HTTP repair\n"
+		"- none: use regular http repair\n"
+		"- simple: first repair all non-mdat boxes then repair mdat in order\n"
+		"- partial: only repair all non-mdat moxes, leaving holes in mdat\n"
+		"- deps: same as simple and repair only samples depended upon by other samples\n"
+		"- depx: same as deps but do not hide moof of incomplete mdat (tests only)", GF_PROP_UINT, "none", "none|simple|partial|deps|depx", 0},
+	{ OFFS(ka), "keep service alive if multicast is down", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -997,6 +1015,8 @@ GF_FilterRegister ROUTEInRegister = {
 	" - if `repair=strict`, `mdat` is moved to `free` if incomplete and the preceeding `moof` is also moved to `free`.\n"
 	"\n"
 	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are only partially received, they will be kept.\n"
+	"\n"
+	"Note: A partially patched segment is no longer considered corrupted and will be dispatched regardless of [-kc]().\n"
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"

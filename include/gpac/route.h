@@ -177,6 +177,9 @@ typedef struct
 	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
 	 */
 	void *udta;
+
+	/*! channel hint set by application; 0 if unknown*/
+	u32 channel_hint;
 } GF_ROUTEEventFileInfo;
 
 /*! Creates a new ROUTE ATSC3.0 demultiplexer
@@ -417,6 +420,17 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 \return error if any
  */
 GF_Err gf_route_dmx_patch_blob_size(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 new_size);
+
+/*! Set hint to the identified object - if object has an associated channel (eg HAS representation), set the hint on this channel. The hint is passed back in the \ref GF_ROUTEEventFileInfo and is typically used to store mime type of the object
+
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param tsi tsi of channel
+\param toi toi of object
+\param hint the new size to set
+\return error if any
+ */
+GF_Err gf_route_dmx_set_object_hint(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, u32 hint);
 
 /*! Set active status of a representation
 \param routedmx the ROUTE demultiplexer

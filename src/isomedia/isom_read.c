@@ -267,6 +267,8 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	}
 	else if (!stricmp(sz4cc, "AACL")) {
 	}
+	else if (!stricmp(sz4cc, "none")) {
+	}
 	else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot convert smooth media type %s to ISO init segment\n", sz4cc));
 		return GF_NOT_SUPPORTED;
@@ -417,7 +419,9 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		aac->samplerate_hi = sample_rate;
 		aac->channel_count = nb_channels;
 	}
-
+	else if (!stricmp(sz4cc, "none")) {
+		gf_isom_box_new_parent(&stbl->SampleDescription->child_boxes, GF_ISOM_BOX_TYPE_FREE);
+	}
 	return GF_OK;
 }
 #endif
@@ -455,7 +459,7 @@ GF_Err gf_isom_open_progressive_ex(const char *fileName, u64 start_range, u64 en
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		e = isom_create_init_from_mem(fileName, movie);
 #else
-			e = GF_NOT_SUPPORTED;
+		e = GF_NOT_SUPPORTED;
 #endif
 	} else {
 		//do NOT use FileMapping on incomplete files

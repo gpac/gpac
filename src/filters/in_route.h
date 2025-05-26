@@ -64,7 +64,15 @@ GF_OPT_ENUM (ROUTEInRepairMode,
 	ROUTEIN_REPAIR_NO = 0,
 	ROUTEIN_REPAIR_SIMPLE,
 	ROUTEIN_REPAIR_STRICT,
-	ROUTEIN_REPAIR_FULL,
+	ROUTEIN_REPAIR_FULL
+);
+
+GF_OPT_ENUM (ROUTEInRepairISO,
+	REPAIR_ISO_NO = 0,
+	REPAIR_ISO_SIMPLE,
+	REPAIR_ISO_PARTIAL,
+	REPAIR_ISO_DEPS,
+	REPAIR_ISO_DEPX,
 );
 
 typedef struct _route_repair_seg_info RepairSegmentInfo;
@@ -73,8 +81,9 @@ typedef struct
 {
 	u32 br_start;
 	u32 br_end;
-	u32 done;
-	u32 priority;
+	u32 bytes_recv;
+	u8 is_open;
+	u8 priority;
 } RouteRepairRange;
 
 typedef enum
@@ -89,7 +98,7 @@ typedef struct
 	char *url;
 	RouteServerRangeSupport accept_ranges;
 	Bool is_up, support_h2;
-	u32 nb_req_success, nb_bytes, latency;
+	u32 latency;
 } RouteRepairServer;
 
 #define REPAIR_BUF_SIZE	50000
@@ -108,8 +117,9 @@ typedef struct
 {
 	//options
 	char *src, *ifce, *odir;
-	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
+	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel, ka;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
+	ROUTEInRepairISO riso;
 	ROUTEInRepairMode repair;
 	u32 max_sess, range_merge, minrecv;
 	s32 tunein, stsi;
@@ -141,11 +151,44 @@ typedef struct
 	GF_List *seg_repair_queue;
 	GF_List *seg_repair_reservoir;
 	GF_List *seg_range_reservoir;
+	GF_List *sample_deps_reservoir;
 	GF_List *repair_servers;
 
 	Bool has_data;
 	const char *log_name;
 } ROUTEInCtx;
+
+enum
+{
+	REPAIR_ISO_STATUS_DONE = 0,
+	REPAIR_ISO_STATUS_INIT,
+	REPAIR_ISO_STATUS_PATCH_TOP_LEVEL,
+	REPAIR_ISO_STATUS_PATCH_MDAT,
+};
+
+enum
+{
+	//sample is drop
+	SAMPLE_DROP = 1,
+	//sample is drop due to a reference being dropped
+	SAMPLE_DROP_DEP = 1<<1
+};
+
+typedef struct
+{
+	u32 sample_id;
+	u32 nb_refs, nb_refs_alloc;
+	u32 *refs;
+	u32 start_range;
+	u32 end_range;
+	u64 dts;
+	u16 gop_id;
+	//0: missing range, 1: MABR received OK, 2: completed by HTTP repair
+	u8 valid;
+	//one of the above flags
+	u8 drop;
+	u32 num_direct_dependencies, num_indirect_dependencies;
+} SampleDepInfo;
 
 struct _route_repair_seg_info
 {
@@ -160,8 +203,15 @@ struct _route_repair_seg_info
 	GF_List *ranges;
 	u32 nb_errors;
 	TSI_Output *tsio;
+
+	u32 isox_state;
+	u32 total_size;
+
 	//set to true if repair session is over but kept in list for TSIO reordering purposes
 	Bool done;
+
+	u32 max_dep_per_sample;
+	GF_List *sample_deps;
 };
 
 
@@ -173,6 +223,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 
 //return GF_EOS if nothing active, GF_OK otherwise
 GF_Err routein_do_repair(ROUTEInCtx *ctx);
+void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 service_id);
 
 TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo);
 
