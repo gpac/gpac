@@ -424,7 +424,7 @@ typedef enum {
 
 struct _webvtt_parser {
 	GF_WebVTTParserState state;
-	Bool is_srt, suspend, is_eof, prev_line_empty, in_comment;
+	Bool is_init, is_srt, suspend, is_eof, prev_line_empty, in_comment;
 	char *comment_text;
 
 	/* List of non-overlapping GF_WebVTTSample */
@@ -675,6 +675,12 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 	cue_start = gf_webvtt_timestamp_get(&cue->start);
 	cue_end   = gf_webvtt_timestamp_get(&cue->end);
 	sample_end = cue_start;
+
+	if (!parser->is_init) {
+		sample_end = 0; // samples start at ts zero
+		parser->is_init = GF_TRUE;
+	}
+
 	/* samples in the samples list are contiguous: sample(n)->start == sample(n-1)->end */
 	for (i = 0; i < (s32)gf_list_count(samples); i++) {
 		GF_WebVTTSample *sample;
