@@ -212,6 +212,7 @@ enum
 	GF_ISOM_BOX_TYPE_VPCC = GF_4CC('v', 'p', 'c', 'C'),
 	GF_ISOM_BOX_TYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_BOX_TYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
+	GF_ISOM_BOX_TYPE_VP10 = GF_4CC('v', 'p', '1', '0'),
 	GF_ISOM_BOX_TYPE_SMDM = GF_4CC('S', 'm', 'D', 'm'),
 	GF_ISOM_BOX_TYPE_COLL = GF_4CC('C', 'o', 'L', 'L'),
 
@@ -982,7 +983,7 @@ typedef struct
 	GF_ExternalTrackLocationBox *extl;
 
 	GF_Box *Aperture;
-	
+
 	GF_MovieBox *moov;
 	/*private for media padding*/
 	u32 padding_bytes;
@@ -2734,7 +2735,7 @@ typedef struct
 
 	Bool cannot_use_default;
 	GF_ISOTrackID inherit_from_traf_id;
-	
+
 	GF_TrackFragmentRandomAccessBox *tfra;
 } GF_TrackExtendsBox;
 
@@ -4953,4 +4954,3 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 #endif
 
 #endif //_GF_ISOMEDIA_DEV_H_
-

@@ -241,6 +241,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	case GF_ISOM_BOX_TYPE_VP08:
 	case GF_ISOM_BOX_TYPE_VP09:
+	case GF_ISOM_BOX_TYPE_VP10:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
 		VP9_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
