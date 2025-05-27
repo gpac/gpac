@@ -575,6 +575,7 @@ static const GF_FilterCapability SEILoadCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
 	CAP_BOOL(GF_CAPFLAG_RECONFIG, GF_PROP_PID_SEI_LOADED, GF_TRUE),
 };
@@ -586,6 +587,9 @@ GF_FilterRegister SEILoadRegister = {
 	)
 	.private_size = sizeof(SEILoadCtx),
 	.max_extra_pids = 0xFFFFFFFF,
+	//only allow explicit loading or as PID adaptation filter: since the caps allow any codec and any stream type, the filter could
+	//otherwise get elected in place of a transcoding chain
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = SEILoadArgs,
 	SETCAPS(SEILoadCaps),
 	.initialize = seiload_initialize,
@@ -593,9 +597,6 @@ GF_FilterRegister SEILoadRegister = {
 	.configure_pid = seiload_configure_pid,
 	.process = seiload_process,
 	.reconfigure_output = seiload_reconfigure_output,
-	//assign lowest priority so that we don't get picked up in graph solving
-	//if a better chain is possible
-	.priority = 0x7FFF,
 	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
@@ -609,4 +610,3 @@ const GF_FilterRegister *seiload_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_SEILOAD
-

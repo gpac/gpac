@@ -1372,7 +1372,7 @@ config_package_test ()
 
     #test pkgconfig
     if test "$forced" != "local" -a "$custom" != "yes" ; then
-        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no"; then
+        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no" -a "$pkg_cfg_name" != ""; then
             if $pkg_config --exists $pkg_cfg_name ; then
                 pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
@@ -2590,7 +2590,7 @@ fi
 
 #we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces"
 else
     CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
