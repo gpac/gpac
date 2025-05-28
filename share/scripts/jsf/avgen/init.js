@@ -429,11 +429,11 @@ filter.process_event = function(pid, evt)
 
 filter.process = function()
 {
-	if (!audio_playing && !video_playing) return GF_EOS;
+	if (!audio_playing && !video_playing && !evte_playing) return GF_EOS;
 
 	//start by processing event, then video (adjusting start time)
 	if (evte_playing)
-		process_event();
+		process_eventmsg();
 
 	if (video_playing) 
 		process_video();
@@ -457,26 +457,40 @@ function get_emeb_box()
 	return pck;
 }
 
-function process_event()
+function process_eventmsg()
 {
 	if (!evte_pid || evte_pid.would_block)
 		return;
+	//perform regulation iof audio or video are being generated
+	if (audio_playing || video_playing) {
+		let nb_sec;
+		if (filter.type == 0) {
+			nb_sec = audio_cts * filter.dur.d / filter.sr;
+		} else {
+			nb_sec = video_cts * filter.fps.d / filter.fps.n;
+		}
 
-	let nb_sec;
-	if (filter.type == 0) {
-		nb_sec = audio_cts * filter.dur.d / filter.sr;
-	} else {
-		nb_sec = video_cts * filter.fps.d / filter.fps.n;
+		//send event for the period
+		if (nb_sec * filter.fps.n < evte_cts + filter.evte * filter.fps.n) return;
 	}
-
-	//send event for the period
-	if (nb_sec * filter.fps.n < evte_cts + filter.evte * filter.fps.n) return;
 	evte_cts += filter.evte * filter.fps.n;
 
 	let pck = get_emeb_box();
 	pck.send();
 
-	if ((!audio_playing || !video_playing) && evte_cts > 0) {
+	let done = false;
+	//evte only, check duration
+	if (!audio_playing && !video_playing) {
+		if (filter.dur.d && (evte_cts * filter.dur.d >= filter.dur.n * filter.fps.n)) {
+			print("done playing, cts " + evte_cts);
+			done = true;
+		}
+	} else {
+		if ((!audio_playing || !video_playing) && evte_cts > 0) {
+			done=true;
+		}
+	}
+	if (done) {
 		evte_playing = false
 		evte_pid.eos = true;
 	}
