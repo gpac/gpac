@@ -2873,6 +2873,8 @@ GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *er
 
 /*! Checks if a source filter can handle the given URL. The source filter is not loaded.
 
+The resulting filter will not be clonable unless the `:clone` argument is passed.
+
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.
 \param parent_url url of parent if any
