@@ -299,6 +299,34 @@ Generic filter options are:
 */
 GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name, GF_Err *err_code);
 
+/*! Parses a filter graph and loads the filters in the session.
+The format of the filter graph is the same as the one used in the gpac command line.
+\param fsess filter session
+\param argc number of arguments
+\param argv list of arguments
+\param loaded_filters list of loaded filters, must be freed by the caller
+\param links_directive list of link directives, must be freed by the caller
+\return error if any
+*/
+GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[], GF_List **out_loaded_filters, GF_List **out_links_directive);
+
+
+/*! Parses a filter graph and loads the filters in the session.
+
+The format of the filter graph is the same as the one used in the gpac command line.
+The input string will be split by spaces and supplied to \ref gf_fs_parse_filter_graph.
+
+This is a convenience function for command line parsing, and does not support all the features of the command line parser. If arguments are already parsed, use \ref gf_fs_parse_filter_graph instead. This method only handles quotes and spaces, and does not handle any other special characters.
+
+\param fsess filter session
+\param graph_str filter graph string
+\param loaded_filters list of loaded filters, must be freed by the caller
+\param links_directive list of link directives, must be freed by the caller
+\return error if any
+*/
+GF_Err gf_fs_parse_filter_graph_str(GF_FilterSession *fsess, char *graph_str, GF_List **out_loaded_filters, GF_List **out_links_directive);
+
+
 /*! Checks if a filter register exists by name.
 \param session filter session
 \param name name of the filter register to check.
