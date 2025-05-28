@@ -1840,6 +1840,7 @@ static struct box_registry_entry {
 
 
 	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CDRF, sref, "stbl traf", "TuC"),
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
