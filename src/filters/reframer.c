@@ -42,6 +42,12 @@ GF_OPT_ENUM (GF_ExtractionStartAdjustment,
 	REFRAME_ROUND_CLOSEST,
 );
 
+GF_OPT_ENUM (GF_WaitSegmentState,
+	WAIT_SEG_BOUNDARY_NONE=0,
+	WAIT_SEG_BOUNDARY_ACTIVE,
+	WAIT_SEG_BOUNDARY_DONE,
+);
+
 enum
 {
 	RANGE_NONE=0,
@@ -100,6 +106,9 @@ typedef struct
 	u32 nb_frames_range;
 	u64 sap_ts_plus_one;
 	Bool first_pck_sent;
+
+	GF_Fraction segdur;
+	GF_WaitSegmentState wait_seg_boundary;
 
 	//only positive delay here
 	u64 tk_delay;
@@ -176,6 +185,10 @@ typedef struct
 	Bool cur_start_valid, cur_end_valid;
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 	GF_Fraction64 ts_tc_offset;
+
+	//when we are waiting for segment boundary, we want other PIDs to
+	//short circuit and start sending when one of them can
+	GF_Fraction64 wait_seg_boundary_ts;
 
 	Bool in_range;
 	Bool load_sei;
@@ -1127,7 +1140,34 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (sap > 0 && sap <= ctx->sapcue)
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
-		gf_filter_pck_send(new_pck);
+		//if all saps, using the the final timestamp, decide if we should send the packet
+		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.den>0) {
+			u64 ts = gf_filter_pck_get_cts(new_pck);
+			if (ts != GF_FILTER_NO_TS) {
+				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
+				Bool is_seg_boundary = ts % segdur == 0;
+
+				//fallback, check if other tracks are currently sending
+				if (!is_seg_boundary && ctx->wait_seg_boundary_ts.den>0) {
+					is_seg_boundary = gf_timestamp_equal(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den);
+				}
+
+				if (is_seg_boundary) {
+					// first packet to be sent adjusts the start time
+					if (ctx->wait_seg_boundary_ts.den==0 || gf_timestamp_less(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den)) {
+						ctx->wait_seg_boundary_ts.num = ts;
+						ctx->wait_seg_boundary_ts.den = st->timescale;
+					}
+					st->wait_seg_boundary = WAIT_SEG_BOUNDARY_DONE;
+				} else {
+					// this frame wouldn't be considered as sap because it's within the segment duration
+					gf_filter_pck_discard(new_pck);
+					new_pck = NULL;
+				}
+			}
+		}
+
+		if (new_pck) gf_filter_pck_send(new_pck);
 	} else {
 		GF_FilterPacket *dst = ctx->copy ? gf_filter_pck_new_copy(st->opid, pck, NULL) : gf_filter_pck_new_ref(st->opid, 0, 0, pck);
 		if (dst) {
@@ -1772,15 +1812,10 @@ GF_Err reframer_process(GF_Filter *filter)
 			st->fetch_done = GF_FALSE;
 			if (ctx->cur_start_valid && ctx->cur_end_valid) continue;
 
-			const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_CODECID);
-			u32 codec_id = p ? p->value.uint : GF_CODECID_NONE;
-			if (codec_id != GF_CODECID_AVC && codec_id != GF_CODECID_HEVC && codec_id != GF_CODECID_AV1)
-				continue;
-
 			//try to get the timecode
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) return GF_OK;
-			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (!p || !p->value.data.ptr || !p->value.data.size) continue;
 			GF_TimeCode *pck_tc = (GF_TimeCode*) p->value.data.ptr;
 			u64 pck_cts = gf_filter_pck_get_cts(pck);
@@ -2861,6 +2896,19 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		st->sys_clock_at_init = 0;
 		if (ctx->speed==0)
 			ctx->rt_speed = evt->play.speed;
+	} else if (evt->base.type==GF_FEVT_TRANSPORT_HINTS) {
+		if (evt->transport_hints.wait_seg_boundary) {
+			//this applies to all streams
+			u32 ipid_count = gf_filter_get_ipid_count(filter);
+			for (u32 i=0; i<ipid_count; i++) {
+				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+				RTStream *ist = gf_filter_pid_get_udta(ipid);
+				if (ist && ist->wait_seg_boundary==WAIT_SEG_BOUNDARY_NONE) {
+					ist->wait_seg_boundary = WAIT_SEG_BOUNDARY_ACTIVE;
+					ist->segdur = evt->transport_hints.seg_duration;
+				}
+			}
+		}
 	}
 
 	gf_filter_pid_send_event(st->ipid, &fevt);
