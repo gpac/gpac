@@ -1604,15 +1604,19 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					}
 					break;
 				case GF_M2TS_DVB_SUBTITLING_DESCRIPTOR:
-					if (pes && (len>=8)) {
-						pes->sub.language[0] = data[2];
-						pes->sub.language[1] = data[3];
-						pes->sub.language[2] = data[4];
-						pes->sub.type = data[5];
-						pes->sub.composition_page_id = (data[6]<<8) | data[7];
-						pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
+					if (pes) {
+						if (len>=8) {
+							pes->sub.language[0] = data[2];
+							pes->sub.language[1] = data[3];
+							pes->sub.language[2] = data[4];
+							pes->sub.type = data[5];
+							pes->sub.composition_page_id = (data[6]<<8) | data[7];
+							pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
+						} else {
+							memset(& (pes->sub), 0, sizeof(pes->sub));
+						}
+						es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					}
-					es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					break;
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
 					if (len>=1) {
