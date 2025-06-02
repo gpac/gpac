@@ -83,19 +83,6 @@ JSFSFilter get_filter(unsigned long index);
 */
 JSFSFilter get_filter(DOMString iname);
 
-
-/*! enables websocket monitoring server - see \ref gf_sys_enable_rmtws
-*
-* define the \ref rmt_on_new_client attribute to set callbacks
-* \param enable (default: true) will enable the server if true, stop it if false
-*/
-void enable_rmtws(bool enable);
-
-/*! set the callback function when new clients connect to the websocket server
-* the function shall take one parameter of type \ref JSFS_RMTClient
-*/
-optional attribute function rmt_on_new_client;
-
 /*! inserts a filter in graph
 
 \param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
@@ -447,35 +434,6 @@ optional attribute boolean update_sync;
 optional attribute DOMString hint;
 
 };
-
-/*! Object representing a monitoring websocket client
-*
-* will be passed to the session \ref rmt_on_new_client callback
-*/
-interface JSFS_RMTClient {
-
-	/*! a callback called when the client receives data
-	 *
-	 * the function shall be of type function(data)
-	 * where data will be either of type string (for utf8 data) or arraybuffer (for binary data)
-	 */
-	optional attribute function on_data;
-
-	/*! a callback called when the client disconnects or is deleted */
-	optional attribute function on_close;
-
-	/*! a string of format ip:port representing the client */
-	readonly attribute string peer_address;
-
-	/*! sends data to the client on the websocket
-	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
-	*/
-	void send(data);
-
-
-}
-
-
 
 
 /*! @} */

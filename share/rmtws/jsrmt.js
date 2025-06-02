@@ -240,7 +240,9 @@ function JSClient(id, client) {
 
 }
 
-session.rmt_on_new_client = function(client) {
+sys.enable_rmtws();
+
+sys.rmt_on_new_client = function(client) {
 	console.log("rmt on client");
 	print(typeof(client));
 

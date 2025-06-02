@@ -61,13 +61,6 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 				JS_MarkValue(rt, task->_obj2, mark_func);
 			}
 		}
-		{
-			JSFS_Task* task = (JSFS_Task*) rmt_get_on_new_client_task();
-			if (task && task->type == RMT_CALLBACK_JS) {
-				JS_MarkValue(rt, task->fun, mark_func);
-				JS_MarkValue(rt, task->_obj, mark_func);
-			}
-		}
 
 		gf_fs_lock_filters(fs, GF_TRUE);
 		count = gf_list_count(fs->filters);
@@ -113,7 +106,6 @@ enum
 	JSFS_LAST_PROCESS_ERR,
 	JSFS_LAST_CONNECT_ERR,
 	JSFS_PATH,
-	JSFS_RMT_ON_NEW_CLIENT
 };
 
 GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val)
@@ -159,278 +151,6 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	js_std_loop(task->ctx);
 	gf_js_lock(task->ctx, GF_FALSE);
 }
-
-//// RMTClient js class ////
-
-static JSClassID jsfs_rmt_client_class_id;
-
-static void jsfs_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
-
-	RMT_ClientCtx* client = JS_GetOpaque(val, jsfs_rmt_client_class_id);
-    if (!client) return;
-
-	JSFS_Task* task = rmt_client_get_on_data_task(client);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d jsfs_rmt_client_finalizer client %p task %p\n", __FILE__, __LINE__, client, task));
-	rmt_client_set_on_data_cbk(client, NULL, NULL);
-
-	JSFS_Task* deltask = rmt_client_get_on_del_task(client);
-	rmt_client_set_on_del_cbk(client, NULL, NULL);
-
-	JS_SetOpaque(val, NULL);
-
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_FreeValue(task->ctx, task->fun);
-		JS_FreeValue(task->ctx, task->_obj);
-		gf_free(task);
-	}
-
-	if (deltask && deltask->type == RMT_CALLBACK_JS) {
-		JS_FreeValue(deltask->ctx, deltask->fun);
-		JS_FreeValue(deltask->ctx, deltask->_obj);
-		gf_free(deltask);
-	}
-
-}
-
-static void jsfs_rmt_client_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func) {
-
-	RMT_ClientCtx* client = JS_GetOpaque(val, jsfs_rmt_client_class_id);
-    if (!client) return;
-
-	JSFS_Task* task = rmt_client_get_on_data_task(client);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_MarkValue(rt, task->fun, mark_func);
-		JS_MarkValue(rt, task->_obj, mark_func);
-	}
-
-	task = rmt_client_get_on_del_task(client);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_MarkValue(rt, task->fun, mark_func);
-		JS_MarkValue(rt, task->_obj, mark_func);
-	}
-
-}
-
-static JSClassDef jsfs_rmt_client_class = {
-    "RMTClient",
-	.finalizer = jsfs_rmt_client_finalizer,
-	.gc_mark = jsfs_rmt_client_gc_mark
-};
-
-enum {
-	JSFS_RMT_CLIENT_ON_DATA,
-	JSFS_RMT_CLIENT_ON_CLOSE,
-	JSFS_RMT_CLIENT_PEER_ADDRESS
-};
-
-
-
-static void jsfs_rmt_run_task(JSFS_Task* task, JSValue arg) {
-
-	if (!task || task->type != RMT_CALLBACK_JS )
-		return;
-
-	int argc = JS_IsUndefined(arg) ? 0 : 1;
-
-	gf_js_lock(task->ctx, GF_TRUE);
-
-	JSValue ret = JS_Call(task->ctx, task->fun, task->_obj, argc, &arg);
-
-	if (JS_IsException(ret)) {
-		js_dump_error(task->ctx);
-	}
-	JS_FreeValue(task->ctx, ret);
-	JS_FreeValue(task->ctx, arg);
-	js_std_loop(task->ctx);
-	gf_js_lock(task->ctx, GF_FALSE);
-
-}
-
-
-static void jsfs_rmt_on_del_client(void *udta) {
-	if (udta) {
-		JSFS_Task *task = udta;
-		if (task->type == RMT_CALLBACK_JS && task->ctx && !JS_IsUndefined(task->_obj)) {
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d deleting opaque obj from task %p\n", __FILE__, __LINE__,task));
-
-			if (JS_IsFunction(task->ctx, task->fun))
-				jsfs_rmt_run_task(task, JS_UNDEFINED);
-
-			jsfs_rmt_client_finalizer(NULL, task->_obj);
-
-		}
-	}
-}
-
-static void jsfs_rmt_client_on_data(void *udta, const u8* payload, u64 size, Bool is_binary) {
-	JSFS_Task *task = udta;
-	if (!task || task->type != RMT_CALLBACK_JS) return;
-
-	JSValue arg;
-	if (is_binary) {
-		arg = JS_NewArrayBufferCopy(task->ctx, payload, size);
-	} else {
-		arg = JS_NewStringLen(task->ctx, payload, size);
-	}
-
-	jsfs_rmt_run_task(task, arg);
-
-}
-
-static JSValue jsfs_rmt_client_prop_get(JSContext *ctx, JSValueConst this_val, int magic) {
-
-	RMT_ClientCtx* client = JS_GetOpaque(this_val, jsfs_rmt_client_class_id);
-	if (!client)
-		return JS_UNDEFINED;
-
-	switch (magic) {
-		case JSFS_RMT_CLIENT_PEER_ADDRESS:;
-			const char* peer_address = rmt_get_peer_address(client);
-			if (peer_address) {
-				return JS_NewString(ctx, peer_address);
-			}
-			break;
-	}
-	return JS_UNDEFINED;
-}
-
-static JSValue jsfs_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic) {
-
-	RMT_ClientCtx* client = JS_GetOpaque(this_val, jsfs_rmt_client_class_id);
-	if (!client)
-		return GF_JS_EXCEPTION(ctx);
-
-	switch (magic) {
-		case JSFS_RMT_CLIENT_ON_DATA:;
-
-			JSFS_Task* oldtask = (JSFS_Task*) rmt_client_get_on_data_task(client);
-			if (oldtask && oldtask->type == RMT_CALLBACK_JS) {
-				rmt_client_set_on_data_cbk(client, NULL, NULL);
-				JS_FreeValue(ctx, oldtask->fun);
-				JS_FreeValue(ctx, oldtask->_obj);
-				gf_free(oldtask);
-			}
-
-			if (JS_IsFunction(ctx, value)) {
-
-				JSFS_Task *task;
-				GF_SAFEALLOC(task, JSFS_Task);
-				if (!task) return GF_JS_EXCEPTION(ctx);
-
-				task->type = RMT_CALLBACK_JS;
-				task->ctx = ctx;
-				task->fun = JS_DupValue(ctx, value);
-				task->_obj = JS_DupValue(ctx, this_val);
-
-				rmt_client_set_on_data_cbk(client, task, jsfs_rmt_client_on_data);
-			}
-
-
-
-			break;
-
-		case JSFS_RMT_CLIENT_ON_CLOSE:
-
-			if (JS_IsUndefined(value) || JS_IsNull(value)) {
-
-				JSFS_Task *task = rmt_client_get_on_del_task(client);
-				if (task && task->type == RMT_CALLBACK_JS) {
-					// reset the js function but keep the ref to the client for on_delete
-					JS_FreeValue(ctx, task->fun);
-					task->fun = JS_UNDEFINED;
-				}
-
-			}
-
-			if (JS_IsFunction(ctx, value)) {
-
-				JSFS_Task *task = rmt_client_get_on_del_task(client);
-				if (task && task->type == RMT_CALLBACK_JS) {
-					JS_FreeValue(ctx, task->fun);
-					JS_FreeValue(ctx, task->_obj);
-				}
-				else
-					GF_SAFEALLOC(task, JSFS_Task);
-
-				if (!task) return GF_JS_EXCEPTION(ctx);
-
-				task->type = RMT_CALLBACK_JS;
-				task->ctx = ctx;
-				task->fun = JS_DupValue(ctx, value);
-				task->_obj = JS_DupValue(ctx, this_val);
-
-				rmt_client_set_on_del_cbk(client, task, jsfs_rmt_on_del_client);
-			}
-
-
-
-			break;
-	}
-	return JS_UNDEFINED;
-}
-
-static JSValue jsfs_rmt_client_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
-
-	RMT_ClientCtx* client = JS_GetOpaque(this_val, jsfs_rmt_client_class_id);
-	if (!client)
-		return GF_JS_EXCEPTION(ctx);
-
-	if (!argc)
-		return JS_UNDEFINED;
-
-	if (JS_IsString(argv[0])) {
-		const char *msg = JS_ToCString(ctx, argv[0]);
-		GF_Err e = rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent msg <%s> to client <%p> returned <%d>\n", __FILE__, __LINE__, msg, client, e));
-		JS_FreeCString(ctx, msg);
-	}
-	else if (JS_IsArrayBuffer(ctx, argv[0])) {
-		u32 bufsize=0;
-		u8* buf = JS_GetArrayBuffer(ctx, (size_t*)&bufsize, argv[0]);
-		if (buf && bufsize) {
-			GF_Err e = rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent binary msg <%.*s> to client <%p> returned <%d>\n", __FILE__, __LINE__, bufsize, buf, client, e));
-		}
-
-	}
-
-	return JS_UNDEFINED;
-}
-
-static const JSCFunctionListEntry jsfs_rmt_client_funcs[] = {
-	JS_CGETSET_MAGIC_DEF("on_data", NULL, jsfs_rmt_client_prop_set, JSFS_RMT_CLIENT_ON_DATA),
-	JS_CGETSET_MAGIC_DEF("on_close", NULL, jsfs_rmt_client_prop_set, JSFS_RMT_CLIENT_ON_CLOSE),
-
-	JS_CGETSET_MAGIC_DEF("peer_address", jsfs_rmt_client_prop_get, NULL, JSFS_RMT_CLIENT_PEER_ADDRESS),
-
-	JS_CFUNC_DEF("send", 1, jsfs_rmt_client_send)
-};
-
-
-static void jsfs_rmt_on_new_client(void *udta, void* new_client) {
-	JSFS_Task *task = udta;
-	if (!task) return;
-
-	JSValue obj = JS_NewObjectClass(task->ctx, jsfs_rmt_client_class_id);
-	if (JS_IsException(obj)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("%s:%d obj JS_IsException\n", __FILE__, __LINE__));
-	}
-	JS_SetOpaque(obj, new_client);
-
-	JSFS_Task *deltask;
-	GF_SAFEALLOC(deltask, JSFS_Task);
-	deltask->type = RMT_CALLBACK_JS;
-	deltask->ctx = task->ctx;
-	deltask->_obj = JS_DupValue(task->ctx, obj);
-
-	rmt_client_set_on_del_cbk((RMT_ClientCtx*)new_client, (void*)deltask, jsfs_rmt_on_del_client);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d jsfs_rmt_on_new_client calling task %p with opaque %p\n", __FILE__, __LINE__, task, new_client));
-
-	jsfs_rmt_run_task(task, obj);
-}
-
 
 static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
@@ -485,38 +205,6 @@ static JSValue jsfs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst
 		}
 #endif
 		break;
-	case JSFS_RMT_ON_NEW_CLIENT:
-
-		if (JS_IsUndefined(value) || JS_IsNull(value)) {
-
-			JSFS_Task* task = (JSFS_Task*) rmt_get_on_new_client_task();
-			if (task && task->type == RMT_CALLBACK_JS) {
-				rmt_set_on_new_client_cbk(NULL, NULL);
-				JS_FreeValue(ctx, task->fun);
-				JS_FreeValue(ctx, task->_obj);
-				gf_free(task);
-			}
-
-		}
-
-		if (JS_IsFunction(ctx, value)) {
-
-			JSFS_Task *task;
-			GF_SAFEALLOC(task, JSFS_Task);
-			if (!task) return GF_JS_EXCEPTION(ctx);
-
-			//gf_list_add(fs->jstasks, task);
-
-			task->type = RMT_CALLBACK_JS;
-			task->ctx = ctx;
-			task->fun = JS_DupValue(ctx, value);
-			task->_obj = JS_DupValue(ctx, this_val);
-
-			rmt_set_on_new_client_cbk(task, jsfs_rmt_on_new_client);
-		}
-
-
-
 	}
 	return JS_UNDEFINED;
 }
@@ -613,16 +301,6 @@ static JSValue jsfs_lock_filters(JSContext *ctx, JSValueConst this_val, int argc
 	else return GF_JS_EXCEPTION(ctx);
 
 	gf_fs_lock_filters(fs, do_lock);
-	return JS_UNDEFINED;
-}
-
-static JSValue jsfs_enable_rmtws(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	Bool enable = GF_TRUE;
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs) return GF_JS_EXCEPTION(ctx);
-	if (argc > 0 && JS_IsBool(argv[0])) enable = JS_ToBool(ctx, argv[0]);
-	gf_sys_enable_rmtws(enable);
 	return JS_UNDEFINED;
 }
 
@@ -2264,7 +1942,6 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
     JS_CGETSET_MAGIC_DEF_ENUM("last_task", jsfs_prop_get, NULL, JSFS_LAST_TASK),
 	JS_CGETSET_MAGIC_DEF("http_max_bitrate", jsfs_prop_get, jsfs_prop_set, JSFS_HTTP_MAX_RATE),
-	JS_CGETSET_MAGIC_DEF("rmt_on_new_client", NULL, jsfs_prop_set, JSFS_RMT_ON_NEW_CLIENT),
 	JS_CGETSET_MAGIC_DEF("http_bitrate", jsfs_prop_get, NULL, JSFS_HTTP_RATE),
 	JS_CGETSET_MAGIC_DEF("connected", jsfs_prop_get, NULL, JSFS_CONNECTED),
 	JS_CGETSET_MAGIC_DEF("last_process_error", jsfs_prop_get, NULL, JSFS_LAST_PROCESS_ERR),
@@ -2275,7 +1952,6 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("abort", 0, jsfs_abort),
     JS_CFUNC_DEF("get_filter", 0, jsfs_get_filter),
     JS_CFUNC_DEF("lock_filters", 0, jsfs_lock_filters),
-    JS_CFUNC_DEF("enable_rmtws", 0, jsfs_enable_rmtws),
     JS_CFUNC_DEF("set_new_filter_fun", 0, jsfs_set_new_filter_fun),
     JS_CFUNC_DEF("set_del_filter_fun", 0, jsfs_set_del_filter_fun),
     JS_CFUNC_DEF("set_event_fun", 0, jsfs_set_event_fun),
@@ -2399,13 +2075,6 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	JSValue proto = JS_NewObjectClass(c, jsf_auth_class_id);
 	JS_SetPropertyFunctionList(c, proto, jsf_auth_funcs, countof(jsf_auth_funcs));
 	JS_SetClassProto(c, jsf_auth_class_id, proto);
-
-	JS_NewClassID(&jsfs_rmt_client_class_id);
-	JS_NewClass(rt, jsfs_rmt_client_class_id, &jsfs_rmt_client_class);
-	proto = JS_NewObjectClass(c, jsfs_rmt_client_class_id);
-	JS_SetPropertyFunctionList(c, proto, jsfs_rmt_client_funcs, countof(jsfs_rmt_client_funcs));
-	JS_SetClassProto(c, jsfs_rmt_client_class_id, proto);
-
 
 	fs_obj = JS_NewObjectClass(c, fs_class_id);
     JS_SetPropertyFunctionList(c, fs_obj, fs_funcs, countof(fs_funcs));
@@ -2540,17 +2209,6 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		gf_list_rem(fs->jstasks, i);
 		i--;
 		count--;
-	}
-	{
-		JSFS_Task* task = (JSFS_Task*) rmt_get_on_new_client_task();
-		if (fs->js_ctx && task && task->type == RMT_CALLBACK_JS) {
-			rmt_set_on_new_client_cbk(NULL, NULL);
-
-			JS_FreeValue(task->ctx, task->fun);
-			JS_FreeValue(task->ctx, task->_obj);
-
-			gf_free(task);
-		}
 	}
 
 	if (fs->js_ctx || js_ctx) {
