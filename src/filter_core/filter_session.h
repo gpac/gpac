@@ -488,7 +488,7 @@ struct __gf_filter_session
 
 	GF_List *parsed_args;
 
-	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
+	char sep_args, sep_name, sep_frag, sep_list, sep_neg, sep_link;
 	char *blacklist;
 	Bool init_done;
 
