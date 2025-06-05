@@ -69,6 +69,8 @@ typedef struct {
 	Bool seg_setup;
 	u64 orig_ts;
 	u32 segnum;
+
+	GF_FilterPacket *dash_pck;
 } SCTE35DecCtx;
 
 static GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
@@ -106,6 +108,10 @@ static void scte35dec_finalize_internal(SCTE35DecCtx *ctx)
 		gf_free(evt);
 	}
 	gf_list_del(ctx->ordered_events);
+	if (ctx->dash_pck) {
+		gf_filter_pck_unref(ctx->dash_pck);
+		ctx->dash_pck = NULL;
+	}
 }
 
 static void scte35dec_finalize(GF_Filter *filter)
@@ -183,6 +189,11 @@ static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts, u32 dur)
 {
+	if (IS_SEGMENTED && ctx->dash_pck) {
+		gf_filter_pck_merge_properties(ctx->dash_pck, pck);
+		gf_filter_pck_unref(ctx->dash_pck);
+		ctx->dash_pck = NULL; //Romain: a bit redundant in all the logic
+	}
 	if (dur > 0) {
 		gf_filter_pck_set_duration(pck, dur);
 	}
@@ -781,6 +792,13 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	if (ctx->pass) {
 		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
+		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
+			if (ctx->dash_pck)
+				gf_filter_pck_unref(ctx->dash_pck);
+			ctx->dash_pck = pck;
+			gf_filter_pck_ref_props(&ctx->dash_pck);
+		}
+
 		e = scte35dec_process_dispatch(ctx, dts, dur);
 	}
 
