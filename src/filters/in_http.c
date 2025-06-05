@@ -534,8 +534,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 
-		//special case for no data
-		if ((e==GF_EOS) && !nb_read && !ctx->nb_read && !total_size) {
+		//special case for no data when first source - be silent after source switch giving 0 bytes
+		if (!ctx->initial_ack_done && (e==GF_EOS) && !nb_read && !ctx->nb_read && !total_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPIn] No data in stream\n"));
 			httpin_notify_error(filter, ctx, GF_EOS);
 			ctx->is_end = GF_TRUE;
