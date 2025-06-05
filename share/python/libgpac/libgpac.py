@@ -293,9 +293,9 @@ _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
 _libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
-_libgpac.rmt_get_peer_address.argtypes = [c_void_p]
-_libgpac.rmt_get_peer_address.restype = c_char_p
-_libgpac.rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
+_libgpac.gf_rmt_get_peer_address.argtypes = [c_void_p]
+_libgpac.gf_rmt_get_peer_address.restype = c_char_p
+_libgpac.gf_rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
 
 
 _libgpac.gf_4cc_to_str.argtypes = [c_uint]
@@ -413,7 +413,7 @@ def enable_rmtws(enable=True):
 
 
 ##\cond private
-_libgpac.rmt_client_set_on_del_cbk.argtypes = [c_void_p, py_object, c_void_p]
+_libgpac.gf_rmt_client_set_on_del_cbk.argtypes = [c_void_p, py_object, c_void_p]
 @CFUNCTYPE(c_int, c_void_p)
 def rmt_fun_on_client_close_cbk(_udta):
     print("rmt_fun_on_client_close_cbk")
@@ -423,7 +423,7 @@ def rmt_fun_on_client_close_cbk(_udta):
 ##\endcond private
 
 ##\cond private
-_libgpac.rmt_client_set_on_data_cbk.argtypes = [c_void_p, py_object, c_void_p]
+_libgpac.gf_rmt_client_set_on_data_cbk.argtypes = [c_void_p, py_object, c_void_p]
 @CFUNCTYPE(c_int, c_void_p, c_void_p, c_uint64, gf_bool)
 def rmt_fun_on_client_data_cbk(_udta, data, size, is_binary):
     obj = cast(_udta, py_object).value
@@ -442,10 +442,10 @@ class RMTClient():
         self._client = client
 
         if hasattr(self._handler, 'on_client_close'):
-            _libgpac.rmt_client_set_on_del_cbk(self._client, py_object(self), rmt_fun_on_client_close_cbk)
+            _libgpac.gf_rmt_client_set_on_del_cbk(self._client, py_object(self), rmt_fun_on_client_close_cbk)
 
         if hasattr(self._handler, 'on_client_data'):
-            _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
+            _libgpac.gf_rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
 
 
     def _on_data(self, data, size, is_binary):
@@ -457,10 +457,10 @@ class RMTClient():
 
     def _on_delete(self):
         if hasattr(self._handler, 'on_client_data'):
-            err = _libgpac.rmt_client_set_on_data_cbk(self._client, py_object(), None)
+            err = _libgpac.gf_rmt_client_set_on_data_cbk(self._client, py_object(), None)
 
         if hasattr(self._handler, 'on_client_close'):
-            err = _libgpac.rmt_client_set_on_del_cbk(self._client, py_object(), None)
+            err = _libgpac.gf_rmt_client_set_on_del_cbk(self._client, py_object(), None)
             self._handler.on_client_close(self)
 
         self._client = None
@@ -468,7 +468,7 @@ class RMTClient():
     ## get the ip+port of the client (can be used as client id)
     def peer_address(self):
         if self._client:
-            return _libgpac.rmt_get_peer_address(self._client).decode("utf-8")
+            return _libgpac.gf_rmt_get_peer_address(self._client).decode("utf-8")
         pass
 
     ## send data to the client on the websocket
@@ -480,7 +480,7 @@ class RMTClient():
                 data = data.encode('utf-8')
                 is_binary = False
 
-            return _libgpac.rmt_client_send_to_ws(self._client, data, len(data), is_binary)
+            return _libgpac.gf_rmt_client_send_to_ws(self._client, data, len(data), is_binary)
         pass
 
 ## RMTHandler object handling the callbacks for rmtws events
@@ -507,7 +507,7 @@ class RMTHandler():
 
 
 ##\cond private
-_libgpac.rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
+_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
 @CFUNCTYPE(c_int, c_void_p, c_void_p)
 def rmt_fun_on_new_client_cbk(_udta, client):
     obj = cast(_udta, py_object).value
@@ -522,7 +522,7 @@ def rmt_fun_on_new_client_cbk(_udta, client):
 def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
     if hasattr(callback_obj, 'on_new_client'):
-        err = _libgpac.rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
         if err<0:
             return False
 

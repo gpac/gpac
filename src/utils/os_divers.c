@@ -1170,7 +1170,7 @@ GF_EXPORT
 GF_Err gf_sys_enable_rmtws(Bool start) {
 #ifndef GPAC_DISABLE_RMTWS
 	if (start && !rmtws_handle) {
-		RMT_Settings *rmcfg = rmt_get_settings();
+		RMT_Settings *rmcfg = gf_rmt_get_settings();
 
 		rmcfg->port = gf_opts_get_int("core", "rmt-port");
 		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "rmt-localhost");

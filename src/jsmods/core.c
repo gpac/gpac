@@ -104,9 +104,9 @@ void gf_js_delete_context(JSContext *ctx)
 	gf_js_call_gc(ctx);
 
 
-	JS_Sys_Task* task = (JS_Sys_Task*) rmt_get_on_new_client_task();
+	JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
 	if (task && task->type == RMT_CALLBACK_JS) {
-		rmt_set_on_new_client_cbk(NULL, NULL);
+		gf_rmt_set_on_new_client_cbk(NULL, NULL);
 		JS_FreeValue(ctx, task->fun);
 		JS_FreeValue(ctx, task->_obj);
 		gf_free(task);
@@ -950,12 +950,12 @@ static void js_sys_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
 	RMT_ClientCtx* client = JS_GetOpaque(val, js_sys_rmt_client_class_id);
     if (!client) return;
 
-	JS_Sys_Task* task = rmt_client_get_on_data_task(client);
+	JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d js_sys_rmt_client_finalizer client %p task %p\n", __FILE__, __LINE__, client, task));
-	rmt_client_set_on_data_cbk(client, NULL, NULL);
+	gf_rmt_client_set_on_data_cbk(client, NULL, NULL);
 
-	JS_Sys_Task* deltask = rmt_client_get_on_del_task(client);
-	rmt_client_set_on_del_cbk(client, NULL, NULL);
+	JS_Sys_Task* deltask = gf_rmt_client_get_on_del_task(client);
+	gf_rmt_client_set_on_del_cbk(client, NULL, NULL);
 
 	JS_SetOpaque(val, NULL);
 
@@ -978,13 +978,13 @@ static void js_sys_rmt_client_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFu
 	RMT_ClientCtx* client = JS_GetOpaque(val, js_sys_rmt_client_class_id);
     if (!client) return;
 
-	JS_Sys_Task* task = rmt_client_get_on_data_task(client);
+	JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
 	if (task && task->type == RMT_CALLBACK_JS) {
 		JS_MarkValue(rt, task->fun, mark_func);
 		JS_MarkValue(rt, task->_obj, mark_func);
 	}
 
-	task = rmt_client_get_on_del_task(client);
+	task = gf_rmt_client_get_on_del_task(client);
 	if (task && task->type == RMT_CALLBACK_JS) {
 		JS_MarkValue(rt, task->fun, mark_func);
 		JS_MarkValue(rt, task->_obj, mark_func);
@@ -1068,7 +1068,7 @@ static JSValue js_sys_rmt_client_prop_get(JSContext *ctx, JSValueConst this_val,
 
 	switch (magic) {
 		case JS_SYS_RMT_CLIENT_PEER_ADDRESS:;
-			const char* peer_address = rmt_get_peer_address(client);
+			const char* peer_address = gf_rmt_get_peer_address(client);
 			if (peer_address) {
 				return JS_NewString(ctx, peer_address);
 			}
@@ -1086,9 +1086,9 @@ static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val,
 	switch (magic) {
 		case JS_SYS_RMT_CLIENT_ON_DATA:;
 
-			JS_Sys_Task* oldtask = (JS_Sys_Task*) rmt_client_get_on_data_task(client);
+			JS_Sys_Task* oldtask = (JS_Sys_Task*) gf_rmt_client_get_on_data_task(client);
 			if (oldtask && oldtask->type == RMT_CALLBACK_JS) {
-				rmt_client_set_on_data_cbk(client, NULL, NULL);
+				gf_rmt_client_set_on_data_cbk(client, NULL, NULL);
 				JS_FreeValue(ctx, oldtask->fun);
 				JS_FreeValue(ctx, oldtask->_obj);
 				gf_free(oldtask);
@@ -1105,7 +1105,7 @@ static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val,
 				task->fun = JS_DupValue(ctx, value);
 				task->_obj = JS_DupValue(ctx, this_val);
 
-				rmt_client_set_on_data_cbk(client, task, js_sys_rmt_client_on_data);
+				gf_rmt_client_set_on_data_cbk(client, task, js_sys_rmt_client_on_data);
 			}
 
 
@@ -1116,7 +1116,7 @@ static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val,
 
 			if (JS_IsUndefined(value) || JS_IsNull(value)) {
 
-				JS_Sys_Task *task = rmt_client_get_on_del_task(client);
+				JS_Sys_Task *task = gf_rmt_client_get_on_del_task(client);
 				if (task && task->type == RMT_CALLBACK_JS) {
 					// reset the js function but keep the ref to the client for on_delete
 					JS_FreeValue(ctx, task->fun);
@@ -1127,7 +1127,7 @@ static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val,
 
 			if (JS_IsFunction(ctx, value)) {
 
-				JS_Sys_Task *task = rmt_client_get_on_del_task(client);
+				JS_Sys_Task *task = gf_rmt_client_get_on_del_task(client);
 				if (task && task->type == RMT_CALLBACK_JS) {
 					JS_FreeValue(ctx, task->fun);
 					JS_FreeValue(ctx, task->_obj);
@@ -1142,7 +1142,7 @@ static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val,
 				task->fun = JS_DupValue(ctx, value);
 				task->_obj = JS_DupValue(ctx, this_val);
 
-				rmt_client_set_on_del_cbk(client, task, js_sys_rmt_on_del_client);
+				gf_rmt_client_set_on_del_cbk(client, task, js_sys_rmt_on_del_client);
 			}
 
 
@@ -1163,7 +1163,7 @@ static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int
 
 	if (JS_IsString(argv[0])) {
 		const char *msg = JS_ToCString(ctx, argv[0]);
-		GF_Err e = rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
+		GF_Err e = gf_rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent msg <%s> to client <%p> returned <%d>\n", __FILE__, __LINE__, msg, client, e));
 		JS_FreeCString(ctx, msg);
 	}
@@ -1171,7 +1171,7 @@ static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int
 		u32 bufsize=0;
 		u8* buf = JS_GetArrayBuffer(ctx, (size_t*)&bufsize, argv[0]);
 		if (buf && bufsize) {
-			GF_Err e = rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
+			GF_Err e = gf_rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent binary msg <%.*s> to client <%p> returned <%d>\n", __FILE__, __LINE__, bufsize, buf, client, e));
 		}
 
@@ -1205,7 +1205,7 @@ static void js_sys_rmt_on_new_client(void *udta, void* new_client) {
 	deltask->ctx = task->ctx;
 	deltask->_obj = JS_DupValue(task->ctx, obj);
 
-	rmt_client_set_on_del_cbk((RMT_ClientCtx*)new_client, (void*)deltask, js_sys_rmt_on_del_client);
+	gf_rmt_client_set_on_del_cbk((RMT_ClientCtx*)new_client, (void*)deltask, js_sys_rmt_on_del_client);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d js_sys_rmt_on_new_client calling task %p with opaque %p\n", __FILE__, __LINE__, task, new_client));
 
@@ -1423,9 +1423,9 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 
 		if (JS_IsUndefined(value) || JS_IsNull(value)) {
 
-			JS_Sys_Task* task = (JS_Sys_Task*) rmt_get_on_new_client_task();
+			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
 			if (task && task->type == RMT_CALLBACK_JS) {
-				rmt_set_on_new_client_cbk(NULL, NULL);
+				gf_rmt_set_on_new_client_cbk(NULL, NULL);
 				JS_FreeValue(ctx, task->fun);
 				JS_FreeValue(ctx, task->_obj);
 				gf_free(task);
@@ -1444,7 +1444,7 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 			task->fun = JS_DupValue(ctx, value);
 			task->_obj = JS_DupValue(ctx, this_val);
 
-			rmt_set_on_new_client_cbk(task, js_sys_rmt_on_new_client);
+			gf_rmt_set_on_new_client_cbk(task, js_sys_rmt_on_new_client);
 		}
 		break;
 	}

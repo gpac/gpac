@@ -47,7 +47,7 @@ typedef struct RMT_Settings {
 } RMT_Settings;
 
 //! gets the current rmtws settings (creates the structure if necessary)
-RMT_Settings* rmt_get_settings();
+RMT_Settings* gf_rmt_get_settings();
 
 //! structure representing the http server
 typedef struct __rmt_serverctx RMT_ServerCtx;
@@ -64,21 +64,21 @@ typedef enum {
 //! sets the callback called when new clients connect to the sever
 //! \param task user data stored and passed back to the callback
 //! \param cbk the callback of type \ref rmt_on_new_client_cbk
-void rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk);
+void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk);
 
 //! gets the userdata associated with the new client callback if defined
-void* rmt_get_on_new_client_task();
+void* gf_rmt_get_on_new_client_task();
 
 //! gets a string representing the client in the format ip:port
 //! \return a "ip:port" string of the given client
-const char* rmt_get_peer_address(RMT_ClientCtx* client);
+const char* gf_rmt_get_peer_address(RMT_ClientCtx* client);
 
 //! sends data to a client on the websocket
 //! \param client the client object
 //! \param msg a buffer containing the data to send
 //! \param size the size of the data to send
 //! \param is_binary false if we're sending a utf8 string, true otherwise
-GF_Err rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary);
+GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary);
 
 //! type for callbacks called when a client receives data on the websocket
 //! \param task user data passed back to the callback
@@ -91,10 +91,10 @@ typedef void (*rmt_client_on_data_cbk)(void* task, const u8* payload, u64 size, 
 //! \param client the client for which we are setting the callback
 //! \param task user data stored and passed back to the callback
 //! \param cbk the callback of type \ref rmt_client_on_data_cbk
-void rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk);
+void gf_rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk);
 
 //! gets the userdata associated with the client on data callback if defined
-void* rmt_client_get_on_data_task(RMT_ClientCtx* client);
+void* gf_rmt_client_get_on_data_task(RMT_ClientCtx* client);
 
 //! type for callbacks called when a client is deleted (e.g. on disconnects)
 //! \param task user data passed back to the callback
@@ -104,10 +104,10 @@ typedef void (*rmt_client_on_del_cbk)(void* task);
 //! \param client the client for which we are setting the callback
 //! \param task user data stored and passed back to the callback
 //! \param cbk the callback of type \ref rmt_client_on_del_cbk
-void rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk);
+void gf_rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk);
 
 //! gets the userdata associated with the client on deleted callback if defined
-void* rmt_client_get_on_del_task(RMT_ClientCtx* client);
+void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client);
 
 
 

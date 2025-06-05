@@ -94,22 +94,22 @@ struct __rmt_clientctx {
 };
 
 GF_EXPORT
-const char* rmt_get_peer_address(RMT_ClientCtx* client) {
+const char* gf_rmt_get_peer_address(RMT_ClientCtx* client) {
     if (client)
         return client->peer_address;
     return NULL;
 }
 
 GF_EXPORT
-void* rmt_client_get_on_data_task(RMT_ClientCtx* client) {
+void* gf_rmt_client_get_on_data_task(RMT_ClientCtx* client) {
     if (client)
         return client->on_data_cbk_task;
     return NULL;
 }
 
 GF_EXPORT
-void rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
-    RMT_Settings *rmtcfg = rmt_get_settings();
+void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
+    RMT_Settings *rmtcfg = gf_rmt_get_settings();
     if (rmtcfg) {
         rmtcfg->on_new_client_cbk = cbk;
         rmtcfg->on_new_client_cbk_task = task;
@@ -117,13 +117,13 @@ void rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
 }
 
 GF_EXPORT
-void* rmt_get_on_new_client_task() {
+void* gf_rmt_get_on_new_client_task() {
     return g_Settings.on_new_client_cbk_task;
 }
 
 GF_EXPORT
-void rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk) {
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_client_set_on_del_cbk client %p task %p cbk %p\n", client, task, cbk));
+void gf_rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk) {
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gf_rmt_client_set_on_del_cbk client %p task %p cbk %p\n", client, task, cbk));
     if (client) {
         client->on_del_cbk = cbk;
         client->on_del_cbk_task = task;
@@ -131,7 +131,7 @@ void rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_
 }
 
 GF_EXPORT
-void* rmt_client_get_on_del_task(RMT_ClientCtx* client) {
+void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client) {
     if (client)
         return client->on_del_cbk_task;
     return NULL;
@@ -417,7 +417,7 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
 }
 
 GF_EXPORT
-void rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk) {
+void gf_rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk) {
     if (client) {
         client->on_data_cbk = cbk;
         client->on_data_cbk_task = task;
@@ -677,7 +677,7 @@ GF_Err rmt_client_send_ping(RMT_ClientCtx* client) {
 }
 
 GF_EXPORT
-GF_Err rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
+GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
 
     return rmt_client_send_payload(client, (const u8*) msg, size, is_binary);
 
@@ -827,7 +827,7 @@ static u32 rmt_ws_thread_main(void* par) {
 
 
 
-RMT_Settings* rmt_get_settings()
+RMT_Settings* gf_rmt_get_settings()
 {
     // Default-initialize on first call
     if( g_SettingsInitialized == GF_FALSE ) {
@@ -886,7 +886,7 @@ RMT_WS* rmt_ws_new() {
 
 
     // Default-initialise if user has not set values
-    rmt_get_settings();
+    gf_rmt_get_settings();
 
     rmt->thread = gf_th_new("rmt_ws_main_th");
     rmt->should_stop = GF_FALSE;
@@ -905,31 +905,31 @@ RMT_WS* rmt_ws_new() {
 
 #else //GPAC_DISABLE_RMTWS
 
-void rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
+void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
 
 }
-void* rmt_get_on_new_client_task() {
+void* gf_rmt_get_on_new_client_task() {
     return NULL;
 }
 
-const char* rmt_get_peer_address(RMT_ClientCtx* client) {
+const char* gf_rmt_get_peer_address(RMT_ClientCtx* client) {
     return NULL;
 }
-GF_Err rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
+GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
     return GF_NOT_SUPPORTED;
 }
 
-void rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk) {
+void gf_rmt_client_set_on_data_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_data_cbk cbk) {
 
 }
-void* rmt_client_get_on_data_task(RMT_ClientCtx* client) {
+void* gf_rmt_client_get_on_data_task(RMT_ClientCtx* client) {
     return NULL;
 }
 
-void rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk) {
+void gf_rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_on_del_cbk cbk) {
 
 }
-void* rmt_client_get_on_del_task(RMT_ClientCtx* client) {
+void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client) {
     return NULL;
 }
 
