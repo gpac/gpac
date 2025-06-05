@@ -278,7 +278,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (!st) {
 		GF_SAFEALLOC(st, RTStream);
 		if (!st) return GF_OUT_OF_MEM;
-		
+
 		gf_list_add(ctx->streams, st);
 		st->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_udta(pid, st);
@@ -428,7 +428,7 @@ static Bool reframer_parse_date(GF_ReframerCtx *ctx, char *date, GF_Fraction64 *
 	if (strlen(date)>2 && date[0]=='T' && date[1]=='C') {
 		u32 h=0, m=0, s=0, n_frames=0;
 		if (sscanf(date, "TC%u:%u:%u:%u", &h, &m, &s, &n_frames) != 4) {
-		
+
 			goto exit;
 		}
 		//we use timecodes, load SEI
@@ -1787,7 +1787,7 @@ GF_Err reframer_process(GF_Filter *filter)
 			u32 pck_ts = gf_filter_pck_get_timescale(pck);
 
 			//get the pid fps
-			GF_Fraction fps;
+			GF_Fraction fps = {0};
 			p = gf_filter_pid_get_property(ipid, GF_PROP_PID_FPS);
 			if (p) fps = p->value.frac;
 			if (!fps.num || !fps.den) {
@@ -2900,7 +2900,7 @@ static GF_Err reframer_update_arg(GF_Filter *filter, const char *arg_name, const
 static const GF_FilterCapability ReframerCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	//we do accept everything, including raw streams 
+	//we do accept everything, including raw streams
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//we don't accept files as input so don't output them
@@ -3093,4 +3093,3 @@ const GF_FilterRegister *reframer_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //GPAC_DISABLE_REFRAMER
-

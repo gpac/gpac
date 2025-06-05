@@ -5273,8 +5273,14 @@ GF_EXPORT
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
-	return gf_fs_load_filter(filter->session, name, err_code);
+	GF_Filter *f = gf_fs_load_filter(filter->session, name, err_code);
+	if (!f) return NULL;
+	//do not allow implicit cloning when loading a filter from another filter
+	if (!strstr(name, "clone"))
+		f->clonable = GF_FILTER_NO_CLONE;
+	return f;
 }
+
 
 GF_EXPORT
 Bool gf_filter_end_of_session(GF_Filter *filter)

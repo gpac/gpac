@@ -4753,9 +4753,9 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		gf_bs_read_int_log(bs, 16, "maximum_block_size");
 		gf_bs_read_int_log(bs, 24, "minimum_frame_size");
 		gf_bs_read_int_log(bs, 24, "maximum_frame_size");
-		state->sample_rate = gf_bs_read_int_log(bs, 24, "sample_rate");
-		gf_bs_read_int_log(bs, 3, "num_of_channels");
-		state->sample_size = gf_bs_read_int_log(bs, 5, "bits_per_sample");
+		state->sample_rate = gf_bs_read_int_log(bs, 20, "sample_rate");
+		/*state->num_of_channels = 1 + */gf_bs_read_int_log(bs, 3, "num_of_channels");
+		state->sample_size = gf_bs_read_int_log(bs, 5, "bits_per_sample") + 1;
 		break;
 	// LPCM.
 	case GF_4CC('i', 'p', 'c', 'm'):
@@ -8868,7 +8868,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	//	u8 id_ref_layers[64][MAX_LHVC_LAYERS];
 	//	u8 id_direct_ref_layers[64][MAX_LHVC_LAYERS];
 	u8 layer_id_in_list_flag[64];
-	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS] = {0};
 
 	vps->vps_extension_found = 1;
 	if ((vps->max_layers > 1) && vps->base_layer_internal_flag)

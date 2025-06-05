@@ -4323,12 +4323,21 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 
 		if (kid_count>=max_keys) {
 			max_keys = kid_count;
+			if ( (max_keys > GF_UINT_MAX / 16) || (max_keys > gf_bs_available(ctx->bs_r)/16)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] kid count invalid\n" ));
+				break;
+			}
+
 			keyIDs = gf_realloc(keyIDs, sizeof(bin128)*max_keys);
 		}
 		for (j=0; j<kid_count; j++) {
 			gf_bs_read_data(ctx->bs_r, keyIDs[j], 16);
 		}
 		len = gf_bs_read_u32(ctx->bs_r);
+		if (len>gf_bs_available(ctx->bs_r)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] pssh length invalid\n" ));
+			break;
+		}
 		data = p->value.data.ptr + gf_bs_get_position(ctx->bs_r);
 
 		if (tkw->is_item) mode = 2;
@@ -6608,6 +6617,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 	for (i=0; i<count; i++) {
 		u64 cts, dts, ncts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+
+		if (!tkw)
+			continue;
 
 		if (ctx->fragment_started && tkw->fragment_done) {
 			nb_done ++;

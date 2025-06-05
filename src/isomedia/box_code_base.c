@@ -1844,7 +1844,7 @@ GF_Err hinf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			u32 i=0;
 			GF_MAXRBox *maxR;
 			while ((maxR = (GF_MAXRBox *)gf_list_enum(hinf->child_boxes, &i))) {
-				if ((maxR->type==GF_ISOM_BOX_TYPE_MAXR) && (maxR->granularity == ((GF_MAXRBox *)a)->granularity))
+				if (maxR != a && (maxR->type==GF_ISOM_BOX_TYPE_MAXR) && (maxR->granularity == ((GF_MAXRBox *)a)->granularity))
 					ERROR_ON_DUPLICATED_BOX(a, s)
 			}
 		}
@@ -3287,7 +3287,11 @@ GF_Err mdhd_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err mdhd_box_size(GF_Box *s)
 {
 	GF_MediaHeaderBox *ptr = (GF_MediaHeaderBox *)s;
-	ptr->version = (ptr->duration>0xFFFFFFFF) ? 1 : 0;
+	ptr->version = 0;
+
+	if (ptr->duration!=(u64)-1 && (ptr->duration>0xFFFFFFFF)) ptr->version = 1;
+	if (ptr->creationTime!=(u64)-1 && (ptr->creationTime>0xFFFFFFFF)) ptr->version = 1;
+	if (ptr->modificationTime!=(u64)-1 && (ptr->modificationTime>0xFFFFFFFF)) ptr->version = 1;
 
 	ptr->size += 4;
 	ptr->size += (ptr->version == 1) ? 28 : 16;
@@ -4931,8 +4935,12 @@ GF_Err mvhd_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err mvhd_box_size(GF_Box *s)
 {
 	GF_MovieHeaderBox *ptr = (GF_MovieHeaderBox *)s;
-	if (ptr->duration==(u64) -1) ptr->version = 0;
-	else ptr->version = (ptr->duration>0xFFFFFFFF) ? 1 : 0;
+	ptr->version = 0;
+
+	if (ptr->duration!=(u64)-1 && (ptr->duration>0xFFFFFFFF)) ptr->version = 1;
+	if (ptr->creationTime!=(u64)-1 && (ptr->creationTime>0xFFFFFFFF)) ptr->version = 1;
+	if (ptr->modificationTime!=(u64)-1 && (ptr->modificationTime>0xFFFFFFFF)) ptr->version = 1;
+
 
 	ptr->size += (ptr->version == 1) ? 28 : 16;
 	ptr->size += 80;
@@ -6520,8 +6528,12 @@ GF_Err tkhd_box_size(GF_Box *s)
 {
 	GF_TrackHeaderBox *ptr = (GF_TrackHeaderBox *)s;
 
-	if (ptr->duration==(u64) -1) ptr->version = 0;
-	else ptr->version = (ptr->duration>0xFFFFFFFF) ? 1 : 0;
+	ptr->version = 0;
+
+	if (ptr->duration!=(u64)-1 && (ptr->duration>0xFFFFFFFF)) ptr->version = 1;
+	if (ptr->creationTime!=(u64)-1 && (ptr->creationTime>0xFFFFFFFF)) ptr->version = 1;
+	if (ptr->modificationTime!=(u64)-1 && (ptr->modificationTime>0xFFFFFFFF)) ptr->version = 1;
+
 	ptr->size += (ptr->version == 1) ? 32 : 20;
 	ptr->size += 60;
 	return GF_OK;
@@ -6988,6 +7000,7 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_AV01:
 		case GF_ISOM_BOX_TYPE_VP08:
 		case GF_ISOM_BOX_TYPE_VP09:
+		case GF_ISOM_BOX_TYPE_VP10:
 		case GF_ISOM_BOX_TYPE_AV1C:
 		case GF_ISOM_BOX_TYPE_JPEG:
 		case GF_ISOM_BOX_TYPE_PNG:
