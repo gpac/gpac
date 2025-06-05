@@ -28,6 +28,7 @@
 #include <stdint.h> // UINT32_MAX
 
 #define IS_SEGMENTED (ctx->segdur.den && ctx->segdur.num>0)
+#define IS_PASSTHRU  (ctx->mode == 1)
 
 typedef struct {
 	u64 dts;
@@ -43,18 +44,20 @@ GF_OPT_ENUM (SCTE35DecDataMode,
 typedef struct {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
+
 	SCTE35DecDataMode data_mode;
+	u64 clock;
+
+	// options
+	u32 mode;
+	GF_Fraction segdur;
 
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_shared)(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
 	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
 	GF_Err (*pck_send)(GF_FilterPacket *pck);
 
-	u32 mode;
-	Bool pass;
-
 	GF_List *ordered_events; // Event: events ordered by dispatch time
-	u64 clock;
 	u32 last_event_id;
 
 	// used to compute immediate dispatch event duration
@@ -64,13 +67,11 @@ typedef struct {
 	Bool last_dispatched_dts_init;
 
 	// used to segment empty boxes
-	GF_Fraction segdur;
-	u8 emeb_box[8];
-	Bool seg_setup;
 	u64 orig_ts;
+	Bool seg_setup;
 	u32 segnum;
-
-	GF_FilterPacket *dash_pck;
+	u8 emeb_box[8];
+	GF_FilterPacket *dash_pck; // when called from the dasher
 } SCTE35DecCtx;
 
 static GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
@@ -96,7 +97,6 @@ static GF_Err scte35dec_initialize(GF_Filter *filter)
 	ctx->pck_new_shared = gf_filter_pck_new_shared;
 	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
 	ctx->pck_send = gf_filter_pck_send;
-	ctx->pass = ctx->mode == 1;
 	return scte35dec_initialize_internal(ctx);
 }
 
@@ -147,7 +147,7 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
-	if (ctx->pass) return GF_OK;
+	if (IS_PASSTHRU) return GF_OK;
 
 	const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	if (p) {
@@ -158,8 +158,8 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_EVTE) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_FALSE) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID,     &PROP_UINT(GF_CODECID_EVTE) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED,  &PROP_BOOL(GF_FALSE) );
 
 	return GF_OK;
 }
@@ -189,11 +189,16 @@ static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts, u32 dur)
 {
-	if (IS_SEGMENTED && ctx->dash_pck) {
-		gf_filter_pck_merge_properties(ctx->dash_pck, pck);
-		gf_filter_pck_unref(ctx->dash_pck);
-		ctx->dash_pck = NULL; //Romain: a bit redundant in all the logic
+	if (IS_SEGMENTED) {
+		if (ctx->dash_pck) {
+			gf_filter_pck_merge_properties(ctx->dash_pck, pck);
+			gf_filter_pck_unref(ctx->dash_pck);
+			ctx->dash_pck = NULL;
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU". Ignore this message if not using the dasher.\n", dts));
+		}
 	}
+
 	if (dur > 0) {
 		gf_filter_pck_set_duration(pck, dur);
 	}
@@ -357,8 +362,8 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, const u64 ts, const u32 dur)
 
 static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
-	if (ctx->pass)
-		return; //pass-through mode
+	if (IS_PASSTHRU)
+		return;
 	if (!gf_list_count(ctx->ordered_events) && ctx->clock == ctx->last_dispatched_dts + ctx->last_pck_dur)
 		return; //nothing to flush
 
@@ -585,6 +590,8 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	// handle internal clock, timescale and duration
 	if (!ctx->last_dispatched_dts_init) {
 		ctx->timescale = timescale;
+		if (ctx->segdur.num * ctx->timescale % ctx->segdur.den)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->segdur.num, ctx->segdur.den));
 		ctx->last_dispatched_dts = dts - dur;
 		ctx->last_pck_dur = dur;
 		ctx->last_dispatched_dts_init = GF_TRUE;
@@ -594,7 +601,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 		// drift control
 		s64 drift = (s64) (ctx->last_pck_dur + ctx->last_dispatched_dts);
 		drift -= (s64) dts;
-		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
+		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected drift of "LLD" at dts="LLU", rectifying.\n", drift, dts));
 		ctx->last_dispatched_dts += drift;
 		dts += drift;
 	} else if (!IS_SEGMENTED && dur != ctx->last_pck_dur) {
@@ -646,7 +653,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 		return e;
 	}
 
-	if (!ctx->pass || (ctx->pass && needs_idr))
+	if (!IS_PASSTHRU || (IS_PASSTHRU && needs_idr))
 		scte35dec_schedule(ctx, dts, emib);
 	else
 		gf_isom_box_del((GF_Box*)emib);
@@ -789,7 +796,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	}
 
 	GF_Err e;
-	if (ctx->pass) {
+	if (IS_PASSTHRU) {
 		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
 		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
