@@ -1839,7 +1839,7 @@ GF_Err reframer_process(GF_Filter *filter)
 			time_t utc_now = (time_t) (gf_net_get_utc() / 1000);
 			struct tm *tm = gf_gmtime(&utc_now);
 
-			//convert tc to UTC
+			//convert timecode to UTC : add today as a day
 			u64 now = gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
 			now += gf_timestamp_rescale(pck_tc->n_frames * 1000, fps.num, fps.den);
 
@@ -2832,6 +2832,7 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	reframer_load_range(ctx);
 
 	if (ctx->utc_ref==UTCREF_TC) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Reframer] using timecodes: the considered day for comparisons will be today /!\\\n"));
 		//we use timecodes, load SEI
 		ctx->load_sei = GF_TRUE;
 	}
@@ -2998,7 +2999,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- local: use UTC of local host\n"
 	"- any: use UTC of media, or UTC of local host if not found in media after probing time\n"
 	"- media: use UTC of media (abort if none found)\n"
-	"- tc: use timecode", GF_PROP_UINT, "any", "local|any|media|tc", GF_FS_ARG_HINT_ADVANCED},
+	"- tc: use timecode of media (be careful: considered day will be today)", GF_PROP_UINT, "any", "local|any|media|tc", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(utc_probe), "timeout in milliseconds to try to acquire UTC reference from media", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(copy), "try copying frame interface into packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(cues), "cue filtering mode\n"
