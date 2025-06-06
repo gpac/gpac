@@ -2027,7 +2027,7 @@ typedef struct
 	/*! if TRUE codec should only generate DSI (possibly no input frame, and all output packets will be discarded) */
 	Bool gen_dsi_only;
 
-	/* if TRUE reframer should hold packets until theoritical segment boundary */
+	/* if TRUE reframer should hold packets until theoretical segment boundary */
 	Bool wait_seg_boundary;
 } GF_FEVT_TransportHints;
 
