@@ -95,8 +95,6 @@ This is a short overview of the gpac source repository.
     various JS scripts used by GPAC.
 - *gpac/share/shaders/*
     GLSL shaders used by the compositor.
-- *gpac/share/vis/*
-    Remotery web client.
 - *gpac/src/bifs/*
     BInary Format for Scene coding (decoder and encoder) (BIFS tables are with MPEG4Gen application in gpac/applications/generators/MPEG4)
 - *gpac/src/compositor/*
