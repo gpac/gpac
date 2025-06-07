@@ -633,8 +633,13 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			u32 len=0;
 			char *nv;
 			char *sep = strchr(v, list_sep_char);
-			while (sep && sep[1] == list_sep_char)
-				sep = strchr(sep+2, list_sep_char);
+			while (sep && sep[1] == list_sep_char) {
+				// skip doubled separator
+				size_t len = strlen(sep+1);
+				memmove(sep, sep+1, len);
+				sep[len] = 0;
+				sep = strchr(sep+1, list_sep_char);
+			}
 
 			if (sep && is_xml) {
 				char *xml_end = strchr(v, '>');
