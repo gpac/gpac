@@ -4323,7 +4323,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 
 		if (kid_count>=max_keys) {
 			max_keys = kid_count;
-			if ( (max_keys > SIZE_MAX / 16) || (max_keys > gf_bs_available(ctx->bs_r)/16)) {
+			if ( (max_keys > GF_UINT_MAX / 16) || (max_keys > gf_bs_available(ctx->bs_r)/16)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] kid count invalid\n" ));
 				break;
 			}
@@ -6617,6 +6617,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 	for (i=0; i<count; i++) {
 		u64 cts, dts, ncts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+
+		if (!tkw)
+			continue;
 
 		if (ctx->fragment_started && tkw->fragment_done) {
 			nb_done ++;
