@@ -1263,6 +1263,8 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
+			if (!sl)
+				return GF_ISOM_INVALID_MEDIA;
 			if (!cfg->write_annex_b) {
 				gf_bs_write_int(bs, sl->size, 16);
 			} else {
@@ -1403,7 +1405,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			nalucount = gf_bs_read_int(bs, 16);
 		else
 			nalucount = 1;
-			
+
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);

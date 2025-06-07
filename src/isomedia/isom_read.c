@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1842,7 +1842,8 @@ Bool gf_isom_enable_raw_pack(GF_ISOFile *the_file, u32 trackNumber, u32 pack_num
 					gf_4cc_to_str(entry->type),
 					from_qt ? " (as indicated in QT sample description)" : ""
 				));
-			trak->Media->information->sampleTable->SampleSize->sampleSize = bps * nb_ch;
+			if (nb_ch)
+				trak->Media->information->sampleTable->SampleSize->sampleSize = bps * nb_ch;
 		}
 	}
 	return GF_TRUE;
@@ -2751,7 +2752,7 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 	while ((map = (GF_UserDataMap*)gf_list_enum(udta->recordList, &i))) {
 		count = gf_list_count(map->boxes);
 
-		if ((map->boxType == GF_ISOM_BOX_TYPE_UUID) && !memcmp(map->uuid, UUID, 16)) return count;
+		if ((map->boxType == GF_ISOM_BOX_TYPE_UUID) && UUID && !memcmp(map->uuid, UUID, 16)) return count;
 		else if (map->boxType == UserDataType) return count;
 	}
 	return 0;
@@ -2824,8 +2825,7 @@ found:
 		} else {
 			char *str = NULL;
 			switch (ptr->type) {
-			case GF_ISOM_BOX_TYPE_NAME:
-			//case GF_QT_BOX_TYPE_NAME: same as above
+			case GF_QT_BOX_TYPE_NAME:
 				str = ((GF_NameBox *)ptr)->string;
 				break;
 			case GF_ISOM_BOX_TYPE_KIND:
@@ -4137,7 +4137,11 @@ u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 	}
 	if (stsz->sampleSize) return stsz->sampleSize*stsz->sampleCount;
 	size = 0;
-	for (i=0; i<stsz->sampleCount; i++) size += stsz->sizes[i];
+	if (stsz->sizes) {
+		for (i=0; i<stsz->sampleCount; i++) {
+			size += stsz->sizes[i];
+		}
+	}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->moov->mvex) return size;
 #endif
@@ -4475,12 +4479,13 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 **da
 }
 
 GF_EXPORT
-GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags)
+GF_Err gf_isom_apple_enum_tag_ex(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags, const char **out_mean, const char **out_name, u32 *out_locale)
 {
 	u32 i, child_index;
 	GF_ListItemBox *info;
 	GF_ItemListBox *ilst;
 	GF_MetaBox *meta;
+	GF_NameBox *name_box=NULL, *mean_box=NULL;
 	GF_DataBox *dbox = NULL;
 	Bool found=GF_FALSE;
 	u32 itype, tag_val;
@@ -4490,6 +4495,9 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	*out_int_val = 0;
 	*out_int_val2 = 0;
 	*out_flags = 0;
+	if (out_mean) *out_mean = NULL;
+	if (out_name) *out_name = NULL;
+	if (out_locale) *out_locale = 0;
 
 	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, 0);
 	if (!meta) return GF_URL_ERROR;
@@ -4500,9 +4508,17 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	child_index = i = 0;
 	while ( (info=(GF_ListItemBox*)gf_list_enum(ilst->child_boxes, &i))) {
 		GF_DataBox *data_box = NULL;
+		name_box = mean_box = NULL;
 		if (gf_itags_find_by_itag(info->type)<0) {
 			tag_val = info->type;
 			if (info->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+				data_box = (GF_DataBox *) gf_isom_box_find_child(info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+				if (!data_box) continue;
+				tag_val = ((GF_UnknownBox *)info)->original_4cc;
+			}
+			else if (info->type==GF_ISOM_BOX_TYPE_iTunesSpecificInfo) {
+				name_box = (GF_NameBox *) gf_isom_box_find_child(info->child_boxes, GF_QT_BOX_TYPE_NAME);
+				mean_box = (GF_NameBox *) gf_isom_box_find_child(info->child_boxes, GF_QT_BOX_TYPE_MEAN);
 				data_box = (GF_DataBox *) gf_isom_box_find_child(info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
 				if (!data_box) continue;
 				tag_val = ((GF_UnknownBox *)info)->original_4cc;
@@ -4528,6 +4544,11 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 		}
 		return GF_URL_ERROR;
 	}
+
+	if (out_mean && mean_box) *out_mean = mean_box->string;
+	if (out_name && name_box) *out_name = name_box->string;
+	if (out_locale) *out_locale = dbox->locale;
+
 	*out_flags = dbox->flags;
 	*out_tag = tag_val;
 	if (!dbox->data) {
@@ -4618,6 +4639,12 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 		break;
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags)
+{
+	return gf_isom_apple_enum_tag_ex(mov, idx, out_tag, data, data_len, out_int_val, out_int_val2, out_flags, NULL, NULL, NULL);
 }
 
 GF_EXPORT
@@ -6002,7 +6029,7 @@ GF_Err gf_isom_get_jp2_config(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription) return GF_ISOM_INVALID_FILE;
 	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDesc-1);
-	if (!entry || !entry->jp2h) return GF_BAD_PARAM;
+	if (!entry || entry->type == GF_ISOM_BOX_TYPE_GNRA || !entry->jp2h) return GF_BAD_PARAM;
 	if (!entry->jp2h->ihdr) return GF_ISOM_INVALID_FILE;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);

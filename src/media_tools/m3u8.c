@@ -468,7 +468,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					attributes->key_url = gf_strdup(&(ret[1][5]));
 					if (attributes->key_url) {
 						u32 klen = (u32) strlen(attributes->key_url);
-						attributes->key_url[klen-1] = 0;
+						attributes->key_url[klen ? klen-1 : 0] = 0;
 					}
 				}
 			}
@@ -793,6 +793,10 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 	if (!strncmp(line, "#EXT-X-RENDITION-REPORT", strlen("#EXT-X-RENDITION-REPORT") )) {
 		return NULL;
 	}
+	//TODO for now we don't support interstitials
+	if (!strncmp(line, "#EXT-X-DATERANGE", strlen("#EXT-X-DATERANGE") )) {
+		return NULL;
+	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unsupported directive %s\n", line));
 	return NULL;
 }
@@ -952,7 +956,9 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				while (codec) {
 					char *sep = strchr(codec, ',');
 					if (sep) sep[0] = 0;
-					if (!strstr(curr_playlist->codecs, codec))
+					if (!curr_playlist->codecs)
+						gf_dynstrcat(&curr_playlist->codecs, codec, NULL);
+					else if (!strstr(curr_playlist->codecs, codec))
 						gf_dynstrcat(&curr_playlist->codecs, codec, ",");
 					else if (!curr_playlist->main_codecs || !strstr(curr_playlist->main_codecs, codec))
 						gf_dynstrcat(&curr_playlist->main_codecs, codec, ",");

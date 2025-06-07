@@ -295,6 +295,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	/*FIXME*/
 	else if (location_entry->data_reference_index) {
 		char *item_url = NULL, *item_urn = NULL;
+
+		if (!meta || !meta->file_locations || !meta->file_locations->dref || !meta->file_locations->dref->child_boxes)
+			return GF_ISOM_INVALID_FILE;
+
 		GF_FullBox *a = (GF_FullBox *)gf_list_get(meta->file_locations->dref->child_boxes, location_entry->data_reference_index-1);
 		if (!a) return GF_ISOM_INVALID_FILE;
 		if (a->type==GF_ISOM_BOX_TYPE_URL) {
@@ -1446,7 +1450,11 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box"));
+		if (track_num) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box in track %u\n", track_num));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box in %s\n", root_meta ? "file" : "movie box"));
+		}
 		return GF_BAD_PARAM;
 	}
 

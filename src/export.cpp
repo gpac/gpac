@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -74,6 +74,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_solve_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_set_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_log) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_send) )
@@ -361,6 +362,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_set_ntp_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_ntp_to_utc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_net_ntp_add_usec) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_reload_netcap) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_errno_str) )
@@ -951,6 +954,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_find_od_id_for_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_get_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_enum_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_enum_tag_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_wma_enum_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_udta_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_data_size) )
@@ -2434,6 +2438,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new_defaults) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_filter) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_process_link_directive) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_parse_filter_graph) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_parse_filter_graph_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_run) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_stop) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_stats) )

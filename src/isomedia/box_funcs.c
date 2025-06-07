@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1340,7 +1340,8 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TIMS, tims, "rtp srtp rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSRO, tsro, "rtp srtp rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SNRO, snro, "rtp srtp"),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_NAME, name, "udta"),
+	BOX_DEFINE( GF_QT_BOX_TYPE_NAME, name, "udta ----"),
+	BOX_DEFINE( GF_QT_BOX_TYPE_MEAN, name, "----"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSSY, tssy, "rrtp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_RSSR, rssr, "rrtp"),
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_SRPP, srpp, "srtp", 0),
@@ -1433,11 +1434,12 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv ipco dav1", "av1"),
 
 	// VP8-9 boxes
-	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 encv resv", 1, 0, "vp"),
+	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP08, video_sample_entry, "stsd", "vp"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP09, video_sample_entry, "stsd", "vp"),
-	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 encv resv", 1, 0, "vp"),
-	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 encv resv", 1, 0, "vp"),
+	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP10, video_sample_entry, "stsd", "vp"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
 
 	//Opus in ISOBMFF boxes
 #ifndef GPAC_DISABLE_OGG
@@ -1631,7 +1633,7 @@ static struct box_registry_entry {
 	ITUNES_TAG(GF_ISOM_ITUNE_EXEC_PRODUCER),
 	ITUNES_TAG(GF_ISOM_ITUNE_LOCATION),
 
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
+	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_GMHD, def_parent, "minf", "apple"),
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_LOAD, load, "trak extk", "apple"),
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_parent, "trak extk", "apple"),

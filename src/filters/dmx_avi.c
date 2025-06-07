@@ -634,7 +634,7 @@ restart:
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 		u32 v_pc=0;
-		if (ctx->v_in_use) {
+		if (ctx->v_in_use && ctx->nb_frames) {
 			v_pc = ctx->cur_frame * 100;
 			v_pc /= ctx->nb_frames;
 		}

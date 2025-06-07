@@ -59,12 +59,6 @@ typedef struct
 	u32 av1b_cfg_size;
 	u32 codec_id;
 	Bool passthrough;
-
-	//TODO: 1) placement (a TU consists of a series of OBUs starting from a temporal delimiter,
-	//          optional sequence headers, optional metadata OBUs, and
-	//      2) look for existing timecode metadata
-	//      3) improve everything (offset, formatting, drop frames, cnt-type, ...)
-	Bool tc;
 } GF_OBUMxCtx;
 
 GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -357,28 +351,6 @@ static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, 
 	return GF_OK;
 }
 
-static void obumx_write_metadata_timecode(GF_BitStream *bs, u64 cts, GF_Fraction fps)
-{
-	u32 n_frames = (cts * fps.den) % fps.num;
-	n_frames /= fps.den;
-	cts = cts * fps.den / fps.num;
-	u8 s = cts % 60;
-	cts /= 60;
-	u8 m = cts % 60;
-	cts /= 60;
-	u8 h = (u8) cts;
-	gf_bs_write_int(bs, 0/*counting_type*/, 5);
-	gf_bs_write_int(bs, 1/*full_timestamp_flag*/, 1);
-	gf_bs_write_int(bs, 0/*discontinuity_flag*/, 1);
-	gf_bs_write_int(bs, 0/*cnt_dropped_flag*/, 1);
-	gf_bs_write_int(bs, n_frames, 9);
-	gf_bs_write_int(bs, s, 6);
-	gf_bs_write_int(bs, m, 6);
-	gf_bs_write_int(bs, h, 5);
-	gf_bs_write_int(bs, 0/*time_offset_length*/, 5);
-	gf_bs_align(bs);
-}
-
 GF_Err obumx_process(GF_Filter *filter)
 {
 	u32 i;
@@ -435,7 +407,6 @@ GF_Err obumx_process(GF_Filter *filter)
 	}
 
 	memset(frame_sizes, 0, sizeof(u32)*128);
-	if (ctx->tc) size += 8;
 	if (ctx->mode==FRAMING_IVF) {
 		if (ctx->ivf_hdr) hdr_size += 32;
 		hdr_size += 12;
@@ -496,7 +467,6 @@ GF_Err obumx_process(GF_Filter *filter)
 		}
 		av1b_frame_size = size;
 		size += gf_av1_leb128_size(size);
-		if (ctx->tc) size += 8;
 	} else {
 		if (sap_type && ctx->av1b_cfg_size) size += ctx->av1b_cfg_size;
 	}
@@ -520,15 +490,6 @@ GF_Err obumx_process(GF_Filter *filter)
 		gf_av1_leb128_write(ctx->bs_w, 2);
 		gf_bs_write_u8(ctx->bs_w, 0x12);
 		gf_bs_write_u8(ctx->bs_w, 0);
-
-		if (ctx->tc) {
-			//write timecode metadata
-			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
-			gf_bs_write_u8(ctx->bs_w, 0x2a);
-			gf_av1_leb128_write(ctx->bs_w, 6/*8+39 bits*/);
-			gf_av1_leb128_write(ctx->bs_w, 5/*metadata type*/);
-			obumx_write_metadata_timecode(ctx->bs_w, cts, ctx->fps);
-		}
 
 		if (sap_type && ctx->av1b_cfg_size) {
 			GF_AV1_OBUArrayEntry *obu;
@@ -617,15 +578,6 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u8(ctx->bs_w, 0x12);
 			gf_bs_write_u8(ctx->bs_w, 0);
 
-			if (ctx->tc) {
-				//write timecode metadata
-				u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
-				gf_bs_write_u8(ctx->bs_w, 0x2a);
-				gf_av1_leb128_write(ctx->bs_w, 6/*8+39 bits*/);
-				gf_av1_leb128_write(ctx->bs_w, 5/*metadata type*/);
-				obumx_write_metadata_timecode(ctx->bs_w, cts, ctx->fps);
-			}
-
 			if (sap_type && ctx->av1b_cfg_size) {
 				GF_AV1_OBUArrayEntry *obu;
 				i=0;
@@ -672,7 +624,6 @@ static const GF_FilterCapability OBUMxCaps[] =
 static const GF_FilterArgs OBUMxArgs[] =
 {
 	{ OFFS(rcfg), "force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(tc),   "inject metadata timecodes", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

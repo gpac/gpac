@@ -114,6 +114,7 @@ typedef struct
 	u32 nb_stopped_at_init;
 
 	u32 logflags;
+	u32 forward_for;
 } GF_M2TSDmxCtx;
 
 static void m2tsdmx_prop_free(GF_M2TS_Prop *prop) {
@@ -240,7 +241,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (stream->flags & GF_M2TS_GPAC_CODEC_ID) {
 		codecid = stream->stream_type;
 		stype = gf_codecid_type(codecid);
-		if (stream->gpac_meta_dsi)
+		if ((stream->flags & GF_M2TS_ES_IS_PES) && stream->gpac_meta_dsi)
 			stype = stream->gpac_meta_dsi[4];
 		if (!stype) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unrecognized gpac codec %s - ignoring pid %u\n", gf_4cc_to_str(codecid) , stream->pid));
@@ -557,8 +558,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			u32 dsi_len = gf_bs_read_u32(bs);
 			if (dsi_len) {
 				u32 pos = (u32) gf_bs_get_position(bs);
-				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
-				gf_bs_skip_bytes(bs, dsi_len);
+				if (pos < stream->gpac_meta_dsi_size && dsi_len < stream->gpac_meta_dsi_size-pos) {
+					gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
+					gf_bs_skip_bytes(bs, dsi_len);
+				}
 			} else {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 			}
@@ -704,10 +707,11 @@ static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 i, count;
-	Bool do_ignore = GF_TRUE;
+	 Bool do_ignore = GF_TRUE;
 	count = gf_list_count(prog->streams);
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
+		if (!ctx->forward_for || (es->pid==ctx->forward_for)) do_ignore = GF_FALSE;
 
 		if (es->pid==prog->pmt_pid) continue;
 		if (! (es->flags & GF_M2TS_ES_IS_PES)) continue;
@@ -715,10 +719,8 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 		if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL ) continue;
 		if (es->depends_on_pid ) {
 			prog->is_scalable = GF_TRUE;
-			break;
 		}
 	}
-
 	if (do_ignore) {
 		for (i=0; i<count; i++) {
 			GF_M2TS_PES *es = gf_list_get(prog->streams, i);
@@ -1511,6 +1513,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_send_event(pid, &evt);
 		}
 	}
+	if (!ctx->ipid) {
+		p = gf_filter_pid_get_property_str(pid, "filter_pid");
+		if (p) ctx->forward_for = p->value.uint;
+	}
 	ctx->ipid = pid;
 	return GF_OK;
 }
@@ -1834,6 +1840,8 @@ static const GF_FilterCapability M2TSDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	//allow connections from tsgendts
+	CAP_UINT(GF_CAPS_INPUT_OPT|GF_CAPFLAG_PRESENT, GF_PROP_PID_TIMESCALE, 0)
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_M2TSDmxCtx, _n)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1255,6 +1255,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	if (ifps>= 2996 && ifps<=2998) target_ts = 30000;	//29.97
 	else if (ifps>= 2999 && ifps<=3001) target_ts = 3000; //30
 	else if (ifps>= 2495 && ifps<=2505) target_ts = 2500; //25
+	else if (!(def_dur%125) && !(timescale % 2997)) target_ts = 2997; //23.97
 	else if (ifps >= 2396 && ifps<=2398) target_ts = 24000; //23.97
 	else if ((ifps>=2399) && (ifps<=2401)) target_ts = 2400; //24
 	else if (ifps>= 4990 && ifps<=5010) target_ts = 5000; //50
@@ -1356,8 +1357,17 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 		gf_bs_write_int(bs, dims.fullRequestHost, 1);
 		gf_bs_write_int(bs, dims.streamType, 1);
 		gf_bs_write_int(bs, dims.containsRedundant, 2);
-		gf_bs_write_data(bs, (char*)dims.textEncoding, (u32) strlen(dims.textEncoding)+1);
-		gf_bs_write_data(bs, (char*)dims.contentEncoding, (u32) strlen(dims.contentEncoding)+1);
+
+		if (dims.textEncoding)
+			gf_bs_write_data(bs, (char*)dims.textEncoding, (u32) strlen(dims.textEncoding)+1);
+		else
+			gf_bs_write_data(bs, "", 1);
+
+		if (dims.contentEncoding)
+			gf_bs_write_data(bs, (char*)dims.contentEncoding, (u32) strlen(dims.contentEncoding)+1);
+		else
+			gf_bs_write_data(bs, "", 1);
+
 		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
@@ -3899,18 +3909,18 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 	sprintf(szArgs, "mp4dmx:mov=%p", input);
 	f = gf_fs_load_filter(fsess, szArgs, &e);
-	if (!f) return e;
+	if (!f) { gf_fs_del(fsess); return e; }
 
 	strcpy(szArgs, "reframer:FID=1");
 	f = gf_fs_load_filter(fsess, szArgs, &e);
-	if (!f) return e;
+	if (!f) { gf_fs_del(fsess); return e; }
 
 	sprintf(szArgs, "%s:SID=1:frag:cdur=%g:abs_offset:fragdur", output_file, max_duration_sec);
 	if (use_mfra)
 		strcat(szArgs, ":mfra");
 
 	f = gf_fs_load_destination(fsess, szArgs, NULL, NULL, &e);
-	if (!f) return e;
+	if (!f) { gf_fs_del(fsess); return e; }
 
 	if (!gf_sys_is_test_mode()
 #ifndef GPAC_DISABLE_LOG

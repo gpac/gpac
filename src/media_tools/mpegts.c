@@ -773,7 +773,6 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		sdt->free_CA_mode = (data[pos+3]>>4) & 0x1;
 		descs_size = ((data[pos+3]&0xf)<<8) | data[pos+4];
 		pos += 5;
-
 		if (pos+descs_size > data_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
 			return;
@@ -792,16 +791,39 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 				sdt->service = NULL;
 
 				d_pos+=2;
+				if (pos+d_pos+1 >= data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					return;
+				}
 				sdt->service_type = data[pos+d_pos];
 				ulen = data[pos+d_pos+1];
+
 				d_pos += 2;
+				if (pos+d_pos+ulen > data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					return;
+				}
 				sdt->provider = (char*)gf_malloc(sizeof(char)*(ulen+1));
 				memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->provider[ulen] = 0;
+
 				d_pos += ulen;
+				if (pos+d_pos >= data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					gf_free(sdt->provider);
+					sdt->provider = NULL;
+					return;
+				}
 
 				ulen = data[pos+d_pos];
 				d_pos += 1;
+				if (pos+d_pos+ulen > data_size) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
+					gf_free(sdt->provider);
+					sdt->provider = NULL;
+					return;
+				}
+
 				sdt->service = (char*)gf_malloc(sizeof(char)*(ulen+1));
 				memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->service[ulen] = 0;
@@ -1258,7 +1280,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	data_size -= 4 + info_length;
 	pos = 0;
 
-	
+
 	nb_hevc_temp = nb_shvc = nb_shvc_temp = nb_mhvc = nb_mhvc_temp = 0;
 	while (pos<data_size) {
 		GF_M2TS_PES *pes = NULL;
@@ -1582,15 +1604,19 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					}
 					break;
 				case GF_M2TS_DVB_SUBTITLING_DESCRIPTOR:
-					if (pes && (len>=8)) {
-						pes->sub.language[0] = data[2];
-						pes->sub.language[1] = data[3];
-						pes->sub.language[2] = data[4];
-						pes->sub.type = data[5];
-						pes->sub.composition_page_id = (data[6]<<8) | data[7];
-						pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
+					if (pes) {
+						if (len>=8) {
+							pes->sub.language[0] = data[2];
+							pes->sub.language[1] = data[3];
+							pes->sub.language[2] = data[4];
+							pes->sub.type = data[5];
+							pes->sub.composition_page_id = (data[6]<<8) | data[7];
+							pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
+						} else {
+							memset(& (pes->sub), 0, sizeof(pes->sub));
+						}
+						es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					}
-					es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					break;
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
 					if (len>=1) {
@@ -1689,7 +1715,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					break;
 
 				case GF_M2TS_DVB_EXT_DESCRIPTOR:
-					if ((len>4) && (data[2] == 0x06)) {
+					if ((len>4) && (data[2] == 0x06) && pes) {
 						u32 flags = data[3];
 						u32 aflags = (flags >> 2) & 0x1F;
 						if ((flags & 0x80) == 0)
@@ -3335,7 +3361,7 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 		if ((nb_pck<2) || (ts->pck_number + 2 < nb_pck))
 			e = GF_BAD_PARAM;
 		//accept if we have not too few errors (triggered on error bit and corrupted AF fields)
-		else if (ts->pck_errors*3<ts->pck_number)
+		else if ((nb_pck>3) && ts->pck_errors*3<ts->pck_number)
 			e = GF_OK;
 	}
 	gf_m2ts_demux_del(ts);

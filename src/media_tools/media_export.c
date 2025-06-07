@@ -917,6 +917,11 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	strcpy(out_file, dumper->out_name ? dumper->out_name : "");
 	strcat(out_file, ".saf");
 	saf_f = is_stdout ? stdout : gf_fopen(out_file, "wb");
+	if (!saf_f) {
+		gf_saf_mux_del(mux);
+		gf_free(safs);
+		return GF_BAD_PARAM;
+	}
 
 	samp_done = 0;
 	while (samp_done<tot_samp) {
@@ -1229,7 +1234,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 
 		if (load_dest) {
-			//skip fout:dst= whenever we have an extension specified, to allow using meta filters (ffmx) 
+			//skip fout:dst= whenever we have an extension specified, to allow using meta filters (ffmx)
 			file_out = gf_fs_load_destination(fsess, args+9, NULL, NULL, &e);
 		} else {
 			file_out = gf_fs_load_filter(fsess, args, &e);
@@ -1332,7 +1337,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			sprintf(szSubArgs, ":mov=%p", dumper->file);
 			e = gf_dynstrcat(&args, szSubArgs, NULL);
 		}
-		
+
 		//we want to expose every track
 		src_filter = gf_fs_load_filter(fsess, args, &e);
 

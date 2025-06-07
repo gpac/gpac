@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2582,7 +2582,7 @@ GF_Err gf_isom_set_track_layout_info(GF_ISOFile *isom_file, u32 trackNumber, u32
 /*! sets track matrix
 \param isom_file the target ISO file
 \param trackNumber the target track number
-\param matrix the transformation matrix of the track on the movie canvas; all coeficients are expressed as 16.16 floating points
+\param matrix the transformation matrix of the track on the movie canvas; all coefficients are expressed as 16.16 floating points
 \return error if any
  */
 GF_Err gf_isom_set_track_matrix(GF_ISOFile *isom_file, u32 trackNumber, s32 matrix[9]);
@@ -6781,6 +6781,24 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 GF_Err gf_isom_apple_enum_tag(GF_ISOFile *isom_file, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags);
 
 
+/*! enumerate itunes tags.
+
+\param isom_file the target ISO file
+\param idx 0-based index of the tag to get
+\param out_tag set to the tag code
+\param data set to the tag data pointer - do not modify
+\param data_len set to the size of the tag data. Data is set to NULL and data_size to 1 if the associated tag has no data
+\param out_int_val set to the int/bool/frac numerator type for known tags, in which case data is set to NULL
+\param out_int_val2 set to the frac denominator for known tags, in which case data is set to NULL
+\param out_flags set to the flags value of the data container box
+\param out_mean set to the mean string identifier, if any
+\param out_name set to the name string identifier, if any
+\param out_locale set to the locale data identifier, if any
+\return error if any (GF_URL_ERROR if no more tags)
+*/
+GF_Err gf_isom_apple_enum_tag_ex(GF_ISOFile *isom_file, u32 idx, GF_ISOiTunesTag *out_tag, const u8 **data, u32 *data_len, u64 *out_int_val, u32 *out_int_val2, u32 *out_flags, const char **out_mean, const char **out_name, u32 *out_locale);
+
+
 /*! enumerate WMA tags.
 
 \param isom_file the target ISO file
@@ -6899,6 +6917,21 @@ GF_Err gf_isom_enum_udta_keys(GF_ISOFile *isom_file, u32 idx, GF_QT_UDTAKey *out
 \return error if any
 */
 GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2);
+
+/*! sets the given tag info.
+
+\param isom_file the target ISO file
+\param for_tag the tag to set
+\param data tag data buffer or string to parse
+\param data_len size of the tag data buffer. If data is NULL and and data_len not  0, removes the given tag
+\param int_val value for integer/boolean tags. If data and data_len are set, parse data as string  to get the value
+\param int_val2 value for fractional  tags. If data and data_len are set, parse data as string to get the value
+\param name domain name of tag, ignores for_tag if not null
+\param mean mean of tag, ignores for_tag if not null
+\param locale locale of tag, ignored if name and mean are null
+\return error if any
+*/
+GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *isom_file, GF_ISOiTunesTag for_tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2, const char *name, const char *mean, u32 locale);
 
 
 /*! sets the given WMA tag info (only string tags are supported).

@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2024
+#          Copyright (c) Telecom Paris 2020-2025
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -1338,6 +1338,13 @@ GF_CAPFLAG_STATIC = 1<<5
 ##\hideinitializer
 #see GF_CAPFLAG_OPTIONAL
 GF_CAPFLAG_OPTIONAL = 1<<6
+##\hideinitializer
+#see GF_CAPFLAG_PRESENT
+GF_CAPFLAG_PRESENT = 1<<7
+##\hideinitializer
+#see GF_CAPFLAG_RECONFIG
+GF_CAPFLAG_RECONFIG = 1<<8
+
 
 #helpers
 ##\hideinitializer

@@ -675,6 +675,10 @@ for opt do
             ;;
         --disable-alsa) append disabled_packages "alsa"
             ;;
+        --disable-oss) append disabled_packages "oss"
+            ;;
+        --disable-dvb4linux) append disabled_packages "dvb4linux"
+            ;;
         --enable-gprof) gprof_build="yes";
             ;;
         --static-build) static_build="yes";
@@ -1368,7 +1372,7 @@ config_package_test ()
 
     #test pkgconfig
     if test "$forced" != "local" -a "$custom" != "yes" ; then
-        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no"; then
+        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no" -a "$pkg_cfg_name" != ""; then
             if $pkg_config --exists $pkg_cfg_name ; then
                 pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
@@ -1483,7 +1487,7 @@ config_package ()
     pck_ldflags=""
 
     pname="$1"
-    case "$disabled_packages" in
+    case "$disabled_packages " in
     *"$pname "*) shift
         eval "has_$pname=\"no\""
         return
@@ -1771,14 +1775,14 @@ EOF
 
 else
 
-check_has_lib oss "" '#include <sys/ioctl.h>
+config_package oss "" "" "" "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/soundcard.h>
 int main( void ) { return 0; }'
 
 if test "$has_oss" = "no" ; then
-check_has_lib oss "" '#include <sys/ioctl.h>
+config_package oss "" "" "" "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <soundcard.h>
@@ -1813,19 +1817,17 @@ return 0;
 }'
 
 
-
-check_has_lib dvb4linux "" '#include <linux/dvb/dmx.h>
+config_package dvb4linux "" "" "" "" '#include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
 int main( void ) {return 0;}'
 
-check_has_lib alsa "" '#include <alsa/asoundlib.h>
+config_package alsa "libasound" "" "" "" '#include <alsa/asoundlib.h>
 int main( void ) {return 0;}'
 
-
-check_has_lib pulseaudio "" '#include <pulse/pulseaudio.h>
+config_package pulseaudio "libpulse" "" "" "" '#include <pulse/pulseaudio.h>
 int main( void ) {return 0;}'
 
-check_has_lib jack "" '#include <jack/jack.h>
+config_package jack "libjack" "" "" "" '#include <jack/jack.h>
 int main( void ) {return 0;}'
 
 
@@ -1984,7 +1986,7 @@ fi
 
 
 #look for SDL support - we don't use check_has_lib for the time being
-case "$disabled_packages" in
+case "$disabled_packages " in
 *"sdl "*) has_sdl=no
     ;;
 *) sdl_too_old=no
@@ -2588,7 +2590,7 @@ fi
 
 #we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces"
 else
     CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi

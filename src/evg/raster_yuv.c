@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -261,7 +261,7 @@ void evg_make_ayuv_color_mx(GF_ColorMatrix *cmat, GF_ColorMatrix *yuv_cmat)
 			YUV420p part
 */
 
-static void overmask_yuv420p(u8 col_a, u8 cy, char *dst, u32 alpha)
+static void overmask_yuv420p(u8 col_a, u8 cy, u8 *dst, u32 alpha)
 {
 	s32 srca = col_a;
 	u32 srcc = cy;
@@ -300,7 +300,7 @@ void evg_yuv420p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *sur
 		a += surf_uv_alpha[i] + surf_uv_alpha[i+1];
 
 		if (a) {
-			char *s_ptr_u, *s_ptr_v;
+			u8 *s_ptr_u, *s_ptr_v;
 
 			a /= 4;
 
@@ -323,7 +323,7 @@ void evg_yuv420p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *sur
 
 void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
-	char *pY = surf->pixels;
+	u8 *pY = surf->pixels;
 	u8 *surf_uv_alpha;
 	s32 i;
 	u8 cy, cu, cv;
@@ -347,7 +347,7 @@ void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 
 	for (i=0; i<count; i++) {
 		u32 a;
-		char *s_pY;
+		u8 *s_pY;
 		u32 len;
 		len = spans[i].len;
 		s_pY = pY + spans[i].x;
@@ -373,7 +373,7 @@ void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
 	u32 a;
-	char *pY = surf->pixels;
+	u8 *pY = surf->pixels;
 	u8 *surf_uv_alpha;
 	s32 i;
 	u8 cy, cu, cv;
@@ -400,7 +400,7 @@ void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 			u32 fin, j;
 			for (j=0; j<spans[i].len; j++) {
 				s32 x = spans[i].x + j;
-				char *s_pY = pY + x;
+				u8 *s_pY = pY + x;
 				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
 				fin = mul255(aa, spans[i].coverage);
 
@@ -411,7 +411,7 @@ void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 		}
 	} else {
 		for (i=0; i<count; i++) {
-			char *s_pY;
+			u8 *s_pY;
 			u32 fin, len;
 			len = spans[i].len;
 			s_pY = pY + spans[i].x;
@@ -512,7 +512,7 @@ void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_
 void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
 	s32 i;
-	char *pY = surf->pixels;
+	u8 *pY = surf->pixels;
 	u8 *surf_uv_alpha;
 	Bool write_uv = (y%2) ? GF_TRUE : GF_FALSE;
 
@@ -531,7 +531,7 @@ void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 
 	for (i=0; i<count; i++) {
 		u8 spanalpha, col_a;
-		char *s_pY;
+		u8 *s_pY;
 		short x;
 		u32 *p_col;
 		u32 len;
@@ -623,7 +623,7 @@ GF_Err evg_surface_clear_yuv420p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 void evg_nv12_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i, a;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
 	pU +=  y/2 * surf->pitch_y;
 
 	for (i=0; i<surf->width; i+=2) {
@@ -635,7 +635,7 @@ void evg_nv12_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_u
 		a += surf_uv_alpha[i] + surf_uv_alpha[i+1];
 
 		if (a) {
-			char *s_ptr;
+			u8 *s_ptr;
 			a /= 4;
 
 			s_ptr = pU + i;
@@ -660,7 +660,7 @@ void evg_nv12_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_u
 void evg_nv12_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i;
-	char *pU;
+	u8 *pU;
 	pU = surf->pixels + surf->height *surf->pitch_y;
 	pU += y/2 * surf->pitch_y;
 
@@ -735,9 +735,9 @@ GF_Err evg_surface_clear_nv12(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col, B
 	s32 i;
 	u8 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *pY = surf->pixels;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pU_first;
+	u8 *pY = surf->pixels;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pU_first;
 
 	pY += rc.y * surf->pitch_y;
 	pU +=  rc.y/2 * surf->pitch_y;
@@ -785,8 +785,8 @@ GF_Err evg_surface_clear_nv12(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col, B
 void evg_yuv422p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i, a;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
 	pU +=  y * surf->pitch_y/2;
 	pV = pU + surf->height * surf->pitch_y/2;
 
@@ -796,7 +796,7 @@ void evg_yuv422p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *sur
 		a = rctx->uv_alpha[i] + rctx->uv_alpha[i+1];
 
 		if (a) {
-			char *s_ptr_u, *s_ptr_v;
+			u8 *s_ptr_u, *s_ptr_v;
 
 			a /= 2;
 			s_ptr_u = pU + i / 2;
@@ -819,7 +819,7 @@ void evg_yuv422p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *sur
 void evg_yuv422p_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 _cu, s32 _cv,  s32 y)
 {
 	u32 i;
-	char *pU, *pV;
+	u8 *pU, *pV;
 	pU = surf->pixels + surf->height *surf->pitch_y;
 	pU += y * surf->pitch_y/2;
 	pV = pU + surf->height * surf->pitch_y/2;
@@ -877,9 +877,9 @@ GF_Err evg_surface_clear_yuv422p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	s32 i;
 	u8 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *pY = surf->pixels;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
+	u8 *pY = surf->pixels;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
 
 	pY += rc.y * surf->pitch_y;
 	pU +=  rc.y/2 * surf->pitch_y/2;
@@ -916,7 +916,7 @@ GF_Err evg_surface_clear_yuv422p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 
 void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
-	char *pY, *pU, *pV;
+	u8 *pY, *pU, *pV;
 	s32 i;
 	u8 cy, cu, cv;
 
@@ -930,7 +930,7 @@ void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 
 	for (i=0; i<count; i++) {
 		u32 a;
-		char *s_pY, *s_pU, *s_pV;
+		u8 *s_pY, *s_pU, *s_pV;
 		u32 len;
 		len = spans[i].len;
 		s_pY = pY + spans[i].x;
@@ -958,7 +958,7 @@ void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
 	u32 a;
-	char *pY, *pU, *pV;
+	u8 *pY, *pU, *pV;
 	s32 i;
 	u8 cy, cu, cv;
 
@@ -975,7 +975,7 @@ void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 		for (i=0; i<count; i++) {
 			u32 j;
 			for (j=0; j<spans[i].len; j++) {
-				char *s_pY, *s_pU, *s_pV;
+				u8 *s_pY, *s_pU, *s_pV;
 				u32 fin;
 				s32 x = spans[i].x + j;
 				s_pY = pY + x;
@@ -991,7 +991,7 @@ void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 		}
 	} else {
 		for (i=0; i<count; i++) {
-			char *s_pY, *s_pU, *s_pV;
+			u8 *s_pY, *s_pU, *s_pV;
 			u32 fin, len;
 			len = spans[i].len;
 			s_pY = pY + spans[i].x;
@@ -1009,7 +1009,7 @@ void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
 	s32 i;
-	char *pY, *pU, *pV;
+	u8 *pY, *pU, *pV;
 
 	pY = surf->pixels + y * surf->pitch_y;
 	pU = pY + surf->height*surf->pitch_y;
@@ -1019,7 +1019,7 @@ void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 		u8 spanalpha, col_a;
 		u32 len;
 		u32 *p_col;
-		char *s_pY, *s_pU, *s_pV;
+		u8 *s_pY, *s_pU, *s_pV;
 		len = spans[i].len;
 		p_col = surf->fill_run(surf->sten, rctx, &spans[i], y);
 		spanalpha = spans[i].coverage;
@@ -1060,9 +1060,9 @@ GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	s32 i;
 	u8 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *pY = surf->pixels;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
+	u8 *pY = surf->pixels;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
 
 	pY += rc.y * surf->pitch_y;
 	pU += rc.y * surf->pitch_y;
@@ -1097,7 +1097,7 @@ GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 			YUYV part
 */
 
-static void overmask_yuvy(char *dst, u8 c, u32 alpha)
+static void overmask_yuvy(u8 *dst, u8 c, u32 alpha)
 {
 	s32 srca = alpha;
 	u32 srcc = c;
@@ -1106,7 +1106,7 @@ static void overmask_yuvy(char *dst, u8 c, u32 alpha)
 }
 void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
-	char *pY;
+	u8 *pY;
 	s32 i;
 	u8 cy, cu, cv;
 
@@ -1118,7 +1118,7 @@ void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf,
 	cv = GF_COL_B(surf->fill_col);
 
 	for (i=0; i<count; i++) {
-		char *s_pY;
+		u8 *s_pY;
 		u32 len;
 		len = spans[i].len;
 		//get start of yuyv block: devide x by 2, multiply by 4 (two Y pix packed in 4 bytes)
@@ -1164,7 +1164,7 @@ void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf,
 
 void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
-	char *pY;
+	u8 *pY;
 	s32 i;
 	u8 cy, cu, cv, a;
 
@@ -1175,7 +1175,7 @@ void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 	a = GF_COL_A(surf->fill_col);
 
 	for (i=0; i<count; i++) {
-		char *s_pY;
+		u8 *s_pY;
 		u32 fin, len;
 		len = spans[i].len;
 		s_pY = pY + (spans[i].x/2) * 4;
@@ -1210,14 +1210,14 @@ void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *sur
 void evg_yuyv_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
 	s32 i;
-	char *pY;
+	u8 *pY;
 
 	pY = surf->pixels + y * surf->pitch_y;
 
 	for (i=0; i<count; i++) {
 		u8 spanalpha, col_a;
 		u32 *p_col;
-		char *s_pY;
+		u8 *s_pY;
 		u32 len, x;
 		len = spans[i].len;
 		s_pY = pY + (spans[i].x/2) * 4;
@@ -1297,8 +1297,8 @@ GF_Err evg_surface_clear_yuyv(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col)
 	s32 j;
 	u8 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *o_pY;
-	char *pY = surf->pixels;
+	u8 *o_pY;
+	u8 *pY = surf->pixels;
 	pY += rc.y * surf->pitch_y;
 	pY += (rc.x/2) * 4;
 
@@ -1306,7 +1306,7 @@ GF_Err evg_surface_clear_yuyv(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col)
 	o_pY = pY;
 	for (i = 0; i <(u32)rc.height; i++) {
 		if (!i) {
-			char *dst = pY;
+			u8 *dst = pY;
 			for (j = 0; j < rc.width/2; j++) {
 				dst[surf->idx_y1] = cy;
 				dst[surf->idx_u] = cb;
@@ -1385,8 +1385,8 @@ void evg_yuv420p_10_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *
 	u32 i, a;
 	u16 *surf_uv_alpha_even = (u16 *) rctx->uv_alpha;
 	u16 *surf_uv_alpha_odd = (u16 *) _surf_uv_alpha;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
 	pU +=  y/2 * surf->pitch_y/2;
 	pV = pU + surf->height/2 * surf->pitch_y/2;
 
@@ -1853,9 +1853,9 @@ GF_Err evg_surface_clear_nv12_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	u16 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
 	u16 *s_pY, *s_pU;
-	char *pY = surf->pixels;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pU_first, *pY_first;
+	u8 *pY = surf->pixels;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pU_first, *pY_first;
 
 	pY += rc.y * surf->pitch_y;
 	pU +=  rc.y/2 * surf->pitch_y;
@@ -1918,8 +1918,8 @@ GF_Err evg_surface_clear_nv12_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 void evg_yuv422p_10_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *_surf_uv_alpha, s32 cu, s32 cv, s32 y)
 {
 	u32 i, a;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
 	u16 *surf_uv_alpha = (u16 *) rctx->uv_alpha;
 	pU +=  y * surf->pitch_y/2;
 	pV = pU + surf->height * surf->pitch_y/2;
@@ -2012,10 +2012,10 @@ GF_Err evg_surface_clear_yuv422p_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color 
 	u8 _cy, _cb, _cr;
 	u16 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *pY = surf->pixels;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV;
-	char *o_pY, *o_pU, *o_pV;
+	u8 *pY = surf->pixels;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV;
+	u8 *o_pY, *o_pU, *o_pV;
 
 	pY += rc.y * surf->pitch_y;
 	pU +=  rc.y/2 * surf->pitch_y/2;
@@ -2220,9 +2220,9 @@ GF_Err evg_surface_clear_yuv444p_10(GF_EVGSurface *_surf, GF_IRect rc, GF_Color 
 	u8 _cy, _cb, _cr;
 	u16 cy, cb, cr;
 	GF_EVGSurface *surf = (GF_EVGSurface *)_surf;
-	char *pY = surf->pixels;
-	char *pU = surf->pixels + surf->height *surf->pitch_y;
-	char *pV, *o_pY, *o_pU, *o_pV;
+	u8 *pY = surf->pixels;
+	u8 *pU = surf->pixels + surf->height *surf->pitch_y;
+	u8 *pV, *o_pY, *o_pU, *o_pV;
 
 	pY += rc.y * surf->pitch_y;
 	pU += rc.y * surf->pitch_y;

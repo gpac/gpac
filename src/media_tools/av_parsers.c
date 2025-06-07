@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -2380,6 +2380,34 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 	return GF_OK;
 }
 
+
+void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
+{
+	u32 i;
+	u64 val;
+	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
+	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
+
+	//3x{display_primaries_x, display_primaries_y} + whitePoint_x + whitePoint_y
+	//translate from AV1 representation 0.16 float to MPEG in increments of 0.00002 (1/50000)
+	for (i=0; i<8; i++) {
+		val = gf_bs_read_u16(bs_r);
+		val = (50000 * val) / 65536;
+		gf_bs_write_u16(bs_w, (u32) val);
+	}
+	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
+	val = gf_bs_read_u32(bs_r);
+	val = (10000 * val) / 256;
+	gf_bs_write_u32(bs_w, (u32) val);
+
+	//min_display_mastering_luminance: 18.14 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
+	val = gf_bs_read_u32(bs_r);
+	val = (10000 * val) / 16384;
+	gf_bs_write_u32(bs_w, (u32) val);
+	gf_bs_del(bs_r);
+	gf_bs_del(bs_w);
+}
+
 GF_EXPORT
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
@@ -4304,6 +4332,43 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
+static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
+{
+	AVCSeiPicTiming *pt = &sei->pic_timing;
+	pt->num_clock_ts = 1;
+	AVCSeiPicTimingTimecode *tc = &pt->timecodes[0];
+	tc->clock_timestamp_flag = 1;
+
+	tc->counting_type = gf_bs_read_int_log(bs, 5, "counting_type");
+	Bool full_timestamp_flag = gf_bs_read_int_log(bs, 1, "full_timestamp_flag");
+	gf_bs_read_int_log(bs, 1, "discontinuity_flag");
+	tc->cnt_dropped_flag = gf_bs_read_int_log(bs, 1, "cnt_dropped_flag");
+	tc->n_frames = gf_bs_read_int_log(bs, 9, "n_frames");
+
+	if (full_timestamp_flag) {
+		tc->seconds = gf_bs_read_int_log(bs, 6, "seconds_value");
+		tc->minutes = gf_bs_read_int_log(bs, 6, "minutes_value");
+		tc->hours = gf_bs_read_int_log(bs, 5, "hours_value");
+	} else {
+		Bool seconds_flag = gf_bs_read_int_log(bs, 1, "seconds_flag");
+		if (seconds_flag) {
+			tc->seconds = gf_bs_read_int_log(bs, 6, "seconds_value");
+			Bool minutes_flag = gf_bs_read_int_log(bs, 1, "minutes_flag");
+			if (minutes_flag) {
+				tc->minutes = gf_bs_read_int_log(bs, 6, "minutes_value");
+				Bool hours_flag = gf_bs_read_int_log(bs, 1, "hours_flag");
+				if (hours_flag) {
+					tc->hours = gf_bs_read_int_log(bs, 5, "hours_value");
+				}
+			}
+		}
+	}
+	u8 time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
+	if (time_offset_length) {
+		gf_bs_read_int_log(bs, time_offset_length, "time_offset_value");
+	}
+}
+
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
 	ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
@@ -4312,12 +4377,15 @@ static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 	case OBU_METADATA_TYPE_ITUT_T35:
 		break;
 	case OBU_METADATA_TYPE_HDR_CLL:
-		gf_bs_read_data(bs, state->clli_data, 4);
-		state->clli_valid = 1;
+		gf_bs_read_data(bs, state->sei.clli_data, 4);
+		state->sei.clli_valid = 1;
 		break;
 	case OBU_METADATA_TYPE_HDR_MDCV:
-		gf_bs_read_data(bs, state->mdcv_data, 24);
-		state->mdcv_valid = 1;
+		gf_bs_read_data(bs, state->sei.mdcv_data, 24);
+		state->sei.mdcv_valid = 1;
+		break;
+	case OBU_METADATA_TYPE_TIMECODE:
+		av1_parse_timecode_obu(&state->sei, bs);
 		break;
 	default:
 		break;
@@ -4385,6 +4453,14 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	/* for AVIF a1lx */
 	for (i = state->spatial_id; i < 4; i++) {
 		state->layer_size[i] = (u32) (pos + *obu_size);
+	}
+	if (state->parse_metadata_filter) {
+		//for now no dependency on metadat to state
+		if (*obu_type != OBU_METADATA) {
+			gf_bs_seek(bs, pos + *obu_size);
+			return e;
+		}
+		state->parse_metadata_filter = 2;
 	}
 
 	switch (*obu_type) {
@@ -4677,9 +4753,9 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		gf_bs_read_int_log(bs, 16, "maximum_block_size");
 		gf_bs_read_int_log(bs, 24, "minimum_frame_size");
 		gf_bs_read_int_log(bs, 24, "maximum_frame_size");
-		state->sample_rate = gf_bs_read_int_log(bs, 24, "sample_rate");
-		gf_bs_read_int_log(bs, 3, "num_of_channels");
-		state->sample_size = gf_bs_read_int_log(bs, 5, "bits_per_sample");
+		state->sample_rate = gf_bs_read_int_log(bs, 20, "sample_rate");
+		/*state->num_of_channels = 1 + */gf_bs_read_int_log(bs, 3, "num_of_channels");
+		state->sample_size = gf_bs_read_int_log(bs, 5, "bits_per_sample") + 1;
 		break;
 	// LPCM.
 	case GF_4CC('i', 'p', 'c', 'm'):
@@ -6530,14 +6606,16 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 		pt->num_clock_ts = NumClockTS[pt->pic_struct];
 		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
-			if (gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i)) {
+			Bool clock_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i);
+			if (clock_timestamp_flag) {
 				AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
+				tc->clock_timestamp_flag = clock_timestamp_flag;
 				gf_bs_read_int_log_idx(bs, 2, "ct_type", i);
 				Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "unit_field_based_flag", i);
 				tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 				Bool full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
-				gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
+				tc->cnt_dropped_flag = gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
 				tc->n_frames = gf_bs_read_int_log_idx(bs, 8, "n_frames", i);
 				if (full_timestamp_flag) {
 					tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
@@ -6578,13 +6656,13 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 	for (int i = 0; i < pt->num_clock_ts; i++) {
 		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
 		if (clock_timestamp_flag) {
-			Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
-
 			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
+			tc->clock_timestamp_flag = clock_timestamp_flag;
+			Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
 			tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 			Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
 			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
-			gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
+			tc->cnt_dropped_flag = gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
 
 			tc->n_frames = gf_bs_read_int(bs, 9);
 			if (full_timestamp_flag) {
@@ -6969,6 +7047,8 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 					break;
 				}
 			}
+			if (sei_filter->extra_filter == -ptype)
+				do_copy = GF_FALSE;
 		}
 
 		start = (u32)gf_bs_get_position(bs);
@@ -6998,7 +7078,9 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			break;
 
 		case 1: /*pic_timing*/
-			if (avc) avc_parse_pic_timing_sei(bs, avc);
+			if (avc) {
+				avc_parse_pic_timing_sei(bs, avc);
+			}
 			break;
 
 		case 0: /*buffering period*/
@@ -7308,8 +7390,6 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				time_scale = gf_bs_read_int(orig, 32);
 				if (codec == GF_CODECID_AVC) {
 					fixed_frame_rate_flag = gf_bs_read_int(orig, 1);
-
-					//LAST bit read for AVC
 				} else if (codec == GF_CODECID_HEVC) {
 					poc_proportional_to_timing_flag = gf_bs_read_int(orig, 1);
 					if (poc_proportional_to_timing_flag)
@@ -7549,13 +7629,70 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 	}
 
+	//transfer hrd parameters (if any)
+	if (codec == GF_CODECID_AVC) {
+		if (vui_present_flag) {
+			AVC_HRD hrd;
+			Bool nal_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, nal_hrd_parameters_present_flag, 1);
+			if (nal_hrd_parameters_present_flag) {
+				u32 pos_bp = gf_bs_get_bit_position(orig);
+				u32 pos = gf_bs_get_position(orig);
+				u32 start = gf_bs_get_bit_offset(orig);
+				avc_parse_hrd_parameters(orig, &hrd);
+				u32 size = gf_bs_get_bit_offset(orig) - start;
+
+				//seek back
+				gf_bs_seek(orig, pos);
+				while (pos_bp--) gf_bs_read_int(orig, 1);
+
+				//copy over nal hrd parameters
+				while (size--) {
+					u8 val = gf_bs_read_int(orig, 1);
+					gf_bs_write_int(mod, val, 1);
+				}
+			}
+
+			Bool vcl_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, vcl_hrd_parameters_present_flag, 1);
+			if (vcl_hrd_parameters_present_flag) {
+				u32 pos_bp = gf_bs_get_bit_position(orig);
+				u32 pos = gf_bs_get_position(orig);
+				u32 start = gf_bs_get_bit_offset(orig);
+				avc_parse_hrd_parameters(orig, &hrd);
+				u32 size = gf_bs_get_bit_offset(orig) - start;
+
+				//seek back
+				gf_bs_seek(orig, pos);
+				while (pos_bp--) gf_bs_read_int(orig, 1);
+
+				//copy over nal hrd parameters
+				while (size--) {
+					u8 val = gf_bs_read_int(orig, 1);
+					gf_bs_write_int(mod, val, 1);
+				}
+			}
+
+			if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
+				u8 low_delay_hrd_flag = gf_bs_read_int(orig, 1);
+				gf_bs_write_int(mod, low_delay_hrd_flag, 1);
+			}
+
+			gf_bs_read_int(orig, 1); /*pic_struct_present*/
+
+			//LAST bit read for AVC
+		} else {
+			gf_bs_write_int(mod, 0, 1); /*nal_hrd_parameters_present*/
+			gf_bs_write_int(mod, 0, 1); /*vcl_hrd_parameters_present*/
+		}
+
+		gf_bs_write_int(mod, vui_info->enable_pic_struct, 1);
+	}
+
 	/*no VUI in input bitstream but we just inserted one, set all remaining vui flags to 0*/
 	if (!vui_present_flag) {
 		if (codec == GF_CODECID_AVC) {
-			gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
-			gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
-			gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
-			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+			gf_bs_write_int(mod, 0, 1); /*bitstream_restriction*/
 		} else if (codec == GF_CODECID_HEVC) {
 			if (timing_info_present_flag) {
 				gf_bs_write_int(mod, 0, 1);		/*vui_hrd_parameters_present_flag*/
@@ -8354,6 +8491,8 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 					break;
 				}
 			}
+			if (sei_filter->extra_filter == -ptype)
+				do_copy = GF_FALSE;
 		}
 
 		start = gf_bs_get_position(bs);
@@ -8453,9 +8592,9 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
 {
 	u32 ptype, psize, hdr, i;
-	u8 *dst_ptr;
 	u64 start;
 	GF_BitStream *bs;
+	GF_SEIInfo *sei = hevc ? &hevc->sei : &vvc->sei;
 
 	hdr = buffer[0];
 	if (((hdr & 0x7e) >> 1) != GF_HEVC_NALU_SEI_PREFIX) return;
@@ -8488,46 +8627,38 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		}
 
 		nb_zeros = gf_bs_get_emulation_byte_removed(bs);
-		if (hevc) {
-			hevc->has_3d_ref_disp_info = 0;
-		}
+		sei->has_3d_ref_disp_info = 0;
 		switch (ptype) {
 		case 4: /*user registered ITU-T T35*/
-			if (hevc) {
-				avc_parse_itu_t_t35_sei(bs, &hevc->sei.dovi);
-			}
+			avc_parse_itu_t_t35_sei(bs, &sei->dovi);
 			break;
 		//clli
 		case 144:
-			dst_ptr = hevc ? hevc->clli_data : vvc->clli_data;
 			//do not use read data due to possible EPB
 			for (i=0; i<4; i++)
-				dst_ptr[i] = gf_bs_read_u8(bs);
+				sei->clli_data[i] = gf_bs_read_u8(bs);
 
-			if (hevc) {
-				hevc->clli_valid = 1;
-			} else {
-				vvc->clli_valid = 1;
-			}
+			sei->clli_valid = 1;
 			break;
 		//mdcv
 		case 137:
-			dst_ptr = hevc ? hevc->mdcv_data : vvc->mdcv_data;
 			//do not use read data due to possible EPB
 			for (i=0; i<24; i++)
-				dst_ptr[i] = gf_bs_read_u8(bs);
+				sei->mdcv_data[i] = gf_bs_read_u8(bs);
 
-			if (hevc) {
-				hevc->mdcv_valid = 1;
+			sei->mdcv_valid = 1;
+			break;
+		// atc
+		case 147:
+			if (hevc){
+				hevc->sei.alternative_transfer_characteristics = gf_bs_read_u8(bs);
 			} else {
-				vvc->mdcv_valid = 1;
+				vvc->sei.alternative_transfer_characteristics = gf_bs_read_u8(bs);
 			}
 			break;
 		// three_dimensional_reference_displays_info
 		case 176:
-			if (hevc) {
-				hevc->has_3d_ref_disp_info = 1;
-			}
+			sei->has_3d_ref_disp_info = 1;
 			break;
 		// time_code
 		case 136:
@@ -8737,7 +8868,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	//	u8 id_ref_layers[64][MAX_LHVC_LAYERS];
 	//	u8 id_direct_ref_layers[64][MAX_LHVC_LAYERS];
 	u8 layer_id_in_list_flag[64];
-	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS] = {0};
 
 	vps->vps_extension_found = 1;
 	if ((vps->max_layers > 1) && vps->base_layer_internal_flag)
@@ -9303,7 +9434,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps_ext_or_max_sub_layers_minus1 = 0;
 	if (layer_id == 0)
 		max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1");
-	else if (hevc && hevc->vps) {
+	else if (hevc && hevc->vps[vps_id].state) {
 		sps_ext_or_max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "sps_ext_or_max_sub_layers_minus1");
 		max_sub_layers_minus1 = sps_ext_or_max_sub_layers_minus1 == 7 ? hevc->vps[vps_id].max_sub_layers - 1 : sps_ext_or_max_sub_layers_minus1;
 	}
@@ -11323,6 +11454,10 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 return 0;
             }
             if (data[header->size] == 255) {
+                if (data_length <= header->size+1) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
+                    return 0;
+                }
                 header->code3_padding_length = 254 + data[header->size+1];
                 header->size += 2;
             } else {
@@ -11401,7 +11536,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 min = 0;
-                max = header->nb_frames-1;
+                max = header->nb_frames ? header->nb_frames-1 : 0;
             }
             for (i = min; i < max; i++) {
                 if (data_length <= header->size) {
@@ -11417,12 +11552,12 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 }
                 sum += header->frame_lengths[i];
             }
-            if (!self_delimited) {
+            if (!self_delimited && header->nb_frames) {
                 header->frame_lengths[header->nb_frames-1] = data_length - header->size - header->code3_padding_length - sum;
                 sum += header->frame_lengths[header->nb_frames-1];
             }
         } else {
-            u32 cbr_length;
+            u32 cbr_length=0;
             if (self_delimited) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -11448,7 +11583,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 cbr_length = header->self_delimited_length;
-            } else {
+            } else if (header->nb_frames) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11510,7 +11645,7 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 	u32 i;
 	s32 sync_pos=-1;
 
-	if (!ptr || !size) return 0;
+	if (!ptr || !size || size<=3) return 0;
 
 	for (i=0; i<size-3; i++) {
 		if ((ptr[i]==0xC0) && (ptr[i+1]== 0x01) && (ptr[i+2]==0xA5)) {

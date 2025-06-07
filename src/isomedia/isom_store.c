@@ -1116,7 +1116,8 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 		}
 	}
 	//set the mdatSize...
-	movie->mdat->dataSize = mdatSize;
+	if (movie && movie->mdat)
+		movie->mdat->dataSize = mdatSize;
 	return GF_OK;
 }
 
@@ -1428,7 +1429,8 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 			gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
 			if (totSize > 0xFFFFFFFF) gf_bs_write_u64(bs, totSize);
 			e = gf_bs_seek(bs, offset);
-			movie->mdat->size = totSize;
+			if (movie->mdat)
+				movie->mdat->size = totSize;
 		}
 
 		//then the rest
@@ -2144,7 +2146,7 @@ static GF_Err inplace_shift_moov_meta_offsets(GF_ISOFile *movie, u32 shift_offse
 	}
 
 	if (movie->moov) {
-		if (movie->moov->meta) 
+		if (movie->moov->meta)
 			ShiftMetaOffset(movie->moov->meta, shift_offset);
 
 		count = gf_list_count(movie->moov->trackList);
@@ -2667,7 +2669,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 				gf_bs_del(moov_bs);
 				if (!e)
 					e = gf_bs_insert_data(movie->editFileMap->bs, moov_data, moov_size, movie->mdat->bsOffset);
-					
+
 				gf_free(moov_data);
 			}
 		}

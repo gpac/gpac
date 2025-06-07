@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -55,9 +55,6 @@ GF_OPT_ENUM (DasherBSSwitchingMode,
 	DASHER_BS_SWITCH_FORCE,
 	DASHER_BS_SWITCH_MULTI,
 );
-/**
- * ssss
- */
 
 typedef enum
 {
@@ -216,7 +213,7 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, sreg, ttml_agg;
+	Bool cmpd, dual, segcts, sreg, ttml_agg;
 	char *styp;
 	Bool sigfrag;
 	DasherTSSHandlingMode sbound;
@@ -334,13 +331,6 @@ typedef struct
 	Bool inband_event;
 } GF_DasherCtx;
 
-typedef enum
-{
-	DASHER_HDR_NONE=0,
-	DASHER_HDR_PQ10,
-	DASHER_HDR_HLG,
-} DasherHDRType;
-
 typedef struct _dash_stream
 {
 	GF_FilterPid *ipid, *opid;
@@ -364,7 +354,7 @@ typedef struct _dash_stream
 	u32 nb_surround, nb_lfe, atmos_complexity_type;
 	u64 ch_layout;
 	GF_PropVec4i srd;
-	DasherHDRType hdr_type;
+	u32 color_primaries, color_transfer_characteristics, color_matrix, color_transfer_characteristics_alt;
 	Bool sscale;
 	Bool skip_sap;
 
@@ -1531,36 +1521,36 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				ds->hls_vp_name = NULL;
 			}
 		}
-
-		//HDR
+		
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
+		if(p){
+			ds->color_primaries = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER);
+		if(p){
+			ds->color_transfer_characteristics = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER_ALT);
+		if(p){
+			ds->color_transfer_characteristics_alt = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
+		if(p){
+			ds->color_matrix = p->value.uint;
+		}
+		
+		
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (dsi) {
 			if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
 				GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 				if (hevccfg) {
-					Bool is_interlaced;
-					HEVCState *hvc_state;
-					HEVC_SPS* sps;
-					GF_SAFEALLOC(hvc_state, HEVCState);
-					if (hvc_state) {
-						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_VID_PARAM);
-						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_SEQ_PARAM);
-						sps = &hvc_state->sps[hvc_state->sps_active_idx];
-						if (sps && sps->colour_description_present_flag) {
-							DasherHDRType old_hdr_type = ds->hdr_type;
-							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-								if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
-								if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
-							}
-							if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
-						}
-						is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
-						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+					Bool is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
+					if (ds->interlaced != is_interlaced){
 						ds->interlaced = is_interlaced;
-
-						gf_odf_hevc_cfg_del(hevccfg);
-						gf_free(hvc_state);
+						period_switch = GF_TRUE;
 					}
+					gf_odf_hevc_cfg_del(hevccfg);
 				}
 			}
 			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
@@ -2668,6 +2658,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 				case GF_PROP_PID_CHAP_TIMES:
 				case GF_PROP_PID_CHAP_NAMES:
 				case GF_PROP_PID_ISOM_UDTA:
+				case GF_PROP_PID_SEI_LOADED:
 					continue;
 				case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 					//for text streams, only used for SDP config by tx3g and we don't need it
@@ -3045,31 +3036,31 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				gf_list_add(set->supplemental_properties, desc);
 			}
 		}
-		//set HDR
-		if (ds->hdr_type > DASHER_HDR_NONE) {
-			char value[256];
-			GF_MPD_Descriptor* desc;
-			sprintf(value, "9");
+
+		// ETSI TS 103 285 v1.4.1 - 5.2.5 Colour format and transfer characteristics signalling
+		// TODO: add "urn:dvb:dash:profile:dvb-dash:2017" to profiles_string
+		char value[256];
+		GF_MPD_Descriptor* desc;
+		if (ds->color_primaries > GF_COLOR_PRIM_UNSPECIFIED){
+			sprintf(value, "%d", ds->color_primaries);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ColourPrimaries", value);
 			gf_list_add(set->essential_properties, desc);
-			sprintf(value, "9");
+		}
+		if (ds->color_transfer_characteristics > GF_COLOR_TRC_UNSPECIFIED){ 
+			sprintf(value, "%d", ds->color_transfer_characteristics);
+				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
+				gf_list_add(set->essential_properties, desc);			
+		}
+		if (ds->color_matrix > GF_COLOR_MX_UNSPECIFIED){
+			sprintf(value, "%d", ds->color_matrix);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:MatrixCoefficients", value);
 			gf_list_add(set->essential_properties, desc);
-
-			if (ds->hdr_type==DASHER_HDR_PQ10) {
-				sprintf(value, "16");
+			
+		}
+		if (ds->color_transfer_characteristics_alt > GF_COLOR_TRC_UNSPECIFIED){
+				sprintf(value, "%d", ds->color_transfer_characteristics_alt);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->essential_properties, desc);
-			}
-
-			if (ds->hdr_type == DASHER_HDR_HLG) {
-				sprintf(value, "14");
-				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->essential_properties, desc);
-				sprintf(value, "18");
-				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->supplemental_properties, desc);
-			}
+				gf_list_add(set->supplemental_properties, desc);			
 		}
 
 		//add custom inband event in manifest
@@ -4160,6 +4151,40 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			const GF_PropertyValue *p = gf_filter_pid_get_property_str(ds->ipid, "stl_timescale");
 			if (p && p->value.uint) {
 				ds->mpd_timescale = p->value.uint;
+			}
+		}
+
+		//update startNumber based on first cts
+		if (ctx->segcts) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
+			if (pck) {
+				u64 seg_dur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+				u64 cdur = gf_timestamp_rescale(ctx->cdur.num, ctx->cdur.den, ds->timescale);
+				u64 cts = gf_filter_pck_get_cts(pck);
+				cts += ds->presentation_time_offset;
+				if (ds->timescale != ds->mpd_timescale) {
+					seg_dur = gf_timestamp_rescale(seg_dur, ds->timescale, ds->mpd_timescale);
+					cdur = gf_timestamp_rescale(cdur, ds->timescale, ds->mpd_timescale);
+					cts = gf_timestamp_rescale(cts, ds->timescale, ds->mpd_timescale);
+				}
+
+				//decide on start number
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
+				ds->startNumber = p ? p->value.uint : 0;
+				ds->startNumber += (u32) gf_floor(cts / seg_dur) + 1;
+
+				//set the fragment sequence number
+				ds->moof_sn = ds->startNumber;
+				if (ctx->cdur.num>0 && ctx->cdur.den>0) {
+					u32 chunk_per_segment = (u32) gf_floor(seg_dur / cdur);
+					ds->moof_sn = (ds->startNumber - 1) * chunk_per_segment + 1;
+
+					//add the sn offset within the segment
+					Float progress_in_seg = (Float) (cts % seg_dur) / (Float) seg_dur;
+					ds->moof_sn += (u32) gf_floor(progress_in_seg * chunk_per_segment);
+				}
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
 			}
 		}
 
@@ -5313,6 +5338,7 @@ static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
 			case GF_PROP_PID_PLAYBACK_MODE:
 			case GF_PROP_PID_CHAP_TIMES:
 			case GF_PROP_PID_CHAP_NAMES:
+			case GF_PROP_PID_SEI_LOADED:
 				continue;
 			default:
 				break;
@@ -8336,6 +8362,12 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUPID);
 			if (p)
 				ds->rep->groupID = p->value.string;
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUP_REND);
+			if (p) {
+				ds->rep->nb_group_ids_rend = p->value.string_list.nb_items;
+				ds->rep->group_ids_rend = (const char**) p->value.string_list.vals;
+			}
+
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_FORCE_INF);
 			if (p)
 				ds->rep->hls_forced = p->value.string;
@@ -9130,13 +9162,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
 			u64 ts = gf_filter_pck_get_cts(pck);
-			//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
-			//Not doing so will set the rep PTO to the delay, canceling the delay ...
-			if (ds->pts_minus_cts<0)
-				ts = ts + ds->pts_minus_cts;
-			if (!min_ts || gf_timestamp_less(ts, ds->timescale, min_ts, min_timescale)) {
-				min_ts = ts;
-				min_timescale = ds->timescale;
+			if (ts != GF_FILTER_NO_TS) {
+				//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
+				//Not doing so will set the rep PTO to the delay, canceling the delay ...
+				if (ds->pts_minus_cts<0)
+					ts = ts + ds->pts_minus_cts;
+				if (!min_ts || gf_timestamp_less(ts, ds->timescale, min_ts, min_timescale)) {
+					min_ts = ts;
+					min_timescale = ds->timescale;
+				}
 			}
 			num_ready++;
 			if (gf_filter_pid_would_block(ds->ipid)) num_blocked++;
@@ -10374,8 +10408,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 			ctx->is_eos = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->opid);
 
-			if (!ctx->period_pck_sent)
+			//Warn if no packets emitted but only on regular modes:
+			//no GHI generation
+			//no manifest-only generation
+			//no init-seg or manifest generation from GHI
+			if (!ctx->period_pck_sent && !ctx->do_index && !ctx->sigfrag
+				&& (!ctx->from_index || (ctx->from_index==IDXMODE_SEG))
+			) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error: EOS found but no data sent\n"));
+			}
 		}
 	}
 	return e;
@@ -10599,7 +10640,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
 			if (!sctx || !ctx->nb_seg_url_pending) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer, received segment size info event but no pending segments\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer (PID#%u %s), received segment size info event but no pending segments\n", i, gf_filter_pid_get_name(ds->ipid)));
 				return GF_TRUE;
 			}
 			ctx->nb_seg_url_pending--;
@@ -10714,7 +10755,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_MPD_SegmentURL *url = gf_list_pop_front(ds->pending_segment_urls);
 			if (!url || !ctx->nb_seg_url_pending) {
 				if (!ds->done) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer, received segment size info event but no pending segments\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Broken muxer (PID#%u %s), received segment size info event but no pending segments\n", i, gf_filter_pid_get_name(ds->ipid)));
 				}
 				return GF_TRUE;
 			}
@@ -11171,6 +11212,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(segcts), "compute the segment number by dividing the first CTS by [-segdur]()", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "use manifest generation only mode", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},

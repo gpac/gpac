@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -479,6 +479,7 @@ const char *gpac_doc =
 "  - application document directory for iOS\n"
 "  - `EXTERNAL_STORAGE` environment variable if present or `/sdcard` otherwise for Android\n"
 "  - user home directory for other platforms\n"
+"- $GCFG: replaced by system path to folder containing GPAC config\n"
 "- $GLANG: replaced by the global config language option [-lang](CORE)\n"
 "- $GUA: replaced by the global config user agent option [-user-agent](CORE)\n"
 "- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created.\n"
@@ -1565,6 +1566,8 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		char szDump[GF_PROP_DUMP_ARG_SIZE];
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) && i+1==nb_caps) break;
+		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
+
 		if (!i) gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
 		else if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
@@ -2769,6 +2772,7 @@ void dump_all_codecs(GF_SysArgMode argmode)
 			if (! (reg->flags & GF_FS_REG_META)) continue;
 			for (j=0; j<reg->nb_caps; j++) {
 				if (!(reg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE)) continue;
+				if (reg->caps[j].flags & GF_CAPFLAG_RECONFIG) break;
 				if (reg->caps[j].code != GF_PROP_PID_CODECID) continue;
 				if (reg->caps[j].val.type != GF_PROP_NAME) continue;
 				if (gf_list_find(meta_codecs, (void *)reg)<0)
@@ -3067,6 +3071,8 @@ void dump_all_formats(GF_SysArgMode argmode)
 		if ((argmode<GF_ARGMODE_EXPERT) && (reg->flags&GF_FS_REG_META)) continue;
 
 		for (j=0; j<reg->nb_caps; j++) {
+			if (reg->caps[j].flags & GF_CAPFLAG_RECONFIG) break;
+
 			if (!(reg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE)) {
 				//special case for meta filters, declaring only input ext (demux) or output ext (mux)
 				if (reg->flags & GF_FS_REG_META) {
@@ -3260,7 +3266,6 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 		for (i=0; i<count; i++) {
 			const char *f = gf_opts_get_key_name(sname, i);
 			if (!f) continue;
-			if ((argmode<GF_ARGMODE_EXPERT) && strchr(f, ':')) continue;
 
 			char *proto = (char*)gf_opts_get_key(sname, f);
 			if (!proto) continue;
@@ -3319,13 +3324,19 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 				if (gen_doc!=1)
 					gf_sys_format_help(helpout, help_flags, " %s", lab);
 
-				if ((gen_doc==1) || (argmode==GF_ARGMODE_ADVANCED) || (argmode==GF_ARGMODE_ALL)) {
+				if ((gen_doc==1) || (argmode>=GF_ARGMODE_ADVANCED) || (argmode==GF_ARGMODE_ALL)) {
 					if (gen_doc!=1)
 						gf_sys_format_help(helpout, help_flags, " (");
 					for (j=0;j<c2; j++) {
 						char *f = gf_list_get(list, j);
 						if (j) gf_sys_format_help(helpout, help_flags, " ");
+						char *sep = NULL;
+						if (!gen_doc && (argmode==GF_ARGMODE_ADVANCED)) {
+							sep = strchr(f, ':');
+							if (sep) sep[0]=0;
+						}
 						gf_sys_format_help(helpout, help_flags, "%s", f);
+						if (sep) sep[0]=':';
 					}
 					if (gen_doc!=1)
 						gf_sys_format_help(helpout, help_flags, ")");

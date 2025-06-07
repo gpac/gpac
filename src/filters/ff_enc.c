@@ -2144,8 +2144,10 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	)
 		ctx->low_delay_mode = 1;
 	//activate opts for low delay
-	else if (!strcmp(arg_name, "low_delay") && !ctx->low_delay_mode)
+	else if (!strcmp(arg_name, "low_delay")) {
 		ctx->low_delay_mode = 1;
+		gf_filter_report_meta_option(filter, "low_delay", 1, NULL);
+	}
 	//remap some options
 	else if (!strcmp(arg_name, "bitrate") || !strcmp(arg_name, "rate"))	arg_name = "b";
 //	else if (!strcmp(arg_name, "gop")) arg_name = "g";

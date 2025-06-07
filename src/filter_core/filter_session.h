@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -493,7 +493,7 @@ struct __gf_filter_session
 
 	GF_List *parsed_args;
 
-	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
+	char sep_args, sep_name, sep_frag, sep_list, sep_neg, sep_link;
 	char *blacklist;
 	Bool init_done;
 
@@ -1246,7 +1246,7 @@ typedef struct
 	u8 status;
 	u8 loaded_filter_only;
 	s16 priority;
-	u32 disabled_depth;
+
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
 	// 0 if not specified

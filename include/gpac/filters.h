@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -298,6 +298,34 @@ Generic filter options are:
 \return created filter or NULL if filter register cannot be found
 */
 GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name, GF_Err *err_code);
+
+/*! Parses a filter graph and loads the filters in the session.
+The format of the filter graph is the same as the one used in the gpac command line.
+\param fsess filter session
+\param argc number of arguments
+\param argv list of arguments
+\param loaded_filters list of loaded filters, must be freed by the caller
+\param links_directive list of link directives, must be freed by the caller
+\return error if any
+*/
+GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[], GF_List **out_loaded_filters, GF_List **out_links_directive);
+
+
+/*! Parses a filter graph and loads the filters in the session.
+
+The format of the filter graph is the same as the one used in the gpac command line.
+The input string will be split by spaces and supplied to \ref gf_fs_parse_filter_graph.
+
+This is a convenience function for command line parsing, and does not support all the features of the command line parser. If arguments are already parsed, use \ref gf_fs_parse_filter_graph instead. This method only handles quotes and spaces, and does not handle any other special characters.
+
+\param fsess filter session
+\param graph_str filter graph string
+\param loaded_filters list of loaded filters, must be freed by the caller
+\param links_directive list of link directives, must be freed by the caller
+\return error if any
+*/
+GF_Err gf_fs_parse_filter_graph_str(GF_FilterSession *fsess, char *graph_str, GF_List **out_loaded_filters, GF_List **out_links_directive);
+
 
 /*! Checks if a filter register exists by name.
 \param session filter session
@@ -1248,7 +1276,7 @@ enum
 	GF_PROP_PCK_REFS = GF_4CC('P','R','F','S'),
 	GF_PROP_PCK_UDTA = GF_4CC('P','U','D','T'),
 	GF_PROP_PCK_LLHAS_TEMPLATE = GF_4CC('P','S','R','T'),
-	GF_PROP_PCK_TIMECODES = GF_4CC('T','C','O','D'),
+	GF_PROP_PCK_TIMECODE = GF_4CC('T','C','O','D'),
 
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 	GF_PROP_PID_AVG_FRAME_SIZE = GF_4CC('A','F','R','S'),
@@ -1293,6 +1321,7 @@ enum
 	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
 	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
 	GF_PROP_PID_HLS_GROUPID = GF_4CC('H','L','G','I'),
+	GF_PROP_PID_HLS_GROUP_REND = GF_4CC('H','L','G','R'),
 	GF_PROP_PID_HLS_FORCE_INF = GF_4CC('H','L','F','I'),
 	GF_PROP_PID_HLS_EXT_MASTER = GF_4CC('H','L','M','X'),
 	GF_PROP_PID_HLS_EXT_VARIANT = GF_4CC('H','L','V','X'),
@@ -1311,6 +1340,7 @@ enum
 
 	GF_PROP_PID_COLR_PRIMARIES = GF_4CC('C','P','R','M'),
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
+	GF_PROP_PID_COLR_TRANSFER_ALT = GF_4CC('C','A','T','C'),
 	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
 	GF_PROP_PID_COLR_CHROMAFMT = GF_4CC('C','F','M','T'),
@@ -1428,8 +1458,12 @@ enum
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
-
 	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
+	GF_PROP_PID_SEI_LOADED = GF_4CC('P','S','E','I'),
+	GF_PROP_PCK_SEI_LOADED = GF_4CC('S','E','I','P'),
+	GF_PROP_PCK_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','P'),
+	GF_PROP_PCK_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','P'),
 
 };
 
@@ -2218,6 +2252,12 @@ enum
 	GF_CAPFLAG_OPTIONAL = 1<<6,
 	/*! Only checks presence of capability */
 	GF_CAPFLAG_PRESENT = 1<<7,
+	/*! Indicates this capability is only used on reconfigure - ignored for graph resolution - reconfig caps shall be placed last
+		The value of such caps is ignored, only the type/name is used
+
+	This cap should only be set for reconfigurable filters intended to be dynamically loaded for adaptation (eg resamplers, color-space conversion, rescalers)
+	*/
+	GF_CAPFLAG_RECONFIG = 1<<8,
 };
 
 /*! Shortcut macro to set for input capability flags*/
@@ -2393,7 +2433,8 @@ typedef enum
 	a GL context (currently only in main thread) upon init, but not requiring it for the decode. Such decoders get their GL frames mapped
 	(through get_gl_texture callback) in the main GL thread*/
 	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
-	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter*/
+	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter
+	A filter with this flag and a \ref reconfigure_output callback set will be checked when loading a chain for PID property adaptation*/
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
 	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing so that the weight of the reframer+decoder is the same as the weight of other decoders*/
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
@@ -2564,7 +2605,8 @@ struct __gf_filter_register
 	*/
 	Bool (*process_event)(GF_Filter *filter, const GF_FilterEvent *evt);
 
-	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation
+	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation, checking for filters with
+ this function set and with reconfigurable caps matching the negotiated set of properties.
 
 	\param filter the target filter
 	\param PID the filter output PID being reconfigured
@@ -2858,6 +2900,8 @@ GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code);
 
 /*! Checks if a source filter can handle the given URL. The source filter is not loaded.
+
+The resulting filter will not be clonable unless the `:clone` argument is passed.
 
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.

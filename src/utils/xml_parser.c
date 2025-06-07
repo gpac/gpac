@@ -1039,7 +1039,9 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 			char *name;
 			entityEnd = strstr(current, ";");
 			if (!entityEnd) return xml_sax_append_string(parser, current);
+
 			entityStart = strrchr(parser->buffer, '&');
+			if (!entityStart) return xml_sax_append_string(parser, current);
 
 			entityEnd[0] = 0;
 			len = (u32) strlen(entityStart) + (u32) strlen(current) + 1;
@@ -1200,7 +1202,7 @@ static void xml_sax_reset(GF_SAXParser *parser)
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
 	GF_Err e = GF_EOS;
-	unsigned char szLine[XML_INPUT_SIZE+2];
+	unsigned char szLine[XML_INPUT_SIZE+2]={0};
 
 #ifdef NO_GZIP
 	if (!parser->f_in) return GF_BAD_PARAM;

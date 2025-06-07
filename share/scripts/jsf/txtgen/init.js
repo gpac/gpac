@@ -38,7 +38,7 @@ filter.set_help(
     "The [-type]() parameter sets the text generation mode. If set to 'txt', the filter will generate text based on the source file\n" +
     "If set to 'utc', the filter will generate text based on the current UTC time. If set to 'ntp', the filter will generate text based on the current NTP time\n" +
     "When the [-unit]() is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines\n" +
-    "The [-udur]() parameter sets the frame duration of the text stream. " +
+    "The [-fdur]() parameter sets the frame duration of the text stream. " +
     "Total duration of the text stream is set by the [-dur]() parameter. If set to 0/0, the text stream will be infinite\n" +
     "The [-rollup]() parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.\n" +
     "When the number of lines is reached, the filter will remove the first line and continue accumulating text\n" +
@@ -51,7 +51,7 @@ filter.set_arg({
   name: "src",
   desc: "source of text. If not set, the filter will use lorem ipsum text",
   type: GF_PROP_STRING,
-  def: filter.jspath + "/lipsum.txt",
+  def: filter.jspath + "lipsum.txt",
 });
 filter.set_arg({
   name: "type",
@@ -68,8 +68,8 @@ filter.set_arg({
   minmax_enum: "w|l",
 });
 filter.set_arg({
-  name: "udur",
-  desc: "duration of each text unit",
+  name: "fdur",
+  desc: "duration of each frame",
   type: GF_PROP_FRACTION,
   def: "1/1",
 });
@@ -127,7 +127,7 @@ filter.initialize = function () {
   let gpac_doc = sys.get_opt("temp", "gendoc") == "yes" ? true : false;
   if (gpac_help || gpac_doc) return;
 
-  if (filter.udur.n <= 0) {
+  if (filter.fdur.n <= 0) {
     print(GF_LOG_ERROR, "Unit duration cannot be 0 or negative");
     return GF_BAD_PARAM;
   } else if (filter.dur.n < 0) {
@@ -282,7 +282,7 @@ filter.initialize = function () {
 
   //subtitle at every N ms
   let bitrate = Math.floor(
-    ((size / text.length) * 8) / (filter.udur.n / filter.udur.d)
+    ((size / text.length) * 8) / (filter.fdur.n / filter.fdur.d)
   );
   text_pid.set_prop("Bitrate", bitrate);
 };
@@ -324,7 +324,7 @@ filter.process = function () {
   }
 
   //regulate text generation
-  let interval_ms = Math.floor((1000 * filter.udur.n) / filter.udur.d);
+  let interval_ms = Math.floor((1000 * filter.fdur.n) / filter.fdur.d);
   if (filter.rt) {
     if (last_utc && sys.get_utc() - last_utc < interval_ms) return GF_OK;
     last_utc = sys.get_utc();

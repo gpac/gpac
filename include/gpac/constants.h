@@ -50,7 +50,7 @@ This section documents some constants used in the GPAC framework which are not r
 
 Supported media stream types for media objects.
 */
-enum
+typedef enum
 {
 	/*!Unknown stream type*/
 	GF_STREAM_UNKNOWN = 0,
@@ -104,7 +104,7 @@ enum
 	GF_STREAM_FILE		= 0xE1,
 
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
-};
+} GF_StreamType;
 
 /*! Gets the stream type name based on stream type
 \param streamType stream type GF_STREAM_XXX as defined in constants.h
@@ -183,7 +183,7 @@ typedef enum
 	/*!RGB24 + depth plane (7 lower bits) + shape mask. Component ordering in bytes is R-G-B-(S+D).*/
 	GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
 
-	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
+	/*internal format for OpenGL using packed RGB 24 bit plus planar depth plane at the end of the image*/
 	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
 	/*generic pixel format uncv from ISO/IEC 23001-17*/
