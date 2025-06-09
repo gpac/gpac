@@ -56,7 +56,8 @@ PUBLIC_HEADERS = [
 ]
 
 # Extra headers to include in the SWIG file
-EXTRA_HEADERS = ["stdexcept"]
+EXTRA_HEADERS_NODE = ["stdexcept"]
+EXTRA_HEADERS_GO = []
 
 # Include directories during SWIG generation
 # These directories are relative to the root directory
@@ -573,7 +574,7 @@ def generate_swig_file(struct_functions, structs, lang):
     for header in sorted(set(PUBLIC_HEADERS)):
         swig_out += f"#include <{header}>\n"
     swig_out += "\n"
-    for header in sorted(EXTRA_HEADERS):
+    for header in sorted(globals().get(f"EXTRA_HEADERS_{lang.upper()}", [])):
         swig_out += f"#include <{header}>\n"
     swig_out += "%}\n"
 
@@ -595,7 +596,8 @@ def generate_swig_file(struct_functions, structs, lang):
     swig_out += "\n"
 
     # Add exception handler
-    swig_out += """%exception {
+    if lang != "go":
+        swig_out += """%exception {
     try {
         $action
     } catch (const std::exception& e) {
@@ -702,17 +704,25 @@ def generate_swig_file(struct_functions, structs, lang):
 
         def get_args(fn):
             offset = 0 if fn.ctor or fn.static else 1
-            public = ", ".join(
-                map(
-                    csn,
-                    [
-                        arg["type"] + " " + arg["name"]
-                        for arg in filter(
-                            lambda x: x["type"] != "GF_Err *", fn.args[offset:]
-                        )
-                    ],
+            if lang == "go":
+                public = ", ".join(
+                    map(
+                        csn,
+                        [arg["type"] + " " + arg["name"] for arg in fn.args[offset:]],
+                    )
                 )
-            )
+            else:
+                public = ", ".join(
+                    map(
+                        csn,
+                        [
+                            arg["type"] + " " + arg["name"]
+                            for arg in filter(
+                                lambda x: x["type"] != "GF_Err *", fn.args[offset:]
+                            )
+                        ],
+                    )
+                )
             internal = ", ".join(
                 map(
                     csn,
@@ -741,6 +751,10 @@ def generate_swig_file(struct_functions, structs, lang):
                     fn.return_type != "GF_Err"
                 ), f"Function {fn.name} has GF_Err * argument and returns GF_Err"
 
+                if lang == "go":
+                    # In Go, we need to return the error as a second return value
+                    return f"\t\treturn {fn.name}({get_args(fn)[1]});"
+
                 # Get the error variable name
                 err_var = None
                 for arg in fn.args:
@@ -766,6 +780,10 @@ def generate_swig_file(struct_functions, structs, lang):
 
                 return out
             else:
+                if lang == "go":
+                    # In Go, we need to return the error as a second return value
+                    return f"\t\t{fn.name}({get_args(fn)[1]});"
+
                 out = f"\t\tGF_Err swig_ret = {fn.name}({get_args(fn)[1]});\n"
                 out += f"\t\tif (swig_ret != GF_OK) {{\n"
                 out += (
@@ -1070,9 +1088,9 @@ def main(args):
         logger.error(f"Unsupported language: {args.lang}")
         exit(1)
     if args.lang == "node":
-        options = ["-javascript", "-napi"]
+        options = ["-javascript", "-napi", "-c++"]
     elif args.lang == "go":
-        options = ["-go"]
+        options = ["-go", "-cgo", "-c++", "-intgosize", "64"]
     else:
         options = ["-python"]
 
@@ -1089,9 +1107,7 @@ def main(args):
         "-outdir",
         output_dir,
         "-o",
-        os.path.join(
-            output_dir, "gpac_wrap" + (".cpp" if args.lang == "node" else ".c")
-        ),
+        os.path.join(output_dir, "gpac_wrap.cpp"),
         os.path.join(SWIG_DIR, "gpac.i"),
     ]
     subprocess.run(cmd, check=True)
