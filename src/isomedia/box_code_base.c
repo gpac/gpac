@@ -1835,17 +1835,18 @@ GF_Box *hinf_box_new()
 	return (GF_Box *)tmp;
 }
 
-GF_Err hinf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
+GF_Err hinf_on_child_box(GF_Box *s, GF_Box *_a, Bool is_rem)
 {
 	GF_HintInfoBox *hinf = (GF_HintInfoBox *)s;
-	switch (a->type) {
+	switch (_a->type) {
 	case GF_ISOM_BOX_TYPE_MAXR:
 		if (!is_rem) {
 			u32 i=0;
+			GF_MAXRBox *a = (GF_MAXRBox *)_a;
 			GF_MAXRBox *maxR;
 			while ((maxR = (GF_MAXRBox *)gf_list_enum(hinf->child_boxes, &i))) {
-				if ((maxR->type==GF_ISOM_BOX_TYPE_MAXR) && (maxR->granularity == ((GF_MAXRBox *)a)->granularity))
-					ERROR_ON_DUPLICATED_BOX(a, s)
+				if ((maxR != a) && (maxR->type==GF_ISOM_BOX_TYPE_MAXR) && (maxR->granularity == a->granularity))
+					ERROR_ON_DUPLICATED_BOX(_a, s)
 			}
 		}
 		break;

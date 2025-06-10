@@ -2275,6 +2275,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		frac->den = 1;
 		while (i<len) {
 			i++;
+			if (frac->den > GF_UINT64_MAX / 10)
+				return GF_FALSE;
 			frac->den *= 10;
 		}
 		//trash trailing zero
@@ -2283,6 +2285,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 			if (sep[i] != '0') {
 				break;
 			}
+			if (div_trail_zero > GF_UINT_MAX / 10)
+				return GF_FALSE;
 			div_trail_zero *= 10;
 			i--;
 		}
