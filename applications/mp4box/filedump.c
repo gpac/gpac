@@ -4227,7 +4227,9 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 		case GF_QT_KEY_JPEG: fprintf(stderr, "JPG Image (%d bytes)", key.value.data.data_len); break;
 		case GF_QT_KEY_BMP: fprintf(stderr, "BMP Image (%d bytes)", key.value.data.data_len); break;
 		case GF_QT_KEY_UTF8:
-		case GF_QT_KEY_UTF8_SORT: fprintf(stderr, "%s", key.value.string); break;
+		case GF_QT_KEY_UTF8_SORT:
+			fprintf(stderr, "%s", key.value.string ? key.value.string : "");
+			break;
 
 		case GF_QT_KEY_FLOAT:
 		case GF_QT_KEY_DOUBLE:
