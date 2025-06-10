@@ -1635,6 +1635,7 @@ struct _peek_type
 static void on_peek_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	struct _peek_type *pt = (struct _peek_type*)cbk;
+	if (pt->res) gf_free(pt->res);
 	pt->res = gf_strdup(name);
 	pt->parser->suspended = GF_TRUE;
 }
