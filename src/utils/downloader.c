@@ -974,6 +974,7 @@ Bool gf_dm_session_task(GF_FilterSession *fsess, void *callback, u32 *reschedule
 	GF_DownloadSession *sess = task->sess;
 	if (!sess || sess->destroy) {
 		gf_free(task);
+		if (sess) sess->ftask = NULL;
 		return GF_FALSE;
 	}
 	task->in_task = GF_TRUE;
