@@ -14730,7 +14730,10 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 						max_id_nodiff = rent->orig_sample_refs[j];
 				}
 			}
-			rent->diff_sampleID -= prev_sample_id;
+			if (!i)
+				rent->is_abs = GF_TRUE;
+			else
+				rent->diff_sampleID -= prev_sample_id;
 		}
 #ifdef DUMP_STATS
 		if (cdrf_sample_is_leaf(ptr, ent->sampleID))
@@ -14979,9 +14982,10 @@ static u32 cdrf_get_cost(GF_List *refs, u32 mode, s32 max_id, u32 *cost_full, u3
 	u32 nb_samples = 0;
 	u32 pattern_len = 0;
 
+#ifdef DUMP_STATS
 	u32 cost_refs=0;
 	u32 cost_sbgp=0;
-
+#endif
 	u32 i, nb_entries = gf_list_count(refs);
 	u32 nb_direct_cost=0, nb_direct_entries=0, nb_pattern_entries=0, nb_samples_reused=0;
 	*cost_full=0;
