@@ -730,39 +730,12 @@ const char *gf_sys_features(Bool disabled);
 */
 Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 
-/*! callback function for remotery profiler
- \param udta user data passed by \ref gf_sys_profiler_set_callback
- \param text string sent by webbrowser client
+/*! Enables or disables the rmt websocket monitoring server
+\param start If true starts the webserver, if false stops it
+\return GF_OK if success, GF_BAD_PARAM if error, GF_NOT_SUPPORTED if ws server not supported
 */
-typedef void (*gf_rmt_user_callback)(void *udta, const char* text);
+GF_Err gf_sys_enable_rmtws(Bool start);
 
-/*! Enables remotery profiler callback. If remotery is enabled, commands sent via webbrowser client will be forwarded to the callback function specified
-\param udta user data
-\param rmt_usr_cbk callback function
-\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
-*/
-GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk);
-
-
-/*! Sends a log message to remotery web client
-\param msg text message to send. The message format should be json
-\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
-*/
-GF_Err gf_sys_profiler_log(const char *msg);
-
-/*! Sends a message to remotery web client
-\param msg text message to send. The message format should be json
-\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
-*/
-GF_Err gf_sys_profiler_send(const char *msg);
-
-/*! Enables sampling times in RMT
- \param enable if GF_TRUE, sampling will be enabled, otherwise disabled*/
-void gf_sys_profiler_enable_sampling(Bool enable);
-
-/*! Checks if sampling is enabled in RMT. Sampling is by default enabled when enabling remotery
- \return GF_TRUE if sampling is enabled, GF_FALSE otherwise*/
-Bool gf_sys_profiler_sampling_enabled();
 
 /*!
 GPAC Log tools
@@ -923,6 +896,8 @@ typedef enum
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/
 	GF_LOG_APP,
+	/*! Log for all info regarding the rmt_ws server and bindings*/
+	GF_LOG_RMTWS,
 
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
@@ -2548,43 +2523,18 @@ Bool gf_creds_check_membership(const char *username, const char *users, const ch
 
 //! @cond Doxygen_Suppress
 
-#if defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_REMOTERY)
-#define GPAC_DISABLE_REMOTERY 1
-#endif
-
-#ifdef GPAC_DISABLE_REMOTERY
+#ifdef GPAC_DISABLE_RMTWS
 #define RMT_ENABLED 0
-#else
-#define RMT_USE_OPENGL	1
 #endif
 
-#include <gpac/Remotery.h>
-
-#define GF_RMT_AGGREGATE	RMTSF_Aggregate
-/*! begins remotery CPU sample*/
-#define gf_rmt_begin rmt_BeginCPUSample
-/*! begins remotery CPU sample with hash*/
-#define gf_rmt_begin_hash rmt_BeginCPUSampleStore
-/*! ends remotery CPU sample*/
-#define gf_rmt_end rmt_EndCPUSample
-/*! sets remotery thread name*/
-#define gf_rmt_set_thread_name rmt_SetCurrentThreadName
-/*! logs remotery text*/
-#define gf_rmt_log_text rmt_LogText
-/*! begins remotery OpenGL sample*/
-#define gf_rmt_begin_gl rmt_BeginOpenGLSample
-/*! begins remotery OpenGL sample with hash*/
-#define gf_rmt_begin_gl_hash rmt_BeginOpenGLSampleStore
-/*!ends remotery OpenGL sample*/
-#define gf_rmt_end_gl rmt_EndOpenGLSample
+#include <gpac/rmt_ws.h>
 
 //! @endcond
 
 
 /* \cond dummy */
 
-/*to call whenever the OpenGL library is opened - this function is needed to bind OpenGL and remotery, and to load
-OpenGL extensions on windows
+/*to call whenever the OpenGL library is opened - this function is needed to load OpenGL extensions on windows
 not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL
 calls are made by the caller*/
 void gf_opengl_init();
