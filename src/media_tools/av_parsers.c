@@ -7128,7 +7128,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			gf_bs_seek(bs, start);
 
 			//bs_skip_bytes does not skip EPB, skip byte per byte
-			while (psize) {
+			while (psize && gf_bs_available(bs)) {
 				gf_bs_read_u8(bs);
 				psize--;
 			}
