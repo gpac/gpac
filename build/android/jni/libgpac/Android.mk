@@ -187,6 +187,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dmx_ogg.c \
 	../../../../src/filters/dmx_saf.c \
 	../../../../src/filters/dmx_vobsub.c \
+	../../../../src/filters/enc_cc.c \
 	../../../../src/filters/enc_jpg.c \
 	../../../../src/filters/enc_png.c \
 	../../../../src/filters/encrypt_cenc_isma.c \
