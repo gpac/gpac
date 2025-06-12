@@ -465,7 +465,12 @@ static s32 SDP_MakeSeconds(char *buf)
 			memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
 		else
 			gf_assert(0);
-		return (atoi(num)*sign*86400);
+		int inum = atoi(num);
+		if (inum >= GF_INT_MAX/86400) {
+			GF_LOG( GF_LOG_WARNING, GF_LOG_CORE, ("Error parsing duration: %s cannot be represented as integer\n", num));
+			return 0;
+		}
+		return (inum*sign*86400);
 	}
 	test = strstr(buf, "h");
 	if (test) {
@@ -473,7 +478,12 @@ static s32 SDP_MakeSeconds(char *buf)
 			memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
 		else
 			gf_assert(0);
-		return (atoi(num)*sign*3600);
+		int inum = atoi(num);
+		if (inum >= GF_INT_MAX/3600) {
+			GF_LOG( GF_LOG_WARNING, GF_LOG_CORE, ("Error parsing duration: %s cannot be represented as integer\n", num));
+			return 0;
+		}
+		return (inum*sign*3600);
 	}
 	test = strstr(buf, "m");
 	if (test) {
@@ -481,7 +491,12 @@ static s32 SDP_MakeSeconds(char *buf)
 			memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
 		else
 			gf_assert(0);
-		return (atoi(num)*sign*60);
+		int inum = atoi(num);
+		if (inum >= GF_INT_MAX/60) {
+			GF_LOG( GF_LOG_WARNING, GF_LOG_CORE, ("Error parsing duration: %s cannot be represented as integer\n", num));
+			return 0;
+		}
+		return (inum*sign*60);
 	}
 	return (atoi(buf) * sign);
 }
