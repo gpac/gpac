@@ -1806,7 +1806,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 
 		if ((w != props.width) || (h != props.height)) {
 			if (imgs_ids) gf_free(imgs_ids);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Auto grid can only be generated for images of the same size - try using `-add-image-grid`\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Auto grid can only be generated for images of the same size - try using `-add-derived-image type=grid`\n"));
 			return GF_NOT_SUPPORTED;
 		}
 		imgs_ids = gf_realloc(imgs_ids, sizeof(u32) * (nb_imgs+1));
