@@ -1533,7 +1533,6 @@ Bool naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 				&& (sps->vui.time_scale / 1000 <= sps->vui.num_units_in_tick)
 			) {
 				/*ISO/IEC 14496-10 n11084 Table E-6*/
-				/* not used :				u8 DeltaTfiDivisorTable[] = {1,1,1,2,2,2,2,3,3,4,6}; */
 				u8 DeltaTfiDivisorIdx;
 				if (!sps->vui.pic_struct_present_flag) {
 					DeltaTfiDivisorIdx = 1 + (1 - ctx->avc_state->s_info.field_pic_flag);
