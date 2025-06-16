@@ -5187,29 +5187,24 @@ static GF_Err do_meta_act()
 				M4_LOG(GF_LOG_ERROR, ("No item path specified\n", meta->item_id));
 				return GF_BAD_PARAM;
 			}
-			if (!meta->item_id) {
-				e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
-			}
-			if (e == GF_OK) {
-				self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
-				e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
+			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
+			e = gf_isom_add_meta_item2(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
 										meta->szName,
-										meta->item_id,
+										&meta->item_id,
 										meta->item_type,
 										meta->mime_type,
 										meta->enc_type,
 										meta->use_dref ? meta->szPath : NULL,  NULL,
 										meta->image_props);
-				if (meta->item_refs && gf_list_count(meta->item_refs)) {
-					u32 ref_i;
-					for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
-						MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
-						e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
-					}
+			if (meta->item_refs && gf_list_count(meta->item_refs)) {
+				u32 ref_i;
+				for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
+					MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
+					e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
 				}
-				if (e == GF_OK && meta->group_type) {
-					e = gf_isom_meta_add_item_group(file, meta->root_meta, tk, meta->item_id, meta->group_id, meta->group_type);
-				}
+			}
+			if (e == GF_OK && meta->group_type) {
+				e = gf_isom_meta_add_item_group(file, meta->root_meta, tk, meta->item_id, meta->group_id, meta->group_type);
 			}
 			do_save = GF_TRUE;
 			break;
