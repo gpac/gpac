@@ -336,6 +336,17 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 }
 
 
+static GFINLINE void ffenc_set_deps(GF_FilterPacket *dst_pck, AVPacket *pkt)
+{
+	//reset dependency flags to unknwon
+	u8 flags = 0;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+	if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) {
+		flags = 0x8;
+	}
+#endif
+	gf_filter_pck_set_dependency_flags(dst_pck, flags);
+}
 
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
 {
@@ -906,11 +917,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
-#if LIBAVCODEC_VERSION_MAJOR >= 58
-	if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) {
-		gf_filter_pck_set_dependency_flags(dst_pck, 0x8);
-	}
-#endif
+	ffenc_set_deps(dst_pck, pkt);
+
 	gf_filter_pck_send(dst_pck);
 
 	av_packet_free_side_data(pkt);
@@ -1347,6 +1355,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_set_sap(dst_pck, 0);
 
 	gf_filter_pck_set_duration(dst_pck, (u32) pkt->duration);
+	ffenc_set_deps(dst_pck, pkt);
 
 	gf_filter_pck_send(dst_pck);
 
