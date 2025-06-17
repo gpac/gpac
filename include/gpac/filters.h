@@ -2799,6 +2799,9 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 
 
 /*! Sets callback function on source filter setup failure
+
+ A filter with a non-NULL callback will never get destroyed by internal filter session logic, even if it no longer has valid connections. This ensures that a filter loading another filter can be sure this filter is a valid object or has failed to setup. Setting the callback to NULL may trigger the filter removal if needed, hence access to the filter should not happen after reseting the callback.
+
 \param filter target filter
 \param source_filter the source filter to monitor
 \param on_setup_error callback function to call upon source  setup error - the callback can return GF_TRUE to cancel error reporting

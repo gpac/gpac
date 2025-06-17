@@ -3501,9 +3501,14 @@ void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_f
 {
 	if (!filter) return;
 	if (!source_filter) return;
+	Bool detach = (filter->disabled && !on_setup_error && source_filter->on_setup_error) ? GF_TRUE : GF_FALSE;
 	source_filter->on_setup_error = on_setup_error;
 	source_filter->on_setup_error_filter = filter;
 	source_filter->on_setup_error_udta = udta;
+
+	if (detach) {
+		gf_filter_post_remove(filter);
+	}
 }
 
 struct _gf_filter_setup_failure
