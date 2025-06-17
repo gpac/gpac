@@ -704,6 +704,7 @@ struct __gf_filter
 	volatile u32 detach_pid_tasks_pending;
 	volatile u32 nb_shared_packets_out;
 	volatile u32 abort_pending;
+	volatile u32 pid_rem_packet_pending;
 	GF_List *postponed_packets;
 
 	//list of blacklisted filtered registries
