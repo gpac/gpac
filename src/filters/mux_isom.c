@@ -7259,13 +7259,14 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 	}
 	GF_List *services = gf_list_new();
 	u32 i, count;
-	Bool not_ready, blocking_refs, has_ready, force_ready=GF_FALSE;
+	Bool not_ready, blocking_refs, has_ready, has_drop, force_ready=GF_FALSE;
 
 retry_all:
 	count = gf_list_count(ctx->tracks);
 	not_ready = GF_FALSE;
 	blocking_refs = GF_FALSE;
 	has_ready = GF_FALSE;
+	has_drop = GF_FALSE;
 
 	for (i=0; i<gf_list_count(services);i++) {
 		struct _service_info *si = gf_list_get(services, i);
@@ -7312,6 +7313,7 @@ retry_pck:
 				Bool seek = gf_filter_pck_get_seek_flag(pck);
 				if (seek || !sap) {
 					gf_filter_pid_drop_packet(tkw->ipid);
+					has_drop = GF_TRUE;
 					goto retry_pck;
 				} else {
 					tkw->wait_sap = GF_FALSE;
@@ -7437,6 +7439,9 @@ retry_pck:
 			if (!ctx->config_retry_start)
 				ctx->config_retry_start = gf_sys_clock();
 			del_service_info(services);
+			//not ready and we didn't drop any packet, postpone by 1ms
+			if (!has_drop)
+				gf_filter_ask_rt_reschedule(ctx->filter, 1000);
 			return;
 		}
 	}
@@ -7580,7 +7585,6 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		mp4_mux_config_timing(ctx);
 		if (ctx->config_timing) {
 			mp4_mux_format_report(ctx, 0, 0);
-			gf_filter_ask_rt_reschedule(filter, 50000);
 			return GF_OK;
 		}
 	}
