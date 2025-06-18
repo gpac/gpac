@@ -4753,6 +4753,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 sample_desc_index = tkw->stsd_idx;
 	Bool sample_timing_ok = GF_TRUE;
 
+	if (!sample_desc_index) {
+#ifndef GPAC_DISABLE_LOG
+		//we log as debug when initial timing config was performed
+		u32 logl = ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign) ? GF_LOG_WARNING : GF_LOG_DEBUG;
+		GF_LOG(logl, GF_LOG_CONTAINER, ("[MP4Mux] No valid sample desc for sample from %s, discarding\n", gf_filter_pid_get_name(tkw->ipid) ));
+#endif
+		return GF_OK;
+	}
+
 	timescale = gf_filter_pck_get_timescale(pck);
 
 	prev_dts = tkw->nb_samples ? tkw->sample.DTS : GF_FILTER_NO_TS;
@@ -7250,7 +7259,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 	}
 	GF_List *services = gf_list_new();
 	u32 i, count;
-	Bool not_ready, blocking_refs, has_ready;
+	Bool not_ready, blocking_refs, has_ready, force_ready=GF_FALSE;
 
 retry_all:
 	count = gf_list_count(ctx->tracks);
@@ -7285,9 +7294,9 @@ retry_all:
 retry_pck:
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		//check this after fetching a packet since it may reconfigure the track
-		if (!tkw->track_num) {
+		if (!tkw->track_num && !force_ready) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has no input packet and configuration not known after 10 retries, aborting initial timing sync\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID configuration not known after EOS, aborting initial timing sync\n"));
 				continue;
 			}
 			not_ready = GF_TRUE;
@@ -7415,16 +7424,18 @@ retry_pck:
 			if (!si->nb_sparse_ready) not_ready = GF_TRUE;
 		}
 	}
-
-	if (not_ready) {
+	if (not_ready && !force_ready) {
 		if (blocking_refs && has_ready) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
 		}
 		//this may be quite long until we have a packet in case input pid is video encoding
 		else if (ctx->config_retry_start && (gf_sys_clock() - ctx->config_retry_start > 10000)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No input packets present on one or more inputs for more than 10s, aborting initial timing sync\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID(s) configuration unknown on one or more inputs after 10s, aborting initial timing sync\n"));
+			force_ready=GF_TRUE;
+			goto retry_all;
 		} else {
-			ctx->config_retry_start = gf_sys_clock();
+			if (!ctx->config_retry_start)
+				ctx->config_retry_start = gf_sys_clock();
 			del_service_info(services);
 			return;
 		}
@@ -7569,6 +7580,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		mp4_mux_config_timing(ctx);
 		if (ctx->config_timing) {
 			mp4_mux_format_report(ctx, 0, 0);
+			gf_filter_ask_rt_reschedule(filter, 50000);
 			return GF_OK;
 		}
 	}
