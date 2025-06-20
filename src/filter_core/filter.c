@@ -4061,7 +4061,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 #endif
 		 break;
 	}
-
+	reset_filter_args(filter);
 	gf_free(filter->filter_udta);
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
