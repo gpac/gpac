@@ -1019,7 +1019,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		GF_XMLAttribute *div_reg = NULL;
 		GF_XMLNode *div_global, *div_pck;
 		div_pck = gf_list_get(body_pck->content, k);
-		if (div_pck->type) continue;
+		if (!div_pck || div_pck->type) continue;
 		if (strcmp(div_pck->name, "div")) continue;
 
 		if (ctx->merge_region)
