@@ -10978,7 +10978,7 @@ GF_EXPORT
 Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 {
 	u32 pack_type, i, j, k, times, nb_part, nb_books, nb_modes;
-	u32 l;
+	u32 l, ofchk;
 	char szNAME[8];
 	oggpack_buffer opb;
 
@@ -11040,19 +11040,29 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			if (oggpack_read(&opb, 1)) {
 				for (j = 0; j < entries; j++) {
 					if (oggpack_read(&opb, 1)) {
-						oggpack_read(&opb, 5);
+						ofchk = oggpack_read(&opb, 5);
+						if (ofchk==(u32) -1) {
+							return GF_FALSE;
+						}
 					}
 				}
 			}
 			else {
-				for (j = 0; j < entries; j++)
-					oggpack_read(&opb, 5);
+				for (j = 0; j < entries; j++) {
+					ofchk = oggpack_read(&opb, 5);
+					if (ofchk==(u32) -1) {
+						return GF_FALSE;
+					}
+				}
 			}
 		}
 		else {
 			oggpack_read(&opb, 5);
 			for (j = 0; j < entries;) {
 				u32 num = oggpack_read(&opb, ilog(entries - j, GF_FALSE));
+				if (num==(u32) -1) {
+					return GF_FALSE;
+				}
 				for (k = 0; k < num && j < entries; k++, j++) {
 				}
 			}
@@ -11069,7 +11079,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			if (map_type == 1) qb = vorbis_book_maptype1_quantvals(entries, dim);
 			else if (map_type == 2) qb = entries * dim;
 			else qb = 0;
-			for (j = 0; j < qb; j++) oggpack_read(&opb, qq);
+			for (j = 0; j < qb; j++) {
+				ofchk = oggpack_read(&opb, qq);
+				if (ofchk==(u32) -1) {
+					return GF_FALSE;
+				}
+			}
 			break;
 		}
 	}
@@ -11078,6 +11093,9 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 	times = oggpack_read(&opb, 6) + 1;
 	for (i = 0; i < times; i++) {
 		u32 type = oggpack_read(&opb, 16);
+		if (type==(u32) -1) {
+			return GF_FALSE;
+		}
 		if (type) {
 			u32 *parts, *class_dims, count, rangebits;
 			u32 max_class = 0;
@@ -11085,6 +11103,11 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			parts = (u32*)gf_malloc(sizeof(u32) * nb_part);
 			for (j = 0; j < nb_part; j++) {
 				parts[j] = oggpack_read(&opb, 4);
+				if (parts[j]==(u32) -1) {
+					gf_free(parts);
+					return GF_FALSE;
+				}
+
 				if (max_class < parts[j]) max_class = parts[j];
 			}
 			class_dims = (u32*)gf_malloc(sizeof(u32) * (max_class + 1));
@@ -11093,14 +11116,28 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 				class_dims[j] = oggpack_read(&opb, 3) + 1;
 				class_sub = oggpack_read(&opb, 2);
 				if (class_sub) oggpack_read(&opb, 8);
-				for (k = 0; k < (u32)(1 << class_sub); k++) oggpack_read(&opb, 8);
+				for (k = 0; k < (u32)(1 << class_sub); k++) {
+					ofchk = oggpack_read(&opb, 8);
+					if (ofchk==(u32)-1) {
+						gf_free(parts);
+						gf_free(class_dims);
+						return GF_FALSE;
+					}
+				}
 			}
 			oggpack_read(&opb, 2);
 			rangebits = oggpack_read(&opb, 4);
 			count = 0;
 			for (j = 0, k = 0; j < nb_part; j++) {
 				count += class_dims[parts[j]];
-				for (; k < count; k++) oggpack_read(&opb, rangebits);
+				for (; k < count; k++) {
+					ofchk = oggpack_read(&opb, rangebits);
+					if (ofchk==(u32)-1) {
+						gf_free(parts);
+						gf_free(class_dims);
+						return GF_FALSE;
+					}
+				}
 			}
 			gf_free(parts);
 			gf_free(class_dims);
@@ -11112,11 +11149,19 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			oggpack_read(&opb, 6);
 			oggpack_read(&opb, 8);
 			nb_books = oggpack_read(&opb, 4) + 1;
-			for (j = 0; j < nb_books; j++)
-				oggpack_read(&opb, 8);
+			for (j = 0; j < nb_books; j++) {
+				ofchk = oggpack_read(&opb, 8);
+				if (ofchk==(u32)-1) {
+					return GF_FALSE;
+				}
+			}
 		}
 	}
-	times = oggpack_read(&opb, 6) + 1;
+	times = oggpack_read(&opb, 6);
+	if (times==(u32)-1) {
+		return GF_FALSE;
+	}
+	times++;
 	for (i = 0; i < times; i++) {
 		u32 acc = 0;
 		oggpack_read(&opb, 16);/*type*/
@@ -11132,13 +11177,21 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 		}
 		for (j = 0; j < acc; j++) oggpack_read(&opb, 8);
 	}
-	times = oggpack_read(&opb, 6) + 1;
+	times = oggpack_read(&opb, 6);
+	if (times==(u32)-1) {
+		return GF_FALSE;
+	}
+	times++;
 	for (i = 0; i < times; i++) {
 		u32 sub_maps = 1;
 		oggpack_read(&opb, 16);
 		if (oggpack_read(&opb, 1)) sub_maps = oggpack_read(&opb, 4) + 1;
 		if (oggpack_read(&opb, 1)) {
-			u32 nb_steps = oggpack_read(&opb, 8) + 1;
+			u32 nb_steps = oggpack_read(&opb, 8);
+			if (nb_steps==(u32)-1) {
+				return GF_FALSE;
+			}
+			nb_steps++;
 			for (j = 0; j < nb_steps; j++) {
 				oggpack_read(&opb, ilog(vp->channels, GF_TRUE));
 				oggpack_read(&opb, ilog(vp->channels, GF_TRUE));
@@ -11155,7 +11208,11 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			oggpack_read(&opb, 8);
 		}
 	}
-	nb_modes = oggpack_read(&opb, 6) + 1;
+	nb_modes = oggpack_read(&opb, 6);
+	if (nb_modes==(u32)-1) {
+		return GF_FALSE;
+	}
+	nb_modes += 1;
 	for (i = 0; i < nb_modes; i++) {
 		vp->mode_flag[i] = oggpack_read(&opb, 1);
 		oggpack_read(&opb, 16);
