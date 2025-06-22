@@ -472,7 +472,7 @@ void gf_sei_loader_del(GF_SEILoader *sei)
 #endif
 
 
-#ifndef GPAC_DISABLE_SEILOAD
+#if !defined(GPAC_DISABLE_SEI_LOAD) && !defined(GPAC_DISABLE_AV_PARSERS)
 
 typedef struct
 {
