@@ -6708,7 +6708,8 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		AVC_PIC_FIELD_TOP,
 		AVC_PIC_FIELD_BOTTOM,
 	} pic_type;
-	s32 field_poc[2] = { 0,0 };
+	//A bit range greater than 32 bits should be allocated for the variables TopFieldOrderCnt and BottomFieldOrderCnt
+	s64 field_poc[2] = { 0,0 };
 	s32 max_frame_num;
 
 	if (!si->sps) return;
