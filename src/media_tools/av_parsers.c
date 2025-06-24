@@ -4809,6 +4809,12 @@ static void iamf_parse_audio_element(GF_BitStream *bs, IAMFState *state)
 	gf_bs_read_int_log(bs, 5, "reserved_for_future_use");
 	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
 	const u64 num_substreams = gf_av1_leb128_read(bs, NULL);
+	//not bound in iamf specs ?
+	if (num_substreams>10000)
+		return;
+	if (state->total_substreams>GF_INT_MAX-num_substreams)
+		return;
+
 	state->total_substreams += (int) num_substreams;
 	// OK to skip over the rest.
 	return;
