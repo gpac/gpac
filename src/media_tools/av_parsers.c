@@ -11955,6 +11955,10 @@ static s32 vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 lis
 			}
 			if (st_ref_pic_flag) {
 				u32 abs_delta_poc_st = gf_bs_read_ue_log_idx3(bs, "abs_delta_poc_st", listIdx, rplsIdx, i);
+				if (abs_delta_poc_st >= 0x8000) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] abs_delta_poc_st %U exceeds maximum allowed value %d\n", abs_delta_poc_st, 0x8000-1));
+					return -1;
+				}
 
 				if ((sps->weighted_pred_flag || sps->weighted_bipred_flag) && (i!=0)) {
 					AbsDeltaPocSt = abs_delta_poc_st;
