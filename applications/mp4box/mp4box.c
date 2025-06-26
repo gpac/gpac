@@ -1385,13 +1385,13 @@ MP4BoxArg m4b_meta_args[] =
 		"- type=itype: item 4cc type (not needed if mime is provided)\n"
 		"- mime=mtype: item mime type, none if not set\n"
 		"- encoding=enctype: item content-encoding type, none if not set\n"
-		"- id=ID: item ID\n"
-		"- ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)\n"
-		"- group=id,type: indicate the id and type of an alternate group for this item\n"
+		"- id=ID: item ID (strictly positive integer)\n"
+		"- ref=4cc,id: reference of type 4cc (such as 'dimg', 'auxl', 'cdsc') to an other item (can be set multiple times)\n"
+		"- group=4cc,id: indicate the type 4cc (such as 'altr') and id of an entity group this item belongs to\n"
 		"- replace: replace existing item by new item"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG("add-image", "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`. If `filepath` is omitted, source is the input MP4 file\n"
-		"- name, id, ref: see [-add-item]()\n"
+		"- name, id, ref, group: see [-add-item]()\n"
 		"- primary: indicate that this item should be the primary item\n"
 		"- time=t[-e][/i]: use the next sync sample after time t (float, in sec, default 0). A negative time imports ALL intra frames as items\n"
 		" - If `e` is set (float, in sec), import all sync samples between `t` and `e`\n"
@@ -5188,20 +5188,23 @@ static GF_Err do_meta_act()
 				return GF_BAD_PARAM;
 			}
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
-			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
-			                          meta->szName,
-			                          meta->item_id,
-									  meta->item_type,
-			                          meta->mime_type,
-			                          meta->enc_type,
-			                          meta->use_dref ? meta->szPath : NULL,  NULL,
-			                          meta->image_props);
+			e = gf_isom_add_meta_item2(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
+										meta->szName,
+										&meta->item_id,
+										meta->item_type,
+										meta->mime_type,
+										meta->enc_type,
+										meta->use_dref ? meta->szPath : NULL,  NULL,
+										meta->image_props);
 			if (meta->item_refs && gf_list_count(meta->item_refs)) {
 				u32 ref_i;
 				for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
 					MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
 					e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
 				}
+			}
+			if (e == GF_OK && meta->group_type) {
+				e = gf_isom_meta_add_item_group(file, meta->root_meta, tk, meta->item_id, meta->group_id, meta->group_type);
 			}
 			do_save = GF_TRUE;
 			break;
@@ -5354,6 +5357,10 @@ static GF_Err do_meta_act()
 						e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
 						if (e) break;
 					}
+				}
+				if (e == GF_OK && meta->group_type) {
+					e = gf_isom_meta_add_item_group(file, meta->root_meta, tk, meta->item_id, meta->group_id, meta->group_type);
+					if (e) break;
 				}
 			}
 			do_save = GF_TRUE;

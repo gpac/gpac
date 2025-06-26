@@ -6495,6 +6495,24 @@ GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *isom_file, Bool root_meta, u32 
 */
 GF_Err gf_isom_add_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *image_props);
 
+/*! adds an item to a meta box from file (same as \ref gf_isom_add_meta_item but outputs the item's id in io_item_id)
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param self_reference if GF_TRUE, indicates that the item is in fact the entire container file
+\param resource_path path to the file to add
+\param item_name name of the item
+\param io_item_id pointer to the item's id. If the pointed value is 0 or the same as an existing item, it is set to the item's newly attributed id
+\param item_type four character code of item type
+\param mime_type mime type of the item, can be NULL
+\param content_encoding content encoding of the item, can be NULL
+\param URL URL of the item for external data reference (data is not contained in meta parent file)
+\param URN URN of the item for external data reference (data is not contained in meta parent file)
+\param image_props image properties information for image items
+\return error if any
+*/
+GF_Err gf_isom_add_meta_item2(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 *io_item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *image_props);
+
 #endif //GPAC_DISABLE_ISOM
 
 /*! item extend description*/
