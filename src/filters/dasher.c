@@ -3280,6 +3280,13 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 			sep[0] = 0;
 			trailer_args = strstr(dst_args, szKey);
 		}
+		//remove trailing argument separator
+		u32 dlen = (u32) strlen(szDST);
+		while (dlen && (szDST[dlen-1] == sep_args)) {
+			szDST[dlen-1] = 0;
+			dlen--;
+		}
+
 		//look for frag arg
 		sprintf(szKey, "%cfrag", sep_args);
 		if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
