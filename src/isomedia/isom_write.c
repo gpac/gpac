@@ -6570,7 +6570,8 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 			return GF_OK;
 		}
 		gf_free(tag->prop_value);
-		tag->prop_value = 0;
+		tag->prop_value = NULL;
+		break;
 	}
 	if (!tag) {
 		if (!name) return GF_OK;
