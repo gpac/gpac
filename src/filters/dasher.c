@@ -291,7 +291,7 @@ typedef struct
 
 	Bool purge_segments;
 
-	Bool is_playing;
+	u32 nb_playing;
 	Bool use_mabr;
 
 	Bool no_seg_dur;
@@ -1165,7 +1165,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		/*initial connection and we already have sent play event, send a PLAY on this new PID
 		TODO: we need to send STOP/PLAY depending on period
 		*/
-		if (ctx->is_playing) {
+		if (ctx->nb_playing) {
 			GF_FilterEvent evt;
 
 			dasher_send_encode_hints(ctx, ds);
@@ -10594,7 +10594,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 
 	if (evt->base.type == GF_FEVT_PLAY) {
-		ctx->is_playing = GF_TRUE;
+		ctx->nb_playing++;
+		if (ctx->nb_playing>1) return GF_TRUE;
+
 		//send encode hints even if segment timeline is used
 		if (!ctx->sfile && !ctx->use_cues) {
 			GF_FilterEvent anevt;
@@ -10622,7 +10624,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 	}
 	if (evt->base.type == GF_FEVT_STOP) {
-		ctx->is_playing = GF_FALSE;
+		ctx->nb_playing--;
+		if (ctx->nb_playing) return GF_TRUE;
 		return GF_FALSE;
 	}
 

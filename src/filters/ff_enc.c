@@ -67,6 +67,7 @@ typedef struct _gf_ffenc_ctx
 
 	u32 nb_frames_out, nb_frames_in;
 	u64 time_spent;
+	u64 orig_cts_plus_one;
 
 	u32 low_delay_mode;
 
@@ -522,6 +523,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	//check if we need to force a closed gop
 	if (pck && (ctx->fintra.den && (ctx->fintra.num>0)) && !ctx->force_reconfig) {
 		u64 cts = ffenc_get_cts(ctx, pck);
+		//if we have a first encoded frame, use it as our anchor point and reset
+		//we only do this on first setup
+		if (ctx->orig_cts_plus_one) {
+			cts = ctx->orig_cts_plus_one - 1;
+			ctx->orig_cts_plus_one = 0;
+		}
 		if (!ctx->fintra_setup) {
 			ctx->fintra_setup = GF_TRUE;
 			ctx->orig_ts = cts;
@@ -541,8 +548,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			}
 		}
 	}
-	if (!ctx->nb_frames_in)
+
+	if (!ctx->nb_frames_in) {
 		force_intra = 0;
+		//remember timing of first encoded frame
+		ctx->orig_cts_plus_one = ffenc_get_cts(ctx, pck) + 1;
+	}
 
 	if (force_intra) {
 		if (ctx->args_updated) {
@@ -2235,8 +2246,10 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (evt->encode_hints.gen_dsi_only) {
 			ctx->generate_dsi_only = GF_TRUE;
 		}
-		else if ((ctx->fintra.num<0) && evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
+		//change in fintra
+		else if (ctx->fintra.num * evt->encode_hints.intra_period.den != ctx->fintra.den * evt->encode_hints.intra_period.num) {
 			ctx->fintra = evt->encode_hints.intra_period;
+			ctx->fintra_setup = GF_FALSE;
 
 			if (!ctx->rc || (gf_list_count(ctx->src_packets) && !ctx->force_reconfig)) {
 				ctx->reconfig_pending = GF_TRUE;
@@ -2244,6 +2257,9 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 		}
 		return GF_TRUE;
+	}
+	else if (evt->base.type==GF_FEVT_STOP) {
+		ctx->nb_frames_in = ctx->nb_frames_out = 0;
 	}
 	return GF_FALSE;
 }
