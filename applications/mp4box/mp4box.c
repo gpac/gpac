@@ -5800,7 +5800,13 @@ static GF_Err do_itunes_tag()
 					next_tag_idx = 0;
 				}
 				//3CC tag, changed to @tag
-				if ( strlen(sep+1)==3) {
+				else if ( strlen(sep+1)==3) {
+					next_tag_idx = 0;
+				}
+				else if (!strncmp(sep+1, "WM/", 3)) {
+					next_tag_idx = 0;
+				}
+				else if (!strncmp(sep+1, "QT/", 3)) {
 					next_tag_idx = 0;
 				}
 				//unrecognized tag tag
