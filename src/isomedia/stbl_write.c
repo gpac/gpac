@@ -1684,19 +1684,21 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 		stsz->sampleSize = data_size;
 	} else {
 		u32 single_size;
+		Bool use_same_size=GF_TRUE;
 		stsz->sizes[stsz->sampleCount-1] += data_size;
 
 		single_size = stsz->sizes[0];
 		for (i=1; i<stsz->sampleCount; i++) {
 			if (stsz->sizes[i] != single_size) {
-				single_size = 0;
+				use_same_size = GF_FALSE;
 				break;
 			}
 		}
-		if (single_size) {
+		if (use_same_size) {
 			stsz->sampleSize = single_size;
 			gf_free(stsz->sizes);
 			stsz->sizes = NULL;
+			stsz->alloc_size = 0;
 		}
 	}
 	return GF_OK;

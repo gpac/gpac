@@ -477,14 +477,22 @@ static void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	pid->removed = GF_TRUE;
 
 	//filter still active and has no input, check if there are no more output pids valid. If so, remove filter
-	if (!gf_list_count(filter->input_pids) && !filter->finalized) {
+	if (!gf_list_count(filter->input_pids) && !filter->finalized
+		//make sure we don't have any remove pid packets pending
+		&& !filter->pid_rem_packet_pending
+	) {
 		u32 i, nb_opid_rem=0;
 		for (i=0; i<filter->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(filter->output_pids, i);
 			if (apid->removed) nb_opid_rem++;
 		}
 		if (gf_list_count(filter->output_pids)==nb_opid_rem) {
-			gf_filter_post_remove(filter);
+			//filter is being watched by another filter for setup error (and potentially other tasks), do not delete but mark as disabled
+			if (filter->on_setup_error) {
+				filter->disabled = GF_FILTER_DISABLED;
+			} else {
+				gf_filter_post_remove(filter);
+			}
 		}
 	}
 
@@ -1361,16 +1369,26 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 
 	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
-	if (task->filter->removed && !task->filter->finalized && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
-		Bool direct_mode = task->filter->session->direct_mode;
-		gf_filter_post_remove(task->filter);
-		if (direct_mode) {
-			gf_mx_v(task->filter->tasks_mx);
-			//release filter removal prevention on both source and destination
-			safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
-			safe_int_dec(&task->filter->detach_pid_tasks_pending);
-			task->filter = NULL;
-			return;
+	if (task->filter->removed
+		&& !task->filter->finalized
+		&& !gf_list_count(task->filter->output_pids)
+		&& !gf_list_count(task->filter->input_pids)
+		//make sure we don't have any remove pid packets pending
+		&& !task->filter->pid_rem_packet_pending
+	) {
+		if (task->filter->on_setup_error) {
+			task->filter->disabled = GF_FILTER_DISABLED;
+		} else {
+			Bool direct_mode = task->filter->session->direct_mode;
+			gf_filter_post_remove(task->filter);
+			if (direct_mode) {
+				gf_mx_v(task->filter->tasks_mx);
+				//release filter removal prevention on both source and destination
+				safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+				safe_int_dec(&task->filter->detach_pid_tasks_pending);
+				task->filter = NULL;
+				return;
+			}
 		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
@@ -6684,6 +6702,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 		is_internal = GF_TRUE;
 	} else if (ctype == GF_PCK_CMD_PID_REM) {
 		safe_int_dec(&pidi->filter->session->remove_tasks);
+		safe_int_dec(&pidi->pid->filter->pid_rem_packet_pending);
 		gf_fs_post_disconnect_task(pidi->filter->session, pidi->filter, pidi->pid);
 
 		is_internal = GF_TRUE;
@@ -8631,6 +8650,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	}
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	safe_int_inc(&pid->filter->session->remove_tasks);
+	safe_int_inc(&pid->filter->pid_rem_packet_pending);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_REM;
 	gf_filter_pck_send(pck);
 }

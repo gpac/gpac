@@ -291,7 +291,7 @@ typedef struct
 
 	Bool purge_segments;
 
-	Bool is_playing;
+	u32 nb_playing;
 	Bool use_mabr;
 
 	Bool no_seg_dur;
@@ -1165,7 +1165,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		/*initial connection and we already have sent play event, send a PLAY on this new PID
 		TODO: we need to send STOP/PLAY depending on period
 		*/
-		if (ctx->is_playing) {
+		if (ctx->nb_playing) {
 			GF_FilterEvent evt;
 
 			dasher_send_encode_hints(ctx, ds);
@@ -3280,6 +3280,13 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 			sep[0] = 0;
 			trailer_args = strstr(dst_args, szKey);
 		}
+		//remove trailing argument separator
+		u32 dlen = (u32) strlen(szDST);
+		while (dlen && (szDST[dlen-1] == sep_args)) {
+			szDST[dlen-1] = 0;
+			dlen--;
+		}
+
 		//look for frag arg
 		sprintf(szKey, "%cfrag", sep_args);
 		if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
@@ -8307,6 +8314,10 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ntpts));
 		} else if (ctx->ntp==DASHER_NTP_REM) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, NULL);
+		} else if (ctx->ntp==DASHER_NTP_KEEP) {
+			const GF_PropertyValue *v = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SENDER_NTP);
+			if (v)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, v);
 		}
 		if (!ctx->gencues) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, NULL );
@@ -10583,7 +10594,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 
 	if (evt->base.type == GF_FEVT_PLAY) {
-		ctx->is_playing = GF_TRUE;
+		ctx->nb_playing++;
+		if (ctx->nb_playing>1) return GF_TRUE;
+
 		//send encode hints even if segment timeline is used
 		if (!ctx->sfile && !ctx->use_cues) {
 			GF_FilterEvent anevt;
@@ -10611,7 +10624,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 	}
 	if (evt->base.type == GF_FEVT_STOP) {
-		ctx->is_playing = GF_FALSE;
+		ctx->nb_playing--;
+		if (ctx->nb_playing) return GF_TRUE;
 		return GF_FALSE;
 	}
 

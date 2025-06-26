@@ -1474,7 +1474,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			GF_ItemInfoEntryBox *iinf_e= (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
 			if (iinf_e->item_ID > lastItemID) lastItemID = iinf_e->item_ID;
 			if (item_id == iinf_e->item_ID) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item with id %d already exists, ignoring id\n", item_id));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Item with ID %d already exists, ignoring ID\n", item_id));
 				item_id = 0;
 			}
 		}
@@ -1786,6 +1786,14 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
                              GF_ImageItemProperties *image_props)
 {
 	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, &item_id, item_type, mime_type, content_encoding, image_props, URL, URN, NULL, 0, NULL, 0, 0);
+}
+
+GF_EXPORT
+GF_Err gf_isom_add_meta_item2(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 *io_item_id, u32 item_type,
+                              const char *mime_type, const char *content_encoding, const char *URL, const char *URN,
+                              GF_ImageItemProperties *image_props)
+{
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, io_item_id, item_type, mime_type, content_encoding, image_props, URL, URN, NULL, 0, NULL, 0, 0);
 }
 
 GF_EXPORT

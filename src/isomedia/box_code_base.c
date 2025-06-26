@@ -14496,7 +14496,7 @@ GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 			continue;
 		ISOM_DECREASE_SIZE(s, bits/8)
 		ent->nb_refs = gf_bs_read_int(bs, bits);
-		if (ent->nb_refs * bits / 8 > s->size) return GF_ISOM_INVALID_FILE;
+		if (ent->nb_refs > s->size * 8 / bits) return GF_ISOM_INVALID_FILE;
 		if (ent->nb_refs) {
 			u32 j;
 			ent->sample_refs = gf_malloc(sizeof(u32) * ent->nb_refs);

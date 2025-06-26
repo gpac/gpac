@@ -2057,16 +2057,18 @@ GF_EXPORT
 GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
 	u32 i;
-        if (!cfg || !bs) return GF_BAD_PARAM;
+	if (!cfg || !bs) return GF_BAD_PARAM;
 
-        gf_bs_write_u8(bs, cfg->configurationVersion);
-        gf_av1_leb128_write(bs, cfg->configOBUs_size);
-        for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
-                GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
-                gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
-        }
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		gf_bs_write_u8(bs, cfg->configurationVersion);
+		gf_av1_leb128_write(bs, cfg->configOBUs_size);
+		for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
+				GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
+				gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
+		}
+	#endif
 
-        return GF_OK;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2086,10 +2088,14 @@ GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 GF_EXPORT
 u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
 {
-        if (!cfg) return 0;
+	if (!cfg) return 0;
 
-        u32 cfg_size = 1; // configurationVersion
-        cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
-        cfg_size += cfg->configOBUs_size;
-        return cfg_size;
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		u32 cfg_size = 1; // configurationVersion
+		cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
+		cfg_size += cfg->configOBUs_size;
+		return cfg_size;
+	#else
+		return 0;
+	#endif
 }

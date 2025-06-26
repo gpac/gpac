@@ -2129,11 +2129,18 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->realtime);
 	ctx->mux->flush_pes_at_rap = ctx->flush_rap;
 
-	if (gf_sys_is_test_mode() && ctx->pcr_init<0)
+	if (gf_sys_is_test_mode() && (ctx->pcr_init==-1))
 		ctx->pcr_init = 1000000;
 
 	gf_m2ts_mux_use_single_au_pes_mode(ctx->mux, ctx->pes_pack);
-	if (ctx->pcr_init>=0) gf_m2ts_mux_set_initial_pcr(ctx->mux, (u64) ctx->pcr_init);
+	if (ctx->pcr_init != -1) {
+		u64 pcr_init;
+		if (ctx->pcr_init>=0)
+			pcr_init = (u64) ctx->pcr_init;
+		else
+			pcr_init = GF_M2TS_MAX_PCR + ctx->pcr_init;
+		gf_m2ts_mux_set_initial_pcr(ctx->mux, pcr_init);
+	}
 	gf_m2ts_mux_set_pcr_max_interval(ctx->mux, ctx->max_pcr);
 	gf_m2ts_mux_enable_pcr_only_packets(ctx->mux, ctx->pcr_only);
 
@@ -2299,7 +2306,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 	"- copy: uses BIFS PES but removes timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr_only), "enable PCR-only TS packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(pcr_init), "set initial PCR value for the programs. A negative value means random value is picked", GF_PROP_LSINT, "-1", NULL, 0},
+	{ OFFS(pcr_init), "set initial PCR value for the programs. -1 means random value is picked, other negative value means offset to maximum PCR", GF_PROP_LSINT, "-1", NULL, 0},
 	{ OFFS(sid), "set service ID for the program", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(name), "set service name for the program", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(provider), "set service provider name for the program", GF_PROP_STRING, NULL, NULL, 0},

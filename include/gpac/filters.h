@@ -1465,6 +1465,9 @@ enum
 	GF_PROP_PCK_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','P'),
 	GF_PROP_PCK_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','P'),
 
+	GF_PROP_PCK_ORIGINAL_PTS = GF_4CC('O','P','T','S'),
+	GF_PROP_PCK_ORIGINAL_DTS = GF_4CC('O','D','T','S'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -2811,6 +2814,9 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 
 
 /*! Sets callback function on source filter setup failure
+
+ A filter with a non-NULL callback will never get destroyed by internal filter session logic, even if it no longer has valid connections. This ensures that a filter loading another filter can be sure this filter is a valid object or has failed to setup. Setting the callback to NULL may trigger the filter removal if needed, hence access to the filter should not happen after reseting the callback.
+
 \param filter target filter
 \param source_filter the source filter to monitor
 \param on_setup_error callback function to call upon source  setup error - the callback can return GF_TRUE to cancel error reporting

@@ -108,6 +108,11 @@ static void swf_init_decompress(SWFReader *read)
 	if (dst_size < 8) {
 		return;
 	}
+	if (dst_size>gf_bs_available(read->bs)) {
+		gf_bs_del(read->bs);
+		read->bs = NULL;
+		return;
+	}
 	src = gf_malloc(sizeof(char)*size);
 	dst = gf_malloc(sizeof(char)*dst_size);
 	memset(dst, 0, sizeof(char)*8);

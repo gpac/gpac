@@ -281,7 +281,7 @@ static GF_Err gf_sei_load_from_packet_nalu(GF_SEILoader *sei, GF_FilterPacket *p
 		}
 		size |= data[pos+tmp];
 		//we allow nal_size=0 for incomplete files, abort as soon as we see one to avoid parsing thousands of 0 bytes
-		if (!size) break;
+		if (!size || size >= GF_UINT_MAX-pos-sei->nalu_size) break;
 		if (pos+sei->nalu_size+size > data_len) break;
 
 		gf_bs_reassign_buffer(sei->bs, data+pos+sei->nalu_size, size);
@@ -472,7 +472,7 @@ void gf_sei_loader_del(GF_SEILoader *sei)
 #endif
 
 
-#ifndef GPAC_DISABLE_SEILOAD
+#if !defined(GPAC_DISABLE_SEI_LOAD) && !defined(GPAC_DISABLE_AV_PARSERS)
 
 typedef struct
 {

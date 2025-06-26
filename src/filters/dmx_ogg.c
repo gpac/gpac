@@ -231,6 +231,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 
 	//opus DSI is formatted as box (ffmpeg compat) we might want to change that to avoid the box header
 	if (st->info.type==GF_CODECID_OPUS) {
+		if (st->dsi_bs) gf_bs_del(st->dsi_bs);
 		st->dsi_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_odf_opus_cfg_write_bs(st->opus_cfg, st->dsi_bs);
 		st->info.nb_chan = st->opus_cfg->OutputChannelCount;

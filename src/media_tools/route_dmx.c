@@ -225,6 +225,7 @@ struct __gf_routedmx {
 	u32 buffer_size;
 	u8 *unz_buffer;
 	u32 unz_buffer_size;
+	u32 max_obj_size;
 	//reordering time in us
 	u64 reorder_timeout_us;
 	Bool force_in_order;
@@ -447,6 +448,8 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
 	routedmx->reorder_timeout_us = 100000;
+	//50MB max per object - for 10s fragments, this gives 40 mbps which should be enough
+	routedmx->max_obj_size = 50000000;
 
 	routedmx->on_event = on_event;
 	routedmx->udta = udta;
@@ -1983,6 +1986,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (ll_map) start_offset += ll_map->offset;
 
 		total_len = obj->total_length;
+	}
+
+	if ((total_len>routedmx->max_obj_size) || (start_offset>routedmx->max_obj_size)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u too big - size %u but max allowed size %u\n", s->log_name, toi, tsi, total_len>routedmx->max_obj_size ? total_len : start_offset, routedmx->max_obj_size));
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	if (!obj) {

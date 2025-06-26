@@ -508,41 +508,45 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 				gf_bs_skip_bytes(bs, nal_size-1);
 			}
 			else if (codec_id==GF_CODECID_AV1) {
-				u64 obu_size, obu_start = (u32) gf_bs_get_position(bs);
-				u32 obu_hdr_size;
-				ObuType obu_type;
-				Bool obu_extension_flag, obu_has_size_field;
-				u8 temporal_id, spatial_id;
+				#ifndef GPAC_DISABLE_AV_PARSERS
+					u64 obu_size, obu_start = (u32) gf_bs_get_position(bs);
+					u32 obu_hdr_size;
+					ObuType obu_type;
+					Bool obu_extension_flag, obu_has_size_field;
+					u8 temporal_id, spatial_id;
 
-				gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
-				obu_hdr_size = (u32) (gf_bs_get_position(bs) - obu_start);
-
-				if (obu_has_size_field) {
-					obu_size = (u32)gf_av1_leb128_read(bs, NULL);
+					gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 					obu_hdr_size = (u32) (gf_bs_get_position(bs) - obu_start);
-				} else {
-					obu_size = samp->dataLength - (u32) gf_bs_get_position(bs);
-				}
-				obu_size += obu_hdr_size;
-				if (obu_type==OBU_METADATA) {
-					gf_bs_seek(bs, obu_start+obu_hdr_size);
-					ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
-					if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
-						//cf issue #2549
-						if (gf_bs_read_u8(bs)==0xB5) {
-							const u8 rpu_hdr[] = {0x00, 0x3B, 0x00, 0x00, 0x08, 0x00, 0x37, 0xCD, 0x08};
-							const u32 rpu_hdr_len = sizeof (rpu_hdr);
-							u32 pos = (u32) gf_bs_get_position(bs);
-							u8 *t35_start = samp->data + pos;
-							if (!memcmp(t35_start, rpu_hdr, rpu_hdr_len)) {
-								_dovi.rpu_present_flag = 1;
+
+					if (obu_has_size_field) {
+						obu_size = (u32)gf_av1_leb128_read(bs, NULL);
+						obu_hdr_size = (u32) (gf_bs_get_position(bs) - obu_start);
+					} else {
+						obu_size = samp->dataLength - (u32) gf_bs_get_position(bs);
+					}
+					obu_size += obu_hdr_size;
+					if (obu_type==OBU_METADATA) {
+						gf_bs_seek(bs, obu_start+obu_hdr_size);
+						ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
+						if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
+							//cf issue #2549
+							if (gf_bs_read_u8(bs)==0xB5) {
+								const u8 rpu_hdr[] = {0x00, 0x3B, 0x00, 0x00, 0x08, 0x00, 0x37, 0xCD, 0x08};
+								const u32 rpu_hdr_len = sizeof (rpu_hdr);
+								u32 pos = (u32) gf_bs_get_position(bs);
+								u8 *t35_start = samp->data + pos;
+								if (!memcmp(t35_start, rpu_hdr, rpu_hdr_len)) {
+									_dovi.rpu_present_flag = 1;
+								}
 							}
 						}
+					} else if (obu_type<=OBU_TILE_LIST) {
+						_dovi.bl_present_flag = 1;
 					}
-				} else if (obu_type<=OBU_TILE_LIST) {
-					_dovi.bl_present_flag = 1;
-				}
-				gf_bs_seek(bs, obu_start+obu_size);
+					gf_bs_seek(bs, obu_start+obu_size);
+				#else
+					return GF_NOT_SUPPORTED;
+				#endif
 			}
 		}
 		gf_bs_del(bs);

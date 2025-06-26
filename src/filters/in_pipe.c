@@ -109,6 +109,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	if (!strcmp(ctx->src, "-") || !strcmp(ctx->src, "stdin")) {
 		ctx->is_stdin = GF_TRUE;
 		ctx->mkp = GF_FALSE;
+		if (!ctx->timeout) ctx->timeout = 10000;
 #ifdef WIN32
 		_setmode(_fileno(stdin), _O_BINARY);
 #endif
@@ -370,7 +371,11 @@ static GF_Err pipein_process(GF_Filter *filter)
 			ctx->last_active_ms = now;
 		} else if (now - ctx->last_active_ms > ctx->timeout) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Timeout detected after %d ms, aborting\n", now - ctx->last_active_ms ));
-			gf_filter_pid_set_eos(ctx->pid);
+			if (ctx->pid) {
+				gf_filter_pid_set_eos(ctx->pid);
+			} else {
+				gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
+			}
 			ctx->is_end = GF_TRUE;
 			return GF_EOS;
 		}
@@ -679,6 +684,7 @@ GF_FilterRegister PipeInRegister = {
 		"EX gpac -i - vout\n"
 		"EX gpac -i stdin vout\n"
 		"\n"
+		"When reading from stdin, the default [timeout]() is 10 seconds.\n"
 		"# Named pipes\n"
 		"The filter can handle reading from named pipes. The associated protocol scheme is `pipe://` when loaded as a generic input (e.g. `-i pipe://URL` where URL is a relative or absolute pipe name).\n"
 		"On Windows hosts, the default pipe prefix is `\\\\.\\pipe\\gpac\\` if no prefix is set.\n"
