@@ -7347,14 +7347,15 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 			if (res_len != GF_UTF8_FAIL) {
 				utf8str[res_len] = 0;
 
-				gf_fprintf(trace, " value=\"%s\">\n", utf8str);
+				gf_fprintf(trace, " value=\"%s\"", utf8str);
 			}
 			gf_free(utf8str);
 		} else {
 			gf_fprintf(trace, " value=\"");
 			dump_data_hex(trace, tag->prop_value, tag->prop_size);
-			gf_fprintf(trace, "\">\n");
+			gf_fprintf(trace, "\"");
 		}
+		gf_fprintf(trace, " />\n");
 	}
 	gf_isom_box_dump_done("XtraBox", a, trace);
 	return GF_OK;
