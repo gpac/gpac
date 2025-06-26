@@ -5403,8 +5403,13 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		case GF_CODECID_VVC:
 		case GF_CODECID_AV1:
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SEI_LOADED);
-			if (!p)
-				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+			if (!p) {
+				//if unframed and our inspect mode is not framed, do not require SEI_LOAD (we don't want a reframer to be inserted)
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+				if (!p || (ctx->mode==INSPECT_MODE_REFRAME)) {
+					gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+				}
+			}
 		}
 	}
 

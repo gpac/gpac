@@ -1465,6 +1465,9 @@ enum
 	GF_PROP_PCK_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','P'),
 	GF_PROP_PCK_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','P'),
 
+	GF_PROP_PCK_ORIGINAL_PTS = GF_4CC('O','P','T','S'),
+	GF_PROP_PCK_ORIGINAL_DTS = GF_4CC('O','D','T','S'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
