@@ -339,7 +339,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 
 static GFINLINE void ffenc_set_deps(GF_FilterPacket *dst_pck, AVPacket *pkt)
 {
-	//reset dependency flags to unknwon
+	//reset dependency flags to unknown
 	u8 flags = 0;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 	if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) {
