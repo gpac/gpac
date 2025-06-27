@@ -115,17 +115,20 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	}
 
 	if (inName) {
-		char szName[1024];
-		if (is_final_name) {
-			strcpy(szName, inName);
-		} else {
-			sprintf(szName, "%s.%s", inName, (tag_len>>31) ? "png" : "jpg");
+		char *szName=NULL;
+		gf_dynstrcat(&szName, inName, NULL);
+		if (!is_final_name) {
+			gf_dynstrcat(&szName, (tag_len>>31) ? ".png" : ".jpg", NULL);
 		}
+		if (!szName) return GF_OUT_OF_MEM;
+
 		t = gf_fopen(szName, "wb");
 		if (!t) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szName));
+			gf_free(szName);
 			return GF_IO_ERR;
 		}
+		gf_free(szName);
 	} else {
 		t = stdout;
 	}
