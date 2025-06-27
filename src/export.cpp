@@ -2144,6 +2144,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_complete_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_segment_start_time_with_timescale) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_subnumber) )
 
 
 #endif /*GPAC_DISABLE_MPEG2TS*/

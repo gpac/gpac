@@ -6397,6 +6397,7 @@ GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id)
 	return NULL;
 }
 
+GF_EXPORT
 char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32 part_idx)
 {
 	char *res = NULL;
