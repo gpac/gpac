@@ -1683,7 +1683,20 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 		gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
 		gf_bs_seek(plaintext_bs, nal_start);
 	} else {
-		clear_bytes = bytes_in_nalhr;
+		if (cstr->cenc_codec==CENC_AVC) {
+			u32 ntype;
+			u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
+			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
+			ntype = cstr->avc_state->last_nal_type_parsed;
+			if (ntype > GF_AVC_NALU_IDR_SLICE && ntype != GF_AVC_NALU_SVC_SLICE) {
+				//keep non-VCL in clear ("should" in CENC, "shall" in CMAF)
+				clear_bytes = nal_size;
+			} else {
+				clear_bytes = bytes_in_nalhr;
+			}
+		} else {
+			clear_bytes = bytes_in_nalhr;
+		}
 	}
 	gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
 	return clear_bytes;
