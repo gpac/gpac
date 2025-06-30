@@ -6273,6 +6273,8 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 	}
 	meta = (GF_MetaBox *) gf_isom_create_meta_extensions(mov, GF_FALSE);
 	if (!meta) return GF_BAD_PARAM;
+	if (mov->brand->majorBrand == GF_4CC_CSTR("qt  "))
+		meta->write_qt = 1;
 
 	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
 	if (!ilst) {
