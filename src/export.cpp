@@ -2366,6 +2366,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_itags_enum_tags) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_id3_get_genre) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_id3_get_genre_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_tag_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_tag_free) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_to_bitstream) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_list_to_bitstream) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_id3_from_bitstream) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_bit_depth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_name) )
