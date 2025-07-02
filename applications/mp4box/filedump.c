@@ -202,11 +202,12 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 
 	if (do_log) {
 		char szLog[GF_MAX_PATH];
-		sprintf(szLog, "%s_dec.logs", inName);
+		snprintf(szLog,  GF_ARRAY_LENGTH(szLog), "%s_dec.logs", inName);
 		logs = gf_fopen(szLog, "wt");
-
-		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
-		prev_logs = gf_log_set_callback(logs, scene_coding_log);
+		if (logs) {
+			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
+			prev_logs = gf_log_set_callback(logs, scene_coding_log);
+		}
 	}
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
