@@ -10766,6 +10766,10 @@ u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx)
 	}
 
 	while ((mpd_desc=gf_list_enum(l, &i))) {
+
+		if (!mpd_desc->scheme_id_uri || !mpd_desc->value)
+			continue;
+
 		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011")) {
 			return atoi(mpd_desc->value);
 		}

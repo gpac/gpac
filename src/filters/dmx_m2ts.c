@@ -215,10 +215,10 @@ static void m2tsdmx_update_sdt(GF_M2TS_Demuxer *ts, void *for_pid)
 			if (for_pid && (es->user != for_pid)) continue;
 			//TODO, translate non standard character maps to UTF8
 			//we for now comment in test mode to avoid non UTF characters in text dumps
-			if (isalnum(sdt->service[0]) || !gf_sys_is_test_mode())
+			if ((sdt && sdt->service && isalnum(sdt->service[0])) || !gf_sys_is_test_mode())
 				gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(sdt->service ) );
 
-			if (isalnum(sdt->provider[0]) || !gf_sys_is_test_mode())
+			if ((sdt && sdt->provider && isalnum(sdt->provider[0])) || !gf_sys_is_test_mode())
 				gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_STRING( sdt->provider ) );
 		}
 	}
