@@ -1785,6 +1785,13 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				if (!eac3->cfg_ac3) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*) eac3;
 				gf_odf_desc_del((GF_Descriptor *) esd);
+			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC4) {
+				GF_MPEGAudioSampleEntryBox *ac4 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC4);
+				if (!ac4) return GF_OUT_OF_MEM;
+				ac4->cfg_ac4 = (GF_AC4ConfigBox *) gf_isom_box_new_parent(&ac4->child_boxes, GF_ISOM_BOX_TYPE_DAC4);
+				if (!ac4->cfg_ac4) return GF_OUT_OF_MEM;
+				entry = (GF_MPEGSampleEntryBox*) ac4;
+				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else {
 				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
 				if (!entry_a) return GF_OUT_OF_MEM;
