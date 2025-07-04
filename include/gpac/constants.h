@@ -486,6 +486,8 @@ typedef enum
 	GF_CODECID_AC3 = GF_4CC('a','c','-','3'),
 	/*! codecid for enhanced AC-3 audio streams*/
 	GF_CODECID_EAC3 = GF_4CC('e','c','-','3'),
+	/*! codecid for AC-4 audio streams*/
+	GF_CODECID_AC4 = GF_4CC('a','c','-','4'),
 	/*! codecid for Dolby TrueHS audio streams*/
 	GF_CODECID_TRUEHD = GF_4CC('m','l','p','a'),
 	/*! codecid for DRA audio streams*/
@@ -1016,6 +1018,12 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 \return dolby chanmap
 */
 u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
+
+/*! get dloby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
+\param presentation_channel_mask_v1
+\return dolby AudioChannelConfiguration value
+*/
+u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask);
 
 /*! enumerates CICP channel layout
 \param idx index of cicp layout value to query

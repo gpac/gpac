@@ -63,6 +63,8 @@ REG_DEC(maddec)
 REG_DEC(xviddec)
 REG_DEC(j2kdec)
 REG_DEC(rfac3)
+REG_DEC(rfac4)
+REG_DEC(ufac4)
 REG_DEC(a52dec)
 REG_DEC(rfamr)
 REG_DEC(oggdmx)
@@ -227,6 +229,8 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(xviddec),
 	REG_IT(j2kdec),
 	REG_IT(rfac3),
+	REG_IT(rfac4),
+	REG_IT(ufac4),
 	REG_IT(a52dec),
 	REG_IT(rfamr),
 	REG_IT(oggdmx),

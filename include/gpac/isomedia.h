@@ -279,6 +279,7 @@ enum
 
 	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
 	GF_ISOM_SUBTYPE_EC3			= GF_4CC( 'e', 'c', '-', '3' ),
+	GF_ISOM_SUBTYPE_AC4			= GF_4CC( 'a', 'c', '-', '4' ),
 	GF_ISOM_SUBTYPE_MP3			= GF_4CC( '.', 'm', 'p', '3' ),
 	GF_ISOM_SUBTYPE_MLPA		= GF_4CC( 'm', 'l', 'p', 'a' ),
 
@@ -3929,6 +3930,37 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC3Conf
 \return error if any
 */
 GF_Err gf_isom_ac3_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AC3Config *cfg);
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+/*! gets an AC4 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return AC-4 config
+*/
+GF_AC4Config *gf_isom_ac4_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! creates an AC4 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the AC4 config for this sample description
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_ac4_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC4Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! updates an AC4 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param cfg the AC4 config for this sample description
+\return error if any
+*/
+GF_Err gf_isom_ac4_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AC4Config *cfg);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

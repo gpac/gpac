@@ -1522,6 +1522,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_RFAC3
 	                       "GPAC_DISABLE_RFAC3 "
 #endif
+#ifdef GPAC_DISABLE_RFAC4
+	                       "GPAC_DISABLE_RFAC4 "
+#endif
 #ifdef GPAC_DISABLE_RFADTS
 	                       "GPAC_DISABLE_RFADTS "
 #endif
@@ -1587,6 +1590,9 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_UFMHAS
 	                       "GPAC_DISABLE_UFMHAS "
+#endif
+#ifdef GPAC_DISABLE_UFAC4
+	                       "GPAC_DISABLE_UFAC4 "
 #endif
 #ifdef GPAC_DISABLE_UFM4V
 	                       "GPAC_DISABLE_UFM4V "
