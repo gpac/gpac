@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2021
+ *			Copyright (c) Telecom ParisTech 2006-2025
  *				All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -175,6 +175,25 @@ GF_Box *ilst_item_box_new()
 	return (GF_Box *)tmp;
 }
 
+GF_Err ilst_item_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
+{
+	GF_ListItemBox *ptr = (GF_ListItemBox*)s;
+	switch (a->type) {
+	case GF_QT_BOX_TYPE_NAME:
+		BOX_FIELD_ASSIGN(name, GF_NameBox)
+		break;
+	case GF_QT_BOX_TYPE_MEAN:
+		BOX_FIELD_ASSIGN(mean, GF_NameBox)
+		break;
+	case GF_ISOM_BOX_TYPE_DATA:
+		BOX_FIELD_ASSIGN(data, GF_DataBox)
+		break;
+	default:
+		return GF_OK;
+	}
+	return GF_OK;
+}
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
@@ -214,6 +233,8 @@ GF_Err ilst_item_box_size(GF_Box *s)
 	/*iTune way: data-box-encapsulated box list*/
 	else if (ptr->data && !ptr->data->qt_style) {
 		u32 pos=0;
+		gf_isom_check_position(s, (GF_Box* ) ptr->mean, &pos);
+		gf_isom_check_position(s, (GF_Box* ) ptr->name, &pos);
 		gf_isom_check_position(s, (GF_Box* ) ptr->data, &pos);
 	}
 	/*QT way: raw data*/
@@ -240,7 +261,7 @@ GF_Err databox_box_read(GF_Box *s,GF_BitStream *bs)
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
 	ISOM_DECREASE_SIZE(ptr, 4);
-	ptr->reserved = gf_bs_read_u32(bs);
+	ptr->locale = gf_bs_read_u32(bs);
 
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
@@ -269,7 +290,7 @@ GF_Err databox_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_int(bs, ptr->reserved, 32);
+	gf_bs_write_int(bs, ptr->locale, 32);
 	if(ptr->data != NULL && ptr->dataSize > 0) {
 		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
@@ -422,7 +443,7 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, u32 meta_type)
 	meta = (GF_MetaBox *)gf_isom_box_new(udta_subtype);
 
 	if (meta) {
-		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE);
+		udta_on_child_box_ex((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE, GF_TRUE);
 		if (meta_type!=1) {
 			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 			if(meta->handler == NULL) {

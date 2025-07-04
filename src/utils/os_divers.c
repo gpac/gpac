@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -340,6 +340,8 @@ s32 __gettimeofday(struct timeval *tp, void *tz)
 
 
 #elif defined(WIN32)
+
+#include <WinSock2.h>
 
 static s32 gettimeofday(struct timeval *tp, void *tz)
 {
@@ -742,6 +744,8 @@ u64 gf_sys_clock_high_res()
 
 
 #ifdef WIN32
+
+#include <timeapi.h>
 
 static u32 OS_GetSysClockHIGHRES()
 {
@@ -2759,7 +2763,6 @@ s32 gf_net_get_ntp_diff_ms(u64 ntp)
 	return (s32) (local - remote);
 }
 
-#if 0
 /*!
 
 Adds or remove a given amount of microseconds to an NTP timestamp
@@ -2768,7 +2771,7 @@ Adds or remove a given amount of microseconds to an NTP timestamp
 \return adjusted NTP timestamp
  */
 GF_EXPORT
-u64 gf_net_add_usec(u64 ntp, s32 usec)
+u64 gf_net_ntp_add_usec(u64 ntp, s32 usec)
 {
 	u64 sec, frac;
 	s64 usec_ntp;
@@ -2789,7 +2792,6 @@ u64 gf_net_add_usec(u64 ntp, s32 usec)
 	ntp |= (sec<<32);
 	return ntp;
 }
-#endif
 
 
 GF_EXPORT
@@ -3265,7 +3267,7 @@ GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
 #endif
 		if (f) {
-			s32 wlen = fwrite(szPID, 1, len, f);
+			s32 wlen = (s32) fwrite(szPID, 1, len, f);
 			fclose(f);
 			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
 			continue;

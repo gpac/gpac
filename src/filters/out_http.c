@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / http server and output filter
@@ -42,36 +42,7 @@
 #include "../scenegraph/qjs_common.h"
 #endif
 
-//socket and SSL context ownership is transfered to the download session object
-GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
-GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, u32 stream_id, void *usr_cbk, GF_Err *e);
-u32 gf_dm_sess_subsession_count(GF_DownloadSession *);
-
-void gf_dm_sess_set_timeout(GF_DownloadSession *sess, u32 timeout);
-
-GF_Socket *gf_dm_sess_get_socket(GF_DownloadSession *);
-GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
-void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
-void  gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite);
-GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
-u32 gf_dm_sess_async_pending(GF_DownloadSession *sess);
-
-GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
-void gf_dm_sess_server_reset(GF_DownloadSession *sess);
-Bool gf_dm_sess_is_h2(GF_DownloadSession *sess);
-void gf_dm_sess_flush_h2(GF_DownloadSession *sess);
-
-void gf_dm_sess_set_sock_group(GF_DownloadSession *sess, GF_SockGroup *sg);
-
-#ifdef GPAC_HAS_SSL
-
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void *gf_ssl_server_context_new(const char *cert, const char *key);
-void gf_ssl_server_context_del(void *ssl_server_ctx);
-Bool gf_ssl_init_lib();
-
-#endif
+#include "../utils/downloader.h"
 
 GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,
@@ -123,6 +94,14 @@ typedef struct
 	GF_Filter *filter;
 	GF_Socket *server_sock;
 	GF_Socket *server_sock_alt;
+	GF_Socket *server_sock_h3;
+#ifdef GPAC_HAS_NGTCP2
+	u32 quic_port;
+	GF_QuicServer *quic_sock;
+	void *ssl_ctx_quic;
+#endif
+
+
 	GF_List *sessions, *active_sessions;
 	GF_List *inputs;
 
@@ -185,7 +164,8 @@ typedef struct __httpout_input
 	//for PUT mode, NULL in server mode
 	GF_DownloadSession *upload;
 	GF_Socket *upload_sock;
-	Bool is_h2, use_cte;
+	GF_HTTPSessionType http_type;
+	Bool use_cte, blockio;
 	u32 cur_header;
 
 	u64 offset_at_seg_start;
@@ -238,6 +218,13 @@ typedef struct
 	s64 end;
 } HTTByteRange;
 
+typedef enum
+{
+	SESS_END_OK=0,
+	SESS_END_CANCEL,
+	SESS_END_CLOSE
+} SessionEndType;
+
 struct __httpout_session {
 	GF_HTTPOutCtx *ctx;
 
@@ -262,6 +249,7 @@ struct __httpout_session {
 	u64 last_active_time;
 	Bool file_in_progress;
 	Bool use_chunk_transfer;
+	Bool blockio;
 	u32 put_in_progress;
 	//for upload only: 0 not an upload, 1 creation, 2: update
 	u32 upload_type;
@@ -280,9 +268,9 @@ struct __httpout_session {
 	u64 req_id;
 	u32 method_type, reply_code, nb_consecutive_errors;
 
-	Bool is_h2;
+	GF_HTTPSessionType http_type;
 	Bool sub_sess_pending;
-	Bool canceled;
+	SessionEndType req_end_type;
 
 	Bool force_destroy;
 
@@ -469,21 +457,22 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 	Bool last_connection = GF_TRUE;
 	if (!sess->http_sess) return;
 
-	if (sess->is_h2) {
+	if (sess->http_type) {
 		u32 nb_sub_sess = gf_dm_sess_subsession_count(sess->http_sess);
 		if (nb_sub_sess > 1) {
 			last_connection = GF_FALSE;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] %d sub-sessions still active in connection to %s, keeping alive\n", nb_sub_sess-1, sess->peer_address ));
 		}
 		else {
-			gf_dm_sess_flush_h2(sess->http_sess);
+			gf_dm_sess_close_hmux(sess->http_sess);
 		}
 	}
 	if (last_connection) {
 		if (sess->ctx->nb_connections)
 			sess->ctx->nb_connections--;
 
-		gf_sk_group_unregister(sess->ctx->sg, sess->socket);
+		if (sess->socket)
+			gf_sk_group_unregister(sess->ctx->sg, sess->socket);
 	}
 
 	gf_dm_sess_del(sess->http_sess);
@@ -528,20 +517,25 @@ static void httpout_mark_session_done(GF_HTTPOutSession *sess)
 	sess->async_pending = 0;
 }
 
-static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session)
+static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session, Bool from_cbk)
 {
-	if (!sess->ctx->blockio) {
+	if (!sess->blockio) {
 		//first attempt at closing, remember close_session flag
 		if (!sess->flush_close) {
 			sess->flush_close = close_session ? 2 : 1;
 			sess->ctx->nb_sess_flush_pending++;
 		}
-		if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE) == GF_IP_NETWORK_EMPTY) {
+		GF_Err e = gf_dm_sess_flush_close(sess->http_sess);
+		if (e == GF_IP_NETWORK_EMPTY) {
+			sess->ctx->next_wake_us = 1;
 			return GF_FALSE;
 		}
 		//done closing, restore close_session flag
 		if (sess->flush_close == 2)
 			close_session = GF_TRUE;
+		if (!from_cbk && (e==GF_IP_CONNECTION_CLOSED))
+			close_session = GF_TRUE;
+
 		sess->flush_close = 0;
 		sess->ctx->nb_sess_flush_pending--;
 	}
@@ -1045,22 +1039,24 @@ static const char *get_method_name(u32 method)
 }
 #endif //GPAC_DISABLE_LOG
 
-GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
+GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, s64 stream_id)
 {
 	GF_HTTPOutSession *sub_sess;
 	GF_Err e;
-	//warning, sess->is_h2 might not be set yet
-	if (!sess || !sess->http_sess || !gf_dm_sess_is_h2(sess->http_sess))
+	//warning, sess->http_type might not be set yet
+	if (!sess->http_type) {
+		sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
+	}
+	if (!sess || !sess->http_sess || !sess->http_type)
 		return GF_BAD_PARAM;
 
-	sess->is_h2 = GF_TRUE;
 	GF_SAFEALLOC(sub_sess, GF_HTTPOutSession);
 	if (!sub_sess) return GF_OUT_OF_MEM;
 	sub_sess->socket = sess->socket;
 	sub_sess->ctx = sess->ctx;
 	sub_sess->last_active_time = gf_sys_clock_high_res();
-	//mark the subsession as being h2 right away so that we can process it even if no pending data on socket (cf httpout_process_session)
-	sub_sess->is_h2 = GF_TRUE;
+	//mark the subsession as being hmux right away so that we can process it even if no pending data on socket (cf httpout_process_session)
+	sub_sess->http_type = sess->http_type;
 	strcpy(sub_sess->peer_address, sess->peer_address);
 	sub_sess->http_sess = gf_dm_sess_new_subsession(sess->http_sess, stream_id, sub_sess, &e);
 	if (!sub_sess->http_sess) {
@@ -1253,7 +1249,7 @@ static JSValue httpout_js_send(JSContext *c, JSValueConst this_val, int argc, JS
 			gf_list_add(sess->headers, gf_strdup(v));
 			if (!stricmp(n, "Content-Length"))
 				sess->content_length = atoi(v);
-			if (!stricmp(n, "Transfer-Encoding") && !stricmp(v, "chunked") && !sess->is_h2)
+			if (!stricmp(n, "Transfer-Encoding") && !stricmp(v, "chunked") && !sess->http_type)
 				sess->use_chunk_transfer=GF_TRUE;
 		}
 		if (n) JS_FreeCString(c, n);
@@ -1323,7 +1319,7 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 	JS_SetPropertyStr(c, sess->obj, "auth_code", JS_NewInt32(c, auth_code ));
 	JS_SetPropertyStr(c, sess->obj, "send", JS_NewCFunction(c, httpout_js_send, "send", 0) );
 	JS_SetPropertyStr(c, sess->obj, "reply", JS_NewInt32(c, 0));
-	JS_SetPropertyStr(c, sess->obj, "tls", JS_NewBool(c, sess->ctx->ssl_ctx ? 1 : 0));
+	JS_SetPropertyStr(c, sess->obj, "tls", JS_NewBool(c, gf_dm_sess_use_tls(sess->http_sess) ? 1 : 0));
 	JS_SetPropertyStr(c, sess->obj, "netid", JS_NewInt64(c, sess->socket ? (s64) sess->socket : 0));
 	JS_SetPropertyStr(c, sess->obj, "IP", JS_NewString(c, sess->peer_address));
 	JS_SetPropertyStr(c, sess->obj, "port", JS_NewInt32(c, sess->peer_port));
@@ -1438,11 +1434,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	HTTP_DIRInfo *the_dir=NULL;
 
 	if (parameter->msg_type == GF_NETIO_REQUEST_SESSION) {
-		parameter->error = httpout_new_subsession(sess, parameter->reply);
+		parameter->error = httpout_new_subsession(sess, parameter->stream_id);
 		return;
 	}
 	if (parameter->msg_type == GF_NETIO_CANCEL_STREAM) {
-		sess->canceled = GF_TRUE;
+		sess->req_end_type = SESS_END_CANCEL;
 		return;
 	}
 
@@ -1653,8 +1649,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		hdr = gf_dm_sess_get_header(sess->http_sess, "Transfer-Encoding");
 		if (hdr && !strcmp(hdr, "chunked")) {
 			sess->use_chunk_transfer = GF_TRUE;
-		} else if (!sess->is_h2) {
-			sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
+		} else {
+			sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
+			if (sess->http_type==GF_SESS_TYPE_HTTP3) sess->blockio = GF_FALSE;
 		}
 		sess->file_in_progress = GF_FALSE;
 		sess->nb_bytes = 0;
@@ -1696,7 +1693,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&response_body, "File exists but cannot be open", NULL);
 				goto exit;
 			}
-			if (!sess->content_length && !sess->use_chunk_transfer && !sess->is_h2) {
+			if (!sess->content_length && !sess->use_chunk_transfer && !sess->http_type) {
 				sess->reply_code = 411;
 				gf_dynstrcat(&response_body, "No content length specified and chunked transfer not enabled", NULL);
 				goto exit;
@@ -1946,7 +1943,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (sess->do_log) {
 				sess->req_id = ++sess->ctx->req_id;
 				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s DELETE %s\n", sess->req_id, sess->peer_address, url+1));
-				sess->do_log = GF_FALSE;
+				sess->do_log = 0;
 			}
 		} else {
 			e = GF_URL_ERROR;
@@ -2126,6 +2123,14 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	if (cors_origin) gf_free(cors_origin);
 
+#ifdef GPAC_HAS_NGTCP2
+	if ((sess->http_type!=GF_SESS_TYPE_HTTP3) && sess->ctx->quic_sock) {
+		char szTmp[100];
+		sprintf(szTmp, "h3=\":%u\"", sess->ctx->quic_port);
+		gf_dm_sess_set_header(sess->http_sess, "Alt-svc", szTmp);
+	}
+#endif
+
 	if (sess->ctx->sutc) {
 		sprintf(szFmt, LLU, gf_net_get_utc() );
 		gf_dm_sess_set_header(sess->http_sess, "Server-UTC", szFmt);
@@ -2260,10 +2265,13 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dm_sess_set_header(sess->http_sess, "icy-br", szFmt);
 			}
 			gf_dm_sess_set_header(sess->http_sess, "icy-pub", "1");
-			p = gf_filter_pid_get_property(sess->in_source->ipid, GF_PROP_PID_SERVICE_NAME);
+			GF_PropertyEntry *pe=NULL;
+			p = gf_filter_pid_get_info(sess->in_source->ipid, GF_PROP_PID_SERVICE_NAME, &pe);
 			if (p && p->value.string) {
 				gf_dm_sess_set_header(sess->http_sess, "icy-name", p->value.string);
 			}
+			gf_filter_release_property(pe);
+
 			p_idx = 0;
 			while (1) {
 				const char *pname;
@@ -2302,11 +2310,12 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	sess->nb_consecutive_errors = 0;
-	sess->canceled = GF_FALSE;
+	sess->req_end_type = SESS_END_OK;
 	gf_assert(sess->reply_code);
 	e = gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, response_body, response_body ? (u32) strlen(response_body) : 0, no_body);
 	sess->headers_done = GF_TRUE;
-	sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
+	sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
+	if (sess->http_type==GF_SESS_TYPE_HTTP3) sess->blockio = GF_FALSE;
 
 	if (url) gf_free(url);
 	if (!sess->buffer) {
@@ -2343,7 +2352,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	if (sess->done) {
 		sess->done = GF_FALSE;
-		httpout_sess_flush_close(sess, GF_FALSE);
+		httpout_sess_flush_close(sess, GF_FALSE, GF_TRUE);
 	}
 	sess->last_active_time = gf_sys_clock_high_res();
 	return;
@@ -2389,6 +2398,13 @@ exit:
 			gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Headers", "*");
 		}
 	}
+#ifdef GPAC_HAS_NGTCP2
+	if ((sess->http_type!=GF_SESS_TYPE_HTTP3) && sess->ctx->quic_sock) {
+		char szTmp[100];
+		sprintf(szTmp, "h3=\":%u\"", sess->ctx->quic_port);
+		gf_dm_sess_set_header(sess->http_sess, "Alt-svc", szTmp);
+	}
+#endif
 
 	if (sess->reply_code == 401) {
 		gf_dm_sess_set_header(sess->http_sess, "WWW-Authenticate", "Basic");
@@ -2421,7 +2437,7 @@ exit:
 			if (!sess->buffer) {
 				sess->buffer = gf_malloc(sizeof(u8)*sess->ctx->block_size);
 			}
-			sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
+			sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
 		}
 	}
 
@@ -2433,7 +2449,8 @@ exit:
 		char *body = (sess->body_or_file || sess->cbk_read) ? sess->body_or_file : response_body;
 		gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, body, body ? (u32) strlen(body) : 0, GF_FALSE);
 	}
-	sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
+	sess->http_type = gf_dm_sess_is_hmux(sess->http_sess);
+	if (sess->http_type==GF_SESS_TYPE_HTTP3) sess->blockio = GF_FALSE;
 
 	if (response_body) gf_free(response_body);
 	if (sess->body_or_file) {
@@ -2452,7 +2469,7 @@ exit:
 	}
 
 	if (url) gf_free(url);
-	sess->canceled = GF_FALSE;
+	sess->req_end_type = SESS_END_OK;
 	sess->headers_done = GF_FALSE;
 
 	if ((sess->reply_code>=200) && (sess->reply_code<300)) {
@@ -2464,9 +2481,9 @@ exit:
 	}
 	sess->upload_type = 0;
 
-	httpout_sess_flush_close(sess, GF_FALSE);
+	httpout_sess_flush_close(sess, GF_FALSE, GF_TRUE);
 
-	if (!sess->is_h2 && (sess->ctx->close || (sess->nb_consecutive_errors == sess->ctx->max_client_errors))) {
+	if (!sess->http_type && (sess->ctx->close || (sess->nb_consecutive_errors == sess->ctx->max_client_errors))) {
 		sess->force_destroy = GF_TRUE;
 	} else if (sess->http_sess) {
 		gf_dm_sess_server_reset(sess->http_sess);
@@ -2664,8 +2681,11 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (ctx->hmode==MODE_PUSH) {
 				GF_Err e;
 				u32 flags = GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT|GF_NETIO_SESSION_SHARE_SOCKET;
-				if (!ctx->blockio)
+				if (!ctx->blockio) {
 					flags |= GF_NETIO_SESSION_NO_BLOCK;
+				} else {
+					pctx->blockio = GF_TRUE;
+				}
 
 				//note that ctx_orig->dst might be wrong (eg indicating MPD url rather than segment), but this is fixed in httpout_open_input by resetting up the session
 				//with the correct URL
@@ -2726,13 +2746,78 @@ static void httpout_check_connection(GF_HTTPOutSession *sess)
 	if (e==GF_IP_CONNECTION_CLOSED) {
 		sess->last_active_time = gf_sys_clock_high_res();
 		httpout_mark_session_done(sess);
-		sess->canceled = GF_FALSE;
+		sess->req_end_type = SESS_END_OK;
 		sess->upload_type = 0;
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Client %s disconnected, destroying session\n", sess->peer_address));
 		httpout_close_session(sess, e);
 		return;
 	}
 }
+
+static Bool httpout_accept_connection(GF_HTTPOutCtx *ctx, const char *peer_address, u32 peer_port)
+{
+	//check max connections
+	if (ctx->maxc && (ctx->nb_connections>=ctx->maxc)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Connection rejected due to too many connections\n"));
+		return GF_FALSE;
+	}
+	if (ctx->maxp) {
+		u32 i, nb_conn=0, count = gf_list_count(ctx->sessions);
+		for (i=0; i<count; i++) {
+			GF_HTTPOutSession *sess = gf_list_get(ctx->sessions, i);
+			if (strcmp(sess->peer_address, peer_address)) continue;
+			httpout_check_connection(sess);
+			if (sess->done) continue;
+			nb_conn++;
+		}
+		if (nb_conn>=ctx->maxp) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Connection rejected due to too many connections from peer %s (%d vs max %d)\n", peer_address, nb_conn, ctx->maxp));
+			return GF_FALSE;
+		}
+	}
+	return GF_TRUE;
+}
+
+
+#ifdef GPAC_HAS_NGTCP2
+static Bool on_h3_accept(void *udta, GF_DownloadSession *http_sess, const char *address, u32 port)
+{
+	GF_HTTPOutSession *sess;
+	GF_HTTPOutCtx *ctx = udta;
+	if (!httpout_accept_connection(ctx, address, port))
+		return GF_FALSE;
+
+	GF_SAFEALLOC(sess, GF_HTTPOutSession);
+	if (!sess) return GF_FALSE;
+#ifdef GPAC_HAS_QJS
+	sess->obj = JS_UNDEFINED;
+#endif
+	//we keep track of the socket for sock group (un)register
+	sess->ctx = ctx;
+	sess->last_active_time = gf_sys_clock_high_res();
+	sess->http_type = GF_SESS_TYPE_HTTP3;
+	sess->blockio = GF_FALSE;
+
+	sess->http_sess = http_sess;
+	gf_dm_sess_set_callback(http_sess, httpout_sess_io, sess);
+
+	gf_dm_sess_set_timeout(sess->http_sess, ctx->timeout);
+	ctx->nb_connections++;
+	if (ctx->quit)
+		ctx->had_connections = GF_TRUE;
+
+	gf_list_add(ctx->sessions, sess);
+	gf_list_add(ctx->active_sessions, sess);
+
+	strcpy(sess->peer_address, address);
+	sess->peer_port = port;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Accepting new QUIC connection from %s\n", sess->peer_address));
+	//ask immediate reschedule
+	ctx->next_wake_us = 1;
+	return GF_TRUE;
+}
+#endif
 
 static void httpout_check_new_session(GF_HTTPOutCtx *ctx, GF_Socket *serversock)
 {
@@ -2747,7 +2832,11 @@ check_next_conn:
 	ssl_c = NULL;
 	new_conn = NULL;
 
-	e = gf_sk_accept(serversock, &new_conn);
+	if (serversock == ctx->server_sock_h3) {
+		return;
+	} else {
+		e = gf_sk_accept(serversock, &new_conn);
+	}
 	if (e==GF_IP_NETWORK_EMPTY)
 		return;
 
@@ -2755,31 +2844,16 @@ check_next_conn:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Accept failure %s\n", gf_error_to_string(e) ));
 		return;
 	}
-	//check max connections
-	if (ctx->maxc && (ctx->nb_connections>=ctx->maxc)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Connection rejected due to too many connections\n"));
+	gf_sk_get_remote_address_port(new_conn, peer_address, &peer_port);
+
+	if (!httpout_accept_connection(ctx, peer_address, peer_port)) {
 		gf_sk_del(new_conn);
 		return;
 	}
-	gf_sk_get_remote_address_port(new_conn, peer_address, &peer_port);
-	if (ctx->maxp) {
-		u32 i, nb_conn=0, count = gf_list_count(ctx->sessions);
-		for (i=0; i<count; i++) {
-			sess = gf_list_get(ctx->sessions, i);
-			if (strcmp(sess->peer_address, peer_address)) continue;
-			httpout_check_connection(sess);
-			if (sess->done) continue;
-			nb_conn++;
-		}
-		if (nb_conn>=ctx->maxp) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Connection rejected due to too many connections from peer %s (%d vs max %d)\n", peer_address, nb_conn, ctx->maxp));
-			gf_sk_del(new_conn);
-			return;
-		}
-	}
+
 	GF_SAFEALLOC(sess, GF_HTTPOutSession);
 	if (!sess) {
-		gf_sk_del(new_conn);
+		if (new_conn) gf_sk_del(new_conn);
 		return;
 	}
 #ifdef GPAC_HAS_QJS
@@ -2792,7 +2866,7 @@ check_next_conn:
 	sess->last_active_time = gf_sys_clock_high_res();
 
 #ifdef GPAC_HAS_SSL
-	if (ctx->ssl_ctx
+	if (ctx->ssl_ctx && new_conn
 		&& ((serversock == ctx->server_sock_alt) || !ctx->server_sock_alt)
 	) {
 		ssl_c = gf_ssl_new(ctx->ssl_ctx, new_conn, &e);
@@ -2806,12 +2880,15 @@ check_next_conn:
 #endif
 
 	sess->http_sess = gf_dm_sess_new_server(gf_filter_get_download_manager(ctx->filter), new_conn, ssl_c, httpout_sess_io, sess, !ctx->blockio, &e);
+
 	if (!sess->http_sess) {
-		gf_sk_del(new_conn);
+		if (new_conn) gf_sk_del(new_conn);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Failed to create HTTP server session from %s: %s\n", sess->peer_address, gf_error_to_string(e) ));
 		gf_free(sess);
 		return;
 	}
+	sess->blockio = ctx->blockio;
+
 	gf_dm_sess_set_timeout(sess->http_sess, ctx->timeout);
 	ctx->nb_connections++;
 	if (ctx->quit)
@@ -3080,7 +3157,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to initialize OpenSSL library\n"));
 			return GF_IO_ERR;
 		}
-		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey);
+		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey, GF_FALSE);
 		if (!ctx->ssl_ctx) return GF_IO_ERR;
 
 		if (!ctx->port.vals[0])
@@ -3104,38 +3181,79 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (ctx->hmode==MODE_SOURCE)
 		gf_filter_get_download_manager(ctx->filter);
 
-	ctx->server_sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter) );
-	e = gf_sk_bind(ctx->server_sock, NULL, ctx->port.vals[0], ip, 0, GF_SOCK_REUSE_PORT);
-	if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] failed to start server on port %d: %s\n", ctx->port.vals[0], gf_error_to_string(e) ));
-		return e;
-	}
-	gf_sk_group_register(ctx->sg, ctx->server_sock);
-	gf_sk_server_mode(ctx->server_sock, GF_TRUE);
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Server running on port %d\n", ctx->port.vals[0]));
-	if (ctx->reqlog) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Server running on port %d\n", ctx->port.vals[0]));
-		if (strstr(ctx->reqlog, "REC"))
-			ctx->log_record = GF_TRUE;
+	Bool use_tcp = GF_TRUE;
+#ifdef GPAC_HAS_NGTCP2
+	Bool use_h3 = GF_TRUE;
+	const char *opt = gf_opts_get_key("core", "h3");
+	if (opt && !strcmp(opt, "no")) use_h3 = GF_FALSE;
+	else if (opt && !strcmp(opt, "only")) use_tcp = GF_FALSE;
+	if (!ctx->cert || !ctx->pkey) {
+		use_h3 = GF_FALSE;
+		if (!use_tcp) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] HTTP3 only requested but key/certificate not specified\n"));
+			return GF_BAD_PARAM;
+		}
 	}
 
-	if ((ctx->port.nb_items==2) && ctx->cert && ctx->pkey) {
-		ctx->server_sock_alt = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter) );
-		e = gf_sk_bind(ctx->server_sock_alt, NULL, ctx->port.vals[1], ip, 0, GF_SOCK_REUSE_PORT);
-		if (!e) e = gf_sk_listen(ctx->server_sock_alt, ctx->maxc);
+	if (use_h3) {
+		ctx->ssl_ctx_quic = gf_ssl_server_context_new(ctx->cert, ctx->pkey, GF_TRUE);
+		if (!ctx->ssl_ctx_quic) return GF_IO_ERR;
+
+		u32 q_port = ctx->port.vals[ctx->port.nb_items-1];
+		if (q_port==80) port = 443;
+		e = gf_dm_quic_server_new(gf_filter_get_download_manager(filter), ctx->ssl_ctx_quic, &ctx->quic_sock, ip, q_port, gf_filter_get_netcap_id(filter),
+			on_h3_accept,
+			ctx);
+
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] failed to start server on port %d: %s\n", ctx->port.vals[1], gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] failed to start QUIC server on port %u: %s\n", q_port, gf_error_to_string(e) ));
 			return e;
 		}
-		gf_sk_group_register(ctx->sg, ctx->server_sock_alt);
-		gf_sk_server_mode(ctx->server_sock_alt, GF_TRUE);
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Server running on secondary port %d\n", ctx->port.vals[1]));
+		ctx->server_sock_h3 = gf_dm_quic_get_socket(ctx->quic_sock);
+		ctx->quic_port = q_port;
+		gf_sk_group_register(ctx->sg, ctx->server_sock_h3);
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] QUIC Server running on port %u\n", q_port));
 		if (ctx->reqlog) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Server running on secondary port %d\n", ctx->port.vals[1]));
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] QUIC Server running on port %u\n", q_port));
 		}
 	}
+#endif
+
+	if (use_tcp) {
+		ctx->server_sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter) );
+		e = gf_sk_bind(ctx->server_sock, NULL, ctx->port.vals[0], ip, 0, GF_SOCK_REUSE_PORT);
+		if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] failed to start server on port %u: %s\n", ctx->port.vals[0], gf_error_to_string(e) ));
+			return e;
+		}
+		gf_sk_group_register(ctx->sg, ctx->server_sock);
+		gf_sk_server_mode(ctx->server_sock, GF_TRUE);
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Server running on port %u\n", ctx->port.vals[0]));
+		if (ctx->reqlog) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Server running on port %u\n", ctx->port.vals[0]));
+		}
+
+		if ((ctx->port.nb_items==2) && ctx->cert && ctx->pkey) {
+			ctx->server_sock_alt = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter) );
+			e = gf_sk_bind(ctx->server_sock_alt, NULL, ctx->port.vals[1], ip, 0, GF_SOCK_REUSE_PORT);
+			if (!e) e = gf_sk_listen(ctx->server_sock_alt, ctx->maxc);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] failed to start server on port %d: %s\n", ctx->port.vals[1], gf_error_to_string(e) ));
+				return e;
+			}
+			gf_sk_group_register(ctx->sg, ctx->server_sock_alt);
+			gf_sk_server_mode(ctx->server_sock_alt, GF_TRUE);
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Server running on secondary port %d\n", ctx->port.vals[1]));
+			if (ctx->reqlog) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Server running on secondary port %d\n", ctx->port.vals[1]));
+			}
+		}
+	}
+
+	if (ctx->reqlog && strstr(ctx->reqlog, "REC"))
+		ctx->log_record = GF_TRUE;
 
 #ifdef GPAC_HAS_QJS
 	if (ctx->js) {
@@ -3346,6 +3464,12 @@ static void httpout_finalize(GF_Filter *filter)
 	gf_list_del(ctx->inputs);
 	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
 	if (ctx->server_sock_alt) gf_sk_del(ctx->server_sock_alt);
+#ifdef GPAC_HAS_NGTCP2
+	if (ctx->quic_sock) {
+		gf_dm_quic_server_del(ctx->quic_sock);
+	}
+#endif
+
 	if (ctx->sg) gf_sk_group_del(ctx->sg);
 	if (ctx->ip) gf_free(ctx->ip);
 
@@ -3354,6 +3478,11 @@ static void httpout_finalize(GF_Filter *filter)
 	if (ctx->ssl_ctx) {
 		gf_ssl_server_context_del(ctx->ssl_ctx);
 	}
+#ifdef GPAC_HAS_NGTCP2
+	if (ctx->ssl_ctx_quic) {
+		gf_ssl_server_context_del(ctx->ssl_ctx_quic);
+	}
+#endif
 #endif
 
 
@@ -3460,11 +3589,13 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 static void log_request_done(GF_HTTPOutSession *sess)
 {
 	if (sess->do_log!=1) return;
-	const char *sprefix = sess->is_h2 ? "H2 " : "";
+	const char *sprefix = (sess->http_type==GF_SESS_TYPE_HTTP3) ? "H3" : (sess->http_type ? "H2 " : "");
 
-	if (!sess->socket) {
+	if ((!sess->socket && (sess->http_type!=GF_SESS_TYPE_HTTP3))
+		|| (sess->req_end_type == SESS_END_CLOSE)
+	) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("[HTTPOut] %sREQ#"LLU" %s aborted!\n", sprefix, sess->req_id, get_method_name(sess->method_type)));
-	} else if (sess->canceled) {
+	} else if (sess->req_end_type==SESS_END_CANCEL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("[HTTPOut] %sREQ#"LLU" %s canceled\n", sprefix, sess->req_id, get_method_name(sess->method_type)));
 	} else {
 		char *unit = "bps";
@@ -3480,6 +3611,7 @@ static void log_request_done(GF_HTTPOutSession *sess)
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] %sREQ#"LLU" %s done: reply %d - "LLU" bytes in %d ms at %g %s\n", sprefix, sess->req_id, get_method_name(sess->method_type), sess->reply_code, sess->nb_bytes, (u32) (diff_us/1000), bps, unit));
 	}
+	sess->do_log = 2;
 }
 
 static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HTTPOutSession *sess)
@@ -3524,7 +3656,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			return;
 
 		read = 0;
-		if (sess->canceled) {
+		if (sess->req_end_type) {
 			e = GF_EOS;
 		} else {
 			e = gf_dm_sess_fetch_data(sess->http_sess, sess->buffer, ctx->block_size, &read);
@@ -3572,7 +3704,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		} else if (e==GF_IP_CONNECTION_CLOSED) {
 			sess->last_active_time = gf_sys_clock_high_res();
 			httpout_mark_session_done(sess);
-			sess->canceled = GF_FALSE;
+			sess->req_end_type = SESS_END_OK;
 			sess->upload_type = 0;
 			httpout_close_session(sess, e);
 			log_request_done(sess);
@@ -3583,7 +3715,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			GF_FilterPacket *pck = gf_filter_pck_new_alloc(sess->opid, 0, NULL);
 			if (pck) {
 				gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
-				if (sess->canceled)
+				if (sess->req_end_type)
 					gf_filter_pck_set_corrupted(pck, GF_TRUE);
 
 				gf_filter_pck_send(pck);
@@ -3593,11 +3725,11 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			if (sess->resource) gf_fclose(sess->resource);
 			sess->resource = NULL;
 			//for now we remove any canceled file
-			if (sess->canceled)
+			if (sess->req_end_type)
 				gf_file_delete(sess->path);
 		}
 
-		if (sess->canceled) {
+		if (sess->req_end_type) {
 			log_request_done(sess);
 		} else {
 			char szDate[200];
@@ -3666,7 +3798,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		}
 
 		sess->last_active_time = gf_sys_clock_high_res();
-		sess->canceled = GF_FALSE;
+		sess->req_end_type = SESS_END_OK;
 		sess->upload_type = 0;
 		sess->nb_consecutive_errors = 0;
 
@@ -3683,7 +3815,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			}
 		}
 
-		httpout_sess_flush_close(sess, close_session);
+		httpout_sess_flush_close(sess, close_session, GF_FALSE);
 		return;
 	}
 
@@ -3692,7 +3824,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	if (!sess->headers_done) {
 		//check we have something to read if not http2
 		//if http2, data might have been received on this session while processing another session
-		if (!sess->is_h2 && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
+		if (!sess->http_type && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
 			//session is in progress, reschedule asap
 			if (!sess->done) ctx->next_wake_us = 1;
 			return;
@@ -3731,7 +3863,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	if (!sess->http_sess) return;
 
 	//H2 session, keep on processing inputs
-	if (sess->is_h2
+	if (sess->http_type
 //		&& gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)
 	) {
 		gf_dm_sess_process(sess->http_sess);
@@ -3741,12 +3873,12 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	//associated input directly writes to session
 	if (sess->in_source && !sess->in_source->resource) return;
 
-	if (sess->canceled) {
+	if (sess->req_end_type) {
 		log_request_done(sess);
 		goto session_done;
 	}
 
-	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE)) {
+	if (sess->socket && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE)) {
 		ctx->next_wake_us = 1;
 		return;
 	}
@@ -3851,7 +3983,7 @@ resend:
 			read = (u32) to_read;
 		}
 		//transfer of file being uploaded, use chunk transfer
-		if (!sess->is_h2 && sess->use_chunk_transfer) {
+		if (!sess->http_type && sess->use_chunk_transfer) {
 			char szHdr[100];
 			u32 len;
 			sprintf(szHdr, "%X\r\n", read);
@@ -3872,7 +4004,7 @@ resend:
 			if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_URL_REMOVED)) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Connection to %s for %s closed\n", sess->peer_address, sess->path ? sess->path : sess->req_url));
 				httpout_mark_session_done(sess);
-				sess->canceled = GF_FALSE;
+				sess->req_end_type = SESS_END_CLOSE;
 				httpout_close_session(sess, e);
 				log_request_done(sess);
 				return;
@@ -3882,13 +4014,20 @@ resend:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s for %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->path ? sess->path : sess->req_url, sess->nb_bytes, sess->bytes_in_req));
 
 			//not in progress and we are done, notify (for chunk-transfer or h2) right away
-			if (!file_in_progress && last_range && (remain==read))
+			if (!file_in_progress && last_range && (remain==read)) {
+				if (sess->http_type && (gf_dm_sess_flush_async(sess->http_sess, GF_FALSE)!=GF_OK)) {
+					sess->last_active_time = gf_sys_clock_high_res();
+					ctx->next_wake_us = 1;
+					return;
+				}
 				goto session_done;
+			}
 
 			if (gf_dm_sess_flush_async(sess->http_sess, GF_FALSE)==GF_OK) {
 				goto resend;
 			}
 		}
+		ctx->next_wake_us=1;
 		return;
 	}
 	//file not done yet ...
@@ -3910,10 +4049,15 @@ session_done:
 		close_session = GF_TRUE;
 
 	if (!sess->done) {
-		if (!sess->is_h2 && sess->use_chunk_transfer) {
+		if (!sess->http_type && sess->use_chunk_transfer) {
 			gf_dm_sess_send(sess->http_sess, "0\r\n\r\n", 5);
 		} else {
 			gf_dm_sess_send(sess->http_sess, NULL, 0);
+
+			if (gf_dm_sess_flush_async(sess->http_sess, GF_FALSE)==GF_IP_NETWORK_EMPTY) {
+				sess->last_active_time = gf_sys_clock_high_res();
+				return;
+			}
 		}
 		if (sess->resource) gf_fclose(sess->resource);
 		sess->resource = NULL;
@@ -3926,13 +4070,13 @@ session_done:
 		}
 
 		//keep resource active
-		sess->canceled = GF_FALSE;
+		sess->req_end_type = SESS_END_OK;
 
-		httpout_sess_flush_close(sess, close_session);
+		httpout_sess_flush_close(sess, close_session, GF_FALSE);
 		return;
 	}
 	if (close_session) {
-		httpout_close_session(sess, sess->canceled ? GF_URL_REMOVED : GF_OK);
+		httpout_close_session(sess, sess->req_end_type ? GF_URL_REMOVED : GF_OK);
 	} else {
 		if (sess->cbk_close)
 			sess->cbk_close(sess->rt_udta, GF_EOS);
@@ -3961,11 +4105,11 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 
 	GF_DownloadSession *sess = for_llhas ? in->llhas_upload : in->upload;
 	//flush async/h2 in case we have pending data
-	GF_Err e = gf_dm_sess_flush_async(sess, GF_TRUE);
+	GF_Err e = gf_dm_sess_flush_close(sess);
 	if (!e)
 		e = gf_dm_sess_process(sess);
 	if (e) {
-		if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
+		if (!in->blockio && (e==GF_IP_NETWORK_EMPTY)) {
 			res = GF_FALSE;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to close output %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
@@ -4090,9 +4234,10 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (is_fake) return GF_TRUE;
 
 		in->is_open = GF_TRUE;
+		//only for CTE disabled in HTTP1
 		if (check_no_open && (in->llhas_mode==GF_LLHAS_SUBSEG)) {
 			in->flush_open = GF_FALSE;
-			in->is_h2 = GF_FALSE;
+			in->http_type = GF_SESS_TYPE_HTTP;
 			in->skip_resource = SKIP_RES_PUSH;
 			return GF_TRUE;
 		}
@@ -4105,7 +4250,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 			in->cur_header = 0;
 			e = gf_dm_sess_process(in->upload);
 		}
-		if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
+		if (!in->blockio && (e==GF_IP_NETWORK_EMPTY)) {
 			in->flush_open = GF_TRUE;
 			e = GF_OK;
 		}
@@ -4116,7 +4261,8 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 			if (orig_path) gf_free(orig_path);
 			return GF_FALSE;
 		}
-		in->is_h2 = gf_dm_sess_is_h2(in->upload);
+		in->http_type = gf_dm_sess_is_hmux(in->upload);
+		if (in->http_type == GF_SESS_TYPE_HTTP3) in->blockio = GF_FALSE;
 		if (is_delete) {
 			httpout_close_upload(ctx, in, GF_FALSE);
 			//restore path before delete for LLHAS setup
@@ -4260,7 +4406,7 @@ static void httpout_close_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	in->llhas_is_open = GF_FALSE;
 	//close prev session
-	if (!in->is_h2 && in->use_cte) {
+	if ((in->http_type==GF_SESS_TYPE_HTTP) && in->use_cte) {
 		e = gf_dm_sess_send(in->llhas_upload, "0\r\n\r\n", 5);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending EOF of LLHAS part %s: %s\n", in->llhas_url, gf_error_to_string(e) ));
@@ -4284,7 +4430,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	if (in->upload) {
 		GF_Err e;
-		if (!in->is_h2 && in->use_cte && !in->skip_resource) {
+		if ((in->http_type==GF_SESS_TYPE_HTTP) && in->use_cte && !in->skip_resource) {
 			e = gf_dm_sess_send(in->upload, "0\r\n\r\n", 5);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk to %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
@@ -4349,14 +4495,14 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				if (sess->in_source != in) continue;
 				//if we sent bytes, flush - otherwise session has just started
 				if (sess->nb_bytes) {
-					if (!sess->is_h2 && in->use_cte)
+					if (!sess->http_type && in->use_cte)
 						gf_dm_sess_send(sess->http_sess, "0\r\n\r\n", 5);
 
 					//signal we're done sending the body
 					gf_dm_sess_send(sess->http_sess, NULL, 0);
 
 					//flush session
-					httpout_sess_flush_close(sess, GF_FALSE);
+					httpout_sess_flush_close(sess, GF_FALSE, GF_FALSE);
 				}
 			}
 		}
@@ -4374,7 +4520,7 @@ static Bool httpout_open_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, ch
 		in->llhas_cur_header = 0;
 		e = gf_dm_sess_process(in->llhas_upload);
 	}
-	if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
+	if (!in->blockio && (e==GF_IP_NETWORK_EMPTY)) {
 		in->flush_llhas_open = GF_TRUE;
 		e = GF_OK;
 	}
@@ -4407,7 +4553,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 		u32 nb_retry = 0;
 		out = pck_size;
 
-		if (!in->is_h2 && in->use_cte) {
+		if ((in->http_type==GF_SESS_TYPE_HTTP) && in->use_cte) {
 			sprintf(szChunkHdr, "%X\r\n", pck_size);
 			chunk_hdr_len = (u32) strlen(szChunkHdr);
 		}
@@ -4425,7 +4571,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[HTTPOut] Writing %u bytes to output %s\n", pck_size, loc_path));
 
 retry:
-			if (!in->is_h2 && in->use_cte) {
+			if ((in->http_type==GF_SESS_TYPE_HTTP) && in->use_cte) {
 				e = gf_dm_sess_send(up_sess, szChunkHdr, chunk_hdr_len);
 				e |= gf_dm_sess_send(up_sess, (u8 *) pck_data, pck_size);
 				e |= gf_dm_sess_send(up_sess, "\r\n", 2);
@@ -4517,7 +4663,7 @@ retry:
 			if (sess->done) continue;
 
 			if (sess->send_init_data && in->tunein_data_size && !sess->file_in_progress) {
-				if (!sess->is_h2 && in->use_cte) {
+				if (!sess->http_type && in->use_cte) {
 					char szHdrInit[100];
 					sprintf(szHdrInit, "%X\r\n", in->tunein_data_size);
 					u32 len_hdr = (u32) strlen(szHdrInit);
@@ -4539,7 +4685,7 @@ retry:
 			/*source is not read from disk, write data*/
 			else {
 				GF_Err e;
-				if (!sess->is_h2 && in->use_cte) {
+				if (!sess->http_type && in->use_cte) {
 					if (!chunk_hdr_len) {
 						sprintf(szChunkHdr, "%X\r\n", pck_size);
 						chunk_hdr_len = (u32) strlen(szChunkHdr);
@@ -4599,10 +4745,10 @@ static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 		if (sess->file_in_progress) continue;
 		//direct stream write, check if ready
 
-		if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE))
+		if (sess->socket && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE))
 			continue;
 		nb_ready++;
-		//data still pending, flush. If flush not full, check how many btes are still pending
+		//data still pending, flush. If flush not full, check how many bytes are still pending
 		if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE)==GF_IP_NETWORK_EMPTY) {
 			//decide what to do if one source is not reading fast enough
 			u32 bytes_pending = gf_dm_sess_async_pending(sess->http_sess);
@@ -4752,7 +4898,7 @@ next_pck:
 			}
 			if (!no_cte_flush) {
 				nb_nopck++;
-				ctx->next_wake_us = 100;
+				ctx->next_wake_us = 1000;
 				//test mode, don't destroy too early
 				if (ctx->hold && gf_sys_is_test_mode() && (gf_list_count(ctx->sessions)==1))
 					ctx->next_wake_us = 50000;
@@ -4879,8 +5025,8 @@ next_pck:
 			//disable start since this setup for this output is already done done
 			skip_start = GF_TRUE;
 			//in case we had an upgrade
-			if (!in->is_h2)
-				in->is_h2 = gf_dm_sess_is_h2(in->upload);
+			in->http_type = gf_dm_sess_is_hmux(in->upload);
+			if (in->http_type == GF_SESS_TYPE_HTTP3) in->blockio = GF_FALSE;
 		}
 		//we are waiting for LLHAS open ack - this means that we already processed open for this packet (always before LLHAS), disable start
 		if (in->flush_llhas_open) {
@@ -5009,7 +5155,7 @@ next_pck:
 
 			if (!in->llhas_upload) {
 				u32 flags = GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT;
-				if (!ctx->blockio)
+				if (!in->blockio)
 					flags |= GF_NETIO_SESSION_NO_BLOCK;
 
 				in->llhas_upload = gf_dm_sess_new(gf_filter_get_download_manager(ctx->filter), ctx->dst, flags, httpout_in_io_llhas, in, &e);
@@ -5192,7 +5338,7 @@ packet_done:
 		if (end) {
 			httpout_close_input(ctx, in);
 		}
-		if (!ctx->blockio && in->upload && gf_dm_sess_async_pending(in->upload))
+		if (!in->blockio && in->upload && gf_dm_sess_async_pending(in->upload))
 			continue;
 
 		goto next_pck;
@@ -5237,19 +5383,24 @@ static GF_Err httpout_process(GF_Filter *filter)
 	ctx->next_wake_us = 50000;
 
 	e = gf_sk_group_select(ctx->sg, 10, GF_SK_SELECT_BOTH);
-	if ((e==GF_OK) && ctx->server_sock) {
+	if ((e==GF_OK) && (ctx->server_sock||ctx->server_sock_h3)) {
 		//server mode, check pending connections
-		if (gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock, GF_SK_SELECT_READ)) {
+		if (ctx->server_sock && gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock, GF_SK_SELECT_READ)) {
 			httpout_check_new_session(ctx, ctx->server_sock);
 		}
 		if (ctx->server_sock_alt && gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock_alt, GF_SK_SELECT_READ)) {
 			httpout_check_new_session(ctx, ctx->server_sock_alt);
 		}
 
+#ifdef GPAC_HAS_NGTCP2
+		if (ctx->server_sock_h3 && gf_sk_group_sock_is_set(ctx->sg, ctx->server_sock_h3, GF_SK_SELECT_READ)) {
+			gf_dm_quic_process(ctx->quic_sock);
+		}
+#endif
 		count = gf_list_count(ctx->active_sessions);
 		for (i=0; i<count; i++) {
 			GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
-			if ((sess->flush_close && !httpout_sess_flush_close(sess, GF_FALSE))
+			if ((sess->flush_close && !httpout_sess_flush_close(sess, GF_FALSE, GF_FALSE))
 #ifdef GPAC_HAS_QJS
 				|| (sess->async_pending==1)
 #endif
@@ -5294,10 +5445,14 @@ static GF_Err httpout_process(GF_Filter *filter)
 	} else if ((e==GF_IP_NETWORK_EMPTY) && gf_list_count(ctx->active_sessions)) {
 		ctx->next_wake_us = 1;
 	}
+#ifdef GPAC_HAS_NGTCP2
+	if (gf_dm_quic_verify(ctx->quic_sock)==GF_OK)
+		ctx->next_wake_us = 1;
+#endif
 
 	httpout_process_inputs(ctx);
 
-	if (ctx->timeout && ctx->server_sock) {
+	if (ctx->timeout && (ctx->server_sock||ctx->server_sock_h3)) {
 		u32 nb_active=0;
 		count = gf_list_count(ctx->active_sessions);
 		for (i=0; i<count; i++) {
@@ -5400,7 +5555,7 @@ static Bool httpout_use_alias(GF_Filter *filter, const char *url, const char *mi
 		return GF_FALSE;
 	}
 	len = (u32) (sep - url);
-	if (!strncmp(ctx->dst, url, len)) return GF_TRUE;
+	if (ctx->dst && !strncmp(ctx->dst, url, len)) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -5485,6 +5640,8 @@ GF_FilterRegister HTTPOutRegister = {
 		"When a single read directory is specified, the server root `/` is the content of this directory.\n"
 		"When multiple read directories are specified, the server root `/` contains the list of the mount points with their directory names.\n"
 		"When a write directory is specified, the upload resource name identifies a file in this directory (the write directory name is not present in the URL).\n"
+		"  \n"
+		"Warning: files uploaded / created in the write directory are always created in non-atomic modes.\n"
 		"  \n"
 		"A directory rule file (cf `gpac -h creds`) can be specified in [-rdirs]() but NOT in [-wdir](). When rules are used:\n"
 		"- if a directory has a `name` rule, it will be used in the URL\n"

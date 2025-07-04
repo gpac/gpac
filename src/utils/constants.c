@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -506,7 +506,7 @@ const char *gf_stream_type_short_name(u32 streamType)
 		if (GF_StreamTypes[i].st == streamType)
 			return GF_StreamTypes[i].sname;
 	}
-	return "unkn";
+	return "unknown";
 }
 
 GF_EXPORT
@@ -2848,4 +2848,50 @@ const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100])
 	int frame_digits = (tc->max_fps >= 100.0) ? 3 : 2;
 	snprintf(szTimecode, 99, "%02d:%02d:%02d%c%0*d", tc->hours, tc->minutes, tc->seconds, tc->drop_frame ? ';' : '.', frame_digits, tc->n_frames);
 	return szTimecode;
+}
+
+GF_EXPORT
+u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale)
+{
+	if (!timescale) timescale = 1;
+	u64 res = (u64) tc->hours * 3600 + (u64) tc->minutes * 60 + (u64) tc->seconds;
+	res *= timescale;
+	res += gf_timestamp_rescale(tc->n_frames, gf_ceil(tc->max_fps), timescale);
+	return res;
+}
+
+#define TIMECODE_COMPARE(_op) \
+	if (value1->hours != value2->hours) return value1->hours _op value2->hours; \
+	if (value1->minutes != value2->minutes) return value1->minutes _op value2->minutes; \
+	if (value1->seconds != value2->seconds) return value1->seconds _op value2->seconds; \
+	return value1->n_frames _op value2->n_frames;
+
+GF_EXPORT
+Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(<)
+}
+
+GF_EXPORT
+Bool gf_timecode_less_or_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(<=)
+}
+
+GF_EXPORT
+Bool gf_timecode_greater(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(>)
+}
+
+GF_EXPORT
+Bool gf_timecode_greater_or_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(>=)
+}
+
+GF_EXPORT
+Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(==)
 }

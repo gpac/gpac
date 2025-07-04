@@ -39,10 +39,10 @@ static void sha256_endian_reverse64(u64 input, u8 *output) {
 
 static u32 sha256_endian_read32(u8 *input) {
     u32 output = 0;
-    output |= (input[0] << 24);
-    output |= (input[1] << 16);
-    output |= (input[2] << 8);
-    output |= (input[3] << 0);
+    output |= (((u32)input[0]) << 24);
+    output |= (((u32)input[1]) << 16);
+    output |= (((u32)input[2]) << 8);
+    output |= (((u32)input[3]) << 0);
 
     return output;
 }

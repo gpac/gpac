@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Romain Bouqueau, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 IVF/OBU/annexB reframer filter
@@ -112,6 +112,8 @@ typedef struct
 
 	u32 clli_crc, mdcv_crc;
 	Bool copy_props;
+
+	GF_SEILoader *sei_loader;
 } GF_AV1DmxCtx;
 
 
@@ -139,6 +141,8 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		if (ctx->sei_loader)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
 	}
 
 	//if source has no timescale, recompute time
@@ -172,6 +176,10 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	}
 
 	ctx->is_av1 = ctx->is_vp9 = ctx->is_iamf = GF_FALSE;
+	if (ctx->sei_loader) {
+		gf_sei_loader_del(ctx->sei_loader);
+		ctx->sei_loader = NULL;
+	}
 	ctx->codecid = 0;
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 	ctx->vp_cfg = NULL;
@@ -202,6 +210,8 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		case GF_4CC('A', 'V', '0', '1'):
 			ctx->is_av1 = GF_TRUE;
 			ctx->codecid = GF_CODECID_AV1;
+			if (!ctx->sei_loader) ctx->sei_loader = gf_sei_loader_new();
+			gf_sei_init_from_av1(ctx->sei_loader, &ctx->state);
 			break;
 		case GF_4CC('V', 'P', '9', '0'):
 			ctx->is_vp9 = GF_TRUE;
@@ -248,7 +258,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		return GF_OK;
 	}
 
-        ctx->codecid = 0;
+	ctx->codecid = 0;
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	if (p && (p->value.uint!=GF_CODECID_AV1)) {
 		switch (p->value.uint) {
@@ -309,6 +319,8 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	ctx->is_av1 = GF_TRUE;
 	ctx->state.unframed = GF_TRUE;
 	ctx->codecid = GF_CODECID_AV1;
+	if (!ctx->sei_loader) ctx->sei_loader = gf_sei_loader_new();
+	gf_sei_init_from_av1(ctx->sei_loader, &ctx->state);
 	return GF_OK;
 }
 
@@ -619,39 +631,6 @@ static GFINLINE void av1dmx_update_cts(GF_AV1DmxCtx *ctx)
 	}
 }
 
-static void av1dmx_set_mdcv(GF_AV1DmxCtx *ctx, GF_FilterPid *pid, GF_FilterPacket *pck)
-{
-	u32 i;
-	u64 val;
-	u8 rw_mdcv[24];
-	GF_BitStream *bs_r = gf_bs_new(ctx->state.mdcv_data, 24, GF_BITSTREAM_READ);
-	GF_BitStream *bs_w = gf_bs_new(rw_mdcv, 24, GF_BITSTREAM_WRITE);
-
-	//3x{display_primaries_x, display_primaries_y} + whitePoint_x + whitePoint_y
-	//translate from AV1 representation 0.16 float to MPEG in increments of 0.00002 (1/50000)
-	for (i=0; i<8; i++) {
-		val = gf_bs_read_u16(bs_r);
-		val = (50000 * val) / 65536;
-		gf_bs_write_u16(bs_w, (u32) val);
-	}
-	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
-	val = gf_bs_read_u32(bs_r);
-	val = (10000 * val) / 256;
-	gf_bs_write_u32(bs_w, (u32) val);
-
-	//min_display_mastering_luminance: 18.14 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
-	val = gf_bs_read_u32(bs_r);
-	val = (10000 * val) / 16384;
-	gf_bs_write_u32(bs_w, (u32) val);
-	gf_bs_del(bs_r);
-	gf_bs_del(bs_w);
-
-	if (pid) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(rw_mdcv, 24));
-	} else if (pck) {
-		gf_filter_pck_set_property(pck, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(rw_mdcv, 24));
-	}
-}
 static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	u8 *dsi;
@@ -722,7 +701,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		while (gf_list_count(ctx->iamfstate.frame_state.descriptor_obus)) {
 			GF_IamfObu *a = (GF_IamfObu*) gf_list_get(ctx->iamfstate.frame_state.descriptor_obus, 0);
 			gf_list_add(ctx->iamfstate.config->configOBUs, a);
-			ctx->iamfstate.config->configOBUs_size += a->obu_length;
+			ctx->iamfstate.config->configOBUs_size += (u32) a->obu_length;
 			gf_list_rem(ctx->iamfstate.frame_state.descriptor_obus, 0);
 		}
 
@@ -747,11 +726,13 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->is_iamf) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_AUDIO));
 		if(ctx->iamfstate.pre_skip > 0) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY,  &PROP_LONGSINT(-ctx->iamfstate.pre_skip));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY,  &PROP_LONGSINT(- (s64)ctx->iamfstate.pre_skip));
 		}
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	}
+	if (ctx->sei_loader)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
 	if (!ctx->timescale) {
@@ -800,13 +781,17 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->state.color_range) );
 
 
-		if (ctx->state.clli_valid) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(ctx->state.clli_data, 4));
-			ctx->clli_crc = gf_crc_32(ctx->state.clli_data, 4);
+		if (ctx->state.sei.clli_valid) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(ctx->state.sei.clli_data, 4));
+			ctx->clli_crc = gf_crc_32(ctx->state.sei.clli_data, 4);
+			ctx->state.sei.clli_valid = 0;
 		}
-		if (ctx->state.mdcv_valid) {
-			av1dmx_set_mdcv(ctx, ctx->opid, NULL);
-			ctx->mdcv_crc = gf_crc_32(ctx->state.mdcv_data, 24);
+		if (ctx->state.sei.mdcv_valid) {
+			u8 rw_mdcv[24];
+			gf_av1_format_mdcv_to_mpeg(ctx->state.sei.mdcv_data, rw_mdcv);
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(rw_mdcv, 24));
+			ctx->mdcv_crc = gf_crc_32(ctx->state.sei.mdcv_data, 24);
+			ctx->state.sei.mdcv_valid = 0;
 		}
 
 	}
@@ -1071,7 +1056,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
                 }
 		if (ctx->iamfstate.frame_state.num_samples_to_trim_at_end > 0) {
 			u64 trimmed_duration = ctx->iamfstate.num_samples_per_frame - ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
-			gf_filter_pck_set_duration(pck, trimmed_duration);
+			gf_filter_pck_set_duration(pck, (u32) trimmed_duration);
 		}
 	} else {
 		memcpy(output, ctx->state.frame_obus, pck_size);
@@ -1090,18 +1075,8 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	 	gf_filter_pck_set_dependency_flags(pck, flags);
 	}
 
-	if (ctx->state.clli_valid) {
-		u32 crc = gf_crc_32(ctx->state.clli_data, 4);
-		if (crc != ctx->clli_crc) {
-			gf_filter_pck_set_property(pck, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(ctx->state.clli_data, 4));
-		}
-	}
-	if (ctx->state.mdcv_valid) {
-		u32 crc = gf_crc_32(ctx->state.mdcv_data, 24);
-		if (crc != ctx->mdcv_crc) {
-			av1dmx_set_mdcv(ctx, NULL, pck);
-		}
-	}
+	if (ctx->sei_loader)
+		gf_sei_load_from_state(ctx->sei_loader, pck);
 
 	gf_filter_pck_send(pck);
 
@@ -1186,7 +1161,7 @@ GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	e = av1dmx_parse_flush_sample(filter, ctx);
-	ctx->state.clli_valid = ctx->state.mdcv_valid = 0;
+	ctx->state.sei.clli_valid = ctx->state.sei.mdcv_valid = 0;
 	return e;
 }
 
@@ -1428,6 +1403,8 @@ static void av1dmx_finalize(GF_Filter *filter)
 	if (ctx->iamfstate.config) gf_odf_ia_cfg_del(ctx->iamfstate.config);
 	if (ctx->iamfstate.bs) gf_bs_del(ctx->iamfstate.bs);
 	if (ctx->iamfstate.temporal_unit_obus) gf_free(ctx->iamfstate.temporal_unit_obus);
+	if (ctx->sei_loader)
+		gf_sei_loader_del(ctx->sei_loader);
 }
 
 static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -1516,23 +1493,30 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterCapability AV1DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ivf|obu|av1b|av1|iamf"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1|audio/iamf"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ivf|obu|av1b|av1"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AV1),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP8),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP9),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP10),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_IAMF),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AV1),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VP8),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VP9),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VP10),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "obu|iamf"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/iamf"),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_IAMF),
+	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_IAMF),
 	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };

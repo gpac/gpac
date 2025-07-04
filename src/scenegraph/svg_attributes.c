@@ -5741,18 +5741,32 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 #if USE_GF_PATH
 static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 {
+	if (!b)
+		return GF_BAD_PARAM;
+
 	if (a->contours) gf_free(a->contours);
 	if (a->points) gf_free(a->points);
 	if (a->tags) gf_free(a->tags);
 
-	a->contours = (u32 *)gf_malloc(sizeof(u32)*b->n_contours);
-	a->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*b->n_points);
-	a->tags = (u8 *) gf_malloc(sizeof(u8)*b->n_points);
-	memcpy(a->contours, b->contours, sizeof(u32)*b->n_contours);
-	a->n_contours = b->n_contours;
-	memcpy(a->points, b->points, sizeof(GF_Point2D)*b->n_points);
-	memcpy(a->tags, b->tags, sizeof(u8)*b->n_points);
-	a->n_alloc_points = a->n_points = b->n_points;
+	memset(a, 0, sizeof(SVG_PathData));
+
+	if (b->contours && b->n_contours) {
+		a->contours = (u32 *)gf_malloc(sizeof(u32)*b->n_contours);
+		memcpy(a->contours, b->contours, sizeof(u32)*b->n_contours);
+		a->n_contours = b->n_contours;
+	}
+
+	if (b->points && b->n_points) {
+		a->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*b->n_points);
+		memcpy(a->points, b->points, sizeof(GF_Point2D)*b->n_points);
+		a->n_alloc_points = a->n_points = b->n_points;
+	}
+
+	if (b->tags && b->n_points) {
+		a->tags = (u8 *) gf_malloc(sizeof(u8)*b->n_points);
+		memcpy(a->tags, b->tags, sizeof(u8)*b->n_points);
+	}
+
 	a->flags = b->flags;
 	a->bbox = b->bbox;
 	a->fineness = b->fineness;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -493,7 +493,7 @@ struct __gf_filter_session
 
 	GF_List *parsed_args;
 
-	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
+	char sep_args, sep_name, sep_frag, sep_list, sep_neg, sep_link;
 	char *blacklist;
 	Bool init_done;
 
@@ -704,6 +704,7 @@ struct __gf_filter
 	volatile u32 detach_pid_tasks_pending;
 	volatile u32 nb_shared_packets_out;
 	volatile u32 abort_pending;
+	volatile u32 pid_rem_packet_pending;
 	GF_List *postponed_packets;
 
 	//list of blacklisted filtered registries
@@ -1197,7 +1198,7 @@ GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter 
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst, Bool check_reconfig_only);
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
-Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, s16 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
 
 void gf_filter_relink_dst(GF_FilterPidInst *pidinst, GF_Err reason);
 
@@ -1244,9 +1245,9 @@ typedef struct
 	u16 dst_cap_idx;
 	u8 weight;
 	u8 status;
-	u8 priority;
 	u8 loaded_filter_only;
-	u32 disabled_depth;
+	s16 priority;
+
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
 	// 0 if not specified
@@ -1263,7 +1264,7 @@ typedef struct __freg_desc
 	struct __freg_desc *destination;
 	u32 cap_idx;
 	GF_BundleCache *bundle_cache;
-	u8 priority;
+	s16 priority;
 	u8 in_edges_enabling;
 	u8 has_input; //cache value of gf_filter_has_in_caps
 	u8 has_output; //cache value of gf_filter_has_out_caps

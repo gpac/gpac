@@ -4,9 +4,18 @@ cd /d %~dp0
 
 IF NOT EXIST .\.git\NUL GOTO not_git
 
-for /f "delims=" %%a in ('git describe --tags --long') do @set VERSION=%%a
-for /f "delims=" %%a in ('git describe --tags --abbrev^=0') do @set TAG=%%a-
+for /f "delims=" %%a in ('git describe --tags --long --match "v*" ') do @set VERSION=%%a
+for /f "delims=" %%a in ('git describe --tags --abbrev^=0 --match "v*" ') do @set TAG=%%a-
 for /f "delims=" %%a in ('git rev-parse --abbrev-ref HEAD') do @set BRANCH=%%a
+
+REM sanitize BRANCH for filename
+set "BRANCH=%BRANCH:/=-%"
+set "BRANCH=%BRANCH:"=-%"
+set "BRANCH=%BRANCH:<=-%"
+set "BRANCH=%BRANCH:>=-%"
+set "BRANCH=%BRANCH:|=-%"
+set "BRANCH=%BRANCH:@=-%"
+
 REM remove anotated tag from VERSION
 setlocal enabledelayedexpansion
 call set VERSION=%%VERSION:!TAG!=%%
@@ -26,9 +35,9 @@ goto done
 
 :not_git
 echo "not a git dir"
-find /c "-DEV" include\gpac\version.h >nul 
+find /c "-DEV" include\gpac\version.h >nul
 if %errorlevel% equ 1 goto rel_tag
-echo "unknwon tag"
+echo "unknown tag"
 @echo off
 echo #define GPAC_GIT_REVISION "UNKNOWN_REV" > test.h
 goto write_file
@@ -43,4 +52,3 @@ goto write_file
 :done
 cd /d %OLDDIR%
 exit/b
-

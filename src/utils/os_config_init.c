@@ -1521,8 +1521,10 @@ GF_GPACArg GPAC_Args[] = {
  "- f=K: drop first `n` packets every `K`\n"
  "- d=K: reorder `n` packets after the next `K` packets, can be used with `f` or `r` rules\n"
  "- p=K: filter packets on port `K` only, if not set the rule applies to all packets\n"
- "- o=K: patch packet instead of droping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
+ "- o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
  "- v=K: set patch byte value to `K` (hexa) or negative value for random (default)\n"
+ "- S=K: same as `s` but adds number of capture file reload/loop\n"
+ "- E=K: same as `e` but adds number of capture file reload/loop\n"
  "\nEX -netcap=dst=dump.gpc\n"
  "This will record packets to dump.gpc\n"
  "\nEX -netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp\n"
@@ -1562,8 +1564,20 @@ GF_GPACArg GPAC_Args[] = {
 
 #ifdef GPAC_HAS_CURL
  GF_DEF_ARG("curl", NULL, "use CURL instead of GPAC HTTP stack", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("no-h3", NULL, "disable HTTP3 (CURL only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
+
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_CURL)
+ GF_DEF_ARG("h3", NULL, "set HTTP/3 mode\n"
+			"- no: disable HTTP/3\n"
+			"- first: force trying first with HTTP/3\n"
+			"- auto: connect using HTTP 1 or 2 and use HTTP/3 for next request(s) if announced\n"
+			"- only: only use HTTP/3", "auto", "no|first|auto|only", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+#endif
+
+#ifdef GPAC_HAS_NGTCP2
+ GF_DEF_ARG("h3-trace", NULL, "trace QUIC and HTTP3", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+#endif
+
 
  GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status(disable_depth), weight, src_cap_idx -> dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("full-link", NULL, "throw error if any PID in the filter graph cannot be linked", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),

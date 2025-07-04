@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -477,14 +477,22 @@ static void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	pid->removed = GF_TRUE;
 
 	//filter still active and has no input, check if there are no more output pids valid. If so, remove filter
-	if (!gf_list_count(filter->input_pids) && !filter->finalized) {
+	if (!gf_list_count(filter->input_pids) && !filter->finalized
+		//make sure we don't have any remove pid packets pending
+		&& !filter->pid_rem_packet_pending
+	) {
 		u32 i, nb_opid_rem=0;
 		for (i=0; i<filter->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(filter->output_pids, i);
 			if (apid->removed) nb_opid_rem++;
 		}
 		if (gf_list_count(filter->output_pids)==nb_opid_rem) {
-			gf_filter_post_remove(filter);
+			//filter is being watched by another filter for setup error (and potentially other tasks), do not delete but mark as disabled
+			if (filter->on_setup_error) {
+				filter->disabled = GF_FILTER_DISABLED;
+			} else {
+				gf_filter_post_remove(filter);
+			}
 		}
 	}
 
@@ -1354,21 +1362,33 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 
-	if (!task->filter->removed)
+	//note that a filter can be marked as removed but PID not yet removed (when disconnecting a chain)
+	//we need to disconnect it in this case
+	if (!task->filter->removed || !task->pid->pid->removed)
 		gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
 
 	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
-	if (task->filter->removed && !task->filter->finalized && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
-		Bool direct_mode = task->filter->session->direct_mode;
-		gf_filter_post_remove(task->filter);
-		if (direct_mode) {
-			gf_mx_v(task->filter->tasks_mx);
-			//release filter removal prevention on both source and destination
-			safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
-			safe_int_dec(&task->filter->detach_pid_tasks_pending);
-			task->filter = NULL;
-			return;
+	if (task->filter->removed
+		&& !task->filter->finalized
+		&& !gf_list_count(task->filter->output_pids)
+		&& !gf_list_count(task->filter->input_pids)
+		//make sure we don't have any remove pid packets pending
+		&& !task->filter->pid_rem_packet_pending
+	) {
+		if (task->filter->on_setup_error) {
+			task->filter->disabled = GF_FILTER_DISABLED;
+		} else {
+			Bool direct_mode = task->filter->session->direct_mode;
+			gf_filter_post_remove(task->filter);
+			if (direct_mode) {
+				gf_mx_v(task->filter->tasks_mx);
+				//release filter removal prevention on both source and destination
+				safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+				safe_int_dec(&task->filter->detach_pid_tasks_pending);
+				task->filter = NULL;
+				return;
+			}
 		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
@@ -1995,19 +2015,30 @@ sourceid_reassign:
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
 						char *frag_sep = strchr(frag_name, dst_filter->session->sep_name);
 						gf_assert(frag_sep);
+						u32 frag_sep_len = (u32) (frag_sep-frag_name+1);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
 						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
-						u32 clen = (u32) (1+frag_sep - sid);
+						u32 clen = (u32) sublen + frag_sep_len + 1;
 						strncpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
 						strcat(new_source_ids, prop_dump_buffer);
 						if (next_frag) strcat(new_source_ids, next_frag);
 
-						if (resolved_source_ids) gf_free(resolved_source_ids);
+						if (resolved_source_ids) {
+
+							// avoid infinte loop if new_source_ids has not changed
+							if ( !strcmp(resolved_source_ids, new_source_ids) ) {
+								gf_free(new_source_ids);
+								break;
+							}
+
+							gf_free(resolved_source_ids);
+						}
 						resolved_source_ids = new_source_ids;
 						if (frag_clone) gf_free(frag_clone);
 						goto sourceid_reassign;
+
 					}
 				}
 				else {
@@ -2123,7 +2154,7 @@ static Bool cap_code_match(u32 c1, u32 c2)
 }
 
 
-Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegister *freg, GF_Filter *filter_inst, s16 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -2134,6 +2165,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	Bool mime_matched = GF_FALSE;
 	Bool has_file_ext_cap = GF_FALSE;
 	Bool ext_not_trusted;
+	Bool is_fake = GF_FALSE;
 	GF_FilterPid *src_pid = src_pid_or_ipid->pid;
 	const GF_FilterCapability *in_caps;
 	u32 nb_in_caps;
@@ -2184,10 +2216,18 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	if (!in_caps)
 		return GF_TRUE;
 
+
+	const GF_PropertyValue *p = gf_filter_pid_get_property(src_pid_or_ipid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean) {
+		is_fake = GF_TRUE;
+	}
+
 	//check all input caps of dst filter
 	for (i=0; i<nb_in_caps; i++) {
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &in_caps[i];
+		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
+		Bool has_cap_fake = GF_FALSE;
 
 		/*end of cap bundle*/
 		if (i && !(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
@@ -2226,6 +2266,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		nb_subcaps++;
 		//no match for this cap, go on until new one or end
 		if (!all_caps_matched) continue;
+
+		if (is_fake && (cap->code==GF_PROP_PID_FAKE)) has_cap_fake = GF_TRUE;
 
 		if (cap->code) {
 			pid_cap = gf_filter_pid_get_property_first(src_pid_or_ipid, cap->code);
@@ -2285,6 +2327,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 			//this could be optimized by not checking several times the same cap
 			for (j=0; j<nb_in_caps; j++) {
 				const GF_FilterCapability *a_cap = &in_caps[j];
+				if (a_cap->flags & GF_CAPFLAG_RECONFIG) break;
 
 				if ((j>cur_bundle_start) && ! (a_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 					break;
@@ -2344,6 +2387,8 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		) {
 			all_caps_matched=GF_FALSE;
 		}
+
+		if (is_fake && !has_cap_fake) all_caps_matched = GF_FALSE;
 	}
 
 	if (has_file_ext_cap && ext_not_trusted && !mime_matched)
@@ -2363,6 +2408,7 @@ u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps)
 	u32 i, nb_bundles = 0, num_in_bundle=0;
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
+		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
 		if (! (cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			if (num_in_bundle) nb_bundles++;
 			num_in_bundle=0;
@@ -2436,6 +2482,8 @@ static GF_BundleDesc *caps_load_bundle(const GF_FilterRegister *freg, u32 b_idx,
 		const GF_FilterCapability *a_cap = &caps[0];
 		u32 cap_flags = a_cap->flags;
 		caps++;
+		if (cap_flags & GF_CAPFLAG_RECONFIG) break;
+
 		//move to next bundle
 		if (!(cap_flags & GF_CAPFLAG_IN_BUNDLE)) {
 			cur_idx++;
@@ -2734,7 +2782,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 GF_EXPORT
 Bool gf_filter_pid_check_caps(GF_FilterPid *_pid)
 {
-	u8 priority;
+	s16 priority;
 	Bool res;
 	GF_Filter *on_filter;
 	if (PID_IS_OUTPUT(_pid)) return GF_FALSE;
@@ -2777,6 +2825,7 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 		u32 nb_caps = 0;
         u32 cap_bundle_idx = 0;
 		const GF_FilterCapability *cap = &freg->caps[i];
+		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			cur_bundle_idx++;
 			if (cur_bundle_idx>bundle_idx) return GF_FALSE;
@@ -2789,6 +2838,7 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 
 		for (k=0; k<freg->nb_caps; k++) {
 			const GF_FilterCapability *acap = &freg->caps[k];
+			if (acap->flags & GF_CAPFLAG_RECONFIG) break;
             if (!(acap->flags & GF_CAPFLAG_IN_BUNDLE)) {
                 cap_bundle_idx++;
                 continue;
@@ -2863,7 +2913,6 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 		//if source is not edge origin and edge is only valid for explicitly loaded filters, disable edge
 		if (edge->loaded_filter_only && (edge->src_reg->freg != pid->filter->freg) ) {
 			edge->status = EDGE_STATUS_DISABLED;
-			edge->disabled_depth = rlevel+1;
 			continue;
 		}
 
@@ -2907,7 +2956,6 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 
 			} else {
 				edge->status = EDGE_STATUS_DISABLED;
-				edge->disabled_depth = rlevel+1;
 				continue;
 			}
 		}
@@ -2925,7 +2973,6 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 		//otherwise the subgraph doesn't match our source reg, mark as disaled and never test again
 		else if (res==0) {
 			edge->status = EDGE_STATUS_DISABLED;
-			edge->disabled_depth = rlevel+1;
 		}
 	}
 	reg_desc->in_edges_enabling = 0;
@@ -3185,7 +3232,7 @@ void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkst
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", reg_dst->freg->name));
 	for (i=0; i<reg_dst->nb_edges; i++) {
 		GF_FilterRegEdge *edge = &reg_dst->edges[i];
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d(%d),%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->disabled_depth, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 
@@ -3196,7 +3243,7 @@ void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkst
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", rdesc->freg->name));
 		for (j=0; j<rdesc->nb_edges; j++) {
 			GF_FilterRegEdge *edge = &rdesc->edges[j];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d(%d),%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->disabled_depth, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d,%d,%d->%d)", edge->src_reg->freg->name, edge->status, edge->weight, edge->src_cap_idx, edge->dst_cap_idx));
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\n"));
 	}
@@ -3244,7 +3291,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	//1: select all eligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
 	count = gf_list_count(fsess->links);
 	for (i=0; i<count; i++) {
-		u32 j;
+		u32 j, reg_flags;
 		Bool disable_filter = GF_FALSE;
 		Bool reconf_only = reconfigurable_only;
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
@@ -3255,6 +3302,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		if (check_codec_id_raw) {
 			Bool has_raw_out=GF_FALSE, has_non_raw_in=GF_FALSE;
 			for (j=0; j<freg->nb_caps; j++) {
+				if (freg->caps[j].flags & GF_CAPFLAG_RECONFIG)
+					break;
 				if (!(freg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE))
 					continue;
 				if (freg->caps[j].code!=GF_PROP_PID_CODECID) continue;
@@ -3283,23 +3332,23 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		if (freg == pid->filter->freg)
 			result = reg_desc;
 
+		//if reconfigure onlu (pid prop adaptation), check filter even if explicit only
+		reg_flags = freg->flags;
+		if (reconf_only && freg->reconfigure_output)
+			reg_flags &= ~GF_FS_REG_EXPLICIT_ONLY;
+
 		//don't add source filters except if PID is from source
 		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
 			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//freg shall be instantiated
-		else if ((freg->flags & (GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
+		else if ((reg_flags & (GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
 			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//no output caps, cannot add
 		else if ((freg != dst->freg) && !reg_desc->has_output) {
-			disable_filter = GF_TRUE;
-		}
-		//we only want reconfigurable output filters
-		else if (reconf_only && !freg->reconfigure_output && (freg != dst->freg)) {
-			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//blacklisted filter
@@ -3316,12 +3365,44 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
+		//we only want reconfigurable output filters
+		else if (reconf_only && (freg != dst->freg)) {
+			if (!freg->reconfigure_output || !pid->caps_negotiate)
+				disable_filter = GF_TRUE;
+			else {
+				u32 idx=0;
+				Bool all_match = GF_TRUE;
+				//check all negotiated caps, and make sure they are supported by the filter
+				while (1) {
+					u32 j, p4cc;
+					const char *pname;
+					const GF_PropertyValue * p = gf_props_enum_property(pid->caps_negotiate, &idx, &p4cc, &pname);
+					if (!p) break;
+					j=0;
+					Bool found=GF_FALSE;
+					for (j=0; j<freg->nb_caps; j++) {
+						const GF_FilterCapability *cap = &freg->caps[j];
+						if (! (cap->flags & GF_CAPFLAG_RECONFIG)) continue;
+						if ((cap->code == p4cc)
+							|| (cap->name && pname && !strcmp(cap->name, pname))
+						) {
+							found = GF_TRUE;
+							break;
+						}
+					}
+					if (!found) {
+						all_match = GF_FALSE;
+					}
+				}
+				if (!all_match)
+					disable_filter = GF_TRUE;
+			}
+		}
 
 		//reset edge status
 		for (j=0; j<reg_desc->nb_edges; j++) {
 			GF_FilterRegEdge *edge = &reg_desc->edges[j];
 
-			edge->disabled_depth = 0;
 			if (disable_filter) {
 				edge->status = EDGE_STATUS_DISABLED;
 				continue;
@@ -3330,7 +3411,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 			//connection from source, disable edge if pid caps mismatch
 			if (edge->src_reg->freg == pid->filter->freg) {
-				u8 priority=0;
+				s16 priority=0;
 				u32 dst_bundle_idx;
 				//check path weight for the given dst cap - we MUST give the target cap otherwise we might get a default match to another cap
 				path_weight = gf_filter_pid_caps_match(pid, freg, NULL, &priority, &dst_bundle_idx, pid->filter->dst_filter, edge->dst_cap_idx);
@@ -3386,7 +3467,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 		//connection from source, disable edge if pid caps mismatch
 		if (edge->src_reg->freg == pid->filter->freg) {
-			u8 priority=0;
+			s16 priority=0;
 			u32 dst_bundle_idx;
 			path_weight = gf_filter_pid_caps_match(pid, dst->freg, dst, &priority, &dst_bundle_idx, pid->filter->dst_filter, -1);
 			if (!path_weight) {
@@ -3506,7 +3587,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 		//compute distances
 		for (i=0; i<current_node->nb_edges; i++) {
-			u8 priority=0;
+			s16 priority=0;
 			GF_FilterRegEdge *redge = &current_node->edges[i];
 			u32 dist;
 			Bool do_switch = GF_FALSE;
@@ -3798,6 +3879,9 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			cur_bundle = 0;
 			for (k=0; k<freg->nb_caps; k++) {
 				cap = &freg->caps[k];
+				if (cap->flags & GF_CAPFLAG_RECONFIG)
+					break;
+
 				if (cur_bundle==bundle_idx) {
 					cap_idx = k;
 					break;
@@ -3871,6 +3955,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (dst_is_sink) {
 				for (u32 cidx=0; cidx<freg->nb_caps; cidx++) {
 					const GF_FilterCapability *a_cap = &freg->caps[cidx];
+					if (a_cap->flags & GF_CAPFLAG_RECONFIG) break;
 					if (!(a_cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
 					if (!(a_cap->flags & GF_CAPFLAG_OUTPUT)) continue;
 					if (a_cap->flags & GF_CAPFLAG_EXCLUDED) continue;
@@ -4635,6 +4720,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_Filter *dynamic_filter_clone = NULL;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
 	Bool possible_link_found_implicit_mode = GF_FALSE;
+	Bool is_fake = GF_FALSE;
 	u32 pid_is_file = 0;
 	const char *filter_id;
 
@@ -4669,6 +4755,11 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		const GF_PropertyValue *st = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 		if (st && (st->value.uint==GF_STREAM_FILE))
 			pid_is_file = 1;
+	}
+
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	if (p && p->value.boolean) {
+		is_fake = GF_TRUE;
 	}
 
 	//get filter ID:
@@ -5222,6 +5313,8 @@ single_retry:
 		//we have a match, check if caps are OK
 		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
 
+		if (!cap_matched && is_fake) continue;
+
 		//dst filter forces demuxing, pid is file and caps matched, do not test and do not activate link resolution
 		//if can_try_link_resolution is still false at end of pass one, we will insert a reframer
 		if (cap_matched && filter_dst->force_demux && pid_is_file) {
@@ -5230,6 +5323,15 @@ single_retry:
 			continue;
 		}
 		else if (cap_matched && !pid->filter->dynamic_filter && (filter_dst->force_demux==2) && (pid_is_file!=1)) {
+			pid_is_file = 2;
+			continue;
+		}
+		//a connection to a sink dst has already been made requiring a filter chain and this pid is from a source filter
+		//we force demultiplexing - this avoids (see #3207) the following:
+		//gpac -i HTTP1 -i HTTP2 -o HTPOUT/live.mpd
+		//in which case HTTP2->httpout could match directly as httpout can accept any FILE connection
+		else if (is_sink && cap_matched && (filter_dst->force_demux==3) && !pid->filter->num_input_pids
+		) {
 			pid_is_file = 2;
 			continue;
 		}
@@ -5426,6 +5528,10 @@ single_retry:
 					continue;
 				}
 			}
+
+			//demux was needed on a filter using alias (httpout, routeout, ...), force a demux for all further resolution
+			if (is_sink && !filter_dst->force_demux && filter_dst->freg->use_alias)
+				filter_dst->force_demux = 3;
 
 			//in implicit link, if target is not here push it (we have no SID/FID to solve that later)
 			if ((filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)
@@ -5649,6 +5755,12 @@ single_retry:
 		pid->is_sparse = 0;
 	}
 
+	if (is_fake) {
+		pid->not_connected = 1;
+		gf_filter_pid_set_eos(pid);
+		safe_int_dec(&pid->init_task_pending);
+		return;
+	}
 	GF_FilterEvent evt;
 	if (filter_found_but_pid_excluded) {
 		//PID was not included in explicit connection lists
@@ -5710,7 +5822,7 @@ single_retry:
 			GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, 0);
 			if (!pidi->pid) break;
 			gf_fs_post_disconnect_task(filter->session, pid->filter, pidi->pid);
-			if (pidi->pid->filter->num_input_pids==1) {
+			if ((pidi->pid->filter->num_input_pids==1) && (pidi->pid->filter->num_output_pids==1)) {
 				pid = pidi->pid;
 				continue;
 			}
@@ -6590,6 +6702,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 		is_internal = GF_TRUE;
 	} else if (ctype == GF_PCK_CMD_PID_REM) {
 		safe_int_dec(&pidi->filter->session->remove_tasks);
+		safe_int_dec(&pidi->pid->filter->pid_rem_packet_pending);
 		gf_fs_post_disconnect_task(pidi->filter->session, pidi->filter, pidi->pid);
 
 		is_internal = GF_TRUE;
@@ -7777,6 +7890,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		//update number of playing/paused pids
 		for (i=0; i<pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			if (!pidi) continue;
 			if (pidi->is_playing) nb_playing++;
 			if (pidi->is_paused) nb_paused++;
 		}
@@ -8538,6 +8652,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	}
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	safe_int_inc(&pid->filter->session->remove_tasks);
+	safe_int_inc(&pid->filter->pid_rem_packet_pending);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_REM;
 	gf_filter_pck_send(pck);
 }
@@ -8717,6 +8832,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 		}
 		for (k=dst->cap_idx_at_resolution; k<dst->freg->nb_caps; k++) {
 			const GF_FilterCapability *cap = &dst->freg->caps[k];
+			if (cap->flags & GF_CAPFLAG_RECONFIG) return NULL;
 			if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) return NULL;
 
 			if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;

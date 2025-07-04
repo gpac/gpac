@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2024
+ *			Copyright (c) Telecom ParisTech 2010-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -887,9 +887,15 @@ setup_multicast_clock:
 
 				dyn_period->duration = dur;
 
-				size_t seg_url_len = strlen(seg_url);
+				size_t seg_url_len = seg_url ? strlen(seg_url) : 0;
+				sep = seg_url ? strstr(seg_url, "9876") : NULL;
+				//check last occurence
+				while (sep && seg_url) {
+					char *sep2 = strstr(sep+4, "9876");
+					if (sep2) sep = sep2;
+					else break;
+				}
 
-				sep = seg_url ? strstr(seg_url, "987") : NULL;
 				if (!sep) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Failed to resolve template for segment #9876 on rep #%d\n", j+1));
 					if (seg_url) gf_free(seg_url);
@@ -6760,11 +6766,12 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:ssr:2023") ) {
 				group->has_ssr = 1;
 			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:adaptation-set-switching:2016") ) {
+			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:ColourPrimaries") ) {
+			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:TransferCharacteristics") ) {
+			} else if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:MatrixCoefficients") ) {
 			} else {
-				//we don't know any defined scheme for now
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));
-				disabled = 1;
-				break;
+				//we still load this as we could be use for anything but playback - we let the client decide
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty %s\n", mpd_desc->scheme_id_uri));
 			}
 		}
 		if (disabled) {
@@ -10759,6 +10766,10 @@ u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx)
 	}
 
 	while ((mpd_desc=gf_list_enum(l, &i))) {
+
+		if (!mpd_desc->scheme_id_uri || !mpd_desc->value)
+			continue;
+
 		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011")) {
 			return atoi(mpd_desc->value);
 		}

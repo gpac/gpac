@@ -81,7 +81,8 @@ typedef struct
 	char *dst, *mime, *ffmt, *ext;
 	Double start, speed;
 	u32 block_size;
-	Bool nodisc, ffiles, noinit, keepts;
+	Bool nodisc, ffiles, noinit, keepts, proto;
+	u32 psleep;
 	GF_Fraction ileave;
 
 	AVFormatContext *muxer;
@@ -112,6 +113,10 @@ typedef struct
 #else
 	AVPacket *pkt;
 #endif
+
+	//for protocol-only caps override
+	GF_FilterCapability proto_caps[3];
+	u32 pck_offset;
 } GF_FFMuxCtx;
 
 static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -351,6 +356,43 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	if (sep && strchr(sep+1, '$'))
 		use_templates = GF_TRUE;
 
+	if (ctx->proto) {
+		//special mode: open protocol and bypass muxer
+		AVDictionary *opts = NULL;
+		int ret = avio_open2(&ctx->avio_ctx, url, AVIO_FLAG_WRITE|AVIO_FLAG_NONBLOCK|AVIO_FLAG_DIRECT, NULL, &opts);
+		av_dict_free(&opts);
+		if (ret < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to open protocol URL %s, cannot run\n", url));
+			return GF_SERVICE_ERROR;
+		}
+
+		u32 cap_idx=1;
+		ctx->proto_caps[0].code = GF_PROP_PID_STREAM_TYPE;
+		ctx->proto_caps[0].val = PROP_UINT(GF_STREAM_FILE);
+		ctx->proto_caps[0].flags = GF_CAPS_INPUT_STATIC;
+		if (ctx->mime) {
+			ctx->proto_caps[1].code = GF_PROP_PID_MIME;
+			ctx->proto_caps[1].val = PROP_STRING(ctx->mime);
+			ctx->proto_caps[1].flags = GF_CAPS_INPUT_STATIC;
+			cap_idx++;
+		}
+		const char *fmt = ctx->ext;
+		if (!fmt && !ctx->mime) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[FFMux] Format not specified, defaulting to MPEG-2 TS - try setting `ext=` to set GPAC mux format\n", ctx->dst));
+			fmt = "ts";
+		}
+		if (fmt) {
+			ctx->proto_caps[cap_idx].code = GF_PROP_PID_FILE_EXT;
+			ctx->proto_caps[cap_idx].val = PROP_STRING(fmt);
+			ctx->proto_caps[cap_idx].flags = GF_CAPS_INPUT_STATIC;
+			cap_idx++;
+		}
+
+		gf_filter_override_caps(filter, ctx->proto_caps, cap_idx);
+		gf_filter_set_max_extra_input_pids(filter, 0);
+		return GF_OK;
+	}
+
 	ofmt = av_guess_format(ctx->ext ? ctx->ext : ctx->ffmt, url, ctx->mime);
 	//if protocol is present, we may fail at guessing the format
 	if (!ofmt && !ctx->ffmt) {
@@ -364,7 +406,13 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 		if (len>19) len=19;
 		strncpy(szProto, url, len);
 		szProto[len] = 0;
-		ofmt = av_guess_format(szProto, url, ctx->mime);
+		if (strncpy(szProto, "srt", len)) {
+			ofmt = av_guess_format("mpegts", url, ctx->mime);
+		} else if (strncpy(szProto, "rtmp", len)) {
+			ofmt = av_guess_format("flv", url, ctx->mime);
+		} else {
+			ofmt = av_guess_format(szProto, url, ctx->mime);
+		}
 	}
 	if (!ofmt) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to guess output format for %s, cannot run\n", ctx->dst));
@@ -499,20 +547,20 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 	}
 	ctx->muxer->pb->seekable = 0;
 
-    if (ctx->muxer->oformat->priv_class && ctx->muxer->priv_data)
-        av_opt_set(ctx->muxer->priv_data, "mpegts_flags", "+resend_headers", 0);
+	if (ctx->muxer->oformat->priv_class && ctx->muxer->priv_data)
+		av_opt_set(ctx->muxer->priv_data, "mpegts_flags", "+resend_headers", 0);
 
-    if (ctx->ffiles) {
-        AVDictionary *options = NULL;
-        av_dict_copy(&options, ctx->options, 0);
-        av_dict_set(&options, "fflags", "-autobsf", 0);
-        res = avformat_write_header(ctx->muxer, &options);
+	if (ctx->ffiles) {
+		AVDictionary *options = NULL;
+		av_dict_copy(&options, ctx->options, 0);
+		av_dict_set(&options, "fflags", "-autobsf", 0);
+		res = avformat_write_header(ctx->muxer, &options);
 		if (options) av_dict_free(&options);
-        if (res < 0) {
+		if (res < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to configure segment %s - error %s\n", seg_name, av_err2str(res) ));
 			return GF_IO_ERR;
 		}
-    }
+	}
 	ctx->status = FFMX_STATE_HDR_DONE;
 	return GF_OK;
 }
@@ -690,12 +738,67 @@ static void ffmx_inject_webvtt(GF_FilterPacket *ipck, AVPacket *pkt)
 	}
 }
 
-
 static GF_Err ffmx_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
 	u32 nb_done, nb_segs_done, nb_suspended, i, nb_pids = gf_filter_get_ipid_count(filter);
+
+	if (ctx->proto) {
+		//special protocol mode: bypass muxer
+		for (i=0; i<nb_pids; i++) {
+			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+			while (1) {
+				GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
+				if (!ipck) {
+					if (gf_filter_pid_is_eos(ipid)) {
+						avio_flush(ctx->avio_ctx);
+						if (ctx->psleep) {
+							gf_filter_ask_rt_reschedule(filter, ctx->psleep*1000);
+							ctx->psleep = 0;
+							return GF_OK;
+						}
+						return GF_EOS;
+					}
+					break;
+				}
+
+				int size = 0;
+				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
+				u32 to_write = size - ctx->pck_offset;
+				if (to_write > ctx->avio_ctx->buffer_size)
+					to_write = ctx->avio_ctx->buffer_size;
+
+				avio_write(ctx->avio_ctx, data + ctx->pck_offset, to_write);
+
+				if (ctx->avio_ctx->error == AVERROR(EAGAIN)) {
+					ctx->avio_ctx->error = 0;
+					ctx->avio_ctx->eof_reached = 0;
+					gf_filter_ask_rt_reschedule(filter, 1000);
+					return GF_OK;
+				}
+				if (ctx->avio_ctx->eof_reached) {
+					gf_filter_pid_drop_packet(ipid);
+					gf_filter_abort(filter);
+					return GF_EOS;
+				}
+				if (ctx->avio_ctx->error) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[FFMX] Write error %s - aborting\n", av_err2str(ctx->avio_ctx->error)));
+					gf_filter_abort(filter);
+					return GF_IO_ERR;
+				}
+				//it looks like ctx->avio_ctx->error is handled internally in FFMpeg
+				//so a reset here would not trigger an error an the next call
+
+				ctx->pck_offset += to_write;
+				if (ctx->pck_offset == size) {
+					ctx->pck_offset = 0;
+					gf_filter_pid_drop_packet(ipid);
+				}
+			}
+		}
+		return GF_OK;
+	}
 
 	if (ctx->status<FFMX_STATE_HDR_DONE) {
 		Bool all_ready = GF_TRUE;
@@ -952,14 +1055,14 @@ static GF_Err ffmx_process(GF_Filter *filter)
 
 //dovi_meta.h not exported in old releases, just redefine
 typedef struct {
-    u8 dv_version_major;
-    u8 dv_version_minor;
-    u8 dv_profile;
-    u8 dv_level;
-    u8 rpu_present_flag;
-    u8 el_present_flag;
-    u8 bl_present_flag;
-    u8 dv_bl_signal_compatibility_id;
+	u8 dv_version_major;
+	u8 dv_version_minor;
+	u8 dv_profile;
+	u8 dv_level;
+	u8 rpu_present_flag;
+	u8 el_present_flag;
+	u8 bl_present_flag;
+	u8 dv_bl_signal_compatibility_id;
 } Ref_FFAVDoviRecord;
 
 
@@ -1000,11 +1103,26 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_NOT_SUPPORTED;
 	}
 
+	const AVCodec *c = NULL;
+	Bool stream_ready = GF_TRUE;
+	codec_id = GF_CODECID_NONE;
+
+	if (ctx->proto) {
+		if (streamtype!=GF_STREAM_FILE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Cannot use proto with non-file format (got %s)\n", gf_stream_type_name(streamtype)));
+			return GF_NOT_SUPPORTED;
+		}
+		ff_st = 0;
+		ff_codec_id = 0;
+		check_disc = GF_FALSE;
+		goto setup_stream;
+	}
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
 	codec_id = p->value.uint;
 
-	Bool stream_ready = GF_TRUE;
+	stream_ready = GF_TRUE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!p) {
 		//we must wait for decoder config to be present for these codecs
@@ -1115,8 +1233,10 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_NOT_SUPPORTED;
 	}
 
-	const AVCodec *c = avcodec_find_decoder(ff_codec_id);
+	c = avcodec_find_decoder(ff_codec_id);
 	if (!c) return GF_NOT_SUPPORTED;
+
+setup_stream:
 
 	if (!st) {
 		GF_FilterEvent evt;
@@ -1133,6 +1253,11 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "FFMux");
 		gf_filter_pid_send_event(pid, &evt);
+		if (ctx->proto) {
+			st->ready = GF_TRUE;
+			ctx->status = FFMX_STATE_TRAILER_DONE;
+			return GF_OK;
+		}
 	}
 	st->ready =  stream_ready;
 
@@ -1386,8 +1511,8 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			data->min_luminance.num = gf_bs_read_u32(bs);
 			data->min_luminance.den = luma_den;
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (u8*) data, sizeof(AVMasteringDisplayMetadata));
-    	}
-    	gf_bs_del(bs);
+		}
+		gf_bs_del(bs);
 	}
 	//dolby vision
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
@@ -1461,7 +1586,7 @@ static void ffmx_finalize(GF_Filter *filter)
 	gf_list_del(ctx->streams);
 	if (ctx->avio_ctx) {
 		if (ctx->avio_ctx->buffer) av_freep(&ctx->avio_ctx->buffer);
-		av_freep(&ctx->avio_ctx);
+		avio_context_free(&ctx->avio_ctx);
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
 	return;
@@ -1537,6 +1662,11 @@ GF_FilterRegister FFMuxRegister = {
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
 		"\n"
 		"All PID properties prefixed with `meta:` will be added as metadata.\n"
+		"\n"
+		"The [-proto]() flag will disable FFmpeg muxer and use GPAC instead. Default format is MPEG-2 TS and can be specified using [-ext]() or [-mime]().\n"
+		"EX gpac -i SRC -o srt://127.0.0.1:1234:gpac:proto[:ext=mp4:frag]"
+		"This will use the SRT protocol handler but GPAC m2ts multiplexer or mp4 muxer if `ext=mp4:frag` is set\n"
+		"\n"
 	)
 	.private_size = sizeof(GF_FFMuxCtx),
 	SETCAPS(FFMuxCaps),
@@ -1568,6 +1698,9 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepts), "do not shift input timeline back to 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(proto), "use protocol only: do not try to mux (useful when sending a SRT stream with remuxing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(psleep), "in protocol only mode, sleep for given amount of ms before EOS (do not kill connection right away for some protocols)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{ OFFS(ext), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes (see `gpac -hx ffmx` and `gpac -hx ffmx:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}

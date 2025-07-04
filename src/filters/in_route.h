@@ -162,8 +162,6 @@ struct _route_repair_seg_info
 	TSI_Output *tsio;
 	//set to true if repair session is over but kept in list for TSIO reordering purposes
 	Bool done;
-	//if true this is a local repair, otherwise an http base one
-	Bool local_repair;
 };
 
 

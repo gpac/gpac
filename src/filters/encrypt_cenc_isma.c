@@ -1660,11 +1660,9 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 					clear_bytes = nal_size;
 				}
 			}
-
 		} else if (cstr->cenc_codec==CENC_HEVC) {
 			u8 ntype, ntid, nlid;
 			cstr->hevc_state->full_slice_header_parse = GF_TRUE;
-//			gf_hevc_parse_nalu(samp_data + nal_start, nal_size, cstr->hevc_state, &ntype, &ntid, &nlid);
 			gf_hevc_parse_nalu_bs(plaintext_bs, cstr->hevc_state, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
 				clear_bytes = cstr->hevc_state->s_info.payload_start_offset - nal_start;
@@ -1674,7 +1672,6 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 		} else if (cstr->cenc_codec==CENC_VVC) {
 			u8 ntype, ntid, nlid;
 			cstr->vvc_state->parse_mode = 1;
-//			gf_vvc_parse_nalu(samp_data + nal_start, nal_size, cstr->vvc_state, &ntype, &ntid, &nlid);
 			gf_vvc_parse_nalu_bs(plaintext_bs, cstr->vvc_state, &ntype, &ntid, &nlid);
 			if (ntype <= GF_VVC_NALU_SLICE_GDR) {
 				clear_bytes = cstr->vvc_state->s_info.payload_start_offset - nal_start;

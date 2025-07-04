@@ -40,8 +40,8 @@ cp $source_path/COPYING ./tmpdmg
 mkdir -p tmpdmg/GPAC.app/Contents/MacOS/modules
 mkdir -p tmpdmg/GPAC.app/Contents/MacOS/lib
 
-cp bin/gcc/gm* tmpdmg/GPAC.app/Contents/MacOS/modules
-cp bin/gcc/gf_* tmpdmg/GPAC.app/Contents/MacOS/modules
+cp bin/gcc/gm* tmpdmg/GPAC.app/Contents/MacOS/modules || true
+cp bin/gcc/gf_* tmpdmg/GPAC.app/Contents/MacOS/modules || true
 cp bin/gcc/libgpac.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
 if [ -f bin/gcc/libopenhevc.1.dylib ]; then
     cp bin/gcc/libopenhevc.1.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
@@ -80,10 +80,14 @@ version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut 
 
 cur_dir=`pwd`
 cd $source_path
-TAG=$(git describe --tags --abbrev=0 2> /dev/null)
-REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
+TAG=$(git describe --tags --abbrev=0 --match "v*"  2> /dev/null)
+REVISION=$(echo `git describe --tags --long --match "v*"  2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
-rev="$REVISION-$BRANCH"
+
+#sanitize branch name for filenames
+DHBRANCH=$(echo "$BRANCH" | sed 's/[^-+.0-9a-zA-Z~]/-/g' )
+
+rev="$REVISION-$DHBRANCH"
 cd $cur_dir
 
 full_version=$version
@@ -121,5 +125,3 @@ chmod 755 $pck_name
 echo "$pck_name ready"
 rm -rf tmpdmg
 rm -rf tmppkg.pkg
-
-

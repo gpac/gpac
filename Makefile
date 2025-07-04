@@ -23,13 +23,16 @@ config.mak:
 
 
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
-TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 2> /dev/null)
-VERSION:=$(shell echo `git --git-dir=$(SRC_PATH)/.git describe --tags --long  || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
+TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 --match "v*" 2> /dev/null)
+VERSION:=$(shell echo `git --git-dir=$(SRC_PATH)/.git describe --tags --long --match "v*" || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
 BRANCH:=$(shell git --git-dir=$(SRC_PATH)/.git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+
+# strip illegal debian version string characters + illegal filename charachers
+DHBRANCH:=$(shell echo "$(BRANCH)" | sed 's/[^-+.0-9a-zA-Z~]/-/g' )
 
 version:
 	@if [ -d $(SRC_PATH)/".git" ]; then \
-		echo "#define GPAC_GIT_REVISION	\"$(VERSION)-$(BRANCH)\"" > $(GITREV_PATH).new; \
+		echo "#define GPAC_GIT_REVISION	\"$(VERSION)-$(DHBRANCH)\"" > $(GITREV_PATH).new; \
 		if ! diff -q $(GITREV_PATH) $(GITREV_PATH).new >/dev/null ; then \
 			mv $(GITREV_PATH).new  $(GITREV_PATH); \
 		fi; \
@@ -103,6 +106,8 @@ ifeq ($(UNIT_TESTS),yes)
 	@if [ -e $(UT_CFG_PATH).h ]; then \
 		if ! diff -q $(UT_CFG_PATH).h $(UT_CFG_PATH).h.new >/dev/null ; then \
 			mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
+		else \
+			rm $(UT_CFG_PATH).h.new; \
 		fi; \
 	else \
 		mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
@@ -348,9 +353,6 @@ dmg:
 endif
 
 ifeq ($(CONFIG_LINUX),yes)
-
-# strip illegal debian version string characters
-DHBRANCH:=$(shell echo "$(BRANCH)" | sed 's/[^-+:.0-9a-zA-Z~]/-/g' )
 
 deb:
 	git checkout --	debian/changelog

@@ -554,6 +554,10 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 {
 	XMLRI *iri;
 	char *text, *sep, *sep2, *cur;
+	if (!l) {
+		lsr->last_error = GF_BAD_PARAM;
+		return;
+	}
 	while (gf_list_count(l)) {
 		char *str = (char *)gf_list_last(l);
 		gf_list_rem_last(l);
@@ -646,12 +650,14 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 			len = lsr_read_vluimsbf5(lsr, "len");
 			if (len > gf_bs_available(lsr->bs)) {
 				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+				if (s) { gf_free(s); }
 				return;
 			}
 			len_rad = s ? (u32) strlen(s) : 0;
 			iri->string = (char*)gf_malloc(sizeof(char)*(len_rad+1+len+1));
 			if (!iri->string) {
 				lsr->last_error = GF_OUT_OF_MEM;
+				if (s) { gf_free(s); }
 				return;
 			}
 
@@ -780,7 +786,7 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 		XMLRI *href = (XMLRI *)gf_list_get(lsr->deferred_hrefs, i);
 		char *str_id = href ? href->string : NULL;
 		if (!str_id) return;
-		
+
 		if (str_id[0] == '#') str_id++;
 		/*skip 'N'*/
 		str_id++;
@@ -888,7 +894,7 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 
 static Fixed lsr_translate_scale(GF_LASeRCodec *lsr, u32 val)
 {
-	if (val >> (lsr->coord_bits-1) ) {
+	if (lsr && lsr->coord_bits && val >> (lsr->coord_bits-1) ) {
 		s32 neg;
 		if (lsr->coord_bits >= 31)
 			neg = (s32)val - 0x80000000;

@@ -67,6 +67,7 @@ static Bool dump_graph = GF_FALSE;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
+static Bool loop_if_error = GF_FALSE;
 static s32 runfor = 0;
 static Bool runfor_exit = GF_FALSE;
 static Bool runfor_fast = GF_FALSE;
@@ -494,65 +495,6 @@ static void run_sess(void)
 }
 #endif
 
-static GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
-{
-	char *link_prev_filter_ext = NULL;
-	GF_Filter *link_from;
-	Bool reverse_order = GF_FALSE;
-	s32 link_filter_idx = -1;
-
-	if (!filter) {
-		u32 idx=0, count = gf_list_count(loaded_filters);
-		if (!ext_link || !count) return GF_BAD_PARAM;
-		ext_link[0] = 0;
-		if (link[1] == separator_set[SEP_LINK]) {
-			idx = atoi(link+2);
-		} else {
-			idx = atoi(link+1);
-			if (count - 1 < idx) return GF_BAD_PARAM;
-			idx = count-1-idx;
-		}
-		ext_link[0] = separator_set[SEP_LINK];
-		filter = gf_list_get(loaded_filters, idx);
-		link = ext_link;
-	}
-
-	char *ext = strchr(link, separator_set[SEP_FRAG]);
-	if (ext) {
-		ext[0] = 0;
-		link_prev_filter_ext = ext+1;
-	}
-	if (strlen(link)>1) {
-		if (link[1] == separator_set[SEP_LINK] ) {
-			reverse_order = GF_TRUE;
-			link++;
-		}
-		link_filter_idx = 0;
-		if (strlen(link)>1) {
-			link_filter_idx = get_u32(link+1, "Link filter index");
-			if (link_filter_idx < 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
-				return GF_BAD_PARAM;
-			}
-		}
-	} else {
-		link_filter_idx = 0;
-	}
-	if (ext) ext[0] = separator_set[SEP_FRAG];
-
-	if (reverse_order)
-		link_from = gf_list_get(loaded_filters, link_filter_idx);
-	else
-		link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
-
-	if (!link_from) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
-		return GF_BAD_PARAM;
-	}
-	gf_filter_set_source(filter, link_from, link_prev_filter_ext);
-	return GF_OK;
-}
-
 #ifndef GPAC_CONFIG_ANDROID
 static
 #endif
@@ -575,6 +517,7 @@ int gpac_main(int _argc, char **_argv)
 	//bools
 	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
 	runfor_exit = runfor_fast = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
+	loop_if_error = GF_FALSE;
 	//s32
 	nb_loops = runfor = 0;
 	//u32
@@ -986,8 +929,9 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-wfx")) {
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
-		} else if (!strcmp(arg, "-sloop")) {
+		} else if (!strcmp(arg, "-sloop") || !strcmp(arg, "-eloop")) {
 			nb_loops = -1;
+			if (!strcmp(arg, "-eloop")) loop_if_error = GF_TRUE;
 			if (arg_val) nb_loops = get_s32(arg_val, "sloop");
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*get_u32(arg_val, "runfor");
@@ -1045,7 +989,7 @@ int gpac_main(int _argc, char **_argv)
 			if (alias_val) alias_val[0] = ' ';
 			alias_set = GF_TRUE;
 		}
-		else if (!strncmp(arg, "-seps", 5)) {
+		else if (!strncmp(arg, "-seps", 6)) {
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
@@ -1417,7 +1361,7 @@ restart:
 					next_sep = strchr(arg+1, separator_set[SEP_LINK]);
 				}
 				if (next_sep) {
-					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					e = gf_fs_process_link_directive(arg, NULL, loaded_filters, next_sep);
 					if (e) {
 						ERR_EXIT
 					}
@@ -1489,7 +1433,7 @@ restart:
 
 		while (gf_list_count(links_directive)) {
 			char *link = gf_list_pop_front(links_directive);
-			e = process_link_directive(link, filter, loaded_filters, NULL);
+			e = gf_fs_process_link_directive(link, filter, loaded_filters, NULL);
 			if (e) {
 				ERR_EXIT
 			}
@@ -1699,11 +1643,15 @@ exit:
 	loaded_filters=NULL;
 
 	cleanup_file_io();
+	if (loop_if_error && nb_loops && e)
+		e = GF_OK;
 
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
 		loops_done++;
 		fprintf(stderr, "session done, restarting (loop %d)\n", loops_done);
+		gf_net_reload_netcap();
+
 
 #ifndef GPAC_CONFIG_ANDROID
 		fflush(stderr);

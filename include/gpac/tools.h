@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -73,7 +73,7 @@ Macro formatting a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
-/*! Macro formating 4CC from compiler-constant string of 4 characters
+/*! Macro formatting 4CC from compiler-constant string of 4 characters
 \hideinitializer
  */
 #define GF_4CC_CSTR(s) GF_4CC(s[0],s[1],s[2],s[3])
@@ -432,11 +432,11 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
  */
 typedef struct
 {
-	u8 hours, minutes, seconds;
-	u16 n_frames;
 	Float max_fps;
-	Bool drop_frame;
-	u32 as_timestamp;
+	u16 n_frames;
+	u8 hours, minutes, seconds;
+	u8 drop_frame, negative;
+	u8 counting_type;
 } GF_TimeCode;
 
 /*!
@@ -448,6 +448,66 @@ Formats a timecode into a string
 \return the formated input buffer
 */
 const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
+
+/*!
+\brief converts a timecode to timestamp
+
+Converts a timecode to a timestamp in the given timescale
+\param tc timecode to convert
+\param timescale timescale to convert to
+\return the timestamp in the given timescale
+*/
+u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly less than value2
+ */
+Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly less than or equal to value2
+ */
+Bool gf_timecode_less_or_equal(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly greater than value2
+ */
+Bool gf_timecode_greater(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly greater than or equal to value2
+ */
+Bool gf_timecode_greater_or_equal(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is equal to value2
+ */
+Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2);
 
 /*! @} */
 
@@ -656,6 +716,19 @@ u32 gf_sys_is_quiet();
 \return the list of features.
 */
 const char *gf_sys_features(Bool disabled);
+
+/*! solves path starting with replacement keywords:
+ - $GDOCS: replaced by path to user document , OS-specific
+	 - application document directory for iOS
+	 - EXTERNAL_STORAGE environment variable if present or '/sdcard'  otherwise for Android
+	 - user home directory for other platforms
+ - $GCFG: replaced by path to GPAC config directory for the current profile
+
+\param tpl_path url to translate, must start with $GDOCS or $GCFG
+\param szPath path to store the result
+\return GF_TRUE if success, GF_FALSE otherwise.
+*/
+Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 
 /*! callback function for remotery profiler
  \param udta user data passed by \ref gf_sys_profiler_set_callback
@@ -929,7 +1002,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 Gets log  tool name
 \param log_tool tool to check
-\return name, or "unknwon" if not known
+\return name, or "unknown" if not known
 */
 const char *gf_log_tool_name(GF_LOG_Tool log_tool);
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE output filter
@@ -66,7 +66,7 @@ typedef struct
 	//clock is sampled at each process() begin or before each LCT packet to be send
 	u64 clock_init, clock;
 
-	//preallocated buffer for LCT packet formating
+	//preallocated buffer for LCT packet formatting
 	u8 *lct_buffer;
 	GF_BitStream *lct_bs;
 
@@ -277,6 +277,22 @@ typedef struct
 	s32 diff_send_at_frame_start, diff_recv_at_frame_start;
 } ROUTEPid;
 
+static GF_Err routemx_setup_socket(GF_ROUTEOutCtx *ctx, GF_Socket *sock, const char *dst_ip, u32 dst_port)
+{
+	GF_Err e;
+	if (gf_sk_is_multicast_address(dst_ip)) {
+		e = gf_sk_setup_multicast(sock, dst_ip, dst_port, ctx->ttl, GF_FALSE, ctx->ifce);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup multicast %s:%u on %s interface\n", ctx->log_name, dst_ip, dst_port, ctx->ifce ? ctx->ifce : "default"));
+		}
+	} else {
+		e = gf_sk_bind(sock, ctx->ifce, dst_port, dst_ip, dst_port, GF_SOCK_REUSE_PORT|GF_SOCK_IS_SENDER);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind socket %s:%u on %s interface\n", ctx->log_name, dst_ip, dst_port, ctx->ifce ? ctx->ifce : "default"));
+		}
+	}
+	return e;
+}
 
 ROUTELCT *route_create_lct_channel(GF_Filter *filter, GF_ROUTEOutCtx *ctx, const char *ip, u32 port, GF_Err *e)
 {
@@ -297,7 +313,7 @@ ROUTELCT *route_create_lct_channel(GF_Filter *filter, GF_ROUTEOutCtx *ctx, const
 	if (rlct->ip) {
 		rlct->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
 		if (rlct->sock) {
-			*e = gf_sk_setup_multicast(rlct->sock, rlct->ip, rlct->port, ctx->ttl, GF_FALSE, ctx->ifce);
+			*e = routemx_setup_socket(ctx, rlct->sock, rlct->ip, rlct->port);
 			if (*e) {
 				gf_sk_del(rlct->sock);
 				rlct->sock = NULL;
@@ -501,16 +517,22 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	if (p) service_id = p->value.uint;
 
-	rserv = NULL;
-	for (i=0; i<gf_list_count(ctx->services); i++) {
-		rserv = gf_list_get(ctx->services, i);
-		if (service_id == rserv->service_id) break;
-		rserv = NULL;
-	}
-
 	manifest_type = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
 	if (p) manifest_type = p->value.uint;
+
+	rserv = NULL;
+	for (i=0; i<gf_list_count(ctx->services); i++) {
+		rserv = gf_list_get(ctx->services, i);
+		if (service_id == rserv->service_id) {
+			//throw warning if same manifest type is detected
+			if (rserv->manifest_type && (manifest_type==rserv->manifest_type)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple manifests on same service - if not desired set `ServiceID` on sources !\n", ctx->log_name));
+			}
+			break;
+		}
+		rserv = NULL;
+	}
 
 	if (manifest_type) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
@@ -533,7 +555,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		const char *service_ip = ctx->ip;
 
 		//cannot have 2 manifest pids connecting in route mode
-		if (!ctx->sock_atsc_lls && gf_list_count(ctx->services) && manifest_type) {
+		if (!ctx->sock_atsc_lls && !ctx->dvb_mabr && gf_list_count(ctx->services) && manifest_type) {
 			if (strchr(ctx->dst, '$')) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Multiple services in route mode, creating a new output filter\n", ctx->log_name));
 				return GF_REQUIRES_NEW_INSTANCE;
@@ -551,8 +573,10 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			else ctx->first_port++;
 		}
 
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
+		GF_PropertyEntry *pe=NULL;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		rserv = routeout_create_service(filter, ctx, service_id, p ? p->value.string : NULL, service_ip, port, &e);
+		gf_filter_release_property(pe);
 		if (!rserv) return e;
 		rserv->dash_mode = pid_dash_mode;
 	}
@@ -813,8 +837,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	}
 
 	if (!gf_sk_is_multicast_address(ctx->ip)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] IP %s is not a multicast address\n", ctx->log_name, ctx->ip));
-		return GF_BAD_PARAM;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] IP %s is not a multicast address\n", ctx->log_name, ctx->ip));
 	}
 
 	if (ext || ctx->mime) {
@@ -848,11 +871,13 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 
 	if (is_atsc) {
 		ctx->sock_atsc_lls = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
-		gf_sk_setup_multicast(ctx->sock_atsc_lls, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 0, GF_FALSE, ctx->ifce);
+		GF_Err e = routemx_setup_socket(ctx, ctx->sock_atsc_lls, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT);
+		if (e) return e;
 	}
 	if (ctx->dvb_mabr) {
 		ctx->sock_dvb_mabr = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
-		gf_sk_setup_multicast(ctx->sock_dvb_mabr, ctx->ip, ctx->first_port, 0, GF_FALSE, ctx->ifce);
+		GF_Err e = routemx_setup_socket(ctx, ctx->sock_dvb_mabr, ctx->ip, ctx->first_port);
+		if (e) return e;
 		ctx->dvb_mabr_port = ctx->first_port;
 		ctx->first_port++;
 		ctx->dvb_mabr_tsi = 1;
@@ -1274,7 +1299,8 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		gf_dynstrcat(&payload_text, "\r\nContent-Location: usbd.xml\r\n\r\n", NULL);
 
 		rpid = gf_list_get(serv->pids, 0);
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
+		GF_PropertyEntry *pe=NULL;
+		p = gf_filter_pid_get_info(rpid->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		if (p && p->value.string)
 			service_name = p->value.string;
 		else
@@ -1289,6 +1315,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		gf_dynstrcat(&payload_text, "</Name>\n"
 				"  <DeliveryMethod>\n"
 				"   <BroadcastAppService>\n", NULL);
+		gf_filter_release_property(pe);
 
 		for (i=0;i<nb_pids; i++) {
 			rpid = gf_list_get(serv->pids, i);
@@ -2618,7 +2645,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	u32 i, count, len, comp_size;
 	s32 timezone, h, m;
 	u64 diff = ctx->clock - ctx->last_lls_clock;
-	if (diff < ctx->carousel) {
+	if (ctx->last_lls_clock && (diff < ctx->carousel)) {
 		u64 next_sched = ctx->carousel - diff;
 		if (next_sched < ctx->reschedule_us)
 			ctx->reschedule_us = next_sched;
@@ -2689,14 +2716,16 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 
 			rpid = gf_list_get(serv->pids, 0);
 
+			GF_PropertyEntry *pe=NULL;
 			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3ShortServiceName");
 			if (!p)
-				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
+				p = gf_filter_pid_get_info(rpid->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 			service_name = (p && p->value.string) ? p->value.string : "GPAC";
 			len = (u32) strlen(service_name);
 			if (len>7) len = 7;
 			strncpy(szIP, service_name, len);
 			szIP[len] = 0;
+			gf_filter_release_property(pe);
 
 			// ATSC 3.0 major channel number starts at 2. This really should be set rather than using the default.
 			u32 major = 2;
@@ -3202,7 +3231,10 @@ static GF_Err routeout_process(GF_Filter *filter)
 		ROUTEService *serv = gf_list_get(ctx->services, i);
 		if (serv->is_done) continue;
 		e = routeout_check_service_updates(ctx, serv);
-		if (!serv->service_ready || (e==GF_NOT_READY)) return GF_OK;
+		if (!serv->service_ready || (e==GF_NOT_READY)) {
+			gf_filter_ask_rt_reschedule(filter, 10000);
+			return GF_OK;
+		}
 	}
 	if (ctx->sock_dvb_mabr) {
 		routeout_send_mabr_manifest(ctx);

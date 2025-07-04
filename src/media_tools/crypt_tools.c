@@ -307,6 +307,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				tkc->keys[0].constant_IV_size = atoi(att->value);
 				if ((tkc->keys[0].constant_IV_size != 8) && (tkc->keys[0].constant_IV_size != 16)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Constant IV size %d is not 8 or 16\n", att->value));
+					info->last_parse_error = GF_BAD_PARAM;
 				}
 			}
 			else if (!stricmp(att->name, "constant_IV")
@@ -442,6 +443,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].KID);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse KID\n"));
+					info->last_parse_error = GF_BAD_PARAM;
                     return;
                 }
 			}
@@ -449,12 +451,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].key);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse key value\n"));
+					info->last_parse_error = GF_BAD_PARAM;
                     return;
                 }
 			}
 			else if (!stricmp(att->name, "hlsInfo")) {
 				if (!strstr(att->value, "URI=\"")) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Missing URI in HLS info %s\n", att->value));
+					info->last_parse_error = GF_BAD_PARAM;
                     return;
 				}
 				if (tkc->keys[tkc->nb_keys].hls_info) gf_free(tkc->keys[tkc->nb_keys].hls_info);

@@ -1263,6 +1263,8 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
+			if (!sl)
+				return GF_ISOM_INVALID_MEDIA;
 			if (!cfg->write_annex_b) {
 				gf_bs_write_int(bs, sl->size, 16);
 			} else {
@@ -1403,7 +1405,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			nalucount = gf_bs_read_int(bs, 16);
 		else
 			nalucount = 1;
-			
+
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
@@ -1657,7 +1659,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	size -= 4;
 
 	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong av1C reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] av1C: wrong reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
 		gf_odf_av1_cfg_del(cfg);
 		gf_free(av1_state);
 		return NULL;
@@ -1672,14 +1674,14 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
 		if (gf_av1_parse_obu(bs, &obu_type, &obu_size, NULL, av1_state) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] av1C: could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
 		gf_assert(obu_size == gf_bs_get_position(bs) - pos);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] av1C: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] av1C: AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		if (!a) break;
@@ -2609,16 +2611,19 @@ void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
 GF_EXPORT
 GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
-        if (!cfg || !bs) return GF_BAD_PARAM;
+	u32 i;
+	if (!cfg || !bs) return GF_BAD_PARAM;
 
-        gf_bs_write_u8(bs, cfg->configurationVersion);
-        gf_av1_leb128_write(bs, cfg->configOBUs_size);
-        for (int i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
-                GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
-                gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
-        }
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		gf_bs_write_u8(bs, cfg->configurationVersion);
+		gf_av1_leb128_write(bs, cfg->configOBUs_size);
+		for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
+				GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
+				gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
+		}
+	#endif
 
-        return GF_OK;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2638,10 +2643,14 @@ GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 GF_EXPORT
 u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
 {
-        if (!cfg) return 0;
+	if (!cfg) return 0;
 
-        u32 cfg_size = 1; // configurationVersion
-        cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
-        cfg_size += cfg->configOBUs_size;
-        return cfg_size;
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		u32 cfg_size = 1; // configurationVersion
+		cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
+		cfg_size += cfg->configOBUs_size;
+		return cfg_size;
+	#else
+		return 0;
+	#endif
 }

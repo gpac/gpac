@@ -41,7 +41,6 @@
     <ClInclude Include="..\..\include\gpac\base_coding.h" />
     <ClInclude Include="..\..\include\gpac\bifs.h" />
     <ClInclude Include="..\..\include\gpac\bitstream.h" />
-    <ClInclude Include="..\..\include\gpac\cache.h" />
     <ClInclude Include="..\..\include\gpac\color.h" />
     <ClInclude Include="..\..\include\gpac\compositor.h" />
     <ClInclude Include="..\..\include\gpac\configuration.h" />
@@ -353,6 +352,7 @@
     <ClCompile Include="..\..\src\filters\reframe_rawvid.c" />
     <ClCompile Include="..\..\src\filters\reframe_truehd.c" />
     <ClCompile Include="..\..\src\filters\resample_audio.c" />
+    <ClCompile Include="..\..\src\filters\sei_load.c" />
     <ClCompile Include="..\..\src\filters\restamp.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
@@ -568,12 +568,17 @@
     <ClCompile Include="..\..\src\utils\alloc.c" />
     <ClCompile Include="..\..\src\utils\base_encoding.c" />
     <ClCompile Include="..\..\src\utils\bitstream.c" />
-    <ClCompile Include="..\..\src\utils\cache.c" />
     <ClCompile Include="..\..\src\utils\color.c" />
     <ClCompile Include="..\..\src\utils\configfile.c" />
     <ClCompile Include="..\..\src\utils\constants.c" />
     <ClCompile Include="..\..\src\utils\dlmalloc.c" />
     <ClCompile Include="..\..\src\utils\downloader.c" />
+    <ClCompile Include="..\..\src\utils\downloader_cache.c" />
+    <ClCompile Include="..\..\src\utils\downloader_curl.c" />
+    <ClCompile Include="..\..\src\utils\downloader_hmux.c" />
+    <ClCompile Include="..\..\src\utils\downloader_nghttp2.c" />
+    <ClCompile Include="..\..\src\utils\downloader_ngtcp2.c" />
+    <ClCompile Include="..\..\src\utils\downloader_ssl.c" />
     <ClCompile Include="..\..\src\utils\error.c" />
     <ClCompile Include="..\..\src\utils\gltools.c" />
     <ClCompile Include="..\..\src\utils\gzio.c" />

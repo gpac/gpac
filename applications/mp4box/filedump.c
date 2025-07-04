@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -115,17 +115,20 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	}
 
 	if (inName) {
-		char szName[1024];
-		if (is_final_name) {
-			strcpy(szName, inName);
-		} else {
-			sprintf(szName, "%s.%s", inName, (tag_len>>31) ? "png" : "jpg");
+		char *szName=NULL;
+		gf_dynstrcat(&szName, inName, NULL);
+		if (!is_final_name) {
+			gf_dynstrcat(&szName, (tag_len>>31) ? ".png" : ".jpg", NULL);
 		}
+		if (!szName) return GF_OUT_OF_MEM;
+
 		t = gf_fopen(szName, "wb");
 		if (!t) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szName));
+			gf_free(szName);
 			return GF_IO_ERR;
 		}
+		gf_free(szName);
 	} else {
 		t = stdout;
 	}
@@ -199,11 +202,12 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 
 	if (do_log) {
 		char szLog[GF_MAX_PATH];
-		sprintf(szLog, "%s_dec.logs", inName);
+		snprintf(szLog,  GF_ARRAY_LENGTH(szLog), "%s_dec.logs", inName);
 		logs = gf_fopen(szLog, "wt");
-
-		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
-		prev_logs = gf_log_set_callback(logs, scene_coding_log);
+		if (logs) {
+			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
+			prev_logs = gf_log_set_callback(logs, scene_coding_log);
+		}
 	}
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
@@ -2233,7 +2237,10 @@ void print_udta(GF_ISOFile *file, u32 track_number, Bool has_meta_tags)
 			u32 type;
 			bin128 uuid;
 			gf_isom_get_udta_type(file, track_number, i+1, &type, &uuid);
-			if ((type == GF_ISOM_BOX_TYPE_META) || (type==GF_ISOM_UDTA_GPAC_SRD)) {
+			if ((type == GF_ISOM_BOX_TYPE_META)
+				|| (type==GF_ISOM_UDTA_GPAC_SRD)
+				|| (type==GF_ISOM_BOX_TYPE_KIND)
+			) {
 				count--;
 			}
 		}
@@ -3852,7 +3859,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			fprintf(stderr, "\n");
 	}
 
-	print_udta(file, trackNum, GF_FALSE);
+	print_udta(file, trackNum, GF_TRUE);
 
 	DumpMetaItem(file, 0, trackNum, "\tTrack Meta");
 
@@ -4161,16 +4168,23 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 		i=0;
 		while (1) {
 			u32 int_val2, flags, itype;
+			const char *mean=NULL, *name=NULL;
 			GF_ISOiTunesTag tag;
 			u64 int_val;
+			u32 locale=0;
 			s32 tag_idx;
-			GF_Err e = gf_isom_apple_enum_tag(file, i, &tag, &data, &data_len, &int_val, &int_val2, &flags);
+			GF_Err e = gf_isom_apple_enum_tag_ex(file, i, &tag, &data, &data_len, &int_val, &int_val2, &flags, &mean, &name, &locale);
 			if (e) break;
 			i++;
 
 			tag_idx = gf_itags_find_by_itag(tag);
 			if (tag_idx<0) {
-				fprintf(stderr, "\t%s: %s\n", gf_4cc_to_str(tag), data);
+				if (mean && name)
+					fprintf(stderr, "\t%s (%s): %s\n", name, mean, data);
+				else if (mean || name)
+					fprintf(stderr, "\t%s: %s\n", name ? name : mean, data);
+				else
+					fprintf(stderr, "\t%s: %s\n", gf_4cc_to_str(tag), data);
 				continue;
 			}
 			fprintf(stderr, "\t%s: ", gf_itags_get_name(tag_idx) );
@@ -4229,7 +4243,9 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 		case GF_QT_KEY_JPEG: fprintf(stderr, "JPG Image (%d bytes)", key.value.data.data_len); break;
 		case GF_QT_KEY_BMP: fprintf(stderr, "BMP Image (%d bytes)", key.value.data.data_len); break;
 		case GF_QT_KEY_UTF8:
-		case GF_QT_KEY_UTF8_SORT: fprintf(stderr, "%s", key.value.string); break;
+		case GF_QT_KEY_UTF8_SORT:
+			fprintf(stderr, "%s", key.value.string ? key.value.string : "");
+			break;
 
 		case GF_QT_KEY_FLOAT:
 		case GF_QT_KEY_DOUBLE:
@@ -4385,6 +4401,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program number %d found - %d streams:\n", prog->number, count));
 		for (i=0; i<count; i++) {
 			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+			if (!es) continue;
 			if (es->pid == prog->pmt_pid) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tPID %d: Program Map Table\n", es->pid));
 			} else {

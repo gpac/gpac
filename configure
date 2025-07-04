@@ -344,7 +344,7 @@ get_size()
 }
 
 #zlib MUST be first
-all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2"
+all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2 ngtcp2 nghttp3"
 all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec libcaca curl"
 disabled_packages=""
 
@@ -677,6 +677,10 @@ for opt do
             ;;
         --disable-alsa) append disabled_packages "alsa"
             ;;
+        --disable-oss) append disabled_packages "oss"
+            ;;
+        --disable-dvb4linux) append disabled_packages "dvb4linux"
+            ;;
         --enable-gprof) gprof_build="yes";
             ;;
         --static-build) static_build="yes";
@@ -979,8 +983,8 @@ EOF
                 alt_macosx_dir="/opt/local"
             fi
             if test "$alt_macosx_dir" != "" ; then
-                CFLAGS_DIR="-I$alt_macosx_dir -I$alt_macosx_dir/include $CFLAGS_DIR"
-                LDFLAGS="-L$alt_macosx_dir -L$alt_macosx_dir/lib $LDFLAGS"
+                CFLAGS_DIR="$CFLAGS_DIR -I$alt_macosx_dir -I$alt_macosx_dir/include"
+                LDFLAGS="$LDFLAGS -L$alt_macosx_dir -L$alt_macosx_dir/lib"
             fi
         fi
 
@@ -1370,7 +1374,7 @@ config_package_test ()
 
     #test pkgconfig
     if test "$forced" != "local" -a "$custom" != "yes" ; then
-        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no"; then
+        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no" -a "$pkg_cfg_name" != ""; then
             if $pkg_config --exists $pkg_cfg_name ; then
                 pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
@@ -1485,7 +1489,7 @@ config_package ()
     pck_ldflags=""
 
     pname="$1"
-    case "$disabled_packages" in
+    case "$disabled_packages " in
     *"$pname "*) shift
         eval "has_$pname=\"no\""
         return
@@ -1495,7 +1499,11 @@ config_package ()
     config_package_test "$1" "$2" "$3" "$4" "$5" "$6"
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
-        eval "ldflags_$pname=\"$pck_ldflags\""
+        if test "$pname" = "ngtcp2" ; then
+            eval "ldflags_$pname=\"$pck_ldflags -lngtcp2_crypto_quictls\""
+        else
+            eval "ldflags_$pname=\"$pck_ldflags\""
+        fi
     fi
 
     eval "has_$pname=\"$has_pck\""
@@ -1543,6 +1551,8 @@ if test "$static_bin" = "yes"; then
 
     #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
     append disabled_packages "ssl"
+    # these need ssl
+    append disabled_packages "nghttp3 ngtcp2"
     #we cannot use ipv6 due to getaddrinfo not being present
     append disabled_packages "ipv6"
 
@@ -1715,6 +1725,15 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
+config_package ngtcp2 "libngtcp2" "" "-lngtcp2" "" '#include <stdio.h>
+#include <ngtcp2/ngtcp2.h>
+int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
+
+config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
+#include <nghttp3/nghttp3.h>
+int main( void ) {  nghttp3_conn *ng_sess=NULL; nghttp3_conn_del(ng_sess); return 0; }'
+
+
 config_package caption "libcaption" "" "-lcaption" "" '#include <caption/cea708.h>
 int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return 0; }'
 
@@ -1758,14 +1777,14 @@ EOF
 
 else
 
-check_has_lib oss "" '#include <sys/ioctl.h>
+config_package oss "" "" "" "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/soundcard.h>
 int main( void ) { return 0; }'
 
 if test "$has_oss" = "no" ; then
-check_has_lib oss "" '#include <sys/ioctl.h>
+config_package oss "" "" "" "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <soundcard.h>
@@ -1800,19 +1819,17 @@ return 0;
 }'
 
 
-
-check_has_lib dvb4linux "" '#include <linux/dvb/dmx.h>
+config_package dvb4linux "" "" "" "" '#include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
 int main( void ) {return 0;}'
 
-check_has_lib alsa "" '#include <alsa/asoundlib.h>
+config_package alsa "libasound" "" "" "" '#include <alsa/asoundlib.h>
 int main( void ) {return 0;}'
 
-
-check_has_lib pulseaudio "" '#include <pulse/pulseaudio.h>
+config_package pulseaudio "libpulse" "" "" "" '#include <pulse/pulseaudio.h>
 int main( void ) {return 0;}'
 
-check_has_lib jack "" '#include <jack/jack.h>
+config_package jack "libjack" "" "" "" '#include <jack/jack.h>
 int main( void ) {return 0;}'
 
 
@@ -1843,7 +1860,7 @@ int main( void ) { return 0; }'
     check_has_lib x11_glx "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
-int main( void ) { return 0; }'
+int main( void ) { glXSwapBuffers(NULL, 0); return 0; }'
 
 fi
 #end x11 test
@@ -1971,7 +1988,7 @@ fi
 
 
 #look for SDL support - we don't use check_has_lib for the time being
-case "$disabled_packages" in
+case "$disabled_packages " in
 *"sdl "*) has_sdl=no
     ;;
 *) sdl_too_old=no
@@ -2495,6 +2512,8 @@ echo "TinyGL support: $has_tinygl"
 fi
 echo "OpenSSL support: $has_ssl"
 echo "nghttp2: $has_nghttp2"
+echo "ngtcp2: $has_ngtcp2"
+echo "nghttp3: $has_nghttp3"
 
 if test "$win32" != "yes" ; then
     echo "OSS Audio: $has_oss"
@@ -2573,7 +2592,7 @@ fi
 
 #we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces"
 else
     CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
@@ -2913,6 +2932,10 @@ fi
 
 if test "$has_nghttp2" != "no" ; then
     echo "#define GPAC_HAS_HTTP2" >> $TMPH
+fi
+
+if test "$has_ngtcp2" != "no" ; then
+    echo "#define GPAC_HAS_NGTCP2" >> $TMPH
 fi
 
 if test "$has_caption" != "no" ; then

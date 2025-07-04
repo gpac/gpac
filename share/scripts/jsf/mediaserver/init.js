@@ -201,7 +201,7 @@ The \`js\` option can be set to a JS module exporting the following functions:
   - return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
 
 # File Services
-A file system directory can be exposed as a service. 
+A file system directory can be exposed as a service.
 
 __Service configuration parameters used :__ \`local\` (mandatory), \`sources\` (mandatory), \`gcache\` and \`keepalive\`.
 
@@ -278,7 +278,7 @@ function update_manifest(manifest_ab, target_url, mabr_service)
 {
 	let mani = sys.mpd_parse(manifest_ab);
 	if (!mani) return;
-	
+
 	let hls_active_rep = null;
 	let service = mabr_service ? mabr_service :  all_services.find(s => {
 		if (target_url.indexOf(s.url)>=0) return true;
@@ -293,7 +293,7 @@ function update_manifest(manifest_ab, target_url, mabr_service)
 			let idx = target_url.indexOf(e.xlink);
 			if (idx<0) return false;
 			if (target_url.startsWith(s.base_url)) return true;
-			return false;  
+			return false;
 		});
 		if (rep) {
 			hls_active_rep = rep;
@@ -326,7 +326,7 @@ function update_manifest(manifest_ab, target_url, mabr_service)
 		if (!service.manifest) return;
 		let period = service.manifest.periods[0];
 		if (!hls_active_rep) {
-			do_log(GF_LOG_ERROR, `Service ${service.id} cannot find rep for target ${target_url}`);		
+			do_log(GF_LOG_ERROR, `Service ${service.id} cannot find rep for target ${target_url}`);
 			return;
 		}
 		hls_active_rep.segments = mani.segments;
@@ -474,7 +474,7 @@ function locate_service_quality(target_url, in_service)
 							let idx = num_time.indexOf(rep.suffix);
 							if (idx>=0) {
 								rep.seg_id = num_time.substring(0, idx);
-							}	
+							}
 						} else if (service.manifest.m3u8) {
 							rep.seg_id = '' + (rep.hls_seq_start + s_idx);
 						}
@@ -494,7 +494,7 @@ function locate_service_quality(target_url, in_service)
 				if (idx>=0) {
 					rep.seg_id = num_time.substring(0, idx);
 				}
-				if (!rep.seg_dur) 
+				if (!rep.seg_dur)
 					rep.seg_dur = rep.duration * 1000 / rep.timescale;
 
 				//compute live edge time divide then multiply to avoid overflow
@@ -533,7 +533,7 @@ function locate_service_quality(target_url, in_service)
 
 
 
-function cat_buffer(dst_ab, src_ab) 
+function cat_buffer(dst_ab, src_ab)
 {
 	let tmp = new Uint8Array(dst_ab ? dst_ab.byteLength + src_ab.byteLength : src_ab.byteLength);
 	if (dst_ab)
@@ -544,11 +544,11 @@ function cat_buffer(dst_ab, src_ab)
 globalThis.cat_buffer = cat_buffer;
 
 
-//custom HTTPout request handler 
+//custom HTTPout request handler
 let httpout = {};
-httpout.on_request = (req) => 
+httpout.on_request = (req) =>
 {
-	//use pre-authentifcation done by server
+	//use pre-authentication done by server
 	if (req.auth_code!=200) {
 		req.reply = req.auth_code;
 		req.send();
@@ -643,7 +643,7 @@ httpout.on_request = (req) =>
 			this.ab_queue.shift();
         }
 		this.bytes_in_req += to_read;
-        return to_read;	
+        return to_read;
     }
 
     //used when reading from MABR service or cached file
@@ -677,7 +677,7 @@ httpout.on_request = (req) =>
 
 	//end of session
 	req.close = function(code) {
-		if (code<0) 
+		if (code<0)
 			do_log(GF_LOG_DEBUG, `Client session ${this.url} is closed: ${sys.error_string(code)}`);
 
 		let ridx = all_requests.indexOf(this);
@@ -759,12 +759,12 @@ httpout.on_request = (req) =>
 			this.cache_file.nb_users ++;
 			this.read = this._read_from_buffer;
 		}
-		
+
 		this.xhr = null;
 		if (this.service && this.service.xhr_cache.length) {
 			this.xhr = this.service.xhr_cache.shift();
 		}
-		if (!this.xhr) 
+		if (!this.xhr)
 			this.xhr = new XMLHttpRequest();
 
 		this.xhr.last_used = sys.clock_ms();
@@ -785,7 +785,7 @@ httpout.on_request = (req) =>
 				//gather manifest
 				if (req.manifest_type) {
 					req.manifest_ab = cat_buffer(req.manifest_ab, new_bytes);
-				}				
+				}
 				//gather cache (can be media or manifest)
 				if (req.cache_file) {
 					req.cache_file.data = cat_buffer(req.cache_file.data, new_bytes);
@@ -825,10 +825,10 @@ httpout.on_request = (req) =>
 					update_manifest(req.manifest_ab, req.target_url, req.service);
 					req.manifest_ab = null;
 				}
-				//cache can be set for manifests or media 
+				//cache can be set for manifests or media
 				if (req.cache_file) {
 					do_log(GF_LOG_INFO, `${req.target_url} closing cache file`);
-					
+
 					req.cache_file.done = true;
 					//purge delay applies on received file
 					req.cache_file.received = sys.clock_ms();
@@ -871,13 +871,13 @@ httpout.on_request = (req) =>
 				if (h_name == 'content-type') {
 					if ((h[1].indexOf('application/vnd.apple')>=0) || (h[1].indexOf('x-mpegurl')>=0)) {
 						req.manifest_type = MANI_HLS;
-					} 
+					}
 					else if (h[1].indexOf('dash+xml')>=0) {
 						req.manifest_type = MANI_DASH;
 					}
 					if (req.cache_file) req.cache_file.mime = h[1];
 				}
-			}); 
+			});
 			do_log(GF_LOG_DEBUG, `Sending reply to ${req.url} code ${req.xhr.status}`);
 			req.reply = req.xhr.status;
 			req.send();
@@ -899,7 +899,7 @@ httpout.on_request = (req) =>
 			}
 		};
 		this.xhr.open(this.method, this.target_url);
-		this.xhr.send();	
+		this.xhr.send();
 	};
 
 	//preprocess headers to locate host and extract range
@@ -973,7 +973,7 @@ httpout.on_request = (req) =>
 			} else {
 				req.target_url = req.url;
 			}
-		} 
+		}
 
 		if (!service_def && referer) {
 			let src = referer.split('://');
@@ -1001,7 +1001,7 @@ httpout.on_request = (req) =>
 						req.reply = 404;
 						req.send();
 					}
-					return;	
+					return;
 				}
 				if (delayed) return;
 
@@ -1014,7 +1014,7 @@ httpout.on_request = (req) =>
 					} else if (typeof resolved == 'string') {
 						req.body = resolved;
 						req.send();
-						return;	
+						return;
 					}
 				} else if (typeof resolved == 'object') {
 					req.jsmod = resolved;
@@ -1056,7 +1056,7 @@ httpout.on_request = (req) =>
 					} else {
 						req.reply = 404;
 						req.send();
-						return;	
+						return;
 					}
 				}
 			}
@@ -1148,7 +1148,7 @@ httpout.on_request = (req) =>
 		}
 		req.do_cache = service_def.gcache;
 	}
-	
+
 	if (req.service) {
 		req.do_cache = req.service.gcache;
 		//deactivate timeout, will be reactivated when removing reques
@@ -1316,7 +1316,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			//only deal with exact byte ranges - we could optimize to allow sub-ranges
 			if (f.br_start==br_start && f.br_end==br_end) return f;
 		}
-		return null;	
+		return null;
 	};
 	s.unqueue_pending_request = function(url, from_mabr)
 	{
@@ -1414,7 +1414,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		}
 
 		//check if we need to activate multicast
-		if (this.mabr_loaded && !rep.mabr_active 
+		if (this.mabr_loaded && !rep.mabr_active
 			&& (!this.mabr_min_active || (rep.nb_active>=this.mabr_min_active))
 		) {
 			this.activate_mabr(rep, true);
@@ -1423,7 +1423,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 
 	s.activate_mabr = function(rep, do_activate)
 	{
-		if (!this.mabr_service_id || !this.source || !rep) return;	
+		if (!this.mabr_service_id || !this.source || !rep) return;
 
 		if (serv_cfg && serv_cfg.js_mod) {
 			let req_ok = serv_cfg.js_mod.quality_activation(do_activate, this.mabr_service_id, rep.period_id, rep.AS_ID, rep.ID);
@@ -1445,7 +1445,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//no deactivation of multicast channels
 		if (this.mabr_min_active==0) {
 			rep.mabr_active = true;
-			return;	
+			return;
 		}
 
 		let evt = new FilterEvent(GF_FEVT_DASH_QUALITY_SELECT);
@@ -1457,7 +1457,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		rep.mabr_active = do_activate;
 		session.fire_event(evt, this.source, false, true);
 	};
-	
+
 	s.load_mabr = function()
 	{
 		if (!this.mabr || this.mabr_loaded) return;
@@ -1489,7 +1489,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			this.mabr_failure = true;
 			return;
 		}
-		this.source.require_source_id();	
+		this.source.require_source_id();
 		this.mabr_loaded = true;
 
 		//create custom sink accepting files
@@ -1507,7 +1507,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			s.source = null;
 		};
 		this.sink.watch_setup_failure(this.source);
-		
+
 		this.sink.configure_pid = function(pid)
 		{
 			//reconfigure (new file), get previsou file and mar as done
@@ -1519,7 +1519,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 						do_log(GF_LOG_INFO, `${pid.url} closing cache file as new file from MABR starts ${pid.get_prop('URL')}`);
 						file.done = true;
 					}
-				}	
+				}
 			} else {
 				//initial declaration
 				this.pids.push(pid);
@@ -1561,7 +1561,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 				pid.deactivate_timeout = 0;
 			}
 		};
-	
+
 		this.push_to_cache = function (pid, pck) {
 			let file = this.mem_cache.find(f => f.url===pid.url);
 			let corrupted = pck.corrupted ? 1 : 0;
@@ -1595,8 +1595,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			if (!file) file = this.create_cache_file(pid.url, pid.mime, 0, 0, CACHE_TYPE_MABR, pid);
 
 			do_log(GF_LOG_DEBUG, `Service ${this.id} receiving MABR packet for ${pid.url} size ${pck.size} end ${pck.end}`);
-	
-			//reagregate packet 
+
+			//reagregate packet
 			if (pck.size)
 				file.data = cat_buffer(file.data, pck.data);
 
@@ -1617,7 +1617,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 				}
 			}
 		};
-	
+
 		this.sink.process = function(pid)
 		{
 			this.pids.forEach(function(pid) {
@@ -1690,7 +1690,7 @@ function do_init()
 		if (script_args) http_args += script_args;
 
 		try {
-			let http = session.add_filter(http_args);	
+			let http = session.add_filter(http_args);
 			server_ports = http.get_arg("port");
 			do_log(GF_LOG_INFO, `Starting HTTP server on port ${server_ports}`);
 		} catch (e) {
@@ -1815,7 +1815,7 @@ function do_init()
 				s.unload_mabr();
 				do_log(GF_LOG_INFO, `Service ${s.id} unloading`);
 				all_services.splice(i, 1);
-				if (typeof s.on_close == 'function') s.on_close();				
+				if (typeof s.on_close == 'function') s.on_close();
 				if (!all_services.length && do_quit) {
 					print("No more services and quit requested - exiting");
 					session.remove_filter(http_out_f);
@@ -1866,10 +1866,10 @@ filter.initialize = function() {
 		filter._help = filter_help;
 		filter.set_help(filter._help);
 
-		let	scripts = sys.enum_directory(filter.jspath, "*.js");
+		let	scripts = sys.enum_directory(filter.jspath, "*.js").sort((a, b) => a.name.localeCompare(b.name));
 		scripts.forEach(s => {
 			if (s.name == "init.js") return;
-			import(s.name).then(obj => { 
+			import(s.name).then(obj => {
 
 				filter._help += '## ' + obj.description + '\nModule is loaded when using `js='+s.name.replace('.js', '')+'`\n\n' + obj.help + '\n';
 				filter.set_help(filter._help);
@@ -1877,13 +1877,13 @@ filter.initialize = function() {
 		});
 		return GF_OK;
 	}
-	
+
 	do_quit = filter.quit;
 	script_args = filter.src_args;
 	if (script_args) {
 		let local_args = ["quit", "services"];
 		script_args = script_args.split(':');
-		local_args.forEach(a => {	
+		local_args.forEach(a => {
 			let e = script_args.find(e => e.startsWith(a));
 			if (e) script_args.splice(script_args.indexOf(e), 1);
 		});
@@ -1911,7 +1911,7 @@ filter.initialize = function() {
 				if (typeof sd.local == 'undefined') sd.local = null;
 				else if (typeof sd.local != 'string') throw "Missing or invalid local property, expecting string got "+typeof sd.local;
 				if (typeof sd.unload != 'number') sd.unload = DEFAULT_MABR_UNLOAD_SEC;
-				else if (sd.unload < 0) throw "Invalid unload property, expecting positive number";				
+				else if (sd.unload < 0) throw "Invalid unload property, expecting positive number";
 				if (typeof sd.activate != 'number') sd.activate = DEFAULT_ACTIVATE_CLIENTS;
 				else if (sd.activate < 0) throw "Invalid activate property, expecting positive number";
 				if (typeof sd.timeshift != 'number') sd.timeshift = DEFAULT_TIMESHIFT;
@@ -2006,7 +2006,7 @@ filter.initialize = function() {
 						sd.logname = sd.js;
 						sd.log = function(level, msg) {
 							do_log(level, msg, this.logname);
-						};						
+						};
 						obj_mod.init(sd);
 						sd.js_mod = obj_mod;
 					}).catch(e => {
@@ -2022,13 +2022,12 @@ filter.initialize = function() {
 			sys.exit(1);
 		}
 	}
-	
+
 	//after this, filter object is no longer available in JS since we don't set caps or setup filter.process
 	session.post_task( () => {
 		if (mods_pending) return 100;
 		do_init();
 		return false;
 	}, "init", 200);
-	
-};
 
+};

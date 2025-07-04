@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -32,7 +32,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/internal/id3.h>
+#include <gpac/id3.h>
 
 typedef struct {
 	char *fragment;
@@ -71,12 +71,20 @@ enum
 	DMX_TUNE_WAIT_SEEK,
 };
 
+GF_OPT_ENUM(UnknownPesMode,
+	UPES_MODE_NO = 0,
+	UPES_MODE_INFO,
+	UPES_MODE_ALL
+);
+
 typedef struct
 {
 	//opts
 	const char *temi_url;
-	Bool dsmcc, seeksrc, sigfrag, dvbtxt;
+	Bool dsmcc, seeksrc, sigfrag, dvbtxt, mappcr;
+	UnknownPesMode upes;
 	Double index;
+	u32 analyze;
 
 	GF_Filter *filter;
 	GF_FilterPid *ipid;
@@ -105,6 +113,9 @@ typedef struct
 
 	Bool is_dash;
 	u32 nb_stopped_at_init;
+
+	u32 logflags;
+	u32 forward_for;
 } GF_M2TSDmxCtx;
 
 static void m2tsdmx_prop_free(GF_M2TS_Prop *prop) {
@@ -204,11 +215,11 @@ static void m2tsdmx_update_sdt(GF_M2TS_Demuxer *ts, void *for_pid)
 			if (for_pid && (es->user != for_pid)) continue;
 			//TODO, translate non standard character maps to UTF8
 			//we for now comment in test mode to avoid non UTF characters in text dumps
-			if (isalnum(sdt->service[0]) || !gf_sys_is_test_mode())
-				gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(sdt->service ) );
+			if ((sdt && sdt->service && isalnum(sdt->service[0])) || !gf_sys_is_test_mode())
+				gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(sdt->service ) );
 
-			if (isalnum(sdt->provider[0]) || !gf_sys_is_test_mode())
-				gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_STRING( sdt->provider ) );
+			if ((sdt && sdt->provider && isalnum(sdt->provider[0])) || !gf_sys_is_test_mode())
+				gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_STRING( sdt->provider ) );
 		}
 	}
 }
@@ -217,11 +228,13 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 {
 	u32 i, count, codecid=0, stype=0, orig_stype=0;
 	GF_FilterPid *opid;
+	u32 fake_stream = 0;
 	Bool m4sys_stream = GF_FALSE;
 	Bool m4sys_iod_stream = GF_FALSE;
 	Bool has_scal_layer = GF_FALSE;
 	Bool unframed = GF_FALSE;
 	Bool unframed_latm = GF_FALSE;
+	Bool unframed_srt = GF_FALSE;
 	char szName[20];
 	const char *stname;
 	if (stream->user) return;
@@ -229,10 +242,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (stream->flags & GF_M2TS_GPAC_CODEC_ID) {
 		codecid = stream->stream_type;
 		stype = gf_codecid_type(codecid);
-		if (stream->gpac_meta_dsi)
+		if ((stream->flags & GF_M2TS_ES_IS_PES) && stream->gpac_meta_dsi)
 			stype = stream->gpac_meta_dsi[4];
 		if (!stype) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unrecognized gpac codec %s - ignoring pid\n", gf_4cc_to_str(codecid) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unrecognized gpac codec %s - ignoring pid %u\n", gf_4cc_to_str(codecid) , stream->pid));
 			return;
 		}
 	} else {
@@ -408,23 +421,55 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stream->flags |= GF_M2TS_ES_FULL_AU;
 			break;
 		case GF_M2TS_DVB_TELETEXT:
-			if (!ctx->dvbtxt) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] DVB teletext pid skipped, use --dvbtxt to enable\n", stream->stream_type));
+			if (!ctx->dvbtxt && (ctx->upes!=1)) {
+				if (!(ctx->logflags & 1)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] DVB teletext stream(s) skipped, use --dvbtxt to enable\n", stream->stream_type));
+					ctx->logflags|=1;
+				}
 				return;
 			}
 			stype = GF_STREAM_TEXT;
 			codecid = GF_CODECID_DVB_TELETEXT;
 			stream->flags |= GF_M2TS_ES_FULL_AU;
 			break;
+		case GF_M2TS_METADATA_SRT:
+			stype = GF_STREAM_TEXT;
+			codecid = GF_CODECID_SUBS_TEXT;
+			unframed = GF_TRUE;
+			unframed_srt = GF_TRUE;
+			break;
+		case GF_M2TS_METADATA_TEXT:
+			stype = GF_STREAM_TEXT;
+			codecid = GF_CODECID_SIMPLE_TEXT;
+			unframed = GF_TRUE;
+			break;
+
 		case GF_M2TS_METADATA_ID3_HLS:
 		case GF_M2TS_METADATA_ID3_KLVA:
-			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
-			//fallthrough
+			stype = GF_STREAM_METADATA;
+			codecid = GF_CODECID_NONE;
+			fake_stream = 1;
+			break;
 		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
-			return; //ignore actively: these streams will be attached verbatim as properties to audio and/or video packets
+			stype = GF_STREAM_METADATA;
+			codecid = GF_CODECID_SCTE35;
+			stream->flags |= GF_M2TS_ES_IS_SECTION|GF_M2TS_ES_FULL_AU;
+			fake_stream = 2;
+			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
-			return;
+			//GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid 0x%x\n", stream->stream_type, stream->pid));
+			if (!ctx->upes) {
+				if (!(ctx->logflags & 2)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unknown stream(s) skipped, use --upes to enable\n", stream->stream_type));
+					ctx->logflags|=2;
+				}
+				gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
+				return;
+			}
+			codecid = GF_4CC('M','2','T', stream->stream_type);
+			if (ctx->upes==UPES_MODE_INFO)
+				fake_stream = 2;
+			break;
 		}
 	}
 
@@ -485,6 +530,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, unframed ? &PROP_BOOL(GF_TRUE) : NULL);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_LATM, unframed_latm ? &PROP_BOOL(GF_TRUE) : NULL );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_SRT, unframed_srt ? &PROP_BOOL(GF_TRUE) : NULL );
 
 		if (orig_stype) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(orig_stype) );
@@ -513,8 +559,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			u32 dsi_len = gf_bs_read_u32(bs);
 			if (dsi_len) {
 				u32 pos = (u32) gf_bs_get_position(bs);
-				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
-				gf_bs_skip_bytes(bs, dsi_len);
+				if (pos < stream->gpac_meta_dsi_size && dsi_len < stream->gpac_meta_dsi_size-pos) {
+					gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
+					gf_bs_skip_bytes(bs, dsi_len);
+				}
 			} else {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 			}
@@ -536,14 +584,42 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
 
-	if ((stream->flags&GF_M2TS_ES_IS_PES) && stream->lang) {
-		char szLang[4];
-		szLang[0] = (stream->lang>>16) & 0xFF;
-		szLang[1] = (stream->lang>>8) & 0xFF;
-		szLang[2] = stream->lang & 0xFF;
-		szLang[3] = 0;
-		if (szLang[2]==' ') szLang[2] = 0;
-		gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(szLang) );
+	if (stream->flags&GF_M2TS_ES_IS_PES) {
+		if (stream->lang) {
+			char szLang[4];
+			szLang[0] = (stream->lang>>16) & 0xFF;
+			szLang[1] = (stream->lang>>8) & 0xFF;
+			szLang[2] = stream->lang & 0xFF;
+			szLang[3] = 0;
+			if (szLang[2]==' ') szLang[2] = 0;
+			gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(szLang) );
+		}
+		u32 nb_roles=0;
+		if (stream->audio_flags & (GF_M2TS_AUDIO_DESCRIPTION|GF_M2TS_AUDIO_SUB_DESCRIPTION)) nb_roles++;
+		if (stream->audio_flags & GF_M2TS_AUDIO_HEARING_IMPAIRED) nb_roles++;
+		if (nb_roles) {
+			GF_PropertyValue roles;
+			roles.type = GF_PROP_STRING_LIST;
+			roles.value.string_list.nb_items = nb_roles;
+			roles.value.string_list.vals = gf_malloc(sizeof(char*)*nb_roles);
+			nb_roles=0;
+			if (stream->audio_flags & (GF_M2TS_AUDIO_DESCRIPTION|GF_M2TS_AUDIO_SUB_DESCRIPTION)) {
+				roles.value.string_list.vals[nb_roles] = gf_strdup("description");
+				nb_roles++;
+			}
+			if (stream->audio_flags & GF_M2TS_AUDIO_HEARING_IMPAIRED) {
+				roles.value.string_list.vals[nb_roles] = gf_strdup("enhanced-audio-intelligibility");
+				nb_roles++;
+			}
+			gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &roles);
+		}
+		//we don't demux scrambled PIDs, declare them as fake
+		if (stream->is_protected) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(stype) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(GF_4CC('d','v','b','c')) );
+			fake_stream = GF_TRUE;
+		}
 	}
 	if (codecid == GF_CODECID_DVB_SUBS) {
 		char szLang[4];
@@ -592,6 +668,14 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DOLBY_VISION, NULL);
 	}
 
+	if (fake_stream) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_FAKE, &PROP_BOOL(GF_TRUE) );
+		if (fake_stream==2) {
+			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
+			return;
+		}
+	}
+
 	m2tsdmx_update_sdt(ctx->ts, opid);
 
 	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
@@ -624,18 +708,26 @@ static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 i, count;
-
+	 Bool do_ignore = GF_TRUE;
 	count = gf_list_count(prog->streams);
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
+		if (!ctx->forward_for || (es->pid==ctx->forward_for)) do_ignore = GF_FALSE;
+
 		if (es->pid==prog->pmt_pid) continue;
 		if (! (es->flags & GF_M2TS_ES_IS_PES)) continue;
 
 		if (es->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL ) continue;
 		if (es->depends_on_pid ) {
 			prog->is_scalable = GF_TRUE;
-			break;
 		}
+	}
+	if (do_ignore) {
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *es = gf_list_get(prog->streams, i);
+			gf_m2ts_set_pes_framing(es, GF_M2TS_PES_FRAMING_SKIP);
+		}
+		return;
 	}
 
 	for (i=0; i<count; i++) {
@@ -736,6 +828,23 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 	}
 }
 
+static GFINLINE u64 m2tsdmx_translate_ts(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog, u64 inTS)
+{
+	if (!ctx->mappcr) return inTS;
+	//we may have a TS already looped while the PCR still hasn't (eg because vbv)
+	if ((prog->last_pcr_value > 9*GF_M2TS_MAX_PCR/10) && (inTS < GF_M2TS_MAX_PCR_90K/10))
+		inTS += GF_M2TS_MAX_PCR_90K;
+
+	gf_assert((s64) inTS + prog->pcr_base_offset/300 >= 0);
+	//we may dispatch a PES received before a PCR loop because we dispatch pes once the full packet is received
+	//the TS will be in old base but the PCR in the new one (pcr_base_offset incremented)
+	if ((GF_M2TS_MAX_PCR_90K < 20000 + inTS) && (prog->last_pcr_value<27000000)) {
+		gf_assert(prog->pcr_base_offset >= GF_M2TS_MAX_PCR);
+		return inTS + prog->pcr_base_offset/300 - GF_M2TS_MAX_PCR_90K;
+	}
+	return inTS + prog->pcr_base_offset/300;
+}
+
 static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 {
 	GF_FilterPid *opid;
@@ -807,9 +916,16 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		if (pck->flags & GF_M2TS_PES_PCK_RAP)
 			sap_type = GF_FILTER_SAP_1;
 
-		gf_filter_pck_set_cts(dst_pck, pck->PTS);
+		u64 ts = m2tsdmx_translate_ts(ctx, pck->stream->program, pck->PTS);
+		gf_filter_pck_set_cts(dst_pck, ts);
+		if (ts != pck->PTS)
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_ORIGINAL_PTS, &PROP_LONGUINT(pck->PTS) );
+
 		if (pck->DTS != pck->PTS) {
-			gf_filter_pck_set_dts(dst_pck, pck->DTS);
+			ts = m2tsdmx_translate_ts(ctx, pck->stream->program, pck->DTS);
+			gf_filter_pck_set_dts(dst_pck, ts);
+			if (ts != pck->DTS)
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_ORIGINAL_DTS, &PROP_LONGUINT(pck->PTS) );
 		}
 		gf_filter_pck_set_sap(dst_pck, sap_type);
 
@@ -899,6 +1015,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	if (slc->useAccessUnitEndFlag && slh.accessUnitEndFlag) end = GF_TRUE;
 	gf_filter_pck_set_framing(dst_pck, start, end);
 
+	//DO NOT remap to PCR, 4on2 is not using PCR
 	if (slc->useTimestampsFlag && slh.decodingTimeStampFlag)
 		gf_filter_pck_set_dts(dst_pck, slh.decodingTimeStamp);
 
@@ -1048,7 +1165,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PES_PCR:
 		if (ctx->mux_tune_state) break;
 	{
-		u64 pcr;
+		u64 pcr, opcr;
 		Bool map_time = GF_FALSE;
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
@@ -1063,8 +1180,14 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 
 		//we forward the PCR on each pid
-		pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
+		opcr = pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
+		if (ctx->mappcr) {
+			gf_assert((s64)pcr + pck->stream->program->pcr_base_offset >= 0);
+			pcr += pck->stream->program->pcr_base_offset;
+		}
 		pcr /= 300;
+		opcr /= 300;
+
 		count = gf_list_count(pck->stream->program->streams);
 		for (i=0; i<count; i++) {
 			GF_FilterPacket *dst_pck;
@@ -1075,6 +1198,9 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (!dst_pck) continue;
 
 			gf_filter_pck_set_cts(dst_pck, pcr);
+			if (pcr != opcr)
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_ORIGINAL_PTS, &PROP_LONGUINT(opcr) );
+
 			gf_filter_pck_set_clock_type(dst_pck, discontinuity ? GF_FILTER_CLOCK_PCR_DISC : GF_FILTER_CLOCK_PCR);
 			if (pck->stream->is_seg_start) {
 				pck->stream->is_seg_start = GF_FALSE;
@@ -1327,6 +1453,34 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 	}
 		break;
+	case GF_M2TS_EVT_SECTION:
+	case GF_M2TS_EVT_SECTION_UPDATE:
+	{
+		GF_M2TS_GenericSectionInfo *sec_info = (GF_M2TS_GenericSectionInfo *)param;
+		if (!sec_info->stream || !sec_info->stream->user) break;
+		GF_FilterPid *opid = (GF_FilterPid *)sec_info->stream->user;
+		if (!opid) break;
+		if (!sec_info->section_data_len) break;
+		u8 *output;
+		GF_FilterPacket *pck = gf_filter_pck_new_alloc(opid, sec_info->section_data_len, &output);
+		if (!pck) return;
+		memcpy(output, sec_info->section_data, sec_info->section_data_len);
+		gf_filter_pck_set_framing(pck,
+			sec_info->section_idx ? GF_FALSE : GF_TRUE,
+			(sec_info->section_idx+1==sec_info->num_sections) ? GF_TRUE : GF_FALSE
+		);
+
+		u64 pts = m2tsdmx_translate_ts(ctx, sec_info->stream->program, sec_info->pts);
+		gf_filter_pck_set_cts(pck, pts);
+		if (pts != sec_info->pts)
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_ORIGINAL_PTS, &PROP_LONGUINT(sec_info->pts) );
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		gf_filter_pck_set_property_str(pck, "table", &PROP_UINT(sec_info->table_id) );
+		gf_filter_pck_set_property_str(pck, "table_ex", &PROP_UINT(sec_info->ex_table_id) );
+		gf_filter_pck_set_property_str(pck, "version", &PROP_UINT(sec_info->version_number) );
+		gf_filter_pck_send(pck);
+	}
+		break;
 	}
 }
 
@@ -1396,6 +1550,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 			gf_filter_pid_send_event(pid, &evt);
 		}
+	}
+	if (!ctx->ipid) {
+		p = gf_filter_pid_get_property_str(pid, "filter_pid");
+		if (p) ctx->forward_for = p->value.uint;
 	}
 	ctx->ipid = pid;
 	return GF_OK;
@@ -1597,6 +1755,8 @@ static GF_Err m2tsdmx_initialize(GF_Filter *filter)
 	if (ctx->dsmcc) {
 		gf_m2ts_demux_dmscc_init(ctx->ts);
 	}
+	if (ctx->analyze)
+		ctx->mappcr = GF_FALSE;
 
 	return GF_OK;
 }
@@ -1720,6 +1880,8 @@ static const GF_FilterCapability M2TSDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	//allow connections from tsgendts
+	CAP_UINT(GF_CAPS_INPUT_OPT|GF_CAPFLAG_PRESENT, GF_PROP_PID_TIMESCALE, 0)
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_M2TSDmxCtx, _n)
@@ -1730,7 +1892,15 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfrag), "signal segment boundaries on output packets for DASH or HLS sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvbtxt), "export DVB teletext streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(upes), "keep unknown PES streams\n"
+		"- no: ignored the streams\n"
+		"- info: declare the stream as fake (no data forward), turns on dvbtxt\n"
+		"- full: declare the stream and sends data", GF_PROP_UINT, "no", "no|info|full", GF_FS_ARG_HINT_EXPERT},
+
+	{ OFFS(mappcr), "remap PCR and timestamps into continuous timeline", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(analyze), "skip PCR remapping - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

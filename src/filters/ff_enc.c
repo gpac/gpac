@@ -67,6 +67,7 @@ typedef struct _gf_ffenc_ctx
 
 	u32 nb_frames_out, nb_frames_in;
 	u64 time_spent;
+	u64 orig_cts_plus_one;
 
 	u32 low_delay_mode;
 
@@ -272,7 +273,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 
 	ctx->gen_dsi = GF_FALSE;
 	switch (ctx->codecid) {
-	//reframe all these codecs for proper ISOBMFF+DSI formating
+	//reframe all these codecs for proper ISOBMFF+DSI formatting
 	case GF_CODECID_AVC:
 	case GF_CODECID_HEVC:
 	case GF_CODECID_VVC:
@@ -336,6 +337,17 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 }
 
 
+static GFINLINE void ffenc_set_deps(GF_FilterPacket *dst_pck, AVPacket *pkt)
+{
+	//reset dependency flags to unknown
+	u8 flags = 0;
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+	if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) {
+		flags = 0x8;
+	}
+#endif
+	gf_filter_pck_set_dependency_flags(dst_pck, flags);
+}
 
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
 {
@@ -511,6 +523,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	//check if we need to force a closed gop
 	if (pck && (ctx->fintra.den && (ctx->fintra.num>0)) && !ctx->force_reconfig) {
 		u64 cts = ffenc_get_cts(ctx, pck);
+		//if we have a first encoded frame, use it as our anchor point and reset
+		//we only do this on first setup
+		if (ctx->orig_cts_plus_one) {
+			cts = ctx->orig_cts_plus_one - 1;
+			ctx->orig_cts_plus_one = 0;
+		}
 		if (!ctx->fintra_setup) {
 			ctx->fintra_setup = GF_TRUE;
 			ctx->orig_ts = cts;
@@ -530,8 +548,13 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			}
 		}
 	}
-	if (!ctx->nb_frames_in)
+
+	if (!ctx->nb_frames_in) {
 		force_intra = 0;
+		//remember timing of first encoded frame
+		if (pck)
+			ctx->orig_cts_plus_one = ffenc_get_cts(ctx, pck) + 1;
+	}
 
 	if (force_intra) {
 		if (ctx->args_updated) {
@@ -906,11 +929,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
-#if LIBAVCODEC_VERSION_MAJOR >= 58
-	if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) {
-		gf_filter_pck_set_dependency_flags(dst_pck, 0x8);
-	}
-#endif
+	ffenc_set_deps(dst_pck, pkt);
+
 	gf_filter_pck_send(dst_pck);
 
 	av_packet_free_side_data(pkt);
@@ -1347,6 +1367,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_set_sap(dst_pck, 0);
 
 	gf_filter_pck_set_duration(dst_pck, (u32) pkt->duration);
+	ffenc_set_deps(dst_pck, pkt);
 
 	gf_filter_pck_send(dst_pck);
 
@@ -2144,8 +2165,10 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	)
 		ctx->low_delay_mode = 1;
 	//activate opts for low delay
-	else if (!strcmp(arg_name, "low_delay") && !ctx->low_delay_mode)
+	else if (!strcmp(arg_name, "low_delay")) {
 		ctx->low_delay_mode = 1;
+		gf_filter_report_meta_option(filter, "low_delay", 1, NULL);
+	}
 	//remap some options
 	else if (!strcmp(arg_name, "bitrate") || !strcmp(arg_name, "rate"))	arg_name = "b";
 //	else if (!strcmp(arg_name, "gop")) arg_name = "g";
@@ -2224,8 +2247,10 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (evt->encode_hints.gen_dsi_only) {
 			ctx->generate_dsi_only = GF_TRUE;
 		}
-		else if ((ctx->fintra.num<0) && evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
+		//change in fintra
+		else if (ctx->fintra.num * evt->encode_hints.intra_period.den != ctx->fintra.den * evt->encode_hints.intra_period.num) {
 			ctx->fintra = evt->encode_hints.intra_period;
+			ctx->fintra_setup = GF_FALSE;
 
 			if (!ctx->rc || (gf_list_count(ctx->src_packets) && !ctx->force_reconfig)) {
 				ctx->reconfig_pending = GF_TRUE;
@@ -2233,6 +2258,9 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 		}
 		return GF_TRUE;
+	}
+	else if (evt->base.type==GF_FEVT_STOP) {
+		ctx->nb_frames_in = ctx->nb_frames_out = 0;
 	}
 	return GF_FALSE;
 }

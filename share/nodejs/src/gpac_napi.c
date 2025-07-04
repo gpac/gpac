@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021-2024
+ *			Copyright (c) Telecom ParisTech 2021-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / NodeJS module
@@ -217,7 +217,7 @@ napi_value gpac_sys_keyname(napi_env env, napi_callback_info info)
 	NARG_S32(code, 0, 0);
 	NAPI_CALL( napi_create_string_utf8(env, gf_dom_get_friendly_name(code), NAPI_AUTO_LENGTH, &val) );
 #else
-	NAPI_CALL( napi_create_string_utf8(env, "unknwon", NAPI_AUTO_LENGTH, &val) );
+	NAPI_CALL( napi_create_string_utf8(env, "unknown", NAPI_AUTO_LENGTH, &val) );
 #endif
 	return val;
 }
@@ -3213,7 +3213,7 @@ static Bool napi_filter_cbk_process_event(GF_Filter *filter, const GF_FilterEven
 	if (!has_fun) return GF_FALSE;
 
 	status = napi_get_named_property(napi_f->env, obj, "process_event", &fun_val);
-	if (status != napi_ok) return GF_BAD_PARAM;
+	if (status != napi_ok) return GF_FALSE;
 
 	arg = wrap_filterevent(napi_f->env, (GF_FilterEvent *)evt, NULL);
 	status = napi_make_callback(napi_f->env, napi_f->async_ctx, obj, fun_val, 1, &arg, &res);
@@ -5078,6 +5078,7 @@ static napi_status InitConstants(napi_env env, napi_value exports)
 	DEF_CONST(GF_CAPFLAG_LOADED_FILTER)
 	DEF_CONST(GF_CAPFLAG_STATIC)
 	DEF_CONST(GF_CAPFLAG_OPTIONAL)
+	DEF_CONST(GF_CAPFLAG_RECONFIG)
 	DEF_CONST(GF_CAPS_INPUT)
 	DEF_CONST(GF_CAPS_INPUT_OPT)
 	DEF_CONST(GF_CAPS_INPUT_STATIC)

@@ -26,6 +26,7 @@
 
 #include <gpac/modules/audio_out.h>
 #include <windows.h>
+#include <mmeapi.h>
 
 #define MAX_AUDIO_BUFFER	30
 

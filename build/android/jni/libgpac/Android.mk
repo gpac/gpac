@@ -260,6 +260,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/rewrite_mp4v.c \
 	../../../../src/filters/rewrite_nalu.c \
 	../../../../src/filters/rewrite_obu.c \
+	../../../../src/filters/sei_load.c \
 	../../../../src/filters/tileagg.c \
 	../../../../src/filters/tilesplit.c \
 	../../../../src/filters/tssplit.c \
@@ -405,11 +406,16 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/alloc.c \
 	../../../../src/utils/base_encoding.c \
 	../../../../src/utils/bitstream.c \
-	../../../../src/utils/cache.c \
 	../../../../src/utils/color.c \
 	../../../../src/utils/configfile.c \
 	../../../../src/utils/constants.c \
 	../../../../src/utils/downloader.c \
+	../../../../src/utils/downloader_cache.c \
+	../../../../src/utils/downloader_curl.c \
+	../../../../src/utils/downloader_hmux.c \
+	../../../../src/utils/downloader_nghttp2.c \
+	../../../../src/utils/downloader_ngtcp2.c \
+	../../../../src/utils/downloader_ssl.c \
 	../../../../src/utils/error.c \
 	../../../../src/utils/gltools.c \
 	../../../../src/utils/gzio.c \

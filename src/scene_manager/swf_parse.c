@@ -108,6 +108,13 @@ static void swf_init_decompress(SWFReader *read)
 	if (dst_size < 8) {
 		return;
 	}
+	//we use 500MB as max size
+	if (dst_size > 0x1FFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SWF Parsing] Decompressed size too big %u, max 500M\n", dst_size));
+		gf_bs_del(read->bs);
+		read->bs = NULL;
+		return;
+	}
 	src = gf_malloc(sizeof(char)*size);
 	dst = gf_malloc(sizeof(char)*dst_size);
 	memset(dst, 0, sizeof(char)*8);
@@ -1848,14 +1855,18 @@ static GF_Err swf_def_sound(SWFReader *read)
 		while (tot_size<read->size) {
 			u32 toread = read->size - tot_size;
 			if (toread>alloc_size) toread = alloc_size;
-			swf_read_data(read, frame, toread);
-			if (gf_fwrite(frame, sizeof(char)*toread, snd->output) != toread)
+			if (swf_read_data(read, frame, toread) != toread) {
 				e = GF_IO_ERR;
+			} else {
+				if (gf_fwrite(frame, sizeof(char)*toread, snd->output) != toread)
+					e = GF_IO_ERR;
+			}
 			tot_size += toread;
 		}
 
 		gf_free(frame);
 		if (e) {
+			if (snd->szFileName) gf_free(snd->szFileName);
 			gf_free(snd);
 			return e;
 		}
@@ -2035,7 +2046,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		bytes[3] = swf_read_int(read, 8);
 		hdr = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
 		size = gf_mp3_frame_size(hdr);
-		if (!size || tot_size >= read->size) {
+		if (!size || size < 4 || tot_size >= read->size) {
 			e = GF_ISOM_INVALID_MEDIA;
 			break;
 		}
@@ -2046,9 +2057,16 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		/*watchout for truncated framesif */
 		if (tot_size + size >= read->size) size = read->size - tot_size;
 
-		swf_read_data(read, frame, size-4);
-		if (gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output)!=4) e = GF_IO_ERR;
-		if (gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output) != size-4) e = GF_IO_ERR;
+		if (size > 4) {
+			u32 size_read = swf_read_data(read, frame, size-4);
+
+			if (size_read == size-4) {
+				if (gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output)!=4) e = GF_IO_ERR;
+				if (gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output) != size-4) e = GF_IO_ERR;
+			}
+			else
+				e = GF_IO_ERR;
+		}
 		if (tot_size + size >= read->size) break;
 		tot_size += size;
 	}

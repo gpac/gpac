@@ -695,22 +695,23 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, " DataReferenceIndex=\"%d\" Width=\"%d\" Height=\"%d\"", p->dataReferenceIndex, p->Width, p->Height);
 
 	if (full_dump) {
-		Float dpih, dpiv;
 		gf_fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
-
-		dpih = (Float) (p->horiz_res&0xFFFF);
-		dpih /= 0xFFFF;
-		dpih += (p->vert_res>>16);
-		dpiv = (Float) (p->vert_res&0xFFFF);
-		dpiv /= 0xFFFF;
-		dpiv += (p->vert_res>>16);
-
-		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
-	} else {
-		//dump reserved info
-		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	}
+	
+	Float dpih, dpiv;
+	dpih = (Float) (p->horiz_res&0xFFFF);
+	dpih /= 0xFFFF;
+	dpih += (p->vert_res>>16);
+	dpiv = (Float) (p->vert_res&0xFFFF);
+	dpiv /= 0xFFFF;
+	dpiv += (p->vert_res>>16); 
+	if (gf_sys_is_test_mode()) {
+		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
+	} else {
+		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
+	}
+
 	if (strlen((const char*)p->compressor_name) ) {
 		if (isalnum(p->compressor_name[0])) {
 			gf_fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
@@ -7222,9 +7223,11 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, ">\n");
 
 #ifndef GPAC_DISABLE_INSPECT
-		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
-		scte35_dump_xml(trace, bs);
-		gf_bs_del(bs);
+		if (p->scheme_id_uri && !strcmp(p->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
+			GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
+			scte35_dump_xml(trace, bs);
+			gf_bs_del(bs);
+		}
 #endif
 	} else {
 		gf_fprintf(trace, ">\n");
@@ -7359,14 +7362,15 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 			if (res_len != GF_UTF8_FAIL) {
 				utf8str[res_len] = 0;
 
-				gf_fprintf(trace, " value=\"%s\">\n", utf8str);
+				gf_fprintf(trace, " value=\"%s\"", utf8str);
 			}
 			gf_free(utf8str);
 		} else {
 			gf_fprintf(trace, " value=\"");
 			dump_data_hex(trace, tag->prop_value, tag->prop_size);
-			gf_fprintf(trace, "\">\n");
+			gf_fprintf(trace, "\"");
 		}
+		gf_fprintf(trace, " />\n");
 	}
 	gf_isom_box_dump_done("XtraBox", a, trace);
 	return GF_OK;
