@@ -855,11 +855,17 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 					es_info_length += 2 + dv_len;
 				}
 				break;
-			case GF_M2TS_HLS_AC3_CRYPT:
-			case GF_M2TS_HLS_EC3_CRYPT:
-			case GF_M2TS_HLS_AAC_CRYPT:
 			case GF_M2TS_HLS_AVC_CRYPT:
 				es_info_length += 6;
+				break;
+			case GF_M2TS_HLS_AC3_CRYPT:
+				es_info_length += 6;
+				es_info_length += 10;
+				break;
+			case GF_M2TS_HLS_EC3_CRYPT:
+			case GF_M2TS_HLS_AAC_CRYPT:
+				es_info_length += 6;
+				es_info_length += 10 + es->ifce->decoder_config_size;
 				break;
 
 			default:
@@ -1015,16 +1021,42 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
 				gf_bs_write_u8(bs, 4);
 				gf_bs_write_u32(bs,	GF_4CC('a', 'c', '3', 'd'));
+
+				//add reg descriptor for SAES
+				gf_bs_write_u8(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR);
+				gf_bs_write_u8(bs, 8);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'a', 'c', '3'));
+				gf_bs_write_u16(bs, 0); //priming
+				gf_bs_write_u8(bs, 1); //version
+				gf_bs_write_u8(bs, 0);
 				break;
 			case GF_M2TS_HLS_EC3_CRYPT:
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
 				gf_bs_write_u8(bs, 4);
 				gf_bs_write_u32(bs,	GF_4CC('e', 'c', '3', 'd'));
+
+				//add reg descriptor for SAES
+				gf_bs_write_u8(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR);
+				gf_bs_write_u8(bs, 8);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'e', 'c', '3'));
+				gf_bs_write_u16(bs, 0); //priming
+				gf_bs_write_u8(bs, 1); //version
+				gf_bs_write_u8(bs, es->ifce->decoder_config_size); //config size
+				gf_bs_write_data(bs, es->ifce->decoder_config, es->ifce->decoder_config_size); //config size
 				break;
 			case GF_M2TS_HLS_AAC_CRYPT:
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
 				gf_bs_write_u8(bs, 4);
 				gf_bs_write_u32(bs,	GF_4CC('a', 'a', 'c', 'd'));
+
+				//add reg descriptor for SAES
+				gf_bs_write_u8(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR);
+				gf_bs_write_u8(bs, 8+es->ifce->decoder_config_size);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'a', 'a', 'c'));
+				gf_bs_write_u16(bs, 0); //priming
+				gf_bs_write_u8(bs, 1); //version
+				gf_bs_write_u8(bs, es->ifce->decoder_config_size); //config size
+				gf_bs_write_data(bs, es->ifce->decoder_config, es->ifce->decoder_config_size); //config size
 				break;
 			case GF_M2TS_HLS_AVC_CRYPT:
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
