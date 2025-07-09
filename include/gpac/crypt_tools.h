@@ -195,8 +195,10 @@ typedef struct
 	/*! forces a minimum clear range for subsamples (ignored otherwise) - the final offset is at least the slice header size*/
 	u32 crypt_byte_offset;
 
-	/* ! for avc1 ctr CENC edition 1 */
+	/*! for avc1 ctr CENC edition 1 */
 	Bool allow_encrypted_slice_header;
+	/*! force encrypted SEIs for avc1 ctr CENC edition 1 */
+	Bool allow_encrypted_SEI;
 	/*! force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples*/
 	u32 block_align;
 

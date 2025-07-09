@@ -126,6 +126,7 @@ typedef struct
 	VVCState *vvc_state;
 #endif
 	Bool slice_header_clear;
+	Bool sei_clear;
 
 	GF_PropUIntList mkey_indices;
 
@@ -774,8 +775,12 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				} else if (cstr->tci->scheme_type==GF_CRYPT_TYPE_CBCS) {
 					cstr->slice_header_clear = GF_TRUE;
 				}
+				if (!cstr->tci->allow_encrypted_SEI) {
+					cstr->sei_clear = GF_TRUE;
+				}
 			} else {
 				cstr->slice_header_clear = GF_TRUE;
+				cstr->sei_clear = GF_TRUE;
 			}
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (avccfg) {
@@ -1631,9 +1636,9 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs, char *samp_data, u32 nal_size, u32 bytes_in_nalhr)
 {
 	u32 clear_bytes = 0;
+	u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 
 	if (cstr->slice_header_clear) {
-		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
 			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
@@ -1648,10 +1653,12 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			case GF_AVC_NALU_SVC_SLICE:
 				gf_bs_align(plaintext_bs);
 				clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
-				break;
+				goto exit;
+			case GF_AVC_NALU_SEI:
+				break; // see special case for SEI below
 			default:
 				clear_bytes = nal_size;
-				break;
+				goto exit;
 			}
 			if (cstr->is_saes) {
 				if ((ntype == GF_AVC_NALU_NON_IDR_SLICE) || (ntype == GF_AVC_NALU_IDR_SLICE)) {
@@ -1659,6 +1666,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 				} else {
 					clear_bytes = nal_size;
 				}
+				goto exit;
 			}
 		} else if (cstr->cenc_codec==CENC_HEVC) {
 			u8 ntype, ntid, nlid;
@@ -1669,6 +1677,7 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			} else {
 				clear_bytes = nal_size;
 			}
+			goto exit;
 		} else if (cstr->cenc_codec==CENC_VVC) {
 			u8 ntype, ntid, nlid;
 			cstr->vvc_state->parse_mode = 1;
@@ -1678,27 +1687,32 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			} else {
 				clear_bytes = nal_size;
 			}
+			goto exit;
 		}
-		//reset EPB removal and seek to start of nal
-		gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
+
+		//seek to start of nal
 		gf_bs_seek(plaintext_bs, nal_start);
-	} else {
+	}
+
+	if (cstr->sei_clear) {
 		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
-			u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
 			ntype = cstr->avc_state->last_nal_type_parsed;
-			if (ntype > GF_AVC_NALU_IDR_SLICE && ntype != GF_AVC_NALU_SVC_SLICE) {
-				//keep non-VCL in clear ("should" in CENC, "shall" in CMAF)
+			if (ntype == GF_AVC_NALU_SEI && cstr->sei_clear) {
 				clear_bytes = nal_size;
-			} else {
-				clear_bytes = bytes_in_nalhr;
+				goto exit;
 			}
-		} else {
-			clear_bytes = bytes_in_nalhr;
 		}
 	}
+
+	//default
+	clear_bytes = bytes_in_nalhr;
+
+exit:
+	//reset EPB removal and seek to start of nal
 	gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
+	gf_bs_seek(plaintext_bs, nal_start);
 	return clear_bytes;
 }
 #endif
