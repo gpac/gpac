@@ -822,6 +822,11 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		if (!p->cfg_ac3)
 		 	error = "<!--INVALID EC3 Entry: AC3Config not present in Audio Sample Description -->";
 		break;
+	case GF_ISOM_BOX_TYPE_AC4:
+        szName = "AC4SampleEntryBox";
+        if (!p->cfg_ac4)
+            error = "<!--INVALID AC4 Entry: AC4Config not present in Audio Sample Description -->";
+        break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		if (!p->cfg_mha)
@@ -5122,6 +5127,16 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 		        p->cfg.streams[0].fscod, p->cfg.streams[0].bsid, p->cfg.streams[0].bsmod, p->cfg.streams[0].acmod, p->cfg.streams[0].lfon, p->cfg.brcode);
 		gf_isom_box_dump_done("AC3SpecificBox", a, trace);
 	}
+	return GF_OK;
+}
+
+GF_Err dac4_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AC4ConfigBox *p = (GF_AC4ConfigBox *)a;
+	gf_isom_box_dump_start(a, "AC4SpecificBox", trace);
+	gf_fprintf(trace, "ac4_dsi_version=\"%d\" bitstream_version=\"%d\" fs_index=\"%d\" frame_rate_index=\"%d\" n_presentations=\"%d\">\n",
+		        p->cfg.stream.ac4_dsi_version, p->cfg.stream.bitstream_version, p->cfg.stream.fs_index, p->cfg.stream.frame_rate_index, p->cfg.stream.n_presentations);
+	gf_isom_box_dump_done("AC4SpecificBox", a, trace);
 	return GF_OK;
 }
 

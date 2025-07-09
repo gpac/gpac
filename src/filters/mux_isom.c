@@ -969,6 +969,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool skip_crypto = GF_FALSE;
 	Bool use_3gpp_config = GF_FALSE;
 	Bool use_ac3_entry = GF_FALSE;
+	Bool use_ac4_entry = GF_FALSE;
 	Bool use_flac_entry = GF_FALSE;
 	Bool use_avc = GF_FALSE;
 	Bool use_hevc = GF_FALSE;
@@ -1246,6 +1247,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_AV1:
 	case GF_CODECID_AC3:
 	case GF_CODECID_EAC3:
+	case GF_CODECID_AC4:
 	case GF_CODECID_OPUS:
 	case GF_CODECID_TRUEHD:
 	case GF_CODECID_RAW_UNCV:
@@ -2006,6 +2008,11 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_SUBTYPE_EC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
+		break;
+	case GF_CODECID_AC4:
+		m_subtype = GF_ISOM_SUBTYPE_AC4;
+		comp_name = "AC-4";
+		use_ac4_entry = GF_TRUE;
 		break;
 	case GF_CODECID_MPHA:
 		if ((m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHA1) && (m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHA2))
@@ -2957,6 +2964,22 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else if (use_ac4_entry) {
+		GF_AC4Config ac4cfg;
+		memset(&ac4cfg, 0, sizeof(GF_AC4Config));
+
+		if (dsi) {
+			gf_odf_ac4_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &ac4cfg);
+		}
+
+		e = gf_isom_ac4_config_new(ctx->file, tkw->track_num, &ac4cfg, (char *)src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC4 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+
+		gf_odf_ac4_cfg_clean_list(&ac4cfg);
 	} else if (use_flac_entry) {
 		e = gf_isom_flac_config_new(ctx->file, tkw->track_num, dsi ? dsi->value.data.ptr : NULL, dsi ? dsi->value.data.size : 0, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {

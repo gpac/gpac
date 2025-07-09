@@ -3304,6 +3304,18 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			fprintf(stderr, " - ATMOS complexity index type %d", complexity_index_type);
 		}
 		fprintf(stderr, "\n");
+	} else if (msub_type == GF_ISOM_SUBTYPE_AC4) {
+		u32 sr = 0;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_AC4Config *ac4 = gf_isom_ac4_config_get(file, trackNum, stsd_idx);
+		if (ac4) {
+			nb_ch = ac4->channel_count;
+			sr = ac4->sample_rate;
+			gf_free(ac4);
+		}
+#endif
+		fprintf(stderr, "\tAC-4 stream - Sample Rate %d - %d channel(s) - sample rate %d", sr, nb_ch, sr);
+		fprintf(stderr, "\n");
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_SMV) {
 		fprintf(stderr, "\t3GPP SMV stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_DIMS) {
