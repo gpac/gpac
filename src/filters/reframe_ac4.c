@@ -546,29 +546,32 @@ static void ac4dmx_finalize(GF_Filter *filter)
 static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeScore *score)
 {
 	u32 nb_frames = 0, sync_framesize = 0, pos = 0;
-	Bool has_broken_frames = GF_FALSE;
+	u32 nb_broken_frames = GF_FALSE;
 	GF_AC4Config ahdr;
 
 	GF_BitStream *bs = gf_bs_new(_data, _size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs) && nb_frames <= 4) {
+		Bool bytes_lost=GF_FALSE;
 		if (!gf_ac4_parser_bs(bs, &ahdr, GF_FALSE)) {
 			if (ahdr.sample_rate) nb_frames++;
 			break;
 		}
 		
-		if (pos != (u32) gf_bs_get_position(bs))
-			has_broken_frames = GF_TRUE;
+		if (pos != (u32) gf_bs_get_position(bs)) {
+			bytes_lost=GF_TRUE;
+			nb_broken_frames++;
+		}
 
 		nb_frames += 1;
 		sync_framesize = ahdr.frame_size + ahdr.header_size + ahdr.crc_size;
 		gf_bs_skip_bytes(bs, sync_framesize);
-		if (!pos && (nb_frames==1) && !gf_bs_available(bs)) nb_frames++;
+		if (!pos && !bytes_lost && (nb_frames==1) && !gf_bs_available(bs)) nb_frames++;
 		pos += sync_framesize;
 	}
 	gf_bs_del(bs);
 
 	if (nb_frames>=2) {
-		*score = has_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
+		*score = nb_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/ac4";
 	}
 
@@ -588,11 +591,13 @@ static const GF_FilterCapability AC4DmxCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_FALSE),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
 	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	{0},
+/*	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_HLS_SAMPLE_AES_SCHEME),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_FALSE),
+*/
+
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_AC4DmxCtx, _n)
@@ -612,7 +617,8 @@ GF_FilterRegister AC4DmxRegister = {
 	.configure_pid = ac4dmx_configure_pid,
 	.process = ac4dmx_process,
 	.probe_data = ac4dmx_probe_data,
-	.process_event = ac4dmx_process_event
+	.process_event = ac4dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

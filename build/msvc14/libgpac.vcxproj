@@ -335,6 +335,7 @@
     <ClCompile Include="..\..\src\filters\out_video.c" />
     <ClCompile Include="..\..\src\filters\reframer.c" />
     <ClCompile Include="..\..\src\filters\reframe_ac3.c" />
+    <ClCompile Include="..\..\src\filters\reframe_ac4.c" />
     <ClCompile Include="..\..\src\filters\reframe_adts.c" />
     <ClCompile Include="..\..\src\filters\reframe_amr.c" />
     <ClCompile Include="..\..\src\filters\reframe_av1.c" />
@@ -355,6 +356,7 @@
     <ClCompile Include="..\..\src\filters\sei_load.c" />
     <ClCompile Include="..\..\src\filters\restamp.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
+    <ClCompile Include="..\..\src\filters\rewrite_ac4.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mhas.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mp4v.c" />

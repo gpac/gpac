@@ -259,6 +259,8 @@ rbuffer (uint, default: 0, updatable): rebuffer trigger in ms. If 0 or more than
 .br
 stats (bool, default: false):  compute statistics for PIDs
 .br
+timeout (uint, default: 5000): timeout in ms when doing simple inspection in case no packets are received on some PIDs
+.br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
@@ -1367,6 +1369,39 @@ index (dbl, default: 1.0):     indexing window length
 .br
 
 .br
+.SH rfac4
+.LP
+.br
+Description: AC4 reframer
+.br
+
+.br
+This filter parses AC4 files/data and outputs corresponding audio PID and frames.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH ufac4
+.LP
+.br
+Description: AC4 writer
+.br
+
+.br
+This filter converts MPEG-H Audio streams into AC4 encapsulated data.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+rcfg (bool, default: true):    force repeating decoder config at each I-frame
+.br
+
+.br
 .SH a52dec
 .LP
 .br
@@ -1474,6 +1509,18 @@ sigfrag (bool, default: false): signal segment boundaries on output packets for 
 .br
 dvbtxt (bool, default: false): export DVB teletext streams
 .br
+upes (enum, default: no):      keep unknown PES streams
+.br
+* no: ignored the streams
+.br
+* info: declare the stream as fake (no data forward), turns on dvbtxt
+.br
+* full: declare the stream and sends data
+.br
+
+.br
+mappcr (bool, default: true):  remap PCR and timestamps into continuous timeline
+.br
 
 .br
 .SH sockin
@@ -1572,15 +1619,43 @@ Description: DVB for Linux
 .br
 
 .br
-Experimental DVB support for linux, requires a channel config file through .I chcfg
+This filter reads raw MPEG-2 TS from DVB-T/T2 and DVB-S/S2 cards on linux.
 .br
-  
+
 .br
-The URL syntax is dvb://CHANNAME[@FRONTEND], with:
+The URL scheme used is dvb:// with the following syntaxes:
 .br
- * CHANNAME: the channel name as listed in the channel config file
+* `dvb://CHAN`: tunes to channel CHAN in the channel configuration file.
 .br
- * frontend: the index of the DVB adapter to use (optional, default is 0)
+* `dvb://+CHAN`: tunes to multiplex contaning channel CHAN and expose all programs.
+.br
+* `dvb://=N`: tunes to the N-th channel in the channel configuration file.
+.br
+* `dvb://@FREQ`: tunes to frequency FREQ and exposes all channels in multiplex.
+.br
+* `dvb://@=N`: tunes to N-th frequency and exposes all channels in multiplex.
+.br
+* `dvb://@chlist`: populates the .I chans option with available channels in the configuration file and do nothing else.
+.br
+
+.br
+When tuning by channel name CHAN, the first entry in the channel configuration file starting with CHAN will be used.
+.br
+
+.br
+The channel configuration file is set through .I chcfg. The expected format is VDR as produced by w_scan, with a syntax extended for comment lines, starting with #.
+.br
+Within a comment line, the following keywords can be used to override defaults:
+.br
+ * `dev=N`: set the adapter index (N integer) or full path (N string).
+.br
+ * `idx=K`: set the frontend index K.
+.br
+ * `csidx=S`: set the committed switch index for DiSEqC.
+.br
+
+.br
+To view the default channels, use gpac -hx dvbin.
 .br
 
 .br
@@ -1589,9 +1664,21 @@ The URL syntax is dvb://CHANNAME[@FRONTEND], with:
 .br
 src (cstr):                    URL of source content
 .br
-block_size (uint, default: 65536): block size used to read file
+block_size (uint, default: 65536): block size used to read device
 .br
-chcfg (cstr):                  path to channels.conf file
+chcfg (cstr, default: $GCFG/channels.conf): path to channels configuration file
+.br
+dev (str, default: 0):         path to DVB adapter - if first character is a number, this is the device index
+.br
+idx (uint, default: 0):        frontend index
+.br
+timeout (uint, default: 5000): timeout in ms before tune failure
+.br
+csleep (uint, default: 15):    config sleep in ms between DiSEqC commands
+.br
+csidx (uint, default: 0):      committed switch index for DiSEqC
+.br
+chans (strl):                  list of all channels, only pupulated for dvb://@chlist URL
 .br
 
 .br
@@ -2225,6 +2312,8 @@ Other tag class may be specified using tag_NAME property names, and will be adde
 - the CRC32 of the NAME as a box 4CC if NAME is not four characters long
 .br
   
+.br
+Property names formatted as cust_NAME@MEAN are added as a custom tag with name NAME and mean MEAN. Both NAME and MEAN can be empty.
 .br
 .SH User data
 .LP
@@ -3337,6 +3426,12 @@ The output file name can use gpac templating mechanism, see gpac -h doc.The filt
 .br
 
 .br
+By default output files are created directly, which may lead to issues if concourrent programs attempt to access them.
+.br
+By enabling .I atomic, files will be created in target destination folder with the .gftmp suffix and move to their final name upon close.
+.br
+
+.br
 .SH Discard sink mode
 .LP
 .br
@@ -3413,6 +3508,8 @@ redund (bool, default: false): keep redundant packet in output file
 max_cache_segs (sint, default: 0): maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)
 .br
 force_null (bool, default: false): force no output regardless of file name
+.br
+atomic (bool, default: false): use atomic file write for non append modes
 .br
 
 .br
@@ -3555,7 +3652,7 @@ The filter can perform time range extraction of the source using .I xs and .I xe
 .br
 The formats allowed for times specifiers are:
 .br
-- 'TC'HH:MM:SS:FF specify time in timecode
+* 'TC'HH:MM:SS:FF: specify time in timecode
 .br
 * 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds
 .br
@@ -3801,6 +3898,8 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 * any: use UTC of media, or UTC of local host if not found in media after probing time
 .br
 * media: use UTC of media (abort if none found)
+.br
+* tc: use timecode
 .br
 
 .br
@@ -4948,6 +5047,8 @@ Each TEMI description is formatted as ID_OR_URL or #OPT1[#OPT2]#ID_OR_URL. Optio
 .br
 * N: insert NTP timestamp in TEMI timeline descriptor
 .br
+* n: insert NTP timestamp using NTP for first packet than incrementing based on media timestamp (for non real-time)
+.br
 * ID_OR_URL: If number, indicate the TEMI ID to use for external timeline. Otherwise, give the URL to insert
 .br
   
@@ -5120,7 +5221,7 @@ flush_rap (bool, default: false): force flushing mux program when RAP is found o
 .br
 pcr_only (bool, default: false): enable PCR-only TS packets
 .br
-pcr_init (lsint, default: -1): set initial PCR value for the programs. A negative value means random value is picked
+pcr_init (lsint, default: -1): set initial PCR value for the programs. -1 means random value is picked, other negative value means offset to maximum PCR
 .br
 sid (uint, default: 0):        set service ID for the program
 .br
@@ -6067,6 +6168,8 @@ styp (str):                    indicate the 4CC to use for styp boxes when using
 .br
 dual (bool):                   indicate to produce both MPD and M3U files
 .br
+segcts (bool):                 compute the segment number by dividing the first CTS by .I segdur
+.br
 sigfrag (bool):                use manifest generation only mode
 .br
 sbound (enum, default: out):   indicate how the theoretical segment start TSS (= segment_number * duration) should be handled
@@ -6306,6 +6409,8 @@ gpac -i stdin vout
 
 .br
 
+.br
+When reading from stdin, the default timeout is 10 seconds.
 .br
 .SH Named pipes
 .LP
@@ -6776,8 +6881,6 @@ Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf o
 .LP
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
-.br
-tc (bool, default: false):     inject metadata timecodes
 .br
 
 .br
@@ -7418,6 +7521,10 @@ When a write directory is specified, the upload resource name identifies a file 
 .br
   
 .br
+Warning: files uploaded / created in the write directory are always created in non-atomic modes.
+.br
+  
+.br
 A directory rule file (cf gpac -h creds) can be specified in .I rdirs but NOT in .I wdir. When rules are used:
 .br
 - if a directory has a name rule, it will be used in the URL
@@ -8009,6 +8116,8 @@ gendts (bool, default: false): generate timestamps on output packets based on PC
 .br
 kpad (bool, default: false):   keep padding (null) TS packets
 .br
+rt (bool, default: false):     enable real-time regulation
+.br
 
 .br
 .SH tsgendts
@@ -8028,6 +8137,8 @@ This filter restamps input MPEG-2 transport stream based on PCR.
 nb_pack (uint, default: 10):   pack N packets before sending
 .br
 kpad (bool, default: false):   keep padding (null) TS packets
+.br
+rt (bool, default: false):     enable real-time regulation
 .br
 
 .br
@@ -8058,6 +8169,10 @@ The filter can currently modify the following properties in video bitstreams:
 .br
   - color primaries, transfer characteristics and matrix coefficients (or remove all info)
 .br
+  - (AVC|HEVC) timecode- AV1:
+.br
+  - timecode
+.br
 - ProRes:
 .br
   - sample aspect ratio
@@ -8082,6 +8197,67 @@ The filter can currently modify the following properties in the stream configura
 .br
 The filter will work in passthrough mode for all other codecs and media types.
 .br
+.SH Timecode Manipulation
+.LP
+.br
+One can optionally set the .I tcxs and .I tcxe to define the start and end of timecode manipulation. By default, the filter will process all packets.
+.br
+Some modes require you to define .I tcsc. This follows the same format as the timecode itself (.I -. The use of negative values is only meaningful in the shift mode. It's also possible to set .I tcsc to first to infer the value from the first timecode when timecode manipulation starts. In this case, unless a timecode is found, the filter will not perform any operation.
+.br
+.SS Modes
+.br
+Timecode manipulation has four modes and they all have their own operating nuances.
+.br
+.P
+.B
+Remove
+.br
+Remove all timecodes from the bitstream.
+.br
+.P
+.B
+Insert
+.br
+Insert timecodes based on the CTS. If .I tcsc is set, it will be used as timecode offset.
+.br
+This mode will overwrite existing timecodes (if any).
+.br
+.P
+.B
+Shift
+.br
+Shift all timecodes by the value defined in .I tcsc.
+.br
+This mode will only modify timecodes if they exists, no new timecode will be inserted.
+.br
+.P
+.B
+Constant
+.br
+Set all timecodes to the value defined in .I tcsc.
+.br
+Again, this mode wouldn't insert new timecodes.
+.br
+.P
+.B
+UTC
+.br
+Uses the SenderNTP property, UTC property on the packet, or the current UTC time to set the timecode.
+.br
+This mode will overwrite existing timecodes (if any).
+.br
+.SS Examples
+.br
+Example
+.br
+gpac -i in.mp4 bsrw:tc=insert [dst]
+.br
+gpac -i in.mp4 bsrw:tc=insert:tcsc=TC00:00:10:00 [dst]
+.br
+gpac -i in.mp4 bsrw:tc=shift:tcsc=TC00:00:10:00:tcxs=TC00:01:00:00 [dst]
+.br
+
+.br
 
 .br
 .SH Options (expert):
@@ -8095,7 +8271,7 @@ ctfc (ctfc, default: -1, Enum: reserved0|BT709|undef|reserved3|BT470M|BT470BG|SM
 .br
 
 .br
-cmx (cmxc, default: -1, Enum: GBR|BT709|undef|FCC|BT601|SMPTE170|SMPTE240|YCgCo|BT2020|BT2020cl|YDzDx, updatable): color matrix coeficients according to ISO/IEC 23001-8 / 23091-2
+cmx (cmxc, default: -1, Enum: GBR|BT709|undef|FCC|BT601|SMPTE170|SMPTE240|YCgCo|BT2020|BT2020cl|YDzDx, updatable): color matrix coefficients according to ISO/IEC 23001-8 / 23091-2
 .br
 
 .br
@@ -8120,6 +8296,30 @@ pidc (sint, default: -1, updatable): profile IDC for HEVC and VVC
 pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
+.br
+tcxs (str, updatable):         timecode manipulation start
+.br
+tcxe (str, updatable):         timecode manipulation end
+.br
+tcdf (bool, default: false, updatable): use NTSC drop-frame counting for timecodes
+.br
+tcsc (str, updatable):         timecode constant for use with shift/constant modes
+.br
+tc (enum, default: none, updatable): timecode manipulation mode
+.br
+* none: do not change anything
+.br
+* remove: remove timecodes
+.br
+* insert: insert timecodes based on cts or tcsc (if provided)
+.br
+* shift: shift timecodes based by tcsc
+.br
+* constant: overwrite timecodes with tcsc
+.br
+* utc: insert timecodes based on the utc time on the packet or the current time
+.br
+
 .br
 seis (uintl, updatable):       list of SEI message types (4,137,144,...). When used with rmsei, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist
 .br
@@ -8463,6 +8663,23 @@ For example, if ffdmx:rtmp is listed as input protocol, this means rtmp:// sourc
 .br
 
 .br
+.SH Raw protocol mode
+.LP
+.br
+The .I proto flag will disable FFmpeg demuxer and use GPAC instead. Default format is probed from initial data but can be set using .I ext or .I mime if probing is disabled.
+.br
+Example
+.br
+gpac -i srt://127.0.0.1:1234:gpac:proto inspectThis will use the SRT protocol handler but GPAC demultiplexer
+.br
+
+.br
+
+.br
+In this mode, the filter uses the time between the last two received packets to estimates how often it should check for inputs. The maximum and minimum times to wait between two calls is given by the .I mwait option. The maximum time may need to be reduced for very high bitrates sources.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -8473,6 +8690,14 @@ reparse (bool, default: false): force reparsing of stream content (AVC,HEVC,VVC,
 block_size (uint, default: 4096): block size used to read file when using GFIO context
 .br
 strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's input stream
+.br
+proto (bool, default: false):  use protocol handler only and bypass FFmpeg demuxer
+.br
+mwait (v2di, default: 1x30):   set min and max wait times in ms to avoid too frequent polling in proto mode
+.br
+ext (str):                     indicate file extension of data in raw protocol mode
+.br
+mime (str):                    indicate mime type of data in raw protocol mode
 .br
 * (str):                       any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffdmx and gpac -hx ffdmx:*
 .br
@@ -8886,6 +9111,16 @@ All PID properties prefixed with meta: will be added as metadata.
 .br
 
 .br
+The .I proto flag will disable FFmpeg muxer and use GPAC instead. Default format is MPEG-2 TS and can be specified using .I ext or .I mime.
+.br
+Example
+.br
+gpac -i SRC -o srt://127.0.0.1:1234:gpac:proto[:ext=mp4:frag]This will use the SRT protocol handler but GPAC m2ts multiplexer or mp4 muxer if ext=mp4:frag is set
+.br
+
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -8908,6 +9143,10 @@ ffmt (str):                    force ffmpeg output format for the given URL
 block_size (uint, default: 4096): block size used to read file when using avio context
 .br
 keepts (bool, default: true):  do not shift input timeline back to 0
+.br
+proto (bool, default: false):  use protocol only: do not try to mux (useful when sending a SRT stream with remuxing)
+.br
+psleep (uint, default: 1000):  in protocol only mode, sleep for given amount of ms before EOS (do not kill connection right away for some protocols)
 .br
 * (str):                       any possible options defined for AVFormatContext and sub-classes (see gpac -hx ffmx and gpac -hx ffmx:*)
 .br
@@ -10080,6 +10319,21 @@ segdur (frac, default: 1/1):   segmentation duration in seconds. 0/0 flushes imm
 .br
 
 .br
+.SH seiload
+.LP
+.br
+Description: SEI message loader
+.br
+
+.br
+This filter loads known inband metadata as packet properties
+.br
+
+.br
+No options
+.br
+
+.br
 .SH wcdec
 .LP
 .br
@@ -10597,7 +10851,7 @@ If set to 'utc', the filter will generate text based on the current UTC time. If
 .br
 When the .I unit is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines
 .br
-The .I udur parameter sets the frame duration of the text stream. Total duration of the text stream is set by the .I dur parameter. If set to 0/0, the text stream will be infinite
+The .I fdur parameter sets the frame duration of the text stream. Total duration of the text stream is set by the .I dur parameter. If set to 0/0, the text stream will be infinite
 .br
 The .I rollup parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.
 .br
@@ -10614,7 +10868,7 @@ When .I rt is set to true, the filter will generate text in real-time. If set to
 .SH Options (expert):
 .LP
 .br
-src (str, default: /usr/local/share/gpac/scripts/jsf/txtgen//lipsum.txt): source of text. If not set, the filter will use lorem ipsum text
+src (str, default: /usr/local/share/gpac/scripts/jsf/txtgen/lipsum.txt): source of text. If not set, the filter will use lorem ipsum text
 .br
 type (enum, default: txt):     type of text to generate
 .br
@@ -10634,7 +10888,7 @@ unit (enum, default: l):       minimum unit of text from the source
 .br
 
 .br
-udur (frac, default: 1/1):     duration of each text unit
+fdur (frac, default: 1/1):     duration of each frame
 .br
 lmax (uint, default: 32):      maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit
 .br
@@ -11025,7 +11279,7 @@ The js option can be set to a JS module exporting the following functions:
 .SH File Services
 .LP
 .br
-A file system directory can be exposed as a service. 
+A file system directory can be exposed as a service.
 .br
 
 .br
@@ -12445,38 +12699,6 @@ Example
 .SH Scene modules
 .LP
 .br
-.SS Scene mask
-.br
-This scene sets the canvas alpha mask mode.
-.br
-
-.br
-The canvas alpha mask is always full screen.
-.br
-
-.br
-In software mode, combining mask effect in record mode and reverse group drawing allows drawing front to back while writing pixels only once.
-.br
-
-.br
-Options:
-.br
-* mode ('off'): if set, reset clipper otherwise set it to scene position and size
-.br
-  * off: mask is disabled
-.br
-  * on: mask is enabled and cleared, further draw operations will take place on mask
-.br
-  * onkeep: mask is enabled but not cleared, further draw operations will take place on mask
-.br
-  * use: mask is enabled, further draw operations will be filtered by mask
-.br
-  * use_inv: mask is enabled, further draw operations will be filtered by 1-mask
-.br
-  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
-.br
- 
-.br
 .SS Scene clear
 .br
 This scene clears the canvas area covered by the scene with a given color. 
@@ -12516,6 +12738,38 @@ Options:
 * reset (false): if set, reset clipper otherwise set it to scene position and size
 .br
 * stack (true): if false, clipper is set/reset independently of the clipper stack (no intersection, no push/pop of the stack)
+.br
+.SS Scene mask
+.br
+This scene sets the canvas alpha mask mode.
+.br
+
+.br
+The canvas alpha mask is always full screen.
+.br
+
+.br
+In software mode, combining mask effect in record mode and reverse group drawing allows drawing front to back while writing pixels only once.
+.br
+
+.br
+Options:
+.br
+* mode ('off'): if set, reset clipper otherwise set it to scene position and size
+.br
+  * off: mask is disabled
+.br
+  * on: mask is enabled and cleared, further draw operations will take place on mask
+.br
+  * onkeep: mask is enabled but not cleared, further draw operations will take place on mask
+.br
+  * use: mask is enabled, further draw operations will be filtered by mask
+.br
+  * use_inv: mask is enabled, further draw operations will be filtered by 1-mask
+.br
+  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
+.br
+ 
 .br
 .SS Scene shape
 .br
@@ -12884,6 +13138,14 @@ Options:
 .SH Transition modules
 .LP
 .br
+.SS Transition fade - software/GPU
+.br
+This transition performs fade to/from color of source videos
+.br
+Options:
+.br
+* color ('black'): fade color
+.br
 .SS Transition gltrans - GPU only
 .br
 This transition module wraps gl-transitions, see https://gl-transitions.com/ and gpac -h avmix:gltrans for builtin transitions
@@ -12891,6 +13153,10 @@ This transition module wraps gl-transitions, see https://gl-transitions.com/ and
 Options:
 .br
 * fx (''): effect name for built-in effects, or path to gl-transition GLSL file
+.br
+.SS Transition mix - software/GPU
+.br
+This transition performs cross-fade of source videos
 .br
 .SS Transition swipe - software/GPU
 .br
@@ -12929,20 +13195,6 @@ Options:
   * grow: video 2 size increases, video 1 not modified
 .br
   * swap: video 2 size increases, video 1 size decreases
-.br
-
-.br
-.SS Transition mix - software/GPU
-.br
-This transition performs cross-fade of source videos
-.br
-.SS Transition fade - software/GPU
-.br
-This transition performs fade to/from color of source videos
-.br
-Options:
-.br
-* color ('black'): fade color
 .br
 
 .br
@@ -13150,6 +13402,8 @@ views (uint, default: 1):      number of views
 rates (strl):                  number of target bitrates to assign, one per size
 .br
 logt (bool):                   log frame time to console
+.br
+banner (str, default: many thanks to QuickJS, FreeType, OpenSSL, SDL, FFmpeg, OpenHEVC, libjpeg, libpng, faad2, libmad, a52dec, xvid, OGG ...): banner text to display
 .br
 
 .br

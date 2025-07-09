@@ -116,8 +116,6 @@ GF_Err ac4mx_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *data, *output;
 	u32 pck_size, size;
-	Bool sap;
-	Bool has_sync = GF_FALSE;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -138,8 +136,6 @@ GF_Err ac4mx_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
-
-	sap = (gf_filter_pck_get_sap(pck)==GF_FILTER_SAP_1) ? GF_TRUE : GF_FALSE;
 
 	u32 hdr_size = 0;
 
