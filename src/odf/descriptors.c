@@ -2302,6 +2302,8 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	}
 	gf_bs_seek(bs, pos);
 	GF_Err e = gf_odf_ac4_cfg_dsi_v1(dsi, bs, NULL, GF_AC4_DESCMODE_PARSE);
+	if (e) return e;
+	cfg->sample_rate = dsi->fs_index ? 48000 : 44100;
 	return e;
 }
 

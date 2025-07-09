@@ -1545,6 +1545,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							if ((es->stream_type != GF_M2TS_AUDIO_AC3) && (es->stream_type != GF_M2TS_AUDIO_TRUEHD))
 								es->stream_type = GF_M2TS_AUDIO_EC3;
 							break;
+						case GF_M2TS_RA_STREAM_AC4:
+							es->stream_type = GF_M2TS_AUDIO_AC4;
+							break;
 						case GF_M2TS_RA_STREAM_VC1:
 							es->stream_type = GF_M2TS_VIDEO_VC1;
 							break;

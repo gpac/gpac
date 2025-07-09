@@ -48,7 +48,7 @@ typedef struct
 	GF_Fraction64 duration;
 	Double start_range;
 	Bool in_seek;
-	u32 timescale;
+	u32 in_timescale, out_timescale;
 
 	GF_AC4Config hdr;
 	u8 *ac4_buffer;
@@ -88,10 +88,10 @@ GF_Err ac4dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
-		ctx->timescale = p->value.uint;
+		ctx->in_timescale = p->value.uint;
 	}
 
-	if (ctx->timescale && !ctx->opid) {
+	if (ctx->in_timescale && !ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
@@ -102,7 +102,7 @@ GF_Err ac4dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
 		}
 	}
-	if (ctx->timescale) {
+	if (ctx->in_timescale) {
 		ctx->copy_props = GF_TRUE;
 	}
 	
@@ -119,7 +119,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 	const GF_PropertyValue *p;
 
 	// ac4dmx_check_dur() is only done once
-	if (!ctx->opid || ctx->timescale || ctx->file_loaded) {
+	if (!ctx->opid || ctx->in_timescale || ctx->file_loaded) {
 		return;
 	}
 
@@ -213,7 +213,7 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
-	if (!ctx->timescale && !gf_sys_is_test_mode()) {
+	if (!ctx->in_timescale && !gf_sys_is_test_mode()) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE));
 	}
 
@@ -221,15 +221,16 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 		ctx->nb_ch = ctx->hdr.channel_count;
 	}
 	
-	if (!ctx->timescale) {
+	if (!ctx->in_timescale) {
 		// we change sample rate, change cts
-		if (ctx->cts && (ctx->sample_rate != ctx->hdr.sample_rate)) {
-			ctx->cts = gf_timestamp_rescale(ctx->cts, ctx->sample_rate, ctx->hdr.sample_rate);
+		if (ctx->cts && (ctx->out_timescale != ctx->hdr.media_time_scale)) {
+			ctx->cts = gf_timestamp_rescale(ctx->cts, ctx->out_timescale, ctx->hdr.media_time_scale);
 		}
 	}
 	ctx->sample_rate = ctx->hdr.sample_rate;
+	ctx->out_timescale = ctx->hdr.media_time_scale;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->hdr.media_time_scale));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->out_timescale));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
@@ -265,7 +266,7 @@ static Bool ac4dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->start_range) {
 			for (i = 1; i < ctx->index_size; i++) {
 				if (ctx->indexes[i].duration > ctx->start_range) {
-					ctx->cts = (u64) (ctx->indexes[i - 1].duration * ctx->sample_rate);
+					ctx->cts = (u64) (ctx->indexes[i - 1].duration * ctx->out_timescale);
 					ctx->file_pos = ctx->indexes[i-1].pos;
 					break;
 				}
@@ -301,18 +302,6 @@ static Bool ac4dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	// by default don't cancel event - to rework once we have downloading in place
 	return GF_FALSE;
-}
-
-static GFINLINE void ac4dmx_update_cts(GF_AC4DmxCtx *ctx)
-{
-	if (ctx->timescale) {
-		u64 inc = ctx->hdr.sample_duration;
-		inc *= ctx->timescale;
-		inc /= ctx->sample_rate;
-		ctx->cts += inc;
-	} else {
-		ctx->cts += ctx->hdr.sample_duration;
-	}
 }
 
 GF_Err ac4dmx_process(GF_Filter *filter)
@@ -375,19 +364,6 @@ restart:
 		ctx->ac4_buffer_size += pck_size;
 	}
 
-	// input pid sets some timescale - we flushed pending data , update cts
-	if (ctx->timescale && pck) {
-		cts = gf_filter_pck_get_cts(pck);
-		//init cts at first packet
-		if (!ctx->cts && (cts != GF_FILTER_NO_TS)) {
-			ctx->cts = cts;
-		}
-	}
-	// avoids updating cts
-	if (cts == GF_FILTER_NO_TS) {
-		prev_pck_size = 0;
-	}
-
 	remain = ctx->ac4_buffer_size;
 	start = ctx->ac4_buffer;
 
@@ -407,7 +383,7 @@ restart:
 	while (remain) {
 		u8 *sync;
 		Bool res;
-		u32 sync_pos, bytes_to_drop=0, dur;
+		u32 sync_pos, bytes_to_drop=0;
 
 		res = gf_ac4_parser_bs(ctx->bs, &(ctx->hdr), is_first);
 
@@ -427,6 +403,26 @@ restart:
 			ac4dmx_check_pid(filter, ctx);
 		}
 
+		if (is_first && ctx->in_timescale) {
+			// input pid sets some timescale - we flushed pending data , update cts
+			if (pck) {
+				cts = gf_filter_pck_get_cts(pck);
+				//move to output timescale
+				if (cts != GF_FILTER_NO_TS)
+					cts = gf_timestamp_rescale(cts, ctx->in_timescale, ctx->out_timescale);
+
+				//init cts at first packet
+				if (!ctx->cts && (cts != GF_FILTER_NO_TS)) {
+					ctx->cts = cts;
+				}
+			}
+			// avoids updating cts
+			if (cts == GF_FILTER_NO_TS) {
+				prev_pck_size = 0;
+			}
+		}
+
+
 		is_first = GF_FALSE;
 
 		if (!ctx->is_playing) {
@@ -435,15 +431,15 @@ restart:
 		}
 
 		if (ctx->in_seek) {
-			u64 nb_samples_at_seek = (u64) (ctx->start_range * ctx->hdr.sample_rate);
+			u64 nb_samples_at_seek = (u64) (ctx->start_range * ctx->hdr.media_time_scale);
 			if (ctx->cts + ctx->hdr.sample_duration >= nb_samples_at_seek) {
 				ctx->in_seek = GF_FALSE;
 			}
 		}
 
-		if (ctx->timescale && !prev_pck_size && (cts != GF_FILTER_NO_TS)) {
+		if (ctx->in_timescale && !prev_pck_size && (cts != GF_FILTER_NO_TS)) {
 			//trust input CTS if diff is more than one sec
-			if ((cts > ctx->cts + ctx->timescale) || (ctx->cts > cts + ctx->timescale)) {
+			if ((cts > ctx->cts + ctx->out_timescale) || (ctx->cts > cts + ctx->out_timescale)) {
 				ctx->cts = cts;
 			}
 			cts = GF_FILTER_NO_TS;
@@ -466,13 +462,8 @@ restart:
 
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-
-			if (ctx->timescale && (ctx->timescale!=ctx->sample_rate)) {
-				dur = (u32)gf_timestamp_rescale(ctx->hdr.sample_duration, ctx->sample_rate, ctx->timescale);
-				gf_filter_pck_set_duration(dst_pck, dur);
-			} else {
-				gf_filter_pck_set_duration(dst_pck, ctx->hdr.sample_duration);
-			}
+			//ctx->hdr.sample_duration is always in out_timescale units
+			gf_filter_pck_set_duration(dst_pck, ctx->hdr.sample_duration);
 
 			gf_filter_pck_set_sap(dst_pck, ctx->hdr.stream.b_iframe_global ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
@@ -481,8 +472,8 @@ restart:
 			gf_filter_pck_send(dst_pck);
 		}
 
-		// update cts
-		ac4dmx_update_cts(ctx);
+		// update cts - sample_duration is always in output timescale
+		ctx->cts += ctx->hdr.sample_duration;
 
 		// calculate memory offset
 		bytes_to_drop = sync_pos + sync_framesize;		
@@ -584,18 +575,16 @@ static const GF_FilterCapability AC4DmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac4"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-ac4|audio/ac4"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_AC4),
-	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AC4),
+	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_FALSE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_FALSE),
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
-	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 /*	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_HLS_SAMPLE_AES_SCHEME),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
-	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_FALSE),
 */
 
 };

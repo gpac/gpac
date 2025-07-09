@@ -382,8 +382,10 @@ GF_AC4Config *gf_isom_ac4_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	if (entry->cfg_ac4->type != GF_ISOM_BOX_TYPE_DAC4) return NULL;
 
 	res = (GF_AC4Config*)gf_malloc(sizeof(GF_AC4Config));
-	if (res)
+	if (res) {
 		gf_odf_ac4_cfg_deep_copy(res, &entry->cfg_ac4->cfg);
+		if (!res->channel_count) res->channel_count = entry->channel_count;
+	}
 	return res;
 }
 

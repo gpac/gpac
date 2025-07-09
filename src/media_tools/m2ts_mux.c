@@ -827,6 +827,11 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				es_info_length += 2;
 				type = GF_M2TS_PRIVATE_DATA;
 				break;
+			case GF_M2TS_AUDIO_AC4:
+				//reg desc
+				es_info_length += 2 + 4;
+				type = GF_M2TS_PRIVATE_DATA;
+				break;
 			case GF_M2TS_VIDEO_VC1:
 			case GF_M2TS_AUDIO_DTS:
 			case GF_M2TS_AUDIO_OPUS:
@@ -997,6 +1002,12 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	4, 8);
 				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_EAC3);
+				break;
+			case GF_M2TS_AUDIO_AC4:
+				//write reg desc
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_AC4);
 				break;
 			case GF_M2TS_AUDIO_DTS:
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
@@ -2825,6 +2836,9 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 				stream->mpeg2_stream_type = GF_M2TS_AUDIO_EC3;
 			break;
 
+		case GF_CODECID_AC4:
+			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC4;
+			break;
 		case GF_CODECID_DTS_CA:
 		case GF_CODECID_DTS_HD_HR_MASTER:
 		case GF_CODECID_DTS_HD_LOSSLESS:

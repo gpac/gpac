@@ -3314,8 +3314,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			gf_free(ac4);
 		}
 #endif
-		fprintf(stderr, "\tAC-4 stream - Sample Rate %d - %d channel(s) - sample rate %d", sr, nb_ch, sr);
-		fprintf(stderr, "\n");
+		fprintf(stderr, "\tAC-4 stream - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_SMV) {
 		fprintf(stderr, "\t3GPP SMV stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_DIMS) {
