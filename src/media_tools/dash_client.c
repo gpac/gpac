@@ -5135,6 +5135,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 	base_url = base_url_orig;
 	base_init_url = gf_dash_get_fileio_url(base_url, base_init_url);
+	if (!base_init_url) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to resolve init segment URL\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	if (nb_segment_read) {
 		group->init_segment_is_media = GF_TRUE;
