@@ -2915,6 +2915,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
 		if (filter->pending_packets && filter->num_input_pids
+			&& (!filter->num_output_pids || filter->nb_pids_playing)
 			//do NOT do this if running in prevent play mode and blocking mode, as user is likely expecting fs_run() to return until the play event is sent
 			&& !filter->session->non_blocking && !(filter->session->flags & GF_FS_FLAG_PREVENT_PLAY)
 		) {
