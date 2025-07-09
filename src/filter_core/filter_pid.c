@@ -537,7 +537,12 @@ static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid,
 	if (filter->detached_pid_inst && (gf_list_find(filter->detached_pid_inst, pidinst)>=0) )
 		return;
 
-	gf_filter_pid_inst_del(pidinst);
+	//we posted a configure_task_discard on this PID, mark as "to be destroyed" and let thet task destroy the pid
+	if (pidinst->discard_inputs==2) {
+		pidinst->discard_inputs = 3;
+	} else {
+		gf_filter_pid_inst_del(pidinst);
+	}
 
 	if (filter->num_input_pids) return;
 	//we still have other pid instances registered for chain reconfigure, don't discard the filter
@@ -1346,6 +1351,13 @@ void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
 		task->pid->pid->pid_info_changed = GF_FALSE;
 	}
 
+	//check if we need to discard
+	Bool destroy_pidinst = GF_FALSE;
+	if (pidi->discard_inputs==3) {
+		pidi->discard_inputs = 2;
+		destroy_pidinst = GF_TRUE;
+	}
+
 	if (pidi->discard_inputs==2) {
 		gf_filter_aggregate_packets(pidi);
 		while (gf_filter_pid_get_packet((GF_FilterPid *) pidi)) {
@@ -1354,6 +1366,10 @@ void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
 		//move back to regular discard
 		pidi->discard_inputs = 1;
 	}
+
+	if (destroy_pidinst)
+		gf_filter_pid_inst_del(pidi);
+
 }
 
 static void gf_filter_pid_disconnect_task(GF_FSTask *task)
