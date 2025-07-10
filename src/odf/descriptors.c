@@ -2396,6 +2396,7 @@ void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4Pre
 	}
 }
 
+GF_EXPORT
 void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 {
 	u32 i, j, s;
@@ -2436,6 +2437,14 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 
 	gf_list_del(cfg->stream.presentations);
 	cfg->stream.presentations = NULL;
+}
+
+GF_EXPORT
+void gf_odf_ac4_cfg_del(GF_AC4Config *cfg)
+{
+	if (!cfg) return;
+	gf_odf_ac4_cfg_clean_list(cfg);
+	gf_free(cfg);
 }
 
 GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)

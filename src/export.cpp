@@ -757,7 +757,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_txtcfg) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dovi_cfg_del) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_ac4_cfg_del) )
 
 #ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_add_desc) )

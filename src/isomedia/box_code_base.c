@@ -9215,6 +9215,7 @@ GF_Box *dac4_box_new()
 void dac4_box_del(GF_Box *s)
 {
 	GF_AC4ConfigBox *ptr = (GF_AC4ConfigBox *)s;
+	gf_odf_ac4_cfg_clean_list(&ptr->cfg);
 	gf_free(ptr);
 }
 

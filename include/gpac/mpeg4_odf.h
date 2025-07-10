@@ -1837,7 +1837,7 @@ u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg);
 void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src);
 
 /*! copy the GF_AC4PresentationV1
-\param pres_dst, the address of GF_AC4PresentationV1 to fill
+\param pres_dst the address of GF_AC4PresentationV1 to fill
 \param pres_src the address of source
 */
 void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src);
@@ -1846,6 +1846,11 @@ void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4Pre
 \param hdr the address of AC4 config to clean
 */
 void gf_odf_ac4_cfg_clean_list(GF_AC4Config *hdr);
+
+/*! destroy the GF_AC4Config
+\param cfg the address of AC4 config to destroy
+*/
+void gf_odf_ac4_cfg_del(GF_AC4Config *cfg);
 
 
 /*! Opus decoder config*/

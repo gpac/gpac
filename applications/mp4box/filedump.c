@@ -3311,7 +3311,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 		if (ac4) {
 			nb_ch = ac4->channel_count;
 			sr = ac4->sample_rate;
-			gf_free(ac4);
+			gf_odf_ac4_cfg_del(ac4);
 		}
 #endif
 		fprintf(stderr, "\tAC-4 stream - Sample Rate %d - %d channel(s)\n", sr, nb_ch);

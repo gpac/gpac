@@ -1102,7 +1102,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_ISOM_SUBTYPE_AC4;
 			if (ac4cfg) {
 				gf_odf_ac4_cfg_write(ac4cfg, &dsi, &dsi_size);
-				gf_free(ac4cfg);
+				gf_odf_ac4_cfg_del(ac4cfg);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d missing AC4 configuration !\n", track));
 			}
