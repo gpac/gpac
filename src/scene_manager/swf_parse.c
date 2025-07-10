@@ -108,7 +108,9 @@ static void swf_init_decompress(SWFReader *read)
 	if (dst_size < 8) {
 		return;
 	}
-	if (dst_size>gf_bs_available(read->bs)) {
+	//we use 500MB as max size
+	if (dst_size > 0x1FFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SWF Parsing] Decompressed size too big %u, max 500M\n", dst_size));
 		gf_bs_del(read->bs);
 		read->bs = NULL;
 		return;

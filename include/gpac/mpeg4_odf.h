@@ -1650,6 +1650,207 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 */
 GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
 
+typedef struct {
+    u8 b_4_back_channels_present;
+    u8 b_centre_present;
+    u8 top_channels_present;
+    u8 dsi_sf_multiplier;
+    u8 b_substream_bitrate_indicator;
+    u8 substream_bitrate_indicator;
+    u32 dsi_substream_channel_mask;
+    u8 b_ajoc;
+    u8 b_static_dmx;
+    u8 n_dmx_objects_minus1;
+    u8 n_umx_objects_minus1;
+    u8 b_substream_contains_bed_objects;
+    u8 b_substream_contains_dynamic_objects;
+    u8 b_substream_contains_ISF_objects;
+
+	// auxiliary information, used to parse the frame
+	u8 b_lfe;
+	u32 ch_mode;
+} GF_AC4SubStream;
+
+typedef struct {
+	u8 b_substreams_present;
+	u8 b_hsf_ext;
+	u8 b_channel_coded;
+	u8 b_content_type;
+	u8 content_classifier;
+	u8 b_language_indicator;
+	u8 n_language_tag_bytes;
+	u8 language_tag_bytes[64]; // n_language_tag_bytes is 6 bits
+	u8 dolby_atmos_indicator;
+	u8 n_lf_substreams;
+	GF_List *substreams; // GF_AC4SubStream
+} GF_AC4SubStreamGroupV1;
+
+typedef struct {
+    u8 bit_rate_mode;
+    u32 bit_rate;
+    u32 bit_rate_precision;
+} GF_AC4BitrateDsi;
+
+typedef struct {
+    u16 name_len;
+    u8 presentation_name[256]; // restrict to 256 char
+    u8 n_targets;
+    u8 target_md_compat[32];
+    u8 target_device_category[32];
+} GF_AC4AlternativeInfo;
+
+typedef struct {
+	u8 presentation_version;
+	u8 presentation_config;
+	u8 mdcompat;
+	u8 b_presentation_id;
+	u8 presentation_id;
+	u8 dsi_frame_rate_multiply_info;
+	u8 dsi_frame_rate_fraction_info;
+	u8 presentation_emdf_version;
+	u16 presentation_key_id;
+	u8 b_presentation_channel_coded;
+	u8 dsi_presentation_ch_mode;
+	u8 pres_b_4_back_channels_present;
+	u8 pres_top_channel_pairs;
+	u32 presentation_channel_mask_v1;
+	u8 b_presentation_core_differs;
+	u8 b_presentation_core_channel_coded;
+	u8 dsi_presentation_channel_mode_core;
+	u8 b_presentation_filter;
+	u8 b_enable_presentation;
+	u8 n_filter_bytes;
+	u8 b_multi_pid;
+	u8 n_skip_bytes;
+	u8 b_pre_virtualized;
+	u8 b_add_emdf_substreams;
+	u8 n_add_emdf_substreams;
+	u8 substream_emdf_version[128];
+	u16 substream_key_id[128];
+	u8 b_presentation_bitrate_info;
+	GF_AC4BitrateDsi ac4_bitrate_dsi;
+	u8 b_alternative;
+	GF_AC4AlternativeInfo alternative_info;
+	u8 de_indicator;
+	u8 dolby_atmos_indicator;
+	u8 b_extended_presentation_id;
+	u16 extended_presentation_id;
+	u8 n_substream_groups;
+	GF_List *substream_groups; // GF_AC4SubStreamGroupV1
+
+	// auxiliary information, not exist in DSI
+	GF_List *substream_group_indexs;
+} GF_AC4PresentationV1;
+
+/*! AC-4 stream info */
+typedef struct __ac4_stream
+{
+	u8 ac4_dsi_version;
+	u8 bitstream_version;
+	u8 fs_index;
+	u8 frame_rate_index;
+	u8 b_iframe_global;
+	u8 b_program_id;
+	u16 short_program_id;
+	u8 b_uuid;
+	u8 program_uuid[16];
+	GF_AC4BitrateDsi ac4_bitrate_dsi;
+	u16 n_presentations;
+	GF_List *presentations; // GF_AC4PresentationV1
+} GF_AC4StreamInfo;
+
+/*! AC4 config record  - see dolby specs ETSI TS 103 190 */
+/*  please use gf_odf_ac4_cfg_deep_copy(), gf_odf_ac4_cfg_clean_list() to copy and destroy GF_AC4Config*/
+typedef struct __ac4_config
+{
+	/*! streams info */
+	GF_AC4StreamInfo stream;
+	/*! sample rate */
+	u32 sample_rate;
+	/*! size of the complete frame*/
+	u32 frame_size;
+	/*  channel count */
+	u32 channel_count;
+	/*  sample_delta [units of media time scale] */
+	u32 sample_duration;
+	/*  media time scale [1/sec]*/
+	u32 media_time_scale;
+	/*  sync frame header size */
+	u32 header_size;
+	/*  sync frame CRC size */
+	u32 crc_size;
+} GF_AC4Config;
+
+#define GF_AC4_DESCMODE_PARSE 0
+#define GF_AC4_DESCMODE_WRITE 1
+#define GF_AC4_DESCMODE_GETSIZE 2
+
+/*! parse/write/get the size of Dolby AC4 DSI V1
+\param dsi the GF_AC4StreamInfo to parse/write/get the size
+\param bs the bitstream object in which to write the config
+\param size the address of the size
+\param desc_mode the mode should be GF_AC4_DESCMODE_PARSE/GF_AC4_DESCMODE_WRITE/GF_AC4_DESCMODE_GETSIZE
+\return error if any
+*/
+GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size, u8 desc_mode);
+
+/*! writes Dolby AC4 config to buffer
+\param cfg the Dolby AC4 config to write
+\param bs the bitstream object in which to write the config
+\return error if any
+*/
+GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs);
+
+/*! writes Dolby AC4 config to buffer
+\param cfg the Dolby AC4 config to write
+\param data set to created output buffer, must be freed by caller
+\param size set to created output buffer size
+\return error if any
+*/
+GF_Err gf_odf_ac4_cfg_write(GF_AC4Config *cfg, u8 **data, u32 *size);
+
+/*! parses an AC4 sample description
+\param dsi the encoded config
+\param dsi_len the encoded config size
+\param cfg the AC4 config to fill
+\return Error if any
+*/
+GF_Err gf_odf_ac4_cfg_parse(u8 *dsi, u32 dsi_len, GF_AC4Config *cfg);
+
+/*! parses an AC4 sample description from bitstream
+\param bs the bitstream object
+\param cfg the AC4 config to fill
+\return Error if any
+*/
+GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg);
+
+/*! get the size of an AC4 sample description from bitstream
+\param cfg the AC4 config to fill
+\return 0 if any
+*/
+u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg);
+
+/*! copy the GF_AC4Config
+\param dst the address of AC4 config to fill
+\param src the address of source
+*/
+void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src);
+
+/*! copy the GF_AC4PresentationV1
+\param pres_dst the address of GF_AC4PresentationV1 to fill
+\param pres_src the address of source
+*/
+void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src);
+
+/*! clean the GF_List data in GF_AC4Config
+\param hdr the address of AC4 config to clean
+*/
+void gf_odf_ac4_cfg_clean_list(GF_AC4Config *hdr);
+
+/*! destroy the GF_AC4Config
+\param cfg the address of AC4 config to destroy
+*/
+void gf_odf_ac4_cfg_del(GF_AC4Config *cfg);
 
 
 /*! Opus decoder config*/

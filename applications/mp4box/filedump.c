@@ -202,11 +202,12 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 
 	if (do_log) {
 		char szLog[GF_MAX_PATH];
-		sprintf(szLog, "%s_dec.logs", inName);
+		snprintf(szLog,  GF_ARRAY_LENGTH(szLog), "%s_dec.logs", inName);
 		logs = gf_fopen(szLog, "wt");
-
-		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
-		prev_logs = gf_log_set_callback(logs, scene_coding_log);
+		if (logs) {
+			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
+			prev_logs = gf_log_set_callback(logs, scene_coding_log);
+		}
 	}
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
@@ -3303,6 +3304,17 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			fprintf(stderr, " - ATMOS complexity index type %d", complexity_index_type);
 		}
 		fprintf(stderr, "\n");
+	} else if (msub_type == GF_ISOM_SUBTYPE_AC4) {
+		u32 sr = 0;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_AC4Config *ac4 = gf_isom_ac4_config_get(file, trackNum, stsd_idx);
+		if (ac4) {
+			nb_ch = ac4->channel_count;
+			sr = ac4->sample_rate;
+			gf_odf_ac4_cfg_del(ac4);
+		}
+#endif
+		fprintf(stderr, "\tAC-4 stream - Sample Rate %d - %d channel(s)\n", sr, nb_ch);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_SMV) {
 		fprintf(stderr, "\t3GPP SMV stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_DIMS) {

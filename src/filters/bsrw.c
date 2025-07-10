@@ -151,7 +151,7 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	//get the current timecode
 	GF_TimeCode now = {0};
 	if (!tc_in) {
-		now.n_frames = n_frames;
+		now.n_frames = (u16) n_frames;
 		now.seconds = seconds;
 		now.minutes = minutes;
 		now.hours = hours;
@@ -184,11 +184,11 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 
 	//get max fps
 	Float fps = (Float) pctx->fps.num / pctx->fps.den;
-	u32 max_fps = gf_ceil(fps);
+	u32 max_fps = (u32) gf_ceil(fps);
 
 	//reset the output timecode
 	memset(tc_out, 0, sizeof(GF_TimeCode));
-	tc_out->max_fps = max_fps;
+	tc_out->max_fps = (Float)  max_fps;
 	tc_out->counting_type = ctx->tcdf ? 4 : 0;
 
 	//apply the timecode manipulation
@@ -205,7 +205,7 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 			break;
 		} else {
 			//reset now, we will overwrite what we have
-			now.n_frames = n_frames;
+			now.n_frames = (u16) n_frames;
 			now.seconds = seconds;
 			now.minutes = minutes;
 			now.hours = hours;
@@ -282,11 +282,11 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	}
 
 	if (ctx->tcdf) {
-		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
+		u32 frame_drift = (u32) gf_ceil(60 * (max_fps - fps));
 
 		//apply existing drop frame rollover
 		if (pctx->tc_drop_count) {
-			s32 drop_adj = gf_filter_pck_get_cts(pck) < pctx->drop_change_cts ? -frame_drift : 0;
+			s32 drop_adj = (gf_filter_pck_get_cts(pck) < pctx->drop_change_cts) ? -(s32)frame_drift : 0;
 			tc_out->n_frames += pctx->tc_drop_count + drop_adj;
 			tc_out->seconds += tc_out->n_frames / max_fps;
 			tc_out->n_frames %= max_fps;
@@ -399,7 +399,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 	GF_TimeCode tc_out;
 	Bool tc_change = bsrw_manipulate_tc(pck, ctx, pctx, tc_in, &tc_out);
-	sei_filter.extra_filter = tc_change ? -tc_sei_type : 0;
+	sei_filter.extra_filter = tc_change ? -(s32)tc_sei_type : 0;
 	if (tc_change && ctx->tc > BSRW_TC_REMOVE) {
 		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
 
@@ -468,10 +468,10 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		//write the SEI size
 		pos = gf_bs_get_position(bs_w);
 		gf_bs_seek(bs_w, size_pos);
-		gf_bs_write_int(bs_w, sei_size, 8);
+		gf_bs_write_int(bs_w, (u32) sei_size, 8);
 
 		//write the NAL size
-		u32 nal_size = pos - pctx->nalu_size_length;
+		u32 nal_size = (u32)pos - pctx->nalu_size_length;
 		gf_bs_seek(bs_w, 0);
 		gf_bs_write_int(bs_w, nal_size, 8*pctx->nalu_size_length);
 		gf_bs_seek(bs_w, pos);
@@ -539,7 +539,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		}
 	}
 
-	pck_size = gf_bs_get_position(bs_w);
+	pck_size = (u32) gf_bs_get_position(bs_w);
 	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
 	if (!dst) return GF_OUT_OF_MEM;
 	gf_filter_pck_merge_properties(pck, dst);
@@ -722,7 +722,7 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 
 	//send packet
 	u8* output = NULL;
-	pck_size = gf_bs_get_position(bs_w);
+	pck_size = (u32) gf_bs_get_position(bs_w);
 	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
 	gf_filter_pck_merge_properties(pck, dst);
 
@@ -1170,8 +1170,8 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (ctx->tcdf) {
 		Float fps = (Float) pctx->fps.num / pctx->fps.den;
-		u32 max_fps = gf_ceil(fps);
-		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
+		u32 max_fps = (u32) gf_ceil(fps);
+		u32 frame_drift = (u32) gf_ceil(60 * (max_fps - fps));
 		if (!frame_drift) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Requested to use NTSC drop-frame timecode, but fps does not impose any drift. Disabling drop-frame timecode\n"));
 			ctx->tcdf = GF_FALSE;

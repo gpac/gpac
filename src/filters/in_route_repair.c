@@ -908,7 +908,7 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 			if (patch_end > rsess->range->br_end)
 				patch_end = rsess->range->br_end;
 
-			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, patch_end);
+			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, (u32) patch_end);
 		}
 
 		rsess->server->nb_bytes += rsess->range->done;

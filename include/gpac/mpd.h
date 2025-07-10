@@ -691,7 +691,7 @@ typedef struct {
 	/*! temp file for m3u8 generation*/
 	FILE *m3u8_var_file;
 
-	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC*/
+	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC CBC, 2: CENC CTR*/
 	u8 crypto_type;
 	u8 def_kms_used;
 

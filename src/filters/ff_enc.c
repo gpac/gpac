@@ -552,7 +552,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (!ctx->nb_frames_in) {
 		force_intra = 0;
 		//remember timing of first encoded frame
-		ctx->orig_cts_plus_one = ffenc_get_cts(ctx, pck) + 1;
+		if (pck)
+			ctx->orig_cts_plus_one = ffenc_get_cts(ctx, pck) + 1;
 	}
 
 	if (force_intra) {

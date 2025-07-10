@@ -54,35 +54,35 @@ struct _gf_sei_loader
 
 static GF_Err seiloader_set_type(GF_SEILoader *sei, u32 type)
 {
-	if (type==sei->codec_type) return GF_OK;
+	//reset shared pointers
 	if (sei->external) {
 		sei->external = GF_FALSE;
 		sei->avc_state = NULL;
 		sei->hevc_state = NULL;
 		sei->vvc_state = NULL;
 	}
-	else if (type==sei->codec_type)
+	if (type==sei->codec_type)
 		return GF_OK;
 
 	sei->codec_type = 0;
 	if (type==COD_TYPE_AVC) {
 		if (sei->hevc_state) { gf_free(sei->hevc_state); sei->hevc_state = NULL; }
 		if (sei->vvc_state) { gf_free(sei->vvc_state); sei->vvc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 		GF_SAFEALLOC(sei->avc_state, AVCState);
 		if (!sei->avc_state) return GF_OUT_OF_MEM;
 	}
 	if (type==COD_TYPE_HEVC) {
 		if (sei->avc_state) { gf_free(sei->avc_state); sei->avc_state = NULL; }
 		if (sei->vvc_state) { gf_free(sei->vvc_state); sei->vvc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 		GF_SAFEALLOC(sei->hevc_state, HEVCState);
 		if (!sei->hevc_state) return GF_OUT_OF_MEM;
 	}
 	if (type==COD_TYPE_VVC) {
 		if (sei->hevc_state) { gf_free(sei->hevc_state); sei->hevc_state = NULL; }
 		if (sei->avc_state) { gf_free(sei->avc_state); sei->avc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 		GF_SAFEALLOC(sei->vvc_state, VVCState);
 		if (!sei->vvc_state) return GF_OUT_OF_MEM;
 	}
@@ -98,7 +98,7 @@ static GF_Err seiloader_set_type(GF_SEILoader *sei, u32 type)
 		if (sei->avc_state) { gf_free(sei->avc_state); sei->avc_state = NULL; }
 		if (sei->hevc_state) { gf_free(sei->hevc_state); sei->hevc_state = NULL; }
 		if (sei->vvc_state) { gf_free(sei->vvc_state); sei->vvc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 	}
 	sei->codec_type = type;
 	return GF_OK;

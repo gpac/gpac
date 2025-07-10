@@ -233,6 +233,8 @@
 		925546A32D314A9600E0AAF9 /* downloader_hmux.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546A22D314A9600E0AAF9 /* downloader_hmux.c */; };
 		925546A52D314BCA00E0AAF9 /* downloader_nghttp2.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546A42D314BCA00E0AAF9 /* downloader_nghttp2.c */; };
 		925546A72D3174DE00E0AAF9 /* downloader_ngtcp2.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546A62D3174DE00E0AAF9 /* downloader_ngtcp2.c */; };
+		925607742E1EC6880022BA42 /* reframe_ac4.c in Sources */ = {isa = PBXBuildFile; fileRef = 925607722E1EC6880022BA42 /* reframe_ac4.c */; };
+		925607752E1EC6880022BA42 /* rewrite_ac4.c in Sources */ = {isa = PBXBuildFile; fileRef = 925607732E1EC6880022BA42 /* rewrite_ac4.c */; };
 		9256B38B208662FC00088537 /* mux_ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9256B38A208662FB00088537 /* mux_ts.c */; };
 		9257307F2056948D009DB328 /* rewrite_adts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9257307D2056948D009DB328 /* rewrite_adts.c */; };
 		925730802056948D009DB328 /* rewrite_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 9257307E2056948D009DB328 /* rewrite_nalu.c */; };
@@ -879,6 +881,8 @@
 		925546A22D314A9600E0AAF9 /* downloader_hmux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_hmux.c; sourceTree = "<group>"; };
 		925546A42D314BCA00E0AAF9 /* downloader_nghttp2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_nghttp2.c; sourceTree = "<group>"; };
 		925546A62D3174DE00E0AAF9 /* downloader_ngtcp2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_ngtcp2.c; sourceTree = "<group>"; };
+		925607722E1EC6880022BA42 /* reframe_ac4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ac4.c; path = filters/reframe_ac4.c; sourceTree = "<group>"; };
+		925607732E1EC6880022BA42 /* rewrite_ac4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_ac4.c; path = filters/rewrite_ac4.c; sourceTree = "<group>"; };
 		9256B38A208662FB00088537 /* mux_ts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_ts.c; path = filters/mux_ts.c; sourceTree = "<group>"; };
 		9257307D2056948D009DB328 /* rewrite_adts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_adts.c; path = filters/rewrite_adts.c; sourceTree = "<group>"; };
 		9257307E2056948D009DB328 /* rewrite_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_nalu.c; path = filters/rewrite_nalu.c; sourceTree = "<group>"; };
@@ -2122,6 +2126,7 @@
 				928A7F802059372C00E02E89 /* out_video.c */,
 				92061A841FE0484500B5C464 /* reframer.c */,
 				92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */,
+				925607722E1EC6880022BA42 /* reframe_ac4.c */,
 				92BB85561F7BFB60009BC9C8 /* reframe_adts.c */,
 				92BB85841F7C606A009BC9C8 /* reframe_amr.c */,
 				92EB479020F50C4200E1F2DD /* reframe_av1.c */,
@@ -2141,6 +2146,7 @@
 				92E2498F2057B973002CC029 /* resample_audio.c */,
 				9265307927AD295200DEBE4B /* restamp.c */,
 				92FA79422076687100AE005F /* rewind.c */,
+				925607732E1EC6880022BA42 /* rewrite_ac4.c */,
 				9257307D2056948D009DB328 /* rewrite_adts.c */,
 				9290E74F25263FC300BC0EE3 /* rewrite_mhas.c */,
 				925730812056A610009DB328 /* rewrite_mp4v.c */,
@@ -2595,6 +2601,7 @@
 				922E29832051940C00C8DCBB /* mux_avi.c in Sources */,
 				92BB85761F7BFB63009BC9C8 /* ff_dmx.c in Sources */,
 				92B9A5B91F866E0500A24FE4 /* mpeg4_inputsensor.c in Sources */,
+				925607752E1EC6880022BA42 /* rewrite_ac4.c in Sources */,
 				92B9A5781F8660D700A24FE4 /* audio_mixer.c in Sources */,
 				920100BE18D5A444003D1ACA /* script_enc.c in Sources */,
 				920100BF18D5A444003D1ACA /* unquantize.c in Sources */,
@@ -2793,6 +2800,7 @@
 				9201016618D5A445003D1ACA /* odf_command.c in Sources */,
 				9201016718D5A445003D1ACA /* odf_dump.c in Sources */,
 				92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */,
+				925607742E1EC6880022BA42 /* reframe_ac4.c in Sources */,
 				9201016818D5A445003D1ACA /* odf_parse.c in Sources */,
 				9201016918D5A445003D1ACA /* qos.c in Sources */,
 				9206822E20EA69680041169F /* out_pipe.c in Sources */,

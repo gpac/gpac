@@ -1025,6 +1025,10 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (ctx->is_iamf) {
+		if (ctx->iamfstate.temporal_unit_obus) {
+			gf_free(ctx->iamfstate.temporal_unit_obus);
+			ctx->iamfstate.temporal_unit_obus = NULL;
+		}
 		gf_bs_get_content_no_truncate(ctx->iamfstate.bs, &ctx->iamfstate.temporal_unit_obus, &pck_size, &ctx->iamfstate.temporal_unit_obus_alloc);
 	} else if (ctx->state.bs && gf_bs_get_size(ctx->state.bs)) {
 		gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);

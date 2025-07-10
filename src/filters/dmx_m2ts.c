@@ -32,7 +32,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/internal/id3.h>
+#include <gpac/id3.h>
 
 typedef struct {
 	char *fragment;
@@ -215,10 +215,10 @@ static void m2tsdmx_update_sdt(GF_M2TS_Demuxer *ts, void *for_pid)
 			if (for_pid && (es->user != for_pid)) continue;
 			//TODO, translate non standard character maps to UTF8
 			//we for now comment in test mode to avoid non UTF characters in text dumps
-			if (isalnum(sdt->service[0]) || !gf_sys_is_test_mode())
+			if ((sdt && sdt->service && isalnum(sdt->service[0])) || !gf_sys_is_test_mode())
 				gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(sdt->service ) );
 
-			if (isalnum(sdt->provider[0]) || !gf_sys_is_test_mode())
+			if ((sdt && sdt->provider && isalnum(sdt->provider[0])) || !gf_sys_is_test_mode())
 				gf_filter_pid_set_info((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_STRING( sdt->provider ) );
 		}
 	}
@@ -371,6 +371,11 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		case GF_M2TS_AUDIO_OPUS:
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_OPUS;
+			break;
+		case GF_M2TS_AUDIO_AC4:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AC4;
+			unframed = GF_TRUE;
 			break;
 		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 			((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
