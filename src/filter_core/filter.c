@@ -2583,6 +2583,13 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 		}
 	}
 
+	//PID is already a relink target for destination, silently ignore - this may happen when reconfigure tasks are triggered
+	//before the relinking is done
+	if (src_pidinst == filter_dst->swap_pidinst_dst) {
+		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+		return;
+	}
+
 	if (!link_from_pid) {
 		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
 
