@@ -4922,7 +4922,13 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 			gf_free(a);
 			return;
 		}
-	} else {
+	} else if (state->temporal_unit_obus) {
+		u8* content=NULL;
+		u32 bssize;
+		gf_bs_get_content(state->bs, &content, &bssize);
+		if (content) {
+			gf_free(content);
+		}
 		gf_bs_reassign_buffer(state->bs, state->temporal_unit_obus, state->temporal_unit_obus_alloc);
 		//make sure we don't attempt at freeing this buffer while assigned to the bitstream - cf gf_iamf_reset_state
 		state->temporal_unit_obus = NULL;
