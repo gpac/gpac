@@ -684,7 +684,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 					s64 diff_usec = pck_ts;
 					diff_usec -= temi->ntp_init_cts;
-					ntp = gf_net_ntp_add_usec(temi->ntp_init_ts, diff_usec);
+					ntp = gf_net_ntp_add_usec(temi->ntp_init_ts, (s32) diff_usec);
 				}
 				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url, GF_FALSE, GF_FALSE, NULL, GF_FALSE, GF_FALSE);
 			}

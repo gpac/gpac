@@ -2216,7 +2216,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 				gf_odf_ac4_cfg_presentation_v1_dsi(p, bs, size, desc_mode);
 			}
 
-			presentation_bytes = gf_bs_get_position(bs) - pos;
+			presentation_bytes = (u32) (gf_bs_get_position(bs) - pos);
 			skip_bytes = pres_bytes - presentation_bytes;
 
 			for (j = 0; j < skip_bytes; j++) {
@@ -2235,7 +2235,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 
 			// write into output bitstream
 			gf_bs_write_int(bs, p->presentation_version, 8);
-			presentation_bytes = gf_bs_get_position(t_bs);
+			presentation_bytes = (u32) gf_bs_get_position(t_bs);
 			if (presentation_bytes < 255) {
 				gf_bs_write_int(bs, presentation_bytes, 8);
 			} else {

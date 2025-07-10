@@ -4593,7 +4593,7 @@ static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, con
 			if (!mime || !ext) continue;
 			if (!strstr(mime, for_mime)) continue;
 			char *sep = strchr(ext, '|');
-			u32 len = strlen(ext);
+			u32 len = (u32) strlen(ext);
 			if (sep) len = (u32) (sep - ext);
 			if (len>19) len=19;
 			strncpy(szExt, ext, len);

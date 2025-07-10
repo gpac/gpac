@@ -2856,7 +2856,7 @@ u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale)
 	if (!timescale) timescale = 1;
 	u64 res = (u64) tc->hours * 3600 + (u64) tc->minutes * 60 + (u64) tc->seconds;
 	res *= timescale;
-	res += gf_timestamp_rescale(tc->n_frames, gf_ceil(tc->max_fps), timescale);
+	res += gf_timestamp_rescale(tc->n_frames, (u64) gf_ceil(tc->max_fps), timescale);
 	return res;
 }
 

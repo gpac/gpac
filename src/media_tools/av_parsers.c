@@ -6822,11 +6822,11 @@ static void avc_compute_poc(AVCSliceInfo *si)
 
 	/*ISO 14496-10 N.11084 eq (8-1)*/
 	if (pic_type == AVC_PIC_FRAME)
-		si->poc = MIN(field_poc[0], field_poc[1]);
+		si->poc = (s32) MIN(field_poc[0], field_poc[1]);
 	else if (pic_type == AVC_PIC_FIELD_TOP)
-		si->poc = field_poc[0];
+		si->poc = (s32) field_poc[0];
 	else
-		si->poc = field_poc[1];
+		si->poc = (s32) field_poc[1];
 }
 
 GF_EXPORT
@@ -7054,7 +7054,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 					break;
 				}
 			}
-			if (sei_filter->extra_filter == -ptype)
+			if (sei_filter->extra_filter == - (s32)ptype)
 				do_copy = GF_FALSE;
 		}
 
@@ -7644,7 +7644,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			gf_bs_write_int(mod, nal_hrd_parameters_present_flag, 1);
 			if (nal_hrd_parameters_present_flag) {
 				u32 pos_bp = gf_bs_get_bit_position(orig);
-				u32 pos = gf_bs_get_position(orig);
+				u32 pos = (u32) gf_bs_get_position(orig);
 				u32 start = gf_bs_get_bit_offset(orig);
 				avc_parse_hrd_parameters(orig, &hrd);
 				u32 size = gf_bs_get_bit_offset(orig) - start;
@@ -7664,7 +7664,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			gf_bs_write_int(mod, vcl_hrd_parameters_present_flag, 1);
 			if (vcl_hrd_parameters_present_flag) {
 				u32 pos_bp = gf_bs_get_bit_position(orig);
-				u32 pos = gf_bs_get_position(orig);
+				u32 pos = (u32) gf_bs_get_position(orig);
 				u32 start = gf_bs_get_bit_offset(orig);
 				avc_parse_hrd_parameters(orig, &hrd);
 				u32 size = gf_bs_get_bit_offset(orig) - start;
@@ -8498,7 +8498,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 					break;
 				}
 			}
-			if (sei_filter->extra_filter == -ptype)
+			if (sei_filter->extra_filter == -(s32)ptype)
 				do_copy = GF_FALSE;
 		}
 
@@ -11518,7 +11518,7 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
                 return 0;
             }
             if (data[header->size] == 255) {
-                if (data_length <= header->size+1) {
+                if (data_length <= (u32) header->size+1) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
                     return 0;
                 }
@@ -14695,7 +14695,7 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 					}
 				} else {
 					if (n_signals > 1) {
-						bed_ch_bits = ceil(log2(n_signals));
+						bed_ch_bits = (u32) gf_ceil(log2(n_signals));
 						n_bed_signals = gf_bs_read_int_log(bs, bed_ch_bits, "n_bed_signals_minus1") + 1;
 					} else {
 						n_bed_signals = 1;
@@ -14938,7 +14938,7 @@ static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 		gf_ac4_trim(bs);
 		gf_ac4_bed_render_info(bs);
 
-		bits_used = gf_bs_get_bit_offset(bs) - pos;
+		bits_used = (u32) (gf_bs_get_bit_offset(bs) - pos);
 		gf_bs_read_int(bs, add_data_bytes * 8 - bits_used);
 	}
 	return GF_TRUE;

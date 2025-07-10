@@ -4196,12 +4196,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				//decide on start number
 				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
 				ds->startNumber = p ? p->value.uint : 0;
-				ds->startNumber += (u32) gf_floor(cts / seg_dur) + 1;
+				ds->startNumber += (u32) gf_floor((Double)cts / seg_dur) + 1;
 
 				//set the fragment sequence number
 				ds->moof_sn = ds->startNumber;
 				if (ctx->cdur.num>0 && ctx->cdur.den>0) {
-					u32 chunk_per_segment = (u32) gf_floor(seg_dur / cdur);
+					u32 chunk_per_segment = (u32) gf_floor((Double)seg_dur / cdur);
 					ds->moof_sn = (ds->startNumber - 1) * chunk_per_segment + 1;
 
 					//add the sn offset within the segment
