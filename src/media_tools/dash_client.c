@@ -5140,6 +5140,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
+	if (!base_init_url) {
+		return GF_IO_ERR;
+	}
+
 	if (nb_segment_read) {
 		group->init_segment_is_media = GF_TRUE;
 		group->init_segment_start_number = start_number;
