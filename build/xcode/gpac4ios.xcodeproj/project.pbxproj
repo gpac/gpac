@@ -373,6 +373,8 @@
 		925546B62D3175DC00E0AAF9 /* downloader_cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546AE2D3175DC00E0AAF9 /* downloader_cache.c */; };
 		925546B72D3175DC00E0AAF9 /* downloader_ssl.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546AF2D3175DC00E0AAF9 /* downloader_ssl.c */; };
 		925546B82D3175DC00E0AAF9 /* downloader_emscripten.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546B02D3175DC00E0AAF9 /* downloader_emscripten.c */; };
+		925607782E1EC7030022BA42 /* rewrite_ac4.c in Sources */ = {isa = PBXBuildFile; fileRef = 925607762E1EC7030022BA42 /* rewrite_ac4.c */; };
+		925607792E1EC7030022BA42 /* reframe_ac4.c in Sources */ = {isa = PBXBuildFile; fileRef = 925607772E1EC7030022BA42 /* reframe_ac4.c */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
 		925A7611292F998500664F38 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 925A7610292F998500664F38 /* sha256.c */; };
@@ -996,6 +998,8 @@
 		925546AE2D3175DC00E0AAF9 /* downloader_cache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_cache.c; sourceTree = "<group>"; };
 		925546AF2D3175DC00E0AAF9 /* downloader_ssl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_ssl.c; sourceTree = "<group>"; };
 		925546B02D3175DC00E0AAF9 /* downloader_emscripten.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_emscripten.c; sourceTree = "<group>"; };
+		925607762E1EC7030022BA42 /* rewrite_ac4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_ac4.c; path = ../../src/filters/rewrite_ac4.c; sourceTree = "<group>"; };
+		925607772E1EC7030022BA42 /* reframe_ac4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ac4.c; path = ../../src/filters/reframe_ac4.c; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		925A7610292F998500664F38 /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha256.c; sourceTree = "<group>"; };
@@ -2070,6 +2074,7 @@
 				8959AC82211C9C3C004D2C87 /* out_sock.c */,
 				92EB6D7320E4E19200A97A49 /* out_video.c */,
 				92EB6DA920E4E19600A97A49 /* reframe_ac3.c */,
+				925607772E1EC7030022BA42 /* reframe_ac4.c */,
 				92EB6D8920E4E19300A97A49 /* reframe_adts.c */,
 				92EB6D8420E4E19300A97A49 /* reframe_amr.c */,
 				8959AC78211C9B29004D2C87 /* reframe_av1.c */,
@@ -2090,6 +2095,7 @@
 				92EB6DB620E4E19600A97A49 /* resample_audio.c */,
 				92AB30C027ADA66F00A5CCCB /* restamp.c */,
 				92EB6D9320E4E19400A97A49 /* rewind.c */,
+				925607762E1EC7030022BA42 /* rewrite_ac4.c */,
 				92EB6D8120E4E19300A97A49 /* rewrite_adts.c */,
 				928EB67425271B5800E47747 /* rewrite_mhas.c */,
 				92EB6D9E20E4E19500A97A49 /* rewrite_mp4v.c */,
@@ -2526,6 +2532,7 @@
 				71CCF2931277045100339E12 /* visual_manager.c in Sources */,
 				92EB6E0720E4E19700A97A49 /* isoffin_read.c in Sources */,
 				71CCF2951277045100339E12 /* visual_manager_2d.c in Sources */,
+				925607792E1EC7030022BA42 /* reframe_ac4.c in Sources */,
 				92EB6DD120E4E19700A97A49 /* write_qcp.c in Sources */,
 				71CCF2971277045100339E12 /* visual_manager_2d_draw.c in Sources */,
 				71CCF2981277045100339E12 /* visual_manager_3d.c in Sources */,
@@ -2703,6 +2710,7 @@
 				9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */,
 				71CCF3141277045100339E12 /* x3d_nodes.c in Sources */,
 				71CCF3161277045100339E12 /* xml_ns.c in Sources */,
+				925607782E1EC7030022BA42 /* rewrite_ac4.c in Sources */,
 				92277E1D2BE910E1005E0955 /* md5.c in Sources */,
 				92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */,
 				92EB6E1720E4E19700A97A49 /* enc_jpg.c in Sources */,

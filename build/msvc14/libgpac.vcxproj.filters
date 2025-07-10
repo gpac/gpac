@@ -1370,6 +1370,9 @@
     <ClCompile Include="..\..\src\filters\reframe_ac3.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_ac4.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\reframe_adts.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1419,6 +1422,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewind.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_ac4.c">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewrite_adts.c">

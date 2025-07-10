@@ -5135,6 +5135,14 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 	base_url = base_url_orig;
 	base_init_url = gf_dash_get_fileio_url(base_url, base_init_url);
+	if (!base_init_url) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to resolve init segment URL\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	if (!base_init_url) {
+		return GF_IO_ERR;
+	}
 
 	if (nb_segment_read) {
 		group->init_segment_is_media = GF_TRUE;
@@ -10766,6 +10774,10 @@ u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx)
 	}
 
 	while ((mpd_desc=gf_list_enum(l, &i))) {
+
+		if (!mpd_desc->scheme_id_uri || !mpd_desc->value)
+			continue;
+
 		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011")) {
 			return atoi(mpd_desc->value);
 		}

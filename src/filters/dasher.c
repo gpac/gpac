@@ -291,7 +291,7 @@ typedef struct
 
 	Bool purge_segments;
 
-	Bool is_playing;
+	u32 nb_playing;
 	Bool use_mabr;
 
 	Bool no_seg_dur;
@@ -1165,7 +1165,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		/*initial connection and we already have sent play event, send a PLAY on this new PID
 		TODO: we need to send STOP/PLAY depending on period
 		*/
-		if (ctx->is_playing) {
+		if (ctx->nb_playing) {
 			GF_FilterEvent evt;
 
 			dasher_send_encode_hints(ctx, ds);
@@ -2560,8 +2560,26 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	ds->rep->playback.udta = ds;
 	if (ds->tci)
 		ds->rep->crypto_type = 1;
-	else
-		ds->rep->crypto_type = ds->is_encrypted ? 2 : 0;
+	else {
+		if (!ds->is_encrypted) ds->rep->crypto_type = 0;
+		else {
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+			ds->rep->crypto_type = 2;
+			if (p && (p->value.uint == GF_4CC('c','e','n','c'))) {
+				if ((ctx->muxtype != DASHER_MUX_ISOM) && (ctx->muxtype != DASHER_MUX_AUTO)) {
+					ctx->in_error = GF_TRUE;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] CENC protection cannot be used with non-ISOBMF mux format\n"));
+				} else {
+					ds->rep->crypto_type = 3;
+				}
+			} else if (p && (p->value.uint == GF_4CC('s','a','e','s'))) {
+				if (ctx->muxtype != DASHER_MUX_TS) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] SAES protection cannot be used with non-MPEG2TS mux format\n"));
+					ctx->in_error = GF_TRUE;
+				}
+			}
+		}
+	}
 
 	dasher_update_rep(ctx, ds);
 	ds->rep->streamtype = ds->stream_type;
@@ -3280,6 +3298,13 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 			sep[0] = 0;
 			trailer_args = strstr(dst_args, szKey);
 		}
+		//remove trailing argument separator
+		u32 dlen = (u32) strlen(szDST);
+		while (dlen && (szDST[dlen-1] == sep_args)) {
+			szDST[dlen-1] = 0;
+			dlen--;
+		}
+
 		//look for frag arg
 		sprintf(szKey, "%cfrag", sep_args);
 		if (strstr(dst_args, szKey)) has_frag = GF_TRUE;
@@ -4171,12 +4196,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				//decide on start number
 				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_START_NUMBER);
 				ds->startNumber = p ? p->value.uint : 0;
-				ds->startNumber += (u32) gf_floor(cts / seg_dur) + 1;
+				ds->startNumber += (u32) gf_floor((Double)cts / seg_dur) + 1;
 
 				//set the fragment sequence number
 				ds->moof_sn = ds->startNumber;
 				if (ctx->cdur.num>0 && ctx->cdur.den>0) {
-					u32 chunk_per_segment = (u32) gf_floor(seg_dur / cdur);
+					u32 chunk_per_segment = (u32) gf_floor((Double)seg_dur / cdur);
 					ds->moof_sn = (ds->startNumber - 1) * chunk_per_segment + 1;
 
 					//add the sn offset within the segment
@@ -8307,6 +8332,10 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ntpts));
 		} else if (ctx->ntp==DASHER_NTP_REM) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, NULL);
+		} else if (ctx->ntp==DASHER_NTP_KEEP) {
+			const GF_PropertyValue *v = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SENDER_NTP);
+			if (v)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, v);
 		}
 		if (!ctx->gencues) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, NULL );
@@ -8432,9 +8461,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			}
 		}
 		//we need a hard copy as the pid may reconfigure before we flush the segment
-		if (kms_uri) {
+		if (kms_uri || ((ctx->muxtype==DASHER_MUX_TS) && (ds->rep->crypto_type!=3)) ) {
 			//insert IV if not mp4
-			if (!ds->tci && ctx->hlsiv && !strstr(kms_uri, "IV=") && (ctx->muxtype!=DASHER_MUX_ISOM)) {
+			if (!ds->tci && ctx->hlsiv && (!kms_uri || !strstr(kms_uri, "IV=")) && (ctx->muxtype!=DASHER_MUX_ISOM)) {
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CENC_KEY_INFO);
 				if (p && (p->value.data.size==37)) {
 					char *kms_iv=NULL;
@@ -8447,18 +8476,24 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 						sprintf(szVal, "%02X", iv[i]);
 						strcat(szIV, szVal);
 					}
-					if (!strstr(kms_uri, "URI=")) {
+					if (kms_uri && !strstr(kms_uri, "URI=")) {
 						gf_dynstrcat(&kms_iv, "URI=\"", NULL);
 						gf_dynstrcat(&kms_iv, kms_uri, NULL);
 						gf_dynstrcat(&kms_iv, "\"", NULL);
-					} else {
+					} else if (kms_uri) {
 						gf_dynstrcat(&kms_iv, kms_uri, NULL);
+					} else {
+						if (!ds->rep->def_kms_used) {
+							ds->rep->def_kms_used = 1;
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[HLS] Missing key URI in one or more keys - will use dummy one URI=\"gpac:hls:key:locator:null\"\n"));
+						}
+						gf_dynstrcat(&kms_iv, "URI=\"gpac:hls:key:locator:null\"", NULL);
 					}
 					gf_dynstrcat(&kms_iv, szIV, ",");
 					seg_state->hls_key_uri = kms_iv;
 				}
 			}
-			if (!seg_state->hls_key_uri) {
+			if (kms_uri && !seg_state->hls_key_uri) {
 				if (!strstr(kms_uri, "URI=")) {
 					gf_dynstrcat(&seg_state->hls_key_uri, "URI=\"", NULL);
 					gf_dynstrcat(&seg_state->hls_key_uri, kms_uri, NULL);
@@ -10583,7 +10618,9 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 
 	if (evt->base.type == GF_FEVT_PLAY) {
-		ctx->is_playing = GF_TRUE;
+		ctx->nb_playing++;
+		if (ctx->nb_playing>1) return GF_TRUE;
+
 		//send encode hints even if segment timeline is used
 		if (!ctx->sfile && !ctx->use_cues) {
 			GF_FilterEvent anevt;
@@ -10611,7 +10648,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 	}
 	if (evt->base.type == GF_FEVT_STOP) {
-		ctx->is_playing = GF_FALSE;
+		ctx->nb_playing--;
+		if (ctx->nb_playing) return GF_TRUE;
 		return GF_FALSE;
 	}
 

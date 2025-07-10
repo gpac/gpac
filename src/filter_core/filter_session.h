@@ -699,6 +699,7 @@ struct __gf_filter
 	volatile u32 detach_pid_tasks_pending;
 	volatile u32 nb_shared_packets_out;
 	volatile u32 abort_pending;
+	volatile u32 pid_rem_packet_pending;
 	GF_List *postponed_packets;
 
 	//list of blacklisted filtered registries
@@ -910,6 +911,7 @@ void gf_fs_post_pid_instance_delete_task(GF_FilterSession *session, GF_Filter *f
 
 void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
 void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst);
+void gf_filter_pid_inst_check_delete(GF_FilterPidInst *pidinst);
 
 void gf_filter_forward_clock(GF_Filter *filter);
 

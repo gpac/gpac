@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay, Jean Le Feuvre, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2025
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -457,7 +457,9 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			} else if (!strncmp(ret[0]+method_len, "AES-128", 7)) {
 				attributes->key_method = DRM_AES_128;
 			} else if (!strncmp(ret[0]+method_len, "SAMPLE-AES", 10)) {
-				attributes->key_method = DRM_CENC;
+				attributes->key_method = DRM_CENC_CBCS;
+			} else if (!strncmp(ret[0]+method_len, "SAMPLE-AES-CTR", 14)) {
+				attributes->key_method = DRM_CENC_CTR;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] EXT-X-KEY method not recognized.\n"));
 			}

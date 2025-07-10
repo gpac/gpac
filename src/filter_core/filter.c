@@ -2598,6 +2598,13 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 		}
 	}
 
+	//PID is already a relink target for destination, silently ignore - this may happen when reconfigure tasks are triggered
+	//before the relinking is done
+	if (src_pidinst == filter_dst->swap_pidinst_dst) {
+		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+		return;
+	}
+
 	if (!link_from_pid) {
 		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
 
@@ -2930,6 +2937,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
 		if (filter->pending_packets && filter->num_input_pids
+			&& (!filter->num_output_pids || filter->nb_pids_playing)
 			//do NOT do this if running in prevent play mode and blocking mode, as user is likely expecting fs_run() to return until the play event is sent
 			&& !filter->session->non_blocking && !(filter->session->flags & GF_FS_FLAG_PREVENT_PLAY)
 		) {
@@ -3514,9 +3522,14 @@ void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_f
 {
 	if (!filter) return;
 	if (!source_filter) return;
+	Bool detach = (filter->disabled && !on_setup_error && source_filter->on_setup_error) ? GF_TRUE : GF_FALSE;
 	source_filter->on_setup_error = on_setup_error;
 	source_filter->on_setup_error_filter = filter;
 	source_filter->on_setup_error_udta = udta;
+
+	if (detach) {
+		gf_filter_post_remove(filter);
+	}
 }
 
 struct _gf_filter_setup_failure
@@ -3572,7 +3585,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 				gf_list_rem(pid->destinations, j);
 				pid->num_destinations--;
 				j--;
-				gf_filter_pid_inst_del(pidinst);
+				gf_filter_pid_inst_check_delete(pidinst);
 			}
 			//marked as detached
 			else {
@@ -4069,7 +4082,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 #endif
 		 break;
 	}
-
+	reset_filter_args(filter);
 	gf_free(filter->filter_udta);
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
@@ -4600,7 +4613,7 @@ static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, con
 			if (!mime || !ext) continue;
 			if (!strstr(mime, for_mime)) continue;
 			char *sep = strchr(ext, '|');
-			u32 len = strlen(ext);
+			u32 len = (u32) strlen(ext);
 			if (sep) len = (u32) (sep - ext);
 			if (len>19) len=19;
 			strncpy(szExt, ext, len);

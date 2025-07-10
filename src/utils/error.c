@@ -1523,6 +1523,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_RFAC3
 	                       "GPAC_DISABLE_RFAC3 "
 #endif
+#ifdef GPAC_DISABLE_RFAC4
+	                       "GPAC_DISABLE_RFAC4 "
+#endif
 #ifdef GPAC_DISABLE_RFADTS
 	                       "GPAC_DISABLE_RFADTS "
 #endif
@@ -1588,6 +1591,9 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_UFMHAS
 	                       "GPAC_DISABLE_UFMHAS "
+#endif
+#ifdef GPAC_DISABLE_UFAC4
+	                       "GPAC_DISABLE_UFAC4 "
 #endif
 #ifdef GPAC_DISABLE_UFM4V
 	                       "GPAC_DISABLE_UFM4V "
@@ -2276,6 +2282,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		frac->den = 1;
 		while (i<len) {
 			i++;
+			if (frac->den > GF_UINT64_MAX / 10)
+				return GF_FALSE;
 			frac->den *= 10;
 		}
 		//trash trailing zero
@@ -2284,6 +2292,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 			if (sep[i] != '0') {
 				break;
 			}
+			if (div_trail_zero > GF_UINT_MAX / 10)
+				return GF_FALSE;
 			div_trail_zero *= 10;
 			i--;
 		}

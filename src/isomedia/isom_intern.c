@@ -306,7 +306,7 @@ static void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
 
 //for now we only use regular sample to group internally (except when dumping), not the pattern version
 //we unrill the pattern and replace the compact version with a regular one
-static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleGroups)
+static void convert_compact_sample_groups(u32 all_samples, GF_List *child_boxes, GF_List *sampleGroups)
 {
 	u32 i;
 	for (i=0; i<gf_list_count(sampleGroups); i++) {
@@ -314,6 +314,16 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 		GF_SampleGroupBox *sbgp;
 		GF_CompactSampleGroupBox *csgp = gf_list_get(sampleGroups, i);
 		if (csgp->type != GF_ISOM_BOX_TYPE_CSGP) continue;
+
+		if (!all_samples) {
+			u32 j=0;
+			for (j=0; j<gf_list_count(child_boxes); j++) {
+				GF_TrackFragmentRunBox *trun = (GF_TrackFragmentRunBox *)gf_list_get(child_boxes, j);
+				if (trun->type != GF_ISOM_BOX_TYPE_TRUN) continue;
+				all_samples += trun->sample_count;
+			}
+		}
+		u32 max_samples = all_samples;
 
 		gf_list_rem(sampleGroups, i);
 		gf_list_del_item(child_boxes, csgp);
@@ -332,6 +342,12 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 		for (j=0; j<csgp->pattern_count; j++) {
 			u32 k=0;
 			u32 nb_samples = csgp->patterns[j].sample_count;
+			if (nb_samples > max_samples) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid compact sample to group box, %u samples in pattern but %u remaining\n", nb_samples, max_samples));
+				break;
+			}
+			max_samples -= nb_samples;
+
 			//unroll the pattern
 			while (nb_samples) {
 				u32 nb_same_index=1;
@@ -492,7 +508,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 					GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(mov->moov->trackList, k);
 					if (trak->extl) continue;
 					if (trak->Media->information->sampleTable->sampleGroups) {
-						convert_compact_sample_groups(trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable->sampleGroups);
+						convert_compact_sample_groups(trak->Media->information->sampleTable->SampleSize->sampleCount, trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable->sampleGroups);
 					}
 				}
 			}
@@ -715,7 +731,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
 					GF_TrackFragmentBox *traf = (GF_TrackFragmentBox *)gf_list_get(mov->moof->TrackList, k);
 					if (traf->sampleGroups) {
-						convert_compact_sample_groups(traf->child_boxes, traf->sampleGroups);
+						convert_compact_sample_groups(0, traf->child_boxes, traf->sampleGroups);
 					}
 				}
 			}

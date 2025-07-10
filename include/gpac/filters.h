@@ -1465,6 +1465,9 @@ enum
 	GF_PROP_PCK_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','P'),
 	GF_PROP_PCK_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','P'),
 
+	GF_PROP_PCK_ORIGINAL_PTS = GF_4CC('O','P','T','S'),
+	GF_PROP_PCK_ORIGINAL_DTS = GF_4CC('O','D','T','S'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -1648,61 +1651,61 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 
 
 /*! Helper macro to set signed int property */
-#define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
+#define PROP_SINT(_val) (GF_PropertyValue){GF_PROP_SINT, { .sint = (_val) }}
 /*! Helper macro to set unsigned int property */
-#define PROP_UINT(_val) (GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
+#define PROP_UINT(_val) (GF_PropertyValue){GF_PROP_UINT, { .uint = (_val) }}
 /*! Helper macro to set an enum  property */
-#define PROP_ENUM(_val, _type) (GF_PropertyValue){.type=_type, .value.uint = _val}
+#define PROP_ENUM(_val, _type) (GF_PropertyValue){_type, { .uint = (_val) }}
 /*! Helper macro to set 4CC unsigned int property */
-#define PROP_4CC(_val) (GF_PropertyValue){.type=GF_PROP_4CC, .value.uint = _val}
+#define PROP_4CC(_val) (GF_PropertyValue){GF_PROP_4CC, { .uint = (_val) }}
 /*! Helper macro to set long signed int property */
-#define PROP_LONGSINT(_val) (GF_PropertyValue){.type=GF_PROP_LSINT, .value.longsint = _val}
+#define PROP_LONGSINT(_val) (GF_PropertyValue){GF_PROP_LSINT, { .longsint = (_val) }}
 /*! Helper macro to set long unsigned int property */
-#define PROP_LONGUINT(_val) (GF_PropertyValue){.type=GF_PROP_LUINT, .value.longuint = _val}
+#define PROP_LONGUINT(_val) (GF_PropertyValue){GF_PROP_LUINT, { .longuint = (_val) }}
 /*! Helper macro to set boolean property */
-#define PROP_BOOL(_val) (GF_PropertyValue){.type=GF_PROP_BOOL, .value.boolean = _val}
+#define PROP_BOOL(_val) (GF_PropertyValue){GF_PROP_BOOL, { .boolean = (_val) }}
 /*! Helper macro to set fixed-point number property */
-#define PROP_FIXED(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
+#define PROP_FIXED(_val) (GF_PropertyValue){GF_PROP_FLOAT, { .fnumber = (_val) }}
 /*! Helper macro to set float property */
-#define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
+#define PROP_FLOAT(_val) (GF_PropertyValue){GF_PROP_FLOAT, { .fnumber = FLT2FIX(_val) }}
 /*! Helper macro to set 32-bit fraction property from integers*/
-#define PROP_FRAC_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
+#define PROP_FRAC_INT(_num, _den) (GF_PropertyValue){GF_PROP_FRACTION, { .frac.num = (_num), .frac.den = (_den) }}
 /*! Helper macro to set 32-bit fraction property*/
-#define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val }
+#define PROP_FRAC(_val) (GF_PropertyValue){GF_PROP_FRACTION, { .frac = (_val) }}
 /*! Helper macro to set 64-bit fraction property from integers*/
-#define PROP_FRAC64(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION64, .value.lfrac = _val}
+#define PROP_FRAC64(_val) (GF_PropertyValue){GF_PROP_FRACTION64, { .lfrac = (_val) }}
 /*! Helper macro to set 64-bit fraction property*/
-#define PROP_FRAC64_INT(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION64, .value.lfrac.num = _num, .value.lfrac.den = _den}
+#define PROP_FRAC64_INT(_num, _den) (GF_PropertyValue){GF_PROP_FRACTION64, { .lfrac.num = (_num), .lfrac.den = (_den) }}
 /*! Helper macro to set double property */
-#define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
+#define PROP_DOUBLE(_val) (GF_PropertyValue){GF_PROP_DOUBLE, { .number = (_val) }}
 /*! Helper macro to set string property */
-#define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = (char *) _val}
+#define PROP_STRING(_val) (GF_PropertyValue){GF_PROP_STRING, { .string = (char *)(_val) }}
 /*! Helper macro to set string property without string copy (string memory is owned by filter) */
-#define PROP_STRING_NO_COPY(_val) (GF_PropertyValue){.type=GF_PROP_STRING_NO_COPY, .value.string = _val}
+#define PROP_STRING_NO_COPY(_val) (GF_PropertyValue){GF_PROP_STRING_NO_COPY, { .string = (char *)(_val) }}
 /*! Helper macro to set name property */
-#define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
+#define PROP_NAME(_val) (GF_PropertyValue){GF_PROP_NAME, { .string = (char *)(_val) }}
 /*! Helper macro to set data property */
-#define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data.ptr = _val, .value.data.size=_len}
+#define PROP_DATA(_val, _len) (GF_PropertyValue){GF_PROP_DATA, { .data.ptr = (_val), .data.size = (_len) }}
 /*! Helper macro to set data property without data copy ( memory is owned by filter) */
-#define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data.ptr = _val, .value.data.size =_len}
+#define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){GF_PROP_DATA_NO_COPY, { .data.ptr = (_val), .data.size = (_len) }}
 /*! Helper macro to set const data property */
-#define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data.ptr = _val, .value.data.size = _len}
+#define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){GF_PROP_CONST_DATA, { .data.ptr = (_val), .data.size = (_len) }}
 /*! Helper macro to set 2D float vector property */
-#define PROP_VEC2(_val) (GF_PropertyValue){.type=GF_PROP_VEC2, .value.vec2 = _val}
+#define PROP_VEC2(_val) (GF_PropertyValue){GF_PROP_VEC2, { .vec2 = (_val) }}
 /*! Helper macro to set 2D integer vector property */
-#define PROP_VEC2I(_val) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i = _val}
+#define PROP_VEC2I(_val) (GF_PropertyValue){GF_PROP_VEC2I, { .vec2i = (_val) }}
 /*! Helper macro to set 2D integer vector property from integers*/
-#define PROP_VEC2I_INT(_x, _y) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i.x = _x, .value.vec2i.y = _y}
+#define PROP_VEC2I_INT(_x, _y) (GF_PropertyValue){GF_PROP_VEC2I, { .vec2i.x = (_x), .vec2i.y = (_y) }}
 /*! Helper macro to set 3D integer vector property */
-#define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
+#define PROP_VEC3I(_val) (GF_PropertyValue){GF_PROP_VEC3I, { .vec3i = (_val) }}
 /*! Helper macro to set 3D integer vector property from integers*/
-#define PROP_VEC3I_INT(_x, _y, _z) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i.x = _x, .value.vec3i.y = _y, .value.vec3i.z = _z}
+#define PROP_VEC3I_INT(_x, _y, _z) (GF_PropertyValue){GF_PROP_VEC3I, { .vec3i.x = (_x), .vec3i.y = (_y), .vec3i.z = (_z) }}
 /*! Helper macro to set 4D integer vector property */
-#define PROP_VEC4I(_val) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i = _val}
+#define PROP_VEC4I(_val) (GF_PropertyValue){GF_PROP_VEC4I, { .vec4i = (_val) }}
 /*! Helper macro to set 4D integer vector property from integers */
-#define PROP_VEC4I_INT(_x, _y, _z, _w) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i.x = _x, .value.vec4i.y = _y, .value.vec4i.z = _z, .value.vec4i.w = _w}
+#define PROP_VEC4I_INT(_x, _y, _z, _w) (GF_PropertyValue){GF_PROP_VEC4I, { .vec4i.x = (_x), .vec4i.y = (_y), .vec4i.z = (_z), .vec4i.w = (_w) }}
 /*! Helper macro to set pointer property */
-#define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
+#define PROP_POINTER(_val) (GF_PropertyValue){GF_PROP_POINTER, { .ptr = (void *)(_val) }}
 
 
 /*! @} */
@@ -2205,33 +2208,33 @@ typedef struct
 } GF_FilterArgs;
 
 /*! Shortcut macro to assign singed integer capability type*/
-#define CAP_SINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_SINT, .value.sint = _b}, .flags=(_f) }
+#define CAP_SINT(_f, _a, _b) { _a, { GF_PROP_SINT, { .sint = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign unsigned integer capability type*/
-#define CAP_UINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f) }
+#define CAP_UINT(_f, _a, _b) { _a, { GF_PROP_UINT, { .uint = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign unsigned integer capability type*/
-#define CAP_4CC(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_4CC, .value.uint = _b}, .flags=(_f) }
+#define CAP_4CC(_f, _a, _b) { _a, { GF_PROP_4CC, { .uint = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign signed long integer capability type*/
-#define CAP_LSINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LSINT, .value.longsint = _b}, .flags=(_f) }
+#define CAP_LSINT(_f, _a, _b) { _a, { GF_PROP_LSINT, { .longsint = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign unsigned long integer capability type*/
-#define CAP_LUINT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_LUINT, .value.longuint = _b}, .flags=(_f) }
+#define CAP_LUINT(_f, _a, _b) { _a, { GF_PROP_LUINT, { .longuint = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign boolean capability type*/
-#define CAP_BOOL(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_BOOL, .value.boolean = _b}, .flags=(_f) }
+#define CAP_BOOL(_f, _a, _b) { _a, { GF_PROP_BOOL, { .boolean = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign fixed-point number capability type*/
-#define CAP_FIXED(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FLOAT, .value.fnumber = _b}, .flags=(_f) }
+#define CAP_FIXED(_f, _a, _b) { _a, { GF_PROP_FLOAT, { .fnumber = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign float capability type*/
-#define CAP_FLOAT(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_b)}, .flags=(_f) }
+#define CAP_FLOAT(_f, _a, _b) { _a, { GF_PROP_FLOAT, { .fnumber = FLT2FIX(_b) }}, NULL, _f }
 /*! Shortcut macro to assign 32-bit fraction capability type*/
-#define CAP_FRAC_INT(_f, _a, _b, _c) { .code=_a, .val={.type=GF_PROP_FRACTION, .value.frac.num = _b, .value.frac.den = _c}, .flags=(_f) }
+#define CAP_FRAC_INT(_f, _a, _b, _c) { _a, { GF_PROP_FRACTION, { .frac = { .num = (_b), .den = (_c)  }}}, NULL, _f }
 /*! Shortcut macro to assign 32-bit fraction capability type from integers*/
-#define CAP_FRAC(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_FRACTION, .value.frac = _b}, .flags=(_f) }
+#define CAP_FRAC(_f, _a, _b) { _a, { GF_PROP_FRACTION, { .frac = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign double capability type*/
-#define CAP_DOUBLE(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_DOUBLE, .value.number = _b}, .flags=(_f) }
+#define CAP_DOUBLE(_f, _a, _b) { _a, { GF_PROP_DOUBLE, { .number = (_b) }}, NULL, _f }
 /*! Shortcut macro to assign name (const string) capability type*/
-#define CAP_NAME(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_NAME, .value.string = _b}, .flags=(_f) }
+#define CAP_NAME(_f, _a, _b) { _a, { GF_PROP_NAME, { .string = (char *)(_b) }}, NULL, _f }
 /*! Shortcut macro to assign string capability type*/
-#define CAP_STRING(_f, _a, _b) { .code=_a, .val={.type=GF_PROP_STRING, .value.string = _b}, .flags=(_f) }
+#define CAP_STRING(_f, _a, _b) { _a, { GF_PROP_STRING, { .string = (char *)(_b) }}, NULL, _f }
 /*! Shortcut macro to assign unsigned integer capability type with capability priority*/
-#define CAP_UINT_PRIORITY(_f, _a, _b, _p) { .code=_a, .val={.type=GF_PROP_UINT, .value.uint = _b}, .flags=(_f), .priority=_p}
+#define CAP_UINT_PRIORITY(_f, _a, _b, _p) { _a, { GF_PROP_UINT, { .uint = (_b) }}, NULL, _f, _p }
 
 /*! Flags for filter capabilities*/
 enum
@@ -2811,6 +2814,9 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 
 
 /*! Sets callback function on source filter setup failure
+
+ A filter with a non-NULL callback will never get destroyed by internal filter session logic, even if it no longer has valid connections. This ensures that a filter loading another filter can be sure this filter is a valid object or has failed to setup. Setting the callback to NULL may trigger the filter removal if needed, hence access to the filter should not happen after reseting the callback.
+
 \param filter target filter
 \param source_filter the source filter to monitor
 \param on_setup_error callback function to call upon source  setup error - the callback can return GF_TRUE to cancel error reporting

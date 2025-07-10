@@ -397,6 +397,8 @@ enum
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
+	GF_ISOM_BOX_TYPE_AC4	= GF_4CC( 'a', 'c', '-', '4' ),
+	GF_ISOM_BOX_TYPE_DAC4	= GF_4CC( 'd', 'a', 'c', '4' ),
 	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_DVVC	= GF_4CC( 'd', 'v', 'v', 'C' ),
 	GF_ISOM_BOX_TYPE_DVH1	= GF_4CC( 'd', 'v', 'h', '1' ),
@@ -1732,6 +1734,12 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_BOX
+	GF_AC4Config cfg;
+} GF_AC4ConfigBox;
+
+typedef struct
+{
 	GF_ISOM_FULL_BOX
 	u32 sampling_rate;
 } GF_SamplingRateBox;
@@ -1854,6 +1862,9 @@ typedef struct __full_audio_sample_entry
 
 	//for AC3/EC3 audio
 	GF_AC3ConfigBox *cfg_ac3;
+
+	//for AC4 audio
+	GF_AC4ConfigBox *cfg_ac4;
 
 	//for AC3/EC3 audio
 	GF_TrueHDConfigBox *cfg_mlp;

@@ -149,7 +149,8 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 		name = gf_file_ext_start(fileName);
 		if (name) name[0] = 0;
-		strcat(fileName, ".media");
+		if (strcmp(fileName, "null") && strcmp(fileName, "/dev/null"))
+			strcat(fileName, ".media");
 		if (gfio) {
 			res_name = (char *) gf_fileio_factory(gfio, nhmldump_get_resolved_basename(ctx->ipid, fileName, szTempName) );
 		} else {
@@ -177,7 +178,8 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 		name = gf_file_ext_start(fileName);
 		if (name) name[0] = 0;
-		strcat(fileName, ".info");
+		if (strcmp(fileName, "null") && strcmp(fileName, "/dev/null"))
+			strcat(fileName, ".info");
 		if (gfio) {
 			res_name = (char *) gf_fileio_factory(gfio, nhmldump_get_resolved_basename(ctx->ipid, fileName, szTempName) );
 		} else {
@@ -312,7 +314,8 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				name[0] = 0;
 				gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(ctx->name) );
 			} else {
-				strcat(fileName, ".nhml");
+				if (strcmp(fileName, "null") && strcmp(fileName, "/dev/null"))
+					strcat(fileName, ".nhml");
 				gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
 			}
 		}

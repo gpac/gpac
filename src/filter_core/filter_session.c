@@ -1527,6 +1527,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 	if (!fsess || !argv || (argc<1)) return GF_BAD_PARAM;
 
 	GF_Err e;
+	int i;
 	Bool has_xopt = GF_FALSE;
 	GF_List *loaded_filters = NULL;
 	GF_List *links_directive = NULL;
@@ -1547,7 +1548,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 		return GF_OUT_OF_MEM;
 	}
 
-	for (u32 i=0; i<argc; i++) {
+	for (i=0; i<argc; i++) {
 		GF_Filter *filter=NULL;
 		Bool is_simple=GF_FALSE;
 		Bool f_loaded = GF_FALSE;

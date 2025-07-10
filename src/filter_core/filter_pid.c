@@ -99,6 +99,17 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	gf_free(pidinst);
 }
 
+void gf_filter_pid_inst_check_delete(GF_FilterPidInst *pidinst)
+{
+	//we posted a configure_task_discard on this PID, mark as "to be destroyed" and let thet task destroy the pid
+	if (pidinst->discard_inputs==2) {
+		pidinst->discard_inputs = 3;
+	} else {
+		gf_filter_pid_inst_del(pidinst);
+	}
+}
+
+
 static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid *pid)
 {
 	GF_FilterPidInst *pidinst;
@@ -477,14 +488,22 @@ static void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	pid->removed = GF_TRUE;
 
 	//filter still active and has no input, check if there are no more output pids valid. If so, remove filter
-	if (!gf_list_count(filter->input_pids) && !filter->finalized) {
+	if (!gf_list_count(filter->input_pids) && !filter->finalized
+		//make sure we don't have any remove pid packets pending
+		&& !filter->pid_rem_packet_pending
+	) {
 		u32 i, nb_opid_rem=0;
 		for (i=0; i<filter->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(filter->output_pids, i);
 			if (apid->removed) nb_opid_rem++;
 		}
 		if (gf_list_count(filter->output_pids)==nb_opid_rem) {
-			gf_filter_post_remove(filter);
+			//filter is being watched by another filter for setup error (and potentially other tasks), do not delete but mark as disabled
+			if (filter->on_setup_error) {
+				filter->disabled = GF_FILTER_DISABLED;
+			} else {
+				gf_filter_post_remove(filter);
+			}
 		}
 	}
 
@@ -529,7 +548,7 @@ static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid,
 	if (filter->detached_pid_inst && (gf_list_find(filter->detached_pid_inst, pidinst)>=0) )
 		return;
 
-	gf_filter_pid_inst_del(pidinst);
+	gf_filter_pid_inst_check_delete(pidinst);
 
 	if (filter->num_input_pids) return;
 	//we still have other pid instances registered for chain reconfigure, don't discard the filter
@@ -700,7 +719,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 			gf_list_del_item(src->pid->destinations, src);
 			src->pid->num_destinations = gf_list_count(src->pid->destinations);
-			gf_filter_pid_inst_del(src);
+			gf_filter_pid_inst_check_delete(src);
 
 			filter->swap_pidinst_dst = NULL;
 			filter->swap_pidinst_src = NULL;
@@ -955,10 +974,14 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
 			filter->session->last_connect_error = e;
-		} else {
+		}
+		//do not relink dst if one relink already pending
+		else if (!pidinst->detach_pending) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 			gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
 			gf_filter_relink_dst(pidinst, e);
+		} else {
+			e = GF_OK;
 		}
 	} else {
 
@@ -996,7 +1019,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			gf_mx_v(pid->filter->tasks_mx);
 
 			//destroy pid instance
-			gf_filter_pid_inst_del(pidinst);
+			gf_filter_pid_inst_check_delete(pidinst);
 			pidinst = NULL;
 			gf_mx_v(pid->filter->tasks_mx);
 		}
@@ -1264,6 +1287,34 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 {
 	GF_Filter *filter = task->filter;
 	GF_FilterSession *fsess = filter->session;
+
+	/* special case: the target filter or pid has been marked for removal since the task was posted
+		ignore the task - if a pid swaping was in place, remove pid from filter and delete it
+	*/
+	if (task->pid->pid->removed || task->filter->finalized || task->filter->removed) {
+		u32 i, count = gf_list_count(filter->detached_pid_inst);
+		for (i=0; i<count; i++) {
+			GF_FilterPidInst *pidinst = gf_list_get(filter->detached_pid_inst, i);
+			if (pidinst->filter !=filter) continue;
+			gf_list_rem(filter->detached_pid_inst, i);
+			//reattach new filter and pid
+			pidinst->filter = filter;
+			pidinst->pid = task->pid;
+			safe_int_dec(&pidinst->detach_pending);
+			//delete pid
+			filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, GF_TRUE);
+			gf_filter_pid_inst_del(pidinst);
+			break;
+		}
+		if (!gf_list_count(filter->detached_pid_inst)) {
+			gf_list_del(filter->detached_pid_inst);
+			filter->detached_pid_inst = NULL;
+		}
+		gf_assert(task->pid->filter->out_pid_connection_pending);
+		safe_int_dec(&task->pid->filter->out_pid_connection_pending);
+		return;
+	}
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s (%p)\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name, filter));
 
 	//filter will require a new instance, clone it unless user-instantiated filter
@@ -1338,6 +1389,13 @@ void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
 		task->pid->pid->pid_info_changed = GF_FALSE;
 	}
 
+	//check if we need to discard
+	Bool destroy_pidinst = GF_FALSE;
+	if (pidi->discard_inputs==3) {
+		pidi->discard_inputs = 2;
+		destroy_pidinst = GF_TRUE;
+	}
+
 	if (pidi->discard_inputs==2) {
 		gf_filter_aggregate_packets(pidi);
 		while (gf_filter_pid_get_packet((GF_FilterPid *) pidi)) {
@@ -1346,6 +1404,10 @@ void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
 		//move back to regular discard
 		pidi->discard_inputs = 1;
 	}
+
+	if (destroy_pidinst)
+		gf_filter_pid_inst_del(pidi);
+
 }
 
 static void gf_filter_pid_disconnect_task(GF_FSTask *task)
@@ -1361,16 +1423,26 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 
 	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
-	if (task->filter->removed && !task->filter->finalized && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
-		Bool direct_mode = task->filter->session->direct_mode;
-		gf_filter_post_remove(task->filter);
-		if (direct_mode) {
-			gf_mx_v(task->filter->tasks_mx);
-			//release filter removal prevention on both source and destination
-			safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
-			safe_int_dec(&task->filter->detach_pid_tasks_pending);
-			task->filter = NULL;
-			return;
+	if (task->filter->removed
+		&& !task->filter->finalized
+		&& !gf_list_count(task->filter->output_pids)
+		&& !gf_list_count(task->filter->input_pids)
+		//make sure we don't have any remove pid packets pending
+		&& !task->filter->pid_rem_packet_pending
+	) {
+		if (task->filter->on_setup_error) {
+			task->filter->disabled = GF_FILTER_DISABLED;
+		} else {
+			Bool direct_mode = task->filter->session->direct_mode;
+			gf_filter_post_remove(task->filter);
+			if (direct_mode) {
+				gf_mx_v(task->filter->tasks_mx);
+				//release filter removal prevention on both source and destination
+				safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+				safe_int_dec(&task->filter->detach_pid_tasks_pending);
+				task->filter = NULL;
+				return;
+			}
 		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
@@ -2108,7 +2180,7 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	}
 	for (i=0; i<parent->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(parent->input_pids, i);
-		if (gf_filter_in_parent_chain(pidi->pid->filter, filter)) {
+		if (pidi->pid && gf_filter_in_parent_chain(pidi->pid->filter, filter)) {
 			gf_mx_v(parent->tasks_mx);
 			return GF_TRUE;
 		}
@@ -4706,7 +4778,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	u32 pid_is_file = 0;
 	const char *filter_id;
 
-	if (pid->destroyed || pid->removed) {
+	if (pid->destroyed || pid->removed || pid->filter->finalized || pid->filter->removed) {
 		gf_assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		return;
@@ -5821,6 +5893,9 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 		gf_assert(pid->filter->freg != filter->freg);
 	}
 	gf_assert(filter->freg->configure_pid);
+	gf_assert(!pid->filter->finalized);
+	gf_assert(!pid->filter->removed);
+	gf_assert(!pid->removed);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
 	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE, 0);
@@ -6684,6 +6759,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 		is_internal = GF_TRUE;
 	} else if (ctype == GF_PCK_CMD_PID_REM) {
 		safe_int_dec(&pidi->filter->session->remove_tasks);
+		safe_int_dec(&pidi->pid->filter->pid_rem_packet_pending);
 		gf_fs_post_disconnect_task(pidi->filter->session, pidi->filter, pidi->pid);
 
 		is_internal = GF_TRUE;
@@ -8631,6 +8707,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	}
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	safe_int_inc(&pid->filter->session->remove_tasks);
+	safe_int_inc(&pid->filter->pid_rem_packet_pending);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_REM;
 	gf_filter_pck_send(pck);
 }
@@ -9582,6 +9659,7 @@ GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *pid, u32 rtt_ms, u32 jitter_us, 
 
 #include <gpac/internal/media_dev.h>
 GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size, Bool force_sbr);
+GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size);
 GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size);
 GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
 GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
@@ -9710,6 +9788,8 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 	case GF_CODECID_AAC_MPEG2_SSRP:
 	case GF_CODECID_USAC:
 		return rfc_6381_get_codec_aac(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, force_sbr);
+	case GF_CODECID_AC4:
+		return dolby_get_codec_ac4(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
 
 	case GF_CODECID_MPEG4_PART2:
 		return rfc_6381_get_codec_m4v(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);

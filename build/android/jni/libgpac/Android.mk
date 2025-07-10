@@ -235,6 +235,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
+	../../../../src/filters/reframe_ac4.c \
 	../../../../src/filters/reframe_adts.c \
 	../../../../src/filters/reframe_amr.c \
 	../../../../src/filters/reframe_av1.c \
@@ -255,6 +256,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/resample_audio.c \
 	../../../../src/filters/restamp.c \
 	../../../../src/filters/rewind.c \
+	../../../../src/filters/rewrite_ac4.c \
 	../../../../src/filters/rewrite_adts.c \
 	../../../../src/filters/rewrite_mhas.c \
 	../../../../src/filters/rewrite_mp4v.c \

@@ -1,4 +1,4 @@
-#include <gpac/internal/id3.h>
+#include <gpac/id3.h>
 
 // First 36 bytes of a Nielsen ID3 tag: "ID3\x04\x00 \x00\x00\x02\x05PRIV\x00\x00\x01{\x00\x00www.nielsen.com/"
 static const u32 NIELSEN_ID3_TAG_PREFIX_LEN = 36;
@@ -13,6 +13,7 @@ static const char *ID3_PROP_SCHEME_URI = "https://aomedia.org/emsg/ID3";
 static const char *ID3_PROP_VALUE_URI_NIELSEN = "www.nielsen.com:id3:v1";
 static const char *ID3_PROP_VALUE_URI_DEFAULT = "https://aomedia.org/emsg/ID3";
 
+GF_EXPORT
 GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 data_length)
 {
     if (!tag) {
@@ -47,6 +48,7 @@ GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 dat
     return GF_OK;
 }
 
+GF_EXPORT
 void gf_id3_tag_free(GF_ID3_TAG *tag)
 {
     if (!tag) {
@@ -69,6 +71,7 @@ void gf_id3_tag_free(GF_ID3_TAG *tag)
     }
 }
 
+GF_EXPORT
 GF_Err gf_id3_to_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs)
 {
     if (!tag || !bs) {
@@ -99,6 +102,7 @@ GF_Err gf_id3_to_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs)
     return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_id3_list_to_bitstream(GF_List *tag_list, GF_BitStream *bs) {
 
     GF_Err err = GF_OK;
@@ -118,6 +122,7 @@ GF_Err gf_id3_list_to_bitstream(GF_List *tag_list, GF_BitStream *bs) {
     return err;
 }
 
+GF_EXPORT
 GF_Err gf_id3_from_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs)
 {
     if (!tag || !bs) {

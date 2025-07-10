@@ -2045,8 +2045,10 @@ retry_import:
 			if (elt) {
 				if (elt->drm_method==DRM_AES_128)
 					rep->crypto_type = 1;
-				else if (elt->drm_method==DRM_CENC)
+				else if (elt->drm_method==DRM_CENC_CBCS)
 					rep->crypto_type = 2;
+				else if (elt->drm_method==DRM_CENC_CTR)
+					rep->crypto_type = 3;
 			}
 			if (samplerate) {
 				rep->samplerate = samplerate;
@@ -2659,8 +2661,10 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		}
 		if (elt->drm_method==DRM_AES_128)
 			rep->crypto_type = 1;
-		else if (elt->drm_method==DRM_CENC)
+		else if (elt->drm_method==DRM_CENC_CBCS)
 			rep->crypto_type = 2;
+		else if (elt->drm_method==DRM_CENC_CTR)
+			rep->crypto_type = 3;
 
 		if (elt->low_lat_chunk && !has_full_seg_following) {
 			u32 j;
@@ -3966,14 +3970,14 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 						gf_fprintf(out, "%02X", sctx->hls_iv[k]);
 					gf_fprintf(out, "\n");
 				} else {
-					gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES,%s\n", subkms);
+					gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES%s,%s\n", (rep->crypto_type==3) ? "-CTR" : "", subkms);
 				}
 				if (!next) break;
 				next[0] = ',';
 				subkms = next+1;
 			}
 		}
-		*last_kms = (rep->crypto_type==2) ? kms : NULL;
+		*last_kms = (rep->crypto_type>=2) ? kms : NULL;
 	}
 }
 
@@ -4347,7 +4351,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			else if (rep->streamtype==GF_STREAM_TEXT) nb_subs++;
 			else if (rep->streamtype==GF_STREAM_VISUAL) nb_video++;
 
-			if (rep->crypto_type==2) use_saes_crypto = GF_TRUE;
+			if (rep->crypto_type>=2) use_saes_crypto = GF_TRUE;
 
 			if (!has_cc) {
 				u32 k;
@@ -6397,6 +6401,7 @@ GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id)
 	return NULL;
 }
 
+GF_EXPORT
 char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32 part_idx)
 {
 	char *res = NULL;

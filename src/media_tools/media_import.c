@@ -1294,7 +1294,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 			tki->codecid = p ? p->value.uint : GF_CODECID_NONE;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
-			if (p && p->value.string) tki->lang = GF_4CC(p->value.string[0], p->value.string[1], p->value.string[2], ' ');
+			if (p && p->value.string && (strlen(p->value.string)>=3))
+				tki->lang = GF_4CC(p->value.string[0], p->value.string[1], p->value.string[2], ' ');
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 			tki->track_num = p ? p->value.uint : 1;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);

@@ -1896,7 +1896,7 @@ This will force decoding media from file.mp4 and trash (send to null) the result
 .br
 .SS Escaping option separators
 .br
-When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters such as libx264 (cf x264opts parameter).
+When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters such as libx264 (cf x264opts parameter). This can also be used to escape a list value containing the comma separator character.
 .br
 Example
 .br
@@ -1921,6 +1921,14 @@ f:a=foo::b=bar:c::d=fun
 
 .br
 This will set option a to foo, b to bar:c and the option d to fun on the filter.
+.br
+Example
+.br
+f:list=a,b1,,b2,c
+.br
+
+.br
+This will set list values to a, b1,b2, and c.
 .br
 
 .br
@@ -2726,6 +2734,8 @@ Defined keywords:
 .br
   - user home directory for other platforms
 .br
+* $GCFG: replaced by system path to folder containing GPAC config
+.br
 * $GLANG: replaced by the global config language option .I -lang
 .br
 * $GUA: replaced by the global config user agent option .I -user-agent
@@ -3066,12 +3076,12 @@ Language code: ISO639 2/3 character code or RFC 4646
 .TP
 .B ServiceName (SNAM,str,D )
 .br
-Name of parent service
+Name of parent service, signled as PID info
 .br
 .TP
 .B ServiceProvider (SPRO,str,D )
 .br
-Provider of parent service
+Provider of parent service, signled as PID info
 .br
 .TP
 .B StreamType (PMST,uint,  )
@@ -3967,6 +3977,11 @@ Name of the HLS variant playlist for this media
 Name of HLS Group of a stream
 .br
 .TP
+.B HLSRend (HLGR,strl,D )
+.br
+List of HLS group allowed in group rendition - when not set, all groups are allowed
+.br
+.TP
 .B HLSForce (HLFI,str,D )
 .br
 Force writing EXT-X-STREAM-INF if stream is in a rendition group, value is the name of associated groups (can be empty)
@@ -4065,6 +4080,11 @@ Color primaries
 .B ColorTransfer (CTRC,ctfc,D )
 .br
 Color transfer characteristics
+.br
+.TP
+.B ColorTransferAlternative (CATC,ctfc,D )
+.br
+Alternative Color transfer characteristics
 .br
 .TP
 .B ColorMatrix (CMXC,cmxc,D )
@@ -4386,9 +4406,9 @@ list of packet identifier this packet depends on
 User data for the packet
 .br
 .TP
-.B Timecodes (TCOD,mem, P)
+.B Timecode (TCOD,mem, P)
 .br
-list of timecodes as extracted from SEI (if present)
+First timecode extracted from SEI (if present)
 .br
 .TP
 .B DOVI (DOVI,mem,  )
@@ -4521,9 +4541,39 @@ Template for DASH-SSR and LLHLS sub-segments
 indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)
 .br
 .TP
+.B SEILoaded (PSEI,bool,D )
+.br
+indicate that PID is extracting SEI/inband data from packets
+.br
+.TP
 .B Fake (PFAK,bool,D )
 .br
 Indicate a stream present in the source but not delivered as a PID
+.br
+.TP
+.B ContentLightLevel (CLLP,mem,DP)
+.br
+Content light level, payload of clli box (see ISO/IEC 14496-12), can be set as a list of 2 integers in fragment declaration (e.g. "=max_cll,max_pic_avg_ll")
+.br
+.TP
+.B MasterDisplayColour (MDCP,mem,DP)
+.br
+Master display colour info, payload of mdcv box (see ISO/IEC 14496-12), can be set as a list of 10 integers in fragment declaration (e.g. "=dpx0,dpy0,dpx1,dpy1,dpx2,dpy2,wpx,wpy,max,min")
+.br
+.TP
+.B SEILoaded (SEIP,bool,DP)
+.br
+indicate that packet has SEI/inband data in its properties
+.br
+.TP
+.B OriginalPTS (OPTS,luint,DP)
+.br
+indicate original PTS or PCR when remapping M2TS PCR
+.br
+.TP
+.B OriginalDTS (ODTS,luint,DP)
+.br
+indicate original DTS when remapping M2TS PCR
 .br
 .SH Pixel formats
 .LP
@@ -5183,6 +5233,11 @@ AC3 Audio
 .B eac3
 .br
 Enhanced AC3 Audio
+.br
+.TP
+.B ac4
+.br
+AC4 Audio
 .br
 .TP
 .B mlp

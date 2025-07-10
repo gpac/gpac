@@ -984,6 +984,11 @@ static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 		nf->src_port = 0;
 	}
 
+	if (gf_bs_is_overflow(nf->cap_bs)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted netcap file, aborting\n"));
+		nf->pck_len = -1;
+	}
+
 	//broken packet
 	if (nf->pck_len <0) {
 		nf->dst_v4 = 0;

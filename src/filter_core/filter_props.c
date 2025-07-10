@@ -633,6 +633,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			u32 len=0;
 			char *nv;
 			char *sep = strchr(v, list_sep_char);
+			while (sep && sep[1] == list_sep_char) {
+				// skip doubled separator
+				size_t len = strlen(sep+1);
+				memmove(sep, sep+1, len);
+				sep[len] = 0;
+				sep = strchr(sep+1, list_sep_char);
+			}
+
 			if (sep && is_xml) {
 				char *xml_end = strchr(v, '>');
 				len = (u32) (sep - v);
@@ -1870,7 +1878,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_MASTER_DISPLAY_COLOUR, "MasterDisplayColour", "Master display colour info, payload of mdcv box (see ISO/IEC 14496-12), can be set as a list of 10 integers in fragment declaration (e.g. \"=dpx0,dpy0,dpx1,dpy1,dpx2,dpy2,wpx,wpy,max,min\")", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_SEI_LOADED, "SEILoaded", "indicate that packet has SEI/inband data in its properties", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
-
+	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_PTS, "OriginalPTS", "indicate original PTS or PCR when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_DTS, "OriginalDTS", "indicate original DTS when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM)
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

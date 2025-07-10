@@ -3150,7 +3150,7 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 	ptr = (GF_KindBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_KIND);
 	if (e) return e;
 
-	ptr->schemeURI = gf_strdup(schemeURI);
+	if (schemeURI) ptr->schemeURI = gf_strdup(schemeURI);
 	if (value) ptr->value = gf_strdup(value);
 	return udta_on_child_box_ex((GF_Box *)udta, (GF_Box *) ptr, GF_FALSE, GF_FALSE);
 }
@@ -6273,6 +6273,8 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 	}
 	meta = (GF_MetaBox *) gf_isom_create_meta_extensions(mov, GF_FALSE);
 	if (!meta) return GF_BAD_PARAM;
+	if (mov->brand->majorBrand == GF_4CC_CSTR("qt  "))
+		meta->write_qt = 1;
 
 	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
 	if (!ilst) {
@@ -6570,7 +6572,8 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 			return GF_OK;
 		}
 		gf_free(tag->prop_value);
-		tag->prop_value = 0;
+		tag->prop_value = NULL;
+		break;
 	}
 	if (!tag) {
 		if (!name) return GF_OK;
