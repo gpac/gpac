@@ -2657,6 +2657,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (!ctx->hmode && !ctx->has_read_dir) {
 				if (!ctx->reopen) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set is meaningless\n"));
+					gf_filter_abort(filter);
 					return GF_FILTER_NOT_SUPPORTED;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in unconsistent file states, use at your own risks\n"));
