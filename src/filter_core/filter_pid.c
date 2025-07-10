@@ -2176,7 +2176,7 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	}
 	for (i=0; i<parent->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(parent->input_pids, i);
-		if (gf_filter_in_parent_chain(pidi->pid->filter, filter)) {
+		if (pidi->pid && gf_filter_in_parent_chain(pidi->pid->filter, filter)) {
 			gf_mx_v(parent->tasks_mx);
 			return GF_TRUE;
 		}
