@@ -1283,6 +1283,34 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 {
 	GF_Filter *filter = task->filter;
 	GF_FilterSession *fsess = filter->session;
+
+	/* special case: the target filter or pid has been marked for removal since the task was posted
+		ignore the task - if a pid swaping was in place, remove pid from filter and delete it
+	*/
+	if (task->pid->pid->removed || task->filter->finalized || task->filter->removed) {
+		u32 i, count = gf_list_count(filter->detached_pid_inst);
+		for (i=0; i<count; i++) {
+			GF_FilterPidInst *pidinst = gf_list_get(filter->detached_pid_inst, i);
+			if (pidinst->filter !=filter) continue;
+			gf_list_rem(filter->detached_pid_inst, i);
+			//reattach new filter and pid
+			pidinst->filter = filter;
+			pidinst->pid = task->pid;
+			safe_int_dec(&pidinst->detach_pending);
+			//delete pid
+			filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, GF_TRUE);
+			gf_filter_pid_inst_del(pidinst);
+			break;
+		}
+		if (!gf_list_count(filter->detached_pid_inst)) {
+			gf_list_del(filter->detached_pid_inst);
+			filter->detached_pid_inst = NULL;
+		}
+		gf_assert(task->pid->filter->out_pid_connection_pending);
+		safe_int_dec(&task->pid->filter->out_pid_connection_pending);
+		return;
+	}
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s (%p)\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name, filter));
 
 	//filter will require a new instance, clone it unless user-instantiated filter
@@ -4746,7 +4774,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	u32 pid_is_file = 0;
 	const char *filter_id;
 
-	if (pid->destroyed || pid->removed) {
+	if (pid->destroyed || pid->removed || pid->filter->finalized || pid->filter->removed) {
 		gf_assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		return;
@@ -5861,6 +5889,9 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 		gf_assert(pid->filter->freg != filter->freg);
 	}
 	gf_assert(filter->freg->configure_pid);
+	gf_assert(!pid->filter->finalized);
+	gf_assert(!pid->filter->removed);
+	gf_assert(!pid->removed);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
 	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE, 0);
