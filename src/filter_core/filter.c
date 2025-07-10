@@ -3565,7 +3565,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 				gf_list_rem(pid->destinations, j);
 				pid->num_destinations--;
 				j--;
-				gf_filter_pid_inst_del(pidinst);
+				gf_filter_pid_inst_check_delete(pidinst);
 			}
 			//marked as detached
 			else {

@@ -919,6 +919,7 @@ void gf_fs_post_pid_instance_delete_task(GF_FilterSession *session, GF_Filter *f
 
 void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
 void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst);
+void gf_filter_pid_inst_check_delete(GF_FilterPidInst *pidinst);
 
 void gf_filter_forward_clock(GF_Filter *filter);
 

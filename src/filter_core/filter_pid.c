@@ -99,6 +99,17 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	gf_free(pidinst);
 }
 
+void gf_filter_pid_inst_check_delete(GF_FilterPidInst *pidinst)
+{
+	//we posted a configure_task_discard on this PID, mark as "to be destroyed" and let thet task destroy the pid
+	if (pidinst->discard_inputs==2) {
+		pidinst->discard_inputs = 3;
+	} else {
+		gf_filter_pid_inst_del(pidinst);
+	}
+}
+
+
 static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid *pid)
 {
 	GF_FilterPidInst *pidinst;
@@ -537,12 +548,7 @@ static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid,
 	if (filter->detached_pid_inst && (gf_list_find(filter->detached_pid_inst, pidinst)>=0) )
 		return;
 
-	//we posted a configure_task_discard on this PID, mark as "to be destroyed" and let thet task destroy the pid
-	if (pidinst->discard_inputs==2) {
-		pidinst->discard_inputs = 3;
-	} else {
-		gf_filter_pid_inst_del(pidinst);
-	}
+	gf_filter_pid_inst_check_delete(pidinst);
 
 	if (filter->num_input_pids) return;
 	//we still have other pid instances registered for chain reconfigure, don't discard the filter
@@ -713,7 +719,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 			gf_list_del_item(src->pid->destinations, src);
 			src->pid->num_destinations = gf_list_count(src->pid->destinations);
-			gf_filter_pid_inst_del(src);
+			gf_filter_pid_inst_check_delete(src);
 
 			filter->swap_pidinst_dst = NULL;
 			filter->swap_pidinst_src = NULL;
@@ -1009,7 +1015,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			gf_mx_v(pid->filter->tasks_mx);
 
 			//destroy pid instance
-			gf_filter_pid_inst_del(pidinst);
+			gf_filter_pid_inst_check_delete(pidinst);
 			pidinst = NULL;
 			gf_mx_v(pid->filter->tasks_mx);
 		}
