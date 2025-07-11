@@ -304,8 +304,8 @@ The format of the filter graph is the same as the one used in the gpac command l
 \param fsess filter session
 \param argc number of arguments
 \param argv list of arguments
-\param loaded_filters list of loaded filters, must be freed by the caller
-\param links_directive list of link directives, must be freed by the caller
+\param out_loaded_filters list of loaded filters, must be freed by the caller
+\param out_links_directive list of link directives, must be freed by the caller
 \return error if any
 */
 GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[], GF_List **out_loaded_filters, GF_List **out_links_directive);
@@ -320,8 +320,8 @@ This is a convenience function for command line parsing, and does not support al
 
 \param fsess filter session
 \param graph_str filter graph string
-\param loaded_filters list of loaded filters, must be freed by the caller
-\param links_directive list of link directives, must be freed by the caller
+\param out_loaded_filters list of loaded filters, must be freed by the caller
+\param out_links_directive list of link directives, must be freed by the caller
 \return error if any
 */
 GF_Err gf_fs_parse_filter_graph_str(GF_FilterSession *fsess, char *graph_str, GF_List **out_loaded_filters, GF_List **out_links_directive);

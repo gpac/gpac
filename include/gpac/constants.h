@@ -1020,7 +1020,7 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
 
 /*! get dloby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
-\param presentation_channel_mask_v1
+\param mask presentation channel mask v1
 \return dolby AudioChannelConfiguration value
 */
 u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask);
