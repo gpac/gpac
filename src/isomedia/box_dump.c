@@ -6394,6 +6394,30 @@ GF_Err imir_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err txlo_box_dump(GF_Box *a, FILE *trace)
+{
+    GF_TextLayoutPropertyBox *ptr = (GF_TextLayoutPropertyBox *)a;
+    if (!a)
+        return GF_BAD_PARAM;
+    gf_isom_box_dump_start(a, "TextLayoutPropertyBox", trace);
+    gf_fprintf(trace, "reference_width=\"%d\" reference_height=\"%d\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" font_size=\"%d\" direction=\"%s\" writing_mode=\"%s\">\n",
+               ptr->reference_width, ptr->reference_height, ptr->x, ptr->y, ptr->width, ptr->height, ptr->font_size, ptr->direction, ptr->writing_mode);
+    gf_isom_box_dump_done("TextLayoutPropertyBox", a, trace);
+    return GF_OK;
+}
+
+GF_Err fnch_box_dump(GF_Box *a, FILE *trace)
+{
+    GF_FontCharacteristicsPropertyBox *ptr = (GF_FontCharacteristicsPropertyBox *)a;
+    if (!a)
+        return GF_BAD_PARAM;
+    gf_isom_box_dump_start(a, "FontCharacteristicsPropertyBox", trace);
+    gf_fprintf(trace, "font_family=\"%s\" font_style=\"%s\" font_weight=\"%s\">\n",
+               ptr->font_family, ptr->font_style, ptr->font_weight);
+    gf_isom_box_dump_done("FontCharacteristicsPropertyBox", a, trace);
+    return GF_OK;
+}
+
 GF_Err clli_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;

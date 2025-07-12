@@ -451,6 +451,8 @@ enum
 	GF_ISOM_BOX_TYPE_IENC	= GF_4CC( 'i', 'e', 'n', 'c' ),
 	GF_ISOM_BOX_TYPE_IAUX 	= GF_4CC('i', 'a', 'u', 'x'),
 	GF_ISOM_BOX_TYPE_ILCE   = GF_4CC( 'i', 'l', 'c', 'e' ),
+	GF_ISOM_BOX_TYPE_TXLO   = GF_4CC( 't', 'x', 'l', 'o' ),
+	GF_ISOM_BOX_TYPE_FNCH   = GF_4CC( 'f', 'n', 'c', 'h' ),
 
 	/* MIAF Boxes */
 	GF_ISOM_BOX_TYPE_CLLI	= GF_4CC('c', 'l', 'l', 'i'),
@@ -3989,6 +3991,29 @@ typedef struct {
 	u32 aux_info_type;
 	u32 aux_info_parameter;
 } GF_AuxiliaryInfoPropertyBox;
+
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	char* font_family;
+	char* font_style;
+	char* font_weight;
+} GF_FontCharacteristicsPropertyBox;
+
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 reference_width;
+	u32 reference_height;
+	s32 x;
+	s32 y;
+	u32 width;
+	u32 height;
+	s16 font_size;
+	char* direction;
+	char* writing_mode;
+} GF_TextLayoutPropertyBox;
+
 
 typedef struct {
 	GF_ISOM_FULL_BOX

@@ -945,6 +945,8 @@ ISOM_BOX_IMPL_DECL_CHILD(trgr)
 ISOM_BOX_IMPL_DECL(trgt)
 ISOM_BOX_IMPL_DECL(ienc)
 ISOM_BOX_IMPL_DECL(iaux)
+ISOM_BOX_IMPL_DECL(txlo)
+ISOM_BOX_IMPL_DECL(fnch)
 
 /* MIAF declarations */
 ISOM_BOX_IMPL_DECL(clli)
@@ -1229,7 +1231,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MFRA, mfra, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MFRO, mfro, "mfra", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFRA, tfra, "mfra", 1),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
@@ -1497,6 +1499,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TXLO, txlo, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_FNCH, fnch, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IENC, ienc, "ipco", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
 
