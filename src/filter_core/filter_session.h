@@ -258,7 +258,7 @@ struct __gf_filter_pck
 	struct __gf_filter_pck *reference;
 
 	GF_FilterFrameInterface *frame_ifce;
-	
+
 	//properties applying to this packet
 	GF_PropertyMap *props;
 	//pid properties applying to this packet
@@ -339,11 +339,6 @@ typedef struct __gf_fs_thread
 	u64 nb_tasks;
 	u64 run_time;
 	u64 active_time;
-
-#ifndef GPAC_DISABLE_REMOTERY
-	u32 rmt_tasks;
-	char rmt_name[20];
-#endif
 
 } GF_SessionThread;
 
@@ -611,7 +606,7 @@ struct __gf_filter
 	char *dynamic_source_ids;
 
 	char *restricted_source_id;
-	
+
 	//parent media session
 	GF_FilterSession *session;
 
@@ -841,9 +836,6 @@ struct __gf_filter
 
 	Bool act_as_sink;
 	Bool require_source_id;
-#ifndef GPAC_DISABLE_REMOTERY
-	rmtU32 rmt_hash;
-#endif
 
 	//signals that pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
@@ -991,13 +983,13 @@ struct __gf_filter_pid_inst
 	Bool keepalive_signaled;
 	Bool is_playing, is_paused;
 	u8 play_queued, stop_queued;
-	
+
 	volatile u32 nb_eos_signaled;
 
 	Bool is_encoder_input;
 	Bool is_decoder_input;
 	GF_PropertyMap *reconfig_pid_props;
-	
+
 	//clock handling by the consumer: the clock values are not automatically dispatched to the output pids and are kept
 	//available as regular packets in the input pid
 	Bool handles_clock_references;
@@ -1061,7 +1053,7 @@ struct __gf_filter_pid
 	volatile u32 nb_shared_packets_out;
 
 	GF_PropertyMap *infos;
-	
+
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 	Bool eos_keepalive;
@@ -1099,7 +1091,7 @@ struct __gf_filter_pid
 	u32 playback_speed_scaler;
 
 	GF_Fraction64 last_ts_sent;
-	
+
 	Bool initial_play_done;
 	Bool is_playing;
 	void *udta;
@@ -1312,7 +1304,3 @@ const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first);
 
 
 #endif //_GF_FILTER_SESSION_H_
-
-
-
-

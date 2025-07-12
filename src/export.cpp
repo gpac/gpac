@@ -74,12 +74,19 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_enable_rmtws) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_get_settings) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_set_on_new_client_cbk) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_get_on_new_client_task) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_get_peer_address) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_send_to_ws) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_set_on_data_cbk) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_get_on_data_task) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_set_on_del_cbk) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_get_on_del_task) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_solve_path) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_set_callback) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_log) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_send) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_enable_sampling) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sys_profiler_sampling_enabled) )
 
 #ifdef GPAC_ENABLE_COVERAGE
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_cov_mode) )
@@ -2570,6 +2577,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_netcap_id ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_name ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_status ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_bytes_done ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_reset_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_register_opengl_provider) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_request_opengl) )

@@ -557,7 +557,7 @@ static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session
 	return GF_TRUE;
 }
 
-static void httpout_format_date(u64 time, char szDate[200], Bool for_listing)
+void httpout_format_date(u64 time, char szDate[200], Bool for_listing)
 {
 	time_t gtime;
 	struct tm *t;

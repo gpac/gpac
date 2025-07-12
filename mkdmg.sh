@@ -69,7 +69,7 @@ cd ../../../..
 echo Copying shared resources
 rsync -r --exclude=.git $source_path/share/res ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/gui ./tmpdmg/GPAC.app/Contents/MacOS/share/
-rsync -r --exclude=.git $source_path/share/vis ./tmpdmg/GPAC.app/Contents/MacOS/share/
+rsync -r --exclude=.git $source_path/share/rmtws ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/shaders ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/scripts ./tmpdmg/GPAC.app/Contents/MacOS/share/
 rsync -r --exclude=.git $source_path/share/python ./tmpdmg/GPAC.app/Contents/MacOS/share/
