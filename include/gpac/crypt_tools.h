@@ -138,6 +138,17 @@ typedef enum
 	GF_KEYROLL_PERIODS,
 } GF_KeyRollType;
 
+/*! non-VCL crypt modes (for avc1 CTR CENC edition 1) */
+typedef enum
+{
+	/*! keep SEI and AUD in clear */
+	GF_CRYPT_NONVCL_CLEAR_SEI_AUD = 0,
+	/*! all clear */
+	GF_CRYPT_NONVCL_CLEAR_ALL,
+	/*! all encrypted (except nal header) */
+	GF_CRYPT_NONVCL_CLEAR_NONE,
+} GF_CryptNonVCL;
+
 /*! Crypto information for one media stream*/
 typedef struct
 {
@@ -195,10 +206,10 @@ typedef struct
 	/*! forces a minimum clear range for subsamples (ignored otherwise) - the final offset is at least the slice header size*/
 	u32 crypt_byte_offset;
 
-	/*! for avc1 ctr CENC edition 1 */
+	/*! for avc1 CTR CENC edition 1 */
 	Bool allow_encrypted_slice_header;
-	/*! force encrypted SEIs for avc1 ctr CENC edition 1 */
-	Bool allow_encrypted_SEI;
+	/*! encrypt non-VCL NALUs - made to refine avc1 CTR CENC edition 1 support */
+	GF_CryptNonVCL allow_encrypted_nonVCLs;
 	/*! force cenc and cbc1: 0: default, 1: no block alignment of encrypted data, 2: always block align even if producing non encrypted samples*/
 	u32 block_align;
 
