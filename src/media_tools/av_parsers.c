@@ -15277,6 +15277,9 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 			gf_ac4_oamd_substream_info(bs, ginfo->b_substreams_present);
 		}
 
+		if (ginfo->substreams) {
+			gf_list_del(ginfo->substreams);
+		}
 		ginfo->substreams = gf_list_new();
 
 		for (i = 0; i < ginfo->n_lf_substreams; i++) {
@@ -15508,7 +15511,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		if (pinfo->n_add_emdf_substreams == 0) {
 			pinfo->n_add_emdf_substreams = gf_ac4_variable_bits(bs, 2) + 4;
 		}
-		for (i = 0; i < pinfo->n_add_emdf_substreams; i++) {
+		for (i = 0; i < pinfo->n_add_emdf_substreams && i < MIN(GF_ARRAY_LENGTH(pinfo->substream_emdf_version), GF_ARRAY_LENGTH(pinfo->substream_key_id)); i++) {
 			gf_ac4_emdf_info(bs, &emdf_version, &key_id);
 
 			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.8.16 & E.8.17
@@ -15532,7 +15535,7 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 		p = gf_list_get(stream->presentations, i);
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
-			if(idx == *x) {
+			if(x && idx == *x) {
 				return p;
 			}
 		}
@@ -15638,8 +15641,10 @@ static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.27 Table 91
     for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
+		if (!group) continue;
         for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
+			if (!substream) continue;
             if (group->b_channel_coded){
                 pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
             }else {
@@ -15663,6 +15668,7 @@ static u32 gf_ac4_presentation_channel_mask_v1(GF_AC4PresentationV1 *p)
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.14
     for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
+		if (!group) continue;
         for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
             if (group->b_channel_coded){
@@ -15766,8 +15772,10 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) Table 93
     for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
+		if (!group) continue;
         for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
+			if (!substream) continue;
             if (group->b_channel_coded){
 				ch_mode_core = gf_ac4_get_ch_mode_core(group->b_channel_coded,
 													   substream->b_ajoc,
@@ -15957,10 +15965,13 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		for (i = 0; i < n_presentations; i++) {
 			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
 
+
 			// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
 			p->substream_groups = gf_list_new();
+
 			for (j = 0; j < p->n_substream_groups; j++) {
 				idx = gf_list_get(p->substream_group_indexs, j);
+				if (!idx) continue;
 				group = (GF_AC4SubStreamGroupV1*)gf_list_get(temp_groups, *idx);
 				if (group) {
 					gf_list_add(p->substream_groups, group);
@@ -15968,6 +15979,13 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Cannot find substream group %d for presentation %d\n", *idx, i));
 					break;
+				}
+			}
+			// remove added groups from temp to avoid double frees
+			for (j=0; j < gf_list_count(p->substream_groups); j++) {
+				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
+				if (group) {
+					gf_list_del_item(temp_groups, group);
 				}
 			}
 
@@ -16007,7 +16025,17 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			gf_list_del(p->substream_group_indexs);
 		}
 
-		// free auxiliary information temp_groups, don't delete the memory of GF_AC4SubStreamGroupV1
+		// free auxiliary information temp_groups that have not been copied elsewhere
+		while ((group = (GF_AC4SubStreamGroupV1*)gf_list_pop_back(temp_groups))) {
+			if (group->substreams) {
+				for (int s = 0; s < gf_list_count(group->substreams); s++) {
+					GF_AC4SubStream* subs = gf_list_get(group->substreams, s);
+					gf_free(subs);
+				}
+				gf_list_del(group->substreams);
+			}
+			gf_free(group);
+		}
 		gf_list_del(temp_groups);
 
 		// If the substreams are channel-based, calculate channel_count with speaker_group_index_mask of the first/default presentation. If the substreams are non-channel-based, set channel_count to max(channel_count)
@@ -16132,11 +16160,30 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 
 	/* fill some AC4 DSI info */
 	stream->ac4_dsi_version = 1;
+	if (stream->fs_index >= GF_ARRAY_LENGTH(AC4_SAMPLING_FREQ_TABLE)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] stream fs_index %d >= length AC4_SAMPLING_FREQ_TABLE\n", stream->fs_index));
+		gf_bs_seek(bs, pos);
+		return GF_FALSE;
+	}
 	hdr->sample_rate = AC4_SAMPLING_FREQ_TABLE[stream->fs_index];
 	if (stream->fs_index == 0) {
+
+		if (stream->frame_rate_index >= MIN(GF_ARRAY_LENGTH(AC4_SAMPLE_DELTA_TABLE_441), GF_ARRAY_LENGTH(AC4_MEDIA_TIMESCALE_441))) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] stream frame_rate_index %d >= length AC4_SAMPLE_DELTA_TABLE_441 or AC4_MEDIA_TIMESCALE_441\n", stream->frame_rate_index));
+			gf_bs_seek(bs, pos);
+			return GF_FALSE;
+		}
 		hdr->sample_duration = AC4_SAMPLE_DELTA_TABLE_441[stream->frame_rate_index];
 		hdr->media_time_scale = AC4_MEDIA_TIMESCALE_441[stream->frame_rate_index];
+
 	} else {
+
+		if (stream->frame_rate_index >= MIN(GF_ARRAY_LENGTH(AC4_SAMPLE_DELTA_TABLE_48), GF_ARRAY_LENGTH(AC4_MEDIA_TIMESCALE_48))) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] stream frame_rate_index %d >= length AC4_SAMPLE_DELTA_TABLE_48 or AC4_MEDIA_TIMESCALE_48\n", stream->frame_rate_index));
+			gf_bs_seek(bs, pos);
+			return GF_FALSE;
+		}
+
 		hdr->sample_duration = AC4_SAMPLE_DELTA_TABLE_48[stream->frame_rate_index];
 		hdr->media_time_scale = AC4_MEDIA_TIMESCALE_48[stream->frame_rate_index];
 	}
