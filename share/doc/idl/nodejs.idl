@@ -15,7 +15,7 @@ This section documents the JavaScript API used to query the filter session.
 
 Unless explictly stated, errors are handled through exceptions.
 
-All constants from GPAC are exported in the module object (e.g. use gpac.GF_Err ...) 
+All constants from GPAC are exported in the module object (e.g. use gpac.GF_Err ...)
 
 
 The API is very close to the GPAC python bindings.
@@ -66,30 +66,17 @@ unsigned long long sys_clock_high_res();
 */
 void set_args(Array args);
 
-/*! set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
-\param callback function for Remotery message, takes a single string parameter and no return values
+/*! enables websocket monitoring server - see \ref gf_sys_enable_rmtws
+*
+* define the \ref rmt_on_new_client attribute to set callbacks
+\param enable enable or disable server
 */
-void set_rmt_fun(function callback);
+void enable_rmtws(boolean enable);
 
-/*! send log message to profiler (Remotery) - see \ref gf_sys_profiler_log
-\param text text to send
+/*! set the callback function when new clients connect to the websocket server
+* the function shall take one parameter of type \ref _RMTClient
 */
-void rmt_log(DOMString text);
-
-/*! send message to profiler (Remotery) - see \ref gf_sys_profiler_send
-\param text text to send
-*/
-void rmt_send(DOMString text);
-
-/*! check if profiler (Remotery) sampling is enabled - see \ref gf_sys_profiler_sampling_enabled
-\return true if enabled, false otherwise
-*/
-boolean rmt_on();
-
-/*! enable or disable sampling in profiler (Remotery) - see \ref gf_sys_profiler_enable_sampling
-\param do_enable enable or disable sampling
-*/
-void rmt_enable(boolean do_enable);
+optional attribute function rmt_on_new_client;
 
 /*! GPAC event proc callback, initially set to null
 \param evt the user event being dispatched
@@ -123,6 +110,35 @@ attribute _FilterEvent FilterEvent;
 
 /*! FileIO constructor*/
 attribute _FileIO FileIO;
+
+
+
+/*! Object representing a monitoring websocket client
+*
+* will be passed to the session \ref rmt_on_new_client callback
+*/
+interface _RMTClient {
+
+	/*! a callback called when the client receives data
+	 *
+	 * the function shall be of type function(data)
+	 * where data will be either of type string (for utf8 data) or arraybuffer (for binary data)
+	 */
+	optional attribute function on_data;
+
+	/*! a callback called when the client disconnects or is deleted */
+	optional attribute function on_close;
+
+	/*! a string of format ip:port representing the client */
+	readonly attribute string peer_address;
+
+	/*! sends data to the client on the websocket
+	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
+	*/
+	void send(data);
+
+
+}
 
 /*! @} */
 
@@ -190,7 +206,7 @@ By default the filter session will run with implicit linking.
 /*! FilterSession object*/
 interface _FilterSession {
 
-/*! constructor for filter session - see \ref gf_fs_new_defaults. Other options MUST be passed as libgpac options using \ref set_args 
+/*! constructor for filter session - see \ref gf_fs_new_defaults. Other options MUST be passed as libgpac options using \ref set_args
 \param flags session flags
 */
 FilterSession(unsigned long flags=0);
@@ -242,7 +258,7 @@ _Filter load(DOMString fname);
 
 /*! post a user task to the filter sesison - see \ref gf_fs_post_user_task
 
-The task object must have an execute callback with no parameter and returning false to cancel the task or the reschedule time in milliseconds 
+The task object must have an execute callback with no parameter and returning false to cancel the task or the reschedule time in milliseconds
 
 \param task task object to post
 */
@@ -478,7 +494,7 @@ Fields have the same types, names and semantics as \ref GF_FilterStats, except:
 -  filter_alias which is exposed as a boolean.
 */
 interface FilterStatistics {
-	
+
 };
 
 /*! Statistics object for pid as defined in libgpac.
@@ -490,7 +506,7 @@ interface PidStatistics {
 };
 
 
-/*! PropertyValue for filter, PIDs and packets are passed as 
+/*! PropertyValue for filter, PIDs and packets are passed as
 :
 - native JS types for integers and strings
 - nFraction for 32 and 64 bit fractions
@@ -505,7 +521,7 @@ Pointer properties are passed back as "INTERNAL_POINTER" string and cannot be se
 Properties corresponding to constants are usually passed as strings, for example `StreamType`, `CodecID`, `PixelFormat`, `AudioFormat`.
 */
 interface PropertyValue {
-	
+
 };
 
 /*! fraction object */
@@ -567,7 +583,7 @@ A custom filter must implement the \ref CustomFilter class, and optionally provi
 - process_event: callback for processing and event
 - reconfigure_output: callback for output reconfiguration (PID capability negotiation)
 
-A custom filter must also declare its capabilities, input and output, using push_cap method 
+A custom filter must also declare its capabilities, input and output, using push_cap method
 \code
 
 let fs = new gpac.FilterSession();
@@ -889,7 +905,7 @@ void discard_block();
 void allow_direct_dispatch();
 
 /*! get current clock type info - see \ref gf_filter_pid_get_clock_info
-\return clock type 
+\return clock type
 */
 unsigned long get_clock_type();
 
@@ -972,7 +988,7 @@ _FilterPacket new_pck_ref(_FilterPacket ipck, unsigned long size=0, unsigned lon
 _FilterPacket new_pck(unsigned long size=0);
 
 /*! creates a new packet sharing memory of the filter - see \ref gf_filter_pck_new_shared
-The filter object must have a `packet_release` method with arguments [ FilterPid,  FilterPacket ] 
+The filter object must have a `packet_release` method with arguments [ FilterPid,  FilterPacket ]
 \param data the data to use
 \return the new FilterPacket or None if failure
 */
@@ -1009,7 +1025,7 @@ unsigned long dur;
 
 /*! if true, the session has been aborted and this is the final flush for this buffer*/
 boolean is_final_flush;
-	
+
 };
 
 /*! filter packet for custom filters
@@ -1155,7 +1171,7 @@ Events properties are read-only for input events and read/write for events creat
 */
 interface _FilterEvent
 {
-	
+
 };
 
 
@@ -1181,7 +1197,7 @@ When running the session in multithreaded mode, the dash demuxer will always be 
 /*! interface for custom DASH algorithms
 
 Callbacks may be changed at runtime, however if the object passed to initialize the binding has no on_download_monitor function, rate monitoring will be disabled for the binding*/
-interface _DASHCustomAlgorithm 
+interface _DASHCustomAlgorithm
 {
 
 /*! Callback (optional) called upon a period reset.
@@ -1226,7 +1242,7 @@ long on_download_monitor(_DASHGroup group, _DASHGroupDownloadStatistics stats);
 
 
 /*! interface for custom DASH groups*/
-interface _DASHGroup 
+interface _DASHGroup
 {
 
 /*!  Index of group, as used in callbacks */
@@ -1243,7 +1259,7 @@ _DASHSRD SRD;
 };
 
 /*! interface for custom DASH groups*/
-interface _DASHQualityInfo 
+interface _DASHQualityInfo
 {
 
 /*! bandwidth in bits per second*/
@@ -1297,7 +1313,7 @@ attribute readonly Array sizes;
 };
 
 /*! segemnt size info*/
-interface _DASHSegmentInfo 
+interface _DASHSegmentInfo
 {
 /*! segemnt size*/
 attribute readonly unsigned long long size;
@@ -1367,7 +1383,7 @@ attribute readonly unsigned long buffer_dur;
 
 /*! duration of segment being downloaded, in milliseconds - 0 if unknown*/
 attribute readonly unsigned long current_seg_dur;
-	
+
 };
 
 /*! Spacial Relationship Descriptor for DASH group*/
@@ -1390,7 +1406,7 @@ attribute readonly unsigned long fw;
 
 /*! total height of SRD descriptor for this tile*/
 attribute readonly unsigned long fh;
-	
+
 };
 
 
@@ -1646,5 +1662,3 @@ attribute readonly DOMString value;
 };
 
 /*! @} */
-
-

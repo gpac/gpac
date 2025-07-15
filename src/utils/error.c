@@ -235,6 +235,7 @@ static struct log_tool_info {
 	{ GF_LOG_ROUTE, "route", GF_LOG_WARNING, .alt = "flute" },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
+	{ GF_LOG_RMTWS, "rmtws", GF_LOG_WARNING },
 };
 
 #define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)

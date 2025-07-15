@@ -159,8 +159,8 @@ unsigned long long get_utc(DOMString date);
 Fraction get_ntp();
 
 
-/*! shifts an NTP 64-bit timestamp by the given number of microseconds 
-\param ntp source NTP 
+/*! shifts an NTP 64-bit timestamp by the given number of microseconds
+\param ntp source NTP
 \param microseconds number of microseconds to add (positive) or remove (negative)
 \return adjusted NTP 64 bit timestamp as fraction, 'n' continaing seconds, 'd' containing fractional part
 */
@@ -400,6 +400,18 @@ Rect rect_union(Rect r1, Rect r2);
 Rect rect_intersect(Rect r1, Rect r2);
 
 
+/*! enables websocket monitoring server - see \ref gf_sys_enable_rmtws
+*
+* define the \ref rmt_on_new_client attribute to set callbacks
+* \param enable (default: true) will enable the server if true, stop it if false
+*/
+void enable_rmtws(bool enable);
+
+/*! set the callback function when new clients connect to the websocket server
+* the function shall take one parameter of type \ref JS_RMTClient
+*/
+optional attribute function rmt_on_new_client;
+
 /*! number of cores */
 attribute readonly unsigned long nb_cores;
 
@@ -526,7 +538,7 @@ attribute readonly unsigned long h;
 /*! object used for file enumeration - cannot be created through constructor*/
 interface FileInformation {
 	/*! file name*/
-	DOMString name;	
+	DOMString name;
 	/*! file path*/
 	DOMString path;
 	/*! true if directory*/
@@ -942,7 +954,32 @@ attribute readonly FileIO parent;
 
 };
 
+/*! Object representing a monitoring websocket client
+*
+* will be passed to the session \ref rmt_on_new_client callback
+*/
+interface JS_RMTClient {
+
+	/*! a callback called when the client receives data
+	 *
+	 * the function shall be of type function(data)
+	 * where data will be either of type string (for utf8 data) or arraybuffer (for binary data)
+	 */
+	optional attribute function on_data;
+
+	/*! a callback called when the client disconnects or is deleted */
+	optional attribute function on_close;
+
+	/*! a string of format ip:port representing the client */
+	readonly attribute string peer_address;
+
+	/*! sends data to the client on the websocket
+	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
+	*/
+	void send(data);
+
+
+}
 
 
 /*! @} */
-

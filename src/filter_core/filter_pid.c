@@ -7168,7 +7168,6 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		return;
 	}
 
-	gf_rmt_begin(pck_drop, GF_RMT_AGGREGATE);
 	pck = pcki->pck;
 	//move to source pid
 	pid = pid->pid;
@@ -7288,7 +7287,6 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		gf_filter_forward_clock(pidinst->filter);
 	}
 
-	gf_rmt_end();
 }
 
 GF_EXPORT

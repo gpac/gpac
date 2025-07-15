@@ -822,6 +822,21 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 }
 
 GF_EXPORT
+const char * gf_filter_get_status(GF_Filter *filter)
+{
+	gf_assert(filter);
+	return filter->status_str ? (const char *) filter->status_str : "" ;
+}
+
+GF_EXPORT
+u64 gf_filter_get_bytes_done(GF_Filter *filter)
+{
+	gf_assert(filter);
+	return filter->nb_bytes_processed ;
+}
+
+
+GF_EXPORT
 void gf_filter_reset_source(GF_Filter *filter)
 {
 	if (filter && filter->source_ids) {
@@ -3175,7 +3190,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
-	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
 	filter->in_process_callback = GF_TRUE;
 
@@ -3187,7 +3201,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 		e = filter->freg->process(filter);
 
 	filter->in_process_callback = GF_FALSE;
-	gf_rmt_end();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done\n", filter->name));
 
 	//flush all pending pid init requests following the call to init
