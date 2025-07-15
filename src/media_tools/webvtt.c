@@ -642,7 +642,7 @@ void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 	parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
 	parser->unicode_type = 0;
 	parser->user = NULL;
-	*parser->vtt_in = NULL;
+	parser->vtt_in = NULL;
 }
 
 void gf_webvtt_parser_del(GF_WebVTTParser *parser)
