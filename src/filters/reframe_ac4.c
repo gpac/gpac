@@ -538,7 +538,7 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 {
 	u32 nb_frames = 0, sync_framesize = 0, pos = 0;
 	u32 nb_broken_frames = GF_FALSE;
-	GF_AC4Config ahdr;
+	GF_AC4Config ahdr = {0};
 
 	GF_BitStream *bs = gf_bs_new(_data, _size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs) && nb_frames <= 4) {
