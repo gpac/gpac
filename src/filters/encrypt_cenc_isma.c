@@ -176,7 +176,14 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
 		if (p) {
-			GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			GF_HEVCConfig *hvcc;
+			if ((cstr->codec_id==GF_CODECID_LHVC)
+				&& !gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT))
+			{
+				hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_TRUE);
+			} else {
+				hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
+			}
 			cstr->nalu_size_length = hvcc ? hvcc->nal_unit_size : 0;
 			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 		}
@@ -660,10 +667,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	GF_AVCConfig *avccfg;
 	GF_HEVCConfig *hevccfg;
 	GF_VVCConfig *vvccfg;
-	const GF_PropertyValue *p;
+	const GF_PropertyValue *p, *dsi_enh=NULL;
 
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG);
-	if (!p) p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	dsi_enh = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	if (!p) p = dsi_enh;
 
 	if (p) {
 		dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
@@ -796,7 +804,19 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
 					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
 				}
-
+				gf_odf_avc_cfg_del(avccfg);
+			}
+			//load scalable param sets if any
+			avccfg = dsi_enh ? gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size) : NULL;
+			if (avccfg) {
+				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
+					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					gf_avc_read_sps(slc->data, slc->size, cstr->avc_state, 0, NULL);
+				}
+				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
+					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
+					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
+				}
 				gf_odf_avc_cfg_del(avccfg);
 			}
 #else
@@ -816,13 +836,25 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (!p)
 				return GF_OK;
 
-			hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			if ((cstr->codec_id==GF_CODECID_LHVC) && !dsi_enh) {
+				hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_TRUE);
+			} else {
+				hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
+			}
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_VID_PARAM);
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_SEQ_PARAM);
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_PIC_PARAM);
+			//load scalable param sets if any
+			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+			hevccfg = dsi_enh ? gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE) : NULL;
+			if (hevccfg) {
+				gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_VID_PARAM);
+				gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_SEQ_PARAM);
+				gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_PIC_PARAM);
+			}
 #endif
 
 			//mandatory for HEVC
@@ -868,6 +900,14 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_VID_PARAM);
 			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_SEQ_PARAM);
 			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_PIC_PARAM);
+			//load scalable param sets if any
+			if (vvccfg) gf_odf_vvc_cfg_del(vvccfg);
+			vvccfg = dsi_enh ? gf_odf_vvc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size) : NULL;
+			if (vvccfg) {
+				gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_VID_PARAM);
+				gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_SEQ_PARAM);
+				gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_PIC_PARAM);
+			}
 #endif
 
 			//mandatory for VVC

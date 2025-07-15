@@ -304,8 +304,8 @@ The format of the filter graph is the same as the one used in the gpac command l
 \param fsess filter session
 \param argc number of arguments
 \param argv list of arguments
-\param loaded_filters list of loaded filters, must be freed by the caller
-\param links_directive list of link directives, must be freed by the caller
+\param out_loaded_filters list of loaded filters, must be freed by the caller
+\param out_links_directive list of link directives, must be freed by the caller
 \return error if any
 */
 GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[], GF_List **out_loaded_filters, GF_List **out_links_directive);
@@ -320,8 +320,8 @@ This is a convenience function for command line parsing, and does not support al
 
 \param fsess filter session
 \param graph_str filter graph string
-\param loaded_filters list of loaded filters, must be freed by the caller
-\param links_directive list of link directives, must be freed by the caller
+\param out_loaded_filters list of loaded filters, must be freed by the caller
+\param out_links_directive list of link directives, must be freed by the caller
 \return error if any
 */
 GF_Err gf_fs_parse_filter_graph_str(GF_FilterSession *fsess, char *graph_str, GF_List **out_loaded_filters, GF_List **out_links_directive);
@@ -933,7 +933,7 @@ typedef enum
 	GF_PROP_4CC_LIST	=	26,
 	/*! string list, memory is duplicated when setting the property - to use only with property assignment functions*/
 	GF_PROP_STRING_LIST_COPY = 27,
-	
+
 	/*! last non-enum property*/
 	GF_PROP_LAST_NON_ENUM,
 
@@ -2752,6 +2752,18 @@ Bool gf_filter_is_temporary(GF_Filter *filter);
 */
 const char *gf_filter_get_name(GF_Filter *filter);
 
+/*! Gets filter status
+\param filter target filter
+\return status string of the filter if it exists, else empty string
+*/
+const char *gf_filter_get_status(GF_Filter *filter);
+
+/*! Gets bytes processed by filter
+\param filter target filter
+\return the nb_bytes_processed field of the filter
+*/
+u64 gf_filter_get_bytes_done(GF_Filter *filter);
+
 /*! Makes the filter sticky. A sticky filter is not removed when all its input PIDs are disconnected. Typically used by the player
 \param filter target filter
 */
@@ -2778,7 +2790,7 @@ struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter);
 /*! Asks task reschedule for a given delay. There is no guarantee that the task will be recalled at exactly the desired delay
 
  The function can be called several times while in process, the smallest reschedule time will be kept.
- 
+
 \param filter target filter
 \param us_until_next number of microseconds to wait before recalling this task
 */
@@ -5168,4 +5180,3 @@ GF_Err gf_filter_set_probe_data_cbk(GF_Filter *filter, const char * (*probe_data
 #endif
 
 #endif	//_GF_FILTERS_H_
-
