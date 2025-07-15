@@ -1241,7 +1241,7 @@ typedef struct _webvtt_parser GF_WebVTTParser;
 typedef struct _webvtt_sample GF_WebVTTSample;
 
 GF_WebVTTParser *gf_webvtt_parser_new();
-GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicode_type, Bool is_srt,
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
                              void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *));
