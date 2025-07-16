@@ -9042,7 +9042,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEALIAS);
 				if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEPATH);
 				//if filepath is a gmem:// wrapped, don't use it !
-				if (prop_val && !strncmp(prop_val->value.string, "gmem://", 7))
+				if (prop_val && prop_val->value.string && !strncmp(prop_val->value.string, "gmem://", 7))
 					prop_val = NULL;
 
 				if (!prop_val)

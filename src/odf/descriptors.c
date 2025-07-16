@@ -2176,6 +2176,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 
 			for (i = 0; i < dsi->n_presentations; i++) {
 				p = gf_list_get(dsi->presentations, i);
+				if (!p) continue;
 				if (p->presentation_version == 2) {
 					GF_SAFEALLOC(imsp, GF_AC4PresentationV1);
 					gf_odf_ac4_presentation_deep_copy(imsp, p);
@@ -2417,7 +2418,7 @@ void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4Pre
 GF_EXPORT
 void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 {
-	u32 i, s;
+	u32 s;
 	GF_AC4PresentationV1 *pres;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *subs;
@@ -2456,15 +2457,6 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 					}
 				}
 				gf_list_del(pres->substream_groups);
-
-				// remove potential duplicates of substream_groups
-				for (i=0; i<gf_list_count(cfg->stream.presentations); i++) {
-					GF_AC4PresentationV1* pres2 = gf_list_get(cfg->stream.presentations, i);
-					if (pres2 && pres2->substream_groups == pres->substream_groups) {
-						pres2->substream_groups = NULL;
-					}
-
-				}
 
 			}
 			gf_free(pres);

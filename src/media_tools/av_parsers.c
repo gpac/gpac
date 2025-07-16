@@ -15035,7 +15035,8 @@ static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 		gf_ac4_bed_render_info(bs);
 
 		bits_used = (u32) (gf_bs_get_bit_offset(bs) - pos);
-		gf_bs_read_int(bs, add_data_bytes * 8 - bits_used);
+		u32 bits_to_read = MIN( (u32)(8*gf_bs_available(bs)), (u32)(add_data_bytes * 8 - bits_used));
+		gf_bs_read_int(bs, MIN(32, bits_to_read));
 	}
 	return GF_TRUE;
 }
@@ -15700,6 +15701,7 @@ static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.12
     for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
+		if (!group) continue;
         for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
             mask |= substream->b_4_back_channels_present;
@@ -15718,6 +15720,7 @@ static u8 gf_ac4_pres_top_channel_pairs(GF_AC4PresentationV1 *p)
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.30 Table 94
     for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
+		if (!group) continue;
         for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
             if (tmp_pres_top_channel_pairs < substream->top_channels_present) {
