@@ -430,7 +430,7 @@ struct _webvtt_parser {
 	/* List of non-overlapping GF_WebVTTSample */
 	GF_List *samples;
 
-	FILE *vtt_in;
+	FILE **vtt_in;
 	s32 unicode_type;
 
 	u64  last_duration;
@@ -578,7 +578,7 @@ GF_WebVTTParser *gf_webvtt_parser_new()
 
 extern s32 gf_text_get_utf_type(FILE *in_src);
 
-GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicode_type, Bool is_srt,
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
                              void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *))
@@ -613,9 +613,9 @@ void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser)
 
 void gf_webvtt_parser_restart(GF_WebVTTParser *parser)
 {
-	if (!parser->vtt_in) return;
+	if (!*parser->vtt_in) return;
 
-	gf_fseek(parser->vtt_in, 0, SEEK_SET);
+	gf_fseek(*parser->vtt_in, 0, SEEK_SET);
 	parser->last_duration = 0;
 	while (gf_list_count(parser->samples)) {
 		gf_webvtt_sample_del((GF_WebVTTSample *)gf_list_get(parser->samples, 0));
@@ -965,7 +965,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		Bool in_progress = is_eof;
 		if (!cue && parser->suspend)
 			break;
-		sOK = gf_text_get_utf8_line(szLine, 2048, ext_file ? ext_file : parser->vtt_in, parser->unicode_type, &in_progress);
+		sOK = gf_text_get_utf8_line(szLine, 2048, ext_file ? ext_file : *parser->vtt_in, parser->unicode_type, &in_progress);
 		if (in_progress) {
 			parser->suspend = GF_TRUE;
 			if (ext_file && cue && !cue->text) {

@@ -1338,7 +1338,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	ctx->vttparser = gf_webvtt_parser_new();
 
-	e = gf_webvtt_parser_init(ctx->vttparser, ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
+	e = gf_webvtt_parser_init(ctx->vttparser, &ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
 	if (e != GF_OK) {
 		gf_webvtt_parser_del(ctx->vttparser);
 		ctx->vttparser = NULL;
