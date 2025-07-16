@@ -2594,15 +2594,14 @@
       };
     </script>
 
-    <!-- load module - default emscripten compil is with MODULARIZE and export name "libgpac" --> 
-    <script async type="text/javascript" src="gpac.js"></script>
-    <script>
+    <!-- load module - default emscripten compilation is with MODULARIZE, EXPORT_ES6 and export name "libgpac" --> 
+    <script type="module" async>
+      import libgpac from './gpac.js';
+
       window.addEventListener('load', function() {
         libgpac(LIBGPAC);
-
       });
     </script>
-
   </body>
 </html>
 
