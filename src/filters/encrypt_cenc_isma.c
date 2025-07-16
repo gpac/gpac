@@ -1750,15 +1750,14 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 
 	// avc1 CTR CENC edition 1: choose which non-VCL are encrypted
 	if (cstr->cenc_codec==CENC_AVC) {
+		const u32 nal_type = gf_bs_peek_bits(plaintext_bs, 8, 0) & 0x1F;
 		if (cstr->non_vcl_encrypted == GF_CRYPT_NONVCL_CLEAR_ALL) {
-			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
-			if (avc_is_vcl_or_sei(cstr->avc_state->last_nal_type_parsed) != 0) {
+			if (avc_is_vcl_or_sei(nal_type) != 0) {
 				clear_bytes = nal_size;
 				goto exit;
 			}
 		} else if (cstr->non_vcl_encrypted == GF_CRYPT_NONVCL_CLEAR_SEI_AUD) {
-			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
-			if (avc_is_vcl_or_sei(cstr->avc_state->last_nal_type_parsed) == 1) {
+			if (avc_is_vcl_or_sei(nal_type) == 1) {
 				clear_bytes = nal_size;
 				goto exit;
 			}
