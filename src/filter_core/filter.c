@@ -3717,7 +3717,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	u32 count = gf_fq_count(f->tasks);
 
 	//do not destroy filters if tasks for this filter are pending or some ref packets are still present
-	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets) {
+	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets || f->nb_shared_packets_out) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}
