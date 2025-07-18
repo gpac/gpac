@@ -933,6 +933,18 @@ typedef struct
 	GF_EventPropagateType recursive;
 } GF_FilterUpdate;
 
+typedef enum
+{
+	//no discard of input packets
+	GF_PIDI_DISCARD_OFF = 0,
+	//discard of input packets
+	GF_PIDI_DISCARD_ON,
+	//temporary mode to discard inputs but process all reconfiguration packets
+	GF_PIDI_DISCARD_RCFG,
+	//temporary mode to discard inputs but process all reconfiguration packets and delete the PID instance
+	//at the end of the reconfigure task
+	GF_PIDI_DISCARD_RCFG_DELETE,
+} GF_PidInstDiscardMode;
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
@@ -957,9 +969,7 @@ struct __gf_filter_pid_inst
 	volatile u32 discard_packets;
 
 	Bool force_reconfig;
-
-	//set by filter
-	u32 discard_inputs;
+	GF_PidInstDiscardMode discard_inputs;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;
@@ -989,6 +999,8 @@ struct __gf_filter_pid_inst
 	Bool is_encoder_input;
 	Bool is_decoder_input;
 	GF_PropertyMap *reconfig_pid_props;
+
+	GF_Filter *swap_source;
 
 	//clock handling by the consumer: the clock values are not automatically dispatched to the output pids and are kept
 	//available as regular packets in the input pid

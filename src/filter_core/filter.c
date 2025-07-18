@@ -2742,6 +2742,8 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 			new_f->swap_pidinst_dst = dst_pidi;
 			//keep track of the pidinst being detached from the source filter
 			new_f->swap_pidinst_src = src_pidi;
+			//remember the new filter for the swap - cf gf_filter_pid_connect_task
+			src_pidi->swap_source = new_f;
 			new_f->swap_needs_init = GF_TRUE;
 			new_f->swap_pending = GF_TRUE;
 		}
