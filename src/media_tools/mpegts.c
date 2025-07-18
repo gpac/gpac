@@ -2619,7 +2619,10 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.sync = data[0];
 	if (hdr.sync != 0x47) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d does not start with sync marker\n", ts->pck_number));
-		ts->pck_number--;
+		if (ts->raw_mode == GF_M2TS_RAW_PROBE)
+			ts->pck_errors++;
+		else
+			ts->pck_number--;
 		return GF_CORRUPTED_DATA;
 	}
 	hdr.error = (data[1] & 0x80) ? 1 : 0;
