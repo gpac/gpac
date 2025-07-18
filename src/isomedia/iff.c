@@ -1279,7 +1279,7 @@ GF_Err fnch_box_write(GF_Box *s, GF_BitStream *bs)
     return GF_OK;
 }
 
-GF_Box *fnch_box_size(GF_Box *s)
+GF_Err fnch_box_size(GF_Box *s)
 {
     GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
     p->size += (p->font_family ? strlen(p->font_family) : 0) + 1;
