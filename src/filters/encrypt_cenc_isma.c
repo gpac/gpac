@@ -790,7 +790,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 			cstr->non_vcl_encrypted = cstr->tci->allow_encrypted_nonVCLs;
 			if (cstr->slice_header_clear && cstr->non_vcl_encrypted!=GF_CRYPT_NONVCL_CLEAR_ALL) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Slice Header is clear: forcing non-VCL NALUs in clear too\n") );
+				if (cstr->non_vcl_encrypted!=GF_CRYPT_NONVCL_CLEAR_SEI_AUD) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Slice Header is clear: forcing all non-VCL NALUs in clear too\n") );
+				}
 				cstr->non_vcl_encrypted = GF_CRYPT_NONVCL_CLEAR_ALL;
 			}
 

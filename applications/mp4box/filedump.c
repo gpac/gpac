@@ -1053,7 +1053,7 @@ static u32 read_nal_size_hdr(u8 *ptr, u32 nalh_size)
 }
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted);
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, u8 *sai_buffer, u32 sai_buffer_size, u32 offset_in_sample);
 #endif
 
 
@@ -1101,7 +1101,7 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, _is_svc, is_hevc ? hevc_state : NULL, avc_state, is_vvc ? vvc_state : NULL, nalh_size, (dump_flags&1) ? GF_TRUE : GF_FALSE, GF_FALSE);\
+			gf_inspect_dump_nalu(dump, (u8 *) slc->data, slc->size, _is_svc, is_hevc ? hevc_state : NULL, avc_state, is_vvc ? vvc_state : NULL, nalh_size, (dump_flags&1) ? GF_TRUE : GF_FALSE, GF_FALSE, NULL, 0, 0);\
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
 	}\
@@ -1270,6 +1270,9 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 		fprintf(dump, " </SCALReferences>\n");
 	}
 
+	u32 sai_buffer_size=0, sai_buffer_alloc=0;
+	u8 *sai_buffer = NULL;
+
 	fprintf(dump, " <NALUSamples>\n");
 	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i=0; i<count; i++) {
@@ -1317,6 +1320,22 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 				size--;
 			}
 		}
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
+		u32 sample_offset=0;
+		Bool is_encrypted = 0;
+		if (is_cenc_protected) {
+			e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
+			if (e != GF_OK) {
+				fprintf(dump, "dump_msg=\"Error %s while fetching encryption info for sample, assuming sample is encrypted\" ", gf_error_to_string(e) );
+				is_encrypted = GF_TRUE;
+			}
+			sai_buffer_size = sai_buffer_alloc;
+			e = gf_isom_cenc_get_sample_aux_info(file, track, i+1, di, NULL, &sai_buffer, &sai_buffer_size);
+			if (sai_buffer_size > sai_buffer_alloc)
+				sai_buffer_alloc = sai_buffer_size;
+		}
+#endif
+
 		while (size) {
 			if (size<nalh_size) {
 				fprintf(dump, "   <!-- NALU number %d is corrupted: length field is %d but only %d remains -->\n", idx, nalh_size, size);
@@ -1331,15 +1350,9 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 			} else {
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
-				Bool is_encrypted = 0;
-				if (is_cenc_protected) {
-					e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
-					if (e != GF_OK) {
-						fprintf(dump, "dump_msg=\"Error %s while fetching encryption info for sample, assuming sample is encrypted\" ", gf_error_to_string(e) );
-						is_encrypted = GF_TRUE;
-					}
-				}
-				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, hevc_state, avc_state, vvc_state, nalh_size, dump_flags, is_encrypted);
+				gf_inspect_dump_nalu(dump, ptr, nal_size, has_svcc ? 1 : 0, hevc_state, avc_state, vvc_state, nalh_size, dump_flags, is_encrypted, sai_buffer, sai_buffer_size, sample_offset);
+
+				sample_offset += nal_size + nalh_size;
 #else
 				fprintf(dump, "/>\n");
 #endif
@@ -1356,6 +1369,7 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 	}
 	fprintf(dump, " </NALUSamples>\n");
 	fprintf(dump, "</NALUTrack>\n");
+	if (sai_buffer) gf_free(sai_buffer);
 
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 
@@ -1519,7 +1533,7 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 }
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
-void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, u8 *sai_buffer, u32 sai_buffer_size, u32 offset_in_sample);
 #endif
 
 static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
@@ -1563,19 +1577,21 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 			gf_free(av1_state);
 			return e;
 		}
-		gf_inspect_dump_obu(dump, av1_state, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
+		gf_inspect_dump_obu(dump, av1_state, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc, NULL, 0, 0);
 		gf_bs_del(bs);
 	}
 	fprintf(dump, " </OBUConfig>\n");
 
 	fprintf(dump, " <OBUSamples>\n");
 
+	u8 *sai_buffer = NULL;
+	u32 sai_buffer_size=0, sai_buffer_alloc=0;
 	e = GF_OK;
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
-		u32 size;
+		u32 size, di;
 		u8 *ptr;
-		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
 		if (!samp) {
 			e = gf_isom_last_error(file);
 			break;
@@ -1585,6 +1601,21 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 
 		fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
 		if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n");
+
+
+		u32 sample_offset=0;
+		Bool is_encrypted = 0;
+		if (gf_isom_is_cenc_media(file, track, di)) {
+			e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
+			if (e != GF_OK) {
+				fprintf(dump, "dump_msg=\"Error %s while fetching encryption info for sample, assuming sample is encrypted\" ", gf_error_to_string(e) );
+				is_encrypted = GF_TRUE;
+			}
+			sai_buffer_size = sai_buffer_alloc;
+			e = gf_isom_cenc_get_sample_aux_info(file, track, i+1, di, NULL, &sai_buffer, &sai_buffer_size);
+			if (sai_buffer_size > sai_buffer_alloc)
+				sai_buffer_alloc = sai_buffer_size;
+		}
 
 		idx = 1;
 		ptr = samp->data;
@@ -1599,10 +1630,11 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
 				break;
 			}
-			gf_inspect_dump_obu(dump, av1_state, ptr, obu_size, obu_type, obu_size, hdr_size, dump_crc);
+			gf_inspect_dump_obu(dump, av1_state, ptr, obu_size, obu_type, obu_size, hdr_size, dump_crc, sai_buffer, sai_buffer_size, sample_offset);
 			ptr += obu_size;
 			size -= (u32)obu_size;
 			idx++;
+			sample_offset+=obu_size;
 		}
 		gf_bs_del(bs);
 		fprintf(dump, "  </Sample>\n");
@@ -1615,6 +1647,7 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 	}
 	fprintf(dump, " </OBUSamples>\n");
 	fprintf(dump, "</OBUTrack>\n");
+	if (sai_buffer) gf_free(sai_buffer);
 
 	if (av1_state->config) gf_odf_av1_cfg_del(av1_state->config);
 	gf_av1_reset_state(av1_state, GF_TRUE);
