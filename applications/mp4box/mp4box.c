@@ -1015,6 +1015,10 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("tkgp", NULL, "`SE` assign track group to track. Value is formatted as `TYPE,N` with TYPE the track group type (4CC) and N the track group ID. A negative ID removes from track group ID -N", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("tkidx", NULL, "`SE` set track position in track list, 1 being first track in file", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("extk", NULL, "`CE` add track as external track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("times", NULL, "`SE` modify timestamps using timestamp file specified in value. Timestamp file is formatted as:\n"
+		"  - a line starting with `#` is a comment, in which `timescale=V` can be used to set timescale (1000 by default)\n"
+		"  - empty lines are ignored\n"
+		"  - one line per sample in decode order, formated as `cts` or `dts cts`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("stats", "fstat", "`C` print filter session stats after import", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", "fgraph", "`C` print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
 	{"sopt:[OPTS]", NULL, "set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},

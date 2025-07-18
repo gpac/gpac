@@ -2065,6 +2065,17 @@ SE set track position in track list, 1 being first track in file
 CE add track as external track
 .br
 .TP
+.B times (string)
+.br
+SE modify timestamps using timestamp file specified in value. Timestamp file is formatted as:
+.br
+  - a line starting with # is a comment, in which timescale=V can be used to set timescale (1000 by default)
+.br
+  - empty lines are ignored
+.br
+  - one line per sample in decode order, formated as cts or dts cts
+.br
+.TP
 .B stats,-fstat
 .br
 C print filter session stats after import
