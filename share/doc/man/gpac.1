@@ -1477,47 +1477,32 @@ set charset when not recognized from input. Possible values are:
 .TP
 .B \-rmt
 .br
-enable profiling through Remotery. A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis
+enable remote monitoring webserver
 .br
 .TP
-.B \-rmt-port (int, default: 17815)
+.B \-rmt-port (int, default: 6363)
 .br
-set remotery port
-.br
-.TP
-.B \-rmt-reuse
-.br
-allow remotery to reuse port
+set rmt ws port
 .br
 .TP
 .B \-rmt-localhost
 .br
-make remotery only accepts localhost connection
+make rmt ws only accepts localhost connection
 .br
 .TP
 .B \-rmt-sleep (int, default: 10)
 .br
-set remotery sleep (ms) between server updates
+set rmt ws sleep (ms) between server updates
 .br
 .TP
-.B \-rmt-nmsg (int, default: 10)
+.B \-rmt-cert (string)
 .br
-set remotery number of messages per update
-.br
-.TP
-.B \-rmt-qsize (int, default: 131072)
-.br
-set remotery message queue size in bytes
+rmt ws: certificate file in PEM format to use for TLS mode
 .br
 .TP
-.B \-rmt-log
+.B \-rmt-pkey (string)
 .br
-redirect logs to remotery (experimental, usually not well handled by browser)
-.br
-.TP
-.B \-rmt-ogl
-.br
-make remotery sample opengl calls
+rmt ws: private key file in PEM format to use for TLS mode
 .br
 .TP
 .B \-m2ts-vvc-old

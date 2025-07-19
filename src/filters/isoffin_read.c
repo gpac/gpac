@@ -1419,6 +1419,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			}
+#if !defined(GPAC_DISABLE_NETWORK) || defined(GPAC_CONFIG_EMSCRIPTEN)
 			if (read->is_partial_download && read->wait_for_source && !read->mem_load_mode) {
 				const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_DOWNLOAD_SESSION);
 				if (prop && prop->type==GF_PROP_POINTER) {
@@ -1427,6 +1428,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						gf_isom_switch_source(read->mov, new_url);
 				}
 			}
+#endif
 			read->wait_for_source = GF_FALSE;
 
 			if (read->mem_load_mode) {

@@ -1895,10 +1895,19 @@ GF_Err gf_odf_ac4_cfg_alternative_info(GF_AC4AlternativeInfo *info, GF_BitStream
 	u32 i;
 
 	GF_AC4_SSS(bs, info->name_len, 16, size, desc_mode);
+
+	if (info->name_len >= GF_ARRAY_LENGTH(info->presentation_name))
+		return GF_ISOM_INVALID_MEDIA;
+
 	for (i = 0; i < info->name_len; i++) {
 		GF_AC4_SSS(bs, info->presentation_name[i], 8, size, desc_mode);
 	}
+
 	GF_AC4_SSS(bs, info->n_targets, 5, size, desc_mode);
+
+	if (info->n_targets >= MIN(GF_ARRAY_LENGTH(info->target_md_compat), GF_ARRAY_LENGTH(info->target_device_category)))
+		return GF_ISOM_INVALID_MEDIA;
+
 	for (i = 0; i < info->n_targets; i++) {
 		GF_AC4_SSS(bs, info->target_md_compat[i], 3, size, desc_mode);
 		GF_AC4_SSS(bs, info->target_device_category[i], 8, size, desc_mode);
@@ -1956,6 +1965,9 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 {
 	u32 i;
 	GF_AC4SubStream *s;
+
+	if (!g)
+		return GF_BAD_PARAM;
 
 	GF_AC4_SSS(bs, g->b_substreams_present, 1, size, desc_mode);
     GF_AC4_SSS(bs, g->b_hsf_ext, 1, size, desc_mode);
@@ -2045,7 +2057,8 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 			} else { // write or get_size
 				g = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, 0);
 			}
-			gf_odf_ac4_cfg_substream_group_dsi(g, bs, size, desc_mode);
+			if (g)
+				gf_odf_ac4_cfg_substream_group_dsi(g, bs, size, desc_mode);
 		}
 		else {
 			GF_AC4_SSS(bs, p->b_multi_pid, 1, size, desc_mode);
@@ -2088,7 +2101,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 	}
 	if (p->b_add_emdf_substreams) {
 		GF_AC4_SSS(bs, p->n_add_emdf_substreams, 7, size, desc_mode);
-		for (i = 0; i < p->n_add_emdf_substreams; i++) {
+		for (i = 0; i < p->n_add_emdf_substreams && i < GF_ARRAY_LENGTH(p->substream_emdf_version) && i < GF_ARRAY_LENGTH(p->substream_key_id); i++) {
 			GF_AC4_SSS(bs, p->substream_emdf_version[i], 5, size, desc_mode);
 			GF_AC4_SSS(bs, p->substream_key_id[i], 10, size, desc_mode);
 		}
@@ -2136,6 +2149,9 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 	u8 *t_data = NULL;
 	GF_BitStream *t_bs;
 
+	if (!dsi)
+		return GF_BAD_PARAM;
+
 	GF_AC4_SSS(bs, dsi->ac4_dsi_version, 3, size, desc_mode);
 	GF_AC4_SSS(bs, dsi->bitstream_version, 7, size, desc_mode);
 	GF_AC4_SSS(bs, dsi->fs_index, 1, size, desc_mode);
@@ -2145,6 +2161,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 		// check whether legacy presentations are added in the presentations
 		for (i = 0; i < dsi->n_presentations; i++) {
 			p = gf_list_get(dsi->presentations, i);
+			if (!p) continue;
 			if (p->presentation_version == 1) {
 				legacy_pres_num += 1;
 			} else if (p->presentation_version == 2) {
@@ -2159,6 +2176,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 
 			for (i = 0; i < dsi->n_presentations; i++) {
 				p = gf_list_get(dsi->presentations, i);
+				if (!p) continue;
 				if (p->presentation_version == 2) {
 					GF_SAFEALLOC(imsp, GF_AC4PresentationV1);
 					gf_odf_ac4_presentation_deep_copy(imsp, p);
@@ -2219,12 +2237,13 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 			presentation_bytes = (u32) (gf_bs_get_position(bs) - pos);
 			skip_bytes = pres_bytes - presentation_bytes;
 
-			for (j = 0; j < skip_bytes; j++) {
+			for (j = 0; j < skip_bytes && gf_bs_available(bs); j++) {
 				gf_bs_read_int(bs, 8);
 			}
 		}
 		else if (desc_mode == GF_AC4_DESCMODE_WRITE) {
 			p = gf_list_get(dsi->presentations, i);
+			if (!p) continue;
 
 			t_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (p->presentation_version == 0) {
@@ -2343,7 +2362,7 @@ void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 
 	memcpy(dst, src, sizeof(GF_AC4Config));
 
-	if (!src->stream.presentations || gf_list_count(presentations_src) == 0) {
+	if (!src->stream.presentations) {
 		return;
 	}
 
@@ -2369,7 +2388,7 @@ void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4Pre
 
 	memcpy(pres_dst, pres_src, sizeof(GF_AC4PresentationV1));
 
-	if (!pres_src->substream_groups || gf_list_count(pres_src->substream_groups) == 0) {
+	if (!pres_src->substream_groups) {
 		return;
 	}
 
@@ -2381,7 +2400,7 @@ void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4Pre
 		memcpy(group_dst, group_src, sizeof(GF_AC4SubStreamGroupV1));
 		gf_list_add(pres_dst->substream_groups, group_dst);
 
-		if (!group_src->substreams || gf_list_count(group_src->substreams) == 0) {
+		if (!group_src->substreams) {
 			continue;
 		}
 
@@ -2399,44 +2418,53 @@ void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4Pre
 GF_EXPORT
 void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 {
-	u32 i, j, s;
+	u32 s;
 	GF_AC4PresentationV1 *pres;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *subs;
 
-	if (!cfg || !cfg->stream.presentations) {
+	if (!cfg)
 		return;
-	}
 
-	for (i = 0; i < gf_list_count(cfg->stream.presentations); i++) {
-		pres = gf_list_get(cfg->stream.presentations, i);
-		if (!pres || !pres->substream_groups) {
-			continue;
-		}
+	if (cfg->stream.presentations) {
 
-		for (j = 0; pres && j < gf_list_count(pres->substream_groups); j++) {
-			group = gf_list_get(pres->substream_groups, j);
-			if (!group || !group->substreams) {
-				continue;
-			}
+		while ( (pres = gf_list_pop_back(cfg->stream.presentations)) ) {
 
-			for (s = 0; group && s < gf_list_count(group->substreams); s++) {
-				subs = gf_list_get(group->substreams, s);
-				if (!subs) {
-					continue;
+			if (pres->substream_groups) {
+
+				while ( (group = gf_list_pop_back(pres->substream_groups)) ) {
+
+					if (group->substreams) {
+
+						for (s = 0; s < gf_list_count(group->substreams); s++) {
+							subs = gf_list_get(group->substreams, s);
+							if (!subs) {
+								continue;
+							}
+
+							gf_free(subs);
+						}
+						gf_list_del(group->substreams);
+
+					}
+					gf_free(group);
+
+					// remove potential duplicates of group
+					s32 idx = 1;
+					while (idx>=0) {
+						idx = gf_list_find(pres->substream_groups, group);
+						if (idx>=0) gf_list_rem(pres->substream_groups, idx);
+					}
 				}
+				gf_list_del(pres->substream_groups);
 
-				gf_free(subs);
 			}
-			gf_list_del(group->substreams);
-			gf_free(group);
+			gf_free(pres);
 		}
-		gf_list_del(pres->substream_groups);
-		gf_free(pres);
-	}
 
-	gf_list_del(cfg->stream.presentations);
-	cfg->stream.presentations = NULL;
+		gf_list_del(cfg->stream.presentations);
+		cfg->stream.presentations = NULL;
+	}
 }
 
 GF_EXPORT

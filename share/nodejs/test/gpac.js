@@ -89,6 +89,7 @@ print_usage = () => {
 	console.log();
 	console.log('GPAC NodeJS version ' + gpac.version + ' libgpac ' + gpac.abi_major + ':' + gpac.abi_minor + '.' + gpac.abi_micro);
 	console.log('' + gpac.copyright_cite);
+
 	process.exit(0);
 }
 bad_param = (v) => {
@@ -315,11 +316,6 @@ if (custom_httpout) {
 }
 
 
-gpac.set_rmt_fun( (msg) => {
-	console.log('RMT got message ' + msg);
-	gpac.rmt_send('ACK for ' + msg);
-}); 
-
 let fs;
 if (run_mode==RUN_SYNC) {
 	fs = new gpac.FilterSession();
@@ -329,7 +325,7 @@ if (run_mode==RUN_SYNC) {
 
 fs.on_filter_new = function(f)
 {
-	if (is_verbose) 
+	if (is_verbose)
 		console.log('New filter created: ' + f.name);
 	if (dash_algo && (f.name=="dashin")) {
 		try {
@@ -347,7 +343,7 @@ fs.on_filter_new = function(f)
 	}
 }
 fs.on_filter_del = function(f) {
-	if (is_verbose) 
+	if (is_verbose)
 		console.log('Filter deleted: ' + f.name);
 }
 
