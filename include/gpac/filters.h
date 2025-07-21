@@ -1467,6 +1467,7 @@ enum
 
 	GF_PROP_PCK_ORIGINAL_PTS = GF_4CC('O','P','T','S'),
 	GF_PROP_PCK_ORIGINAL_DTS = GF_4CC('O','D','T','S'),
+	GF_PROP_PID_MABR_URLS = GF_4CC('M','A','B','U'),
 
 };
 

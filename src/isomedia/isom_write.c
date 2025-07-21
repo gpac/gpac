@@ -1458,14 +1458,16 @@ GF_Err gf_isom_update_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
 		if (!e) e = Media_UpdateSample(trak->Media, sampleNumber, od_sample, data_only);
 		if (od_sample) gf_isom_sample_del(&od_sample);
+		gf_isom_disable_inplace_rewrite(movie);
 	} else {
 		e = Media_UpdateSample(trak->Media, sampleNumber, sample, data_only);
+		if (data_only || sample->data)
+			gf_isom_disable_inplace_rewrite(movie);
 	}
 	if (e) return e;
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	gf_isom_disable_inplace_rewrite(movie);
 	return GF_OK;
 }
 

@@ -102,8 +102,8 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 void gf_filter_pid_inst_check_delete(GF_FilterPidInst *pidinst)
 {
 	//we posted a configure_task_discard on this PID, mark as "to be destroyed" and let thet task destroy the pid
-	if (pidinst->discard_inputs==2) {
-		pidinst->discard_inputs = 3;
+	if (pidinst->discard_inputs==GF_PIDI_DISCARD_RCFG) {
+		pidinst->discard_inputs = GF_PIDI_DISCARD_RCFG_DELETE;
 	} else {
 		gf_filter_pid_inst_del(pidinst);
 	}
@@ -732,6 +732,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		gf_assert(!src->filter->swap_pidinst_dst);
 		src->filter->swap_pidinst_dst = filter->swap_pidinst_dst;
 		src->filter->swap_pending = GF_TRUE;
+		src->swap_source = NULL;
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_swap_delete_task, src->filter, src->pid, "pid_inst_swap_delete", src);
 	}
 }
@@ -1276,7 +1277,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 		//new pid instance creating a fanout on an already playing pid: force discarding input packets until we have a PLAY
 		if (!is_pid_swap && new_pid_inst && !filter->is_pid_adaptation_filter && pid->is_playing && pid->nb_pck_sent && (pid->num_destinations>1))
-			pidinst->discard_inputs = GF_TRUE;
+			pidinst->discard_inputs = GF_PIDI_DISCARD_ON;
 	}
 	//once all pid have been (re)connected, update any internal caps
 	gf_filter_pid_update_caps(pid);
@@ -1288,6 +1289,19 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	GF_Filter *filter = task->filter;
 	GF_FilterSession *fsess = filter->session;
 
+	//special case: it may happen that multiple relinks between A and B take place in sequence
+	//before intermediate new filters get connected
+	//ex: when discarding packets and multiple reconfigurations were queued - cf issue 3290
+	//we keep track in swap_source of the last relinking operation and discard all non-matching filters
+	//which correspond to past configurations
+	if (filter->swap_pidinst_src && (filter->swap_pidinst_src->swap_source!=filter)) {
+		filter->swap_pidinst_dst = NULL;
+		filter->swap_pidinst_src = NULL;
+		gf_assert(task->pid->filter->out_pid_connection_pending);
+		safe_int_dec(&task->pid->filter->out_pid_connection_pending);
+		gf_filter_post_remove(filter);
+		return;
+	}
 	/* special case: the target filter or pid has been marked for removal since the task was posted
 		ignore the task - if a pid swaping was in place, remove pid from filter and delete it
 	*/
@@ -1391,18 +1405,18 @@ void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
 
 	//check if we need to discard
 	Bool destroy_pidinst = GF_FALSE;
-	if (pidi->discard_inputs==3) {
-		pidi->discard_inputs = 2;
+	if (pidi->discard_inputs==GF_PIDI_DISCARD_RCFG_DELETE) {
+		pidi->discard_inputs = GF_PIDI_DISCARD_RCFG;
 		destroy_pidinst = GF_TRUE;
 	}
 
-	if (pidi->discard_inputs==2) {
+	if (pidi->discard_inputs==GF_PIDI_DISCARD_RCFG) {
 		gf_filter_aggregate_packets(pidi);
 		while (gf_filter_pid_get_packet((GF_FilterPid *) pidi)) {
 			gf_filter_pid_drop_packet((GF_FilterPid *) pidi);
 		}
 		//move back to regular discard
-		pidi->discard_inputs = 1;
+		pidi->discard_inputs = GF_PIDI_DISCARD_ON;
 	}
 
 	if (destroy_pidinst)
@@ -9328,7 +9342,7 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 		if (!gf_fq_count(pidi->packets) && !pid->pid->filter->postponed_packets)
 			pidi->is_end_of_stream = pid->pid->has_seen_eos;
 	}
-	pidi->discard_inputs = discard_on ? 1 : 0;
+	pidi->discard_inputs = discard_on ? GF_PIDI_DISCARD_ON : GF_PIDI_DISCARD_OFF;
 	return GF_OK;
 }
 

@@ -2893,6 +2893,8 @@ seirw (bool, default: true):   rewrite AVC sei messages for ISOBMFF constraints
 .br
 audelim (bool, default: false): keep Access Unit delimiter in payload
 .br
+keepfiller (bool, default: false): keep filler NAL units in output
+.br
 notime (bool, default: false): ignore input timestamps, rebuild from 0
 .br
 dv_mode (enum, default: auto): signaling for DolbyVision
@@ -9512,15 +9514,35 @@ The ROUTE session will include a multi-part MIME unsigned package containing man
 .br
 In this mode, the filter allows multiple service multiplexing, identified through the ServiceID and ServiceName properties.
 .br
-Note: .I ip and .I first_port are used to send the multicast gateway configuration, init segments and manifests. .I first_port is used only if no port is specified in .I dst.
+Note: .I ip and .I first_port are used to send the multicast gateway configuration. .I first_port is used only if no port is specified in .I dst.
 .br
 
 .br
-The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1
+The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1. The .I use_inband option can be used to send manifests and init segments in media multicast sessions.
 .br
 
 .br
 The FLUTE session always uses a symbol length of .I mtu minus 44 bytes.
+.br
+
+.br
+The MABRBaseURLs property can be set on sources to declare a list of alternate repair servers to be injected.
+.br
+Each base URL can be prefixed with N;, where N gives the relative weight of the server, a negative value skipping the server.
+.br
+The special value src is used to indicate the source of the session.
+.br
+Example
+.br
+gpac -i HTTP_MPD_URL:gpac::#MABRBaseURLs=-1;src,SOME_ALT_URL dashin:forward=file -o mabr://225.0.0.1:1234/
+.br
+
+.br
+This will forward the source DASH session to multicast and:
+.br
+- hide the source server as a repair URL
+.br
+- add SOME_ALT_URL as a repair URL
 .br
 
 .br
@@ -9683,8 +9705,6 @@ runfor (uint, default: 0):     run for the given time in ms
 .br
 nozip (bool, default: false):  do not zip signaling package (STSID+manifest)
 .br
-furl (bool, default: false):   inject full URLs of source service in the signaling instead of stripped server path
-.br
 flute (bool, default: true):   use flute for DVB-MABR object delivery
 .br
 csum (enum, default: meta):    send MD5 checksum for DVB flute
@@ -9701,7 +9721,7 @@ recv_obj_timeout (uint, default: 50): set timeout period in ms before client res
 .br
 errsim (v2d, default: 0.0x100.0): simulate errors using a 2-state Markov chain. Value are percentages
 .br
-use_inband (bool, default: false): DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session
+use_inband (bool, default: false): send manifest and init segments in media transport sessions for MABR
 .br
 ssm (bool, default: false):    indicate source-specific multicast for DVB-MABR, requires ifce to be set
 .br
