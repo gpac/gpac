@@ -852,7 +852,8 @@ setup_multicast_clock:
 			if (root_url) root_url++;
 		}
 		else root_url = group->dash->base_url;
-		if (!strstr(root_url, "://")) root_url = "./";
+		//if no parent path use local
+		if (!strstr(root_url, "/")) root_url = "./";
 
 		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
 			u64 sr, seg_dur_ms;
