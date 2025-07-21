@@ -29,7 +29,7 @@ EXT="."$(EM_TYPE)
 PROG="gpac"$(EXT)
 
 #export default symbols and modularize as libgpac
-exports=-O$(EM_OPT) -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=libgpac -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,stackSave,stackRestore,stackAlloc,getValue,setValue,UTF8ToString,lengthBytesUTF8,stringToUTF8,cwrap,addFunction,allocateUTF8OnStack -sEXPORTED_FUNCTIONS=_malloc,_free,_main
+exports=-O$(EM_OPT) -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=libgpac -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,stackSave,stackRestore,getValue,setValue,UTF8ToString,lengthBytesUTF8,stringToUTF8,cwrap,addFunction -sEXPORTED_FUNCTIONS=_malloc,_free,_main
 ifeq ($(DISABLE_THREADS),no)
 LINKFLAGS+=$(exports),PThread -sPTHREAD_POOL_SIZE=1 -sPTHREAD_POOL_SIZE_STRICT=0
 else
