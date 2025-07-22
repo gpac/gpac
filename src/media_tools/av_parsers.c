@@ -16164,7 +16164,6 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 	/* fill some AC4 DSI info */
 	stream->ac4_dsi_version = 1;
 	if (stream->fs_index >= GF_ARRAY_LENGTH(AC4_SAMPLING_FREQ_TABLE)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] stream fs_index %d >= length AC4_SAMPLING_FREQ_TABLE\n", stream->fs_index));
 		gf_bs_seek(bs, pos);
 		return GF_FALSE;
 	}
@@ -16172,7 +16171,6 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 	if (stream->fs_index == 0) {
 
 		if (stream->frame_rate_index >= MIN(GF_ARRAY_LENGTH(AC4_SAMPLE_DELTA_TABLE_441), GF_ARRAY_LENGTH(AC4_MEDIA_TIMESCALE_441))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] stream frame_rate_index %d >= length AC4_SAMPLE_DELTA_TABLE_441 or AC4_MEDIA_TIMESCALE_441\n", stream->frame_rate_index));
 			gf_bs_seek(bs, pos);
 			return GF_FALSE;
 		}
@@ -16182,7 +16180,6 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 	} else {
 
 		if (stream->frame_rate_index >= MIN(GF_ARRAY_LENGTH(AC4_SAMPLE_DELTA_TABLE_48), GF_ARRAY_LENGTH(AC4_MEDIA_TIMESCALE_48))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] stream frame_rate_index %d >= length AC4_SAMPLE_DELTA_TABLE_48 or AC4_MEDIA_TIMESCALE_48\n", stream->frame_rate_index));
 			gf_bs_seek(bs, pos);
 			return GF_FALSE;
 		}
