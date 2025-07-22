@@ -766,7 +766,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				int size = 0;
 				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
 				u32 to_write = size - ctx->pck_offset;
-				if (to_write > ctx->avio_ctx->buffer_size)
+				if ((s32) to_write > ctx->avio_ctx->buffer_size)
 					to_write = ctx->avio_ctx->buffer_size;
 
 				avio_write(ctx->avio_ctx, data + ctx->pck_offset, to_write);

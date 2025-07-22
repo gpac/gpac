@@ -373,8 +373,8 @@ s32 oggpack_read(oggpack_buffer *b,s32 bits) {
 		/* not the main path */
 		ret=(u32) (-1);
 
-		gf_fatal_assert(b->endbyte <= GF_INT_MAX/8 - bits);
-		if(b->endbyte*8+bits>b->storage*8)goto overflow;
+		if(b->endbyte > b->storage-((bits+7)>>3)) goto overflow;
+		else if (!bits) return 0;
 	}
 
 	ret=b->ptr[0]>>b->endbit;
@@ -410,7 +410,8 @@ s32 oggpackB_read(oggpack_buffer *b,s32 bits) {
 	if(b->endbyte+4>=b->storage) {
 		/* not the main path */
 		ret=(u32) (-1);
-		if(b->endbyte*8+bits>b->storage*8)goto overflow;
+		if (b->endbyte > b->storage-((bits+7)>>3)) goto overflow;
+		else if (!bits) return 0;
 	}
 
 	ret = ((u32)b->ptr[0]) << (24+b->endbit);

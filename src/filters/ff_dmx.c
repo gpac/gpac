@@ -486,7 +486,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 					if (sleep_for > ctx->mwait.y) sleep_for = ctx->mwait.y;
 					if (sleep_for < ctx->mwait.x) sleep_for = ctx->mwait.x;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[FFDMX] empty (got %u pck) - sleeping for "LLU" ms\n", nb_pck, sleep_for ));
-					gf_filter_ask_rt_reschedule(filter, sleep_for*1000);
+					gf_filter_ask_rt_reschedule(filter, (u32) sleep_for*1000);
 					return GF_OK;
 				}
 				if (ctx->avio_ctx->eof_reached) {

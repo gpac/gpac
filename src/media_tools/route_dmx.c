@@ -225,6 +225,7 @@ struct __gf_routedmx {
 	u32 buffer_size;
 	u8 *unz_buffer;
 	u32 unz_buffer_size;
+	u32 max_obj_size;
 	//reordering time in us
 	u64 reorder_timeout_us;
 	Bool force_in_order;
@@ -447,6 +448,8 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
 	routedmx->reorder_timeout_us = 100000;
+	//50MB max per object - for 10s fragments, this gives 40 mbps which should be enough
+	routedmx->max_obj_size = 50000000;
 
 	routedmx->on_event = on_event;
 	routedmx->udta = udta;
@@ -1449,7 +1452,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			if (!strcmp(tr_sess->name, "PresentationManifestLocator") && !is_cfg_session) {
 				const char *trp_obj_uri = _xml_get_attr(tr_sess, "transportObjectURI");
 				tr_sess = gf_list_get(tr_sess->content, 0);
-				if (!tr_sess || !tr_sess->name) continue;
+				const char *mani_url = tr_sess ? tr_sess->name : NULL;
+				if (!mani_url && !trp_obj_uri) continue;
+
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
 					GF_LCTObject *obj = gf_list_get(parent_s->objects, i);
@@ -1458,7 +1463,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						//use URI indicated in transportObjectURI
 						(trp_obj_uri && !strcmp(obj->rlct_file->filename, trp_obj_uri))
 						//otherwise try to match using content type (repair url) - cf #3030 and DVB MABR A176 section 10.2.2.2.
-						|| !strcmp(obj->rlct_file->filename, tr_sess->name)
+						|| (tr_sess && !strcmp(obj->rlct_file->filename, tr_sess->name))
 					) {
 						mani_obj=obj;
 						break;
@@ -1651,7 +1656,15 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
 					GF_LCTObject *obj = gf_list_get(parent_s->objects, i);
+					Bool pl_match = GF_FALSE;
 					if (obj->rlct_file && !strcmp(obj->rlct_file->filename, trp_attr)) {
+						pl_match = GF_TRUE;
+					} else {
+						char *pl = obj->rlct_file ? strstr(obj->rlct_file->filename, trp_attr) : NULL;
+						if (pl && ((pl==obj->rlct_file->filename) || (pl[-1]=='/')) )
+							pl_match = GF_TRUE;
+					}
+					if (pl_match) {
 						obj->rlct = rlct;
 						obj->flute_type = GF_FLUTE_HLS_VARIANT;
 						break;
@@ -1983,6 +1996,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (ll_map) start_offset += ll_map->offset;
 
 		total_len = obj->total_length;
+	}
+
+	if ((total_len>routedmx->max_obj_size) || (start_offset>routedmx->max_obj_size)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u too big - size %u but max allowed size %u\n", s->log_name, toi, tsi, total_len>routedmx->max_obj_size ? total_len : start_offset, routedmx->max_obj_size));
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	if (!obj) {

@@ -984,7 +984,7 @@ GF_Err stbl_SetSampleCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 	gf_assert(ctts->unpack_mode);
 
 	//if we're setting the CTS of a sample we've skipped...
-	if (ctts->w_LastSampleNumber < sampleNumber) {
+	if ((sampleNumber > ctts->nb_entries) && (ctts->w_LastSampleNumber < sampleNumber)) {
 		//add some 0 till we get to the sample
 		while (ctts->w_LastSampleNumber + 1 != sampleNumber) {
 			GF_Err e = AddCompositionOffset(ctts, 0);
@@ -1205,7 +1205,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 				j++;
 				stts->entries[j].sampleCount = 1;
 				stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
-				gf_assert(stts->entries[j].sampleDelta);
+				gf_assert(stts->entries[j].sampleDelta || !DTSs[i+1]);
 				sampNum ++;
 			}
 		}
@@ -1684,19 +1684,21 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 		stsz->sampleSize = data_size;
 	} else {
 		u32 single_size;
+		Bool use_same_size=GF_TRUE;
 		stsz->sizes[stsz->sampleCount-1] += data_size;
 
 		single_size = stsz->sizes[0];
 		for (i=1; i<stsz->sampleCount; i++) {
 			if (stsz->sizes[i] != single_size) {
-				single_size = 0;
+				use_same_size = GF_FALSE;
 				break;
 			}
 		}
-		if (single_size) {
+		if (use_same_size) {
 			stsz->sampleSize = single_size;
 			gf_free(stsz->sizes);
 			stsz->sizes = NULL;
+			stsz->alloc_size = 0;
 		}
 	}
 	return GF_OK;

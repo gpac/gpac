@@ -822,6 +822,11 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		if (!p->cfg_ac3)
 		 	error = "<!--INVALID EC3 Entry: AC3Config not present in Audio Sample Description -->";
 		break;
+	case GF_ISOM_BOX_TYPE_AC4:
+        szName = "AC4SampleEntryBox";
+        if (!p->cfg_ac4)
+            error = "<!--INVALID AC4 Entry: AC4Config not present in Audio Sample Description -->";
+        break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		if (!p->cfg_mha)
@@ -5125,6 +5130,16 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dac4_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AC4ConfigBox *p = (GF_AC4ConfigBox *)a;
+	gf_isom_box_dump_start(a, "AC4SpecificBox", trace);
+	gf_fprintf(trace, "ac4_dsi_version=\"%d\" bitstream_version=\"%d\" fs_index=\"%d\" frame_rate_index=\"%d\" n_presentations=\"%d\">\n",
+		        p->cfg.stream.ac4_dsi_version, p->cfg.stream.bitstream_version, p->cfg.stream.fs_index, p->cfg.stream.frame_rate_index, p->cfg.stream.n_presentations);
+	gf_isom_box_dump_done("AC4SpecificBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err dmlp_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrueHDConfigBox *p = (GF_TrueHDConfigBox *)a;
@@ -6379,6 +6394,30 @@ GF_Err imir_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err txlo_box_dump(GF_Box *a, FILE *trace)
+{
+    GF_TextLayoutPropertyBox *ptr = (GF_TextLayoutPropertyBox *)a;
+    if (!a)
+        return GF_BAD_PARAM;
+    gf_isom_box_dump_start(a, "TextLayoutPropertyBox", trace);
+    gf_fprintf(trace, "reference_width=\"%d\" reference_height=\"%d\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" font_size=\"%d\" direction=\"%s\" writing_mode=\"%s\">\n",
+               ptr->reference_width, ptr->reference_height, ptr->x, ptr->y, ptr->width, ptr->height, ptr->font_size, ptr->direction, ptr->writing_mode);
+    gf_isom_box_dump_done("TextLayoutPropertyBox", a, trace);
+    return GF_OK;
+}
+
+GF_Err fnch_box_dump(GF_Box *a, FILE *trace)
+{
+    GF_FontCharacteristicsPropertyBox *ptr = (GF_FontCharacteristicsPropertyBox *)a;
+    if (!a)
+        return GF_BAD_PARAM;
+    gf_isom_box_dump_start(a, "FontCharacteristicsPropertyBox", trace);
+    gf_fprintf(trace, "font_family=\"%s\" font_style=\"%s\" font_weight=\"%s\">\n",
+               ptr->font_family, ptr->font_style, ptr->font_weight);
+    gf_isom_box_dump_done("FontCharacteristicsPropertyBox", a, trace);
+    return GF_OK;
+}
+
 GF_Err clli_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_ContentLightLevelBox *ptr = (GF_ContentLightLevelBox *)a;
@@ -7347,14 +7386,15 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 			if (res_len != GF_UTF8_FAIL) {
 				utf8str[res_len] = 0;
 
-				gf_fprintf(trace, " value=\"%s\">\n", utf8str);
+				gf_fprintf(trace, " value=\"%s\"", utf8str);
 			}
 			gf_free(utf8str);
 		} else {
 			gf_fprintf(trace, " value=\"");
 			dump_data_hex(trace, tag->prop_value, tag->prop_size);
-			gf_fprintf(trace, "\">\n");
+			gf_fprintf(trace, "\"");
 		}
+		gf_fprintf(trace, " />\n");
 	}
 	gf_isom_box_dump_done("XtraBox", a, trace);
 	return GF_OK;

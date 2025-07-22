@@ -70,7 +70,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
+	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, keepfiller, analyze, notime, refs;
 	u32 nal_length;
 	GF_GOPBufferingMode strict_poc;
 	u32 bsdbg;
@@ -2634,8 +2634,10 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 			memcpy(ctx->init_aud, data, 3);
 		}
 		break;
-	/*remove*/
 	case GF_HEVC_NALU_FILLER_DATA:
+		*skip_nal = !ctx->keepfiller;
+		break;
+	/*remove*/
 	case GF_HEVC_NALU_END_OF_SEQ:
 	case GF_HEVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
@@ -2839,8 +2841,10 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 			memcpy(ctx->init_aud, data, 3);
 		}
 		break;
-	/*remove*/
 	case GF_VVC_NALU_FILLER_DATA:
+		*skip_nal = !ctx->keepfiller;
+		break;
+	/*remove*/
 	case GF_VVC_NALU_END_OF_SEQ:
 	case GF_VVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
@@ -2940,8 +2944,10 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			memcpy(ctx->init_aud, data, 2);
 		}
 		return 1;
-	/*remove*/
 	case GF_AVC_NALU_FILLER_DATA:
+		*skip_nal = !ctx->keepfiller;
+		break;
+	/*remove*/
 	case GF_AVC_NALU_END_OF_SEQ:
 	case GF_AVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
@@ -4392,6 +4398,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(refs), "import sample reference picture list (currently only for HEVC and VVC)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keepfiller), "keep filler NAL units in output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 

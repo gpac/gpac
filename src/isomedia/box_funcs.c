@@ -844,6 +844,7 @@ ISOM_BOX_IMPL_DECL(ac3)
 ISOM_BOX_IMPL_DECL(ec3)
 ISOM_BOX_IMPL_DECL(dac3)
 ISOM_BOX_IMPL_DECL(dec3)
+ISOM_BOX_IMPL_DECL(dac4)
 ISOM_BOX_IMPL_DECL(dmlp)
 ISOM_BOX_IMPL_DECL(lsrc)
 ISOM_BOX_IMPL_DECL_CHILD(lsr1)
@@ -944,6 +945,8 @@ ISOM_BOX_IMPL_DECL_CHILD(trgr)
 ISOM_BOX_IMPL_DECL(trgt)
 ISOM_BOX_IMPL_DECL(ienc)
 ISOM_BOX_IMPL_DECL(iaux)
+ISOM_BOX_IMPL_DECL(txlo)
+ISOM_BOX_IMPL_DECL(fnch)
 
 /* MIAF declarations */
 ISOM_BOX_IMPL_DECL(clli)
@@ -1228,7 +1231,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MFRA, mfra, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MFRO, mfro, "mfra", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFRA, tfra, "mfra", 1),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
@@ -1496,6 +1499,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TXLO, txlo, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_FNCH, fnch, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IENC, ienc, "ipco", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
 
@@ -1708,6 +1713,7 @@ static struct box_registry_entry {
 	//dolby boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
+	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AC4, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3 wave enca", "dolby"),
 	{GF_ISOM_BOX_TYPE_DEC3, dec3_box_new, dac3_box_del, dac3_box_read,
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1717,6 +1723,7 @@ static struct box_registry_entry {
 		dac3_box_dump,
 #endif
 		0, 0, 0, "ec-3 wave enca", "dolby" },
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DAC4, dac4, "ac-4 wave enca", "dolby"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvav dva1 dvhe dvh1 dav1 avc1 avc2 avc3 avc4 hev1 hvc1 av01 encv resv", "DolbyVision"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVVC, dvvC, "dvav dva1 dvhe dvh1 dav1 avc1 avc2 avc3 avc4 hev1 hvc1 av01 encv resv", "DolbyVision"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DVHE, video_sample_entry, "stsd", "DolbyVision"),

@@ -120,7 +120,7 @@ INSTFLAGS=""
 is_64="no"
 is_em="no"
 is_emcfg="no"
-has_remotery="yes"
+has_rmtws="yes"
 em_type="js"
 em_size="0"
 fatal_assert="no"
@@ -278,6 +278,7 @@ push_feature "mp4mx" "*MP4/QT muxer"
 push_feature "fout" "*File output"
 push_feature "pout" "*Pipe output"
 push_feature "rfac3" "*AC3 parser"
+push_feature "rfac4" "*AC4 parser"
 push_feature "rfadts" "*ADTS parser"
 push_feature "rfamr" "*AMR parser"
 push_feature "rfav1" "*AV1/VP9 parser"
@@ -300,6 +301,7 @@ push_feature "restamp" "*Restamper"
 push_feature "rewind" "*Reverse playback"
 push_feature "ufaac" "*ADTS and LATM rewriter"
 push_feature "ufmhas" "*MPEG-H Audio rewriter"
+push_feature "ufac4" "*AC4 Audio rewriter"
 push_feature "ufm4v" "*MPEG 1/2/4 and VC1 video rewriter"
 push_feature "ufnalu" "*NALU-based video rewriter"
 push_feature "ufobu" "*AV1/VP9 video rewriter"
@@ -409,7 +411,7 @@ GPAC core configuration:
   --enable-fixed-point     enable fixed-point math
   --disable-ipv6           disable IPV6 support
   --enable-mem-track       enable tracking of all memory allocated by gpac
-  --disable-remotery       disable Remotery support
+  --disable-rmtws          disable the websocket monitoring server
   --disable-x11            disable X11
   --disable-x11-shm        disable X11 shared memory support
   --disable-x11-xv         disable X11 Xvideo support
@@ -693,7 +695,7 @@ for opt do
             ;;
         --enable-mem-track) use_memory_tracking="yes"
             ;;
-        --disable-remotery) has_remotery="no"
+        --disable-rmtws) has_rmtws="no"
             ;;
         --disable-x11) append disabled_packages "x11"
             ;;
@@ -759,7 +761,7 @@ if test "$is_em" = "yes" ; then
         echo "Emscripten missing PKG_CONFIG_PATH, disabling pkg-config"
         pkg_config="no"
     fi
-    has_remotery="no"
+    has_rmtws="no"
 
     #to refine
     append disabled_packages "freenect platinum vtb oss alsa jack pulseaudio directfb x11 dvb4linux directx"
@@ -2836,8 +2838,8 @@ else
 fi
 echo "CONFIG_FT=$has_freetype" >> config.mak
 
-if test "$has_remotery" = "no" ; then
-    echo "#define GPAC_DISABLE_REMOTERY" >> $TMPH
+if test "$has_rmtws" = "no" ; then
+    echo "#define GPAC_DISABLE_RMTWS" >> $TMPH
 fi
 
 

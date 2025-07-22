@@ -34,7 +34,7 @@ LOCAL_LDLIBS    += -lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFo
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO
 LOCAL_CFLAGS += -DGPAC_CONFIG_ANDROID
-LOCAL_CFLAGS += -DGPAC_DISABLE_REMOTERY
+LOCAL_CFLAGS += -DGPAC_DISABLE_RMTWS
 #for now QJS libc is disabled on android
 LOCAL_CFLAGS += -DGPAC_DISABLE_QJS_LIBC
 
@@ -235,6 +235,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
+	../../../../src/filters/reframe_ac4.c \
 	../../../../src/filters/reframe_adts.c \
 	../../../../src/filters/reframe_amr.c \
 	../../../../src/filters/reframe_av1.c \
@@ -255,6 +256,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/resample_audio.c \
 	../../../../src/filters/restamp.c \
 	../../../../src/filters/rewind.c \
+	../../../../src/filters/rewrite_ac4.c \
 	../../../../src/filters/rewrite_adts.c \
 	../../../../src/filters/rewrite_mhas.c \
 	../../../../src/filters/rewrite_mp4v.c \
@@ -430,6 +432,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/path2d.c \
 	../../../../src/utils/path2d_stroker.c \
+	../../../../src/utils/rmt_ws.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/sha256.c \
 	../../../../src/utils/md5.c \

@@ -3322,7 +3322,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	u32 size;
 
 	burl = gf_blob_register(&b);
-	gf_sys_profiler_set_callback(NULL, NULL);
 
 	gf_blob_get(burl, &data, &size, NULL);
 	gf_blob_unregister(&b);
@@ -3579,7 +3578,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_audio_fmt_to_isobmf(0);
 	gf_pixel_fmt_probe(0, NULL);
 	gf_net_ntp_to_utc(0);
-	gf_sys_profiler_sampling_enabled();
 
 
 #endif

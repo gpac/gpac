@@ -49,7 +49,7 @@ GF_OPT_ENUM (GF_VttHeaderInjectionMode,
 typedef struct
 {
 	//opts
-	Bool exporter, frame, split, merge_region, add_nl;
+	Bool exporter, frame, split, merge_region, add_nl, rawb;
 	u32 sstart, send;
 	GF_VttHeaderInjectionMode vtth;
 	u32 pfmt, afmt;
@@ -1664,6 +1664,14 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1"),
 	{0},
 
+	//we accept unframed AC4 without sync word and size
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "ac4"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/x-ac4|audio/ac4"),
+	{0},
+
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -2011,6 +2019,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- seg: inject at each non-empty segment\n"
 	"- all: inject at each segment even empty ones", GF_PROP_UINT, "seg", "single|seg|all", 0},
 	{ OFFS(add_nl), "add new line after each packet when dumping text streams", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(rawb), "force direct dump of input without framing rewrite. In this mode, all codec types are supported", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2058,7 +2067,7 @@ static const GF_FilterCapability FrameDumpCaps[] =
 static GF_Err writegen_initialize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
-	if (ctx->frame) {
+	if (ctx->frame || ctx->rawb) {
 		return gf_filter_override_caps(filter, (const GF_FilterCapability *) FrameDumpCaps, sizeof(FrameDumpCaps) / sizeof(GF_FilterCapability));
 	}
 	return GF_OK;

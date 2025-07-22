@@ -629,7 +629,7 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 {
 	NodeIDedItem *reg_node = sg->id_node;
 	if (!reg_node) return;
-	
+
 	if (reg_node->node==node) {
 		sg->id_node = reg_node->next;
 		if (sg->id_node_last==reg_node)
@@ -2085,7 +2085,7 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 {
 	s32 res = -1;
 
-	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
+	if (!node || !node->sgprivate || node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag == TAG_ProtoNode) {
 		res = gf_sg_proto_get_field_index_by_name(NULL, node, name);
@@ -2253,7 +2253,7 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 
 	GF_SAFEALLOC(ns, GF_XMLNS);
 	if (!ns) return GF_OUT_OF_MEM;
-	
+
 	ns->xmlns_id = id ? id : gf_crc_32(name, (u32) strlen(name));
 	ns->name = gf_strdup(name);
 

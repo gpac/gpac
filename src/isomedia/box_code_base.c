@@ -4089,6 +4089,9 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_DEC3:
 		BOX_FIELD_ASSIGN(cfg_ac3, GF_AC3ConfigBox)
 		break;
+	case GF_ISOM_BOX_TYPE_DAC4:
+		BOX_FIELD_ASSIGN(cfg_ac4, GF_AC4ConfigBox)
+		break;
 	case GF_ISOM_BOX_TYPE_DMLP:
 		BOX_FIELD_ASSIGN(cfg_mlp, GF_TrueHDConfigBox)
 		break;
@@ -4158,6 +4161,10 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		else if (s->type == GF_ISOM_BOX_TYPE_EC3) {
 			cfg_ptr = (GF_Box **) &ptr->cfg_ac3;
 			subtype = GF_ISOM_BOX_TYPE_DEC3;
+		}
+		else if (s->type == GF_ISOM_BOX_TYPE_AC4) {
+			cfg_ptr = (GF_Box **) &ptr->cfg_ac4;
+			subtype = GF_ISOM_BOX_TYPE_DAC4;
 		}
 		else if (s->type == GF_ISOM_BOX_TYPE_OPUS) {
 			cfg_ptr = (GF_Box **) &ptr->cfg_opus;
@@ -6961,6 +6968,7 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_OPUS:
 		case GF_ISOM_BOX_TYPE_AC3:
 		case GF_ISOM_BOX_TYPE_EC3:
+		case GF_ISOM_BOX_TYPE_AC4:
 		case GF_QT_SUBTYPE_RAW_AUD:
 		case GF_QT_SUBTYPE_TWOS:
 		case GF_QT_SUBTYPE_SOWT:
@@ -9197,6 +9205,67 @@ GF_Err dac3_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+GF_Box *dac4_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AC4ConfigBox, GF_ISOM_BOX_TYPE_DAC3);
+	return (GF_Box *)tmp;
+}
+
+void dac4_box_del(GF_Box *s)
+{
+	GF_AC4ConfigBox *ptr = (GF_AC4ConfigBox *)s;
+	gf_odf_ac4_cfg_clean_list(&ptr->cfg);
+	gf_free(ptr);
+}
+
+
+GF_Err dac4_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u64 pos;
+	GF_AC4ConfigBox *ptr = (GF_AC4ConfigBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+
+	pos = gf_bs_get_position(bs);
+	e = gf_odf_ac4_cfg_parse_bs(bs, &ptr->cfg);
+	if (e) return e;
+
+	pos = gf_bs_get_position(bs) - pos;
+	ISOM_DECREASE_SIZE(ptr, pos);
+
+	//the rest is reserved
+	gf_bs_skip_bytes(bs, ptr->size);
+	ptr->size = 0;
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err dac4_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AC4ConfigBox *ptr = (GF_AC4ConfigBox *)s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	e = gf_odf_ac4_cfg_write_bs(&ptr->cfg, bs);
+	if (e) return e;
+
+	return GF_OK;
+}
+
+GF_Err dac4_box_size(GF_Box *s)
+{
+	GF_AC4ConfigBox *ptr = (GF_AC4ConfigBox *)s;
+
+	s->size += gf_odf_ac4_cfg_size(&ptr->cfg);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void lsrc_box_del(GF_Box *s)
@@ -14496,7 +14565,7 @@ GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 			continue;
 		ISOM_DECREASE_SIZE(s, bits/8)
 		ent->nb_refs = gf_bs_read_int(bs, bits);
-		if (ent->nb_refs * bits / 8 > s->size) return GF_ISOM_INVALID_FILE;
+		if (ent->nb_refs > s->size * 8 / bits) return GF_ISOM_INVALID_FILE;
 		if (ent->nb_refs) {
 			u32 j;
 			ent->sample_refs = gf_malloc(sizeof(u32) * ent->nb_refs);

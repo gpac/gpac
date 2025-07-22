@@ -51,7 +51,7 @@ typedef struct
 	char *dst, *ext, *mime, *ifce, *ip;
 	u32 carousel, first_port, bsid, mtu, ttl, brinc, runfor;
 	LCTChannelSplitMode splitlct;
-	Bool korean, llmode, noreg, nozip, furl, flute, use_inband, ssm;
+	Bool korean, llmode, noreg, nozip, flute, use_inband, ssm;
 	DVBFluteChecksumMode csum;
 	u32 recv_obj_timeout;
 
@@ -167,6 +167,7 @@ typedef struct
 	//storage for main manifest - all manifests (including HLS sub-playlists) are sent in the same PID
 	//HLS sub-playlists are stored on their related PID to be pushed at each new seg
 	char *manifest, *manifest_name, *manifest_mime, *manifest_server, *manifest_url;
+	char *service_base_uri;
 	u32 manifest_version, manifest_crc;
 	//TOI for manifest in FLUTE mode
 	u32 manifest_toi;
@@ -444,6 +445,7 @@ void routeout_delete_service(ROUTEService *serv)
 	if (serv->manifest_alt_server) gf_free(serv->manifest_alt_server);
 	if (serv->manifest_alt_url) gf_free(serv->manifest_alt_url);
 	if (serv->manifest_alt) gf_free(serv->manifest_alt);
+	if (serv->service_base_uri) gf_free(serv->service_base_uri);
 
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	if (serv->service_name) gf_free(serv->service_name);
@@ -1175,6 +1177,13 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						if (*manifest_mime) gf_free(*manifest_mime);
 						*manifest_mime = gf_strdup(p->value.string);
 					}
+
+					if (serv->service_base_uri) gf_free(serv->service_base_uri);
+					serv->service_base_uri = gf_strdup("tag:mabr.gpac.io.2025.services.");
+					char szTmp[100];
+					char *name = *manifest_url ? *manifest_url : *manifest_name;
+					sprintf(szTmp, "%u", gf_crc_32(name, (u32) strlen(name)) );
+					gf_dynstrcat(&serv->service_base_uri, szTmp, NULL);
 				}
 			}
 			gf_filter_pid_drop_packet(rpid->pid);
@@ -1595,7 +1604,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 #include <gpac/base_coding.h>
 
-static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEService *serv, char *url, char *mime, const u8 *data, u32 size, u32 TOI, Bool use_full_url)
+static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEService *serv, char *url, char *mime, const u8 *data, u32 size, u32 TOI)
 {
 	char tmp[100];
 	gf_dynstrcat(payload, "<File FEC-OTI-FEC-Encoding-ID=\"0\" FEC-OTI-Maximum-Source-Block-Length=\"65535\" Content-Length=\"", NULL);
@@ -1604,13 +1613,17 @@ static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEServi
 	gf_dynstrcat(payload, "\" Transfer-Length=\"", NULL);
 	gf_dynstrcat(payload, tmp, NULL);
 	gf_dynstrcat(payload, "\" Content-Location=\"", NULL);
-	if (use_full_url && serv && serv->manifest_server) {
-		gf_dynstrcat(payload, serv->manifest_server, NULL);
-		gf_dynstrcat(payload, serv->manifest_url, "/");
+
+	Bool use_full_url = GF_TRUE;
+	if (!serv && (TOI==ctx->dvb_mabr_config_toi))
+		use_full_url = GF_FALSE;
+
+	if (use_full_url && serv) {
+		gf_dynstrcat(payload, serv->service_base_uri, NULL);
+		gf_dynstrcat(payload, url, "/");
+	} else
 		gf_dynstrcat(payload, url, NULL);
-	} else {
-		gf_dynstrcat(payload, url, NULL);
-	}
+
 	gf_dynstrcat(payload, "\" Content-Type=\"", NULL);
 	gf_dynstrcat(payload, mime, NULL);
 	gf_dynstrcat(payload, "\" FEC-OTI-Encoding-Symbol-Length=\"", NULL);
@@ -1648,7 +1661,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		ctx->next_toi_avail++;
 	}
 	//TS 103 769 section 8.3.5
-	inject_fdt_file_desc(ctx, &payload, NULL, "urn:dvb:metadata:cs:MulticastTransportObjectTypeCS:2021:gateway-configuration", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi, GF_FALSE);
+	inject_fdt_file_desc(ctx, &payload, NULL, "urn:dvb:metadata:cs:MulticastTransportObjectTypeCS:2021:gateway-configuration", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi);
 
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
@@ -1661,7 +1674,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				serv->manifest_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name, serv->manifest_mime, serv->manifest, len, serv->manifest_toi, ctx->furl);
+			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name, serv->manifest_mime, serv->manifest, len, serv->manifest_toi);
 
 			//inject alt manifest
 			if (serv->manifest_alt) {
@@ -1670,7 +1683,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					serv->manifest_alt_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime, serv->manifest_alt, len, serv->manifest_alt_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime, serv->manifest_alt, len, serv->manifest_alt_toi);
 			}
 		}
 
@@ -1689,7 +1702,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				} else {
 					mime = "application/octet-string";
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, &payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi);
 				continue;
 			}
 
@@ -1698,14 +1711,14 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					pid->init_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, &payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi);
 			}
 			if (pid->hld_child_pl) {
 				if (!pid->hls_child_toi) {
 					pid->hls_child_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi);
 			}
 		}
 	}
@@ -2252,8 +2265,7 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 			ctx->next_toi_avail++;
 		}
 		inject_fdt_file_desc(ctx, payload, serv, serv->manifest_name, serv->manifest_mime,
-			serv->manifest, len, serv->manifest_toi, ctx->furl
-		);
+			serv->manifest, len, serv->manifest_toi);
 
 		if (serv->manifest_alt) {
 			len = (u32) strlen(serv->manifest_alt);
@@ -2262,8 +2274,7 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 				ctx->next_toi_avail++;
 			}
 			inject_fdt_file_desc(ctx, payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime,
-				serv->manifest_alt, len, serv->manifest_alt_toi, ctx->furl
-			);
+				serv->manifest_alt, len, serv->manifest_alt_toi);
 		}
 	}
 
@@ -2284,7 +2295,7 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 			} else {
 				mime = "application/octet-string";
 			}
-			inject_fdt_file_desc(ctx, payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
+			inject_fdt_file_desc(ctx, payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi);
 			continue;
 		}
 
@@ -2293,14 +2304,14 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 				pid->init_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+			inject_fdt_file_desc(ctx, payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi);
 		}
 		if (pid->hld_child_pl) {
 			if (!pid->hls_child_toi) {
 				pid->hls_child_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
+			inject_fdt_file_desc(ctx, payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi);
 		}
 	}
 }
@@ -2339,7 +2350,7 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 	} else {
 		seg_name = rpid->seg_name;
 	}
-	inject_fdt_file_desc(ctx, &payload, serv, seg_name, "video/mp4", pck_data, rpid->pck_size, rpid->current_toi, ctx->furl);
+	inject_fdt_file_desc(ctx, &payload, serv, seg_name, "video/mp4", pck_data, rpid->pck_size, rpid->current_toi);
 	gf_dynstrcat(&payload, "</FDT-Instance>", NULL);
 
 	if (payload) {
@@ -2910,6 +2921,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 
 
 	for (i=0; i<count; i++) {
+		u32 k;
 		const GF_PropertyValue *p;
 		ROUTEPid *rpid;
 		ROUTEService *serv = gf_list_get(ctx->services, i);
@@ -2917,6 +2929,10 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 
 		u32 sid = serv->service_id;
 		if (!sid) sid = 1;
+
+		const GF_PropertyValue *alt_base_urls = NULL;
+		Bool skip_source_repair = GF_FALSE;
+		Bool use_repair = GF_FALSE;
 
 		rpid = gf_list_get(serv->pids, 0);
 		gf_dynstrcat(&payload_text, "<MulticastSession serviceIdentifier=\"", NULL);
@@ -2928,9 +2944,36 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		gf_dynstrcat(&payload_text, ">\n", NULL);
 
+		alt_base_urls = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MABR_URLS);
+		if (alt_base_urls) {
+			for (k=0; k<alt_base_urls->value.string_list.nb_items; k++) {
+				char *src = strchr(alt_base_urls->value.string_list.vals[k], ';');
+				if (!src) src = alt_base_urls->value.string_list.vals[k];
+				else src++;
+				if (stricmp(src, "src")) continue;
+				if (alt_base_urls->value.string_list.vals[k][0] != '-') continue;
+				skip_source_repair=GF_TRUE;
+				if (alt_base_urls->value.string_list.nb_items==1) {
+					alt_base_urls = NULL;
+				}
+				break;
+			}
+		}
+
+		//inject source by default ?
+		if (serv->manifest_server && !strstr(serv->manifest_server, "mabr://")) {
+			if (!skip_source_repair) use_repair = GF_TRUE;
+		} else {
+			skip_source_repair = GF_TRUE;
+
+		}
+		if (alt_base_urls)
+			use_repair = GF_TRUE;
+
 		if (serv->manifest_type & 1) {
 			char *man_uri = NULL;
 			char *man_url = NULL;
+			//build URL, don't forget the port
 			if (serv->manifest_server) {
 				gf_dynstrcat(&man_url, serv->manifest_server, NULL);
 				if (serv->manifest_server_port) {
@@ -2940,15 +2983,12 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				}
 				gf_dynstrcat(&man_url, serv->manifest_url, "/");
 				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
-				if (ctx->furl) {
-					gf_dynstrcat(&man_uri, serv->manifest_server, NULL);
-					gf_dynstrcat(&man_uri, serv->manifest_url, "/");
-					gf_dynstrcat(&man_uri, serv->manifest_name, NULL);
-				}
 			} else {
 				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
 			}
-			if (!man_uri) man_uri = gf_strdup(serv->manifest_name);
+			//build URI
+			gf_dynstrcat(&man_uri, serv->service_base_uri, NULL);
+			gf_dynstrcat(&man_uri, serv->manifest_name, "/");
 
 			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
 			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
@@ -2960,7 +3000,9 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			gf_dynstrcat(&payload_text, man_uri, NULL);
 			gf_dynstrcat(&payload_text, "\">", NULL);
 			//we set as content the original location
-			gf_dynstrcat(&payload_text, man_url, NULL);
+			if (!skip_source_repair)
+				gf_dynstrcat(&payload_text, man_url, NULL);
+
 			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
 			gf_free(man_uri);
 			gf_free(man_url);
@@ -2989,17 +3031,14 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 					sprintf(szPort, ":%u", manifest_port);
 					gf_dynstrcat(&man_url, szPort, NULL);
 				}
-				gf_dynstrcat(&man_url, serv->manifest_url, "/");
-				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
-				if (ctx->furl) {
-					gf_dynstrcat(&man_uri, manifest_server, NULL);
-					gf_dynstrcat(&man_uri, manifest_url, "/");
-					gf_dynstrcat(&man_uri, manifest_name, NULL);
-				}
+				gf_dynstrcat(&man_url, manifest_url, "/");
+				gf_dynstrcat(&man_url, manifest_name, NULL);
 			} else {
 				gf_dynstrcat(&man_url, manifest_name, NULL);
 			}
-			if (!man_uri) man_uri = gf_strdup(manifest_name);
+
+			gf_dynstrcat(&man_uri, serv->service_base_uri, NULL);
+			gf_dynstrcat(&man_uri, manifest_name, "/");
 
 			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
 			sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
@@ -3010,7 +3049,8 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"", NULL);
 			gf_dynstrcat(&payload_text, man_uri, NULL);
 			gf_dynstrcat(&payload_text, "\">", NULL);
-			gf_dynstrcat(&payload_text, man_url, NULL);
+			if (!skip_source_repair)
+				gf_dynstrcat(&payload_text, man_url, NULL);
 			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
 			gf_free(man_uri);
 			gf_free(man_url);
@@ -3055,9 +3095,55 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			sprintf(tmp, "<BitRate average=\"%u\" maximum=\"%u\"/>\n", rpid->bitrate, rpid->bitrate);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
-			// Insert UnicastRepairParameters
-			sprintf(tmp, "<UnicastRepairParameters transportObjectReceptionTimeout=\"%u\" fixedBackOffPeriod=\"10\" randomBackOffPeriod=\"20\"/>\n", ctx->recv_obj_timeout);
-			gf_dynstrcat(&payload_text, tmp, NULL);
+
+			if (use_repair) {
+				sprintf(tmp, "<UnicastRepairParameters transportObjectReceptionTimeout=\"%u\" fixedBackOffPeriod=\"10\" randomBackOffPeriod=\"20\" transportObjectBaseURI=\"", ctx->recv_obj_timeout);
+				gf_dynstrcat(&payload_text, tmp, NULL);
+				gf_dynstrcat(&payload_text, serv->service_base_uri, NULL);
+				gf_dynstrcat(&payload_text, "\">\n", NULL);
+
+				Bool self_found = GF_FALSE;
+				u32 nb_alts = alt_base_urls ? alt_base_urls->value.string_list.nb_items : 0;
+				for (k=0; k<nb_alts; k++) {
+					s32 weight=1;
+					Bool is_self=GF_FALSE;
+					char *src = alt_base_urls->value.string_list.vals[k];
+					char *ssep = strchr(src, ';');
+					if (ssep) {
+						ssep[0]=0;
+						weight=atoi(src);
+						ssep[0]=';';
+						src = ssep+1;
+					}
+					if (!stricmp(src, "src")) {
+						self_found = GF_TRUE;
+						if (skip_source_repair) continue;
+						src = serv->manifest_server;
+						is_self=GF_TRUE;
+					}
+					if (weight<0) continue;
+
+					gf_dynstrcat(&payload_text, "<BaseURL", NULL);
+					if (weight!=1) {
+						char szW[100];
+						sprintf(szW, " relativeWeight=\"%u\"", weight);
+						gf_dynstrcat(&payload_text, szW, NULL);
+					}
+					if (is_self) {
+						gf_dynstrcat(&payload_text, serv->manifest_server, ">");
+						gf_dynstrcat(&payload_text, serv->manifest_url, "/");
+					} else {
+						gf_dynstrcat(&payload_text, src, ">");
+					}
+					gf_dynstrcat(&payload_text, "</BaseURL>\n", NULL);
+				}
+				if (!skip_source_repair && !self_found && serv->manifest_server && !strstr(serv->manifest_server, "mabr://")) {
+					gf_dynstrcat(&payload_text, serv->manifest_server, "<BaseURL>");
+					gf_dynstrcat(&payload_text, serv->manifest_url, "/");
+					gf_dynstrcat(&payload_text, "</BaseURL>\n", NULL);
+				}
+				gf_dynstrcat(&payload_text, "</UnicastRepairParameters>\n", NULL);
+			}
 
 			//HLS
 			if (serv->manifest_type&2) {
@@ -3066,7 +3152,8 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				gf_dynstrcat(&payload_text, tmp, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
 				gf_dynstrcat(&payload_text, " xsi:type=\"HLSComponentIdentifierType\" mediaPlaylistLocator=\"", NULL);
-				gf_dynstrcat(&payload_text, rpid->hld_child_pl_name, NULL);
+				gf_dynstrcat(&payload_text, serv->service_base_uri, NULL);
+				gf_dynstrcat(&payload_text, rpid->hld_child_pl_name, "/");
 				gf_dynstrcat(&payload_text, "\"", NULL);
 				gf_dynstrcat(&payload_text, "/>\n", NULL);
 			}
@@ -3340,7 +3427,6 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 
 	{ OFFS(runfor), "run for the given time in ms", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(nozip), "do not zip signaling package (STSID+manifest)", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(furl), "inject full URLs of source service in the signaling instead of stripped server path", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(flute), "use flute for DVB-MABR object delivery", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(csum), "send MD5 checksum for DVB flute\n"
 		"- no: do not send checksum\n"
@@ -3348,7 +3434,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
 	{ OFFS(recv_obj_timeout), "set timeout period in ms before client resorts to unicast repair", GF_PROP_UINT, "50", NULL, 0},
 	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
-	{ OFFS(use_inband), "DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(use_inband), "send manifest and init segments in media transport sessions for MABR", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(ssm), "indicate source-specific multicast for DVB-MABR, requires `ifce` to be set", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
@@ -3428,11 +3514,19 @@ GF_FilterRegister ROUTEOutRegister = {
 		"\n"
 		"# DVB-MABR mode\n"
 		"In this mode, the filter allows multiple service multiplexing, identified through the `ServiceID` and `ServiceName` properties.\n"
-		"Note: [-ip]() and [-first_port]() are used to send the multicast gateway configuration, init segments and manifests. [-first_port]() is used only if no port is specified in [-dst]().\n"
+		"Note: [-ip]() and [-first_port]() are used to send the multicast gateway configuration. [-first_port]() is used only if no port is specified in [-dst]().\n"
 		"\n"
-		"The session will carry DVB-MABR gateway configuration, maifests and init segments on `TSI=1`\n"
+		"The session will carry DVB-MABR gateway configuration, maifests and init segments on `TSI=1`. The [-use_inband]() option can be used to send manifests and init segments in media multicast sessions.\n"
 		"\n"
 		"The FLUTE session always uses a symbol length of [-mtu]() minus 44 bytes.\n"
+		"\n"
+		"The `MABRBaseURLs` property can be set on sources to declare a list of alternate repair servers to be injected.\n"
+		"Each base URL can be prefixed with `N;`, where `N` gives the relative weight of the server, a negative value skipping the server.\n"
+		"The special value `src` is used to indicate the source of the session.\n"
+		"EX gpac -i HTTP_MPD_URL:gpac::#MABRBaseURLs=-1;src,SOME_ALT_URL dashin:forward=file -o mabr://225.0.0.1:1234/\n"
+		"This will forward the source DASH session to multicast and:\n"
+		"- hide the source server as a repair URL\n"
+		"- add `SOME_ALT_URL` as a repair URL\n"
 		"\n"
 		"# Low latency mode\n"
 		"When using low-latency mode (-llmode)(), the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"

@@ -235,6 +235,7 @@ static struct log_tool_info {
 	{ GF_LOG_ROUTE, "route", GF_LOG_WARNING, .alt = "flute" },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
+	{ GF_LOG_RMTWS, "rmtws", GF_LOG_WARNING },
 };
 
 #define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)
@@ -1522,6 +1523,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_RFAC3
 	                       "GPAC_DISABLE_RFAC3 "
 #endif
+#ifdef GPAC_DISABLE_RFAC4
+	                       "GPAC_DISABLE_RFAC4 "
+#endif
 #ifdef GPAC_DISABLE_RFADTS
 	                       "GPAC_DISABLE_RFADTS "
 #endif
@@ -1587,6 +1591,9 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_UFMHAS
 	                       "GPAC_DISABLE_UFMHAS "
+#endif
+#ifdef GPAC_DISABLE_UFAC4
+	                       "GPAC_DISABLE_UFAC4 "
 #endif
 #ifdef GPAC_DISABLE_UFM4V
 	                       "GPAC_DISABLE_UFM4V "

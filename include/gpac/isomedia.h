@@ -279,6 +279,7 @@ enum
 
 	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
 	GF_ISOM_SUBTYPE_EC3			= GF_4CC( 'e', 'c', '-', '3' ),
+	GF_ISOM_SUBTYPE_AC4			= GF_4CC( 'a', 'c', '-', '4' ),
 	GF_ISOM_SUBTYPE_MP3			= GF_4CC( '.', 'm', 'p', '3' ),
 	GF_ISOM_SUBTYPE_MLPA		= GF_4CC( 'm', 'l', 'p', 'a' ),
 
@@ -3932,6 +3933,37 @@ GF_Err gf_isom_ac3_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+/*! gets an AC4 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return AC-4 config
+*/
+GF_AC4Config *gf_isom_ac4_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! creates an AC4 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the AC4 config for this sample description
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_ac4_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC4Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! updates an AC4 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param cfg the AC4 config for this sample description
+\return error if any
+*/
+GF_Err gf_isom_ac4_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AC4Config *cfg);
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 /*! gets TrueHD  sample description info
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -6495,6 +6527,24 @@ GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *isom_file, Bool root_meta, u32 
 */
 GF_Err gf_isom_add_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *image_props);
 
+/*! adds an item to a meta box from file (same as \ref gf_isom_add_meta_item but outputs the item's id in io_item_id)
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param self_reference if GF_TRUE, indicates that the item is in fact the entire container file
+\param resource_path path to the file to add
+\param item_name name of the item
+\param io_item_id pointer to the item's id. If the pointed value is 0 or the same as an existing item, it is set to the item's newly attributed id
+\param item_type four character code of item type
+\param mime_type mime type of the item, can be NULL
+\param content_encoding content encoding of the item, can be NULL
+\param URL URL of the item for external data reference (data is not contained in meta parent file)
+\param URN URN of the item for external data reference (data is not contained in meta parent file)
+\param image_props image properties information for image items
+\return error if any
+*/
+GF_Err gf_isom_add_meta_item2(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 *io_item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *image_props);
+
 #endif //GPAC_DISABLE_ISOM
 
 /*! item extend description*/
@@ -6925,7 +6975,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 \param data tag data buffer or string to parse
 \param data_len size of the tag data buffer. If data is NULL and and data_len not  0, removes the given tag
 \param int_val value for integer/boolean tags. If data and data_len are set, parse data as string  to get the value
-\param int_val2 value for fractional  tags. If data and data_len are set, parse data as string to get the value
+\param int_val2 value for fractional tags. If data and data_len are set, parse data as string to get the value
 \param name domain name of tag, ignores for_tag if not null
 \param mean mean of tag, ignores for_tag if not null
 \param locale locale of tag, ignored if name and mean are null
