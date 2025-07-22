@@ -593,11 +593,12 @@ static Bool gf_isom_fdm_check_top_level(GF_FileDataMap *ptr)
 	u32 type = gf_bs_peek_bits(ptr->bs, 32, 4);
 	//no size: either range is invalid or the box extends till end of blob
 	if (!size)
-		size = ptr->blob->size - fileOffset;
+		size = ptr->blob->size - (u32) fileOffset;
 
 	if ((type==GF_ISOM_BOX_TYPE_MDAT) || (type==GF_ISOM_BOX_TYPE_IDAT)) {
 		size = 8;
 	}
+
 	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, size);
 	gf_mx_v(ptr->blob->mx);
 	if (rs==GF_BLOB_RANGE_IN_TRANSFER)

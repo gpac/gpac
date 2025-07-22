@@ -137,7 +137,7 @@ typedef struct
 	//hold the frame until its CTS is reached, triggering drops at capture time
 	u32 raw_grab;
 	GF_DisplayOrientationType screen_orientation;
-	
+
 #ifdef VOUT_USE_OPENGL
 	GLint glsl_program;
 	GF_SHADERID vertex_shader;
@@ -434,7 +434,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p && p->value.uint) {
 		if (ctx->buffer < p->value.uint) ctx->buffer = p->value.uint;
 	}
-	
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
 	ctx->raw_grab = p ? p->value.uint : 0;
 
@@ -1824,7 +1824,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 		return ctx->aborted ? GF_EOS : GF_OK;
 	}
-	
+
 	if (!ctx->width || !ctx->height) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display wsize unknown, discarding packet\n"));
 		gf_filter_pid_drop_packet(ctx->pid);
@@ -2168,10 +2168,8 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 	if ((ctx->pfmt && ctx->last_pck) || !ctx->pid || ctx->update_oldata) {
 #ifdef VOUT_USE_OPENGL
 		if (ctx->disp < MODE_2D) {
-			gf_rmt_begin_gl(vout_draw_gl);
 			glGetError();
 			vout_draw_gl(ctx, ctx->last_pck);
-			gf_rmt_end_gl();
 			glGetError();
 		} else
 #endif

@@ -2065,6 +2065,17 @@ SE set track position in track list, 1 being first track in file
 CE add track as external track
 .br
 .TP
+.B times (string)
+.br
+SE modify timestamps using timestamp file specified in value. Timestamp file is formatted as:
+.br
+  - a line starting with # is a comment, in which timescale=V can be used to set timescale (1000 by default)
+.br
+  - empty lines are ignored
+.br
+  - one line per sample in decode order, formated as cts or dts cts
+.br
+.TP
 .B stats,-fstat
 .br
 C print filter session stats after import
@@ -2463,11 +2474,11 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
 * encoding=enctype: item content-encoding type, none if not set
 .br
-* id=ID: item ID
+* id=ID: item ID (strictly positive integer)
 .br
-* ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)
+* ref=4cc,id: reference of type 4cc (such as 'dimg', 'auxl', 'cdsc') to an other item (can be set multiple times)
 .br
-* group=id,type: indicate the id and type of an alternate group for this item
+* group=4cc,id: indicate the type 4cc (such as 'altr') and id of an entity group this item belongs to
 .br
 * replace: replace existing item by new item
 .br
@@ -2476,7 +2487,7 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
 add the given file as HEIF image item, with parameter syntax file_path[:opt1:optN]. If filepath is omitted, source is the input MP4 file
 .br
-* name, id, ref: see .I add-item
+* name, id, ref, group: see .I add-item
 .br
 * primary: indicate that this item should be the primary item
 .br
@@ -2663,6 +2674,16 @@ Tags are specified as a colon-separated list tag_name=tag_value[:tag2=val2]
 Setting a tag with no value or value NULL removes the tag.
 .br
 Special tag value clear (or reset) removes all tags.
+.br
+Special tag value cust indicates a custom domain tag, in which case the tag value must start with DOMAIN,MEAN,.
+.br
+Example
+.br
+-itags cust='com.apple.iTunes,iTunEXTC,My Tag Value'
+.br
+
+.br
+The DOMAIN and/or NAME strings can be empty.
 .br
 Unsupported tags can be added using their four character code as a tag name, and string value will be assumed.
 .br

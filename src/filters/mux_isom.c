@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/internal/id3.h>
+#include <gpac/id3.h>
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MP4MX)
 
@@ -969,6 +969,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool skip_crypto = GF_FALSE;
 	Bool use_3gpp_config = GF_FALSE;
 	Bool use_ac3_entry = GF_FALSE;
+	Bool use_ac4_entry = GF_FALSE;
 	Bool use_flac_entry = GF_FALSE;
 	Bool use_avc = GF_FALSE;
 	Bool use_hevc = GF_FALSE;
@@ -1246,6 +1247,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_AV1:
 	case GF_CODECID_AC3:
 	case GF_CODECID_EAC3:
+	case GF_CODECID_AC4:
 	case GF_CODECID_OPUS:
 	case GF_CODECID_TRUEHD:
 	case GF_CODECID_RAW_UNCV:
@@ -2007,6 +2009,11 @@ sample_entry_setup:
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
 		break;
+	case GF_CODECID_AC4:
+		m_subtype = GF_ISOM_SUBTYPE_AC4;
+		comp_name = "AC-4";
+		use_ac4_entry = GF_TRUE;
+		break;
 	case GF_CODECID_MPHA:
 		if ((m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHA1) && (m_subtype_src!=GF_ISOM_SUBTYPE_MH3D_MHA2))
 			m_subtype = GF_ISOM_SUBTYPE_MH3D_MHA1;
@@ -2525,7 +2532,9 @@ sample_entry_setup:
 		}
 		else if (use_hevc && dsi) {
 			if (tkw->hvcc) gf_odf_hevc_cfg_del(tkw->hvcc);
-			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+
+			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,
+				((codec_id==GF_CODECID_LHVC) && !enh_dsi) ? GF_TRUE : GF_FALSE);
 
 			if (enh_dsi) {
 				if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
@@ -2708,7 +2717,8 @@ sample_entry_setup:
 			return GF_OK;
 		}
 		if (dsi) {
-			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,  (codec_id == GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			tkw->hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size,
+				((codec_id==GF_CODECID_LHVC)&&!enh_dsi) ? GF_TRUE : GF_FALSE);
 		} else {
 			tkw->hvcc = gf_odf_hevc_cfg_new();
 		}
@@ -2957,6 +2967,22 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+	} else if (use_ac4_entry) {
+		GF_AC4Config ac4cfg;
+		memset(&ac4cfg, 0, sizeof(GF_AC4Config));
+
+		if (dsi) {
+			gf_odf_ac4_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &ac4cfg);
+		}
+
+		e = gf_isom_ac4_config_new(ctx->file, tkw->track_num, &ac4cfg, (char *)src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC4 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+
+		gf_odf_ac4_cfg_clean_list(&ac4cfg);
 	} else if (use_flac_entry) {
 		e = gf_isom_flac_config_new(ctx->file, tkw->track_num, dsi ? dsi->value.data.ptr : NULL, dsi ? dsi->value.data.size : 0, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {
@@ -4752,6 +4778,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 first_nal_is_audelim = GF_FALSE;
 	u32 sample_desc_index = tkw->stsd_idx;
 	Bool sample_timing_ok = GF_TRUE;
+
+	if (!sample_desc_index) {
+#ifndef GPAC_DISABLE_LOG
+		//we log as debug when initial timing config was performed
+		u32 logl = ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign) ? GF_LOG_WARNING : GF_LOG_DEBUG;
+		GF_LOG(logl, GF_LOG_CONTAINER, ("[MP4Mux] No valid sample desc for sample from %s, discarding\n", gf_filter_pid_get_name(tkw->ipid) ));
+#endif
+		return GF_OK;
+	}
 
 	timescale = gf_filter_pck_get_timescale(pck);
 
@@ -7250,13 +7285,14 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 	}
 	GF_List *services = gf_list_new();
 	u32 i, count;
-	Bool not_ready, blocking_refs, has_ready;
+	Bool not_ready, blocking_refs, has_ready, has_drop, force_ready=GF_FALSE;
 
 retry_all:
 	count = gf_list_count(ctx->tracks);
 	not_ready = GF_FALSE;
 	blocking_refs = GF_FALSE;
 	has_ready = GF_FALSE;
+	has_drop = GF_FALSE;
 
 	for (i=0; i<gf_list_count(services);i++) {
 		struct _service_info *si = gf_list_get(services, i);
@@ -7285,9 +7321,9 @@ retry_all:
 retry_pck:
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		//check this after fetching a packet since it may reconfigure the track
-		if (!tkw->track_num) {
+		if (!tkw->track_num && !force_ready) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has no input packet and configuration not known after 10 retries, aborting initial timing sync\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID configuration not known after EOS, aborting initial timing sync\n"));
 				continue;
 			}
 			not_ready = GF_TRUE;
@@ -7303,6 +7339,7 @@ retry_pck:
 				Bool seek = gf_filter_pck_get_seek_flag(pck);
 				if (seek || !sap) {
 					gf_filter_pid_drop_packet(tkw->ipid);
+					has_drop = GF_TRUE;
 					goto retry_pck;
 				} else {
 					tkw->wait_sap = GF_FALSE;
@@ -7415,17 +7452,22 @@ retry_pck:
 			if (!si->nb_sparse_ready) not_ready = GF_TRUE;
 		}
 	}
-
-	if (not_ready) {
+	if (not_ready && !force_ready) {
 		if (blocking_refs && has_ready) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
 		}
 		//this may be quite long until we have a packet in case input pid is video encoding
 		else if (ctx->config_retry_start && (gf_sys_clock() - ctx->config_retry_start > 10000)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No input packets present on one or more inputs for more than 10s, aborting initial timing sync\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID(s) configuration unknown on one or more inputs after 10s, aborting initial timing sync\n"));
+			force_ready=GF_TRUE;
+			goto retry_all;
 		} else {
-			ctx->config_retry_start = gf_sys_clock();
+			if (!ctx->config_retry_start)
+				ctx->config_retry_start = gf_sys_clock();
 			del_service_info(services);
+			//not ready and we didn't drop any packet, postpone by 1ms
+			if (!has_drop)
+				gf_filter_ask_rt_reschedule(ctx->filter, 1000);
 			return;
 		}
 	}
@@ -8135,6 +8177,10 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	//set linf
 	for (i=0; i < gf_isom_get_track_count(ctx->file); i++) {
 		u32 subtype = gf_isom_get_media_subtype(ctx->file, i+1, 1);
+		if ( gf_isom_is_media_encrypted(ctx->file, i+1, 1))
+			gf_isom_get_original_format_type(ctx->file, i+1, i+1, &subtype);
+
+
 		switch (subtype) {
 		case GF_ISOM_SUBTYPE_AVC_H264:
 		case GF_ISOM_SUBTYPE_AVC2_H264:

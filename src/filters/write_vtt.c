@@ -256,7 +256,6 @@ GF_Err vttmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
-	ctx->first = GF_FALSE;
 
 	start_ts = gf_filter_pck_get_cts(pck);
 	end_ts = start_ts + gf_filter_pck_get_duration(pck);
@@ -287,6 +286,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 	}
 
 	cues = gf_webvtt_parse_cues_from_data(data, pck_size, start_ts, end_ts);
+	if (cues && gf_list_count(cues)) ctx->first = GF_FALSE;
 	if (ctx->parser) {
 		gf_webvtt_merge_cues(ctx->parser, start_ts, cues);
 	} else {

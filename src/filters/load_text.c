@@ -742,6 +742,7 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
 		if (!dst_pck) return;
 		memcpy(pck_data, txt_samp->text, txt_samp->len);
+
 	} else {
 		u32 size = gf_isom_text_sample_size(txt_samp);
 
@@ -1338,7 +1339,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	ctx->vttparser = gf_webvtt_parser_new();
 
-	e = gf_webvtt_parser_init(ctx->vttparser, ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
+	e = gf_webvtt_parser_init(ctx->vttparser, &ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
 	if (e != GF_OK) {
 		gf_webvtt_parser_del(ctx->vttparser);
 		ctx->vttparser = NULL;

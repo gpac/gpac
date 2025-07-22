@@ -156,6 +156,9 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	else if (!strcmp(filename, "stdout")) ctx->is_std = GF_TRUE;
 	else ctx->is_std = GF_FALSE;
 
+	if (!strcmp(filename, "null") || !strcmp(filename, "/dev/null"))
+		ext = NULL;
+
 	if (ctx->is_std) {
 		ctx->file = stdout;
 		ctx->nb_write = 0;

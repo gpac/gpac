@@ -126,6 +126,7 @@ typedef struct
 	VVCState *vvc_state;
 #endif
 	Bool slice_header_clear;
+	GF_CryptNonVCL non_vcl_encrypted;
 
 	GF_PropUIntList mkey_indices;
 
@@ -175,7 +176,14 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
 		if (p) {
-			GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			GF_HEVCConfig *hvcc;
+			if ((cstr->codec_id==GF_CODECID_LHVC)
+				&& !gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT))
+			{
+				hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_TRUE);
+			} else {
+				hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
+			}
 			cstr->nalu_size_length = hvcc ? hvcc->nal_unit_size : 0;
 			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 		}
@@ -659,10 +667,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	GF_AVCConfig *avccfg;
 	GF_HEVCConfig *hevccfg;
 	GF_VVCConfig *vvccfg;
-	const GF_PropertyValue *p;
+	const GF_PropertyValue *p, *dsi_enh=NULL;
 
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG);
-	if (!p) p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	dsi_enh = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	if (!p) p = dsi_enh;
 
 	if (p) {
 		dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
@@ -676,6 +685,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	if (cstr->is_saes) {
 		cstr->crypt_byte_block = 1;
 		cstr->skip_byte_block = 9;
+		cstr->non_vcl_encrypted = GF_CRYPT_NONVCL_CLEAR_NONE; //cypher all NALUs
 	}
 
 
@@ -777,6 +787,15 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			} else {
 				cstr->slice_header_clear = GF_TRUE;
 			}
+
+			cstr->non_vcl_encrypted = cstr->tci->allow_encrypted_nonVCLs;
+			if (cstr->slice_header_clear && cstr->non_vcl_encrypted!=GF_CRYPT_NONVCL_CLEAR_ALL) {
+				if (cstr->non_vcl_encrypted!=GF_CRYPT_NONVCL_CLEAR_SEI_AUD) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Slice Header is clear: forcing all non-VCL NALUs in clear too\n") );
+				}
+				cstr->non_vcl_encrypted = GF_CRYPT_NONVCL_CLEAR_ALL;
+			}
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (avccfg) {
 				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
@@ -787,7 +806,19 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
 					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
 				}
-
+				gf_odf_avc_cfg_del(avccfg);
+			}
+			//load scalable param sets if any
+			avccfg = dsi_enh ? gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size) : NULL;
+			if (avccfg) {
+				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
+					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					gf_avc_read_sps(slc->data, slc->size, cstr->avc_state, 0, NULL);
+				}
+				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
+					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
+					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
+				}
 				gf_odf_avc_cfg_del(avccfg);
 			}
 #else
@@ -807,13 +838,25 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (!p)
 				return GF_OK;
 
-			hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			if ((cstr->codec_id==GF_CODECID_LHVC) && !dsi_enh) {
+				hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_TRUE);
+			} else {
+				hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
+			}
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_VID_PARAM);
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_SEQ_PARAM);
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_PIC_PARAM);
+			//load scalable param sets if any
+			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+			hevccfg = dsi_enh ? gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE) : NULL;
+			if (hevccfg) {
+				gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_VID_PARAM);
+				gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_SEQ_PARAM);
+				gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_PIC_PARAM);
+			}
 #endif
 
 			//mandatory for HEVC
@@ -859,6 +902,14 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_VID_PARAM);
 			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_SEQ_PARAM);
 			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_PIC_PARAM);
+			//load scalable param sets if any
+			if (vvccfg) gf_odf_vvc_cfg_del(vvccfg);
+			vvccfg = dsi_enh ? gf_odf_vvc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size) : NULL;
+			if (vvccfg) {
+				gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_VID_PARAM);
+				gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_SEQ_PARAM);
+				gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_PIC_PARAM);
+			}
 #endif
 
 			//mandatory for VVC
@@ -1627,31 +1678,43 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+// 0: VCL, 1: SEI+AUD, 2: other non-VCL
+static int avc_is_vcl_or_sei(u8 nal_type)
+{
+	switch (nal_type) {
+	case GF_AVC_NALU_NON_IDR_SLICE:
+	case GF_AVC_NALU_DP_A_SLICE:
+	case GF_AVC_NALU_DP_B_SLICE:
+	case GF_AVC_NALU_DP_C_SLICE:
+	case GF_AVC_NALU_IDR_SLICE:
+	case GF_AVC_NALU_SLICE_AUX:
+	case GF_AVC_NALU_SVC_SLICE:
+		return 0;
+	case GF_AVC_NALU_SEI:
+	case GF_AVC_NALU_ACCESS_UNIT:
+		return 1;
+	default:
+		return 2;
+	}
+}
+
 //parses slice header and returns its size
 static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs, char *samp_data, u32 nal_size, u32 bytes_in_nalhr)
 {
 	u32 clear_bytes = 0;
+	u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 
 	if (cstr->slice_header_clear) {
-		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
+			gf_assert(cstr->is_saes || cstr->non_vcl_encrypted == GF_CRYPT_NONVCL_CLEAR_ALL);
 			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
 			ntype = cstr->avc_state->last_nal_type_parsed;
-			switch (ntype) {
-			case GF_AVC_NALU_NON_IDR_SLICE:
-			case GF_AVC_NALU_DP_A_SLICE:
-			case GF_AVC_NALU_DP_B_SLICE:
-			case GF_AVC_NALU_DP_C_SLICE:
-			case GF_AVC_NALU_IDR_SLICE:
-			case GF_AVC_NALU_SLICE_AUX:
-			case GF_AVC_NALU_SVC_SLICE:
+			if (avc_is_vcl_or_sei(ntype) == 0) {
 				gf_bs_align(plaintext_bs);
 				clear_bytes = (u32) gf_bs_get_position(plaintext_bs) - nal_start;
-				break;
-			default:
+			} else {
 				clear_bytes = nal_size;
-				break;
 			}
 			if (cstr->is_saes) {
 				if ((ntype == GF_AVC_NALU_NON_IDR_SLICE) || (ntype == GF_AVC_NALU_IDR_SLICE)) {
@@ -1660,35 +1723,56 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 					clear_bytes = nal_size;
 				}
 			}
-
+			goto exit; //we're done
 		} else if (cstr->cenc_codec==CENC_HEVC) {
 			u8 ntype, ntid, nlid;
 			cstr->hevc_state->full_slice_header_parse = GF_TRUE;
-//			gf_hevc_parse_nalu(samp_data + nal_start, nal_size, cstr->hevc_state, &ntype, &ntid, &nlid);
 			gf_hevc_parse_nalu_bs(plaintext_bs, cstr->hevc_state, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
 				clear_bytes = cstr->hevc_state->s_info.payload_start_offset - nal_start;
 			} else {
 				clear_bytes = nal_size;
 			}
+			goto exit;
 		} else if (cstr->cenc_codec==CENC_VVC) {
 			u8 ntype, ntid, nlid;
 			cstr->vvc_state->parse_mode = 1;
-//			gf_vvc_parse_nalu(samp_data + nal_start, nal_size, cstr->vvc_state, &ntype, &ntid, &nlid);
 			gf_vvc_parse_nalu_bs(plaintext_bs, cstr->vvc_state, &ntype, &ntid, &nlid);
 			if (ntype <= GF_VVC_NALU_SLICE_GDR) {
 				clear_bytes = cstr->vvc_state->s_info.payload_start_offset - nal_start;
 			} else {
 				clear_bytes = nal_size;
 			}
+			goto exit;
 		}
-		//reset EPB removal and seek to start of nal
-		gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
+
+		//seek to start of nal
 		gf_bs_seek(plaintext_bs, nal_start);
-	} else {
-		clear_bytes = bytes_in_nalhr;
 	}
+
+	// avc1 CTR CENC edition 1: choose which non-VCL are encrypted
+	if (cstr->cenc_codec==CENC_AVC) {
+		const u32 nal_type = gf_bs_peek_bits(plaintext_bs, 8, 0) & 0x1F;
+		if (cstr->non_vcl_encrypted == GF_CRYPT_NONVCL_CLEAR_ALL) {
+			if (avc_is_vcl_or_sei(nal_type) != 0) {
+				clear_bytes = nal_size;
+				goto exit;
+			}
+		} else if (cstr->non_vcl_encrypted == GF_CRYPT_NONVCL_CLEAR_SEI_AUD) {
+			if (avc_is_vcl_or_sei(nal_type) == 1) {
+				clear_bytes = nal_size;
+				goto exit;
+			}
+		}
+	}
+
+	//default
+	clear_bytes = bytes_in_nalhr;
+
+exit:
+	//reset EPB removal and seek to start of nal
 	gf_bs_enable_emulation_byte_removal(plaintext_bs, GF_FALSE);
+	gf_bs_seek(plaintext_bs, nal_start);
 	return clear_bytes;
 }
 #endif

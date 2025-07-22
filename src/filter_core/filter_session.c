@@ -58,7 +58,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 				gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 			}
 			nb_tasks = 1;
-			//no active threads, count number of tasks. If no posted tasks we are likely at the end of the session, don't block, rather use a sem_wait 
+			//no active threads, count number of tasks. If no posted tasks we are likely at the end of the session, don't block, rather use a sem_wait
 			if (!fsess->active_threads)
 			 	nb_tasks = gf_fq_count(fsess->main_thread_tasks) + gf_fq_count(fsess->tasks);
 
@@ -331,11 +331,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 		fsess->pcks_refprops_reservoir = gf_fq_new(fsess->props_mx);
 	}
 
-
-#ifndef GPAC_DISABLE_REMOTERY
-	sprintf(fsess->main_th.rmt_name, "FSThread0");
-#endif
-
 	if (!fsess->filters || !fsess->tasks) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
 		fsess->run_status = GF_OUT_OF_MEM;
@@ -354,9 +349,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 		GF_SessionThread *sess_thread;
 		GF_SAFEALLOC(sess_thread, GF_SessionThread);
 		if (!sess_thread) continue;
-#ifndef GPAC_DISABLE_REMOTERY
-		sprintf(sess_thread->rmt_name, "FSThread%d", i+1);
-#endif
 		sprintf(szName, "gf_fs_th_%d", i+1);
 		sess_thread->th = gf_th_new(szName);
 		if (!sess_thread->th) {
@@ -738,7 +730,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	gf_assert(fsess->run_status != GF_OK);
 	if (fsess->filters) {
 		u32 i, pass, count=gf_list_count(fsess->filters);
-		//first pass: disconnect all filters, since some may have references to property maps or packets 
+		//first pass: disconnect all filters, since some may have references to property maps or packets
 		for (i=0; i<count; i++) {
 			u32 j;
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
@@ -1535,6 +1527,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 	if (!fsess || !argv || (argc<1)) return GF_BAD_PARAM;
 
 	GF_Err e;
+	int i;
 	Bool has_xopt = GF_FALSE;
 	GF_List *loaded_filters = NULL;
 	GF_List *links_directive = NULL;
@@ -1555,7 +1548,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 		return GF_OUT_OF_MEM;
 	}
 
-	for (u32 i=0; i<argc; i++) {
+	for (i=0; i<argc; i++) {
 		GF_Filter *filter=NULL;
 		Bool is_simple=GF_FALSE;
 		Bool f_loaded = GF_FALSE;
@@ -1935,16 +1928,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 #endif
 
-#ifndef GPAC_DISABLE_REMOTERY
-		gf_rmt_set_thread_name(sess_thread->rmt_name);
-#endif
 	}
-
-#ifndef GPAC_DISABLE_REMOTERY
-	sess_thread->rmt_tasks=40;
-#endif
-
-	gf_rmt_begin(fs_thread, 0);
 
 	safe_int_inc(&fsess->active_threads);
 
@@ -1962,15 +1946,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			gf_fs_print_debug_info(fsess, fsess->dbg_flags ? fsess->dbg_flags : GF_FS_DEBUG_ALL);
 		}
 
-#ifndef GPAC_DISABLE_REMOTERY
-		sess_thread->rmt_tasks--;
-		if (!sess_thread->rmt_tasks) {
-			gf_rmt_end();
-			gf_rmt_begin(fs_thread, 0);
-			sess_thread->rmt_tasks=40;
-		}
-#endif
-
 #if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
 		if (flush_main_blocking) {
 			emscripten_main_thread_process_queued_calls();
@@ -1980,12 +1955,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		safe_int_dec(&fsess->active_threads);
 
 		if (!skip_next_sema_wait && (current_filter==NULL)) {
-			gf_rmt_begin(sema_wait, GF_RMT_AGGREGATE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %s Waiting scheduler %s semaphore\n", sys_thid, use_main_sema ? "main" : "secondary"));
 			//wait for something to be done
 			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
 			consecutive_filter_tasks = 0;
-			gf_rmt_end();
 		}
 		safe_int_inc(&fsess->active_threads);
 		skip_next_sema_wait = GF_FALSE;
@@ -2638,14 +2611,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		//no main thread, return
 		if (!thid && fsess->non_blocking && !fsess->remove_tasks && !current_filter && !fsess->pid_connect_tasks_pending) {
-			gf_rmt_end();
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
 			safe_int_dec(&fsess->active_threads);
 			return 0;
 		}
 	}
-
-	gf_rmt_end();
 
 	safe_int_dec(&fsess->active_threads);
 	//no main thread, return
@@ -2801,7 +2771,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 				//if the PID has a codecid set (demuxed pid, e.g. ffavin or other grabbers), do not force STOP on its destinations
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 				if (p) continue;
-				
+
 				for (k=0; k<pid->num_destinations; k++) {
 					Bool force_disable = GF_TRUE;
 					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
@@ -3855,7 +3825,7 @@ restart:
 
 	user_args_len = user_args ? (u32) strlen(user_args) : 0;
 	args = gf_malloc(sizeof(char)*5);
-	
+
 	sprintf(args, "%s%c", for_source ? "src" : "dst", fsess->sep_name);
 	//path is using ':' and has options specified, inject :gpac before first option
 	if (sep && needs_escape) {
@@ -3911,7 +3881,7 @@ restart:
 #endif
 		if (filter->session->on_filter_create_destroy)
 			filter->session->on_filter_create_destroy(filter->session->rt_udta, filter, GF_TRUE);
-			
+
         filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, arg_type);
 		if (err) *err = e;
@@ -4437,9 +4407,7 @@ typedef struct
 	void *callback;
 	Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms);
 	Bool (*task_execute_filter) (GF_Filter *filter, void *callback, u32 *reschedule_ms);
-#ifndef GPAC_DISABLE_REMOTERY
-	rmtU32 rmt_hash;
-#endif
+
 } GF_UserTask;
 
 static void gf_fs_user_task(GF_FSTask *task)
@@ -4448,9 +4416,6 @@ static void gf_fs_user_task(GF_FSTask *task)
 	GF_UserTask *utask = (GF_UserTask *)task->udta;
 	task->schedule_next_time = 0;
 
-#ifndef GPAC_DISABLE_REMOTERY
-	gf_rmt_begin_hash(task->log_name, GF_RMT_AGGREGATE, &utask->rmt_hash);
-#endif
 	if (utask->task_execute) {
 		task->requeue_request = utask->task_execute(utask->fsess, utask->callback, &reschedule_ms);
 	} else if (task->filter) {
@@ -4458,7 +4423,6 @@ static void gf_fs_user_task(GF_FSTask *task)
 	} else {
 		task->requeue_request = 0;
 	}
-	gf_rmt_end();
 	//if no requeue request or if we are in final flush, don't re-execute
 	if (!task->requeue_request || utask->fsess->in_final_flush) {
 		gf_free(utask);
@@ -4603,7 +4567,7 @@ GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 	stats->filter = f;
 	stats->filter_alias = f->multi_sink_target;
 	if (f->multi_sink_target) return GF_OK;
-	
+
 	stats->percent = f->status_percent>10000 ? -1 : (s32) f->status_percent;
 	stats->status = f->status_str;
 	stats->nb_pck_processed = f->nb_pck_processed;
