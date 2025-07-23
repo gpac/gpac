@@ -1362,12 +1362,7 @@
          GPAC.stack = LIBGPAC.stackSave();
          args.unshift(is_mp4box ? "MP4Box" : "gpac");
          var argc = args.length;
-         var argv = LIBGPAC.stackAlloc((argc + 1) * 4);
-         var argv_ptr = argv >> 2;
-         args.forEach(arg => {
-          LIBGPAC.HEAP32[argv_ptr++] = LIBGPAC.allocateUTF8OnStack(arg);
-         });
-         LIBGPAC.HEAP32[argv_ptr] = 0;
+         var argv = LIBGPAC.stringsToPtr(args);
 
          try {
           LIBGPAC["_main"](argc, argv);
@@ -2594,15 +2589,14 @@
       };
     </script>
 
-    <!-- load module - default emscripten compil is with MODULARIZE and export name "libgpac" --> 
-    <script async type="text/javascript" src="gpac.js"></script>
-    <script>
+    <!-- load module - default emscripten compilation is with MODULARIZE, EXPORT_ES6 and export name "libgpac" --> 
+    <script type="module" async>
+      import libgpac from './gpac.js';
+
       window.addEventListener('load', function() {
         libgpac(LIBGPAC);
-
       });
     </script>
-
   </body>
 </html>
 
