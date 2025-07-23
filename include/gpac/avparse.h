@@ -706,6 +706,24 @@ u32 gf_ac3_get_surround_channels(u32 acmod);
 */
 u32 gf_ac3_get_bitrate(u32 brcode);
 
+/*! parses an AC-4 header from a buffer
+\param buffer buffer to parse
+\param buffer_size size of buffer to parse
+\param pos set to start offset (in bytes) of the AC4 header parsed
+\param out_hdr will be filled by parser
+\param full_parse if GF_TRUE, complete parsing of the header will be done
+\return GF_TRUE if success
+*/
+Bool gf_ac4_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC4Config *out_hdr, Bool full_parse);
+
+/*! parses an AC-4 header from a bitstream
+\param bs bitstream to parse
+\param hdr will be filled by parser
+\param full_parse if GF_TRUE, complete parsing of the header and check for next frame/blocks presence will be done
+\return GF_TRUE if success
+*/
+Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse);
+
 /*! gets basic information from an AVC Sequence Parameter Set
 \param sps SPS NAL buffer
 \param sps_size size of buffer

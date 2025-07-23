@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -44,7 +44,7 @@ typedef struct
 	u8 init_pid_config_done;
 	u64 pck_for_config;
 	u64 prev_dts, prev_cts, init_ts;
-	u32 codec_id;
+	u32 codec_id, service_id;
 	u32 stream_type;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -65,6 +65,7 @@ typedef struct
 	Bool is_adobe_protected;
 	Bool is_cenc_protected;
 	Bool aborted;
+	Bool is_fake;
 
 	GF_Fraction tmcd_rate;
 	u32 tmcd_flags;
@@ -124,7 +125,7 @@ GF_OPT_ENUM (GF_InspectSampleAnalyzeMode,
 
 typedef struct
 {
-	u32 mode;
+	u32 mode, timeout;
 	Bool interleave;
 	Bool dump_data;
 	Bool deep;
@@ -148,6 +149,9 @@ typedef struct
 	Bool is_prober, probe_done, hdr_done, dump_pck;
 	Bool args_updated;
 	Bool has_seen_eos;
+
+	u32 last_config_time;
+
 } GF_InspectCtx;
 
 static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name);
@@ -576,6 +580,55 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 	}
 }
 
+static void dump_unregistered_sei(FILE *dump, GF_BitStream *bs, u32 sei_size)
+{
+	/* original timecode unregistered SEI UUID */
+	bin128 tmcd_uuid = {
+		0x42, 0x45, 0x3a, 0x42, 0x3b, 0xaa, 0xa6, 0xf1,
+		0xbb, 0x3b, 0x13, 0x42, 0x0e, 0x08, 0xc7, 0x62
+	};
+
+	//uuid
+	u32 i;
+	bin128 uuid = {0};
+	inspect_printf(dump, " uuid=\"0x");
+	for (i=0; i<16; i++) {
+		uuid[i] = gf_bs_read_u8(bs);
+		inspect_printf(dump, "%02x", uuid[i]);
+	}
+	inspect_printf(dump, "\"");
+
+	//payload
+	u32 nb_read = 0;
+	u8 *payload = gf_malloc(sei_size - 16);
+	if (!payload) return;
+	inspect_printf(dump, " payload=\"0x");
+	for (i=0; i<sei_size - 16 && gf_bs_available(bs); i++) {
+		payload[i] = gf_bs_read_u8(bs);
+		inspect_printf(dump, "%02x", payload[i]);
+		nb_read++;
+	}
+	inspect_printf(dump, "\"");
+
+	if (nb_read < sei_size - 16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in unregistered SEI\n"));
+		goto finish;
+	}
+
+	if (!memcmp(uuid, tmcd_uuid, 16)) {
+		if (nb_read < 4) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Not enough data in timecode unregistered SEI\n"));
+			goto finish;
+		}
+		inspect_printf(dump, " timecode=\"");
+		inspect_printf(dump, "%02u:%02u:%02u:%02u", payload[3], payload[2], payload[1], payload[0]);
+		inspect_printf(dump, "\"");
+	}
+
+finish:
+	gf_free(payload);
+}
+
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
 
@@ -792,8 +845,9 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 			dump_time_code_hevc(dump, bs);
 		} else if (sei_type == 4) {
 			dump_t35(dump, bs, sei_size);
-		}
-		else if (avc && (sei_type==6)) {
+		} else if (sei_type == 5) {
+			dump_unregistered_sei(dump, bs, sei_size);
+		} else if (avc && (sei_type==6)) {
 			u32 frame_cnt = gf_bs_read_ue(bs);
 			inspect_printf(dump, " frame_count=\"%u\"", frame_cnt);
 		}
@@ -812,8 +866,72 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 	}
 }
 
+static void inspect_dump_crypt(FILE *dump, u32 nal_size, u8 *sai_buffer, u32 sai_buffer_size, u32 nalu_offset)
+{
+	GF_BitStream *bs = gf_bs_new(sai_buffer, sai_buffer_size, GF_BITSTREAM_READ);
+	u8 iv_size = 0;
+	Bool multi_key=GF_FALSE;
+	u32 nb_iv_init=0;
+	u32 i, nb_subs;
 
-static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx)
+restart:
+	if (iv_size && !multi_key) gf_bs_skip_bytes(bs, iv_size);
+	nb_subs = gf_bs_read_u16(bs);
+	if (!multi_key && (gf_bs_available(bs) == nb_subs*6)) {
+
+	} else if (!multi_key && (iv_size<16)) {
+		gf_bs_seek(bs, 0);
+		iv_size += 8;
+		goto restart;
+	} else {
+		//multikey
+		if (!multi_key) {
+			iv_size=0;
+			multi_key = GF_TRUE;
+			gf_bs_seek(bs, 0);
+			nb_subs = gf_bs_read_u16(bs);
+		}
+		nb_iv_init = nb_subs;
+		gf_bs_skip_bytes(bs, nb_iv_init*(2+iv_size));
+		nb_subs = gf_bs_read_u32(bs);
+		if (gf_bs_available(bs) == nb_subs*8) {
+		} else if (iv_size<16) {
+			gf_bs_seek(bs, 0);
+			iv_size += 8;
+			goto restart;
+		} else {
+			inspect_printf(dump, "encrypted=\"unsupported multikey\" ");
+			gf_bs_del(bs);
+			return;
+		}
+	}
+
+	u32 offset=0;
+	for (i=0; i<nb_subs; i++) {
+		if (multi_key) gf_bs_read_u16(bs);
+		u32 clear = gf_bs_read_u16(bs);
+		u32 crypt = gf_bs_read_u32(bs);
+		if ((nalu_offset>=offset) && (nalu_offset+nal_size <= offset+clear)) {
+			inspect_printf(dump, "encrypted=\"no\" ");
+			gf_bs_del(bs);
+			return;
+		}
+		if ((nalu_offset>=offset) && (nalu_offset+nal_size <= offset+clear+crypt)) {
+			inspect_printf(dump, "encrypted=\"yes\" ");
+			gf_bs_del(bs);
+			return;
+		}
+		offset += clear+crypt;
+		if (nalu_offset+nal_size<offset) break;
+	}
+
+	inspect_printf(dump, "encrypted=\"no\" ");
+	gf_bs_del(bs);
+}
+
+
+
+static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx, u8 *sai_buffer, u32 sai_buffer_size, u32 nalu_offset)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -842,6 +960,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	}
 
 	if (dump_crc) inspect_printf(dump, "crc=\"%u\" ", gf_crc_32(ptr, ptr_size) );
+
+	if (sai_buffer && sai_buffer_size) {
+		inspect_dump_crypt(dump, ptr_size+nalh_size, sai_buffer, sai_buffer_size, nalu_offset);
+	}
 
 	if (hevc) {
 		if (ptr_size<=1) {
@@ -1525,10 +1647,10 @@ static u32 inspect_get_analyze_mode()
 }
 
 GF_EXPORT
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, u8 *sai_buffer, u32 sai_buffer_size, u32 sample_offset)
 {
 	if (!dump) return;
-	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, vvc, nalh_size, dump_crc, is_encrypted, inspect_get_analyze_mode(), NULL);
+	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, vvc, nalh_size, dump_crc, is_encrypted, inspect_get_analyze_mode(), NULL, sai_buffer, sai_buffer_size, sample_offset);
 }
 
 static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
@@ -1536,7 +1658,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 	inspect_printf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
 }
 
-static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump)
+static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump, u8 *sai_buffer, u32 sai_buffer_size, u32 offset_in_sample)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
 	if (!pctx && (obu_size <= 1))
@@ -1554,7 +1676,6 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 		}
 		gf_av1_parse_obu(pctx->bs, &obu_type, &obu_size, &hdr_size, pctx->av1_state);
 
-
 		if (full_dump>=INSPECT_ANALYZE_BS) {
 			gf_bs_set_logger(pctx->bs, NULL, NULL);
 		} else {
@@ -1571,6 +1692,10 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 #define DUMP_OBU_INT2(_n, _v) inspect_printf(dump, _n"=\"%d\" ", _v);
 
 	inspect_printf(dump, " size=\""LLU"\" type=\"%s\" header_size=\"%d\" ", obu_size, gf_av1_get_obu_name(obu_type), hdr_size);
+
+	if (sai_buffer && sai_buffer_size) {
+		inspect_dump_crypt(dump, obu_size, sai_buffer, sai_buffer_size, offset_in_sample);
+	}
 
 	if (!full_dump) {
 		inspect_printf(dump, "has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
@@ -1645,7 +1770,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 	case OBU_METADATA:
 		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
-			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
 				case OBU_METADATA_TYPE_TIMECODE:
@@ -1677,10 +1802,10 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 }
 
 GF_EXPORT
-void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, u8 *sai_buffer, u32 sai_buffer_size, u32 offset_in_sample)
 {
 	if (!dump) return;
-	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, inspect_get_analyze_mode());
+	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, inspect_get_analyze_mode(), sai_buffer, sai_buffer_size, offset_in_sample);
 }
 
 static void gf_inspect_dump_prores_internal(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx)
@@ -1857,6 +1982,7 @@ static void gf_inspect_dump_opus_internal(FILE *dump, u8 *ptr, u32 size, u32 cha
 		if (self_delimited) {
 			if (pck_offset+pckh.packet_size >= size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Opus] Not enough data to parse next self-delimited packet!\n"));
+				break;
 			}
 			pck_offset += pckh.packet_size;
 		}
@@ -2017,14 +2143,20 @@ static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_
 #endif
 
 
-static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
+static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat, u32 for_service_id)
 {
 	char szLine[1025];
 	u32 i, count = gf_list_count(ctx->src_pids);
+
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		//already done
 		if (!pctx->tmp) continue;
+
+		//if service ID, dump by service
+		if (for_service_id) {
+			if (for_service_id!=pctx->service_id) continue;
+		}
 		//not our streamtype
 		if (streamtype && (pctx->stream_type!=streamtype)) continue;
 
@@ -2052,6 +2184,16 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 
 static void inspect_dump_stats(GF_InspectCtx *ctx);
 
+static u32 next_service_to_dump(GF_InspectCtx *ctx)
+{
+	u32 i, count = gf_list_count(ctx->src_pids);
+	for (i=0; i<count; i++) {
+		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+		if (!pctx->tmp) continue;
+		return pctx->service_id;
+	}
+	return 0;
+}
 
 static void inspect_finalize(GF_Filter *filter)
 {
@@ -2081,12 +2223,16 @@ static void inspect_finalize(GF_Filter *filter)
 		if (ctx->stats) {
 			inspect_dump_stats(ctx);
 		} else if (!ctx->interleave && ctx->dump) {
-			finalize_dump(ctx, GF_STREAM_AUDIO, concat);
-			finalize_dump(ctx, GF_STREAM_VISUAL, concat);
-			finalize_dump(ctx, GF_STREAM_SCENE, concat);
-			finalize_dump(ctx, GF_STREAM_OD, concat);
-			finalize_dump(ctx, GF_STREAM_TEXT, concat);
-			finalize_dump(ctx, 0, concat);
+			while (1) {
+				u32 for_service_id = next_service_to_dump(ctx);
+				finalize_dump(ctx, GF_STREAM_AUDIO, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_VISUAL, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_SCENE, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_OD, concat, for_service_id);
+				finalize_dump(ctx, GF_STREAM_TEXT, concat, for_service_id);
+				finalize_dump(ctx, 0, concat, for_service_id);
+				if (!for_service_id) break;
+			}
 		}
 	}
 
@@ -2588,7 +2734,13 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	}
 
 	switch (p4cc) {
-	case GF_PROP_PCK_TIMECODES:
+	case GF_PROP_PCK_TIMECODE:
+		//dump raw timecode when inspecting the
+		if (!ctx->analyze && ctx->props && (!ctx->fmt || !strstr(ctx->fmt, "$tmcd$")))
+			break;
+		return;
+	case GF_PROP_PCK_SEI_LOADED:
+	case GF_PROP_PID_SEI_LOADED:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
@@ -3056,17 +3208,11 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 			inspect_printf(dump, "%s", gf_filter_get_name(filter) );
 		}
 		else if (!strcmp(key, "tmcd")) {
-			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (prop && prop->value.data.size) {
+				char tcBuf[100];
 				GF_TimeCode *tc = (GF_TimeCode *) prop->value.data.ptr;
-				u32 index = 0;
-				u32 num_timecodes = prop->value.data.size / sizeof(GF_TimeCode);
-				while (index < num_timecodes) {
-					if (index) inspect_printf(dump, ",");
-					char tcBuf[100];
-					inspect_printf(dump, "%s", gf_format_timecode(&tc[index], tcBuf));
-					index++;
-				}
+				inspect_printf(dump, "%s", gf_format_timecode(tc, tcBuf));
 			} else {
 				inspect_printf(dump, "N/A");
 			}
@@ -3480,6 +3626,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	u8 dflags = 0;
 	GF_FilterClockType ck_type;
 	GF_FilterFrameInterface *fifce=NULL;
+	const GF_PropertyValue *p;
 	Bool start, end;
 	u8 *data;
 
@@ -3646,7 +3793,7 @@ props_done:
 	while (1) {
 		u32 prop_4cc;
 		const char *prop_name;
-		const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+		p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
 		if (prop_4cc || strncmp(prop_name, "scte35", 6)) continue;
 
@@ -3669,6 +3816,15 @@ props_done:
 				size--;
 			}
 		}
+		u32 sample_offset=0;
+		u8 *sai_buffer=NULL;
+		u32 sai_buffer_size=0;
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
+		if (p) {
+			sai_buffer = p->value.data.ptr;
+			sai_buffer_size = p->value.data.size;
+		}
+
 		while (size && pctx->nalu_size_length) {
 			if (size < pctx->nalu_size_length) {
 				inspect_printf(dump, "   <!-- NALU is corrupted: nalu_size_length is %u but only %d remains -->\n", pctx->nalu_size_length, size);
@@ -3682,20 +3838,30 @@ props_done:
 				break;
 			} else {
 				inspect_printf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->crc, pctx->is_cenc_protected, ctx->analyze, pctx);
+				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->crc, pctx->is_cenc_protected, ctx->analyze, pctx, sai_buffer, sai_buffer_size, sample_offset);
 			}
 			idx++;
 			data += nal_size;
 			size -= nal_size + pctx->nalu_size_length;
+			sample_offset += nal_size + pctx->nalu_size_length;
 		}
 	} else if (pctx->av1_state) {
+		u32 sample_offset=0;
 		gf_bs_reassign_buffer(pctx->bs, data, size);
+		u8 *sai_buffer=NULL;
+		u32 sai_buffer_size=0;
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
+		if (p) {
+			sai_buffer = p->value.data.ptr;
+			sai_buffer_size = p->value.data.size;
+		}
+
 		while (size) {
 			ObuType obu_type = 0;
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
 
-			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze, sai_buffer, sai_buffer_size, sample_offset);
 
 			if (obu_size > size) {
 				inspect_printf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
@@ -3708,6 +3874,7 @@ props_done:
 			data += obu_size;
 			size -= (u32)obu_size;
 			idx++;
+			sample_offset += obu_size;
 		}
 	} else {
 		u32 hdr, pos, fsize, i;
@@ -3862,7 +4029,7 @@ props_done:
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			inspect_printf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->crc, GF_FALSE, ctx->analyze, pctx);\
+			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->crc, GF_FALSE, ctx->analyze, pctx, NULL, 0, 0);\
 		}\
 		inspect_printf(dump, "  </%sArray>\n", name);\
 	}\
@@ -3912,7 +4079,7 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 	}
 
 	char szDur[100];
-	gf_format_duration(dur, timescale, szDur);
+	gf_format_duration(dur, (u32) timescale, szDur);
 	if (skip_name)
 		inspect_printf(dump, " (");
 	else
@@ -3931,6 +4098,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	const GF_PropertyValue *p, *dsi, *dsi_enh, *sr;
 	Bool is_raw=GF_FALSE;
 	Bool is_protected=GF_FALSE;
+	Bool is_unknown=GF_FALSE;
 	u32 codec_id=0;
 
 	if (!ctx->dump_log && !dump) return;
@@ -3961,16 +4129,20 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			is_protected = GF_TRUE;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 		}
-		if (p)
+		if (p) {
 			inspect_printf(dump, " %s", gf_stream_type_short_name(p->value.uint));
+			if (p->value.uint==GF_STREAM_UNKNOWN) is_unknown = GF_TRUE;
+		}
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	if (p) {
+		GF_PropertyEntry *pe=NULL;
 		inspect_printf(dump, " service %d", p->value.uint);
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " \"%s\"", p->value.string);
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_PROVIDER, &pe);
 		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " (%s)", p->value.string);
+		gf_filter_release_property(pe);
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLED);
@@ -4040,7 +4212,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		inspect_printf(dump, " %d Hz", sr->value.uint);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p) {
-			inspect_printf(dump, " %s chan", gf_audio_fmt_get_layout_name(p->value.longuint));
+			inspect_printf(dump, " %s", gf_audio_fmt_get_layout_name(p->value.longuint));
 		} else {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 			if (p) inspect_printf(dump, " %d chan", p->value.uint);
@@ -4068,6 +4240,13 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " %d/%d pattern", p->value.frac.num, p->value.frac.den);
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROLE);
+	if (p && p->value.string_list.nb_items) {
+		char *urn_sep = strrchr(p->value.string_list.vals[0], ':');
+		if (!urn_sep) urn_sep = p->value.string_list.vals[0];
+		inspect_printf(dump, " role %s", urn_sep);
+	}
+
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 	if (is_raw) {
@@ -4077,8 +4256,14 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	if (codec_id) {
 		inspect_printf(dump, " codec");
-		if (szCodec[0] && strcmp(szCodec, "unkn"))
+		if (szCodec[0] && strcmp(szCodec, "unkn")) {
 			inspect_printf(dump, " %s", szCodec);
+		} else {
+			if ((codec_id & 0xFFFFFF00) == GF_4CC('M','2','T', 0)) {
+				inspect_printf(dump, " m2ts_type 0x%02X", (codec_id&0xFF));
+				codec_id = 0;
+			}
+		}
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -4298,6 +4483,8 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
 	}
 
+	if (pctx->is_fake)
+		inspect_printf(dump, (is_unknown || is_protected) ? " ignored" : " fake");
 
 	inspect_printf(dump, "\n");
 }
@@ -4630,7 +4817,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 				else
 					gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
 
-				gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+				gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze, NULL, 0, 0);
 				idx++;
 			}
 		}
@@ -5123,11 +5310,16 @@ static GF_Err inspect_process(GF_Filter *filter)
 		GF_FilterPacket *pck = NULL;
 		pck = pctx->src_pid ? gf_filter_pid_get_packet(pctx->src_pid) : NULL;
 
-		if (pctx->init_pid_config_done)
+		if (pctx->init_pid_config_done) {
 			nb_hdr_done++;
+		} else if (!ctx->deep && !ctx->allp && !ctx->fmt
+			&& (gf_sys_clock() - ctx->last_config_time >= ctx->timeout+ctx->buffer)
+		) {
+			nb_hdr_done++;
+		}
 
 		if (!pck) {
-			if (pctx->src_pid && !gf_filter_pid_is_eos(pctx->src_pid))
+			if (!pctx->is_fake && pctx->src_pid && !gf_filter_pid_is_eos(pctx->src_pid))
 				continue;
 			else
 				ctx->has_seen_eos = GF_TRUE;
@@ -5232,7 +5424,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_FilterEvent evt;
 	PidCtx *pctx;
@@ -5241,6 +5433,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->src_pids) ctx->src_pids = gf_list_new();
+	ctx->last_config_time = gf_sys_clock();
 
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
@@ -5265,6 +5458,10 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx->stream_type = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	pctx->codec_id = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
+	pctx->service_id = p ? p->value.uint : 0;
+	if (gf_sys_is_test_mode())
+		pctx->service_id = 0;
 
 	if (!ctx->buffer) {
 		pctx->buffer_done = GF_TRUE;
@@ -5284,7 +5481,30 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		pctx->buf_start_time = gf_sys_clock();
 	}
 
-
+	//Load SEIs for:
+	//- tmcd dump
+	//- props with no analyze
+	if ((ctx->fmt && strstr(ctx->fmt, "$tmcd$"))
+		|| (!ctx->analyze && ctx->props && !gf_sys_is_test_mode() )
+	) {
+		switch (pctx->codec_id) {
+		case GF_CODECID_AVC:
+		case GF_CODECID_SVC:
+		case GF_CODECID_MVC:
+		case GF_CODECID_HEVC:
+		case GF_CODECID_LHVC:
+		case GF_CODECID_VVC:
+		case GF_CODECID_AV1:
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SEI_LOADED);
+			if (!p) {
+				//if unframed and our inspect mode is not framed, do not require SEI_LOAD (we don't want a reframer to be inserted)
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+				if (!p || (ctx->mode==INSPECT_MODE_REFRAME)) {
+					gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+				}
+			}
+		}
+	}
 
 	w = h = sr = ch = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
@@ -5304,7 +5524,12 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			Bool insert = GF_FALSE;
 			PidCtx *actx = gf_list_get(ctx->src_pids, i);
 
-			if (pctx->codec_id < actx->codec_id) {
+			if (pctx->service_id && actx->service_id) {
+				if (pctx->service_id == actx->service_id)
+					insert = GF_TRUE;
+				else
+					continue;
+			} else if (pctx->codec_id < actx->codec_id) {
 				insert = GF_TRUE;
 			}
 			//same codec ID, sort by increasing width/height/samplerate/channels
@@ -5379,6 +5604,9 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (ctx->pcr)
 		gf_filter_pid_set_clock_mode(pid, GF_TRUE);
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FAKE);
+	pctx->is_fake = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
+
 	if (!ctx->deep)
 		gf_filter_post_process_task(filter);
 	return GF_OK;
@@ -5390,6 +5618,7 @@ static const GF_FilterCapability InspecterDemuxedCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterReframeCaps[] =
@@ -5399,6 +5628,7 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static const GF_FilterCapability InspecterRawCaps[] =
@@ -5408,6 +5638,7 @@ static const GF_FilterCapability InspecterRawCaps[] =
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_MIME, "*"),
 	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_FILE_EXT, "*"),
 	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
@@ -5464,6 +5695,11 @@ GF_Err inspect_initialize(GF_Filter *filter)
 		ctx->full = GF_TRUE;
 	}
 	if (!ctx->full && (ctx->mode!=INSPECT_MODE_RAW)) {
+		ctx->mode = INSPECT_MODE_REFRAME;
+	}
+
+	//force reframer if working with "tmcd"
+	if (ctx->fmt && strstr(ctx->fmt, "$tmcd$") && (ctx->mode!=INSPECT_MODE_RAW)) {
 		ctx->mode = INSPECT_MODE_REFRAME;
 	}
 
@@ -5564,6 +5800,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(stats), "compute statistics for PIDs", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in ms when doing simple inspection in case no packets are received on some PIDs", GF_PROP_UINT, "5000", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
@@ -5582,6 +5819,8 @@ static const GF_FilterCapability InspectCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	{0},
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_FAKE, GF_TRUE)
 };
 
 const GF_FilterRegister InspectRegister = {
@@ -5669,7 +5908,7 @@ const GF_FilterRegister InspectRegister = {
 	.finalize = inspect_finalize,
 	.process = inspect_process,
 	.process_event = inspect_process_event,
-	.configure_pid = inspect_config_input,
+	.configure_pid = inspect_configure_pid,
 	.update_arg = inspect_update_arg,
 	.hint_class_type = GF_FS_CLASS_TOOL
 };
@@ -5725,7 +5964,7 @@ const GF_FilterRegister ProbeRegister = {
 	SETCAPS(ProberCaps),
 	.finalize = inspect_finalize,
 	.process = inspect_process,
-	.configure_pid = inspect_config_input,
+	.configure_pid = inspect_configure_pid,
 	.hint_class_type = GF_FS_CLASS_TOOL,
 };
 

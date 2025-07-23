@@ -206,6 +206,8 @@ struct __route_service
 
 	char *service_identifier;
 	char *log_name;
+
+	Bool in_reset;
 };
 
 //maximum segs we keep in cache when playing from pcap in no realtime: this accounts for
@@ -223,6 +225,7 @@ struct __gf_routedmx {
 	u32 buffer_size;
 	u8 *unz_buffer;
 	u32 unz_buffer_size;
+	u32 max_obj_size;
 	//reordering time in us
 	u64 reorder_timeout_us;
 	Bool force_in_order;
@@ -358,6 +361,27 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 	gf_free(routedmx);
 }
 
+static GF_Err routedmx_setup_socket(GF_ROUTEDmx *routedmx, const char *log_name, GF_Socket *sock, const char *dst_ip, u32 dst_port)
+{
+	if (!dst_ip || !dst_port) return GF_BAD_PARAM;
+	GF_Err e;
+	if (gf_sk_is_multicast_address(dst_ip)) {
+		e = gf_sk_setup_multicast(sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind to multicast address %s:%u on %s interface\n", log_name, dst_ip, dst_port, routedmx->ip_ifce ? routedmx->ip_ifce : "default"));
+		}
+	} else {
+		e = gf_sk_bind(sock, (char*) routedmx->ip_ifce, dst_port, dst_ip, dst_port, GF_SOCK_REUSE_PORT);
+		if (e) return e;
+		if (!e)
+			e = gf_sk_connect(sock, dst_ip, dst_port, NULL);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind socket %s:%u on %s interface\n", log_name, dst_ip, dst_port, routedmx->ip_ifce ? routedmx->ip_ifce : "default"));
+		}
+	}
+	return e;
+}
+
 static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_size, const char *netcap_id, Bool is_atsc,
 							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
 							  void *udta, const char *log_name)
@@ -424,6 +448,8 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
 	routedmx->reorder_timeout_us = 100000;
+	//50MB max per object - for 10s fragments, this gives 40 mbps which should be enough
+	routedmx->max_obj_size = 50000000;
 
 	routedmx->on_event = on_event;
 	routedmx->udta = udta;
@@ -441,10 +467,10 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 	gf_sk_set_usec_wait(routedmx->atsc_sock, 1);
-	e = gf_sk_setup_multicast(routedmx->atsc_sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 1, GF_FALSE, (char *) ifce);
+
+	e = routedmx_setup_socket(routedmx, log_name, routedmx->atsc_sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT);
 	if (e) {
 		gf_route_dmx_del(routedmx);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to bind to multicast address on interface %s\n", log_name, ifce ? ifce : "default"));
 		return NULL;
 	}
 	gf_sk_set_buffer_size(routedmx->atsc_sock, GF_FALSE, sock_buffer_size);
@@ -520,9 +546,9 @@ static GF_ROUTEService *gf_route_create_service(GF_ROUTEDmx *routedmx, const cha
 			routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 		gf_sk_set_usec_wait(service->sock, 1);
-		e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
+
+		e = routedmx_setup_socket(routedmx, service->log_name, service->sock, dst_ip, dst_port);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup multicast on %s:%d\n", service->log_name, dst_ip, dst_port));
 			gf_route_service_del(routedmx, service);
 			return NULL;
 		}
@@ -1426,7 +1452,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			if (!strcmp(tr_sess->name, "PresentationManifestLocator") && !is_cfg_session) {
 				const char *trp_obj_uri = _xml_get_attr(tr_sess, "transportObjectURI");
 				tr_sess = gf_list_get(tr_sess->content, 0);
-				if (!tr_sess || !tr_sess->name) continue;
+				const char *mani_url = tr_sess ? tr_sess->name : NULL;
+				if (!mani_url && !trp_obj_uri) continue;
+
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
 					GF_LCTObject *obj = gf_list_get(parent_s->objects, i);
@@ -1435,7 +1463,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						//use URI indicated in transportObjectURI
 						(trp_obj_uri && !strcmp(obj->rlct_file->filename, trp_obj_uri))
 						//otherwise try to match using content type (repair url) - cf #3030 and DVB MABR A176 section 10.2.2.2.
-						|| !strcmp(obj->rlct_file->filename, tr_sess->name)
+						|| (tr_sess && !strcmp(obj->rlct_file->filename, tr_sess->name))
 					) {
 						mani_obj=obj;
 						break;
@@ -1556,9 +1584,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 							routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 						gf_sk_set_usec_wait(rsess->sock, 1);
-						e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+
+						e = routedmx_setup_socket(routedmx, new_service->log_name, rsess->sock, dst_add, dst_port);
 						if (e) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
 							gf_list_del(rsess->channels);
 							if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 							gf_free(rsess);
@@ -1628,7 +1656,15 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
 					GF_LCTObject *obj = gf_list_get(parent_s->objects, i);
+					Bool pl_match = GF_FALSE;
 					if (obj->rlct_file && !strcmp(obj->rlct_file->filename, trp_attr)) {
+						pl_match = GF_TRUE;
+					} else {
+						char *pl = obj->rlct_file ? strstr(obj->rlct_file->filename, trp_attr) : NULL;
+						if (pl && ((pl==obj->rlct_file->filename) || (pl[-1]=='/')) )
+							pl_match = GF_TRUE;
+					}
+					if (pl_match) {
 						obj->rlct = rlct;
 						obj->flute_type = GF_FLUTE_HLS_VARIANT;
 						break;
@@ -1960,6 +1996,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		if (ll_map) start_offset += ll_map->offset;
 
 		total_len = obj->total_length;
+	}
+
+	if ((total_len>routedmx->max_obj_size) || (start_offset>routedmx->max_obj_size)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u too big - size %u but max allowed size %u\n", s->log_name, toi, tsi, total_len>routedmx->max_obj_size ? total_len : start_offset, routedmx->max_obj_size));
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	if (!obj) {
@@ -2435,7 +2476,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
 
 					gf_sk_set_usec_wait(rsess->sock, 1);
-					e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+					e = routedmx_setup_socket(routedmx, s->log_name, rsess->sock, dst_ip, dst_port);
 					if (e) {
 						gf_sk_del(rsess->sock);
 						gf_list_del(rsess->channels);
@@ -2444,7 +2485,6 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						gf_list_del(remove_channels);
 						if (rsess->mcast_addr) gf_free(rsess->mcast_addr);
 						gf_free(rsess);
-						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
 						return e;
 					}
 					gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
@@ -2899,6 +2939,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 				return e ? e : GF_SERVICE_ERROR;
 			}
 		} else if (!strcmp(szContentType, "application/mbms-user-service-description+xml")) {
+		} else if (!strcmp(szContentType, "application/route-usd+xml")) {
 		} else if (!strcmp(szContentType, "application/dash+xml")
 			|| !strcmp(szContentType, "video/vnd.3gpp.mpd")
 			|| !strcmp(szContentType, "audio/mpegurl")
@@ -3616,6 +3657,8 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 		s = NULL;
 	}
 	if (!s) return GF_BAD_PARAM;
+	if (is_locate) s->in_reset = GF_FALSE;
+
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
@@ -3695,7 +3738,9 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 		return GF_NOT_FOUND;
 	}
 	if (is_remove) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
+		if (!s->in_reset) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
+		}
 		return GF_NOT_FOUND;
 	}
 	return GF_OK;
@@ -4045,6 +4090,10 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 	}
 	if (!mcast_sess)
 		return GF_OK;
+
+	if (!gf_sk_is_multicast_address(mcast_sess->mcast_addr ? mcast_sess->mcast_addr : s->dst_ip))
+		return GF_OK;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s MCAST %s:%d TSI %u\n", s->log_name,
 		is_selected ? "Activating" : "Deactivating",
 		rep_id,
@@ -4107,6 +4156,7 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 	for (i=0; i<count; i++) {
 		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
 		j=0;
+		s->in_reset = GF_TRUE;
 		GF_LCTObject *obj;
 		while ((obj=gf_list_enum(s->objects, &j))) {
 			obj->status = GF_LCT_OBJ_DONE_ERR;

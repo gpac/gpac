@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -234,13 +234,14 @@ typedef struct
 	u16 n_frames;
 	Float max_fps;
 	u8 counting_type;
+	Bool cnt_dropped_flag, clock_timestamp_flag;
 } AVCSeiPicTimingTimecode;
 
 typedef struct
 {
 	u8 pic_struct;
 	u8 num_clock_ts;
-	AVCSeiPicTimingTimecode timecodes[3]; 
+	AVCSeiPicTimingTimecode timecodes[3];
 	/*to be eventually completed by other pic_timing members*/
 } AVCSeiPicTiming;
 
@@ -252,10 +253,16 @@ typedef struct
 typedef struct
 {
 	AVCSeiRecoveryPoint recovery_point;
+	//valid if num_clock_ts is set
 	AVCSeiPicTiming pic_timing;
 	AVCSeiItuTT35DolbyVision dovi;
-	/*to be eventually completed by other sei*/
-} AVCSei;
+
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
+	u8 has_3d_ref_disp_info;
+	u8 alternative_transfer_characteristics;
+} GF_SEIInfo;
 
 typedef struct
 {
@@ -265,7 +272,7 @@ typedef struct
 	AVC_PPS pps[255];
 
 	AVCSliceInfo s_info;
-	AVCSei sei;
+	GF_SEIInfo sei;
 
 	Bool is_svc;
 	u8 last_nal_type_parsed;
@@ -285,6 +292,7 @@ typedef struct
 {
 	Bool is_whitelist;
 	GF_PropUIntList seis;
+	s32 extra_filter; //- removes the sei, + keeps the sei
 } SEI_Filter;
 
 
@@ -327,6 +335,8 @@ typedef struct
 	Bool remove_video_info;
 	//if set timing info is removed
 	Bool remove_vui_timing_info;
+	//if set pic_struct is enabled
+	Bool enable_pic_struct;
 	//new fullrange, -1 to use info from bitstream
 	s32 fullrange;
 	//new vidformat flag, -1 to use info from bitstream
@@ -511,8 +521,13 @@ typedef struct
 	u32 dimension_id[MAX_LHVC_LAYERS][16];
 	u32 layer_id_in_nuh[MAX_LHVC_LAYERS];
 	u32 layer_id_in_vps[MAX_LHVC_LAYERS];
-
-	u8 num_profile_tier_level, num_output_layer_sets;
+	u8 num_direct_ref_layers[64];
+	u8 num_ref_list_layers[64];
+	u8 num_profile_tier_level, num_output_layer_sets, default_ref_layers_active_flag;
+	u8 id_direct_ref_layers[64][MAX_LHVC_LAYERS];
+	u8 layer_idx_in_vps[MAX_LHVC_LAYERS];
+	u8 sub_layers_vps_max_minus1[MAX_LHVC_LAYERS];
+	u8 max_tid_il_ref_pics_plus1[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	u32 profile_level_tier_idx[MAX_LHVC_LAYERS];
 	HEVC_ProfileTierLevel ext_ptl[MAX_LHVC_LAYERS];
 
@@ -529,18 +544,12 @@ typedef struct
 	Bool necessary_layers_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	u8 LayerSetLayerIdList[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	u8 LayerSetLayerIdListMax[MAX_LHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
+	u8 max_one_active_ref_layer_flag;
 } HEVC_VPS;
 
 typedef struct
 {
-	AVCSeiRecoveryPoint recovery_point;
-	AVCSeiPicTiming pic_timing;
-	AVCSeiItuTT35DolbyVision dovi;
-} HEVC_SEI;
-
-typedef struct
-{
-	u8 nal_unit_type;
+	u8 nal_unit_type, layer_id, temporal_id;
 	u32 frame_num, poc_lsb, slice_type, header_size_with_emulation;
 	
 	s32 redundant_pic_cnt;
@@ -589,17 +598,12 @@ typedef struct _hevc_state
 	HEVC_VPS vps[16];
 
 	HEVCSliceInfo s_info;
-	HEVC_SEI sei;
+	GF_SEIInfo sei;
 
 	//-1 or the value of the vps/sps/pps ID of the nal just parsed
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
-
-	u8 clli_data[4];
-	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid;
-	u8 has_3d_ref_disp_info;
 } HEVCState;
 
 typedef struct hevc_combine{
@@ -863,15 +867,12 @@ typedef struct _vvc_state
 
 	VVCSliceInfo s_info;
 
+	GF_SEIInfo sei;
+
 	//0: minimal parsing, used by most tools. Slice header and picture header are skipped
 	//1: full parsing, error check: used to retrieve end of slice header
 	//2: full parsing, no error check (used by dumpers)
 	u32 parse_mode;
-
-
-	u8 clli_data[4];
-	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid;
 } VVCState;
 
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
@@ -1021,10 +1022,9 @@ typedef struct
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];
 
-
-	u8 clli_data[4];
-	u8 mdcv_data[24];
-	u8 clli_valid, mdcv_valid;
+	//if set to ono, only parse OBU_METADATA and skip the rest. If OBU_METADAT is present, the value is set to 2
+	u32 parse_metadata_filter;
+	GF_SEIInfo sei;
 
 	//set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
 	u8 has_temporal_delim;
@@ -1241,7 +1241,7 @@ typedef struct _webvtt_parser GF_WebVTTParser;
 typedef struct _webvtt_sample GF_WebVTTSample;
 
 GF_WebVTTParser *gf_webvtt_parser_new();
-GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicode_type, Bool is_srt,
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
                              void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *));
@@ -1290,6 +1290,22 @@ GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 
 /*build isobmf dec info from sequence header+ephdr (only seq hdr is parsed, only advanced profile is supprted) */
 GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **dsi, u32 *dsi_size);
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+typedef struct _gf_sei_loader GF_SEILoader;
+GF_SEILoader *gf_sei_loader_new();
+void gf_sei_loader_del(GF_SEILoader *sei);
+GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid);
+GF_Err gf_sei_init_from_avc(GF_SEILoader *sei, AVCState *avc);
+GF_Err gf_sei_init_from_hevc(GF_SEILoader *sei, HEVCState *hevc);
+GF_Err gf_sei_init_from_vvc(GF_SEILoader *sei, VVCState *vvc);
+GF_Err gf_sei_init_from_av1(GF_SEILoader *sei, AV1State *av1);
+
+GF_Err gf_sei_load_from_state(GF_SEILoader *sei, GF_FilterPacket *pck);
+GF_Err gf_sei_load_from_packet(GF_SEILoader *sei, GF_FilterPacket *pck);
+
+void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24]);
+#endif
 
 
 #endif		/*_GF_MEDIA_DEV_H_*/

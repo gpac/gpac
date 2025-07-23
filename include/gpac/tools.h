@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -73,7 +73,7 @@ Macro formatting a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
-/*! Macro formating 4CC from compiler-constant string of 4 characters
+/*! Macro formatting 4CC from compiler-constant string of 4 characters
 \hideinitializer
  */
 #define GF_4CC_CSTR(s) GF_4CC(s[0],s[1],s[2],s[3])
@@ -432,11 +432,11 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
  */
 typedef struct
 {
-	u8 hours, minutes, seconds;
-	u16 n_frames;
 	Float max_fps;
-	Bool drop_frame;
-	u32 as_timestamp;
+	u16 n_frames;
+	u8 hours, minutes, seconds;
+	u8 drop_frame, negative;
+	u8 counting_type;
 } GF_TimeCode;
 
 /*!
@@ -448,6 +448,66 @@ Formats a timecode into a string
 \return the formated input buffer
 */
 const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
+
+/*!
+\brief converts a timecode to timestamp
+
+Converts a timecode to a timestamp in the given timescale
+\param tc timecode to convert
+\param timescale timescale to convert to
+\return the timestamp in the given timescale
+*/
+u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly less than value2
+ */
+Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly less than or equal to value2
+ */
+Bool gf_timecode_less_or_equal(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly greater than value2
+ */
+Bool gf_timecode_greater(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is stricly greater than or equal to value2
+ */
+Bool gf_timecode_greater_or_equal(GF_TimeCode *value1, GF_TimeCode *value2);
+
+/*!
+\brief compare timecodes
+
+Compares two timecodes
+\param value1 value to compare
+\param value2 value to compare
+\return GF_TRUE if value1 is equal to value2
+ */
+Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2);
 
 /*! @} */
 
@@ -657,39 +717,25 @@ u32 gf_sys_is_quiet();
 */
 const char *gf_sys_features(Bool disabled);
 
-/*! callback function for remotery profiler
- \param udta user data passed by \ref gf_sys_profiler_set_callback
- \param text string sent by webbrowser client
+/*! solves path starting with replacement keywords:
+ - $GDOCS: replaced by path to user document , OS-specific
+	 - application document directory for iOS
+	 - EXTERNAL_STORAGE environment variable if present or '/sdcard'  otherwise for Android
+	 - user home directory for other platforms
+ - $GCFG: replaced by path to GPAC config directory for the current profile
+
+\param tpl_path url to translate, must start with $GDOCS or $GCFG
+\param szPath path to store the result
+\return GF_TRUE if success, GF_FALSE otherwise.
 */
-typedef void (*gf_rmt_user_callback)(void *udta, const char* text);
+Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 
-/*! Enables remotery profiler callback. If remotery is enabled, commands sent via webbrowser client will be forwarded to the callback function specified
-\param udta user data
-\param rmt_usr_cbk callback function
-\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
+/*! Enables or disables the rmt websocket monitoring server
+\param start If true starts the webserver, if false stops it
+\return GF_OK if success, GF_BAD_PARAM if error, GF_NOT_SUPPORTED if ws server not supported
 */
-GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk);
+GF_Err gf_sys_enable_rmtws(Bool start);
 
-
-/*! Sends a log message to remotery web client
-\param msg text message to send. The message format should be json
-\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
-*/
-GF_Err gf_sys_profiler_log(const char *msg);
-
-/*! Sends a message to remotery web client
-\param msg text message to send. The message format should be json
-\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
-*/
-GF_Err gf_sys_profiler_send(const char *msg);
-
-/*! Enables sampling times in RMT
- \param enable if GF_TRUE, sampling will be enabled, otherwise disabled*/
-void gf_sys_profiler_enable_sampling(Bool enable);
-
-/*! Checks if sampling is enabled in RMT. Sampling is by default enabled when enabling remotery
- \return GF_TRUE if sampling is enabled, GF_FALSE otherwise*/
-Bool gf_sys_profiler_sampling_enabled();
 
 /*!
 GPAC Log tools
@@ -850,6 +896,8 @@ typedef enum
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/
 	GF_LOG_APP,
+	/*! Log for all info regarding the rmt_ws server and bindings*/
+	GF_LOG_RMTWS,
 
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
@@ -929,7 +977,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 Gets log  tool name
 \param log_tool tool to check
-\return name, or "unknwon" if not known
+\return name, or "unknown" if not known
 */
 const char *gf_log_tool_name(GF_LOG_Tool log_tool);
 
@@ -2475,43 +2523,18 @@ Bool gf_creds_check_membership(const char *username, const char *users, const ch
 
 //! @cond Doxygen_Suppress
 
-#if defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_REMOTERY)
-#define GPAC_DISABLE_REMOTERY 1
-#endif
-
-#ifdef GPAC_DISABLE_REMOTERY
+#ifdef GPAC_DISABLE_RMTWS
 #define RMT_ENABLED 0
-#else
-#define RMT_USE_OPENGL	1
 #endif
 
-#include <gpac/Remotery.h>
-
-#define GF_RMT_AGGREGATE	RMTSF_Aggregate
-/*! begins remotery CPU sample*/
-#define gf_rmt_begin rmt_BeginCPUSample
-/*! begins remotery CPU sample with hash*/
-#define gf_rmt_begin_hash rmt_BeginCPUSampleStore
-/*! ends remotery CPU sample*/
-#define gf_rmt_end rmt_EndCPUSample
-/*! sets remotery thread name*/
-#define gf_rmt_set_thread_name rmt_SetCurrentThreadName
-/*! logs remotery text*/
-#define gf_rmt_log_text rmt_LogText
-/*! begins remotery OpenGL sample*/
-#define gf_rmt_begin_gl rmt_BeginOpenGLSample
-/*! begins remotery OpenGL sample with hash*/
-#define gf_rmt_begin_gl_hash rmt_BeginOpenGLSampleStore
-/*!ends remotery OpenGL sample*/
-#define gf_rmt_end_gl rmt_EndOpenGLSample
+#include <gpac/rmt_ws.h>
 
 //! @endcond
 
 
 /* \cond dummy */
 
-/*to call whenever the OpenGL library is opened - this function is needed to bind OpenGL and remotery, and to load
-OpenGL extensions on windows
+/*to call whenever the OpenGL library is opened - this function is needed to load OpenGL extensions on windows
 not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL
 calls are made by the caller*/
 void gf_opengl_init();

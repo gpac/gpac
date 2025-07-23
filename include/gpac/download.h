@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -145,15 +145,20 @@ typedef struct
 		for GF_NETIO_ICY_META, set to inband ICY metadata found
 	*/
 	char *value;
-	/*message-dependend
-		for GF_NETIO_PARSE_REPLY, response code
-		for GF_NETIO_DATA_EXCHANGE
-			Set to 1 in to indicate end of chunk transfer
-			Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
-			if error is set, reply is set to HTTP code
-		for all other, usage is reserved
-	*/
-	u32 reply;
+	union {
+		/*message-dependend
+			for GF_NETIO_PARSE_REPLY, response code
+			for GF_NETIO_DATA_EXCHANGE
+				Set to 1 in to indicate end of chunk transfer
+				Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
+				if error is set, reply is set to HTTP code
+			for all other, usage is reserved
+		*/
+		u32 reply;
+		/* for GF_NETIO_REQUEST_SESSION*/
+		s64 stream_id;
+	};
+
 	/*download session for which the message is being sent*/
 	GF_DownloadSession *sess;
 } GF_NETIO_Parameter;
@@ -176,7 +181,6 @@ typedef struct __gf_filter_session GF_DownloadFilterSession;
 #ifndef GPAC_DISABLE_NETWORK
 
 #include <gpac/config_file.h>
-#include <gpac/cache.h>
 
 /*! URL information object*/
 typedef struct GF_URL_Info_Struct {
@@ -592,6 +596,11 @@ Registers a local cache provider (bypassing the http session), used when populat
 \return error code if any
  */
 GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta);
+
+/**
+ * Handle for Cache Entries.
+ */
+typedef struct __DownloadedCacheEntryStruct * DownloadedCacheEntry;
 
 /*!
 Adds a local entry in the cache

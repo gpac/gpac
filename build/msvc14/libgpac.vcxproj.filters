@@ -228,9 +228,6 @@
     <ClInclude Include="..\..\include\gpac\bitstream.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\cache.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\color.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -393,7 +390,7 @@
     <ClInclude Include="..\..\src\filters\dec_nvdec_sdk.h">
       <Filter>filters\nvdec</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\Remotery.h">
+    <ClInclude Include="..\..\include\gpac\rmt_ws.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\quickjs\cutils.h">
@@ -1007,9 +1004,6 @@
     <ClCompile Include="..\..\src\utils\bitstream.c">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\utils\cache.c">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\utils\color.c">
       <Filter>utils</Filter>
     </ClCompile>
@@ -1020,6 +1014,24 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\downloader.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_cache.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_curl.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_hmux.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_nghttp2.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_ngtcp2.c">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\downloader_ssl.c">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\error.c">
@@ -1361,6 +1373,9 @@
     <ClCompile Include="..\..\src\filters\reframe_ac3.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_ac4.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\reframe_adts.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1403,10 +1418,16 @@
     <ClCompile Include="..\..\src\filters\resample_audio.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\sei_load.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\restamp.c">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewind.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\rewrite_ac4.c">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\rewrite_adts.c">
@@ -1499,7 +1520,7 @@
     <ClCompile Include="..\..\src\filters\dec_nvdec_sdk.c">
       <Filter>filters\nvdec</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\utils\Remotery.c">
+    <ClCompile Include="..\..\src\utils\rmt_ws.c">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\in_route.c">

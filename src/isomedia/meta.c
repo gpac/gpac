@@ -295,6 +295,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	/*FIXME*/
 	else if (location_entry->data_reference_index) {
 		char *item_url = NULL, *item_urn = NULL;
+
+		if (!meta || !meta->file_locations || !meta->file_locations->dref || !meta->file_locations->dref->child_boxes)
+			return GF_ISOM_INVALID_FILE;
+
 		GF_FullBox *a = (GF_FullBox *)gf_list_get(meta->file_locations->dref->child_boxes, location_entry->data_reference_index-1);
 		if (!a) return GF_ISOM_INVALID_FILE;
 		if (a->type==GF_ISOM_BOX_TYPE_URL) {
@@ -989,19 +993,22 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 }
 
 static GF_Err meta_add_item_property_association(GF_ItemPropertyAssociationBox *ipma, u32 item_ID, u32 prop_index, Bool essential) {
-	u32 i, count;
+	u32 i, count, insert_pos;
 	GF_ItemPropertyAssociationEntry *found_entry = NULL;
 
 	count = gf_list_count(ipma->entries);
+	insert_pos = 0;
 	for (i = 0; i < count; i++) {
 		found_entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
 		if (found_entry->item_id == item_ID) break;
+		// item ids must appear in increasing order
+		if (item_ID > found_entry->item_id) ++insert_pos;
 		found_entry = NULL;
 	}
 	if (!found_entry) {
 		GF_SAFEALLOC(found_entry, GF_ItemPropertyAssociationEntry);
 		if (!found_entry) return GF_OUT_OF_MEM;
-		gf_list_add(ipma->entries, found_entry);
+		gf_list_insert(ipma->entries, found_entry, insert_pos);
 		found_entry->item_id = item_ID;
 	}
 	found_entry->associations = gf_realloc(found_entry->associations, sizeof(GF_ItemPropertyAssociationSlot) * (found_entry->nb_associations+1));
@@ -1443,7 +1450,11 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box"));
+		if (track_num) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box in track %u\n", track_num));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box in %s\n", root_meta ? "file" : "movie box"));
+		}
 		return GF_BAD_PARAM;
 	}
 
@@ -1463,7 +1474,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			GF_ItemInfoEntryBox *iinf_e= (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, i);
 			if (iinf_e->item_ID > lastItemID) lastItemID = iinf_e->item_ID;
 			if (item_id == iinf_e->item_ID) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item with id %d already exists, ignoring id\n", item_id));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Item with ID %d already exists, ignoring ID\n", item_id));
 				item_id = 0;
 			}
 		}
@@ -1775,6 +1786,14 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
                              GF_ImageItemProperties *image_props)
 {
 	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, &item_id, item_type, mime_type, content_encoding, image_props, URL, URN, NULL, 0, NULL, 0, 0);
+}
+
+GF_EXPORT
+GF_Err gf_isom_add_meta_item2(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 *io_item_id, u32 item_type,
+                              const char *mime_type, const char *content_encoding, const char *URL, const char *URN,
+                              GF_ImageItemProperties *image_props)
+{
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, io_item_id, item_type, mime_type, content_encoding, image_props, URL, URN, NULL, 0, NULL, 0, 0);
 }
 
 GF_EXPORT

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -100,6 +100,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_DIRAC, 0xA4, GF_STREAM_VISUAL, "Dirac Video", "dirac", NULL, "video/dirac"},
 	{GF_CODECID_AC3, 0xA5, GF_STREAM_AUDIO, "AC3 Audio", "ac3", "ac-3", "audio/ac3", .unframe=GF_TRUE},
 	{GF_CODECID_EAC3, 0xA6, GF_STREAM_AUDIO, "Enhanced AC3 Audio", "eac3", "ec-3", "audio/eac3", .unframe=GF_TRUE},
+	{GF_CODECID_AC4, 0, GF_STREAM_AUDIO, "AC4 Audio", "ac4", "ac-4", "audio/ac4", .unframe=GF_TRUE},
 	{GF_CODECID_TRUEHD, 0, GF_STREAM_AUDIO, "Dolby TrueHD", "mlp", "mlpa", "audio/truehd", .unframe=GF_TRUE},
 	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
 	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
@@ -239,6 +240,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_AC3;
 	case GF_ISOM_SUBTYPE_EC3:
 		return GF_CODECID_EAC3;
+	case GF_ISOM_SUBTYPE_AC4:
+		return GF_CODECID_AC4;
 	case GF_ISOM_SUBTYPE_FLAC:
 		return GF_CODECID_FLAC;
 	case GF_ISOM_SUBTYPE_MP3:
@@ -503,7 +506,7 @@ const char *gf_stream_type_short_name(u32 streamType)
 		if (GF_StreamTypes[i].st == streamType)
 			return GF_StreamTypes[i].sname;
 	}
-	return "unkn";
+	return "unknown";
 }
 
 GF_EXPORT
@@ -1080,6 +1083,27 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	//LFE
 	if (layout & GF_AUDIO_CH_LFE) res |= (1); //15
 	return res;
+}
+
+u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
+{
+	const u32 mask_dict[][2] = {
+		{0x000002, 1}, {0x000001, 2}, {0x000003, 3},
+		{0x008003, 4}, {0x000007, 5}, {0x000047, 6},
+		{0x020047, 7}, {0x008001, 9}, {0x000005, 10},
+		{0x008047, 11}, {0x00004F, 12}, {0x02FF7F, 13},
+		{0x06FF6F, 13}, {0x000057, 14}, {0x040047, 14},
+		{0x00145F, 15}, {0x04144F, 15}, {0x000077, 16},
+		{0x040067, 16}, {0x000A77, 17}, {0x040A67, 17},
+		{0x000A7F, 18}, {0x040A6F, 18}, {0x00007F, 19},
+		{0x04006F, 19}, {0x01007F, 20}, {0x05006F, 2}
+	};
+	for (int i=0; i<28; i++) {
+		if (mask == mask_dict[i][0]) {
+			return mask_dict[i][1];
+		}
+	}
+	return mask;
 }
 
 GF_EXPORT
@@ -2824,4 +2848,50 @@ const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100])
 	int frame_digits = (tc->max_fps >= 100.0) ? 3 : 2;
 	snprintf(szTimecode, 99, "%02d:%02d:%02d%c%0*d", tc->hours, tc->minutes, tc->seconds, tc->drop_frame ? ';' : '.', frame_digits, tc->n_frames);
 	return szTimecode;
+}
+
+GF_EXPORT
+u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale)
+{
+	if (!timescale) timescale = 1;
+	u64 res = (u64) tc->hours * 3600 + (u64) tc->minutes * 60 + (u64) tc->seconds;
+	res *= timescale;
+	res += gf_timestamp_rescale(tc->n_frames, (u64) gf_ceil(tc->max_fps), timescale);
+	return res;
+}
+
+#define TIMECODE_COMPARE(_op) \
+	if (value1->hours != value2->hours) return value1->hours _op value2->hours; \
+	if (value1->minutes != value2->minutes) return value1->minutes _op value2->minutes; \
+	if (value1->seconds != value2->seconds) return value1->seconds _op value2->seconds; \
+	return value1->n_frames _op value2->n_frames;
+
+GF_EXPORT
+Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(<)
+}
+
+GF_EXPORT
+Bool gf_timecode_less_or_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(<=)
+}
+
+GF_EXPORT
+Bool gf_timecode_greater(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(>)
+}
+
+GF_EXPORT
+Bool gf_timecode_greater_or_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(>=)
+}
+
+GF_EXPORT
+Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
+{
+	TIMECODE_COMPARE(==)
 }

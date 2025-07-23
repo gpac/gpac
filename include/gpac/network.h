@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -146,7 +146,7 @@ Bool gf_url_is_relative(const char *url);
 Returns a pointer to the first colon at the end of a filename or URL, if any.
 
 If assign_sep is specified, for example '=', the function will make sure that the colon is after the file extension if found and that '=' is not present between colon and file ext.
-This is used to parse 'a:b.mp4:c' (expected result ':c...' and not ':b...') vs 'a:b=c.mp4' ' (expected result ':b') 
+This is used to parse 'a:b.mp4:c' (expected result ':c...' and not ':b...') vs 'a:b=c.mp4' ' (expected result ':b')
 
 \param URL path or URL to inspect
 \param assign_sep value of assignment operand character. If 0, only checks for colon, otherwise chec that no assign sep or colon is present before file extension, if present
@@ -327,6 +327,16 @@ Gets diff in milliseconds between NTP time and current time
  */
 s32 gf_net_get_ntp_diff_ms(u64 ntp);
 
+/*!
+
+Adds or remove a given amount of microseconds to an NTP timestamp
+\param ntp NTP timestamp
+\param usec microseconds to add/remove
+\return adjusted NTP timestamp
+ */
+GF_EXPORT
+u64 gf_net_ntp_add_usec(u64 ntp, s32 usec);
+
 
 /*!
 
@@ -345,6 +355,15 @@ Returns text description of given errno code
 \return its description
  */
 const char *gf_errno_str(int errnoval);
+
+
+/*!
+\brief reloads netcap filters
+
+Reloads netcap filters, closing all attached files and deassociating sockets - this should only be done called when reloading a session
+\return error if any
+ */
+GF_Err gf_net_reload_netcap();
 
 /*! @} */
 
@@ -776,4 +795,3 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode 
 
 
 #endif		/*_GF_NET_H_*/
-

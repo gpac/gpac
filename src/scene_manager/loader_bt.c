@@ -397,12 +397,20 @@ next_line:
 				for (i=0; i<count; i++) {
 					u32 symb_len, val_len, copy_len;
 					BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
+					if (!def->name) continue;
 					char *start = strstr(parser->line_buffer, def->name);
 					if (!start) continue;
+
 					symb_len = (u32) strlen(def->name);
 					if (!strchr(" \n\r\t,[]{}\'\"", start[symb_len])) continue;
 					val_len = (u32) strlen(def->value);
+
+					if (val_len >= BT_LINE_SIZE || symb_len >= BT_LINE_SIZE) continue;
+
 					copy_len = (u32) strlen(start + symb_len) + 1;
+
+					if ((start-parser->line_buffer) + val_len + copy_len > BT_LINE_SIZE) continue;
+
 					memmove(start + val_len, start + symb_len, sizeof(char)*copy_len);
 					memcpy(start, def->value, sizeof(char)*val_len);
 					parser->line_size = (u32) strlen(parser->line_buffer);
@@ -449,6 +457,7 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 	has_quote = 0;
 	while (go) {
 		if (parser->line_pos+i>=parser->line_size) break;
+		if (i>=GF_ARRAY_LENGTH(parser->cur_buffer)) break;
 
 		if (parser->line_buffer[parser->line_pos + i] == '\"') {
 			if (!has_quote) has_quote = 1;
@@ -476,11 +485,13 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 			}
 			if (!go) break;
 		}
+		if (i >= GF_ARRAY_LENGTH(parser->cur_buffer))
+			break;
 		parser->cur_buffer[i] = parser->line_buffer[parser->line_pos + i];
 		i++;
 		if (parser->line_pos+i==parser->line_size) break;
 	}
-	parser->cur_buffer[i] = 0;
+	parser->cur_buffer[MIN(i, GF_ARRAY_LENGTH(parser->cur_buffer)-1)] = 0;
 	parser->line_pos += i;
 	return parser->cur_buffer;
 }
@@ -1622,7 +1633,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 
 		if ( (!prev_is_insert && !strcmp(str, "AT")) || !strcmp(str, "PROTO") ) {
 			/*only check in current command (but be aware of conditionals..)*/
-			if (gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
+			if (parser->bifs_au && gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
 				break;
 			}
 			continue;
@@ -1741,6 +1752,7 @@ GF_Err gf_bt_parse_proto(GF_BTParser *parser, char *proto_code, GF_List *proto_l
 	str = gf_bt_get_next(parser, 0);
 	name = gf_strdup(str);
 	if (!gf_bt_check_code(parser, '[')) {
+		gf_free(name);
 		return gf_bt_report(parser, GF_BAD_PARAM, "[ expected in proto declare");
 	}
 	pID = gf_bt_get_next_proto_id(parser);
@@ -3436,7 +3448,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (!parser->stream_id) parser->stream_id = parser->base_bifs_id;
 			if (!parser->stream_id || (parser->od_es && (parser->stream_id==parser->od_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
 
-			if (parser->bifs_es->ESID != parser->stream_id) {
+			if (parser->bifs_es && parser->bifs_es->ESID != parser->stream_id) {
 				GF_StreamContext *prev = parser->bifs_es;
 				parser->bifs_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_SCENE, GF_CODECID_BIFS);
 				/*force new AU if stream changed*/
@@ -3445,14 +3457,20 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 					parser->bifs_au = NULL;
 				}
 			}
-			if (force_new_com) {
+			if (parser->bifs_es && force_new_com) {
 				force_new_com = 0;
 				parser->bifs_au = gf_list_last(parser->bifs_es->AUs);
 				parser->au_time = (u32) (parser->bifs_au ? parser->bifs_au->timing : 0) + 1;
 				parser->bifs_au = NULL;
 			}
 
-			if (!parser->bifs_au) parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, parser->au_time, 0, parser->au_is_rap);
+			if (!parser->bifs_au) {
+				if (!parser->bifs_es) {
+					parser->last_error = GF_BAD_PARAM;
+					break;
+				}
+				parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, parser->au_time, 0, parser->au_is_rap);
+			}
 			gf_bt_parse_bifs_command(parser, str, parser->bifs_au->commands);
 			if (is_base_stream) parser->stream_id= 0;
 		}

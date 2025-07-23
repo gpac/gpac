@@ -387,7 +387,7 @@ void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size);
 void rtpin_satip_get_server_ip(const char *sURL, char *Server);
 
 #ifdef GPAC_HAS_SSL
-void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode);
+void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
 GF_Err gf_rtsp_set_ssl_ctx(GF_RTSPSession *sess, void *ssl_CTX);
 Bool gf_rtsp_session_needs_ssl(GF_RTSPSession *sess);
 #endif

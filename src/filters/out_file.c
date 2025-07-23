@@ -49,7 +49,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool append, dynext, redund, noinitraw, force_null;
+	Bool append, dynext, redund, noinitraw, force_null, atomic;
 	GF_FileOutConcatMode cat;
 	GF_FileOutOverwriteMode ow;
 	u32 mvbk;
@@ -84,6 +84,8 @@ typedef struct
 
 	u64 last_file_size;
 	Bool use_rel;
+	Bool use_move;
+	char *llhls_file_name;
 
 #ifdef GPAC_HAS_FD
 	Bool no_fd;
@@ -96,11 +98,33 @@ typedef struct
 #include <fcntl.h>
 #endif
 
+#define ATOMIC_SUFFIX	".gftmp"
+
 static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
 {
 	if (!ctx->hls_chunk) return;
 	gf_fclose(ctx->hls_chunk);
 	ctx->hls_chunk = NULL;
+	if (!ctx->llhls_file_name) return;
+
+	char szName[GF_MAX_PATH];
+	strcpy(szName, ctx->llhls_file_name);
+	strcat(szName, ATOMIC_SUFFIX);
+	gf_file_delete(ctx->llhls_file_name);
+	gf_file_move(szName, ctx->llhls_file_name);
+	gf_free(ctx->llhls_file_name);
+	ctx->llhls_file_name = NULL;
+}
+
+static void fileout_check_close(GF_FileOutCtx *ctx)
+{
+	if (!ctx->use_move) return;
+	char szName[GF_MAX_PATH];
+	strcpy(szName, ctx->szFileName);
+	strcat(szName, ATOMIC_SUFFIX);
+	gf_file_delete(ctx->szFileName);
+	gf_file_move(szName, ctx->szFileName);
+	ctx->use_move = GF_FALSE;
 }
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite, char *file_suffix, Bool check_no_open)
@@ -118,6 +142,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 			gf_fclose(ctx->file);
 			fileout_close_hls_chunk(ctx, GF_FALSE);
 		}
+		fileout_check_close(ctx);
 	}
 	ctx->file = NULL;
 #ifdef GPAC_HAS_FD
@@ -131,97 +156,113 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	else if (!strcmp(filename, "stdout")) ctx->is_std = GF_TRUE;
 	else ctx->is_std = GF_FALSE;
 
+	if (!strcmp(filename, "null") || !strcmp(filename, "/dev/null"))
+		ext = NULL;
+
 	if (ctx->is_std) {
 		ctx->file = stdout;
+		ctx->nb_write = 0;
 #ifdef WIN32
 		_setmode(_fileno(stdout), _O_BINARY);
 #endif
+		return GF_OK;
+	}
 
+	char szName[GF_MAX_PATH];
+	char szFinalName[GF_MAX_PATH];
+	Bool append = ctx->append;
+	Bool is_gfio=GF_FALSE;
+	const char *url = filename;
+
+	if (!strncmp(filename, "gfio://", 7)) {
+		url = gf_fileio_translate_url(filename);
+		is_gfio=GF_TRUE;
+	}
+
+	if (ctx->dynext) {
+		const char *has_ext = gf_file_ext_start(url);
+
+		strcpy(szFinalName, url);
+		if (!has_ext && ext) {
+			strcat(szFinalName, ".");
+			strcat(szFinalName, ext);
+		}
 	} else {
-		char szFinalName[GF_MAX_PATH];
-		Bool append = ctx->append;
-		Bool is_gfio=GF_FALSE;
-		const char *url = filename;
+		strcpy(szFinalName, url);
+	}
 
-		if (!strncmp(filename, "gfio://", 7)) {
-			url = gf_fileio_translate_url(filename);
-			is_gfio=GF_TRUE;
-		}
-
-		if (ctx->dynext) {
-			const char *has_ext = gf_file_ext_start(url);
-
-			strcpy(szFinalName, url);
-			if (!has_ext && ext) {
-				strcat(szFinalName, ".");
-				strcat(szFinalName, ext);
-			}
+	if (ctx->use_templates) {
+		GF_Err e;
+		gf_assert(ctx->dst);
+		if (!strcmp(filename, ctx->dst)) {
+			strcpy(szName, szFinalName);
+			e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
 		} else {
-			strcpy(szFinalName, url);
+			char szFileName[GF_MAX_PATH];
+			strcpy(szFileName, szFinalName);
+			strcpy(szName, ctx->dst);
+			e = gf_filter_pid_resolve_file_template_ex(ctx->pid, szName, szFinalName, file_idx, file_suffix, szFileName);
 		}
-
-		if (ctx->use_templates) {
-			GF_Err e;
-			char szName[GF_MAX_PATH];
-			gf_assert(ctx->dst);
-			if (!strcmp(filename, ctx->dst)) {
-				strcpy(szName, szFinalName);
-				e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
-			} else {
-				char szFileName[GF_MAX_PATH];
-				strcpy(szFileName, szFinalName);
-				strcpy(szName, ctx->dst);
-				e = gf_filter_pid_resolve_file_template_ex(ctx->pid, szName, szFinalName, file_idx, file_suffix, szFileName);
-			}
-			if (e) {
-				return ctx->error = e;
-			}
+		if (e) {
+			return ctx->error = e;
 		}
+	}
 
-		if (!gf_file_exists(szFinalName)) append = GF_FALSE;
+	if (!gf_file_exists(szFinalName)) append = GF_FALSE;
 
-		if (!strcmp(szFinalName, ctx->szFileName) && (ctx->cat==FOUT_CAT_AUTO))
-			append = GF_TRUE;
+	if (!strcmp(szFinalName, ctx->szFileName) && (ctx->cat==FOUT_CAT_AUTO))
+		append = GF_TRUE;
 
-		if (!append && (ctx->ow!=FOUT_OW_YES) && gf_file_exists(szFinalName)) {
-			char szRes[21];
-			s32 res;
+	if (!append && (ctx->ow!=FOUT_OW_YES) && gf_file_exists(szFinalName)) {
+		char szRes[21];
+		s32 res;
 
-			if (ctx->ow==FOUT_OW_ASK) {
-				fprintf(stderr, "File %s already exists - override (y/n/a) ?:", szFinalName);
-				res = scanf("%20s", szRes);
-				if (!res || (szRes[0] == 'n') || (szRes[0] == 'N')) {
-					return ctx->error = GF_IO_ERR;
-				}
-				if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = FOUT_OW_YES;
-			} else {
+		if (ctx->ow==FOUT_OW_ASK) {
+			fprintf(stderr, "File %s already exists - override (y/n/a) ?:", szFinalName);
+			res = scanf("%20s", szRes);
+			if (!res || (szRes[0] == 'n') || (szRes[0] == 'N')) {
 				return ctx->error = GF_IO_ERR;
 			}
+			if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = FOUT_OW_YES;
+		} else {
+			return ctx->error = GF_IO_ERR;
 		}
-
-		if (check_no_open && (ctx->llhas_mode==GF_LLHAS_SUBSEG)) {
-			strcpy(ctx->szFileName, szFinalName);
-			ctx->nb_write = 0;
-			return GF_OK;
-		}
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] opening output file %s\n", szFinalName));
-#ifdef GPAC_HAS_FD
-		if (!ctx->no_fd && !is_gfio && !append && !gf_opts_get_bool("core", "no-fd")
-			&& (!ctx->original_url || strncmp(ctx->original_url, "gfio://", 7))
-		) {
-			//make sure output dir exists
-			gf_fopen(szFinalName, "mkdir");
-			ctx->fd = gf_fd_open(szFinalName, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
-		} else
-#endif
-			ctx->file = gf_fopen_ex(szFinalName, ctx->original_url, append ? "a+b" : "w+b", GF_FALSE);
-
-		if (!strcmp(szFinalName, ctx->szFileName) && !append && ctx->nb_write && !explicit_overwrite) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite (use `cat` option to enable append)\n", szFinalName));
-		}
-		strcpy(ctx->szFileName, szFinalName);
 	}
+
+	if (check_no_open && (ctx->llhas_mode==GF_LLHAS_SUBSEG)) {
+		strcpy(ctx->szFileName, szFinalName);
+		ctx->nb_write = 0;
+		return GF_OK;
+	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] opening output file %s\n", szFinalName));
+
+	ctx->use_move = GF_FALSE;
+	if (ctx->atomic && !append && !is_gfio && (!ctx->original_url || strncmp(ctx->original_url, "gfio://", 7))) {
+		ctx->use_move = GF_TRUE;
+	}
+	strcpy(szName, szFinalName);
+	if (ctx->use_move) {
+		strcat(szName, ATOMIC_SUFFIX);
+	}
+
+#ifdef GPAC_HAS_FD
+	if (!ctx->no_fd && !is_gfio && !append && !gf_opts_get_bool("core", "no-fd")
+		&& (!ctx->original_url || strncmp(ctx->original_url, "gfio://", 7))
+	) {
+		//make sure output dir exists
+		gf_fopen(szFinalName, "mkdir");
+
+		ctx->fd = gf_fd_open(szName, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
+	} else
+#endif
+		ctx->file = gf_fopen_ex(szName, ctx->original_url, append ? "a+b" : "w+b", GF_FALSE);
+
+	if (!strcmp(szFinalName, ctx->szFileName) && !append && ctx->nb_write && !explicit_overwrite) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite (use `cat` option to enable append)\n", szFinalName));
+	}
+	strcpy(ctx->szFileName, szFinalName);
+
 	ctx->nb_write = 0;
 	if (!ctx->file
 #ifdef GPAC_HAS_FD
@@ -433,6 +474,7 @@ static void fileout_finalize(GF_Filter *filter)
 		gf_list_del(ctx->past_files);
 	}
 	if (ctx->llhas_template) gf_free(ctx->llhas_template);
+	if (ctx->llhls_file_name) gf_free(ctx->llhls_file_name);
 }
 
 static GF_Err fileout_process(GF_Filter *filter)
@@ -665,8 +707,14 @@ restart:
 	if (p) {
 		char *llhas_chunkname = gf_mpd_resolve_subnumber(ctx->llhas_template, ctx->szFileName, p->value.uint);
 		//for now we only use buffered IO for hls chunks, too small to really benefit from direct write
-		if (ctx->hls_chunk) gf_fclose(ctx->hls_chunk);
-		ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
+		fileout_close_hls_chunk(ctx, GF_FALSE);
+		if (ctx->use_move) {
+			ctx->llhls_file_name = gf_strdup(llhas_chunkname);
+			gf_dynstrcat(&llhas_chunkname, ATOMIC_SUFFIX, NULL);
+			ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
+		} else {
+			ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
+		}
 		ctx->gfio_pending = GF_TRUE;
 		gf_free(llhas_chunkname);
 	}
@@ -967,6 +1015,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(noinitraw), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_null), "force no output regardless of file name", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(atomic), "use atomic file write for non append modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(use_rel), "packet filename use relative names (only set by dasher)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
@@ -986,6 +1035,9 @@ GF_FilterRegister FileOutRegister = {
 		"If the output file name is `std` or `stdout`, writes to stdout.\n"
 		"The output file name can use gpac templating mechanism, see `gpac -h doc`."
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
+		"\n"
+		"By default output files are created directly, which may lead to issues if concourrent programs attempt to access them.\n"
+		"By enabling [-atomic](), files will be created in target destination folder with the `"ATOMIC_SUFFIX"` suffix and move to their final name upon close.\n"
 		"\n"
 		"# Discard sink mode\n"
 		"When the destination is `null`, the filter is a sink dropping all input packets.\n"

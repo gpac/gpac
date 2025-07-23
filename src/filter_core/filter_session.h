@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -258,7 +258,7 @@ struct __gf_filter_pck
 	struct __gf_filter_pck *reference;
 
 	GF_FilterFrameInterface *frame_ifce;
-	
+
 	//properties applying to this packet
 	GF_PropertyMap *props;
 	//pid properties applying to this packet
@@ -339,11 +339,6 @@ typedef struct __gf_fs_thread
 	u64 nb_tasks;
 	u64 run_time;
 	u64 active_time;
-
-#ifndef GPAC_DISABLE_REMOTERY
-	u32 rmt_tasks;
-	char rmt_name[20];
-#endif
 
 } GF_SessionThread;
 
@@ -493,7 +488,7 @@ struct __gf_filter_session
 
 	GF_List *parsed_args;
 
-	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
+	char sep_args, sep_name, sep_frag, sep_list, sep_neg, sep_link;
 	char *blacklist;
 	Bool init_done;
 
@@ -611,7 +606,7 @@ struct __gf_filter
 	char *dynamic_source_ids;
 
 	char *restricted_source_id;
-	
+
 	//parent media session
 	GF_FilterSession *session;
 
@@ -704,6 +699,7 @@ struct __gf_filter
 	volatile u32 detach_pid_tasks_pending;
 	volatile u32 nb_shared_packets_out;
 	volatile u32 abort_pending;
+	volatile u32 pid_rem_packet_pending;
 	GF_List *postponed_packets;
 
 	//list of blacklisted filtered registries
@@ -840,9 +836,6 @@ struct __gf_filter
 
 	Bool act_as_sink;
 	Bool require_source_id;
-#ifndef GPAC_DISABLE_REMOTERY
-	rmtU32 rmt_hash;
-#endif
 
 	//signals that pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
@@ -918,6 +911,7 @@ void gf_fs_post_pid_instance_delete_task(GF_FilterSession *session, GF_Filter *f
 
 void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
 void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst);
+void gf_filter_pid_inst_check_delete(GF_FilterPidInst *pidinst);
 
 void gf_filter_forward_clock(GF_Filter *filter);
 
@@ -939,6 +933,18 @@ typedef struct
 	GF_EventPropagateType recursive;
 } GF_FilterUpdate;
 
+typedef enum
+{
+	//no discard of input packets
+	GF_PIDI_DISCARD_OFF = 0,
+	//discard of input packets
+	GF_PIDI_DISCARD_ON,
+	//temporary mode to discard inputs but process all reconfiguration packets
+	GF_PIDI_DISCARD_RCFG,
+	//temporary mode to discard inputs but process all reconfiguration packets and delete the PID instance
+	//at the end of the reconfigure task
+	GF_PIDI_DISCARD_RCFG_DELETE,
+} GF_PidInstDiscardMode;
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
@@ -963,9 +969,7 @@ struct __gf_filter_pid_inst
 	volatile u32 discard_packets;
 
 	Bool force_reconfig;
-
-	//set by filter
-	u32 discard_inputs;
+	GF_PidInstDiscardMode discard_inputs;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;
@@ -989,13 +993,15 @@ struct __gf_filter_pid_inst
 	Bool keepalive_signaled;
 	Bool is_playing, is_paused;
 	u8 play_queued, stop_queued;
-	
+
 	volatile u32 nb_eos_signaled;
 
 	Bool is_encoder_input;
 	Bool is_decoder_input;
 	GF_PropertyMap *reconfig_pid_props;
-	
+
+	GF_Filter *swap_source;
+
 	//clock handling by the consumer: the clock values are not automatically dispatched to the output pids and are kept
 	//available as regular packets in the input pid
 	Bool handles_clock_references;
@@ -1059,7 +1065,7 @@ struct __gf_filter_pid
 	volatile u32 nb_shared_packets_out;
 
 	GF_PropertyMap *infos;
-	
+
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 	Bool eos_keepalive;
@@ -1097,7 +1103,7 @@ struct __gf_filter_pid
 	u32 playback_speed_scaler;
 
 	GF_Fraction64 last_ts_sent;
-	
+
 	Bool initial_play_done;
 	Bool is_playing;
 	void *udta;
@@ -1197,7 +1203,7 @@ GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter 
 GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst, Bool check_reconfig_only);
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
-Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
+Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, s16 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
 
 void gf_filter_relink_dst(GF_FilterPidInst *pidinst, GF_Err reason);
 
@@ -1244,9 +1250,9 @@ typedef struct
 	u16 dst_cap_idx;
 	u8 weight;
 	u8 status;
-	u8 priority;
 	u8 loaded_filter_only;
-	u32 disabled_depth;
+	s16 priority;
+
 	//stream type of the output cap of src. Might be:
 	// -1 if multiple stream types are defined in the cap (demuxers, encoders/decoders bundles)
 	// 0 if not specified
@@ -1263,7 +1269,7 @@ typedef struct __freg_desc
 	struct __freg_desc *destination;
 	u32 cap_idx;
 	GF_BundleCache *bundle_cache;
-	u8 priority;
+	s16 priority;
 	u8 in_edges_enabling;
 	u8 has_input; //cache value of gf_filter_has_in_caps
 	u8 has_output; //cache value of gf_filter_has_out_caps
@@ -1310,7 +1316,3 @@ const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first);
 
 
 #endif //_GF_FILTER_SESSION_H_
-
-
-
-

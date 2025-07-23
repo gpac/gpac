@@ -50,7 +50,7 @@ This section documents some constants used in the GPAC framework which are not r
 
 Supported media stream types for media objects.
 */
-enum
+typedef enum
 {
 	/*!Unknown stream type*/
 	GF_STREAM_UNKNOWN = 0,
@@ -104,7 +104,7 @@ enum
 	GF_STREAM_FILE		= 0xE1,
 
 	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
-};
+} GF_StreamType;
 
 /*! Gets the stream type name based on stream type
 \param streamType stream type GF_STREAM_XXX as defined in constants.h
@@ -183,7 +183,7 @@ typedef enum
 	/*!RGB24 + depth plane (7 lower bits) + shape mask. Component ordering in bytes is R-G-B-(S+D).*/
 	GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
 
-	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
+	/*internal format for OpenGL using packed RGB 24 bit plus planar depth plane at the end of the image*/
 	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
 	/*generic pixel format uncv from ISO/IEC 23001-17*/
@@ -486,6 +486,8 @@ typedef enum
 	GF_CODECID_AC3 = GF_4CC('a','c','-','3'),
 	/*! codecid for enhanced AC-3 audio streams*/
 	GF_CODECID_EAC3 = GF_4CC('e','c','-','3'),
+	/*! codecid for AC-4 audio streams*/
+	GF_CODECID_AC4 = GF_4CC('a','c','-','4'),
 	/*! codecid for Dolby TrueHS audio streams*/
 	GF_CODECID_TRUEHD = GF_4CC('m','l','p','a'),
 	/*! codecid for DRA audio streams*/
@@ -1016,6 +1018,12 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 \return dolby chanmap
 */
 u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
+
+/*! get dloby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
+\param mask presentation channel mask v1
+\return dolby AudioChannelConfiguration value
+*/
+u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask);
 
 /*! enumerates CICP channel layout
 \param idx index of cicp layout value to query

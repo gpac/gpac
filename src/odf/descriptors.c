@@ -1263,6 +1263,8 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
+			if (!sl)
+				return GF_ISOM_INVALID_MEDIA;
 			if (!cfg->write_annex_b) {
 				gf_bs_write_int(bs, sl->size, 16);
 			} else {
@@ -1403,7 +1405,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			nalucount = gf_bs_read_int(bs, 16);
 		else
 			nalucount = 1;
-			
+
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
@@ -1657,7 +1659,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	size -= 4;
 
 	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong av1C reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] av1C: wrong reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
 		gf_odf_av1_cfg_del(cfg);
 		gf_free(av1_state);
 		return NULL;
@@ -1672,14 +1674,14 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
 		if (gf_av1_parse_obu(bs, &obu_type, &obu_size, NULL, av1_state) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] av1C: could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
 		gf_assert(obu_size == gf_bs_get_position(bs) - pos);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] av1C: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] av1C: AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		if (!a) break;
@@ -1878,6 +1880,600 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 	return e;
 }
 
+#define GF_AC4_SSS(bs, value, nbits, size, mode) { \
+	if (mode == GF_AC4_DESCMODE_PARSE) value = gf_bs_read_int(bs, nbits); \
+	else if (mode == GF_AC4_DESCMODE_WRITE) gf_bs_write_int(bs, value, nbits); \
+	else if (mode == GF_AC4_DESCMODE_GETSIZE) *size += nbits;}
+
+#define GF_AC4_ALLIGN(bs, size, mode) { \
+	if (mode == GF_AC4_DESCMODE_PARSE) gf_bs_align(bs); \
+	else if (mode == GF_AC4_DESCMODE_WRITE) gf_bs_align(bs); \
+	else if (mode == GF_AC4_DESCMODE_GETSIZE && (*size % 8 != 0)) *size = ((*size / 8) + 1) * 8;}
+
+GF_Err gf_odf_ac4_cfg_alternative_info(GF_AC4AlternativeInfo *info, GF_BitStream *bs, u64 *size, u8 desc_mode)
+{
+	u32 i;
+
+	GF_AC4_SSS(bs, info->name_len, 16, size, desc_mode);
+
+	if (info->name_len >= GF_ARRAY_LENGTH(info->presentation_name))
+		return GF_ISOM_INVALID_MEDIA;
+
+	for (i = 0; i < info->name_len; i++) {
+		GF_AC4_SSS(bs, info->presentation_name[i], 8, size, desc_mode);
+	}
+
+	GF_AC4_SSS(bs, info->n_targets, 5, size, desc_mode);
+
+	if (info->n_targets >= MIN(GF_ARRAY_LENGTH(info->target_md_compat), GF_ARRAY_LENGTH(info->target_device_category)))
+		return GF_ISOM_INVALID_MEDIA;
+
+	for (i = 0; i < info->n_targets; i++) {
+		GF_AC4_SSS(bs, info->target_md_compat[i], 3, size, desc_mode);
+		GF_AC4_SSS(bs, info->target_device_category[i], 8, size, desc_mode);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_channel_coded, u64 *size, u8 desc_mode)
+{
+	u32 zero_val = 0;
+
+	GF_AC4_SSS(bs, s->dsi_sf_multiplier, 2, size, desc_mode);
+    GF_AC4_SSS(bs, s->b_substream_bitrate_indicator, 1, size, desc_mode);
+    if (s->b_substream_bitrate_indicator == 1) {
+        GF_AC4_SSS(bs, s->substream_bitrate_indicator, 5, size, desc_mode);
+    }
+    if (b_channel_coded == 1) {
+        GF_AC4_SSS(bs, s->dsi_substream_channel_mask, 24, size, desc_mode);
+    }else {
+        GF_AC4_SSS(bs, s->b_ajoc, 1, size, desc_mode);
+        if (s->b_ajoc == 1) {
+            GF_AC4_SSS(bs, s->b_static_dmx, 1, size, desc_mode);
+            if (s->b_static_dmx == 0) {
+                GF_AC4_SSS(bs, s->n_dmx_objects_minus1, 4, size, desc_mode);
+            }
+            GF_AC4_SSS(bs, s->n_umx_objects_minus1, 6, size, desc_mode);
+        }
+        GF_AC4_SSS(bs, s->b_substream_contains_bed_objects, 1, size, desc_mode);
+        GF_AC4_SSS(bs, s->b_substream_contains_dynamic_objects, 1, size, desc_mode);
+        GF_AC4_SSS(bs, s->b_substream_contains_ISF_objects, 1, size, desc_mode);
+        GF_AC4_SSS(bs, zero_val, 1, size, desc_mode); //reserved bit
+    }
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_content_type(GF_AC4SubStreamGroupV1 *g, GF_BitStream *bs, u64 *size, u8 desc_mode)
+{
+	u32 i;
+
+	GF_AC4_SSS(bs, g->b_content_type, 1, size, desc_mode);
+    if (g->b_content_type == 1){
+        GF_AC4_SSS(bs, g->content_classifier, 3, size, desc_mode);
+        GF_AC4_SSS(bs, g->b_language_indicator, 1, size, desc_mode);
+        if (g->b_language_indicator == 1){
+            GF_AC4_SSS(bs, g->n_language_tag_bytes, 6, size, desc_mode);
+            for (i = 0; i < g->n_language_tag_bytes; i++ ){
+                GF_AC4_SSS(bs, g->language_tag_bytes[i], 8, size, desc_mode);
+            }
+        }
+    }
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStream *bs, u64 *size, u8 desc_mode)
+{
+	u32 i;
+	GF_AC4SubStream *s;
+
+	if (!g)
+		return GF_BAD_PARAM;
+
+	GF_AC4_SSS(bs, g->b_substreams_present, 1, size, desc_mode);
+    GF_AC4_SSS(bs, g->b_hsf_ext, 1, size, desc_mode);
+    GF_AC4_SSS(bs, g->b_channel_coded, 1, size, desc_mode);
+    GF_AC4_SSS(bs, g->n_lf_substreams, 8, size, desc_mode);
+
+	if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+		g->substreams = gf_list_new();
+	}
+    for (i = 0; i < g->n_lf_substreams; i++ ){
+		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+			GF_SAFEALLOC(s, GF_AC4SubStream);
+		} else { // write or get_size
+			s = (GF_AC4SubStream*)gf_list_get(g->substreams, i);
+		}
+		gf_odf_ac4_cfg_substream_dsi(s, bs, g->b_channel_coded, size, desc_mode);
+		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+			gf_list_add(g->substreams, s);
+		}
+    }
+	gf_odf_ac4_cfg_content_type(g, bs, size, desc_mode);
+    return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_bitrate_dsi(GF_AC4BitrateDsi *bitr, GF_BitStream *bs, u64 *size, u8 desc_mode)
+{
+	GF_AC4_SSS(bs, bitr->bit_rate_mode, 2, size, desc_mode);
+    GF_AC4_SSS(bs, bitr->bit_rate, 32, size, desc_mode);
+    GF_AC4_SSS(bs, bitr->bit_rate_precision, 32, size, desc_mode);
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream *bs, u64 *size, u8 desc_mode)
+{
+	GF_AC4SubStreamGroupV1 *g;
+	u32 i, zero_val = 0;
+
+	GF_AC4_SSS(bs, p->presentation_config, 5, size, desc_mode);
+	if (p->presentation_config == 0x06) {
+		p->b_add_emdf_substreams = 1;
+	} else {
+		GF_AC4_SSS(bs, p->mdcompat, 3, size, desc_mode);
+		GF_AC4_SSS(bs, p->b_presentation_id, 1, size, desc_mode);
+		if (p->b_presentation_id) {
+			GF_AC4_SSS(bs, p->presentation_id, 5, size, desc_mode);
+		}
+		GF_AC4_SSS(bs, p->dsi_frame_rate_multiply_info, 2, size, desc_mode);
+		GF_AC4_SSS(bs, p->dsi_frame_rate_fraction_info, 2, size, desc_mode);
+		GF_AC4_SSS(bs, p->presentation_emdf_version, 5, size, desc_mode);
+		GF_AC4_SSS(bs, p->presentation_key_id, 10, size, desc_mode);
+
+		GF_AC4_SSS(bs, p->b_presentation_channel_coded, 1, size, desc_mode);
+		if (p->b_presentation_channel_coded) {
+			GF_AC4_SSS(bs, p->dsi_presentation_ch_mode, 5, size, desc_mode);
+			if (p->dsi_presentation_ch_mode >= 11 && p->dsi_presentation_ch_mode <= 14) {
+				GF_AC4_SSS(bs, p->pres_b_4_back_channels_present, 1, size, desc_mode);
+				GF_AC4_SSS(bs, p->pres_top_channel_pairs, 2, size, desc_mode);
+			}
+			GF_AC4_SSS(bs, p->presentation_channel_mask_v1, 24, size, desc_mode);
+		}
+
+		GF_AC4_SSS(bs, p->b_presentation_core_differs, 1, size, desc_mode);
+		if (p->b_presentation_core_differs) {
+			GF_AC4_SSS(bs, p->b_presentation_core_channel_coded, 1, size, desc_mode);
+			if (p->b_presentation_core_channel_coded) {
+				GF_AC4_SSS(bs, p->dsi_presentation_channel_mode_core, 2, size, desc_mode);
+			}
+		}
+		GF_AC4_SSS(bs, p->b_presentation_filter, 1, size, desc_mode);
+		if (p->b_presentation_filter) {
+			GF_AC4_SSS(bs, p->b_enable_presentation, 1, size, desc_mode);
+			GF_AC4_SSS(bs, p->n_filter_bytes, 8, size, desc_mode);
+			for (i = 0; i < p->n_filter_bytes; i++) {
+				GF_AC4_SSS(bs, zero_val, 8, size, desc_mode); // filter_data
+			}
+		}
+		// calloc memory for substream_groups
+		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+			p->substream_groups = gf_list_new();
+		}
+
+		if (p->presentation_config == 0x1f) {
+			if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+				GF_SAFEALLOC(g, GF_AC4SubStreamGroupV1);
+				gf_list_add(p->substream_groups, g);
+				p->n_substream_groups = 1;
+			} else { // write or get_size
+				g = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, 0);
+			}
+			if (g)
+				gf_odf_ac4_cfg_substream_group_dsi(g, bs, size, desc_mode);
+		}
+		else {
+			GF_AC4_SSS(bs, p->b_multi_pid, 1, size, desc_mode);
+			if (p->presentation_config >= 0 && p->presentation_config <= 2) {
+				p->n_substream_groups = 2;
+			}
+			if (p->presentation_config == 3 || p->presentation_config == 4) {
+				p->n_substream_groups = 3;
+			}
+
+			if (p->presentation_config == 5) {
+				// n_substream_groups_minus2
+				if (desc_mode == GF_AC4_DESCMODE_PARSE)
+					p->n_substream_groups = gf_bs_read_int(bs, 3) + 2;
+				else if (desc_mode == GF_AC4_DESCMODE_WRITE)
+					gf_bs_write_int(bs, p->n_substream_groups - 2, 3);
+				else if(desc_mode == GF_AC4_DESCMODE_GETSIZE)
+					*size += 3;
+			}
+
+			for (i = 0; i < p->n_substream_groups; i++) {
+				if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+					GF_SAFEALLOC(g, GF_AC4SubStreamGroupV1);
+					gf_list_add(p->substream_groups, g);
+				} else { // write or get_size
+					g = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, i);
+				}
+				gf_odf_ac4_cfg_substream_group_dsi(g, bs, size, desc_mode);
+			}
+
+			if (p->presentation_config > 5) {
+				GF_AC4_SSS(bs, p->n_skip_bytes, 7, size, desc_mode);
+				for (i = 0; i < p->n_skip_bytes; i++) {
+					GF_AC4_SSS(bs, zero_val, 8, size, desc_mode); // skip_data
+				}
+			}
+		}
+		GF_AC4_SSS(bs, p->b_pre_virtualized, 1, size, desc_mode);
+		GF_AC4_SSS(bs, p->b_add_emdf_substreams, 1, size, desc_mode);
+	}
+	if (p->b_add_emdf_substreams) {
+		GF_AC4_SSS(bs, p->n_add_emdf_substreams, 7, size, desc_mode);
+		for (i = 0; i < p->n_add_emdf_substreams && i < GF_ARRAY_LENGTH(p->substream_emdf_version) && i < GF_ARRAY_LENGTH(p->substream_key_id); i++) {
+			GF_AC4_SSS(bs, p->substream_emdf_version[i], 5, size, desc_mode);
+			GF_AC4_SSS(bs, p->substream_key_id[i], 10, size, desc_mode);
+		}
+	}
+	GF_AC4_SSS(bs, p->b_presentation_bitrate_info, 1, size, desc_mode);
+	if (p->b_presentation_bitrate_info) {
+		gf_odf_ac4_cfg_bitrate_dsi(&(p->ac4_bitrate_dsi), bs, size, desc_mode);
+	}
+	GF_AC4_SSS(bs, p->b_alternative, 1, size, desc_mode);
+	if (p->b_alternative) {
+		GF_AC4_ALLIGN(bs, size, desc_mode);
+		gf_odf_ac4_cfg_alternative_info(&(p->alternative_info), bs, size, desc_mode);
+	}
+	GF_AC4_ALLIGN(bs, size, desc_mode);
+	 /*
+     * TODO: Not implement, need the information from ac4_substream.
+     * Currently just set the value to 1 according to Dolby's internal discussion.
+     */
+	p->de_indicator = 1;
+	GF_AC4_SSS(bs, p->de_indicator, 1, size, desc_mode);
+	GF_AC4_SSS(bs, p->dolby_atmos_indicator, 1, size, desc_mode);
+	GF_AC4_SSS(bs, zero_val, 4, size, desc_mode);
+
+	if (p->presentation_id > 31) {
+		p->b_extended_presentation_id = 1;
+        p->extended_presentation_id = p->presentation_id;
+	}
+	GF_AC4_SSS(bs, p->b_extended_presentation_id, 1, size, desc_mode);
+	if (p->b_extended_presentation_id) {
+		GF_AC4_SSS(bs, p->extended_presentation_id, 9, size, desc_mode);
+	}
+	else {
+		GF_AC4_SSS(bs, zero_val, 1, size, desc_mode);
+	}
+
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size, u8 desc_mode)
+{
+	u32 i, j, add_pres_bytes, presentation_bytes, skip_bytes, ims_pres_num = 0, legacy_pres_num = 0;
+	u32 pres_bytes = 0, t_size_bytes = 0;
+	GF_AC4PresentationV1* p = NULL, *imsp = NULL;
+	u64 pos, t_size_bits = 0;
+	u8 *t_data = NULL;
+	GF_BitStream *t_bs;
+
+	if (!dsi)
+		return GF_BAD_PARAM;
+
+	GF_AC4_SSS(bs, dsi->ac4_dsi_version, 3, size, desc_mode);
+	GF_AC4_SSS(bs, dsi->bitstream_version, 7, size, desc_mode);
+	GF_AC4_SSS(bs, dsi->fs_index, 1, size, desc_mode);
+	GF_AC4_SSS(bs, dsi->frame_rate_index, 4, size, desc_mode);
+
+	if (desc_mode == GF_AC4_DESCMODE_WRITE) {
+		// check whether legacy presentations are added in the presentations
+		for (i = 0; i < dsi->n_presentations; i++) {
+			p = gf_list_get(dsi->presentations, i);
+			if (!p) continue;
+			if (p->presentation_version == 1) {
+				legacy_pres_num += 1;
+			} else if (p->presentation_version == 2) {
+				ims_pres_num += 1;
+			}
+		}
+
+		// In WRITE mode, modify n_presentations for IMS content and add legacy presentations
+		// For more information, please read Dolby AC-4 Online Delivery Kit - Signaling immersive stereo content
+		if (legacy_pres_num == 0 && ims_pres_num > 0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("[AC4] This is a Dolby AC-4 bitstreams signal immersive stereo content.\n"));
+
+			for (i = 0; i < dsi->n_presentations; i++) {
+				p = gf_list_get(dsi->presentations, i);
+				if (!p) continue;
+				if (p->presentation_version == 2) {
+					GF_SAFEALLOC(imsp, GF_AC4PresentationV1);
+					gf_odf_ac4_presentation_deep_copy(imsp, p);
+
+					imsp->presentation_version = 1;
+					imsp->b_pre_virtualized = 0;
+					imsp->dolby_atmos_indicator = 0;
+					gf_list_add(dsi->presentations, imsp);
+				}
+			}
+			dsi->n_presentations += ims_pres_num;
+		}
+	}
+
+	GF_AC4_SSS(bs, dsi->n_presentations, 9, size, desc_mode);
+	if (dsi->bitstream_version > 1) {
+		GF_AC4_SSS(bs, dsi->b_program_id, 1, size, desc_mode);
+		if (dsi->b_program_id) {
+			GF_AC4_SSS(bs, dsi->short_program_id, 16, size, desc_mode);
+			GF_AC4_SSS(bs, dsi->b_uuid, 1, size, desc_mode);
+			if (dsi->b_uuid) {
+				for (i = 0; i < 16; i++)
+					GF_AC4_SSS(bs, dsi->program_uuid[i], 8, size, desc_mode);
+			}
+		}
+	}
+
+	// ac4_bitrate_dsi
+	gf_odf_ac4_cfg_bitrate_dsi(&dsi->ac4_bitrate_dsi, bs, size, desc_mode);
+	GF_AC4_ALLIGN(bs, size, desc_mode);
+
+	if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+		dsi->presentations = gf_list_new();
+	}
+
+	for (i = 0; i < dsi->n_presentations; i++) {
+		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
+			GF_SAFEALLOC(p, GF_AC4PresentationV1);
+			gf_list_add(dsi->presentations, p);
+
+			p->presentation_version = gf_bs_read_int(bs, 8);
+			pres_bytes = gf_bs_read_int(bs, 8);
+			if (pres_bytes == 255) {
+				add_pres_bytes = gf_bs_read_int(bs, 16);
+				pres_bytes += add_pres_bytes;
+			}
+
+			pos = gf_bs_get_position(bs);
+
+			if (p->presentation_version == 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support presentation_version 0.\n"));
+			} else if (p->presentation_version == 1) {
+				gf_odf_ac4_cfg_presentation_v1_dsi(p, bs, size, desc_mode);
+			} else if (p->presentation_version == 2) {
+				gf_odf_ac4_cfg_presentation_v1_dsi(p, bs, size, desc_mode);
+			}
+
+			presentation_bytes = (u32) (gf_bs_get_position(bs) - pos);
+			skip_bytes = pres_bytes - presentation_bytes;
+
+			for (j = 0; j < skip_bytes && gf_bs_available(bs); j++) {
+				gf_bs_read_int(bs, 8);
+			}
+		}
+		else if (desc_mode == GF_AC4_DESCMODE_WRITE) {
+			p = gf_list_get(dsi->presentations, i);
+			if (!p) continue;
+
+			t_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			if (p->presentation_version == 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support presentation_version 0.\n"));
+			} else if (p->presentation_version == 1 || p->presentation_version == 2) {
+				gf_odf_ac4_cfg_presentation_v1_dsi(p, t_bs, size, desc_mode);
+			}
+
+			// write into output bitstream
+			gf_bs_write_int(bs, p->presentation_version, 8);
+			presentation_bytes = (u32) gf_bs_get_position(t_bs);
+			if (presentation_bytes < 255) {
+				gf_bs_write_int(bs, presentation_bytes, 8);
+			} else {
+				gf_bs_write_int(bs, 255, 8);
+				gf_bs_write_int(bs, presentation_bytes - 255, 16);
+			}
+			gf_bs_get_content(t_bs, &t_data, &t_size_bytes);
+			gf_bs_write_data(bs, t_data, t_size_bytes);
+
+			gf_bs_del(t_bs);
+			gf_free(t_data);
+		}
+		else if (desc_mode == GF_AC4_DESCMODE_GETSIZE) {
+			p = gf_list_get(dsi->presentations, i);
+
+			t_size_bits = 0; // t_size in bits
+			if (p->presentation_version == 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support presentation_version 0.\n"));
+				return GF_OK;
+			} else if (p->presentation_version == 1 || p->presentation_version == 2) {
+				gf_odf_ac4_cfg_presentation_v1_dsi(p, bs, &t_size_bits, desc_mode);
+			}
+
+			if (t_size_bits < 255 * 8) {
+				*size += (8 + 8 + t_size_bits);
+			} else {
+				*size += (8 + 8 + 16 + t_size_bits);
+			}
+		}
+	}
+
+	return GF_OK;
+}
+
+GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs)
+{
+	if (!cfg || !bs) return GF_BAD_PARAM;
+	GF_AC4StreamInfo* dsi = &cfg->stream;
+	if (dsi->ac4_dsi_version == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		return GF_OK;
+	}
+	GF_Err e = gf_odf_ac4_cfg_dsi_v1(dsi, bs, NULL, GF_AC4_DESCMODE_WRITE);
+	return e;
+}
+
+GF_Err gf_odf_ac4_cfg_write(GF_AC4Config *cfg, u8 **data, u32 *size)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_Err e = gf_odf_ac4_cfg_write_bs(cfg, bs);
+	gf_bs_get_content(bs, data, size);
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
+{
+	GF_AC4StreamInfo* dsi = &cfg->stream;
+	u64 pos = gf_bs_get_position(bs);
+	dsi->ac4_dsi_version = gf_bs_read_int(bs, 3);
+	if (dsi->ac4_dsi_version == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		return GF_OK;
+	}
+	gf_bs_seek(bs, pos);
+	GF_Err e = gf_odf_ac4_cfg_dsi_v1(dsi, bs, NULL, GF_AC4_DESCMODE_PARSE);
+	if (e) return e;
+	cfg->sample_rate = dsi->fs_index ? 48000 : 44100;
+	return e;
+}
+
+GF_Err gf_odf_ac4_cfg_parse(u8 *dsi, u32 dsi_len, GF_AC4Config *cfg)
+{
+	GF_BitStream *bs;
+	GF_Err e;
+	if (!cfg || !dsi) return GF_BAD_PARAM;
+	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
+	e = gf_odf_ac4_cfg_parse_bs(bs, cfg);
+	gf_bs_del(bs);
+	return e;
+}
+
+u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg)
+{
+	GF_AC4StreamInfo* dsi = &cfg->stream;
+	u64 size = 0;
+	if (dsi->ac4_dsi_version == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		return 0;
+	} else {
+		gf_odf_ac4_cfg_dsi_v1(dsi, NULL, &size, GF_AC4_DESCMODE_GETSIZE);
+	}
+	return size / 8;
+}
+
+void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
+{
+	u32 i;
+	GF_List *presentations_src = src->stream.presentations;
+	GF_AC4PresentationV1 *pres_dst, *pres_src;
+
+	if (!dst || !src) {
+		return;
+	}
+
+	memcpy(dst, src, sizeof(GF_AC4Config));
+
+	if (!src->stream.presentations) {
+		return;
+	}
+
+	dst->stream.presentations = gf_list_new();
+	for (i = 0; i < gf_list_count(presentations_src); i++) {
+		pres_src = gf_list_get(presentations_src, i);
+
+		GF_SAFEALLOC(pres_dst, GF_AC4PresentationV1);
+		gf_odf_ac4_presentation_deep_copy(pres_dst, pres_src);
+		gf_list_add(dst->stream.presentations, pres_dst);
+	}
+}
+
+void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src)
+{
+	u32 j, s;
+	GF_AC4SubStreamGroupV1 *group_dst, *group_src;
+	GF_AC4SubStream *subs_dst, *subs_src;
+
+	if (!pres_dst || !pres_src) {
+		return;
+	}
+
+	memcpy(pres_dst, pres_src, sizeof(GF_AC4PresentationV1));
+
+	if (!pres_src->substream_groups) {
+		return;
+	}
+
+	pres_dst->substream_groups = gf_list_new();
+	for (j = 0; j < gf_list_count(pres_src->substream_groups); j++) {
+		group_src = gf_list_get(pres_src->substream_groups, j);
+
+		GF_SAFEALLOC(group_dst, GF_AC4SubStreamGroupV1);
+		memcpy(group_dst, group_src, sizeof(GF_AC4SubStreamGroupV1));
+		gf_list_add(pres_dst->substream_groups, group_dst);
+
+		if (!group_src->substreams) {
+			continue;
+		}
+
+		group_dst->substreams = gf_list_new();
+		for (s = 0; s < gf_list_count(group_src->substreams); s++) {
+			subs_src = gf_list_get(group_src->substreams, s);
+
+			GF_SAFEALLOC(subs_dst, GF_AC4SubStream);
+			memcpy(subs_dst, subs_src, sizeof(GF_AC4SubStream));
+			gf_list_add(group_dst->substreams, subs_dst);
+		}
+	}
+}
+
+GF_EXPORT
+void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
+{
+	u32 s;
+	GF_AC4PresentationV1 *pres;
+	GF_AC4SubStreamGroupV1 *group;
+	GF_AC4SubStream *subs;
+
+	if (!cfg)
+		return;
+
+	if (cfg->stream.presentations) {
+
+		while ( (pres = gf_list_pop_back(cfg->stream.presentations)) ) {
+
+			if (pres->substream_groups) {
+
+				while ( (group = gf_list_pop_back(pres->substream_groups)) ) {
+
+					if (group->substreams) {
+
+						for (s = 0; s < gf_list_count(group->substreams); s++) {
+							subs = gf_list_get(group->substreams, s);
+							if (!subs) {
+								continue;
+							}
+
+							gf_free(subs);
+						}
+						gf_list_del(group->substreams);
+
+					}
+					gf_free(group);
+
+					// remove potential duplicates of group
+					s32 idx = 1;
+					while (idx>=0) {
+						idx = gf_list_find(pres->substream_groups, group);
+						if (idx>=0) gf_list_rem(pres->substream_groups, idx);
+					}
+				}
+				gf_list_del(pres->substream_groups);
+
+			}
+			gf_free(pres);
+		}
+
+		gf_list_del(cfg->stream.presentations);
+		cfg->stream.presentations = NULL;
+	}
+}
+
+GF_EXPORT
+void gf_odf_ac4_cfg_del(GF_AC4Config *cfg)
+{
+	if (!cfg) return;
+	gf_odf_ac4_cfg_clean_list(cfg);
+	gf_free(cfg);
+}
 
 GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
 {
@@ -2054,16 +2650,19 @@ void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
 GF_EXPORT
 GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
-        if (!cfg || !bs) return GF_BAD_PARAM;
+	u32 i;
+	if (!cfg || !bs) return GF_BAD_PARAM;
 
-        gf_bs_write_u8(bs, cfg->configurationVersion);
-        gf_av1_leb128_write(bs, cfg->configOBUs_size);
-        for (int i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
-                GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
-                gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
-        }
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		gf_bs_write_u8(bs, cfg->configurationVersion);
+		gf_av1_leb128_write(bs, cfg->configOBUs_size);
+		for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
+				GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
+				gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
+		}
+	#endif
 
-        return GF_OK;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2083,10 +2682,14 @@ GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 GF_EXPORT
 u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
 {
-        if (!cfg) return 0;
+	if (!cfg) return 0;
 
-        u32 cfg_size = 1; // configurationVersion
-        cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
-        cfg_size += cfg->configOBUs_size;
-        return cfg_size;
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		u32 cfg_size = 1; // configurationVersion
+		cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
+		cfg_size += cfg->configOBUs_size;
+		return cfg_size;
+	#else
+		return 0;
+	#endif
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -170,7 +170,7 @@ u64 gf_sys_clock_high_res()
 
 #endif
 
-Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown);
+GF_Err gf_sys_enable_rmtws(Bool start);
 
 static Bool gpac_disable_rti = GF_FALSE;
 
@@ -178,7 +178,6 @@ static Bool gpac_disable_rti = GF_FALSE;
 GF_EXPORT
 void gf_sleep(u32 ms)
 {
-	gf_rmt_begin(sleep, GF_RMT_AGGREGATE);
 
 #ifdef WIN32
 	Sleep(ms);
@@ -215,8 +214,6 @@ void gf_sleep(u32 ms)
 		sel_err = select(0, NULL, NULL, NULL, &tv);
 	} while ( sel_err && (errno == EINTR) );
 #endif
-
-	gf_rmt_end();
 
 }
 
@@ -340,6 +337,8 @@ s32 __gettimeofday(struct timeval *tp, void *tz)
 
 
 #elif defined(WIN32)
+
+#include <WinSock2.h>
 
 static s32 gettimeofday(struct timeval *tp, void *tz)
 {
@@ -743,6 +742,8 @@ u64 gf_sys_clock_high_res()
 
 #ifdef WIN32
 
+#include <timeapi.h>
+
 static u32 OS_GetSysClockHIGHRES()
 {
 	LARGE_INTEGER now;
@@ -1065,7 +1066,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		gf_log_reset_file();
 #endif
 		if (gf_opts_get_bool("core", "rmt"))
-			gf_sys_enable_remotery(GF_TRUE, GF_FALSE);
+			gf_sys_enable_rmtws(GF_TRUE);
 
 		if (gpac_quiet) {
 			if (gpac_quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
@@ -1161,156 +1162,41 @@ const char *gf_sys_find_global_arg(const char *arg)
 }
 
 
-#ifndef GPAC_DISABLE_REMOTERY
-Remotery *remotery_handle=NULL;
-
-//commented out as it put quite some load on the browser
-
-gf_log_cbk gpac_prev_default_logs = NULL;
-
-const char *gf_log_tool_name(GF_LOG_Tool log_tool);
-const char *gf_log_level_name(GF_LOG_Level log_level);
-
-void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
-{
-#ifndef GPAC_DISABLE_LOG
-
-#define RMT_LOG_SIZE	5000
-	char szMsg[RMT_LOG_SIZE];
-	u32 len;
-	sprintf(szMsg, "{ \"type\": \"logs\", \"level\": \"%s\" \"tool\": \"%s\", \"value\": \"", gf_log_level_name(level), gf_log_tool_name(tool));
-
-	len = (u32) strlen(szMsg);
-	vsnprintf(szMsg, RMT_LOG_SIZE - len - 3, fmt, vlist);
-	strcat(szMsg, "\"}");
-
-	rmt_LogText(szMsg);
-
-#undef RMT_LOG_SIZE
-
+#ifndef GPAC_DISABLE_RMTWS
+RMT_WS *rmtws_handle=NULL;
 #endif
 
-}
-
-static void *rmt_udta = NULL;
-gf_rmt_user_callback rmt_usr_cbk = NULL;
-
-static void gpac_rmt_input_handler(const char* text, void* context)
-{
-	if (text && rmt_usr_cbk)
-		rmt_usr_cbk(rmt_udta, text);
-}
-#endif
-
-Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown)
-{
-#ifndef GPAC_DISABLE_REMOTERY
-	if (start && !remotery_handle) {
-		rmtSettings *rmcfg = rmt_Settings();
+GF_EXPORT
+GF_Err gf_sys_enable_rmtws(Bool start) {
+#ifndef GPAC_DISABLE_RMTWS
+	if (start && !rmtws_handle) {
+		RMT_Settings *rmcfg = gf_rmt_get_settings();
 
 		rmcfg->port = gf_opts_get_int("core", "rmt-port");
-		rmcfg->reuse_open_port = gf_opts_get_bool("core", "rmt-reuse");
 		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "rmt-localhost");
 		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("core", "rmt-sleep");
-		rmcfg->maxNbMessagesPerUpdate = gf_opts_get_int("core", "rmt-nmsg");
-		rmcfg->messageQueueSizeInBytes = gf_opts_get_int("core", "rmt-qsize");
-		rmcfg->input_handler = gpac_rmt_input_handler;
+		rmcfg->cert = gf_opts_get_key("core", "rmt-cert");
+		rmcfg->pkey = gf_opts_get_key("core", "rmt-pkey");
 
-		rmtError rme = rmt_CreateGlobalInstance(&remotery_handle);
-		if (rme != RMT_ERROR_NONE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize Remotery profiler: error %d\n", rme));
-			return GF_FALSE;
+		rmtws_handle = rmt_ws_new();
+		if (!rmtws_handle) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize RMT websocket server\n"));
+			return GF_OUT_OF_MEM;
 		}
-		//OpenGL binding is done upon loading of the driver, otherwise crashes on windows
 
-		if (gf_opts_get_bool("core", "rmt-log")) {
-			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);
-		}
-#ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_cov_mode()) {
-			gpac_rmt_input_handler(NULL, NULL);
-		}
-#endif
 
-	} else if (!start && remotery_handle) {
-		if (gf_opts_get_bool("core", "rmt-ogl"))
-			rmt_UnbindOpenGL();
+	} else if (!start && rmtws_handle) {
 
-		rmt_DestroyGlobalInstance(remotery_handle);
+		rmt_ws_del(rmtws_handle);
+		rmtws_handle=NULL;
 
-		remotery_handle=NULL;
-		if (gpac_prev_default_logs != NULL)
-			gf_log_set_callback(NULL, gpac_prev_default_logs);
 	}
-	return GF_TRUE;
+	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
 #endif
 }
 
-GF_EXPORT
-GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback usr_cbk)
-{
-#ifndef GPAC_DISABLE_REMOTERY
-	if (remotery_handle) {
-		rmt_udta = udta;
-		rmt_usr_cbk = usr_cbk;
-		return GF_OK;
-	}
-	return GF_BAD_PARAM;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
-GF_EXPORT
-GF_Err gf_sys_profiler_log(const char *msg)
-{
-#ifndef GPAC_DISABLE_REMOTERY
-	if (remotery_handle) {
-		rmt_LogText(msg);
-		return GF_OK;
-	}
-	return GF_BAD_PARAM;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
-GF_EXPORT
-GF_Err gf_sys_profiler_send(const char *msg)
-{
-#ifndef GPAC_DISABLE_REMOTERY
-	if (remotery_handle) {
-		rmt_SendText(msg);
-		return GF_OK;
-	}
-	return GF_BAD_PARAM;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
-GF_EXPORT
-void gf_sys_profiler_enable_sampling(Bool enable)
-{
-#ifndef GPAC_DISABLE_REMOTERY
-	if (remotery_handle) {
-		rmt_EnableSampling(enable);
-	}
-#endif
-}
-
-GF_EXPORT
-Bool gf_sys_profiler_sampling_enabled()
-{
-#ifndef GPAC_DISABLE_REMOTERY
-	if (remotery_handle) {
-		return rmt_SamplingEnabled();
-	}
-#endif
-	return GF_FALSE;
-}
 
 #include <gpac/list.h>
 GF_List *all_blobs = NULL;
@@ -1647,7 +1533,7 @@ void gf_sys_close()
 		psapi_hinst = NULL;
 #endif
 
-		gf_sys_enable_remotery(GF_FALSE, GF_TRUE);
+		gf_sys_enable_rmtws(GF_FALSE);
 
 #ifdef GPAC_HAS_QJS
 		void gf_js_delete_runtime();
@@ -2759,7 +2645,6 @@ s32 gf_net_get_ntp_diff_ms(u64 ntp)
 	return (s32) (local - remote);
 }
 
-#if 0
 /*!
 
 Adds or remove a given amount of microseconds to an NTP timestamp
@@ -2768,7 +2653,7 @@ Adds or remove a given amount of microseconds to an NTP timestamp
 \return adjusted NTP timestamp
  */
 GF_EXPORT
-u64 gf_net_add_usec(u64 ntp, s32 usec)
+u64 gf_net_ntp_add_usec(u64 ntp, s32 usec)
 {
 	u64 sec, frac;
 	s64 usec_ntp;
@@ -2789,7 +2674,6 @@ u64 gf_net_add_usec(u64 ntp, s32 usec)
 	ntp |= (sec<<32);
 	return ntp;
 }
-#endif
 
 
 GF_EXPORT
@@ -3265,7 +3149,7 @@ GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
 #endif
 		if (f) {
-			s32 wlen = fwrite(szPID, 1, len, f);
+			s32 wlen = (s32) fwrite(szPID, 1, len, f);
 			fclose(f);
 			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
 			continue;

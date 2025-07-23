@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021-2024
+ *			Copyright (c) Telecom ParisTech 2021-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / NodeJS module
@@ -44,13 +44,15 @@ typedef struct
 	u32 nb_args;
 	char **argv;
 
-	napi_async_context rmt_ctx;
-	napi_ref rmt_ref;
-
 	u32 main_thid;
-	GF_List *rmt_messages;
+
+	napi_async_context rmt_ctx;
+	GF_List *rmt_new_clients;
+	GF_List* rmt_task_calls;
+	GF_List* rmt_delete_calls;
 	struct _napi_session *fs_rmt_handler;
-	Bool rmt_task_scheduled;
+
+
 } GPAC_NAPI;
 
 #define GF_SETUP_ERROR	0
@@ -138,6 +140,8 @@ napi_type_tag dashbind_tag = {0x475041434e4f4445, 0x44415348494e4a53};
 napi_type_tag fileio_tag = {0x475041434e4f4445,   0x474646494c45494f};
 napi_type_tag httpsess_tag = {0x475041434e4f4445, 0x474646494cf0df5c};
 
+napi_type_tag rmtclient_tag = {0x475041434e4f4445, 0x174646494cf0df5c};
+
 napi_value dashin_bind(napi_env env, napi_callback_info info);
 void dashin_detach_binding(NAPI_Filter *napi_f);
 
@@ -145,8 +149,7 @@ napi_value httpout_bind(napi_env env, napi_callback_info info);
 void httpout_detach_binding(NAPI_Filter *napi_f);
 
 
-void dummy_finalize(napi_env env, void* finalize_data, void* finalize_hint)
-{
+void dummy_finalize(napi_env env, void* finalize_data, void* finalize_hint) {
 }
 
 napi_value gpac_init(napi_env env, napi_callback_info info)
@@ -217,128 +220,452 @@ napi_value gpac_sys_keyname(napi_env env, napi_callback_info info)
 	NARG_S32(code, 0, 0);
 	NAPI_CALL( napi_create_string_utf8(env, gf_dom_get_friendly_name(code), NAPI_AUTO_LENGTH, &val) );
 #else
-	NAPI_CALL( napi_create_string_utf8(env, "unknwon", NAPI_AUTO_LENGTH, &val) );
+	NAPI_CALL( napi_create_string_utf8(env, "unknown", NAPI_AUTO_LENGTH, &val) );
 #endif
 	return val;
 }
 
-void gpac_rmt_callback_exec(napi_env env, GPAC_NAPI *gpac)
-{
+
+static u32 RMT_CLIENT_PROP_PEER_ADDRESS = 0;
+static u32 RMT_CLIENT_PROP_ON_DATA = 1;
+static u32 RMT_CLIENT_PROP_ON_CLOSE = 2;
+
+
+#define RMT_CLIENT\
+	RMT_ClientCtx* client=NULL;\
+	bool _tag;\
+	NAPI_CALL( napi_check_object_type_tag(env, this_val, &rmtclient_tag, &_tag) );\
+	if (!_tag) {\
+		napi_throw_error(env, NULL, "Not a RMTClient object");\
+		return NULL;\
+	}\
+	NAPI_CALL( napi_unwrap(env, this_val, (void**) &client) );\
+
+
+napi_value rmt_client_getter(napi_env env, napi_callback_info info) {
+	void *magic;
 	napi_status status;
-	napi_value global, fun_val;
+	napi_value this_val, ret;
+	NAPI_CALL(napi_get_cb_info(env, info, NULL, NULL, &this_val, &magic) );
+	RMT_CLIENT
 
-	status = napi_get_global(env, &global);
-	if (status == napi_ok)
-		status = napi_get_reference_value(env, gpac->rmt_ref, &fun_val);
+	if (!client)
+		return NULL;
 
-	if (status == napi_ok) {
-		while (gf_list_count(gpac->rmt_messages)) {
-			napi_value res, arg;
-			char *msg = gf_list_pop_front(gpac->rmt_messages);
-
-			status = napi_create_string_utf8(env, msg, NAPI_AUTO_LENGTH, &arg);
-			if (status == napi_ok)
-				status = napi_make_callback(env, gpac->rmt_ctx, global, fun_val, 1, &arg, &res);
-
-			gf_free(msg);
-		}
+	if (magic == &RMT_CLIENT_PROP_PEER_ADDRESS) {
+		const char *peer = gf_rmt_get_peer_address(client);
+		if (!peer) return NULL;
+		NAPI_CALL( napi_create_string_utf8(env, peer, NAPI_AUTO_LENGTH, &ret) );
+		return ret;
 	}
+
+	return NULL;
+
 }
+
+typedef struct {
+	u32 type;
+
+	napi_env env;
+	napi_ref _this;
+	napi_ref fun;
+
+	void* client;
+
+} NAPI_RMT_Task ;
+
+typedef struct {
+
+	NAPI_RMT_Task* task;
+
+	napi_value arg;
+
+} NAPI_RMT_Task_Call ;
+
+
+void napi_rmt_task_del(napi_env env, NAPI_RMT_Task* task) {
+
+	if (task && task->type == RMT_CALLBACK_NODE) {
+		uint32_t res;
+		if (task->_this) {
+			napi_reference_unref(env, task->_this, &res);
+			napi_delete_reference(env, task->_this);
+		}
+		task->_this = NULL;
+
+		if (task->fun) {
+			napi_reference_unref(env, task->fun, &res);
+			napi_delete_reference(env, task->fun);
+		}
+		task->fun = NULL;
+
+		gf_free(task);
+
+	}
+
+}
+
+
+
+Bool fs_flush_rmt(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms);
+
+void gpac_rmt_client_on_delete(void *udta) {
+
+	NAPI_RMT_Task* task = udta;
+
+	if (!task || task->type != RMT_CALLBACK_NODE )
+		return;
+
+	napi_env env = task->env;
+
+	GPAC_NAPI *gpac;
+	if ( napi_get_instance_data(env, (void **) &gpac) != napi_ok) {
+		napi_throw_error(env, NULL, "Cannot get GPAC NAPI instance");
+		return;
+	}
+
+	if (task->client) {
+		RMT_ClientCtx* client = task->client;
+		NAPI_RMT_Task* datatask = gf_rmt_client_get_on_data_task(client);
+		gf_rmt_client_set_on_data_cbk(client, NULL, NULL);
+		napi_rmt_task_del(env, datatask);
+
+		gf_rmt_client_set_on_del_cbk(client, NULL, NULL);
+	}
+
+	if (!gpac->rmt_delete_calls) gpac->rmt_delete_calls = gf_list_new();
+	gf_list_add(gpac->rmt_delete_calls, task );
+
+	if (gpac->fs_rmt_handler) {
+		gf_fs_post_user_task(gpac->fs_rmt_handler->fs, fs_flush_rmt, gpac->fs_rmt_handler, "RMTClientOnData");
+	}
+	else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("gpac_rmt_client_on_delete with no fs_rmt_handler\n"));
+	}
+
+
+
+}
+
+void gpac_rmt_client_on_data(void *udta, const u8* payload, u64 size, Bool is_binary) {
+
+	NAPI_RMT_Task* task = udta;
+
+	if (!task || task->type != RMT_CALLBACK_NODE )
+		return;
+
+	napi_env env = task->env;
+
+	GPAC_NAPI *gpac;
+	if ( napi_get_instance_data(env, (void **) &gpac) != napi_ok) {
+		napi_throw_error(env, NULL, "Cannot get GPAC NAPI instance");
+		return;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gpac_rmt_client_on_data binary %d size %llu: %.*s\n", is_binary, size, size, payload));
+
+	napi_value arg;
+	// napi_status status; //TODO: check status
+	if (is_binary) {
+		void* abdata;
+		/*status = */napi_create_arraybuffer(env, size, &abdata, &arg);
+		memcpy(abdata, payload, size);
+	}
+	else {
+		/*status = */napi_create_string_utf8(env, (const char*)payload, size, &arg);
+	}
+
+	NAPI_RMT_Task_Call* on_data_call;
+	GF_SAFEALLOC(on_data_call, NAPI_RMT_Task_Call);
+	on_data_call->task = task;
+	on_data_call->arg = arg;
+
+
+	if (!gpac->rmt_task_calls) gpac->rmt_task_calls = gf_list_new();
+	gf_list_add(gpac->rmt_task_calls, on_data_call );
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gpac_rmt_client_on_data added call %p\n", on_data_call));
+
+	if (gpac->fs_rmt_handler) {
+
+		gf_fs_post_user_task(gpac->fs_rmt_handler->fs, fs_flush_rmt, gpac->fs_rmt_handler, "RMTClientOnData");
+
+	}
+	else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("gpac_rmt_client_on_data with no fs_rmt_handler\n"));
+	}
+
+
+
+}
+
+napi_value rmt_client_setter(napi_env env, napi_callback_info info) {
+
+	NAPI_GPAC
+
+	NARG_ARGS_THIS_MAGIC(1, 1)
+
+	RMT_CLIENT
+
+	if (magic == &RMT_CLIENT_PROP_ON_DATA) {
+
+		napi_valuetype rtype;
+		napi_typeof(env, argv[0], &rtype);
+
+		if (rtype == napi_null || rtype == napi_undefined ) {
+
+			NAPI_RMT_Task* task = gf_rmt_client_get_on_data_task(client);
+			napi_rmt_task_del(env, task);
+
+			gf_rmt_client_set_on_data_cbk(client, NULL, NULL);
+
+		} else if (rtype == napi_function) {
+
+			if (!gpac->rmt_ctx) {
+				napi_value global, name;
+				NAPI_CALL( napi_get_global(env, &global) );
+				NAPI_CALL( napi_create_string_utf8(env, "GPAC_RMTCallback", NAPI_AUTO_LENGTH, &name) );
+				NAPI_CALL( napi_async_init(env, global, name, &gpac->rmt_ctx) )
+			}
+
+
+			NAPI_RMT_Task *task;
+			GF_SAFEALLOC(task, NAPI_RMT_Task);
+
+			task->type = RMT_CALLBACK_NODE;
+			task->env = env;
+			task->client = client;
+			napi_create_reference(env, this_val, 1, &task->_this);
+			napi_create_reference(env, argv[0], 1, &task->fun);
+
+			gf_rmt_client_set_on_data_cbk(client, task, gpac_rmt_client_on_data);
+
+		}
+
+	}
+	else if (magic == &RMT_CLIENT_PROP_ON_CLOSE) {
+
+		napi_valuetype rtype;
+		napi_typeof(env, argv[0], &rtype);
+
+		if (rtype == napi_null || rtype == napi_undefined ) {
+
+			NAPI_RMT_Task* task = gf_rmt_client_get_on_del_task(client);
+			if (task && task->type == RMT_CALLBACK_NODE) {
+				// reset the js function but keep the ref to the client for on_delete
+				uint32_t res;
+				napi_reference_unref(env, task->fun, &res);
+				napi_delete_reference(env, task->fun);
+				task->fun = NULL;
+			}
+
+
+
+		} else if (rtype == napi_function) {
+
+			if (!gpac->rmt_ctx) {
+				napi_value global, name;
+				NAPI_CALL( napi_get_global(env, &global) );
+				NAPI_CALL( napi_create_string_utf8(env, "GPAC_RMTCallback", NAPI_AUTO_LENGTH, &name) );
+				NAPI_CALL( napi_async_init(env, global, name, &gpac->rmt_ctx) )
+			}
+
+
+			NAPI_RMT_Task *task = gf_rmt_client_get_on_del_task(client);
+			if (!task)
+				GF_SAFEALLOC(task, NAPI_RMT_Task);
+
+			task->type = RMT_CALLBACK_NODE;
+			task->env = env;
+			task->client = client;
+			napi_create_reference(env, this_val, 1, &task->_this);
+			napi_create_reference(env, argv[0], 1, &task->fun);
+
+			gf_rmt_client_set_on_del_cbk(client, task, gpac_rmt_client_on_delete);
+
+		}
+
+	}
+
+	return NULL;
+
+}
+
+napi_value rmt_client_send(napi_env env, napi_callback_info info) {
+
+
+	NARG_ARGS_THIS(1,1)
+	RMT_CLIENT
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_client_send got client %p\n", client));
+
+	bool is_arraybuffer = 0;
+	NAPI_CALL( napi_is_arraybuffer(env, argv[0], &is_arraybuffer) );
+
+	if (is_arraybuffer) {
+
+		u8* data=NULL;
+		size_t len=0;
+		NAPI_CALL(napi_get_arraybuffer_info(env, argv[0], (void **)&data, &len) );
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_client_send got bin data of size %d\n", len));
+
+		gf_rmt_client_send_to_ws(client, (const char*)data, len, GF_TRUE);
+
+		//free(data); //freed elsewhere???
+	}
+    else {
+		NARG_STR_ALLOC(data, 0, NULL);
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_client_send got string data %s\n", data));
+
+		gf_rmt_client_send_to_ws(client, data, strlen(data), GF_FALSE);
+
+		gf_free(data);
+	}
+
+
+	return NULL;
+
+}
+
+napi_value grap_wrap_rmt_new_client(napi_env env, RMT_ClientCtx* client) {
+	napi_status status;
+	napi_value obj;
+
+	napi_property_descriptor rmt_client_properties[] = {
+		{ "peer_address", NULL, NULL, rmt_client_getter, NULL, NULL, napi_enumerable, &RMT_CLIENT_PROP_PEER_ADDRESS},
+		{ "on_data", NULL, NULL, NULL, rmt_client_setter, NULL, napi_enumerable, &RMT_CLIENT_PROP_ON_DATA},
+		{ "on_close", NULL, NULL, NULL, rmt_client_setter, NULL, napi_enumerable, &RMT_CLIENT_PROP_ON_CLOSE},
+		{ "send", NULL, rmt_client_send, NULL, NULL, NULL, napi_enumerable, NULL},
+	};
+
+	NAPI_CALL( napi_create_object(env, &obj) );
+
+	NAPI_CALL( napi_define_properties(env, obj, sizeof(rmt_client_properties)/sizeof(napi_property_descriptor), rmt_client_properties) );
+
+	NAPI_CALL( napi_type_tag_object(env, obj, &rmtclient_tag) );
+
+	NAPI_CALL( napi_wrap(env, obj, client, dummy_finalize, NULL, NULL) );
+
+	NAPI_RMT_Task *task;
+	GF_SAFEALLOC(task, NAPI_RMT_Task);
+
+	task->type = RMT_CALLBACK_NODE;
+	task->env = env;
+	task->client = client;
+	napi_create_reference(env, obj, 1, &task->_this);
+
+	gf_rmt_client_set_on_del_cbk(client, task, gpac_rmt_client_on_delete);
+
+	return obj;
+}
+
 
 Bool fs_flush_rmt(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
 	NAPI_Session *napi_fs = callback;
+	napi_env env = napi_fs->env;
 	GPAC_NAPI *gpac=NULL;
-	napi_get_instance_data(napi_fs->env, (void **) &gpac);
+
+	napi_get_instance_data(env, (void **) &gpac);
 	if (!gpac) return GF_FALSE;
 
-	gpac_rmt_callback_exec(napi_fs->env, gpac);
-	if (!gf_list_count(gpac->rmt_messages)) {
-		gpac->rmt_task_scheduled = GF_FALSE;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d fs_flush_rmt clients %d tasks %d deletes %d gpac->rmt_ctx %p\n", __FILE__, __LINE__, gf_list_count(gpac->rmt_new_clients), gf_list_count(gpac->rmt_task_calls), gf_list_count(gpac->rmt_delete_calls), gpac->rmt_ctx));
+
+	while (gf_list_count(gpac->rmt_delete_calls)) {
+
+		napi_value res;
+
+		NAPI_RMT_Task* task = gf_list_pop_front(gpac->rmt_delete_calls);
+
+		napi_value _this;
+		napi_get_reference_value(env, task->_this, &_this);
+
+		RMT_ClientCtx* client;
+		napi_remove_wrap(env, _this, (void**) &client);
+
+		napi_wrap(env, _this, NULL, NULL, NULL, NULL);
+
+		if (task->fun) {
+			napi_value fun;
+			napi_get_reference_value(env, task->fun, &fun);
+			napi_make_callback(env, gpac->rmt_ctx, _this, fun, 0, NULL, &res);
+		}
+
+		napi_rmt_task_del(env, task);
+
+
+	}
+
+	while (gf_list_count(gpac->rmt_new_clients)) {
+
+		void* client = gf_list_pop_front(gpac->rmt_new_clients);
+
+		NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+		if (task && gpac->rmt_ctx) {
+
+			napi_value res, _this, fun;
+			// napi_status status; //TODO: check status
+
+			napi_get_reference_value(env, task->_this, &_this);
+			napi_get_reference_value(env, task->fun, &fun);
+
+			napi_value jsclient = grap_wrap_rmt_new_client(env, client);
+			napi_valuetype rtype;
+			napi_typeof(env, jsclient, &rtype);
+
+			/*status = */napi_make_callback(env, gpac->rmt_ctx, _this, fun, 1, &jsclient, &res);
+		}
+
+
+	}
+
+
+	while (gf_list_count(gpac->rmt_task_calls)) {
+
+		NAPI_RMT_Task_Call* call = gf_list_pop_front(gpac->rmt_task_calls);
+
+		if (call && call->task) {
+
+			if (gpac->rmt_ctx) {
+
+				napi_value res, _this, fun;
+				// napi_status status; //TODO: check status
+
+				napi_get_reference_value(env, call->task->_this, &_this);
+				napi_get_reference_value(env, call->task->fun, &fun);
+
+				/*status = */napi_make_callback(env, gpac->rmt_ctx, _this, fun, 1, &call->arg, &res);
+				// else {
+				// 	napi_extended_error_info* error_info = NULL;
+				// 	napi_get_last_error_info(env, &error_info);
+				// 	const char* err_message = error_info->error_message;
+				// 	fprintf(stderr, "ERR cb status %d err: %s\n", status, err_message);
+				// }
+			}
+
+			gf_free(call);
+		}
+
+
+	}
+
+	if (!gf_list_count(gpac->rmt_task_calls) && !gf_list_count(gpac->rmt_new_clients)) {
 		return GF_FALSE;
 	}
 	*reschedule_ms = 10;
 	return GF_TRUE;
 }
 
-void gpac_rmt_callback(void *udta, const char *message)
-{
-	GPAC_NAPI *gpac=NULL;
-	napi_get_instance_data((napi_env) udta, (void **) &gpac);
-	if (!gpac) return;
-
-	if (!gpac->rmt_messages) gpac->rmt_messages = gf_list_new();
-	gf_list_add(gpac->rmt_messages, gf_strdup(message) );
-
-	//session is running in blocking mode, schedule task to call NodeJS from main thread
-	if (gpac->fs_rmt_handler && !gpac->rmt_task_scheduled) {
-		gpac->rmt_task_scheduled = GF_TRUE;
-		gf_fs_post_user_task(gpac->fs_rmt_handler->fs, fs_flush_rmt, gpac->fs_rmt_handler, "RemoteryFlush");
-	}
-}
-
-
-napi_value gpac_set_rmt_fun(napi_env env, napi_callback_info info)
-{
-	NAPI_GPAC
-	napi_value global, name;
-	NARG_ARGS(1, 0)
-
-	gpac->is_init = GF_TRUE;
-	if (!argc) {
-		if (gpac->rmt_ctx) {
-			uint32_t res;
-			napi_async_destroy(env, gpac->rmt_ctx);
-			napi_reference_unref(env, gpac->rmt_ref, &res);
-			napi_delete_reference(env, gpac->rmt_ref);
-			gpac->rmt_ctx = NULL;
-		}
-		gf_sys_profiler_set_callback(NULL, NULL);
-		return NULL;
-	}
-
-	NAPI_CALL( napi_get_global(env, &global) );
-	NAPI_CALL( napi_create_string_utf8(env, "GPAC_RemoteryCallback", NAPI_AUTO_LENGTH, &name) );
-	NAPI_CALL( napi_async_init(env, global, name, &gpac->rmt_ctx) )
-
-	gf_sys_profiler_set_callback(env, gpac_rmt_callback);
-	napi_create_reference(env, argv[0], 1, &gpac->rmt_ref);
-	return NULL;
-}
-
-napi_value gpac_rmt_log(napi_env env, napi_callback_info info)
+napi_value gpac_enable_rmtws(napi_env env, napi_callback_info info)
 {
 	NARG_ARGS(1, 1)
-	NARG_STR(msg, 0, NULL);
-	if (msg)
-		gf_sys_profiler_log(msg);
-	return NULL;
-}
-
-napi_value gpac_rmt_send(napi_env env, napi_callback_info info)
-{
-	NARG_ARGS(1, 1)
-	NARG_STR(msg, 0, NULL);
-	if (msg)
-		gf_sys_profiler_send(msg);
-	return NULL;
-}
-
-napi_value gpac_rmt_on(napi_env env, napi_callback_info info)
-{
-	napi_status status;
-	napi_value val;
-	NAPI_CALL( napi_get_boolean(env, gf_sys_profiler_sampling_enabled(), &val) );
-	return val;
-}
-
-napi_value gpac_rmt_enable(napi_env env, napi_callback_info info)
-{
-	NARG_ARGS(1, 1)
-	NARG_BOOL(val, 0, GF_FALSE);
+	NARG_BOOL(enable, 0, GF_TRUE);
 	NAPI_GPAC
 	gpac->is_init = GF_TRUE;
-	gf_sys_profiler_enable_sampling(val);
+	gf_sys_enable_rmtws(enable);
 	return NULL;
 }
 
@@ -384,6 +711,8 @@ napi_value gpac_set_args(napi_env env, napi_callback_info info)
 
 static void gpac_napi_finalize(napi_env env, void* finalize_data, void* finalize_hint)
 {
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gpac_napi_finalize() \n"));
 	GPAC_NAPI *inst = finalize_data;
 
 	if (inst->nb_args) {
@@ -394,15 +723,32 @@ static void gpac_napi_finalize(napi_env env, void* finalize_data, void* finalize
 		gf_free(inst->argv);
 	}
 
-	napi_delete_reference(env, inst->rmt_ref);
 	if (inst->str_buf) gf_free(inst->str_buf);
-	if (inst->rmt_messages) {
-		while (gf_list_count(inst->rmt_messages)) {
-			char *msg = gf_list_pop_back(inst->rmt_messages);
-			gf_free(msg);
-		}
-		gf_list_del(inst->rmt_messages);
+
+	NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+	gf_rmt_set_on_new_client_cbk(NULL, NULL);
+	napi_rmt_task_del(env, task);
+
+	if (inst->rmt_new_clients) {
+		gf_list_del(inst->rmt_new_clients);
+		inst->rmt_new_clients = NULL;
 	}
+	if (inst->rmt_delete_calls) {
+		gf_list_del(inst->rmt_delete_calls);
+		inst->rmt_delete_calls = NULL;
+	}
+	if (inst->rmt_task_calls) {
+		while (gf_list_count(inst->rmt_task_calls)) {
+			NAPI_RMT_Task_Call *call = gf_list_pop_back(inst->rmt_task_calls);
+			gf_free(call);
+		}
+		gf_list_del(inst->rmt_task_calls);
+	}
+	if (inst->rmt_ctx) {
+		napi_async_destroy(env, inst->rmt_ctx);
+		inst->rmt_ctx = NULL;
+	}
+
 	//close gpac
 	gf_sys_close();
 
@@ -1891,6 +2237,9 @@ static u32 FILTER_PROP_NAME = 0;
 static u32 FILTER_PROP_ID = 1;
 static u32 FILTER_PROP_IPIDS = 2;
 static u32 FILTER_PROP_OPIDS = 3;
+static u32 FILTER_PROP_STATUS = 4;
+static u32 FILTER_PROP_BYTES_DONE = 5;
+
 
 #define FILTER\
 	GF_Filter *f=NULL;\
@@ -1946,6 +2295,18 @@ napi_value filter_getter(napi_env env, napi_callback_info info)
 	}
 	if (magic == &FILTER_PROP_OPIDS) {
 		NAPI_CALL( napi_create_uint32(env, gf_filter_get_opid_count(f), &ret) );
+		return ret;
+	}
+
+	if (magic == &FILTER_PROP_STATUS) {
+		const char* statusstr = gf_filter_get_status(f);
+		NAPI_CALL( napi_create_string_utf8(env, statusstr, NAPI_AUTO_LENGTH, &ret) );
+		return ret;
+	}
+
+	if (magic == &FILTER_PROP_BYTES_DONE) {
+		u64 bytes_dones = gf_filter_get_bytes_done(f);
+		NAPI_CALL( napi_create_int64(env, bytes_dones, &ret) );
 		return ret;
 	}
 
@@ -2793,6 +3154,29 @@ napi_value filter_get_pid_property(napi_env env, char *pname, GF_FilterPid *pid,
 			prop = gf_filter_pid_get_property_str(pid, pname);
 	}
 	if (!prop) {
+
+		if (!strcmp(pname, "buffer")) {
+			NAPI_CALL( napi_create_int64(env, (s64) gf_filter_pid_query_buffer_duration(pid, GF_FALSE), &res) );
+			return res;
+		}
+		if (!strcmp(pname, "buffer_total")) {
+			NAPI_CALL( napi_create_int64(env, (s64) gf_filter_pid_query_buffer_duration(pid, GF_TRUE), &res) );
+			return res;
+		}
+		if (!strcmp(pname, "name")) {
+			const char *fname = gf_filter_pid_get_name(pid);
+			if (fname) {
+				NAPI_CALL( napi_create_string_utf8(env, fname, NAPI_AUTO_LENGTH, &res) );
+			} else {
+				NAPI_CALL( napi_get_null(env, &res) );
+			}
+			return res;
+		}
+		if (!strcmp(pname, "eos")) {
+			NAPI_CALL( napi_get_boolean(env, gf_filter_pid_is_eos(pid), &res) );
+			return res;
+		}
+
 		napi_value res;
 		NAPI_CALL(napi_get_null(env, &res) );
 		return res;
@@ -3004,6 +3388,13 @@ napi_value filter_all_args(napi_env env, napi_callback_info info)
 		NAPI_CALL( napi_create_int32(env, arg->flags, &val) );
 		NAPI_CALL(napi_set_named_property(env, n_arg, "flags", val) );
 
+		char argval[GF_PROP_DUMP_ARG_SIZE];
+		gf_filter_get_arg_str(f, arg->arg_name, argval);
+		NAPI_CALL( napi_create_string_utf8(env, argval, NAPI_AUTO_LENGTH, &val) );
+		NAPI_CALL(napi_set_named_property(env, n_arg, "value", val) );
+
+
+
 		NAPI_CALL(napi_set_element(env, res, a_idx, n_arg) );
 		a_idx++;
 	}
@@ -3213,7 +3604,7 @@ static Bool napi_filter_cbk_process_event(GF_Filter *filter, const GF_FilterEven
 	if (!has_fun) return GF_FALSE;
 
 	status = napi_get_named_property(napi_f->env, obj, "process_event", &fun_val);
-	if (status != napi_ok) return GF_BAD_PARAM;
+	if (status != napi_ok) return GF_FALSE;
 
 	arg = wrap_filterevent(napi_f->env, (GF_FilterEvent *)evt, NULL);
 	status = napi_make_callback(napi_f->env, napi_f->async_ctx, obj, fun_val, 1, &arg, &res);
@@ -3469,6 +3860,7 @@ static u32 FS_PROP_NB_FILTERS = 1;
 static u32 FS_PROP_HTTP_RATE = 2;
 static u32 FS_PROP_MAX_HTTP_RATE = 3;
 
+
 napi_value fs_getter(napi_env env, napi_callback_info info)
 {
 	void *magic;
@@ -3517,23 +3909,14 @@ napi_value fs_run(napi_env env, napi_callback_info info)
 	NAPI_GPAC
 	NAPI_Session *napi_fs = gf_fs_get_rt_udta(fs);
 
-	if (napi_fs->blocking) {
-		//session is running in blocking mode, schedule task to call NodeJS from main thread
-		if (gpac->rmt_ref) {
-			gpac->fs_rmt_handler = napi_fs;
-			gpac->rmt_task_scheduled = GF_TRUE;
-			gf_fs_post_user_task(fs, fs_flush_rmt, napi_fs, "RemoteryFlush");
-		}
-		e = gf_fs_run(fs);
-
-		gpac->fs_rmt_handler = NULL;
-	} else {
-		e = gf_fs_run(fs);
-
-		//flush rmt events
-		if (gpac->rmt_ref)
-			gpac_rmt_callback_exec(env, gpac);
+	gpac->fs_rmt_handler = napi_fs;
+	if (gf_list_count(gpac->rmt_new_clients) || gf_list_count(gpac->rmt_task_calls) || gf_list_count(gpac->rmt_delete_calls)) {
+		gf_fs_post_user_task(fs, fs_flush_rmt, napi_fs, "RMTFlush");
 	}
+
+	e = gf_fs_run(fs);
+
+	//TODO: run flush rmt again if not blocking?
 
 	if (e>=GF_OK) {
 		e = gf_fs_get_last_connect_error(fs);
@@ -3577,6 +3960,8 @@ napi_value fs_wrap_filter(napi_env env, GF_FilterSession *fs, GF_Filter *filter)
 		{ "ID", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_ID},
 		{ "nb_ipid", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_IPIDS},
 		{ "nb_opid", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_OPIDS},
+		{ "status", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_STATUS},
+		{ "bytes_done", NULL, NULL, filter_getter, NULL, NULL, napi_enumerable, &FILTER_PROP_BYTES_DONE},
 		{ "remove", 0, filter_remove, 0, 0, 0, napi_enumerable, 0 },
 		{ "update", 0, filter_update, 0, 0, 0, napi_enumerable, 0 },
 		{ "set_source", 0, filter_set_source, 0, 0, 0, napi_enumerable, 0 },
@@ -3980,7 +4365,7 @@ void fs_on_filter_creation(void *udta, GF_Filter *filter, Bool is_destroy)
 	napi_env env = napi_fs->env;
 
 	//set to NULL means final nodeJS addon shutdown, do not notify
-	
+
 	if (napi_fs->async_ctx != NULL) {
 		GPAC_NAPI *gpac;
 		if ( napi_get_instance_data(env, (void **) &gpac) != napi_ok) {
@@ -4789,6 +5174,89 @@ napi_status init_fevt_class(napi_env env, napi_value exports, GPAC_NAPI *inst)
 static napi_status InitConstants(napi_env env, napi_value exports);
 napi_status init_fio_class(napi_env env, napi_value exports, GPAC_NAPI *inst);
 
+
+static u32 NODEGPAC_PROP_RMT_ON_NEW_CLIENT = 0;
+
+
+void gpac_rmt_on_new_client(void *udta, void* new_client) {
+
+	NAPI_RMT_Task* task = udta;
+
+	if (!task || task->type != RMT_CALLBACK_NODE )
+		return;
+
+	napi_env env = task->env;
+
+	GPAC_NAPI *gpac;
+	if ( napi_get_instance_data(env, (void **) &gpac) != napi_ok) {
+		napi_throw_error(env, NULL, "Cannot get GPAC NAPI instance");
+		return;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("gpac_rmt_on_new_client %p\n", new_client));
+
+
+	if (!gpac->rmt_new_clients) gpac->rmt_new_clients = gf_list_new();
+	gf_list_add(gpac->rmt_new_clients, new_client );
+
+	if (gpac->fs_rmt_handler) {
+
+		gf_fs_post_user_task(gpac->fs_rmt_handler->fs, fs_flush_rmt, gpac->fs_rmt_handler, "RMTOnNewClient");
+	}
+
+}
+
+
+napi_value nodegpac_setter(napi_env env, napi_callback_info info)
+{
+	NAPI_GPAC
+	NARG_ARGS_THIS_MAGIC(1, 1)
+
+	gpac->is_init = GF_TRUE;
+
+	if (magic == &NODEGPAC_PROP_RMT_ON_NEW_CLIENT) {
+
+		napi_valuetype rtype;
+		napi_typeof(env, argv[0], &rtype);
+
+		if (rtype == napi_null || rtype == napi_undefined ) {
+
+			if (gpac->rmt_ctx) {
+				napi_async_destroy(env, gpac->rmt_ctx);
+				gpac->rmt_ctx = NULL;
+			}
+			NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+			napi_rmt_task_del(env, task);
+
+			gf_rmt_set_on_new_client_cbk(NULL, NULL);
+
+
+		} else if (rtype == napi_function) {
+
+			if (!gpac->rmt_ctx) {
+				napi_value global, name;
+				NAPI_CALL( napi_get_global(env, &global) );
+				NAPI_CALL( napi_create_string_utf8(env, "GPAC_RMTCallback", NAPI_AUTO_LENGTH, &name) );
+				NAPI_CALL( napi_async_init(env, global, name, &gpac->rmt_ctx) )
+			}
+
+			NAPI_RMT_Task *task;
+			GF_SAFEALLOC(task, NAPI_RMT_Task);
+			task->type = RMT_CALLBACK_NODE;
+			task->env = env;
+			napi_create_reference(env, this_val, 1, &task->_this);
+			napi_create_reference(env, argv[0], 1, &task->fun);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("setting on new client cb %p\n", gpac_rmt_on_new_client));
+			gf_rmt_set_on_new_client_cbk(task, gpac_rmt_on_new_client);
+
+		}
+
+	}
+
+	return NULL;
+}
+
 napi_value Init(napi_env env, napi_value exports)
 {
 	GPAC_NAPI *inst;
@@ -4820,11 +5288,11 @@ napi_value Init(napi_env env, napi_value exports)
 	DEF_FUN("sys_clock_high_res", gpac_sys_clock_high_res);
 	DEF_FUN("sys_keyname", gpac_sys_keyname);
 
-	DEF_FUN("set_rmt_fun", gpac_set_rmt_fun);
-	DEF_FUN("rmt_send", gpac_rmt_send);
-	DEF_FUN("rmt_on", gpac_rmt_on);
-	DEF_FUN("rmt_enable", gpac_rmt_enable);
-
+	DEF_FUN("enable_rmtws", gpac_enable_rmtws);
+	napi_property_descriptor rmtws_properties[] = {
+		{ "rmt_on_new_client", NULL, NULL, NULL, nodegpac_setter, NULL, napi_enumerable, &NODEGPAC_PROP_RMT_ON_NEW_CLIENT},
+	};
+	NAPI_CALL( napi_define_properties(env, exports, sizeof(rmtws_properties)/sizeof(napi_property_descriptor), rmtws_properties) );
 
 	status = init_fs_class(env, exports, inst);
 	if (status != napi_ok) return NULL;
@@ -4834,6 +5302,7 @@ napi_value Init(napi_env env, napi_value exports)
 
 	status = init_fio_class(env, exports, inst);
 	if (status != napi_ok) return NULL;
+
 
 	inst->main_thid = gf_th_id();
 
@@ -5078,6 +5547,7 @@ static napi_status InitConstants(napi_env env, napi_value exports)
 	DEF_CONST(GF_CAPFLAG_LOADED_FILTER)
 	DEF_CONST(GF_CAPFLAG_STATIC)
 	DEF_CONST(GF_CAPFLAG_OPTIONAL)
+	DEF_CONST(GF_CAPFLAG_RECONFIG)
 	DEF_CONST(GF_CAPS_INPUT)
 	DEF_CONST(GF_CAPS_INPUT_OPT)
 	DEF_CONST(GF_CAPS_INPUT_STATIC)

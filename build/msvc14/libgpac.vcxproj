@@ -41,7 +41,6 @@
     <ClInclude Include="..\..\include\gpac\base_coding.h" />
     <ClInclude Include="..\..\include\gpac\bifs.h" />
     <ClInclude Include="..\..\include\gpac\bitstream.h" />
-    <ClInclude Include="..\..\include\gpac\cache.h" />
     <ClInclude Include="..\..\include\gpac\color.h" />
     <ClInclude Include="..\..\include\gpac\compositor.h" />
     <ClInclude Include="..\..\include\gpac\configuration.h" />
@@ -105,7 +104,7 @@
     <ClInclude Include="..\..\include\gpac\nodes_svg.h" />
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h" />
     <ClInclude Include="..\..\include\gpac\path2d.h" />
-    <ClInclude Include="..\..\include\gpac\Remotery.h" />
+    <ClInclude Include="..\..\include\gpac\rmt_ws.h" />
     <ClInclude Include="..\..\include\gpac\revision.h" />
     <ClInclude Include="..\..\include\gpac\rtp_streamer.h" />
     <ClInclude Include="..\..\include\gpac\scenegraph.h" />
@@ -337,6 +336,7 @@
     <ClCompile Include="..\..\src\filters\out_video.c" />
     <ClCompile Include="..\..\src\filters\reframer.c" />
     <ClCompile Include="..\..\src\filters\reframe_ac3.c" />
+    <ClCompile Include="..\..\src\filters\reframe_ac4.c" />
     <ClCompile Include="..\..\src\filters\reframe_adts.c" />
     <ClCompile Include="..\..\src\filters\reframe_amr.c" />
     <ClCompile Include="..\..\src\filters\reframe_av1.c" />
@@ -354,8 +354,10 @@
     <ClCompile Include="..\..\src\filters\reframe_rawvid.c" />
     <ClCompile Include="..\..\src\filters\reframe_truehd.c" />
     <ClCompile Include="..\..\src\filters\resample_audio.c" />
+    <ClCompile Include="..\..\src\filters\sei_load.c" />
     <ClCompile Include="..\..\src\filters\restamp.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
+    <ClCompile Include="..\..\src\filters\rewrite_ac4.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mhas.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mp4v.c" />
@@ -569,12 +571,17 @@
     <ClCompile Include="..\..\src\utils\alloc.c" />
     <ClCompile Include="..\..\src\utils\base_encoding.c" />
     <ClCompile Include="..\..\src\utils\bitstream.c" />
-    <ClCompile Include="..\..\src\utils\cache.c" />
     <ClCompile Include="..\..\src\utils\color.c" />
     <ClCompile Include="..\..\src\utils\configfile.c" />
     <ClCompile Include="..\..\src\utils\constants.c" />
     <ClCompile Include="..\..\src\utils\dlmalloc.c" />
     <ClCompile Include="..\..\src\utils\downloader.c" />
+    <ClCompile Include="..\..\src\utils\downloader_cache.c" />
+    <ClCompile Include="..\..\src\utils\downloader_curl.c" />
+    <ClCompile Include="..\..\src\utils\downloader_hmux.c" />
+    <ClCompile Include="..\..\src\utils\downloader_nghttp2.c" />
+    <ClCompile Include="..\..\src\utils\downloader_ngtcp2.c" />
+    <ClCompile Include="..\..\src\utils\downloader_ssl.c" />
     <ClCompile Include="..\..\src\utils\error.c" />
     <ClCompile Include="..\..\src\utils\gltools.c" />
     <ClCompile Include="..\..\src\utils\gzio.c" />
@@ -589,7 +596,7 @@
     <ClCompile Include="..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\src\utils\path2d.c" />
     <ClCompile Include="..\..\src\utils\path2d_stroker.c" />
-    <ClCompile Include="..\..\src\utils\Remotery.c" />
+    <ClCompile Include="..\..\src\utils\rmt_ws.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\sha256.c" />
     <ClCompile Include="..\..\src\utils\md5.c" />

@@ -412,9 +412,11 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
-		//reset clock sync at each new full file
-		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
-		ctx->clock_init_seg = NULL;
+		//reset of clock sync is done at each cache discard, for other case reset at each new file
+		if (!ctx->gcache && ctx->clock_init_seg) {
+			gf_free(ctx->clock_init_seg);
+			ctx->clock_init_seg = NULL;
+		}
 		//fallthrough
 
     case GF_ROUTE_EVT_DYN_SEG_FRAG:
@@ -503,7 +505,6 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		}
 
         if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Pushing fragment from file %s to cache\n", ctx->log_name, finfo->filename));
 			break;
         }
 		finfo->blob->flags &=~ GF_BLOB_IN_TRANSFER;
@@ -588,6 +589,10 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 		gf_route_dmx_remove_object_by_name(ctx->route_dmx, sid, subr+1, GF_TRUE);
 		//for non real-time netcap, we may need to reschedule processing
 		gf_filter_post_process_task(ctx->filter);
+		if (ctx->clock_init_seg) {
+			gf_free(ctx->clock_init_seg);
+			ctx->clock_init_seg = NULL;
+		}
 	} else if (sid && (sid != ctx->tune_service_id)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Request on service %d but tuned on service %d, retuning\n", ctx->log_name, sid, ctx->tune_service_id));
 		ctx->tune_service_id = sid;
@@ -606,7 +611,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	return GF_TRUE;
 }
 
-static void routein_set_eos(GF_Filter *filter, ROUTEInCtx *ctx)
+static void routein_set_eos(GF_Filter *filter, ROUTEInCtx *ctx, Bool no_reset)
 {
 	u32 i, nb_out = gf_filter_get_opid_count(filter);
 	for (i=0; i<nb_out; i++) {
@@ -616,7 +621,8 @@ static void routein_set_eos(GF_Filter *filter, ROUTEInCtx *ctx)
 	if (ctx->opid) {
 		gf_filter_pid_set_info_str(ctx->opid, "x-mcast-over", &PROP_STRING("yes") );
 	}
-	gf_route_dmx_reset_all(ctx->route_dmx);
+	if (!no_reset)
+		gf_route_dmx_reset_all(ctx->route_dmx);
 }
 
 static GF_Err routein_process(GF_Filter *filter)
@@ -646,7 +652,7 @@ static GF_Err routein_process(GF_Filter *filter)
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
 					if (diff > ctx->timeout) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] No data for %u ms, aborting\n", ctx->log_name, diff));
-						routein_set_eos(filter, ctx);
+						routein_set_eos(filter, ctx, GF_FALSE);
 						return GF_EOS;
 					}
 				}
@@ -668,8 +674,9 @@ static GF_Err routein_process(GF_Filter *filter)
 //			break;
 		} else if (e==GF_EOS) {
 			e = routein_do_repair(ctx);
+			//this only happens when reading from pcap, do not reset route demuxer as we want to parse all segments present in capture
 			if (e == GF_EOS)
-				routein_set_eos(filter, ctx);
+				routein_set_eos(filter, ctx, GF_TRUE);
 			return e;
 		} else {
 			break;
@@ -681,7 +688,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	 	if (diff>ctx->timeout) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] No data for %u ms, aborting\n", ctx->log_name, diff));
 			gf_filter_setup_failure(filter, GF_IP_UDP_TIMEOUT);
-			routein_set_eos(filter, ctx);
+			routein_set_eos(filter, ctx, GF_FALSE);
 			return GF_EOS;
 		}
 	}
@@ -774,10 +781,9 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		if (root) root[0] = '/';
 
 		if (!gf_sk_is_multicast_address(ctx->src+prot_offset)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] %s is not a multicast address\n", ctx->log_name, ctx->src));
-			sep[0] = ':';
-			return GF_BAD_PARAM;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] %s is not a multicast address\n", ctx->log_name, ctx->src));
 		}
+
 		if (is_mabr)
 			ctx->route_dmx = gf_dvb_mabr_dmx_new(ctx->src+prot_offset, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		else

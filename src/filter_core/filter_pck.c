@@ -351,7 +351,7 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 			ref = ref->reference;
 		}
 	}
-	
+
 	if (max_ref>1) {
 		u8 *data_new;
 		if (dangling_packet) {
@@ -888,6 +888,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		gf_filter_pck_discard(pck);
 		return GF_BAD_PARAM;
 	}
+	if (pid->not_connected) {
+		gf_filter_pck_discard(pck);
+		return GF_OK;
+	}
 
 	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 
@@ -902,8 +906,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		pid->filter->eos_probe_state = 2;
 
 	pid->filter->nb_pck_io++;
-
-	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
 	cktype = ( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
 
@@ -982,7 +984,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			pck->pid->filter->session->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
 		}
 #endif
-		gf_rmt_end();
 		return GF_PENDING_PACKET;
 	}
 	//now dispatched
@@ -1145,7 +1146,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
 		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process) continue;
 
-		if (dst->discard_inputs==1) {
+		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
 				//unassign old property list and set the new one
@@ -1167,7 +1168,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				//in which a previously blacklisted filter (failing (re)configure for previous state) could
 				//now work, eg moving from formatA to formatB then back to formatA
 				gf_list_reset(dst->filter->blacklisted);
-				dst->discard_inputs = 2;
+				dst->discard_inputs = GF_PIDI_DISCARD_RCFG;
 				//and post a reconfigure task
 				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task_discard, dst->filter, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
 				//keep packets, they will be trashed if we are still in discard when executing gf_filter_pid_reconfigure_task_discard
@@ -1300,7 +1301,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					if (inst->pck->pid_props) {
 						safe_int_inc(&inst->pck->pid_props->reference_count);
 					}
-					
+
 					gf_assert(pck->reference_count);
 					safe_int_dec(&pck->reference_count);
 					safe_int_inc(&inst->pck->reference_count);
@@ -1358,7 +1359,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			//otherwise we would have max_buffer_time=1ms (default) and a single AU dispatched would block unless speed is AU_DUR_ms/1ms ...
 			if (us_duration && pid->max_buffer_time && (pid->max_buffer_time<us_duration))
 				pid->max_buffer_time = us_duration;
-				
+
 			gf_mx_v(pid->filter->tasks_mx);
 
 			//post process task
@@ -1388,7 +1389,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 		gf_filter_packet_destroy(pck);
 	}
-	gf_rmt_end();
 	return GF_OK;
 }
 
@@ -1552,7 +1552,7 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 		gf_props_remove_property(pck->props, hash, prop_4cc, prop_name ? prop_name : dyn_name);
 	}
 	if (!value) return GF_OK;
-	
+
 	return gf_props_insert_property(pck->props, hash, prop_4cc, prop_name, dyn_name, value);
 }
 

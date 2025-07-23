@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream metadata rewrite filter
@@ -33,6 +33,15 @@
 typedef struct _bsrw_pid_ctx BSRWPid;
 typedef struct _bsrw_ctx GF_BSRWCtx;
 
+GF_OPT_ENUM (BsrwTimecodeMode,
+	BSRW_TC_NONE=0,
+	BSRW_TC_REMOVE,
+	BSRW_TC_INSERT,
+	BSRW_TC_SHIFT,
+	BSRW_TC_CONSTANT,
+	BSRW_TC_UTC
+);
+
 struct _bsrw_pid_ctx
 {
 	GF_FilterPid *ipid, *opid;
@@ -42,11 +51,17 @@ struct _bsrw_pid_ctx
 	GF_Err (*rewrite_packet)(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck);
 
 	s32 prev_cprim, prev_ctfc, prev_cmx, prev_sar;
+	GF_Fraction fps;
 
 	u32 nalu_size_length;
 
+	u64 drop_change_cts;
+	u32 tc_drop_count;
+	Bool tc_dropped;
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_VUIInfo vui;
+	AVCState *avc;
 #endif
 	Bool rewrite_vui;
 };
@@ -61,6 +76,12 @@ struct _bsrw_ctx
 
 	GF_List *pids;
 	Bool reconfigure;
+
+	Bool tcsc_inferred;
+	Bool tcdf;
+	char *tcxs, *tcxe, *tcsc;
+	GF_TimeCode tcxs_val, tcxe_val, tcsc_val;
+	BsrwTimecodeMode tc;
 };
 
 static GF_Err none_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -111,103 +132,390 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
+static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *pctx, GF_TimeCode *tc_in, GF_TimeCode *tc_out)
+{
+	gf_assert(tc_out);
+	if (ctx->tc == BSRW_TC_NONE) return GF_FALSE;
+
+	//get the current timecode components
+	u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), (u64) pctx->fps.den * gf_filter_pck_get_timescale(pck), pctx->fps.num);
+	u64 n_frames = (cts * pctx->fps.den) % pctx->fps.num;
+	n_frames /= pctx->fps.den;
+	cts = cts * pctx->fps.den / pctx->fps.num;
+	u8 seconds = cts % 60;
+	cts /= 60;
+	u8 minutes = cts % 60;
+	cts /= 60;
+	u8 hours = (u8) cts;
+
+	//get the current timecode
+	GF_TimeCode now = {0};
+	if (!tc_in) {
+		now.n_frames = (u16) n_frames;
+		now.seconds = seconds;
+		now.minutes = minutes;
+		now.hours = hours;
+	} else {
+		memcpy(&now, tc_in, sizeof(GF_TimeCode));
+	}
+
+	//check if we are within the timecode manipulation range
+	Bool tc_change = GF_TRUE;
+	if (ctx->tcxs && gf_timecode_less(&now, &ctx->tcxs_val))
+		tc_change = GF_FALSE;
+	if (ctx->tcxe && gf_timecode_greater(&now, &ctx->tcxe_val))
+		tc_change = GF_FALSE;
+	if (!tc_change) return GF_FALSE;
+
+	//check if we are infering `tcsc` from the first timecode
+	if (ctx->tcsc && strstr(ctx->tcsc, "first") && !ctx->tcsc_inferred) {
+		if (!tc_in) return GF_FALSE;
+		memcpy(&ctx->tcsc_val, tc_in, sizeof(GF_TimeCode));
+		ctx->tcsc_inferred = GF_TRUE;
+	}
+
+	//check few more constraints
+	if (ctx->tc == BSRW_TC_SHIFT || ctx->tc == BSRW_TC_CONSTANT) {
+		if (!tc_in) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Cannot shift timecode without input timecode\n"));
+			return GF_FALSE;
+		}
+	}
+
+	//get max fps
+	Float fps = (Float) pctx->fps.num / pctx->fps.den;
+	u32 max_fps = (u32) gf_ceil(fps);
+
+	//reset the output timecode
+	memset(tc_out, 0, sizeof(GF_TimeCode));
+	tc_out->max_fps = (Float)  max_fps;
+	tc_out->counting_type = ctx->tcdf ? 4 : 0;
+
+	//apply the timecode manipulation
+	switch (ctx->tc)
+	{
+	case BSRW_TC_REMOVE:
+		break;
+	case BSRW_TC_INSERT:
+		if (!ctx->tcsc_inferred) {
+			tc_out->n_frames = now.n_frames;
+			tc_out->seconds = now.seconds;
+			tc_out->minutes = now.minutes;
+			tc_out->hours = now.hours;
+			break;
+		} else {
+			//reset now, we will overwrite what we have
+			now.n_frames = (u16) n_frames;
+			now.seconds = seconds;
+			now.minutes = minutes;
+			now.hours = hours;
+		}
+		//fallthrough
+	case BSRW_TC_SHIFT: {
+		// Handle rollover for frames first
+		s32 frame_adjustment = ctx->tcsc_val.negative ? -ctx->tcsc_val.n_frames : ctx->tcsc_val.n_frames;
+		s32 total_frames = now.n_frames + frame_adjustment;
+		tc_out->n_frames = (total_frames + pctx->fps.num) % pctx->fps.num;
+		s32 second_carry = total_frames / pctx->fps.num;
+		if (total_frames < 0 && total_frames % pctx->fps.num != 0) {
+			second_carry--;
+		}
+
+		// Handle rollover for seconds
+		s32 second_adjustment = ctx->tcsc_val.negative ? -ctx->tcsc_val.seconds : ctx->tcsc_val.seconds;
+		s32 total_seconds = now.seconds + second_adjustment + second_carry;
+		tc_out->seconds = (total_seconds + 60) % 60;
+		s32 minute_carry = total_seconds / 60;
+		if (total_seconds < 0 && total_seconds % 60 != 0) {
+			minute_carry--;
+		}
+
+		// Handle rollover for minutes
+		s32 minute_adjustment = ctx->tcsc_val.negative ? -ctx->tcsc_val.minutes : ctx->tcsc_val.minutes;
+		s32 total_minutes = now.minutes + minute_adjustment + minute_carry;
+		tc_out->minutes = (total_minutes + 60) % 60;
+		s32 hour_carry = total_minutes / 60;
+		if (total_minutes < 0 && total_minutes % 60 != 0) {
+			hour_carry--;
+		}
+
+		// Handle rollover for hours (assuming 24-hour format)
+		s32 hour_adjustment = ctx->tcsc_val.negative ? -ctx->tcsc_val.hours : ctx->tcsc_val.hours;
+		s32 total_hours = now.hours + hour_adjustment + hour_carry;
+		tc_out->hours = (total_hours + 24) % 24;
+		break;
+	}
+	case BSRW_TC_CONSTANT:
+		tc_out->n_frames = ctx->tcsc_val.n_frames;
+		tc_out->seconds = ctx->tcsc_val.seconds;
+		tc_out->minutes = ctx->tcsc_val.minutes;
+		tc_out->hours = ctx->tcsc_val.hours;
+		break;
+	case BSRW_TC_UTC: {
+		u64 now = 0;
+		//check sender NTP on packet
+		const GF_PropertyValue *date = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
+		if (date) now = gf_net_ntp_to_utc(date->value.longuint);
+		//otherwise check UTC date mapping
+		else {
+			date = gf_filter_pck_get_property(pck, GF_PROP_PCK_UTC_TIME);
+			if (date) now = date->value.longuint;
+			//otherwise use the current time
+			else now = gf_net_get_utc();
+		}
+
+		//get tm struct
+		time_t utc_now = (time_t) (now / 1000);
+		struct tm *tm = gf_gmtime(&utc_now);
+
+		//convert to timecode
+		tc_out->n_frames = (u16) gf_timestamp_rescale(now % 1000, 1000, max_fps);
+		tc_out->seconds = (u8) tm->tm_sec;
+		tc_out->minutes = (u8) tm->tm_min;
+		tc_out->hours = (u8) tm->tm_hour;
+		break;
+	}
+
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Unsupported timecode mode\n"));
+		return GF_FALSE;
+	}
+
+	if (ctx->tcdf) {
+		u32 frame_drift = (u32) gf_ceil(60 * (max_fps - fps));
+
+		//apply existing drop frame rollover
+		if (pctx->tc_drop_count) {
+			s32 drop_adj = (gf_filter_pck_get_cts(pck) < pctx->drop_change_cts) ? -(s32)frame_drift : 0;
+			tc_out->n_frames += pctx->tc_drop_count + drop_adj;
+			tc_out->seconds += tc_out->n_frames / max_fps;
+			tc_out->n_frames %= max_fps;
+			tc_out->minutes += tc_out->seconds / 60;
+			tc_out->seconds %= 60;
+			tc_out->hours += tc_out->minutes / 60;
+			tc_out->minutes %= 60;
+			tc_out->hours %= 24;
+		}
+
+		if (tc_out->minutes % 10 && tc_out->seconds == 0) {
+			if (frame_drift > 0 && !pctx->tc_dropped) {
+				//rewind to 0th frame
+				pctx->drop_change_cts = gf_filter_pck_get_cts(pck);
+				pctx->drop_change_cts -= tc_out->n_frames * gf_filter_pck_get_duration(pck);
+
+				//apply the drop frame adjustment
+				tc_out->n_frames += frame_drift;
+				pctx->tc_drop_count += frame_drift;
+				pctx->tc_dropped = GF_TRUE;
+			}
+			if (tc_out->n_frames == frame_drift)
+				tc_out->drop_frame = 1;
+		} else if (tc_out->seconds == 2) {
+			//clear the flag when safe
+			pctx->tc_dropped = GF_FALSE;
+		}
+	}
+
+	return GF_TRUE;
+}
+
 static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck, u32 codec_type)
 {
 	Bool is_sei = GF_FALSE;
-	u32 size, pck_size, final_size;
-	GF_FilterPacket *dst;
 	u8 *output;
+	u32 pck_size;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!data)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
-	size=0;
-	while (size<pck_size && !is_sei) {
+	GF_BitStream *bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	while (gf_bs_available(bs)) {
 		u8 nal_type=0;
-		u32 nal_hdr = pctx->nalu_size_length;
-		u32 nal_size = 0;
-		while (nal_hdr) {
-			nal_size |= data[size];
-			size++;
-			nal_hdr--;
-			if (!nal_hdr) break;
-			nal_size<<=8;
-		}
-		is_sei = GF_FALSE;
+		u32 nal_size = gf_bs_read_int(bs, 8*pctx->nalu_size_length);
+		u64 pos = gf_bs_get_position(bs);
 		//AVC
 		if (codec_type==0) {
-			nal_type = data[size] & 0x1F;
-			if (nal_type == GF_AVC_NALU_SEI) is_sei = GF_TRUE;
+			//populate the avc state
+			if (ctx->tc) {
+				GF_BitStream *bs_nal = gf_bs_new(data + pos, nal_size, GF_BITSTREAM_READ);
+				s32 res = gf_avc_parse_nalu(bs_nal, pctx->avc);
+				gf_bs_del(bs_nal);
+				if (res < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC NALU\n"));
+					gf_bs_del(bs);
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+				gf_bs_seek(bs, pos);
+			}
+
+			nal_type = gf_bs_read_u8(bs) & 0x1F;
+			if (nal_type == GF_AVC_NALU_SEI)
+				is_sei = GF_TRUE;
 		}
 		//HEVC
 		else if (codec_type==1) {
-			nal_type = (data[size] & 0x7E) >> 1;
+			nal_type = (gf_bs_read_u8(bs) & 0x7E) >> 1;
 			if ((nal_type == GF_HEVC_NALU_SEI_PREFIX) || (nal_type == GF_HEVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 		//VVC
 		else if (codec_type==2) {
-			nal_type = data[size+1] >> 3;
+			gf_bs_skip_bytes(bs, 1);
+			nal_type = gf_bs_read_u8(bs) >> 3;
 			if ((nal_type == GF_VVC_NALU_SEI_PREFIX) || (nal_type == GF_VVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 
-		size += nal_size;
+		gf_bs_seek(bs, pos + nal_size);
 	}
-	if (!is_sei)
+	if (!is_sei && ctx->tc <= BSRW_TC_REMOVE) {
+		gf_bs_del(bs);
 		return gf_filter_pck_forward(pck, pctx->opid);
+	}
 
-	dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
-	if (!dst) return GF_OUT_OF_MEM;
+#ifdef GPAC_DISABLE_AV_PARSERS
+	gf_bs_del(bs);
+	return GF_NOT_SUPPORTED;
+#endif
 
-	gf_filter_pck_merge_properties(pck, dst);
-
+	u32 tc_sei_type = codec_type == 0 ? 1 : 136;
 	SEI_Filter sei_filter = {
 		.is_whitelist = !ctx->rmsei,
-		.seis = ctx->seis
+		.seis = ctx->seis,
+		.extra_filter = 0
 	};
+
+	GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs_w) {
+		gf_bs_del(bs);
+		return GF_OUT_OF_MEM;
+	}
+
+	//get the existing timecode
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+	GF_TimeCode *tc_in = p ? (GF_TimeCode*) p->value.data.ptr : NULL;
+
+	GF_TimeCode tc_out;
+	Bool tc_change = bsrw_manipulate_tc(pck, ctx, pctx, tc_in, &tc_out);
+	sei_filter.extra_filter = tc_change ? -(s32)tc_sei_type : 0;
+	if (tc_change && ctx->tc > BSRW_TC_REMOVE) {
+		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
+
+		if (codec_type == 0) {
+			gf_bs_write_int(bs_w, 0, 1);
+			gf_bs_write_int(bs_w, 0, 2);
+			gf_bs_write_int(bs_w, GF_AVC_NALU_SEI, 5);
+		} else if (codec_type == 1) {
+			gf_bs_write_int(bs_w, 0, 1);
+			gf_bs_write_int(bs_w, GF_HEVC_NALU_SEI_PREFIX, 6);
+			gf_bs_write_int(bs_w, 0, 6);
+			gf_bs_write_int(bs_w, 1, 3);
+		}
+
+		//write SEI type
+		gf_bs_write_int(bs_w, tc_sei_type, 8);
+
+		//save position for size
+		u64 size_pos = gf_bs_get_position(bs_w);
+		gf_bs_write_int(bs_w, 0, 8);
+
+		if (codec_type == 0) {
+			int sps_id = pctx->avc->sps_active_idx;
+			AVC_SPS *sps = &pctx->avc->sps[sps_id];
+			if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag) {
+				gf_bs_write_int(bs_w, 0, 1 + sps->vui.hrd.cpb_removal_delay_length_minus1);
+				gf_bs_write_int(bs_w, 0, 1 + sps->vui.hrd.dpb_output_delay_length_minus1);
+			}
+			gf_bs_write_int(bs_w, 0/*pic_struct*/, 4);
+			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*ct_type*/, 2);
+			gf_bs_write_int(bs_w, 0/*nuit_field_based_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.counting_type/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.n_frames, 8);
+			gf_bs_write_int(bs_w, tc_out.seconds, 6);
+			gf_bs_write_int(bs_w, tc_out.minutes, 6);
+			gf_bs_write_int(bs_w, tc_out.hours, 5);
+		} else {
+			gf_bs_write_int(bs_w, 1/*num_clock_ts*/, 2);
+			gf_bs_write_int(bs_w, 1/*clock_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*units_field_based_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.counting_type/*counting_type*/, 5);
+			gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+			gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
+			gf_bs_write_int(bs_w, tc_out.n_frames, 9);
+			gf_bs_write_int(bs_w, tc_out.seconds, 6);
+			gf_bs_write_int(bs_w, tc_out.minutes, 6);
+			gf_bs_write_int(bs_w, tc_out.hours, 5);
+			gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+		}
+
+		//align to byte boundary
+		gf_bs_align(bs_w);
+
+		//store the payload size
+		u64 pos = gf_bs_get_position(bs_w);
+		u64 sei_size = pos - size_pos - 1;
+
+		//trailing bits
+		gf_bs_write_int(bs_w, 0x80, 8);
+
+		//write the SEI size
+		pos = gf_bs_get_position(bs_w);
+		gf_bs_seek(bs_w, size_pos);
+		gf_bs_write_int(bs_w, (u32) sei_size, 8);
+
+		//write the NAL size
+		u32 nal_size = (u32)pos - pctx->nalu_size_length;
+		gf_bs_seek(bs_w, 0);
+		gf_bs_write_int(bs_w, nal_size, 8*pctx->nalu_size_length);
+		gf_bs_seek(bs_w, pos);
+	}
 
 	u32 rw_sei_size = 0;
 	u8 *rw_sei_payload = NULL;
-	final_size=0;
-	size=0;
-	while (size<pck_size) {
+	gf_bs_seek(bs, 0);
+	while (gf_bs_available(bs)) {
 		u8 nal_type=0;
-		u32 nal_hdr = pctx->nalu_size_length;
-		u32 nal_size = 0;
-		while (nal_hdr) {
-			nal_size |= data[size];
-			size++;
-			nal_hdr--;
-			if (!nal_hdr) break;
-			nal_size<<=8;
-		}
+		u32 nal_size = gf_bs_read_int(bs, 8*pctx->nalu_size_length);
+		u64 payload_pos = gf_bs_get_position(bs);
 		is_sei = GF_FALSE;
 
 		//AVC
 		if (codec_type==0) {
-			nal_type = data[size] & 0x1F;
+			nal_type = gf_bs_read_u8(bs) & 0x1F;
 			if (nal_type == GF_AVC_NALU_SEI) is_sei = GF_TRUE;
 		}
 		//HEVC
 		else if (codec_type==1) {
-			nal_type = (data[size] & 0x7E) >> 1;
+			nal_type = (gf_bs_read_u8(bs) & 0x7E) >> 1;
 			if ((nal_type == GF_HEVC_NALU_SEI_PREFIX) || (nal_type == GF_HEVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 		//VVC
 		else if (codec_type==2) {
-			nal_type = data[size+1] >> 3;
+			gf_bs_skip_bytes(bs, 1);
+			nal_type = gf_bs_read_u8(bs) >> 3;
 			if ((nal_type == GF_VVC_NALU_SEI_PREFIX) || (nal_type == GF_VVC_NALU_SEI_SUFFIX))
 				is_sei = GF_TRUE;
 		}
 
-		if (is_sei) {
-			rw_sei_size = nal_size;
-			if (rw_sei_payload) rw_sei_payload = gf_realloc(rw_sei_payload, rw_sei_size);
-			else rw_sei_payload = gf_malloc(rw_sei_size);
-			memcpy(rw_sei_payload, &data[size], rw_sei_size);
+		//allocate the temporary storage
+		rw_sei_size = nal_size;
+		if (rw_sei_payload) rw_sei_payload = gf_realloc(rw_sei_payload, rw_sei_size);
+		else rw_sei_payload = gf_malloc(rw_sei_size);
 
+		//copy the NAL payload
+		gf_bs_seek(bs, payload_pos);
+		gf_bs_read_data(bs, rw_sei_payload, rw_sei_size);
+
+		//reformat the SEI
+		if (is_sei) {
 			switch (codec_type)
 			{
 			case 0:
@@ -222,36 +530,80 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 			default:
 				break;
 			}
-
-			if (rw_sei_size) {
-				// write the NAL length
-				u32 bytes = pctx->nalu_size_length;
-				while (bytes--) {
-					output[0] = (rw_sei_size >> (bytes * 8)) & 0xFF;
-					output++;
-					final_size++;
-				}
-
-				// write the NAL
-				memcpy(output, rw_sei_payload, rw_sei_size);
-				output += rw_sei_size;
-				final_size += rw_sei_size;
-			}
-		} else {
-			memcpy(output, &data[size-pctx->nalu_size_length], pctx->nalu_size_length+nal_size);
-			output += pctx->nalu_size_length+nal_size;
-			final_size += pctx->nalu_size_length+nal_size;
 		}
 
-		size += nal_size;
+		// write the new NAL
+		if (rw_sei_size) {
+			gf_bs_write_int(bs_w, rw_sei_size, 8*pctx->nalu_size_length);
+			gf_bs_write_data(bs_w, rw_sei_payload, rw_sei_size);
+		}
 	}
-	if (rw_sei_payload) gf_free(rw_sei_payload);
-	gf_filter_pck_truncate(dst, final_size);
+
+	pck_size = (u32) gf_bs_get_position(bs_w);
+	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
+	if (!dst) return GF_OUT_OF_MEM;
+	gf_filter_pck_merge_properties(pck, dst);
+
+	if (tc_change) {
+		if (ctx->tc == BSRW_TC_REMOVE)
+			gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, NULL);
+		else
+			gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, &PROP_DATA((u8*)&tc_out, sizeof(GF_TimeCode)));
+	}
+
+	//copy the new data
+	gf_bs_seek(bs_w, 0);
+	gf_bs_read_data(bs_w, output, pck_size);
+
+	//cleanup
+	gf_free(rw_sei_payload);
+	gf_bs_del(bs_w);
+	gf_bs_del(bs);
+
 	return gf_filter_pck_send(dst);
 }
 
 static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
+	if (ctx->tc) {
+	#ifdef GPAC_DISABLE_AV_PARSERS
+		return GF_NOT_SUPPORTED;
+	#endif
+
+		//parse the sps/pps
+		if (pctx->avc)
+			goto finish;
+
+		const GF_PropertyValue *prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
+		if (!prop) return GF_NOT_SUPPORTED;
+
+		GF_AVCConfig *avcc = gf_odf_avc_cfg_read(prop->value.data.ptr, prop->value.data.size);
+		if (!avcc) return GF_NOT_SUPPORTED;
+
+		GF_SAFEALLOC(pctx->avc, AVCState);
+		for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); ++i) {
+			GF_NALUFFParam *slc = gf_list_get(avcc->sequenceParameterSets, i);
+			s32 idx = gf_avc_read_sps(slc->data, slc->size, pctx->avc, 0, NULL);
+			if (idx < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC SPS\n"));
+				gf_odf_avc_cfg_del(avcc);
+				return GF_NOT_SUPPORTED;
+			}
+		}
+		for (u32 i=0; i<gf_list_count(avcc->pictureParameterSets); ++i) {
+			GF_NALUFFParam *slc = gf_list_get(avcc->pictureParameterSets, i);
+			s32 idx = gf_avc_read_pps(slc->data, slc->size, pctx->avc);
+			if (idx < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC PPS\n"));
+				gf_odf_avc_cfg_del(avcc);
+				return GF_NOT_SUPPORTED;
+			}
+		}
+
+		gf_odf_avc_cfg_del(avcc);
+	}
+
+finish:
 	return nalu_rewrite_packet(ctx, pctx, pck, 0);
 }
 static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -261,6 +613,133 @@ static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 static GF_Err vvc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
 {
 	return nalu_rewrite_packet(ctx, pctx, pck, 2);
+}
+
+static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
+{
+	u32 pck_size;
+	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
+	if (!data)
+		return gf_filter_pck_forward(pck, pctx->opid);
+
+#ifdef GPAC_DISABLE_AV_PARSERS
+	return GF_NOT_SUPPORTED;
+#endif
+
+	GF_BitStream *bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	//probe data
+	if (gf_media_probe_iamf(bs) || gf_media_probe_ivf(bs) || gf_media_aom_probe_annexb(bs)) {
+		gf_bs_del(bs);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Timecode manipulation is only supported for AV1 Section 5 bitstreams\n"));
+		return gf_filter_pck_forward(pck, pctx->opid);
+	}
+
+	//get the existing timecode
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+	GF_TimeCode *tc_in = p ? (GF_TimeCode*) p->value.data.ptr : NULL;
+
+	GF_TimeCode tc_out;
+	Bool tc_change = bsrw_manipulate_tc(pck, ctx, pctx, tc_in, &tc_out);
+	if (!tc_change) {
+		gf_bs_del(bs);
+		return gf_filter_pck_forward(pck, pctx->opid);
+	}
+
+	GF_BitStream *bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs_w) {
+		gf_bs_del(bs);
+		return GF_OUT_OF_MEM;
+	}
+
+	//insert timecode metadata
+	if (ctx->tc > BSRW_TC_REMOVE) {
+		gf_bs_write_u8(bs_w, 0x2a);
+		gf_av1_leb128_write(bs_w, 6/*8+39 bits*/);
+		gf_av1_leb128_write(bs_w, OBU_METADATA_TYPE_TIMECODE);
+		gf_bs_write_int(bs_w, tc_out.counting_type/*counting_type*/, 5);
+		gf_bs_write_int(bs_w, 1/*full_timestamp_flag*/, 1);
+		gf_bs_write_int(bs_w, 0/*discontinuity_flag*/, 1);
+		gf_bs_write_int(bs_w, tc_out.drop_frame ? 1 : 0/*cnt_dropped_flag*/, 1);
+		gf_bs_write_int(bs_w, tc_out.n_frames, 9);
+		gf_bs_write_int(bs_w, tc_out.seconds, 6);
+		gf_bs_write_int(bs_w, tc_out.minutes, 6);
+		gf_bs_write_int(bs_w, tc_out.hours, 5);
+		gf_bs_write_int(bs_w, 0/*time_offset_length*/, 5);
+		gf_bs_align(bs_w);
+	}
+
+	//remove existing timecode metadata
+	gf_bs_seek(bs, 0);
+	while (gf_bs_available(bs)) {
+		u64 to_copy;
+		u64 pos = gf_bs_get_position(bs);
+
+		//read header
+		ObuType obu_type = OBU_RESERVED_0;
+		Bool obu_extension_flag = GF_FALSE, obu_has_size_field = GF_FALSE;
+		u8 tid = 0, sid = 0;
+		GF_Err e = gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &tid, &sid);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Error parsing AV1 OBU header, forwarding packet\n"));
+			gf_bs_del(bs_w);
+			gf_bs_del(bs);
+			return gf_filter_pck_forward(pck, pctx->opid);
+		}
+
+		// read size
+		u64 obu_size = pck_size;
+		if (obu_has_size_field) {
+			obu_size = gf_av1_leb128_read(bs, NULL);
+			if (obu_size > pck_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] OBU size exceeds packet size, forwarding packet\n"));
+				gf_bs_del(bs_w);
+				gf_bs_del(bs);
+				return gf_filter_pck_forward(pck, pctx->opid);
+			}
+		}
+		u32 hdr_size = (u32)(gf_bs_get_position(bs) - pos);
+
+		//check if timecode metadata
+		Bool is_metadata = obu_type == OBU_METADATA;
+		if (!is_metadata) goto transfer;
+		u64 metadata_type = gf_av1_leb128_read(bs, NULL);
+		if (metadata_type != OBU_METADATA_TYPE_TIMECODE) goto transfer;
+
+		//skip timecode metadata
+		gf_bs_seek(bs, pos + hdr_size + obu_size);
+		continue;
+
+	transfer:
+		gf_bs_seek(bs, pos);
+		to_copy = hdr_size + obu_size;
+		while (to_copy--) {
+			u32 byte = gf_bs_read_u8(bs);
+			gf_bs_write_u8(bs_w, byte);
+		}
+	}
+
+	//send packet
+	u8* output = NULL;
+	pck_size = (u32) gf_bs_get_position(bs_w);
+	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
+	gf_filter_pck_merge_properties(pck, dst);
+
+	if (ctx->tc == BSRW_TC_REMOVE)
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, NULL);
+	else
+		gf_filter_pck_set_property(dst, GF_PROP_PCK_TIMECODE, &PROP_DATA((u8*)&tc_out, sizeof(GF_TimeCode)));
+
+	//copy the new data
+	gf_bs_seek(bs_w, 0);
+	gf_bs_read_data(bs_w, output, pck_size);
+
+	//cleanup
+	gf_bs_del(bs_w);
+	gf_bs_del(bs);
+
+	return gf_filter_pck_send(dst);
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -290,6 +769,12 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	u8 *dsi;
 	u32 dsi_size;
 	const GF_PropertyValue *prop;
+
+	if (ctx->tc) {
+		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
+		if (!prop)
+			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
+	}
 
 	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!prop) return GF_OK;
@@ -338,10 +823,35 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei || ctx->seis.nb_items) {
+	if (ctx->rmsei || ctx->seis.nb_items || ctx->tc) {
 		pctx->rewrite_packet = avc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
+	}
+	return GF_OK;
+}
+
+static GF_Err reconfigure_alternative_transfer_characteristic(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	// skip if not applicable
+	const GF_PropertyValue *prop;
+	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_COLR_TRANSFER_ALT);
+	if (!prop) return GF_OK;
+	Bool rm_alt_trc_sei=GF_FALSE;
+	if(ctx->seis.nb_items > 0){
+		// atc SEI explicitly listed
+		for (u32 i = 0; i < ctx->seis.nb_items; i++) {
+			if (ctx->seis.vals[i] == 147) {
+				rm_alt_trc_sei = ctx->rmsei;
+				break;
+			}
+		}	
+	} else {
+		// explicit removal
+		rm_alt_trc_sei = ctx->rmsei;
+	}
+	if (rm_alt_trc_sei){
+		return gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, NULL);
 	}
 	return GF_OK;
 }
@@ -353,6 +863,12 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	u8 *dsi;
 	u32 dsi_size;
 	const GF_PropertyValue *prop;
+
+	if (ctx->tc) {
+		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
+		if (!prop)
+			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
+	}
 
 	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (!prop) return GF_OK;
@@ -375,7 +891,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if (ctx->pidc>=0) hvcc->profile_idc = ctx->pidc;
 	if (ctx->pspace>=0) hvcc->profile_space = ctx->pspace;
 	if (ctx->gpcflags>=0) hvcc->general_profile_compatibility_flags = ctx->gpcflags;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_hevc_cfg_write(hvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = hvcc->nal_unit_size;
@@ -384,7 +900,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 
-	if (ctx->rmsei || ctx->seis.nb_items) {
+	if (ctx->rmsei || ctx->seis.nb_items || ctx->tc) {
 		pctx->rewrite_packet = hevc_rewrite_packet;
 	} else {
 		pctx->rewrite_packet = none_rewrite_packet;
@@ -417,7 +933,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	if (ctx->pidc>=0) vvcc->general_profile_idc = ctx->pidc;
 	if (ctx->lev>=0) vvcc->general_level_idc = ctx->pidc;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_vvc_cfg_write(vvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = vvcc->nal_unit_size;
@@ -435,6 +951,24 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 #else
 	return GF_NOT_SUPPORTED;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
+}
+
+static GF_Err av1_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	const GF_PropertyValue *prop;
+
+	if (ctx->tc) {
+		prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_SEI_LOADED);
+		if (!prop)
+			gf_filter_pid_negotiate_property(pctx->ipid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE));
+	}
+
+	if (ctx->tc) {
+		pctx->rewrite_packet = av1_rewrite_packet;
+	} else {
+		pctx->rewrite_packet = none_rewrite_packet;
+	}
+	return GF_OK;
 }
 
 static GF_Err none_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
@@ -466,6 +1000,12 @@ static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 	pctx->rewrite_vui = GF_TRUE;
+	if (ctx->tc) {
+		if (pctx->codec_id == GF_CODECID_AVC) {
+			pctx->vui.enable_pic_struct = ctx->tc != BSRW_TC_REMOVE;
+			return;
+		}
+	}
 	if (ctx->sar.num>=0) return;
 	if ((s32) ctx->sar.den>=0) return;
 	if (ctx->cmx>-1) return;
@@ -566,6 +1106,10 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	gf_fatal_assert(prop);
+	u32 codec_id = prop->value.uint;
+
 	if (!pctx) {
 		GF_SAFEALLOC(pctx, BSRWPid);
 		if (!pctx) return GF_OUT_OF_MEM;
@@ -576,12 +1120,11 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_list_add(ctx->pids, pctx);
 		pctx->opid = gf_filter_pid_new(filter);
 		if (!pctx->opid) return GF_OUT_OF_MEM;
+		pctx->codec_id = codec_id;
 		init_vui(ctx, pctx);
 	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	gf_fatal_assert(prop);
-	switch (prop->value.uint) {
+	switch (codec_id) {
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
 	case GF_CODECID_MVC:
@@ -599,6 +1142,9 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_CODECID_MPEG4_PART2:
 		pctx->rewrite_pid_config = m4v_rewrite_pid_config;
 		break;
+	case GF_CODECID_AV1:
+		pctx->rewrite_pid_config = av1_rewrite_pid_config;
+		break;
 	case GF_CODECID_AP4H:
 	case GF_CODECID_AP4X:
 	case GF_CODECID_APCH:
@@ -615,8 +1161,25 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		break;
 	}
 
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+	if (prop) pctx->fps = prop->value.frac;
+	if (!pctx->fps.num || !pctx->fps.den) {
+		pctx->fps.num = 25;
+		pctx->fps.den = 1;
+	}
+
+	if (ctx->tcdf) {
+		Float fps = (Float) pctx->fps.num / pctx->fps.den;
+		u32 max_fps = (u32) gf_ceil(fps);
+		u32 frame_drift = (u32) gf_ceil(60 * (max_fps - fps));
+		if (!frame_drift) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Requested to use NTSC drop-frame timecode, but fps does not impose any drift. Disabling drop-frame timecode\n"));
+			ctx->tcdf = GF_FALSE;
+		}
+	}
+
 	gf_filter_pid_copy_properties(pctx->opid, pctx->ipid);
-	pctx->codec_id = prop->value.uint;
+	pctx->codec_id = codec_id;
 	pctx->reconfigure = GF_FALSE;
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	//rewrite asap - waiting for first packet could lead to issues further down the chain, especially for movie fragments
@@ -667,10 +1230,50 @@ static GF_Err bsrw_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 	return GF_OK;
 }
 
+//copied and simplified from reframer to keep the same syntax
+static GF_Err bsrw_parse_date(const char *date_in, GF_TimeCode *tc_out)
+{
+	char* date = (char*) date_in;
+	if (!date_in || !tc_out)
+		return GF_BAD_PARAM;
+
+	if (date[0] == '-') {
+		tc_out->negative = 1;
+		date++;
+	}
+
+	u8 h, m, s;
+	u16 n_frames;
+	if (sscanf(date, "TC%hhu:%hhu:%hhu:%hu", &h, &m, &s, &n_frames) != 4)
+		return GF_BAD_PARAM;
+
+	tc_out->hours = h;
+	tc_out->minutes = m;
+	tc_out->seconds = s;
+	tc_out->n_frames = n_frames;
+	return GF_OK;
+}
+
 static GF_Err bsrw_initialize(GF_Filter *filter)
 {
 	GF_BSRWCtx *ctx = (GF_BSRWCtx *) gf_filter_get_udta(filter);
 	ctx->pids = gf_list_new();
+
+	GF_Err e = GF_OK;
+	if (ctx->tcxs) e |= bsrw_parse_date(ctx->tcxs, &ctx->tcxs_val);
+	if (ctx->tcxe) e |= bsrw_parse_date(ctx->tcxe, &ctx->tcxe_val);
+	if (ctx->tcsc && !strstr(ctx->tcsc, "first")) {
+		e |= bsrw_parse_date(ctx->tcsc, &ctx->tcsc_val);
+		ctx->tcsc_inferred = GF_TRUE;
+	}
+	if (e) return e;
+
+	if (ctx->tc == BSRW_TC_SHIFT || ctx->tc == BSRW_TC_CONSTANT) {
+		if (!ctx->tcsc) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Timecode manipulation mode requires `tcsc` to be set\n"));
+			return GF_BAD_PARAM;
+		}
+	}
 
 #ifdef GPAC_ENABLE_COVERAGE
 	bsrw_update_arg(filter, NULL, NULL);
@@ -682,6 +1285,7 @@ static void bsrw_finalize(GF_Filter *filter)
 	GF_BSRWCtx *ctx = (GF_BSRWCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->pids)) {
 		BSRWPid *pctx = gf_list_pop_back(ctx->pids);
+		if (pctx->avc) gf_free(pctx->avc);
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->pids);
@@ -693,7 +1297,7 @@ static GF_FilterArgs BSRWArgs[] =
 	///do not change order of the first 3
 	{ OFFS(cprim), "color primaries according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_PRIM, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(ctfc), "color transfer characteristics according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_TFC, "-1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(cmx), "color matrix coeficients according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_MX, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(cmx), "color matrix coefficients according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_MX, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(sar), "aspect ratio to rewrite", GF_PROP_FRACTION, "-1/-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(m4vpl), "set ProfileLevel for MPEG-4 video part two", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fullrange), "video full range flag", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
@@ -705,6 +1309,17 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(pidc), "profile IDC for HEVC and VVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tcxs), "timecode manipulation start", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tcxe), "timecode manipulation end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tcdf), "use NTSC drop-frame counting for timecodes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tcsc), "timecode constant for use with shift/constant modes", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tc), "timecode manipulation mode\n"
+	"- none: do not change anything\n"
+	"- remove: remove timecodes\n"
+	"- insert: insert timecodes based on cts or `tcsc` (if provided)\n"
+	"- shift: shift timecodes based by `tcsc`\n"
+	"- constant: overwrite timecodes with `tcsc`\n"
+	"- utc: insert timecodes based on the utc time on the packet or the current time", GF_PROP_UINT, "none", "none|remove|insert|shift|constant|utc", GF_FS_ARG_UPDATE},
 	{ OFFS(seis), "list of SEI message types (4,137,144,...). When used with `rmsei`, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
@@ -740,7 +1355,6 @@ static const GF_FilterCapability BSRWCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 #endif
-
 };
 
 GF_FilterRegister BSRWRegister = {
@@ -756,6 +1370,9 @@ GF_FilterRegister BSRWRegister = {
 	"  - profile, level, profile compatibility\n"
 	"  - video format, video fullrange\n"
 	"  - color primaries, transfer characteristics and matrix coefficients (or remove all info)\n"
+	"  - (AVC|HEVC) timecode"
+	"- AV1:\n"
+	"  - timecode\n"
 	"- ProRes:\n"
 	"  - sample aspect ratio\n"
 	"  - color primaries, transfer characteristics and matrix coefficients\n"
@@ -768,6 +1385,29 @@ GF_FilterRegister BSRWRegister = {
 	"- VVC: profile IDC, general profile and level indication\n"
 	"  \n"
 	"The filter will work in passthrough mode for all other codecs and media types.\n"
+	"# Timecode Manipulation\n"
+	"One can optionally set the [-tcxs]() and [-tcxe]() to define the start and end of timecode manipulation. By default, the filter will process all packets.\n"
+	"Some modes require you to define [-tcsc](). This follows the same format as the timecode itself ([-]'TC'HH:MM:SS:FF). The use of negative values is only meaningful in the `shift` mode. It's also possible to set [-tcsc]() to `first` to infer the value from the first timecode when timecode manipulation starts. In this case, unless a timecode is found, the filter will not perform any operation.\n"
+	"## Modes\n"
+	"Timecode manipulation has four modes and they all have their own operating nuances.\n"
+	"### Remove\n"
+	"Remove all timecodes from the bitstream.\n"
+	"### Insert\n"
+	"Insert timecodes based on the CTS. If [-tcsc]() is set, it will be used as timecode offset.\n"
+	"This mode will overwrite existing timecodes (if any).\n"
+	"### Shift\n"
+	"Shift all timecodes by the value defined in [-tcsc]().\n"
+	"This mode will only modify timecodes if they exists, no new timecode will be inserted.\n"
+	"### Constant\n"
+	"Set all timecodes to the value defined in [-tcsc]().\n"
+	"Again, this mode wouldn't insert new timecodes.\n"
+	"### UTC\n"
+	"Uses the `SenderNTP` property, `UTC` property on the packet, or the current UTC time to set the timecode.\n"
+	"This mode will overwrite existing timecodes (if any).\n"
+	"## Examples\n"
+	"EX gpac -i in.mp4 bsrw:tc=insert [dst]\n"
+	"EX gpac -i in.mp4 bsrw:tc=insert:tcsc=TC00:00:10:00 [dst]\n"
+	"EX gpac -i in.mp4 bsrw:tc=shift:tcsc=TC00:00:10:00:tcxs=TC00:01:00:00 [dst]\n"
 	)
 	.private_size = sizeof(GF_BSRWCtx),
 	.max_extra_pids = 0xFFFFFFFF,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / AC3 reframer filter
@@ -508,7 +508,9 @@ restart:
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] truncated AC3 frame!\n"));
+			if (!gf_filter_pid_has_seen_eos(ctx->ipid)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] truncated AC3 frame!\n"));
+			}
 			bytes_to_drop=remain;
 		}
 

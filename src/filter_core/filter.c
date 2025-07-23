@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -822,6 +822,21 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 }
 
 GF_EXPORT
+const char * gf_filter_get_status(GF_Filter *filter)
+{
+	gf_assert(filter);
+	return filter->status_str ? (const char *) filter->status_str : "" ;
+}
+
+GF_EXPORT
+u64 gf_filter_get_bytes_done(GF_Filter *filter)
+{
+	gf_assert(filter);
+	return filter->nb_bytes_processed ;
+}
+
+
+GF_EXPORT
 void gf_filter_reset_source(GF_Filter *filter)
 {
 	if (filter && filter->source_ids) {
@@ -1136,30 +1151,6 @@ void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **val
 	}
 }
 
-Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH])
-{
-	char *path;
-#ifdef WIN32
-	path = getenv("HOMEPATH");
-#elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
-	path = (char *) gf_opts_get_key("core", "docs-dir");
-#else
-	path = getenv("HOME");
-#endif
-
-	if (path && path[0]) {
-		strncpy(szPath, path, GF_MAX_PATH-1);
-		szPath[GF_MAX_PATH-1] = 0;
-		u32 len = (u32) strlen(szPath);
-		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
-			szPath[len-1]=0;
-
-		strncat(szPath, url+6, GF_MAX_PATH-strlen(szPath)-1);
-		return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
 GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values)
 {
 	char szPath[GF_MAX_PATH];
@@ -1183,8 +1174,8 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
 			}
 		}
-		else if (!strnicmp(value, "$GDOCS", 6)) {
-			if (filter_solve_gdocs(value, szPath)) {
+		else if (!strnicmp(value, "$GDOCS", 6) || !strnicmp(value, "$GCFG", 5)) {
+			if (gf_sys_solve_path(value, szPath)) {
 				value = szPath;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC user document directory location\n"));
@@ -2607,6 +2598,13 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 		}
 	}
 
+	//PID is already a relink target for destination, silently ignore - this may happen when reconfigure tasks are triggered
+	//before the relinking is done
+	if (src_pidinst == filter_dst->swap_pidinst_dst) {
+		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+		return;
+	}
+
 	if (!link_from_pid) {
 		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
 
@@ -2637,7 +2635,7 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	gf_assert(filter);
 
 	if (!filter_dst) {
-		//if no destinations, the filter was removed while negociating
+		//if no destinations, the filter was removed while negotiating
 		//this happens for example when doing 'src enc_audio enc_video VIDEOONLY_DST'
 		//the removal of enc_audio is triggered after potential capacity negotiation with an adaptation filter
 		if (pid->num_destinations) {
@@ -2744,6 +2742,9 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 			new_f->swap_pidinst_dst = dst_pidi;
 			//keep track of the pidinst being detached from the source filter
 			new_f->swap_pidinst_src = src_pidi;
+			//remember the new filter for the swap - cf gf_filter_pid_connect_task
+			if (src_pidi)
+				src_pidi->swap_source = new_f;
 			new_f->swap_needs_init = GF_TRUE;
 			new_f->swap_pending = GF_TRUE;
 		}
@@ -2782,6 +2783,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (filter->is_pid_adaptation_filter) {
 		//do not remove from destination_filters, needed for end of pid_init task
 		if (!filter->dst_filter) filter->dst_filter = gf_list_get(filter->destination_filters, 0);
+		//in case the adaptation filter is not defining an explicit stream type or codec type
+		if (!filter->dst_filter && filter->cap_dst_filter) filter->dst_filter = filter->cap_dst_filter;
 		gf_assert(filter->dst_filter);
 		gf_assert(filter->num_input_pids==1);
 	}
@@ -2807,7 +2810,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 
 	//success !
 	if (src_pid->adapters_blacklist) {
-		gf_list_del(pid->adapters_blacklist);
+		gf_list_del(src_pid->adapters_blacklist);
 		src_pid->adapters_blacklist = NULL;
 	}
 	gf_assert(pid->caps_negotiate->reference_count);
@@ -2937,6 +2940,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
 		if (filter->pending_packets && filter->num_input_pids
+			&& (!filter->num_output_pids || filter->nb_pids_playing)
 			//do NOT do this if running in prevent play mode and blocking mode, as user is likely expecting fs_run() to return until the play event is sent
 			&& !filter->session->non_blocking && !(filter->session->flags & GF_FS_FLAG_PREVENT_PLAY)
 		) {
@@ -3189,7 +3193,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
-	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
 	filter->in_process_callback = GF_TRUE;
 
@@ -3201,7 +3204,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 		e = filter->freg->process(filter);
 
 	filter->in_process_callback = GF_FALSE;
-	gf_rmt_end();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done\n", filter->name));
 
 	//flush all pending pid init requests following the call to init
@@ -3523,9 +3525,14 @@ void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_f
 {
 	if (!filter) return;
 	if (!source_filter) return;
+	Bool detach = (filter->disabled && !on_setup_error && source_filter->on_setup_error) ? GF_TRUE : GF_FALSE;
 	source_filter->on_setup_error = on_setup_error;
 	source_filter->on_setup_error_filter = filter;
 	source_filter->on_setup_error_udta = udta;
+
+	if (detach) {
+		gf_filter_post_remove(filter);
+	}
 }
 
 struct _gf_filter_setup_failure
@@ -3581,7 +3588,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 				gf_list_rem(pid->destinations, j);
 				pid->num_destinations--;
 				j--;
-				gf_filter_pid_inst_del(pidinst);
+				gf_filter_pid_inst_check_delete(pidinst);
 			}
 			//marked as detached
 			else {
@@ -3713,7 +3720,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	u32 count = gf_fq_count(f->tasks);
 
 	//do not destroy filters if tasks for this filter are pending or some ref packets are still present
-	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets) {
+	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets || f->nb_shared_packets_out) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}
@@ -4078,7 +4085,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 #endif
 		 break;
 	}
-
+	reset_filter_args(filter);
 	gf_free(filter->filter_udta);
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
@@ -4585,6 +4592,41 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 	return (filter->session->blocking_mode==GF_FS_NOBLOCK) ? GF_FALSE : GF_TRUE;
 }
 
+static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, const char *for_mime)
+{
+	u32 i, j, count = gf_list_count(sess->registry);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *reg = gf_list_get(sess->registry, i);
+		const char *mime=NULL;
+		const char *ext=NULL;
+
+		for (j=0; j<reg->nb_caps; j++) {
+			char szExt[20];
+			const GF_FilterCapability *cap = &reg->caps[j];
+			if ((cap->val.type != GF_PROP_NAME)
+				&& (cap->val.type != GF_PROP_STRING)
+				&& (cap->val.type != GF_PROP_STRING_NO_COPY)
+			) {
+				continue;
+			}
+			if (reg->caps[j].code == GF_PROP_PID_FILE_EXT) ext = cap->val.value.string;
+			else if (reg->caps[j].code == GF_PROP_PID_MIME) mime = cap->val.value.string;
+			else continue;
+
+			if (!mime || !ext) continue;
+			if (!strstr(mime, for_mime)) continue;
+			char *sep = strchr(ext, '|');
+			u32 len = (u32) strlen(ext);
+			if (sep) len = (u32) (sep - ext);
+			if (len>19) len=19;
+			strncpy(szExt, ext, len);
+			szExt[len] = 0;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szExt));
+			return;
+		}
+	}
+}
+
 GF_EXPORT
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, const u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
 {
@@ -4681,6 +4723,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				for (k=0;k<freg->nb_caps && !ext_not_trusted && ext_len; k++) {
 					const char *value;
 					const GF_FilterCapability *cap = &freg->caps[k];
+					if (cap->flags & GF_CAPFLAG_RECONFIG) break;
 					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
 					if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 					if (cap->code != GF_PROP_PID_FILE_EXT) continue;
@@ -4735,6 +4778,9 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
 		//we have a mime, disable extension checking
 		pid->ext_not_trusted = GF_TRUE;
+		if (!ext_len && !fext) {
+			filter_guess_file_ext(filter->session, pid, mime_type);
+		}
 	}
 
 	return GF_OK;
@@ -5254,8 +5300,14 @@ GF_EXPORT
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
-	return gf_fs_load_filter(filter->session, name, err_code);
+	GF_Filter *f = gf_fs_load_filter(filter->session, name, err_code);
+	if (!f) return NULL;
+	//do not allow implicit cloning when loading a filter from another filter
+	if (!strstr(name, "clone"))
+		f->clonable = GF_FILTER_NO_CLONE;
+	return f;
 }
+
 
 GF_EXPORT
 Bool gf_filter_end_of_session(GF_Filter *filter)
@@ -5833,7 +5885,7 @@ GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char
 				opid = gf_list_get(filter->output_pids, k);
 				if (!opid) break;
 
-				u8 priority=0;
+				s16 priority=0;
 				u32 dst_bundle_idx;
 				//check path weight for the given dst cap - we MUST give the target cap otherwise we might get a default match to another cap
 				u32 path_weight = gf_filter_pid_caps_match(opid, src->freg, NULL, &priority, &dst_bundle_idx, opid->filter->dst_filter, edge->dst_cap_idx);

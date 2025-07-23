@@ -34,7 +34,7 @@ LOCAL_LDLIBS    += -lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFo
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO
 LOCAL_CFLAGS += -DGPAC_CONFIG_ANDROID
-LOCAL_CFLAGS += -DGPAC_DISABLE_REMOTERY
+LOCAL_CFLAGS += -DGPAC_DISABLE_RMTWS
 #for now QJS libc is disabled on android
 LOCAL_CFLAGS += -DGPAC_DISABLE_QJS_LIBC
 
@@ -236,6 +236,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
+	../../../../src/filters/reframe_ac4.c \
 	../../../../src/filters/reframe_adts.c \
 	../../../../src/filters/reframe_amr.c \
 	../../../../src/filters/reframe_av1.c \
@@ -256,11 +257,13 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/resample_audio.c \
 	../../../../src/filters/restamp.c \
 	../../../../src/filters/rewind.c \
+	../../../../src/filters/rewrite_ac4.c \
 	../../../../src/filters/rewrite_adts.c \
 	../../../../src/filters/rewrite_mhas.c \
 	../../../../src/filters/rewrite_mp4v.c \
 	../../../../src/filters/rewrite_nalu.c \
 	../../../../src/filters/rewrite_obu.c \
+	../../../../src/filters/sei_load.c \
 	../../../../src/filters/tileagg.c \
 	../../../../src/filters/tilesplit.c \
 	../../../../src/filters/tssplit.c \
@@ -406,11 +409,16 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/alloc.c \
 	../../../../src/utils/base_encoding.c \
 	../../../../src/utils/bitstream.c \
-	../../../../src/utils/cache.c \
 	../../../../src/utils/color.c \
 	../../../../src/utils/configfile.c \
 	../../../../src/utils/constants.c \
 	../../../../src/utils/downloader.c \
+	../../../../src/utils/downloader_cache.c \
+	../../../../src/utils/downloader_curl.c \
+	../../../../src/utils/downloader_hmux.c \
+	../../../../src/utils/downloader_nghttp2.c \
+	../../../../src/utils/downloader_ngtcp2.c \
+	../../../../src/utils/downloader_ssl.c \
 	../../../../src/utils/error.c \
 	../../../../src/utils/gltools.c \
 	../../../../src/utils/gzio.c \
@@ -425,6 +433,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/path2d.c \
 	../../../../src/utils/path2d_stroker.c \
+	../../../../src/utils/rmt_ws.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/sha256.c \
 	../../../../src/utils/md5.c \

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -587,7 +587,8 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 	while (1) {
 		u32 data_len, int_val2, flags;
 		u64 int_val;
-		const char *name;
+		const char *name=NULL, *mean=NULL;
+		u32 locale=0;
 		const u8 *data;
 		GF_ISOiTunesTag itag;
 		u32 itype = 0;
@@ -603,7 +604,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				continue;
 			}
 		} else {
-			e = gf_isom_apple_enum_tag(read->mov, idx, &itag, &data, &data_len, &int_val, &int_val2, &flags);
+			e = gf_isom_apple_enum_tag_ex(read->mov, idx, &itag, &data, &data_len, &int_val, &int_val2, &flags, &mean, &name, &locale);
 			if (e) break;
 		}
 		idx++;
@@ -612,35 +613,66 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		if (!gf_sys_is_test_mode() && (itag == GF_ISOM_ITUNE_TOOL))
 			continue;
 
+		if (!data || !data_len) continue;
+
 		tag_idx = gf_itags_find_by_itag(itag);
 		if (tag_idx>=0)
 			itype = gf_itags_get_type(tag_idx);
 
-		name = gf_itags_get_name(tag_idx);
+		char *dyname = NULL;
+		if (name || mean) {
+			gf_dynstrcat(&dyname, "cust_", NULL);
+			if (name) gf_dynstrcat(&dyname, name, NULL);
+			gf_dynstrcat(&dyname, "@", NULL);
+			if (mean) gf_dynstrcat(&dyname, mean, NULL);
+		}
+		if (!name)
+			name = gf_itags_get_name(tag_idx);
+
 		switch (itype) {
 		case GF_ITAG_BOOL:
-			gf_filter_pid_set_property_str(ch->pid, name, &PROP_BOOL((Bool) int_val ) );
+			if (dyname)
+				gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_BOOL((Bool) int_val ) );
+			else
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_BOOL((Bool) int_val ) );
 			break;
 		case GF_ITAG_INT8:
 		case GF_ITAG_INT16:
 		case GF_ITAG_INT32:
-			gf_filter_pid_set_property_str(ch->pid, name, &PROP_UINT((u32) int_val ) );
+			if (dyname)
+				gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_UINT((u32) int_val ) );
+			else
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_UINT((u32) int_val ) );
 			break;
 		case GF_ITAG_INT64:
-			gf_filter_pid_set_property_str(ch->pid, name, &PROP_LONGUINT(int_val) );
+			if (dyname)
+				gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_LONGUINT(int_val) );
+			else
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_LONGUINT(int_val) );
 			break;
 		case GF_ITAG_FRAC8:
 		case GF_ITAG_FRAC6:
-			gf_filter_pid_set_property_str(ch->pid, name, &PROP_FRAC_INT((s32) int_val, int_val2)  );
+			if (dyname)
+				gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_FRAC_INT((s32) int_val, int_val2)  );
+			else
+				gf_filter_pid_set_property_str(ch->pid, name, &PROP_FRAC_INT((s32) int_val, int_val2)  );
 			break;
 		case GF_ITAG_FILE:
-			if (data && data_len)
+			if (!data || !data_len) break;
+			if (dyname)
+				gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_DATA((u8 *)data, data_len)  );
+			else
 				gf_filter_pid_set_property_str(ch->pid, name, &PROP_DATA((u8 *)data, data_len)  );
 			break;
 		default:
-			if (data && data_len) {
-				if (gf_utf8_is_legal(data, data_len))
+			if (gf_utf8_is_legal(data, data_len)) {
+				if (dyname)
+					gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_STRING(data) );
+				else
 					gf_filter_pid_set_property_str(ch->pid, name, &PROP_STRING(data) );
+			} else {
+				if (dyname)
+					gf_filter_pid_set_property_dyn(ch->pid, dyname, &PROP_DATA((u8 *)data, data_len)  );
 				else
 					gf_filter_pid_set_property_str(ch->pid, name, &PROP_DATA((u8 *)data, data_len)  );
 			}
@@ -688,12 +720,13 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		}
 
 
-		nb_udta =  gf_isom_get_udta_count(read->mov, ch->track);
+		nb_udta = gf_isom_get_udta_count(read->mov, ch->track);
 		if (nb_udta) {
 			for (i=0; i<nb_udta; i++) {
 				u32 j, type, nb_items;
 				bin128 uuid;
 				gf_isom_get_udta_type(read->mov, ch->track, i+1, &type, &uuid);
+				if (type==GF_ISOM_BOX_TYPE_KIND) continue;
 				nb_items = gf_isom_get_user_data_count(read->mov, ch->track, type, uuid);
 				//we only export 4CC udta boxes
 				if (!type) continue;
@@ -725,6 +758,23 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				}
 			}
 		}
+		GF_PropertyValue kinds;
+		kinds.type = GF_PROP_STRING_LIST;
+		kinds.value.string_list.nb_items = nb_udta = gf_isom_get_user_data_count(read->mov, ch->track, GF_ISOM_BOX_TYPE_KIND, NULL);
+		if (nb_udta) {
+			kinds.value.string_list.vals = gf_malloc(sizeof(char*)*nb_udta);
+			memset(kinds.value.string_list.vals, 0, sizeof(char*)*nb_udta);
+			for (i=0; i<nb_udta; i++) {
+				char *scheme=NULL, *val=NULL;
+				gf_isom_get_track_kind(read->mov, ch->track, i, &scheme, &val);
+				if (scheme) gf_dynstrcat(&kinds.value.string_list.vals[i], scheme, NULL);
+				gf_dynstrcat(&kinds.value.string_list.vals[i], val ? val : "", scheme ? ":" : NULL);
+				if (scheme) gf_free(scheme);
+				if (val) gf_free(val);
+			}
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ROLE, &kinds);
+		}
+
 
 		//delcare track groups
 		u32 idx=0;
@@ -1046,6 +1096,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 			break;
 
+		case GF_ISOM_SUBTYPE_AC4:
+		{
+			GF_AC4Config *ac4cfg = gf_isom_ac4_config_get(read->mov, track, stsd_idx);
+			codec_id = GF_ISOM_SUBTYPE_AC4;
+			if (ac4cfg) {
+				gf_odf_ac4_cfg_write(ac4cfg, &dsi, &dsi_size);
+				gf_odf_ac4_cfg_del(ac4cfg);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d missing AC4 configuration !\n", track));
+			}
+		}
+			break;
 		case GF_ISOM_SUBTYPE_MLPA:
 		{
 			u32 fmt, prate;

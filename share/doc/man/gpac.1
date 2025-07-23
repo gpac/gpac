@@ -62,6 +62,11 @@ load test-unit filters (used for for unit tests only)
 loop execution of session, creating a session at each loop, mainly used for testing, breaking at first error. If no value is given, loops forever
 .br
 .TP
+.B \-eloop (int)
+.br
+same as sloop but does not break if error
+.br
+.TP
 .B \-runfor (int)
 .br
 run for the given amount of milliseconds, exit with full session flush
@@ -1109,9 +1114,13 @@ set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap a
 .br
 * p=K: filter packets on port K only, if not set the rule applies to all packets
 .br
-* o=K: patch packet instead of droping (always true for TCP), replacing byte at offset K (0 is first byte, <0 for random)
+* o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset K (0 is first byte, <0 for random)
 .br
 * v=K: set patch byte value to K (hexa) or negative value for random (default)
+.br
+* S=K: same as s but adds number of capture file reload/loop
+.br
+* E=K: same as e but adds number of capture file reload/loop
 .br
 
 .br
@@ -1264,9 +1273,22 @@ enable intermediate copy of data in nghttp2 (default is disabled but may report 
 use CURL instead of GPAC HTTP stack
 .br
 .TP
-.B \-no-h3
+.B \-h3 (Enum, default: auto)
 .br
-disable HTTP3 (CURL only)
+set HTTP/3 mode
+.br
+* no: disable HTTP/3
+.br
+* first: force trying first with HTTP/3
+.br
+* auto: connect using HTTP 1 or 2 and use HTTP/3 for next request(s) if announced
+.br
+* only: only use HTTP/3
+.br
+.TP
+.B \-h3-trace
+.br
+trace QUIC and HTTP3
 .br
 .TP
 .B \-dbg-edges
@@ -1455,47 +1477,32 @@ set charset when not recognized from input. Possible values are:
 .TP
 .B \-rmt
 .br
-enable profiling through Remotery. A copy of Remotery visualizer is in gpac/share/vis, usually installed in /usr/share/gpac/vis or Program Files/GPAC/vis
+enable remote monitoring webserver
 .br
 .TP
-.B \-rmt-port (int, default: 17815)
+.B \-rmt-port (int, default: 6363)
 .br
-set remotery port
-.br
-.TP
-.B \-rmt-reuse
-.br
-allow remotery to reuse port
+set rmt ws port
 .br
 .TP
 .B \-rmt-localhost
 .br
-make remotery only accepts localhost connection
+make rmt ws only accepts localhost connection
 .br
 .TP
 .B \-rmt-sleep (int, default: 10)
 .br
-set remotery sleep (ms) between server updates
+set rmt ws sleep (ms) between server updates
 .br
 .TP
-.B \-rmt-nmsg (int, default: 10)
+.B \-rmt-cert (string)
 .br
-set remotery number of messages per update
-.br
-.TP
-.B \-rmt-qsize (int, default: 131072)
-.br
-set remotery message queue size in bytes
+rmt ws: certificate file in PEM format to use for TLS mode
 .br
 .TP
-.B \-rmt-log
+.B \-rmt-pkey (string)
 .br
-redirect logs to remotery (experimental, usually not well handled by browser)
-.br
-.TP
-.B \-rmt-ogl
-.br
-make remotery sample opengl calls
+rmt ws: private key file in PEM format to use for TLS mode
 .br
 .TP
 .B \-m2ts-vvc-old
@@ -1889,7 +1896,7 @@ This will force decoding media from file.mp4 and trash (send to null) the result
 .br
 .SS Escaping option separators
 .br
-When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters such as libx264 (cf x264opts parameter).
+When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters such as libx264 (cf x264opts parameter). This can also be used to escape a list value containing the comma separator character.
 .br
 Example
 .br
@@ -1914,6 +1921,14 @@ f:a=foo::b=bar:c::d=fun
 
 .br
 This will set option a to foo, b to bar:c and the option d to fun on the filter.
+.br
+Example
+.br
+f:list=a,b1,,b2,c
+.br
+
+.br
+This will set list values to a, b1,b2, and c.
 .br
 
 .br
@@ -2719,6 +2734,8 @@ Defined keywords:
 .br
   - user home directory for other platforms
 .br
+* $GCFG: replaced by system path to folder containing GPAC config
+.br
 * $GLANG: replaced by the global config language option .I -lang
 .br
 * $GUA: replaced by the global config user agent option .I -user-agent
@@ -3059,12 +3076,12 @@ Language code: ISO639 2/3 character code or RFC 4646
 .TP
 .B ServiceName (SNAM,str,D )
 .br
-Name of parent service
+Name of parent service, signled as PID info
 .br
 .TP
 .B ServiceProvider (SPRO,str,D )
 .br
-Provider of parent service
+Provider of parent service, signled as PID info
 .br
 .TP
 .B StreamType (PMST,uint,  )
@@ -3110,6 +3127,11 @@ The unframed media still has correct AU boundaries: one packet is one full AU, b
 .B LATM (LATM,bool,  )
 .br
 Media is unframed AAC in LATM format
+.br
+.TP
+.B USRT (USRT,bool,  )
+.br
+Media is unframed SRT, header is in payload with 0 start time
 .br
 .TP
 .B Duration (PDUR,lfrac,  )
@@ -3955,6 +3977,11 @@ Name of the HLS variant playlist for this media
 Name of HLS Group of a stream
 .br
 .TP
+.B HLSRend (HLGR,strl,D )
+.br
+List of HLS group allowed in group rendition - when not set, all groups are allowed
+.br
+.TP
 .B HLSForce (HLFI,str,D )
 .br
 Force writing EXT-X-STREAM-INF if stream is in a rendition group, value is the name of associated groups (can be empty)
@@ -4055,6 +4082,11 @@ Color primaries
 Color transfer characteristics
 .br
 .TP
+.B ColorTransferAlternative (CATC,ctfc,D )
+.br
+Alternative Color transfer characteristics
+.br
+.TP
 .B ColorMatrix (CMXC,cmxc,D )
 .br
 Color matrix coefficient
@@ -4122,7 +4154,7 @@ Start and end position in bytes of fragment if packet is a fragment or segment s
 .TP
 .B FragTFDT (PFRT,luint,DP)
 .br
-Decode time of first packet in fragmentt
+Decode time of first packet in fragment
 .br
 .TP
 .B SIDXRange (PFSR,lfrac,DP)
@@ -4220,7 +4252,7 @@ Stereo type of video
 Projection type of video
 .br
 .TP
-.B InitalPose (PPOS,v3di,D )
+.B InitialPose (PPOS,v3di,D )
 .br
 Initial pose for 360 video, in degrees expressed as 16.16 bits (x is yaw, y is pitch, z is roll)
 .br
@@ -4374,9 +4406,9 @@ list of packet identifier this packet depends on
 User data for the packet
 .br
 .TP
-.B Timecodes (TCOD,uintl, P)
+.B Timecode (TCOD,mem, P)
 .br
-list of timecodes as extracted from SEI (if present)
+First timecode extracted from SEI (if present)
 .br
 .TP
 .B DOVI (DOVI,mem,  )
@@ -4507,6 +4539,46 @@ Template for DASH-SSR and LLHLS sub-segments
 .B PartialRepair (PCPR,bool, P)
 .br
 indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)
+.br
+.TP
+.B SEILoaded (PSEI,bool,D )
+.br
+indicate that PID is extracting SEI/inband data from packets
+.br
+.TP
+.B Fake (PFAK,bool,D )
+.br
+Indicate a stream present in the source but not delivered as a PID
+.br
+.TP
+.B ContentLightLevel (CLLP,mem,DP)
+.br
+Content light level, payload of clli box (see ISO/IEC 14496-12), can be set as a list of 2 integers in fragment declaration (e.g. "=max_cll,max_pic_avg_ll")
+.br
+.TP
+.B MasterDisplayColour (MDCP,mem,DP)
+.br
+Master display colour info, payload of mdcv box (see ISO/IEC 14496-12), can be set as a list of 10 integers in fragment declaration (e.g. "=dpx0,dpy0,dpx1,dpy1,dpx2,dpy2,wpx,wpy,max,min")
+.br
+.TP
+.B SEILoaded (SEIP,bool,DP)
+.br
+indicate that packet has SEI/inband data in its properties
+.br
+.TP
+.B OriginalPTS (OPTS,luint,DP)
+.br
+indicate original PTS or PCR when remapping M2TS PCR
+.br
+.TP
+.B OriginalDTS (ODTS,luint,DP)
+.br
+indicate original DTS when remapping M2TS PCR
+.br
+.TP
+.B MABRBaseURLs (MABU,strl,D )
+.br
+optionnal URLs for MABR - if first is nonesource server is not declared as repair server
 .br
 .SH Pixel formats
 .LP
@@ -5166,6 +5238,11 @@ AC3 Audio
 .B eac3
 .br
 Enhanced AC3 Audio
+.br
+.TP
+.B ac4
+.br
+AC4 Audio
 .br
 .TP
 .B mlp

@@ -790,7 +790,7 @@ enum {
 /*! SVG zoom and pan*/
 typedef u8 SVG_ZoomAndPan;
 
-/*! SVG lenght adjust types */
+/*! SVG length adjust types */
 enum {
 	LENGTHADJUST_UNKNOWN   = 0,
 	LENGTHADJUST_SPACING     = 1,

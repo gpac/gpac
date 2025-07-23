@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -184,9 +184,11 @@ typedef struct
 	u32 id, delay, timescale;
 	u64 offset, init_val;
 	char *url;
-	Bool ntp, use_init_val;
+	u32 ntp_mode;
+	Bool use_init_val;
 	u32 mode_64bits;
 	u64 cts_at_init_val_plus_one;
+	u64 ntp_init_ts, ntp_init_cts;
 } TEMIDesc;
 
 enum
@@ -667,8 +669,22 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 						tc += temi->offset;
 				}
 
-				if (temi->ntp) {
+				if (temi->ntp_mode==1) {
 					ntp = gf_net_get_ntp_ts();
+				}
+				else if (temi->ntp_mode==2) {
+					u64 pck_ts = 0;
+					if ((s64) cts + tspid->media_delay >= 0)
+						pck_ts = gf_timestamp_rescale(cts + tspid->media_delay, ifce->timescale, 1000000);
+
+					if (!temi->ntp_init_ts) {
+						temi->ntp_init_ts = gf_net_get_ntp_ts();
+						temi->ntp_init_cts = pck_ts;
+					}
+
+					s64 diff_usec = pck_ts;
+					diff_usec -= temi->ntp_init_cts;
+					ntp = gf_net_ntp_add_usec(temi->ntp_init_ts, (s32) diff_usec);
 				}
 				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url, GF_FALSE, GF_FALSE, NULL, GF_FALSE, GF_FALSE);
 			}
@@ -774,11 +790,10 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				//we don't have reliable dts - double the diff should make sure we don't try to adjust too often
 				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
 				diff = gf_timestamp_rescale(diff, tspid->esi.timescale, 1000000);
-				gf_assert(tspid->prog->cts_offset <= diff);
+
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d (prev offset "LLU" us)\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale, tspid->prog->cts_offset));
+
 				tspid->prog->cts_offset += (u32) diff;
-
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
-
 				es_pck.cts += cts_diff;
 			}
 			if (tspid->esi.stream_type!=GF_STREAM_VISUAL) {
@@ -1058,7 +1073,12 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	p = gf_filter_pid_get_property_str(tspid->ipid, "M2TSRA");
 	if (p) {
 		if ((p->type==GF_PROP_UINT) || (p->type==GF_PROP_4CC)) m2ts_ra = p->value.uint;
-		else if (p->type==GF_PROP_STRING) m2ts_ra = gf_4cc_parse(p->value.string);
+		else if (p->type==GF_PROP_STRING) {
+			if (!stricmp(p->value.string, "srt"))
+				m2ts_ra = GF_M2TS_RA_STREAM_SRT;
+			else
+				m2ts_ra = gf_4cc_parse(p->value.string);
+		}
 	}
 	if (m2ts_ra != tspid->esi.ra_code) {
 		changed = GF_TRUE;
@@ -1095,7 +1115,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 		u32 temi_delay=1000;
 		u64 temi_offset=0;
 		u32 temi_timescale=0;
-		Bool temi_ntp=GF_FALSE;
+		u32 temi_ntp=0;
 		u32 temi_64bits=TEMI_TC64_AUTO;
 		Bool temi_use_init_val=GF_FALSE;
 		u64 temi_init_val = 0;
@@ -1119,7 +1139,10 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				service_id = atoi(temi_cfg+2);
 				break;
 			case 'N':
-				temi_ntp = GF_TRUE;
+				temi_ntp = 1;
+				break;
+			case 'n':
+				temi_ntp = 2;
 				break;
 			case 'D':
 				temi_delay = atoi(temi_cfg+2);
@@ -1182,7 +1205,7 @@ static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
 				temi->url = gf_strdup(temi_cfg);
 				temi->id = temi_id+1;
 			}
-			temi->ntp = temi_ntp;
+			temi->ntp_mode = temi_ntp;
 			temi->offset = temi_offset;
 			temi->delay = temi_delay;
 			temi->timescale = temi_timescale;
@@ -1250,13 +1273,6 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	service_id = p ? p->value.uint : ctx->sid;
-
-	sname = ctx->name;
-	pname = ctx->provider;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
-	if (p) sname = p->value.string;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
-	if (p) pname = p->value.string;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -1382,7 +1398,15 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		prog = gf_m2ts_mux_program_add(ctx->mux, service_id, pmt_id, ctx->pmt_rate, pcr_offset, ctx->mpeg4, ctx->pmt_version, ctx->disc, first_pts_val);
 
+		pe = NULL;
+		sname = ctx->name;
+		pname = ctx->provider;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_NAME, &pe);
+		if (p) sname = p->value.string;
+		p = gf_filter_pid_get_info(pid, GF_PROP_PID_SERVICE_PROVIDER, &pe);
+		if (p) pname = p->value.string;
 		if (sname) gf_m2ts_mux_program_set_name(prog, sname, pname);
+		gf_filter_release_property(pe);
 
 		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DASH_SPARSE);
 		if (p && p->value.boolean) ctx->keepts = GF_TRUE;
@@ -2105,11 +2129,18 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->realtime);
 	ctx->mux->flush_pes_at_rap = ctx->flush_rap;
 
-	if (gf_sys_is_test_mode() && ctx->pcr_init<0)
+	if (gf_sys_is_test_mode() && (ctx->pcr_init==-1))
 		ctx->pcr_init = 1000000;
 
 	gf_m2ts_mux_use_single_au_pes_mode(ctx->mux, ctx->pes_pack);
-	if (ctx->pcr_init>=0) gf_m2ts_mux_set_initial_pcr(ctx->mux, (u64) ctx->pcr_init);
+	if (ctx->pcr_init != -1) {
+		u64 pcr_init;
+		if (ctx->pcr_init>=0)
+			pcr_init = (u64) ctx->pcr_init;
+		else
+			pcr_init = GF_M2TS_MAX_PCR + ctx->pcr_init;
+		gf_m2ts_mux_set_initial_pcr(ctx->mux, pcr_init);
+	}
 	gf_m2ts_mux_set_pcr_max_interval(ctx->mux, ctx->max_pcr);
 	gf_m2ts_mux_enable_pcr_only_packets(ctx->mux, ctx->pcr_only);
 
@@ -2207,6 +2238,9 @@ static const GF_FilterCapability TSMuxCaps[] =
 	//for MPEG-H audio MHAS we need to insert sync packets
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_MHAS),
 
+	//for AC4 we need bitstream framing
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AC4),
+
 	//static output cap file extension
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_FILE_EXT, M2TS_FILE_EXTS),
@@ -2231,7 +2265,9 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_SMPTE_VC1),
 	//we don't accept MPEG-H audio without MHAS
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_MPHA),
-	//no RAW support for now$
+	//we don't accept AC4 audio without framing
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_AC4),
+	//no RAW support for now
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 
@@ -2275,7 +2311,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 	"- copy: uses BIFS PES but removes timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr_only), "enable PCR-only TS packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(pcr_init), "set initial PCR value for the programs. A negative value means random value is picked", GF_PROP_LSINT, "-1", NULL, 0},
+	{ OFFS(pcr_init), "set initial PCR value for the programs. -1 means random value is picked, other negative value means offset to maximum PCR", GF_PROP_LSINT, "-1", NULL, 0},
 	{ OFFS(sid), "set service ID for the program", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(name), "set service name for the program", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(provider), "set service provider name for the program", GF_PROP_STRING, NULL, NULL, 0},
@@ -2330,6 +2366,7 @@ GF_FilterRegister TSMuxRegister = {
 		"  - `Y`: use 64 bit signaling only.\n"
 		"  - `N`: use 32 bit signaling only and wrap around timecode value.\n"
 		"- N: insert NTP timestamp in TEMI timeline descriptor\n"
+		"- n: insert NTP timestamp using NTP for first packet than incrementing based on media timestamp (for non real-time)\n"
 		"- ID_OR_URL: If number, indicate the TEMI ID to use for external timeline. Otherwise, give the URL to insert\n"
 		"  \n"
 		"EX temi=\"url\"\n"
@@ -2353,11 +2390,20 @@ GF_FilterRegister TSMuxRegister = {
 		"- `pes_pack=none` is forced since some demultiplexers have issues with non-aligned ADTS PES.\n"
 		"\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files, or new segments in DASH mode.\n"
+		"# Custom streams\n"
 		"The filter will look for property `M2TSRA` set on the input stream.\n"
 		"The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknown media types.\n"
+		"The value `SRT ` (alias: `srt`, `SRT`) will inject an SRT header with frame number increasing at each packet and start time 0.\n"
+		"EX gpac -i source.srt:#M2TSRA='SRT ' -o mux.ts\n"
+		"This will inject the content of the source SRT as a PES data stream, removing any markup.\n"
+		"EX gpac -i source.srt:stxtmod=sbtt:#M2TSRA='SRT ' -o mux.ts\n"
+		"This will inject the content of the source SRT as a PES data stream, keeping the markup.\n"
 		"\n"
 		"# Notes\n"
 		"In LATM mux mode, the decoder configuration is inserted at the given [-repeat_rate]() or `CarouselRate` PID property if defined.\n"
+		"\n"
+		"By default text streams are embeded using HLS ID3 schemes, use `M2TSRA` property to use raw private PES.\n"
+		"WebVTT header and TX3G formatting are removed, only the text data is injected.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,

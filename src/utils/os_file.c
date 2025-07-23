@@ -359,6 +359,10 @@ GF_Err gf_file_move(const char *fileName, const char *newFileName)
 	if (!fileName || !newFileName) {
 		e = GF_IO_ERR;
 	} else {
+		//try direct rename - will fail if moving across file systems but faster for most use cases
+		int res = rename(fileName, newFileName);
+		if (!res) return GF_OK;
+		//use mv command
 		arg1 = gf_sanetize_single_quoted_string(fileName);
 		arg2 = gf_sanetize_single_quoted_string(newFileName);
 		if (snprintf(cmd, sizeof cmd, "mv %s %s", arg1, arg2) >= sizeof cmd) goto error;
