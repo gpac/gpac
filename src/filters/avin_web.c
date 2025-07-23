@@ -192,7 +192,7 @@ EM_JS(int, wgrab_copy_frame, (int wg_ctx, int dst_pck, int buf, int buf_size), {
 	if (!c || !c._frame || !dst_pck) return;
 
 	//setup dst
-	let ab = new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size);
+	let ab = new Uint8Array(HEAPU8.buffer, buf, buf_size);
 	let frame = c._frame;
 	c._frame = null;
 	frame.copyTo(ab).then( layout => {
@@ -278,7 +278,7 @@ EM_JS(int, wgrab_copy_audio, (int wg_ctx, int buf, int buf_size, int plane_index
 	if (!c || !c._frame) return;
 
 	//setup dst
-	let ab = new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size);
+	let ab = new Uint8Array(HEAPU8.buffer, buf, buf_size);
 	c._frame.copyTo(ab, { planeIndex: plane_index });
 })
 
@@ -352,10 +352,10 @@ EM_JS(int, webgrab_start_usermedia, (int wg_ctx, int vid, int aud, int canv_id, 
           }
           return null;
 		};
-		libgpac._on_wgrab_error = libgpac.cwrap('webgrab_on_error', null, ['number', 'number', 'string']);
-		libgpac._on_wgrab_video_frame = libgpac.cwrap('webgrab_on_video_frame', null, ['number', 'number', 'number', 'string', 'bigint']);
-		libgpac._on_wgrab_audio_data = libgpac.cwrap('webgrab_on_audio_data', null, ['number', 'number', 'number', 'string', 'number', 'bigint']);
-		libgpac._on_wgrab_frame_copy = libgpac.cwrap('webgrab_on_frame_copy', null, ['number', 'number', 'number']);
+		libgpac._on_wgrab_error = cwrap('webgrab_on_error', null, ['number', 'number', 'string']);
+		libgpac._on_wgrab_video_frame = cwrap('webgrab_on_video_frame', null, ['number', 'number', 'number', 'string', 'bigint']);
+		libgpac._on_wgrab_audio_data = cwrap('webgrab_on_audio_data', null, ['number', 'number', 'number', 'string', 'number', 'bigint']);
+		libgpac._on_wgrab_frame_copy = cwrap('webgrab_on_frame_copy', null, ['number', 'number', 'number']);
 	}
 
 	let c = libgpac._to_webgrab(wg_ctx);
@@ -364,7 +364,7 @@ EM_JS(int, webgrab_start_usermedia, (int wg_ctx, int vid, int aud, int canv_id, 
 		libgpac._web_grabs.push(c);
 	}
 	if (canv_id) {
-		let canvas_id = libgpac.UTF8ToString(canv_id);
+		let canvas_id = UTF8ToString(canv_id);
 		c.canvas = document.getElementById(canvas_id);
 		c.keep_alpha = alpha;
 		if (!c.canvas) {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -78,6 +78,8 @@ typedef struct _gf_ffenc_ctx
 	u32 flush_done;
 	//frame used by both video and audio encoder
 	AVFrame *frame;
+	//ffmpeg codecid forced by output
+	u32 forced_ffcid;
 
 	//encoding buffer - we allocate ENC_BUF_ALLOC_SAFE+WxH for the video (some image codecs in ffmpeg require more than WxH for headers), ENC_BUF_ALLOC_SAFE+nb_ch*samplerate for the audio
 	//this should be enough to hold any lossless compression formats
@@ -196,6 +198,7 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 
 	if (!ctx->c) return GF_OK;
 
+	ctx->forced_ffcid = AV_CODEC_ID_NONE;
 	//first look by name, to handle cases such as "aac" vs "vo_aacenc"
 	ctx->force_codec = avcodec_find_encoder_by_name(ctx->c);
 	if (ctx->force_codec) {
@@ -267,6 +270,12 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 		}
 	} else {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(ctx->codecid) );
+		if (ctx->codecid==GF_CODECID_FFMPEG) {
+			if (ctx->encoder)
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT(ctx->encoder->codec->id) );
+			else if (ctx->forced_ffcid)
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT(ctx->forced_ffcid) );
+		}
 	}
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_SUBTYPE, NULL);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PROFILE_LEVEL, NULL);
@@ -1433,6 +1442,11 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_CODECID);
 		if (prop) {
 			ctx->codecid = prop->value.uint;
+			if (ctx->codecid==GF_CODECID_FFMPEG) {
+				prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
+				if (!prop) return GF_NOT_SUPPORTED;
+				ctx->forced_ffcid = prop->value.uint;
+			}
 		} else if (!ctx->codecid && ctx->c) {
 			ctx->codecid = gf_codecid_parse(ctx->c);
 			if (!ctx->codecid) {
@@ -1447,6 +1461,13 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	if (!ctx->codecid && !desired_codec) {
+		if (gf_filter_is_dynamic(filter)) {
+			ctx->in_pid = pid;
+			if (!ctx->out_pid) {
+				ctx->out_pid = gf_filter_pid_new(filter);
+			}
+			return GF_OK;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] No codecid specified\n" ));
 		return GF_BAD_PARAM;
 	}
@@ -1465,7 +1486,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	if (ctx->codecid) {
-		codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
+		if (ctx->forced_ffcid)
+			codec_id = ctx->forced_ffcid;
+		else
+			codec_id = ffmpeg_codecid_from_gpac(ctx->codecid, &ff_codectag);
 		if (codec_id) {
 			if (desired_codec && desired_codec->id==codec_id)
 				codec = desired_codec;
@@ -2276,6 +2300,23 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
+static GF_Err ffenc_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
+{
+	const GF_PropertyValue *p;
+	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->out_pid != pid) return GF_BAD_PARAM;
+
+	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_CODECID);
+	if (p) ctx->codecid = p->value.uint;
+
+	ctx->forced_ffcid = AV_CODEC_ID_NONE;
+	if (ctx->codecid==GF_CODECID_FFMPEG) {
+		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
+		if (p) ctx->forced_ffcid = p->value.uint;
+	}
+	return ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_FALSE);
+}
+
 static const GF_FilterCapability FFEncodeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
@@ -2289,6 +2330,9 @@ static const GF_FilterCapability FFEncodeCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_CODECID, 0),
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_META_DEMUX_CODEC_ID, 0),
 };
 
 GF_FilterRegister FFEncodeRegister = {
@@ -2331,6 +2375,7 @@ GF_FilterRegister FFEncodeRegister = {
 	.process = ffenc_process,
 	.process_event = ffenc_process_event,
 	.update_arg = ffenc_update_arg,
+	.reconfigure_output = ffenc_reconfigure_output,
 	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT | GF_FS_REG_BLOCK_MAIN,
 	//use middle priority in case we have other encoders
 	.priority = 128,

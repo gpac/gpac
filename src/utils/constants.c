@@ -1157,6 +1157,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_GREYSCALE, "grey", "Greyscale 8 bit"},
 	{GF_PIXEL_ALPHAGREY, "algr", "Alpha+Grey 8 bit"},
 	{GF_PIXEL_GREYALPHA, "gral", "Grey+Alpha 8 bit"},
+	{GF_PIXEL_RGB_332, "rgb8", "RGB 332, 8 bits / pixel"},
 	{GF_PIXEL_RGB_444, "rgb4", "RGB 444, 12 bits (16 stored) / pixel"},
 	{GF_PIXEL_RGB_555, "rgb5", "RGB 555, 15 bits (16 stored) / pixel"},
 	{GF_PIXEL_RGB_565, "rgb6", "RGB 555, 16 bits / pixel"},
@@ -1360,6 +1361,13 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		stride = no_in_stride ? 2*width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_RGB_332:
+		stride = no_in_stride ? width : *out_stride;
 		if (stride && height >= GF_UINT_MAX / stride)
 			return GF_FALSE;
 		size = stride * height;
@@ -1637,6 +1645,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 {
 	switch (pixfmt) {
 	case GF_PIXEL_GREYSCALE:
+	case GF_PIXEL_RGB_332:
 		return 1;
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
@@ -1717,6 +1726,7 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		return 2;
+	case GF_PIXEL_RGB_332:
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
@@ -2430,6 +2440,14 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 		nb_comps=2;
 		comps_ID[0] = 0;
 		comps_ID[1] = 7;
+		break;
+	case GF_PIXEL_RGB_332:
+		nb_comps=3;
+		comps_ID[0] = 4;
+		comps_ID[1] = 5;
+		comps_ID[2] = 6;
+		bits[0] = bits[1] = 3;
+		bits[2] = 2;
 		break;
 	case GF_PIXEL_RGB_444:
 		nb_comps=3;

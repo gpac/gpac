@@ -1157,6 +1157,8 @@ void gf_filter_post_remove(GF_Filter *filter);
 
 void gf_filter_check_pending_pids(GF_Filter *filter);
 
+Bool gf_filter_pid_caps_negociate_match(GF_FilterPid *pid, const GF_FilterRegister *freg);
+
 typedef struct
 {
 	u32 code;
