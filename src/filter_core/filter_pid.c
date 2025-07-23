@@ -3318,6 +3318,35 @@ void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkst
 }
 #endif
 
+Bool gf_filter_pid_caps_negociate_match(GF_FilterPid *pid, const GF_FilterRegister *freg)
+{
+	u32 idx=0;
+	Bool all_match = GF_TRUE;
+	//check all negotiated caps, and make sure they are supported by the filter
+	while (1) {
+		u32 j, p4cc;
+		const char *pname;
+		const GF_PropertyValue * p = gf_props_enum_property(pid->caps_negotiate, &idx, &p4cc, &pname);
+		if (!p) break;
+		j=0;
+		Bool found=GF_FALSE;
+		for (j=0; j<freg->nb_caps; j++) {
+			const GF_FilterCapability *cap = &freg->caps[j];
+			if (! (cap->flags & GF_CAPFLAG_RECONFIG)) continue;
+			if ((cap->code == p4cc)
+				|| (cap->name && pname && !strcmp(cap->name, pname))
+			) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			all_match = GF_FALSE;
+		}
+	}
+	return all_match;
+}
+
 static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegister, Bool reconfigurable_only, GF_List *tmp_blacklist, GF_LinkInfo *link_info, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
@@ -3438,31 +3467,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if (!freg->reconfigure_output || !pid->caps_negotiate)
 				disable_filter = GF_TRUE;
 			else {
-				u32 idx=0;
-				Bool all_match = GF_TRUE;
-				//check all negotiated caps, and make sure they are supported by the filter
-				while (1) {
-					u32 j, p4cc;
-					const char *pname;
-					const GF_PropertyValue * p = gf_props_enum_property(pid->caps_negotiate, &idx, &p4cc, &pname);
-					if (!p) break;
-					j=0;
-					Bool found=GF_FALSE;
-					for (j=0; j<freg->nb_caps; j++) {
-						const GF_FilterCapability *cap = &freg->caps[j];
-						if (! (cap->flags & GF_CAPFLAG_RECONFIG)) continue;
-						if ((cap->code == p4cc)
-							|| (cap->name && pname && !strcmp(cap->name, pname))
-						) {
-							found = GF_TRUE;
-							break;
-						}
-					}
-					if (!found) {
-						all_match = GF_FALSE;
-					}
-				}
-				if (!all_match)
+				if (!gf_filter_pid_caps_negociate_match(pid, freg))
 					disable_filter = GF_TRUE;
 			}
 		}
