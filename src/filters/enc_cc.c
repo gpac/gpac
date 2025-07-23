@@ -572,10 +572,29 @@ static GF_Err ccenc_initialize(GF_Filter *filter)
 static void ccenc_finalize(GF_Filter *filter)
 {
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
-	gf_assert(gf_list_count(ctx->cc_queue) == 0);
+
+	if (gf_list_count(ctx->cc_queue) > 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Finalizing with %u CC items left in the queue\n", gf_list_count(ctx->cc_queue)));
+		// free all CC items in the queue
+		u32 pos = 0;
+		CCItem *cc = NULL;
+		while ((cc = gf_list_enum(ctx->cc_queue, &pos))) {
+			if (cc->text) gf_free(cc->text);
+			gf_free(cc);
+		}
+	}
 	gf_list_del(ctx->cc_queue);
-	gf_assert(gf_list_count(ctx->frame_queue) == 0);
+
+	if (gf_list_count(ctx->frame_queue) > 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Finalizing with %u video frames left in the queue\n", gf_list_count(ctx->frame_queue)));
+		// free all video frames in the queue
+		u32 pos = 0;
+		GF_FilterPacket *vpck = NULL;
+		while ((vpck = gf_list_enum(ctx->frame_queue, &pos)))
+			gf_filter_pck_unref(vpck);
+	}
 	gf_list_del(ctx->frame_queue);
+
 	if (ctx->ccframe) gf_free(ctx->ccframe);
 	if (ctx->sei) {
 		sei_free(ctx->sei);
