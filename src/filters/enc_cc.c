@@ -634,7 +634,7 @@ GF_FilterRegister CCEncRegister = {
 	               "Supported video media types are MPEG2, AVC, HEVC, VVC and AV1 streams.\n"
 	               "\nOnly a subset of CEA 608/708 is supported.")
 	.private_size = sizeof(CCEncCtx),
-	.max_extra_pids = (u32) -1,
+	.max_extra_pids = 1,
 	.args = CCEncArgs,
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(CCEncCaps),
