@@ -3453,6 +3453,9 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
+					"-lngtcp2_crypto_quictls",
+					"-lnghttp3",
+					"-lngtcp2",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
