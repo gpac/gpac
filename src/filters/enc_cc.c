@@ -350,6 +350,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	gf_bs_get_content(bs, &bs_content, &size);
 	gf_assert(size == new_size);
 	memcpy(new_data, bs_content, new_size);
+	gf_free(bs_content);
 
 	// Send the new packet
 	u64 min_dts = gf_list_count(ctx->frame_queue) ? gf_filter_pck_get_dts(gf_list_get(ctx->frame_queue, 0)) : GF_UINT64_MAX;
