@@ -780,16 +780,14 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 
 	u64 dts = gf_filter_pck_get_dts(pck);
 	if (dts == GF_FILTER_NO_TS) {
-		// sometimes packets from the dasher have no ts...
 		dts = ctx->last_dispatched_dts + ctx->last_pck_dur;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] packet with no DTS. Inferring value "LLU".\n", dts));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] packet with no DTS. Inferring value "LLU".\n", dts));
 	}
 	u32 dur = gf_filter_pck_get_duration(pck);
 	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), dur);
 
 	u32 size = 0;
 	const u8 *data = scte35dec_pck_get_data(ctx, pck, &size);
-
 	if (data && size) {
 		GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
 		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
@@ -800,6 +798,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
 		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
+			//remember first pck of segment
 			if (ctx->dash_pck)
 				gf_filter_pck_unref(ctx->dash_pck);
 			ctx->dash_pck = pck;
