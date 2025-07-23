@@ -3161,6 +3161,7 @@ build_object_files_directory_tree()
 
     mkdir -p modules
     ln -sf "$1/modules/Makefile" modules/Makefile
+    ln -sf "$1/modules/common.mak" modules/common.mak
 
     for moddir in "$1/modules/"* ; do
         if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
