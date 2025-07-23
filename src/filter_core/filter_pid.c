@@ -5734,6 +5734,27 @@ single_retry:
 		num_pass = 1;
 		goto restart;
 	}
+
+	//special case: if we found a destination, ignore any  force_link filter that is an alias filter and has a matching sourceID
+	//This is needed because a filter calling gf_filter_set_source on a alias filter
+	//will never modify the sourceID of the original (non-alias) filter
+	//eg [...] dasher -> scte35dec(injected) -> httpout(alias)
+	if (!num_pass && found_dest && pid->filter->id && gf_list_count(force_link_resolutions)) {
+		u32 i=0;
+		for (i=0; i<gf_list_count(force_link_resolutions); i++) {
+			Bool pid_excluded=GF_FALSE;
+			Bool needs_clone=GF_FALSE;
+			GF_Filter *force_link = gf_list_get(force_link_resolutions, i);
+			if (force_link->source_ids
+				&& force_link->freg
+				&& force_link->freg->use_alias
+				&& filter_source_id_match(pid, pid->filter->id, force_link, &pid_excluded, &needs_clone, NULL)
+			) {
+				gf_list_rem(force_link_resolutions, i);
+				i--;
+			}
+		}
+	}
     //we must do the second pass if a filter has an explicit link set through source ID
 	if (!num_pass && gf_list_count(force_link_resolutions)) {
 		num_pass = 1;
