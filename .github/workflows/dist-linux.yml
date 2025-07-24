@@ -1,0 +1,104 @@
+name: Build For Linux
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Type a release tag or 'nightly' for a nightly build"
+        required: true
+        type: string
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        architecture: [amd64, arm64]
+        target:
+          - distro: ubuntu
+            codename: jammy # EOL: Apr 2027
+          - distro: ubuntu
+            codename: noble # EOL: Apr 2029
+          - distro: debian
+            codename: bullseye # EOL: Aug 2026
+          - distro: debian
+            codename: bookworm # EOL: Jun 2028
+
+    name: Build for ${{ matrix.target.distro }} ${{ matrix.target.codename }} on ${{ matrix.architecture }}
+
+    runs-on: ${{ matrix.architecture == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    container:
+      image: ${{ format('{0}:{1}', matrix.target.distro, matrix.target.codename) }}
+      options: --user root --workdir /workspace
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      CCACHE_DIR: ${{ github.workspace }}/ccache
+
+    steps:
+      - name: Print environment
+        run: |
+          echo "Building ${{ inputs.tag }}"
+          echo "Running on ${{ matrix.target.distro }} ${{ matrix.target.codename }} for ${{ matrix.architecture }}"
+          echo "CCACHE_DIR: $CCACHE_DIR"
+
+      - name: Update package list
+        run: apt update
+
+      - name: Install build tools
+        run: |
+          apt install -y --no-install-recommends \
+          build-essential pkg-config g++ git cmake yasm fakeroot dpkg-dev devscripts debhelper ccache
+
+      - name: Install GPAC build dependencies
+        run: |
+          apt install -y --no-install-recommends \
+          zlib1g-dev libfreetype6-dev libpng-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev \
+          liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavdevice-dev libnghttp2-dev \
+          libopenjp2-7-dev libcaca-dev libxv-dev x11proto-video-dev libgl1-mesa-dev libglu1-mesa-dev x11proto-gl-dev \
+          libxvidcore-dev libssl-dev libjack-jackd2-dev libasound2-dev libpulse-dev libsdl2-dev dvb-apps mesa-utils \
+          libcurl4-openssl-dev
+
+          if [ "${{ matrix.target.distro }}" = "ubuntu" ]; then
+            apt install -y --no-install-recommends libjpeg62-dev
+          else
+            apt install -y --no-install-recommends libjpeg62-turbo-dev
+          fi
+
+      - name: Get GPAC source
+        uses: actions/checkout@v4
+        with:
+          repository: gpac/gpac
+          fetch-depth: 0
+          path: gpac_public
+          ref: ${{ inputs.tag == 'nightly' && 'master' || inputs.tag }}
+
+      - name: Get manual dependencies
+        uses: actions/checkout@v4
+        with:
+          repository: gpac/deps_unix
+          fetch-depth: 1
+          path: deps_unix
+          submodules: true
+
+      - name: Set up ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ matrix.target.distro }}-${{ matrix.target.codename }}-${{ matrix.architecture }}-${{ inputs.tag }}
+
+      - name: Build manual dependencies
+        working-directory: deps_unix
+        run: ./build_all.sh linux
+
+      - name: Build GPAC
+        working-directory: gpac_public
+        run: make deb -j$(nproc)
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        env:
+          DIST_TYPE: ${{ inputs.tag == 'nightly' && 'nightly-latest' || format('main-{0}', inputs.tag) }}
+        with:
+          name: linux-${{ env.DIST_TYPE }}-${{ matrix.target.distro }}-${{ matrix.target.codename }}@${{ matrix.architecture }}
+          path: gpac_public/*gpac*.deb
+          retention-days: 1
