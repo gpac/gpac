@@ -441,7 +441,6 @@ static Bool reframer_parse_date(GF_ReframerCtx *ctx, char *date, GF_Fraction64 *
 	if (strlen(date)>2 && date[0]=='T' && date[1]=='C') {
 		u32 h=0, m=0, s=0, n_frames=0;
 		if (sscanf(date, "TC%u:%u:%u:%u", &h, &m, &s, &n_frames) != 4) {
-
 			goto exit;
 		}
 		//we use timecodes, load SEI
@@ -1815,8 +1814,9 @@ GF_Err reframer_process(GF_Filter *filter)
 			//try to get the timecode
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) return GF_OK;
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
-			if (!p || !p->value.data.ptr || !p->value.data.size) continue;
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE); //Romain: only evaluated at start up!!
+			if (!p || !p->value.data.ptr || !p->value.data.size)
+				continue;
 			GF_TimeCode *pck_tc = (GF_TimeCode*) p->value.data.ptr;
 			u64 pck_cts = gf_filter_pck_get_cts(pck);
 			u32 pck_ts = gf_filter_pck_get_timescale(pck);
@@ -1840,8 +1840,9 @@ GF_Err reframer_process(GF_Filter *filter)
 			struct tm *tm = gf_gmtime(&utc_now);
 
 			//convert timecode to UTC : add today as a day
-			u64 now = gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
-			now += gf_timestamp_rescale(pck_tc->n_frames * 1000, fps.num, fps.den);
+			//use a better 180k accuracy timescale as it allows dealing with fps.num up to 60000
+			u64 nowIn180k = 180 * gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
+			nowIn180k += gf_timestamp_rescale(pck_tc->n_frames * 180000, fps.num, fps.den);
 
 			//process both start and end timecodes
 			GF_TimeCode *tc_list[2] = {ctx->cur_start_tc, ctx->cur_end_tc};
@@ -1860,9 +1861,9 @@ GF_Err reframer_process(GF_Filter *filter)
 				u64 cur_ts, target_ts;
 
 				if (use_tc_as_utc) {
-					cur_ts = gf_timestamp_rescale(now, 1000, pck_ts);
+					cur_ts = gf_timestamp_rescale(nowIn180k, 180000, pck_ts);
 					target_ts = gf_timestamp_rescale(ctx->cur_start.num, 1000, pck_ts);
-					st->last_utc_ref = now;
+					st->last_utc_ref = gf_timestamp_rescale(nowIn180k, 180000, 1000);
 					st->last_utc_ref_ts = ts;
 				} else {
 					tc->max_fps = pck_tc->max_fps;
@@ -1871,7 +1872,7 @@ GF_Err reframer_process(GF_Filter *filter)
 				}
 
 				// Common logic for both modes
-				Bool tc_out_of_bounds = use_tc_as_utc ? ((u64)ctx->cur_start.num < now) : gf_timecode_less_or_equal(tc, pck_tc);
+				Bool tc_out_of_bounds = use_tc_as_utc ? (target_ts < cur_ts) : gf_timecode_less_or_equal(tc, pck_tc);
 
 				if (tc_out_of_bounds) {
 					// Start from the first frame since timecode is out-of-bounds
