@@ -63,7 +63,6 @@ GF_OPT_ENUM (GF_UTCReferenceMode,
 	UTCREF_TC,
 );
 
-
 enum
 {
 	EXTRACT_NONE=0,
@@ -178,8 +177,8 @@ typedef struct
 
 	u32 range_type;
 	u32 cur_range_idx;
-	//if cur_start.den is 0, cur_start.num is UTC start time
-	//if cur_end.den is 0, cur_start.num is UTC stop time, only if cur_start uses UTC
+	//if cur_start.den is 0, cur_start.num is UTC start time in milliseconds
+	//if cur_end.den.  is 0, cur_start.num is UTC stop time, only if cur_start uses UTC
 	GF_Fraction64 cur_start, cur_end;
 	GF_TimeCode *cur_start_tc, *cur_end_tc;
 	Bool cur_start_valid, cur_end_valid;
@@ -285,7 +284,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 		return GF_OK;
 	}
-	if (! gf_filter_pid_check_caps(pid))
+	if (!gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
 	if (!st) {
@@ -763,7 +762,6 @@ range_done:
 		gf_filter_pid_send_event(st->ipid, &evt);
 		gf_filter_pid_set_eos(st->opid);
 	}
-
 }
 
 void reframer_drop_packet(GF_ReframerCtx *ctx, RTStream *st, GF_FilterPacket *pck, Bool pck_is_ref)
@@ -1763,7 +1761,6 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 	ctx->cur_end.den = ctx->min_ts_scale;
 	ctx->cumulated_size = 0;
 }
-
 
 
 GF_Err reframer_process(GF_Filter *filter)
