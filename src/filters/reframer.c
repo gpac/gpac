@@ -1141,20 +1141,31 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		//if all saps, using the the final timestamp, decide if we should send the packet
 		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.den>0) {
-			u64 ts = gf_filter_pck_get_cts(new_pck);
-			if (ts != GF_FILTER_NO_TS) {
+			u64 cts = gf_filter_pck_get_cts(new_pck);
+			if (cts != GF_FILTER_NO_TS) {
 				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
-				Bool is_seg_boundary = ts % segdur == 0;
+				Bool is_seg_boundary = GF_FALSE;
+
+				// a timecode is more accurate than a media timestamp where jitter might happen
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
+				if (p) {
+					// this processing is only done until we actually dispatch
+					GF_TimeCode *new_pck_tc = (GF_TimeCode*) p->value.data.ptr;
+					u64 diff_tc = gf_timecode_to_timestamp(new_pck_tc, st->timescale) - gf_timecode_to_timestamp(ctx->cur_start_tc, st->timescale);
+					is_seg_boundary = diff_tc % segdur == 0;
+				} else {
+					is_seg_boundary = cts % segdur == 0;
+				}
 
 				//fallback, check if other tracks are currently sending
 				if (!is_seg_boundary && ctx->wait_seg_boundary_ts.den>0) {
-					is_seg_boundary = gf_timestamp_equal(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den);
+					is_seg_boundary = gf_timestamp_greater_or_equal(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den);
 				}
 
 				if (is_seg_boundary) {
 					// first packet to be sent adjusts the start time
-					if (ctx->wait_seg_boundary_ts.den==0 || gf_timestamp_less(ts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den)) {
-						ctx->wait_seg_boundary_ts.num = ts;
+					if (ctx->wait_seg_boundary_ts.den==0 || gf_timestamp_less(cts, st->timescale, ctx->wait_seg_boundary_ts.num, ctx->wait_seg_boundary_ts.den)) {
+						ctx->wait_seg_boundary_ts.num = cts;
 						ctx->wait_seg_boundary_ts.den = st->timescale;
 					}
 					st->wait_seg_boundary = WAIT_SEG_BOUNDARY_DONE;
@@ -1809,12 +1820,14 @@ GF_Err reframer_process(GF_Filter *filter)
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			RTStream *st = gf_filter_pid_get_udta(ipid);
 			st->fetch_done = GF_FALSE;
-			if (ctx->cur_start_valid && ctx->cur_end_valid) continue;
+			if (ctx->cur_start_valid && ctx->cur_end_valid)
+				continue;
 
 			//try to get the timecode
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
-			if (!pck) return GF_OK;
-			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE); //Romain: only evaluated at start up!!
+			if (!pck)
+				return GF_OK;
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
 			if (!p || !p->value.data.ptr || !p->value.data.size)
 				continue;
 			GF_TimeCode *pck_tc = (GF_TimeCode*) p->value.data.ptr;
@@ -1865,6 +1878,19 @@ GF_Err reframer_process(GF_Filter *filter)
 					target_ts = gf_timestamp_rescale(ctx->cur_start.num, 1000, pck_ts);
 					st->last_utc_ref = gf_timestamp_rescale(nowIn180k, 180000, 1000);
 					st->last_utc_ref_ts = ts;
+
+					// if xs/xe was not expressed as a timecode (e.g. a date), store the equivalent timecode
+					if (!tc) {
+						GF_SAFEALLOC(tc, GF_TimeCode);
+						u64 den = frac->den ? frac->den : pck_ts;
+						u64 clk = frac->num / den; // we only need seconds
+						tc->hours = clk / 3600;
+						tc->minutes = (clk % 3600) / 60;
+						tc->seconds = clk % 60;
+						tc->max_fps = pck_tc->max_fps;
+						if (!tc_idx) ctx->cur_start_tc = tc;
+						else ctx->cur_end_tc = tc;
+					}
 				} else {
 					tc->max_fps = pck_tc->max_fps;
 					cur_ts = gf_timecode_to_timestamp(pck_tc, pck_ts);
@@ -2632,7 +2658,6 @@ refetch_streams:
 			if (ctx->flush_samples) {
 				u32 size;
 				u64 cts;
-
 
 				cts = gf_filter_pck_get_dts(pck);
 				if (cts==GF_FILTER_NO_TS)
