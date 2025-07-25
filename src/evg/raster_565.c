@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer
@@ -658,4 +658,194 @@ GF_Err evg_surface_clear_444(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 	return GF_OK;
 }
 
+
+/*
+			RGB 332 part
+*/
+
+static void write_332(u8 *dst, u8 r, u8 g, u8 b)
+{
+	dst[0] = (r & 0xE0) | ((g >> 3) & 0x1C) | ((b>>6)&0x3);
+}
+
+static void overmask_332(u8 *dst, u32 src, u32 alpha)
+{
+	u32 resr, resg, resb;
+	s32 srca = (src >> 24) & 0xff;
+	s32 srcr = (src >> 16) & 0xff;
+	s32 srcg = (src >> 8) & 0xff;
+	s32 srcb = (src >> 0) & 0xff;
+
+	s32 dstr = (dst[0] & 0xE0);
+	s32 dstg = (dst[0] & 0x1C) << 3;
+	s32 dstb = (dst[1] & 0x3) << 6;
+
+	srca = mul255(srca, alpha);
+	resr = mul255(srca, srcr - dstr) + dstr;
+	resg = mul255(srca, srcg - dstg) + dstg;
+	resb = mul255(srca, srcb - dstb) + dstb;
+	write_332(dst, resr, resg, resb);
+}
+
+static void overmask_332_const_run(u32 src, u8 *dst, s32 dst_pitch_x, u32 count)
+{
+	u32 resr, resg, resb;
+	s32 srca = (src >> 24) & 0xff;
+	s32 srcr = (src >> 16) & 0xff;
+	s32 srcg = (src >> 8) & 0xff;
+	s32 srcb = (src >> 0) & 0xff;
+
+	while (count) {
+		s32 dstr = dst[0] & 0xE0;
+		s32 dstg = (dst[0] & 0x1C) << 3;
+		s32 dstb = (dst[0] & 0x3) << 6;
+
+		resr = mul255(srca, srcr - dstr) + dstr;
+		resg = mul255(srca, srcg - dstg) + dstg;
+		resb = mul255(srca, srcb - dstb) + dstb;
+		write_332(dst, resr, resg, resb);
+
+		dst += dst_pitch_x;
+		count--;
+	}
+}
+
+
+void evg_332_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	u8 r = GF_COL_R(col);
+	u8 g = GF_COL_G(col);
+	u8 b = GF_COL_B(col);
+	write_332(dst, r, g, b);
+}
+
+void evg_332_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y + x * surf->pitch_x;
+	overmask_332(dst, col, coverage);
+}
+
+void evg_332_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
+{
+	u32 col = surf->fill_col;
+	u32 a, fin, col_no_a;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 r, g, b;
+	s32 i, x;
+	u32 len;
+
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
+
+	col_no_a = col&0x00FFFFFF;
+	for (i=0; i<count; i++) {
+		x = spans[i].x * surf->pitch_x;
+		len = spans[i].len;
+		if (spans[i].coverage != 0xFF) {
+			a = mul255(0xFF, spans[i].coverage);
+			fin = (a<<24) | col_no_a;
+			overmask_332_const_run(fin, dst+x, surf->pitch_x, len);
+		} else {
+			while (len--) {
+				write_332(dst+x, r, g, b);
+				x+=surf->pitch_x;
+			}
+		}
+	}
+}
+
+void evg_332_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u32 col = surf->fill_col;
+	u32 a, fin, col_no_a;
+	s32 i;
+
+	a = (col>>24)&0xFF;
+	col_no_a = col & 0x00FFFFFF;
+
+
+	if (surf->get_alpha) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			for (j=0; j<spans[i].len; j++) {
+				s32 x = spans[i].x + j;
+				u8 aa = surf->get_alpha(surf->get_alpha_udta, a, x, y);
+				fin = mul255(aa, spans[i].coverage);
+				fin = (fin<<24) | col_no_a;
+				overmask_332_const_run(fin, dst + x*surf->pitch_x, surf->pitch_x, 1);
+			}
+		}
+	} else {
+		for (i=0; i<count; i++) {
+			fin = mul255(a, spans[i].coverage);
+			fin = (fin<<24) | col_no_a;
+			overmask_332_const_run(fin, dst + spans[i].x*surf->pitch_x, surf->pitch_x, spans[i].len);
+		}
+	}
+}
+
+
+void evg_332_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
+{
+	u8 *dst = surf->pixels + y * surf->pitch_y;
+	s32 i;
+
+	for (i=0; i<count; i++) {
+		u8 spanalpha, col_a;
+		s32 x;
+		u32 len;
+		u32 *col;
+		len = spans[i].len;
+		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		spanalpha = spans[i].coverage;
+		x = spans[i].x * surf->pitch_x;
+		while (len--) {
+			col_a = GF_COL_A(*col);
+			if (col_a) {
+				u32 _col = *col;
+				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
+					overmask_332(dst+x, _col, spanalpha);
+				} else {
+					write_332(dst+x, GF_COL_R(_col), GF_COL_G(_col), GF_COL_B(_col) );
+				}
+			}
+			col++;
+			x += surf->pitch_x;
+		}
+	}
+}
+
+GF_Err evg_surface_clear_332(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
+{
+	u32 x, y, w, h, sx, sy;
+	u8 r, g, b;
+	u8 *data_o;
+
+	h = rc.height;
+	w = rc.width;
+	sx = rc.x;
+	sy = rc.y;
+
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
+
+	data_o = NULL;
+	for (y=0; y<h; y++) {
+		u8 *data = surf->pixels + (sy+y) * surf->pitch_y + surf->pitch_x*sx;
+		if (!y) {
+			data_o = data;
+			for (x=0; x<w; x++)  {
+				write_332(data, r, g, b);
+				data += surf->pitch_x;
+			}
+		} else {
+			memcpy(data, data_o, w * surf->pitch_x);
+		}
+	}
+	return GF_OK;
+}
 #endif // GPAC_DISABLE_EVG

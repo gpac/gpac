@@ -3318,6 +3318,35 @@ void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkst
 }
 #endif
 
+Bool gf_filter_pid_caps_negociate_match(GF_FilterPid *pid, const GF_FilterRegister *freg)
+{
+	u32 idx=0;
+	Bool all_match = GF_TRUE;
+	//check all negotiated caps, and make sure they are supported by the filter
+	while (1) {
+		u32 j, p4cc;
+		const char *pname;
+		const GF_PropertyValue * p = gf_props_enum_property(pid->caps_negotiate, &idx, &p4cc, &pname);
+		if (!p) break;
+		j=0;
+		Bool found=GF_FALSE;
+		for (j=0; j<freg->nb_caps; j++) {
+			const GF_FilterCapability *cap = &freg->caps[j];
+			if (! (cap->flags & GF_CAPFLAG_RECONFIG)) continue;
+			if ((cap->code == p4cc)
+				|| (cap->name && pname && !strcmp(cap->name, pname))
+			) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			all_match = GF_FALSE;
+		}
+	}
+	return all_match;
+}
+
 static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegister, Bool reconfigurable_only, GF_List *tmp_blacklist, GF_LinkInfo *link_info, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
@@ -3438,31 +3467,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			if (!freg->reconfigure_output || !pid->caps_negotiate)
 				disable_filter = GF_TRUE;
 			else {
-				u32 idx=0;
-				Bool all_match = GF_TRUE;
-				//check all negotiated caps, and make sure they are supported by the filter
-				while (1) {
-					u32 j, p4cc;
-					const char *pname;
-					const GF_PropertyValue * p = gf_props_enum_property(pid->caps_negotiate, &idx, &p4cc, &pname);
-					if (!p) break;
-					j=0;
-					Bool found=GF_FALSE;
-					for (j=0; j<freg->nb_caps; j++) {
-						const GF_FilterCapability *cap = &freg->caps[j];
-						if (! (cap->flags & GF_CAPFLAG_RECONFIG)) continue;
-						if ((cap->code == p4cc)
-							|| (cap->name && pname && !strcmp(cap->name, pname))
-						) {
-							found = GF_TRUE;
-							break;
-						}
-					}
-					if (!found) {
-						all_match = GF_FALSE;
-					}
-				}
-				if (!all_match)
+				if (!gf_filter_pid_caps_negociate_match(pid, freg))
 					disable_filter = GF_TRUE;
 			}
 		}
@@ -5728,6 +5733,27 @@ single_retry:
 	if (!num_pass && gf_list_count(filter->destination_links) && can_try_link_resolution && filter->session->max_resolve_chain_len) {
 		num_pass = 1;
 		goto restart;
+	}
+
+	//special case: if we found a destination, ignore any  force_link filter that is an alias filter and has a matching sourceID
+	//This is needed because a filter calling gf_filter_set_source on a alias filter
+	//will never modify the sourceID of the original (non-alias) filter
+	//eg [...] dasher -> scte35dec(injected) -> httpout(alias)
+	if (!num_pass && found_dest && pid->filter->id && gf_list_count(force_link_resolutions)) {
+		u32 i=0;
+		for (i=0; i<gf_list_count(force_link_resolutions); i++) {
+			Bool pid_excluded=GF_FALSE;
+			Bool needs_clone=GF_FALSE;
+			GF_Filter *force_link = gf_list_get(force_link_resolutions, i);
+			if (force_link->source_ids
+				&& force_link->freg
+				&& force_link->freg->use_alias
+				&& filter_source_id_match(pid, pid->filter->id, force_link, &pid_excluded, &needs_clone, NULL)
+			) {
+				gf_list_rem(force_link_resolutions, i);
+				i--;
+			}
+		}
 	}
     //we must do the second pass if a filter has an explicit link set through source ID
 	if (!num_pass && gf_list_count(force_link_resolutions)) {

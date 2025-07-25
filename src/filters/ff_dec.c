@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -478,6 +478,11 @@ restart:
 		dst_planes[0] =  (uint8_t *)out_buffer;
 		dst_stride[0] = 4*ctx->width;
 		pix_out = AV_PIX_FMT_RGBA;
+		break;
+	case GF_PIXEL_BGRA:
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_stride[0] = 4*ctx->width;
+		pix_out = AV_PIX_FMT_BGRA;
 		break;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YUV_10:

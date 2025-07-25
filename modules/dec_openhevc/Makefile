@@ -4,21 +4,13 @@ vpath %.c $(SRC_PATH)/modules/dec_openhevc
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(openhevc_cflags)
 
-ifeq ($(DEBUGBUILD),yes)
-CFLAGS+=-g
-LDFLAGS+=-g
-endif
-
-ifeq ($(GPROFBUILD),yes)
-CFLAGS+=-pg
-LDFLAGS+=-pg
-endif
-
 ifeq ($(CONFIG_DARWIN),yes)
 LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags)
 else
 LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags) -Wl,-Bsymbolic
 endif
+
+include ../common.mak
 
 #common obj
 OBJS=dec_openhevc.o
@@ -44,13 +36,13 @@ dec_openhevc.o : $(SRC_PATH)/src/filters/dec_openhevc.c
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(LDFLAGS)
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

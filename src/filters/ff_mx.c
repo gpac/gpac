@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2024
+ *			Copyright (c) Telecom Paris 2019-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -1214,6 +1214,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				return GF_NOT_SUPPORTED;
 			}
 		}
+	} else if (codec_id==GF_CODECID_FFMPEG) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
+		ff_codec_id = p ? p->value.uint : AV_CODEC_ID_NONE;
 	} else {
 		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
 	}
@@ -1227,6 +1230,33 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #else
 	res = avformat_query_codec(ctx->muxer->oformat, ff_codec_id, FF_COMPLIANCE_NORMAL);
 #endif
+
+	if (!res) {
+		//try negotiating to default codec of container
+		enum AVCodecID ff_codec = AV_CODEC_ID_NONE;
+		switch (streamtype) {
+		case GF_STREAM_VISUAL:
+			ff_codec = ctx->muxer->oformat->video_codec;
+			break;
+		case GF_STREAM_AUDIO:
+			ff_codec = ctx->muxer->oformat->audio_codec;
+			break;
+		case GF_STREAM_TEXT:
+			ff_codec = ctx->muxer->oformat->subtitle_codec;
+			break;
+		}
+		if (ff_codec != AV_CODEC_ID_NONE) {
+			u32 codec_id = ffmpeg_codecid_to_gpac(ff_codec);
+			if (codec_id!=GF_CODECID_NONE) {
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id));
+				return GF_OK;
+			} else {
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG));
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT(ff_codec));
+				return GF_OK;
+			}
+		}
+	}
 
 	if (!res) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Codec %s not supported in container %s\n", gf_codecid_name(codec_id), ctx->muxer->oformat->name));
