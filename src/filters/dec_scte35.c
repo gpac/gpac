@@ -780,6 +780,21 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 
 	u64 dts = gf_filter_pck_get_dts(pck);
 	if (dts == GF_FILTER_NO_TS) {
+		u32 size = 0;
+		gf_filter_pck_get_data(pck, &size);
+		if (!size) {
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
+			if (p && p->value.boolean) {
+				if (ctx->clock != ctx->last_dispatched_dts + ctx->last_pck_dur) {
+					// TODO: we split without following the dasher's instructions
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] segment boundary mismatch - contact the GPAC Team\n"));
+				}
+				gf_filter_pck_forward(pck, ctx->opid);
+				gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_OK;
+			}
+		}
+
 		dts = ctx->last_dispatched_dts + ctx->last_pck_dur;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] packet with no DTS. Inferring value "LLU".\n", dts));
 	}
