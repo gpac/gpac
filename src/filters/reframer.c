@@ -137,7 +137,6 @@ typedef struct
 	Bool fetch_done;
 
 	u64 last_utc_ref, last_utc_ref_ts;
-
 } RTStream;
 
 typedef struct
@@ -1138,22 +1137,20 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
 		//if all saps, using the the final timestamp, decide if we should send the packet
-		if (st->all_saps && !ctx->nosap && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.den>0) {
+		if (st->all_saps && !ctx->nosap && st->stream_type==GF_STREAM_VISUAL
+		    && st->wait_seg_boundary==WAIT_SEG_BOUNDARY_ACTIVE && st->segdur.den>0) {
+			GF_Fraction fps = {0};
+			const GF_PropertyValue *p = gf_filter_pid_get_property(st->ipid, GF_PROP_PID_FPS);
 			u64 cts = gf_filter_pck_get_cts(new_pck);
-			if (cts != GF_FILTER_NO_TS) {
-				u32 segdur = gf_timestamp_rescale(st->segdur.num, st->segdur.den, st->timescale);
-				Bool is_seg_boundary = GF_FALSE;
-
-				// a timecode is more accurate than a media timestamp where jitter might happen
-				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODE);
-				if (p) {
-					// this processing is only done until we actually dispatch
-					GF_TimeCode *new_pck_tc = (GF_TimeCode*) p->value.data.ptr;
-					u64 diff_tc = gf_timecode_to_timestamp(new_pck_tc, st->timescale) - gf_timecode_to_timestamp(ctx->cur_start_tc, st->timescale);
-					is_seg_boundary = diff_tc % segdur == 0;
-				} else {
-					is_seg_boundary = cts % segdur == 0;
-				}
+			if (p) fps = p->value.frac;
+			if (fps.den==0 || fps.num==0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] Invalid FPS %d/%u when looking for UTCREF_TC segment boundary\n", fps.num, fps.den));
+			}
+			else if (cts != GF_FILTER_NO_TS) {
+				u32 seg_nframes = st->segdur.num * fps.num / (st->segdur.den * fps.den);
+				assert(ctx->ts_tc_offset.den == st->timescale);
+				u32 diff_nframes = (cts - ctx->ts_tc_offset.num - ctx->cur_start.num) * fps.num / (st->timescale * fps.den);
+				Bool is_seg_boundary = diff_nframes % seg_nframes == 0;
 
 				//fallback, check if other tracks are currently sending
 				if (!is_seg_boundary && ctx->wait_seg_boundary_ts.den>0) {
@@ -1191,7 +1188,6 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_send(dst);
 		}
 	}
-
 
 	reframer_drop_packet(ctx, st, pck, pck_is_ref);
 	st->nb_frames++;
@@ -1845,49 +1841,33 @@ GF_Err reframer_process(GF_Filter *filter)
 			if (ts > st->ts_sub) ts -= st->ts_sub;
 			else ts = 0;
 
-			//get current date
-			time_t utc_now = (time_t) (gf_net_get_utc() / 1000);
-			struct tm *tm = gf_gmtime(&utc_now);
-
-			//convert timecode to UTC : add today as a day
-			//use a better 180k accuracy timescale as it allows dealing with fps.num up to 60000
-			u64 nowIn180k = 180 * gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
-			nowIn180k += gf_timestamp_rescale(pck_tc->n_frames * 180000, fps.num, fps.den);
-
-			//process both start and end timecodes
+			//process both start and end timestamps/timecodes
 			GF_TimeCode *tc_list[2] = {ctx->cur_start_tc, ctx->cur_end_tc};
+			GF_Fraction64 *ts_list[2] = {&ctx->cur_start, &ctx->cur_end};
 			Bool *valid_list[2] = {&ctx->cur_start_valid, &ctx->cur_end_valid};
-			GF_Fraction64 *frac_list[2] = {&ctx->cur_start, &ctx->cur_end};
 
 			for (int tc_idx = 0; tc_idx < 2; tc_idx++) {
-				GF_TimeCode *tc = tc_list[tc_idx];
 				Bool *valid = valid_list[tc_idx];
-				GF_Fraction64 *frac = frac_list[tc_idx];
+				if (*valid)
+					continue;
 
-				//skip if already valid
-				if (*valid) continue;
-
-				Bool use_tc_as_utc = (ctx->utc_ref == UTCREF_TC);
+				GF_TimeCode *tc = tc_list[tc_idx];
+				GF_Fraction64 *frac = ts_list[tc_idx];
 				u64 cur_ts, target_ts;
+				Bool use_tc_as_utc = (ctx->utc_ref == UTCREF_TC);
 
 				if (use_tc_as_utc) {
+					//convert timecode to UTC: timecode don't contain the day so consider today
+					time_t utc_now = (time_t) (gf_net_get_utc() / 1000);
+					struct tm *tm = gf_gmtime(&utc_now);
+					//use a better 180k accuracy timescale as it allows dealing with high fps.num (up to 60000)
+					u64 nowIn180k = 180 * gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, pck_tc->hours, pck_tc->minutes, pck_tc->seconds);
+					nowIn180k += gf_timestamp_rescale(pck_tc->n_frames * 180000, fps.num, fps.den);
+
 					cur_ts = gf_timestamp_rescale(nowIn180k, 180000, pck_ts);
 					target_ts = gf_timestamp_rescale(ctx->cur_start.num, 1000, pck_ts);
 					st->last_utc_ref = gf_timestamp_rescale(nowIn180k, 180000, 1000);
 					st->last_utc_ref_ts = ts;
-
-					// if xs/xe was not expressed as a timecode (e.g. a date), store the equivalent timecode
-					if (!tc) {
-						GF_SAFEALLOC(tc, GF_TimeCode);
-						u64 den = frac->den ? frac->den : pck_ts;
-						u64 clk = frac->num / den; // we only need seconds
-						tc->hours = clk / 3600;
-						tc->minutes = (clk % 3600) / 60;
-						tc->seconds = clk % 60;
-						tc->max_fps = pck_tc->max_fps;
-						if (!tc_idx) ctx->cur_start_tc = tc;
-						else ctx->cur_end_tc = tc;
-					}
 				} else {
 					tc->max_fps = pck_tc->max_fps;
 					cur_ts = gf_timecode_to_timestamp(pck_tc, pck_ts);
