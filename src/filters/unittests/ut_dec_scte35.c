@@ -62,7 +62,7 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
         scte35dec_process_timing(&ctx, pts, TIMESCALE, SCTE35_DUR); \
         scte35dec_process_emsg(&ctx, emsg.value.data.ptr, emsg.value.data.size, pts); \
-        if (!ctx.pass) scte35dec_process_dispatch(&ctx, pts, SCTE35_DUR); \
+        if (ctx.mode != 1) scte35dec_process_dispatch(&ctx, pts, SCTE35_DUR); \
         pts = SCTE35_PTS + SCTE35_DUR; \
     }
 
@@ -179,7 +179,7 @@ unittest(scte35dec_splice_point_with_idr)
 {
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
-    ctx.pass = GF_TRUE;
+    ctx.mode = 1; // passthru
     u64 pts = 0;
 
     SEND_EVENT();
