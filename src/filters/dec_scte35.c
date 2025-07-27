@@ -590,7 +590,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	// handle internal clock, timescale and duration
 	if (!ctx->last_dispatched_dts_init) {
 		ctx->timescale = timescale;
-		if (ctx->segdur.num * ctx->timescale % ctx->segdur.den)
+		if (IS_SEGMENTED && ctx->segdur.num * ctx->timescale % ctx->segdur.den)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->segdur.num, ctx->segdur.den));
 		ctx->last_dispatched_dts = dts - dur;
 		ctx->last_pck_dur = dur;
