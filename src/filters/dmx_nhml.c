@@ -500,8 +500,8 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 
 
 	ctx->samp_buffer_size = (u32) (breaker.to_pos - breaker.from_pos);
-	if (ctx->samp_buffer_alloc < ctx->samp_buffer_size) {
-		ctx->samp_buffer_alloc = ctx->samp_buffer_size;
+	if (ctx->samp_buffer_alloc < ctx->samp_buffer_size+1) {
+		ctx->samp_buffer_alloc = ctx->samp_buffer_size+1;
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 	}
 	gf_fseek(xml, breaker.from_pos, SEEK_SET);
@@ -509,6 +509,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to read samp->dataLength\n"));
 	}
 	e = GF_OK;
+	ctx->samp_buffer[ctx->samp_buffer_size]=0;
 
 exit:
 	if (xml) gf_fclose(xml);
@@ -582,13 +583,14 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 		*dict = (char*)gf_malloc(sizeof(char) * ctx->samp_buffer_size);
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
 	}
-	if (ctx->samp_buffer_alloc < stream.total_out) {
-		ctx->samp_buffer_alloc = (u32) (stream.total_out*2);
-		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, ctx->samp_buffer_alloc * sizeof(char));
+	if (ctx->samp_buffer_alloc < stream.total_out + 1) {
+		ctx->samp_buffer_alloc = (u32) (stream.total_out*2) + 1;
+		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 	}
 
 	memcpy(ctx->samp_buffer + offset, ctx->zlib_buffer, sizeof(char)*stream.total_out);
 	ctx->samp_buffer_size = (u32) (offset + stream.total_out);
+	ctx->samp_buffer[ctx->samp_buffer_size]=0;
 
 	deflateEnd(&stream);
 	return GF_OK;
@@ -1505,9 +1507,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			char *content = gf_xml_dom_serialize(node, GF_TRUE, GF_FALSE);
 
 			ctx->samp_buffer_size = 3 + (u32) strlen(content);
-			if (ctx->samp_buffer_alloc < ctx->samp_buffer_size) {
-				ctx->samp_buffer_alloc = ctx->samp_buffer_size;
-				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, ctx->samp_buffer_size);
+			if (ctx->samp_buffer_alloc < ctx->samp_buffer_size+1) {
+				ctx->samp_buffer_alloc = ctx->samp_buffer_size+1;
+				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 			}
 			nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_size, GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size - 2);
@@ -1522,8 +1524,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			char *start = strchr(base_data, ',');
 			if (start) {
 				u32 len = (u32)strlen(start+1);
-				if (len > ctx->samp_buffer_alloc) {
-					ctx->samp_buffer_alloc = len;
+				if (len + 1 > ctx->samp_buffer_alloc) {
+					ctx->samp_buffer_alloc = len+1;
 					ctx->samp_buffer = gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 				}
 				ctx->samp_buffer_size = gf_base64_decode(start, len, ctx->samp_buffer, ctx->samp_buffer_alloc);
@@ -1562,9 +1564,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 				if (ctx->is_dims) {
 					u32 read;
-					if (ctx->samp_buffer_size + 3 > ctx->samp_buffer_alloc) {
-						ctx->samp_buffer_alloc = ctx->samp_buffer_size + 3;
-						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char) * ctx->samp_buffer_alloc);
+					if (ctx->samp_buffer_size + 4 > ctx->samp_buffer_alloc) {
+						ctx->samp_buffer_alloc = ctx->samp_buffer_size + 4;
+						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 					}
 					nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_alloc, GF_BITSTREAM_WRITE);
 					gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size+1);
@@ -1580,9 +1582,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						append = GF_TRUE;
 				} else {
 					u32 read;
-					if (ctx->samp_buffer_alloc < ctx->samp_buffer_size) {
-						ctx->samp_buffer_alloc = ctx->samp_buffer_size;
-						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char) * ctx->samp_buffer_alloc);
+					if (ctx->samp_buffer_alloc < ctx->samp_buffer_size + 1) {
+						ctx->samp_buffer_alloc = ctx->samp_buffer_size + 1;
+						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 					}
 					read = (u32) gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, f);
 					if (ctx->samp_buffer_size != read) {
@@ -1594,8 +1596,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			}
 			if (f && close) gf_fclose(f);
 		}
-
 		if (e) return e;
+		ctx->samp_buffer[ctx->samp_buffer_size]=0;
 
 		//child BS present, parse them
 		if (has_subbs) {
@@ -1610,12 +1612,13 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			gf_bs_get_content(bs_tmp, &output, &ctx->samp_buffer_size);
 			gf_bs_del(bs_tmp);
 
-			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc) {
-				ctx->samp_buffer_alloc = ctx->samp_buffer_size;
-				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, ctx->samp_buffer_size);
+			if (ctx->samp_buffer_size + 1 > ctx->samp_buffer_alloc) {
+				ctx->samp_buffer_alloc = ctx->samp_buffer_size+1;
+				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 			}
 			memcpy(ctx->samp_buffer, output, ctx->samp_buffer_size);
 			gf_free(output);
+			ctx->samp_buffer[ctx->samp_buffer_size] = 0;
 		}
 		if (!ctx->samp_buffer_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] No media file associated with sample %d!\n", ctx->sample_num));

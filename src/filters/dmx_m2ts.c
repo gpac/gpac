@@ -869,6 +869,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 
 	//skip dataID and stream ID
 	if (pck->stream->stream_type==GF_M2TS_DVB_SUBTITLE) {
+		if (len<=2) return;
 		ptr+=2;
 		len-=2;
 	}
