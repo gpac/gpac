@@ -1562,7 +1562,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 			has_dot = (sep=='.') ? GF_TRUE : GF_FALSE;
 			next_col[0] = sep;
 			cur = next_col+1;
-			if (nb_val>6) break;
+			if (nb_val>=6) break;
 		}
 		h = vals[0];
 		m = vals[1];
