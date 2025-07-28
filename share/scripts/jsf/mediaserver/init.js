@@ -2144,7 +2144,7 @@ filter.initialize = function() {
 			services_defs.forEach(sd => {
 				if (sd.js) {
 					mods_pending++;
-					let script_src = sd.js;
+					let script_src = sys.url_cat(filter.scfg, sd.js);
 					//local path
 					if (sys.file_exists(script_src)) {}
 					else if (sys.file_exists(sd.js+'.js')) {
