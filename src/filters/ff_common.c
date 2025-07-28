@@ -744,7 +744,7 @@ void ffmpeg_initialize()
 	ffmpeg_init = GF_TRUE;
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_opts_get_key("ffmpeg", "disable_log_harness") == NULL) {
+	if (!gf_opts_get_bool("temp", "disable_ffmpeg_log_harness")) {
 		av_log_set_callback(&ff_log_callback);
 	}
 #endif
