@@ -2044,6 +2044,8 @@ filter.initialize = function() {
 			services_defs = services_defs.filter(e => ((typeof e.active === 'undefined') || e.active) && typeof e.comment === 'undefined' );
 			services_defs.forEach(sd => {
 				//check options are valid
+				if (typeof sd.active == 'undefined') sd.active = true;
+				else if (typeof sd.active != 'boolean') sd.active = false;
 				if (typeof sd.http == 'undefined') sd.http = null;
 				else if (typeof sd.http != 'string') throw "Missing or invalid http property, expecting string got "+typeof sd.http;
 				if (typeof sd.mabr == 'undefined') sd.mabr = null;
@@ -2126,6 +2128,20 @@ filter.initialize = function() {
 				}
 				//load JS module if present
 				sd.dyn_mabr = false;
+			});
+			//remove all inactive services
+			services_defs = services_defs.filter(e => e.active );
+			//check for duplicates
+			services_defs.forEach(sd => {
+				if (!sd.active) return;
+				let same_orig = services_defs.filter( e => (e.active && e.http === sd.http));
+				if (same_orig.length > 1) {
+					throw `Multiple active services with same origin ${sd.http} not allowed`;
+				}
+			});
+
+			//check for JS modules
+			services_defs.forEach(sd => {
 				if (sd.js) {
 					mods_pending++;
 					let script_src = sd.js;
