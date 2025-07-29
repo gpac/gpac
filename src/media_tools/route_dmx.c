@@ -209,7 +209,8 @@ struct __route_service
 
 	char *service_identifier;
 	char *log_name;
-
+	char *repair_uri_base;
+	char *repair_server;
 	Bool in_reset;
 };
 
@@ -331,6 +332,8 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 	if (s->dst_ip) gf_free(s->dst_ip);
 	if (s->log_name) gf_free(s->log_name);
 	if (s->service_identifier) gf_free(s->service_identifier);
+	if (s->repair_uri_base) gf_free(s->repair_uri_base);
+	if (s->repair_server) gf_free(s->repair_server);
 	gf_list_del_item(routedmx->services, s);
 	gf_free(s);
 }
@@ -1405,6 +1408,7 @@ static const char *_xml_get_child_text(const GF_XMLNode *n, const char *child_na
 	GF_XMLNode *c;
 	if (!n) return NULL;
 	while ((c = gf_list_enum(n->content, &i))) {
+		if (c->type==GF_XML_TEXT_TYPE && !child_name) return c->name;
 		if (!c->type && !strcmp(c->name, child_name)) {
 			c = gf_list_get(c->content, 0);
 			return c->name;
@@ -1422,6 +1426,8 @@ static u32 _xml_get_child_count(const GF_XMLNode *n, const char *child_name)
 	}
 	return nb_children;
 }
+
+
 static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF_ROUTEService *parent_s, GF_LCTObject *object)
 {
 	if (object->status==GF_LCT_OBJ_DONE_ERR) return GF_OK;
@@ -1569,6 +1575,30 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				//setup done through stsid
 				has_stsid_session = GF_TRUE;
 				break;
+			}
+			trp = _xml_get_child(tr_sess, "UnicastRepairParameters");
+			if (trp) {
+				const char *uriBase = _xml_get_attr(trp, "transportObjectBaseURI");
+				if (new_service->repair_uri_base) gf_free(new_service->repair_uri_base);
+				new_service->repair_uri_base = uriBase ? gf_strdup(uriBase) : NULL;
+				u32 b_idx=0;
+				const char *b_url=NULL;
+				u32 b_weight=0;
+				GF_XMLNode *burl;
+				while ( (burl = gf_list_enum(trp->content, &b_idx)) ) {
+					if (burl->type != GF_XML_NODE_TYPE) continue;
+					if (strcmp(burl->name, "BaseURL")) continue;
+					const char *weight_s = _xml_get_attr(burl, "relativeWeight");
+					if (!weight_s) weight_s = "1";
+					u32 weight = atoi(weight_s);
+					if (!weight) continue;
+					if (!b_weight || (weight>b_weight)) {
+						b_weight = weight;
+						b_url = _xml_get_child_text(burl, NULL);
+					}
+				}
+				if (new_service->repair_server) gf_free(new_service->repair_server);
+				new_service->repair_server = b_url ? gf_strdup(b_url) : NULL;
 			}
 
 			GF_ROUTESession *rsess=NULL;
@@ -2149,7 +2179,13 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	}
 	//keep receiving if we are done with errors
 	if (obj->status == GF_LCT_OBJ_DONE_ERR) {
-		if (routedmx->on_event) {
+		//if we had error on this object and we start with first byte-range, restart
+		if (!start_offset) {
+			obj->nb_frags = obj->nb_recv_frags = 0;
+			obj->nb_bytes = obj->nb_recv_bytes = 0;
+			obj->status = GF_LCT_OBJ_RECEPTION;
+		}
+		else if (routedmx->on_event) {
 			// Sending event about the delayed data received.
 			GF_ROUTEEventFileInfo finfo;
 			GF_Blob blob;
@@ -2164,10 +2200,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			finfo.late_fragment_offset = start_offset;
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u received data after dispatch [%u, %u] - event sent\n", s->log_name, tsi, toi, start_offset, start_offset+size-1));
 			routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_LATE_DATA, s->service_id, &finfo);
+			return GF_EOS;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u received data after dispatch [%u, %u] - ignoring\n", s->log_name, tsi, toi, start_offset, start_offset+size-1));
+			return GF_EOS;
 		}
-		return GF_EOS;
 	}
 	obj->last_active_time = gf_sys_clock_high_res();
 	obj->blob.last_modification_time = obj->last_active_time;
@@ -4283,5 +4320,23 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
 		}
 	}
 }
+
+void gf_route_dmx_get_repair_info(GF_ROUTEDmx *routedmx, u32 service_id, const char **base_uri, const char **repair_server)
+{
+	if (base_uri) *base_uri = NULL;
+	if (repair_server) *repair_server = NULL;
+	if (!routedmx) return;
+	u32 i, count = gf_list_count(routedmx->services);
+	for (i=0; i<count; i++) {
+		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
+		if (s->service_id != service_id) continue;
+
+		if (base_uri) *base_uri = s->repair_uri_base;
+		if (repair_server) *repair_server = s->repair_server;
+		return;
+	}
+	return;
+}
+
 
 #endif /* !GPAC_DISABLE_ROUTE */

@@ -78,7 +78,8 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_transfer(ctx->seg_repair_reservoir, ctx->seg_repair_queue);
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->repair_servers)) {
-		char *tmp = gf_list_pop_back(ctx->repair_servers);
+		RouteRepairServer *tmp = gf_list_pop_back(ctx->repair_servers);
+		if (tmp->service_id) gf_free(tmp->url);
 		gf_free(tmp);
 	}
 	gf_list_del(ctx->repair_servers);
@@ -180,12 +181,16 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 	TSI_Output *tsio = NULL;
 
 	p_pid = &ctx->opid;
-	if (finfo && finfo->tsi && ctx->stsi) {
-		tsio = routein_get_tsio(ctx, service_id, finfo);
-		p_pid = &tsio->opid;
-
+	if (finfo && finfo->tsi) {
+		//for non-segment data, do not foward corrupted files or repeated files if not asked for it
 		if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD) || (evt_type==GF_ROUTE_EVT_HLS_VARIANT)) {
 			if (ctx->skipr && !finfo->updated) return;
+			if (finfo->blob->flags & GF_BLOB_CORRUPTED) return;
+		}
+
+		if (ctx->stsi) {
+			tsio = routein_get_tsio(ctx, service_id, finfo);
+			p_pid = &tsio->opid;
 		}
 	}
 	pid = *p_pid;
@@ -202,8 +207,17 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		if (!finfo) return;
 
 		gf_assert(finfo->filename);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
-		ext = gf_file_ext_start(finfo->filename);
+		const char *repair_base_uri, *filename=finfo->filename;
+		gf_route_dmx_get_repair_info(ctx->route_dmx, service_id, &repair_base_uri, NULL);
+		if (repair_base_uri) {
+			u32 repair_base_uri_len = (u32) strlen(repair_base_uri);
+			if (!strncmp(finfo->filename, repair_base_uri, repair_base_uri_len)) {
+				filename += repair_base_uri_len+1;
+			}
+		}
+
+		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(filename));
+		ext = gf_file_ext_start(filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
 		if (tsio) {
 			tsio->current_toi = finfo->toi;
@@ -274,7 +288,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		}
 		if (tsio) tsio->bytes_sent += to_write;
 	} else if (evt_type!=GF_ROUTE_EVT_DYN_SEG_FRAG) {
-		if (tsio->bytes_sent) {
+		if (tsio && tsio->bytes_sent) {
 			pck = gf_filter_pck_new_alloc(pid, 0, &output);
 			if (finfo->blob->flags & (GF_BLOB_CORRUPTED|GF_BLOB_PARTIAL_REPAIR)) {
 				gf_filter_pck_set_corrupted(pck, GF_TRUE);
@@ -737,10 +751,34 @@ static GF_Err routein_process(GF_Filter *filter)
 			}
 		}
 	}
-
 	return GF_OK;
 }
 
+RouteRepairServer *routein_push_repair_server(ROUTEInCtx *ctx, const char *url, u32 service_id)
+{
+	RouteRepairServer *server = NULL;
+	if (service_id) {
+		u32 i;
+		for (i=0;i<gf_list_count(ctx->repair_servers); i++) {
+			server = gf_list_get(ctx->repair_servers, i);
+			if (server->service_id==service_id) {
+				if (!strcmp(server->url, url)) return server;
+				gf_list_rem(ctx->repair_servers, i);
+				i--;
+				gf_free(server->url);
+			}
+		}
+	}
+
+	GF_SAFEALLOC(server, RouteRepairServer);
+	server->accept_ranges = RANGE_SUPPORT_PROBE;
+	server->service_id = service_id;
+	server->support_h2 = GF_TRUE;
+	server->url = service_id ? gf_strdup(url) : (char*)url;
+	if (!ctx->repair_servers) ctx->repair_servers = gf_list_new();
+	gf_list_add(ctx->repair_servers, server);
+	return server;
+}
 
 static GF_Err routein_initialize(GF_Filter *filter)
 {
@@ -851,15 +889,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		u8 i;
 		if (ctx->repair<ROUTEIN_REPAIR_FULL)
 			ctx->repair = ROUTEIN_REPAIR_FULL;
-		ctx->repair_servers = gf_list_new();
-		for(i=0; i<ctx->repair_urls.nb_items; i++) {
-			RouteRepairServer* server;
-			GF_SAFEALLOC(server, RouteRepairServer);
-			server->accept_ranges = RANGE_SUPPORT_PROBE;
-			server->is_up = GF_TRUE;
-			server->support_h2 = GF_TRUE;
-			server->url = ctx->repair_urls.vals[i];
-			gf_list_add(ctx->repair_servers, server);
+		for (i=0; i<ctx->repair_urls.nb_items; i++) {
+			routein_push_repair_server(ctx, ctx->repair_urls.vals[i], 0);
 		}
 	}
 
@@ -881,11 +912,6 @@ static GF_Err routein_initialize(GF_Filter *filter)
 			ctx->seg_repair_reservoir = gf_list_new();
 			ctx->seg_range_reservoir = gf_list_new();
 		}
-	}
-	//TODO, pass any repair URL info coming from broadcast
-	if (!ctx->repair_servers) {
-		if (ctx->repair >= ROUTEIN_REPAIR_FULL)
-			ctx->repair = ROUTEIN_REPAIR_STRICT;
 	}
 	return GF_OK;
 }

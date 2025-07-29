@@ -29,7 +29,7 @@ const DEFAULT_MABR_UNLOAD_SEC = 4;
 const DEFAULT_KEEPALIVE_SEC = 4;
 const DEFAULT_ACTIVATE_CLIENTS = 1;
 const DEFAULT_MCACHE = false;
-const DEFAULT_REPAIR = false;
+const DEFAULT_REPAIR = 'false'; // 'false', 'true' or 'auto'
 const DEFAULT_CORRUPTED = false;
 const DEFAULT_TIMESHIFT = 10;
 const DEFAULT_GCACHE = false;
@@ -71,7 +71,10 @@ Each service is a JSON object with one or more of the following properties:
 - unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC}) multicast unload policy
 - activate: (number, default ${DEFAULT_ACTIVATE_CLIENTS}) multicast activation policy
 - mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files
-- repair: (boolean, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
+- repair: (string, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
+  - false: disable repair
+  - true: enable repair using source URL or repair servers indicated in MABR
+  - auto: enable repair only from repair servers indicated in MABR
 - corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
 - check_ip: (boolean, , default ${DEFAULT_CHECKIP}) monitor IP address and port rather than connection when tracking active clients
 - noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
@@ -777,6 +780,12 @@ httpout.on_request = (req) =>
 			this.cache_file.nb_users ++;
 			this.read = this._read_from_buffer;
 		}
+		//MABR without origin server
+		if (this.service && !this.service.url) {
+			this.reply = 404;
+			this.send();
+			return;
+		}
 
 		this.xhr = null;
 		if (this.service && this.service.xhr_cache.length) {
@@ -836,7 +845,7 @@ httpout.on_request = (req) =>
 			}
 		};
 
-		req.xhr.onreadystatechange = function() {
+		this.xhr.onreadystatechange = function() {
 			if (this.readyState == 4) {
 				do_log(GF_LOG_DEBUG, `${req.target_url} received`);
 				if (req.manifest_type) {
@@ -935,7 +944,8 @@ httpout.on_request = (req) =>
 		else if ((hlwr == "x-from-mabr") && (h.value.toLowerCase() == 'no')) disable_mabr_cache = true;
 		else if (hlwr == "range") {
 			let hdr_range = h.value.split('=');
-			let range = [1];
+			let range = hdr_range[1];
+			print('range is ' + h.value + ' val ' + range);
 			if (range.indexOf(',')>=0) {
 				req.no_cache = true;
 			} else {
@@ -1532,8 +1542,12 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		if (this.url && this.mabr_min_active>0) args += ':tunein=-3';
 		//add repair option last
 		if (! this.url) {
-			this.repair = true;
-			args += ':repair=strict';
+			if (!this.repair) {
+				args += ':repair=strict';
+				this.repair = 1;
+			} else {
+				args += ':repair=full';
+			}
 		}
 		else if (this.repair) {
 			//escape URL option
@@ -2059,7 +2073,10 @@ filter.initialize = function() {
 				if (typeof sd.timeshift != 'number') sd.timeshift = DEFAULT_TIMESHIFT;
 				else if (sd.timeshift < 0) throw "Invalid timeshift property, expecting positive number";
 				if (typeof sd.mcache != 'boolean') sd.mcache = DEFAULT_MCACHE;
-				if (typeof sd.repair != 'boolean') sd.repair = DEFAULT_REPAIR;
+				if (typeof sd.repair != 'string') sd.repair = DEFAULT_REPAIR;
+				if (sd.repair === 'true') sd.repair = 1;
+				else if (sd.repair === 'auto') sd.repair = 2;
+				else sd.repair = 0;
 				if (typeof sd.corrupted != 'boolean') sd.corrupted = DEFAULT_CORRUPTED;
 				if (typeof sd.gcache != 'boolean') sd.gcache = DEFAULT_GCACHE;
 				if (typeof sd.keepalive != 'number') sd.keepalive = DEFAULT_KEEPALIVE_SEC;

@@ -95,9 +95,11 @@ typedef enum
 
 typedef struct
 {
+	//allocated only if service_id is not 0
 	char *url;
+	u32 service_id;
 	RouteServerRangeSupport accept_ranges;
-	Bool is_up, support_h2;
+	Bool support_h2;
 	u32 latency;
 } RouteRepairServer;
 
@@ -214,6 +216,7 @@ struct _route_repair_seg_info
 	GF_List *sample_deps;
 };
 
+RouteRepairServer *routein_push_repair_server(ROUTEInCtx *ctx, const char *url, u32 service_id);
 
 
 void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filename, Bool is_delete);

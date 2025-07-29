@@ -511,6 +511,12 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	}
 #endif
 
+	//we missed the whole file !
+	if (!finfo->nb_frags) {
+		queue_repair_range(ctx, rsi, 0, 0);
+		return;
+	}
+
 	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
 	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
 	for (i=0; i<=finfo->nb_frags; i++) {
@@ -1108,8 +1114,9 @@ void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 servi
 	}
 }
 
+//#define CHECK_ISOBMF
 
-#if 0
+#if CHECK_ISOBMF
 static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 pos = 0;
@@ -1130,8 +1137,15 @@ static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 			fprintf(stderr, "Unknown top-level %s\n", gf_4cc_to_str(btype));
 		}
 		pos += bsize;
+		if (!bsize) {
+			pos = finfo->total_size;
+			break;
+		}
 	}
-	if (pos!=finfo->total_size) {
+	if (!finfo->nb_frags) {
+		fprintf(stderr, "File lost\n");
+	}
+	else if (pos!=finfo->total_size) {
 		fprintf(stderr, "Invalid top-level box size\n");
 	} else {
 		fprintf(stderr, "Recovered file OK: %s size %u !\n", finfo->filename, finfo->total_size);
@@ -1176,6 +1190,9 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 		break;
 	case ROUTE_FTYPE_ISOBMF:
 		routein_repair_segment_isobmf_local(ctx, evt_param, finfo, start_only);
+#if CHECK_ISOBMF
+		routein_check_isobmf(ctx, finfo);
+#endif
 		break;
 	default:
 		break;
@@ -1477,15 +1494,29 @@ restart:
 
 	if (!rsi->removed) {
 		//do a local file repair if we still have errors ?
-		if (rsi->nb_errors && (rsi->evt==GF_ROUTE_EVT_DYN_SEG)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s still has error, doing a final local repair\n", rsi->finfo.filename));
-			u32 repair = ctx->repair;
-			ctx->repair = ROUTEIN_REPAIR_STRICT;
-			routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
-			ctx->repair = repair;
-			rsi->nb_errors = 0;
+		if (rsi->nb_errors) {
+			switch (rsi->evt) {
+			case GF_ROUTE_EVT_DYN_SEG:
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s still has error, doing a final local repair\n", rsi->finfo.filename));
+				u32 repair = ctx->repair;
+				ctx->repair = ROUTEIN_REPAIR_STRICT;
+				routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
+				ctx->repair = repair;
+				rsi->nb_errors = 0;
+				break;
+			case GF_ROUTE_EVT_FILE:
+			case GF_ROUTE_EVT_MPD:
+			case GF_ROUTE_EVT_HLS_VARIANT:
+				rsi->finfo.partial = GF_LCTO_PARTIAL_ANY;
+				break;
+			default:
+				break;
+			}
+#if CHECK_ISOBMF
+		} else {
+			routein_check_isobmf(ctx, &rsi->finfo);
+#endif
 		}
-
 		//flush
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repair done for object %s (TSI=%u, TOI=%u)%s\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi, rsi->nb_errors ? " - errors remain" : ""));
 
@@ -1534,13 +1565,13 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 				patch_end = rsess->range->br_end;
 
 			else if (patch_end < rsess->range->br_end) {
-				fprintf(stderr, "WTF %d\n", res_code);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Incomplete byte range in file %s: end offset %u but last byte received %u received byte range end %u\n", rsi->finfo.filename, rsess->range->br_end, patch_end));
 			}
 			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, (u32) patch_end);
 		}
 
 		gf_list_add(ctx->seg_range_reservoir, rsess->range);
-		if (!res_code && (rsess->server->accept_ranges == RANGE_SUPPORT_PROBE))
+		if (!res_code && rsess->server && (rsess->server->accept_ranges == RANGE_SUPPORT_PROBE))
 			rsess->server->accept_ranges = RANGE_SUPPORT_YES;
 	}
 
@@ -1662,13 +1693,43 @@ restart:
 		gf_assert(rsi->finfo.filename);
 		gf_assert(rsi->finfo.filename[0]);
 
+		const char *repair_base_uri, *repair_server_url;
+		gf_route_dmx_get_repair_info(ctx->route_dmx, rsi->service_id, &repair_base_uri, &repair_server_url);
+		u32 repair_base_uri_len = repair_base_uri ? (u32) strlen(repair_base_uri) : 0;
+		Bool has_repair_server = GF_FALSE;
+
 		for (i=0; i< gf_list_count(ctx->repair_servers); i++) {
 			repair_server = gf_list_get(ctx->repair_servers, i);
-			if (repair_server->url && repair_server->accept_ranges && repair_server->is_up) {
-				url = gf_url_concatenate(repair_server->url, rsi->finfo.filename);
-				break;
+			if (repair_server->url && repair_server_url && !strcmp(repair_server->url, repair_server_url))
+				has_repair_server = GF_TRUE;
+			if (!repair_server->url || !repair_server->accept_ranges) {
+				repair_server = NULL;
+				continue;
 			}
+			break;
 		}
+		if (!repair_server && !has_repair_server && repair_server_url) {
+			repair_server = routein_push_repair_server(ctx, repair_server_url, rsi->service_id);
+			if (repair_server && !repair_server->accept_ranges) repair_server = NULL;
+		}
+
+		if (repair_server) {
+			const char *filename_start = NULL;
+			if (repair_base_uri && !strncmp(rsi->finfo.filename, repair_base_uri, repair_base_uri_len)) {
+				filename_start = rsi->finfo.filename + repair_base_uri_len+1;
+			}
+			if (!filename_start) {
+				char *sep = strstr(rsi->finfo.filename, "://");
+				if (sep) {
+					filename_start = rsi->finfo.filename;
+				} else {
+					sep = strchr(rsi->finfo.filename, '/');
+					filename_start = sep ? sep : rsi->finfo.filename;
+				}
+			}
+			url = gf_url_concatenate(repair_server->url, filename_start);
+		}
+
 
 		if (!url) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for %s - Repair abort \n", rsi->finfo.filename));
@@ -1795,7 +1856,7 @@ refetch:
 		} else {
 			//if we have an error and the content start was the first byte after the known file size, consider we got the final range
 			u64 res_size = gf_dm_sess_get_resource_size(rsess->dld);
-			if (res_size == rsess->range->br_start) {
+			if (res_size && (res_size == rsess->range->br_start)) {
 				rsess->range->br_end = rsess->range->br_start;
 				e = GF_EOS;
 			}

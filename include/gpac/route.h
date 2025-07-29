@@ -448,6 +448,13 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
  */
 void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
 
+/*! Gets repair info for MABR
+\param routedmx the ROUTE demultiplexer
+\param service_id the service identifier
+\param base_uri set to base URI used in MABR filenames if present or to NULL otherwise - may be NULL
+\param repair_server set to repair server address if present or to NULL otherwise - may be NULL
+ */
+void gf_route_dmx_get_repair_info(GF_ROUTEDmx *routedmx, u32 service_id, const char **base_uri, const char **repair_server);;
 
 /*! @} */
 #ifdef __cplusplus
