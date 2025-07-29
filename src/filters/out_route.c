@@ -3136,6 +3136,11 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				}
 				if (!skip_source_repair && !self_found && serv->manifest_server && !strstr(serv->manifest_server, "mabr://")) {
 					gf_dynstrcat(&payload_text, serv->manifest_server, "<BaseURL>");
+					if (serv->manifest_server_port) {
+						char szPort[100];
+						sprintf(szPort, ":%u", serv->manifest_server_port);
+						gf_dynstrcat(&payload_text, szPort, NULL);
+					}
 					gf_dynstrcat(&payload_text, serv->manifest_url, "/");
 					gf_dynstrcat(&payload_text, "</BaseURL>\n", NULL);
 				}
