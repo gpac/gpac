@@ -6522,18 +6522,20 @@ GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *the_file, u32 trackNumber, u32 s
 
 		e = GF_OK;
 		if (saio->sai_data) {
-			if (offset + *sai_size <= saio->sai_data->dataSize) {
+			if (*sai_data && offset + *sai_size <= saio->sai_data->dataSize) {
 				memcpy(*sai_data, saio->sai_data->data + offset, *sai_size);
 			} else {
 				e = GF_IO_ERR;
 			}
 		} else {
-			u64 cur_position = gf_bs_get_position(the_file->movieFileMap->bs);
-			gf_bs_seek(the_file->movieFileMap->bs, offset);
+			if (*sai_data) {
+				u64 cur_position = gf_bs_get_position(the_file->movieFileMap->bs);
+				gf_bs_seek(the_file->movieFileMap->bs, offset);
 
-			u32 nb_read = gf_bs_read_data(the_file->movieFileMap->bs, *sai_data, *sai_size);
-			if (nb_read != *sai_size) e = GF_IO_ERR;
-			gf_bs_seek(the_file->movieFileMap->bs, cur_position);
+				u32 nb_read = gf_bs_read_data(the_file->movieFileMap->bs, *sai_data, *sai_size);
+				if (nb_read != *sai_size) e = GF_IO_ERR;
+				gf_bs_seek(the_file->movieFileMap->bs, cur_position);
+			}
 		}
 
 		if (e) {
