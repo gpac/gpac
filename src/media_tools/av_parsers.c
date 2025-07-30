@@ -2411,6 +2411,10 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 GF_EXPORT
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
+	u64 pos = gf_bs_get_position(bs);
+	if (gf_bs_available(bs) < 8)
+		return GF_BUFFER_TOO_SMALL;
+
 	Bool forbidden = gf_bs_read_int(bs, 1);
 	if (forbidden) {
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -2423,6 +2427,10 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (*obu_extension_flag) {
+		if (gf_bs_available(bs) < 8) {
+			gf_bs_seek(bs, pos);
+			return GF_BUFFER_TOO_SMALL;
+		}
 		*temporal_id = gf_bs_read_int(bs, 3);
 		*spatial_id = gf_bs_read_int(bs, 2);
 		/*extension_header_reserved_3bits = */gf_bs_read_int(bs, 3);
@@ -2707,7 +2715,7 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		if (!gf_bs_available(bs))
 			return state->unframed ? GF_BUFFER_TOO_SMALL : GF_OK;
 
-		u64 pos = gf_bs_get_position(bs), obu_size = 0;
+		u64 pos = gf_bs_get_position(bs), obu_size = gf_bs_available(bs);
 
 		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 		if (e)
