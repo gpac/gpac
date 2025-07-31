@@ -1486,8 +1486,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				has_sai_child = GF_TRUE;
 			}
 			if (!stricmp(childnode->name, "BS") ||
-			    !stricmp(childnode->name, "SCTE35") || 
-			    !stricmp(childnode->name, "EventMessageEmptyBox") || 
+			    !stricmp(childnode->name, "SCTE35") ||
+			    !stricmp(childnode->name, "EventMessageEmptyBox") ||
 				!stricmp(childnode->name, "EventMessageInstanceBox")) {
 				has_subbs = GF_TRUE;
 			}
@@ -1597,7 +1597,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (f && close) gf_fclose(f);
 		}
 		if (e) return e;
-		ctx->samp_buffer[ctx->samp_buffer_size]=0;
+		if (ctx->samp_buffer)
+			ctx->samp_buffer[ctx->samp_buffer_size]=0;
 
 		//child BS present, parse them
 		if (has_subbs) {

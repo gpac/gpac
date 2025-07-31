@@ -1733,8 +1733,9 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
-config_package ngtcp2 "libngtcp2" "" "-lngtcp2" "" '#include <stdio.h>
+config_package ngtcp2 "libngtcp2" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
 int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
