@@ -5546,6 +5546,8 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->m3u8_use_repid = GF_TRUE;
 
 	tmp = gf_file_temp(NULL);
+	if (!tmp) return GF_IO_ERR;
+
 	if (do_m3u8) {
 		GF_M3U8WriteMode mode = GF_M3U8_WRITE_ALL;
 		if (ctx->from_index==IDXMODE_MANIFEST) mode = GF_M3U8_WRITE_MASTER;
