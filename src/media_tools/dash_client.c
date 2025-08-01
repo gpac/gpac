@@ -2580,10 +2580,12 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			fetch_only = 1;
 		}
 	} else {
+#if 0
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
-		if (local_url) {
+		if (local_url && !dash->manifest_pending) {
 			gf_file_delete(local_url);
 		}
+#endif
 		//use the redirected url stored in base URL - DO NOT USE the redirected URL of the session since
 		//the session may have been reused for period XLINK dowload.
 		purl = gf_strdup( dash->base_url );

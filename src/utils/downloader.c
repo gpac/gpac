@@ -76,7 +76,8 @@ GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
 #ifdef GPAC_HAS_SSL
 	if (session->ssl) {
 		e = gf_ssl_write(session, buffer, size, &written);
-		if (e==GF_IP_NETWORK_FAILURE) e = GF_IP_CONNECTION_CLOSED;
+		if (e==GF_IP_NETWORK_FAILURE)
+			e = GF_IP_CONNECTION_CLOSED;
 	} else
 #endif
 	{
@@ -3980,7 +3981,7 @@ process_reply:
 	}
 	//if no start range, a server may reply with 200 if open end range or if end range is file size
 	//move this to 200 to avoid triggering a byte range not supported detection
-	else if (sess->rsp_code==200 && !sess->range_start && (!sess->range_end || (sess->range_end+1==ContentLength))) {
+	else if (sess->needs_range && (sess->rsp_code==200) && !sess->range_start && (!sess->range_end || (sess->range_end+1==ContentLength))) {
 		sess->rsp_code = 206;
 	}
 
@@ -4206,7 +4207,7 @@ process_reply:
 
 		gf_dm_sess_user_io(sess, &par);
 		sess->status = GF_NETIO_DATA_EXCHANGE;
-		e = GF_OK;
+		e = GF_EOS;
 		break;
 	}
 	case 401:
@@ -4435,7 +4436,7 @@ exit:
 		gf_cache_remove_entry_from_session(sess);
 		sess->cache_entry = NULL;
 		gf_dm_disconnect(sess, HTTP_NO_CLOSE);
-		if (connection_closed)
+		if ((e<0) && connection_closed)
 			sess->status = GF_NETIO_STATE_ERROR;
 		else
 			sess->status = GF_NETIO_DATA_TRANSFERED;
