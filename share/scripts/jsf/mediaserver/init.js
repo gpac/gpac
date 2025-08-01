@@ -673,7 +673,7 @@ httpout.on_request = (req) =>
 		if (src_ab.byteLength <= this.ab_offset) {
 			if (this.cache_file.done) {
 				this.on_done();
-				this.cache_file.release();
+				this.cache_file.release(this);
 				this.cache_file = null;
 				if (this.activate_rep_timeout) this.activate_rep_timeout.update();
 				return 0;
@@ -706,7 +706,7 @@ httpout.on_request = (req) =>
 		this.jsmod = null;
 
 		this.ab_queue = null;
-		if (this.cache_file) this.cache_file.release();
+		if (this.cache_file) this.cache_file.release(this);
 		if (this.activate_rep_timeout) this.activate_rep_timeout.update();
 		else if (req.service && req.service.keepalive && !req.service.mabr) {
 			let timeout = (code<GF_OK) ? 100 : 1000*req.service.keepalive;
@@ -764,6 +764,14 @@ httpout.on_request = (req) =>
 		//if source can still be cached, a cache file will be created and assigned to all pending requests for the same url
 		if (this.cache_file) return;
 
+		//MABR without origin server
+		if (this.service && !this.service.url && !this.service.mabr_repair_url) {
+			do_log(GF_LOG_DEBUG, `No URL for base repair, cannot fetch ${this.target_url}`);
+			this.reply = 404;
+			this.send();
+			return;
+		}
+
 		this.ab_queue = [];
 		this.manifest_ab = null;
 		this.read = this._read_from_queue;
@@ -780,11 +788,9 @@ httpout.on_request = (req) =>
 			this.cache_file.nb_users ++;
 			this.read = this._read_from_buffer;
 		}
-		//MABR without origin server
+		//MABR without origin server but repair URL signaled from mabr, update target url
 		if (this.service && !this.service.url) {
-			this.reply = 404;
-			this.send();
-			return;
+			this.target_url = sys.url_cat(this.service.mabr_repair_url, this.target_url);
 		}
 
 		this.xhr = null;
@@ -945,7 +951,6 @@ httpout.on_request = (req) =>
 		else if (hlwr == "range") {
 			let hdr_range = h.value.split('=');
 			let range = hdr_range[1];
-			print('range is ' + h.value + ' val ' + range);
 			if (range.indexOf(',')>=0) {
 				req.no_cache = true;
 			} else {
@@ -1029,6 +1034,7 @@ httpout.on_request = (req) =>
 
 				if (!resolved) {
 					if (!req.reply) {
+						do_log(GF_LOG_DEBUG, `Invalid JS handler for ${req.url}`);
 						req.reply = 404;
 						req.send();
 					}
@@ -1068,6 +1074,7 @@ httpout.on_request = (req) =>
 				let e = service_def.sources.find( a => (a.name == my_url) );
 				if (!e) e = service_def.sources.find( a => my_url.startsWith(a.name) );
 				if (!e) {
+					do_log(GF_LOG_DEBUG, `Invalid service definition for ${req.url}`);
 					req.reply = 404;
 					req.send();
 					return;
@@ -1085,6 +1092,7 @@ httpout.on_request = (req) =>
 						req.send();
 						return;
 					} else {
+						do_log(GF_LOG_DEBUG, `Invalid local path for ${req.url}`);
 						req.reply = 404;
 						req.send();
 						return;
@@ -1132,6 +1140,7 @@ httpout.on_request = (req) =>
 		req.target_url = (use_tls ? 'https://' : 'http://') + host + req.url;
 	}
 	if (! req.target_url) {
+		do_log(GF_LOG_DEBUG, `No service found for ${req.url}`);
 		req.reply = 404;
 		req.send('No such service');
 		return;
@@ -1198,18 +1207,18 @@ httpout.on_request = (req) =>
 	//look in mem cache
 	if (req.service && !req.no_cache) {
 		let f = req.service.get_file(req.from_cache ? req.target_url : req.url, req.br_start, req.br_end);
-		//only cache manifest if not too old
-		if (f && !f.sticky && req.manifest_type) {
-			if (f.manifest_min_update && (f.received + f.manifest_min_update < sys.clock_ms())) {
+		//only cache manifest if not too old - we use more than the min update due to transfer times in mabr
+		if (f && !f.sticky && (f.cache_type == CACHE_TYPE_MABR) && req.manifest_type && (req.service.url || req.service.mabr_repair_url)) {
+			if (f.manifest_min_update && (f.received + 3*f.manifest_min_update/2 < sys.clock_ms())) {
 				//trash
 				req.service.mem_cache.splice(req.service.mem_cache.indexOf(f) , 1);
-				do_log(GF_LOG_WARNING, `Cached manifest ${req.url} too old by ${sys.clock_ms() - f.received - f.manifest_min_update} ms - removing and refreshing`);
+				do_log(GF_LOG_WARNING, `Cached manifest ${req.url} too old by ${sys.clock_ms() - f.received - f.manifest_min_update} ms - removing and refreshing (${f.received} - ${f.url})`);
 				f = null;
 			}
 		}
 
 		if (f) {
-			do_log(GF_LOG_INFO, `File ${req.url} present in cache ${ f.done ? '(completed)' : '(transfer in progress)'}`);
+			do_log(GF_LOG_INFO, `File ${req.url} present in cache ${ f.done ? '(completed)' : '(transfer in progress)'} (${f.received} - ${f.url})`);
 			req.service.mark_active_rep(active_rep, req);
 			return req.set_cache_file(f);
 		}
@@ -1262,13 +1271,11 @@ httpout.on_request = (req) =>
 			} else {
 				//set a timeout for the request in case MABR fails
 				req.waiting_mabr_start = sys.clock_ms();
-				if (req.service.repair) {
-					req.waiting_mabr = req.waiting_mabr_start + active_rep.seg_dur/2;
-				} else {
-					//we gather full files when not in repair, we need a longer timeout
-					req.waiting_mabr = req.waiting_mabr_start + active_rep.seg_dur;
-				}
-				req.waiting_mabr += MABR_TIMEOUT_SAFETY;
+				//we use 3 x segment duration since we don't know if the source was low-latency or not so in worst case we have:
+				//- one seg_dur delay for multicaster to send the file
+				//- one seg_dur delay for the file to be received
+				//- repair delay
+				req.waiting_mabr = req.waiting_mabr_start + 3*active_rep.seg_dur + MABR_TIMEOUT_SAFETY;
 				do_log(GF_LOG_INFO, `Waiting for file ${req.url} from MABR (ID ${req.service.mabr_service_id}) - will wait max ${req.waiting_mabr-req.waiting_mabr_start} ms for seg dur ${active_rep.seg_dur}`);
 
 				req.service.pending_reqs.push(req);
@@ -1314,6 +1321,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	s.keepalive = DEFAULT_KEEPALIVE_SEC;
 	s.xhr_cache = [];
 	s.pending_deactivate = [];
+	s.mabr_repair_url = null;
 	if (http_url && http_url.toLowerCase().startsWith('https://')) s.force_tls = true;
 	else s.force_tls = false;
 	s.hdlr = null;
@@ -1385,7 +1393,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		if (!pending && from_mabr && !s.url) {
 			let ext = url.split('.').pop().toLowerCase();
 			if ((ext==="mpd") || (ext==="m3u8")) {
-				pending = this.pending_reqs.find (r => r.url.indexOf(ext) );
+				pending = this.pending_reqs.find (r => {
+					if (r.url.indexOf(ext)>=0) return true;
+					return false;
+				});
 			}
 		}
 		if (pending)
@@ -1401,7 +1412,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		file.received = sys.clock_ms();
 		file.data = new ArrayBuffer();
 		file.data_tmp = null;
-		file.data_tmp_done = null;
+		file.data_tmp_done = false;
 		this.mem_cache.push(file);
 		file.done = false;
 		file.aborted = false;
@@ -1419,13 +1430,18 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		if (cache_type) {
 			file.xhr_status = 200;
 		}
-		file.release = function() {
+		file.release = function(req=null) {
 			this.nb_users --;
 			if (!this.nb_users && this.data_tmp) {
 				this.data = this.data_tmp;
 				this.data_tmp = null;
 				this.done = this.data_tmp_done;
 				this.data_tmp_done = false;
+			}
+			//special case for files created for out of date cached manifests, revert cache type to MABR
+			if (req && !this.nb_users && req.service && req.manifest_type && req.service.mani_cache) {
+				this.cache_type = CACHE_TYPE_MABR;
+				this.xhr_status = 200;
 			}
 		};
 
@@ -1437,7 +1453,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			pending.waiting_mabr = 0;
 			pending.set_cache_file(file);
 			let ellapsed = pending.waiting_mabr_start ? (sys.clock_ms() - pending.waiting_mabr_start) : 0;
-			do_log(GF_LOG_DEBUG, `Found pending request for ${file.url}, canceling timeout (${ellapsed} ms since request)`);
+			do_log(GF_LOG_DEBUG, `Found pending request (${url} ${pending.target_url}) for ${file.url}, canceling timeout (${ellapsed} ms since request)`);
 			if (pid) pid.deactivate_timeout=0;
 		}
 		do_log(GF_LOG_DEBUG, `Start ${(cache_type==CACHE_TYPE_MABR) ? 'MABR ' : ''}reception of ${file.url} mime ${file.mime} - ${this.mem_cache.length} files in service cache`);
@@ -1640,6 +1656,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 					pid.do_skip = true;
 				pid.deactivate_timeout = 0;
 			}
+			if (!s.url) {
+				let urls = pid.get_prop('MABRBaseURLs');
+				s.mabr_repair_url = urls ? urls[0] : null;
+			}
 		};
 
 		this.push_to_cache = function (pid, pck) {
@@ -1681,11 +1701,14 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			} else if (corrupted) {
 				do_log(GF_LOG_WARNING, `MABR Repair failed for ${pid.url} (valid container ${corrupted==2}), broken data sent to client`);
 			}
-			if (!file) file = this.create_cache_file(pid.url, pid.mime, 0, 0, CACHE_TYPE_MABR, pid);
+			if (!file) {
+				file = this.create_cache_file(pid.url, pid.mime, 0, 0, CACHE_TYPE_MABR, pid);
+			}
+			//cache file exists, it was created from a pending request or an old request
 			else if (pck.start) {
-				//update to a file being sent (manifest or init seg), we need to create a temp buffer
+				//update to a file being sent, we need to create a temp buffer
 				//which will be reassigned once no more users are on the file
-				if (file.nb_users && file.data.byteLength) {
+				if (file.nb_users) {
 					file.data_tmp = new ArrayBuffer();
 					file.data_tmp_done = false;
 				} else {
@@ -1807,7 +1830,6 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		let mabr_old = this.mabr;
 		this.mabr = serv_cfg.js_mod.get_mcast_address(serv_cfg.http);
 		if (this.mabr == mabr_old) return;
-		print(`MCAST IP changed from ${mabr_old} to ${this.mabr}`);
 		if (this.mabr_loaded) this.unload_mabr();
 		if (!this.mabr) return;
 		this.load_mabr();
@@ -1820,7 +1842,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			if (!force_deactivate) {
 				if (!req.waiting_mabr || (req.waiting_mabr>now)) continue;
 			}
-			if (! this.url) {
+			if (! this.url && !this.mabr_repair_url) {
 				do_log(GF_LOG_DEBUG, `MABR timeout for ${req.url} after ${now - req.waiting_mabr_start} ms`);
 				this.pending_reqs.splice(i, 1);
 				i--;

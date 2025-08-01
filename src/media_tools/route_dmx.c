@@ -1898,7 +1898,10 @@ static void gf_route_service_purge_old_objects(GF_ROUTEDmx *routedmx, GF_ROUTESe
 				if (elapsed < routedmx->reorder_timeout_us)
 					continue;
 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
+				//only warn for non-config and non manifest files
+				if (!o->flute_type || (o->flute_type>=GF_FLUTE_OBJ)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
+				}
 			}
 		} else if (tsi && o->rlct && !o->rlct->tsi_init) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u incomplete (tune-in) - forcing dispatch\n", s->log_name, o->tsi, o->toi));

@@ -1114,9 +1114,9 @@ void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 servi
 	}
 }
 
-//#define CHECK_ISOBMF
+#define CHECK_ISOBMF
 
-#if CHECK_ISOBMF
+#ifdef CHECK_ISOBMF
 static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 pos = 0;
@@ -1190,7 +1190,7 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 		break;
 	case ROUTE_FTYPE_ISOBMF:
 		routein_repair_segment_isobmf_local(ctx, evt_param, finfo, start_only);
-#if CHECK_ISOBMF
+#ifdef CHECK_ISOBMF
 		routein_check_isobmf(ctx, finfo);
 #endif
 		break;
@@ -1512,7 +1512,7 @@ restart:
 			default:
 				break;
 			}
-#if CHECK_ISOBMF
+#ifdef CHECK_ISOBMF
 		} else {
 			routein_check_isobmf(ctx, &rsi->finfo);
 #endif

@@ -207,13 +207,22 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		if (!finfo) return;
 
 		gf_assert(finfo->filename);
-		const char *repair_base_uri, *filename=finfo->filename;
-		gf_route_dmx_get_repair_info(ctx->route_dmx, service_id, &repair_base_uri, NULL);
+		const char *repair_base_uri, *repair_server, *filename=finfo->filename;
+		gf_route_dmx_get_repair_info(ctx->route_dmx, service_id, &repair_base_uri, &repair_server);
 		if (repair_base_uri) {
 			u32 repair_base_uri_len = (u32) strlen(repair_base_uri);
 			if (!strncmp(finfo->filename, repair_base_uri, repair_base_uri_len)) {
 				filename += repair_base_uri_len+1;
 			}
+		}
+		//special case for init segments not sent with the service but sent on the config multicast
+		//we don't have a service associated hence no base URI, assume the name is URI/path/to/file and strip URI part
+		else if (!service_id) {
+			char *sep = strchr(finfo->filename, ':');
+			if (sep && !strncmp(sep, "://", 3)) sep += 3;
+			else if (sep) sep++;
+			if (sep) sep = strchr(sep, '/');
+			if (sep) filename = sep+1;
 		}
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(filename));
@@ -226,6 +235,15 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 			if (finfo->dash_period_id) gf_filter_pid_set_property(pid, GF_PROP_PID_PERIOD_ID, &PROP_STRING(finfo->dash_period_id));
 			if (finfo->dash_as_id>=0) gf_filter_pid_set_property(pid, GF_PROP_PID_AS_ID, &PROP_UINT(finfo->dash_as_id));
 			if (finfo->dash_rep_id) gf_filter_pid_set_property(pid, GF_PROP_PID_REP_ID, &PROP_STRING(finfo->dash_rep_id));
+		}
+		if (repair_server) {
+			GF_PropertyValue rs;
+			rs.type = GF_PROP_STRING_LIST_COPY;
+			rs.value.string_list.nb_items = 1;
+			rs.value.string_list.vals = (char**)&repair_server;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_MABR_URLS, &rs);
+		} else {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_MABR_URLS, NULL);
 		}
 	}
 	//if we split TSIs we need to signal corrupted packets
