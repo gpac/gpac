@@ -583,8 +583,8 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 		*dict = (char*)gf_malloc(sizeof(char) * ctx->samp_buffer_size);
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
 	}
-	if (ctx->samp_buffer_alloc < stream.total_out + 1) {
-		ctx->samp_buffer_alloc = (u32) (stream.total_out*2) + 1;
+	if (!ctx->samp_buffer || ctx->samp_buffer_alloc < stream.total_out + MAX(1, offset)) {
+		ctx->samp_buffer_alloc = (u32) MAX( (stream.total_out*2) + 1, offset + stream.total_out ) ;
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 	}
 

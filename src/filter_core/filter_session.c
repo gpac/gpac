@@ -1526,7 +1526,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 {
 	if (!fsess || !argv || (argc<1)) return GF_BAD_PARAM;
 
-	GF_Err e;
+	GF_Err e = GF_OK;
 	int i;
 	Bool has_xopt = GF_FALSE;
 	GF_List *loaded_filters = NULL;

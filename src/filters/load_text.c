@@ -739,9 +739,13 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	}
 
 	if (!ctx->pid_framed && (ctx->stxtmod <=STXT_MODE_SBTT)) {
-		dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
-		if (!dst_pck) return;
-		memcpy(pck_data, txt_samp->text, txt_samp->len);
+		if (txt_samp->len && txt_samp->text) {
+			dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
+			if (!dst_pck) return;
+			memcpy(pck_data, txt_samp->text, txt_samp->len);
+		}
+		else
+			return;
 
 	} else {
 		u32 size = gf_isom_text_sample_size(txt_samp);
@@ -1546,7 +1550,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 	else {
 		u32 nb_val=0;
 		Bool has_dot=GF_FALSE;
-		u32 vals[6];
+		u32 vals[6] = {0};
 		char *cur = value;
 		while (cur) {
 			char sep;
