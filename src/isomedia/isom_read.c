@@ -1381,6 +1381,9 @@ u32 gf_isom_get_sample_description_count(GF_ISOFile *the_file, u32 trackNumber)
 GF_EXPORT
 GF_ESD *gf_isom_get_esd(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex)
 {
+	if (!gf_isom_has_movie(movie))
+		return NULL;
+
 	GF_ESD *esd;
 	GF_Err e;
 	e = GetESD(movie->moov, gf_isom_get_track_id(movie, trackNumber), StreamDescriptionIndex, &esd);

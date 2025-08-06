@@ -1736,6 +1736,8 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		u64 doffset;
 
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
+		if (!samp)
+			continue;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		traf_start = gf_isom_sample_is_fragment_start(file, track, i+1, NULL);
