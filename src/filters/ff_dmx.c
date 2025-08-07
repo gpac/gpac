@@ -168,7 +168,6 @@ void ffdmx_shared_pck_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 		av_free_packet(&ctx->pkt);
 #else
 		av_packet_unref(ctx->pkt);
-		ctx->pkt = NULL;
 #endif
 		ctx->raw_pck_out = GF_FALSE;
 		gf_filter_post_process_task(filter);
