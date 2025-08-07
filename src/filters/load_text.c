@@ -739,14 +739,11 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	}
 
 	if (!ctx->pid_framed && (ctx->stxtmod <=STXT_MODE_SBTT)) {
-		if (txt_samp->len && txt_samp->text) {
-			dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
-			if (!dst_pck) return;
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
+		if (!dst_pck) return;
+		if (txt_samp->text) {
 			memcpy(pck_data, txt_samp->text, txt_samp->len);
 		}
-		else
-			return;
-
 	} else {
 		u32 size = gf_isom_text_sample_size(txt_samp);
 
