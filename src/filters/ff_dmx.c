@@ -151,6 +151,12 @@ static void ffdmx_finalize(GF_Filter *filter)
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
 	if (ctx->strbuf) gf_free(ctx->strbuf);
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
+	if (ctx->pkt) {
+		av_packet_free(&ctx->pkt);
+		ctx->pkt = NULL;
+	}
+#endif
 	return;
 }
 
@@ -162,6 +168,7 @@ void ffdmx_shared_pck_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 		av_free_packet(&ctx->pkt);
 #else
 		av_packet_unref(ctx->pkt);
+		ctx->pkt = NULL;
 #endif
 		ctx->raw_pck_out = GF_FALSE;
 		gf_filter_post_process_task(filter);
