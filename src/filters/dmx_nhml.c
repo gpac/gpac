@@ -583,8 +583,8 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 		*dict = (char*)gf_malloc(sizeof(char) * ctx->samp_buffer_size);
 		memcpy(*dict, ctx->samp_buffer, ctx->samp_buffer_size);
 	}
-	if (ctx->samp_buffer_alloc < stream.total_out + 1) {
-		ctx->samp_buffer_alloc = (u32) (stream.total_out*2) + 1;
+	if (!ctx->samp_buffer || ctx->samp_buffer_alloc < stream.total_out + MAX(1, offset)) {
+		ctx->samp_buffer_alloc = (u32) MAX( (stream.total_out*2) + 1, offset + stream.total_out ) ;
 		ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
 	}
 
@@ -1486,8 +1486,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				has_sai_child = GF_TRUE;
 			}
 			if (!stricmp(childnode->name, "BS") ||
-			    !stricmp(childnode->name, "SCTE35") || 
-			    !stricmp(childnode->name, "EventMessageEmptyBox") || 
+			    !stricmp(childnode->name, "SCTE35") ||
+			    !stricmp(childnode->name, "EventMessageEmptyBox") ||
 				!stricmp(childnode->name, "EventMessageInstanceBox")) {
 				has_subbs = GF_TRUE;
 			}
@@ -1597,7 +1597,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (f && close) gf_fclose(f);
 		}
 		if (e) return e;
-		ctx->samp_buffer[ctx->samp_buffer_size]=0;
+		if (ctx->samp_buffer)
+			ctx->samp_buffer[ctx->samp_buffer_size]=0;
 
 		//child BS present, parse them
 		if (has_subbs) {

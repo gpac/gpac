@@ -956,7 +956,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	const GF_PropertyValue *p, *dsi=NULL;
 	u32 dc_crc, dc_enh_crc;
 	GF_Err e;
-	GF_DashStream *ds;
+	GF_DashStream *ds=NULL;
 	Bool old_period_switch;
 	u32 prev_stream_type;
 	Bool new_period_request = GF_FALSE;
@@ -970,6 +970,16 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (ds->dyn_bitrate) dasher_update_bitrate(ctx, ds);
 			gf_list_del_item(ctx->pids, ds);
 			gf_list_del_item(ctx->current_period->streams, ds);
+
+			// ds can be pointed to in other dash streams in the muxed_base member
+			u32 stream_nb = gf_list_count(ctx->current_period->streams);
+			for (u32 i=0; i<stream_nb; i++) {
+				GF_DashStream *ds2 = gf_list_get(ctx->current_period->streams, i);
+				if (ds && ds2 && ds2->muxed_base == ds) {
+					ds2->muxed_base = NULL;
+				}
+			}
+
 			if (ctx->next_period)
 				gf_list_del_item(ctx->next_period->streams, ds);
 			dasher_reset_stream(filter, ds, GF_TRUE);
@@ -1521,7 +1531,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				ds->hls_vp_name = NULL;
 			}
 		}
-		
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
 		if(p){
 			ds->color_primaries = p->value.uint;
@@ -1538,8 +1548,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if(p){
 			ds->color_matrix = p->value.uint;
 		}
-		
-		
+
+
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (dsi) {
 			if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
@@ -3064,21 +3074,21 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ColourPrimaries", value);
 			gf_list_add(set->essential_properties, desc);
 		}
-		if (ds->color_transfer_characteristics > GF_COLOR_TRC_UNSPECIFIED){ 
+		if (ds->color_transfer_characteristics > GF_COLOR_TRC_UNSPECIFIED){
 			sprintf(value, "%d", ds->color_transfer_characteristics);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->essential_properties, desc);			
+				gf_list_add(set->essential_properties, desc);
 		}
 		if (ds->color_matrix > GF_COLOR_MX_UNSPECIFIED){
 			sprintf(value, "%d", ds->color_matrix);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:MatrixCoefficients", value);
 			gf_list_add(set->essential_properties, desc);
-			
+
 		}
 		if (ds->color_transfer_characteristics_alt > GF_COLOR_TRC_UNSPECIFIED){
 				sprintf(value, "%d", ds->color_transfer_characteristics_alt);
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
-				gf_list_add(set->supplemental_properties, desc);			
+				gf_list_add(set->supplemental_properties, desc);
 		}
 
 		//add custom inband event in manifest
@@ -9702,7 +9712,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//period switch in progress, do not dash more than requested
 			else if (ctx->force_period_switch && ctx->period_switch_cts.den) {
-				//period_switch_cts is in original cts (pcont_cts) 
+				//period_switch_cts is in original cts (pcont_cts)
 				if (gf_timestamp_greater_or_equal(pcont_cts, ds->timescale, ctx->period_switch_cts.num, ctx->period_switch_cts.den)) {
 					dasher_stream_period_changed(filter, ctx, ds, GF_TRUE);
 					i--;

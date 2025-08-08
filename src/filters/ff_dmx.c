@@ -157,6 +157,12 @@ static void ffdmx_finalize(GF_Filter *filter)
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
 	if (ctx->strbuf) gf_free(ctx->strbuf);
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
+	if (ctx->pkt) {
+		av_packet_free(&ctx->pkt);
+		ctx->pkt = NULL;
+	}
+#endif
 	return;
 }
 
@@ -1378,9 +1384,15 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		}
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MUX_INDEX, &PROP_UINT(i+1));
 
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 		for (j=0; j<(u32) stream->nb_side_data; j++) {
 			ffdmx_parse_side_data(&stream->side_data[j], pid);
 		}
+#else
+		for (j=0; j<(u32) stream->codecpar->nb_coded_side_data; j++) {
+			ffdmx_parse_side_data(&stream->codecpar->coded_side_data[j], pid);
+		}
+#endif
 
 		if (ctx->demuxer->nb_chapters) {
 			GF_PropertyValue p;

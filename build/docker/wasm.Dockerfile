@@ -1,7 +1,7 @@
 # Common Dockerfile for building GPAC WASM
 FROM ubuntu:latest AS base
 
-ARG EMSDK_VERSION=3.1.58
+ARG EMSDK_VERSION=4.0.12
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
@@ -46,6 +46,7 @@ WORKDIR /gpac_public
 # Copy GPAC WASM dependencies
 COPY --from=deps /deps_wasm/wasm_thread /deps_wasm/wasm_thread
 ENV PKG_CONFIG_PATH=/deps_wasm/wasm_thread/lib/pkgconfig
+
 
 # Configure GPAC
 RUN make distclean; ./configure --emscripten --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion"

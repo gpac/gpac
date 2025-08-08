@@ -1,0 +1,168 @@
+name: Build For WebAssembly
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Type a release tag or 'nightly' for a nightly build"
+        required: true
+        type: string
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        variant:
+          - config: "full"
+            threaded: true
+          - config: "full"
+            threaded: false
+          - config: "lite"
+            threaded: false
+
+    name: Build for WebAssembly (${{ matrix.variant.config }}, ${{ matrix.variant.threaded && 'threaded' || 'single-threaded' }})
+    runs-on: "ubuntu-latest"
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      EMSDK_VERSION: 4.0.12
+
+    steps:
+      - name: Print environment
+        run: |
+          echo "Building ${{ inputs.tag }}"
+          echo "Running for WebAssembly with variant: ${{ matrix.variant.config }}, threaded: ${{ matrix.variant.threaded }}"
+          echo "CCACHE_DIR: $CCACHE_DIR"
+
+      - name: Update package list
+        run: sudo apt update
+
+      - name: Install build tools
+        run: |
+          sudo apt install -y --no-install-recommends \
+          build-essential pkg-config g++ git cmake yasm python3 autotools-dev automake autoconf libtool
+
+      - name: Install GPAC build dependencies
+        run: |
+          sudo apt install -y --no-install-recommends \
+          zlib1g-dev libfreetype6-dev libpng-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev \
+          liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavdevice-dev libnghttp2-dev \
+          libopenjp2-7-dev libcaca-dev libxv-dev x11proto-video-dev libgl1-mesa-dev libglu1-mesa-dev x11proto-gl-dev \
+          libxvidcore-dev libssl-dev libjack-jackd2-dev libasound2-dev libpulse-dev libsdl2-dev dvb-apps mesa-utils \
+          libcurl4-openssl-dev libjpeg62-dev
+
+      - name: Get Emscripten source
+        uses: actions/checkout@v4
+        with:
+          repository: emscripten-core/emsdk
+          fetch-depth: 1
+          path: emsdk
+
+      - name: Set up Emscripten
+        working-directory: emsdk
+        run: |
+          ./emsdk install ${{ env.EMSDK_VERSION }}
+          ./emsdk activate ${{ env.EMSDK_VERSION }}
+
+          # Update environment variables
+          echo "PATH=$PWD:$PWD/upstream/emscripten:$PATH" >> $GITHUB_ENV
+          echo "EMSDK=$PWD" >> $GITHUB_ENV
+
+      - name: Get GPAC source
+        uses: actions/checkout@v4
+        with:
+          repository: gpac/gpac
+          fetch-depth: 0
+          path: gpac_public
+          ref: ${{ inputs.tag == 'nightly' && 'master' || inputs.tag }}
+
+      - name: Get manual dependencies
+        uses: actions/checkout@v4
+        if: ${{ matrix.variant.config != 'lite' }}
+        with:
+          repository: gpac/deps_wasm
+          fetch-depth: 1
+          path: deps_wasm
+          submodules: true
+
+      - name: Get latest commit hash for manual dependencies
+        id: get-commit
+        if: ${{ matrix.variant.config != 'lite' }}
+        working-directory: deps_wasm
+        run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        id: cache-deps
+        if: ${{ matrix.variant.config != 'lite' }}
+        uses: actions/cache@v4
+        with:
+          path: deps_wasm/wasm${{ matrix.variant.threaded && '_thread' || '' }}
+          key: wasm-deps-${{ matrix.variant.threaded && 'threaded' || 'single' }}-${{ steps.get-commit.outputs.hash }}
+
+      - name: Cache Emscripten Build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/emsdk/upstream/emscripten/cache
+          key: emscripten-${{ env.EMSDK_VERSION }}-${{ matrix.variant.config }}-${{ matrix.variant.threaded && 'threaded' || 'single' }}-${{ steps.get-commit.outputs.hash }}
+
+      - name: Build manual dependencies
+        if: ${{ matrix.variant.config != 'lite' && !steps.cache-deps.outputs.cache-hit }}
+        working-directory: deps_wasm
+        run: ./wasm_extra_libs.sh ${{ matrix.variant.threaded && '--enable-threading' || '' }}
+
+      - name: Set PKG_CONFIG_PATH
+        if: ${{ matrix.variant.config != 'lite' }}
+        working-directory: deps_wasm
+        run: |
+          # Update PKG_CONFIG_PATH
+          if [ "${{ matrix.variant.threaded }}" = "true" ]; then
+            echo "PKG_CONFIG_PATH=$PWD/wasm_thread/lib/pkgconfig" >> $GITHUB_ENV
+          else
+            echo "PKG_CONFIG_PATH=$PWD/wasm/lib/pkgconfig" >> $GITHUB_ENV
+          fi
+
+      - name: Build GPAC
+        working-directory: gpac_public
+        run: |
+          if [ "${{ matrix.variant.config }}" = "lite" ]; then
+            ./configure --emscripten --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion" --em-opt=z \
+              --isomedia-only --disable-threads --disable-isom-dump \
+              --enable-reframer --enable-mp4mx --enable-mp4dmx --enable-fout --enable-webcodec
+          else
+            if [ "${{ matrix.variant.threaded }}" = "true" ]; then
+              ./configure --emscripten --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion"
+            else
+              ./configure --emscripten --disable-threads --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion"
+            fi
+          fi
+          make -j$(nproc)
+
+      - name: Prepare output directory
+        working-directory: gpac_public/bin/gcc
+        run: |
+          out="${{ github.workspace }}/output"
+          mkdir -p $out
+          if [ "${{ matrix.variant.config }}" = "full" ]; then
+            if [ "${{ matrix.variant.threaded }}" = "true" ]; then
+              cp gpac.js gpac.wasm $out
+            else
+              mv gpac.js gpac.st.js
+              mv gpac.wasm gpac.st.wasm
+              sed -i 's/gpac\.wasm/gpac.st.wasm/g' gpac.st.js
+              cp gpac.st.js gpac.st.wasm $out
+            fi
+          elif [ "${{ matrix.variant.config }}" = "lite" ]; then
+            mv gpac.js gpac.lite.js
+            mv gpac.wasm gpac.lite.wasm
+            sed -i 's/gpac\.wasm/gpac.lite.wasm/g' gpac.lite.js
+            cp gpac.lite.js gpac.lite.wasm $out
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        env:
+          DIST_TYPE: ${{ inputs.tag == 'nightly' && 'nightly-latest' || format('main-{0}', inputs.tag) }}
+        with:
+          name: wasm-${{ env.DIST_TYPE }}@${{ matrix.variant.config }}-${{ matrix.variant.threaded && 'threaded' || 'single' }}
+          path: output/*
+          retention-days: 1

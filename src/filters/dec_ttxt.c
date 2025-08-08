@@ -1336,7 +1336,11 @@ static GF_Err ttd_render_simple_text(GF_TTXTDec *ctx, const char *pck_data, u32 
 		if (ctx->static_text) ctx->txt_static_alloc = pck_size+1;
 		else return GF_OUT_OF_MEM;
 	}
-	memcpy(ctx->static_text, pck_data, pck_size);
+	if (pck_data)
+		memcpy(ctx->static_text, pck_data, pck_size);
+	else if (pck_size)
+		return GF_IO_ERR;
+
 	ctx->static_text[pck_size] = 0;
 	static_txts.text = ctx->static_text;
 	static_txts.len = pck_size;
