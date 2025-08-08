@@ -52,3 +52,7 @@ sed -e "/CFBundleShortVersionString/{n;s/.*/	<string>$version<\/string>/;}" $sou
 rm $source
 mv ftmp $source
 
+#patch mangpages
+for source in share/doc/man/*.1 ; do
+    sed -i "s/^build: .*$/build: $version/" $source
+done
