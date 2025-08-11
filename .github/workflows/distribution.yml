@@ -46,8 +46,8 @@ jobs:
       - name: Check workflow inputs
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          if [ "${{ github.event.inputs.reset }}" = "false" ] && [ -z "${{ github.event.inputs.tag }}" ]; then
-            echo "Error: 'tag' input must be provided when 'reset' is false."
+          if [ "${{ github.event.inputs.reset }}" = "false" ] && [ -z "${{ github.event.inputs.tag }}" ] && [ "${{ github.event.inputs.refresh-nightly }}" = "false" ]; then
+            echo "Error: 'tag' input must be provided when 'reset' and 'refresh-nightly' are both false."
             exit 1
           fi
 
