@@ -15992,13 +15992,6 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 					break;
 				}
 			}
-			// remove added groups from temp to avoid double frees
-			for (j=0; j < gf_list_count(p->substream_groups); j++) {
-				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
-				if (group) {
-					gf_list_del_item(temp_groups, group);
-				}
-			}
 
 			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10
 			// other elements in GF_AC4PresentationV1 for Sample Description Box
@@ -16034,6 +16027,17 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 				gf_free(idx);
 			}
 			gf_list_del(p->substream_group_indexs);
+		}
+
+		// remove from temp groups that have been added elsewhere to avoid double frees
+		for (i = 0; i < n_presentations; i++) {
+			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
+			for (j=0; j < gf_list_count(p->substream_groups); j++) {
+				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
+				if (group) {
+					gf_list_del_item(temp_groups, group);
+				}
+			}
 		}
 
 		// free auxiliary information temp_groups that have not been copied elsewhere
