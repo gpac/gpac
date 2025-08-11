@@ -26,7 +26,7 @@ on:
 
   # Used to build nightly releases
   schedule:
-    - cron: "0 0 * * *" # Every day at midnight
+    - cron: "42 9 * * *" # Every day at 9:42 AM
 
 # Only one distribution workflow can run at a time
 concurrency:
