@@ -11,7 +11,7 @@ echo "Version is $version - libgpac $libgac_version"
 
 #patch README.md
 source="README.md"
-sed -e "s/README for GPAC version.*/README for GPAC version $version/;" $source > ftmp
+sed -e "s/Current version: .*/Current version: $version/;" $source | sed -e "s/Latest Release: .*/Latest Release: $version/;"  > ftmp
 rm $source
 mv ftmp $source
 
