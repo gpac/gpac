@@ -2426,7 +2426,10 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 	if (!cfg)
 		return;
 
+
 	if (cfg->stream.presentations) {
+
+		GF_List* groups_to_del = gf_list_new();
 
 		while ( (pres = gf_list_pop_back(cfg->stream.presentations)) ) {
 
@@ -2434,33 +2437,34 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 
 				while ( (group = gf_list_pop_back(pres->substream_groups)) ) {
 
-					if (group->substreams) {
+					if (group && gf_list_find(groups_to_del, group) < 0)
+						gf_list_add(groups_to_del, group);
 
-						for (s = 0; s < gf_list_count(group->substreams); s++) {
-							subs = gf_list_get(group->substreams, s);
-							if (!subs) {
-								continue;
-							}
-
-							gf_free(subs);
-						}
-						gf_list_del(group->substreams);
-
-					}
-					gf_free(group);
-
-					// remove potential duplicates of group
-					s32 idx = 1;
-					while (idx>=0) {
-						idx = gf_list_find(pres->substream_groups, group);
-						if (idx>=0) gf_list_rem(pres->substream_groups, idx);
-					}
 				}
 				gf_list_del(pres->substream_groups);
 
 			}
 			gf_free(pres);
 		}
+
+		while ( (group = gf_list_pop_back(groups_to_del)) ) {
+			if (group->substreams) {
+
+				for (s = 0; s < gf_list_count(group->substreams); s++) {
+					subs = gf_list_get(group->substreams, s);
+					if (!subs) {
+						continue;
+					}
+
+					gf_free(subs);
+				}
+				gf_list_del(group->substreams);
+
+			}
+			gf_free(group);
+
+		}
+		gf_list_del(groups_to_del);
 
 		gf_list_del(cfg->stream.presentations);
 		cfg->stream.presentations = NULL;
