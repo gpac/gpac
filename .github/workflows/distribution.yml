@@ -213,7 +213,7 @@ jobs:
           trust_level: 5 # ultimate
 
       - name: Mirror FTP server
-        if: ${{ !(github.event.inputs.reset || 'false') }}
+        if: ${{ github.event.inputs.reset != 'true' }}
         run: |
           lftp -e "
             set ssl:verify-certificate no
