@@ -184,6 +184,7 @@ jobs:
           - 8080:80
         volumes:
           - ${{ github.workspace }}/ftp:/usr/share/nginx/html
+        options: --name nginx
 
     steps:
       - name: Checkout repository
@@ -224,6 +225,11 @@ jobs:
             mirror -v / ftp
             bye
           "
+
+      - name: Restart nginx -- feed the volume
+        uses: docker://docker
+        with:
+          args: docker restart nginx
 
       - name: Create and Mirror repositories
         env:
