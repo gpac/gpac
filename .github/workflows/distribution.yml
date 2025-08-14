@@ -183,7 +183,7 @@ jobs:
         ports:
           - 8080:80
         volumes:
-          - ${{ github.workspace }}/ftp:/var/www/html
+          - ${{ github.workspace }}/ftp:/usr/share/nginx/html
 
     steps:
       - name: Checkout repository
