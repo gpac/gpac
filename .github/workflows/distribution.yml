@@ -26,7 +26,7 @@ on:
 
   # Used to build nightly releases
   schedule:
-    - cron: "42 9 * * *" # Every day at 9:42 AM
+    - cron: "0 0 * * *" # Every day at midnight
 
 # Only one distribution workflow can run at a time
 concurrency:
@@ -176,6 +176,15 @@ jobs:
     needs: [prepare, build-linux, build-wasm]
     runs-on: ubuntu-latest
     if: ${{ needs.prepare.outputs.types != '[]' }}
+
+    services:
+      http:
+        image: nginx:alpine
+        ports:
+          - 8080:80
+        volumes:
+          - ${{ github.workspace }}/ftp:/var/www/html
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -203,6 +212,19 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
           trust_level: 5 # ultimate
 
+      - name: Mirror FTP server
+        if: ${{ !(github.event.inputs.reset || 'false') }}
+        run: |
+          lftp -e "
+            set ssl:verify-certificate no
+            set net:reconnect-interval-base 2
+            set mirror:parallel-transfer-count 8
+            open ${{ secrets.FTP_HOST }}
+            user ${{ secrets.FTP_USERNAME }} ${{ secrets.FTP_PASSWORD }}
+            mirror -v / ftp
+            bye
+          "
+
       - name: Create and Mirror repositories
         env:
           SKIP_MIRROR: ${{ github.event.inputs.reset || 'false' }}
@@ -228,6 +250,8 @@ jobs:
         run: |
           lftp -e "
             set ssl:verify-certificate no
+            set net:reconnect-interval-base 2
+            set mirror:parallel-transfer-count 8
             open ${{ secrets.FTP_HOST }}
             user ${{ secrets.FTP_USERNAME }} ${{ secrets.FTP_PASSWORD }}
             mirror -v -R public / --delete --exclude-glob .htaccess

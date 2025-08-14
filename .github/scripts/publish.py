@@ -26,7 +26,7 @@ DEB_COMPONENTS = ["main", "nightly"]
 WASM_TARGETS = [("full", "threaded"), ("full", "single"), ("lite", "single")]
 WASM_COMPONENTS = ["nightly"]
 
-BASE_URL = "https://dist.gpac.io/gpac"
+BASE_URL = "http://localhost:8080"
 LINUX_BASE_URL = f"{BASE_URL}/linux"
 WASM_BASE_URL = f"{BASE_URL}/wasm"
 
