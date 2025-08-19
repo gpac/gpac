@@ -6306,9 +6306,9 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 		btype = data ? GF_ISOM_ITUNE_GENRE_USER : GF_ISOM_ITUNE_GENRE;
 	} else if (tag==GF_4CC('c','u','s','t') ) {
 		if (in_cust_name || in_cust_mean) {
-			if (in_cust_mean[0])
+			if (in_cust_mean && in_cust_mean[0])
 				cust_mean = gf_strdup(in_cust_mean);
-			if (in_cust_name[0])
+			if (in_cust_name && in_cust_name[0])
 				cust_name = gf_strdup(in_cust_name);
 			btype = GF_ISOM_BOX_TYPE_iTunesSpecificInfo;
 		} else {

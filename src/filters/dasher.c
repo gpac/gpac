@@ -7754,7 +7754,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 	//append to previous entry if possible
 	s = gf_list_last(tl->entries);
 
-	if (prev_patch_dur) {
+	if (s && prev_patch_dur) {
 		u32 nb_ent = gf_list_count(tl->entries);
 		//split entry
 		if (s->repeat_count) {
