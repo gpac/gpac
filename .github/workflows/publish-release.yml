@@ -14,9 +14,9 @@ jobs:
 
       - name: Generate Release Notes
         run: |
-          echo "We are happy to announce the release of GPAC ${{ github.ref_name }}" >> release_body.md
+          echo "We are happy to announce the release of GPAC ${{ github.ref_name }}". >> release_body.md
           echo "" >> release_body.md
-          echo "_Detailled info coming soon!_" >> release_body.md
+          echo "_Detailed info coming soon!_" >> release_body.md
           echo "" >> release_body.md
           echo "Installers are available at [gpac.io](http://gpac.io/downloads)" >> release_body.md
           echo "" >> release_body.md

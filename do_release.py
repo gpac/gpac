@@ -123,7 +123,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('version', help="main version number in the form M.m[.u]")
-    parser.add_argument('--abi', help="ABI version in the form M.m[.u]. Ff absent, will be read from version.h")
+    parser.add_argument('--abi', help="ABI version in the form M.m[.u]. If absent, will be read from version.h")
 
     parser.add_argument('--no-make', action="store_true", help="skips build after changes")
     parser.add_argument('--no-commit', action="store_true", help="skips commit and tag")
