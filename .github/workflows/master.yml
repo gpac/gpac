@@ -25,10 +25,11 @@ jobs:
               echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         - name: 'Use Version Tag'
           run: |
-            echo "The determined version tag is: ${{ needs.gettag.outputs.version_tag }}"
+            echo "The determined version tag is: ${{ steps.set_version.outputs.VERSION }}"
 
     linux-image-deploy:
         runs-on: ubuntu-latest
+        needs: gettag
         steps:
             - name: Check out code
               uses: actions/checkout@v3
@@ -50,6 +51,7 @@ jobs:
 
     wasm-image-deploy:
         runs-on: ubuntu-latest
+        needs: gettag
         steps:
             - name: Check out code
               uses: actions/checkout@v3
