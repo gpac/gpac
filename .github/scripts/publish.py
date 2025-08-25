@@ -134,7 +134,7 @@ def mirror_wasm():
     os.makedirs(temp_dir, exist_ok=True)
 
     # Check if the wasm base URL is reachable
-    if not check_url(WASM_BASE_URL):
+    if not check_url(f"{WASM_BASE_URL}/gpac.js"):
         logging.warning(f"WASM base URL {WASM_BASE_URL} is not reachable.")
         return
 
@@ -144,7 +144,7 @@ def mirror_wasm():
             "wget",
             "--mirror",
             "--no-parent",
-            *["--cut-dirs", "2"],
+            *["--cut-dirs", "1"],
             *["--reject", "index.html"],
             "--no-host-directories",
             "--directory-prefix",
