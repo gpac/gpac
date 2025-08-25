@@ -82,6 +82,7 @@ struct _bsrw_ctx
 	char *tcxs, *tcxe, *tcsc;
 	GF_TimeCode tcxs_val, tcxe_val, tcsc_val;
 	BsrwTimecodeMode tc;
+	u64 last_tc_utc_now;
 };
 
 static GF_Err none_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -257,11 +258,17 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		const GF_PropertyValue *date = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
 		if (date) now = gf_net_ntp_to_utc(date->value.longuint);
 		//otherwise check UTC date mapping
-		else {
-			date = gf_filter_pck_get_property(pck, GF_PROP_PCK_UTC_TIME);
-			if (date) now = date->value.longuint;
+		else if ((date = gf_filter_pck_get_property(pck, GF_PROP_PCK_UTC_TIME))) {
+			now = date->value.longuint;
+		} else {
 			//otherwise use the current time
-			else now = gf_net_get_utc();
+			now = gf_net_get_utc();
+			//safety check: two consecutives gf_net_get_utc() calls could return the same value
+			if (now == ctx->last_tc_utc_now) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[BSRW] system call for getting provided the same value (" LLU "), increment by 1 frame. Consider adding a reframer with 'rt' option in your graph.\n", now));
+				now += gf_timestamp_rescale(1, max_fps, 1000)+1;
+			}
+			ctx->last_tc_utc_now = now;
 		}
 
 		//get tm struct
