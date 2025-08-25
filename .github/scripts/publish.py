@@ -133,25 +133,8 @@ def mirror_wasm():
     temp_dir = os.path.join(tempfile.gettempdir(), "wasm-mirror")
     os.makedirs(temp_dir, exist_ok=True)
 
-    # Check if the wasm base URL is reachable
-    if not check_url(f"{WASM_BASE_URL}/gpac.js"):
-        logging.warning(f"WASM base URL {WASM_BASE_URL} is not reachable.")
-        return
-
     logging.info(f"Mirroring {WASM_BASE_URL} to {temp_dir}")
-    run_command(
-        [
-            "wget",
-            "--mirror",
-            "--no-parent",
-            *["--cut-dirs", "1"],
-            *["--reject", "index.html"],
-            "--no-host-directories",
-            "--directory-prefix",
-            temp_dir,
-            WASM_BASE_URL,
-        ]
-    )
+    run_command(["cp", "-r", "ftp/wasm/.", temp_dir])
 
 
 def publish_deb():
@@ -186,7 +169,9 @@ def publish_deb():
                     version_match = file_name.split("_")[1]
 
                     # Create a new name for the artifact
-                    new_name = f"{identifier}_{version_match}_{tag}_{arch}_{slug}_{date}.deb"
+                    new_name = (
+                        f"{identifier}_{version_match}_{tag}_{arch}_{slug}_{date}.deb"
+                    )
 
                     # Move the artifact to the temporary directory with the new name
                     new_path = os.path.join(temp_dir, new_name)
