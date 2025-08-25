@@ -2754,6 +2754,8 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_ffdmx_callbacks) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_httpout_callbacks) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_httpout_send_request) )
 
