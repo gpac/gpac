@@ -407,8 +407,9 @@ static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
 	}
 }
 
-static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr)
+static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr)
 {
+	Bool ret = GF_FALSE;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 
 	// splice_info_section() : the full MPEG2-TS Section is in here
@@ -492,6 +493,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur=%u, splice_time="LLU")\n",
 				*splice_event_id, pts_adjustment, *dur, splice_time));
 		}
+		ret = GF_TRUE;
 		goto exit;
 	case 0x06: //time_signal()
 		{
@@ -500,6 +502,12 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found time_signal() for PTS="LLU" (splice_time="LLU", pts_adjustment="LLU")\n",
 				*pts, splice_time, pts_adjustment));
 		}
+		ret = GF_TRUE;
+		break;
+	case 0x00: //splice_null()
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_null()\n"));
+		gf_bs_skip_bytes(bs, splice_command_length);
+		gf_bs_align(bs);
 		break;
 	default:
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_command_type=0x%02X length=%d pts_adjustment="LLU"\n",
@@ -587,10 +595,13 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 			gf_bs_skip_bytes(bs, MAX(0, descriptor_length - 4));
 			break;
 		}
+
+		ret = GF_TRUE;
 	}
 
 exit:
 	gf_bs_del(bs);
+	return ret;
 }
 
 static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, u32 dur)
@@ -636,7 +647,8 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 	u64 dur = (u64) -1;
 	Bool needs_idr = GF_FALSE;
 	// parsing is incomplete so we only check the first splice command ...
-	scte35dec_get_timing(data, size, &pts, &dur, &ctx->last_event_id, &needs_idr);
+	if (!scte35dec_get_timing(data, size, &pts, &dur, &ctx->last_event_id, &needs_idr))
+		return GF_OK; // no data to process
 
 	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 	if (!emib) return GF_OUT_OF_MEM;
