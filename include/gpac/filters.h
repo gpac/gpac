@@ -1799,8 +1799,8 @@ typedef enum
 	/*! DASH fragment (cmaf chunk) size info, sent down from muxers to manifest generators*/
 	GF_FEVT_FRAGMENT_SIZE,
 
-	/*! Encoder hints*/
-	GF_FEVT_ENCODE_HINTS,
+	/*! Transport hints*/
+	GF_FEVT_TRANSPORT_HINTS,
 	/*! NTP source clock send by other services (eg from TS to dash using TEMI) */
 	GF_FEVT_NTP_REF,
 	/*! Event sent by DASH/HLS demux to source to notify a quality change  - used for ROUTE/MABR only */
@@ -2010,17 +2010,30 @@ typedef struct
 	Bool pid_only;
 } GF_FEVT_BufferRequirement;
 
+typedef enum
+{
+	/*! no hints */
+	GF_TRANSPORT_HINTS_NONE = 0,
+	/*! event seen by an encoder */
+	GF_TRANSPORT_HINTS_SAW_ENCODER = 1<<0,
+} GF_TransportHintsFlags;
 
-/*! Event structure for GF_FEVT_ENCODE_HINT*/
+/*! Event structure for GF_FEVT_TRANSPORT_HINT*/
 typedef struct
 {
 	FILTER_EVENT_BASE
 
-	/*! duration of intra (IDR, closed GOP) as expected by the dasher */
-	GF_Fraction intra_period;
+	/*! flags for the hints */
+	GF_TransportHintsFlags flags;
+
+	/*! segment duration */
+	GF_Fraction seg_duration;
 	/*! if TRUE codec should only generate DSI (possibly no input frame, and all output packets will be discarded) */
 	Bool gen_dsi_only;
-} GF_FEVT_EncodeHints;
+
+	/* if TRUE reframer should hold packets until theoretical segment boundary */
+	Bool wait_seg_boundary;
+} GF_FEVT_TransportHints;
 
 
 /*! Event structure for GF_FEVT_NTP_REF*/
@@ -2089,7 +2102,7 @@ union __gf_filter_event
 	GF_FEVT_SegmentSize seg_size;
 	GF_FEVT_FragmentSize frag_size;
 	GF_FEVT_FileDelete file_del;
-	GF_FEVT_EncodeHints encode_hints;
+	GF_FEVT_TransportHints transport_hints;
 	GF_FEVT_NTPRef ntp;
 	GF_FEVT_DASHQualitySelection dash_select;
 	GF_FEVT_NetworkHint net_hint;

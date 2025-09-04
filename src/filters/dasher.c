@@ -871,18 +871,18 @@ static void dasher_get_dash_dur(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 }
 
-static void dasher_send_encode_hints(GF_DasherCtx *ctx, GF_DashStream *ds)
+static void dasher_send_transport_hints(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
-	//send encode hints even if segment timeline is used
+	//send transport hints even if segment timeline is used
 	if (!ctx->sfile && !ctx->use_cues) {
 		GF_FilterEvent evt;
-		GF_FEVT_INIT(evt, GF_FEVT_ENCODE_HINTS, ds->ipid)
+		GF_FEVT_INIT(evt, GF_FEVT_TRANSPORT_HINTS, ds->ipid)
 		if (!ds->dash_dur.num)
 			dasher_get_dash_dur(ctx, ds);
 
 		switch (ctx->from_index) {
 		case IDXMODE_NONE:
-			evt.encode_hints.intra_period = ds->dash_dur;
+			evt.transport_hints.seg_duration = ds->dash_dur;
 			break;
 		case IDXMODE_SEG:
 		case IDXMODE_CHILD:
@@ -890,9 +890,10 @@ static void dasher_send_encode_hints(GF_DasherCtx *ctx, GF_DashStream *ds)
 		case IDXMODE_ALL:
 		case IDXMODE_INIT:
 		case IDXMODE_MANIFEST:
-			evt.encode_hints.gen_dsi_only = GF_TRUE;
+			evt.transport_hints.gen_dsi_only = GF_TRUE;
 			break;
 		}
+		evt.transport_hints.wait_seg_boundary = ctx->segcts;
 
 		gf_filter_pid_send_event(ds->ipid, &evt);
 	}
@@ -1178,7 +1179,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (ctx->nb_playing) {
 			GF_FilterEvent evt;
 
-			dasher_send_encode_hints(ctx, ds);
+			dasher_send_transport_hints(ctx, ds);
 
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 			evt.play.speed = 1.0;
@@ -3754,7 +3755,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	}
 
 	//inject scte35dec filter
-	if (ds->codec_id==GF_CODECID_SCTE35)
+	if (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE)
 		dasher_inject_scte35_processor(filter, ds, szSRC);
 }
 
@@ -4219,7 +4220,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					ds->moof_sn += (u32) gf_floor(progress_in_seg * chunk_per_segment);
 				}
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for stream %s\n", ds->src_url));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] failed to get first cts for PID %s\n", gf_filter_pid_get_name(ds->ipid)));
 			}
 		}
 
@@ -6768,7 +6769,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 				gf_filter_pid_set_discard(ds->ipid, GF_FALSE);
 
-				dasher_send_encode_hints(ctx, ds);
+				dasher_send_transport_hints(ctx, ds);
 
 				GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 				evt.play.speed = 1.0;
@@ -8886,7 +8887,7 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 			gf_filter_pid_set_discard(a_ds->ipid, GF_FALSE);
 
-			dasher_send_encode_hints(ctx, ds);
+			dasher_send_transport_hints(ctx, ds);
 
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, a_ds->ipid);
 			evt.play.speed = 1.0;
@@ -9624,8 +9625,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dts -= ds->first_dts;
 
 			if (ctx->sreg && ctx->mpd->gpac_mpd_time && gf_timestamp_greater(dts, ds->timescale, ctx->mpd->gpac_mpd_time, 1000)) {
-				nb_reg_done++;
-				break;
+				if (!gf_filter_pid_has_seen_eos(ds->ipid)) {
+					//if we're close to EOS, do not regulate as this could trigger a infinite wait between text streams and non-text streams
+					nb_reg_done++;
+					break;
+				}
 			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
@@ -10491,7 +10495,7 @@ static void dasher_resume_subdur(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ds->ipid);
 		gf_filter_pid_send_event(ds->ipid, &evt);
 
-		dasher_send_encode_hints(ctx, ds);
+		dasher_send_transport_hints(ctx, ds);
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 		evt.play.speed = 1.0;
 		if (!ctx->subdur || !ctx->loop) {
@@ -10631,29 +10635,11 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->nb_playing++;
 		if (ctx->nb_playing>1) return GF_TRUE;
 
-		//send encode hints even if segment timeline is used
-		if (!ctx->sfile && !ctx->use_cues) {
-			GF_FilterEvent anevt;
-			GF_FEVT_INIT(anevt, GF_FEVT_ENCODE_HINTS, NULL)
-			count = gf_list_count(ctx->pids);
-			for (i=0; i<count; i++) {
-				GF_DashStream *ds = gf_list_get(ctx->pids, i);
-				anevt.base.on_pid = ds->ipid;
-				switch (ctx->from_index) {
-				case IDXMODE_NONE:
-					anevt.encode_hints.intra_period = ds->dash_dur;
-					break;
-				case IDXMODE_SEG:
-				case IDXMODE_CHILD:
-					break;
-				case IDXMODE_ALL:
-				case IDXMODE_INIT:
-				case IDXMODE_MANIFEST:
-					anevt.encode_hints.gen_dsi_only = GF_TRUE;
-					break;
-				}
-				gf_filter_pid_send_event(ds->ipid, &anevt);
-			}
+		//send transport hints even if segment timeline is used
+		count = gf_list_count(ctx->pids);
+		for (i=0; i<count; i++) {
+			GF_DashStream *ds = gf_list_get(ctx->pids, i);
+			dasher_send_transport_hints(ctx, ds);
 		}
 		return GF_FALSE;
 	}
