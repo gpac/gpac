@@ -97,10 +97,13 @@ JSContext *gf_js_create_context()
 	return ctx;
 }
 
+static void js_reset_logs(JSContext *ctx);
+
 void gf_js_delete_context(JSContext *ctx)
 {
 	if (!js_rt) return;
 
+	js_reset_logs(ctx);
 	gf_js_call_gc(ctx);
 
 
@@ -189,7 +192,7 @@ JSRuntime *gf_js_get_rt()
 }
 
 
-
+Bool is_js_log = GF_FALSE;
 static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
 {
     int i=0;
@@ -222,17 +225,19 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 	if (log_name) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("[%s] ", log_name));
-#else
-		fprintf(stderr, "[%s] ", log_name);
+		if (!is_js_log) {
+			GF_LOG(logl, ltool, ("[%s] ", log_name));
+		} else
 #endif
+			fprintf(stderr, "[%s] ", log_name);
 	}
 	if (error_type==2) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("Throw "));
-#else
-		fprintf(stderr, "Throw ");
+		if (!is_js_log) {
+			GF_LOG(logl, ltool, ("Throw "));
+		} else
 #endif
+			fprintf(stderr, "Throw ");
 	}
 
     for (; i < argc; i++) {
@@ -247,10 +252,12 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
 		} else {
 #ifndef GPAC_DISABLE_LOG
-			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
-#else
-			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+			if (!is_js_log) {
+				GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
+			} else
 #endif
+				fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+
 			if (JS_IsException(argv[i])) {
 				js_dump_error_exc(ctx, argv[i]);
 			}
@@ -264,10 +271,11 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
     }
     if (!no_new_line) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("\n"));
-#else
-		fprintf(stderr, "\n");
+		if (!is_js_log) {
+			GF_LOG(logl, ltool, ("\n"));
+		} else
 #endif
+			fprintf(stderr, "\n");
 	}
 	if (c_logname) JS_FreeCString(ctx, c_logname);
 	return JS_UNDEFINED;
@@ -1253,6 +1261,7 @@ enum
 	JS_SYS_V_MINOR,
 	JS_SYS_V_MICRO,
 	JS_SYS_RMT_ON_NEW_CLIENT,
+	JS_SYS_ON_LOG,
 };
 
 
@@ -1409,6 +1418,66 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 	return JS_UNDEFINED;
 }
 
+extern void *user_log_cbk;
+static void *prev_user_log_cbk = NULL;
+gf_log_cbk prev_log_cbk = NULL;
+static JSValue log_fun = JS_UNDEFINED;
+static JSValue log_obj = JS_UNDEFINED;
+u32 js_log_buf_size = 0;
+//WARNING - libc mem, not gf_alloc
+char *js_log_buf = NULL;
+JSContext *log_ctx = NULL;
+char *js_orig_logs = NULL;
+
+static void js_reset_logs(JSContext *ctx)
+{
+	if (ctx != log_ctx) return;
+
+	js_log_buf_size = 0;
+	//WARNING - libc mem, not gf_alloc
+	if (js_log_buf) free(js_log_buf);
+	js_log_buf = NULL;
+
+	if (js_orig_logs) {
+		gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
+		gf_free(js_orig_logs);
+		js_orig_logs = NULL;
+	}
+
+	if (!log_ctx) return;
+	JS_FreeValue(log_ctx, log_fun);
+	log_fun = JS_UNDEFINED;
+	JS_FreeValue(log_ctx, log_obj);
+	log_obj = JS_UNDEFINED;
+	gf_log_set_callback(NULL, prev_log_cbk);
+	log_ctx = NULL;
+}
+
+static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
+{
+	JSContext *ctx = log_ctx;
+	JSValue args[3];
+	args[0] = JS_NewString(ctx, gf_log_tool_name(log_tool) );
+	args[1] = JS_NewInt32(ctx, log_level);
+
+	va_list vlist_tmp;
+	va_copy(vlist_tmp, vlist);
+	u32 len = vsnprintf(NULL, 0, fmt, vlist_tmp);
+	va_end(vlist_tmp);
+	if (js_log_buf_size < len+2) {
+		js_log_buf_size = len+2;
+		//WARNING - libc mem, not gf_alloc
+		js_log_buf = realloc(js_log_buf, js_log_buf_size);
+	}
+	vsprintf(js_log_buf, fmt, vlist);
+	args[2] = JS_NewString(ctx, js_log_buf);
+
+	JSValue res = JS_Call(ctx, log_fun, log_obj, 3, args);
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[2]);
+	JS_FreeValue(ctx, res);
+}
+
 static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
 {
 	const char *prop_val;
@@ -1445,6 +1514,31 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 			task->_obj = JS_DupValue(ctx, this_val);
 
 			gf_rmt_set_on_new_client_cbk(task, js_sys_rmt_on_new_client);
+		}
+		break;
+
+	case JS_SYS_ON_LOG:
+		JS_FreeValue(ctx, log_fun);
+		log_fun = JS_UNDEFINED;
+		JS_FreeValue(ctx, log_obj);
+		log_obj = JS_UNDEFINED;
+		log_ctx = NULL;
+		is_js_log = GF_FALSE;
+
+		if (JS_IsUndefined(value) || JS_IsNull(value)) {
+			if (js_orig_logs) {
+				gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
+				gf_free(js_orig_logs);
+				js_orig_logs = NULL;
+			}
+			gf_log_set_callback(NULL, prev_log_cbk);
+		} else if (JS_IsFunction(ctx, value)) {
+			log_fun = JS_DupValue(ctx, value);
+			log_obj = JS_DupValue(ctx, this_val);
+			prev_user_log_cbk = user_log_cbk;
+			prev_log_cbk = gf_log_set_callback(ctx, js_log_cbk);
+			log_ctx = ctx;
+			is_js_log = GF_TRUE;
 		}
 		break;
 	}
@@ -2701,6 +2795,45 @@ static JSValue js_pcmfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_NewInt32(ctx, gf_audio_fmt_bit_depth(prop.value.uint)/8 );
 }
 
+static JSValue js_sys_set_logs(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *logs;
+	Bool reset = GF_FALSE;
+	if (!argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (argc>1)
+		reset = JS_ToBool(ctx, argv[1]);
+
+	if (!js_orig_logs)
+		js_orig_logs = gf_log_get_tools_levels();
+
+	logs = JS_ToCString(ctx, argv[0]);
+	if (!logs) {
+		if (js_orig_logs) {
+			gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
+			gf_free(js_orig_logs);
+			js_orig_logs = NULL;
+		} else {
+			gf_log_set_tools_levels("all@warning", GF_TRUE);
+		}
+	} else {
+		gf_log_set_tools_levels(logs, reset);
+		JS_FreeCString(ctx, logs);
+	}
+	return JS_UNDEFINED;
+}
+
+
+static JSValue js_sys_get_logs(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (argc && JS_ToBool(ctx, argv[0]) && js_orig_logs) {
+		return JS_NewString(ctx, js_orig_logs);
+	}
+	char *logs = gf_log_get_tools_levels();
+	JSValue res = JS_NewString(ctx, logs);
+	gf_free(logs);
+	return res;
+}
+
 #include <gpac/color.h>
 
 static JSValue js_color_lerp(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -3175,6 +3308,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("version_micro", js_sys_prop_get, NULL, JS_SYS_V_MICRO),
 
 	JS_CGETSET_MAGIC_DEF_ENUM("rmt_on_new_client", NULL, js_sys_prop_set, JS_SYS_RMT_ON_NEW_CLIENT),
+	JS_CGETSET_MAGIC_DEF_ENUM("on_log", NULL, js_sys_prop_set, JS_SYS_ON_LOG),
 
 	JS_CFUNC_DEF("set_arg_used", 0, js_sys_set_arg_used),
 	JS_CFUNC_DEF("error_string", 0, js_sys_error_string),
@@ -3247,6 +3381,8 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
 
 	JS_CFUNC_DEF("enable_rmtws", 0, js_sys_enable_rmtws),
+	JS_CFUNC_DEF("set_logs", 0, js_sys_set_logs),
+	JS_CFUNC_DEF("get_logs", 0, js_sys_get_logs),
 };
 
 

@@ -2179,11 +2179,14 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 	case JSF_PID_FILTER_SRC:
 		return JS_NewString(ctx, gf_filter_pid_get_source_filter_name(pctx->pid) );
 	case JSF_PID_FILTER_ARGS:
-		return JS_NewString(ctx, gf_filter_pid_get_args(pctx->pid) );
+		str = (char *) gf_filter_pid_get_args(pctx->pid);
+		return str ? JS_NewString(ctx, str) : JS_NULL;
 	case JSF_PID_FILTER_SRC_ARGS:
-		return JS_NewString(ctx, gf_filter_pid_orig_src_args(pctx->pid, GF_FALSE) );
+		str = (char *) gf_filter_pid_orig_src_args(pctx->pid, GF_FALSE);
+		return str ? JS_NewString(ctx, str) : JS_NULL;
 	case JSF_PID_FILTER_UNICITY_ARGS:
-		return JS_NewString(ctx, gf_filter_pid_orig_src_args(pctx->pid, GF_TRUE) );
+		str = (char *) gf_filter_pid_orig_src_args(pctx->pid, GF_TRUE);
+		return str ? JS_NewString(ctx, str) : JS_NULL;
 	case JSF_PID_MAX_BUFFER:
 		return JS_NewInt32(ctx, gf_filter_pid_get_max_buffer(pctx->pid) );
 	case JSF_PID_BUFFER:

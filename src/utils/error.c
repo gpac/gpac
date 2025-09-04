@@ -875,7 +875,7 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 
 
 
-static void *user_log_cbk = NULL;
+void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
 #ifdef GPAC_CONFIG_EMSCRIPTEN
