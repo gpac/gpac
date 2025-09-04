@@ -249,7 +249,6 @@ static void scte35dec_schedule(SCTE35DecCtx *ctx, u64 dts, GF_EventMessageBox *e
 
 static u32 compute_emib_duration(u64 dts, u64 evt_dts, u32 max_dur, u32 evt_dur)
 {
-	gf_assert(dts <= evt_dts);
 	if (dts < evt_dts) {
 		return (u32) MIN(evt_dts - dts, max_dur);
 	} else if (max_dur != GF_UINT_MAX && evt_dur > max_dur) {
@@ -267,7 +266,7 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 	Event *evt;
 	while ( (evt = gf_list_pop_front(ctx->ordered_events)) ) {
 		u32 evt_dur = evt->emib->event_duration == 0xFFFFFFFF ? 1 : evt->emib->event_duration;
-		if (evt->dts + evt->emib->presentation_time_delta + evt->emib->event_duration >= dts) {
+		if (evt->dts + evt->emib->presentation_time_delta + evt_dur > dts) {
 			u8 *output = NULL;
 			GF_FilterPacket *pck_dst = ctx->pck_new_alloc(ctx->opid, (u32) evt->emib->size, &output);
 			if (!pck_dst) {
@@ -297,7 +296,8 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 		}
 
 		if (!IS_SEGMENTED ||
-		    (evt->emib->presentation_time_delta <= 0 && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration <= 0))) {
+		    (evt->emib->presentation_time_delta <= 0 && (evt->emib->event_duration == GF_UINT_MAX || evt->emib->event_duration <= 0)) ||
+			dts >= evt->dts + evt->emib->presentation_time_delta + evt_dur) {
 			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
@@ -516,8 +516,9 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 	}
 
 	u16 descriptor_loop_length = gf_bs_read_u16(bs);
+	u32 descriptor_loop_start_pos = (u32) gf_bs_get_position(bs);
 	u32 descriptor_start_pos = (u32) gf_bs_get_position(bs);
-	while (gf_bs_get_position(bs) - descriptor_start_pos < descriptor_loop_length) {
+	while (descriptor_start_pos - descriptor_loop_start_pos < descriptor_loop_length) {
 		u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 		u8 descriptor_length = gf_bs_read_u8(bs);
 
@@ -596,7 +597,10 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 			break;
 		}
 
-		ret = GF_TRUE;
+		descriptor_start_pos += descriptor_length + 2;
+		gf_bs_seek(bs, descriptor_start_pos);
+
+		ret = GF_TRUE; // found something
 	}
 
 exit:

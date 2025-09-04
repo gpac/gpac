@@ -2472,26 +2472,26 @@ segmentsExpected="1"
 	}
 }
 
-static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
+static u8 scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 {
 	if (gf_bs_available(bs) < 2)
-		return GF_FALSE;
+		return 0;
 
 	u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 	u8 descriptor_length = gf_bs_read_u8(bs);
 	if (descriptor_length < 4 || descriptor_length > 254) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] SCTE-35 splice descriptor: invalid descriptor_length=%u\n", descriptor_length));
-		return GF_FALSE;
+		return 0;
 	}
 	if (gf_bs_available(bs) < descriptor_length) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] not enough bits to parse SCTE-35 splice descriptor\n"));
-		return GF_FALSE;
+		return 0;
 	}
 
 	u32 identifier = gf_bs_read_u32(bs);
 	if (identifier != 0x43554549/*"CUEI"*/) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] unexpected SCTE-35 splice descriptor identifier \"%s\" instead of \"CUEI\". Skipping.\n", gf_4cc_to_str(identifier)));
-		return GF_FALSE;
+		return 0;
 	}
 
 	//inspect_printf(dump, "   <SpliceDescriptor spliceDescriptorTag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
@@ -2504,7 +2504,7 @@ static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 		//inspect_printf(dump, "/>\n");
 	}
 
-	return GF_TRUE;
+	return descriptor_length+2;
 }
 
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
@@ -2651,8 +2651,13 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	pos += splice_command_length;
 
 	int descriptor_loop_length = gf_bs_read_int(bs, 16);
-	while ( (gf_bs_get_position(bs) < pos + descriptor_loop_length) && scte35_parse_splice_descriptor(dump, bs) )
-	{
+	u32 descriptor_start_pos = (u32) gf_bs_get_position(bs);
+	while ( (descriptor_start_pos < pos + descriptor_loop_length) ) {
+		u8 len = scte35_parse_splice_descriptor(dump, bs);
+		if (len == 0)
+			break;
+		descriptor_start_pos += len;
+		gf_bs_seek(bs, descriptor_start_pos);
 	}
 
 exit:
