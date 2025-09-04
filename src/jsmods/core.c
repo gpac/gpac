@@ -1421,8 +1421,8 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 extern void *user_log_cbk;
 static void *prev_user_log_cbk = NULL;
 gf_log_cbk prev_log_cbk = NULL;
-static JSValue log_fun = JS_UNDEFINED;
-static JSValue log_obj = JS_UNDEFINED;
+static JSValue log_fun;
+static JSValue log_obj;
 u32 js_log_buf_size = 0;
 //WARNING - libc mem, not gf_alloc
 char *js_log_buf = NULL;
