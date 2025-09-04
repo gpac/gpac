@@ -2001,7 +2001,6 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	naludmx_update_clli_mdcv(ctx, GF_TRUE);
 
 	naludmx_set_dolby_vision(ctx);
-
 }
 
 static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
