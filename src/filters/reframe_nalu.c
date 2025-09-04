@@ -3492,7 +3492,7 @@ naldmx_flush:
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 			continue;
 		}
-		//check output pid cfg after skiping nal, to make sure we can flush pending packets when config change
+		//check output pid cfg after skipping nal, to make sure we can flush pending packets when config changes
 		naludmx_check_pid(filter, ctx, force_au_flush, (is_slice==2) ? GF_TRUE : GF_FALSE);
 
 		if (!ctx->is_playing) {

@@ -832,7 +832,7 @@ struct __gf_filter
 	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
 	u32 encoder_codec_id;
 	GF_PropStringList skip_cids;
-	Bool filter_skiped;
+	Bool filter_skipped;
 
 	Bool act_as_sink;
 	Bool require_source_id;

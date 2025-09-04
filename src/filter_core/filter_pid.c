@@ -5378,7 +5378,7 @@ single_retry:
 					if (filter_dst->source_ids) f->source_ids = gf_strdup(filter_dst->source_ids);
 					f->cloned_from = filter_dst;
 					f->max_extra_pids = 0;
-					filter_dst->filter_skiped = GF_TRUE;
+					filter_dst->filter_skipped = GF_TRUE;
 					filter_dst = f;
 				}
 			}

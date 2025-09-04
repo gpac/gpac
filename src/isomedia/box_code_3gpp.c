@@ -428,7 +428,7 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 
 	u32 next_size = gf_bs_peek_bits(bs, 32, 0);
 	if (next_size > ptr->size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box detected, skiping parsing.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box detected, skipping parsing.\n"));
 		ptr->textJustification = 1;
 		return GF_OK;
 	}
