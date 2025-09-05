@@ -240,13 +240,13 @@ struct tm
 {
 	int tm_sec;     /* seconds after the minute - [0,59] */
 	int tm_min;     /* minutes after the hour - [0,59] */
-	int tm_hour;	/* hours since midnight - [0,23] */
-	int tm_mday;	/* day of the month - [1,31] */
+	int tm_hour;    /* hours since midnight - [0,23] */
+	int tm_mday;    /* day of the month - [1,31] */
 	int tm_mon;     /* months since January - [0,11] */
-	int tm_year;	/* years since 1900 */
-	int tm_wday;	/* days since Sunday - [0,6] */
-	int tm_yday;	/* days since January 1 - [0,365] */
-	int tm_isdst;	/* daylight savings time flag */
+	int tm_year;    /* years since 1900 */
+	int tm_wday;    /* days since Sunday - [0,6] */
+	int tm_yday;    /* days since January 1 - [0,365] */
+	int tm_isdst;   /* daylight savings time flag */
 };
 #define _TM_DEFINED
 #endif /* _TM_DEFINED */
@@ -530,7 +530,7 @@ void gf_prompt_set_echo_off(Bool echo_off)
 GF_EXPORT
 GF_Err gf_prompt_get_size(u32 *width, u32 *height)
 {
-    CONSOLE_SCREEN_BUFFER_INFO info;
+	CONSOLE_SCREEN_BUFFER_INFO info;
 	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
 	BOOL ret = GetConsoleScreenBufferInfo(hStdin, &info);
 
@@ -632,12 +632,12 @@ GF_EXPORT
 GF_Err gf_prompt_get_size(u32 *width, u32 *height)
 {
 #if defined(TIOCGWINSZ)
-    struct winsize ws;
-    if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != 0) return GF_IO_ERR;
+	struct winsize ws;
+	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != 0) return GF_IO_ERR;
 
-    if (width) *width = ws.ws_col;
-    if (height) *height = ws.ws_row;
-    return GF_OK;
+	if (width) *width = ws.ws_col;
+	if (height) *height = ws.ws_row;
+	return GF_OK;
 #elif defined(WIOCGETD)
 	struct uwdata w;
 	if (ioctl(2, WIOCGETD, &w) != 0) return GF_IO_ERR;
@@ -646,9 +646,9 @@ GF_Err gf_prompt_get_size(u32 *width, u32 *height)
 		*width = w.uw_width / w.uw_hs;
 	if (height && (w.uw_height > 0))
 		*height = w.uw_height / w.uw_vs;
-    return GF_OK;
+	return GF_OK;
 #else
-    return GF_NOT_SUPPORTED;
+	return GF_NOT_SUPPORTED;
 #endif
 }
 
@@ -1225,19 +1225,19 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_
 GF_EXPORT
 GF_Err gf_blob_release_ex(GF_Blob *blob)
 {
-    if (!blob)
+	if (!blob)
 		return GF_BAD_PARAM;
 	if (gf_list_find(all_blobs, blob)<0)
 		return GF_URL_REMOVED;
 	gf_mx_v(blob->mx);
-    return GF_OK;
+	return GF_OK;
 }
 
 GF_EXPORT
 GF_Err gf_blob_release(const char *blob_url)
 {
-    GF_Blob *blob = NULL;
-    if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	GF_Blob *blob = NULL;
+	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
 	return gf_blob_release_ex(blob);
 }
 
@@ -2001,16 +2001,16 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	u64 u_k_time = 0;
-    kern_return_t kr;
-    task_info_data_t tinfo;
-    mach_msg_type_number_t task_info_count;
-    task_basic_info_t basic_info;
-    thread_array_t thread_list;
-    mach_msg_type_number_t thread_count;
-    thread_info_data_t thinfo;
-    mach_msg_type_number_t thread_info_count;
-    thread_basic_info_t basic_info_th;
-    u32 j, tot_cpu = 0, nb_threads = 0;
+	kern_return_t kr;
+	task_info_data_t tinfo;
+	mach_msg_type_number_t task_info_count;
+	task_basic_info_t basic_info;
+	thread_array_t thread_list;
+	mach_msg_type_number_t thread_count;
+	thread_info_data_t thinfo;
+	mach_msg_type_number_t thread_info_count;
+	thread_basic_info_t basic_info_th;
+	u32 j, tot_cpu = 0, nb_threads = 0;
 
 	u32 entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
@@ -2018,49 +2018,49 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		return GF_FALSE;
 	}
 
-    task_info_count = TASK_INFO_MAX;
-    kr = task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)tinfo, &task_info_count);
-    if (kr != KERN_SUCCESS) {
-        return GF_FALSE;
-    }
+	task_info_count = TASK_INFO_MAX;
+	kr = task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)tinfo, &task_info_count);
+	if (kr != KERN_SUCCESS) {
+		return GF_FALSE;
+	}
 
-    basic_info = (task_basic_info_t)tinfo;
-    the_rti.gpac_memory = the_rti.process_memory = basic_info->resident_size;
+	basic_info = (task_basic_info_t)tinfo;
+	the_rti.gpac_memory = the_rti.process_memory = basic_info->resident_size;
 
-    // get threads in the task
-    kr = task_threads(mach_task_self(), &thread_list, &thread_count);
-    if (kr != KERN_SUCCESS) {
-        return GF_FALSE;
-    }
-    if (thread_count > 0)
-        nb_threads = (u32) thread_count;
+	// get threads in the task
+	kr = task_threads(mach_task_self(), &thread_list, &thread_count);
+	if (kr != KERN_SUCCESS) {
+		return GF_FALSE;
+	}
+	if (thread_count > 0)
+		nb_threads = (u32) thread_count;
 
-    for (j = 0; j < nb_threads; j++)   {
-        thread_info_count = THREAD_INFO_MAX;
-        kr = thread_info(thread_list[j], THREAD_BASIC_INFO,
-                         (thread_info_t)thinfo, &thread_info_count);
-        if (kr != KERN_SUCCESS) {
+	for (j = 0; j < nb_threads; j++)   {
+		thread_info_count = THREAD_INFO_MAX;
+		kr = thread_info(thread_list[j], THREAD_BASIC_INFO,
+						 (thread_info_t)thinfo, &thread_info_count);
+		if (kr != KERN_SUCCESS) {
 			vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
-            return GF_FALSE;
-        }
+			return GF_FALSE;
+		}
 
-        basic_info_th = (thread_basic_info_t)thinfo;
+		basic_info_th = (thread_basic_info_t)thinfo;
 
-        if (!(basic_info_th->flags & TH_FLAGS_IDLE)) {
-            u64 tot_sec = basic_info_th->user_time.seconds + basic_info_th->system_time.seconds;
-            tot_sec *= 1000000;
-            tot_sec += basic_info_th->user_time.microseconds + basic_info_th->system_time.microseconds;
-            u_k_time += tot_sec;
+		if (!(basic_info_th->flags & TH_FLAGS_IDLE)) {
+			u64 tot_sec = basic_info_th->user_time.seconds + basic_info_th->system_time.seconds;
+			tot_sec *= 1000000;
+			tot_sec += basic_info_th->user_time.microseconds + basic_info_th->system_time.microseconds;
+			u_k_time += tot_sec;
 			tot_cpu += basic_info_th->cpu_usage;
-        }
+		}
 
-    } // for each thread
+	} // for each thread
 
-    the_rti.process_cpu_usage = (tot_cpu * 100) / TH_USAGE_SCALE;
+	the_rti.process_cpu_usage = (tot_cpu * 100) / TH_USAGE_SCALE;
 	the_rti.total_cpu_usage = the_rti.process_cpu_usage;
 
-    kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
-    gf_assert(kr == KERN_SUCCESS);
+	kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
+	gf_assert(kr == KERN_SUCCESS);
 
 
 	if (last_update_time) {

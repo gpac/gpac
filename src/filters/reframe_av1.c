@@ -1054,10 +1054,10 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	if (ctx->is_iamf) {
 		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);
-                if (ctx->iamfstate.audio_roll_distance != 0) {
+		if (ctx->iamfstate.audio_roll_distance != 0) {
 			gf_filter_pck_set_roll_info(pck, ctx->iamfstate.audio_roll_distance);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
-                }
+		}
 		if (ctx->iamfstate.frame_state.num_samples_to_trim_at_end > 0) {
 			u64 trimmed_duration = ctx->iamfstate.num_samples_per_frame - ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
 			gf_filter_pck_set_duration(pck, (u32) trimmed_duration);

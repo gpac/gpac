@@ -647,7 +647,7 @@ restart:
 	}
     if (ctx->stop_seen && ! gf_filter_pid_is_playing( pctx->pid ) ) {
 		FF_FREE_PCK(pkt);
-        return GF_OK;
+		return GF_OK;
     }
 	if (ctx->raw_data && (ctx->probe_frames<ctx->probes) ) {
 		if (pkt->stream_index==ctx->audio_idx) {

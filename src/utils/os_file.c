@@ -1445,12 +1445,12 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	GF_FileIOBlob *gfio_blob;
 	GF_Err e = gf_blob_get(file_name, &blob_data, &blob_size, &flags);
 	if (e || !blob_data) return NULL;
-    gf_blob_release(file_name);
+	gf_blob_release(file_name);
 
-    if (flags) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Attempt at creating a GFIO object on blob corrupted or in transfer, not supported !"));
-        return NULL;
-    }
+	if (flags) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Attempt at creating a GFIO object on blob corrupted or in transfer, not supported !"));
+		return NULL;
+	}
 
 	GF_SAFEALLOC(gfio_blob, GF_FileIOBlob);
 	if (!gfio_blob) return NULL;

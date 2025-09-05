@@ -2897,7 +2897,7 @@ sample_entry_setup:
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, GF_TRUE);
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_IAMF, GF_TRUE);
 		}
-                gf_odf_ia_cfg_del(iacb);
+		gf_odf_ia_cfg_del(iacb);
 	}
 	else if (use_vpX) {
 		GF_VPConfig *vpc;

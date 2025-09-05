@@ -361,12 +361,12 @@ GF_Err kind_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-    if (ptr->schemeURI)
-        gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
-    else
-        gf_bs_write_u8(bs, 0);
+	if (ptr->schemeURI)
+		gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
+	else
+		gf_bs_write_u8(bs, 0);
 
-    if (ptr->value) {
+	if (ptr->value) {
 		gf_bs_write_data(bs, ptr->value, (u32) (strlen(ptr->value) + 1) );
 	}
 	return GF_OK;
@@ -376,7 +376,7 @@ GF_Err kind_box_size(GF_Box *s)
 {
 	GF_KindBox *ptr = (GF_KindBox *)s;
 
-    ptr->size += (ptr->schemeURI ? strlen(ptr->schemeURI) : 0) + 1;
+	ptr->size += (ptr->schemeURI ? strlen(ptr->schemeURI) : 0) + 1;
 	if (ptr->value) {
 		ptr->size += strlen(ptr->value) + 1;
 	}
@@ -1400,10 +1400,10 @@ GF_Err esds_box_write(GF_Box *s, GF_BitStream *bs)
 	u32 descSize = 0;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 	//make sure we write with no ESID and no OCRESID
-    if (ptr->desc) {
-        ptr->desc->ESID = 0;
-        ptr->desc->OCRESID = 0;
-    }
+	if (ptr->desc) {
+		ptr->desc->ESID = 0;
+		ptr->desc->OCRESID = 0;
+	}
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	e = gf_odf_desc_write((GF_Descriptor *)ptr->desc, &enc_desc, &descSize);
@@ -1419,10 +1419,10 @@ GF_Err esds_box_size(GF_Box *s)
 	u32 descSize = 0;
 	GF_ESDBox *ptr = (GF_ESDBox *)s;
 	//make sure we write with no ESID and no OCRESID
-    if (ptr->desc) {
-        ptr->desc->ESID = 0;
-        ptr->desc->OCRESID = 0;
-    }
+	if (ptr->desc) {
+		ptr->desc->ESID = 0;
+		ptr->desc->OCRESID = 0;
+	}
 	descSize = gf_odf_desc_size((GF_Descriptor *)ptr->desc);
 	ptr->size += descSize;
 	return GF_OK;
@@ -2694,7 +2694,7 @@ GF_Err payt_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->payloadCode);
-    len = ptr->payloadString ? (u32) strlen(ptr->payloadString) : 0;
+	len = ptr->payloadString ? (u32) strlen(ptr->payloadString) : 0;
 	gf_bs_write_u8(bs, len);
 	if (len) gf_bs_write_data(bs, ptr->payloadString, len);
 	return GF_OK;
@@ -4115,29 +4115,29 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			//wave subboxes may have been properly parsed
  			if ((wave->original_4cc == GF_QT_BOX_TYPE_WAVE) && gf_list_count(wave->child_boxes)) {
  				u32 i;
-                for (i =0; i<gf_list_count(wave->child_boxes); i++) {
-                    GF_Box *inner_box = (GF_Box *)gf_list_get(wave->child_boxes, i);
-                    if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
-                        ptr->esd = (GF_ESDBox *)inner_box;
+				for (i =0; i<gf_list_count(wave->child_boxes); i++) {
+					GF_Box *inner_box = (GF_Box *)gf_list_get(wave->child_boxes, i);
+					if (inner_box->type == GF_ISOM_BOX_TYPE_ESDS) {
+						ptr->esd = (GF_ESDBox *)inner_box;
  						if (ptr->qtff_mode & GF_ISOM_AUDIO_QTFF_CONVERT_FLAG) {
-                        	gf_list_rem(a->child_boxes, i);
-                        	drop_wave=GF_TRUE;
-                        	ptr->compression_id = 0;
-                        	gf_list_add(ptr->child_boxes, inner_box);
+							gf_list_rem(a->child_boxes, i);
+							drop_wave=GF_TRUE;
+							ptr->compression_id = 0;
+							gf_list_add(ptr->child_boxes, inner_box);
 						}
-                    }
-                }
+					}
+				}
 				if (drop_wave) {
 					gf_isom_box_del_parent(&ptr->child_boxes, a);
-                	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
+					ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 					ptr->version = 0;
 					return GF_OK;
 				}
-                ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
-                return GF_OK;
-            }
-            gf_isom_box_del_parent(&ptr->child_boxes, a);
-            return GF_ISOM_INVALID_MEDIA;
+				ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
+				return GF_OK;
+			}
+			gf_isom_box_del_parent(&ptr->child_boxes, a);
+			return GF_ISOM_INVALID_MEDIA;
 
 		}
  		ptr->qtff_mode &= ~GF_ISOM_AUDIO_QTFF_CONVERT_FLAG;
@@ -4193,28 +4193,28 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			//wave subboxes may have been properly parsed
  			if (gf_list_count(a->child_boxes)) {
  				u32 i;
-                for (i =0; i<gf_list_count(a->child_boxes); i++) {
-                    GF_Box *inner_box = (GF_Box *)gf_list_get(a->child_boxes, i);
-                    if (inner_box->type == subtype) {
-                        *cfg_ptr = inner_box;
+				for (i =0; i<gf_list_count(a->child_boxes); i++) {
+					GF_Box *inner_box = (GF_Box *)gf_list_get(a->child_boxes, i);
+					if (inner_box->type == subtype) {
+						*cfg_ptr = inner_box;
  						if (ptr->qtff_mode & GF_ISOM_AUDIO_QTFF_CONVERT_FLAG) {
-                        	gf_list_rem(a->child_boxes, i);
-                        	drop_wave=GF_TRUE;
-                        	gf_list_add(ptr->child_boxes, inner_box);
+							gf_list_rem(a->child_boxes, i);
+							drop_wave=GF_TRUE;
+							gf_list_add(ptr->child_boxes, inner_box);
 						}
 						break;
-                    }
-                }
+					}
+				}
 				if (drop_wave) {
 					gf_isom_box_del_parent(&ptr->child_boxes, a);
-                	ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
+					ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 					ptr->compression_id = 0;
 					ptr->version = 0;
 					return GF_OK;
 				}
-                ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
-                return GF_OK;
-            }
+				ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
+				return GF_OK;
+			}
 		}
 	}
  		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
@@ -4496,7 +4496,7 @@ GF_Err mp4s_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-    return GF_OK;
+	return GF_OK;
 }
 
 GF_Err mp4s_box_size(GF_Box *s)
@@ -4505,7 +4505,7 @@ GF_Err mp4s_box_size(GF_Box *s)
 	GF_MPEGSampleEntryBox *ptr = (GF_MPEGSampleEntryBox *)s;
 	s->size += 8;
 	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -7096,7 +7096,7 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 		/*only process visual or audio
 		note: no need for new_box_parent here since we always store sample descriptions in child_boxes*/
 		switch (trak->Media->handler->handlerType) {
-        case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
 		{
@@ -9517,7 +9517,7 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->subsegment_alloc = ptr->subsegment_count;
 	GF_SAFE_ALLOC_N(ptr->subsegments, ptr->subsegment_count, GF_SubsegmentInfo);
 	if (!ptr->subsegments)
-	    return GF_OUT_OF_MEM;
+		return GF_OUT_OF_MEM;
 	for (i = 0; i < ptr->subsegment_count; i++) {
 		GF_SubsegmentInfo *subseg = &ptr->subsegments[i];
 		ISOM_DECREASE_SIZE(ptr, 4)
@@ -10102,7 +10102,7 @@ GF_Err sbgp_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->entry_count = gf_bs_read_u32(bs);
 
 	if (ptr->size < sizeof(GF_SampleGroupEntry)*ptr->entry_count || (u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(GF_SampleGroupEntry))
-	    return GF_ISOM_INVALID_FILE;
+		return GF_ISOM_INVALID_FILE;
 
 	ptr->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry)*ptr->entry_count);
 	if (!ptr->sample_entries) return GF_OUT_OF_MEM;
@@ -10902,12 +10902,12 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->default_sample_info_size == 0) {
 		if (ptr->size < ptr->sample_count)
-		    return GF_ISOM_INVALID_FILE;
+			return GF_ISOM_INVALID_FILE;
 
 		ptr->sample_info_size = gf_malloc(sizeof(u8)*ptr->sample_count);
 		ptr->sample_alloc = ptr->sample_count;
 		if (!ptr->sample_info_size)
-		    return GF_OUT_OF_MEM;
+			return GF_OUT_OF_MEM;
 
 		ISOM_DECREASE_SIZE(ptr, ptr->sample_count);
 		gf_bs_read_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
@@ -11884,7 +11884,7 @@ GF_Err fdpa_box_read(GF_Box *s, GF_BitStream *bs)
 			if (ptr->headers[i].data_length) {
 				ptr->headers[i].data_length = 4*ptr->headers[i].data_length - 2;
 				if (ptr->size < sizeof(char) * ptr->headers[i].data_length)
-				    return GF_ISOM_INVALID_FILE;
+					return GF_ISOM_INVALID_FILE;
 				ptr->headers[i].data = gf_malloc(sizeof(char) * ptr->headers[i].data_length);
 				if (!ptr->headers[i].data) return GF_OUT_OF_MEM;
 
@@ -12227,16 +12227,16 @@ GF_Err ainf_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->profile_version);
-    if (ptr->APID)
-        gf_bs_write_data(bs, ptr->APID, (u32) strlen(ptr->APID) );
-    gf_bs_write_u8(bs, 0);
+	if (ptr->APID)
+		gf_bs_write_data(bs, ptr->APID, (u32) strlen(ptr->APID) );
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
 GF_Err ainf_box_size(GF_Box *s)
 {
 	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
-    s->size += 4 + (ptr->APID ? strlen(ptr->APID) : 0 ) + 1;
+	s->size += 4 + (ptr->APID ? strlen(ptr->APID) : 0 ) + 1;
 	return GF_OK;
 }
 
@@ -12890,13 +12890,13 @@ GF_Err iacb_box_write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err iacb_box_size(GF_Box *s)
 {
-        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
-        if (!ptr->cfg) {
+		GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+		if (!ptr->cfg) {
 		ptr->size = 0;
 		return GF_BAD_PARAM;
-        }
-        ptr->size += gf_odf_ia_cfg_size(ptr->cfg);
-        return GF_OK;
+		}
+		ptr->size += gf_odf_ia_cfg_size(ptr->cfg);
+		return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

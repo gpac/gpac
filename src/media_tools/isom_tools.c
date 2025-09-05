@@ -292,7 +292,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 
 	in = gf_fopen(file, "rb");
-    if (!in) return GF_URL_ERROR;
+	if (!in) return GF_URL_ERROR;
 	size = gf_fsize(in);
 
 	ctx = gf_sha1_starts();
@@ -431,8 +431,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		mType = gf_isom_get_media_type(mp4file, i+1);
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
-        case GF_ISOM_MEDIA_AUXV:
-        case GF_ISOM_MEDIA_PICT:
+		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
 			image_track = 0;
 			if (esd && esd->decoderConfig && ((esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG)) )
 				image_track = 1;
@@ -739,8 +739,8 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		stype = gf_isom_get_media_subtype(mp4file, i+1, 1);
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
-        case GF_ISOM_MEDIA_AUXV:
-        case GF_ISOM_MEDIA_PICT:
+		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
 			/*remove image tracks if wanted*/
 			if (gf_isom_get_sample_count(mp4file, i+1)<=1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[3GPP convert] Visual track ID %d: only one sample found\n", gf_isom_get_track_id(mp4file, i+1) ));
@@ -4285,25 +4285,25 @@ GF_Err rfc_6381_get_codec_stpp(char *szCodec, u32 subtype,
                                const char *xml_schema_loc,
                                const char *mimes)
 {
-    // we ignore schema location and auxiliary mime types
-    // we focus on the provided list of namespaces
-    if (xmlnamespace != NULL) {
-        int i;
-        for (i = 0; i < TTML_NAMESPACES_COUNT; i+=2) {
-            if(strstr(xmlnamespace, ttml_namespaces[i+1]) != NULL) {
-                snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s.%s", gf_4cc_to_str(subtype), "ttml", ttml_namespaces[i]);
-                return GF_OK;
-            }
-        }
-        // if none of the namespaces above have been found, search the default TTML namespace
-        if(strstr(xmlnamespace, "http://www.w3.org/ns/ttml")) {
-            snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), "ttml");
-            return GF_OK;
-        }
-    }
-    // None of the known namespaces are found, default
-    snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-    return GF_OK;
+	// we ignore schema location and auxiliary mime types
+	// we focus on the provided list of namespaces
+	if (xmlnamespace != NULL) {
+		int i;
+		for (i = 0; i < TTML_NAMESPACES_COUNT; i+=2) {
+			if(strstr(xmlnamespace, ttml_namespaces[i+1]) != NULL) {
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s.%s", gf_4cc_to_str(subtype), "ttml", ttml_namespaces[i]);
+				return GF_OK;
+			}
+		}
+		// if none of the namespaces above have been found, search the default TTML namespace
+		if(strstr(xmlnamespace, "http://www.w3.org/ns/ttml")) {
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), "ttml");
+			return GF_OK;
+		}
+	}
+	// None of the known namespaces are found, default
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+	return GF_OK;
 }
 
 GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
@@ -4537,28 +4537,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		return e;
 	}
 
-	case GF_ISOM_SUBTYPE_IAMF:
-	{
-		GF_IAConfig *imaf = gf_isom_ _config_get(movie, track, stsd_idx);
-		if (!dovi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-
-
-		esd = gf_media_map_esd(movie, track, stsd_idx);
-		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
-			|| !esd->decoderConfig->decoderSpecificInfo->data
-		) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find IAMF config. Aborting.\n"));
-			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
-			return GF_ISOM_INVALID_FILE;
-		}
-		e = gf_iamf_get_rfc6381_codec_name(szCodec, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
-		return e;
-	}
-
 	case GF_ISOM_SUBTYPE_UNCV:
 	{
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(movie, track, stsd_idx);
@@ -4570,18 +4548,18 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		}
 		return e;
 	}
-    case GF_ISOM_SUBTYPE_STPP:
-    {
-        const char *xmlnamespace;
-        const char *xml_schema_loc;
-        const char *mimes;
-        e = gf_isom_xml_subtitle_get_description(movie, track, stsd_idx,
-                                             &xmlnamespace, &xml_schema_loc, &mimes);
-        if (e == GF_OK) {
-            rfc_6381_get_codec_stpp(szCodec, subtype, xmlnamespace, xml_schema_loc, mimes);
-        }
-        return e;
-    }
+	case GF_ISOM_SUBTYPE_STPP:
+	{
+		const char *xmlnamespace;
+		const char *xml_schema_loc;
+		const char *mimes;
+		e = gf_isom_xml_subtitle_get_description(movie, track, stsd_idx,
+		                                     &xmlnamespace, &xml_schema_loc, &mimes);
+		if (e == GF_OK) {
+			rfc_6381_get_codec_stpp(szCodec, subtype, xmlnamespace, xml_schema_loc, mimes);
+		}
+		return e;
+	}
 	default:
 		return rfc6381_codec_name_default(szCodec, subtype, gf_codec_id_from_isobmf(subtype));
 
@@ -4647,10 +4625,10 @@ GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample
 	gf_isom_sample_del(&samp);
 
   if (op_index > av1_state->operating_points_count) {
-    if (av1_state->config) gf_odf_av1_cfg_del(av1_state->config);
-    gf_av1_reset_state(av1_state, GF_TRUE);
-    gf_free(av1_state);
-    return GF_BAD_PARAM;
+	if (av1_state->config) gf_odf_av1_cfg_del(av1_state->config);
+	gf_av1_reset_state(av1_state, GF_TRUE);
+	gf_free(av1_state);
+	return GF_BAD_PARAM;
   }
 
 	for (i=0; i<3; i++) {

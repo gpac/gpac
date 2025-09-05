@@ -347,7 +347,7 @@ enum
 	IPMP_CP_CM = 3,
 	/*control point in BIFS tree (???)*/
 	IPMP_CP_BIFS = 4
-	               /*the rest is reserved or forbidden(0xFF)*/
+	                     /*the rest is reserved or forbidden(0xFF)*/
 };
 
 /*! IPMPX base classe*/
@@ -1911,21 +1911,21 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 /*! Used for storing IAMF OBUs */
 typedef struct
 {
-        /* Size of raw_obu_bytes, including the header and payload.
-         * This is different from `obu_size` in the IAMF spec Section 3.2,
-         * which includes only the partial header size and the payload.
-         */
-        u64 obu_length;
-        int obu_type;  /* IamfObuType */
-        u8* raw_obu_bytes;
+	/* Size of raw_obu_bytes, including the header and payload.
+	 * This is different from `obu_size` in the IAMF spec Section 3.2,
+	 * which includes only the partial header size and the payload.
+	 */
+	u64 obu_length;
+	int obu_type;  /* IamfObuType */
+	u8* raw_obu_bytes;
 } GF_IamfObu;
 
 /*! Used for storing the IAMF configuration from the `iacb` box */
 typedef struct
 {
-        u8 configurationVersion;
-        u32 configOBUs_size;
-        GF_List *configOBUs;  /* GF_IamfObu */
+	u8 configurationVersion;
+	u32 configOBUs_size;
+	GF_List *configOBUs;  /* GF_IamfObu */
 } GF_IAConfig;
 
 /*! IAMF config constructor

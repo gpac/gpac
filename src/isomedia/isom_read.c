@@ -126,9 +126,9 @@ static u32 gf_isom_probe_type(u32 type)
 	case GF_ISOM_BOX_TYPE_SIDX:
 	case GF_ISOM_BOX_TYPE_EMSG:
 	case GF_ISOM_BOX_TYPE_PRFT:
-    //we map free as segment when it is first in the file - a regular file shall start with ftyp or a file sig, not free
-    //since our route stack may patch boxes to free for incomplete segments, we must map this to free
-    case GF_ISOM_BOX_TYPE_FREE:
+	//we map free as segment when it is first in the file - a regular file shall start with ftyp or a file sig, not free
+	//since our route stack may patch boxes to free for incomplete segments, we must map this to free
+	case GF_ISOM_BOX_TYPE_FREE:
 		return 3;
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe specific*/
@@ -160,10 +160,10 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 		if (gf_blob_get(fileName, &mem_address, &size, NULL) != GF_OK) {
 			return 0;
 		}
-        if (size && (size > start_range + 8)) {
+		if (size && (size > start_range + 8)) {
 			type = GF_4CC(mem_address[start_range + 4], mem_address[start_range + 5], mem_address[start_range + 6], mem_address[start_range + 7]);
-        }
-        gf_blob_release(fileName);
+		}
+		gf_blob_release(fileName);
 	} else if (!strncmp(fileName, "isobmff://", 10)) {
 		return 2;
 	} else {
@@ -310,7 +310,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 
 	trak->Media->handler = (GF_HandlerBox *) gf_isom_box_new_parent(&trak->Media->child_boxes,GF_ISOM_BOX_TYPE_HDLR);
 	if (!trak->Media->handler) return GF_OUT_OF_MEM;
-    //we assume by default vide for handler type (only used for smooth streaming)
+	//we assume by default vide for handler type (only used for smooth streaming)
 	trak->Media->handler->handlerType = width ? GF_ISOM_MEDIA_VISUAL : GF_ISOM_MEDIA_AUDIO;
 
 	trak->Media->information = (GF_MediaInformationBox *) gf_isom_box_new_parent(&trak->Media->child_boxes, GF_ISOM_BOX_TYPE_MINF);
@@ -3341,8 +3341,8 @@ static void gf_isom_recreate_tables(GF_TrackBox *trak)
 	}
 
 	if (stbl->ShadowSync) {
-        gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *) stbl->ShadowSync);
-        stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSH);
+		gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *) stbl->ShadowSync);
+		stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSH);
 	}
 
 	if (stbl->SyncSample) {
@@ -4235,16 +4235,16 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 		case GF_ISOM_MEDIA_AUDIO:
 			nb_a++;
 			break;
-        case GF_ISOM_MEDIA_AUXV:
-            /*discard file with images*/
-            if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
-            else nb_auxv++;
-            break;
-        case GF_ISOM_MEDIA_PICT:
-            /*discard file with images*/
-            if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
-            else nb_pict++;
-            break;
+		case GF_ISOM_MEDIA_AUXV:
+			/*discard file with images*/
+			if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
+			else nb_auxv++;
+			break;
+		case GF_ISOM_MEDIA_PICT:
+			/*discard file with images*/
+			if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
+			else nb_pict++;
+			break;
 		case GF_ISOM_MEDIA_VISUAL:
 			/*discard file with images*/
 			if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;

@@ -1807,8 +1807,8 @@ typedef struct
 
 typedef struct
 {
-        GF_ISOM_BOX
-        GF_IAConfig *cfg;
+	GF_ISOM_BOX
+	GF_IAConfig *cfg;
 } GF_IAConfigurationBox;
 
 
@@ -1880,8 +1880,8 @@ typedef struct __full_audio_sample_entry
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
 
-        //for IAMF
-        GF_IAConfigurationBox *cfg_iamf;
+	//for IAMF
+	GF_IAConfigurationBox *cfg_iamf;
 
 	//for generic audio sample entry
 	//box type as specified in the file (not this box's type!!)

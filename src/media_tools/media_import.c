@@ -165,12 +165,12 @@ u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 c
 		else if (level_check <= 3840*2160*30) dv_level = 7;
 		else if (level_check <= 3840*2160*48) dv_level = 8;
 		else if (level_check <= 3840*2160*60) dv_level = 9;
-        else if (level_check <= 3840*2160*120) {
-            if (width == 7680) dv_level = 11;
-            else dv_level = 10;
-        }
-        else if (level_check <= 7680*4320*60) dv_level = 12;
-        else dv_level = 13;
+		else if (level_check <= 3840*2160*120) {
+			if (width == 7680) dv_level = 11;
+			else dv_level = 10;
+		}
+		else if (level_check <= 7680*4320*60) dv_level = 12;
+		else dv_level = 13;
 	}
 	return dv_level;
 }
@@ -531,12 +531,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_VISUAL:
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Video (size %d x %d)", orig_name, trackID, w, h);
 		break;
-    case GF_ISOM_MEDIA_AUXV:
-        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
-        break;
-    case GF_ISOM_MEDIA_PICT:
-        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Picture sequence (size %d x %d)", orig_name, trackID, w, h);
-        break;
+	case GF_ISOM_MEDIA_AUXV:
+		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
+		break;
+	case GF_ISOM_MEDIA_PICT:
+		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Picture sequence (size %d x %d)", orig_name, trackID, w, h);
+		break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		if (ps) {
@@ -941,7 +941,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
 			u32 timescale, inc;
-            u32 mtype = gf_isom_get_media_type(import->dest, i+1);
+			u32 mtype = gf_isom_get_media_type(import->dest, i+1);
 			if (!gf_isom_is_video_handler_type(mtype)) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);

@@ -3009,23 +3009,23 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			res=0;
 			ctx->avc_state->s_info.poc = ctx->last_poc;
 		}
-        if (ctx->avc_state->s_info.sps) {
-            switch (ctx->avc_state->s_info.slice_type) {
-            case GF_AVC_TYPE_P:
-            case GF_AVC_TYPE2_P:
-                ctx->avc_state->s_info.sps->nb_ep++;
-                break;
-            case GF_AVC_TYPE_I:
-            case GF_AVC_TYPE2_I:
-                ctx->avc_state->s_info.sps->nb_ei++;
-                break;
-            case GF_AVC_TYPE_B:
-            case GF_AVC_TYPE2_B:
-                ctx->avc_state->s_info.sps->nb_eb++;
-                break;
-            }
-        }
-        break;
+		if (ctx->avc_state->s_info.sps) {
+			switch (ctx->avc_state->s_info.slice_type) {
+			case GF_AVC_TYPE_P:
+			case GF_AVC_TYPE2_P:
+				ctx->avc_state->s_info.sps->nb_ep++;
+				break;
+			case GF_AVC_TYPE_I:
+			case GF_AVC_TYPE2_I:
+				ctx->avc_state->s_info.sps->nb_ei++;
+				break;
+			case GF_AVC_TYPE_B:
+			case GF_AVC_TYPE2_B:
+				ctx->avc_state->s_info.sps->nb_eb++;
+				break;
+			}
+		}
+		break;
 	case GF_AVC_NALU_SLICE_AUX:
 		*is_slice = 1;
 		break;
@@ -3273,7 +3273,7 @@ naldmx_flush:
 		gf_bs_reassign_buffer(ctx->bs_r, start, remain);
 	}
 
-    gf_assert(remain>=0);
+	gf_assert(remain>=0);
 
 	while (remain) {
 		u8 *pck_data;
@@ -3496,7 +3496,7 @@ naldmx_flush:
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = (u32) (start - ctx->nal_store);
-            gf_assert(ctx->resume_from<=ctx->nal_store_size);
+			gf_assert(ctx->resume_from<=ctx->nal_store_size);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] not yet playing\n", ctx->log_name));
 
 			if (drop_packet)
@@ -3676,10 +3676,10 @@ naldmx_flush:
 					avc_svc_subs_priority = (63 - (p[1] & 0x3F)) << 2;
 				}
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
-                    if (ctx->svc_prefix_buffer_size) {
-                        GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice in-between\n", ctx->log_name));
-                        ctx->svc_prefix_buffer_size = 0;
-                    }
+					if (ctx->svc_prefix_buffer_size) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice in-between\n", ctx->log_name));
+						ctx->svc_prefix_buffer_size = 0;
+					}
 
 					/* remember reserved and priority value */
 					ctx->svc_nalu_prefix_reserved = avc_svc_subs_reserved;

@@ -2888,16 +2888,16 @@ static void concat_reg(GF_FilterSession *sess, char prefRegister[1001], const ch
 static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *freg, u32 bundle_idx)
 {
 	u32 i, k, cur_bundle_idx = 0;
-    u32 nb_out_caps=0;
+	u32 nb_out_caps=0;
 	for (i=0; i<freg->nb_caps; i++) {
 		u32 nb_caps = 0;
-        u32 cap_bundle_idx = 0;
+		u32 cap_bundle_idx = 0;
 		const GF_FilterCapability *cap = &freg->caps[i];
 		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
 			cur_bundle_idx++;
 			if (cur_bundle_idx>bundle_idx) return GF_FALSE;
-            continue;
+			continue;
 		}
 		if (!(cap->flags & GF_CAPFLAG_STATIC) && (bundle_idx>cur_bundle_idx)) continue;
 		if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
@@ -2907,10 +2907,10 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 		for (k=0; k<freg->nb_caps; k++) {
 			const GF_FilterCapability *acap = &freg->caps[k];
 			if (acap->flags & GF_CAPFLAG_RECONFIG) break;
-            if (!(acap->flags & GF_CAPFLAG_IN_BUNDLE)) {
-                cap_bundle_idx++;
-                continue;
-            }
+			if (!(acap->flags & GF_CAPFLAG_IN_BUNDLE)) {
+				cap_bundle_idx++;
+				continue;
+			}
 			if (!(acap->flags & GF_CAPFLAG_OUTPUT)) continue;
 			if (acap->flags & GF_CAPFLAG_OPTIONAL) continue;
 			if (!(acap->flags & GF_CAPFLAG_STATIC) && (cap_bundle_idx!=bundle_idx) ) continue;
@@ -2924,8 +2924,8 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 			if (nb_caps>1)
 				return GF_TRUE;
 		}
-        if (nb_caps && !(cap->flags & GF_CAPFLAG_EXCLUDED))
-            nb_out_caps++;
+		if (nb_caps && !(cap->flags & GF_CAPFLAG_EXCLUDED))
+			nb_out_caps++;
 	}
 	if (!nb_out_caps)
 		return GF_TRUE;
@@ -4786,8 +4786,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	u32 num_pass=0;
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
-    GF_List *force_link_resolutions = NULL;
-    GF_List *possible_linked_resolutions = NULL;
+	GF_List *force_link_resolutions = NULL;
+	GF_List *possible_linked_resolutions = NULL;
 	GF_Filter *filter = task->filter;
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
@@ -4859,7 +4859,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 
 	linked_dest_filters = gf_list_new();
 	force_link_resolutions = gf_list_new();
-    possible_linked_resolutions = gf_list_new();
+	possible_linked_resolutions = gf_list_new();
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init\n", pid->filter->name, pid->name));
 
@@ -5196,11 +5196,11 @@ single_retry:
 				gf_list_del_item(force_link_resolutions, filter_dst);
 				for (k=0; k<gf_list_count(filter_dst->destination_links); k++) {
 					GF_Filter *a_dst = gf_list_get(filter_dst->destination_links, k);
-                   gf_list_del_item(force_link_resolutions, a_dst);
+					gf_list_del_item(force_link_resolutions, a_dst);
 				}
 				for (k=0; k<gf_list_count(filter_dst->destination_filters); k++) {
 					GF_Filter *a_dst = gf_list_get(filter_dst->destination_filters, k);
-                    gf_list_del_item(force_link_resolutions, a_dst);
+					gf_list_del_item(force_link_resolutions, a_dst);
 				}
 				continue;
 			}
@@ -5500,12 +5500,12 @@ single_retry:
 				}
 			}
 			if (!num_pass) {
-                //we have an explicit link instruction so we must try dynamic link even if we connect to another filter
-                //is_sink set, same thing (implicit mode only, force link to sink)
+				//we have an explicit link instruction so we must try dynamic link even if we connect to another filter
+				//is_sink set, same thing (implicit mode only, force link to sink)
 				if (filter_dst->source_ids || (is_sink && !implicit_link_found)) {
-                    gf_list_add(force_link_resolutions, filter_dst);
-                    //! filter is an alias, prevent linking to the filter being aliased
-                    if (filter_dst->multi_sink_target) {
+					gf_list_add(force_link_resolutions, filter_dst);
+					//! filter is an alias, prevent linking to the filter being aliased
+					if (filter_dst->multi_sink_target) {
 						gf_list_del_item(force_link_resolutions, filter_dst->multi_sink_target);
 						gf_list_add(linked_dest_filters, filter_dst->multi_sink_target);
 					}
@@ -5549,8 +5549,8 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
-                    gf_list_del(force_link_resolutions);
-                    gf_list_del(possible_linked_resolutions);
+					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
 					return;
 				}
 
@@ -5565,8 +5565,8 @@ single_retry:
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
-                    gf_list_del(force_link_resolutions);
-                    gf_list_del(possible_linked_resolutions);
+					gf_list_del(force_link_resolutions);
+					gf_list_del(possible_linked_resolutions);
 					return;
 				}
 				//we might had it wrong solving the chain initially, break the chain
@@ -5589,8 +5589,8 @@ single_retry:
 							safe_int_dec(&pid->init_task_pending);
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
-                            gf_list_del(force_link_resolutions);
-                            gf_list_del(possible_linked_resolutions);
+							gf_list_del(force_link_resolutions);
+							gf_list_del(possible_linked_resolutions);
 							return;
 						} else {
 							continue;
@@ -5672,7 +5672,7 @@ single_retry:
 		}
 		if (pid->link_flags & PID_FORCE_SINGLE)
 			break;
-    }
+	}
 
 	if (!num_pass) {
 		u32 i, k;
@@ -5755,21 +5755,21 @@ single_retry:
 			}
 		}
 	}
-    //we must do the second pass if a filter has an explicit link set through source ID
+	//we must do the second pass if a filter has an explicit link set through source ID
 	if (!num_pass && gf_list_count(force_link_resolutions)) {
 		num_pass = 1;
 		goto restart;
 	}
 
-    //connection task posted, nothing left to do
+	//connection task posted, nothing left to do
 	if (found_dest) {
 		gf_assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FILTER_ENABLED;
 		gf_list_del(linked_dest_filters);
-        gf_list_del(force_link_resolutions);
-        gf_list_del(possible_linked_resolutions);
+		gf_list_del(force_link_resolutions);
+		gf_list_del(possible_linked_resolutions);
 		gf_fs_check_graph_load(filter->session, GF_FALSE);
 		if (pid->not_connected) {
 			pid->not_connected = 0;
@@ -5832,8 +5832,8 @@ single_retry:
 	gf_fs_check_graph_load(filter->session, GF_FALSE);
 
 	gf_list_del(linked_dest_filters);
-    gf_list_del(force_link_resolutions);
-    gf_list_del(possible_linked_resolutions);
+	gf_list_del(force_link_resolutions);
+	gf_list_del(possible_linked_resolutions);
 	gf_mx_v(filter->session->filters_mx);
 
 	if (pid->num_destinations && !pid->not_connected) {
@@ -8520,14 +8520,14 @@ Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
 GF_EXPORT
 Bool gf_filter_pid_share_origin(GF_FilterPid *pid, GF_FilterPid *other_pid)
 {
-    if (!pid || !other_pid) return GF_FALSE;
-    pid = pid->pid;
-    other_pid = other_pid->pid;
-    if (gf_filter_in_parent_chain(pid->filter, other_pid->filter))
-        return GF_TRUE;
-    if (gf_filter_in_parent_chain(other_pid->filter, pid->filter))
-        return GF_TRUE;
-    return GF_FALSE;
+	if (!pid || !other_pid) return GF_FALSE;
+	pid = pid->pid;
+	other_pid = other_pid->pid;
+	if (gf_filter_in_parent_chain(pid->filter, other_pid->filter))
+		return GF_TRUE;
+	if (gf_filter_in_parent_chain(other_pid->filter, pid->filter))
+		return GF_TRUE;
+	return GF_FALSE;
 }
 
 static void filter_pid_inst_collect_stats(GF_FilterPidInst *pidi, GF_FilterPidStatistics *stats)

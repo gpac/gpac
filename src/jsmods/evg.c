@@ -181,15 +181,15 @@ typedef struct
 
 	//we separate VAI/MX from base value in order to be able to assign a VAI value
 	union {
-        struct {
+		struct {
 			EVG_VAI *vai;
 			JSValue ref;
 		} vai;
-        struct {
+		struct {
 			EVG_VA *va;
 			JSValue ref;
 		} va;
-        struct {
+		struct {
 			GF_Matrix *mx;
 			JSValue ref;
 		} mx;
@@ -1566,8 +1566,8 @@ static GFINLINE Float _modf(Float x, Float y)
 
 static Float evg_float_clamp(Float val, Float minval, Float maxval)
 {
-    _mm_store_ss( &val, _mm_min_ss( _mm_max_ss(_mm_set_ss(val),_mm_set_ss(minval)), _mm_set_ss(maxval) ) );
-    return val;
+	_mm_store_ss( &val, _mm_min_ss( _mm_max_ss(_mm_set_ss(val),_mm_set_ss(minval)), _mm_set_ss(maxval) ) );
+	return val;
 }
 #else
 
@@ -5587,37 +5587,37 @@ static JSValue texture_setProperty(JSContext *c, JSValueConst obj, JSValueConst 
 
 void rgb2hsv(const u8 src_r, const u8 src_g, const u8 src_b, u8 *dst_h, u8 *dst_s, u8 *dst_v)
 {
-    float h, s, v; // h:0-360.0, s:0.0-1.0, v:0.0-1.0
-    float r = src_r / 255.0f;
-    float g = src_g / 255.0f;
-    float b = src_b / 255.0f;
+	float h, s, v; // h:0-360.0, s:0.0-1.0, v:0.0-1.0
+	float r = src_r / 255.0f;
+	float g = src_g / 255.0f;
+	float b = src_b / 255.0f;
 
-    float max = max_f(r, g, b);
-    float min = min_f(r, g, b);
+	float max = max_f(r, g, b);
+	float min = min_f(r, g, b);
 
-    v = max;
-    if (max == 0.0f) {
-        s = 0;
-        h = 0;
-    } else if (max - min == 0.0f) {
-        s = 0;
-        h = 0;
-    } else {
-        s = (max - min) / max;
+	v = max;
+	if (max == 0.0f) {
+		s = 0;
+		h = 0;
+	} else if (max - min == 0.0f) {
+		s = 0;
+		h = 0;
+	} else {
+		s = (max - min) / max;
 
-        if (max == r) {
-            h = 60 * ((g - b) / (max - min)) + 0;
-        } else if (max == g) {
-            h = 60 * ((b - r) / (max - min)) + 120;
-        } else {
-            h = 60 * ((r - g) / (max - min)) + 240;
-        }
-    }
-    if (h < 0) h += 360.0f;
+		if (max == r) {
+			h = 60 * ((g - b) / (max - min)) + 0;
+		} else if (max == g) {
+			h = 60 * ((b - r) / (max - min)) + 120;
+		} else {
+			h = 60 * ((r - g) / (max - min)) + 240;
+		}
+	}
+	if (h < 0) h += 360.0f;
 
-    *dst_h = (u8)(h / 2);   // dst_h : 0-180
-    *dst_s = (u8)(s * 255); // dst_s : 0-255
-    *dst_v = (u8)(v * 255); // dst_v : 0-255
+	*dst_h = (u8)(h / 2);   // dst_h : 0-180
+	*dst_s = (u8)(s * 255); // dst_s : 0-255
+	*dst_v = (u8)(v * 255); // dst_v : 0-255
 }
 
 void hsv2rgb(u8 src_h, u8 src_s, u8 src_v, u8 *dst_r, u8 *dst_g, u8 *dst_b)
@@ -7841,48 +7841,48 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 
 	}
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, canvas_funcs, countof(canvas_funcs));
-    JS_SetClassProto(c, canvas_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, canvas_funcs, countof(canvas_funcs));
+	JS_SetClassProto(c, canvas_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, path_funcs, countof(path_funcs));
-    JS_SetClassProto(c, path_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, path_funcs, countof(path_funcs));
+	JS_SetClassProto(c, path_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, mx2d_funcs, countof(mx2d_funcs));
-    JS_SetClassProto(c, mx2d_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, mx2d_funcs, countof(mx2d_funcs));
+	JS_SetClassProto(c, mx2d_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, colmx_funcs, countof(colmx_funcs));
-    JS_SetClassProto(c, colmx_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, colmx_funcs, countof(colmx_funcs));
+	JS_SetClassProto(c, colmx_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, stencil_funcs, countof(stencil_funcs));
-    JS_SetClassProto(c, stencil_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, stencil_funcs, countof(stencil_funcs));
+	JS_SetClassProto(c, stencil_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, texture_funcs, countof(texture_funcs));
-    JS_SetClassProto(c, texture_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, texture_funcs, countof(texture_funcs));
+	JS_SetClassProto(c, texture_class_id, proto);
 
 #ifndef GPAC_DISABLE_FONTS
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, text_funcs, countof(text_funcs));
-    JS_SetClassProto(c, text_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, text_funcs, countof(text_funcs));
+	JS_SetClassProto(c, text_class_id, proto);
 #endif
 
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, mx_funcs, countof(mx_funcs));
-    JS_SetClassProto(c, matrix_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, mx_funcs, countof(mx_funcs));
+	JS_SetClassProto(c, matrix_class_id, proto);
 
 #ifdef EVG_USE_JS_SHADER
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, fragment_funcs, countof(fragment_funcs));
-    JS_SetClassProto(c, fragment_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, fragment_funcs, countof(fragment_funcs));
+	JS_SetClassProto(c, fragment_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, vertex_funcs, countof(vertex_funcs));
-    JS_SetClassProto(c, vertex_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, vertex_funcs, countof(vertex_funcs));
+	JS_SetClassProto(c, vertex_class_id, proto);
 
 	proto = JS_NewObject(c);
 	JS_SetPropertyFunctionList(c, proto, vaires_funcs, countof(vaires_funcs));
@@ -7890,21 +7890,21 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 #endif
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, shader_funcs, countof(shader_funcs));
-    JS_SetClassProto(c, shader_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, shader_funcs, countof(shader_funcs));
+	JS_SetClassProto(c, shader_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, vai_funcs, countof(vai_funcs));
-    JS_SetClassProto(c, vai_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, vai_funcs, countof(vai_funcs));
+	JS_SetClassProto(c, vai_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, va_funcs, countof(va_funcs));
-    JS_SetClassProto(c, va_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, va_funcs, countof(va_funcs));
+	JS_SetClassProto(c, va_class_id, proto);
 
 #ifndef GPAC_DISABLE_3D
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, mesh_funcs, countof(mesh_funcs));
-    JS_SetClassProto(c, mesh_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, mesh_funcs, countof(mesh_funcs));
+	JS_SetClassProto(c, mesh_class_id, proto);
 #endif
 
 	global = JS_GetGlobalObject(c);
@@ -8027,44 +8027,44 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 
 	/*export constructors*/
 	ctor = JS_NewCFunction2(c, canvas_constructor, "Canvas", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Canvas", ctor);
+	JS_SetModuleExport(c, m, "Canvas", ctor);
 	ctor = JS_NewCFunction2(c, path_constructor, "Path", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Path", ctor);
+	JS_SetModuleExport(c, m, "Path", ctor);
 	ctor = JS_NewCFunction2(c, mx2d_constructor, "Matrix2D", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Matrix2D", ctor);
+	JS_SetModuleExport(c, m, "Matrix2D", ctor);
 	ctor = JS_NewCFunction2(c, colmx_constructor, "ColorMatrix", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "ColorMatrix", ctor);
+	JS_SetModuleExport(c, m, "ColorMatrix", ctor);
 	ctor = JS_NewCFunction2(c, solid_brush_constructor, "SolidBrush", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "SolidBrush", ctor);
+	JS_SetModuleExport(c, m, "SolidBrush", ctor);
 	ctor = JS_NewCFunction2(c, linear_gradient_constructor, "LinearGradient", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "LinearGradient", ctor);
+	JS_SetModuleExport(c, m, "LinearGradient", ctor);
 	ctor = JS_NewCFunction2(c, radial_gradient_constructor, "RadialGradient", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "RadialGradient", ctor);
+	JS_SetModuleExport(c, m, "RadialGradient", ctor);
 	ctor = JS_NewCFunction2(c, texture_constructor, "Texture", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Texture", ctor);
+	JS_SetModuleExport(c, m, "Texture", ctor);
 #ifndef GPAC_DISABLE_FONTS
 	ctor = JS_NewCFunction2(c, text_constructor, "Text", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Text", ctor);
+	JS_SetModuleExport(c, m, "Text", ctor);
 #endif
 	ctor = JS_NewCFunction2(c, mx_constructor, "Matrix", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Matrix", ctor);
+	JS_SetModuleExport(c, m, "Matrix", ctor);
 	ctor = JS_NewCFunction2(c, vai_constructor, "VertexAttribInterpolator", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "VertexAttribInterpolator", ctor);
+	JS_SetModuleExport(c, m, "VertexAttribInterpolator", ctor);
 	ctor = JS_NewCFunction2(c, va_constructor, "VertexAttrib", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "VertexAttrib", ctor);
+	JS_SetModuleExport(c, m, "VertexAttrib", ctor);
 
 #ifndef GPAC_DISABLE_3D
 	ctor = JS_NewCFunction2(c, mesh_constructor, "Mesh", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "Mesh", ctor);
+	JS_SetModuleExport(c, m, "Mesh", ctor);
 #endif
 
 	ctor = JS_NewCFunction2(c, evg_pixel_size, "PixelSize", 1, JS_CFUNC_generic, 0);
-    JS_SetModuleExport(c, m, "PixelSize", ctor);
+	JS_SetModuleExport(c, m, "PixelSize", ctor);
 
 #ifdef GPAC_HAS_FFMPEG
-    JS_SetModuleExport(c, m, "BlitEnabled", JS_TRUE);
+	JS_SetModuleExport(c, m, "BlitEnabled", JS_TRUE);
 #else
-    JS_SetModuleExport(c, m, "BlitEnabled", JS_FALSE);
+	JS_SetModuleExport(c, m, "BlitEnabled", JS_FALSE);
 #endif
 	return 0;
 }
@@ -8086,11 +8086,11 @@ void qjs_module_init_evg(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "Text");
 	JS_AddModuleExport(ctx, m, "Matrix");
 	JS_AddModuleExport(ctx, m, "Mesh");
-    JS_AddModuleExport(ctx, m, "VertexAttribInterpolator");
-    JS_AddModuleExport(ctx, m, "VertexAttrib");
-    JS_AddModuleExport(ctx, m, "PixelSize");
-    JS_AddModuleExport(ctx, m, "BlitEnabled");
-    return;
+	JS_AddModuleExport(ctx, m, "VertexAttribInterpolator");
+	JS_AddModuleExport(ctx, m, "VertexAttrib");
+	JS_AddModuleExport(ctx, m, "PixelSize");
+	JS_AddModuleExport(ctx, m, "BlitEnabled");
+	return;
 }
 
 #else // defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_EVG)

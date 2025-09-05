@@ -235,46 +235,46 @@ typedef struct
 
 static OPJ_SIZE_T j2kdec_stream_read(void *out_buffer, OPJ_SIZE_T nb_bytes, void *user_data)
 {
-    OJP2Frame *frame = user_data;
-    u32 remain;
-    if (frame->pos == frame->len) return (OPJ_SIZE_T)-1;
-    remain = frame->len - frame->pos;
-    if (nb_bytes > remain) nb_bytes = remain;
-    memcpy(out_buffer, frame->data + frame->pos, nb_bytes);
-    frame->pos += (u32) nb_bytes;
-    return nb_bytes;
+	OJP2Frame *frame = user_data;
+	u32 remain;
+	if (frame->pos == frame->len) return (OPJ_SIZE_T)-1;
+	remain = frame->len - frame->pos;
+	if (nb_bytes > remain) nb_bytes = remain;
+	memcpy(out_buffer, frame->data + frame->pos, nb_bytes);
+	frame->pos += (u32) nb_bytes;
+	return nb_bytes;
 }
 
 static OPJ_OFF_T j2kdec_stream_skip(OPJ_OFF_T nb_bytes, void *user_data)
 {
-    OJP2Frame *frame = user_data;
-    if (!user_data) return 0;
+	OJP2Frame *frame = user_data;
+	if (!user_data) return 0;
 
-    if (nb_bytes < 0) {
-        if (frame->pos == 0) return (OPJ_SIZE_T)-1;
-        if (nb_bytes + (s32) frame->pos < 0) {
-            nb_bytes = -frame->pos;
-        }
-    } else {
-        u32 remain;
-        if (frame->pos == frame->len) {
-            return (OPJ_SIZE_T)-1;
-        }
-        remain = frame->len - frame->pos;
-        if (nb_bytes > remain) {
-            nb_bytes = remain;
-        }
-    }
-    frame->pos += (u32) nb_bytes;
-    return nb_bytes;
+	if (nb_bytes < 0) {
+		if (frame->pos == 0) return (OPJ_SIZE_T)-1;
+		if (nb_bytes + (s32) frame->pos < 0) {
+			nb_bytes = -frame->pos;
+		}
+	} else {
+		u32 remain;
+		if (frame->pos == frame->len) {
+			return (OPJ_SIZE_T)-1;
+		}
+		remain = frame->len - frame->pos;
+		if (nb_bytes > remain) {
+			nb_bytes = remain;
+		}
+	}
+	frame->pos += (u32) nb_bytes;
+	return nb_bytes;
 }
 
 static OPJ_BOOL j2kdec_stream_seek(OPJ_OFF_T nb_bytes, void *user_data)
 {
-    OJP2Frame *frame = user_data;
-    if (nb_bytes < 0 || nb_bytes > frame->pos) return OPJ_FALSE;
-    frame->pos = (u32)nb_bytes;
-    return OPJ_TRUE;
+	OJP2Frame *frame = user_data;
+	if (nb_bytes < 0 || nb_bytes > frame->pos) return OPJ_FALSE;
+	frame->pos = (u32)nb_bytes;
+	return OPJ_TRUE;
 }
 #endif
 
@@ -334,14 +334,14 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	if (res) res = opj_setup_decoder(codec, parameters);
 
 	stream = opj_stream_default_create(OPJ_STREAM_READ);
-    opj_stream_set_read_function(stream, j2kdec_stream_read);
-    opj_stream_set_skip_function(stream, j2kdec_stream_skip);
-    opj_stream_set_seek_function(stream, j2kdec_stream_seek);
-    ojp2frame.data = data+start_offset;
-    ojp2frame.len = size-start_offset;
-    ojp2frame.pos = 0;
-    opj_stream_set_user_data(stream, &ojp2frame, NULL);
-    opj_stream_set_user_data_length(stream, ojp2frame.len);
+	opj_stream_set_read_function(stream, j2kdec_stream_read);
+	opj_stream_set_skip_function(stream, j2kdec_stream_skip);
+	opj_stream_set_seek_function(stream, j2kdec_stream_seek);
+	ojp2frame.data = data+start_offset;
+	ojp2frame.len = size-start_offset;
+	ojp2frame.pos = 0;
+	opj_stream_set_user_data(stream, &ojp2frame, NULL);
+	opj_stream_set_user_data_length(stream, ojp2frame.len);
 
 	if (res) res = opj_read_header(stream, codec, &image);
 	if (res) res = opj_set_decode_area(codec, image, 0, 0, image->x1, image->y1);

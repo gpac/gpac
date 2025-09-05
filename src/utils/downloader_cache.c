@@ -62,8 +62,8 @@ static const char * CACHE_SECTION_USERS = "users";
 enum CacheValid
 {
 	CORRUPTED = 1,
-    DELETED = 1<<1,
-    IN_PROGRESS = 1<<2,
+	DELETED = 1<<1,
+	IN_PROGRESS = 1<<2,
 };
 
 /**
@@ -124,15 +124,15 @@ struct __DownloadedCacheEntryStruct
 	//allocation
 	u32 mem_allocated;
 	u8 *mem_storage;
-    GF_Blob cache_blob;
+	GF_Blob cache_blob;
 
 	//for external blob only
-    GF_Blob *external_blob;
+	GF_Blob *external_blob;
 	char *forced_headers;
 	u32 downtime;
 
 	//prevent deleting files when deleting entries, typically for init segments
-    Bool persistent;
+	Bool persistent;
 };
 
 Bool gf_sys_check_process_id(u32 pid);
@@ -940,7 +940,7 @@ void gf_cache_delete_entry( const DownloadedCacheEntry entry )
 			gf_file_delete(entry->cache_filename);
 			gf_file_delete(entry->cfg_filename);
 		}
-    }
+	}
 	if (entry->cfg_filename) gf_free(entry->cfg_filename);
 	if (entry->cache_filename) gf_free(entry->cache_filename);
 	if (entry->serverETag) gf_free(entry->serverETag);
@@ -1096,17 +1096,17 @@ u32 gf_cache_get_downtime(const DownloadedCacheEntry entry)
 }
 u32 gf_cache_is_done(const DownloadedCacheEntry entry)
 {
-    if (!entry) return 1;
-    u32 res = 1;
-    if (entry->external_blob) {
-        gf_mx_p(entry->external_blob->mx);
-        res = (entry->external_blob->flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
-        if (res && (entry->external_blob->flags & GF_BLOB_CORRUPTED))
+	if (!entry) return 1;
+	u32 res = 1;
+	if (entry->external_blob) {
+		gf_mx_p(entry->external_blob->mx);
+		res = (entry->external_blob->flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
+		if (res && (entry->external_blob->flags & GF_BLOB_CORRUPTED))
 			res = 2;
-        gf_mx_v(entry->external_blob->mx);
-    } else if (entry->mem_storage) {
-        res = (entry->cache_blob.flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
-    } else {
+		gf_mx_v(entry->external_blob->mx);
+	} else if (entry->mem_storage) {
+		res = (entry->cache_blob.flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
+	} else {
 		if (!(entry->flags & IN_PROGRESS)) return 1;
 		char szLOCK[GF_MAX_PATH];
 		sprintf(szLOCK, "%s.lock", entry->cfg_filename);
@@ -1122,17 +1122,17 @@ u32 gf_cache_is_done(const DownloadedCacheEntry entry)
 		gf_cfg_del(cfg);
 		if (lock_type==GF_LOCKFILE_NEW) gf_file_delete(szLOCK);
 	}
-    return res;
+	return res;
 }
 const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size, Bool *was_modified)
 {
-    if (!entry) return NULL;
+	if (!entry) return NULL;
 	*was_modified = GF_FALSE;
-    if (entry->external_blob) {
-        u8 *data;
+	if (entry->external_blob) {
+		u8 *data;
 		GF_Err e = gf_blob_get_ex(entry->external_blob, &data, size, NULL);
-        if (e) return NULL;
-        *max_valid_size = *size;
+		if (e) return NULL;
+		*max_valid_size = *size;
 		if (entry->external_blob->range_valid) {
 			gf_mx_p(entry->external_blob->mx);
 			entry->external_blob->range_valid(entry->external_blob, 0, max_valid_size);
@@ -1142,43 +1142,43 @@ const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 
 			*was_modified = GF_TRUE;
 			entry->cache_blob.last_modification_time = entry->external_blob->last_modification_time;
 		}
-        return data;
-    }
-    *max_valid_size = *size = entry->cache_blob.size;
-    return entry->cache_blob.data;
+		return data;
+	}
+	*max_valid_size = *size = entry->cache_blob.size;
+	return entry->cache_blob.data;
 }
 void gf_cache_release_content(const DownloadedCacheEntry entry)
 {
-    if (!entry) return;
-    if (!entry->external_blob) return;
-    gf_blob_release_ex(entry->external_blob);
+	if (!entry) return;
+	if (!entry->external_blob) return;
+	gf_blob_release_ex(entry->external_blob);
 }
 Bool gf_cache_is_deleted(const DownloadedCacheEntry entry)
 {
-    if (!entry) return GF_TRUE;
-    if (entry->flags & DELETED) return GF_TRUE;
-    return GF_FALSE;
+	if (!entry) return GF_TRUE;
+	if (entry->flags & DELETED) return GF_TRUE;
+	return GF_FALSE;
 }
 
 Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy, GF_Mutex *mx)
 {
 	if (!entry || !entry->memory_stored) return GF_FALSE;
 
-    if (!blob) {
-        entry->flags |= DELETED;
-        if (entry->external_blob) {
+	if (!blob) {
+		entry->flags |= DELETED;
+		if (entry->external_blob) {
 			gf_blob_unregister(entry->external_blob);
 			entry->external_blob = NULL;
 		}
-        return GF_TRUE;
-    }
-    if (blob->mx)
-        gf_mx_p(blob->mx);
+		return GF_TRUE;
+	}
+	if (blob->mx)
+		gf_mx_p(blob->mx);
 
-    if (!copy) {
-        if (entry->mem_allocated) gf_free(entry->mem_storage);
+	if (!copy) {
+		if (entry->mem_allocated) gf_free(entry->mem_storage);
 		entry->mem_storage = (u8 *) blob->data;
-        if (!entry->written_in_cache) {
+		if (!entry->written_in_cache) {
 			char *burl = gf_blob_register(blob);
 			if (burl) {
 				strcpy(entry->cache_filename, burl);
@@ -1190,47 +1190,47 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 		entry->mem_allocated = 0;
 		entry->cache_blob.data = NULL;
 		entry->cache_blob.size = 0;
-        entry->external_blob = blob;
+		entry->external_blob = blob;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Storing %d bytes to memory from external module\n", blob->size));
-    } else {
+	} else {
 		if (!entry->cache_blob.mx)
 			entry->cache_blob.mx = mx;
 		gf_mx_p(entry->cache_blob.mx);
 
-        if (blob->size >= entry->mem_allocated) {
-            u32 new_size;
-            new_size = MAX(entry->mem_allocated*2, blob->size+1);
-            entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
-            entry->mem_allocated = new_size;
-            entry->cache_blob.data = entry->mem_storage;
-            entry->cache_blob.size = entry->contentLength;
-            if (!entry->written_in_cache) {
+		if (blob->size >= entry->mem_allocated) {
+			u32 new_size;
+			new_size = MAX(entry->mem_allocated*2, blob->size+1);
+			entry->mem_storage = (u8*)gf_realloc(entry->mem_allocated ? entry->mem_storage : NULL, (new_size+2));
+			entry->mem_allocated = new_size;
+			entry->cache_blob.data = entry->mem_storage;
+			entry->cache_blob.size = entry->contentLength;
+			if (!entry->written_in_cache) {
 				char *burl = gf_blob_register(&entry->cache_blob);
 				if (burl) {
 					strcpy(entry->cache_filename, burl);
 					gf_free(burl);
 				}
-            }
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
-        }
-        memcpy(entry->mem_storage, blob->data, blob->size);
-        entry->mem_storage[blob->size] = 0;
-        entry->cache_blob.size = entry->written_in_cache = blob->size;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Storing %d bytes to cache memory\n", blob->size));
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
+		}
+		memcpy(entry->mem_storage, blob->data, blob->size);
+		entry->mem_storage[blob->size] = 0;
+		entry->cache_blob.size = entry->written_in_cache = blob->size;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Storing %d bytes to cache memory\n", blob->size));
 
 		gf_mx_v(entry->cache_blob.mx);
 
 		entry->cache_blob.flags = blob->flags;
-    }
+	}
 	if (blob->flags & GF_BLOB_IN_TRANSFER)
 		entry->contentLength = 0;
 	else
 		entry->contentLength = blob->size;
 
-    if (blob->mx)
-        gf_mx_v(blob->mx);
+	if (blob->mx)
+		gf_mx_v(blob->mx);
 
-    return GF_TRUE;
+	return GF_TRUE;
 }
 
 static Bool gf_cache_entry_can_reuse(const DownloadedCacheEntry entry, Bool skip_revalidate)

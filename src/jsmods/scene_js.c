@@ -176,21 +176,21 @@ static void scenejs_finalize(JSRuntime *rt, JSValue obj);
 static void scenejs_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
 	GF_SCENEJSExt *ext = JS_GetOpaque(val, scene_class_id);
-    if (ext) {
+	if (ext) {
 		JS_MarkValue(rt, ext->evt_fun, mark_func);
-    }
+	}
 }
 
 JSClassDef sceneClass = {
-    "JSSCENE",
-    .finalizer = scenejs_finalize,
-    .gc_mark = scenejs_gc_mark
+	"JSSCENE",
+	.finalizer = scenejs_finalize,
+	.gc_mark = scenejs_gc_mark
 };
 JSClassDef gpacEvtClass = {
-    "GPACEVT"
+	"GPACEVT"
 };
 JSClassDef odmClass = {
-    "MediaObject"
+	"MediaObject"
 };
 JSClassDef anyClass = {
 	"GPACOBJECT"
@@ -767,7 +767,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, odi.max_bitrate);
 	case GJS_OM_PROP_SERVICE_HANDLER:
 		gf_odm_get_object_info(odm, &odi);
-            return JS_NewString(ctx, odi.service_handler ? odi.service_handler : "unloaded");
+		return JS_NewString(ctx, odi.service_handler ? odi.service_handler : "unloaded");
 	case GJS_OM_PROP_CODEC:
 		gf_odm_get_object_info(odm, &odi);
 		return JS_NewString(ctx, odi.codec_name ? odi.codec_name : "unloaded");
@@ -825,15 +825,15 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx,  (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
 		break;
 	case GJS_OM_PROP_BANDWIDTH_DOWN:
-        if (odm->scene_ns->source_filter) {
+		if (odm->scene_ns->source_filter) {
 			JSValue ret;
-            GF_PropertyEntry *pe=NULL;
-            const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
-            ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
-            gf_filter_release_property(pe);
-            return ret;
-        }
-        return JS_NewInt32(ctx, 0);
+			GF_PropertyEntry *pe=NULL;
+			const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
+			ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
+			gf_filter_release_property(pe);
+			return ret;
+		}
+		return JS_NewInt32(ctx, 0);
 
 	case GJS_OM_PROP_NB_HTTP:
 		if (odm->scene_ns->source_filter) {
@@ -1997,7 +1997,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 
 	JS_FreeValue(c, global);
 
-    JS_SetModuleExport(c, m, "scene", sjs->scene_obj);
+	JS_SetModuleExport(c, m, "scene", sjs->scene_obj);
 	return 0;
 }
 

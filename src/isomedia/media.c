@@ -250,12 +250,12 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_MP4A:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
 			return GF_ISOM_INVALID_MEDIA;
-        {
-            GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
-            ESDa = ase->esd;
-            if (ESDa) {
+		{
+			GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
+			ESDa = ase->esd;
+			if (ESDa) {
 				esd = (GF_ESD *) ESDa->desc;
-            } else if (!true_desc_only) {
+			} else if (!true_desc_only) {
 				Bool make_mp4a = GF_FALSE;
 				sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 
@@ -282,8 +282,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 					return GF_NOT_SUPPORTED;
 #endif
 				}
-            }
-        }
+			}
+		}
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
 		if (entry->internal_type==GF_ISOM_SAMPLE_ENTRY_MP4S) {

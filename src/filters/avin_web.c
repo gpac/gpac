@@ -116,7 +116,7 @@ EM_JS(int, webgrab_next_audio, (int wg_ctx),
 
 static GF_Err webgrab_process(GF_Filter *filter)
 {
-    GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = gf_filter_get_udta(filter);
 	if (ctx->init_err) return ctx->init_err;
 	if (!ctx->init_play_done) return GF_OK;
 
@@ -149,7 +149,7 @@ static GF_Err webgrab_process(GF_Filter *filter)
 
 static Bool webgrab_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-    GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = gf_filter_get_udta(filter);
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		if (evt->base.on_pid==ctx->vpid) {
@@ -347,10 +347,10 @@ EM_JS(int, webgrab_start_usermedia, (int wg_ctx, int vid, int aud, int canv_id, 
 	if (typeof libgpac._to_webgrab != 'function') {
 		libgpac._web_grabs = [];
 		libgpac._to_webgrab = (ctx) => {
-          for (let i=0; i<libgpac._web_grabs.length; i++) {
-            if (libgpac._web_grabs[i]._wg_ctx==ctx) return libgpac._web_grabs[i];
-          }
-          return null;
+			for (let i=0; i<libgpac._web_grabs.length; i++) {
+				if (libgpac._web_grabs[i]._wg_ctx==ctx) return libgpac._web_grabs[i];
+			}
+			return null;
 		};
 		libgpac._on_wgrab_error = cwrap('webgrab_on_error', null, ['number', 'number', 'string']);
 		libgpac._on_wgrab_video_frame = cwrap('webgrab_on_video_frame', null, ['number', 'number', 'number', 'string', 'bigint']);
@@ -431,19 +431,19 @@ GF_Err webgrab_initialize(GF_Filter *filter)
 {
 	Bool use_video=GF_FALSE, use_audio=GF_FALSE;
 	char *canvas_id=NULL;
-    GF_WebGrab *ctx = gf_filter_get_udta(filter);
-    ctx->filter = filter;
+	GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	ctx->filter = filter;
 
-    if (!ctx->src) return GF_BAD_PARAM;
+	if (!ctx->src) return GF_BAD_PARAM;
 
-    if (!strcmp(ctx->src, "video://")) use_video = GF_TRUE;
+	if (!strcmp(ctx->src, "video://")) use_video = GF_TRUE;
 	else if (!strncmp(ctx->src, "video://", 8)) {
 		canvas_id = ctx->src+8;
 		ctx->is_canvas = GF_TRUE;
-    }
-    else if (!strcmp(ctx->src, "audio://")) use_audio = GF_TRUE;
-    else if (!strcmp(ctx->src, "av://")) use_video = use_audio = GF_TRUE;
-    else
+	}
+	else if (!strcmp(ctx->src, "audio://")) use_audio = GF_TRUE;
+	else if (!strcmp(ctx->src, "av://")) use_video = use_audio = GF_TRUE;
+	else
 		return GF_BAD_PARAM;
 
 	gf_filter_prevent_blocking(filter, GF_TRUE);
@@ -451,7 +451,7 @@ GF_Err webgrab_initialize(GF_Filter *filter)
 
 	ctx->video_pcks = gf_list_new();
 	ctx->audio_pcks = gf_list_new();
-    return GF_OK;
+	return GF_OK;
 }
 
 EM_JS(int, wgrab_del, (int wg_ctx), {
@@ -472,7 +472,7 @@ EM_JS(int, wgrab_del, (int wg_ctx), {
 
 void webgrab_finalize(GF_Filter *filter)
 {
-    GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = gf_filter_get_udta(filter);
 	wgrab_del(EM_CAST_PTR ctx);
 	while (gf_list_count(ctx->video_pcks)) {
 		GF_FilterPacket *pck = gf_list_pop_front(ctx->video_pcks);

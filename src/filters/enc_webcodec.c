@@ -98,10 +98,10 @@ EM_JS(int, wcenc_init, (int wc_ctx, int _codec_str, int bitrate, int width, int 
 	if (typeof libgpac._to_webenc != 'function') {
 		libgpac._web_encs = [];
 		libgpac._to_webenc = (ctx) => {
-          for (let i=0; i<libgpac._web_encs.length; i++) {
-            if (libgpac._web_encs[i]._wc_ctx==ctx) return libgpac._web_encs[i];
-          }
-          return null;
+		  for (let i=0; i<libgpac._web_encs.length; i++) {
+			if (libgpac._web_encs[i]._wc_ctx==ctx) return libgpac._web_encs[i];
+		  }
+		  return null;
 		};
 		libgpac._on_wcenc_error = cwrap('wcenc_on_error', null, ['number', 'number', 'string']);
 		libgpac._on_wcenc_config = cwrap('wcenc_on_config', null, ['number', 'number']);
@@ -153,7 +153,7 @@ static GF_Err wcenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	const GF_PropertyValue *p;
 	u32 streamtype;
 	char *codec_par=NULL;
-    GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -625,10 +625,10 @@ void wcenc_on_frame(GF_WCEncCtx *ctx, u64 timestamp, u32 duration, u32 size, int
 
 GF_Err wcenc_initialize(GF_Filter *filter)
 {
-    GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
-    ctx->filter = filter;
+	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	ctx->filter = filter;
 	ctx->src_pcks = gf_list_new();
-    return GF_OK;
+	return GF_OK;
 }
 
 EM_JS(int, wcenc_del, (int wc_ctx), {
@@ -645,10 +645,10 @@ EM_JS(int, wcenc_del, (int wc_ctx), {
 
 void wcenc_finalize(GF_Filter *filter)
 {
-    GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
-    wcenc_del(EM_CAST_PTR ctx);
+	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	wcenc_del(EM_CAST_PTR ctx);
 
-    while (gf_list_count(ctx->src_pcks)) {
+	while (gf_list_count(ctx->src_pcks)) {
 		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_pcks);
 		gf_filter_pck_unref(pck);
 	}

@@ -1284,11 +1284,11 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		parser->current_pos = 0;
 
 		e = gf_xml_sax_init(parser, szLine);
-        if (!e) {
-            e = gf_xml_sax_parse(parser, xml_mem_address+4);
-            if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
-        }
-        gf_blob_release(fileName);
+		if (!e) {
+			e = gf_xml_sax_parse(parser, xml_mem_address+4);
+			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
+		}
+		gf_blob_release(fileName);
 
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
