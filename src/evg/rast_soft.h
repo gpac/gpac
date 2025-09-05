@@ -560,7 +560,7 @@ struct _gf_evg_surface
 	u32 max_lines;
 	TPos min_ex, max_ex, min_ey, max_ey;
 	TCoord ex, ey;
-	TPos x,  y, last_ey;
+	TPos x, y, last_ey;
 	TArea area;
 	int cover;
 	u32 idx1, idx2;

@@ -4537,6 +4537,28 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		return e;
 	}
 
+	case GF_ISOM_SUBTYPE_IAMF:
+	{
+		GF_IAConfig *imaf = gf_isom_ _config_get(movie, track, stsd_idx);
+		if (!dovi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+
+		esd = gf_media_map_esd(movie, track, stsd_idx);
+		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
+			|| !esd->decoderConfig->decoderSpecificInfo->data
+		) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find IAMF config. Aborting.\n"));
+			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+			return GF_ISOM_INVALID_FILE;
+		}
+		e = gf_iamf_get_rfc6381_codec_name(szCodec, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+		return e;
+	}
+
 	case GF_ISOM_SUBTYPE_UNCV:
 	{
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(movie, track, stsd_idx);

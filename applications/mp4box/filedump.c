@@ -3713,7 +3713,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 		fprintf(stderr, "\n");
 	}
 
-	if ( gf_media_get_rfc_6381_codec_name(file, trackNum, stsd_idx, szCodec, GF_FALSE, GF_FALSE) == GF_OK) {
+	if (gf_media_get_rfc_6381_codec_name(file, trackNum, stsd_idx, szCodec, GF_FALSE, GF_FALSE) == GF_OK) {
 		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
 }

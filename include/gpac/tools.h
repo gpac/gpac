@@ -1454,7 +1454,7 @@ typedef enum {
 	GF_LOCKFILE_FAILED=0,
 	/*! lockfile creation succeeded, creating a new lock file*/
 	GF_LOCKFILE_NEW,
-	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
+	/*! lockfile creation succeeded, lock file was already present and created by this process*/
 	GF_LOCKFILE_REUSE
 } GF_LockStatus;
 

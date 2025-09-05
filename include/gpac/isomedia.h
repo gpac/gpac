@@ -1341,7 +1341,7 @@ GF_Err gf_isom_get_chapter(GF_ISOFile *isom_file, u32 trackNumber, u32 Index, u6
 /*! checks if a media has sync points
 \param isom_file the target ISO file
 \param trackNumber the target track
-\return 0 if the media has no sync point info (eg, all samples are RAPs), 1 if the media has sync points (eg some samples are RAPs),  2 if the media has empty sync point info (no samples are RAPs - this will likely only happen
+\return 0 if the media has no sync point info (eg, all samples are RAPs), 1 if the media has sync points (eg some samples are RAPs), 2 if the media has empty sync point info (no samples are RAPs - this will likely only happen
 			in scalable context)
 */
 u8 gf_isom_has_sync_points(GF_ISOFile *isom_file, u32 trackNumber);
@@ -2235,7 +2235,7 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleN
 \param force_rescale_type type fo rescaling, Ignored if new_tsinc is not 0:
  - if set to 0, rescale timings.
  - if set to 1, only the media timescale is changed but media times are not updated.
- - if set to 2,  media timescale is updated if new_timescale is set, and all sample durations are set to new_tsinc
+ - if set to 2, media timescale is updated if new_timescale is set, and all sample durations are set to new_tsinc
 \return GF_EOS if no action taken (same config), or error if any
 */
 GF_Err gf_isom_set_media_timescale(GF_ISOFile *isom_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, u32 force_rescale_type);
@@ -2297,9 +2297,9 @@ GF_OPT_ENUM (GF_ISOCompressMode,
 	GF_ISOM_COMP_MOOF,
 	/*! only moof and sidx boxes are compressed*/
 	GF_ISOM_COMP_MOOF_SIDX,
-	/*! only moof,  sidx and ssix boxes are compressed*/
+	/*! only moof, sidx and ssix boxes are compressed*/
 	GF_ISOM_COMP_MOOF_SSIX,
-	/*! all (moov, moof,  sidx and ssix) boxes are compressed*/
+	/*! all (moov, moof, sidx and ssix) boxes are compressed*/
 	GF_ISOM_COMP_ALL,
 );
 
@@ -2960,7 +2960,7 @@ Bool gf_isom_is_inplace_rewrite(GF_ISOFile *isom_file);
  - specifying a storage mode using  \ref gf_isom_set_storage_mode
  - removing or adding tracks or items
  - removing, adding or updating samples
- - using stdout, redirect file "_gpac_isobmff_redirect",  memory file " gmem://"
+ - using stdout, redirect file "_gpac_isobmff_redirect", memory file " gmem://"
 
 In-place rewriting is enabled by default on files open in edit mode.
 
@@ -4133,7 +4133,7 @@ GF_Err gf_isom_get_lpcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampl
 \param URLname URL value of the data reference, NULL if no data reference (media in the file)
 \param URNname URN value of the data reference, NULL if no data reference (media in the file)
 \param outDescriptionIndex set to the index of the created sample description
-\param dsi the MPEGH audio config (payload of mhaC box):  byte[0]=1 (config version) ,byte[1]=ProfileLevel,  byte[2]=channel layout, byte[3],byte[4]: the size of what follows the rest being a mpegh3daConfig
+\param dsi the MPEGH audio config (payload of mhaC box):  byte[0]=1 (config version) ,byte[1]=ProfileLevel, byte[2]=channel layout, byte[3],byte[4]: the size of what follows the rest being a mpegh3daConfig
 \param dsi_size the size of the MPEGH audio config
 \param mha_subtype mha1/mha2:/mhm1/mhm2 subtype to use
 \return error if any

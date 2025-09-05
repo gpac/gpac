@@ -120,7 +120,7 @@ typedef struct {
 	
 GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, GF_MCDecSurfaceTexture * surfaceTex);
 GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture surfaceTex);
-char * mcdec_find_decoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive);
+char * mcdec_find_decoder(const char * mime, u32 width, u32 height, Bool * is_adaptive);
 u32 mcdec_exit_callback(void * param);
 
 GF_Err mcdec_update_surface(GF_MCDecSurfaceTexture surfaceTex);

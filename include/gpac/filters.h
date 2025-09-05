@@ -254,7 +254,7 @@ typedef enum
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, GF_FilterSessionFlags flags, const char *blacklist);
 
 /*! Creates a new filter session, loading parameters from gpac config. This will also load all available filter registers not blacklisted.
-\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META,  \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
+\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META, \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
 \return the created filter session
 */
 GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags flags);
@@ -1897,7 +1897,7 @@ typedef struct
 	u8 is_init_segment;
 	/*!GF_FEVT_SOURCE_SWITCH only, ignore cache expiration directive for HTTP*/
 	u8 skip_cache_expiration;
-	/*! GF_FEVT_SOURCE_SEEK only,  hint block size for source, might not be respected*/
+	/*! GF_FEVT_SOURCE_SEEK only, hint block size for source, might not be respected*/
 	u32 hint_block_size;
 } GF_FEVT_SourceSeek;
 
