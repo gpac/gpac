@@ -1514,6 +1514,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Invalid AVFormatContext pointer %s\n", ctx->fname, ctx->src));
 			return GF_URL_ERROR;
 		}
+		if (ctx->demuxer->av_class->version != LIBAVUTIL_VERSION_INT) {
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] AVFormatContext pointer %s is not the same version as the current libavutil: compiled %08x, running %08x\n",
+				ctx->fname, ctx->src, LIBAVUTIL_VERSION_INT, ctx->demuxer->av_class->version));
+			return GF_NOT_SUPPORTED;
+		}
 		ctx->src_as_avf = GF_TRUE;
 	} else {
 		ctx->demuxer = avformat_alloc_context();
