@@ -1352,6 +1352,16 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			ctx->fragdur = GF_TRUE;
 	}
 
+	if (ctx->dash_mode && !ctx->tfdt_traf) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_DUR);
+		GF_Fraction dash_dur = {0};
+		if (p) dash_dur = p->value.frac;
+
+		if (ctx->cdur.num * dash_dur.den < dash_dur.num * ctx->cdur.den) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] DASH mode with multiple fragments per segment but TFDT only set on first fragment of segment, may not be supported by all demuxers. Use `--tfdt_traf` or set CMAF profile `--cmaf=X` if not desired.\n"));
+		}
+	}
+
 	if (needs_track) {
 		if (ctx->init_movie_done) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot add track to already finalized movie in fragmented file, will request a new muxer for that track\n"));
@@ -6740,7 +6750,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 
 				if (orig_frag_bounds==2) {
 					if (!ctx->segment_started) {
-						ctx->dash_mode = 1;
+						ctx->dash_mode = MP4MX_DASH_ON;
 						ctx->insert_tfdt = GF_TRUE;
 						gf_isom_start_segment(ctx->file, ctx->single_file ? NULL : "_gpac_isobmff_redirect", GF_FALSE);
 					} else if (tkw->samples_in_frag) {
