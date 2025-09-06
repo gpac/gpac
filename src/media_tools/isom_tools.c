@@ -4254,6 +4254,7 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 
 	return GF_OK;
 }
+
 GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl)
 {
 	if (dsi && (dsi_size>=2) ) {
@@ -4263,6 +4264,48 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find MPEG-H Audio Config or audio PL, defaulting to profile 0x01\n"));
 	}
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), pl);
+	return GF_OK;
+}
+
+GF_Err rfc_6381_get_codec_imaf(char *szCodec, GF_IAConfig *cfg)
+{
+	IAMFState state;
+	gf_iamf_init_state(&state);
+
+	u32 obu_count = gf_list_count(cfg->configOBUs);
+	for (u32 i=0; i<obu_count; ++i) {
+		GF_IamfObu *obu = gf_list_get(cfg->configOBUs, i);
+		GF_BitStream *bs = gf_bs_new(obu->raw_obu_bytes, obu->obu_length, GF_BITSTREAM_READ);
+
+		u64 obu_size = 0;
+		IamfObuType obu_type;
+		GF_Err e = gf_iamf_parse_obu(bs, &obu_type, &obu_size, &state);
+		gf_bs_del(bs);
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IAMF] could not parse configOBU #%u. Leaving parsing.\n", i));
+			return GF_ISOM_INVALID_FILE;
+		}
+	}
+
+	const char *codec = NULL;
+	switch (state.codec_id) {
+		case GF_4CC('O', 'p', 'u', 's'):
+			codec = "opus";
+			break;
+		case GF_4CC('f', 'L', 'a', 'C'):
+			codec = "fLaC";
+			break;
+		case GF_4CC('i', 'p', 'c', 'm'):
+			codec = "ipcm";
+			break;
+		case GF_4CC('m', 'p', '4', 'a'):
+			codec = "mp4a.40.2";
+			break;
+		default:
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IAMF] Unsupported codec_id=%u. Leaving parsing.\n", state.codec_id));
+			return GF_ISOM_INVALID_FILE;
+	}
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "iamf.%03u.%03u.%s", state.primary_profile, state.additional_profile, codec);
 	return GF_OK;
 }
 
@@ -4537,6 +4580,18 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		return e;
 	}
 
+	case GF_ISOM_SUBTYPE_IAMF:
+	{
+		GF_IAConfig *imaf = gf_isom_iamf_config_get(movie, track, stsd_idx);
+		if (!imaf) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] No config found for IAMF file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		e = rfc_6381_get_codec_imaf(szCodec, imaf);
+		gf_odf_ia_cfg_del(imaf);
+		return e;
+	}
+
 	case GF_ISOM_SUBTYPE_UNCV:
 	{
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(movie, track, stsd_idx);
@@ -4562,7 +4617,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 	}
 	default:
 		return rfc6381_codec_name_default(szCodec, subtype, gf_codec_id_from_isobmf(subtype));
-
 	}
 	return GF_OK;
 }

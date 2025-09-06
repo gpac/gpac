@@ -236,6 +236,8 @@ GF_Box *gf_isom_audio_sample_get_audio_codec_cfg_box(GF_AudioSampleEntryBox *ptr
 		return (GF_Box *)mpga->cfg_ac4;
 	case GF_ISOM_BOX_TYPE_OPUS:
 		return (GF_Box *)mpga->cfg_opus;
+	case GF_ISOM_BOX_TYPE_IAMF:
+		return (GF_Box *)mpga->cfg_iamf;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		return (GF_Box *)mpga->cfg_mha;

@@ -3561,6 +3561,14 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 */
 GF_DOVIDecoderConfigurationRecord* gf_isom_dovi_config_get(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
+/*! gets IAMF config for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return the IAMF config - user is responsible for deleting it
+*/
+GF_IAConfig* gf_isom_iamf_config_get(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
 /*! checks if some tracks in file needs layer reconstruction
 \param isom_file the target ISO file
 \return GF_TRUE if track dependencies implying extractors or implicit reconstruction are found, GF_FALSE otherwise

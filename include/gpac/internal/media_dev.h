@@ -1089,7 +1089,11 @@ typedef struct
 
 typedef struct
 {
+	// Determined based on Sequence Header OBU.
+	u8 primary_profile;
+	u8 additional_profile;
 	// Determined based on Codec Config OBU.
+	u32 codec_id;
 	int num_samples_per_frame;
 	int sample_size;
 	int sample_rate;

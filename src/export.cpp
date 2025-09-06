@@ -1021,6 +1021,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_unused_box_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_clean_aperture) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dovi_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_iamf_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_opus_config_get_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pcm_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_lpcm_config) )

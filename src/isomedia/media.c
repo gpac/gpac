@@ -310,19 +310,21 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_GENERIC)
 			return GF_ISOM_INVALID_MEDIA;
 
-		if (true_desc_only) return GF_ISOM_INVALID_MEDIA;
+		if (true_desc_only)
+			return GF_ISOM_INVALID_MEDIA;
+
 		{
-		GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
-		esd =  gf_odf_desc_esd_new(2);
-		*out_esd = esd;
-		esd->decoderConfig->streamType = GF_STREAM_TEXT;
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
-		if (vtte->config) {
-			esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
-			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
-			memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
+			esd =  gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = GF_STREAM_TEXT;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
+			if (vtte->config) {
+				esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
+				esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			}
 		}
-	}
 		break;
 	case GF_ISOM_BOX_TYPE_STPP:
 	case GF_ISOM_BOX_TYPE_SBTT:
@@ -362,6 +364,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		gf_odf_opus_cfg_write(&opus_c->opcfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		break;
 	}
+
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;

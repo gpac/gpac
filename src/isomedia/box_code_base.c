@@ -4082,6 +4082,10 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		BOX_FIELD_ASSIGN(cfg_opus, GF_OpusSpecificBox)
 		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		break;
+	case GF_ISOM_BOX_TYPE_IACB:
+		BOX_FIELD_ASSIGN(cfg_iamf, GF_IAConfigurationBox)
+		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
+		break;
 	case GF_ISOM_BOX_TYPE_DAC3:
 		BOX_FIELD_ASSIGN(cfg_ac3, GF_AC3ConfigBox)
 		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;

@@ -4163,6 +4163,7 @@ void gf_iamf_init_state(IAMFState *state)
 		return;
 
 	memset(state, 0, sizeof(IAMFState));
+	state->codec_id = 0;
 	state->num_samples_per_frame = 0;
 	state->sample_size = 0;
 	state->sample_rate = 0;
@@ -4712,14 +4713,16 @@ static Bool iamf_is_profile_supported(u8 profile)
 	return profile == 0 || profile == 1 || profile == 2;
 }
 
-static GF_Err iamf_parse_ia_sequence_header(GF_BitStream *bs)
+static GF_Err iamf_parse_ia_sequence_header(GF_BitStream *bs, IAMFState *state)
 {
 	u32 ia_code = gf_bs_read_int_log(bs, 32, "ia_code");
 	if (ia_code != GF_4CC('i', 'a', 'm', 'f')) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	u8 primary_profile = gf_bs_read_int_log(bs, 8, "primary_profile");
+	if (state) state->primary_profile = primary_profile;
 	u8 additional_profile = gf_bs_read_int_log(bs, 8, "additional_profile");
+	if (state) state->additional_profile = additional_profile;
 	if (iamf_is_profile_supported(primary_profile) || iamf_is_profile_supported(additional_profile)) {
 		return GF_OK;
 	}
@@ -4733,10 +4736,10 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 	GF_Descriptor *desc = NULL;
 	GF_Err e = GF_OK;
 	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
-	u32 codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
+	state->codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
 	state->num_samples_per_frame = (int) gf_av1_leb128_read(bs, NULL);
 	state->audio_roll_distance = gf_bs_read_int_log(bs, 16, "roll_distance");
-	switch (codec_id) {
+	switch (state->codec_id) {
 	case GF_4CC('O', 'p', 'u', 's'):
 		state->sample_rate = 48000;
 		state->sample_size = 16;
@@ -4836,7 +4839,7 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 		return GF_FALSE;
 	}
 
-	e = iamf_parse_ia_sequence_header(bs);
+	e = iamf_parse_ia_sequence_header(bs, NULL);
 	gf_bs_seek(bs, start);
 	return !e;
 }
@@ -4871,7 +4874,7 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
 
 	switch (*obu_type) {
 	case OBU_IA_SEQUENCE_HEADER:
-		e = iamf_parse_ia_sequence_header(bs);
+		e = iamf_parse_ia_sequence_header(bs, state);
 		if (!e)
 			state->frame_state.seen_valid_ia_seq_header = GF_TRUE;
 		state->total_substreams = 0;
