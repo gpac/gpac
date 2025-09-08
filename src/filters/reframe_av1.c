@@ -171,7 +171,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->state.config = gf_odf_av1_cfg_new();
 
 	if (!ctx->iamfstate.config) {
-		ctx->iamfstate.config = gf_odf_ia_cfg_new();
+		ctx->iamfstate.config = gf_odf_iamf_cfg_new();
 		if (!ctx->iamfstate.config) return GF_OUT_OF_MEM;
 	}
 
@@ -422,7 +422,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	switch (ctx->bsmode) {
 	case IAMF:
 		gf_iamf_init_state(iamfstate);
-		iamfstate->config = gf_odf_ia_cfg_new();
+		iamfstate->config = gf_odf_iamf_cfg_new();
 		if (!iamfstate->config) return;
 		break;
 	default:
@@ -514,7 +514,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	gf_fclose(stream);
 	switch (ctx->bsmode) {
 	case IAMF:
-		if (iamfstate->config) gf_odf_ia_cfg_del(iamfstate->config);
+		if (iamfstate->config) gf_odf_iamf_cfg_del(iamfstate->config);
 		gf_iamf_reset_state(iamfstate, GF_TRUE);
 		gf_free(iamfstate);
 		break;
@@ -705,7 +705,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			gf_list_rem(ctx->iamfstate.frame_state.descriptor_obus, 0);
 		}
 
-		gf_odf_ia_cfg_write(ctx->iamfstate.config, &dsi, &dsi_size);
+		gf_odf_iamf_cfg_write(ctx->iamfstate.config, &dsi, &dsi_size);
 
 		// Compute the CRC of the entire iacb box.
 		crc = gf_crc_32(dsi, (u32) dsi_size);
@@ -1404,7 +1404,7 @@ static void av1dmx_finalize(GF_Filter *filter)
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 
 	gf_iamf_reset_state(&ctx->iamfstate, GF_TRUE);
-	if (ctx->iamfstate.config) gf_odf_ia_cfg_del(ctx->iamfstate.config);
+	if (ctx->iamfstate.config) gf_odf_iamf_cfg_del(ctx->iamfstate.config);
 	if (ctx->iamfstate.bs) gf_bs_del(ctx->iamfstate.bs);
 	if (ctx->iamfstate.temporal_unit_obus) gf_free(ctx->iamfstate.temporal_unit_obus);
 	if (ctx->sei_loader)

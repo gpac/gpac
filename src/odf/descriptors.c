@@ -2534,7 +2534,7 @@ GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_new()
+GF_IAConfig *gf_odf_iamf_cfg_new()
 {
 	GF_IAConfig *cfg = NULL;
 	GF_SAFEALLOC(cfg, GF_IAConfig);
@@ -2550,7 +2550,7 @@ GF_IAConfig *gf_odf_ia_cfg_new()
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
+GF_IAConfig *gf_odf_iamf_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	IAMFState *state = NULL;
 	GF_IAConfig *cfg = NULL;
@@ -2564,13 +2564,13 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 
 	GF_SAFEALLOC(state, IAMFState);
 	if (!state) return NULL;
-	cfg = gf_odf_ia_cfg_new();
+	cfg = gf_odf_iamf_cfg_new();
 	gf_iamf_init_state(state);
 
 	cfg->configurationVersion = gf_bs_read_u8(bs);
 	if (cfg->configurationVersion != 1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown configurationVersion %d\n", cfg->configurationVersion));
-		gf_odf_ia_cfg_del(cfg);
+		gf_odf_iamf_cfg_del(cfg);
 		gf_free(state);
 		return NULL;
 	}
@@ -2623,21 +2623,21 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs) {
-	return gf_odf_ia_cfg_read_bs_size(bs, 0);
+GF_IAConfig *gf_odf_iamf_cfg_read_bs(GF_BitStream *bs) {
+	return gf_odf_iamf_cfg_read_bs_size(bs, 0);
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_read(u8 *dsi, u32 dsi_size)
+GF_IAConfig *gf_odf_iamf_cfg_read(u8 *dsi, u32 dsi_size)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
-	GF_IAConfig *cfg = gf_odf_ia_cfg_read_bs(bs);
+	GF_IAConfig *cfg = gf_odf_iamf_cfg_read_bs(bs);
 	gf_bs_del(bs);
 	return cfg;
 }
 
 GF_EXPORT
-void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
+void gf_odf_iamf_cfg_del(GF_IAConfig *cfg)
 {
 	if (!cfg) return;
 	while (gf_list_count(cfg->configOBUs)) {
@@ -2651,7 +2651,7 @@ void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
 }
 
 GF_EXPORT
-GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
+GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
 	u32 i;
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -2669,12 +2669,12 @@ GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
+GF_Err gf_odf_iamf_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 	GF_Err e;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	*outSize = 0;
 	*outData = NULL;
-	e = gf_odf_ia_cfg_write_bs(cfg, bs);
+	e = gf_odf_iamf_cfg_write_bs(cfg, bs);
 	if (e == GF_OK)
 		gf_bs_get_content(bs, outData, outSize);
 
@@ -2683,7 +2683,7 @@ GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 }
 
 GF_EXPORT
-u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
+u32 gf_odf_iamf_cfg_size(GF_IAConfig *cfg)
 {
 	if (!cfg) return 0;
 

@@ -3838,13 +3838,13 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AV1Conf
 /*! creates new IAMF config
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param cfg the IA config for this sample description
+\param cfg the IAMF config for this sample description
 \param URLname URL value of the data reference, NULL if no data reference (media in the file)
 \param URNname URN value of the data reference, NULL if no data reference (media in the file)
 \param outDescriptionIndex set to the index of the created sample description
 \return error if any
 */
-GF_Err gf_isom_ia_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_IAConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_iamf_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_IAConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

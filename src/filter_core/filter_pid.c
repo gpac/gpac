@@ -9832,9 +9832,9 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 	case GF_CODECID_AC4:
 		return dolby_get_codec_ac4(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
 	case GF_CODECID_IAMF: {
-		GF_IAConfig *cfg = gf_odf_ia_cfg_read(dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
+		GF_IAConfig *cfg = gf_odf_iamf_cfg_read(dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
 		GF_Err e = rfc_6381_get_codec_imaf(szCodec, cfg);
-		gf_odf_ia_cfg_del(cfg);
+		gf_odf_iamf_cfg_del(cfg);
 		return e;
 	}
 

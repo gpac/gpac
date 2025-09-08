@@ -4588,7 +4588,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		e = rfc_6381_get_codec_imaf(szCodec, imaf);
-		gf_odf_ia_cfg_del(imaf);
+		gf_odf_iamf_cfg_del(imaf);
 		return e;
 	}
 

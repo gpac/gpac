@@ -2494,12 +2494,12 @@ static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
 
 Bool iamf_is_audio_frame_obu(IamfObuType obu_type)
 {
-	return OBU_IA_AUDIO_FRAME <= obu_type && obu_type <= OBU_IA_AUDIO_FRAME_ID17;
+	return OBU_IAMF_AUDIO_FRAME <= obu_type && obu_type <= OBU_IAMF_AUDIO_FRAME_ID17;
 }
 
 Bool iamf_is_temporal_unit_obu(IamfObuType obu_type)
 {
-	if (iamf_is_audio_frame_obu(obu_type) || obu_type == OBU_IA_PARAMETER_BLOCK || obu_type == OBU_IA_TEMPORAL_DELIMITER) {
+	if (iamf_is_audio_frame_obu(obu_type) || obu_type == OBU_IAMF_PARAMETER_BLOCK || obu_type == OBU_IAMF_TEMPORAL_DELIMITER) {
 		return GF_TRUE;
 	}
 
@@ -2509,10 +2509,10 @@ Bool iamf_is_temporal_unit_obu(IamfObuType obu_type)
 Bool iamf_is_descriptor_obu(IamfObuType obu_type)
 {
 	switch (obu_type) {
-	case OBU_IA_CODEC_CONFIG:
-	case OBU_IA_AUDIO_ELEMENT:
-	case OBU_IA_MIX_PRESENTATION:
-	case OBU_IA_SEQUENCE_HEADER:
+	case OBU_IAMF_CODEC_CONFIG:
+	case OBU_IAMF_AUDIO_ELEMENT:
+	case OBU_IAMF_MIX_PRESENTATION:
+	case OBU_IAMF_SEQUENCE_HEADER:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -4172,7 +4172,7 @@ void gf_iamf_init_state(IAMFState *state)
 	state->pre_skip = 0;
 
 	state->frame_state.seen_first_frame = GF_FALSE;
-	state->frame_state.seen_valid_ia_seq_header = GF_FALSE;
+	state->frame_state.seen_valid_iamf_seq_header = GF_FALSE;
 	state->frame_state.previous_obu_is_descriptor = GF_FALSE;
 	state->frame_state.pre_skip_is_finalized = GF_FALSE;
 	state->frame_state.previous_num_samples_to_trim_at_start = 0;
@@ -4602,39 +4602,39 @@ GF_EXPORT
 const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 {
 	switch (obu_type) {
-		case OBU_IA_CODEC_CONFIG: return "codec_config";
-		case OBU_IA_AUDIO_ELEMENT: return "audio_element";
-		case OBU_IA_MIX_PRESENTATION: return "mix_presentation";
-		case OBU_IA_PARAMETER_BLOCK: return "parameter_block";
-		case OBU_IA_TEMPORAL_DELIMITER: return "temporal_delimiter";
-		case OBU_IA_AUDIO_FRAME: return "audio_frame";
-		case OBU_IA_AUDIO_FRAME_ID0: return "audio_frame_id0";
-		case OBU_IA_AUDIO_FRAME_ID1: return "audio_frame_id1";
-		case OBU_IA_AUDIO_FRAME_ID2: return "audio_frame_id2";
-		case OBU_IA_AUDIO_FRAME_ID3: return "audio_frame_id3";
-		case OBU_IA_AUDIO_FRAME_ID4: return "audio_frame_id4";
-		case OBU_IA_AUDIO_FRAME_ID5: return "audio_frame_id5";
-		case OBU_IA_AUDIO_FRAME_ID6: return "audio_frame_id6";
-		case OBU_IA_AUDIO_FRAME_ID7: return "audio_frame_id7";
-		case OBU_IA_AUDIO_FRAME_ID8: return "audio_frame_id8";
-		case OBU_IA_AUDIO_FRAME_ID9: return "audio_frame_id9";
-		case OBU_IA_AUDIO_FRAME_ID10: return "audio_frame_id10";
-		case OBU_IA_AUDIO_FRAME_ID11: return "audio_frame_id11";
-		case OBU_IA_AUDIO_FRAME_ID12: return "audio_frame_id12";
-		case OBU_IA_AUDIO_FRAME_ID13: return "audio_frame_id13";
-		case OBU_IA_AUDIO_FRAME_ID14: return "audio_frame_id14";
-		case OBU_IA_AUDIO_FRAME_ID15: return "audio_frame_id15";
-		case OBU_IA_AUDIO_FRAME_ID16: return "audio_frame_id16";
-		case OBU_IA_AUDIO_FRAME_ID17: return "audio_frame_id17";
-		case OBU_IA_RESERVED_24:
-		case OBU_IA_RESERVED_25:
-		case OBU_IA_RESERVED_26:
-		case OBU_IA_RESERVED_27:
-		case OBU_IA_RESERVED_28:
-		case OBU_IA_RESERVED_29:
-		case OBU_IA_RESERVED_30:
+		case OBU_IAMF_CODEC_CONFIG: return "codec_config";
+		case OBU_IAMF_AUDIO_ELEMENT: return "audio_element";
+		case OBU_IAMF_MIX_PRESENTATION: return "mix_presentation";
+		case OBU_IAMF_PARAMETER_BLOCK: return "parameter_block";
+		case OBU_IAMF_TEMPORAL_DELIMITER: return "temporal_delimiter";
+		case OBU_IAMF_AUDIO_FRAME: return "audio_frame";
+		case OBU_IAMF_AUDIO_FRAME_ID0: return "audio_frame_id0";
+		case OBU_IAMF_AUDIO_FRAME_ID1: return "audio_frame_id1";
+		case OBU_IAMF_AUDIO_FRAME_ID2: return "audio_frame_id2";
+		case OBU_IAMF_AUDIO_FRAME_ID3: return "audio_frame_id3";
+		case OBU_IAMF_AUDIO_FRAME_ID4: return "audio_frame_id4";
+		case OBU_IAMF_AUDIO_FRAME_ID5: return "audio_frame_id5";
+		case OBU_IAMF_AUDIO_FRAME_ID6: return "audio_frame_id6";
+		case OBU_IAMF_AUDIO_FRAME_ID7: return "audio_frame_id7";
+		case OBU_IAMF_AUDIO_FRAME_ID8: return "audio_frame_id8";
+		case OBU_IAMF_AUDIO_FRAME_ID9: return "audio_frame_id9";
+		case OBU_IAMF_AUDIO_FRAME_ID10: return "audio_frame_id10";
+		case OBU_IAMF_AUDIO_FRAME_ID11: return "audio_frame_id11";
+		case OBU_IAMF_AUDIO_FRAME_ID12: return "audio_frame_id12";
+		case OBU_IAMF_AUDIO_FRAME_ID13: return "audio_frame_id13";
+		case OBU_IAMF_AUDIO_FRAME_ID14: return "audio_frame_id14";
+		case OBU_IAMF_AUDIO_FRAME_ID15: return "audio_frame_id15";
+		case OBU_IAMF_AUDIO_FRAME_ID16: return "audio_frame_id16";
+		case OBU_IAMF_AUDIO_FRAME_ID17: return "audio_frame_id17";
+		case OBU_IAMF_RESERVED_24:
+		case OBU_IAMF_RESERVED_25:
+		case OBU_IAMF_RESERVED_26:
+		case OBU_IAMF_RESERVED_27:
+		case OBU_IAMF_RESERVED_28:
+		case OBU_IAMF_RESERVED_29:
+		case OBU_IAMF_RESERVED_30:
 			return "reserved";
-		case OBU_IA_SEQUENCE_HEADER: return "ia_sequence_header";
+		case OBU_IAMF_SEQUENCE_HEADER: return "ia_sequence_header";
 		default: return "unknown";
 	}
 }
@@ -4713,7 +4713,7 @@ static Bool iamf_is_profile_supported(u8 profile)
 	return profile == 0 || profile == 1 || profile == 2;
 }
 
-static GF_Err iamf_parse_ia_sequence_header(GF_BitStream *bs, IAMFState *state)
+static GF_Err iamf_parse_iamf_sequence_header(GF_BitStream *bs, IAMFState *state)
 {
 	u32 ia_code = gf_bs_read_int_log(bs, 32, "ia_code");
 	if (ia_code != GF_4CC('i', 'a', 'm', 'f')) {
@@ -4827,11 +4827,11 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 	u64 obu_size;
 
 	obu_type = gf_bs_peek_bits(bs, 5, 0);
-	if (obu_type != OBU_IA_SEQUENCE_HEADER) {
+	if (obu_type != OBU_IAMF_SEQUENCE_HEADER) {
 		return GF_FALSE;
 	}
 
-	// Likely IAMF. Check the IA Sequence header is valid.
+	// Likely IAMF. Check the IAMF Sequence header is valid.
 	start = gf_bs_get_position(bs);
 	e = gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL, NULL);
 	if (e) {
@@ -4839,7 +4839,7 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 		return GF_FALSE;
 	}
 
-	e = iamf_parse_ia_sequence_header(bs, NULL);
+	e = iamf_parse_iamf_sequence_header(bs, NULL);
 	gf_bs_seek(bs, start);
 	return !e;
 }
@@ -4873,16 +4873,16 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
 		return e;
 
 	switch (*obu_type) {
-	case OBU_IA_SEQUENCE_HEADER:
-		e = iamf_parse_ia_sequence_header(bs, state);
+	case OBU_IAMF_SEQUENCE_HEADER:
+		e = iamf_parse_iamf_sequence_header(bs, state);
 		if (!e)
-			state->frame_state.seen_valid_ia_seq_header = GF_TRUE;
+			state->frame_state.seen_valid_iamf_seq_header = GF_TRUE;
 		state->total_substreams = 0;
 		break;
-	case OBU_IA_CODEC_CONFIG:
+	case OBU_IAMF_CODEC_CONFIG:
 		e = iamf_parse_codec_config(bs, state);
 		break;
-	case OBU_IA_AUDIO_ELEMENT:
+	case OBU_IAMF_AUDIO_ELEMENT:
 		iamf_parse_audio_element(bs, state);
 		break;
 	default:
@@ -4996,7 +4996,7 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		if (obu_type == OBU_IA_TEMPORAL_DELIMITER) {
+		if (obu_type == OBU_IAMF_TEMPORAL_DELIMITER) {
 			if (!state->frame_state.seen_first_frame) {
 				// IAMF requires all or no temporal units to have temporal delimiters. Determine it from the first frame.
 				state->bitstream_has_temporal_delimiters = GF_TRUE;

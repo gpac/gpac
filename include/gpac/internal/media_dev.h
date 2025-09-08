@@ -1070,7 +1070,7 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 
 typedef struct
 {
-	Bool seen_valid_ia_seq_header;
+	Bool seen_valid_iamf_seq_header;
 	Bool seen_first_frame;
 	Bool previous_obu_is_descriptor;
 

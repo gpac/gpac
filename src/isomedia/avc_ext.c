@@ -1422,7 +1422,7 @@ static GF_AV1Config* AV1_DuplicateConfig(GF_AV1Config const * const cfg)
 static GF_IAConfig* IAMF_DuplicateConfig(GF_IAConfig const * const cfg)
 {
 	u32 i = 0;
-	GF_IAConfig *out = gf_odf_ia_cfg_new();
+	GF_IAConfig *out = gf_odf_iamf_cfg_new();
 	if (!out) return NULL;
 
 	out->configurationVersion = cfg->configurationVersion;
@@ -1431,7 +1431,7 @@ static GF_IAConfig* IAMF_DuplicateConfig(GF_IAConfig const * const cfg)
 	for (i = 0; i<gf_list_count(cfg->configOBUs); ++i) {
 		GF_IamfObu *dst = gf_malloc(sizeof(GF_IamfObu)), *src = gf_list_get(cfg->configOBUs, i);
 		if (!dst) {
-			gf_odf_ia_cfg_del(out);
+			gf_odf_iamf_cfg_del(out);
 			return NULL;
 		}
 
@@ -2008,7 +2008,7 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 }
 
 GF_EXPORT
-GF_Err gf_isom_ia_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_IAConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_iamf_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_IAConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
