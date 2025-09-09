@@ -3879,6 +3879,10 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 	u8 PL;
 	GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 	if (!esd) return;
+	if (!esd->decoderConfig) {
+		gf_odf_desc_del((GF_Descriptor *) esd);
+		return;
+	}
 
 	switch (esd->decoderConfig->streamType) {
 	case 0x04:
