@@ -100,7 +100,7 @@ GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_
 
 		e = Track_FindRef(trak, ref , &dpnd);
 		if (e) return e;
-		if (dpnd) {
+		if (dpnd && dpnd->trackIDCount) {
 			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
 			if (!k && (dpnd->trackIDCount != 1)) return GF_ISOM_INVALID_MEDIA;
 			//fix the spec: where is the index located ??
