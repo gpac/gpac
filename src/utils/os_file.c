@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2023
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2025
  *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
@@ -1457,7 +1457,10 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	gfio_blob->data = blob_data;
 	gfio_blob->size = blob_size;
 	GF_FileIO *res = gf_fileio_new((char *) file_name, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
-	if (!res) return NULL;
+	if (!res) {
+		gf_free(gfio_blob);
+		return NULL;
+	}
 	res->gets = gfio_blob_gets;
 	if (file_name)
 		gfio_blob->url_crc = gf_crc_32(file_name, (u32) strlen(file_name) );
