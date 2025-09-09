@@ -967,6 +967,7 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 	) {
 		AVCState *avc_state;
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, sampleDescriptionIndex);
+		if (!avcc) return GF_NOT_FOUND;
 		u32 i;
 		s32 idx;
 		GF_NALUFFParam *slc;
@@ -1005,6 +1006,7 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 	) {
 		HEVCState *hvc_state;
 		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, sampleDescriptionIndex);
+		if (!hvcc) return GF_NOT_FOUND;
 		u32 i;
 		GF_NALUFFParamArray *pa;
 
