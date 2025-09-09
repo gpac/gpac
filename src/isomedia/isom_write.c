@@ -3128,6 +3128,9 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 		return GF_BAD_PARAM;
 	}
 
+	//we may get null on schemeURI if not set in the source
+	if (!schemeURI) schemeURI = "";
+
 	map = udta_getEntry(udta, GF_ISOM_BOX_TYPE_KIND, NULL);
 	if (map) {
 		count = gf_list_count(map->boxes);
@@ -3152,7 +3155,7 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 	ptr = (GF_KindBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_KIND);
 	if (e) return e;
 
-	if (schemeURI) ptr->schemeURI = gf_strdup(schemeURI);
+	ptr->schemeURI = gf_strdup(schemeURI);
 	if (value) ptr->value = gf_strdup(value);
 	return udta_on_child_box_ex((GF_Box *)udta, (GF_Box *) ptr, GF_FALSE, GF_FALSE);
 }
