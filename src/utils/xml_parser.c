@@ -1202,7 +1202,7 @@ static void xml_sax_reset(GF_SAXParser *parser)
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
 	GF_Err e = GF_EOS;
-	unsigned char szLine[XML_INPUT_SIZE+2];
+	unsigned char szLine[XML_INPUT_SIZE+2]={0};
 
 #ifdef NO_GZIP
 	if (!parser->f_in) return GF_BAD_PARAM;
@@ -1635,6 +1635,7 @@ struct _peek_type
 static void on_peek_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	struct _peek_type *pt = (struct _peek_type*)cbk;
+	if (pt->res) gf_free(pt->res);
 	pt->res = gf_strdup(name);
 	pt->parser->suspended = GF_TRUE;
 }

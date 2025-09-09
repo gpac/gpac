@@ -54,6 +54,14 @@ typedef struct
 	GF_List *allocated_contexts;
 } GF_JSRuntime;
 
+typedef struct __js_sys_task {
+	JSValue fun;
+	JSValue _obj;
+
+	u32 type;
+	JSContext *ctx;
+} JS_Sys_Task;
+
 static GF_JSRuntime *js_rt = NULL;
 
 JSContext *gf_js_create_context()
@@ -89,11 +97,23 @@ JSContext *gf_js_create_context()
 	return ctx;
 }
 
+static void js_reset_logs(JSContext *ctx);
+
 void gf_js_delete_context(JSContext *ctx)
 {
 	if (!js_rt) return;
 
+	js_reset_logs(ctx);
 	gf_js_call_gc(ctx);
+
+
+	JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
+	if (task && task->type == RMT_CALLBACK_JS) {
+		gf_rmt_set_on_new_client_cbk(NULL, NULL);
+		JS_FreeValue(ctx, task->fun);
+		JS_FreeValue(ctx, task->_obj);
+		gf_free(task);
+	}
 
 	gf_mx_p(js_rt->mx);
 	gf_list_del_item(js_rt->allocated_contexts, ctx);
@@ -172,7 +192,7 @@ JSRuntime *gf_js_get_rt()
 }
 
 
-
+Bool is_js_log = GF_FALSE;
 static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
 {
     int i=0;
@@ -205,17 +225,19 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 	if (log_name) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("[%s] ", log_name));
-#else
-		fprintf(stderr, "[%s] ", log_name);
+		if (!is_js_log) {
+			GF_LOG(logl, ltool, ("[%s] ", log_name));
+		} else
 #endif
+			fprintf(stderr, "[%s] ", log_name);
 	}
 	if (error_type==2) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("Throw "));
-#else
-		fprintf(stderr, "Throw ");
+		if (!is_js_log) {
+			GF_LOG(logl, ltool, ("Throw "));
+		} else
 #endif
+			fprintf(stderr, "Throw ");
 	}
 
     for (; i < argc; i++) {
@@ -230,10 +252,12 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
 		} else {
 #ifndef GPAC_DISABLE_LOG
-			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
-#else
-			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+			if (!is_js_log) {
+				GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
+			} else
 #endif
+				fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+
 			if (JS_IsException(argv[i])) {
 				js_dump_error_exc(ctx, argv[i]);
 			}
@@ -247,10 +271,11 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
     }
     if (!no_new_line) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("\n"));
-#else
-		fprintf(stderr, "\n");
+		if (!is_js_log) {
+			GF_LOG(logl, ltool, ("\n"));
+		} else
 #endif
+			fprintf(stderr, "\n");
 	}
 	if (c_logname) JS_FreeCString(ctx, c_logname);
 	return JS_UNDEFINED;
@@ -916,6 +941,285 @@ static JSValue bitstream_constructor(JSContext *ctx, JSValueConst new_target, in
 	return anobj;
 }
 
+//// RMTClient js class ////
+
+static JSClassID js_sys_rmt_client_class_id;
+
+
+static JSValue js_sys_enable_rmtws(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	Bool enable = GF_TRUE;
+	if (argc > 0 && JS_IsBool(argv[0])) enable = JS_ToBool(ctx, argv[0]);
+	gf_sys_enable_rmtws(enable);
+	return JS_UNDEFINED;
+}
+
+static void js_sys_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
+
+	RMT_ClientCtx* client = JS_GetOpaque(val, js_sys_rmt_client_class_id);
+    if (!client) return;
+
+	JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d js_sys_rmt_client_finalizer client %p task %p\n", __FILE__, __LINE__, client, task));
+	gf_rmt_client_set_on_data_cbk(client, NULL, NULL);
+
+	JS_Sys_Task* deltask = gf_rmt_client_get_on_del_task(client);
+	gf_rmt_client_set_on_del_cbk(client, NULL, NULL);
+
+	JS_SetOpaque(val, NULL);
+
+	if (task && task->type == RMT_CALLBACK_JS) {
+		JS_FreeValue(task->ctx, task->fun);
+		JS_FreeValue(task->ctx, task->_obj);
+		gf_free(task);
+	}
+
+	if (deltask && deltask->type == RMT_CALLBACK_JS) {
+		JS_FreeValue(deltask->ctx, deltask->fun);
+		JS_FreeValue(deltask->ctx, deltask->_obj);
+		gf_free(deltask);
+	}
+
+}
+
+static void js_sys_rmt_client_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func) {
+
+	RMT_ClientCtx* client = JS_GetOpaque(val, js_sys_rmt_client_class_id);
+    if (!client) return;
+
+	JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
+	if (task && task->type == RMT_CALLBACK_JS) {
+		JS_MarkValue(rt, task->fun, mark_func);
+		JS_MarkValue(rt, task->_obj, mark_func);
+	}
+
+	task = gf_rmt_client_get_on_del_task(client);
+	if (task && task->type == RMT_CALLBACK_JS) {
+		JS_MarkValue(rt, task->fun, mark_func);
+		JS_MarkValue(rt, task->_obj, mark_func);
+	}
+
+}
+
+static JSClassDef js_sys_rmt_client_class = {
+    "RMTClient",
+	.finalizer = js_sys_rmt_client_finalizer,
+	.gc_mark = js_sys_rmt_client_gc_mark
+};
+
+enum {
+	JS_SYS_RMT_CLIENT_ON_DATA,
+	JS_SYS_RMT_CLIENT_ON_CLOSE,
+	JS_SYS_RMT_CLIENT_PEER_ADDRESS
+};
+
+
+
+static void js_sys_rmt_run_task(JS_Sys_Task* task, JSValue arg) {
+
+	if (!task || task->type != RMT_CALLBACK_JS )
+		return;
+
+	int argc = JS_IsUndefined(arg) ? 0 : 1;
+
+	gf_js_lock(task->ctx, GF_TRUE);
+
+	JSValue ret = JS_Call(task->ctx, task->fun, task->_obj, argc, &arg);
+
+	if (JS_IsException(ret)) {
+		js_dump_error(task->ctx);
+	}
+	JS_FreeValue(task->ctx, ret);
+	JS_FreeValue(task->ctx, arg);
+	js_std_loop(task->ctx);
+	gf_js_lock(task->ctx, GF_FALSE);
+
+}
+
+
+static void js_sys_rmt_on_del_client(void *udta) {
+	if (udta) {
+		JS_Sys_Task *task = udta;
+		if (task->type == RMT_CALLBACK_JS && task->ctx && !JS_IsUndefined(task->_obj)) {
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d deleting opaque obj from task %p\n", __FILE__, __LINE__,task));
+
+			if (JS_IsFunction(task->ctx, task->fun))
+				js_sys_rmt_run_task(task, JS_UNDEFINED);
+
+			js_sys_rmt_client_finalizer(NULL, task->_obj);
+
+		}
+	}
+}
+
+
+static void js_sys_rmt_client_on_data(void *udta, const u8* payload, u64 size, Bool is_binary) {
+	JS_Sys_Task *task = udta;
+	if (!task || task->type != RMT_CALLBACK_JS) return;
+
+	JSValue arg;
+	if (is_binary) {
+		arg = JS_NewArrayBufferCopy(task->ctx, payload, size);
+	} else {
+		arg = JS_NewStringLen(task->ctx, payload, size);
+	}
+
+	js_sys_rmt_run_task(task, arg);
+
+}
+
+static JSValue js_sys_rmt_client_prop_get(JSContext *ctx, JSValueConst this_val, int magic) {
+
+	RMT_ClientCtx* client = JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
+	if (!client)
+		return JS_UNDEFINED;
+
+	switch (magic) {
+		case JS_SYS_RMT_CLIENT_PEER_ADDRESS:;
+			const char* peer_address = gf_rmt_get_peer_address(client);
+			if (peer_address) {
+				return JS_NewString(ctx, peer_address);
+			}
+			break;
+	}
+	return JS_UNDEFINED;
+}
+
+static JSValue js_sys_rmt_client_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic) {
+
+	RMT_ClientCtx* client = JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
+	if (!client)
+		return GF_JS_EXCEPTION(ctx);
+
+	switch (magic) {
+		case JS_SYS_RMT_CLIENT_ON_DATA:;
+
+			JS_Sys_Task* oldtask = (JS_Sys_Task*) gf_rmt_client_get_on_data_task(client);
+			if (oldtask && oldtask->type == RMT_CALLBACK_JS) {
+				gf_rmt_client_set_on_data_cbk(client, NULL, NULL);
+				JS_FreeValue(ctx, oldtask->fun);
+				JS_FreeValue(ctx, oldtask->_obj);
+				gf_free(oldtask);
+			}
+
+			if (JS_IsFunction(ctx, value)) {
+
+				JS_Sys_Task *task;
+				GF_SAFEALLOC(task, JS_Sys_Task);
+				if (!task) return GF_JS_EXCEPTION(ctx);
+
+				task->type = RMT_CALLBACK_JS;
+				task->ctx = ctx;
+				task->fun = JS_DupValue(ctx, value);
+				task->_obj = JS_DupValue(ctx, this_val);
+
+				gf_rmt_client_set_on_data_cbk(client, task, js_sys_rmt_client_on_data);
+			}
+
+
+
+			break;
+
+		case JS_SYS_RMT_CLIENT_ON_CLOSE:
+
+			if (JS_IsUndefined(value) || JS_IsNull(value)) {
+
+				JS_Sys_Task *task = gf_rmt_client_get_on_del_task(client);
+				if (task && task->type == RMT_CALLBACK_JS) {
+					// reset the js function but keep the ref to the client for on_delete
+					JS_FreeValue(ctx, task->fun);
+					task->fun = JS_UNDEFINED;
+				}
+
+			}
+
+			if (JS_IsFunction(ctx, value)) {
+
+				JS_Sys_Task *task = gf_rmt_client_get_on_del_task(client);
+				if (task && task->type == RMT_CALLBACK_JS) {
+					JS_FreeValue(ctx, task->fun);
+					JS_FreeValue(ctx, task->_obj);
+				}
+				else
+					GF_SAFEALLOC(task, JS_Sys_Task);
+
+				if (!task) return GF_JS_EXCEPTION(ctx);
+
+				task->type = RMT_CALLBACK_JS;
+				task->ctx = ctx;
+				task->fun = JS_DupValue(ctx, value);
+				task->_obj = JS_DupValue(ctx, this_val);
+
+				gf_rmt_client_set_on_del_cbk(client, task, js_sys_rmt_on_del_client);
+			}
+
+
+
+			break;
+	}
+	return JS_UNDEFINED;
+}
+
+static JSValue js_sys_rmt_client_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+
+	RMT_ClientCtx* client = JS_GetOpaque(this_val, js_sys_rmt_client_class_id);
+	if (!client)
+		return GF_JS_EXCEPTION(ctx);
+
+	if (!argc)
+		return JS_UNDEFINED;
+
+	if (JS_IsString(argv[0])) {
+		const char *msg = JS_ToCString(ctx, argv[0]);
+		GF_Err e = gf_rmt_client_send_to_ws(client, msg, strlen(msg), GF_FALSE);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent msg <%s> to client <%p> returned <%d>\n", __FILE__, __LINE__, msg, client, e));
+		JS_FreeCString(ctx, msg);
+	}
+	else if (JS_IsArrayBuffer(ctx, argv[0])) {
+		u32 bufsize=0;
+		u8* buf = JS_GetArrayBuffer(ctx, (size_t*)&bufsize, argv[0]);
+		if (buf && bufsize) {
+			GF_Err e = gf_rmt_client_send_to_ws(client, buf, bufsize, GF_TRUE);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d sent binary msg <%.*s> to client <%p> returned <%d>\n", __FILE__, __LINE__, bufsize, buf, client, e));
+		}
+
+	}
+
+	return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry js_sys_rmt_client_funcs[] = {
+	JS_CGETSET_MAGIC_DEF("on_data", NULL, js_sys_rmt_client_prop_set, JS_SYS_RMT_CLIENT_ON_DATA),
+	JS_CGETSET_MAGIC_DEF("on_close", NULL, js_sys_rmt_client_prop_set, JS_SYS_RMT_CLIENT_ON_CLOSE),
+
+	JS_CGETSET_MAGIC_DEF("peer_address", js_sys_rmt_client_prop_get, NULL, JS_SYS_RMT_CLIENT_PEER_ADDRESS),
+
+	JS_CFUNC_DEF("send", 1, js_sys_rmt_client_send)
+};
+
+static void js_sys_rmt_on_new_client(void *udta, void* new_client) {
+	JS_Sys_Task *task = udta;
+	if (!task) return;
+
+	JSValue obj = JS_NewObjectClass(task->ctx, js_sys_rmt_client_class_id);
+	if (JS_IsException(obj)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("%s:%d obj JS_IsException\n", __FILE__, __LINE__));
+	}
+	JS_SetOpaque(obj, new_client);
+
+	JS_Sys_Task *deltask;
+	GF_SAFEALLOC(deltask, JS_Sys_Task);
+	deltask->type = RMT_CALLBACK_JS;
+	deltask->ctx = task->ctx;
+	deltask->_obj = JS_DupValue(task->ctx, obj);
+
+	gf_rmt_client_set_on_del_cbk((RMT_ClientCtx*)new_client, (void*)deltask, js_sys_rmt_on_del_client);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d js_sys_rmt_on_new_client calling task %p with opaque %p\n", __FILE__, __LINE__, task, new_client));
+
+	js_sys_rmt_run_task(task, obj);
+}
+
 enum
 {
 	JS_SYS_NB_CORES = 1,
@@ -956,7 +1260,11 @@ enum
 	JS_SYS_V_MAJOR,
 	JS_SYS_V_MINOR,
 	JS_SYS_V_MICRO,
+	JS_SYS_RMT_ON_NEW_CLIENT,
+	JS_SYS_ON_LOG,
 };
+
+
 
 #define RTI_REFRESH_MS	200
 static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
@@ -1110,6 +1418,66 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 	return JS_UNDEFINED;
 }
 
+extern void *user_log_cbk;
+static void *prev_user_log_cbk = NULL;
+gf_log_cbk prev_log_cbk = NULL;
+static JSValue log_fun;
+static JSValue log_obj;
+u32 js_log_buf_size = 0;
+//WARNING - libc mem, not gf_alloc
+char *js_log_buf = NULL;
+JSContext *log_ctx = NULL;
+char *js_orig_logs = NULL;
+
+static void js_reset_logs(JSContext *ctx)
+{
+	if (ctx != log_ctx) return;
+
+	js_log_buf_size = 0;
+	//WARNING - libc mem, not gf_alloc
+	if (js_log_buf) free(js_log_buf);
+	js_log_buf = NULL;
+
+	if (js_orig_logs) {
+		gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
+		gf_free(js_orig_logs);
+		js_orig_logs = NULL;
+	}
+
+	if (!log_ctx) return;
+	JS_FreeValue(log_ctx, log_fun);
+	log_fun = JS_UNDEFINED;
+	JS_FreeValue(log_ctx, log_obj);
+	log_obj = JS_UNDEFINED;
+	gf_log_set_callback(NULL, prev_log_cbk);
+	log_ctx = NULL;
+}
+
+static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
+{
+	JSContext *ctx = log_ctx;
+	JSValue args[3];
+	args[0] = JS_NewString(ctx, gf_log_tool_name(log_tool) );
+	args[1] = JS_NewInt32(ctx, log_level);
+
+	va_list vlist_tmp;
+	va_copy(vlist_tmp, vlist);
+	u32 len = vsnprintf(NULL, 0, fmt, vlist_tmp);
+	va_end(vlist_tmp);
+	if (js_log_buf_size < len+2) {
+		js_log_buf_size = len+2;
+		//WARNING - libc mem, not gf_alloc
+		js_log_buf = realloc(js_log_buf, js_log_buf_size);
+	}
+	vsprintf(js_log_buf, fmt, vlist);
+	args[2] = JS_NewString(ctx, js_log_buf);
+
+	JSValue res = JS_Call(ctx, log_fun, log_obj, 3, args);
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[2]);
+	JS_FreeValue(ctx, res);
+}
+
 static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
 {
 	const char *prop_val;
@@ -1119,6 +1487,59 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		prop_val = JS_ToCString(ctx, value);
 		gf_opts_set_key("core", "last-dir", prop_val);
 		JS_FreeCString(ctx, prop_val);
+		break;
+	case JS_SYS_RMT_ON_NEW_CLIENT:
+
+		if (JS_IsUndefined(value) || JS_IsNull(value)) {
+
+			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
+			if (task && task->type == RMT_CALLBACK_JS) {
+				gf_rmt_set_on_new_client_cbk(NULL, NULL);
+				JS_FreeValue(ctx, task->fun);
+				JS_FreeValue(ctx, task->_obj);
+				gf_free(task);
+			}
+
+		}
+
+		if (JS_IsFunction(ctx, value)) {
+
+			JS_Sys_Task *task;
+			GF_SAFEALLOC(task, JS_Sys_Task);
+			if (!task) return GF_JS_EXCEPTION(ctx);
+
+			task->type = RMT_CALLBACK_JS;
+			task->ctx = ctx;
+			task->fun = JS_DupValue(ctx, value);
+			task->_obj = JS_DupValue(ctx, this_val);
+
+			gf_rmt_set_on_new_client_cbk(task, js_sys_rmt_on_new_client);
+		}
+		break;
+
+	case JS_SYS_ON_LOG:
+		JS_FreeValue(ctx, log_fun);
+		log_fun = JS_UNDEFINED;
+		JS_FreeValue(ctx, log_obj);
+		log_obj = JS_UNDEFINED;
+		log_ctx = NULL;
+		is_js_log = GF_FALSE;
+
+		if (JS_IsUndefined(value) || JS_IsNull(value)) {
+			if (js_orig_logs) {
+				gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
+				gf_free(js_orig_logs);
+				js_orig_logs = NULL;
+			}
+			gf_log_set_callback(NULL, prev_log_cbk);
+		} else if (JS_IsFunction(ctx, value)) {
+			log_fun = JS_DupValue(ctx, value);
+			log_obj = JS_DupValue(ctx, this_val);
+			prev_user_log_cbk = user_log_cbk;
+			prev_log_cbk = gf_log_set_callback(ctx, js_log_cbk);
+			log_ctx = ctx;
+			is_js_log = GF_TRUE;
+		}
 		break;
 	}
 	return JS_UNDEFINED;
@@ -2374,6 +2795,45 @@ static JSValue js_pcmfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_NewInt32(ctx, gf_audio_fmt_bit_depth(prop.value.uint)/8 );
 }
 
+static JSValue js_sys_set_logs(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *logs;
+	Bool reset = GF_FALSE;
+	if (!argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (argc>1)
+		reset = JS_ToBool(ctx, argv[1]);
+
+	if (!js_orig_logs)
+		js_orig_logs = gf_log_get_tools_levels();
+
+	logs = JS_ToCString(ctx, argv[0]);
+	if (!logs) {
+		if (js_orig_logs) {
+			gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
+			gf_free(js_orig_logs);
+			js_orig_logs = NULL;
+		} else {
+			gf_log_set_tools_levels("all@warning", GF_TRUE);
+		}
+	} else {
+		gf_log_set_tools_levels(logs, reset);
+		JS_FreeCString(ctx, logs);
+	}
+	return JS_UNDEFINED;
+}
+
+
+static JSValue js_sys_get_logs(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (argc && JS_ToBool(ctx, argv[0]) && js_orig_logs) {
+		return JS_NewString(ctx, js_orig_logs);
+	}
+	char *logs = gf_log_get_tools_levels();
+	JSValue res = JS_NewString(ctx, logs);
+	gf_free(logs);
+	return res;
+}
+
 #include <gpac/color.h>
 
 static JSValue js_color_lerp(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -2847,6 +3307,9 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("version_minor", js_sys_prop_get, NULL, JS_SYS_V_MINOR),
 	JS_CGETSET_MAGIC_DEF_ENUM("version_micro", js_sys_prop_get, NULL, JS_SYS_V_MICRO),
 
+	JS_CGETSET_MAGIC_DEF_ENUM("rmt_on_new_client", NULL, js_sys_prop_set, JS_SYS_RMT_ON_NEW_CLIENT),
+	JS_CGETSET_MAGIC_DEF_ENUM("on_log", NULL, js_sys_prop_set, JS_SYS_ON_LOG),
+
 	JS_CFUNC_DEF("set_arg_used", 0, js_sys_set_arg_used),
 	JS_CFUNC_DEF("error_string", 0, js_sys_error_string),
     JS_CFUNC_DEF("prompt_input", 0, js_sys_prompt_input),
@@ -2916,6 +3379,10 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("mpd_parse", 0, js_sys_mpd_parse),
 
 	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
+
+	JS_CFUNC_DEF("enable_rmtws", 0, js_sys_enable_rmtws),
+	JS_CFUNC_DEF("set_logs", 0, js_sys_set_logs),
+	JS_CFUNC_DEF("get_logs", 0, js_sys_get_logs),
 };
 
 
@@ -3826,6 +4293,13 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 	JS_SetClassProto(ctx, fileio_class_id, proto);
 	ctor = JS_NewCFunction2(ctx, fileio_constructor, "FileIO", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(ctx, m, "FileIO", ctor);
+
+	//RMTClient constructor
+	JS_NewClassID(&js_sys_rmt_client_class_id);
+	JS_NewClass(JS_GetRuntime(ctx), js_sys_rmt_client_class_id, &js_sys_rmt_client_class);
+	proto = JS_NewObjectClass(ctx, js_sys_rmt_client_class_id);
+	JS_SetPropertyFunctionList(ctx, proto, js_sys_rmt_client_funcs, countof(js_sys_rmt_client_funcs));
+	JS_SetClassProto(ctx, js_sys_rmt_client_class_id, proto);
 
 	return 0;
 }

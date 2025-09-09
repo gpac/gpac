@@ -403,10 +403,10 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned ch
 #endif
 
 
-#ifdef GPAC_HAS_NGHTTP2
+#ifdef GPAC_HAS_HTTP2
 	int rv = nghttp2_select_next_protocol((unsigned char **)out, outlen, in, inlen);
 	if (rv == 1)
-		return SSL_TLSEXT_ERR_OK
+		return SSL_TLSEXT_ERR_OK;
 #endif
 	return SSL_TLSEXT_ERR_NOACK;
 }

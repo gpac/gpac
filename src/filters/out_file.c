@@ -156,6 +156,9 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	else if (!strcmp(filename, "stdout")) ctx->is_std = GF_TRUE;
 	else ctx->is_std = GF_FALSE;
 
+	if (!strcmp(filename, "null") || !strcmp(filename, "/dev/null"))
+		ext = NULL;
+
 	if (ctx->is_std) {
 		ctx->file = stdout;
 		ctx->nb_write = 0;
@@ -702,6 +705,7 @@ restart:
 	}
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
 	if (p) {
+#ifndef GPAC_DISABLE_MPD
 		char *llhas_chunkname = gf_mpd_resolve_subnumber(ctx->llhas_template, ctx->szFileName, p->value.uint);
 		//for now we only use buffered IO for hls chunks, too small to really benefit from direct write
 		fileout_close_hls_chunk(ctx, GF_FALSE);
@@ -714,6 +718,10 @@ restart:
 		}
 		ctx->gfio_pending = GF_TRUE;
 		gf_free(llhas_chunkname);
+#else
+		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 check_gfio:

@@ -1,0 +1,35 @@
+name: Create Github Release
+run-name: Create Github Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Generate Release Notes
+        run: |
+          echo "We are happy to announce the release of GPAC ${{ github.ref_name }}". >> release_body.md
+          echo "" >> release_body.md
+          echo "_Detailed info coming soon!_" >> release_body.md
+          echo "" >> release_body.md
+          echo "Installers are available at [gpac.io](http://gpac.io/downloads)" >> release_body.md
+          echo "" >> release_body.md
+          echo "Enjoy, give us feedback and spread the news!" >> release_body.md
+          echo "" >> release_body.md
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: GPAC ${{ github.ref_name }}
+          body_path: release_body.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

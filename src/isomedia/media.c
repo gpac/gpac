@@ -241,6 +241,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	case GF_ISOM_BOX_TYPE_VP08:
 	case GF_ISOM_BOX_TYPE_VP09:
+	case GF_ISOM_BOX_TYPE_VP10:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
 		VP9_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
@@ -1094,8 +1095,10 @@ static GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, s32 CT
 	GF_SampleTableBox *stbl = mdia->information->sampleTable;
 
 	//set size, offset, RAP, CTS ...
-	stbl_SetSampleSize(stbl->SampleSize, sampleNumber, size);
-	stbl_SetChunkOffset(mdia, sampleNumber, offset);
+	if (size) {
+		stbl_SetSampleSize(stbl->SampleSize, sampleNumber, size);
+		stbl_SetChunkOffset(mdia, sampleNumber, offset);
+	}
 
 	//do we have a CTS?
 	if (stbl->CompositionOffset) {
@@ -1142,6 +1145,30 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 	stbl = mdia->information->sampleTable;
 
 	if (!data_only) {
+		if (!sample->data) {
+			u32 osample_num;
+			if (sampleNumber==1) {
+				gf_free(stbl->TimeToSample->entries);
+				stbl->TimeToSample->entries = NULL;
+				stbl->TimeToSample->nb_entries = 0;
+				stbl->TimeToSample->alloc_size = 0;
+				stbl->TimeToSample->w_LastDTS = 0;
+				stbl->TimeToSample->w_currentSampleNum = 0;
+
+				if (stbl->CompositionOffset) {
+					gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *)stbl->CompositionOffset);
+					stbl->CompositionOffset = NULL;
+				}
+			}
+			stbl_unpackCTS(stbl);
+			stbl_AddDTS(stbl, sample->DTS, &osample_num, 0, 0);
+			if (osample_num != sampleNumber) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] DTS patching must be done incrementally but input changes sample number for source sample %u to new number %u\n", sampleNumber, osample_num));
+				return GF_BAD_PARAM;
+			}
+			return UpdateSample(mdia, sampleNumber, 0, sample->CTS_Offset, 0, sample->IsRAP);
+
+		}
 		//check we have the sampe dts
 		e = stbl_GetSampleDTS(stbl->TimeToSample, sampleNumber, &DTS);
 		if (e) return e;

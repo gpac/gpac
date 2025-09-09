@@ -157,6 +157,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 			if (!is_final_name) strcat(tmp->filename, ext_name);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
+				gf_free(tmp->filename);
 				gf_free(tmp);
 				return NULL;
 			}
@@ -2783,7 +2784,7 @@ static GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 	) {
 		gf_fprintf(sdump->trace, " pointvalue=\"%g %g\"", FIX2FLT(com->send_event_x), FIX2FLT(com->send_event_y) );
 	}
-	
+
 	switch (com->send_event_name) {
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_LONGKEYPRESS:
@@ -3435,11 +3436,15 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 	GF_AUContext *au;
 	Bool no_root_found = 1;
 
-	sample_list = gf_list_new();
-
 	num_scene = num_od = 0;
 	indent = 0;
 	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, is_final_name, ' ', dump_mode);
+	if (!dumper) {
+		return GF_IO_ERR;
+	}
+
+	sample_list = gf_list_new();
+
 	e = GF_OK;
 	/*configure all systems streams we're dumping*/
 	i=0;

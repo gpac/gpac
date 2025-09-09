@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -150,6 +150,8 @@ typedef enum
 	GF_PIXEL_ALPHAGREY	=	GF_4CC('G','R','A','L'),
 	/*!16 bit greyscale, first grey, then alpha*/
 	GF_PIXEL_GREYALPHA	=	GF_4CC('A','L','G','R'),
+	/*!8 bit RGB */
+	GF_PIXEL_RGB_332	=	GF_4CC('R','3','3','2'),
 	/*!12 bit RGB on 16 bits (4096 colors)*/
 	GF_PIXEL_RGB_444	=	GF_4CC('R','4','4','4'),
 	/*!15 bit RGB*/
@@ -486,6 +488,8 @@ typedef enum
 	GF_CODECID_AC3 = GF_4CC('a','c','-','3'),
 	/*! codecid for enhanced AC-3 audio streams*/
 	GF_CODECID_EAC3 = GF_4CC('e','c','-','3'),
+	/*! codecid for AC-4 audio streams*/
+	GF_CODECID_AC4 = GF_4CC('a','c','-','4'),
 	/*! codecid for Dolby TrueHS audio streams*/
 	GF_CODECID_TRUEHD = GF_4CC('m','l','p','a'),
 	/*! codecid for DRA audio streams*/
@@ -536,6 +540,7 @@ typedef enum
 	GF_CODECID_DVB_SUBS = GF_4CC( 'd', 'v', 'b', 's' ),
 	GF_CODECID_DVB_TELETEXT = GF_4CC( 'd', 'v', 'b', 't' ),
 
+	/*! codecid for SCTE35 streams (MPEG2-TS Sections payloads as per ANSI/SCTE 67 2017 (13.1.1.3)*/
 	GF_CODECID_SCTE35 = GF_4CC( 's', 'c', '3', '5' ),
 
 	/*!
@@ -622,7 +627,7 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
-	/*Event Message Track*/
+	/*Event Message Track (contains boxes)*/
 	GF_CODECID_EVTE = GF_4CC('e','v','t','e'),
 
 	/*! codecid for FFV1*/
@@ -1016,6 +1021,12 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 \return dolby chanmap
 */
 u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
+
+/*! get dloby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
+\param mask presentation channel mask v1
+\return dolby AudioChannelConfiguration value
+*/
+u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask);
 
 /*! enumerates CICP channel layout
 \param idx index of cicp layout value to query

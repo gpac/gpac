@@ -822,6 +822,21 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID)
 }
 
 GF_EXPORT
+const char * gf_filter_get_status(GF_Filter *filter)
+{
+	gf_assert(filter);
+	return filter->status_str ? (const char *) filter->status_str : "" ;
+}
+
+GF_EXPORT
+u64 gf_filter_get_bytes_done(GF_Filter *filter)
+{
+	gf_assert(filter);
+	return filter->nb_bytes_processed ;
+}
+
+
+GF_EXPORT
 void gf_filter_reset_source(GF_Filter *filter)
 {
 	if (filter && filter->source_ids) {
@@ -2583,6 +2598,13 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 		}
 	}
 
+	//PID is already a relink target for destination, silently ignore - this may happen when reconfigure tasks are triggered
+	//before the relinking is done
+	if (src_pidinst == filter_dst->swap_pidinst_dst) {
+		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+		return;
+	}
+
 	if (!link_from_pid) {
 		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
 
@@ -2720,6 +2742,9 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 			new_f->swap_pidinst_dst = dst_pidi;
 			//keep track of the pidinst being detached from the source filter
 			new_f->swap_pidinst_src = src_pidi;
+			//remember the new filter for the swap - cf gf_filter_pid_connect_task
+			if (src_pidi)
+				src_pidi->swap_source = new_f;
 			new_f->swap_needs_init = GF_TRUE;
 			new_f->swap_pending = GF_TRUE;
 		}
@@ -2823,6 +2848,10 @@ static void gf_filter_renegotiate_output(GF_Filter *filter, Bool force_afchain_i
 			else if (pid->num_destinations==gf_list_count(pid->caps_negotiate_pidi_list) && pid->caps_negotiate_direct)
 				reconfig_direct = GF_TRUE;
 
+			if (!force_afchain_insert && reconfig_direct && !gf_filter_pid_caps_negociate_match(pid, filter->freg)) {
+				reconfig_direct = GF_FALSE;
+			}
+
 			//we cannot reconfigure output if more than one destination
 			if (reconfig_direct && filter->freg->reconfigure_output && !force_afchain_insert) {
 				GF_Err e = filter->freg->reconfigure_output(filter, pid);
@@ -2915,6 +2944,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
 		if (filter->pending_packets && filter->num_input_pids
+			&& (!filter->num_output_pids || filter->nb_pids_playing)
 			//do NOT do this if running in prevent play mode and blocking mode, as user is likely expecting fs_run() to return until the play event is sent
 			&& !filter->session->non_blocking && !(filter->session->flags & GF_FS_FLAG_PREVENT_PLAY)
 		) {
@@ -3167,7 +3197,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
-	gf_rmt_begin_hash(filter->name, GF_RMT_AGGREGATE, &filter->rmt_hash);
 
 	filter->in_process_callback = GF_TRUE;
 
@@ -3179,7 +3208,6 @@ static void gf_filter_process_task(GF_FSTask *task)
 		e = filter->freg->process(filter);
 
 	filter->in_process_callback = GF_FALSE;
-	gf_rmt_end();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done\n", filter->name));
 
 	//flush all pending pid init requests following the call to init
@@ -3501,9 +3529,14 @@ void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_f
 {
 	if (!filter) return;
 	if (!source_filter) return;
+	Bool detach = (filter->disabled && !on_setup_error && source_filter->on_setup_error) ? GF_TRUE : GF_FALSE;
 	source_filter->on_setup_error = on_setup_error;
 	source_filter->on_setup_error_filter = filter;
 	source_filter->on_setup_error_udta = udta;
+
+	if (detach) {
+		gf_filter_post_remove(filter);
+	}
 }
 
 struct _gf_filter_setup_failure
@@ -3559,7 +3592,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 				gf_list_rem(pid->destinations, j);
 				pid->num_destinations--;
 				j--;
-				gf_filter_pid_inst_del(pidinst);
+				gf_filter_pid_inst_check_delete(pidinst);
 			}
 			//marked as detached
 			else {
@@ -3691,7 +3724,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	u32 count = gf_fq_count(f->tasks);
 
 	//do not destroy filters if tasks for this filter are pending or some ref packets are still present
-	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets) {
+	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets || f->nb_shared_packets_out) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}
@@ -4056,7 +4089,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 #endif
 		 break;
 	}
-
+	reset_filter_args(filter);
 	gf_free(filter->filter_udta);
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
@@ -4587,7 +4620,7 @@ static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, con
 			if (!mime || !ext) continue;
 			if (!strstr(mime, for_mime)) continue;
 			char *sep = strchr(ext, '|');
-			u32 len = strlen(ext);
+			u32 len = (u32) strlen(ext);
 			if (sep) len = (u32) (sep - ext);
 			if (len>19) len=19;
 			strncpy(szExt, ext, len);
@@ -5271,8 +5304,14 @@ GF_EXPORT
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
-	return gf_fs_load_filter(filter->session, name, err_code);
+	GF_Filter *f = gf_fs_load_filter(filter->session, name, err_code);
+	if (!f) return NULL;
+	//do not allow implicit cloning when loading a filter from another filter
+	if (!strstr(name, "clone"))
+		f->clonable = GF_FILTER_NO_CLONE;
+	return f;
 }
+
 
 GF_EXPORT
 Bool gf_filter_end_of_session(GF_Filter *filter)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer
@@ -290,6 +290,11 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EV
 GF_Err evg_surface_clear_565(GF_EVGSurface *_this, GF_IRect rc, GF_Color col);
 
 
+void evg_332_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_332_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_332_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+GF_Err evg_surface_clear_332(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
+
 void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
@@ -348,6 +353,8 @@ void evg_555_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *su
 void evg_555_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
 void evg_444_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
 void evg_444_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+void evg_332_fill_single_a(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+void evg_332_fill_single(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
 
 #include <limits.h>
 

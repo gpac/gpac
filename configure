@@ -120,9 +120,10 @@ INSTFLAGS=""
 is_64="no"
 is_em="no"
 is_emcfg="no"
-has_remotery="yes"
+has_rmtws="yes"
 em_type="js"
 em_size="0"
+em_opt="2"
 fatal_assert="no"
 
 #flags not set by generic lib config
@@ -278,6 +279,7 @@ push_feature "mp4mx" "*MP4/QT muxer"
 push_feature "fout" "*File output"
 push_feature "pout" "*Pipe output"
 push_feature "rfac3" "*AC3 parser"
+push_feature "rfac4" "*AC4 parser"
 push_feature "rfadts" "*ADTS parser"
 push_feature "rfamr" "*AMR parser"
 push_feature "rfav1" "*AV1/VP9 parser"
@@ -300,6 +302,7 @@ push_feature "restamp" "*Restamper"
 push_feature "rewind" "*Reverse playback"
 push_feature "ufaac" "*ADTS and LATM rewriter"
 push_feature "ufmhas" "*MPEG-H Audio rewriter"
+push_feature "ufac4" "*AC4 Audio rewriter"
 push_feature "ufm4v" "*MPEG 1/2/4 and VC1 video rewriter"
 push_feature "ufnalu" "*NALU-based video rewriter"
 push_feature "ufobu" "*AV1/VP9 video rewriter"
@@ -403,13 +406,14 @@ GPAC build options:
   --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
+  --em-opt=OPT             emscripten optimization level, can be 0, 1, 2, 3, s, or z (default: 2) [$em_opt]
 
 GPAC core configuration:
   --static-modules         embed modules in libgpac rather than using dynamic library modules
   --enable-fixed-point     enable fixed-point math
   --disable-ipv6           disable IPV6 support
   --enable-mem-track       enable tracking of all memory allocated by gpac
-  --disable-remotery       disable Remotery support
+  --disable-rmtws          disable the websocket monitoring server
   --disable-x11            disable X11
   --disable-x11-shm        disable X11 shared memory support
   --disable-x11-xv         disable X11 Xvideo support
@@ -693,7 +697,7 @@ for opt do
             ;;
         --enable-mem-track) use_memory_tracking="yes"
             ;;
-        --disable-remotery) has_remotery="no"
+        --disable-rmtws) has_rmtws="no"
             ;;
         --disable-x11) append disabled_packages "x11"
             ;;
@@ -728,6 +732,12 @@ for opt do
             ;;
         --em-size=*) em_size=`echo $opt | cut -d '=' -f 2`
             ;;
+        --em-opt=*) em_opt=`echo $opt | cut -d '=' -f 2`
+            if test "$em_opt" != "0" -a "$em_opt" != "1" -a "$em_opt" != "2" -a "$em_opt" != "3" -a "$em_opt" != "s" -a "$em_opt" != "z"; then
+                echo "! Unrecognized emscripten optimization level $em_opt, using 2 !"
+                em_opt="2"
+            fi
+            ;;
         *) echo "! Unrecognized option $opt, ignoring !"
             ;;
     esac
@@ -759,7 +769,7 @@ if test "$is_em" = "yes" ; then
         echo "Emscripten missing PKG_CONFIG_PATH, disabling pkg-config"
         pkg_config="no"
     fi
-    has_remotery="no"
+    has_rmtws="no"
 
     #to refine
     append disabled_packages "freenect platinum vtb oss alsa jack pulseaudio directfb x11 dvb4linux directx"
@@ -1372,7 +1382,7 @@ config_package_test ()
 
     #test pkgconfig
     if test "$forced" != "local" -a "$custom" != "yes" ; then
-        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no"; then
+        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no" -a "$pkg_cfg_name" != ""; then
             if $pkg_config --exists $pkg_cfg_name ; then
                 pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
@@ -1723,8 +1733,9 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
-config_package ngtcp2 "libngtcp2" "" "-lngtcp2" "" '#include <stdio.h>
+config_package ngtcp2 "libngtcp2" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
 int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
@@ -2590,7 +2601,7 @@ fi
 
 #we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces"
 else
     CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
@@ -2773,6 +2784,7 @@ elif test "$sunos" = "yes" ; then
 elif test "$is_em" = "yes" ; then
     echo "CONFIG_EMSCRIPTEN=yes" >> config.mak
     echo "EM_TYPE=$em_type" >> config.mak
+    echo "EM_OPT=$em_opt" >> config.mak
     echo "#define GPAC_CONFIG_EMSCRIPTEN" >> $TMPH
 else
     echo "#define GPAC_CONFIG_GENERIC" >> $TMPH
@@ -2836,8 +2848,8 @@ else
 fi
 echo "CONFIG_FT=$has_freetype" >> config.mak
 
-if test "$has_remotery" = "no" ; then
-    echo "#define GPAC_DISABLE_REMOTERY" >> $TMPH
+if test "$has_rmtws" = "no" ; then
+    echo "#define GPAC_DISABLE_RMTWS" >> $TMPH
 fi
 
 
@@ -3159,6 +3171,7 @@ build_object_files_directory_tree()
 
     mkdir -p modules
     ln -sf "$1/modules/Makefile" modules/Makefile
+    ln -sf "$1/modules/common.mak" modules/common.mak
 
     for moddir in "$1/modules/"* ; do
         if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
@@ -3257,7 +3270,7 @@ generate_pkgconfig () {
 	echo "Name: gpac"
 	echo "Description: GPAC Multimedia Framework"
 	echo "URL: https://gpac.io"
-	echo "Version:$version"
+	echo "Version: $version"
 	echo "Cflags: -I\${prefix}/include"
 	echo "Libs: -L\${libdir} -lgpac"
 }

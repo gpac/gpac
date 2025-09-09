@@ -26,6 +26,7 @@ const char* txt = "GP\nA C \n1 2";
 
 static void ccdec_test_template(int agg, Bool text_with_overlaps, GF_Err (*pck_send)(GF_FilterPacket *pck))
 {
+#ifdef GPAC_HAS_LIBCAPTION
     CCDecCtx ctx = {0};
     ctx.agg = agg;
 
@@ -48,6 +49,7 @@ static void ccdec_test_template(int agg, Bool text_with_overlaps, GF_Err (*pck_s
     //termination calls
     ccdec_flush(&ctx);
     pck_send(NULL);
+#endif // GPAC_HAS_LIBCAPTION
 }
 
 
@@ -138,6 +140,7 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 
 unittest(ccdec_several_entries)
 {
+#ifdef GPAC_HAS_LIBCAPTION
     u64 ts = 0;
     CCDecCtx ctx = {0};
     ctx.agg = 1;
@@ -155,4 +158,5 @@ unittest(ccdec_several_entries)
     //termination calls
     ccdec_flush(&ctx);
     ctx.pck_send(NULL);
+#endif // GPAC_HAS_LIBCAPTION
 }

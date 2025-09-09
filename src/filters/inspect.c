@@ -866,8 +866,72 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 	}
 }
 
+static void inspect_dump_crypt(FILE *dump, u32 nal_size, u8 *sai_buffer, u32 sai_buffer_size, u32 nalu_offset)
+{
+	GF_BitStream *bs = gf_bs_new(sai_buffer, sai_buffer_size, GF_BITSTREAM_READ);
+	u8 iv_size = 0;
+	Bool multi_key=GF_FALSE;
+	u32 nb_iv_init=0;
+	u32 i, nb_subs;
 
-static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx)
+restart:
+	if (iv_size && !multi_key) gf_bs_skip_bytes(bs, iv_size);
+	nb_subs = gf_bs_read_u16(bs);
+	if (!multi_key && (gf_bs_available(bs) == nb_subs*6)) {
+
+	} else if (!multi_key && (iv_size<16)) {
+		gf_bs_seek(bs, 0);
+		iv_size += 8;
+		goto restart;
+	} else {
+		//multikey
+		if (!multi_key) {
+			iv_size=0;
+			multi_key = GF_TRUE;
+			gf_bs_seek(bs, 0);
+			nb_subs = gf_bs_read_u16(bs);
+		}
+		nb_iv_init = nb_subs;
+		gf_bs_skip_bytes(bs, nb_iv_init*(2+iv_size));
+		nb_subs = gf_bs_read_u32(bs);
+		if (gf_bs_available(bs) == nb_subs*8) {
+		} else if (iv_size<16) {
+			gf_bs_seek(bs, 0);
+			iv_size += 8;
+			goto restart;
+		} else {
+			inspect_printf(dump, "encrypted=\"unsupported multikey\" ");
+			gf_bs_del(bs);
+			return;
+		}
+	}
+
+	u32 offset=0;
+	for (i=0; i<nb_subs; i++) {
+		if (multi_key) gf_bs_read_u16(bs);
+		u32 clear = gf_bs_read_u16(bs);
+		u32 crypt = gf_bs_read_u32(bs);
+		if ((nalu_offset>=offset) && (nalu_offset+nal_size <= offset+clear)) {
+			inspect_printf(dump, "encrypted=\"no\" ");
+			gf_bs_del(bs);
+			return;
+		}
+		if ((nalu_offset>=offset) && (nalu_offset+nal_size <= offset+clear+crypt)) {
+			inspect_printf(dump, "encrypted=\"yes\" ");
+			gf_bs_del(bs);
+			return;
+		}
+		offset += clear+crypt;
+		if (nalu_offset+nal_size<offset) break;
+	}
+
+	inspect_printf(dump, "encrypted=\"no\" ");
+	gf_bs_del(bs);
+}
+
+
+
+static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx, u8 *sai_buffer, u32 sai_buffer_size, u32 nalu_offset)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -896,6 +960,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	}
 
 	if (dump_crc) inspect_printf(dump, "crc=\"%u\" ", gf_crc_32(ptr, ptr_size) );
+
+	if (sai_buffer && sai_buffer_size) {
+		inspect_dump_crypt(dump, ptr_size+nalh_size, sai_buffer, sai_buffer_size, nalu_offset);
+	}
 
 	if (hevc) {
 		if (ptr_size<=1) {
@@ -1579,10 +1647,10 @@ static u32 inspect_get_analyze_mode()
 }
 
 GF_EXPORT
-void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
+void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, u8 *sai_buffer, u32 sai_buffer_size, u32 sample_offset)
 {
 	if (!dump) return;
-	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, vvc, nalh_size, dump_crc, is_encrypted, inspect_get_analyze_mode(), NULL);
+	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, vvc, nalh_size, dump_crc, is_encrypted, inspect_get_analyze_mode(), NULL, sai_buffer, sai_buffer_size, sample_offset);
 }
 
 static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
@@ -1590,7 +1658,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 	inspect_printf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
 }
 
-static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump)
+static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump, u8 *sai_buffer, u32 sai_buffer_size, u32 offset_in_sample)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
 	if (!pctx && (obu_size <= 1))
@@ -1624,6 +1692,10 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 #define DUMP_OBU_INT2(_n, _v) inspect_printf(dump, _n"=\"%d\" ", _v);
 
 	inspect_printf(dump, " size=\""LLU"\" type=\"%s\" header_size=\"%d\" ", obu_size, gf_av1_get_obu_name(obu_type), hdr_size);
+
+	if (sai_buffer && sai_buffer_size) {
+		inspect_dump_crypt(dump, obu_size, sai_buffer, sai_buffer_size, offset_in_sample);
+	}
 
 	if (!full_dump) {
 		inspect_printf(dump, "has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
@@ -1730,10 +1802,10 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 }
 
 GF_EXPORT
-void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, u8 *sai_buffer, u32 sai_buffer_size, u32 offset_in_sample)
 {
 	if (!dump) return;
-	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, inspect_get_analyze_mode());
+	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, inspect_get_analyze_mode(), sai_buffer, sai_buffer_size, offset_in_sample);
 }
 
 static void gf_inspect_dump_prores_internal(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx)
@@ -2400,26 +2472,26 @@ segmentsExpected="1"
 	}
 }
 
-static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
+static u8 scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 {
 	if (gf_bs_available(bs) < 2)
-		return GF_FALSE;
+		return 0;
 
 	u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 	u8 descriptor_length = gf_bs_read_u8(bs);
 	if (descriptor_length < 4 || descriptor_length > 254) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] SCTE-35 splice descriptor: invalid descriptor_length=%u\n", descriptor_length));
-		return GF_FALSE;
+		return 0;
 	}
 	if (gf_bs_available(bs) < descriptor_length) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] not enough bits to parse SCTE-35 splice descriptor\n"));
-		return GF_FALSE;
+		return 0;
 	}
 
 	u32 identifier = gf_bs_read_u32(bs);
 	if (identifier != 0x43554549/*"CUEI"*/) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] unexpected SCTE-35 splice descriptor identifier \"%s\" instead of \"CUEI\". Skipping.\n", gf_4cc_to_str(identifier)));
-		return GF_FALSE;
+		return 0;
 	}
 
 	//inspect_printf(dump, "   <SpliceDescriptor spliceDescriptorTag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
@@ -2432,7 +2504,7 @@ static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 		//inspect_printf(dump, "/>\n");
 	}
 
-	return GF_TRUE;
+	return descriptor_length+2;
 }
 
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
@@ -2579,8 +2651,13 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	pos += splice_command_length;
 
 	int descriptor_loop_length = gf_bs_read_int(bs, 16);
-	while ( (gf_bs_get_position(bs) < pos + descriptor_loop_length) && scte35_parse_splice_descriptor(dump, bs) )
-	{
+	u32 descriptor_start_pos = (u32) gf_bs_get_position(bs);
+	while ( (descriptor_start_pos < pos + descriptor_loop_length) ) {
+		u8 len = scte35_parse_splice_descriptor(dump, bs);
+		if (len == 0)
+			break;
+		descriptor_start_pos += len;
+		gf_bs_seek(bs, descriptor_start_pos);
 	}
 
 exit:
@@ -3554,6 +3631,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	u8 dflags = 0;
 	GF_FilterClockType ck_type;
 	GF_FilterFrameInterface *fifce=NULL;
+	const GF_PropertyValue *p;
 	Bool start, end;
 	u8 *data;
 
@@ -3720,7 +3798,7 @@ props_done:
 	while (1) {
 		u32 prop_4cc;
 		const char *prop_name;
-		const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+		p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
 		if (prop_4cc || strncmp(prop_name, "scte35", 6)) continue;
 
@@ -3743,6 +3821,15 @@ props_done:
 				size--;
 			}
 		}
+		u32 sample_offset=0;
+		u8 *sai_buffer=NULL;
+		u32 sai_buffer_size=0;
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
+		if (p) {
+			sai_buffer = p->value.data.ptr;
+			sai_buffer_size = p->value.data.size;
+		}
+
 		while (size && pctx->nalu_size_length) {
 			if (size < pctx->nalu_size_length) {
 				inspect_printf(dump, "   <!-- NALU is corrupted: nalu_size_length is %u but only %d remains -->\n", pctx->nalu_size_length, size);
@@ -3756,20 +3843,30 @@ props_done:
 				break;
 			} else {
 				inspect_printf(dump, "   <NALU size=\"%d\" ", nal_size);
-				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->crc, pctx->is_cenc_protected, ctx->analyze, pctx);
+				gf_inspect_dump_nalu_internal(dump, data, nal_size, pctx->has_svcc ? 1 : 0, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, pctx->nalu_size_length, ctx->crc, pctx->is_cenc_protected, ctx->analyze, pctx, sai_buffer, sai_buffer_size, sample_offset);
 			}
 			idx++;
 			data += nal_size;
 			size -= nal_size + pctx->nalu_size_length;
+			sample_offset += nal_size + pctx->nalu_size_length;
 		}
 	} else if (pctx->av1_state) {
+		u32 sample_offset=0;
 		gf_bs_reassign_buffer(pctx->bs, data, size);
+		u8 *sai_buffer=NULL;
+		u32 sai_buffer_size=0;
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
+		if (p) {
+			sai_buffer = p->value.data.ptr;
+			sai_buffer_size = p->value.data.size;
+		}
+
 		while (size) {
 			ObuType obu_type = 0;
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
 
-			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze, sai_buffer, sai_buffer_size, sample_offset);
 
 			if (obu_size > size) {
 				inspect_printf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
@@ -3782,6 +3879,7 @@ props_done:
 			data += obu_size;
 			size -= (u32)obu_size;
 			idx++;
+			sample_offset += obu_size;
 		}
 	} else {
 		u32 hdr, pos, fsize, i;
@@ -3936,7 +4034,7 @@ props_done:
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			inspect_printf(dump, "   <NALU size=\"%d\" ", slc->size);\
-			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->crc, GF_FALSE, ctx->analyze, pctx);\
+			gf_inspect_dump_nalu_internal(dump, slc->data, slc->size, _is_svc, pctx->hevc_state, pctx->avc_state, pctx->vvc_state, nalh_size, ctx->crc, GF_FALSE, ctx->analyze, pctx, NULL, 0, 0);\
 		}\
 		inspect_printf(dump, "  </%sArray>\n", name);\
 	}\
@@ -4724,7 +4822,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 				else
 					gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
 
-				gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+				gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze, NULL, 0, 0);
 				idx++;
 			}
 		}
@@ -5403,8 +5501,13 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		case GF_CODECID_VVC:
 		case GF_CODECID_AV1:
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SEI_LOADED);
-			if (!p)
-				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+			if (!p) {
+				//if unframed and our inspect mode is not framed, do not require SEI_LOAD (we don't want a reframer to be inserted)
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+				if (!p || (ctx->mode==INSPECT_MODE_REFRAME)) {
+					gf_filter_pid_negotiate_property(pid, GF_PROP_PID_SEI_LOADED, &PROP_BOOL(GF_TRUE) );
+				}
+			}
 		}
 	}
 

@@ -649,7 +649,18 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							esd = (GF_ESD*)gf_list_get(od->ESDescriptors, 0);
 							if (!esd) {
 								if (od->URLString) {
-									ODS_SetupOD(priv->scene, od);
+
+									switch (od->tag) {
+										case GF_ODF_IOD_TAG:
+										case GF_ODF_OD_TAG:
+										case GF_ODF_ISOM_IOD_TAG:
+										case GF_ODF_ISOM_OD_TAG:
+											ODS_SetupOD(priv->scene, od);
+											break;
+										default:
+											break;
+									}
+
 								}
 								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;

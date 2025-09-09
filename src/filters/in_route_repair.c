@@ -175,6 +175,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 {
     u8 *data = finfo->blob->data;
     u32 size = finfo->blob->size;
+    u32 partial_status = GF_LCTO_PARTIAL_NONE;
     u32 pos = 0;
 	u32 prev_moof_pos = 0;
 	u32 prev_mdat_pos = 0;
@@ -384,6 +385,11 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 		}
         pos += box_size;
     }
+
+	if (patch_first_range_size) {
+		return;
+	}
+
     //check if file had no known size and last fragment ends on our last box
     if (!finfo->total_size && (finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size == pos)) {
 		if (finfo->nb_frags==1) was_partial = GF_FALSE;
@@ -423,7 +429,13 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			}
 		}
 	}
-    gf_assert(pos == finfo->total_size);
+	if (pos>finfo->total_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s is corrupted, invalid last top-level position %u vs size %u\n", finfo->filename, pos, finfo->total_size));
+		partial_status = GF_LCTO_PARTIAL_ANY;
+		was_partial = GF_FALSE; //suppress logs below
+	} else {
+		gf_assert(pos == finfo->total_size);
+	}
 
 exit:
 	if ((ctx->repair == ROUTEIN_REPAIR_STRICT) && was_partial && !nb_patches) {
@@ -433,7 +445,8 @@ exit:
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s fast-repair done (%d patches)\n", finfo->filename, nb_patches));
 	}
 	//remove corrupted flag
-	finfo->partial = GF_LCTO_PARTIAL_NONE;
+	finfo->partial = partial_status;
+
 	//in gcache mode, we keep ranges in order to identify corrupted ISOBMF samples after repair - whether they are dispatched is governed by keepc option of isobmf demuxer
 	//in other modes (dispatch to PID or write to file) we currently reset the info
 	//WARNING: if removing this, asserts in routein_send_file will need to be removed
@@ -895,7 +908,7 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 			if (patch_end > rsess->range->br_end)
 				patch_end = rsess->range->br_end;
 
-			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, patch_end);
+			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, (u32) patch_end);
 		}
 
 		rsess->server->nb_bytes += rsess->range->done;

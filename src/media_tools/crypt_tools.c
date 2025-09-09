@@ -330,6 +330,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
 			}
+			else if (!stricmp(att->name, "encryptNonVCLs")) {
+				if (!strcmp(att->value, "yes"))
+					tkc->allow_encrypted_nonVCLs = GF_CRYPT_NONVCL_CLEAR_NONE;
+				else if (!strcmp(att->value, "no"))
+					tkc->allow_encrypted_nonVCLs = GF_CRYPT_NONVCL_CLEAR_ALL;
+				else
+					tkc->allow_encrypted_nonVCLs = GF_CRYPT_NONVCL_CLEAR_SEI_AUD;
+			}
 			else if (!stricmp(att->name, "blockAlign")) {
 				if (!strcmp(att->value, "disable")) tkc->block_align = 1;
 				else if (!strcmp(att->value, "always")) tkc->block_align = 2;

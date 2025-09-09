@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2024
+ *			Copyright (c) Telecom Paris 2019-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -766,7 +766,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				int size = 0;
 				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
 				u32 to_write = size - ctx->pck_offset;
-				if (to_write > ctx->avio_ctx->buffer_size)
+				if ((s32) to_write > ctx->avio_ctx->buffer_size)
 					to_write = ctx->avio_ctx->buffer_size;
 
 				avio_write(ctx->avio_ctx, data + ctx->pck_offset, to_write);
@@ -1214,6 +1214,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				return GF_NOT_SUPPORTED;
 			}
 		}
+	} else if (codec_id==GF_CODECID_FFMPEG) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
+		ff_codec_id = p ? p->value.uint : AV_CODEC_ID_NONE;
 	} else {
 		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
 	}
@@ -1227,6 +1230,33 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #else
 	res = avformat_query_codec(ctx->muxer->oformat, ff_codec_id, FF_COMPLIANCE_NORMAL);
 #endif
+
+	if (!res) {
+		//try negotiating to default codec of container
+		enum AVCodecID ff_codec = AV_CODEC_ID_NONE;
+		switch (streamtype) {
+		case GF_STREAM_VISUAL:
+			ff_codec = ctx->muxer->oformat->video_codec;
+			break;
+		case GF_STREAM_AUDIO:
+			ff_codec = ctx->muxer->oformat->audio_codec;
+			break;
+		case GF_STREAM_TEXT:
+			ff_codec = ctx->muxer->oformat->subtitle_codec;
+			break;
+		}
+		if (ff_codec != AV_CODEC_ID_NONE) {
+			u32 codec_id = ffmpeg_codecid_to_gpac(ff_codec);
+			if (codec_id!=GF_CODECID_NONE) {
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id));
+				return GF_OK;
+			} else {
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG));
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT(ff_codec));
+				return GF_OK;
+			}
+		}
+	}
 
 	if (!res) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Codec %s not supported in container %s\n", gf_codecid_name(codec_id), ctx->muxer->oformat->name));
@@ -1455,7 +1485,14 @@ setup_stream:
 		u8 *data = av_malloc(sizeof(u32) * 9);
 		if (data) {
 			memcpy(data, p->value.uint_list.vals, sizeof(u32)*9);
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_DISPLAYMATRIX, data, 32*9);
+#else
+			av_packet_side_data_add(&st->stream->codecpar->coded_side_data,
+									&st->stream->codecpar->nb_coded_side_data,
+									AV_PKT_DATA_DISPLAYMATRIX,
+									data, 32 * 9, 0);
+#endif
 		}
 	}
 #if (LIBAVCODEC_VERSION_MAJOR>58)
@@ -1465,7 +1502,14 @@ setup_stream:
 		u8 *data = av_malloc(p->value.data.size);
 		if (data) {
 			memcpy(data, p->value.data.ptr, p->value.data.size);
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_ICC_PROFILE, data, p->value.data.size);
+#else
+			av_packet_side_data_add(&st->stream->codecpar->coded_side_data,
+									&st->stream->codecpar->nb_coded_side_data,
+									AV_PKT_DATA_ICC_PROFILE,
+									data, p->value.data.size, 0);
+#endif
 		}
 	}
 	//clli
@@ -1476,7 +1520,14 @@ setup_stream:
 		if (data) {
 			data->MaxCLL = gf_bs_read_u16(bs);
 			data->MaxFALL = gf_bs_read_u16(bs);
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (u8*) data, sizeof(AVContentLightMetadata));
+#else
+			av_packet_side_data_add(&st->stream->codecpar->coded_side_data,
+									&st->stream->codecpar->nb_coded_side_data,
+									AV_PKT_DATA_CONTENT_LIGHT_LEVEL,
+									(u8*) data, sizeof(AVContentLightMetadata), 0);
+#endif
 		}
 		gf_bs_del(bs);
 	}
@@ -1510,7 +1561,14 @@ setup_stream:
 			data->max_luminance.den = luma_den;
 			data->min_luminance.num = gf_bs_read_u32(bs);
 			data->min_luminance.den = luma_den;
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (u8*) data, sizeof(AVMasteringDisplayMetadata));
+#else
+			av_packet_side_data_add(&st->stream->codecpar->coded_side_data,
+									&st->stream->codecpar->nb_coded_side_data,
+									AV_PKT_DATA_MASTERING_DISPLAY_METADATA,
+									(u8*) data, sizeof(AVMasteringDisplayMetadata), 0);
+#endif
 		}
 		gf_bs_del(bs);
 	}
@@ -1528,7 +1586,14 @@ setup_stream:
 			data->el_present_flag = gf_bs_read_int(bs, 1);
 			data->bl_present_flag = gf_bs_read_int(bs, 1);
 			data->dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_DOVI_CONF, (u8*) data, sizeof(Ref_FFAVDoviRecord));
+#else
+			av_packet_side_data_add(&st->stream->codecpar->coded_side_data,
+									&st->stream->codecpar->nb_coded_side_data,
+									AV_PKT_DATA_DOVI_CONF,
+									(u8*) data, sizeof(Ref_FFAVDoviRecord), 0);
+#endif
 		}
 		gf_bs_del(bs);
 	}

@@ -521,8 +521,13 @@ typedef struct
 	u32 dimension_id[MAX_LHVC_LAYERS][16];
 	u32 layer_id_in_nuh[MAX_LHVC_LAYERS];
 	u32 layer_id_in_vps[MAX_LHVC_LAYERS];
-
-	u8 num_profile_tier_level, num_output_layer_sets;
+	u8 num_direct_ref_layers[64];
+	u8 num_ref_list_layers[64];
+	u8 num_profile_tier_level, num_output_layer_sets, default_ref_layers_active_flag;
+	u8 id_direct_ref_layers[64][MAX_LHVC_LAYERS];
+	u8 layer_idx_in_vps[MAX_LHVC_LAYERS];
+	u8 sub_layers_vps_max_minus1[MAX_LHVC_LAYERS];
+	u8 max_tid_il_ref_pics_plus1[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	u32 profile_level_tier_idx[MAX_LHVC_LAYERS];
 	HEVC_ProfileTierLevel ext_ptl[MAX_LHVC_LAYERS];
 
@@ -539,11 +544,12 @@ typedef struct
 	Bool necessary_layers_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	u8 LayerSetLayerIdList[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	u8 LayerSetLayerIdListMax[MAX_LHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
+	u8 max_one_active_ref_layer_flag;
 } HEVC_VPS;
 
 typedef struct
 {
-	u8 nal_unit_type;
+	u8 nal_unit_type, layer_id, temporal_id;
 	u32 frame_num, poc_lsb, slice_type, header_size_with_emulation;
 	
 	s32 redundant_pic_cnt;
@@ -1235,7 +1241,7 @@ typedef struct _webvtt_parser GF_WebVTTParser;
 typedef struct _webvtt_sample GF_WebVTTSample;
 
 GF_WebVTTParser *gf_webvtt_parser_new();
-GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE *vtt_file, s32 unicode_type, Bool is_srt,
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
                              void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *));
