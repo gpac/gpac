@@ -9428,6 +9428,7 @@ GF_Err isom_sample_refs_push(GF_SampleReferences *sref, s32 refID, u32 nb_refs, 
 				ent->sample_refs[j] += sref->id_shift;
 		}
 	}
+	sref->cdrf_cache_size = 0;
 	return gf_list_add(sref->entries, ent);
 }
 

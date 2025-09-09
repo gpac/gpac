@@ -592,6 +592,7 @@ enum
 
 
 	GF_GPAC_BOX_TYPE_SREF = GF_4CC( 'G', 'P', 'S', 'R' ),
+	GF_ISOM_BOX_TYPE_CDRF = GF_4CC( 'c', 'd', 'r', 'f' ),
 
 	GF_ISOM_BOX_TYPE_CMOV	= GF_4CC( '!', 'm', 'o', 'v' ),
 	GF_ISOM_BOX_TYPE_CMOF	= GF_4CC( '!', 'm', 'o', 'f' ),
@@ -2211,6 +2212,9 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 	u32 id_shift;
+
+	//for cdrf
+	u32 cdrf_entries, cdrf_cache_size;
 } GF_SampleReferences;
 
 typedef struct

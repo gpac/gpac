@@ -14527,6 +14527,20 @@ GF_Err extl_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+//#define DUMP_STATS
+
+#ifdef DUMP_STATS
+static u32 global_boxes=0;
+static u32 global_samples=0;
+static u32 global_cost=0;
+static u32 global_cost_full=0;
+static s32 global_cost_diff=0;
+static u32 global_patterns_diff=0;
+static s32 global_cost_nodiff=0;
+static u32 global_patterns_nodiff=0;
+static s32 global_cost_refs_sbgp=0;
+#endif
+
 
 GF_Box *sref_box_new()
 {
@@ -14545,11 +14559,172 @@ void sref_box_del(GF_Box *s)
 	}
 	gf_list_del(ptr->entries);
 	gf_free(s);
+
+#ifdef DUMP_STATS
+	if (global_boxes)
+		fprintf(stdout, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", global_boxes, global_samples, global_cost, global_cost_full, global_cost_diff, global_cost_nodiff, global_cost_refs_sbgp, global_patterns_diff, global_patterns_nodiff);
+#endif
 }
 
+
+typedef struct
+{
+	Bool is_abs;
+	u32 orig_sampleID;
+	s32 diff_sampleID;
+	u32 nb_refs;
+	s32 *sample_refs;
+	s32 *orig_sample_refs;
+
+	u32 flags;
+} GF_SampleRefDiffEntry;
+
+static s32 read_signed_int(GF_BitStream *bs, u32 nb_bits, s32 max_val)
+{
+	s32 val = gf_bs_read_int(bs, nb_bits);
+	if (val<max_val) return val;
+	return val - (2*max_val);
+}
+
+GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
+{
+	GF_Err e = GF_OK;
+	ISOM_DECREASE_SIZE(s, 1)
+	s->flags = gf_bs_read_u8(bs);
+	Bool use_nodiff = (s->flags & 16) ? GF_TRUE : GF_FALSE;
+
+	u32 i, j;
+	u32 bits = 8, entry_bits=8;
+	if (s->flags & 1) bits = 16;
+	else if (s->flags & 2) bits = 32;
+
+	s32 max_val = 1;
+	i=0;
+	while (i<bits-1) {
+		i++;
+		max_val<<=1;
+	}
+	s32 max_val2 = max_val>>1;
+
+	if (s->flags & 4) entry_bits = 16;
+	else if (s->flags & 8) entry_bits = 32;
+	s->cdrf_entries = gf_bs_read_int(bs, entry_bits);
+
+	GF_List *def_refs = gf_list_new();
+	GF_List *samples = gf_list_new();
+	for (i=0; i<s->cdrf_entries; i++) {
+		ISOM_DECREASE_SIZE_GOTO_EXIT(s, bits/8)
+		Bool is_ref = gf_bs_read_int(bs, 1);
+		if (!is_ref) {
+			GF_SampleRefDiffEntry *ent;
+			u32 nb_refs = gf_bs_read_int(bs, bits-1);;
+			ISOM_DECREASE_SIZE_GOTO_EXIT(s, (1+nb_refs)*bits/8)
+			GF_SAFEALLOC(ent, GF_SampleRefDiffEntry);
+			if (!ent) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+			gf_list_add(def_refs, ent);
+			gf_list_add(samples, ent);
+			ent->sample_refs = gf_malloc(sizeof(s32)*nb_refs);
+			if (!ent->sample_refs) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+			ent->nb_refs = nb_refs;
+			ent->is_abs = gf_bs_read_int(bs, 1);
+			ent->diff_sampleID = (s32) read_signed_int(bs, bits-1, max_val2);
+			for (j=0; j<nb_refs; j++) {
+				ent->sample_refs[j] = (s32) (s8) read_signed_int(bs, bits, max_val);
+			}
+
+		} else {
+			ISOM_DECREASE_SIZE_GOTO_EXIT(s, 2*bits/8)
+			u32 offset = gf_bs_read_int(bs, bits-1);
+			u32 pattern_len = gf_bs_read_int(bs, bits);
+			u32 nb_samples = gf_bs_read_int(bs, bits);
+			u32 pattern_idx=0;
+			for (j=0; j<nb_samples; j++) {
+				u32 s_offset = offset + pattern_idx;
+				GF_SampleRefDiffEntry *ent = gf_list_get(samples, s_offset);
+				if (!ent) {
+					e = GF_ISOM_INVALID_FILE;
+					goto exit;
+				}
+				if (use_nodiff) {
+					GF_SampleRefDiffEntry *rent;
+					ISOM_DECREASE_SIZE_GOTO_EXIT(s, bits/8)
+					GF_SAFEALLOC(rent, GF_SampleRefDiffEntry);
+					if (!rent) {
+						e = GF_OUT_OF_MEM;
+						goto exit;
+					}
+					rent->diff_sampleID = (s32) read_signed_int(bs, bits, max_val);
+					rent->nb_refs = ent->nb_refs;
+					rent->sample_refs = ent->sample_refs;
+					rent->flags = 1;
+					gf_list_add(samples, rent);
+				} else {
+					gf_list_add(samples, ent);
+				}
+				pattern_idx++;
+				if (pattern_idx==pattern_len) pattern_idx=0;
+			}
+		}
+	}
+
+	u32 prev_sample_id = 0;
+	while (gf_list_count(samples)) {
+		GF_SampleRefDiffEntry *ent = gf_list_pop_front(samples);
+		GF_SampleRefEntry *final_ent;
+		GF_SAFEALLOC(final_ent, GF_SampleRefEntry);
+		if (final_ent) {
+			final_ent->sample_refs = gf_malloc(sizeof(u32)*ent->nb_refs);
+			gf_list_add(s->entries, final_ent);
+		}
+		if (!final_ent || !final_ent->sample_refs) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
+		if (use_nodiff)
+			final_ent->sampleID = ent->diff_sampleID;
+		else
+			if (ent->is_abs) final_ent->sampleID = ent->diff_sampleID;
+			else final_ent->sampleID = prev_sample_id + ent->diff_sampleID;
+
+		prev_sample_id = final_ent->sampleID;
+		final_ent->nb_refs = ent->nb_refs;
+		for (j=0; j<ent->nb_refs;j++) {
+			s32 ref;
+			if (use_nodiff)
+				ref = ent->sample_refs[j];
+			else
+				ref = final_ent->sampleID - ent->sample_refs[j];
+
+			assert(ref>=0);
+			final_ent->sample_refs[j] = ref;
+		}
+		if (ent->flags) {
+			gf_free(ent);
+		}
+	}
+
+exit:
+	gf_list_del(samples);
+	while (gf_list_count(def_refs)) {
+		GF_SampleRefDiffEntry *ent = gf_list_pop_back(def_refs);
+		if (ent->sample_refs) gf_free(ent->sample_refs);
+		gf_free(ent);
+	}
+	gf_list_del(def_refs);
+	return e;
+}
 GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SampleReferences *ptr = (GF_SampleReferences*)s;
+	if (ptr->type==GF_ISOM_BOX_TYPE_CDRF) {
+		return cdrf_box_read(ptr, bs);
+	}
 	ISOM_DECREASE_SIZE(s, 4)
 
 	u32 bits = 8;
@@ -14583,9 +14758,280 @@ GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+
+#ifdef DUMP_STATS
+static Bool cdrf_sample_is_leaf(GF_SampleReferences *ptr, u32 sample_id)
+{
+	u32 i, j, nb_entries = gf_list_count(ptr->entries);
+	for (i=0; i<nb_entries; i++) {
+		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		for (j=0; j<ent->nb_refs; j++) {
+			if (ent->sample_refs[j]==sample_id) return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
+}
+#endif
+
+static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *out_max_id_nodiff)
+{
+	Bool all_intra=GF_TRUE;
+	s32 max_id_diff=-1;
+	s32 max_id_nodiff=-1;
+	u32 i, j, nb_entries = gf_list_count(ptr->entries);
+	u32 prev_sample_id = 0;
+	Bool prev_is_irap=GF_FALSE;
+	GF_List *refs = gf_list_new();
+	for (i=0; i<nb_entries; i++) {
+		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		GF_SampleRefDiffEntry *rent;
+		GF_SAFEALLOC(rent, GF_SampleRefDiffEntry);
+		rent->diff_sampleID = rent->orig_sampleID = ent->sampleID;
+		if (ent->sampleID==GF_INT_MAX) {
+			rent->is_abs = GF_TRUE;
+			prev_is_irap = GF_FALSE;
+		} else if (!ent->nb_refs) {
+			//if prev is irap code as diff
+			if (prev_is_irap) {
+				rent->is_abs = GF_FALSE;
+				rent->diff_sampleID -= prev_sample_id;
+			} else {
+				rent->is_abs = GF_TRUE;
+			}
+			prev_is_irap = GF_TRUE;
+		} else {
+			prev_is_irap = GF_FALSE;
+			all_intra = GF_FALSE;
+			rent->nb_refs = ent->nb_refs;
+			rent->orig_sample_refs = ent->sample_refs;
+			rent->sample_refs = gf_malloc(sizeof(s32) * ent->nb_refs);
+			for (j=0; j<rent->nb_refs; j++) {
+				rent->sample_refs[j] = ent->sampleID;
+				rent->sample_refs[j] -= ent->sample_refs[j];
+
+				if (out_max_id) {
+					if (max_id_diff < ABS(rent->sample_refs[j]))
+						max_id_diff = ABS(rent->sample_refs[j]);
+
+					if (max_id_nodiff < rent->orig_sample_refs[j])
+						max_id_nodiff = rent->orig_sample_refs[j];
+				}
+			}
+			if (!i)
+				rent->is_abs = GF_TRUE;
+			else
+				rent->diff_sampleID -= prev_sample_id;
+		}
+#ifdef DUMP_STATS
+		if (cdrf_sample_is_leaf(ptr, ent->sampleID))
+			rent->flags = 1;
+#endif
+		prev_sample_id = ent->sampleID;
+		gf_list_add(refs, rent);
+
+		if (out_max_id) {
+			if (max_id_diff < rent->diff_sampleID)
+				max_id_diff = rent->diff_sampleID;
+			if (max_id_nodiff < rent->orig_sampleID)
+				max_id_nodiff = rent->orig_sampleID;
+		}
+	}
+	if (all_intra) {
+		for (i=0; i<nb_entries; i++) {
+			GF_SampleRefDiffEntry *ent = gf_list_get(refs, i);
+			ent->flags = 1;
+		}
+	}
+
+	if (out_max_id) *out_max_id = max_id_diff;
+	if (out_max_id_nodiff) *out_max_id_nodiff = max_id_nodiff;
+	return refs;
+}
+static void cdrf_clean_refs(GF_List *refs)
+{
+	while (gf_list_count(refs)) {
+		GF_SampleRefDiffEntry *rent = gf_list_pop_back(refs);
+		if (rent->sample_refs) gf_free(rent->sample_refs);
+		gf_free(rent);
+	}
+	gf_list_del(refs);
+}
+
+static Bool cdrf_same_entry(GF_SampleRefDiffEntry *ref_ent, GF_SampleRefDiffEntry *ref, u32 mode)
+{
+	//diff cdrf
+	if (mode==0) {
+		if (ref->is_abs != ref_ent->is_abs) return GF_FALSE;
+		if (ref->diff_sampleID != ref_ent->diff_sampleID) return GF_FALSE;
+	}
+#ifdef DUMP_STATS
+	//refs
+	if (mode==2) {
+		//both leaf samples, check ID
+		if (!ref->flags || !ref_ent->flags) {
+			if (ref->orig_sampleID != ref_ent->orig_sampleID) return GF_FALSE;
+		}
+	}
+#endif
+	if (ref->nb_refs != ref_ent->nb_refs) return GF_FALSE;
+	u32 k, l, match = 0;
+	s32 *ref_ent_ids = mode ? ref_ent->orig_sample_refs : ref_ent->sample_refs;
+	s32 *ref_ids = mode ? ref->orig_sample_refs : ref->sample_refs;
+
+	for (k=0; k<ref_ent->nb_refs; k++) {
+		for (l=0; l<ref->nb_refs; l++) {
+			if (ref_ids[l] == ref_ent_ids[k]) {
+				match ++;
+				break;
+			}
+		}
+	}
+	if (match==ref_ent->nb_refs) return GF_TRUE;
+	return GF_FALSE;
+}
+
+
+static s32 cdrf_locate_first_ref(GF_SampleRefDiffEntry *ref_ent, u32 max_idx, GF_List *refs, s32 pattern_offset, u32 nb_in_pattern, u32 mode)
+{
+	u32 j;
+	if (pattern_offset>=0) {
+		GF_SampleRefDiffEntry *ref = gf_list_get(refs, pattern_offset);
+		//detect loop
+		if (cdrf_same_entry(ref_ent, ref, mode))
+			return pattern_offset;
+		//detect following
+		pattern_offset += nb_in_pattern;
+		ref = gf_list_get(refs, pattern_offset);
+		if (cdrf_same_entry(ref_ent, ref, mode))
+			return pattern_offset;
+	}
+	//browse from start
+	for (j=0; j<max_idx; j++) {
+		GF_SampleRefDiffEntry *ref = gf_list_get(refs, j);
+		if (cdrf_same_entry(ref_ent, ref, mode))
+			return j;
+	}
+	return -1;
+}
+
+static void cdrf_box_flush_pattern(GF_BitStream *bs, u32 pattern_len, s32 prev_offset, u32 nb_samples, u32 *sample_ids, u32 bits)
+{
+	gf_assert(pattern_len);
+	gf_assert(nb_samples);
+	gf_bs_write_int(bs, 1, 1);
+	gf_bs_write_int(bs, prev_offset, bits-1);
+	gf_bs_write_int(bs, pattern_len, bits);
+	gf_bs_write_int(bs, nb_samples, bits);
+
+	if (sample_ids) {
+		u32 j;
+		for (j=0; j<nb_samples; j++)
+			gf_bs_write_int(bs, sample_ids[j], bits);
+	}
+}
+
+GF_Err cdrf_box_write(GF_SampleReferences *ptr, GF_BitStream *bs)
+{
+	GF_List *refs = cdrf_get_refs(ptr, NULL, NULL);
+	u32 i, j;
+	u32 bits = 8, entry_bits=8;
+	if (ptr->flags & 1) bits = 16;
+	else if (ptr->flags & 2) bits = 32;
+
+	if (ptr->flags & 4) entry_bits = 16;
+	else if (ptr->flags & 8) entry_bits = 32;
+
+	gf_isom_box_write_header((GF_Box*)ptr, bs);
+	gf_bs_write_u8(bs, ptr->flags);
+	gf_bs_write_int(bs, ptr->cdrf_entries, entry_bits);
+
+	u32 mode = (ptr->flags & 16) ? 1 : 0;
+
+	s32 prev_offset = -1;
+	u32 prev_len = 0;
+	u32 pattern_len = 0;
+	u32 nb_samples = 0;
+	u32 nb_entries = gf_list_count(ptr->entries);
+	s32 *sample_ids = NULL;
+	if (mode) {
+		sample_ids = gf_malloc(sizeof(s32)*nb_entries);
+		if (!sample_ids) return GF_OUT_OF_MEM;
+	}
+
+	for (i=0; i<nb_entries; i++) {
+		GF_SampleRefDiffEntry *rent = gf_list_get(refs, i);
+		s32 found = cdrf_locate_first_ref(rent, i, refs, prev_offset, prev_len, mode);
+
+		if (found<0) {
+			if (prev_len) {
+				cdrf_box_flush_pattern(bs, pattern_len ? pattern_len : prev_len, prev_offset, nb_samples, sample_ids, bits);
+			}
+			//write direct sample
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_int(bs, rent->nb_refs, bits-1);
+			gf_bs_write_int(bs, mode ? 1 : rent->is_abs, 1);
+			if (mode) {
+				gf_bs_write_int(bs, rent->orig_sampleID, bits-1);
+				for (j=0; j<rent->nb_refs; j++)
+					gf_bs_write_int(bs, rent->orig_sample_refs[j], bits);
+			} else {
+				gf_bs_write_int(bs, rent->diff_sampleID, bits-1);
+				for (j=0; j<rent->nb_refs; j++)
+					gf_bs_write_int(bs, rent->sample_refs[j], bits);
+			}
+
+			//reset pattern to empty
+			prev_offset = -1;
+			prev_len = 0;
+			pattern_len = 0;
+			nb_samples=0;
+		} else {
+			if (pattern_len && (pattern_len == prev_len)) {
+				prev_len = 0;
+			}
+			if ((prev_offset>=0) && (found == prev_offset+prev_len)) {
+				prev_len++;
+				if (sample_ids)
+					sample_ids[nb_samples] = rent->orig_sampleID;
+				nb_samples++;
+				continue;
+			}
+			if (!pattern_len && (found == prev_offset)) {
+				pattern_len = prev_len;
+				prev_len = 1;
+				if (sample_ids)
+					sample_ids[nb_samples] = rent->orig_sampleID;
+				nb_samples++;
+				continue;
+			}
+			if (prev_len || pattern_len) {
+				cdrf_box_flush_pattern(bs, pattern_len ? pattern_len : prev_len, prev_offset, nb_samples, sample_ids, bits);
+			}
+
+			//reset pattern to one sample found
+			prev_offset = found;
+			pattern_len = 0;
+			prev_len = 1;
+			nb_samples = 1;
+			if (sample_ids)
+				sample_ids[0] = rent->orig_sampleID;
+		}
+	}
+	if (prev_len) {
+		cdrf_box_flush_pattern(bs, pattern_len ? pattern_len : prev_len, prev_offset, nb_samples, sample_ids, bits);
+	}
+	if (sample_ids)
+		gf_free(sample_ids);
+	cdrf_clean_refs(refs);
+	return GF_OK;
+}
+
 GF_Err sref_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SampleReferences *ptr = (GF_SampleReferences*)s;
+	if (ptr->type==GF_ISOM_BOX_TYPE_CDRF) {
+		return cdrf_box_write(ptr, bs);
+	}
 	GF_Err e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -14613,9 +15059,240 @@ GF_Err sref_box_write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+//#define DUMP_REFS
+
+
+static u32 cdrf_get_cost(GF_List *refs, u32 mode, s32 max_id, u32 *cost_full, u32 *total_entries, u8 *flags)
+{
+	s32 prev_offset = -1;
+	u32 prev_len = 0;
+	u32 nb_samples = 0;
+	u32 pattern_len = 0;
+
+#ifdef DUMP_STATS
+	u32 cost_refs=0;
+	u32 cost_sbgp=0;
+#endif
+	u32 i, nb_entries = gf_list_count(refs);
+	u32 nb_direct_cost=0, nb_direct_entries=0, nb_pattern_entries=0, nb_samples_reused=0;
+	*cost_full=0;
+
+	for (i=0; i<nb_entries; i++) {
+		GF_SampleRefDiffEntry *rent = gf_list_get(refs, i);
+		s32 found = cdrf_locate_first_ref(rent, i, refs, prev_offset, prev_len, mode);
+
+		*cost_full += 2 + rent->nb_refs;
+#ifdef DUMP_REFS
+		Bool pattern_start=GF_FALSE;
+		Bool pattern_end=GF_FALSE;
+#endif
+		if (found<0) {
+#ifdef DUMP_STATS
+			if (mode==2) {
+				//need refs sample entry + length
+				cost_refs += 4 + 5+4*rent->nb_refs;
+				//need sgpd entry
+				cost_sbgp += 8;
+				continue;
+			}
+#endif
+			if (prev_len > max_id) {
+				max_id = prev_len;
+			}
+			if (prev_len) {
+				gf_assert(nb_samples);
+				nb_pattern_entries += 1;
+#ifdef DUMP_REFS
+				pattern_end=GF_TRUE;
+#endif
+			}
+			if (prev_offset > max_id)
+				max_id = prev_offset;
+
+			prev_offset = -1;
+			prev_len = 0;
+			pattern_len = 0;
+			nb_samples = 0;
+			nb_direct_entries += 1;
+			nb_direct_cost += 2 + rent->nb_refs;
+		} else {
+#ifdef DUMP_STATS
+			if (mode==2) {
+				//reuse existing refs sample group, no refs extra cost
+				GF_SampleRefDiffEntry *prev_ent = gf_list_get(refs, i-1);
+				//same as previous, RLE from previous sbgp entry can be used
+				if (prev_ent && cdrf_same_entry(rent, prev_ent, 2)) {
+
+				} else {
+					//need sgpd entry
+					cost_sbgp += 8;
+				}
+				continue;
+			}
+#endif
+			nb_samples_reused += 1;
+			if (pattern_len && (pattern_len == prev_len)) {
+				prev_len = 0;
+			}
+
+			if ((prev_offset>=0) && (found == prev_offset+prev_len)) {
+				prev_len++;
+				nb_samples ++;
+			}
+			else if (!pattern_len && (found == prev_offset)) {
+				pattern_len = prev_len;
+				prev_len = 1;
+				nb_samples ++;
+			} else {
+				if (prev_len > max_id) {
+					max_id = prev_len;
+				}
+				if (prev_len || pattern_len) {
+					nb_pattern_entries += 1;
+					gf_assert(nb_samples);
+#ifdef DUMP_REFS
+					pattern_end=GF_TRUE;
+#endif
+				}
+				if (prev_offset > max_id)
+					max_id = prev_offset;
+
+				pattern_len = 0;
+				prev_offset = found;
+				prev_len = 1;
+				nb_samples = 1;
+#ifdef DUMP_REFS
+				pattern_start=GF_TRUE;
+#endif
+			}
+		}
+
+#ifdef DUMP_REFS
+		fprintf(stderr, "Sample #%d %d %d refs[", i+1, rent->orig_sampleID, rent->diff_sampleID);
+		for (u32 j=0; j<rent->nb_refs; j++) fprintf(stderr, " %d", mode ? rent->orig_sample_refs[j] : rent->sample_refs[j]);
+		fprintf(stderr, "] Pattern End %d Start %d", pattern_end, pattern_start);
+		if (found>=0)
+			fprintf(stderr, " reuse entry #%u", found+1);
+		fprintf(stderr, "\n");
+#endif
+
+	}
+	if (prev_len || pattern_len) {
+		nb_pattern_entries += 1;
+	}
+
+#ifdef DUMP_STATS
+	if (mode==2) {
+		*flags = 0;
+		cost_refs += 24; //Full box + grouping type + length + nb_entries
+		cost_sbgp += 20; //FullBox + grouping_type + nb_entries
+		return cost_refs+cost_sbgp;
+	}
+#endif
+
+	*flags = 0;
+	u32 byte_s=1;
+	if (max_id > 32767) {
+		byte_s=4;
+		*flags |= 2;
+	}
+	else if (max_id > 255) {
+		byte_s=2;
+		*flags |= 1;
+	}
+	*total_entries = nb_pattern_entries + nb_direct_entries;
+
+	u32 byte_e=1;
+	if (nb_pattern_entries + nb_direct_entries > 32767) {
+		byte_e=4;
+		*flags |= 8;
+	}
+	else if (nb_pattern_entries + nb_direct_entries > 255) {
+		byte_e=2;
+		*flags |= 4;
+	}
+
+	//move to bytes
+	*cost_full *= byte_s;
+	//size+type+flags
+	*cost_full += 9;
+
+	if (nb_entries > 32767) *cost_full += 4;
+	else if (nb_entries > 255) *cost_full += 2;
+	else  *cost_full += 1;
+
+	u32 final_size = 8 + 1 + byte_e;
+	final_size += nb_direct_cost * byte_s + nb_pattern_entries * 3 * byte_s;
+	if (mode==1) {
+		final_size += nb_samples_reused * byte_s;
+		*flags |= 16;
+	}
+
+#ifdef DUMP_STATS
+	if (mode==1) global_patterns_nodiff += nb_pattern_entries;
+	else global_patterns_diff += nb_pattern_entries;
+#endif
+
+	return final_size;
+}
+GF_Err cdrf_box_size(GF_SampleReferences *ptr)
+{
+	if (ptr->cdrf_cache_size) {
+		ptr->size = ptr->cdrf_cache_size;
+		return GF_OK;
+	}
+	s32 max_id = 0;
+	s32 max_id_nodiff = 0;
+	GF_List *refs = cdrf_get_refs(ptr, &max_id, &max_id_nodiff);
+
+	u32 cost_full, nb_entries;
+	u8 flags;
+#ifdef DUMP_STATS
+	//get cost for refs+sbgp
+	u32 final_size_refs_sbgp = cdrf_get_cost(refs, 2, max_id_nodiff, &cost_full, &nb_entries, &flags);
+#endif
+	//get cost in diff mode
+	u32 final_size = cdrf_get_cost(refs, 0, max_id, &cost_full, &nb_entries, &flags);
+
+	//get cost in nodiff mode
+	u32 nb_entries_nodiff;
+	u8 flags_nodiff;
+	u32 final_size_nodiff = cdrf_get_cost(refs, 1, max_id_nodiff, &cost_full, &nb_entries_nodiff, &flags_nodiff);
+
+	if (final_size_nodiff < final_size) {
+		ptr->size = final_size_nodiff;
+		ptr->flags = flags_nodiff;
+		ptr->cdrf_entries = nb_entries_nodiff;
+	} else {
+		ptr->size = final_size;
+		ptr->flags = flags;
+		ptr->cdrf_entries = nb_entries;
+	}
+	ptr->cdrf_cache_size = ptr->size;
+	cdrf_clean_refs(refs);
+
+#ifdef DUMP_STATS
+	global_boxes+=1;
+	global_samples+=gf_list_count(ptr->entries);
+	global_cost += ptr->size;
+	global_cost_full += cost_full;
+	global_cost_diff += final_size;
+	global_cost_nodiff += final_size_nodiff;
+	global_cost_refs_sbgp += final_size_refs_sbgp;
+#endif
+	return GF_OK;
+}
+
 GF_Err sref_box_size(GF_Box *s)
 {
 	GF_SampleReferences *ptr = (GF_SampleReferences*)s;
+	if ((ptr->type!=GF_ISOM_BOX_TYPE_CDRF) && gf_opts_get_bool("core", "cdrf")) {
+		ptr->type = GF_ISOM_BOX_TYPE_CDRF;
+	}
+	if (ptr->type == GF_ISOM_BOX_TYPE_CDRF) {
+		return cdrf_box_size(ptr);
+	}
+
 	u32 i, j, tot_entries = 0, nb_entries = gf_list_count(ptr->entries), nb_refs=0;
 	ptr->size += 4;
 	u32 max_size = 1;
