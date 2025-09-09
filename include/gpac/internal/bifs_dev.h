@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -130,6 +130,7 @@ struct __tag_bifs_dec
 	Bool is_com_dec;
 	Double cts_offset;
 
+	u32 tree_depth;
 };
 
 
