@@ -568,6 +568,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	}
 	if ((ctx->extract_mode==EXTRACT_SAP) || (ctx->extract_mode==EXTRACT_SIZE)) {
 		ctx->cur_start = ctx->cur_end;
+		if (!ctx->cur_start.den) ctx->cur_start.den = 1;
 		ctx->min_ts_computed = 0;
 		ctx->min_ts_scale = 0;
 		ctx->file_idx++;
