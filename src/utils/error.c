@@ -888,6 +888,8 @@ Bool gf_log_use_color()
 	return (log_cbk == default_log_callback_color) ? GF_TRUE : GF_FALSE;
 }
 
+static Bool in_log_callback = GF_FALSE;
+
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
@@ -898,12 +900,17 @@ void gf_log(const char *fmt, ...)
 		});
 	}
 #endif
-	va_list vl;
-	va_start(vl, fmt);
 	gf_mx_p(logs_mx);
-	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	//don't allow GF_LOG to be called from GF_LOG this will likely throw infinite recursion
+	if (!in_log_callback) {
+		va_list vl;
+		va_start(vl, fmt);
+		in_log_callback = GF_TRUE;
+		log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+		in_log_callback = GF_FALSE;
+		va_end(vl);
+	}
 	gf_mx_v(logs_mx);
-	va_end(vl);
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
 		EM_ASM({
