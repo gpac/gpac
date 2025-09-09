@@ -979,6 +979,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				if (ds && ds2 && ds2->muxed_base == ds) {
 					ds2->muxed_base = NULL;
 				}
+				//we also may need to swap the set ds
+				if (ds2->set->udta==ds)
+					ds2->set->udta = ds2;
 			}
 
 			if (ctx->next_period)
