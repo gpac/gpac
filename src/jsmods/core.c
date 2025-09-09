@@ -44,15 +44,30 @@
 static void qjs_init_runtime_libc(JSRuntime *rt);
 static void qjs_uninit_runtime_libc(JSRuntime *rt);
 
+extern void *user_log_cbk;
+
 typedef struct
 {
 	JSRuntime *js_runtime;
 	u32 nb_inst;
-	JSContext *ctx;
 
 	GF_Mutex *mx;
 	GF_List *allocated_contexts;
+
+	//for logging
+	void *prev_user_log_cbk;
+	gf_log_cbk prev_log_cbk;
+	JSValue log_fun;
+	JSValue log_obj;
+	u32 js_log_buf_size;
+	//WARNING - libc mem, not gf_alloc
+	char *js_log_buf;
+	JSContext *log_ctx;
+	char *js_orig_logs;
+
 } GF_JSRuntime;
+
+static GF_JSRuntime *js_rt = NULL;
 
 typedef struct __js_sys_task {
 	JSValue fun;
@@ -62,7 +77,7 @@ typedef struct __js_sys_task {
 	JSContext *ctx;
 } JS_Sys_Task;
 
-static GF_JSRuntime *js_rt = NULL;
+static void js_reset_logs(JSContext *ctx);
 
 JSContext *gf_js_create_context()
 {
@@ -96,8 +111,6 @@ JSContext *gf_js_create_context()
 
 	return ctx;
 }
-
-static void js_reset_logs(JSContext *ctx);
 
 void gf_js_delete_context(JSContext *ctx)
 {
@@ -343,6 +356,7 @@ static JSClassID sha1_class_id = 0;
 static JSClassID file_class_id = 0;
 static JSClassID fileio_class_id = 0;
 static JSClassID amix_class_id = 0;
+static JSClassID core_class_id = 0;
 
 typedef struct
 {
@@ -1418,45 +1432,45 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 	return JS_UNDEFINED;
 }
 
-extern void *user_log_cbk;
-static void *prev_user_log_cbk = NULL;
-gf_log_cbk prev_log_cbk = NULL;
-static JSValue log_fun;
-static JSValue log_obj;
-u32 js_log_buf_size = 0;
-//WARNING - libc mem, not gf_alloc
-char *js_log_buf = NULL;
-JSContext *log_ctx = NULL;
-char *js_orig_logs = NULL;
-
 static void js_reset_logs(JSContext *ctx)
 {
-	if (ctx != log_ctx) return;
+	if (ctx != js_rt->log_ctx) return;
 
-	js_log_buf_size = 0;
+	gf_js_lock(ctx, GF_TRUE);
+	js_rt->js_log_buf_size = 0;
 	//WARNING - libc mem, not gf_alloc
-	if (js_log_buf) free(js_log_buf);
-	js_log_buf = NULL;
+	if (js_rt->js_log_buf) free(js_rt->js_log_buf);
+	js_rt->js_log_buf = NULL;
 
-	if (js_orig_logs) {
-		gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
-		gf_free(js_orig_logs);
-		js_orig_logs = NULL;
+	if (js_rt->js_orig_logs) {
+		gf_log_set_tools_levels(js_rt->js_orig_logs, GF_TRUE);
+		gf_free(js_rt->js_orig_logs);
+		js_rt->js_orig_logs = NULL;
 	}
 
-	if (!log_ctx) return;
-	JS_FreeValue(log_ctx, log_fun);
-	log_fun = JS_UNDEFINED;
-	JS_FreeValue(log_ctx, log_obj);
-	log_obj = JS_UNDEFINED;
-	gf_log_set_callback(NULL, prev_log_cbk);
-	log_ctx = NULL;
+	if (!js_rt->log_ctx) {
+		gf_js_lock(ctx, GF_FALSE);
+		return;
+	}
+	JS_FreeValue(js_rt->log_ctx, js_rt->log_fun);
+	js_rt->log_fun = JS_UNDEFINED;
+	JS_FreeValue(js_rt->log_ctx, js_rt->log_obj);
+	js_rt->log_obj = JS_UNDEFINED;
+	gf_log_set_callback(NULL, js_rt->prev_log_cbk);
+	js_rt->log_ctx = NULL;
+	gf_js_lock(ctx, GF_FALSE);
 }
 
+extern GF_Mutex *logs_mx;
 static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
 {
-	JSContext *ctx = log_ctx;
+	JSContext *ctx = js_rt->log_ctx;
 	JSValue args[3];
+	//in case mutex@debug is set, unlock logs mutex before locking JS runtime
+	//not doing so could create a deadlock while unlocking logs_mx or the JS runtime
+	gf_mx_v(logs_mx);
+	gf_js_lock(ctx, GF_TRUE);
+
 	args[0] = JS_NewString(ctx, gf_log_tool_name(log_tool) );
 	args[1] = JS_NewInt32(ctx, log_level);
 
@@ -1464,18 +1478,23 @@ static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool,
 	va_copy(vlist_tmp, vlist);
 	u32 len = vsnprintf(NULL, 0, fmt, vlist_tmp);
 	va_end(vlist_tmp);
-	if (js_log_buf_size < len+2) {
-		js_log_buf_size = len+2;
+	if (js_rt->js_log_buf_size < len+2) {
+		js_rt->js_log_buf_size = len+2;
 		//WARNING - libc mem, not gf_alloc
-		js_log_buf = realloc(js_log_buf, js_log_buf_size);
+		js_rt->js_log_buf = realloc(js_rt->js_log_buf, js_rt->js_log_buf_size);
 	}
-	vsprintf(js_log_buf, fmt, vlist);
-	args[2] = JS_NewString(ctx, js_log_buf);
+	vsprintf(js_rt->js_log_buf, fmt, vlist);
+	args[2] = JS_NewString(ctx, js_rt->js_log_buf);
 
-	JSValue res = JS_Call(ctx, log_fun, log_obj, 3, args);
+	JSValue res = JS_Call(ctx, js_rt->log_fun, js_rt->log_obj, 3, args);
 	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[1]);
 	JS_FreeValue(ctx, args[2]);
 	JS_FreeValue(ctx, res);
+
+	gf_js_lock(ctx, GF_FALSE);
+	//and relock
+	gf_mx_p(logs_mx);
 }
 
 static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
@@ -1518,26 +1537,26 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		break;
 
 	case JS_SYS_ON_LOG:
-		JS_FreeValue(ctx, log_fun);
-		log_fun = JS_UNDEFINED;
-		JS_FreeValue(ctx, log_obj);
-		log_obj = JS_UNDEFINED;
-		log_ctx = NULL;
+		JS_FreeValue(ctx, js_rt->log_fun);
+		js_rt->log_fun = JS_UNDEFINED;
+		JS_FreeValue(ctx, js_rt->log_obj);
+		js_rt->log_obj = JS_UNDEFINED;
+		js_rt->log_ctx = NULL;
 		is_js_log = GF_FALSE;
 
 		if (JS_IsUndefined(value) || JS_IsNull(value)) {
-			if (js_orig_logs) {
-				gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
-				gf_free(js_orig_logs);
-				js_orig_logs = NULL;
+			if (js_rt->js_orig_logs) {
+				gf_log_set_tools_levels(js_rt->js_orig_logs, GF_TRUE);
+				gf_free(js_rt->js_orig_logs);
+				js_rt->js_orig_logs = NULL;
 			}
-			gf_log_set_callback(NULL, prev_log_cbk);
+			gf_log_set_callback(NULL, js_rt->prev_log_cbk);
 		} else if (JS_IsFunction(ctx, value)) {
-			log_fun = JS_DupValue(ctx, value);
-			log_obj = JS_DupValue(ctx, this_val);
-			prev_user_log_cbk = user_log_cbk;
-			prev_log_cbk = gf_log_set_callback(ctx, js_log_cbk);
-			log_ctx = ctx;
+			js_rt->log_fun = JS_DupValue(ctx, value);
+			js_rt->log_obj = JS_DupValue(ctx, this_val);
+			js_rt->prev_user_log_cbk = user_log_cbk;
+			js_rt->prev_log_cbk = gf_log_set_callback(ctx, js_log_cbk);
+			js_rt->log_ctx = ctx;
 			is_js_log = GF_TRUE;
 		}
 		break;
@@ -2803,15 +2822,15 @@ static JSValue js_sys_set_logs(JSContext *ctx, JSValueConst this_val, int argc, 
 	if (argc>1)
 		reset = JS_ToBool(ctx, argv[1]);
 
-	if (!js_orig_logs)
-		js_orig_logs = gf_log_get_tools_levels();
+	if (!js_rt->js_orig_logs)
+		js_rt->js_orig_logs = gf_log_get_tools_levels();
 
 	logs = JS_ToCString(ctx, argv[0]);
 	if (!logs) {
-		if (js_orig_logs) {
-			gf_log_set_tools_levels(js_orig_logs, GF_TRUE);
-			gf_free(js_orig_logs);
-			js_orig_logs = NULL;
+		if (js_rt->js_orig_logs) {
+			gf_log_set_tools_levels(js_rt->js_orig_logs, GF_TRUE);
+			gf_free(js_rt->js_orig_logs);
+			js_rt->js_orig_logs = NULL;
 		} else {
 			gf_log_set_tools_levels("all@warning", GF_TRUE);
 		}
@@ -2825,8 +2844,8 @@ static JSValue js_sys_set_logs(JSContext *ctx, JSValueConst this_val, int argc, 
 
 static JSValue js_sys_get_logs(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	if (argc && JS_ToBool(ctx, argv[0]) && js_orig_logs) {
-		return JS_NewString(ctx, js_orig_logs);
+	if (argc && JS_ToBool(ctx, argv[0]) && js_rt->js_orig_logs) {
+		return JS_NewString(ctx, js_rt->js_orig_logs);
 	}
 	char *logs = gf_log_get_tools_levels();
 	JSValue res = JS_NewString(ctx, logs);
@@ -4202,6 +4221,18 @@ static JSValue fileio_constructor(JSContext *ctx, JSValueConst new_target, int a
 	return anobj;
 }
 
+static void js_core_gc_mark(JSRuntime *rt, JSValueConst this_val, JS_MarkFunc *mark_func)
+{
+	if (js_rt->log_ctx) {
+		JS_MarkValue(rt, js_rt->log_fun, mark_func);
+		JS_MarkValue(rt, js_rt->log_obj, mark_func);
+	}
+}
+JSClassDef coreClass = {
+	"Core",
+	.gc_mark = js_core_gc_mark
+};
+
 
 static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 {
@@ -4221,9 +4252,13 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 
 		JS_NewClassID(&fileio_class_id);
 		JS_NewClass(JS_GetRuntime(ctx), fileio_class_id, &fileioClass);
+
+		JS_NewClassID(&core_class_id);
+		JS_NewClass(JS_GetRuntime(ctx), core_class_id, &coreClass);
 	}
 
-	JSValue core_o = JS_NewObject(ctx);
+	//JSValue core_o = JS_NewObject(ctx);
+	JSValue core_o = JS_NewObjectClass(ctx, core_class_id);
 	JS_SetPropertyFunctionList(ctx, core_o, sys_funcs, countof(sys_funcs));
 	JS_SetModuleExport(ctx, m, "Sys", core_o);
 
