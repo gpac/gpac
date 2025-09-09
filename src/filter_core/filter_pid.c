@@ -4439,6 +4439,11 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 			if (p.type == GF_PROP_FORBIDDEN) {
 				p = gf_props_parse_value(prop_type, name, value, NULL, sep_list);
+				//we don't allow passing const data as PID properties as we have now way of checking the described memory
+				if (p.type == GF_PROP_CONST_DATA) {
+					p.type = GF_PROP_FORBIDDEN;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Const data (%s) is not allowed as user-assigned PID property, ignoring\n", value));
+				}
 			}
 
 			if (p.type != GF_PROP_FORBIDDEN) {
