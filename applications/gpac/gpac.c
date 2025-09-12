@@ -2708,7 +2708,11 @@ typedef struct
 	Bool write;
 	u32 io_mode;
 	u32 nb_refs;
+	//only used as value check !!
+	void *orig_ptr;
 } FileIOCtx;
+
+static GF_List *all_gfio_closed = NULL;
 
 static GF_List *all_gfio_defined = NULL;
 
@@ -2811,9 +2815,15 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 
 		if (!ioctx_ref->nb_refs) {
 			gf_list_del_item(all_gfio_defined, fileio_ref);
+			ioctx_ref->orig_ptr = fileio_ref;
 			gf_fileio_del(fileio_ref);
-			if (ioctx_ref->path) gf_free(ioctx_ref->path);
-			gf_free(ioctx_ref);
+
+			if (all_gfio_closed && ioctx_ref->path) {
+				gf_list_add(all_gfio_closed, ioctx_ref);
+			} else {
+				if (ioctx_ref->path) gf_free(ioctx_ref->path);
+				gf_free(ioctx_ref);
+			}
 		}
 		return NULL;
 	}
@@ -2893,6 +2903,26 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	return gfio;
 }
 
+static GF_Err gpac_gfio_del(const char *url)
+{
+	if (!url || strncmp(url, "gfio://", 7)) return GF_EOS;
+	void *orig_ref = NULL;
+	sscanf(url, "gfio://%p", &orig_ref);
+	u32 i, count = gf_list_count(all_gfio_closed);
+	for (i=0; i<count; i++) {
+		FileIOCtx *ioctx = gf_list_get(all_gfio_closed, i);
+		if (ioctx->orig_ptr == orig_ref) {
+			gf_list_rem(all_gfio_closed, i);
+			if (ioctx->path) {
+				gf_file_delete(ioctx->path);
+				gf_free(ioctx->path);
+			}
+			gf_free(ioctx);
+			return GF_OK;
+		}
+	}
+	return GF_EOS;
+}
 
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_mode, GF_Err *e)
 {
@@ -2901,6 +2931,11 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
+
+	if (!all_gfio_closed) {
+		all_gfio_closed = gf_list_new();
+		gf_fileio_register_delete_proc(gpac_gfio_del);
+	}
 
 	GF_SAFEALLOC(ioctx, FileIOCtx);
 	if (!ioctx) return NULL;
@@ -2933,6 +2968,16 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 
 static void cleanup_file_io()
 {
+	if (all_gfio_closed) {
+		while (gf_list_count(all_gfio_closed)) {
+			FileIOCtx *ioctx = gf_list_pop_back(all_gfio_closed);
+			if (ioctx->path) gf_free(ioctx->path);
+			gf_free(ioctx);
+		}
+		gf_list_del(all_gfio_closed);
+		all_gfio_closed = NULL;
+	}
+
 	if (!all_gfio_defined) return;
 	while (gf_list_count(all_gfio_defined)) {
 		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);

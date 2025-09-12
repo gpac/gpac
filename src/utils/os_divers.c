@@ -1512,6 +1512,8 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 void gf_net_close_capture();
 #endif
 
+extern GF_List *gfio_delete_handlers;
+
 GF_EXPORT
 void gf_sys_close()
 {
@@ -1570,6 +1572,8 @@ void gf_sys_close()
 
 		gf_list_del(all_blobs);
 		all_blobs = NULL;
+
+		if (gfio_delete_handlers) gf_list_del(gfio_delete_handlers);
 
 #if !defined(GPAC_DISABLE_NETCAP) && !defined(GPAC_DISABLE_NETWORK)
 		gf_net_close_capture();

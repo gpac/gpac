@@ -2186,6 +2186,23 @@ Bool gf_fileio_read_mode(GF_FileIO *fileio);
 */
 Bool gf_fileio_write_mode(GF_FileIO *fileio);
 
+/*! Function callback for GF_FileIO delete events. The callback is NOT thread-safe in GPAC, applications should take care of ensuring safety
+ \param url a gfio:// url to be deleted
+ \return error code if any, GF_EOS if this callback is not handling this specific gfio
+*/
+typedef GF_Err (*gfio_delete_proc)(const char *url);
+
+/*! Register a GF_FileIO delete callback. This function is NOT threadsafe, applications should take care of ensuring safety
+\param del_proc the calback to register. It MUST be valid until unregistered
+\return error if any
+*/
+GF_Err gf_fileio_register_delete_proc(gfio_delete_proc del_proc);
+
+/*! Unregister a GF_FileIO delete callback. This function is NOT threadsafe, applications should take care of ensuring safety
+\param del_proc the calback to unregister.
+*/
+void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc);
+
 /*!	@} */
 
 /*!

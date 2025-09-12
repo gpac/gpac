@@ -195,6 +195,30 @@ GF_Err gf_dir_cleanup(const char* DirPathName)
 	return GF_OK;
 }
 
+#include <gpac/list.h>
+GF_List *gfio_delete_handlers = NULL;
+
+GF_EXPORT
+GF_Err gf_fileio_register_delete_proc(gfio_delete_proc del_proc)
+{
+	if (!del_proc) return GF_OK;
+
+	if (!gfio_delete_handlers) gfio_delete_handlers = gf_list_new();
+	if (!gfio_delete_handlers) return GF_OUT_OF_MEM;
+	if (gf_list_find(gfio_delete_handlers, del_proc)>=0) return GF_BAD_PARAM;
+	return gf_list_add(gfio_delete_handlers, del_proc);
+}
+GF_EXPORT
+void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc)
+{
+	if (!del_proc || !gfio_delete_handlers) return;
+	gf_list_del_item(gfio_delete_handlers, del_proc);
+	if (!gf_list_count(gfio_delete_handlers)) {
+		gf_list_del(gfio_delete_handlers);
+		gfio_delete_handlers = NULL;
+	}
+}
+
 GF_EXPORT
 GF_Err gf_file_delete(const char *fileName)
 {
@@ -202,6 +226,18 @@ GF_Err gf_file_delete(const char *fileName)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("gf_file_delete with no param - ignoring\n"));
 		return GF_OK;
 	}
+	if (!strncmp(fileName, "gfio://", 7)) {
+		if (!gfio_delete_handlers) return GF_OK;
+		u32 i, count=gf_list_count(gfio_delete_handlers);
+		for (i=0; i<count; i++) {
+			gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
+			GF_Err ret = del_proc(fileName);
+			if (ret==GF_EOS) continue;
+			return ret;
+		}
+		return GF_OK;
+	}
+
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	CE_CharToWide((char*)fileName, swzName);
