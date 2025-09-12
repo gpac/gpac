@@ -279,7 +279,7 @@ uninstall:
 
 
 installdylib:
-ifneq ($(STATIC_BINARY),yes)
+ifneq ($(STATIC_BUILD),yes)
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 
