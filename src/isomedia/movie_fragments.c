@@ -3530,7 +3530,7 @@ GF_Err gf_isom_fragment_add_sample_references(GF_ISOFile *movie, GF_ISOTrackID T
 		return GF_BAD_PARAM;
 
 	if (!traf->SampleRefs) {
-		traf->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&traf->child_boxes, GF_GPAC_BOX_TYPE_SREF);
+		traf->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&traf->child_boxes, GF_ISOM_BOX_TYPE_CDRF);
 		if (!traf->SampleRefs) return GF_OUT_OF_MEM;
 	}
 	return isom_sample_refs_push(traf->SampleRefs, refID, nb_refs, refs);

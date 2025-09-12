@@ -9451,7 +9451,7 @@ GF_Err gf_isom_set_sample_references(GF_ISOFile *file, u32 track, u32 sampleNumb
 		return GF_BAD_PARAM;
 
 	if (!stbl->SampleRefs) {
-		stbl->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&stbl->child_boxes, GF_GPAC_BOX_TYPE_SREF);
+		stbl->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CDRF);
 		if (!stbl->SampleRefs) return GF_OUT_OF_MEM;
 	}
 	return isom_sample_refs_push(stbl->SampleRefs, refID, nb_refs, refs);

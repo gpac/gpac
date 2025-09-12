@@ -5358,6 +5358,7 @@ GF_Err stbl_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		BOX_FIELD_LIST_ASSIGN(sai_offsets)
 		break;
 	case GF_GPAC_BOX_TYPE_SREF:
+	case GF_ISOM_BOX_TYPE_CDRF:
 		BOX_FIELD_ASSIGN(SampleRefs, GF_SampleReferences)
 		break;
 	}
@@ -6628,6 +6629,7 @@ GF_Err traf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			ptr->sample_encryption->traf = ptr;
 		return GF_OK;
 	case GF_GPAC_BOX_TYPE_SREF:
+	case GF_ISOM_BOX_TYPE_CDRF:
 		BOX_FIELD_ASSIGN(SampleRefs, GF_SampleReferences)
 		return GF_OK;
 	}
@@ -14544,7 +14546,7 @@ static s32 global_cost_refs_sbgp=0;
 
 GF_Box *sref_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_SampleReferences, GF_GPAC_BOX_TYPE_SREF);
+	ISOM_DECL_BOX_ALLOC(GF_SampleReferences, GF_ISOM_BOX_TYPE_CDRF);
 	tmp->entries = gf_list_new();
 	return (GF_Box *) tmp;
 }
@@ -15286,8 +15288,8 @@ GF_Err cdrf_box_size(GF_SampleReferences *ptr)
 GF_Err sref_box_size(GF_Box *s)
 {
 	GF_SampleReferences *ptr = (GF_SampleReferences*)s;
-	if ((ptr->type!=GF_ISOM_BOX_TYPE_CDRF) && gf_opts_get_bool("core", "cdrf")) {
-		ptr->type = GF_ISOM_BOX_TYPE_CDRF;
+	if ((ptr->type!=GF_GPAC_BOX_TYPE_SREF) && gf_opts_get_bool("core", "no-cdrf")) {
+		ptr->type = GF_GPAC_BOX_TYPE_SREF;
 	}
 	if (ptr->type == GF_ISOM_BOX_TYPE_CDRF) {
 		return cdrf_box_size(ptr);
