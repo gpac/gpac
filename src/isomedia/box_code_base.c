@@ -14634,8 +14634,12 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 				goto exit;
 			}
 			ent->nb_refs = nb_refs;
-			ent->is_abs = gf_bs_read_int(bs, 1);
-			ent->diff_sampleID = (s32) read_signed_int(bs, bits-1, max_val2);
+			if (use_nodiff) {
+				ent->diff_sampleID = (s32) read_signed_int(bs, bits, max_val);
+			} else {
+				ent->is_abs = gf_bs_read_int(bs, 1);
+				ent->diff_sampleID = (s32) read_signed_int(bs, bits-1, max_val2);
+			}
 			for (j=0; j<nb_refs; j++) {
 				ent->sample_refs[j] = (s32) (s8) read_signed_int(bs, bits, max_val);
 			}
@@ -14971,12 +14975,12 @@ GF_Err cdrf_box_write(GF_SampleReferences *ptr, GF_BitStream *bs)
 			//write direct sample
 			gf_bs_write_int(bs, 0, 1);
 			gf_bs_write_int(bs, rent->nb_refs, bits-1);
-			gf_bs_write_int(bs, mode ? 1 : rent->is_abs, 1);
 			if (mode) {
-				gf_bs_write_int(bs, rent->orig_sampleID, bits-1);
+				gf_bs_write_int(bs, rent->orig_sampleID, bits);
 				for (j=0; j<rent->nb_refs; j++)
 					gf_bs_write_int(bs, rent->orig_sample_refs[j], bits);
 			} else {
+				gf_bs_write_int(bs, rent->is_abs, 1);
 				gf_bs_write_int(bs, rent->diff_sampleID, bits-1);
 				for (j=0; j<rent->nb_refs; j++)
 					gf_bs_write_int(bs, rent->sample_refs[j], bits);
