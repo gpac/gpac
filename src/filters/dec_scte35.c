@@ -743,7 +743,7 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 	return ctx->pck_send(dst_pck);
 }
 
-static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u32 *size)
+static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u32 *size, Bool *own)
 {
 	const u8 *data = NULL;
 
@@ -772,6 +772,10 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					data = emib->message_data;
 					*size = emib->message_data_size;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
+
+					*own = GF_TRUE;
+					emib->message_data = NULL;
+					emib->message_data_size = 0;
 				}
 				gf_isom_box_del(a);
 			}
@@ -823,10 +827,14 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), dur);
 
 	u32 size = 0;
-	const u8 *data = scte35dec_pck_get_data(ctx, pck, &size);
+	Bool own = GF_FALSE;
+	const u8 *data = scte35dec_pck_get_data(ctx, pck, &size, &own);
 	if (data && size) {
 		GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
-		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
+		if (own)
+			gf_free((void*)data);
+		if (e)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
 	}
 
 	GF_Err e;
