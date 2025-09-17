@@ -766,12 +766,26 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					break; //don't parse any further
 				}
 				if (a->type == GF_ISOM_BOX_TYPE_EMIB) {
-					if (data && *size)
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' box while parsing data boxes: not supported\n"));
+					if (data && *size) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' boxes: switching filter to passthru mode.\n"));
+						ctx->mode = 1;
+						gf_isom_box_del(a);
+						data = NULL;
+						break;
+					}
+
 					GF_EventMessageBox *emib = (GF_EventMessageBox*)a;
 					data = emib->message_data;
 					*size = emib->message_data_size;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
+
+					if (emib->scheme_id_uri && strcmp(emib->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode.\n", emib->scheme_id_uri));
+						ctx->mode = 1;
+						gf_isom_box_del(a);
+						data = NULL;
+						break;
+					}
 
 					*own = GF_TRUE;
 					emib->message_data = NULL;
