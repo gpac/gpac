@@ -11185,7 +11185,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- raw: uses raw media format (disables multiplexed representations)\n"
 		"- auto: guesses format based on extension, defaults to mp4 if no extension is provided", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
 	{ OFFS(rawsub), "use raw subtitle format instead of encapsulating in container", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(asto), "availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(asto), "availabilityTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
 		"- live: DASH live profile, using segment template\n"
