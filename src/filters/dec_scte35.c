@@ -26,7 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/internal/isomedia_dev.h>
 
-#define IS_SEGMENTED (ctx->segdur.den && ctx->segdur.num>0)
+#define IS_SEGMENTED (ctx->sampdur.den && ctx->sampdur.num>0)
 #define IS_PASSTHRU  (ctx->mode == 1)
 
 typedef struct {
@@ -49,7 +49,7 @@ typedef struct {
 
 	// options
 	u32 mode;
-	GF_Fraction segdur;
+	GF_Fraction sampdur;
 
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_shared)(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
@@ -162,11 +162,11 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED,  &PROP_BOOL(GF_FALSE) );
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
-	// set a huge segdur as the dasher will pilot segmentation
+	// set a huge sampdur/segdur as the dasher will pilot segmentation
 	if (p && p->value.uint) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_DUR);
 		if (p)
-			ctx->segdur = p->value.frac;
+			ctx->sampdur = p->value.frac;
 	}
 
 	return GF_OK;
@@ -182,7 +182,7 @@ static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 		SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 		if (evt->transport_hints.seg_duration.den && evt->transport_hints.seg_duration.num) {
-			ctx->segdur = evt->transport_hints.seg_duration;
+			ctx->sampdur = evt->transport_hints.seg_duration;
 		}
 
 		//send the event upstream (in case any other filter is interested in it)
@@ -338,7 +338,7 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, const u64 ts, const u32 dur)
 	u64 curr_ts = ts;
 	u64 curr_dur = dur;
 	if (IS_SEGMENTED) {
-		u64 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+		u64 segdur = ctx->sampdur.num * ctx->timescale / ctx->sampdur.den;
 		gf_assert(segdur == dur);
 		// pre-signal events in each segment
 		if (curr_ts < first_evt->dts) {
@@ -376,7 +376,7 @@ static void scte35dec_flush(SCTE35DecCtx *ctx)
 		return; //nothing to flush
 
 	if (IS_SEGMENTED) {
-		scte35dec_push_box(ctx, ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den, ctx->segdur.num * ctx->timescale / ctx->segdur.den);
+		scte35dec_push_box(ctx, ctx->segnum * ctx->sampdur.num * ctx->timescale / ctx->sampdur.den, ctx->sampdur.num * ctx->timescale / ctx->sampdur.den);
 		ctx->segnum++;
 	} else {
 		scte35dec_push_box(ctx, 0, GF_UINT_MAX);
@@ -387,12 +387,12 @@ static GF_Err new_segment(SCTE35DecCtx *ctx)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n",
 		ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
-	u64 dts = ctx->orig_ts + ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+	u64 dts = ctx->orig_ts + ctx->segnum * ctx->sampdur.num * ctx->timescale / ctx->sampdur.den;
 	if (ctx->segnum == 0) // first segment: adjust last_dispatched_dts to a previous fictive segment
-		ctx->last_dispatched_dts = ctx->orig_ts - ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+		ctx->last_dispatched_dts = ctx->orig_ts - ctx->sampdur.num * ctx->timescale / ctx->sampdur.den;
 	ctx->segnum++;
 	ctx->clock = dts;
-	return scte35dec_push_box(ctx, dts, (u32) ( ctx->segnum * ctx->segdur.num * ctx->timescale / ctx->segdur.den - (dts - ctx->orig_ts)) );
+	return scte35dec_push_box(ctx, dts, (u32) ( ctx->segnum * ctx->sampdur.num * ctx->timescale / ctx->sampdur.den - (dts - ctx->orig_ts)) );
 }
 
 static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
@@ -613,8 +613,8 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	// handle internal clock, timescale and duration
 	if (!ctx->last_dispatched_dts_init) {
 		ctx->timescale = timescale;
-		if (IS_SEGMENTED && ctx->segdur.num * ctx->timescale % ctx->segdur.den)
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->segdur.num, ctx->segdur.den));
+		if (IS_SEGMENTED && ctx->sampdur.num * ctx->timescale % ctx->sampdur.den)
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->sampdur.num, ctx->sampdur.den));
 		ctx->last_dispatched_dts = dts - dur;
 		ctx->last_pck_dur = dur;
 		ctx->last_dispatched_dts_init = GF_TRUE;
@@ -634,9 +634,9 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 
 	if (IS_SEGMENTED) {
 		// check if we moved forward by more than one segment (which may happen with sparse streams/no heartbeat/non-prop data_mode)
-		while ((dts - ctx->clock) * ctx->segdur.den >= ctx->segdur.num * ctx->timescale) {
-			ctx->segnum = 1 + (u32) (ctx->clock * ctx->segdur.den / (ctx->segdur.num * ctx->timescale) );
-			u32 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+		while ((dts - ctx->clock) * ctx->sampdur.den >= ctx->sampdur.num * ctx->timescale) {
+			ctx->segnum = 1 + (u32) (ctx->clock * ctx->sampdur.den / (ctx->sampdur.num * ctx->timescale) );
+			u32 segdur = ctx->sampdur.num * ctx->timescale / ctx->sampdur.den;
 			segdur = (u32) MIN(dts - ctx->clock * segdur, segdur);
 			scte35dec_push_box(ctx, ctx->clock, segdur);
 		}
@@ -720,7 +720,7 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 			ctx->segnum = 0;
 		} else {
 			GF_Fraction64 ts_diff = { ctx->clock - ctx->orig_ts, ctx->timescale };
-			if ((s64) ((ts_diff.num + dur) * ctx->segdur.den) >= (s64) ( (ctx->segnum+1) * ctx->segdur.num * ts_diff.den))
+			if ((s64) ((ts_diff.num + dur) * ctx->sampdur.den) >= (s64) ( (ctx->segnum+1) * ctx->sampdur.num * ts_diff.den))
 				return new_segment(ctx);
 		}
 	}
@@ -899,7 +899,7 @@ static const GF_FilterArgs SCTE35DecArgs[] =
 	{ OFFS(mode), "mode to operate in\n"
 		"- 23001-18: extract SCTE-35 markers as emib/emeb boxes for Event Tracks\n"
 		"- passthrough: pass-through mode adding cue start property on splice points", GF_PROP_UINT, "23001-18", "23001-18|passthrough", 0},
-	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
+	{ OFFS(sampdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
 	{0}
 };
 
