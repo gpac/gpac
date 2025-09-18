@@ -5740,7 +5740,7 @@ single_retry:
 		goto restart;
 	}
 
-	//special case: if we found a destination, ignore any  force_link filter that is an alias filter and has a matching sourceID
+	//special case: if we found a destination, ignore any force_link filter that is an alias filter and has a matching sourceID
 	//This is needed because a filter calling gf_filter_set_source on a alias filter
 	//will never modify the sourceID of the original (non-alias) filter
 	//eg [...] dasher -> scte35dec(injected) -> httpout(alias)
