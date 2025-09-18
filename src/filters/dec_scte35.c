@@ -415,7 +415,7 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 	// splice_info_section() : the full MPEG2-TS Section is in here
 	u8 table_id = gf_bs_read_u8(bs);
 	if (table_id != 0xFC) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Invalid splice_info_section() table_id. Abort parsing.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Invalid splice_info_section() table_id. Abort parsing.\n"));
 		goto exit;
 	}
 	/*Bool section_syntax_indicator = */gf_bs_read_int(bs, 1);
@@ -423,7 +423,7 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 	/*u8 sap_type = */gf_bs_read_int(bs, 2);
 	u32 section_length = gf_bs_read_int(bs, 12);
 	if (section_length + 3 != gf_bs_get_size(bs)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Invalid section length %d\n", section_length));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Invalid section length %d\n", section_length));
 		goto exit;
 	}
 	
@@ -433,7 +433,7 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 	u64 pts_adjustment = gf_bs_read_long_int(bs, 33);
 
 	if (encrypted_packet) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Encrypted packet, not supported (pts_adjustment="LLU")\n", pts_adjustment));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Encrypted packet, not supported (pts_adjustment="LLU")\n", pts_adjustment));
 		goto exit;
 	}
 
@@ -442,7 +442,7 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 
 	u32 splice_command_length = gf_bs_read_int(bs, 12);
 	if (splice_command_length > gf_bs_available(bs)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
 			gf_bs_available(bs), splice_command_length));
 		goto exit;
 	}
@@ -523,7 +523,7 @@ static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u
 		u8 descriptor_length = gf_bs_read_u8(bs);
 
 		if (descriptor_length > gf_bs_available(bs)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short while parsing descriptor (%u bytes)\n", descriptor_length));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short while parsing descriptor (%u bytes)\n", descriptor_length));
 			goto exit;
 		}
 
@@ -614,7 +614,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	if (!ctx->last_dispatched_dts_init) {
 		ctx->timescale = timescale;
 		if (IS_SEGMENTED && ctx->segdur.num * ctx->timescale % ctx->segdur.den)
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->segdur.num, ctx->segdur.den));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->segdur.num, ctx->segdur.den));
 		ctx->last_dispatched_dts = dts - dur;
 		ctx->last_pck_dur = dur;
 		ctx->last_dispatched_dts_init = GF_TRUE;
@@ -660,7 +660,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 	// set values according to SCTE 214-3 2015
 	emib->presentation_time_delta = pts - dts;
 	if (pts < ctx->clock && !IS_SEGMENTED)
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
 	emib->event_duration = (u32) dur;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
 	emib->event_id = ctx->last_event_id++;
@@ -715,7 +715,7 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 
 		// segmented: we can only flush at the end of the segment
 		if (ctx->clock < ctx->orig_ts) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timestamps not increasing monotonuously, resetting segmentation state !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timestamps not increasing monotonously, resetting segmentation state !\n"));
 			ctx->orig_ts = ctx->clock;
 			ctx->segnum = 0;
 		} else {
@@ -762,7 +762,7 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 				GF_Box *a = NULL;
 				GF_Err e = gf_isom_box_parse(&a, bs);
 				if (e) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] parsing data boxes failed\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] parsing data boxes failed\n"));
 					break; //don't parse any further
 				}
 				if (a->type == GF_ISOM_BOX_TYPE_EMIB) {
@@ -848,7 +848,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		if (own)
 			gf_free((void*)data);
 		if (e)
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
 	}
 
 	GF_Err e;
