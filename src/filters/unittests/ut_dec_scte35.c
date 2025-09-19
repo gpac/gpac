@@ -68,7 +68,7 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 
 #define UT_SCTE35_INIT(pck_send_fct) \
     SCTE35DecCtx ctx = {0}; \
-    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK); \
+    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK, "%d"); \
     ctx.pck_new_shared = pck_new_shared;\
     ctx.pck_new_alloc = pck_new_alloc; \
     ctx.pck_send = pck_send_fct;
@@ -83,7 +83,8 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 
 unittest(scte35dec_safety)
 {
-	assert_equal((TIMESCALE % FPS), 0);
+	const int remainder = TIMESCALE % FPS;
+	assert_equal(remainder, 0, "%d");
 }
 
 /*************************************/
@@ -98,19 +99,19 @@ static GF_Err pck_send_no_event(GF_FilterPacket *pck)
 
 	if (pck == NULL) {
 		// checks at termination
-		assert_equal(calls, expected_calls);
+		assert_equal(calls, expected_calls, "%d");
 		return GF_OK;
 	}
 
 	// dynamic checks
-	assert_less(calls, expected_calls);
-	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+	assert_less(calls, expected_calls, "%d");
+	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
+	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
 
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	assert_equal(size, expected_size[calls]);
-	assert_equal(size, EMEB_BOX_SIZE);
+	assert_equal(size, expected_size[calls], "%u");
+	assert_equal(size, EMEB_BOX_SIZE, "%u");
 	assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 
 	UT_SCTE35_PCK_SEND_FINALIZE();
@@ -141,19 +142,19 @@ static GF_Err pck_send_segmentation_no_event(GF_FilterPacket *pck)
 
 	if (pck == NULL) {
 		// checks at termination
-		assert_equal(calls, expected_calls);
+		assert_equal(calls, expected_calls, "%d");
 		return GF_OK;
 	}
 
 	// dynamic checks
-	assert_less(calls, expected_calls);
-	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+	assert_less(calls, expected_calls, "%d");
+	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
+	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
 
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	assert_equal(size, expected_size[calls]);
-	assert_equal(size, EMEB_BOX_SIZE);
+	assert_equal(size, expected_size[calls], "%u");
+	assert_equal(size, EMEB_BOX_SIZE, "%u");
 	assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 
 	UT_SCTE35_PCK_SEND_FINALIZE();
@@ -178,7 +179,7 @@ unittest(scte35dec_segmentation_no_event)
 unittest(scte35dec_splice_point_with_idr)
 {
 	SCTE35DecCtx ctx = {0};
-	assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
+	assert_equal(scte35dec_initialize_internal(&ctx), GF_OK, "%d");
 	ctx.mode = 1; // passthru
 	u64 pts = 0;
 
@@ -204,33 +205,33 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
 
 	if (pck == NULL) {
 		// checks at termination
-		assert_equal(calls, expected_calls);
+		assert_equal(calls, expected_calls, "%d");
 		return GF_OK;
 	}
 
 	// dynamic checks
-	assert_less(calls, expected_calls);
-	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+	assert_less(calls, expected_calls, "%d");
+	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
+	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
 
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	assert_equal(size, expected_size[calls]);
+	assert_equal(size, expected_size[calls], "%u");
 
 	switch(size) {
 		case EMEB_BOX_SIZE:
-			assert_equal(EMEB_BOX_SIZE, size);
+			assert_equal(EMEB_BOX_SIZE, size, "%u");
 			assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 			break;
 		case EMIB_BOX_SIZE: {
-			assert_less_equal(sizeof(scte35_payload), size);
+			assert_less_equal((u32)sizeof(scte35_payload), size, "%u");
 			assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
 			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 			gf_bs_seek(bs, 16);
-			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
-			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
-			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
+			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU); //presentation_time_delta
+			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls], "%u");  //event_duration
+			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls], "%u");        //event_id
 			gf_bs_del(bs);
 			break;
 		}
@@ -271,18 +272,18 @@ static GF_Err pck_send_initial_delay(GF_FilterPacket *pck)
 
 	if (pck == NULL) {
 		// checks at termination
-		assert_equal(calls, expected_calls);
+		assert_equal(calls, expected_calls, "%d");
 		return GF_OK;
 	}
 
 	// dynamic checks
-	assert_less(calls, expected_calls);
-	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+	assert_less(calls, expected_calls, "%d");
+	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
+	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
 
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	assert_equal(size, expected_size[calls]);
+	assert_equal(size, expected_size[calls], "%u");
 
 	UT_SCTE35_PCK_SEND_FINALIZE();
 	#undef expected_calls
@@ -319,33 +320,33 @@ static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
 
 	if (pck == NULL) {
 		// checks at termination
-		assert_equal(calls, expected_calls);
+		assert_equal(calls, expected_calls, "%d");
 		return GF_OK;
 	}
 
 	// dynamic checks
-	assert_less(calls, expected_calls);
-	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+	assert_less(calls, expected_calls, "%d");
+	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
+	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
 
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	assert_equal(size, expected_size[calls]);
+	assert_equal(size, expected_size[calls], "%u");
 
 	switch(size) {
 		case EMEB_BOX_SIZE:
-			assert_equal(EMEB_BOX_SIZE, size);
+			assert_equal(EMEB_BOX_SIZE, size, "%u");
 			assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 			break;
 		case EMIB_BOX_SIZE: {
-			assert_less_equal(sizeof(scte35_payload), size);
+			assert_less_equal((u32)sizeof(scte35_payload), size, "%u");
 			assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
 			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 			gf_bs_seek(bs, 16);
-			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
-			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
-			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
+			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU); //presentation_time_delta
+			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls], "%u");  //event_duration
+			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls], "%u");        //event_id
 			gf_bs_del(bs);
 			break;
 		}
@@ -389,33 +390,33 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
 
 	if (pck == NULL) {
 		// checks at termination
-		assert_equal(calls, expected_calls);
+		assert_equal(calls, expected_calls, "%d");
 		return GF_OK;
 	}
 
 	// dynamic checks
-	assert_less(calls, expected_calls);
-	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+	assert_less(calls, expected_calls, "%d");
+	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
+	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
 
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	assert_equal(size, expected_size[calls]);
+	assert_equal(size, expected_size[calls], "%u");
 
 	switch(size) {
 		case EMEB_BOX_SIZE:
-			assert_equal(EMEB_BOX_SIZE, size);
+			assert_equal(EMEB_BOX_SIZE, size, "%u");
 			assert_equal_mem(data, emeb_box, EMEB_BOX_SIZE);
 			break;
 		case EMIB_BOX_SIZE: {
-			assert_less_equal(sizeof(scte35_payload), size);
+			assert_less_equal((u32)sizeof(scte35_payload), size, "%u");
 			assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
 			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 			gf_bs_seek(bs, 16);
-			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
-			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
-			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
+			assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls], LLU); //presentation_time_delta
+			assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls], "%u");  //event_duration
+			assert_equal(gf_bs_read_u32(bs), expected_event_id[calls], "%u");        //event_id
 			gf_bs_del(bs);
 			break;
 		}
