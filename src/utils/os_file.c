@@ -219,6 +219,25 @@ void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc)
 	}
 }
 
+GF_Err gf_fileio_file_delete(const char *fileName, const char *parent_gfio)
+{
+	if (!gfio_delete_handlers || !fileName) return GF_OK;
+	if (!parent_gfio) {
+		if (strncmp(fileName, "gfio://", 7)) return GF_EOS;
+	} else {
+		if (strncmp(parent_gfio, "gfio://", 7)) return GF_EOS;
+	}
+
+	u32 i, count=gf_list_count(gfio_delete_handlers);
+	for (i=0; i<count; i++) {
+		gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
+		GF_Err ret = del_proc(fileName, parent_gfio);
+		if (ret==GF_EOS) continue;
+		return ret;
+	}
+	return GF_OK;
+}
+
 GF_EXPORT
 GF_Err gf_file_delete(const char *fileName)
 {
@@ -227,15 +246,7 @@ GF_Err gf_file_delete(const char *fileName)
 		return GF_OK;
 	}
 	if (!strncmp(fileName, "gfio://", 7)) {
-		if (!gfio_delete_handlers) return GF_OK;
-		u32 i, count=gf_list_count(gfio_delete_handlers);
-		for (i=0; i<count; i++) {
-			gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
-			GF_Err ret = del_proc(fileName);
-			if (ret==GF_EOS) continue;
-			return ret;
-		}
-		return GF_OK;
+		return gf_fileio_file_delete(fileName, NULL);
 	}
 
 #if defined(_WIN32_WCE)

@@ -10701,9 +10701,28 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 						for (k=0; k<prev_sctx->nb_frags; k++) {
 							GF_FilterEvent anevt;
 							char szPath[GF_MAX_PATH];
-							sprintf(szPath, "%s.%u", prev_sctx->filepath, k + (ds->set->ssr_mode || !gf_sys_is_test_mode() ? 0 : 1));
 							GF_FEVT_INIT(anevt, GF_FEVT_FILE_DELETE, ds->opid);
-							anevt.file_del.url = szPath;
+
+							u32 part_idx = k + (ds->set->ssr_mode || !gf_sys_is_test_mode() ? 0 : 1);
+							//for gfio we signal the filename relative to the parent gfio manifest
+							//we could build a gfio for the part but that would require user apps to track too many gfio files
+							//which we want to avoid
+							if (!strncmp(prev_sctx->filepath, "gfio://", 7)) {
+								char *hls_sep = (ctx->do_m3u8 && ds->hls_vp_name) ? strrchr(ds->hls_vp_name, '/') : NULL;
+								//special case for HLS variant in dedicated folder, the ctx filename is relative to the variant
+								//but we need relative to the manifest
+								if (hls_sep) {
+									char *path = gf_url_concatenate(ds->hls_vp_name, prev_sctx->filename);
+									sprintf(szPath, "%s@%s.%u", ctx->out_path, path ? path : prev_sctx->filename, part_idx);
+									if (path) gf_free(path);
+								} else {
+									sprintf(szPath, "%s@%s.%u", ctx->out_path, prev_sctx->filename, part_idx);
+								}
+								anevt.file_del.url = szPath;
+							} else {
+								sprintf(szPath, "%s.%u", prev_sctx->filepath, part_idx);
+								anevt.file_del.url = szPath;
+							}
 							gf_filter_pid_send_event(ds->opid, &anevt);
 						}
 					}

@@ -717,7 +717,7 @@ restart:
 
 		//we need a gf_url_concatenate to register target gfio, so simulate one
 		//this works because file subparts are always in the same dir as segment file
-		if (!strncmp(ctx->original_url, "gfio://", 7)) {
+		if (ctx->original_url && !strncmp(ctx->original_url, "gfio://", 7)) {
 			const char *rad = strrchr(llhas_chunkname, '/');
 			if (!rad) rad = strrchr(llhas_chunkname, '\\');
 			if (!rad) rad = llhas_chunkname;
@@ -970,6 +970,8 @@ check_gfio:
 	return e;
 }
 
+GF_Err gf_fileio_file_delete(const char *fileName, const char *parent_gfio);
+
 static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (evt->base.type==GF_FEVT_FILE_DELETE) {
@@ -978,7 +980,15 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null delete (file name was %s)\n", evt->file_del.url));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] delete file %s\n", evt->file_del.url));
-			if (ctx->use_rel) {
+
+			char *gfio_sep = NULL;
+			if (!strncmp(evt->file_del.url, "gfio://", 7)) gfio_sep = strchr(evt->file_del.url, '@');
+			if (gfio_sep) {
+				gfio_sep[0] = 0;
+				gf_fileio_file_delete(gfio_sep+1, evt->file_del.url);
+				gfio_sep[0] = '@';
+			}
+			else if (ctx->use_rel) {
 				char *fname = gf_url_concatenate(ctx->dst, evt->file_del.url);
 				gf_file_delete(fname);
 				gf_free(fname);

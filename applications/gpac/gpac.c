@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -2708,11 +2708,7 @@ typedef struct
 	Bool write;
 	u32 io_mode;
 	u32 nb_refs;
-	//only used as value check !!
-	void *orig_ptr;
 } FileIOCtx;
-
-static GF_List *all_gfio_closed = NULL;
 
 static GF_List *all_gfio_defined = NULL;
 
@@ -2776,6 +2772,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	*out_err = GF_OK;
 
 	if (!strcmp(mode, "ref")) {
+		if (!ioctx_ref->nb_refs && (gf_list_find(all_gfio_defined, fileio_ref)<0))
+			gf_list_add(all_gfio_defined, fileio_ref);
 		ioctx_ref->nb_refs++;
 		return fileio_ref;
 	}
@@ -2785,6 +2783,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		if (ioctx_ref->nb_refs)
 			return fileio_ref;
 
+		//fallback to close
 		url = NULL;
 	}
 
@@ -2815,15 +2814,9 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 
 		if (!ioctx_ref->nb_refs) {
 			gf_list_del_item(all_gfio_defined, fileio_ref);
-			ioctx_ref->orig_ptr = fileio_ref;
 			gf_fileio_del(fileio_ref);
-
-			if (all_gfio_closed && ioctx_ref->path) {
-				gf_list_add(all_gfio_closed, ioctx_ref);
-			} else {
-				if (ioctx_ref->path) gf_free(ioctx_ref->path);
-				gf_free(ioctx_ref);
-			}
+			if (ioctx_ref->path) gf_free(ioctx_ref->path);
+			gf_free(ioctx_ref);
 		}
 		return NULL;
 	}
@@ -2903,26 +2896,35 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	return gfio;
 }
 
-static GF_Err gpac_gfio_del(const char *url)
+static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
 {
-	if (!url || strncmp(url, "gfio://", 7)) return GF_EOS;
-	void *orig_ref = NULL;
-	sscanf(url, "gfio://%p", &orig_ref);
-	u32 i, count = gf_list_count(all_gfio_closed);
-	for (i=0; i<count; i++) {
-		FileIOCtx *ioctx = gf_list_get(all_gfio_closed, i);
-		if (ioctx->orig_ptr == orig_ref) {
-			gf_list_rem(all_gfio_closed, i);
-			if (ioctx->path) {
-				gf_file_delete(ioctx->path);
-				gf_free(ioctx->path);
-			}
-			gf_free(ioctx);
-			return GF_OK;
-		}
+	GF_FileIO *gfio;
+	FileIOCtx *ioctx;
+	//delete on a gfio object
+	if (!parent_gfio) {
+		gfio = gf_fileio_from_url(url);
+		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0)) return GF_EOS;
+		ioctx = gf_fileio_get_udta(gfio);
+		if (ioctx->filep) return GF_BAD_PARAM;
+		if (ioctx->path) gf_file_delete(ioctx->path);
+		return GF_OK;
+	}
+	//delete by URL relative to a parent gfio
+	gfio = gf_fileio_from_url(parent_gfio);
+	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0)) return GF_EOS;
+	ioctx = gf_fileio_get_udta(gfio);
+	if (!ioctx->path) return GF_EOS;
+
+	char *path = gf_url_concatenate(ioctx->path, url);
+	if (path) {
+		gf_file_delete(path);
+		gf_free(path);
+		return GF_OK;
 	}
 	return GF_EOS;
 }
+
+Bool gfiodel_registered=GF_FALSE;
 
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_mode, GF_Err *e)
 {
@@ -2932,8 +2934,8 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
 
-	if (!all_gfio_closed) {
-		all_gfio_closed = gf_list_new();
+	if (!gfiodel_registered) {
+		gfiodel_registered = GF_TRUE;
 		gf_fileio_register_delete_proc(gpac_gfio_del);
 	}
 
@@ -2968,14 +2970,9 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 
 static void cleanup_file_io()
 {
-	if (all_gfio_closed) {
-		while (gf_list_count(all_gfio_closed)) {
-			FileIOCtx *ioctx = gf_list_pop_back(all_gfio_closed);
-			if (ioctx->path) gf_free(ioctx->path);
-			gf_free(ioctx);
-		}
-		gf_list_del(all_gfio_closed);
-		all_gfio_closed = NULL;
+	if (gfiodel_registered) {
+		gfiodel_registered = GF_FALSE;
+		gf_fileio_unregister_delete_proc(gpac_gfio_del);
 	}
 
 	if (!all_gfio_defined) return;
