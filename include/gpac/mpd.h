@@ -902,9 +902,9 @@ typedef struct {
 	char *profiles;
 	/*! offering type*/
 	GF_MPD_Type type;
-	/*! UTC of availability start anchor,  expressed in milliseconds, MANDATORY if type=dynamic*/
+	/*! UTC of availability start anchor, expressed in milliseconds, MANDATORY if type=dynamic*/
 	u64 availabilityStartTime;
-	/*! UTC of availability end anchor,  expressed in milliseconds*/
+	/*! UTC of availability end anchor, expressed in milliseconds*/
 	u64 availabilityEndTime;
 	/*! UTC of last publishing of the manifest*/
 	u64 publishTime;

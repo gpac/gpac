@@ -1523,7 +1523,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 			if (ctx->korean) {
 				gf_dynstrcat(&payload_text, "     </FDTParameters>\n", NULL);
 			} else {
-                gf_dynstrcat(&payload_text, "     </FDT-Instance>\n", NULL);
+				gf_dynstrcat(&payload_text, "     </FDT-Instance>\n", NULL);
 			}
 			gf_dynstrcat(&payload_text, "    </EFDT>\n", NULL);
 

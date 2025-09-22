@@ -75,7 +75,7 @@ distclean:
 	@rm -f bin/gcc/gf_*$(DYN_LIB_SUFFIX) 2> /dev/null
 
 doc:
-	@cd $(SRC_PATH)/share/doc && doxygen
+	@cd $(SRC_PATH)/share/doc && doxygen && cp versions.html html-libgpac/
 
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
@@ -279,7 +279,7 @@ uninstall:
 
 
 installdylib:
-ifneq ($(STATIC_BINARY),yes)
+ifneq ($(STATIC_BUILD),yes)
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 

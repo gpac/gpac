@@ -1526,7 +1526,7 @@ GF_Err gf_fs_parse_filter_graph(GF_FilterSession *fsess, int argc, char *argv[],
 {
 	if (!fsess || !argv || (argc<1)) return GF_BAD_PARAM;
 
-	GF_Err e;
+	GF_Err e = GF_OK;
 	int i;
 	Bool has_xopt = GF_FALSE;
 	GF_List *loaded_filters = NULL;
@@ -3252,7 +3252,7 @@ static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *
 		//only dump not connected ones
 		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target || f->nb_tasks_done) continue;
 		if (f->disabled==GF_FILTER_DISABLED_HIDE) continue;
-		if (f->filter_skiped) continue;
+		if (f->filter_skipped) continue;
 
 		if (ignore_sinks) {
 			Bool has_outputs;
@@ -3313,7 +3313,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
-		if (f->filter_skiped) continue;
+		if (f->filter_skipped) continue;
 		if (gf_list_find(filters_done, f)>=0) continue;
 		if (f->disabled==GF_FILTER_DISABLED_HIDE) continue;
 		if (!has_undefined) {
@@ -3875,14 +3875,14 @@ restart:
 	if (!filter) {
 		filter = gf_filter_new(fsess, candidate_freg, args, NULL, arg_type, err, alias_for_filter, GF_FALSE);
 	} else {
-        //destroy underlying JS object - gf_filter_new_finalize always reassign it to JS_UNDEFINED
+		//destroy underlying JS object - gf_filter_new_finalize always reassign it to JS_UNDEFINED
 #ifdef GPAC_HAS_QJS
-        jsfs_on_filter_destroyed(filter);
+		jsfs_on_filter_destroyed(filter);
 #endif
 		if (filter->session->on_filter_create_destroy)
 			filter->session->on_filter_create_destroy(filter->session->rt_udta, filter, GF_TRUE);
 
-        filter->freg = candidate_freg;
+		filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, arg_type);
 		if (err) *err = e;
 	}

@@ -274,7 +274,7 @@ ALL_LIBS+=$(LIBGPAC_LDFLAGS) $(EXTRALIBS)
 
 ifeq ($(STATIC_MODULES),yes)
 ifneq ($(CONFIG_OPENHEVC),no)
-ALL_LIBS+=$(openhevc_ldflags)
+ALL_LIBS+=$(openhevc_ldflags) -Wl,-Bsymbolic
 endif
 endif
 

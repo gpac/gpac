@@ -362,9 +362,9 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
-            e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
+			e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 
-        if (e) {
+		if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
@@ -412,7 +412,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	if (!ctx->pid) {
 		if (ctx->nb_read)
-            return GF_SERVICE_ERROR;
+			return GF_SERVICE_ERROR;
 	} else {
 		//TODO: go on fetching data to cache even when not consuming, and reread from cache
 		if (gf_filter_pid_would_block(ctx->pid))
@@ -496,7 +496,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				}
 			}
 		}
-        gf_blob_release(cached);
+		gf_blob_release(cached);
 	}
 	//we read from network
 	else {

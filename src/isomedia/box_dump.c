@@ -823,10 +823,10 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		 	error = "<!--INVALID EC3 Entry: AC3Config not present in Audio Sample Description -->";
 		break;
 	case GF_ISOM_BOX_TYPE_AC4:
-        szName = "AC4SampleEntryBox";
-        if (!p->cfg_ac4)
-            error = "<!--INVALID AC4 Entry: AC4Config not present in Audio Sample Description -->";
-        break;
+		szName = "AC4SampleEntryBox";
+		if (!p->cfg_ac4)
+			error = "<!--INVALID AC4 Entry: AC4Config not present in Audio Sample Description -->";
+		break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		if (!p->cfg_mha)
@@ -3192,11 +3192,11 @@ static void frag_dump_sample_flags(FILE * trace, u32 flags, u32 field_idx)
 		gf_fprintf(trace, " IsLeading=\"%d\" DependsOn=\"%d\"", GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags));
 	} else if (field_idx==2) {
 		gf_fprintf(trace, " IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\" SamplePadding=\"%d\" Sync=\"%d\"",
-	        GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags), GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags));
+		GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags), GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags));
 	} else {
 		gf_fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
-	        GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags), GF_ISOM_GET_FRAG_DEG(flags),
-	        GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+		GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags), GF_ISOM_GET_FRAG_DEG(flags),
+		GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 	}
 }
 
@@ -6269,7 +6269,7 @@ GF_Err ispe_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
 {
-    GF_AV1LayeredImageIndexingPropertyBox *ptr = (GF_AV1LayeredImageIndexingPropertyBox*)a;
+	GF_AV1LayeredImageIndexingPropertyBox *ptr = (GF_AV1LayeredImageIndexingPropertyBox*)a;
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "AV1LayeredImageIndexingPropertyBox", trace);
 	gf_fprintf(trace, "large_size=\"%d\" layer_size0=\"%d\" layer_size1=\"%d\" layer_size2=\"%d\">\n", ptr->large_size, ptr->layer_size[0], ptr->layer_size[1], ptr->layer_size[2]);
@@ -6279,7 +6279,7 @@ GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err a1op_box_dump(GF_Box *a, FILE * trace)
 {
-    GF_AV1OperatingPointSelectorPropertyBox *ptr = (GF_AV1OperatingPointSelectorPropertyBox*)a;
+	GF_AV1OperatingPointSelectorPropertyBox *ptr = (GF_AV1OperatingPointSelectorPropertyBox*)a;
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "AV1OperatingPointSelectorPropertyBox", trace);
 	gf_fprintf(trace, "op_index=\"%d\">\n", ptr->op_index);
@@ -6396,26 +6396,26 @@ GF_Err imir_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err txlo_box_dump(GF_Box *a, FILE *trace)
 {
-    GF_TextLayoutPropertyBox *ptr = (GF_TextLayoutPropertyBox *)a;
-    if (!a)
-        return GF_BAD_PARAM;
-    gf_isom_box_dump_start(a, "TextLayoutPropertyBox", trace);
-    gf_fprintf(trace, "reference_width=\"%d\" reference_height=\"%d\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" font_size=\"%d\" direction=\"%s\" writing_mode=\"%s\">\n",
+	GF_TextLayoutPropertyBox *ptr = (GF_TextLayoutPropertyBox *)a;
+	if (!a)
+		return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "TextLayoutPropertyBox", trace);
+	gf_fprintf(trace, "reference_width=\"%d\" reference_height=\"%d\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" font_size=\"%d\" direction=\"%s\" writing_mode=\"%s\">\n",
                ptr->reference_width, ptr->reference_height, ptr->x, ptr->y, ptr->width, ptr->height, ptr->font_size, ptr->direction, ptr->writing_mode);
-    gf_isom_box_dump_done("TextLayoutPropertyBox", a, trace);
-    return GF_OK;
+	gf_isom_box_dump_done("TextLayoutPropertyBox", a, trace);
+	return GF_OK;
 }
 
 GF_Err fnch_box_dump(GF_Box *a, FILE *trace)
 {
-    GF_FontCharacteristicsPropertyBox *ptr = (GF_FontCharacteristicsPropertyBox *)a;
-    if (!a)
-        return GF_BAD_PARAM;
-    gf_isom_box_dump_start(a, "FontCharacteristicsPropertyBox", trace);
-    gf_fprintf(trace, "font_family=\"%s\" font_style=\"%s\" font_weight=\"%s\">\n",
+	GF_FontCharacteristicsPropertyBox *ptr = (GF_FontCharacteristicsPropertyBox *)a;
+	if (!a)
+		return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "FontCharacteristicsPropertyBox", trace);
+	gf_fprintf(trace, "font_family=\"%s\" font_style=\"%s\" font_weight=\"%s\">\n",
                ptr->font_family, ptr->font_style, ptr->font_weight);
-    gf_isom_box_dump_done("FontCharacteristicsPropertyBox", a, trace);
-    return GF_OK;
+	gf_isom_box_dump_done("FontCharacteristicsPropertyBox", a, trace);
+	return GF_OK;
 }
 
 GF_Err clli_box_dump(GF_Box *a, FILE * trace)
@@ -7689,13 +7689,13 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FIL
 	gf_dynstrcat(&buf, js_suf, NULL);
 	blen = (u32) strlen(buf);
 
-    JSValue ret = JS_Eval(ctx, (char *)buf, blen, szPath, JS_EVAL_TYPE_MODULE);
+	JSValue ret = JS_Eval(ctx, (char *)buf, blen, szPath, JS_EVAL_TYPE_MODULE);
 	if (JS_IsException(ret)) {
 		e = GF_BAD_PARAM;
 		js_dump_error(ctx);
 	}
 	JS_FreeValue(ctx, ret);
-    gf_free(buf);
+	gf_free(buf);
 
 	if (!e) {
 		JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);

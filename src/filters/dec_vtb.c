@@ -104,10 +104,10 @@ typedef struct
 	
 	int vtb_type;
 	VTDecompressionSessionRef vtb_session;
-    CMFormatDescriptionRef fmt_desc;
+	CMFormatDescriptionRef fmt_desc;
 
-    GF_List *frames, *frames_res;
-    GF_FilterPacket *cur_pck;
+	GF_List *frames, *frames_res;
+	GF_FilterPacket *cur_pck;
 	GF_Mutex *mx;
 	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
 	Bool frame_size_changed;
@@ -189,7 +189,7 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	u64 cts, dts;
 	gf_assert(ctx->cur_pck);
 
-    if (!image) {
+	if (!image) {
 		if (status != kCVReturnSuccess) {
 			ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
 			ctx->nb_consecutive_errors++;
@@ -204,11 +204,11 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 			}
 			return;
 		}
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer\n"));
-        return;
-    }
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer\n"));
+		return;
+	}
 	if (gf_filter_pck_get_seek_flag(ctx->cur_pck) ) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Frame marked as seek, not dispatching - status %d\n", status));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Frame marked as seek, not dispatching - status %d\n", status));
 		return;
 	}
 
@@ -287,35 +287,35 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 
 static CFDictionaryRef vtbdec_create_buffer_attributes(GF_VTBDecCtx *ctx, OSType pix_fmt)
 {
-    CFMutableDictionaryRef buffer_attributes;
-    CFMutableDictionaryRef surf_props;
-    CFNumberRef w;
-    CFNumberRef h;
-    CFNumberRef pixel_fmt;
+	CFMutableDictionaryRef buffer_attributes;
+	CFMutableDictionaryRef surf_props;
+	CFNumberRef w;
+	CFNumberRef h;
+	CFNumberRef pixel_fmt;
 
-    w = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ctx->width);
-    h = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ctx->height);
-    pixel_fmt = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pix_fmt);
+	w = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ctx->width);
+	h = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ctx->height);
+	pixel_fmt = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pix_fmt);
 
-    buffer_attributes = CFDictionaryCreateMutable(kCFAllocatorDefault, 4, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    surf_props = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	buffer_attributes = CFDictionaryCreateMutable(kCFAllocatorDefault, 4, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	surf_props = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	
-    CFDictionarySetValue(buffer_attributes, kCVPixelBufferWidthKey, w);
-    CFRelease(w);
-    CFDictionarySetValue(buffer_attributes, kCVPixelBufferHeightKey, h);
-    CFRelease(h);
-    CFDictionarySetValue(buffer_attributes, kCVPixelBufferPixelFormatTypeKey, pixel_fmt);
-    CFRelease(pixel_fmt);
+	CFDictionarySetValue(buffer_attributes, kCVPixelBufferWidthKey, w);
+	CFRelease(w);
+	CFDictionarySetValue(buffer_attributes, kCVPixelBufferHeightKey, h);
+	CFRelease(h);
+	CFDictionarySetValue(buffer_attributes, kCVPixelBufferPixelFormatTypeKey, pixel_fmt);
+	CFRelease(pixel_fmt);
 
 #ifdef VTB_GL_TEXTURE
 	if (ctx->use_gl_textures)
 		CFDictionarySetValue(buffer_attributes, GF_kCVPixelBufferOpenGLCompatibilityKey, kCFBooleanTrue);
 #endif
 
-    CFDictionarySetValue(buffer_attributes, kCVPixelBufferIOSurfacePropertiesKey, surf_props);
-    CFRelease(surf_props);
+	CFDictionarySetValue(buffer_attributes, kCVPixelBufferIOSurfacePropertiesKey, surf_props);
+	CFRelease(surf_props);
 
-    return buffer_attributes;
+	return buffer_attributes;
 }
 
 static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
@@ -323,8 +323,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	CFMutableDictionaryRef dec_dsi, dec_type;
 	CFMutableDictionaryRef dsi;
 	VTDecompressionOutputCallbackRecord cbacks;
-    CFDictionaryRef buffer_attribs;
-    OSStatus status;
+	CFDictionaryRef buffer_attribs;
+	OSStatus status;
 	OSType kColorSpace;
 	const GF_PropertyValue *p;
 	CFDataRef data = NULL;
@@ -335,7 +335,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	const char *codec_name = NULL;
 	w = h = 0;
 	
-    dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 
 	switch (ctx->ofmt) {
 	case GF_PIXEL_YUV:
@@ -368,7 +368,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 
 	switch (ctx->codecid) {
-    case GF_CODECID_AVC:
+	case GF_CODECID_AVC:
 		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
 			s32 idx;
 			u32 i;
@@ -486,9 +486,9 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		
 			gf_free(dsi_data);
 		}
-        break;
+		break;
 
-    case GF_CODECID_HEVC:
+	case GF_CODECID_HEVC:
 		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs)) {
 			s32 idx;
 			u32 i;
@@ -634,7 +634,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 			gf_free(dsi_data);
 		}
-        break;
+		break;
 
 	case GF_CODECID_MPEG2_SIMPLE:
 	case GF_CODECID_MPEG2_MAIN:
@@ -643,7 +643,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	case GF_CODECID_MPEG2_HIGH:
 	case GF_CODECID_MPEG2_422:
 
-        ctx->vtb_type = 'mp2v'; //kCMVideoCodecType_MPEG2Video;
+		ctx->vtb_type = 'mp2v'; //kCMVideoCodecType_MPEG2Video;
 		codec_name = "MPEG2";
 		if (!ctx->width || !ctx->height) {
 			ctx->init_mpeg12 = GF_TRUE;
@@ -651,7 +651,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
 		ctx->init_mpeg12 = GF_FALSE;
 		ctx->reconfig_needed = GF_FALSE;
-        break;
+		break;
 		
 	case GF_CODECID_MPEG1:
 		ctx->vtb_type = 'mp1v'; //kCMVideoCodecType_MPEG1Video;
@@ -663,7 +663,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->init_mpeg12 = GF_FALSE;
 		ctx->reconfig_needed = GF_FALSE;
 		break;
-    case GF_CODECID_MPEG4_PART2 :
+	case GF_CODECID_MPEG4_PART2 :
 	{
 		char *vosh = NULL;
 		u32 vosh_size = 0;
@@ -715,8 +715,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 			ctx->skip_mpeg4_vosh = GF_TRUE;
 			return GF_OK;
 		}
-        break;
-    }
+		break;
+	}
 	case GF_CODECID_H263:
 	case GF_CODECID_S263:
 		ctx->reorder_probe = 0;
@@ -752,20 +752,20 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	default :
 		ctx->reconfig_needed = GF_FALSE;
 		return GF_NOT_SUPPORTED;
-    }
+	}
 	//not yet ready
 	if (! ctx->width || !ctx->height) return GF_OK;
 
-    /*status = */CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_dsi, &ctx->fmt_desc);
+	/*status = */CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_dsi, &ctx->fmt_desc);
 
-    if (!ctx->fmt_desc) {
+	if (!ctx->fmt_desc) {
 		if (dec_dsi) CFRelease(dec_dsi);
-        return GF_NON_COMPLIANT_BITSTREAM;
-    }
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	buffer_attribs = vtbdec_create_buffer_attributes(ctx, kColorSpace);
 	
 	cbacks.decompressionOutputCallback = vtbdec_on_frame;
-    cbacks.decompressionOutputRefCon   = ctx;
+	cbacks.decompressionOutputRefCon   = ctx;
 
 	status = 1;
 	if (!ctx->disable_hw) {
@@ -787,27 +787,27 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	
 	if (dec_dsi)
 		CFRelease(dec_dsi);
-    if (buffer_attribs)
-        CFRelease(buffer_attribs);
+	if (buffer_attribs)
+		CFRelease(buffer_attribs);
 
-    switch (status) {
-    case kVTVideoDecoderNotAvailableNowErr:
-    case kVTVideoDecoderUnsupportedDataFormatErr:
-        return GF_NOT_SUPPORTED;
-    case kVTVideoDecoderMalfunctionErr:
-        return GF_IO_ERR;
-    case kVTVideoDecoderBadDataErr :
-    case -8969:
-        return GF_NOT_SUPPORTED;
+	switch (status) {
+	case kVTVideoDecoderNotAvailableNowErr:
+	case kVTVideoDecoderUnsupportedDataFormatErr:
+		return GF_NOT_SUPPORTED;
+	case kVTVideoDecoderMalfunctionErr:
+		return GF_IO_ERR;
+	case kVTVideoDecoderBadDataErr :
+	case -8969:
+		return GF_NOT_SUPPORTED;
 
 	case kVTPixelTransferNotSupportedErr:
 	case kVTCouldNotFindVideoDecoderErr:
 		return GF_NOT_SUPPORTED;
-    case 0:
-        break;
-    default:
+	case 0:
+		break;
+	default:
 		return GF_NOT_SUPPORTED;
-    }
+	}
 	
 	//good to go !
 	ctx->stride = ctx->width;
@@ -1296,21 +1296,21 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			nal_size = gf_media_nalu_next_start_code((const u8 *) ptr, inBufferLength, &sc_size);
 		}
 
-        if (nal_size==0) {
+		if (nal_size==0) {
 			//two consecutive nalsize 0 abirts
 			if (nb_nal_size_zero) break;
 			nb_nal_size_zero++;
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL in sample DTS "LLU": size 0 shall never happen\n", dts));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL in sample DTS "LLU": size 0 shall never happen\n", dts));
 
-            if (ctx->nalu_size_length) {
-                if (inBufferLength < ctx->nalu_size_length) break;
-                inBufferLength -= ctx->nalu_size_length;
-            } else {
-                if (!sc_size || (inBufferLength < sc_size)) break;
-                inBufferLength -= sc_size;
-                ptr += sc_size;
-            }
-            continue;
+			if (ctx->nalu_size_length) {
+				if (inBufferLength < ctx->nalu_size_length) break;
+				inBufferLength -= ctx->nalu_size_length;
+			} else {
+				if (!sc_size || (inBufferLength < sc_size)) break;
+				inBufferLength -= sc_size;
+				ptr += sc_size;
+			}
+			continue;
 		}
 		nb_nal_size_zero = 0;
 
@@ -1452,7 +1452,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx);
 static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 {
 	GF_VTBHWFrame *vtbframe;
-    OSStatus status;
+	OSStatus status;
 	OSType type;
 
 	if (ctx->no_copy) return vtbdec_send_output_frame(filter, ctx);
@@ -1464,13 +1464,13 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 
 	status = CVPixelBufferLockBaseAddress(vtbframe->frame, kCVPixelBufferLock_ReadOnly);
-    if (status != kCVReturnSuccess) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locking frame data\n"));
+	if (status != kCVReturnSuccess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locking frame data\n"));
 		gf_mx_p(ctx->mx);
 		gf_list_add(ctx->frames_res, vtbframe);
 		gf_mx_v(ctx->mx);
-        return GF_IO_ERR;
-    }
+		return GF_IO_ERR;
+	}
 
 	type = CVPixelBufferGetPixelFormatType(vtbframe->frame);
 
@@ -1482,7 +1482,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		|| (type==kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)
 		|| (type==kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
 	) {
-        u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(vtbframe->frame);
+		u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(vtbframe->frame);
 		u8 *dst;
 		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, 0);
 
@@ -1531,7 +1531,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		vtbframe->pck_src = NULL;
 		gf_filter_pck_send(dst_pck);
 	}
-    CVPixelBufferUnlockBaseAddress(vtbframe->frame, kCVPixelBufferLock_ReadOnly);
+	CVPixelBufferUnlockBaseAddress(vtbframe->frame, kCVPixelBufferLock_ReadOnly);
 	gf_mx_p(ctx->mx);
 	gf_list_add(ctx->frames_res, vtbframe);
 	gf_mx_v(ctx->mx);
@@ -1540,9 +1540,9 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 static GF_Err vtbdec_process(GF_Filter *filter)
 {
-    OSStatus status;
-    CMSampleBufferRef sample = NULL;
-    CMBlockBufferRef block_buffer = NULL;
+	OSStatus status;
+	CMSampleBufferRef sample = NULL;
+	CMBlockBufferRef block_buffer = NULL;
 	char *in_data=NULL;
 	u32 in_data_size;
 	char *in_buffer;
@@ -1720,7 +1720,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 
 	status = CMSampleBufferCreate(kCFAllocatorDefault, block_buffer, TRUE, NULL, NULL, ctx->fmt_desc, 1, 0, NULL, 0, NULL, &sample);
 
-    if (status || (sample==NULL)) {
+	if (status || (sample==NULL)) {
 		if (block_buffer)
 			CFRelease(block_buffer);
 
@@ -1731,8 +1731,8 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Decoding frame DTS "LLU" ms\n", min_dts));
 	ctx->cur_pck = pck;
 	ctx->last_error = GF_OK;
-    status = VTDecompressionSessionDecodeFrame(ctx->vtb_session, sample, 0, NULL, 0);
-    if (!status)
+	status = VTDecompressionSessionDecodeFrame(ctx->vtb_session, sample, 0, NULL, 0);
+	if (!status)
 		status = VTDecompressionSessionWaitForAsynchronousFrames(ctx->vtb_session);
 	
 
@@ -1784,11 +1784,11 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
 #endif
 	
 	if (f->frame) {
-        CVPixelBufferRelease(f->frame);
-        f->frame = NULL;
-    }
+		CVPixelBufferRelease(f->frame);
+		f->frame = NULL;
+	}
 
-    safe_int_dec(&f->ctx->decoded_frames_pending);
+	safe_int_dec(&f->ctx->decoded_frames_pending);
 	gf_mx_p(f->ctx->mx);
 	gf_list_add(f->ctx->frames_res, f);
 	gf_mx_v(f->ctx->mx);
@@ -1796,7 +1796,7 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
 
 GF_Err vtbframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
-    OSStatus status;
+	OSStatus status;
 	GF_Err e;
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
@@ -1812,7 +1812,7 @@ GF_Err vtbframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u
 	}
 	e = GF_OK;
 	
-    if (CVPixelBufferIsPlanar(f->frame)) {
+	if (CVPixelBufferIsPlanar(f->frame)) {
 		*outPlane = CVPixelBufferGetBaseAddressOfPlane(f->frame, plane_idx);
 		if (*outPlane)
 			*outStride = (u32) CVPixelBufferGetBytesPerRowOfPlane(f->frame, plane_idx);
@@ -1846,7 +1846,7 @@ void *myGetGLContext()
 
 GF_Err vtbframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
-    OSStatus status=kCVReturnSuccess;
+	OSStatus status=kCVReturnSuccess;
 	GLenum target_fmt;
 	u32 w, h;
 	GF_CVGLTextureREF *outTexture=NULL;
@@ -1885,7 +1885,7 @@ GF_Err vtbframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u3
 		f->locked = GF_TRUE;
 	}
 
-    if (CVPixelBufferIsPlanar(f->frame)) {
+	if (CVPixelBufferIsPlanar(f->frame)) {
 		w = (u32) CVPixelBufferGetPlaneCount(f->frame);
 		if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
@@ -2019,7 +2019,7 @@ static void vtbdec_finalize(GF_Filter *filter)
 #ifdef VTB_GL_TEXTURE
 	if (ctx->cache_texture) {
 		CFRelease(ctx->cache_texture);
-    }
+	}
 #endif
 
 	if (ctx->frames) {

@@ -1224,6 +1224,7 @@ GF_Err gf_webvtt_parser_parse_payload(GF_WebVTTParser *parser, u64 start, u64 en
 	parser->state = WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD;
 	gf_webvtt_timestamp_set(&cue->start, start);
 	gf_webvtt_timestamp_set(&cue->end, end);
+	parser->is_init = GF_TRUE;
 
 	if (vtt_cueid) cue->id = gf_strdup(vtt_cueid);
 	if (vtt_settings) cue->settings = gf_strdup(vtt_settings);

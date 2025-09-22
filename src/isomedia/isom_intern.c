@@ -480,14 +480,14 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 
-            if (!mov->moov->mvhd) {
+			if (!mov->moov->mvhd) {
 				if (mov->moov->has_cmvd!=2) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
 					return GF_ISOM_INVALID_FILE;
 				}
 			}
 
-            if (mov->meta) {
+			if (mov->meta) {
 				gf_isom_meta_restore_items_ref(mov, mov->meta);
 			}
 
@@ -513,10 +513,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				}
 			}
 
-            if (mdat_end && mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
-                gf_isom_push_mdat_end(mov, mdat_end, GF_FALSE);
-                mdat_end=0;
-            }
+			if (mdat_end && mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
+				gf_isom_push_mdat_end(mov, mdat_end, GF_FALSE);
+				mdat_end=0;
+			}
 			break;
 
 		/*META box*/
@@ -564,11 +564,11 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 
 				if (mov->signal_frag_bounds && !(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
-                    mdat_end = gf_bs_get_position(mov->movieFileMap->bs);
-                    if (mov->moov) {
-                        gf_isom_push_mdat_end(mov, mdat_end, GF_FALSE);
-                        mdat_end=0;
-                    }
+					mdat_end = gf_bs_get_position(mov->movieFileMap->bs);
+					if (mov->moov) {
+						gf_isom_push_mdat_end(mov, mdat_end, GF_FALSE);
+						mdat_end=0;
+					}
 				}
 			}
 			//keep all imda boxes for later rewrite

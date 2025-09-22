@@ -714,7 +714,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool keep_audelim = GF_FALSE;
 	u32 print_stats_graph=fs_dump_flags;
 	char *ext, *final_name=NULL, *handler_name, *rvc_config, *chapter_name;
-	GF_List *kinds;
+	GF_List *kinds = NULL;
 	GF_TextFlagsMode txt_mode = GF_ISOM_TEXT_FLAGS_OVERWRITE;
 	u8 max_layer_id_plus_one, max_temporal_id_plus_one;
 	u32 clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod;
@@ -1365,7 +1365,7 @@ reparse_opts:
 		}
 		else if (!strnicmp(ext+1, "tc=", 3)) {
 			char *tc_str = ext+4;
-			
+
 			if (tc_str[0] == 'd') {
 				tc_drop_frame=GF_TRUE;
 				tc_str+=1;
@@ -1729,7 +1729,7 @@ reparse_opts:
 
 			if ((tk_source_magic & 0xFFFFFFFFUL) != source_magic)
 				continue;
-			tk_source_magic>>=32;		
+			tk_source_magic>>=32;
 			keep_handler = (tk_source_magic & 1) ? GF_TRUE : GF_FALSE;
 		} else {
 			keep_handler = GF_TRUE;
@@ -2562,7 +2562,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	if (fs_dump_flags & 2) gf_fs_print_connections(fs);
 
 	gf_fs_del(fs);
-	
+
 	if (e<GF_OK)
 		M4_LOG(GF_LOG_ERROR, ("Split failed: %s\n", gf_error_to_string(e) ));
 	return e;
@@ -3493,7 +3493,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	load.swf_flatten_limit = (Float) swf_flatten_angle;
 	/*since we're encoding we must get MPEG4 nodes only*/
 	load.flags = GF_SM_LOAD_MPEG4_STRICT;
-	
+
 	e = gf_sm_load_init(&load);
 	if (e<0) {
 		gf_sm_load_done(&load);
@@ -4345,4 +4345,3 @@ static GF_Err apply_timestamps(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
-

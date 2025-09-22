@@ -346,10 +346,10 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		return GF_OK;
 	default:
 		if (!read->mov) {
-            return GF_NOT_SUPPORTED;
+			return GF_NOT_SUPPORTED;
 		}
-        e = GF_ISOM_INVALID_FILE;
-        break;
+		e = GF_ISOM_INVALID_FILE;
+		break;
 	}
 
 	gf_filter_post_process_task(filter);
@@ -358,7 +358,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 	if (e<0) {
 		count = gf_list_count(read->channels);
-        read->invalid_segment = GF_TRUE;
+		read->invalid_segment = GF_TRUE;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		gf_isom_release_segment(read->mov, 1);
 		//error opening the segment, reset everything ...
@@ -366,12 +366,12 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 #endif
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
-            if (ch) {
-                ch->sample_num = 0;
-                ch->eos_sent = 0;
-            }
+			if (ch) {
+				ch->sample_num = 0;
+				ch->eos_sent = 0;
+			}
 		}
-        GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error opening current segment %s: %s\n", next_url, gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error opening current segment %s: %s\n", next_url, gf_error_to_string(e) ));
 		return GF_OK;
 	}
 	//segment is the first in our cache, we may need a refresh
@@ -1472,24 +1472,24 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
 		}
-        //segment is invalid, wait for eos on input an send eos on all channels
-        if (read->invalid_segment) {
-            if (!in_is_eos) return GF_OK;
-            read->invalid_segment = GF_FALSE;
+		//segment is invalid, wait for eos on input an send eos on all channels
+		if (read->invalid_segment) {
+			if (!in_is_eos) return GF_OK;
+			read->invalid_segment = GF_FALSE;
 
-            for (i=0; i<count; i++) {
-                ISOMChannel *ch = gf_list_get(read->channels, i);
-                if (!ch->playing) {
-                    continue;
-                }
-                if (!ch->eos_sent) {
-                    ch->eos_sent = 1;
-                    gf_filter_pid_set_eos(ch->pid);
-                }
-            }
-            read->eos_signaled = GF_TRUE;
-            return GF_EOS;
-        }
+			for (i=0; i<count; i++) {
+				ISOMChannel *ch = gf_list_get(read->channels, i);
+				if (!ch->playing) {
+					continue;
+				}
+				if (!ch->eos_sent) {
+					ch->eos_sent = 1;
+					gf_filter_pid_set_eos(ch->pid);
+				}
+			}
+			read->eos_signaled = GF_TRUE;
+			return GF_EOS;
+		}
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;

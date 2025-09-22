@@ -1070,7 +1070,7 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 
 typedef struct
 {
-	Bool seen_valid_ia_seq_header;
+	Bool seen_valid_iamf_seq_header;
 	Bool seen_first_frame;
 	Bool previous_obu_is_descriptor;
 
@@ -1089,7 +1089,11 @@ typedef struct
 
 typedef struct
 {
+	// Determined based on Sequence Header OBU.
+	u8 primary_profile;
+	u8 additional_profile;
 	// Determined based on Codec Config OBU.
+	u32 codec_id;
 	int num_samples_per_frame;
 	int sample_size;
 	int sample_rate;

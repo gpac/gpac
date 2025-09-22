@@ -81,7 +81,7 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val);
 
 /*special user-modif of viewport/viewpoint:
  if stack is not NULL, binding is only performed in this stack
- otherwise,  binding is performed on all stack*/
+ otherwise, binding is performed on all stack*/
 void Bindable_SetSetBindEx(GF_Node *bindable, Bool val, GF_List *stack);
 
 

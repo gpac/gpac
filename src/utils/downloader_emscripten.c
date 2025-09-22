@@ -178,17 +178,17 @@ EM_JS(int, fs_fetch_setup, (), {
 	try {
 		libgpac._fetchers = [];
 		libgpac._get_fetcher = (sess) => {
-          for (let i=0; i<libgpac._fetchers.length; i++) {
-            if (libgpac._fetchers[i].sess==sess) return libgpac._fetchers[i];
-          }
-          return null;
+		  for (let i=0; i<libgpac._fetchers.length; i++) {
+			if (libgpac._fetchers[i].sess==sess) return libgpac._fetchers[i];
+		  }
+		  return null;
 		};
 		libgpac._del_fetcher = (fetcher) => {
-          let i = libgpac._fetchers.indexOf(fetcher);
-          if (i>=0) libgpac._fetchers.splice(i, 1);
+		  let i = libgpac._fetchers.indexOf(fetcher);
+		  if (i>=0) libgpac._fetchers.splice(i, 1);
 		};
-        libgpac._fetcher_set_header = cwrap('gf_dm_sess_push_header', null, ['number', 'string', 'string']);
-        libgpac._fetcher_set_reply = cwrap('gf_dm_sess_async_reply', null, ['number', 'number', 'string']);
+		libgpac._fetcher_set_header = cwrap('gf_dm_sess_push_header', null, ['number', 'string', 'string']);
+		libgpac._fetcher_set_reply = cwrap('gf_dm_sess_async_reply', null, ['number', 'number', 'string']);
 	} catch (e) {
 		return 0;
 	}
@@ -518,7 +518,7 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
 	  response.headers.forEach((value, key) => {
 		libgpac._fetcher_set_header(fetcher.sess, key, value);
 	  });
-      libgpac._fetcher_set_header(fetcher.sess, 0, 0);
+	  libgpac._fetcher_set_header(fetcher.sess, 0, 0);
 	} else {
 	  libgpac._fetcher_set_reply(fetcher.sess, response.status, null);
 	  fetcher._state = 3;

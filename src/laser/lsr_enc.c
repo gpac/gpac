@@ -2138,7 +2138,7 @@ static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const ch
 	}
 	lsr_write_point_sequence(lsr, &pts, "seq");
 	gf_list_del(pts);
-	/*first moveTo is skiped*/
+	/*first moveTo is skipped*/
 	lsr_write_vluimsbf5(lsr, nb_types-1, "nbOfTypes");
 	for (i=0; i<path->n_points; ) {
 		switch (path->tags[i]) {

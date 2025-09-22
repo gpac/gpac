@@ -190,9 +190,9 @@ typedef struct __httpout_input
 	u8 *tunein_data;
 	u32 tunein_data_size;
 
-    Bool force_dst_name;
-    Bool in_error;
-    u32 clock_first_error;
+	Bool force_dst_name;
+	Bool in_error;
+	u32 clock_first_error;
 
 	//max number of files to keep per pid
 	u32 max_segs;
@@ -785,9 +785,9 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	if (!strchr("/\\", dir[len-1]))
 		gf_dynstrcat(&in->local_path, "/", NULL);
     if (in->path[0]=='/')
-        gf_dynstrcat(&in->local_path, in->path+1, NULL);
-    else
-        gf_dynstrcat(&in->local_path, in->path, NULL);
+		gf_dynstrcat(&in->local_path, in->path+1, NULL);
+	else
+		gf_dynstrcat(&in->local_path, in->path, NULL);
 }
 
 typedef enum
@@ -2599,7 +2599,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_HTTPOutCtx *ctx_orig;
 		Bool patch_blocks = GF_FALSE;
 		GF_FilterEvent evt;
-        const char *res_path;
+		const char *res_path;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 		if (p && p->value.uint) {
@@ -2618,7 +2618,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		/*if PID was connected to an alias, get the alias context to get the destination
 		Otherwise PID was directly connected to the main filter, use main filter destination*/
 		ctx_orig = (GF_HTTPOutCtx *) gf_filter_pid_get_alias_udta(pid);
-        if (!ctx_orig) ctx_orig = ctx;
+		if (!ctx_orig) ctx_orig = ctx;
 
 		if (!ctx_orig->dst && (ctx->hmode==MODE_PUSH))  {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Push output but no destination set !\n"));
@@ -2669,20 +2669,20 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				}
 			}
 		}
-        res_path = NULL;
+		res_path = NULL;
 		if (ctx_orig->dst) {
-            res_path = ctx_orig->dst;
-            char *path = strstr(res_path, "://");
-            if (path) path = strchr(path+3, '/');
-            if (path) pctx->path = gf_strdup(path);
-        } else if (!ctx->dst) {
-            p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-            if (p && p->value.string) {
-                res_path = p->value.string;
-                pctx->path = gf_strdup(res_path);
-            }
-        }
-        if (res_path) {
+			res_path = ctx_orig->dst;
+			char *path = strstr(res_path, "://");
+			if (path) path = strchr(path+3, '/');
+			if (path) pctx->path = gf_strdup(path);
+		} else if (!ctx->dst) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+			if (p && p->value.string) {
+				res_path = p->value.string;
+				pctx->path = gf_strdup(res_path);
+			}
+		}
+		if (res_path) {
 
 			if (ctx->hmode==MODE_PUSH) {
 				GF_Err e;
@@ -4143,70 +4143,70 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 {
 //	Bool reassign_clients = GF_TRUE;
 	u32 len = 0;
-    char *o_url = NULL;
-    const char *dir = NULL;
-    const char *sep;
+	char *o_url = NULL;
+	const char *dir = NULL;
+	const char *sep;
 
-    if (in->is_open && !is_delete) return GF_FALSE;
-    if (!in->upload) {
-        //single session mode, not recording, nothing to do
-        if (ctx->single_mode) {
+	if (in->is_open && !is_delete) return GF_FALSE;
+	if (!in->upload) {
+		//single session mode, not recording, nothing to do
+		if (ctx->single_mode) {
 			if (is_fake) return GF_FALSE;
 			in->done = GF_FALSE;
 			in->is_open = GF_TRUE;
 			return GF_FALSE;
 		}
-        //server mode not recording, nothing to do
+		//server mode not recording, nothing to do
 		if (!ctx->rdirs.nb_items) return GF_FALSE;
-        //otherwise pickup first dir - this should be refined
-        HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
+		//otherwise pickup first dir - this should be refined
+		HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
 		if (!di || !di->path) return GF_FALSE;
 		len = (u32) strlen(di->path);
 		if (!len) return GF_FALSE;
 		dir = di->path;
-        if (in->resource) return GF_FALSE;
-    }
+		if (in->resource) return GF_FALSE;
+	}
 
-    sep = name ? strstr(name, "://") : NULL;
-    if (sep) sep = strchr(sep+3, '/');
+	sep = name ? strstr(name, "://") : NULL;
+	if (sep) sep = strchr(sep+3, '/');
 	if (!sep) {
-        if (in->force_dst_name) {
-            sep = in->path;
-        } else if (ctx->dst) {
-            u32 i, count = gf_list_count(ctx->inputs);
-            for (i=0; i<count; i++) {
-                char *path_sep;
-                GF_HTTPOutInput *an_in = gf_list_get(ctx->inputs, i);
-                if (an_in==in) continue;
-                if (!an_in->path) continue;
-                if (ctx->dst && !an_in->force_dst_name) continue;
-                if (!gf_filter_pid_share_origin(in->ipid, an_in->ipid))
-                    continue;
+		if (in->force_dst_name) {
+			sep = in->path;
+		} else if (ctx->dst) {
+			u32 i, count = gf_list_count(ctx->inputs);
+			for (i=0; i<count; i++) {
+				char *path_sep;
+				GF_HTTPOutInput *an_in = gf_list_get(ctx->inputs, i);
+				if (an_in==in) continue;
+				if (!an_in->path) continue;
+				if (ctx->dst && !an_in->force_dst_name) continue;
+				if (!gf_filter_pid_share_origin(in->ipid, an_in->ipid))
+					continue;
 
-                o_url = gf_strdup(an_in->path);
-                path_sep = strrchr(o_url, '/');
-                if (path_sep) {
-                    path_sep[1] = 0;
-                    if (name[0]=='/')
+				o_url = gf_strdup(an_in->path);
+				path_sep = strrchr(o_url, '/');
+				if (path_sep) {
+					path_sep[1] = 0;
+					if (name[0]=='/')
 						gf_dynstrcat(&o_url, name+1, NULL);
-                    else
+					else
 						gf_dynstrcat(&o_url, name, NULL);
-                    sep = o_url;
-                } else {
-                    sep = name;
-                }
-                break;
-            }
+					sep = o_url;
+				} else {
+					sep = name;
+				}
+				break;
+			}
 		} else {
 			sep = name;
 		}
-    }
-    //default to name
-    if (!sep && ctx->dst && in->path) {
+	}
+	//default to name
+	if (!sep && ctx->dst && in->path) {
 		sep = name;
-    }
-    if (!sep) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] %s output %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
+	}
+	if (!sep) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] %s output %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
 		return GF_FALSE;
 	}
 
@@ -4324,7 +4324,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (in->path) gf_free(in->path);
 		in->path = gf_strdup(sep);
 	}
-    if (o_url) gf_free(o_url);
+	if (o_url) gf_free(o_url);
 
 	httpout_set_local_path(ctx, in);
 	if (is_fake) return GF_FALSE;

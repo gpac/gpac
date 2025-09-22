@@ -347,7 +347,7 @@ enum
 	IPMP_CP_CM = 3,
 	/*control point in BIFS tree (???)*/
 	IPMP_CP_BIFS = 4
-	               /*the rest is reserved or forbidden(0xFF)*/
+	                     /*the rest is reserved or forbidden(0xFF)*/
 };
 
 /*! IPMPX base classe*/
@@ -1911,27 +1911,27 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 /*! Used for storing IAMF OBUs */
 typedef struct
 {
-        /* Size of raw_obu_bytes, including the header and payload.
-         * This is different from `obu_size` in the IAMF spec Section 3.2,
-         * which includes only the partial header size and the payload.
-         */
-        u64 obu_length;
-        int obu_type;  /* IamfObuType */
-        u8* raw_obu_bytes;
+	/* Size of raw_obu_bytes, including the header and payload.
+	 * This is different from `obu_size` in the IAMF spec Section 3.2,
+	 * which includes only the partial header size and the payload.
+	 */
+	u64 obu_length;
+	int obu_type;  /* IamfObuType */
+	u8* raw_obu_bytes;
 } GF_IamfObu;
 
 /*! Used for storing the IAMF configuration from the `iacb` box */
 typedef struct
 {
-        u8 configurationVersion;
-        u32 configOBUs_size;
-        GF_List *configOBUs;  /* GF_IamfObu */
+	u8 configurationVersion;
+	u32 configOBUs_size;
+	GF_List *configOBUs;  /* GF_IamfObu */
 } GF_IAConfig;
 
 /*! IAMF config constructor
 \return the created config
 */
-GF_IAConfig *gf_odf_ia_cfg_new();
+GF_IAConfig *gf_odf_iamf_cfg_new();
 
 /*! writes IAMF config to buffer
 \param cfg the IAMF config to write
@@ -1939,45 +1939,45 @@ GF_IAConfig *gf_odf_ia_cfg_new();
 \param outSize set to the encoded dsi buffer size
 \return error if any
 */
-GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize);
+GF_Err gf_odf_iamf_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize);
 
 /*! Writes the IAMF config to bitstream
 \param cfg the IAMF config to write
 \param bs the bitstream object
 \return error code if any
 */
-GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
+GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
 
 /*! IAMF config destructor
 \param cfg the IAMF config to destroy
 */
-void gf_odf_ia_cfg_del(GF_IAConfig *cfg);
+void gf_odf_iamf_cfg_del(GF_IAConfig *cfg);
 
 /*! gets GF_IAConfig from MPEG-4 DSI
-\param dsi encoded IA decoder specific info
-\param dsi_size encoded IA decoder specific info size
+\param dsi encoded IAMF decoder specific info
+\param dsi_size encoded IAMF decoder specific info size
 \return the decoded IAMF config
  */
-GF_IAConfig *gf_odf_ia_cfg_read(u8 *dsi, u32 dsi_size);
+GF_IAConfig *gf_odf_iamf_cfg_read(u8 *dsi, u32 dsi_size);
 
 /*! Reads the IAMF config from the bitstream
  \param bs bitstream containing the encoded IAMF descriptors
  \return the IAMF config
  */
-GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs);
+GF_IAConfig *gf_odf_iamf_cfg_read_bs(GF_BitStream *bs);
 
 /*! Reads the IAMF config from the bitstream
  \param bs bitstream containing the encoded IAMF descriptors
- \param size size of the encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_ia_cfg_read_bs
+ \param size size of the encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_iamf_cfg_read_bs
  \return the IAMF config
  */
-GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size);
+GF_IAConfig *gf_odf_iamf_cfg_read_bs_size(GF_BitStream *bs, u32 size);
 
 /*! Returns the size of the IAMF config
  \param cfg the IAMF config
  \return 0 if error, otherwise the IAMF config size
  */
-u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg);
+u32 gf_odf_iamf_cfg_size(GF_IAConfig *cfg);
 
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy

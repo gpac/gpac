@@ -74,7 +74,7 @@ GF_Err sinf_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->original_format, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->scheme_type, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->info, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -293,16 +293,16 @@ GF_Err iKMS_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-    if (ptr->URI)
-        gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI));
-    gf_bs_write_u8(bs, 0);
+	if (ptr->URI)
+		gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI));
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
 GF_Err iKMS_box_size(GF_Box *s)
 {
 	GF_ISMAKMSBox *ptr = (GF_ISMAKMSBox *)s;
-    ptr->size += (ptr->URI ? strlen(ptr->URI) : 0) + 1;
+	ptr->size += (ptr->URI ? strlen(ptr->URI) : 0) + 1;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -1203,10 +1203,10 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->private_data_size = gf_bs_read_u32(bs);
 
 	if (ptr->size < ptr->private_data_size)
-	    return GF_ISOM_INVALID_FILE;
+		return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 	if (!ptr->private_data)
-	    return GF_OUT_OF_MEM;
+		return GF_OUT_OF_MEM;
 
 	ISOM_DECREASE_SIZE(ptr, ptr->private_data_size);
 	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
@@ -1654,7 +1654,7 @@ GF_Err adkm_box_size(GF_Box *s)
 	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->header, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->au_format, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -1699,7 +1699,7 @@ GF_Err ahdr_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->std_enc_params, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -1747,7 +1747,7 @@ GF_Err aprm_box_size(GF_Box *s)
 	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->enc_info, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->key_info, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -1855,7 +1855,7 @@ GF_Err akey_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->params, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 

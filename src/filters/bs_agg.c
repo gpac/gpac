@@ -261,7 +261,7 @@ static GF_Err bsagg_transfer_param_array(GF_List *array_out, GF_List *array_in)
 
 static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 i, count;
 	Bool is_vvc = GF_FALSE;
 	GF_HEVCConfig *hvcc_out = NULL;
@@ -995,4 +995,3 @@ const GF_FilterRegister *bsagg_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif
-
