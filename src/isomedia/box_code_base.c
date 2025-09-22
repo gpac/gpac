@@ -14604,7 +14604,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 	i=0;
 	while (i<bits-1) {
 		i++;
-		max_val<<=1;
+		max_val = i<31 ? max_val<<1 : GF_INT_MAX;
 	}
 	s32 max_val2 = max_val>>1;
 
@@ -14716,13 +14716,23 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 	}
 
 exit:
+	if (use_nodiff) {
+		while (gf_list_count(samples)) {
+			GF_SampleRefDiffEntry *ent = gf_list_pop_front(samples);
+			if (gf_list_find(def_refs, ent) < 0) {
+				gf_free(ent);
+			}
+		}
+	}
 	gf_list_del(samples);
+
 	while (gf_list_count(def_refs)) {
 		GF_SampleRefDiffEntry *ent = gf_list_pop_back(def_refs);
 		if (ent->sample_refs) gf_free(ent->sample_refs);
 		gf_free(ent);
 	}
 	gf_list_del(def_refs);
+
 	return e;
 }
 GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
