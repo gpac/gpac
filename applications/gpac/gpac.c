@@ -2903,7 +2903,8 @@ static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
 	//delete on a gfio object
 	if (!parent_gfio) {
 		gfio = gf_fileio_from_url(url);
-		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0)) return GF_EOS;
+		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+			return GF_EOS;
 		ioctx = gf_fileio_get_udta(gfio);
 		if (ioctx->filep) return GF_BAD_PARAM;
 		if (ioctx->path) gf_file_delete(ioctx->path);
@@ -2911,7 +2912,8 @@ static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
 	}
 	//delete by URL relative to a parent gfio
 	gfio = gf_fileio_from_url(parent_gfio);
-	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0)) return GF_EOS;
+	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+		return GF_EOS;
 	ioctx = gf_fileio_get_udta(gfio);
 	if (!ioctx->path) return GF_EOS;
 
