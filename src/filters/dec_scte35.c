@@ -203,7 +203,7 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 			gf_filter_pck_unref(ctx->dash_pck);
 			ctx->dash_pck = NULL;
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU". Ignore this message if not using the dasher.\n", dts));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU". Ignore this message if not using the dasher.\n", dts));
 		}
 	}
 
@@ -301,7 +301,6 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			// we're done with the event
 			gf_isom_box_del((GF_Box*)evt->emib);
 			gf_free(evt);
-			gf_assert(gf_list_count(ctx->ordered_events) == 0);
 		} else {
 			scte35dec_schedule(ctx, evt->dts, evt->emib);
 			gf_free(evt);
@@ -842,6 +841,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Packet with no DTS. Inferring value "LLU".\n", dts));
 	}
 	u32 dur = gf_filter_pck_get_duration(pck);
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Processing packet at dts="LLU" dur=%u\n", dts, dur));
 	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), dur);
 
 	u32 size = 0;
