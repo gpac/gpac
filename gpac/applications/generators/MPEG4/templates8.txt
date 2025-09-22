@@ -1,0 +1,124 @@
+#-- Version 8 --#
+#
+# Beta for Symbolic Music Representation (SMR)
+#
+# templates for the BIFS nodes
+# =============================
+# Notations I = Infinity
+# %q=x  Quantization method x
+#       0        None
+#       1        3D Position                        (SFVec3F)
+#       2        2D Position                        (SFVec2F)
+#       3        drawing Order
+#       4        Color                                 (SFColor)
+#       5        Texture Coordinate
+#       6        Angle                                 (SFFloat 0-2PI)
+#       7        Scale                                 (SFVec2F or SFVec3F)
+#       8        Interpolators keys
+#       9        Normals
+#       10        Rotations                        (SFRotation)
+#       11        Object Size 3D                 (SFVec3F and SFFloat)
+#       12        Object Size  2D
+#       13        Linear Quantization (+ Nb Bits)
+#       14        Index (of IndexedFaceSet,...)
+#       15        SFVec4f
+#       16      Reserved
+#
+# %a=y  Animation method for fields that can be animated
+#
+## OO 081498 To match BIFS's update numbering
+#       0        None
+#       1        Position 3D
+#       2        Position 2D
+#       4        Color
+#       6        Angle
+#       7        Float
+#       8        BoundFloat                        (intensities, transparencies,...)
+#       9        Normal
+#       10        Rotation
+#       11        Size 3D
+#       12        Size 2D
+#       13        Integer
+#       14        Reserved
+##      0        3D Position
+##      1        2D positon
+##      2        Color                                        (SFColor)
+##      3        Angle                                        (SFFloat 0-2pi)
+##      4        Normals
+##      5        Scale                                        (SFVec2F)
+##      6        Rotation                                (SFRotation)
+##      7        Object Size or Scalar        (SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying which node sub
+# types the node belongs to. Moreover, each field of type SF/MF3DNode is re assigned
+# a unique correct NodeDataType according to specify the allowed values of the field
+#
+# %COD  Type of encoding
+#       N        Normal Syntax : The node syntax follos the generic syntax for nodes
+#       S        Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# October 9, 2006 [MBS] Added SMR nodes based on w8121
+
+#
+# Symbolic Music Representation (SMR) nodes
+#
+
+
+PROTO ScoreShape [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+exposedField  SFMusicScoreNode    score                  NULL
+exposedField  SF2DNode     					geometry               NULL
+]{}
+
+
+PROTO MusicScore  [ #%NDT=SFWorldNode,SFMusicScoreNode %COD=N
+eventIn                         SFBool        executeCommand
+eventIn                         SFString        gotoLabel
+eventIn                         SFInt32        gotoMeasure        
+eventIn                         SFTime        highlightTimePosition        
+eventIn                         SFVec3f        mousePosition
+exposedField    MFString        argumentsOnExecute				[]
+exposedField    SFString        commandOnExecute					""
+exposedField    SFInt32         firstVisibleMeasure				0
+exposedField    SFBool          hyperlinkEnable						TRUE
+exposedField    SFBool          loop											FALSE
+exposedField    MFString        partsLyrics								[]
+exposedField    MFInt32         partsShown								[]
+exposedField    SFTime          scoreOffset								0.0
+exposedField    SFVec2f         size											-1 -1 
+exposedField    SFFloat         speed											1.0			#%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFTime          startTime									0				#%b=(-I,+I)
+exposedField    SFTime          stopTime									0				#%b=(-I,+I)
+exposedField    SFFloat         transpose									0.0 
+exposedField    MFURL        		url												[]
+exposedField    MFURL						urlSA											[]
+exposedField    SFString        viewType									""
+eventOut				SFString        activatedLink                                                
+eventOut				MFString        availableCommands                                
+eventOut				MFString        availableLabels                                        
+eventOut				MFString        availableLyricLanguages        
+eventOut				MFString        availableViewTypes                        
+eventOut				SFBool        	isActive                                                                         
+eventOut				SFVec3f        	highlightPosition                                        
+eventOut				SFInt32        	lastVisibleMeasure                                
+eventOut				SFInt32        	numMeasures                                                                
+eventOut				MFString        partNames                                                                
+]{}
+
+

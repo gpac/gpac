@@ -1,0 +1,349 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Tiny Fonts
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <choice>
+      <ref name='font'/>
+      <ref name='font-face'/>
+    </choice>
+  </define>
+
+
+  <define name='svg.FontAdvOrigCommon.attr' combine='interleave'>
+    <optional>
+      <attribute name='horiz-adv-x' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... font ................................................... -->
+  <define name='font'>
+    <element name='font'>
+      <ref name='font.AT'/>
+      <ref name='font.CM'/>
+    </element>
+  </define>
+
+  <define name='font.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.FontAdvOrigCommon.attr'/>
+    <optional>
+      <attribute name='horiz-origin-x' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='font.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='font-face'/>
+        <ref name='missing-glyph'/>
+        <ref name='glyph'/>
+        <ref name='hkern'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+
+  <!-- ... font-face .............................................. -->
+  <define name='font-face'>
+    <element name='font-face'>
+      <ref name='font-face.AT'/>
+      <ref name='font-face.CM'/>
+    </element>
+  </define>
+
+  <define name='font-face.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.External.attr'/>
+    <optional><attribute name='font-family' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='font-style' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='font-weight' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='font-variant' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='font-stretch' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='unicode-range' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='panose-1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='widths' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='bbox' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='units-per-em' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stemv' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stemh' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='slope' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='cap-height' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='x-height' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='accent-height' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='ascent' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='descent' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='ideographic' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='alphabetic' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='mathematical' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='hanging' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='underline-position' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='underline-thickness' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='strikethrough-position' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='strikethrough-thickness' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='overline-position' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='overline-thickness' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='font-face.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='font-face-src'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... glyph .................................................. -->
+  <define name='glyph'>
+    <element name='glyph'>
+      <ref name='glyph.AT'/>
+      <ref name='glyph.CM'/>
+    </element>
+  </define>
+
+  <define name='glyph.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.FontAdvOrigCommon.attr'/>
+    <ref name='svg.D.attr'/>
+    <optional>
+      <attribute name='unicode' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='glyph-name' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional><attribute name='arabic-form' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='lang' svg:animatable='false' svg:inheritable='false'>
+        <ref name='LanguageIDs.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='glyph.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... missing-glyph .......................................... -->
+  <define name='missing-glyph'>
+    <element name='missing-glyph'>
+      <ref name='missing-glyph.AT'/>
+      <ref name='missing-glyph.CM'/>
+    </element>
+  </define>
+
+  <define name='missing-glyph.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.FontAdvOrigCommon.attr'/>
+    <ref name='svg.D.attr'/>
+  </define>
+
+  <define name='missing-glyph.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... hkern .................................................. -->
+  <define name='hkern'>
+    <element name='hkern'>
+      <ref name='hkern.AT'/>
+      <ref name='hkern.CM'/>
+    </element>
+  </define>
+
+  <define name='hkern.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <optional>
+      <attribute name='u1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='g1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='u2' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='g2' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='k' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='hkern.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... font-face-src .......................................... -->
+  <define name='font-face-src'>
+    <element name='font-face-src'>
+      <ref name='font-face-src.AT'/>
+      <ref name='font-face-src.CM'/>
+    </element>
+  </define>
+
+  <define name='font-face-src.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+  </define>
+
+  <define name='font-face-src.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='font-face-uri'/>
+        <ref name='font-face-name'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... font-face-uri .......................................... -->
+  <define name='font-face-uri'>
+    <element name='font-face-uri'>
+      <ref name='font-face-uri.AT'/>
+      <ref name='font-face-uri.CM'/>
+    </element>
+  </define>
+
+  <define name='font-face-uri.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
+    <ref name='svg.External.attr'/>
+  </define>
+
+  <define name='font-face-uri.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>

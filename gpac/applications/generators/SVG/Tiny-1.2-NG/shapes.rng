@@ -1,0 +1,230 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Shapes
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <choice>
+      <ref name='path'/>
+      <ref name='rect'/>
+      <ref name='circle'/>
+      <ref name='line'/>
+      <ref name='ellipse'/>
+      <ref name='polyline'/>
+      <ref name='polygon'/>
+    </choice>
+  </define>
+
+
+  <!--
+    Common Attributes
+    -->
+  <define name='svg.ShapeCommon.attr'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+  </define>
+
+  <define name='svg.D.attr' combine='interleave'>
+    <optional>
+      <attribute name='d' svg:animatable='true' svg:inheritable='false'>
+        <ref name='PathData.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.R.attr' combine='interleave'>
+    <optional>
+      <attribute name='r' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.X12Y12.attr' combine='interleave'>
+    <optional>
+      <attribute name='x1' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='y1' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='x2' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='y2' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.CxCy.attr' combine='interleave'>
+    <optional>
+      <attribute name='cx' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='cy' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.RxRyCommon.attr'>
+    <optional>
+      <attribute name='rx' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='ry' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!--
+    Common Content Model
+    -->
+  <define name='shapeCommon.CM'>
+    <choice>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.Handler.group'/>
+      <ref name='svg.Animate.group'/>
+      <ref name='svg.Discard.group'/>
+    </choice>
+  </define>
+
+
+
+  <!-- ... path ................................................... -->
+  <define name='path'>
+    <element name='path'>
+      <ref name='path.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='path.AT' combine='interleave'>
+    <ref name='svg.ShapeCommon.attr'/>
+    <ref name='svg.D.attr'/>
+    <optional>
+      <attribute name='pathLength' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... rect ................................................... -->
+  <define name='rect'>
+    <element name='rect'>
+      <ref name='rect.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='rect.AT' combine='interleave'>
+    <ref name='svg.ShapeCommon.attr'/>
+    <ref name='svg.XYWH.attr'/>
+    <ref name='svg.RxRyCommon.attr'/>
+  </define>
+
+
+
+
+  <!-- ... circle ................................................. -->
+  <define name='circle'>
+    <element name='circle'>
+      <ref name='circle.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='circle.AT' combine='interleave'>
+    <ref name='svg.ShapeCommon.attr'/>
+    <ref name='svg.CxCy.attr'/>
+    <ref name='svg.R.attr'/>
+  </define>
+
+
+
+  <!-- ... line ................................................... -->
+  <define name='line'>
+    <element name='line'>
+      <ref name='line.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='line.AT' combine='interleave'>
+    <ref name='svg.ShapeCommon.attr'/>
+    <ref name='svg.X12Y12.attr'/>
+  </define>
+
+
+
+  <!-- ... ellipse ................................................ -->
+  <define name='ellipse'>
+    <element name='ellipse'>
+      <ref name='ellipse.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='ellipse.AT' combine='interleave'>
+    <ref name='svg.ShapeCommon.attr'/>
+    <ref name='svg.RxRyCommon.attr'/>
+    <ref name='svg.CxCy.attr'/>
+  </define>
+
+
+
+  <!-- ... polyline ............................................... -->
+  <define name='polyline'>
+    <element name='polyline'>
+      <ref name='polyCommon.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='polyCommon.AT' combine='interleave'>
+    <ref name='svg.ShapeCommon.attr'/>
+    <optional>
+      <attribute name='points' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Points.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+
+  <!-- ... polygon ................................................ -->
+  <define name='polygon'>
+    <element name='polygon'>
+      <ref name='polyCommon.AT'/>
+      <zeroOrMore><ref name='shapeCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+</grammar>

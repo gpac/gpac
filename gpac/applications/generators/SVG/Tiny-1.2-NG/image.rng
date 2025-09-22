@@ -1,0 +1,53 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Image
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='image'/>
+  </define>
+
+  <!-- ... image .................................................. -->
+  <define name='image'>
+    <element name='image'>
+      <ref name='image.AT'/>
+      <ref name='image.CM'/>
+    </element>
+  </define>
+
+  <define name='image.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Media.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.Opacity.attr'/>
+    <ref name='svg.XYWH.attr'/>
+    <ref name='svg.PAR.attr'/>
+    <ref name='svg.ContentType.attr'/>
+  </define>
+
+  <define name='image.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='svg.Animate.group'/>
+        <ref name='svg.Discard.group'/>
+        <ref name='svg.Handler.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>

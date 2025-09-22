@@ -1,0 +1,51 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Audio
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='audio'/>
+  </define>
+
+  <!-- ... audio .................................................. -->
+  <define name='audio'>
+    <element name='audio'>
+      <ref name='audio.AT'/>
+      <ref name='audio.CM'/>
+    </element>
+  </define>
+
+  <define name='audio.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateSync.attr'/>
+    <ref name='svg.Media.attr'/>
+    <ref name='svg.ContentType.attr'/>
+	<ref name='svg.MediaClip.attr'/>
+  </define>
+
+  <define name='audio.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='svg.Animate.group'/>
+        <ref name='svg.Handler.group'/>
+        <ref name='svg.Discard.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+

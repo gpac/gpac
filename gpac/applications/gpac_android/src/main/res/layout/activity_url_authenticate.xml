@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:baselineAligned="true">
+
+                <TextView
+                    android:id="@+id/authURL"
+                    android:layout_width="wrap_content"
+                    android:layout_height="fill_parent"
+                    android:layout_gravity="right"
+                    android:text="URL" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:baselineAligned="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="fill_parent"
+                    android:layout_gravity="right"
+                    android:text="@string/usernameLabel" />
+
+                <EditText
+                    android:id="@+id/userName"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:gravity="fill_horizontal|right"
+                    android:hint="@string/usernameHint"
+                    android:inputType="textUri"
+                    android:text="" />
+            </TableRow>
+
+            <TableRow
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:gravity="fill_horizontal">
+
+                <TextView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="right"
+                    android:layout_weight="0"
+                    android:baselineAligned="true"
+                    android:text="@string/passwordLabel" />
+
+                <EditText
+                    android:id="@+id/password"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="fill_horizontal"
+                    android:layout_weight="2"
+                    android:gravity="fill_horizontal|right"
+                    android:hint="@string/passwordHint"
+                    android:inputType="textPassword"
+                    android:text="" />
+            </TableRow>
+
+            <TableRow
+                android:id="@+id/tableRow2"
+                android:layout_height="wrap_content"
+                android:layout_gravity="fill_horizontal"
+                android:gravity="fill_horizontal">
+
+				<Button
+					android:id="@+id/cancel"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="Cancel" />
+
+				<Button
+					android:id="@+id/ok"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="OK" />
+
+            </TableRow>
+        </TableLayout>
+
+    </LinearLayout>
+
+
+</FrameLayout>

@@ -1,0 +1,18 @@
+[Desktop Entry]
+Version=1.0
+Name=GPAC
+Comment=GPAC Media Player
+GenericName=Media Player
+Keywords=Media Player
+Exec=gpac -gui %u
+Terminal=false
+Type=Application
+Icon=gpac
+Categories=AudioVideo
+MimeType=text/text;text/xml;application/xhtml+xml;application/xml;image/jpeg;image/png;video/webm;video/mp4;video/mpeg;audio/mp4;audio/mpeg;x-scheme-handler/rtsp;x-scheme-handler/rtp;x-scheme-handler/route
+StartupNotify=true
+Actions=new-window
+
+[Desktop Action new-window]
+Name=Open a New Window
+Exec=gpac -gui

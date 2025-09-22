@@ -1,0 +1,146 @@
+
+<!-- ==============================================================
+      SVG12-RNG | LASeR extensions
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:ev='http://www.w3.org/2001/xml-events'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='script'/>
+  </define>
+
+  <!-- ... script ................................................. -->
+  <define name='conditional'>
+    <element name='conditional'>
+      <ref name='conditional.AT'/>
+      <ref name='conditional.CM'/>
+    </element>
+  </define>
+
+  <define name='conditional.AT' combine='interleave'>
+    <ref name='svg.AnimateBegin.attr'/>
+    <optional>
+      <attribute name='lsr:enabled' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Boolean.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='conditional.CM'>
+    <choice>
+      <group>
+      </group>
+      <text/>
+    </choice>
+  </define>
+
+
+  <!-- cursorManager -->
+  <define name='cursorManager'>
+    <element name='cursorManager'>
+      <ref name='cursorManager.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='cursorManager.AT' combine='interleave'>
+    <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
+    <optional>
+      <attribute name='x' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='y' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+
+  <!-- rectClip -->
+  <define name='rectClip'>
+    <element name='rectClip'>
+      <ref name='rectClip.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='rectClip.AT' combine='interleave'>
+    <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    	<optional>
+      <attribute name='size' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+	</optional>
+  </define>
+
+  <!-- simpleLayout -->
+  <define name='simpleLayout'>
+    <element name='simpleLayout'>
+      <ref name='simpleLayout.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='simpleLayout.AT' combine='interleave'>
+    <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    	<optional>
+      <attribute name='delta' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+	</optional>
+  </define>
+
+  <!-- selector -->
+  <define name='selector'>
+    <element name='selector'>
+      <ref name='selector.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='selector.AT' combine='interleave'>
+    <!-- no AT in AT for our code generator -->
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    	<optional>
+      <attribute name='choice' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+	</optional>
+  </define>
+
+
+</grammar>

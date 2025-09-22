@@ -1,0 +1,45 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Viewport attributes
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.Media.attr' combine='interleave'>
+    <optional>
+      <attribute name='viewport-fill' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>inherit</value>
+          <value>none</value>
+          <ref name='Color.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='viewport-fill-opacity' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='overflow' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>visible</value>
+          <value>hidden</value>
+          <value>scroll</value>
+          <value>auto</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

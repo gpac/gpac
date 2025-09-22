@@ -1,0 +1,23 @@
+{
+  "name": "gpac",
+  "version": "1.1.0",
+  "description": "gpac native module for node.js",
+  "homepage": "https://gpac.io",
+  "author": "jeanlf",
+  "license": "LGPL 2.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gpac/gpac.git"
+  }, 
+  "bugs": {
+    "url": "https://github.com/gpac/gpac/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/gpac.js"
+  },
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "^2.0.0"
+  }
+}

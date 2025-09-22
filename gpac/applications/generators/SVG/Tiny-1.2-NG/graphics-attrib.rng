@@ -1,0 +1,109 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Graphics attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.Media.attr' combine='interleave'>
+    <optional>
+      <attribute name='display' svg:animatable='true' svg:inheritable='explicit'>
+        <choice>
+          <value>inline</value>
+          <value>block</value>
+          <value>list-item</value>
+          <value>run-in</value>
+          <value>compact</value>
+          <value>marker</value>
+          <value>table</value>
+          <value>inline-table</value>
+          <value>table-row-group</value>
+          <value>table-header-group</value>
+          <value>table-footer-group</value>
+          <value>table-row</value>
+          <value>table-column-group</value>
+          <value>table-column</value>
+          <value>table-cell</value>
+          <value>table-caption</value>
+          <value>none</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='visibility' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>visible</value>
+          <value>hidden</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='image-rendering' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>optimizeQuality</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='pointer-events' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>visiblePainted</value>
+          <value>visibleFill</value>
+          <value>visibleStroke</value>
+          <value>visible</value>
+          <value>painted</value>
+          <value>fill</value>
+          <value>stroke</value>
+          <value>all</value>
+          <value>none</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='shape-rendering' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>crispEdges</value>
+          <value>geometricPrecision</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='text-rendering' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>optimizeLegibility</value>
+          <value>geometricPrecision</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.InitialVisibility.attr' combine='interleave'>
+    <optional>
+      <attribute name='initialVisibility' svg:animatable='no' svg:inheritable='false'>
+        <choice>
+          <value>whenStarted</value>
+          <value>always</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

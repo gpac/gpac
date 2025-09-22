@@ -1,0 +1,123 @@
+#-- Version 3 --#
+# templates for the BIFS nodes of v3
+# ==================================
+# Notations I = Infinity
+# %q=x	Quantization method x
+#	0	None
+#	1	3D Position			(SFVec3F)
+#	2	2D Position			(SFVec2F)
+#	3	drawing Order
+#	4	Color 				(SFColor)
+#	5	Texture Coordinate
+#	6	Angle 				(SFFloat 0-2PI)
+#	7	Scale 				(SFVec2F or SFVec3F)
+#	8	Interpolators keys
+#	9	Normals
+#	10	Rotations			(SFRotation)
+#	11	Object Size 3D 		(SFVec3F and SFFloat)
+#	12	Object Size  2D
+#	13	Linear Quantization (+ Nb Bits)
+#	14	Index (of IndexedFaceSet,...)
+#	15	Reserved
+#
+# %a=y	Animation method for fields that can be animated
+#
+#	0	None
+#	1	Position 3D
+#	2	Position 2D
+#	4	Color
+#	6	Angle
+#	7	Float
+#	8	BoundFloat			(intensities, transparencies,...)
+#	9	Normal
+#	10	Rotation
+#	11	Size 3D
+#	12	Size 2D
+#	13	Integer
+#	14	Reserved
+##	0	3D Position
+##	1	2D positon
+##	2	Color					(SFColor)
+##	3	Angle					(SFFloat 0-2pi)
+##	4	Normals
+##	5	Scale					(SFVec2F)
+##	6	Rotation				(SFRotation)
+##	7	Object Size or Scalar	(SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying 
+# which node sub types the node belongs to. Moreover, each field of type 
+# SF/MF3DNode is re assigned a unique correct NodeDataType according to 
+# specify the allowed values of the field
+#
+# %COD	Type of encoding
+#	N	Normal Syntax : The node syntax follos the generic syntax for nodes
+#	S	Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# 10 Aug 2000 (YF per reflector discussion):
+# TemporalGroup children is now an MFTemporalNode
+#
+# 12 Nov 2001 (YF per reflector discussion):
+# reorder fields of ServerCommand to match specification
+#
+# 6 Jan 02 YF -- add default values for children field of TemporalTransform
+# and TemporalGroup
+#
+# YF: Created on Jun 5, 2000 based on w3383 output from Geneva
+
+PROTO TemporalTransform [#%NDT=SFWorldNode,SF2DNode,SF3DNode,SFTemporalNode %COD=N
+eventIn		MF3DNode	addChildren
+eventIn		MF3DNode	removeChildren
+exposedField	MF3DNode  	children	[]
+exposedField	MFURL 		url		[] 
+exposedField 	SFTime 		startTime	-1.0 
+exposedField	SFTime		optimalDuration -1.0
+exposedField	SFBool		active		FALSE
+exposedField 	SFFloat		speed		1.0     #%b=(-I,+I) #%q=0 #%a=7
+exposedField	SFVec2f		scalability	1.0 1.0 #%b=[-1,+I) #%q=12 #%a=12
+exposedField	MFInt32		stretchMode	[0] #%b=[0,2] #%q=13 2 
+exposedField	MFInt32		shrinkMode	[0]  #%b=[0,1] #%q=13 1
+exposedField	SFTime		maxDelay	0 
+eventOut	SFTime 		actualDuration 
+] { 
+}
+
+
+PROTO TemporalGroup [#%NDT=SFWorldNode,SF2DNode,SF3DNode,SFTemporalNode %COD=N
+eventIn        MFTemporalNode	addChildren
+eventIn        MFTemporalNode   removeChildren
+exposedField   MFTemporalNode   children	[]
+field          SFBool		costart		TRUE
+field          SFBool		coend		FALSE
+field          SFBool		meet		FALSE
+exposedField   MFFloat		priority	[]	#%b=[0,+I)    #%q=3
+eventOut       SFBool		isActive
+eventOut       SFInt32		activeChild
+]{
+}
+
+PROTO ServerCommand [#%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn         SFBool          trigger   FALSE
+exposedField    SFBool          enable    FALSE
+exposedField    MFURL           url       []
+exposedField 	SFString        command   ""
+]{
+}
+
+

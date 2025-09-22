@@ -1,0 +1,56 @@
+/*
+\file
+\brief silence !
+*/
+
+/*!
+
+\defgroup xhr_grp XMLHttpRequest API
+\ingroup jsapi_grp
+\brief XMLHttpRequest API.
+
+GPAC supports XMLHttpRequest. For more documentation, please check  https://xhr.spec.whatwg.org/
+
+The XMLHttpRequest API is loaded by default when using SVG or VRML scripts.
+For other cases (e.g. JS filters), the API is loaded as a JS module with the name "xhr":
+
+\code
+import {XMLHttpRequest} from 'xhr'
+
+...
+\endcode
+
+The API currently supports all response types except blob response (WIP).
+
+
+The API allows access to the response body while downloading the content, except for responseType "Document" and responseXML.
+
+For XML progressive acesss, the specific responseType "sax" must be set before sending the request in order to enable on-the-fly SAX parsing of the content.
+
+For ArrayBuffer response type, note that the underlying data object may change asynchronously during transfer, so the arraybuffer fetched might get detached at any time which may lead to unpredictable results. 
+
+To avoid this, the specific responseType "push" may be used in GPAC. The responseType must be set before sending the request. 
+In "push" mode, the onprogress event triggered by new data reception contains an aditionnal arraybuffer object holding the last received data chunk. This arraybuffer is only valid for the execution of the onprogress callback, but can be used to parse on the fly or to append data in another arraybuffer. In "push" mode, data is NOT available through "response" and access to XHR.response will throw an exception. This avoids storing the data internally in the XHR object.
+
+The progress event object during data transfer is defined in ProgressEvent.
+
+@{
+
+*/
+
+/*! event interface for progress events in GPAC XHR*/
+interface ProgressEvent {
+/*! indicates if total length is known */
+attribute boolean lengthComputable;
+/*! indicates amount of bytes loaded */
+attribute unsigned long long loaded;
+/*! indicates total amount of bytes in response */
+attribute unsigned long long total;
+/*! indicates current bits per second download rate when onprogress is triggered by new data arrival, undefined otherwise */
+attribute unsigned long bps;
+/*! arraybuffer containing the currently downloaded chunk when onprogress is triggered by new data arrival, undefined otherwise */
+attribute ArrayBuffer buffer;
+
+};
+
+/*! @} */

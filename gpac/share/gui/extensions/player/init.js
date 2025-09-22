@@ -1,0 +1,26 @@
+
+obj = {
+    whoami: "GPAC-GUI-Extension",
+    name: "Player",
+    icon: "applications-multimedia.svg",
+    author: "JeanLF",
+    description: "This extension provides media playback and control",
+    url: "http://foo.bar",
+    execjs: ["player.js", "fileopen.js", "playlist.js", "stats.js"],
+    autostart: true,
+    config_id: "Player",
+    requires_gl: false,
+    version_major: 1,
+    version_minor: 0,
+    clopts: [
+     {name: "-stat", type: "", description: "show GUI stats"},
+     {name: "-loop", type: "", description: "loop playback"},
+     {name: "-fs", type: "", description: "start in fullscreen"},
+     {name: "-speed", type: "number", description: "set playback speed"},
+     {name: "-start", type: "number", description: "play from given time in seconds"},
+     {name: "-service", type: "int", description: "set initial service ID for multi-service sources"},
+     {name: "-addon", type: "URL", description: "inject specified URL as addon of main content"},
+     {name: "-size", type: "string", description: "set window size as `WidthxHeight`"},
+    ],
+    clusage: "[options] URL [options] [URL2]",
+};

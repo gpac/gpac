@@ -1,0 +1,145 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Datatypes
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='Boolean.datatype'>
+    <choice>
+      <value>false</value>
+      <value>true</value>
+    </choice>
+  </define>
+
+  <define name='XML-Name.datatype'>
+    <data type='Name'/>
+  </define>
+
+  <define name='IDREF.datatype'>
+    <data type='IDREF'/>
+  </define>
+
+  <define name='ContentType.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Coordinate.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Coordinates.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Clock-value.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Color.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='SVGColor.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='LanguageID.datatype'>
+    <data type='language'/>
+  </define>
+
+  <define name='LanguageIDs.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Length.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Lengths.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Number.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Numbers.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='PathData.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='TransformList.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='TransformListNoRef.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='IRI.datatype'>
+	<choice>
+      <data type='anyURI'/>
+      <data type='string'/>
+	</choice>
+  </define>
+
+  <define name='Paint.datatype'><data type='string'/></define>
+
+  <define name='ListOfIRI.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='FormatList.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='FontList.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Focus.datatype'>
+    <choice>
+      <value>auto</value>
+      <value>self</value>
+      <data type='string'/>
+    </choice>
+  </define>
+
+  <define name='FontFamilyValue.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='FontSizeValue.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='Points.datatype'>
+    <data type='string'/>
+  </define>
+
+  <define name='ID.datatype'>
+    <data type='ID'/>
+  </define>
+
+  <define name='NCName.datatype'>
+    <data type='NCName'/>
+  </define>
+
+  <define name='XSLT-QName.datatype'>
+    <choice>
+      <data type='NCName'/>
+      <data type='QName'/>
+    </choice>
+  </define>
+
+</grammar>

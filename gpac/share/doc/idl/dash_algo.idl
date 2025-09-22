@@ -1,0 +1,259 @@
+/*
+\file
+\brief silence !
+*/
+
+typedef char *DOMString;
+
+/*!
+
+\defgroup dash_grp JS DASH Adaptation API
+\ingroup jsapi_grp
+\brief JavaScript API for DASH client adaptation algorithm.
+
+This section documents the JavaScript API available for implementing your own adaptation logic in GPAC DASH client.
+
+The algorithm is chosen using the option `algo` of the dashin filter :
+```
+gpac -i source.mpd:algo=myalgo.js vout
+//or
+gpac -i source.mpd --algo=myalgo.js vout
+```
+
+The loaded JavaScript context has all JS modules available in GPAC, except WebGL. 
+
+It is also possible to bind the custom agorithm from a JSFilterSession using JSFSFilter.bind
+@{
+
+*/
+
+/*! global context property representing the one and only JSDASHClient object attached to the loaded script*/
+attribute JSDASHClient dashin;
+
+/*!\brief JSDASHClient API
+
+The JSDASHClient interface has a single instance exposed to the script under the name "dashin".
+It implements callbacks from the DASH client.
+The object can also be bound to a running filter using JSFSFilter.bind
+*/
+interface JSDASHClient {
+
+/*! indicate a new group is being created
+\note this function is optional
+\param group group being created, can be kept for future use
+*/
+attribute void new_group(JSDASHGroup group);
+
+/*! indicate the period has changed
+\note this function is optional
+\param reset_type indicates the type of reset:
+	- 0: end of period, groups are no longer valid
+	- 1: start of a static period
+	- 2: start of a dynamic (live) period
+*/
+attribute void period_reset(unsigned long reset_type);
+
+/*! perform rate adaptation on the given group (AdaptationSet in DASH, corresponds to one adaptable media)
+\param group_idx index of group on which to perform adaptation
+\param base_group_idx index of associated base group (usually same as group, differs in tiling mode),
+\param force_lower_complexity set to true if the dash client would like a lower complexity 
+\param stats current statistics for the group JSDASHStats
+
+\return value can be:
+- the index of the new quality to select (as listed in group.reps[])
+- -1 to not take decision now
+- -2 to disable the group (debug, will drop segment)
+- other negative values are handled as error
+*/
+attribute int rate_adaptation(unsigned long group_idx, unsigned long base_group_idx, Boolean force_lower_complexity, JSDASHStats stats);
+
+/*! monitor download of the current segment in a group
+\note this function is optional
+\param group_idx index of group on which to perform adaptation
+\param stats current download statistics for the group JSDASHDownloadStats
+
+\return integer value indicating the action to take. Return value can be:
+- `-1` to continue download
+- `-2` to abort download but without retrying to download the same segment at lower quality
+- the index of the new quality to download for the same segment index (same time)
+*/
+attribute int download_monitor(unsigned long group_idx, JSDASHDownloadStats stats);
+
+};
+
+
+/*!\brief JSDASHGroup API
+
+The JSDASHGroup object provides a description of a group (AdaptationSet in DASH), and its available qualities.
+*/
+interface JSDASHGroup {
+
+/*! group index, as used in rate_adaptation callback*/
+attribute readonly unsigned long idx;
+
+/*! group duration in milliseconds, 0 if unknown (live) */
+attribute readonly unsigned long long duration;
+
+
+/*! Spatial Relationship Description, or null if none*/
+attribute readonly JSDASHSRD SRD;
+
+/*! list of available qualites, array of JSDASHQuality objects*/
+attribute readonly Array qualities;
+
+};
+
+/*!\brief JSDASHQuality Object
+
+The JSDASHQuality object provides a description of a quality (Representation in DASH).
+*/
+interface JSDASHQuality {
+
+/*! ID (Representation ID) */
+attribute readonly DOMString ID;
+
+/*! MIME type */
+attribute readonly DOMString mime;
+
+/*! codec parameter */
+attribute readonly DOMString codec;
+
+/*! average bitrate in bits per second*/
+attribute readonly unsigned long bitrate;
+
+/*! if true, the quality is disabled (cannot be played)*/
+attribute readonly boolean disabled;
+
+/*! video width in pixels*/
+attribute readonly unsigned long width;
+
+/*! video height in pixels*/
+attribute readonly unsigned long height;
+
+/*! video frame rate*/
+attribute readonly Fraction fps;
+
+/*! video sample aspect ratio*/
+attribute readonly Fraction sar;
+
+/*! audio samplerate*/
+attribute readonly unsigned long samplerate;
+
+/*! audio number of channels*/
+attribute readonly unsigned long channels;
+
+/*! DASH AST offset for low-latency, 0 otherwise*/
+attribute readonly double ast_offset;
+
+/*! size of all segments in this quality for onDemand profiles. If unknown, set to null*/
+attribute readonly Array sizes;
+};
+
+
+
+/*!\brief JSDASHStats API
+
+The JSDASHStats object provides a description of current group state before adaptation logic
+*/
+interface JSDASHStats {
+
+/*! last segment download rate in bits per second*/
+attribute readonly unsigned long rate;
+
+/*! last segment size in bytes*/
+attribute readonly unsigned long filesize;
+
+/*! current playback speed*/
+attribute readonly float speed;
+
+/*! max supported playback speed computed from associated decoder runtime statistics, 0 if unknown*/
+attribute readonly float max_speed;
+
+/*! display width of the object in pixels, 0 if no video in object*/
+attribute readonly unsigned long display_width;
+
+/*! display height of the object in pixels, 0 if no video in object*/
+attribute readonly unsigned long display_height;
+
+/*! index of active quality at the time the algo is run, or of last downloaded quality if previous segment was skipped */
+attribute readonly unsigned long active_quality;
+
+/*! minimum buffer level in milliseconds below witch rebuffer will happen*/
+attribute readonly unsigned long buffer_min;
+
+/*! maximum buffer level allowed in milliseconds. Packets won't get dropped if overflow, but the algorithm should try not to overflow this buffer*/
+attribute readonly unsigned long buffer_max;
+
+/*! current buffer level in milliseconds*/
+attribute readonly unsigned long buffer;
+
+/*! degradation hint, 0 means no degradation, 100 means tile completely hidden*/
+attribute readonly unsigned long degradation_hint;
+
+/*! cumulated download rate of all active groups in bytes per seconds - 0 means all files are local*/
+attribute readonly unsigned long total_rate;
+
+};
+
+
+
+/*!\brief JSDASHDownloadStats API
+
+The JSDASHDownloadStats object provides a description of current segment download statistics for a group
+*/
+interface JSDASHDownloadStats {
+
+/*! current estimated download speed in bits per second*/
+attribute readonly unsigned long bits_per_second;
+
+/*! total bytes to download*/
+attribute readonly unsigned long long total_bytes;
+
+/*! bytes downloaded*/
+attribute readonly unsigned long long bytes_done;
+
+/*! time in microsecond since segment was scheduled for download*/
+attribute readonly unsigned long long us_since_start;
+
+/*! buffer duration in milliseconds*/
+attribute readonly unsigned long buffer_duration;
+
+/*! duration of segment being downloaded, 0 if unknown*/
+attribute readonly unsigned long current_segment_duration;
+
+};
+
+
+
+/*!\brief JSDASHSRD
+
+The JSDASHSRD object provides the SRD description of a group.
+*/
+interface JSDASHSRD {
+
+/*! ID of SRD source - all SRD with same source describe the same video composition, possibly with different grid sizes*/
+attribute readonly unsigned long ID;
+
+
+/*! X coordinate of SRD for this tile*/
+attribute readonly long x;
+
+/*! Y coordinate of SRD for this tile*/
+attribute readonly long y;
+
+/*! width of SRD for this tile - 0 for tile base track*/
+attribute readonly long w;
+
+/*! height of SRD for this tile - 0 for tile base track*/
+attribute readonly long h;
+
+/*! total width of SRD descriptor for this tile*/
+attribute readonly long fw;
+
+/*! total height of SRD descriptor for this tile*/
+attribute readonly long fh;
+};
+
+
+/*! @} */
+

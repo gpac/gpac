@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="1">
+    <pkg-ref id="io.gpac.gpac"/>
+    <options customize="never" require-scripts="false"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="io.gpac.gpac"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="io.gpac.gpac" visible="false">
+        <pkg-ref id="io.gpac.gpac"/>
+    </choice>
+    <pkg-ref id="io.gpac.gpac" version="2.2.0" onConclusion="none">tmppkg.pkg</pkg-ref>
+
+    <title>GPAC Framework rev</title>
+   <license file="full_license.txt"></license>
+<background file="background.png" mime-type="image/png" />
+</installer-gui-script>

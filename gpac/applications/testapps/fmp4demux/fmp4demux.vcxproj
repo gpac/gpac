@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\build\msvc14\libgpac_dll.vcxproj">
+      <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BEBEB264-EEA8-4FCF-9467-2E7988DD923B}</ProjectGuid>
+    <ProjectName>fmp4demux</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.60610.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>../../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <IntDir>obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>../../../bin/$(Platform)\$(Configuration)/</OutDir>
+    <IntDir>obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <TypeLibraryName>.\Debug/fmp4demux.tlb</TypeLibraryName>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GPAC_DISABLE_MEDIA_IMPORT;GPAC_DISABLE_ISOM_HINTING;GPAC_MINIMAL_ODF;GPAC_DISABLE_AV_PARSERS;GPAC_DISABLE_ISOM_DUMP;GPAC_DISABLE_ZLIB;WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeaderOutputFile>
+      </PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>$(OutDir);../../../extra_lib/lib/$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)$(ProjectName).pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug/fmp4demux.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <TypeLibraryName>.\Release/fmp4demux.tlb</TypeLibraryName>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GPAC_DISABLE_MEDIA_IMPORT;GPAC_DISABLE_ISOM_HINTING;GPAC_MINIMAL_ODF;GPAC_DISABLE_AV_PARSERS;GPAC_DISABLE_ISOM_DUMP;GPAC_DISABLE_ZLIB;WIN32;NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeaderOutputFile>.\Release/fmp4demux.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
+      <ObjectFileName>.\Release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x040c</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>../../../extra_lib/lib/w32_rel;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>.\Release/fmp4demux.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release/fmp4demux.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,393 @@
+<XMT-A xmlns="http://www.enst.fr/MPEG-4/XMT-A"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.enst.fr/MPEG-4/XMT-A xmt-a.xsd">
+  <Header>
+    <InitialObjectDescriptor>
+      <Descr>
+	<esDescr>
+      <ES_Descriptor ES_ID="FluxBIFS" binaryID="1">
+	    <decConfigDescr>
+	      <DecoderConfigDescriptor objectTypeIndication="MPEG4Systems1" streamType="SceneDescription">
+		<decSpecificInfo>
+		  <BIFSConfig>
+		    <commandStream pixelMetric="true">
+		      <size pixelWidth="540" pixelHeight="540"/>
+		    </commandStream>
+		  </BIFSConfig>
+		</decSpecificInfo>
+	      </DecoderConfigDescriptor>
+	    </decConfigDescr>
+	    <slConfigDescr><SLConfigDescriptor><predefined value="2"/></SLConfigDescriptor></slConfigDescr>
+	  </ES_Descriptor>
+	</esDescr>
+      </Descr>
+    </InitialObjectDescriptor>
+  </Header>
+  <Body>
+    <Replace>
+      <Scene>
+	<OrderedGroup>
+		<children>
+			<Inline url="france.mp4"/>
+			<!--
+			<Shape>
+				<geometry><Bitmap/></geometry>
+				<appearance>
+				  <Appearance>
+				    <texture><ImageTexture url="'od://ImageJPEG'"/></texture>
+				    <material><Material2D filled="true"/></material>				   
+				  </Appearance>
+				</appearance>
+			</Shape>
+			-->
+		</children>
+		<!--Start de Paris-->
+		<children>
+			<OrderedGroup>
+				<!--Image de Paris -->
+				<children>
+					<Transform2D translation="-30 65">
+						<children>
+							<Shape>
+								<geometry><Bitmap/></geometry>
+									<appearance>
+										<Appearance>
+											<texture><ImageTexture DEF="FRXX0076image" url="http://localhost/meteo/sdk/32x32/na.png"/></texture>
+											<material><Material2D filled="true"/></material>				   
+										</Appearance>
+									</appearance>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Temperature de la ville Paris-->
+				<children>
+					<Transform2D translation="-35 40">
+						<children>
+							<Shape>
+								<geometry>
+									<Text DEF="FRXX0076temp" string="N/A"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Nom de la ville Paris-->
+				<children>
+					<Transform2D translation="-40 80">
+						<children>
+							<Shape>
+								<geometry>
+									<Text string="Paris"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+			</OrderedGroup>
+		</children>
+		<!--Fin de Paris-->
+		<!--Start de Marseille-->
+		<children>
+			<OrderedGroup>
+				<!--Image de Marseille -->
+				<children>
+					<Transform2D translation="30 -160">
+						<children>
+							<Shape>
+								<geometry><Bitmap/></geometry>
+									<appearance>
+										<Appearance>
+											<texture><ImageTexture DEF="FRXX0059image" url="http://localhost/meteo/sdk/32x32/na.png"/></texture>
+											<material><Material2D filled="true"/></material>				   
+										</Appearance>
+									</appearance>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Temperature de la ville Marseille-->
+				<children>
+					<Transform2D translation="30 -185">
+						<children>
+							<Shape>
+								<geometry>
+									<Text DEF="FRXX0059temp" string="N/A"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Nom de la ville Marseille-->
+				<children>
+					<Transform2D translation="15 -145">
+						<children>
+							<Shape>
+								<geometry>
+									<Text string="Marseille"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+			</OrderedGroup>
+		</children>
+		<!--Fin de Marseille-->
+		
+		<!--Start de Brest-->
+		<children>
+			<OrderedGroup>
+				<!--Image de Brest -->
+				<children>
+					<Transform2D translation="-180 60">
+						<children>
+							<Shape>
+								<geometry><Bitmap/></geometry>
+									<appearance>
+										<Appearance>
+											<!-- exemple de lien HTTP pour les images -->
+											<texture>
+												<!-- <ImageTexture DEF="BrestImage" url="'http://lien_vers_image'"/> -->
+												<ImageTexture DEF="FRXX0019image" url="http://localhost/meteo/sdk/32x32/na.png"/></texture>
+											<material><Material2D filled="true"/></material>				   
+										</Appearance>
+									</appearance>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Temperature de la ville Brest-->
+				<children>
+					<Transform2D translation="-185 35">
+						<children>
+							<Shape>
+								<geometry>
+									<Text DEF="FRXX0019temp" string="N/A"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Nom de la ville Brest-->
+				<children>
+					<Transform2D translation="-190 75">
+						<children>
+							<Shape>
+								<geometry>
+									<Text string="Brest"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+			</OrderedGroup>
+		</children>
+		<!--Fin de Brest-->
+		
+		<!--Start de Lyon-->
+		<children>
+			<OrderedGroup>
+				<!--Image de Lyon -->
+				<children>
+					<Transform2D translation="30 -75">
+						<children>
+							<Shape>
+								<geometry><Bitmap/></geometry>
+									<appearance>
+										<Appearance>
+											<texture><ImageTexture DEF="FRXX0055image" url="http://localhost/meteo/sdk/32x32/na.png"/></texture>
+											<material><Material2D filled="true"/></material>				   
+										</Appearance>
+									</appearance>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Temperature de la ville Lyon-->
+				<children>
+					<Transform2D translation="25 -100">
+						<children>
+							<Shape>
+								<geometry>
+									<Text DEF="FRXX0055temp" string="N/A"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Nom de la ville Lyon-->
+				<children>
+					<Transform2D translation="20 -60">
+						<children>
+							<Shape>
+								<geometry>
+									<Text string="Lyon"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+			</OrderedGroup>
+		</children>
+		<!--Fin de Lyon-->
+		
+		<!--Start de Bordeaux-->
+		<children>
+			<OrderedGroup>
+				<!--Image de Bordeaux -->
+				<children>
+					<Transform2D translation="-95 -95">
+						<children>
+							<Shape>
+								<geometry><Bitmap/></geometry>
+									<appearance>
+										<Appearance>
+											<texture><ImageTexture DEF="FRXX0016image" url="http://localhost/meteo/sdk/32x32/na.png"/></texture>
+											<material><Material2D filled="true"/></material>				   
+										</Appearance>
+									</appearance>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Temperature de la ville Bordeaux-->
+				<children>
+					<Transform2D translation="-100 -120">
+						<children>
+							<Shape>
+								<geometry>
+									<Text DEF="FRXX0016temp" string="N/A"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+				<!-- Nom de la ville Bordeaux-->
+				<children>
+					<Transform2D translation="-110 -80">
+						<children>
+							<Shape>
+								<geometry>
+									<Text string="Bordeaux"/>
+								</geometry>
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+			</OrderedGroup>
+		</children>
+		<!--Fin de Bordeaux-->
+		<!--Start d'entete-->
+		<children>
+			<OrderedGroup>
+				<!-- Texte d'entete-->
+				<children>
+					<Transform2D translation="-200 180">
+						<children>
+							<Shape>
+								<geometry>
+									<Text DEF="entete" string="Data Not Available"/>
+								</geometry>
+								<appearance>
+
+								<Appearance>
+									<material>
+										<Material2D emissiveColor="0 0 0" filled="true">
+											
+										</Material2D>
+									</material>
+								</Appearance>
+								</appearance>
+							
+							</Shape>
+						</children>
+					</Transform2D>
+				</children>
+			</OrderedGroup>
+		</children>
+		<!--Fin d'en tete-->
+		
+
+
+	</OrderedGroup>
+		</Scene>
+		</Replace>
+   <!-- <ObjectDescriptorUpdate> -->
+      <!-- Definition des Images -->
+		<!--	<OD> -->
+	<!-- Carte de France -->
+	<!--
+	<ObjectDescriptor objectDescriptorID="ImageJPEG">
+	  <Descr>
+	    <esDescr>
+	      <ES_Descriptor ES_ID="Carte">
+    		<decConfigDescr>
+    		  <DecoderConfigDescriptor objectTypeIndication="JPEG" streamType="Visual"/>		
+    		</decConfigDescr>
+    		<StreamSource url="http://localhost/france.jpg"/>
+          </ES_Descriptor>
+	    </esDescr>
+	  </Descr>
+	</ObjectDescriptor>
+	-->
+	<!-- Image Soleil
+	<ObjectDescriptor objectDescriptorID="ImagePNG1">
+	  <Descr>
+	    <esDescr>
+	      <ES_Descriptor ES_ID="Soleil">
+    		<decConfigDescr>
+    		  <DecoderConfigDescriptor objectTypeIndication="PNG" streamType="Visual"/>		
+    		</decConfigDescr>
+    		<StreamSource url="http://localhost/meteo/sdk/32x32/32.png"/>
+	      </ES_Descriptor>
+	    </esDescr>
+	  </Descr>
+	</ObjectDescriptor> -->
+	<!-- Image Pluie
+	<ObjectDescriptor objectDescriptorID="ImagePNG2">
+	  <Descr>
+	    <esDescr>
+	      <ES_Descriptor ES_ID="Pluie">
+    		<decConfigDescr>
+    		  <DecoderConfigDescriptor objectTypeIndication="PNG" streamType="Visual"/>		
+    		</decConfigDescr>
+    		<slConfigDescr>
+    		  <SLConfigDescriptor><predefined value="2"/></SLConfigDescriptor>
+    		</slConfigDescr>
+    		<StreamSource url="http://localhost/meteo/sdk/32x32/6.png"/>
+	      </ES_Descriptor>
+	    </esDescr>
+	  </Descr>
+	</ObjectDescriptor> -->
+	<!-- Image Soleil Nuage
+	<ObjectDescriptor objectDescriptorID="ImagePNG3">
+	  <Descr>
+	    <esDescr>
+	      <ES_Descriptor ES_ID="SoleilNuage">
+    		<decConfigDescr>
+    		  <DecoderConfigDescriptor objectTypeIndication="PNG" streamType="Visual"/>		
+    		</decConfigDescr>
+    		<StreamSource url="http://localhost/meteo/sdk/32x32/26.png"/>
+	      </ES_Descriptor>
+	    </esDescr>
+	  </Descr>
+	</ObjectDescriptor> -->
+	<!-- Image Neige
+	<ObjectDescriptor objectDescriptorID="ImagePNG4">
+	  <Descr>
+	    <esDescr>
+	      <ES_Descriptor ES_ID="Neige">
+    		<decConfigDescr>
+    		  <DecoderConfigDescriptor objectTypeIndication="PNG" streamType="Visual"/>		
+    		</decConfigDescr>
+    		<StreamSource url=""/>
+	      </ES_Descriptor>
+	    </esDescr>
+	  </Descr>
+	</ObjectDescriptor> -->
+     <!-- </OD> -->
+			<!-- Fin des Images -->
+    <!-- </ObjectDescriptorUpdate> -->
+  </Body>
+</XMT-A>
+

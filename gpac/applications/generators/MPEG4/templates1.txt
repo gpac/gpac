@@ -1,0 +1,1292 @@
+#-- Version 1 --#
+# templates for the BIFS nodes
+# =============================
+# Notations I = Infinity
+# %q=x	Quantization method x
+#	0	None
+#	1	3D Position			(SFVec3F)
+#	2	2D Position			(SFVec2F)
+#	3	drawing Order
+#	4	Color 				(SFColor)
+#	5	Texture Coordinate
+#	6	Angle 				(SFFloat 0-2PI)
+#	7	Scale 				(SFVec2F or SFVec3F)
+#	8	Interpolators keys
+#	9	Normals
+#	10	Rotations			(SFRotation)
+#	11	Object Size 3D 		(SFVec3F and SFFloat)
+#	12	Object Size  2D
+#	13	Linear Quantization (+ Nb Bits)
+#	14	Index (of IndexedFaceSet,...)
+#	15	Reserved
+#
+# %a=y	Animation method for fields that can be animated
+#
+## OO 081498 To match BIFS's update numbering
+#	0	None
+#	1	Position 3D
+#	2	Position 2D
+#	4	Color
+#	6	Angle
+#	7	Float
+#	8	BoundFloat			(intensities, transparencies,...)
+#	9	Normal
+#	10	Rotation
+#	11	Size 3D
+#	12	Size 2D
+#	13	Integer
+#	14	Reserved
+##	0	3D Position
+##	1	2D positon
+##	2	Color					(SFColor)
+##	3	Angle					(SFFloat 0-2pi)
+##	4	Normals
+##	5	Scale					(SFVec2F)
+##	6	Rotation				(SFRotation)
+##	7	Object Size or Scalar	(SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying which node sub
+# types the node belongs to. Moreover, each field of type SF/MF3DNode is re assigned
+# a unique correct NodeDataType according to specify the allowed values of the field
+#
+# %COD	Type of encoding
+#	N	Normal Syntax : The node syntax follos the generic syntax for nodes
+#	S	Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# Jan 16, 2003 (MBS) AudioBuffer.length changed to exposedField
+# Dec 10, 1997 (Yuval Fisher) SFTimerNode changed to SFTimeSensorNode
+# Dec 10, 1997 (Yuval Fisher) SFFitNode changed to SFFITNode
+# Dec 10, 1997 (Yuval Fisher) children in Form changed to exposedField
+# Dec 11, 1997 (Yuval Fisher) exposedfield changed to exposedField in Form
+#
+# Dec 19, 1997 (Yuval Fisher - Following Alexandros' Parser errors)
+# - FALSE removed from isActive field on AudioClip node
+# - %b=(-I,+I) removed from set_fraction on ColorInterpolator
+# - justify field value in FontStyle enclosed in []
+# - %b=(-I,+I) removed from set_fraction on ScalarInterpolator
+# - removed -1 from duration_changed and FALSE from isActive in VideoObject2D
+# - changed renderedFace to exposedField in Face node
+# - changed renderedFace to exposedField in Body node -- just temporary anyway
+# - animation type on height field of elevation grid changed from 11 to 7
+# - vector field of Normal node, transposed quantization=9 and animation=4
+# - changed eventIn to exposedField in background, fog, navigationInfo,viewpoint
+#      of Layer3D
+# - Same as above for Composite3DTexture
+#
+# Dec 22, 1997 (Yuval Fisher) added Conditional back.
+# March 16:
+# Reordered alphabetically
+# Sound field spatialize changed to exposedfield
+# Sound added addChildren and deleteChildren to all nodes with children
+# Changed children2D field to be children in CompositeMap
+# Eliminate ucs_2 field from StreamingText
+# Do the childrenLayer fields need add and remove eventIns ?
+# sound field changed to source in Sound2D
+#
+# March 24
+# Many changes based on changes adopted in Tokyo
+# added bounding boxes to Layer2D and Layer3D
+#
+# March 25
+# Added Animation to various nodes - Checked template with Julien.
+#
+# March 30
+# 0 -> FALSE and MFURL:null->[]  corrections.
+#
+# April 13
+# Added TermCap per Joern
+#
+# May 12
+# add and remove ChildrenLayer in Layer3d was missing 'Layer'
+# term cap had int instead of int32
+#
+# May 19
+# DiscSensor center had a wrong quantization type
+# May 26
+# drawOrderMin and Max were SFVec3f in Quantization Parameter
+# June 8
+# Layer2D,3D Has an SFInt32 depth, converted to SFFloat
+# Text should hav an MFString
+# June 16
+# added to PlaneSensor:
+#eventOut     SFVec3f  translation_changed
+#
+#
+# to do:
+# check if SFstring or SFBuffer ins AudioFX
+# check children field for AudioSource
+# fix FIT node bounds
+# ask Eric if Face really has a URL -- try to eliminate it because it's an
+# animation stream/can bounds be put on the faceDefMesh parameters why are
+# these fields
+#
+# Oct 28
+# JS: Updated all template to correct DOC
+# JCD updated Form, Layout and Valuator
+# JS: To check FBA latest nodes
+# November 2, 1998 (Mikael Bourges-Sevenier) AudioBuffer has MFAudioNode children not MFNode
+# November 2, 1998 (Mikael Bourges-Sevenier) Face node is a SF3DNode also.
+# November 2, 1998 (Mikael Bourges-Sevenier) modif I bound -> +I bound
+# November 2, 1998 (Mikael Bourges-Sevenier) modif xFInt -> xFInt32 where missing
+# November 2, 1998 (Mikael Bourges-Sevenier) removed childrenLayer in Layer2D
+# Nov 2: JS: Integrated latest comments from Gabriel and Liam
+# Nov 3: Still more bug corrections! The last ones? Added also type correspondance for
+#  semantic tables.
+# JS: Changesd all fap values to be 0 by default
+# Feb 9 99: Changed Layer2D/3D to be SF3DNode, suppresed cone anim stuff 
+#
+# Mar 1 1999
+# group -> groups in Form plus other minor fixes
+# Mar 8, 1999
+# Add speed to AudioSource
+# June 15, 1999 YF
+# Changed renderedFace to default [] from NULL & removed blank line
+#
+# Dec 20, 1999 YF
+# FABs get default value of +I
+#
+# Aug 10, 2000 YF per Steve Woods:
+# VisibilitySensor %b= missing from center and size fields
+#
+# July 10, 2001 YF per DCOR1 
+# modify maxAngle, minAngle and diskAngle in CylinderSensor
+# minAngle in DiscSensor changed to 0
+#
+# Jan 2, 2002 YF per decision at meeting
+# revert to capilized letter of factor, offset, sum in Valuator
+#
+# Aug 13, 2002 -- added activate field to Anchor per COR2 item
+# modified field to exposedField in FontStyle per COR2
+#
+
+PROTO Anchor [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children        []
+exposedField SFString description     ""
+exposedField MFString parameter       []
+exposedField MFURL    url             []
+eventIn      SFBool   activate 
+]{
+}
+
+
+PROTO AnimationStream [ #%NDT=SFWorldNode,SF3DNode,SF2DNode,SFStreamingNode  %COD=N
+exposedField SFBool		loop             FALSE
+exposedField SFFloat	speed            1.0     #%b=(-I,+I) #%q=0 #%a=7
+exposedField SFTime		startTime        0       #%b=(-I,+I)
+exposedField SFTime		stopTime         0       #%b=(-I,+I)
+exposedField MFURL		url		        []
+eventOut     SFTime	    duration_changed
+eventOut     SFBool		isActive
+] {
+}
+
+
+PROTO Appearance [ #%NDT=SFWorldNode,SFAppearanceNode  %COD=N
+exposedField SFMaterialNode		material          NULL
+exposedField SFTextureNode		texture           NULL
+exposedField SFTextureTransformNode	textureTransform  NULL
+] {
+}
+
+PROTO AudioBuffer [ #%NDT=SFWorldNode,SFAudioNode  %COD=N
+exposedField	SFBool	loop	            FALSE
+exposedField	SFFloat	pitch	            1       #%b=[0,+I) #%q=0 #%a=7
+exposedField	SFTime	startTime	        0       #%b=[0,+I) #%q=0
+exposedField	SFTime	stopTime	        0       #%b=[0,+I) #%q=0
+exposedField	MFAudioNode	children	        []
+exposedField	SFInt32	numChan	            1       #%b=[0,255] #%q=13 8
+exposedField	MFInt32	phaseGroup	        [1]
+exposedField	        SFFloat	length	            0.0     #%b=[0,+I) #%q=0
+eventOut	    SFTime	duration_changed
+eventOut	    SFBool	isActive
+] {
+}
+
+PROTO AudioClip [ #%NDT=SFWorldNode,SFAudioNode,SFStreamingNode  %COD=N
+exposedField   	SFString	description      ""
+exposedField   	SFBool   	loop             FALSE
+exposedField   	SFFloat  	pitch            1.0   #%b=[0,+I)	#%q=0 #%a=7
+exposedField   	SFTime   	startTime        0     #%b=(-I,+I)
+exposedField   	SFTime   	stopTime         0     #%b=(-I,+I)
+exposedField	MFURL		url		     []
+eventOut       	SFTime   	duration_changed
+eventOut       	SFBool   	isActive
+] {
+}
+
+PROTO AudioDelay [ #%NDT=SFWorldNode,SFAudioNode %COD=N
+eventIn      MFAudioNode	addChildren
+eventIn      MFAudioNode	removeChildren
+exposedField	MFAudioNode	children	[]
+exposedField	SFTime		delay		0	#%b=[0,+I)
+field		SFInt32		numChan		1	#%b=[0,255]  #%q=13 8
+field		MFInt32		phaseGroup	[]	#%b=[0,255]  #%q=13 8
+] {
+}
+
+PROTO AudioFX [ #%NDT=SFWorldNode,SFAudioNode %COD=N
+eventIn      MFAudioNode	addChildren
+eventIn      MFAudioNode	removeChildren
+exposedField	MFAudioNode	children	[]
+exposedField	SFString	orch		""
+exposedField	SFString	score		""
+exposedField	MFFloat		params		[]	#%b=(-I,+I) #%q=0 #%a=7
+field		SFInt32	numChan		1	#%b=[0,255]	#%q=13 8
+field		MFInt32	phaseGroup	[]	#%b=[0,255]	#%q=13 8
+] {
+}
+
+PROTO AudioMix [ #%NDT=SFWorldNode,SFAudioNode %COD=N
+eventIn      MFAudioNode	addChildren
+eventIn      MFAudioNode	removeChildren
+exposedField	MFAudioNode	children	[]
+exposedField	SFInt32		numInputs	1	#%b=[1,255]	#%q=13 8
+exposedField	MFFloat		matrix		[]	#%b=[0,1]  	#%q=0 #%a=7
+field		SFInt32		numChan		1	#%b=[0,255]    	#%q=13 8
+field		MFInt32		phaseGroup	[]	#%b=[0,255]	#%q=13 8
+] {
+}
+
+PROTO AudioSource [ #%NDT=SFWorldNode,SFAudioNode,SFStreamingNode %COD=N
+eventIn      MFAudioNode	addChildren
+eventIn      MFAudioNode	removeChildren
+exposedField	MFAudioNode	children	[]
+exposedField	MFURL 	url		[]
+exposedField	SFFloat	pitch		1	#%b=[0,+I)	#%q=0 #%a=7
+exposedField    SFFloat speed       1   #%b=[0,+I)  #%q=0 #%a=7
+exposedField	SFTime	startTime	0
+exposedField	SFTime	stopTime	0
+field		SFInt32	numChan		1	#%b=[0,255]	#%q=13 8
+field		MFInt32	phaseGroup	[]	#%b=[0,255]	#%q=13 8
+] {
+}
+
+PROTO AudioSwitch [ #%NDT=SFWorldNode,SFAudioNode %COD=N
+eventIn      MFAudioNode	addChildren
+eventIn      MFAudioNode	removeChildren
+exposedField	MFAudioNode	children	[]
+exposedField	MFInt32		whichChoice	[]  #%b=[0,1] #%q=13 1
+field		SFInt32		numChan		1	#%b=[0,255] 	#%q=13 8
+field		MFInt32		phaseGroup	[]	#%b=[0,255]	    #%q=13 8
+] {
+}
+
+PROTO Background [ #%NDT=SFWorldNode,SF3DNode,SFBackground3DNode  %COD=N
+eventIn      SFBool   set_bind
+exposedField MFFloat  groundAngle []            #%b=[0,1.5707963]	#%q=6 #%a=8
+exposedField MFColor  groundColor []            #%b=[0,1]	        #%q=4 #%a=4
+exposedField MFURL    backUrl     []
+exposedField MFURL    bottomUrl     []
+exposedField MFURL    frontUrl    []
+exposedField MFURL    leftUrl     []
+exposedField MFURL    rightUrl    []
+exposedField MFURL    topUrl      []
+exposedField MFFloat  skyAngle    []            #%b=[0,3.14159265] #%q=6 #%a=8
+exposedField MFColor  skyColor    [ 0 0 0 ]     #%b=[0,1]	#%q=4 #%a=4
+eventOut     SFBool   isBound
+] {
+}
+
+PROTO Background2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFBackground2DNode  %COD=N
+eventIn		    SFBool	set_bind
+exposedField	SFColor	backColor      0 0 0 #%b=[0,1]	#%q=4 #%a=4
+exposedField	MFURL	url	[]
+eventOut	    SFBool	isBound
+] {
+}
+
+PROTO Billboard [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children        []
+exposedField SFVec3f  axisOfRotation  0 1 0     #%q=9 #%a=9
+] {
+}
+
+# modified JCD
+PROTO Bitmap [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField SFVec2f  scale  -1 -1    #%b=[-1,+I) #%q=12 #%a=12
+] {
+}
+
+
+PROTO Box [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+field    	SFVec3f	size	2 2 2	   	#%b=[0,+I)	#%q=11
+] {
+}
+
+PROTO Circle [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField	SFFloat	radius		1	#%b=[0,+I)	#%q=12 #%a=7
+] {
+}
+
+PROTO Collision [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children        []
+exposedField SFBool   collide         TRUE
+field        SF3DNode   proxy           NULL
+eventOut     SFTime   collideTime
+] {
+}
+
+PROTO Color [ #%NDT=SFWorldNode,SFColorNode  %COD=N
+exposedField MFColor color  []			#%b=[0,1] #%q=4 #%a=4
+] {
+}
+
+PROTO ColorInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    #%b=[0,1]	#%q=8
+exposedField MFColor keyValue      []    #%b=[0,1]	#%q=4
+eventOut     SFColor value_changed
+] {
+}
+
+PROTO CompositeTexture2D [ #%NDT=SFWorldNode,SFTextureNode  %COD=N
+eventIn         MF2DNode	          addChildren
+eventIn         MF2DNode	          removeChildren
+exposedField	MF2DNode	          children	    []
+exposedField	SFInt32               pixelWidth 		-1 #%b=[0,65535]	#%q=13 16
+exposedField	SFInt32               pixelHeight 	    -1 #%b=[0,65535]	#%q=13 16
+exposedField    SFBackground2DNode    background      NULL
+exposedField    SFViewportNode        viewport        NULL
+field	SFInt32               repeatSandT  3 #%b=[0,3] #%q=13 2
+] {
+}
+
+PROTO CompositeTexture3D [ #%NDT=SFWorldNode,SFTextureNode  %COD=N
+eventIn         MF3DNode	            addChildren
+eventIn         MF3DNode	            removeChildren
+exposedField	MF3DNode	            children	[]
+exposedField	SFInt32                 pixelWidth 		-1 #%b=[0,65535]	#%q=13 16
+exposedField	SFInt32                 pixelHeight 	-1 #%b=[0,65535]	#%q=13 16
+exposedField 	SFBackground3DNode	    background	    NULL
+exposedField	SFFogNode	            fog		        NULL
+exposedField	SFNavigationInfoNode	navigationInfo	NULL
+exposedField	SFViewpointNode	        viewpoint	    NULL
+field	SFBool repeatS TRUE
+field	SFBool repeatT TRUE
+] {
+}
+
+
+PROTO Conditional [  #%NDT=SFWorldNode,SF3DNode,SF2DNode   %COD=N
+eventIn		    SFBool		        activate
+eventIn         SFBool              reverseActivate FALSE
+exposedField	SFCommandBuffer 	buffer		""
+eventOut	    SFBool		        isActive
+]{
+}
+
+PROTO Cone [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+field     SFFloat   bottomRadius 1        #%b=[0,+I)	#%q=11
+field     SFFloat   height       2        #%b=[0,+I) 	#%q=11 
+field     SFBool    side         TRUE
+field     SFBool    bottom       TRUE
+] {
+}
+
+PROTO Coordinate [ #%NDT=SFWorldNode,SFCoordinateNode  %COD=N
+exposedField MFVec3f point  []      #%b=(-I,+I)	#%q=1 #%a=1
+] {
+}
+
+PROTO Coordinate2D [ #%NDT=SFWorldNode,SFCoordinate2DNode  %COD=N
+exposedField MFVec2f point  []      #%b=(-I,+I)	#%q=2 #%a=2
+] {
+}
+
+PROTO CoordinateInterpolator [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    #%b=[0,1]	#%q=8
+exposedField MFVec3f keyValue      []    #%b=(-I,+I)	#%q=1
+eventOut     MFVec3f value_changed
+] {
+}
+
+PROTO CoordinateInterpolator2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    #%b=[0,1]	#%q=8
+exposedField MFVec2f keyValue      []    #%b=(-I,+I)	#%q=2
+eventOut     MFVec2f value_changed
+] {
+}
+
+
+PROTO Curve2D [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField	SFCoordinate2DNode	point	 []
+exposedField	SFFloat			fineness 0.5	#%b=[0,1] #%q=0 #%a=7
+exposedField	MFInt32			type	 []	#%b=[0,3] #%q=13 2
+] {
+}
+
+PROTO Cylinder [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+field    SFBool    bottom  TRUE
+field    SFFloat   height  2         #%b=[0,+I)	#%q=11 
+field    SFFloat   radius  1         #%b=[0,+I)	#%q=11 
+field    SFBool    side    TRUE
+field    SFBool    top     TRUE
+] {
+}
+
+PROTO CylinderSensor [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFBool     autoOffset TRUE
+exposedField SFFloat    diskAngle  0.262       #%b=[0,1.5707963] #%q=6
+exposedField SFBool     enabled    TRUE
+exposedField SFFloat    maxAngle   -1	       #%b=[-6.2831853,6.2831853] #%q=6
+exposedField SFFloat    minAngle   0	       #%b=[-6.2831853,6.2831853] #%q=6
+exposedField SFFloat    offset     0           #%b=[0,6.2831853] #%q=6
+eventOut     SFBool     isActive
+eventOut     SFRotation rotation_changed
+eventOut     SFVec3f    trackPoint_changed
+] {
+}
+
+PROTO DirectionalLight [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFFloat ambientIntensity  0        #%b=[0,1]	#%q=4 #%a=8
+exposedField SFColor color             1 1 1    #%b=[0,1]	#%q=4 #%a=4
+exposedField SFVec3f direction         0 0 -1   		#%q=9 #%a=9
+exposedField SFFloat intensity         1        #%b=[0,1]  	#%q=4 #%a=8
+exposedField SFBool  on                TRUE
+] {
+}
+
+PROTO DiscSensor [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+exposedField SFBool     autoOffset 	TRUE
+exposedField SFBool     enabled    	TRUE
+exposedField SFFloat    maxAngle   	-1	       #%b=[-6.2831853,6.2831853] #%q=6
+exposedField SFFloat    minAngle   	0	       #%b=[-6.2831853,6.2831853] #%q=6
+exposedField SFFloat    offset     	0           #%b=[0,6.2831853]	#%q=6
+eventOut     SFBool     isActive
+eventOut     SFFloat	rotation_changed
+eventOut     SFVec2f    trackPoint_changed
+] {
+}
+
+PROTO ElevationGrid [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+eventIn      MFFloat  set_height
+exposedField SFColorNode   color             NULL
+exposedField SFNormalNode   normal            NULL
+exposedField SFTextureCoordinateNode   texCoord          NULL
+field        MFFloat  height            []      #%b=(-I,+I)	#%q=11 #%a=7
+field        SFBool   ccw               TRUE
+field        SFBool   colorPerVertex    TRUE
+field        SFFloat  creaseAngle       0.0	#%b=[0,6.2831853]	#%q=6
+field        SFBool   normalPerVertex   TRUE
+field        SFBool   solid             TRUE
+field        SFInt32  xDimension        0       #%b=[0,+I)	#%q=11
+field        SFFloat  xSpacing          1.0     #%b=(0,+I)	#%q=11
+field        SFInt32  zDimension        0       #%b=[0,+I)	#%q=11
+field        SFFloat  zSpacing          1.0     #%b=[0,+I)	#%q=11
+] {
+}
+
+
+PROTO Expression [ #%NDT=SFWorldNode,SFExpressionNode  %COD=N
+exposedField    SFInt32         expression_select1    0  #%b=(0,31) #%q=13 5
+exposedField    SFInt32         expression_intensity1 0  #%b=(0,63)  #%q=13 6
+exposedField    SFInt32         expression_select2    0  #%b=(0,31) #%q=13 5
+exposedField    SFInt32         expression_intensity2 0  #%b=(0,63)  #%q=13 6
+exposedField    SFBool          init_face             FALSE
+exposedField    SFBool          expression_def        FALSE
+] {
+}
+
+PROTO Extrusion [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+eventIn MFVec2f    set_crossSection
+eventIn MFRotation set_orientation
+eventIn MFVec2f    set_scale
+eventIn MFVec3f    set_spine
+field   SFBool     beginCap         TRUE
+field   SFBool     ccw              TRUE
+field   SFBool     convex           TRUE
+field   SFFloat    creaseAngle      0.0             #%b=[0,6.2831853]	#%q=6
+field   MFVec2f    crossSection     [ 1 1, 1 -1, -1 -1, -1 1, 1  1 ]    #%b=(-I,+I) #%q=2 
+field   SFBool     endCap           TRUE
+field   MFRotation orientation      [0 0 1 0]          #%b=(-I,+I) #%q=10 
+field   MFVec2f    scale            [1 1]              #%b=[0,+I) #%q=7 
+field   SFBool     solid            TRUE
+field   MFVec3f    spine            [ 0 0 0, 0 1 0 ] #%b=(-I,+I) #%q=1 
+] {
+}
+
+PROTO Face [ #%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
+exposedField    SFFAPNode       fap             NULL
+exposedField    SFFDPNode       fdp             NULL
+exposedField    SFFITNode       fit             NULL
+exposedField    SFAudioNode     ttsSource       NULL
+exposedField    MF3DNode        renderedFace    []
+] {
+}
+
+
+PROTO FaceDefMesh [ #%NDT=SFWorldNode,SFFaceDefMeshNode  %COD=N
+field   SF3DNode        faceSceneGraphNode      NULL
+field   MFInt32         intervalBorders         []        #%q=0
+field   MFInt32         coordIndex              []        #%q=0
+field   MFVec3f         displacements           []        #%q=0
+] {
+}
+
+PROTO FaceDefTables [ #%NDT=SFWorldNode,SFFaceDefTablesNode  %COD=N
+field     SFInt32         	fapID           1     #%b=[1, 68]     #%q=13 7
+field     SFInt32         	highLevelSelect 1     #%b=[1, 64]     #%q=13 6
+exposedField    MFFaceDefMeshNode    	faceDefMesh 		[]
+exposedField    MFFaceDefTransformNode  faceDefTransform 	[]
+] {
+}
+
+PROTO FaceDefTransform [ #%NDT=SFWorldNode,SFFaceDefTransformNode  %COD=N
+field   SF3DNode        faceSceneGraphNode      NULL
+field   SFInt32         fieldId         	1
+field   SFRotation      rotationDef		0 0 1 0      #%b=(-I,+I)  #%q=10
+field   SFVec3f      	scaleDef		1 1 1      #%q=7
+field   SFVec3f      	translationDef  	0 0 0     #%q=1
+] {
+}
+
+PROTO FAP [ #%NDT=SFWorldNode,SFFAPNode  %COD=N
+exposedField    SFVisemeNode     viseme         NULL
+exposedField    SFExpressionNode expression     NULL
+exposedField    SFInt32 open_jaw        	    +I       #%b=[0, +I)     #%q=0
+exposedField    SFInt32 lower_t_midlip  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_b_midlip  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 stretch_l_corner        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 stretch_r_corner        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_t_lip_lm  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_t_lip_rm  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_b_lip_lm  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_b_lip_rm  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_l_cornerlip       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_r_cornerlip       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 thrust_jaw      	    +I       #%b=[0,+I)      #%q=0
+exposedField    SFInt32 shift_jaw       	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 push_b_lip      	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 push_t_lip      	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 depress_chin    	    +I       #%b=(-I,+I)      #%q=0
+exposedField    SFInt32 close_t_l_eyelid        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 close_t_r_eyelid        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 close_b_l_eyelid        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 close_b_r_eyelid        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 yaw_l_eyeball   	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 yaw_r_eyeball   	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 pitch_l_eyeball 	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 pitch_r_eyeball 	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 thrust_l_eyeball        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 thrust_r_eyeball        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 dilate_l_pupil  	    +I       #%b=(-I,+I)      #%q=0
+exposedField    SFInt32 dilate_r_pupil  	    +I       #%b=(-I,+I)      #%q=0
+exposedField    SFInt32 raise_l_i_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_r_i_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_l_m_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_r_m_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_l_o_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_r_o_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 squeeze_l_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 squeeze_r_eyebrow       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 puff_l_cheek    	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 puff_r_cheek    	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lift_l_cheek    	    +I       #%b=[0,+I)      #%q=0
+exposedField    SFInt32 lift_r_cheek    	    +I       #%b=[0,+I)      #%q=0
+exposedField    SFInt32 shift_tongue_tip        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_tongue_tip        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 thrust_tongue_tip       +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_tongue    	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 tongue_roll     	    +I       #%b=[0,+I)      #%q=0
+exposedField    SFInt32 head_pitch      	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 head_yaw        	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 head_roll       	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_t_midlip_o        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_b_midlip_o        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 stretch_l_cornerlip     +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 stretch_r_cornerlip     +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_t_lip_lm_o        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 lower_t_lip_rm_o        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_b_lip_lm_o        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_b_lip_rm_o        +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_l_cornerlip_o     +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_r_cornerlip_o     +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 stretch_l_nose  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 stretch_r_nose  	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_nose      	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 bend_nose       	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_l_ear     	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 raise_r_ear     	    +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 pull_l_ear              +I       #%b=(-I,+I)     #%q=0
+exposedField    SFInt32 pull_r_ear              +I       #%b=(-I,+I)     #%q=0
+] {
+}
+
+PROTO FDP [ #%NDT=SFWorldNode,SFFDPNode  %COD=N
+exposedField    SFCoordinateNode        featurePointsCoord              NULL
+exposedField    SFTextureCoordinateNode	textureCoord		        NULL
+exposedField    MFFaceDefTablesNode     faceDefTables                    []
+exposedField    MF3DNode                faceSceneGraph                   []
+field           SFBool                  useOrthoTexture             FALSE
+] {
+}
+
+
+PROTO FIT [ #%NDT=SFWorldNode,SFFITNode  %COD=N
+exposedField    MFInt32 FAPs    []      #%b=[-1,68] #%q=13 7
+exposedField    MFInt32 Graph   []      #%b=[0,68] #%q=13 7
+exposedField    MFInt32 numeratorExp    [] #%b=[0,15] #%q=13 4
+exposedField    MFInt32 denominatorExp  [] #%b=[0,15] #%q=13 4
+exposedField    MFInt32 numeratorImpulse    [] #%b=[0,1023] #%q=13 10
+exposedField    MFInt32 numeratorTerms  []      #%b=[0,10] #%q=13 4
+exposedField    MFInt32 denominatorTerms        []      #%b=[0,10] #%q=13 4
+exposedField    MFFloat numeratorCoefs  []      #%b=(-I,+I)
+exposedField    MFFloat denominatorCoefs        []      #%b=(-I,+I)
+] {
+}
+
+PROTO Fog [ #%NDT=SFWorldNode,SF3DNode,SFFogNode  %COD=N
+exposedField SFColor  color            1 1 1		#%b=[0,1]	#%q=4  #%a=4
+exposedField SFString fogType          "LINEAR"
+exposedField SFFloat  visibilityRange  0			#%b=[0,+I)	#%q=11 #a=7
+eventIn      SFBool   set_bind
+eventOut     SFBool   isBound
+] {
+}
+
+
+PROTO FontStyle [ #%NDT=SFWorldNode,SFFontStyleNode  %COD=N
+exposedField MFString family       ["SERIF"]
+exposedField SFBool   horizontal   TRUE
+exposedField MFString justify      ["BEGIN"]
+exposedField SFString language     ""
+exposedField SFBool   leftToRight  TRUE
+exposedField SFFloat  size         1.0          #%b=[0,+I)	#%q=11 
+exposedField SFFloat  spacing      1.0          #%b=[0,+I)	#%q=11  
+exposedField SFString style        "PLAIN"
+exposedField SFBool   topToBottom  TRUE
+] {
+}
+
+PROTO Form [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn         MF2DNode	addChildren
+eventIn         MF2DNode	removeChildren
+exposedField	MF2DNode	children	[]
+exposedField	SFVec2f		size		-1 -1	#%b=[0,+I) #%q=12 #%a=12
+exposedField	MFInt32		groups		[]	#%b=[-1,1022] #%q=13 10
+exposedField	MFString	constraints	[]
+exposedField	MFInt32		groupsIndex	[]	#%b=[-1,1022] #%q=13 10
+]{}
+
+
+PROTO Group [ #%NDT=SFWorldNode,SFTopNode,SF3DNode,SF2DNode  %COD=N
+eventIn      MF3DNode  addChildren
+eventIn      MF3DNode  removeChildren
+exposedField MF3DNode  children       []
+] {
+}
+
+
+PROTO ImageTexture [ #%NDT=SFWorldNode,SFTextureNode  %COD=N
+exposedField MFURL 	url     []
+field        SFBool	repeatS TRUE
+field        SFBool	repeatT TRUE
+] {
+}
+
+PROTO IndexedFaceSet [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+eventIn       MFInt32 set_colorIndex
+eventIn       MFInt32 set_coordIndex
+eventIn       MFInt32 set_normalIndex
+eventIn       MFInt32 set_texCoordIndex
+exposedField  SFColorNode  	color             NULL
+exposedField  SFCoordinateNode  coord             NULL
+exposedField  SFNormalNode  	normal            NULL
+exposedField  SFTextureCoordinateNode  texCoord          NULL
+field         SFBool  ccw               TRUE
+field         MFInt32 colorIndex        []        #%b=[-1,+I) #%q=14
+field         SFBool  colorPerVertex    TRUE
+field         SFBool  convex            TRUE
+field         MFInt32 coordIndex        []        #%b=[-1,+I)	#%q=14
+field         SFFloat creaseAngle       0.0       #%b=[0,6.2831853]	#%q=6
+field         MFInt32 normalIndex       []        #%b=[-1,+I)	#%q=14
+field         SFBool  normalPerVertex   TRUE
+field         SFBool  solid             TRUE
+field         MFInt32 texCoordIndex     []        #%b=[-1,+I)	#%q=14
+] {
+}
+
+PROTO IndexedFaceSet2D [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+eventIn		MFInt32			set_colorIndex
+eventIn		MFInt32			set_coordIndex
+eventIn		MFInt32			set_texCoordIndex
+exposedField	SFColorNode		color		NULL
+exposedField	SFCoordinate2DNode	coord		NULL
+exposedField	SFTextureCoordinateNode	texCoord	NULL
+field		MFInt32			colorIndex	[]   #%b=[-1,+I)	#%q=14
+field		SFBool			colorPerVertex	TRUE
+field		SFBool			convex		TRUE
+field		MFInt32			coordIndex	[]   #%b=[-1,+I)	#%q=14
+field		MFInt32			texCoordIndex	[] #%b=[-1,+I)	#%q=14
+] {
+}
+
+PROTO IndexedLineSet [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+eventIn       MFInt32 set_colorIndex
+eventIn       MFInt32 set_coordIndex
+exposedField  SFColorNode  color             NULL
+exposedField  SFCoordinateNode  coord             NULL
+field         MFInt32 colorIndex        []     	#%b=[-1,+I)	#%q=14
+field         SFBool  colorPerVertex    TRUE
+field         MFInt32 coordIndex        []     	#%b=[-1,+I)	#%q=14
+] {
+}
+
+PROTO IndexedLineSet2D [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+eventIn		MFInt32			set_colorIndex
+eventIn		MFInt32			set_coordIndex
+exposedField	SFColorNode		color		NULL
+exposedField	SFCoordinate2DNode	coord		NULL
+field		MFInt32			colorIndex	[]    #%b=[-1,+I) #%q=14
+field		SFBool			colorPerVertex	TRUE
+field		MFInt32			coordIndex	[]    #%b=[-1,+I) #%q=14
+]{
+}
+
+PROTO Inline [ #%NDT=SFWorldNode,SF3DNode,SFStreamingNode,SF2DNode  %COD=N
+exposedField MFURL	url		[]
+] {
+}
+
+
+PROTO LOD [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+exposedField MF3DNode  level    []
+field        SFVec3f center   	0 0 0    #%b=(-I,+I)	#%q=1
+field        MFFloat range    	[]       #%b=[0,+I] 	#%q=11
+] {
+}
+
+PROTO Layer2D  [ #%NDT=SFWorldNode,SFTopNode,SF2DNode,SF3DNode  %COD=N
+eventIn         MF2DNode	        addChildren
+eventIn         MF2DNode	        removeChildren
+exposedField 	MF2DNode	        children	    []
+exposedField	SFVec2f 	        size		    -1 -1	#%b=(-I,+I)	#%q=12  #%a=12
+exposedField	SFBackground2DNode  background      NULL
+exposedField	SFViewportNode   	viewport        NULL
+] {
+}
+
+PROTO Layer3D  [ #%NDT=SFWorldNode,SFTopNode,SF2DNode,SF3DNode  %COD=N
+eventIn         MF3DNode                addChildren
+eventIn         MF3DNode                removeChildren
+exposedField 	MF3DNode	            children	    []
+exposedField	SFVec2f		            size		    -1 -1 #%b=(-I,+I) #%q=12  #%a=12
+exposedField 	SFBackground3DNode	    background	    NULL
+exposedField	SFFogNode	            fog		        NULL
+exposedField	SFNavigationInfoNode	navigationInfo	NULL
+exposedField	SFViewpointNode	        viewpoint	    NULL
+] {
+}
+
+
+PROTO Layout [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn      MF2DNode	addChildren
+eventIn      MF2DNode	removeChildren
+exposedField	MF2DNode	children	[]
+exposedField	SFBool		wrap		FALSE
+exposedField	SFVec2f		size		-1 -1	#%b=[0,+I) #%q=12  #%a=12
+exposedField	SFBool		horizontal	TRUE
+exposedField	MFString	justify		["BEGIN"]
+exposedField	SFBool		leftToRight	TRUE
+exposedField	SFBool		topToBottom	TRUE
+exposedField	SFFloat		spacing		1	#%b=[0,+I) #%q=0  #%a=7
+exposedField	SFBool		smoothScroll	FALSE
+exposedField	SFBool		loop		FALSE
+exposedField	SFBool		scrollVertical	TRUE
+exposedField	SFFloat		scrollRate	0	#%b=(-I,+I)	#%q=0 #%a=7
+exposedField	SFInt32 scrollMode 0 #%b=[-1,1] #%q=13 2
+]{}
+
+PROTO LineProperties [ #%NDT=SFWorldNode,SFLinePropertiesNode  %COD=N
+exposedField	SFColor		lineColor	0 0 0	#%b=[0,1] #%q=4 #%a=4
+exposedField	SFInt32		lineStyle	0  	#%b=[0,5] #%q=13 3
+exposedField	SFFloat		width		1  	#%b=[0,+I) #%q=12 #%a=7
+]{
+}
+
+PROTO ListeningPoint [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn		SFBool		set_bind
+exposedField	SFBool		jump		TRUE
+exposedField	SFRotation		orientation	0 0 1 0	 #%q=10 #%a=10
+exposedField	SFVec3f		position	0 0 10	 #%b=(-I,+I) 	#%q=1  #%a=1
+field		SFString	description	""
+eventOut	SFTime		bindTime
+eventOut	SFBool		isBound
+] {
+}
+
+PROTO Material [ #%NDT=SFWorldNode,SFMaterialNode  %COD=N
+exposedField SFFloat ambientIntensity  0.2         #%b=[0,1]	#%q=4 #%a=8
+exposedField SFColor diffuseColor      0.8 0.8 0.8 #%b=[0,1]	#%q=4 #%a=4
+exposedField SFColor emissiveColor     0 0 0       #%b=[0,1]	#%q=4 #%a=4
+exposedField SFFloat shininess         0.2         #%b=[0,1]	#%q=4 #%a=8
+exposedField SFColor specularColor     0 0 0       #%b=[0,1]	#%q=4 #%a=4
+exposedField SFFloat transparency      0           #%b=[0,1] 	#%q=4 #%a=8
+] {
+}
+
+PROTO Material2D [ #%NDT=SFWorldNode,SFMaterialNode  %COD=N
+exposedField	SFColor			emissiveColor 0.8 0.8 0.8 #%b=[0,1]	#%q=4 #%a=4
+exposedField	SFBool			filled		FALSE
+exposedField	SFLinePropertiesNode	lineProps	NULL
+exposedField	SFFloat			transparency	0		#%b=[0,1]	#%q=4 #%a=8
+]{
+}
+
+PROTO MovieTexture [ #%NDT=SFWorldNode,SFTextureNode,SFStreamingNode  %COD=N
+exposedField SFBool	loop             FALSE
+exposedField SFFloat	speed            1.0      #%b=(-I,+I) #%q=0 #%a=7
+exposedField SFTime	startTime        0        #%b=(-I,+I)
+exposedField SFTime	stopTime         0        #%b=(-I,+I)
+exposedField MFURL 	url              []
+field        SFBool	repeatS          TRUE
+field        SFBool	repeatT          TRUE
+eventOut     SFTime	duration_changed
+eventOut     SFBool	isActive
+] {
+}
+
+PROTO NavigationInfo [ #%NDT=SFWorldNode,SF3DNode,SFNavigationInfoNode  %COD=N
+eventIn      SFBool   set_bind
+exposedField MFFloat  avatarSize      [0.25, 1.6, 0.75] # %b=[0,+I) #%q=11
+exposedField SFBool   headlight       TRUE
+exposedField SFFloat  speed           1.0               # %b=[0,+I) #%q=0
+exposedField MFString type            ["WALK", "ANY"]
+exposedField SFFloat  visibilityLimit 0.0               # %b=[0,+I) #%q=11 #%a=7
+eventOut     SFBool   isBound
+]{
+}
+
+PROTO Normal [ #%NDT=SFWorldNode,SFNormalNode  %COD=N
+exposedField MFVec3f vector  []   #%q=9 #%a=9
+] {
+}
+
+PROTO NormalInterpolator [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []   #%b=[0,1]	#%q=8
+exposedField MFVec3f keyValue      []   #%b=(-I,+I)	#%q=9
+eventOut     MFVec3f value_changed
+] {
+}
+
+PROTO OrderedGroup [ #%NDT=SFWorldNode,SF3DNode,SF2DNode,SFTopNode  %COD=N
+eventIn      MF3DNode  addChildren
+eventIn      MF3DNode  removeChildren
+exposedField MF3DNode  children       []
+exposedField MFFloat   order       []   #%b=[0,+I)	#%q=3
+] {
+}
+
+PROTO OrientationInterpolator [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      SFFloat    set_fraction
+exposedField MFFloat    key           []  #%b=[0,1]	    #%q=8
+exposedField MFRotation keyValue      []  #%b=(-I,+I)	#%q=10
+eventOut     SFRotation value_changed
+] {
+}
+
+
+PROTO PixelTexture [ #%NDT=SFWorldNode,SFTextureNode  %COD=N
+exposedField SFImage    image   0 0 0   # %q=0
+field        SFBool	    repeatS TRUE
+field        SFBool	    repeatT TRUE
+] {
+}
+
+PROTO PlaneSensor [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFBool  autoOffset          TRUE
+exposedField SFBool  enabled             TRUE
+exposedField SFVec2f maxPosition         -1 -1    #%b=(-I,+I)	#%q=2
+exposedField SFVec2f minPosition         0 0      #%b=(-I,+I)	#%q=2
+exposedField SFVec3f offset              0 0 0    #%b=(-I,+I)	#%q=1
+eventOut     SFBool  isActive
+eventOut     SFVec3f trackPoint_changed
+eventOut     SFVec3f translation_changed
+] {
+}
+
+PROTO PlaneSensor2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+exposedField SFBool  autoOffset          TRUE
+exposedField SFBool  enabled             TRUE
+exposedField SFVec2f maxPosition         0 0    #%b=(-I,+I)	#%q=2
+exposedField SFVec2f minPosition         0 0    #%b=(-I,+I)	#%q=2
+exposedField SFVec2f offset              0 0    #%b=(-I,+I)	#%q=12
+eventOut     SFBool  isActive
+eventOut     SFVec2f trackPoint_changed
+eventOut     SFVec2f translation_changed
+] {
+}
+
+PROTO PointLight [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFFloat ambientIntensity  0       #%b=[0,1]	#%q=4 #%a=8
+exposedField SFVec3f attenuation       1 0 0   #%b=[0,+I)	#%q=11 #%a=1
+exposedField SFColor color             1 1 1   #%b=[0,1]	#%q=4 #%a=4
+exposedField SFFloat intensity         1       #%b=[0,1]	#%q=4 #%a=8
+exposedField SFVec3f location          0 0 0   #%b=(-I,+I) 	#%q=1 #%a=1
+exposedField SFBool  on                TRUE
+exposedField SFFloat radius            100     #%b=[0,+I)	#%q=11 #%a=7
+] {
+}
+
+PROTO PointSet [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField  SFColorNode  color      NULL
+exposedField  SFCoordinateNode  coord      NULL
+] {
+}
+
+PROTO PointSet2D [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField	SFColorNode		color	NULL
+exposedField	SFCoordinate2DNode	coord	NULL
+]{
+}
+
+
+PROTO PositionInterpolator [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    #%b=[0,1]	#%q=8
+exposedField MFVec3f keyValue      []    #%b=(-I,+I) 	#%q=1
+eventOut     SFVec3f value_changed
+] {
+}
+
+PROTO PositionInterpolator2D [	#%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn		SFFloat	set_fraction
+exposedField	MFFloat	key		[]	#%b=[0,1] 	#%q=8
+exposedField	MFVec2f	keyValue	[]	#%b=(-I,+I)	#%q=2
+eventOut	SFVec2f	value_changed
+] {
+}
+
+PROTO ProximitySensor2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+exposedField	SFVec2f	center			0 0	#%b=[-1,+I)	#%q=2
+exposedField	SFVec2f	size			0 0	#%b=[0,+I)	#%q=12
+exposedField	SFBool	enabled			TRUE
+eventOut	SFBool	isActive
+eventOut	SFVec2f	position_changed
+eventOut	SFFloat	orientation_changed
+eventOut	SFTime	enterTime
+eventOut	SFTime	exitTime
+] {
+}
+
+PROTO ProximitySensor [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFVec3f    center      0 0 0    #%b=(-I,+I)	#%q=1
+exposedField SFVec3f    size        0 0 0    #%b=[0,+I)   	#%q=11
+exposedField SFBool     enabled     TRUE
+eventOut     SFBool     isActive
+eventOut     SFVec3f    position_changed
+eventOut     SFRotation orientation_changed
+eventOut     SFTime     enterTime
+eventOut     SFTime     exitTime
+] {
+}
+
+PROTO QuantizationParameter [ #%NDT=SFWorldNode,SF2DNode,SF3DNode	%COD=N
+field	SFBool	isLocal			FALSE
+field	SFBool	position3DQuant		FALSE
+field	SFVec3f	position3DMin		-I -I -I	#%b=(-I,+I) #%q=0
+field	SFVec3f	position3DMax		+I +I +I	#%b=(-I,+I) #%q=0
+field	SFInt32	position3DNbBits	16		#%b=[0,31]  #%q=13 5
+field	SFBool	position2DQuant		FALSE
+field	SFVec2f	position2DMin		-I -I		#%b=(-I,+I) #%q=0
+field	SFVec2f	position2DMax		+I +I		#%b=(-I,+I) #%q=0
+field	SFInt32	position2DNbBits	16		#%b=[0,31] #%q=13 5
+field	SFBool	drawOrderQuant		FALSE
+field	SFFloat drawOrderMin		-I 		#%b=(-I,+I) #%q=0
+field	SFFloat drawOrderMax		+I 		#%b=(-I,+I) #%q=0
+field	SFInt32	drawOrderNbBits		8		#%b=[0,31]  #%q=13 5
+field	SFBool	colorQuant		TRUE
+field	SFFloat	colorMin		0.0		#%b=[0,1]   #%q=0
+field	SFFloat	colorMax		1.0		#%b=[0,1]   #%q=0
+field	SFInt32	colorNbBits		8		#%b=[0,31]  #%q=13 5
+field	SFBool	textureCoordinateQuant	TRUE
+field	SFFloat	textureCoordinateMin	0		#%b=[0,1]   #%q=0
+field	SFFloat	textureCoordinateMax	1		#%b=[0,1]   #%q=0
+field	SFInt32	textureCoordinateNbBits	16		#%b=[0,31]  #%q=13 5
+field	SFBool	angleQuant		TRUE
+field	SFFloat	angleMin		0.0		#%b=[0,6.2831853] #%q=0
+field	SFFloat	angleMax		6.2831853	#%b=[0,6.2831853] #%q=0
+field	SFInt32	angleNbBits		16		#%b=[0,31]  #%q=13 5
+field	SFBool	scaleQuant		FALSE
+field	SFFloat	scaleMin		0.0		#%b=(-I,+I)  #%q=0
+field	SFFloat	scaleMax		+I		#%b=(-I,+I)  #%q=0
+field	SFInt32	scaleNbBits		8		#%b=[0,31]  #%q=13 5
+field	SFBool	keyQuant		TRUE
+field	SFFloat	keyMin			0.0		#%b=(-I,+I) #%q=0
+field	SFFloat	keyMax			1.0		#%b=(-I,+I) #%q=0
+field	SFInt32	keyNbBits		8		#%b=[0,31] #%q=13 5
+field	SFBool	normalQuant		TRUE
+field	SFInt32	normalNbBits		8	#%b=[0,31]  #%q=13 5
+field	SFBool	sizeQuant	        FALSE
+field	SFFloat	sizeMin	        	0        #%b=(-I,+I) #%q=0
+field	SFFloat	sizeMax	        	+I       #%b=(-I,+I) #%q=0
+field	SFInt32	sizeNbBits	     	8       #%b=[0,31]  #%q=13 5
+field	SFBool	useEfficientCoding	FALSE
+]{
+}
+
+PROTO Rectangle [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField	SFVec2f	size	2 2	#%b=[0,+I)	#%q=12	#%a=2
+]{
+}
+
+PROTO ScalarInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []     #%b=[0,1]	#%q=8
+exposedField MFFloat keyValue      []     #%b=(-I,+I)	#%q=0
+eventOut     SFFloat value_changed
+]{}
+
+PROTO Script [#%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=S
+exposedField MFScript url           []
+field        SFBool   directOutput  FALSE
+field        SFBool   mustEvaluate  FALSE
+]{
+}
+
+PROTO Shape [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+exposedField SFAppearanceNode appearance NULL
+exposedField SFGeometryNode geometry   NULL
+] {
+}
+
+PROTO Sound [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFVec3f  direction     0 0 1   #%b=(-I,+I)	#%q=9
+exposedField SFFloat  intensity     1       #%b=[0,1]	#%q=4 #%a=7
+exposedField SFVec3f  location      0 0 0   #%b=(-I,+I)	#%q=1 #%a=1
+exposedField SFFloat  maxBack       10      #%b=[0,+I)	#%q=11 #%a=7
+exposedField SFFloat  maxFront      10      #%b=[0,+I)	#%q=11 #%a=7
+exposedField SFFloat  minBack       1       #%b=[0,+I)	#%q=11 #%a=7
+exposedField SFFloat  minFront      1       #%b=[0,+I)	#%q=11 #%a=7
+exposedField SFFloat  priority      0       #%b=[0,1]	#%q=4
+exposedField SFAudioNode   source        NULL
+field        SFBool   spatialize    TRUE
+] {
+}
+
+PROTO Sound2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+exposedField	SFFloat	intensity	1	#%b=[0,1]	#%q=4 #%a=7
+exposedField	SFVec2f	location	0 0	#%b=(-I,+I)	#%q=2 #%a=2
+exposedField	SFAudioNode	source NULL
+field	SFBool	spatialize	TRUE
+]{
+}
+
+PROTO Sphere [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+field SFFloat radius  1    #%b=(0,+I) 	#%q=11
+] {
+}
+
+
+PROTO SphereSensor [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFBool     autoOffset        TRUE
+exposedField SFBool     enabled           TRUE
+exposedField SFRotation offset            0 1 0 0  # %b=(-I,+I) #%q=10
+eventOut     SFBool     isActive
+eventOut     SFRotation rotation_changed
+eventOut     SFVec3f    trackPoint_changed
+]{
+}
+
+PROTO SpotLight [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFFloat ambientIntensity  0         #%b=[0,1]	#%q=4  #%a=8
+exposedField SFVec3f attenuation       1 0 0     #%b=[0,+I)	#%q=11 #%a=1
+exposedField SFFloat beamWidth         1.570796  #%b=[0,1.5707963] #%q=6 #%a=8
+exposedField SFColor color             1 1 1     #%b=[0,1]	#%q=4 #%a=4
+exposedField SFFloat cutOffAngle       0.785398  #%b=[0,1.5707963] #%q=6 #%a=8
+exposedField SFVec3f direction         0 0 -1    #%b=(-I,+I) #%q=9 #%a=9
+exposedField SFFloat intensity         1         #%b=[0,1]	#%q=4 #%a=8
+exposedField SFVec3f location          0 0 0     #%b=(-I,+I) 	#%q=1  #%a=1
+exposedField SFBool  on                TRUE
+exposedField SFFloat radius            100       #%b=[0,+I) 	#%q=11 #%a=7
+] {
+}
+
+PROTO Switch [ #%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
+exposedField    MF3DNode  choice      []
+exposedField    SFInt32 whichChoice -1	#%b=[-1, 1022]  #%q=13 10
+] {
+}
+
+PROTO TermCap [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn        SFTime  evaluate
+exposedField   SFInt32   capability  0     #%b=[0,127]  #%q=13 7
+eventOut       SFInt32   value       0      #%b=[0,7]   #%q=13 3
+] {
+}
+
+PROTO Text [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+exposedField  MFString string    []
+exposedField  MFFloat  length    []               #%b=[0,+I) 	#%q=11 #%a=7
+exposedField  SFFontStyleNode  fontStyle NULL
+exposedField  SFFloat  maxExtent 0.0              #%b=[0,+I) 	#%q=11 #%a=7
+] {
+}
+
+PROTO TextureCoordinate [ #%NDT=SFWorldNode,SFTextureCoordinateNode  %COD=N
+exposedField MFVec2f point  []      #%b=(-I,+I)	#%q=5 #%a=2
+]{
+}
+
+PROTO TextureTransform [ #%NDT=SFWorldNode,SFTextureTransformNode  %COD=N
+exposedField SFVec2f center      0 0     #%b=(-I,+I)	#%q=2 #%a=2
+exposedField SFFloat rotation    0       #%b=[0,6.2831853]	#%q=6 #%a=6
+exposedField SFVec2f scale       1 1     #%b=(-I,+I)	#%q=7 #%a=12
+exposedField SFVec2f translation 0 0     #%b=(-I,+I)	#%q=2 #%a=2
+] {
+}
+
+PROTO TimeSensor [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+exposedField SFTime   cycleInterval	1       #%b=(0,+I)
+exposedField SFBool   enabled		TRUE
+exposedField SFBool   loop		FALSE
+exposedField SFTime   startTime		0       #%b=(-I,+I)
+exposedField SFTime   stopTime		0       #%b=(-I,+I)
+eventOut     SFTime   cycleTime
+eventOut     SFFloat  fraction_changed
+eventOut     SFBool   isActive
+eventOut     SFTime   time
+] {
+}
+
+PROTO TouchSensor [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+exposedField SFBool  enabled TRUE
+eventOut     SFVec3f hitNormal_changed
+eventOut     SFVec3f hitPoint_changed
+eventOut     SFVec2f hitTexCoord_changed
+eventOut     SFBool  isActive
+eventOut     SFBool  isOver
+eventOut     SFTime  touchTime
+] {}
+
+PROTO Transform [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      MF3DNode    addChildren
+eventIn      MF3DNode    removeChildren
+exposedField SFVec3f     center           0 0 0    #%b=(-I,+I)	#%q=1  #%a=1
+exposedField MF3DNode    children         []
+exposedField SFRotation  rotation         0 0 1 0  		#%q=10 #%a=10
+exposedField SFVec3f     scale            1 1 1    #%b=(0,+I)	#%q=7  #%a=11
+exposedField SFRotation  scaleOrientation 0 0 1 0  		#%q=10 #%a=10
+exposedField SFVec3f     translation      0 0 0    #%b=(-I,+I)	#%q=1  #%a=1
+] {
+}
+
+PROTO Transform2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn		    MF2DNode	addChildren
+eventIn		    MF2DNode	removeChildren
+exposedField	MF2DNode	children	[]
+exposedField	SFVec2f		center		0 0	#%b=(-I,+I) #%q=2 #%a=2
+exposedField	SFFloat		rotationAngle	0	#%b=[0,6.2831853] #%q=6 #%a=6
+exposedField	SFVec2f		scale		1 1	#%b=(-I,+I)	#%q=7 #%a=12
+exposedField	SFFloat		scaleOrientation 0	#%b=[0,6.2831853] #%q=6 #%a=6
+exposedField	SFVec2f		translation	0 0	#%b=(-I,+I)	#%q=2 #%a=2
+] {
+}
+
+PROTO Valuator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  %COD=N
+eventIn         SFBool 	    inSFBool
+eventIn         SFColor	    inSFColor
+eventIn         MFColor	    inMFColor
+eventIn         SFFloat	    inSFFloat
+eventIn         MFFloat	    inMFFloat
+eventIn         SFInt32	    inSFInt32
+eventIn         MFInt32	    inMFInt32
+eventIn         SFRotation	inSFRotation
+eventIn         MFRotation	inMFRotation
+eventIn         SFString	inSFString
+eventIn         MFString	inMFString
+eventIn         SFTime	    inSFTime
+eventIn         SFVec2f	    inSFVec2f
+eventIn         MFVec2f	    inMFVec2f
+eventIn         SFVec3f	    inSFVec3f
+eventIn         MFVec3f	    inMFVec3f
+eventOut        SFBool 		outSFBool
+eventOut        SFColor		outSFColor
+eventOut        MFColor		outMFColor
+eventOut        SFFloat		outSFFloat
+eventOut        MFFloat		outMFFloat
+eventOut        SFInt32		outSFInt32
+eventOut        MFInt32		outMFInt32
+eventOut        SFRotation	outSFRotation
+eventOut        MFRotation	outMFRotation
+eventOut        SFString	outSFString
+eventOut        MFString	outMFString
+eventOut        SFTime		outSFTime
+eventOut        SFVec2f		outSFVec2f
+eventOut        MFVec2f		outMFVec2f
+eventOut        SFVec3f		outSFVec3f
+eventOut        MFVec3f		outMFVec3f
+exposedField	SFFloat	    Factor1	    1.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Factor2	    1.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Factor3	    1.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Factor4	    1.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Offset1	    0.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Offset2	    0.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Offset3	    0.0    #%b=(-I,+I) #%q=0
+exposedField	SFFloat	    Offset4	    0.0    #%b=(-I,+I) #%q=0
+exposedField	SFBool	    Sum	        FALSE
+] {
+}
+
+PROTO Viewpoint [ #%NDT=SFWorldNode,SF3DNode,SFViewpointNode  %COD=N
+eventIn      SFBool     set_bind
+exposedField SFFloat    fieldOfView    0.785398  #%b=[0,3.1415927] #%q=6  #%a=8
+exposedField SFBool     jump           TRUE
+exposedField SFRotation orientation    0 0 1 0   		#%q=10 #%a=10
+exposedField SFVec3f    position       0 0 10    #%b=(-I,+I) 	#%q=1  #%a=1
+field        SFString   description    ""
+eventOut     SFTime     bindTime
+eventOut     SFBool     isBound
+] {
+}
+
+
+PROTO VisibilitySensor [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+exposedField SFVec3f center   0 0 0      # %b=(-I,+I) #%q=1 #%a=1
+exposedField SFBool  enabled  TRUE
+exposedField SFVec3f size     0 0 0      # %b=[0,+I)  #%q=11 #%a=11
+eventOut     SFTime  enterTime
+eventOut     SFTime  exitTime
+eventOut     SFBool  isActive
+]{
+}
+
+PROTO Viseme [ #%NDT=SFWorldNode,SFVisemeNode  %COD=N
+exposedField    SFInt32         viseme_select1  0  #%b=(0,31) #%q=13 5
+exposedField    SFInt32         viseme_select2  0  #%b=(0,31)  #%q=13 5
+exposedField    SFInt32         viseme_blend    0  #%b=(0,63)  #%q=13 6
+exposedField    SFBool          viseme_def       FALSE
+] {
+}
+
+PROTO WorldInfo [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+field MFString info  []
+field SFString title ""
+] {
+}

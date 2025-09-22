@@ -1,0 +1,45 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Discard
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='discard'/>
+  </define>
+
+  <define name='svg.Discard.group' combine='choice'>
+    <ref name='discard'/>
+  </define>
+
+  <!-- ... discard ................................................ -->
+  <define name='discard'>
+    <element name='discard'>
+      <ref name='discard.AT'/>
+      <ref name='discard.CM'/>
+    </element>
+  </define>
+
+  <define name='discard.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
+    <ref name='svg.AnimateBegin.attr'/>
+	<ref name='svg.Conditional.attr'/>
+  </define>
+
+  <define name='discard.CM'>
+    <zeroOrMore>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.Handler.group'/>
+    </zeroOrMore>
+  </define>
+
+</grammar>

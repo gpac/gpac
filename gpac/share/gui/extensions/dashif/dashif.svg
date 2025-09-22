@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   height="48px"
+   width="48px"
+    viewbox = "0 0 48 48"
+   >
+
+  <rect x="2" y="2" width="10" height="12" fill="#0080ff"/>
+  <rect x="14" y="2" width="10" height="12" fill="#0080ff"/>
+  <rect x="26" y="2" width="10" height="12" fill="#0080ff"/>
+
+  <rect x="2" y="16" width="10" height="8" fill="#0080ff"/>
+  <rect x="14" y="16" width="10" height="8" fill="#0080ff"/>
+  <rect x="26" y="16" width="10" height="8" fill="#0080ff"/>
+
+  <rect x="2" y="26" width="10" height="6" fill="#0080ff"/>
+  <rect x="14" y="26" width="10" height="6" fill="#0080ff"/>
+  <rect x="26" y="26" width="10" height="6" fill="#0080ff"/>
+</svg>

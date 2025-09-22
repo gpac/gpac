@@ -1,0 +1,47 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Hyperlink
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:ev='http://www.w3.org/2001/xml-events'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <!--
+    The 'a' is not defined here, only its attributes are. The reason for this
+    is because 'a' has a content model that is equivalent to the content model
+    of the element that contains it. It is therefore defined everywhere that
+    it is allowable.
+    -->
+
+  <!-- ... a's attributes ......................................... -->
+  <define name='a.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.XLinkReplace.attr'/>
+    <optional>
+      <attribute name='target' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>_replace</value>
+          <value>_self</value>
+          <value>_parent</value>
+          <value>_top</value>
+          <value>_blank</value>
+          <ref name='ID.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

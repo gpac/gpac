@@ -1,0 +1,44 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Extensibility
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='foreignObject'/>
+  </define>
+
+  <!-- ... foreignObject .......................................... -->
+  <define name='foreignObject'>
+    <element name='foreignObject'>
+      <ref name='foreignObject.AT'/>
+      <ref name='foreignObject.CM'/>
+    </element>
+  </define>
+
+  <define name='foreignObject.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.XYWH.attr'/>
+  </define>
+
+  <define name='foreignObject.CM'>
+    <ref name='svg.Desc.group'/>
+  </define>
+
+</grammar>

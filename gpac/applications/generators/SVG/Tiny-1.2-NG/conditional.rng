@@ -1,0 +1,65 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Conditional
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:ev='http://www.w3.org/2001/xml-events'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <!--
+    The 'switch' is not defined here, only its attributes are, alongside
+    the test attributes that may be used to express conditions on subtrees.
+    The reason for this is because 'switch' has a content model that is
+    equivalent to the content model of the element that contains it. It is
+    therefore defined everywhere that it is allowable.
+    -->
+
+
+  <define name='svg.Conditional.attr' combine='interleave'>
+    <optional>
+      <attribute name='requiredFeatures' svg:animatable='false' svg:inheritable='false'>
+        <ref name='ListOfIRI.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='requiredExtensions' svg:animatable='false' svg:inheritable='false'>
+        <ref name='ListOfIRI.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='requiredFormats' svg:animatable='false' svg:inheritable='false'>
+        <ref name='FormatList.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='requiredFonts' svg:animatable='false' svg:inheritable='false'>
+        <ref name='FontList.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='systemLanguage' svg:animatable='false' svg:inheritable='false'>
+        <ref name='LanguageIDs.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... switch's attributes .................................... -->
+  <define name='switch.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.Focus.attr'/>
+  </define>
+
+</grammar>

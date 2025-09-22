@@ -1,0 +1,84 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 XML Events integration
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2001/xml-events'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:ev='http://www.w3.org/2001/xml-events'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='listener'/>
+  </define>
+
+  <!-- ... listener ................................................ -->
+  <div xml:id='listener'>
+    <define name='listener'>
+      <element name='listener'>
+        <ref name='listener.AT'/>
+        <ref name='listener.CM'/>
+      </element>
+    </define>
+
+    <define name='listener.AT' combine='interleave'>
+      <ref name='svg.Core.attr'/>
+      <optional>
+        <attribute name='event' svg:animatable='false' svg:inheritable='false'>
+          <ref name='XML-Name.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='phase' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+            <value>default</value>
+            <value>capture</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='propagate' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+            <value>continue</value>
+            <value>stop</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='defaultAction' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+            <value>perform</value>
+            <value>cancel</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='observer' svg:animatable='false' svg:inheritable='false'>
+          <ref name='IDREF.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='target' svg:animatable='false' svg:inheritable='false'>
+          <ref name='IDREF.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='handler' svg:animatable='false' svg:inheritable='false'>
+          <ref name='IRI.datatype'/>
+        </attribute>
+      </optional>
+    </define>
+
+
+    <define name='listener.CM'>
+      <empty/>
+    </define>
+  </div>
+
+</grammar>

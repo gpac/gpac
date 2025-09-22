@@ -1,0 +1,561 @@
+#-- Version 5 --#
+# templates for the BIFS nodes
+# =============================
+# Notations I = Infinity
+# %q=x	Quantization method x
+#	0	None
+#	1	3D Position			(SFVec3F)
+#	2	2D Position			(SFVec2F)
+#	3	drawing Order
+#	4	Color 				(SFColor)
+#	5	Texture Coordinate
+#	6	Angle 				(SFFloat 0-2PI)
+#	7	Scale 				(SFVec2F or SFVec3F)
+#	8	Interpolators keys
+#	9	Normals
+#	10	Rotations			(SFRotation)
+#	11	Object Size 3D 		(SFVec3F and SFFloat)
+#	12	Object Size  2D
+#	13	Linear Quantization (+ Nb Bits)
+#	14	Index (of IndexedFaceSet,...)
+#	15	SFVec4f
+#       16      Reserved
+#
+# %a=y	Animation method for fields that can be animated
+#
+## OO 081498 To match BIFS's update numbering
+#	0	None
+#	1	Position 3D
+#	2	Position 2D
+#	4	Color
+#	6	Angle
+#	7	Float
+#	8	BoundFloat			(intensities, transparencies,...)
+#	9	Normal
+#	10	Rotation
+#	11	Size 3D
+#	12	Size 2D
+#	13	Integer
+#	14	Reserved
+##	0	3D Position
+##	1	2D positon
+##	2	Color					(SFColor)
+##	3	Angle					(SFFloat 0-2pi)
+##	4	Normals
+##	5	Scale					(SFVec2F)
+##	6	Rotation				(SFRotation)
+##	7	Object Size or Scalar	(SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying which node sub
+# types the node belongs to. Moreover, each field of type SF/MF3DNode is re assigned
+# a unique correct NodeDataType according to specify the allowed values of the field
+#
+# %COD	Type of encoding
+#	N	Normal Syntax : The node syntax follos the generic syntax for nodes
+#	S	Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# March 18, 2004 [MBS] According to 68th meeting resolutions, removed Light-Field Mapping, Solid modeling and Particle systems related nodes.
+#    This includes the nodes:
+#       - 
+# Aug. 1, 2003 [MBS] According to 65th meeting resolutions, removed Multi-User Worlds nodes MUxxx
+# Dec. 19, 2002 [MBS] According to 63rd meeting resolutions, removed Synthetic textures nodes: ColorProfile, SynthesizedTextureXXX, GradientLinear,GradientRadial,Ellipse
+# Dec. 8, 2002 [MBS,MH] OctreeImage.image changed from MFTextureNode to MFDepthImageNode. DepthImage now also belongs to SFDepthImageNode context.
+# Nov. 6, 2002 [MBS] modified nodes according to study of FPDAM (w5285).
+# Oct 22, 2002 [MBS] added GradientRadial.Transform field which was missing but was in the spec.
+# Aug 31, 2002 [MBS] 
+#  changed SynthesizedTextureCurve.separatingFlags to MFInt32 since MFBool doesn't exist in VRML and bounds to 0 and 1 on 1 bit. 
+#  For profileType, changed quantizer to 13 1 instead of 13 2 since values are 0 or 1
+# Aug 7, 2002 [MBS] aligned nodes to FDPAM
+# May 9, 2002 [AFX] added quantizers, syntax check with PDAM
+# January 28, 2002 [MBS] added rest of AFX nodes, alpha order everything
+# January 6, 2002  [MBS] added AFX nodes
+# December 7, 2001 [MBS, IG] created for AMD4 (v5) nodes
+
+#
+# AFX nodes
+#
+
+PROTO BitWrapper [ #%NDT=SFWorldNode,SF3DNode,SF2DNode,SFGeometryNode %COD=N
+field	SFWorldNode node	NULL
+field	SFInt32	 type	0	
+field	MFURL	 url	[]
+field	SFString buffer	""
+]{}
+
+PROTO CoordinateInterpolator4D [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    #%b=[0,1]	#%q=8
+exposedField MFVec4f keyValue      []    #%b=(-I,+I)	#%q=15
+eventOut     MFVec4f value_changed
+] {
+}
+
+PROTO DepthImage [ #%NDT=SFWorldNode,SF3DNode,SFDepthImageNode %COD=N
+field		SFDepthTextureNode		diTexture	NULL
+field		SFFloat		farPlane	100		#%b=[0,+I]
+field		SFVec2f		fieldOfView	0.785398 0.785398	#%b=[0,3.1415927]
+field		SFFloat		nearPlane	10	 #%b=[0,+I]
+field		SFRotation	orientation	0 0 1 0
+field		SFBool		orthographic	TRUE		
+field		SFVec3f		position	0 0 10	#%b=[-I,+I]
+]{}
+
+PROTO FFD [ #%NDT=SFWorldNode,SF3DNode %COD=N
+eventIn		MF3DNode addChildren
+eventIn		MF3DNode removeChildren
+exposedField	MF3DNode children	[]
+exposedField	MFVec4f	 controlPoint	[] #%b=[-I,+I] #%q=15 #%a=15
+field		SFInt32	 uDimension	2  #%b=[2,257] #%q=13 8
+field		MFFloat	 uKnot		[] #%b=[-I,+I]
+field		SFInt32	 uOrder		2  #%b=[2,33]  #%q=13 5
+field		SFInt32	 vDimension	2  #%b=[2,257] #%q=13 8
+field		MFFloat	 vKnot		[] #%b=[-I,+I]
+field		SFInt32	 vOrder		2  #%b=[2,33]  #%q=13 5
+field		SFInt32	 wDimension	2  #%b=[2,257] #%q=13 8
+field		MFFloat	 wKnot		[] #%b=[-I,+I]
+field		SFInt32	 wOrder		2  #%b=[2,33]  #%q=13 5
+]{}
+
+PROTO Implicit [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+exposedField 	SFVec3f	bboxSize	2 2 2	#%b=[0,+I] #%q=11  #%a=11
+exposedField	MFFloat	c		[]	#%b=[-I,+I] #%q=0  #%a=7
+exposedField	MFInt32	densities	[]	#%b=[0,+I]
+exposedField 	SFBool	dual		FALSE
+exposedField 	SFBool	solid		FALSE
+]{}
+
+# renamed as XX for deletion
+PROTO XXLFM_Appearance [ #%NDT=SFWorldNode,SFAppearanceNode %COD=N
+exposedField	SFBlendListNode	blendList	NULL
+exposedField	MFLightMapNode  lightMapList	[]
+exposedField	MFTextureNode 	tileList	[]
+exposedField	SFFrameListNode	vertexFrameList	NULL
+]{}
+
+# renamed as XX for deletion
+PROTO XXLFM_BlendList [ #%NDT=SFWorldNode,SFBlendListNode %COD=N
+exposedField	MFInt32	blendMode		[] #%b=[0,1] #%q=13 1
+exposedField 	MFInt32 lightMapIndex		[] #%q=14
+]{}
+
+# renamed as XX for deletion
+PROTO XXLFM_FrameList [ #%NDT=SFWorldNode,SFFrameListNode %COD=N
+exposedField	MFInt32	index	[ -1 ]			#%q=14
+exposedField	MFVec3f	frame	[ 1 0 0, 0 1 0, 0 0 1 ] #%b=[-1,1] #%q=1
+]{}
+
+# renamed as XX for deletion
+PROTO XXLFM_LightMap [  #%NDT=SFWorldNode,SFLightMapNode %COD=N
+exposedField	SFVec3f		  biasRGB		0 0 0 #%b=[-1,1] #%q=7
+exposedField	SFInt32		  priorityLevel		0  #%b=[0,255] #%q=13 8
+exposedField	SFVec3f		  scaleRGB		1 1 1 #%b=[-1,1] #%q=7
+exposedField	SFSurfaceMapNode  surfaceMapList	NULL
+exposedField	SFViewMapNode	  viewMapList		NULL
+]{}
+
+# renamed as XX for deletion
+PROTO XXLFM_SurfaceMapList [ #%NDT=SFWorldNode,SFSurfaceMapNode %COD=N
+exposedField 	MFInt32	   tileIndex		[]	#%q=14
+exposedField 	SFTextureCoordinateNode	triangleCoordinate	NULL
+exposedField 	MFInt32	   triangleIndex	[]	#%q=14
+exposedField 	MFInt32	   viewMapIndex		[]	#%q=14
+]{}
+
+# renamed as XX for deletion
+PROTO XXLFM_ViewMapList [ #%NDT=SFWorldNode,SFViewMapNode %COD=N
+exposedField 	SFTextureCoordinateNode	textureOrigin	NULL
+exposedField 	SFTextureCoordinateNode	textureSize	NULL
+exposedField 	MFInt32			tileIndex	[]	#%q=14
+exposedField 	MFInt32			vertexIndex	[]	#%q=14
+]{}
+
+PROTO MeshGrid [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+eventIn	       MFInt32	set_colorIndex	
+eventIn	       MFInt32	set_coordIndex	
+eventIn	       MFInt32	set_normalIndex	
+eventIn	       MFInt32	set_texCoordIndex	
+exposedField   	SFColorNode	color	    NULL
+exposedField   	SFCoordinateNode	coord	    NULL
+exposedField   	SFInt32		displayLevel    	0 	#%b=[0, +I]	#%q=13 32 #%a=13
+exposedField   	SFInt32		filterType		0 	#%b=[0, 1]	#%q=13 2 #%a=13
+exposedField   	SFCoordinateNode	gridCoord   	NULL
+exposedField   	SFInt32		hierarchicalLevel   0 	#%b=[-1, +I] #%q=13 32 #%a=13
+exposedField   	MFInt32		nLevels		[]	#%q=7 #%a=7
+exposedField   	SFNormalNode	normal		NULL	
+exposedField   	MFInt32		nSlices		[]	#%q=7 #%a=7
+exposedField   	SFTextureCoordinateNode	texCoord	NULL
+exposedField   	MFFloat		vertexOffset	[] 	#%b=[0.0, 2.0] 	#%q=7	#%a=7
+exposedField   	MFInt32		vertexLink	    	[] 	#%b=[0, 3] 	#%q=13 2
+field	       	MFInt32		colorIndex	    	[] 	#%b=[-1, +I]	#%q=14
+field	       	MFInt32		coordIndex	    	[] 	#%b=[-1, +I]	#%q=14
+field	       	MFInt32		normalIndex	    	[] 	#%b=[-1, +I]	#%q=14
+field	       	SFBool		solid		    	TRUE 
+field	       	MFInt32		texCoordIndex	[] 	#%b=[-1, +I]	#%q=14
+eventOut     	SFBool		isLoading
+eventOut     	MFInt32		nVertices	
+]{}
+
+PROTO NonLinearDeformer [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+exposedField	SFVec3f	    axis		0 0 1	#%b=[0,1]
+exposedField	MFFloat	    extend		[]
+exposedField	SFGeometryNode  geometry		NULL
+exposedField	SFFloat	    param		0
+exposedField	SFInt32	    type		0		#%b=[0,2]
+]{}
+
+PROTO NurbsCurve [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+eventIn			MFInt32		set_colorIndex
+exposedField	SFColorNode	color			NULL
+exposedField	MFVec4f		controlPoint	[]	#%b=[-I,+I] #%q=15 #%a=15
+exposedField	SFInt32		tessellation	0	#%b=[0,+I]
+field			MFInt32		colorIndex 		[]	#%q=14
+field			SFBool		colorPerVertex	TRUE
+field			MFFloat		knot			[]	#%b=[-I,+I]
+field			SFInt32		order			4	#%b=[3,34] #%q=13 5
+]{}
+
+PROTO NurbsCurve2D [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+eventIn			MFInt32		set_colorIndex
+exposedField	SFColorNode	color			NULL
+exposedField	MFVec3f		controlPoint	[]	#%b=[-I,+I] #%q=2 #%a=2
+exposedField	SFInt32		tessellation	0	#%b=[0,+I]
+field			MFInt32		colorIndex 		[]	#%q=14
+field			SFBool		colorPerVertex	TRUE
+field			MFFloat		knot			[]	#%b=[-I,+I]
+field			SFInt32		order			4	#%b=[3,34] #%q=13 5
+]{}
+
+PROTO NurbsSurface [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+eventIn		MFInt32			set_colorIndex
+eventIn		MFInt32			set_texColorIndex
+exposedField	SFColorNode		color		NULL
+exposedField	MFVec4f			controlPoint	[]	#%b=[-I,+I] #%q=15 #%a=15
+exposedField	SFTextureCoordinateNode	texCoord	NULL
+exposedField 	SFInt32			uTessellation 	0	#%b=[0,+I]  
+exposedField 	SFInt32			vTessellation 	0	#%b=[0,+I]
+field		SFBool			ccw		TRUE
+field		MFInt32			colorIndex 	[]	#%q=14
+field		SFBool			colorPerVertex	TRUE
+field		SFBool			solid		TRUE
+field		MFInt32			texColorIndex 	[]	#%q=14
+field		SFInt32			uDimension	4	#%b=[3,258] #%q=13 8
+field		MFFloat			uKnot		[]	#%b=[-I,+I]
+field		SFInt32			uOrder		4	#%b=[3,34] #%q=13 5  
+field		SFInt32			vDimension	4	#%b=[3,258] #%q=13 8
+field		MFFloat			vKnot		[]	#%b=[-I,+I]
+field		SFInt32			vOrder		4	#%b=[3,34] #%q=13 5  
+]{}
+
+PROTO OctreeImage [ #%NDT=SFWorldNode,SF3DNode %COD=N
+field  MFDepthImageNode	images			[]
+field  MFInt32		octree			[]  #%b=[0,255] #%q=13 8
+field  SFInt32		octreeResolution	256 #%b=[1,+I]
+field  MFInt32		voxelImageIndex		[]  #%b=[0,255] #%q=13 8 
+]{}
+
+# renamed as XX for deletion
+PROTO XXParticles [ #%NDT=SFWorldNode,SF3DNode %COD=N
+exposedField	SFFloat	  creationRate 		500
+exposedField	SFFloat	  creationRateVariation	0 
+exposedField	SFFloat	  emitAlpha 		1.0 
+exposedField	SFColor	  emitColor 		1 1 1 
+exposedField	SFColor	  emitColorVariation 	0 0 0
+exposedField	SFVec3f	  emitterPosition 	0 3 0
+exposedField	SFVec3f	  emitVelocity 		0 0 0
+exposedField	SFVec3f	  emitVelocityVariation 1 1 1
+exposedField	SFBool	  enabled		TRUE
+exposedField	SFFloat	  fadeAlpha 		1.0
+exposedField	SFColor	  fadeColor 		0.25 0.25 0.25 
+exposedField	SFFloat	  fadeRate 		0.25
+exposedField	SFVec3f	  force 		0 -9.8 0 
+exposedField	MFInfluenceNode influences	[]
+exposedField	SFWorldNode init		NULL
+exposedField	SFTime	  maxLifeTime 		5 
+exposedField	SFFloat	  maxLifeTimeVariation 	0 
+exposedField	SFInt32	  maxParticles 		500 
+exposedField	SFFloat	  minRange 		1
+exposedField	SFFloat	  maxRange 		-1
+exposedField	SFWorldNode  primitive		NULL 
+exposedField	SFInt32	  primitiveType		2
+exposedField	SFFloat	  particleRadius 	0.1
+exposedField	SFFloat	  particleRadiusRate 	0 
+exposedField	SFFloat	  particleRadiusVariation 0
+]{}
+
+# renamed as XX for deletion
+PROTO XXParticleInitBox [ #%NDT=SFWorldNode,SFParticleInitializerNode %COD=N
+exposedField	SFFloat	falloff	0
+exposedField	SFVec3f	size	1 1 1
+]{}
+
+# renamed as XX for deletion
+PROTO XXPlanarObstacle [ #%NDT=SFWorldNode,SFInfluenceNode %COD=N
+exposedField 	SFVec3f 	distance 	0 0 0
+exposedField 	SFVec3f 	normal		0 1 0
+exposedField	SFFloat 	reflection 	0
+exposedField	SFFloat 	absorption 	0
+]{}
+
+# renamed as XX for deletion
+PROTO XXPointAttractor [ #%NDT=SFWorldNode,SFInfluenceNode %COD=N
+exposedField 	SFFloat innerRadius	10
+exposedField 	SFFloat outerRadius	100
+exposedField 	SFVec3f position	0 0 0	
+exposedField	SFFloat rate 		1
+]{}
+
+PROTO PointTexture [ #%NDT=SFWorldNode,SFDepthTextureNode %COD=N
+field		MFColor	color	[]
+field		MFInt32	depth	[]	#%b=[0,+I]
+field		SFInt32	depthNbBits 7	#%b=[0,31] #%q=13 5
+field		SFInt32 height 	256	#%b=[1,+I]
+field		SFInt32	width	256	#%b=[1,+I]
+]{}
+
+PROTO PositionAnimator [ #%NDT=SFWorldNode,SF3DNode %COD=N
+eventIn		SFFloat		set_fraction
+exposedField	SFVec2f		fromTo		0 1	#%q=8
+exposedField	MFFloat		key		[]	#%q=8
+exposedField	MFRotation	keyOrientation	[]
+exposedField	SFInt32		keyType		0
+exposedField	MFVec2f		keySpline	[0 0, 1 1 ] #%q=8
+exposedField	MFVec3f		keyValue	[]	#%q=4
+exposedField	SFInt32		keyValueType	0
+exposedField	SFVec3f		offset		0 0 0   #%b=[-I,+I] #%q=1
+exposedField	MFFloat		weight		[]	#%b=[-1,1]
+eventOut	SFVec3f		endValue
+eventOut	SFRotation	rotation_changed
+eventOut	SFVec3f		value_changed
+]{}
+
+PROTO PositionAnimator2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn		SFFloat	set_fraction 
+exposedField	SFVec2f	fromTo		     0 1   #%q=8
+exposedField	MFFloat	key		     []	   #%q=8
+exposedField	SFInt32	keyOrientation	     0
+exposedField	SFInt32	keyType		     0
+exposedField	MFVec2f	keySpline	     [0 0, 1 1 ] #%q=8
+exposedField	MFVec2f	keyValue	     []	   #%q=4
+exposedField	SFInt32	keyValueType	     0
+exposedField	SFVec2f	offset		     0 0   #%b=[-I,+I] #%q=2
+exposedField	MFFloat	weight		     []	   #%b=[-1,1]
+eventOut	SFVec2f	endValue
+eventOut	SFFloat	rotation_changed
+eventOut	SFVec2f	value_changed
+]{}
+
+PROTO PositionInterpolator4D [ #%NDT=SFWorldNode,SF3DNode  %COD=N
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    #%b=[0,1]	#%q=8
+exposedField MFVec4f keyValue      []    #%b=(-I,+I) 	#%q=15
+eventOut     SFVec4f value_changed
+] {
+}
+
+PROTO ProceduralTexture [ #%NDT=SFWorldNode,SFTextureNode %COD=N
+exposedField	SFBool	aSmooth	     FALSE
+exposedField	MFVec2f	aWarpmap     [0 0, 1 1]		  #%b=[0,1] #%q=2
+exposedField	MFFloat	aWeights     [0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0] #%b=[-1,1]
+exposedField	SFBool	bSmooth	     FALSE
+exposedField	MFVec2f	bWarpmap     [0 0, 1 1]		  #%b=[0, 1] #%q=2
+exposedField	MFFloat	bWeights     [0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0] #%b=[-1,1]
+exposedField	SFInt32	cellWidth    4			  #%b=[0,15] #%q=13 4
+exposedField	SFInt32	cellHeight   4			  #%b=[0,15] #%q=13 4
+exposedField	MFColor	color	     [0.3 0.698 1, 0.8 0.8 0.8, 1 1 1, 0 0 0] #%q=4
+exposedField	SFFloat	distortion   0			  #%b=[0,1] #%q=13 16
+exposedField	SFInt32	height	     7			  #%b=[1,15] #%q=13 4
+exposedField	SFInt32	roughness    0			  #%b=[0,15] #%q=13 4
+exposedField	SFInt32	seed	     129093		  #%b=[-I,+I]
+exposedField	SFInt32	type	     0			  #%b=[0,4] #%q=13 3
+exposedField	SFBool	xSmooth	     FALSE
+exposedField	MFVec2f	xWarpmap     []			  #%b=[0,1] #%q=2
+exposedField	SFBool	ySmooth	     FALSE
+exposedField	MFVec2f	yWarpmap     []			  #%b=[0,1] #%q=2
+exposedField	SFInt32	width	     7			  #%b=[1,15] #%q=13 4
+eventOut	SFImage image_changed
+]{}
+
+PROTO Quadric [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+exposedField 	SFVec3f	bboxSize	2 2 2	#%b=[0,+I] #%q=11  #%a=11
+exposedField	MFInt32	densities	[]	#%b=[0,+I]
+exposedField 	SFBool	dual		FALSE
+exposedField	SFVec4f	P0		-1 0 0 1 #%b=[-I,+I] #%q=15  #%a=15
+exposedField	SFVec4f	P1		1 0 0 1  #%b=[-I,+I] #%q=15  #%a=15
+exposedField	SFVec4f	P2		0 1 0 0  #%b=[-I,+I] #%q=15  #%a=15
+exposedField	SFVec4f	P3		0 0 1 0  #%b=[-I,+I] #%q=15  #%a=15
+exposedField	SFVec4f	P4		0 1 0 1  #%b=[-I,+I] #%q=15  #%a=15
+exposedField	SFVec4f	P5		0 0 1 1  #%b=[-I,+I] #%q=15  #%a=15
+exposedField 	SFBool	solid		FALSE
+]{}
+
+PROTO SBBone [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFSBBoneNode %COD=N
+eventIn	        MF3DNode	addChildren
+eventIn	        MF3DNode	removeChildren
+exposedField  	SFInt32		boneID			0 #%b=[0,1023] #%q=13 10
+exposedField 	SFVec3f		center			0 0 0 #%q=1 #%a=1
+exposedField 	MF3DNode	children		[]
+exposedField  	SFVec3f		endpoint		0 0 1 #%q=1 #%a=1
+exposedField 	SFInt32		falloff			1 #%b=[-1,4] #%q=13 3
+exposedField 	SFInt32		ikChainPosition		0 #%b=[0,3] #%q=13 2
+exposedField 	MFFloat		ikPitchLimit		[]
+exposedField 	MFFloat		ikRollLimit		[]
+exposedField 	MFFloat		ikTxLimit		[]
+exposedField 	MFFloat		ikTyLimit		[]
+exposedField 	MFFloat		ikTzLimit		[]
+exposedField 	MFFloat		ikYawLimit		[]
+exposedField 	SFRotation	rotation		0 0 1 0 #%q=10 #%a=10
+exposedField 	SFInt32		rotationOrder		0	#%b=[0,23] #%q=13 5
+exposedField 	SFVec3f		scale			0 0 0	#%q=7 #%a=11
+exposedField 	SFRotation	scaleOrientation	0 0 1 0	#%q=10 #%a=10
+exposedField 	MFFloat		sectionInner		[]
+exposedField 	MFFloat		sectionOuter		[]
+exposedField 	MFFloat		sectionPosition		[]
+exposedField 	MFInt32		skinCoordIndex		[] #%q=14
+exposedField 	MFFloat		skinCoordWeight		[] #%b=[-1,1]
+exposedField 	SFVec3f		translation		0 0 0 #%q=1 #%a=1
+]{}
+
+PROTO SBMuscle [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFSBMuscleNode %COD=N
+exposedField 	SFInt32		falloff		1	#%b=[-1,4] #%q=13 3
+exposedField 	SFGeometryNode	muscleCurve	NULL
+exposedField    SFInt32		muscleID	0	#%b=[0,1023] #%q=13 10
+exposedField 	SFInt32		radius		1	#%q=7 #%a=11
+exposedField 	MFInt32		skinCoordIndex	[]	#%b=[0,+I] #%q=14
+exposedField 	MFFloat		skinCoordWeight	[]	#%b=[-1,1]
+]{}
+
+PROTO SBSegment [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFSBSegmentNode %COD=N
+eventIn         MF3DNode 	addChildren 
+eventIn 	MF3DNode 	removeChildren 
+exposedField 	SFVec3f		centerOfMass		0 0 0 #%q=1 #%a=1
+exposedField 	MF3DNode	children		[]
+exposedField	SFFloat		mass			0
+exposedField 	MFVec3f		momentsOfInertia	[ 0 0 0, 0 0 0, 0 0 0 ]
+exposedField 	SFString	name			""
+]{}
+
+PROTO SBSite [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFSBSiteNode %COD=N
+eventIn 	MF3DNode	addChildren 
+eventIn		MF3DNode	removeChildren 
+exposedField 	SFVec3f 	center			0 0 0 #%q=1 #%a=1
+exposedField 	MF3DNode 	children 		[]
+exposedField 	SFString 	name 			"" 
+exposedField 	SFRotation 	rotation		0 0 1 0 #%q=10 #%a=10
+exposedField 	SFVec3f 	scale 			1 1 1	#%q=7 #%a=11
+exposedField 	SFRotation 	scaleOrientation	0 0 1 0 #%q=10 #%a=10
+exposedField 	SFVec3f 	translation 		0 0 0	#%q=1 #%a=1
+]{}
+
+PROTO SBSkinnedModel [#%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
+exposedField 	MFSBBoneNode 	bones		 [] 
+exposedField 	SFVec3f 	center		 0 0 0	 #%q=1 #%a=1
+exposedField 	MFSBMuscleNode 	muscles		 [] 
+exposedField 	SFString 	name		 "" 
+exposedField 	SFRotation 	rotation	 0 0 1 0 #%q=10 #%a=10
+exposedField 	MFSBSegmentNode	segments	 [] 
+exposedField 	SFVec3f 	scale		 1 1 1	 #%q=7 #%a=11
+exposedField 	SFRotation 	scaleOrientation 0 0 1 0 #%q=10 #%a=10
+exposedField 	MFSBSiteNode 	sites		 [] 
+exposedField 	MF3DNode 		skeleton	 [] 
+exposedField 	MF3DNode 		skin		 [] 
+exposedField 	SFCoordinateNode	skinCoord	 NULL 
+exposedField 	SFNormalNode 		skinNormal	 NULL 
+exposedField 	SFVec3f			translation	 0 0 0  #%q=1 #%a=1
+exposedField	SF3DNode 		weighsComputationSkinCoord 	NULL
+]{}
+
+PROTO SBVCAnimation [ #%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
+exposedField	MFURL		url			  []
+exposedField    MF3DNode        virtualCharacters	  []	
+]{}
+
+PROTO ScalarAnimator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
+eventIn         SFFloat		set_fraction
+exposedField	SFVec2f		fromTo		0 1  #%q=8
+exposedField	MFFloat		key		[]   #%q=8
+exposedField	SFInt32		keyType		0
+exposedField	MFVec2f		keySpline	[0 0, 1 1 ] #%q=8
+exposedField	MFFloat		keyValue	[]    #%q=0
+exposedField	SFInt32		keyValueType	0	
+exposedField	SFFloat		offset		0
+exposedField	MFFloat		weight		[]	#%b=[-1,1]	
+eventOut	SFFloat		endValue
+eventOut	SFFloat		value_changed
+]{}
+
+PROTO SimpleTexture [ #%NDT=SFWorldNode,SFDepthTextureNode %COD=N
+field 	SFTextureNode	depth	        NULL
+field	SFTextureNode	texture		NULL
+]{}
+
+PROTO SolidRep [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+exposedField 	SFVec3f		bboxSize	2 2 2	#%b=[0,+I] #%q=11  #%a=11
+exposedField	MFInt32		densityList	[] #%b=[0,+I]
+exposedField	SF3DNode	solidTree 	NULL	
+]{}
+
+PROTO SubdivisionSurface [ #%NDT=SFWorldNode,SFGeometryNode,SFBaseMeshNode %COD=N
+eventIn		MFInt32	set_colorIndex
+eventIn		MFInt32	set_coordIndex
+eventIn		MFInt32	set_cornerVertexIndex
+eventIn		MFInt32	set_creaseEdgeIndex
+eventIn		MFInt32	set_creaseVertexIndex 
+eventIn		MFInt32	set_dartVertexIndex
+eventIn		MFInt32	set_texCoordIndex
+exposedField	SFColorNode	color			NULL
+exposedField	SFCoordinateNode	coord			NULL
+exposedField	SFTextureCoordinateNode	texCoord		NULL
+exposedField	MFSubdivSurfaceSectorNode	sectors			[]
+exposedField	SFInt32	subdivisionLevel	0	#%b=[-1,+I]
+exposedField	SFInt32	subdivisionType		0	#%b=[0,3] #%q=13 2
+exposedField	SFInt32	subdivisionSubType	0	#%b=[0,3] #%q=13 2
+field		MFInt32	invisibleEdgeIndex	[]	#%b=[0,+I]
+field		SFBool	ccw			TRUE
+field		MFInt32	colorIndex		[]	#%b=[-1,+I]
+field		SFBool	colorPerVertex		TRUE
+field		SFBool	convex			TRUE
+field		MFInt32	coordIndex		[]	#%b=[-1,+I]
+field		MFInt32	cornerVertexIndex	[]	#%b=[-1,+I]
+field		MFInt32	creaseEdgeIndex		[]	#%b=[-1,+I]
+field		MFInt32	creaseVertexIndex	[]	#%b=[-1,+I]
+field		MFInt32	dartVertexIndex		[]	#%b=[-1,+I]
+field		SFBool	solid			TRUE
+field		MFInt32	texCoordIndex		[]	#%b=[-1,+I]
+]{}
+
+PROTO SubdivSurfaceSector [ #%NDT=SFWorldNode,SFSubdivSurfaceSectorNode %COD=N
+exposedField	SFFloat	flatness	0 #%b=[0,1] #%q=7
+exposedField	SFVec3f	normal		0 0 0 #%q=9
+exposedField	SFFloat	normalTension	0 #%b=[0,1] #%q=7
+exposedField	SFInt32	tag		0 #%b=[0,2] #%q=13 2
+exposedField	SFFloat	theta		0 #%b=[0,6.2831853]	#%q=6
+field		SFInt32	faceIndex	0 #%q=14
+field		SFInt32	vertexIndex	0 #%q=14
+]{}
+
+PROTO WaveletSubdivisionSurface [ #%NDT=SFWorldNode,SF3DNode %COD=N
+exposedField	SFGeometryNode	baseMesh	NULL
+exposedField	SFFloat		fieldOfView	0.785398	# pi/4
+exposedField	SFFloat		frequency	1.0
+exposedField	SFInt32		quality		1                  
+]{}
+
+
+

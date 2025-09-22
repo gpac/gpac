@@ -1,0 +1,53 @@
+PROTO CacheTexture [#%NDT=SFWorldNode,SF2DNode,SF3DNode,SFTextureNode %COD=N
+field	SFInt32 objectTypeIndication  0
+field	SFString decoderSpecificInfo   ""
+field	SFString image  ""
+field	SFString cacheURL  ""
+field	MFURL cacheOD []
+field	SFInt32 expirationDate 0
+field	SFBool repeatS  TRUE
+field	SFBool repeatT  TRUE
+]{}
+
+PROTO EnvironmentTest [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn        SFBool  evaluate
+exposedField   SFBool enabled TRUE
+exposedField   SFInt32 parameter  0
+exposedField	 SFString compareValue ""
+exposedField   SFBool evaluateOnChange  TRUE
+eventOut       SFBool valueLarger
+eventOut       SFBool valueEqual
+eventOut       SFBool valueSmaller
+eventOut       SFString parameterValue
+] {}
+
+
+PROTO KeyNavigator [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn SFBool  setFocus
+exposedField	SF3DNode sensor  NULL
+exposedField	SF2DNode left  NULL
+exposedField	SF2DNode right  NULL
+exposedField	SF2DNode up  NULL
+exposedField	SF2DNode down  NULL
+exposedField	SF2DNode select  NULL
+exposedField	SF2DNode quit  NULL
+exposedField	SFFloat  step 0
+eventOut SFBool  focusSet
+]{}
+
+PROTO SpacePartition [ #%NDT=SFWorldNode,SF3DNode %COD=N
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children       []
+exposedField SFURL	    SPStream	NULL
+]{}
+
+PROTO Storage [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn SFBool  forceSave
+eventIn SFBool  forceRestore
+exposedField  SFBool  auto  TRUE
+field SFInt32 expireAfter 0
+field SFString  name ""
+field MFAttrRef storageList []
+]{}
+

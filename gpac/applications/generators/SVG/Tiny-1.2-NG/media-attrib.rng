@@ -1,0 +1,40 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Media attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.Properties.attr' combine='interleave'>
+    <ref name='svg.Media.attr'/>
+  </define>
+
+  <define name='svg.Media.attr' combine='interleave'>
+    <optional>
+      <attribute name='audio-level' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.MediaClip.attr' combine='interleave'>
+    <optional>
+      <attribute name='clipBegin' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+      <attribute name='clipEnd' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

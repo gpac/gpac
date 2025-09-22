@@ -1,0 +1,67 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Tiny Headers
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <!--
+    This module predefines a set of empty groups that can then be
+    referenced even when their corresponding modules are not included
+    in a given profile.
+    -->
+
+  <!-- ... element groups ......................................... -->
+  <define name='svg.G.group'          ><notAllowed/></define>
+  <define name='svg.GCommon.group'    ><notAllowed/></define>
+  <define name='svg.Desc.group'       ><notAllowed/></define>
+  <define name='svg.Animate.group'    ><notAllowed/></define>
+  <define name='svg.Handler.group'    ><notAllowed/></define>
+  <define name='svg.TextCommon.group' ><notAllowed/></define>
+  <define name='svg.Discard.group'    ><notAllowed/></define>
+
+
+  <!-- ... attribute groups ....................................... -->
+  <define name='svg.Properties.attr'                 ><empty/></define>
+  <define name='svg.FocusHighlight.attr'             ><empty/></define>
+  <define name='svg.Conditional.attr'                ><empty/></define>
+  <define name='svg.Core.attr'                       ><empty/></define>
+  <define name='svg.CorePreserve.attr'               ><empty/></define>
+  <define name='svg.External.attr'                   ><empty/></define>
+  <define name='svg.Editable.attr'                   ><empty/></define>
+  <define name='svg.Opacity.attr'                    ><empty/></define>
+  <define name='svg.Focus.attr'                      ><empty/></define>
+  <define name='svg.Transform.attr'                  ><empty/></define>
+  <define name='svg.ContentType.attr'                ><empty/></define>
+  <define name='svg.XLink.attr'                      ><empty/></define>
+  <define name='svg.XLinkEmbed.attr'                 ><empty/></define>
+  <define name='svg.XLinkRequired.attr'              ><empty/></define>
+  <define name='svg.XLinkReplace.attr'               ><empty/></define>
+  <define name='svg.AnimateTiming.attr'              ><empty/></define>
+  <define name='svg.AnimateSync.attr'                ><empty/></define>
+  <define name='svg.AnimateSyncDefault.attr'         ><empty/></define>
+  <define name='svg.AnimateBegin.attr'               ><empty/></define>
+  <define name='svg.AnimateTimingNoMinMax.attr'      ><empty/></define>
+  <define name='svg.AnimateTimingNoFillNoMinMax.attr'><empty/></define>
+  <define name='svg.InitialVisibility.attr'			 ><empty/></define>
+  <define name='svg.PAR.attr'                        ><empty/></define>
+  <define name='svg.CxCy.attr'                       ><empty/></define>
+  <define name='svg.D.attr'                          ><empty/></define>
+  <define name='svg.R.attr'                          ><empty/></define>
+  <define name='svg.X12Y12.attr'                     ><empty/></define>
+  <define name='svg.XY.attr'                         ><empty/></define>
+  <define name='svg.WH.attr'                         ><empty/></define>
+
+  <define name='svg.XYWH.attr'>
+    <ref name='svg.XY.attr'/>
+    <ref name='svg.WH.attr'/>
+  </define>
+
+</grammar>

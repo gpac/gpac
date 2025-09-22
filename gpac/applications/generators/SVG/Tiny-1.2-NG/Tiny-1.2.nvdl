@@ -1,0 +1,35 @@
+
+<rules xmlns='http://purl.oclc.org/dsdl/nvdl/ns/structure/1.0'>
+  <namespace ns='http://www.w3.org/2000/svg'>
+    <validate schema='Tiny-1.2.rng'>
+      <mode>
+        <namespace ns='http://www.w3.org/2000/svg' match='attributes'>
+          <reject/>
+        </namespace>
+        <namespace ns='' match='attributes'>
+          <attach/>
+        </namespace>
+        <namespace ns='http://www.w3.org/XML/1998/namespace' match='attributes'>
+          <attach/>
+        </namespace>
+        <namespace ns='http://www.w3.org/1999/xlink' match='attributes'>
+          <attach/>
+        </namespace>
+        <namespace ns='http://www.w3.org/2001/xml-events' match='elements attributes'>
+          <attach/>
+        </namespace>
+        <anyNamespace match='elements attributes'>
+          <mode>
+            <anyNamespace>
+              <allow/>
+            </anyNamespace>
+          </mode>
+        </anyNamespace>
+      </mode>
+    </validate>
+  </namespace>
+</rules>
+
+
+
+

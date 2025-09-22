@@ -1,0 +1,334 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Animate Elements
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='svg.Animate.group'/>
+  </define>
+
+  <!--
+    Reusable groups
+    -->
+  <define name='svg.Animate.group' combine='choice'>
+    <choice>
+      <ref name='animate'/>
+      <ref name='set'/>
+      <ref name='animateColor'/>
+      <ref name='animateTransform'/>
+      <ref name='animateMotion'/>
+      <ref name='svg.Discard.group'/>
+    </choice>
+  </define>
+
+  <define name='svg.AnimateTiming.attr' combine='interleave'>
+    <ref name='svg.AnimateTimingNoMinMax.attr'/>
+    <optional><attribute name='min' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='max' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+  </define>
+
+  <define name='svg.AnimateTimingNoMinMax.attr' combine='interleave'>
+    <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
+    <optional>
+      <attribute name='fill' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>remove</value>
+          <value>freeze</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateTimingNoFillNoMinMax.attr' combine='interleave'>
+    <ref name='svg.AnimateBegin.attr'/>
+    <optional><attribute name='lsr:enabled' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='dur' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='end' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='repeatCount' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='repeatDur' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional>
+      <attribute name='restart' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>always</value>
+          <value>never</value>
+          <value>whenNotActive</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateBegin.attr' combine='interleave'>
+    <optional><attribute name='begin' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+  </define>
+
+  <define name='svg.AnimateSync.attr' combine='interleave'>
+    <optional>
+      <attribute name='syncBehavior' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>canSlip</value>
+          <value>locked</value>
+          <value>independent</value>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncTolerance' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock.datatype'/>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncMaster' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Boolean.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncReference' svg:animatable='false' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateSyncDefault.attr' combine='interleave'>
+    <optional>
+      <attribute name='syncBehaviorDefault' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>canSlip</value>
+          <value>locked</value>
+          <value>independent</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncToleranceDefault' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock.datatype'/>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+
+  <!--
+    Common Attributes
+    -->
+  <define name='svg.AnimateCommon.attr'>
+    <ref name='svg.XLink.attr'/>
+	<ref name='svg.Conditional.attr'/>
+  </define>
+
+  <define name='svg.AnimateAttributeCommon.attr'>
+    <optional>
+      <attribute name='attributeName'  svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='attributeType' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>XML</value>
+          <value>CSS</value>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateToCommon.attr' combine='interleave'>
+    <optional><attribute name='to' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+  </define>
+
+  <define name='svg.AnimateValueCommon.attr'>
+    <ref name='svg.AnimateToCommon.attr'/>
+    <optional>
+      <attribute name='calcMode' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>discrete</value>
+          <value>linear</value>
+          <value>paced</value>
+          <value>spline</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional><attribute name='values' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='keyTimes' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='keySplines' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='from' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='by' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+  </define>
+
+  <define name='svg.AnimateAdditionCommon.attr'>
+    <optional>
+      <attribute name='additive' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>replace</value>
+          <value>sum</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='accumulate' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>none</value>
+          <value>sum</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateTypeCommon.attr'>
+    <optional>
+      <attribute name='type' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>translate</value>
+          <value>scale</value>
+          <value>rotate</value>
+          <value>skewX</value>
+          <value>skewY</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!--
+    Common Content Model
+    -->
+  <define name='animateCommon.CM'>
+    <choice>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.Handler.group'/>
+    </choice>
+  </define>
+
+
+  <!-- ... animate ................................................ -->
+  <define name='animate'>
+    <element name='animate'>
+      <ref name='animate.AT'/>
+      <zeroOrMore><ref name='animateCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='animate.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
+  </define>
+
+
+  <!-- ... set .................................................... -->
+  <define name='set'>
+    <element name='set'>
+      <ref name='set.AT'/>
+      <zeroOrMore><ref name='animateCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='set.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateToCommon.attr'/>
+  </define>
+
+
+  <!-- ... animateColor ........................................... -->
+  <define name='animateColor'>
+    <element name='animateColor'>
+      <ref name='animateColor.AT'/>
+      <zeroOrMore><ref name='animateCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='animateColor.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
+  </define>
+
+
+  <!-- ... animateTransform ....................................... -->
+  <define name='animateTransform'>
+    <element name='animateTransform'>
+      <ref name='animateTransform.AT'/>
+      <zeroOrMore><ref name='animateCommon.CM'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='animateTransform.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
+    <ref name='svg.AnimateTypeCommon.attr'/>
+  </define>
+
+
+  <!-- ... animateMotion .......................................... -->
+  <define name='animateMotion'>
+    <element name='animateMotion'>
+      <ref name='animateMotion.AT'/>
+      <zeroOrMore>
+        <ref name='animateCommon.CM'/>
+      </zeroOrMore>
+      <optional>
+        <ref name='mpath'/>
+      </optional>
+      <zeroOrMore>
+        <ref name='animateCommon.CM'/>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <define name='animateMotion.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <optional><attribute name='path' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='keyPoints' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='rotate' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='origin' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+  </define>
+
+
+
+  <!-- ... mpath .................................................. -->
+  <define name='mpath'>
+    <element name='mpath'>
+      <ref name='mpath.AT'/>
+      <zeroOrMore><ref name='svg.Desc.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='mpath.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
+  </define>
+
+</grammar>

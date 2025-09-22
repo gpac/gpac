@@ -1,0 +1,473 @@
+/*
+\file
+\brief silence !
+*/
+
+/*!
+
+\defgroup webgl_grp WebGL API
+\ingroup jsapi_grp
+\brief WebGL API.
+
+# Foreword  
+GPAC supports the WebGL 1.0 Core API. For more documentation, please check https://www.khronos.org/registry/webgl/specs/latest/1.0
+
+The WebGL API cannot currently be loaded when using SVG or VRML scripts. It is only available for JSFilter, and shall be loaded as a JS module with the name "webgl":
+
+\code
+import * as webgl from 'webgl'
+
+...
+\endcode
+
+or 
+
+\code
+import {WebGLContext} from 'webgl'
+
+...
+\endcode
+
+The API implements most of WebGL 1.0 context calls. What is not supported:
+- premultiplied alpha (gl.GL_UNPACK_PREMULTIPLY_ALPHA_WEBGL & co)
+- WebGL extensions (gl.getExtension)
+
+# WebGL Context 
+
+The WebGL API in GPAC does not use any canvas element, since it is designed to run outside of a DOM. The WebGL context shall therefore be created using a constructor call.
+
+A filter is responsible for deciding when to issue GL calls: this can be in a process function or in a task callback (see  \ref JSFilter.post_task). There is no such thing as requestAnimationFrame in GPAC. Consequently, the owning filter is responsible for:
+- activating and deactivating the context in order to make the associated GL context active and bind / unbind the underlying framebuffer
+- resizing the framebuffer when needed
+
+\warning it is unsafe to assume that your filter is owning the OpenGL context, there may be other filters operating on the context. This means that context state (viewport, clearColor, etc...) shall be restored when reactivating the context.
+\note WebGL filters always run on the main process to avoid concurrent usage of the OpenGL context, but this might change in the future.
+
+The WebGL API in GPAC work by default on offscreen framebuffer objects: 
+- the color attachment is always a texture object, RGBA 32 bits or RGB 24 bits (see WebGLContextAttributes)
+- the depth attachment is a renderbuffer by default and cannot be exported; this behavior can be changed by setting the "depth" attribute of the WebGLContextAttributes object to "texture" before creation, thereby creating a depth texture attachment; the format is 24 bit precision integer (desktop) or 16 bit precision integer (iOS, Android). 
+
+The underlying framebuffer color texture attachment and if enabled, depth texture attachment, can be dispatched as a GPAC packet using \ref FilterPid.new_packet; this allows forwarding a framebuffer data to other filters without having to copy to system memory the framebuffer content.
+
+When forwarding a framebuffer, it is recommended not to draw anything nor activate GL context until all references of the packet holding the framebuffer are consumed. A callback function is used for that, see example below.
+
+\note you can always use glReadPixels to read back the framebuffer and send packets using the usual FilterPacket tools.
+
+The WebGL API in GPAC can also be configured to run on the primary frame buffer; this is achieved by adding a "primary" attribute set to true to the WebGLContextAttributes object at creation. In this case:
+- depth buffer cannot be delivered as a texture 
+- video output SHALL be created before WebGL context creation (typically by loading the video output filter before the JS filter)
+
+
+
+# Texturing 
+
+WebGL offer two ways of creating textures:
+- regular texImage2D using ArrayBuffers created from the script. This is obviously supported in GPAC.
+- texImage2D from TexImageSource
+
+TexImageSource in WebGL can be ImageBitmap, ImageData, HTMLImageElement, HTMLCanvasElement, HTMLVideoElement or OffscreenCanvas.
+
+Since GPAC doesn't run WebGL in a DOM/browser, these objects are not available for creating textures. Instead, the following objects can be used:
+- EVG Texture
+- NamedTexture
+
+## Using EVG textures 
+
+EVG Texture can be used to quickly load JPG or PNG images:
+\code
+let texture = gl.createTexture();
+let tx = new evg.Texture('source.jpg');
+gl.bindtexture(gl.TEXTURE_2D, texture);
+gl.texImage2D(target, level, internalformat, format, type, tx);
+//at this point the data is uploaded on GPU, the EVG texture is no longer needed and can be GC'ed 
+\endcode 
+
+EVG Texture combined with EVG Canvas can be used to draw text and 2D shapes:
+\code
+let canvas = new evg.Canvas(200, 200, 'rgba');
+/* draw stuff on canvas
+...
+*/
+let texture = gl.createTexture();
+let tx = new evg.Texture(canvas);
+gl.bindtexture(gl.TEXTURE_2D, texture);
+gl.texImage2D(target, level, internalformat, format, type, tx);
+//at this point the data is uploaded on GPU, the EVG texture and canvas are no longer needed and can be GC'ed 
+\endcode 
+
+For more info on drawing with EVG, see \ref jsevg_grp
+## Using named textures 
+
+Dealing with pixel formats in OpenGL/WebGL/GLSL can be quite heavy:
+- some pixel formats come in various component ordering, where only a few subset are natively supported (eg RGBA is OK, but BGRA is not)
+- some pixel formats are not natively supported by OpenGL/WebGL (typically, most/all flavors of YUV)
+- some pixel formats are planar and require more than one texture to draw them, which is quite heavy to setup
+- some video decoders might output directly as a set of one or more OpenGL textures on the GPU (NVDec, iOS VideoToolbox, Android MediaCodec)
+
+In order to simplify your code and deal efficiently with most formats, the WebGL API in GPAC introduces the concept of named textures. 
+
+
+A named texture is a texture created with a name:
+\code
+let tx = gl.createTexture('myVidTex');
+\endcode
+
+The texture data is then associated using upload():
+\code
+//source data is in system memory or already in OpenGL textures
+let pck = input_pid.get_packet();
+tx.upload(pck);
+
+//or
+
+//source data is only in system memory
+tx.upload(some_evg_texture);
+\endcode
+
+Regular bindTexture and texImage2D can also be used if you don't like changing your code too much:
+\code
+let pck = input_pid.get_packet();
+gl.bindTexture(gl.TEXTURE_2D, tx);
+//source data is in system memory or already in OpenGL textures
+gl.texImage2D(target, level, internalformat, format, type, pck);
+
+//or
+
+gl.bindTexture(gl.TEXTURE_2D, tx);
+//source data is only in system memory
+gl.texImage2D(target, level, internalformat, format, type, some_evg_texture);
+\endcode
+
+The magic comes in when creating your shaders: any call to texture2D on a sampler2D using the same name as the NamedTexture is rewritten before compilation and replaced with GLSL code handling the pixel format conversion for you !
+\code
+varying vec2 vTextureCoord;
+uniform sampler2D myVidTex; //this will get replaced before compilation
+uniform sampler2D imageSampler; //this will NOT get replaced
+void main(void) {
+  vec2 tx = vTextureCoord;
+  vid = texture2D(myVidTex, tx); //this will get replaced before compilation
+  img = texture2D(imageSampler, tx); //this will NOT get replaced
+  vid.alpha = img.alpha;
+  gl_FragColor = vid;
+}
+\endcode
+
+The resulting fragment shader may contain one or more sampler2D and a few additional uniforms, but they are managed for you by GPAC!
+
+The named texture is then used as usual:
+\code
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tx);
+  //this one is ignored for named textures (the uniformlocation object exists but is deactivated) but you can just keep your code as usual
+  gl.uniform1i(myVidTexUniformLocation, 0);
+
+  gl.activeTexture(gl.TEXTURE0 + tx.nb_textures);
+  gl.bindTexture(gl.TEXTURE_2D, imageTexture);
+  gl.uniform1i(imageSamplerUniformLocation, 0);
+\endcode
+
+In the above code, note the usage of tx.nb_textures : this allows fetching the underlying number of texture units used by the named texture, and properly setting up multitexturing.
+
+\warning A consequence of this is that you cannot reuse a fragment shader for both a NamedTexture and a regular WebGLTexture, this will simply not work.
+
+\warning Using explicit location assignment in your shader on a named texture sampler2D is NOT supported: \code layout(location = N) \endcode
+
+
+The core concept for dealing with NamedTexture is that the fragment shader sources must be set AFTER the texture is being setup (upload / texImage2D). Doing it before will result in an unmodifed fragment shader and missing uniforms.
+
+To summarize, NamedTexture allows you to use existing glsl fragment shaders sources with any pixel format for your source, provided that:
+- you tag the texture with the name of the sampler2D you want to replace
+- you upload data to your texture before creating the program using it
+
+The NamedTexture does not track any pixel format or image width changes, mostly because the program needs recompiling anyway. This means that whenever the pixel format or source image width change for a NamedTexture, you must:
+- reset the NamedTexture by calling reconfigure()
+- destroy your GLSL program, 
+- upload the new data to your NamedTexture
+- resetup your fragment shader source and program
+
+\note The width must be checked, since for packed YUV it is needed and exposed as a uniform. You could also modify this uniform manually, see "Inside named textures" section
+
+## Example of using source FilterPacket with NamedTexture
+
+\code
+import {WebGLContext, Matrix} from 'webgl'
+
+//let our filter accept and produce only raw video
+filter.set_cap({id: "StreamType", value: "Video", inout: true} );
+filter.set_cap({id: "CodecID", value: "raw", inout: true} );
+
+//setup webGL
+let gl = new WebGLContext(1280, 720);
+//setup named texture
+let tx = gl.createTexture('MyVid');
+let program = null;
+
+let width=0;
+let height=0;
+let pix_fmt = '';
+let ipid = null;
+let opid = null;
+
+const vertexShaderSource = `
+...
+`;
+
+const fragmentShaderSource = `
+varying vec2 vTextureCoord;
+uniform sampler2D MyVid; //same as our named texture
+void main(void) {
+  vec2 tx= vTextureCoord;
+  //vertical flip 
+  tx.y = 1.0 - tx.y;
+  gl_FragColor = texture2D(MyVid, tx);
+}
+`;
+
+filter.configure_pid = function(pid) {
+  if (!opid) {
+    opid = this.new_pid();
+  }
+  ipid = pid;
+  //copy all props from input pid
+  opid.copy_props(pid);
+  //default pixel format for WebGL context framebuffer is RGBA
+  opid.set_prop('PixelFormat', 'rgba');
+  //drop these properties
+  opid.set_prop('Stride', null);
+  opid.set_prop('StrideUV', null);
+  //check if pixel format, width or height have changed by checking props
+  let n_width = pid.get_prop('Width');
+  let n_height = pid.get_prop('Height');
+  let pf = pid.get_prop('PixelFormat');
+  if ((n_width != width) || (n_height != height)) {
+    width = n_width;
+    height = n_height;
+    //you may want to resize your canvas here
+  }
+  if (pf != pix_fmt) {
+    pix_fmt = pf;
+    //dereference program (wait gor GC to kill it) or delete it using gl.deleteProgram
+    program = null;
+    //notify the texture it needs reconfiguring
+    tx.reconfigure();
+  }
+}
+
+filter.process = function()
+{
+  //previous frame is still being used by output(s), do not modify (although you technically can ...) ! 
+  if (filter.frame_pending) return GF_OK;
+  //get source packet
+  let ipck = ipid.get_packet();
+  if (!ipck) return GF_OK;
+
+  //request the OpenGL context to be the current one
+  gl.activate(true);
+
+  //upload texture - these are the same as tx.upload(ipck);
+  gl.bindTexture(gl.TEXTURE_2D, tx);
+  gl.texImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, ipck);
+
+  //program not created, do it now that we know the texture format
+  if (!programInfo) programInfo = setupProgram(gl, vertexShaderSource, fragmentShaderSource);
+  /*draw scene
+  setup viewport, matrices, uniforms, etc.
+  ...
+  */
+  //set video texture
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tx);
+  //this one is ignored for gpac named textures, just kept to make sure we don't break usual webGL programming 
+  gl.uniform1i(programInfo.uniformLocations.txVid, 0);
+
+  /*
+  ...
+
+  drawElements / drawArray ...
+
+  end draw scene
+  */
+  //make sure all OpenGL calls are done before sending the packet
+  gl.flush();
+
+  //indicate we are done with the OpenGL context
+  gl.activate(false);
+
+  //create packet from webgl framebuffer, with a callback to get notified when the frambuffer is no longer in use by other filters
+  let opck = opid.new_packet(gl, () => { filter.frame_pending=false; } );
+
+  //remember we wait for the notif
+  this.frame_pending = true;
+  //copy all properties of the source packet
+  opck.copy_props(ipck);
+
+  //note that we drop the source after the draw in this example: since the source data could be OpenGL textures, we don't want to discard them until we are done
+  ipid.drop_packet();
+
+  //send packet !
+  opck.send();
+}
+\endcode
+
+## Inside named textures 
+
+NamedTexture allows supporting all pixel formats currently used in GPAC without any conversion before GPU upload. Namely:
+- YUV 420, 422 and 444 planar 8 bits (and 10 bits on desktop versions) 
+- YUYV, YVYU, UYVU, VYUY 422 8 bits 
+- NV12 and NV21 8 bits  (and 10 bits on desktop versions)
+- RGBA, ARGB, BGRA, ABGR, RGBX, XRGB, BGRX, XBGR
+- AlphaGrey and GreyAlpha
+- Greyscale
+- RGB 444, RGB 555, RGB 565
+
+If you want to have fun, the underlying uniforms are defined in the fragment shader, with $NAME$ being replaced by the name of the NamedTexture:
+-  uniform sampler2D \_gf\_$NAME$\_1: RGB (all variants), packed YUV (all variants) or Y plane, always defined
+- uniform sampler2D \_gf\_$NAME$\_2: U or UV plane, if any, undefined otherwise
+- uniform sampler2D \_gf\_$NAME$\_3: V plane, if any, undefined otherwise
+- uniform float \_gf\_$NAME$\_width: image width for packed YUV, undefined otherwise
+
+The texture formats are as follows:
+- RGB 444, RGB 555, RGB 565 are uploaded as alpha grey images
+- nv12 and nv21 are uploaded as greyscale image for Y and alpha grey image for UV
+- all planar formats are uploaded as one greyscale image per plane
+- All 10 bit support is done using 16 bits texture, GL_UNSIGNED_SHORT format and GL_RED_SCALE/GL_ALPHA_SCALE
+
+\note Currently 10 bit support is disabled on iOS and Android since GL_RED_SCALE/GL_ALPHA_SCALE are not supported in GLES2
+
+The YUV to RGB conversion values are currently hardcoded, we will expose them as uniforms soon.
+The YUV+alpha is yet to be implemented.
+
+
+# Matrices
+The 'evg' module comes with a Matrix object to avoid external dependencies for matrix manipulation.
+@{
+
+*/
+
+/*! Extensions for GPAC WebGL*/
+interface WebGLContext : implements WebGLRenderingContextBase {
+
+	/*! creates a new WebGL context
+	\param width the target width in pixels of the drawing buffer
+	\param height the target height in pixels of the drawing buffer
+	\param context_attributes the context attributes as defined by WebGL (see https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.2)
+	*/
+	WebGLContext(unsigned long width, unsigned long height, WebGLContextAttributes context_attributes);
+
+	/*! creates a new WebGL context (mainly defined for future canvas simulation)
+	\param canvas_obj an object exposing "width" and "height" properties
+	\param context_attributes the context attributes as defined by WebGL (see https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.2)
+	*/
+	WebGLContext(Object canvas_obj, WebGLContextAttributes context_attributes);
+
+
+	/*! activate or deactivate a WebGL context
+	\param activate if true, binds the associated frame buffer. If false, unbinds it
+	*/
+	void activate(boolean activate);
+
+
+	/*! resize the underlying frame buffer to the indicated size
+	\param width new width in pixels
+	\param height new height in pixels
+	*/
+	void resize(unsigned long width, unsigned long height);
+
+	/*! uploads the content of the EVG Texture to the bound texture. The bound texture can be a WebGLTexture or a NamedTexture
+	\param target ignored, default to gl.TEXTURE_2D
+	\param level target same as regular texImage2D
+	\param internalformat ignored, overloaded during upload based on input data
+	\param format ignored, overloaded during upload based on input data
+	\param type ignored, overloaded during upload based on input data
+	\param source the source Texture to use
+	*/
+	void texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, Texture source);
+
+	/*! uploads the content of the FilterPacket to the bound texture. The bound texture shall be a NamedTexture
+	\param target ignored, default to gl.TEXTURE_2D
+	\param level target same as regular texImage2D
+	\param internalformat ignored, overloaded during upload based on input data
+	\param format ignored, overloaded during upload based on input data
+	\param type ignored, overloaded during upload based on input data
+	\param source the source FilterPacket to use
+	*/
+	void texImage2D(GLenum target, GLint level, GLint internalformat, GLenum format, GLenum type, FilterPacket source);
+
+	/*! creates a named texture
+  \param name the name of the texture - if `null`, generates name
+  \param vcfg video config options - if null, default are assumed (everything unspecified, no full range)
+	\return a new named texture
+	*/
+	NamedTexture createTexture(DOMString name, optional VideoColorConfig vcfg = null);
+
+	/*!
+	\param target ignored, default to gl.TEXTURE_2D
+	\param texture the named texture to bind, or null to unbind textures
+	*/
+	void bindTexture(GLenum target, NamedTexture texture);
+
+	/*! get the name of a named texture
+	\param texture target named texture
+	\return name of texture
+	*/
+	DOMString textureName(NamedTexture texture);
+
+
+  /*!
+  \param use_gl_exts if true, queries all extensions supported by the underlying OpenGL implementation. Otherwise, queries only supported WebGL extensions (none at the moment)
+  \return an array of strings, each entry being the name of a supported extension
+  */
+  sequence<DOMString>? getSupportedExtensions(optional boolean use_gl_exts=false);
+};
+
+/*! Named texture object, see \ref webgl_grp*/
+interface NamedTexture {
+/*! number of underlying textures. This can be useful when doing multi-texturing to get the next texture unit slot:
+\code
+nextActiveTexture = gl.TEXTURE0 + named_tx.nb_textures;
+\endcode
+*/
+attribute readonly unsigned long nb_textures;
+/*! set to true if the input to this named texture is a set of one or more OpenGL textures rather than system memory data*/
+attribute readonly unsigned long is_gl_input;
+/*! name of the texture, as passed upon creation*/
+attribute readonly DOMString name;
+/*! indicates if PBO is used for data transfer. By default named textures are created with no PBO transfer. To enable it, set this to true before the first texture upload*/
+attribute unsigned long pbo;
+
+/*! indicates the underlying picel format has been modified and that the texture should be reevaluated*/
+void reconfigure();
+/*! builds named texture from input filter packet
+\param pck the filter packet to use as source for texture data*/
+void upload(FilterPacket pck);
+/*! builds named texture from EVG texture
+\param tx the EVG texture to use as source for texture data
+\warning do NOT use a Texture object constructed from a FilterPacket, this will fail and throw an exception. Use upload(FilterPacket) instead*/
+void upload(Texture tx);
+
+};
+
+
+/*! Video color space config for named textures*/
+interface VideoColorConfig {
+/*! fullrange video flag*/
+attribute boolean fullrange;
+/*! GPAC name for CICP MatrixCoeficients, or interger value*/
+attribute DOMString matrix;  
+};
+
+
+/*! The FilterPid object is extended as follows*/
+interface FilterPid {
+
+/*! creates a new output packet using the underlying texture attachement of the context as a texture source (see GF_FilterFrameInterface).
+\warning This will throw an error if called more than once on a given context but the associated packet has not been consumed yet!
+\param gl the WebGL context used to create the packet.  
+\param on_frame_consumed a callback function notified when the associated packet has been consumed
+\param use_depth if set, uses the depth framebuffer attachment if enabled rather than the texture. See \ref WebGLContext
+\return new packet or null with exception*/
+FilterPacket new_packet(WebGLContext gl, function on_frame_consumed, optional boolean use_depth);
+
+};
+
+/*! @} */

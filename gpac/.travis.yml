@@ -1,0 +1,58 @@
+#changes for GPAC filters (0.9+) for travis CI: GPAC hosts its own buildbot for building on various platforms, running tests, coverage and safety checks
+#TravisCI is only used for checking sanity of PRs. Consequently:
+#- OSX and mingw no longer compiled
+#- linux only compiled for
+#  - mp4box and gpac static
+#  - release mode with mem tracking and gcov
+
+language: c
+compiler: gcc
+os:
+  - linux
+#  - osx
+dist: bionic
+services:
+  - xvfb
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y update -qq ; fi
+install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ mesa-utils lcov ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavdevice-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl2-dev dvb-apps ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq -y install time; fi
+#  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev ; fi
+#  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /usr/local; fi
+#  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
+#  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install gnu-time gnu-sed gnu-tar xz lcov ; fi
+#  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
+env:
+  - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --enable-debug --static-bin" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="make install" DOTRAVIS=""
+  - GPAC_CONFIGURE_OPTIONS="--enable-debug --static-modules" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
+  - GPAC_CONFIGURE_OPTIONS="--enable-debug --static-build" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
+matrix:
+  include:
+    - os: linux
+      before_script:
+        #git submodule update is called by travis, just checkout filter branch
+        - "git -C ./testsuite checkout filters"
+        - xvfb-run -e /dev/stdout --auto-servernum --server-num=1 glxinfo # check glx status
+      env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
+
+#    - os: linux
+#      env: GPAC_CONFIGURE_OPTIONS="--prefix=build/x86_64-w64-mingw32 --enable-debug --static-bin --use-zlib=no --target-os=mingw32 --cross-prefix=i686-w64-mingw32- --extra-ldflags=-Lbuild/x86_64-w64-mingw32/lib" GPAC_CONFIGURE_ECFLAGS="-Ibuild/x86_64-w64-mingw32/include -w -fPIC" DOINSTALL="" DOTRAVIS=""
+#    - os: linux
+#      env: GPAC_CONFIGURE_OPTIONS="--prefix=build/x86_64-w64-mingw32 --enable-debug --static-bin --use-zlib=no --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32- --extra-ldflags=-Lbuild/x86_64-w64-mingw32/lib" GPAC_CONFIGURE_ECFLAGS="-Ibuild/x86_64-w64-mingw32/include -w -fPIC" DOINSTALL="" DOTRAVIS=""
+#    - os: linux
+#      env: GPAC_CONFIGURE_OPTIONS="--prefix=build/all --enable-debug --disable-all" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="make install" DOTRAVIS=""
+#    - os: linux
+#      env: GPAC_CONFIGURE_OPTIONS="--enable-debug --use-js=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg -disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse --disable-atsc" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
+#    - os: osx
+#      env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="" AUDIODEV=null
+script:
+  - ./configure --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && ( if [ -n "$DOTRAVIS" ]; then xvfb-run -e /dev/stdout --auto-servernum --server-num=1 --server-args="-screen 0 1024x768x24" $DOTRAVIS ; fi )
+
+notifications:
+  email:
+    recipients:
+      - travisci@gpac.io
+

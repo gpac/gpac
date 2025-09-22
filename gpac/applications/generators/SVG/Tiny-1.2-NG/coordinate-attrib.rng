@@ -1,0 +1,42 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Coordinate
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.XY.attr' combine='interleave'>
+    <optional>
+      <attribute name='x' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='y' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name='svg.WH.attr' combine='interleave'>
+    <optional>
+      <attribute name='width' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='height' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

@@ -1,0 +1,426 @@
+/*
+\file
+\brief silence !
+*/
+
+/*!
+
+\defgroup scenejs_grp Compositor API
+\ingroup jsapi_grp
+\brief GPAC Compositor and Scene API.
+
+This section documents the API used to access and control the compositor and scene media objects when using interactive BIFS/VRML/X3D/SVG rendering.
+This API is not loaded by default when playing a scene and shall be loaded by a scene script using:
+\code
+import {scene} from 'scenejs'
+\endcode
+
+This API cannot be loaded from a JSFilter.
+It exports:
+- a single object "scene", instance of JSScene class.
+- a single object "session", instance of JSFilterSession class.
+
+@{
+
+*/
+
+/*! JSScene is the interface to compositor*/
+interface JSScene {
+
+/*! fullscreen status*/
+attribute boolean fullscreen;
+
+/*! current working directory*/
+readonly DOMString current_path;
+
+/*! audio output volume*/
+attribute unsigned long volume;
+
+/*! navigation mode*/
+attribute unsigned long navigation;
+
+/*! checks if navigation is off, 2D or 3D mode*/
+attribute unsigned long navigation_type;
+
+/*! true if display has hardware yuv 2D blit*/
+readonly attribute boolean hardware_yuv;
+
+/*! true if display has hardware rgb 2D blit*/
+readonly attribute boolean hardware_rgb;
+
+/*! true if display has hardware rgba 2D blit*/
+readonly attribute boolean hardware_rgba;
+
+/*! true if display has hardware stretch blit*/
+readonly attribute boolean hardware_stretch;
+
+/*! display width*/
+readonly attribute unsigned long screen_width;
+
+/*! display height*/
+readonly attribute unsigned long screen_height;
+
+/*! current output fps*/
+readonly attribute double fps;
+
+/*! desired output fps for animations*/
+readonly attribute double sim_fps;
+
+/*! true if display has opengl support*/
+readonly attribute boolean has_opengl;
+
+/*! window title*/
+attribute DOMString caption;
+
+/*! enables or disable focus highlighting*/
+attribute boolean focus_highlight;
+
+/*! screen horizontal dpi*/
+readonly attribute unsigned long dpi_x;
+
+/*! screen vertical dpi*/
+readonly attribute unsigned long dpi_y;
+
+/*! sensor active state (gyroscope) */
+attribute boolean sensors_active;
+
+/*! compositor zoom factor*/
+readonly attribute double zoom;
+
+/*! current text selection*/
+readonly attribute DOMString text_selection;
+
+/*! see \ref gf_opts_get_key
+\param section the section name
+\param key the key name
+\return the key value
+*/
+DOMString get_option(DOMString section, DOMString key);
+
+/*! see \ref gf_opts_get_key_name
+\param section the section name
+\param key_idx the key index in the section
+\return the key name
+*/
+*/
+DOMString get_option(DOMString section, unsigned key_idx);
+
+/*! see \ref gf_opts_set_key
+\param section the section name
+\param key the key name
+\param value the key value, null to remove the key
+*/
+void set_option(DOMString section, DOMString key, optional DOMString value=null);
+
+
+/*! set output window size
+\param width desired width
+\param height desired height
+*/
+void set_size(unsigned long width, unsigned long height);
+
+/*! post quit message*/
+void exit();
+
+/*! turns 3D rendering on/off
+\param use_3d if true, uses 3D for all content, otherwise use 3D based on content type
+*/
+void set_3d(Boolean use_3d);
+
+/*! moves output window
+\param x the horizontal position or delta
+\param y the vertical position or delta
+\param relative if true, use relative (delta) positioning; otherwise use absolute
+*/
+void move_window(unsigned long x, unsigned long y, optional boolean relative=false);
+
+/*! assigns event filter
+\param filter_event_func the filter event function to use, or null to deactivate event filtering*/
+void set_event_filter(GPACEventFilter filter_event_func);
+
+/*! moves focus
+\param focus "next" for next element in focus ring, "prev" for previous*/
+void set_focus(DOMString focus);
+
+/*! sets focus on element
+\param elt the node on which focus should be set */
+void set_focus(Node elt);
+
+/*! show or hide virtual keyboard
+\param do_show if true, show keyboard, otherwise hide it*/
+void show_keyboard(boolean do_show);
+
+/*! triggers JS garbage collection pass*/
+void trigger_gc();
+
+/*! gets object manager for the given service URL loaded in the root scene of the compositor
+\param url url of service for which the object manager is queried
+\return the object manager, or null if not found*/
+MediaObject get_object_manager(DOMString url);
+
+/*! switches quality
+\param up switches quality up (true) or down (false)*/
+void switch_quality(boolean up);
+
+/*! checks if navigation type is supported for the current content
+\param nav_type the navigation type to check
+\return true if supported, false otherwise*/
+boolean navigation_supported(unsigned long nav_type);
+
+/*! sets default back color of player
+\param r red component between 0.0 and 1.0
+\param g green component between 0.0 and 1.0
+\param b blue component between 0.0 and 1.0
+\param a alpha component between 0.0 and 1.0
+*/
+void set_back_color(double r, double g, double b, double a);
+
+};
+
+/*! event filter callback*/
+interface GPACEventFilter{
+	/*! filters an event
+	\param evt the event to process
+	\return true if event has been consumed and should no longer be forwarded, false otherwise
+	*/
+	boolean filter_event(GPACEVT evt);	
+};
+
+
+/*! interface to user event - see \ref GF_Event*/
+interface GPACEVT {
+/*! event type - see \ref GF_Event*/
+readonly atttribute unsigned long type;
+/*! event name - see \ref gf_dom_event_get_name*/
+readonly atttribute DOMString name;
+/*! mouse X position*/
+readonly atttribute unsigned long mouse_x;
+/*! mouse Y position*/
+readonly atttribute unsigned long mouse_y;
+/*! true if a node is currently picked*/
+readonly atttribute boolean picked;
+/*! mouse wheel position*/
+readonly atttribute double wheel;
+/*! mouse button see \ref GF_EventMouse*/
+readonly atttribute unsigned long button;
+/* translated key character code*/
+readonly atttribute unsigned long keycode;
+/*! hardware key code*/
+readonly atttribute unsigned long hwkey;
+/*! target URL for navigation events*/
+readonly atttribute DOMString url;
+/*! array of file paths to open in drop operation*/
+readonly atttribute Array dropfiles;
+};
+
+/*! interface to Object Managet - see \ref mobj_grp*/
+interface MediaObject {
+/*! Object ID*/
+readonly atttribute unsigned long ID;
+/*! number of ODM in subscene*/
+readonly atttribute unsigned long nb_resources;
+/*! URL of parent network service*/
+readonly atttribute DOMString service_url;
+/*! duration in sec*/
+readonly atttribute double duration;
+/*! clock time in sec*/
+readonly atttribute double clock_time;
+/*! clock drif in milliseconds (how late the last frame was compared to its theoretical CTS)*/
+readonly atttribute unsigned long clock_drift;
+/*! playback status: "Stopped" , "Playing", "Paused", "Not Setup", "Setup Failed" */
+readonly atttribute DOMString status;
+/*! buffer in ms*/
+readonly atttribute unsigned long buffer;
+/*! number of AUs in decoder input buffer*/
+readonly atttribute unsigned long db_unit_count;
+/*! number of decoded AUs in decoder output buffer*/
+readonly atttribute unsigned long cb_unit_count;
+/*! maxumum allowed number of decoded AUs in decoder output buffer*/
+readonly atttribute unsigned long cb_capacity;
+/*! stream type*/
+readonly atttribute unsigned long type;
+/*! audio sample rate*/
+readonly atttribute unsigned long samplerate;
+/*! number audio channels*/
+readonly atttribute unsigned long channels;
+/*! language*/
+readonly atttribute DOMString lang;
+/*! width in pixels */
+readonly atttribute unsigned long width;
+/*! height in pixels */
+readonly atttribute unsigned long height;
+/*! pixel format */
+readonly atttribute unsigned long pixelformt;
+/*! pixel aspect ratio*/
+readonly atttribute unsigned long par;
+/*! number of decoded frames*/
+readonly atttribute unsigned long dec_frames;
+/*! number of drop frames*/
+readonly atttribute unsigned long drop_frames;
+/*! max decode of an AU time in microseconds*/
+readonly atttribute unsigned long max_dec_time;
+/*! cumultaed AU decode time in microseconds*/
+readonly atttribute unsigned long long total_dec_time;
+/*! average rate in bits per second*/
+readonly atttribute unsigned long avg_bitrate;
+/*! max rate in bits per second*/
+readonly atttribute unsigned long max_bitrate;
+/*! name of filter handling demuxer*/
+readonly atttribute DOMString service_handler;
+/*! name of decoder*/
+readonly atttribute DOMString codec;
+/*! number of qualities for this object (http streaming and co)*/
+readonly atttribute unsigned long nb_qualities;
+/*! max playout buffer in milliseconds*/
+readonly atttribute unsigned long max_buffer;
+/*! min rebuffer lvel in milliseconds*/
+readonly atttribute unsigned long min_buffer;
+/*! frame duration in milliseconds*/
+readonly atttribute unsigned long frame_duration;
+/*! number of frames with SAP != 0  seen*/
+readonly atttribute unsigned long irap_frames;
+/*! cumulated time of decoding of frames with SAP != 0, in microseconds*/
+readonly atttribute unsigned long irap_dec_time;
+/*! maximum decoding of frames with SAP != 0, in microseconds*/
+readonly atttribute unsigned long long irap_max_time;
+/*! service ID*/
+readonly atttribute unsigned long service_id;
+/*! ID of the selected service in the main scene*/
+readonly atttribute unsigned long selected_service;
+/*! download bandwidth in bits per second*/
+readonly atttribute unsigned long bandwidth_down;
+/*! number of HTTP sessions for this object*/
+readonly atttribute unsigned long nb_http;
+/*! timeshift buffer depth in seconds*/
+readonly atttribute double timeshift_depth;
+/*! timeshift time in seconds, 0 being live edge*/
+readonly atttribute double timeshift_time;
+/*! true if object is an addon media (added externally from the main service delivering the scene, eg TEMI-like)*/
+readonly atttribute boolean is_addon;
+/*! checks if main addon is enabled (typically the timeshift addon DASH object for a live broadcast)*/
+readonly atttribute boolean main_addon_on;
+/*! end of stream state*/
+readonly atttribute boolean is_over;
+/*! if false, the scene, in which the object is, is an SVG/BIFS/VRML*/
+readonly atttribute boolean dynamic_scene;
+/*! name of the service if known*/
+readonly atttribute DOMString service_name;
+/*! current NTP diff between composition of a frame and indicated NTP target*/
+readonly atttribute unsigned long ntp_diff;
+/*! NTP diff last packet reception time and its sent time. If unknown, attribute value is null*/
+readonly atttribute unsigned long ntp_sender_diff;
+/*! URL of main addon*/
+readonly atttribute DOMString main_addon_url;
+/*! indicates reverse playback is supported*/
+readonly atttribute boolean reverse_playback_supported;
+/*! indicates if scalable enhancements (SVC, SHVC) are available for the object*/
+readonly atttribute boolean scalable_enhancement;
+/*! media time in seconds of main addon*/
+readonly atttribute double main_addon_media_time;
+/*! true if object has dependent groups (tile streaming in DASH)*/
+readonly atttribute unsigned long dependent_groups;
+/*! true if scene is a VR scene*/
+readonly atttribute boolean vr_scene;
+/*! true if object is disabled (such objects are only used to describe redirections)*/
+readonly atttribute boolean disabled;
+
+/*! gets MediaObject in this object subscene by index
+\param index the 0-based index of the media object to query
+\return the MediaObject or null if error*/
+MediaObject get_resource(unsigned long index);
+/*! gets quality by index
+\param index the 0-based index of the quality to query
+\return the quality description or null if error*/
+*/
+QualityDesc get_quality(unsigned long index);
+/*! selects service ID
+\param serviceID ID of the service to select*/
+void select_service(unsigned long serviceID);
+/*! selects object quality by index. 
+\param quality_index if "auto", turns on automatic rate adaptation. Otherwise selects quality by index (0-based) and turn off rate adaptation
+*/
+void select_quality(unsigned long quality_index);
+/*! select this MediaObject*/
+void select();
+/*! gets SRD information if any this MediaObject
+\return the SRD information, or null*/
+SRDDesc get_srd();
+
+/*! checks if the given filter is in parent (down the source) chain of this object. The compositor filter and any filter connected after the compositor are excluded
+\param filter the filter to test
+\return true if the filter is in the parent chain, false otherwise
+*/
+boolean in_parent_chain(JSFSFilter filter);
+
+/*! declares an addon
+\param addon_url URL of addon to insert
+*/
+void declare_addon(DOMString addon_url);
+/*! enables an addon
+\param addon_url URL of addon to insert
+*/
+void enable_addon(DOMString addon_url);
+/*! set addon size and position in main window 
+\param addon_url URL of addon to insert
+\param pos code for addon position on screen:  bottom-left(0), top-left (1) bottom-right (2) or top-right (3)
+\param size code for addon size on screen:  1/2 height (0), 1/3 (1) or 1/4 (2)
+*/
+void addon_layout(DOMString addon_url, optional unsigned long pos=0, optional unsigned long size=0);
+/*! disable main addon*/
+void disable_main_addon();
+};
+
+/*! spatial relationship descriptor*/
+interface SRDDesc
+{
+	/*! x position*/
+	unsigned long x;
+	/*! y position*/
+	unsigned long h;
+	/*! width*/
+	unsigned long w;
+	/*! height*/
+	unsigned long h;
+};
+
+/*! quality descriptor*/
+interface QualityDesc
+{
+	/*! quality ID*/
+	attributeDOMString ID;
+	/*! mime type*/
+	DOMString mime;
+	/*! codec parameter*/
+	DOMString codec;
+	/*! pixel width*/
+	unsigned long width;
+	/*! pixel heigth*/
+	unsigned long height;
+	/*! quality rate in bps*/
+	unsigned long bandwidth;
+	/*! interlaced video*/
+	boolean interlaced;
+	/*! video FPS*/
+	double fps;
+	/*! audio sample rate*/
+	unsigned long samplerate;
+	/*! number of audio channels*/
+	unsigned long channels;
+	/*! numerator of pixel aspect ratio*/
+	unsigned long par_num;
+	/*! denominator of pixel aspect ratio*/
+	unsigned long par_den;
+	/*! quality is disabled*/
+	boolean disabled;
+	/*! quality is selected*/
+	boolean is_selected;
+	/*! automatic rate adaptation is enabled*/
+	boolean automatic;
+	/*! tile adaptation mode - see \ref GF_DASHTileAdaptationMode*/
+	unsigned long tile_mode;
+	/*! number of dependent groups for this quality*/
+	unsigned long dependent_groups;
+};
+
+
+/*! @} */

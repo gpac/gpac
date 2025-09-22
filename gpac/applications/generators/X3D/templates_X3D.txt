@@ -1,0 +1,1644 @@
+#	GPAC X3D template file 
+# X3D nodes in GPAC are designed so that they match their MPEG-4 counterparts in order to perform type casting, whenever possible ('#X3D extensions' signaled).
+# ommented fields are fields where X3D spec, DTD and XSD disagree
+#
+
+#NOT AN MPEG4 extensions because of activate eventIn in mpeg4
+PROTO Anchor [ #%NDT=SFWorldNode,SF3DNode,SF2DNode 
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children        []
+exposedField SFString description     ""
+exposedField MFString parameter       []
+exposedField MFURL    url             []
+exposedField SFMetadataNode metadata   NULL
+]{
+}
+
+PROTO Appearance [ #%NDT=SFWorldNode,SFAppearanceNode
+exposedField SFMaterialNode	material	NULL
+exposedField SFTextureNode		texture           NULL
+exposedField SFTextureTransformNode	textureTransform  NULL
+#X3D extensions
+exposedField SFFillPropertiesNode		fillProperties	NULL
+exposedField SFX3DLinePropertiesNode		lineProperties	NULL
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Arc2D [ #%NDT=SFWorldNode,SFGeometryNode
+field SFFloat endAngle 1.5707963
+field SFFloat radius 1
+field SFFloat startAngle 0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO ArcClose2D [ #%NDT=SFWorldNode,SFGeometryNode
+field SFString closureType "PIE"
+field SFFloat endAngle 1.5707963
+field SFFloat radius 1 
+field SFFloat startAngle 0 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO AudioClip [ #%NDT=SFWorldNode,SFAudioNode,SFStreamingNode
+exposedField   	SFString	description      ""
+exposedField   	SFBool   	loop             FALSE
+exposedField   	SFFloat  	pitch            1.0   
+exposedField   	SFTime   	startTime        0     
+exposedField   	SFTime   	stopTime         0 
+exposedField		MFURL		url		     []
+eventOut       	SFTime   	duration_changed
+eventOut       	SFBool   	isActive
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField   	SFTime   	pauseTime        0     
+exposedField   	SFTime   	resumeTime       0     
+eventOut       	SFTime   	elapsedTime
+eventOut       	SFBool   	isPaused
+] {
+}
+
+PROTO Background [ #%NDT=SFWorldNode,SF3DNode,SFBackground3DNode
+eventIn      SFBool   set_bind
+exposedField MFFloat  groundAngle []        
+exposedField MFColor  groundColor []        
+exposedField MFURL    backUrl     []
+exposedField MFURL    bottomUrl     []
+exposedField MFURL    frontUrl    []
+exposedField MFURL    leftUrl     []
+exposedField MFURL    rightUrl    []
+exposedField MFURL    topUrl      []
+exposedField MFFloat  skyAngle    []        
+exposedField MFColor  skyColor    [ 0 0 0 ] 
+eventOut     SFBool   isBound
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+eventOut     SFTime   bindTime
+] {
+}
+
+PROTO Billboard [ #%NDT=SFWorldNode,SF3DNode
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children        []
+exposedField SFVec3f  axisOfRotation  0 1 0 
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO BooleanFilter [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFBool set_boolean
+eventOut SFBool inputFalse
+eventOut SFBool inputNegate
+eventOut SFBool inputTrue
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO BooleanSequencer [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFBool next
+eventIn SFBool previous
+eventIn SFFloat set_fraction
+exposedField MFFloat key [] 
+exposedField MFBool keyValue []
+eventOut SFBool value_changed
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO BooleanToggle [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFBool set_boolean
+exposedField SFBool toggle FALSE 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO BooleanTrigger [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFTime set_triggerTime
+eventOut SFBool triggerTrue 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Box [ #%NDT=SFWorldNode,SFGeometryNode
+field SFVec3f	size	2 2 2
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+#field SFBool solid TRUE
+] {
+}
+
+PROTO Circle2D [ #%NDT=SFWorldNode,SFGeometryNode
+exposedField	SFFloat	radius		1
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+#note the MPEG-4 version uses "collide" instead of 'enabled"
+PROTO Collision [ #%NDT=SFWorldNode,SF3DNode
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children        []
+exposedField SFBool   enabled         TRUE
+field        SF3DNode   proxy           NULL
+eventOut     SFTime   collideTime
+eventOut     SFBool isActive
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Color [ #%NDT=SFWorldNode,SFColorNode
+exposedField MFColor color  []
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO ColorInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode 
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []  
+exposedField MFColor keyValue      []  
+eventOut     SFColor value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO ColorRGBA [ #%NDT=SFWorldNode,SFColorNode
+exposedField MFColorRGBA color []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Cone [ #%NDT=SFWorldNode,SFGeometryNode
+field     SFFloat   bottomRadius 1     
+field     SFFloat   height       2     
+field     SFBool    side         TRUE
+field     SFBool    bottom       TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+#field     SFBool    solid        TRUE
+] {
+}
+
+PROTO Contour2D [#%NDT=SFWorldNode,SFNurbsControlCurveNode
+eventIn      MFNurbsControlCurveNode addChildren
+eventIn      MFNurbsControlCurveNode removeChildren
+exposedField MFNurbsControlCurveNode children        []
+exposedField SFMetadataNode metadata   NULL
+]{
+}
+
+PROTO ContourPolyline2D #%NDT=SFWorldNode,SFNurbsControlCurveNode
+ exposedField MFVec2f  point []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Coordinate [ #%NDT=SFWorldNode,SFCoordinateNode
+exposedField MFVec3f point  []   
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+PROTO CoordinateDouble [ #%NDT=SFWorldNode,SFCoordinateNode
+exposedField MFVec3d point  []   
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Coordinate2D [ #%NDT=SFWorldNode,SFCoordinate2DNode
+exposedField MFVec2f point  []   
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO CoordinateInterpolator [ #%NDT=SFWorldNode,SF3DNode
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           [] 
+exposedField MFVec3f keyValue      [] 
+eventOut     MFVec3f value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO CoordinateInterpolator2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           [] 
+exposedField MFVec2f keyValue      [] 
+eventOut     MFVec2f value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Cylinder [ #%NDT=SFWorldNode,SFGeometryNode
+field    SFBool    bottom  TRUE
+field    SFFloat   height  2       
+field    SFFloat   radius  1       
+field    SFBool    side    TRUE
+field    SFBool    top     TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+#field    SFBool    solid   TRUE
+] {
+}
+
+PROTO CylinderSensor [ #%NDT=SFWorldNode,SF3DNode 
+exposedField SFBool     autoOffset TRUE
+exposedField SFFloat    diskAngle  0.2617       
+exposedField SFBool     enabled    TRUE
+exposedField SFFloat    maxAngle   -1	
+exposedField SFFloat    minAngle   0	
+exposedField SFFloat    offset     0  
+eventOut     SFBool     isActive
+eventOut     SFRotation rotation_changed
+eventOut     SFVec3f    trackPoint_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFString		description	""
+eventOut     SFBool     isOver
+] {
+}
+
+PROTO DirectionalLight [ #%NDT=SFWorldNode,SF3DNode 
+exposedField SFFloat ambientIntensity  0       
+exposedField SFColor color             1 1 1   
+exposedField SFVec3f direction         0 0 -1  
+exposedField SFFloat intensity         1    
+exposedField SFBool  on                TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Disk2D [#%NDT=SFWorldNode,SFGeometryNode
+field SFFloat	innerRadius 	0  
+field SFFloat outerRadius 	1  
+#field SFBool  solid       	FALSE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO ElevationGrid [ #%NDT=SFWorldNode,SFGeometryNode 
+eventIn      MFFloat  set_height
+exposedField SFColorNode   color             NULL
+exposedField SFNormalNode   normal           NULL
+exposedField SFTextureCoordinateNode   texCoord          NULL
+field        MFFloat  height            [] 
+field        SFBool   ccw               TRUE
+field        SFBool   colorPerVertex    TRUE
+field        SFFloat  creaseAngle       0.0
+field        SFBool   normalPerVertex   TRUE
+field        SFBool   solid             TRUE
+field        SFInt32  xDimension        0  
+field        SFFloat  xSpacing          1.0
+field        SFInt32  zDimension        0  
+field        SFFloat  zSpacing          1.0
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO EspduTransform [#%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn	MF3DNode addChildren
+eventIn	MF3DNode removeChildren
+eventIn	SFFloat set_articulationParameterValue0
+eventIn	SFFloat set_articulationParameterValue1
+eventIn	SFFloat set_articulationParameterValue2
+eventIn	SFFloat set_articulationParameterValue3
+eventIn	SFFloat set_articulationParameterValue4
+eventIn	SFFloat set_articulationParameterValue5
+eventIn	SFFloat set_articulationParameterValue6
+eventIn	SFFloat set_articulationParameterValue7
+exposedField SFString address "localhost"
+exposedField SFInt32 applicationID 1
+exposedField SFInt32 articulationParameterCount 0
+exposedField MFInt32 articulationParameterDesignatorArray []
+exposedField MFInt32 articulationParameterChangeIndicatorArray []
+exposedField MFInt32 articulationParameterIdPartAttachedToArray []
+exposedField MFInt32 articulationParameterTypeArray             []
+exposedField MFFloat articulationParameterArray                 []
+exposedField SFVec3f center                                     0 0 0
+exposedField MF3DNode  children                                   []
+exposedField SFInt32 collisionType                              0
+exposedField SFInt32 deadReckoning                              0
+exposedField SFVec3f detonationLocation                         0 0 0
+exposedField SFVec3f detonationRelativeLocation                 0 0 0
+exposedField SFInt32 detonationResult                           0
+exposedField SFInt32 entityCategory                             0
+exposedField SFInt32 entityCountry                              0
+exposedField SFInt32 entityDomain                               0
+exposedField SFInt32 entityExtra                                0
+exposedField SFInt32 entityID                                   0
+exposedField SFInt32 entityKind                                 0
+exposedField SFInt32 entitySpecific                             0
+exposedField SFInt32 entitySubCategory                          0
+exposedField SFInt32 eventApplicationID                         1
+exposedField SFInt32 eventEntityID                              0
+exposedField SFInt32 eventNumber                                0
+exposedField SFInt32 eventSiteID                                0
+exposedField SFBool  fired1                                     FALSE
+exposedField SFBool  fired2                                     FALSE
+exposedField SFInt32 fireMissionIndex                           0
+exposedField SFFloat firingRange                                0.0
+exposedField SFInt32 firingRate                                 0
+exposedField SFInt32 forceID                                    0
+exposedField SFInt32 fuse                                       0
+exposedField SFVec3f linearVelocity                             0 0 0
+exposedField SFVec3f linearAcceleration                         0 0 0
+exposedField SFString marking                                    ""
+exposedField SFString multicastRelayHost                         ""
+exposedField SFInt32 multicastRelayPort                         0             
+exposedField SFInt32 munitionApplicationID                      1
+exposedField SFVec3f munitionEndPoint                           0 0 0
+exposedField SFInt32 munitionEntityID                           0
+exposedField SFInt32 munitionQuantity                           0
+exposedField SFInt32 munitionSiteID                             0
+exposedField SFVec3f munitionStartPoint                         0 0 0
+exposedField SFString networkMode                                "standAlone"
+exposedField SFInt32 port                                       0
+exposedField SFTime readInterval                               0.1
+exposedField SFRotation rotation                                 0 0 1 0
+exposedField SFVec3f scale                                      1 1 1
+exposedField SFRotation scaleOrientation                           0 0 1 0
+exposedField SFInt32 siteID                                     0
+exposedField SFVec3f translation                                0 0 0
+exposedField SFInt32 warhead                                    0
+exposedField SFTime writeInterval                              1.0
+field SFBool rtpHeaderExpected                          FALSE
+eventOut SFFloat articulationParameterValue0_changed        0.0
+eventOut SFFloat articulationParameterValue1_changed        0.0
+eventOut SFFloat articulationParameterValue2_changed        0.0
+eventOut SFFloat articulationParameterValue3_changed        0.0
+eventOut SFFloat articulationParameterValue4_changed        0.0
+eventOut SFFloat articulationParameterValue5_changed        0.0
+eventOut SFFloat articulationParameterValue6_changed        0.0
+eventOut SFFloat articulationParameterValue7_changed        0.0
+eventOut SFTime collideTime                                0
+eventOut SFTime detonateTime                               0
+eventOut SFTime firedTime                                  0
+eventOut SFBool isActive                                   FALSE
+eventOut SFBool isCollided                                 FALSE                     
+eventOut SFBool isDetonated                                FALSE                    
+eventOut SFBool isNetworkReader                            FALSE
+eventOut SFBool isNetworkWriter                            FALSE
+eventOut SFBool isRtpHeaderHeard                           FALSE
+eventOut SFBool isStandAlone                               FALSE
+eventOut SFTime timestamp                                  0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Extrusion [ #%NDT=SFWorldNode,SFGeometryNode
+eventIn MFVec2f    set_crossSection
+eventIn MFRotation set_orientation
+eventIn MFVec2f    set_scale
+eventIn MFVec3f    set_spine
+field   SFBool     beginCap         TRUE
+field   SFBool     ccw              TRUE
+field   SFBool     convex           TRUE
+field   SFFloat    creaseAngle      0.0          
+field   MFVec2f    crossSection     [ 1 1, 1 -1, -1 -1, -1 1, 1  1 ]
+field   SFBool     endCap           TRUE
+field   MFRotation orientation      [0 0 1 0]  
+field   MFVec2f    scale            [1 1]      
+field   SFBool     solid            TRUE
+field   MFVec3f    spine            [ 0 0 0, 0 1 0 ] 
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO FillProperties [ #%NDT=SFWorldNode,SFFillPropertiesNode
+exposedField SFBool filled     TRUE
+exposedField SFColor hatchColor 1 1 1
+exposedField SFBool  hatched    TRUE
+exposedField SFInt32 hatchStyle 1
+] {
+}
+
+PROTO Fog [ #%NDT=SFWorldNode,SF3DNode,SFFogNode
+exposedField SFColor  color            1 1 1		
+exposedField SFString fogType          "LINEAR"
+exposedField SFFloat  visibilityRange  0			
+eventIn      SFBool   set_bind
+eventOut     SFBool   isBound
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+eventOut     SFTime   bindTime
+] {
+}
+
+
+PROTO FontStyle [ #%NDT=SFWorldNode,SFFontStyleNode 
+exposedField MFString family       ["SERIF"]
+exposedField SFBool   horizontal   TRUE
+exposedField MFString justify      ["BEGIN"]
+exposedField SFString language     ""
+exposedField SFBool   leftToRight  TRUE
+exposedField SFFloat  size         1.0        
+exposedField SFFloat  spacing      1.0        
+exposedField SFString style        "PLAIN"
+exposedField SFBool   topToBottom  TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO GeoCoordinate [#%NDT=SFWorldNode,SFCoordinateNode
+exposedField MFVec3d point []
+field SFGeoOriginNode geoOrigin	NULL
+field MFString geoSystem ["GD", "WE"]
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO GeoElevationGrid [#%NDT=SFWorldNode,SFGeometryNode
+eventIn      MFDouble set_height
+exposedField SFColorNode   color             NULL
+exposedField SFNormalNode   normal            NULL
+exposedField SFTextureCoordinateNode   texCoord          NULL
+exposedField        SFFloat  yScale						1.0 
+field        SFBool   ccw               TRUE
+field        SFBool   colorPerVertex    TRUE
+field        SFFloat  creaseAngle       0.0	
+field SFString geoGridOrigin "0 0 0"
+field	SFGeoOriginNode geoOrigin NULL
+field MFString geoSystem ["GD", "WE"]
+field        MFDouble height            []  
+field        SFBool   normalPerVertex   TRUE
+field        SFBool   solid             TRUE
+field        SFInt32  xDimension        0       
+field        SFDouble  xSpacing          1.0 
+field        SFInt32  zDimension        0   
+field        SFDouble zSpacing          1.0 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO GeoLocation [#%NDT=SFWorldNode,SF3DNode
+eventIn      MF3DNode   addChildren
+eventIn      MF3DNode   removeChildren
+exposedField MF3DNode   children          []
+exposedField SFVec3d geoCoords	0 0 0
+field	SFGeoOriginNode geoOrigin NULL
+field MFString geoSystem ["GD", "WE"]
+exposedField SFMetadataNode metadata   NULL
+]{
+}
+
+#addChildren and removeChildren are commented, it looks like a bug in X3D spec
+PROTO GeoLOD [#%NDT=SFWorldNode,SF3DNode
+#  eventIn      MF3DNode   addChildren
+#  eventIn      MF3DNode   removeChildren
+field      SFVec3d center        0 0 0
+field      MFURL  child1Url    []
+field      MFURL  child2Url    []
+field      MFURL  child3Url    []
+field      MFURL  child4Url    []
+field      SFGeoOriginNode    geoOrigin    NULL
+field      MFString  geoSystem    ["GD","WE"]
+field      SFFloat   range        10          
+field      MFURL rootUrl      []
+field      MF3DNode    rootNode     []
+eventOut   MF3DNode    children
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO GeoMetadata [#%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField MF3DNode    data      []
+exposedField MFString  summary   []
+exposedField MFURL url       []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO GeoOrigin [%#NDT=SFGeoOriginNode
+exposedField   SFVec3d geoCoords     0 0 0
+exposedField   MFString   geoSystem     ["GD","WE"]
+field          SFBool     rotateYUp     FALSE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO GeoPositionInterpolator [ #%NDT=SFWorldNode,SF3DNode
+eventIn   SFFloat   set_fraction        
+exposedField     MFFloat   key               []
+exposedField     MFVec3d keyValue          []
+field     SFGeoOriginNode    geoOrigin         NULL
+field     MFString  geoSystem         ["GD","WE"]
+eventOut  SFVec3d  geovalue_changed
+eventOut  SFVec3f   value_changed
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO GeoTouchSensor [ #%NDT=SFWorldNode,SF2DNode,SF3DNode 
+exposedField  SFBool    enabled                TRUE
+field         SFGeoOriginNode    geoOrigin              NULL
+field         MFString  geoSystem              ["GD","WE"]
+eventOut      SFVec3f   hitNormal_changed
+eventOut      SFVec3f   hitPoint_changed
+eventOut      SFVec2f   hitTexCoord_changed
+eventOut      SFVec3d 	hitGeoCoord_changed
+eventOut      SFBool    isActive
+eventOut      SFBool    isOver
+eventOut      SFTime    touchTime
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO GeoViewpoint [#%NDT=SFWorldNode,SF3DNode,SFViewpointNode
+eventIn        SFBool       set_bind
+eventIn        SFString     set_orientation
+eventIn        SFString     set_position
+exposedField          SFString     description       ""
+exposedField   SFFloat      fieldOfView       0.785398     
+exposedField   SFBool       headlight         TRUE
+exposedField   SFBool       jump              TRUE
+exposedField   MFString     navType           ["EXAMINE","ANY"]
+eventOut       SFTime       bindTime
+eventOut       SFBool       isBound
+field          SFGeoOriginNode       geoOrigin         NULL
+field          MFString     geoSystem         ["GD","WE"]
+field          SFRotation   orientation       0 0 1 0        
+field          SFVec3d 			position          0 0 100000
+field          SFFloat      speedFactor       1.0        
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Group [ #%NDT=SFWorldNode,SFTopNode,SF3DNode,SF2DNode
+eventIn      MF3DNode  addChildren
+eventIn      MF3DNode  removeChildren
+exposedField MF3DNode  children       []
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO HAnimDisplacer [#%NDT=SFWorldNode,SFHAnimDisplacerNode
+exposedField MFInt32 coordIndex    []
+exposedField MFVec3f displacements []
+exposedField SFString name          ""
+exposedField SFFloat weight        0.0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO HAnimHumanoid [#%NDT=SFWorldNode,SF3DNode
+exposedField SFVec3f center           0 0 0
+exposedField MFString info             []
+exposedField MFHAnimNode joints   []
+exposedField SFString name             ""
+exposedField SFRotation rotation         0 0 1 0
+exposedField SFVec3f scale            1 1 1
+exposedField SFRotation scaleOrientation 0 0 1 0
+exposedField MFHAnimNode segments      []
+exposedField MFHAnimNode sites []
+exposedField MFHAnimNode skeleton      []
+exposedField MF3DNode skin             []
+exposedField SFCoordinateNode skinCoord        NULL
+exposedField SFNormalNode skinNormal       NULL
+exposedField SFVec3f translation      0 0 0
+exposedField SFString version          ""
+exposedField MFViewpointNode viewpoints       []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO HAnimJoint [#%NDT=SFWorldNode,SFHAnimNode
+eventIn  MFHAnimNode addChildren
+eventIn  MFHAnimNode removeChildren
+exposedField MFHAnimNode children         []
+exposedField SFVec3f center           0 0 0
+exposedField MFHAnimDisplacerNode displacers       []
+exposedField SFRotation limitOrientation 0 0 1 0
+exposedField MFFloat llimit           []
+exposedField SFString name             ""
+exposedField SFRotation rotation         0 0 1 0
+exposedField SFVec3f scale            1 1 1
+exposedField SFRotation scaleOrientation 0 0 1 0
+exposedField MFInt32 skinCoordIndex   []
+exposedField MFFloat skinCoordWeight  []
+exposedField MFFloat stiffness        [0 0 0]
+exposedField SFVec3f translation      0 0 0
+exposedField MFFloat ulimit           []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO HAnimSegment [#%NDT=SFWorldNode,SFHAnimNode
+eventIn MF3DNode addChildren
+eventIn MF3DNode removeChildren
+exposedField MF3DNode children         []
+exposedField SFVec3f centerOfMass     0 0 0
+exposedField SFCoordinateNode  coord            NULL
+exposedField MFHAnimDisplacerNode  displacers       []
+exposedField SFFloat mass             0
+exposedField MFFloat momentsOfInertia [0 0 0 0 0 0 0 0 0]
+exposedField SFString name             ""
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO HAnimSite  [#%NDT=SFWorldNode,SFHAnimNode
+eventIn MF3DNode   addChildren  
+eventIn MF3DNode removeChildren
+exposedField MF3DNode children         []
+exposedField SFVec3f center           0 0 0
+exposedField SFString name             ""
+exposedField SFRotation rotation         0 0 1 0
+exposedField SFVec3f  scale            1 1 1
+exposedField SFRotation scaleOrientation 0 0 1 0
+exposedField SFVec3f translation      0 0 0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO ImageTexture [ #%NDT=SFWorldNode,SFTextureNode 
+exposedField MFURL 	url     []
+field        SFBool	repeatS TRUE
+field        SFBool	repeatT TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO IndexedFaceSet [ #%NDT=SFWorldNode,SFGeometryNode
+eventIn       MFInt32 set_colorIndex
+eventIn       MFInt32 set_coordIndex
+eventIn       MFInt32 set_normalIndex
+eventIn       MFInt32 set_texCoordIndex
+exposedField  SFColorNode  	color             NULL
+exposedField  SFCoordinateNode  coord             NULL
+exposedField  SFNormalNode  	normal            NULL
+exposedField  SFTextureCoordinateNode  texCoord          NULL
+field         SFBool  ccw               TRUE
+field         MFInt32 colorIndex        []  
+field         SFBool  colorPerVertex    TRUE
+field         SFBool  convex            TRUE
+field         MFInt32 coordIndex        []  
+field         SFFloat creaseAngle       0.0 
+field         MFInt32 normalIndex       []  
+field         SFBool  normalPerVertex   TRUE
+field         SFBool  solid             TRUE
+field         MFInt32 texCoordIndex     []  
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO IndexedLineSet [ #%NDT=SFWorldNode,SFGeometryNode  
+eventIn       MFInt32 set_colorIndex
+eventIn       MFInt32 set_coordIndex
+exposedField  SFColorNode  color             NULL
+exposedField  SFCoordinateNode  coord             NULL
+field         MFInt32 colorIndex        []     	
+field         SFBool  colorPerVertex    TRUE
+field         MFInt32 coordIndex        []     	
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO IndexedTriangleFanSet [ #%NDT=SFWorldNode,SFGeometryNode  
+eventIn MFInt32 set_index       
+exposedField SFColorNode  color           NULL
+exposedField SFCoordinateNode  coord      NULL
+exposedField SFNormalNode normal          NULL
+exposedField SFTextureCoordinateNode texCoord        NULL
+field SFBool  ccw             TRUE
+field SFBool  colorPerVertex  TRUE
+field SFBool  normalPerVertex TRUE
+field SFBool  solid           TRUE
+field MFInt32 index           [] 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO IndexedTriangleSet [ #%NDT=SFWorldNode,SFGeometryNode
+eventIn MFInt32 set_index     
+exposedField SFColorNode  color           NULL 
+exposedField SFCoordinateNode  coord           NULL
+exposedField SFNormalNode  normal          NULL
+exposedField SFTextureCoordinateNode  texCoord        NULL
+field SFBool  ccw             TRUE
+field SFBool  colorPerVertex  TRUE
+field SFBool  normalPerVertex TRUE
+field SFBool  solid           TRUE
+field MFInt32 index           [] 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO IndexedTriangleStripSet [ #%NDT=SFWorldNode,SFGeometryNode
+eventIn MFInt32 set_index    
+exposedField SFColorNode  color NULL
+exposedField SFCoordinateNode  coord           NULL
+exposedField SFFloat creaseAngle     0
+exposedField SFNormalNode  normal          NULL
+exposedField SFTextureCoordinateNode  texCoord        NULL
+field SFBool  ccw             TRUE
+field SFBool  normalPerVertex TRUE
+field SFBool  solid           TRUE
+field MFInt32 index           []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO Inline [ #%NDT=SFWorldNode,SF3DNode,SFStreamingNode,SF2DNode
+exposedField MFURL	url		[]
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFBool load TRUE
+] {
+}
+
+
+PROTO IntegerSequencer [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFBool  next
+eventIn SFBool  previous
+eventIn SFFloat set_fraction
+exposedField MFFloat key           []
+exposedField MFInt32 keyValue      []
+eventOut SFInt32 value_changed
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO IntegerTrigger [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFBool  set_boolean
+exposedField SFInt32 integerKey        -1
+eventOut SFInt32 triggerValue 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO KeySensor [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField SFBool enabled          TRUE
+eventOut SFInt32  actionKeyPress   
+eventOut SFInt32  actionKeyRelease 
+eventOut SFBool   altKey           
+eventOut SFBool   controlKey       
+eventOut SFBool   isActive         
+eventOut SFString keyPress         
+eventOut SFString keyRelease       
+eventOut SFBool   shiftKey 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO LineProperties [ #%NDT=SFWorldNode,SFX3DLinePropertiesNode
+exposedField SFBool  applied              TRUE
+exposedField SFInt32 linetype             1
+exposedField SFFloat linewidthScaleFactor 0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO LineSet [ #%NDT=SFWorldNode,SFGeometryNode
+exposedField SFColorNode  color          NULL
+exposedField SFCoordinateNode  coord          NULL
+exposedField MFInt32 vertexCount    []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO LoadSensor [ #%NDT=SFWorldNode,SFStreamingNode
+exposedField SFBool  enabled   TRUE
+exposedField SFTime  timeOut   0
+exposedField MFStreamingNode  watchList []
+eventOut SFBool  isActive
+eventOut SFBool  isLoaded
+eventOut SFTime  loadTime
+eventOut SFFloat progress
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO LOD [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn         MF3DNode	        addChildren
+eventIn         MF3DNode	        removeChildren
+exposedField 	MF3DNode	        children	    []
+field        SFVec3f center   	0 0 0
+field        MFFloat range    	[]
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Material [ #%NDT=SFWorldNode,SFMaterialNode 
+exposedField SFFloat ambientIntensity  0.2        
+exposedField SFColor diffuseColor      0.8 0.8 0.8
+exposedField SFColor emissiveColor     0 0 0      
+exposedField SFFloat shininess         0.2        
+exposedField SFColor specularColor     0 0 0      
+exposedField SFFloat transparency      0          
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO MetadataDouble [ #%NDT=SFWorldNode,SFMetadataNode
+exposedField SFString name      ""
+exposedField SFString reference ""
+exposedField MFDouble value     []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MetadataFloat[ #%NDT=SFWorldNode,SFMetadataNode
+exposedField SFString name      ""
+exposedField SFString reference ""
+exposedField MFFloat  value     []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MetadataInteger [ #%NDT=SFWorldNode,SFMetadataNode
+exposedField SFString name      ""
+exposedField SFString reference ""
+exposedField MFInt32 value     []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MetadataSet [ #%NDT=SFWorldNode,SFMetadataNode
+exposedField SFString name      ""
+exposedField SFString reference ""
+exposedField MFMetadataNode   value     []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MetadataString [ #%NDT=SFWorldNode,SFMetadataNode
+exposedField SFString name      ""
+exposedField SFString reference ""
+exposedField MFString value     []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MovieTexture [ #%NDT=SFWorldNode,SFTextureNode,SFStreamingNode
+exposedField SFBool  loop             FALSE
+exposedField SFFloat  speed            1.0
+exposedField SFTime   startTime        0
+exposedField SFTime   stopTime         0
+exposedField MFURL 		url              []
+field SFBool   repeatS          TRUE
+field SFBool   repeatT          TRUE
+eventOut SFTime   duration_changed
+eventOut SFBool   isActive
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFTime   resumeTime       0
+exposedField SFTime   pauseTime        0
+eventOut SFTime   elapsedTime
+eventOut SFBool   isPaused
+] {
+}
+
+PROTO MultiTexture [ #%NDT=SFWorldNode,SFTextureNode
+exposedField SFFloat alpha    1
+exposedField SFColor  color    1 1 1
+exposedField MFString function []
+exposedField MFString mode     []
+exposedField MFString source   []
+exposedField MFTextureNode  texture  []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MultiTextureCoordinate [ #%NDT=SFWorldNode,SFTextureCoordinateNode
+MultiTextureCoordinate MFTextureCoordinateNode texCoord NULL
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO MultiTextureTransform [ #%NDT=SFWorldNode,SFTextureTransformNode
+exposedField MFTextureTransformNode textureTransform []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NavigationInfo [ #%NDT=SFWorldNode,SF3DNode,SFNavigationInfoNode 
+eventIn      SFBool   set_bind
+exposedField MFFloat  avatarSize      [0.25, 1.6, 0.75] 
+exposedField SFBool   headlight       TRUE
+exposedField SFFloat  speed           1.0               
+exposedField MFString type            ["WALK", "ANY"]
+exposedField SFFloat  visibilityLimit 0.0               
+eventOut     SFBool   isBound
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField MFString transitionType            ["WALK", "ANY"]
+eventOut     SFTime   bindTime
+]{
+}
+
+PROTO Normal [ #%NDT=SFWorldNode,SFNormalNode 
+exposedField MFVec3f vector  []  
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NormalInterpolator [ #%NDT=SFWorldNode,SF3DNode
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []
+exposedField MFVec3f keyValue      []
+eventOut     MFVec3f value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO NurbsCurve [ #%NDT=SFWorldNode,SFGeometryNode,SFNurbsCurveNode
+exposedField  MFVec3f  controlPoint  []
+exposedField  SFInt32  tessellation  0 
+exposedField  MFDouble  weight        []
+field         SFBool closed FALSE
+field         MFFloat  knot          [] 
+field         SFInt32  order         3
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsCurve2D [ #%NDT=SFWorldNode,SFNurbsControlCurveNode
+exposedField MFVec2f controlPoint    []    
+exposedField SFInt32 tessellation    0     
+exposedField MFFloat weight          []    
+field        MFFloat knot            []    
+field        SFInt32 order           3     
+field         SFBool closed FALSE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsOrientationInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFFloat  set_fraction      
+exposedField SFCoordinateNode     controlPoints NULL
+exposedField MFDouble   knot          []
+exposedField SFInt32   order         3 
+exposedField MFDouble  weight        [] 
+eventOut SFRotation value_changed
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsPatchSurface [ #%NDT=SFWorldNode,SFGeometryNode,SFNurbsSurfaceNode
+exposedField SFCoordinateNode   controlPoint  NULL
+exposedField SFTextureCoordinateNode   texCoord      NULL
+exposedField SFInt32  uTessellation 0
+exposedField SFInt32  vTessellation 0  
+exposedField MFDouble weight        [] 
+field SFBool   solid         TRUE
+field SFBool  uClosed       FALSE 
+field SFInt32  uDimension    0  
+field MFDouble uKnot         [] 
+field SFInt32  uOrder        3  
+field SFBool   vClosed       FALSE 
+field SFInt32  vDimension    0  
+field MFDouble vKnot         [] 
+field SFInt32  vOrder        3  
+exposedField SFMetadataNode metadata   NULL
+] {
+	}
+
+PROTO NurbsPositionInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFFloat  set_fraction  
+exposedField SFCoordinateNode   controlPoints NULL
+exposedField MFDouble knot          []
+exposedField SFInt32  order         3
+exposedField MFDouble weight        []
+eventOut SFVec3f  value_changed
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsSet [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn MFNurbsSurfaceNode  addGeometry
+eventIn MFNurbsSurfaceNode removeGeometry          
+exposedField MFNurbsSurfaceNode geometry          []
+exposedField SFFloat tessellationScale 1.0 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO NurbsSurfaceInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFVec2f  set_fraction
+exposedField SFCoordinateNode controlPoints   NULL
+exposedField MFDouble weight           []
+eventOut SFVec3f  position_changed
+eventOut SFVec3f  normal_changed
+field SFInt32  uDimension       0
+field MFDouble uKnot            []
+field SFInt32  uOrder           3  
+field SFInt32  vDimension       0
+field MFDouble vKnot            []
+field SFInt32  vOrder           3
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsSweptSurface [ #%NDT=SFWorldNode,SFGeometryNode,SFNurbsSurfaceNode
+exposedField SFNurbsControlCurveNode crossSectionCurve	NULL
+exposedField SFNurbsCurveNode trajectoryCurve   NULL
+field SFBool ccw               TRUE
+field SFBool solid             TRUE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsSwungSurface [ #%NDT=SFWorldNode,SFGeometryNode,SFNurbsSurfaceNode
+exposedField SFNurbsControlCurveNode profileCurve      NULL
+exposedField SFNurbsControlCurveNode trajectoryCurve   NULL
+field SFBool ccw               TRUE
+field SFBool solid             TRUE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsTextureCoordinate [ #%NDT=SFWorldNode,SFTextureCoordinateNode 
+exposedField MFVec2f  controlPoint []
+exposedField MFFloat  weight       []
+field SFInt32  uDimension   0   
+field MFDouble uKnot        []  
+field SFInt32  uOrder       3   
+field SFInt32  vDimension   0   
+field MFDouble vKnot        []  
+field SFInt32  vOrder       3 
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO NurbsTrimmedSurface [ #%NDT=SFWorldNode,SFGeometryNode,SFNurbsSurfaceNode
+eventIn MFNurbsControlCurveNode   addTrimmingContour
+eventIn MFNurbsControlCurveNode removeTrimmingContour
+exposedField MFNurbsControlCurveNode trimmingContour       []
+exposedField SFCoordinateNode controlPoint     NULL
+exposedField SFTextureCoordinateNode   texCoord              NULL
+exposedField SFInt32  uTessellation         0 
+exposedField SFInt32  vTessellation         0
+exposedField MFDouble weight                []
+field SFBool   solid                 TRUE
+field SFBool   uClosed               FALSE 
+field SFInt32  uDimension            0   
+field MFDouble uKnot                 []
+field SFInt32  uOrder                3
+field SFBool   vClosed               FALSE 
+field SFInt32  vDimension            0
+field MFDouble vKnot                 []
+field SFInt32  vOrder                3
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO OrientationInterpolator [ #%NDT=SFWorldNode,SF3DNode
+eventIn      SFFloat    set_fraction
+exposedField MFFloat    key           [] 
+exposedField MFRotation keyValue      []
+eventOut     SFRotation value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO PixelTexture [ #%NDT=SFWorldNode,SFTextureNode 
+exposedField SFImage    image   0 0 0 
+field        SFBool	    repeatS TRUE
+field        SFBool	    repeatT TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO PlaneSensor [ #%NDT=SFWorldNode,SF3DNode
+exposedField SFBool  autoOffset          TRUE
+exposedField SFBool  enabled             TRUE
+exposedField SFVec2f maxPosition         -1 -1
+exposedField SFVec2f minPosition         0 0  
+exposedField SFVec3f offset              0 0 0
+eventOut     SFBool  isActive
+eventOut     SFVec3f trackPoint_changed
+eventOut     SFVec3f translation_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFString description         ""
+eventOut     SFBool  isOver
+] {
+}
+
+PROTO PointLight [ #%NDT=SFWorldNode,SF3DNode 
+exposedField SFFloat ambientIntensity  0      
+exposedField SFVec3f attenuation       1 0 0  
+exposedField SFColor color             1 1 1  
+exposedField SFFloat intensity         1      
+exposedField SFVec3f location          0 0 0  
+exposedField SFBool  on                TRUE
+exposedField SFFloat radius            100    
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO PointSet [ #%NDT=SFWorldNode,SFGeometryNode  
+exposedField  SFColorNode  color      NULL
+exposedField  SFCoordinateNode  coord      NULL
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Polyline2D [#%NDT=SFWorldNode,SFGeometryNode
+exposedField MFVec2f  lineSegments   []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Polypoint2D [#%NDT=SFWorldNode,SFGeometryNode
+exposedField MFVec2f point    []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO PositionInterpolator [ #%NDT=SFWorldNode,SF3DNode  
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []    
+exposedField MFVec3f keyValue      []   
+eventOut     SFVec3f value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO PositionInterpolator2D [	#%NDT=SFWorldNode,SF2DNode,SF3DNode 
+eventIn		SFFloat	set_fraction
+exposedField	MFFloat	key		[]	
+exposedField	MFVec2f	keyValue	[]	
+eventOut	SFVec2f	value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO ProximitySensor [ #%NDT=SFWorldNode,SF3DNode  
+exposedField SFVec3f    center      0 0 0  
+exposedField SFVec3f    size        0 0 0  
+exposedField SFBool     enabled     TRUE
+eventOut     SFBool     isActive
+eventOut     SFVec3f    position_changed
+eventOut     SFRotation orientation_changed
+eventOut     SFTime     enterTime
+eventOut     SFTime     exitTime
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+eventOut     SFVec3f    centerOfRotation_changed
+] {
+}
+
+PROTO ReceiverPdu [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField SFString address                  "localhost"
+exposedField SFInt32  applicationID            1    
+exposedField SFInt32  entityID                 0      
+exposedField SFString multicastRelayHost       ""
+exposedField SFInt32  multicastRelayPort       0     
+exposedField SFString networkMode              "standAlone" 
+exposedField SFInt32  port                     0          
+exposedField SFInt32  radioID                  0           
+exposedField SFFloat  readInterval             0.1
+exposedField SFFloat  receivedPower            0.0
+exposedField SFInt32  receiverState            0            
+exposedField SFBool   rtpHeaderExpected        
+exposedField SFInt32  siteID                   0    
+exposedField SFInt32  transmitterApplicationID 1    
+exposedField SFInt32  transmitterEntityID      0    
+exposedField SFInt32  transmitterRadioID       0    
+exposedField SFInt32  transmitterSiteID        0    
+exposedField SFInt32  whichGeometry            1    
+exposedField SFFloat  writeInterval            1.0  
+eventOut SFBool   isActive                 FALSE
+eventOut SFBool   isNetworkReader          FALSE
+eventOut SFBool   isNetworkWriter          FALSE
+eventOut SFBool   isRtpHeaderHeard         FALSE
+eventOut SFBool   isStandAlone             FALSE
+eventOut SFTime   timestamp                0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Rectangle2D [ #%NDT=SFWorldNode,SFGeometryNode 
+field SFVec2f	size	2 2
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+#exposedField SFBool filled TRUE
+]{
+}
+
+PROTO ScalarInterpolator [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn      SFFloat set_fraction
+exposedField MFFloat key           []     
+exposedField MFFloat keyValue      []     
+eventOut     SFFloat value_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+]{}
+
+PROTO Script [#%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField MFScript url           []
+field        SFBool   directOutput  FALSE
+field        SFBool   mustEvaluate  FALSE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+]{
+}
+
+PROTO Shape [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField SFAppearanceNode appearance NULL
+exposedField SFGeometryNode geometry   NULL
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO SignalPdu [ #%NDT=SFWorldNode,SF3DNode,SF2DNode  
+exposedField SFString address            "localhost"
+exposedField SFInt32  applicationID      1    
+exposedField MFInt32  data               []   
+exposedField SFInt32  dataLength         0    
+exposedField SFInt32  encodingScheme     0    
+exposedField SFInt32  entityID           0    
+exposedField SFString multicastRelayHost ""
+exposedField SFInt32  multicastRelayPort 0           
+exposedField SFString networkMode        "standAlone" 
+exposedField SFInt32  port               0           
+exposedField SFInt32  radioID            0           
+exposedField SFFloat  readInterval       0.1         
+exposedField SFBool   rtpHeaderExpected  FALSE
+exposedField SFInt32  sampleRate         0           
+exposedField SFInt32  samples            0           
+exposedField SFInt32  siteID             0           
+exposedField SFInt32  tdlType            0           
+exposedField SFInt32  whichGeometry      1           
+exposedField SFFloat  writeInterval      1.0         
+eventOut SFBool   isActive
+eventOut SFBool   isNetworkReader
+eventOut SFBool   isNetworkWriter
+eventOut SFBool   isRtpHeaderHeard
+eventOut SFBool   isStandAlone
+eventOut SFTime   timestamp
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO Sound [ #%NDT=SFWorldNode,SF3DNode 
+exposedField SFVec3f  direction     0 0 1
+exposedField SFFloat  intensity     1    
+exposedField SFVec3f  location      0 0 0
+exposedField SFFloat  maxBack       10   
+exposedField SFFloat  maxFront      10   
+exposedField SFFloat  minBack       1    
+exposedField SFFloat  minFront      1    
+exposedField SFFloat  priority      0    
+exposedField SFAudioNode   source        NULL
+field        SFBool   spatialize    TRUE
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO Sphere [ #%NDT=SFWorldNode,SFGeometryNode
+field SFFloat radius  1
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+#field SFBool solid TRUE
+] {
+}
+
+
+PROTO SphereSensor [ #%NDT=SFWorldNode,SF3DNode 
+exposedField SFBool     autoOffset        TRUE
+exposedField SFBool     enabled           TRUE
+exposedField SFRotation offset            0 1 0 0 
+eventOut     SFBool     isActive
+eventOut     SFRotation rotation_changed
+eventOut     SFVec3f    trackPoint_changed
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFString description ""
+eventOut     SFBool     isOver
+]{
+}
+
+PROTO SpotLight [ #%NDT=SFWorldNode,SF3DNode
+exposedField SFFloat ambientIntensity  0        
+exposedField SFVec3f attenuation       1 0 0    
+exposedField SFFloat beamWidth         1.570796 
+exposedField SFColor color             1 1 1    
+exposedField SFFloat cutOffAngle       0.785398 
+exposedField SFVec3f direction         0 0 -1   
+exposedField SFFloat intensity         1        
+exposedField SFVec3f location          0 0 0    
+exposedField SFBool  on                TRUE
+exposedField SFFloat radius            100      
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO StaticGroup [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+field MF3DNode  children   []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO StringSensor [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField SFBool deletionAllowed TRUE
+exposedField SFBool   enabled         TRUE
+eventOut SFString enteredText       
+eventOut SFString finalText         
+eventOut SFBool   isActive          
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO Switch [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn      MF3DNode    addChildren
+eventIn      MF3DNode    removeChildren
+exposedField MF3DNode    children         []
+exposedField    SFInt32 whichChoice -1	
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Text [ #%NDT=SFWorldNode,SFGeometryNode 
+exposedField  MFString string    []
+exposedField  MFFloat  length    []           
+exposedField  SFFontStyleNode  fontStyle NULL
+exposedField  SFFloat  maxExtent 0.0          
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+#field SFBool     solid     FALSE
+] {
+}
+
+PROTO TextureBackground [ #%NDT=SFWorldNode,SF3DNode,SFBackground3DNode
+eventIn SFBool  set_bind
+exposedField MFFloat groundAngle   []    
+exposedField MFColor groundColor   []    
+exposedField SFTextureNode  backTexture   NULL  
+exposedField SFTextureNode  bottomTexture NULL  
+exposedField SFTextureNode  frontTexture  NULL  
+exposedField SFTextureNode  leftTexture   NULL  
+exposedField SFTextureNode  rightTexture  NULL  
+exposedField SFTextureNode  topTexture    NULL  
+exposedField MFFloat skyAngle      [] 
+exposedField MFColor skyColor      0 0 0
+exposedField MFFloat transparency  0    
+exposedField SFTime  bindTime
+exposedField SFBool  isBound
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO TextureCoordinate [ #%NDT=SFWorldNode,SFTextureCoordinateNode
+exposedField MFVec2f point  []  
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+]{
+}
+
+PROTO TextureCoordinateGenerator [ #%NDT=SFWorldNode,SFTextureCoordinateNode
+exposedField SFString mode      "SPHERE"
+TextureCoordinateGenerator MFFloat  parameter []
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+
+PROTO TextureTransform [ #%NDT=SFWorldNode,SFTextureTransformNode 
+exposedField SFVec2f center      0 0     
+exposedField SFFloat rotation    0      
+exposedField SFVec2f scale       1 1    
+exposedField SFVec2f translation 0 0    
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO TimeSensor [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+exposedField SFTime   cycleInterval	1     
+exposedField SFBool   enabled		TRUE
+exposedField SFBool   loop		FALSE
+exposedField SFTime   startTime		0      
+exposedField SFTime   stopTime		0      
+eventOut     SFTime   cycleTime
+eventOut     SFFloat  fraction_changed
+eventOut     SFBool   isActive
+eventOut     SFTime   time
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFTime   pauseTime		0       
+exposedField SFTime   resumeTime		0       
+eventOut     SFTime   elapsedTime
+eventOut     SFBool   isPaused
+] {
+}
+
+PROTO TimeTrigger [ #%NDT=SFWorldNode,SF3DNode,SF2DNode
+eventIn SFBool set_boolean
+eventOut SFTime triggerTime
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO TouchSensor [ #%NDT=SFWorldNode,SF2DNode,SF3DNode 
+exposedField SFBool  enabled TRUE
+eventOut     SFVec3f hitNormal_changed
+eventOut     SFVec3f hitPoint_changed
+eventOut     SFVec2f hitTexCoord_changed
+eventOut     SFBool  isActive
+eventOut     SFBool  isOver
+eventOut     SFTime  touchTime
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFString description ""
+] {}
+
+PROTO Transform [ #%NDT=SFWorldNode,SF3DNode  
+eventIn      MF3DNode    addChildren
+eventIn      MF3DNode    removeChildren
+exposedField SFVec3f     center           0 0 0    
+exposedField MF3DNode    children         []
+exposedField SFRotation  rotation         0 0 1 0  
+exposedField SFVec3f     scale            1 1 1   
+exposedField SFRotation  scaleOrientation 0 0 1 0 
+exposedField SFVec3f     translation      0 0 0   
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO TransmitterPdu [ #%NDT=SFWorldNode,SF2DNode,SF3DNode
+exposedField SFString address                            "localhost"
+exposedField SFVec3f  antennaLocation                    0 0 0
+exposedField SFInt32  antennaPatternLength               0    
+exposedField SFInt32  antennaPatternType                 0    
+exposedField SFInt32  applicationID                      1    
+exposedField SFInt32  cryptoKeyID                        0    
+exposedField SFInt32  cryptoSystem                       0    
+exposedField SFInt32  entityID                           0    
+exposedField SFInt32  frequency                          0     
+exposedField SFInt32  inputSource                        0    
+exposedField SFInt32  lengthOfModulationParameters       0    
+exposedField SFInt32  modulationTypeDetail               0    
+exposedField SFInt32  modulationTypeMajor                0    
+exposedField SFInt32  modulationTypeSpreadSpectrum       0    
+exposedField SFInt32  modulationTypeSystem               0    
+exposedField SFString multicastRelayHost                 ""
+exposedField SFInt32  multicastRelayPort                 0           
+exposedField SFString networkMode                        "standAlone" 
+exposedField SFInt32  port                               0   
+exposedField SFFloat  power                              0.0 
+exposedField SFInt32  radioEntityTypeCategory            0   
+exposedField SFInt32  radioEntityTypeCountry             0   
+exposedField SFInt32  radioEntityTypeDomain              0   
+exposedField SFInt32  radioEntityTypeKind                0   
+exposedField SFInt32  radioEntityTypeNomenclature        0   
+exposedField SFInt32  radioEntityTypeNomenclatureVersion 0   
+exposedField SFInt32  radioID                            0   
+exposedField SFFloat  readInterval                       0.1 
+exposedField SFVec3f  relativeAntennaLocation            0 0 0
+exposedField SFBool   rtpHeaderExpected                  FALSE
+exposedField SFInt32  siteID                             0    
+exposedField SFFloat  transmitFrequencyBandwidth         0.0  
+exposedField SFInt32  transmitState                      0    
+exposedField SFInt32  whichGeometry                      1    
+exposedField SFFloat  writeInterval                      1.0  
+eventOut SFBool   isActive                           FALSE
+eventOut SFBool   isNetworkReader                    FALSE
+eventOut SFBool   isNetworkWriter                    FALSE
+eventOut SFBool   isRtpHeaderHeard                   FALSE
+eventOut SFBool   isStandAlone                       FALSE
+eventOut SFTime   timestamp                          0
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO TriangleFanSet [ #%NDT=SFWorldNode,SFGeometryNode
+exposedField SFColorNode  color           NULL
+exposedField SFCoordinateNode coord       NULL
+exposedField MFInt32 fanCount        []   
+exposedField SFNormalNode  normal          NULL 
+exposedField SFTextureCoordinateNode  texCoord        NULL 
+field SFBool  ccw             TRUE
+field SFBool  colorPerVertex  TRUE
+field SFBool  normalPerVertex TRUE
+field SFBool  solid           TRUE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+
+PROTO TriangleSet [ #%NDT=SFWorldNode,SFGeometryNode
+exposedField SFColorNode  color           NULL 
+exposedField SFCoordinateNode  coord           NULL
+exposedField SFNormalNode  normal          NULL
+exposedField SFTextureCoordinateNode texCoord        NULL
+field SFBool  ccw             TRUE
+field SFBool  colorPerVertex  TRUE
+field SFBool  normalPerVertex TRUE
+field SFBool  solid           TRUE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO TriangleSet2D [ #%NDT=SFWorldNode,SFGeometryNode
+exposedField MFVec2f vertices []
+#field SFBool  solid    FALSE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO TriangleStripSet [ #%NDT=SFWorldNode,SFGeometryNode
+exposedField SFColorNode  color           NULL 
+exposedField SFCoordinateNode  coord           NULL 
+exposedField SFNormalNode  normal          NULL 
+exposedField MFInt32 stripCount      []   
+exposedField SFTextureCoordinateNode  texCoord        NULL
+field SFBool  ccw             TRUE
+field SFBool  colorPerVertex  TRUE
+field SFBool  normalPerVertex TRUE
+field SFBool  solid           TRUE
+exposedField SFMetadataNode metadata   NULL
+] {
+}
+
+PROTO Viewpoint [ #%NDT=SFWorldNode,SF3DNode,SFViewpointNode
+eventIn      SFBool     set_bind
+exposedField SFFloat    fieldOfView    0.785398
+exposedField SFBool     jump           TRUE
+exposedField SFRotation orientation    0 0 1 0 
+exposedField SFVec3f    position       0 0 10  
+field        SFString   description    ""
+eventOut     SFTime     bindTime
+eventOut     SFBool     isBound
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+exposedField SFVec3f    centerOfRotation 0 0 0
+] {
+}
+
+
+PROTO VisibilitySensor [ #%NDT=SFWorldNode,SF3DNode 
+exposedField SFVec3f center   0 0 0  
+exposedField SFBool  enabled  TRUE
+exposedField SFVec3f size     0 0 0 
+eventOut     SFTime  enterTime
+eventOut     SFTime  exitTime
+eventOut     SFBool  isActive
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+]{
+}
+
+PROTO WorldInfo [ #%NDT=SFWorldNode,SF2DNode,SF3DNode
+field MFString info  []
+field SFString title ""
+#X3D extensions
+exposedField SFMetadataNode metadata   NULL
+] {
+}

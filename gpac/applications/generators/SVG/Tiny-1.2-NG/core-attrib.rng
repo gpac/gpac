@@ -1,0 +1,67 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Core attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.CoreCommon.attr' combine='interleave'>
+    <optional>
+      <attribute name='id' svg:animatable='false' svg:inheritable='false'>
+        <ref name='ID.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='class' svg:animatable='false' svg:inheritable='false'>
+        <text/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xml:id' svg:animatable='false' svg:inheritable='false'>
+        <ref name='ID.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xml:base' svg:animatable='false' svg:inheritable='false'>
+        <ref name='IRI.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xml:lang' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='LanguageID.datatype'/>
+          <empty/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.Core.attr' combine='interleave'>
+    <ref name='svg.CoreCommon.attr'/>
+    <optional>
+      <attribute name='xml:space' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>default</value>
+          <value>preserve</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name='svg.CorePreserve.attr' combine='interleave'>
+    <ref name='svg.CoreCommon.attr'/>
+    <optional>
+      <attribute name='xml:space' svg:animatable='false' svg:inheritable='false'>
+        <value>preserve</value>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

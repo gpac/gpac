@@ -1,0 +1,257 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Tiny Structure
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <start>
+    <ref name='svg'/>
+  </start>
+
+
+  <!--
+    Reusable groups
+    -->
+  <define name='svg.Desc.group' combine='choice'>
+    <choice>
+      <ref name='desc'/>
+      <ref name='title'/>
+      <ref name='metadata'/>
+      <element name='switch'>
+        <ref name='switch.AT'/>
+        <zeroOrMore><ref name='svg.Desc.group'/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name='svg.G-noA.group' combine='choice'>
+    <choice>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.GCommon.group'/>
+      <ref name='g'/>
+      <ref name='defs'/>
+      <ref name='use'/>
+      <element name='switch'>
+        <ref name='switch.AT'/>
+        <zeroOrMore><ref name='svg.G-noA.group'/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name='svg.G.group' combine='choice'>
+    <choice>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.GCommon.group'/>
+      <ref name='g'/>
+      <ref name='defs'/>
+      <ref name='use'/>
+      <element name='switch'>
+        <ref name='switch.AT'/>
+        <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+      </element>
+      <element name='a'>
+        <ref name='a.AT'/>
+        <zeroOrMore><ref name='svg.G-noA.group'/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name='svg.PAR.attr' combine='interleave'>
+    <optional>
+      <attribute name='preserveAspectRatio' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'>
+          <param name='pattern'>\s*(none|xMidYMid)\s*(meet)?\s*</param>
+        </data>
+      </attribute>
+    </optional>
+  </define>
+
+  <!-- ... svg .................................................... -->
+  <define name='svg'>
+    <element name='svg'>
+      <ref name='svg.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='svg.AT' combine='interleave'>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.AnimateSyncDefault.attr'/>
+    <ref name='svg.Core.attr'/>
+    <!-- modified to XYWH for SVG 1.1 basic -->
+    <ref name='svg.XYWH.attr'/>
+    <ref name='svg.PAR.attr'/>
+    <optional>
+      <attribute name='viewBox' svg:animatable='true' svg:inheritable='false'>
+        <text/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='zoomAndPan' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>disable</value>
+          <value>magnify</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='version' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value type='string'>1.0</value>
+          <value type='string'>1.1</value>
+          <value type='string'>1.2</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='baseProfile' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value type='string'>none</value>
+          <value type='string'>tiny</value>
+          <value type='string'>basic</value>
+          <value type='string'>full</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='contentScriptType' svg:animatable='false' svg:inheritable='false'>
+        <ref name='ContentType.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='snapshotTime' svg:animatable='false' svg:inheritable='false'>
+				<choice>
+					<value type='string'>none</value>
+          <ref name='Clock.datatype'/>
+				</choice>
+			</attribute>
+    </optional>
+    <optional>
+      <attribute name='timelineBegin' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value type='string'>onLoad</value>
+          <value type='string'>onStart</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='playbackOrder' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value type='string'>all</value>
+          <value type='string'>forwardOnly</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+
+  <!-- ... g ...................................................... -->
+  <define name='g'>
+    <element name='g'>
+      <ref name='g.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='g.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+  </define>
+
+
+
+  <!-- ... defs ................................................... -->
+  <define name='defs'>
+    <element name='defs'>
+      <ref name='defs.AT'/>
+      <zeroOrMore><ref name='svg.G.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='defs.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+  </define>
+
+
+
+  <!-- ... desc, title, metadata .................................. -->
+  <define name='desc'>
+    <element name='desc'>
+      <ref name='DTM.AT'/>
+      <ref name='DTM.CM'/>
+    </element>
+  </define>
+
+  <define name='DTM.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+  </define>
+
+  <define name='DTM.CM'>
+    <text/>
+  </define>
+  <define name='title'>
+    <element name='title'>
+      <ref name='DTM.AT'/>
+      <ref name='DTM.CM'/>
+    </element>
+  </define>
+
+  <define name='metadata'>
+    <element name='metadata'>
+      <ref name='DTM.AT'/>
+      <ref name='DTM.CM'/>
+    </element>
+  </define>
+
+
+
+
+  <!-- ... use .................................................... -->
+  <define name='use'>
+    <element name='use'>
+      <ref name='use.AT'/>
+      <ref name='use.CM'/>
+    </element>
+  </define>
+
+  <define name='use.AT' combine='interleave'>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.XY.attr'/>
+  </define>
+
+  <define name='use.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='svg.Animate.group'/>
+        <ref name='svg.Handler.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>

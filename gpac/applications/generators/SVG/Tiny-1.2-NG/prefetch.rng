@@ -1,0 +1,60 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Prefetch
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='prefetch'/>
+  </define>
+
+  <!-- ... prefetch ............................................... -->
+  <define name='prefetch'>
+    <element name='prefetch'>
+      <ref name='prefetch.AT'/>
+      <ref name='prefetch.CM'/>
+    </element>
+  </define>
+
+  <define name='prefetch.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
+    <optional>
+      <attribute name='mediaSize' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='mediaTime' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='mediaCharacterEncoding' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='mediaContentEncodings' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='bandwidth' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Number.datatype'/>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='prefetch.CM'>
+    <zeroOrMore>
+      <ref name='svg.Desc.group'/>
+    </zeroOrMore>
+  </define>
+
+</grammar>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+                MPEG-U Widget Manager sample 
+                
+            (c) 2010 Telecom Paris
+                Author: Jean Le Feuvre (jean dot lefeuvre at telecom-paris dot fr)
+
+This software module was originally developed by Telecom Paris in the
+course of the development of MPEG-U Widgets (ISO/IEC 23007-1) standard.
+
+This software module is an implementation of a part of one or 
+more MPEG-U Widgets (ISO/IEC 23007-1) tools as specified by the MPEG-U Widgets
+(ISO/IEC 23007-1) standard. ISO/IEC gives users of the MPEG-U Widgets
+(ISO/IEC 23007-1) free license to this software module or modifications
+thereof for use in hardware or software products claiming conformance to
+the MPEG-U Widgets (ISO/IEC 23007-1). Those intending to use this software
+module in hardware or software products are advised that its use may
+infringe existing patents.
+The original developer of this software module and his/her company, the
+subsequent editors and their companies, and ISO/IEC have no liability 
+for use of this software module or modifications thereof in an implementation. 
+Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming 
+products. 
+Telecom Paris retains full right to use the code for his/her own purpose, 
+assign or donate the code to a third party and to inhibit third parties from 
+using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products. 
+
+This copyright notice must be included in all copies or derivative works.
+
+Copyright (c) 2009.
+                                
+-->
+
+<XMT-A xmlns="urn:mpeg:mpeg4:xmta:schema:2002" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:mpeg:mpeg4:xmta:schema:2002 xmt-a.xsd">
+ <Header>
+ </Header>
+ <Body>
+  <Replace>
+   <Scene>
+    <!--  Built-in BIFS prototype of GPAC which undo all user transforms (zoom and pan) -->   
+    <ProtoDeclare name="Untransform" protoID="1" locations="&quot;urn:inet:gpac:builtin:Untransform&quot;">
+     <field name="children" type="Nodes" vrml97Hint="exposedField">
+      <nodes/>
+     </field>
+    </ProtoDeclare>
+   
+    <!-- Main scene -->
+    <OrderedGroup DEF="GPAC_UI">
+     <children>
+      <Background2D backColor="1 1 1"/>
+      <ProtoInstance name="Untransform" DEF="UI_ROOT"/>
+      <Script DEF="GUIScript" url="mpegu-wm.js">
+       <field name="root" type="Node" vrml97Hint="field">
+        <node>
+         <OrderedGroup USE="GPAC_UI"/>
+        </node>
+       </field>
+       <field name="ui_root" type="Node" vrml97Hint="field">
+        <node>
+         <ProtoInstance name="Untransform" USE="UI_ROOT"/>
+        </node>
+       </field>
+      </Script>
+     </children>
+    </OrderedGroup>
+   </Scene>
+  </Replace>
+ </Body>
+</XMT-A>

@@ -1,0 +1,123 @@
+
+<!-- ==============================================================
+      SVG12-RNG | XLink attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <!--
+    NOTE
+    In this schema xlink:type has been made optional and defaulting to "simple".
+    This is done in anticipation of XLink 1.1 which is to make this change, and
+    to conform to implementation reality.
+    -->
+  <!-- @@ 
+    This used to be required for real, but all attributes became optional.
+    Some simplifications to the rest of the schema may have thus become
+    possible.
+    -->
+
+  <define name='svg.XLinkBase.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:type' svg:animatable='true' svg:inheritable='false'>
+        <value>simple</value>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xlink:role' svg:animatable='false' svg:inheritable='false'>
+        <ref name='IRI.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xlink:arcrole' svg:animatable='false' svg:inheritable='false'>
+        <ref name='IRI.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xlink:title' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+  </define>
+
+  <define name='svg.XLinkHrefRequired.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:href' svg:animatable='true' svg:inheritable='false'>
+        <ref name='IRI.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.XLinkBaseRequired.attr' combine='interleave'>
+    <ref name='svg.XLinkBase.attr'/>
+    <ref name='svg.XLinkHrefRequired.attr'/>
+  </define>
+
+
+  <define name='svg.XLinkActuateOnLoad.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:actuate' svg:animatable='false' svg:inheritable='false'>
+        <value>onLoad</value>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.XLinkShowOther.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:show' svg:animatable='false' svg:inheritable='false'>
+        <value>other</value>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name='svg.XLinkEmbed.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:show' svg:animatable='false' svg:inheritable='false'>
+        <value>embed</value>
+      </attribute>
+    </optional>
+    <ref name='svg.XLinkActuateOnLoad.attr'/>
+    <ref name='svg.XLinkBaseRequired.attr'/>
+  </define>
+
+
+  <define name='svg.XLinkRequired.attr' combine='interleave'>
+    <ref name='svg.XLinkShowOther.attr'/>
+    <ref name='svg.XLinkActuateOnLoad.attr'/>
+    <ref name='svg.XLinkBaseRequired.attr'/>
+  </define>
+
+
+  <define name='svg.XLinkReplace.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:show' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>new</value>
+          <value>replace</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='xlink:actuate' svg:animatable='false' svg:inheritable='false'>
+        <value>onRequest</value>
+      </attribute>
+    </optional>
+    <ref name='svg.XLinkBaseRequired.attr'/>
+  </define>
+
+  <define name='svg.XLink.attr' combine='interleave'>
+    <optional>
+      <ref name='svg.XLinkHrefRequired.attr'/>
+    </optional>
+    <ref name='svg.XLinkShowOther.attr'/>
+    <ref name='svg.XLinkActuateOnLoad.attr'/>
+    <ref name='svg.XLinkBase.attr'/>
+  </define>
+
+</grammar>

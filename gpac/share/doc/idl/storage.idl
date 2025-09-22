@@ -1,0 +1,57 @@
+/*
+\file
+\brief silence !
+*/
+
+
+/*!
+
+\defgroup storage_grp Storage API
+\ingroup jsapi_grp
+\brief Storage API.
+
+This storage API allows creating a configuration file in JS for persistent storage of data.
+See \ref cfg_grp for more info on the config file.
+
+This API shall be loaded by a scene script using:
+\code
+import {Storage} from 'storage'
+\endcode
+@{
+
+*/
+
+/*! interface to storage */
+interface Storage {
+	/*! creates a new storage
+	\param store_name storage name to use*/
+	Storage(DOMString store_name);
+
+	/*! get storage key
+	\param section the section name
+	\param key the key name
+	\return the key value
+	*/
+	DOMString get_option(DOMString section, DOMString key);
+
+	/*! get storage key name by index
+	\param section the section name
+	\param key_idx the key index in the section
+	\return the key name
+	*/
+	DOMString get_option(DOMString section, unsigned key_idx);
+	
+	/*! sets storage key
+	\param section the section name
+	\param key the key name
+	\param value the key value, null to remove the key
+	*/
+	void set_option(DOMString section, DOMString key, optional DOMString value=null);
+
+	/*! saves associated storage*/
+	void save();
+
+};
+
+
+/*! @} */

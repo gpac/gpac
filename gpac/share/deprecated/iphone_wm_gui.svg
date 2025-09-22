@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<svg id="svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.2"
+     xmlns:gpac-ext='http://gpac.io/svg-extensions' 
+     width="571.35199" xmlns:ev="http://www.w3.org/2001/xml-events" height="462.51999" viewBox="0 0 320 600">
+    <!--
+    This is a Widget Manager creating an iPhone-style UI.
+    A certain number of widgets are installed, and their icons are visible on the home page.
+    If the home page is full, arrows appear at the bottom to get to the other pages of icons.
+    There is a companion file rifuim.js with the script that adapts this SVG to the size of the screen
+    -->
+    <defs id="mainDefs">
+        <rect id="lightRect" width="80" height="80" fill="rgb(50,50,50)" stroke="none"/>
+        <rect id="darkRect" width="80" height="80" fill="rgb(40,40,40)" stroke="none"/>
+        <g id="odd">
+            <use xlink:href="#lightRect"/>
+            <use xlink:href="#darkRect" x="80"/>
+        </g>
+        <g id="even">
+            <use xlink:href="#darkRect"/>
+            <use xlink:href="#lightRect" x="80"/>
+        </g>
+        <animation id='go-up' xlink:href='icons/go-up.svg' width='25' height='25'/>
+        <animation id='go-previous' xlink:href='icons/go-previous.svg' width='25' height='25'/>
+        <animation id='go-next' xlink:href='icons/go-next.svg' width='25' height='25'/>
+        <animation id='go-jump' xlink:href='icons/go-jump.svg' width='25' height='25'/>
+        <animation id='folder' xlink:href='icons/folder.svg' width='25' height='25'/>
+        <animation id='new' xlink:href='icons/document-new.svg' width='25' height='25'/>
+        <g id="cartouche">
+            <g transform="translate(0,0)">
+                <use xlink:href="#go-up"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flUpDir();</handler>
+                </rect>
+            </g>
+            <g transform="translate(25,0)">
+                <use xlink:href="#go-previous"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flPrevFiles();</handler>
+                </rect>
+            </g>
+            <g transform="translate(50,0)">
+                <use xlink:href="#go-next"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flNextFiles();</handler>
+                </rect>
+            </g>
+            <g transform="translate(75,0)">
+                <text id="dir" fill="black" font-family="Comic Sans MS" font-size="15" x="0" y="17"/>
+            </g>
+        </g>
+        <g id="cartoucheflag">
+            <g transform="translate(0,0)">
+                <use xlink:href="#go-up"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flUpDir();</handler>
+                </rect>
+            </g>
+            <g transform="translate(25,0)">
+                <use xlink:href="#go-previous"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flPrevFiles();</handler>
+                </rect>
+            </g>
+            <g transform="translate(50,0)">
+                <use xlink:href="#go-next"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flNextFiles();</handler>
+                </rect>
+            </g>
+            <g transform="translate(75,0)">
+                <use xlink:href="#go-jump"/>
+                <rect pointer-events="all" width="25" height="25" fill="none" stroke="none">
+                    <handler ev:event="click">flScanDir();</handler>
+                </rect>
+            </g>
+            <g transform="translate(100,0)">
+                <text id="dirflag" fill="black" font-family="Comic Sans MS" font-size="15" x="0" y="17"/>
+            </g>
+        </g>
+        <g id="fileMenuElement0">
+            <use id="fileMenuElement0u"/>
+            <rect id="fileMenuElement0r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement0t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement0r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement0r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement1">
+            <use id="fileMenuElement1u"/>
+            <rect id="fileMenuElement1r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement1t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement1r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement1r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement2">
+            <use id="fileMenuElement2u"/>
+            <rect id="fileMenuElement2r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement2t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement2r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement2r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement3">
+            <use id="fileMenuElement3u"/>
+            <rect id="fileMenuElement3r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement3t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement3r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement3r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement4">
+            <use id="fileMenuElement4u"/>
+            <rect id="fileMenuElement4r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement4t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement4r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement4r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement5">
+            <use id="fileMenuElement5u"/>
+            <rect id="fileMenuElement5r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement5t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement5r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement5r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement6">
+            <use id="fileMenuElement6u"/>
+            <rect id="fileMenuElement6r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement6t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement6r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement6r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement7">
+            <use id="fileMenuElement7u"/>
+            <rect id="fileMenuElement7r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement7t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement7r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement7r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement8">
+            <use id="fileMenuElement8u"/>
+            <rect id="fileMenuElement8r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement8t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement8r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement8r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement9">
+            <use id="fileMenuElement9u"/>
+            <rect id="fileMenuElement9r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement9t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement9r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement9r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement10">
+            <use id="fileMenuElement10u"/>
+            <rect id="fileMenuElement10r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement10t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement10r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement10r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement11">
+            <use id="fileMenuElement11u"/>
+            <rect id="fileMenuElement11r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement11t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement11r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement11r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement12">
+            <use id="fileMenuElement12u"/>
+            <rect id="fileMenuElement12r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement12t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement12r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement12r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement13">
+            <use id="fileMenuElement13u"/>
+            <rect id="fileMenuElement13r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement13t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement13r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement13r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement14">
+            <use id="fileMenuElement14u"/>
+            <rect id="fileMenuElement14r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement14t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement14r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement14r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement15">
+            <use id="fileMenuElement15u"/>
+            <rect id="fileMenuElement15r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement15t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement15r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement15r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement16">
+            <use id="fileMenuElement16u"/>
+            <rect id="fileMenuElement16r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement16t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement16r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement16r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement17">
+            <use id="fileMenuElement17u"/>
+            <rect id="fileMenuElement17r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement17t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement17r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement17r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement18">
+            <use id="fileMenuElement18u"/>
+            <rect id="fileMenuElement18r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement18t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement18r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement18r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement19">
+            <use id="fileMenuElement19u"/>
+            <rect id="fileMenuElement19r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement19t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement19r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement19r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement20">
+            <use id="fileMenuElement20u"/>
+            <rect id="fileMenuElement20r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement20t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement20r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement20r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement21">
+            <use id="fileMenuElement21u"/>
+            <rect id="fileMenuElement21r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement21t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement21r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement21r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement22">
+            <use id="fileMenuElement22u"/>
+            <rect id="fileMenuElement22r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement22t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement22r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement22r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement23">
+            <use id="fileMenuElement23u"/>
+            <rect id="fileMenuElement23r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement23t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement23r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement23r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement24">
+            <use id="fileMenuElement24u"/>
+            <rect id="fileMenuElement24r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement24t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement24r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement24r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement25">
+            <use id="fileMenuElement25u"/>
+            <rect id="fileMenuElement25r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement25t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement25r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement25r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement26">
+            <use id="fileMenuElement26u"/>
+            <rect id="fileMenuElement26r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement26t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement26r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement26r").setAttribute("fill", "rgb(245,245,245)");</handler>
+        </g>
+        <g id="fileMenuElement27">
+            <use id="fileMenuElement27u"/>
+            <rect id="fileMenuElement27r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement27t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement27r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement27r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement28">
+            <use id="fileMenuElement28u"/>
+            <rect id="fileMenuElement28r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement28t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement28r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement28r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement29">
+            <use id="fileMenuElement29u"/>
+            <rect id="fileMenuElement29r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement29t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement29r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement29r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement30">
+            <use id="fileMenuElement30u"/>
+            <rect id="fileMenuElement30r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement30t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement30r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement30r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement31">
+            <use id="fileMenuElement31u"/>
+            <rect id="fileMenuElement31r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement31t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement31r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement31r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement32">
+            <use id="fileMenuElement32u"/>
+            <rect id="fileMenuElement32r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement32t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement32r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement32r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement33">
+            <use id="fileMenuElement33u"/>
+            <rect id="fileMenuElement33r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement33t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement33r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement33r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement34">
+            <use id="fileMenuElement34u"/>
+            <rect id="fileMenuElement34r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement34t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement34r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement34r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement35">
+            <use id="fileMenuElement35u"/>
+            <rect id="fileMenuElement35r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement35t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement35r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement35r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement36">
+            <use id="fileMenuElement36u"/>
+            <rect id="fileMenuElement36r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement36t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement36r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement36r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement37">
+            <use id="fileMenuElement37u"/>
+            <rect id="fileMenuElement37r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement37t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement37r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement37r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement38">
+            <use id="fileMenuElement38u"/>
+            <rect id="fileMenuElement38r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement38t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement38r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement38r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement39">
+            <use id="fileMenuElement39u"/>
+            <rect id="fileMenuElement39r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement39t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement39r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement39r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement40">
+            <use id="fileMenuElement40u"/>
+            <rect id="fileMenuElement40r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement40t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement40r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement40r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement41">
+            <use id="fileMenuElement41u"/>
+            <rect id="fileMenuElement41r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement41t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement41r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement41r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement42">
+            <use id="fileMenuElement42u"/>
+            <rect id="fileMenuElement42r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement42t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement42r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement42r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement43">
+            <use id="fileMenuElement43u"/>
+            <rect id="fileMenuElement43r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement43t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement43r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement43r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement44">
+            <use id="fileMenuElement44u"/>
+            <rect id="fileMenuElement44r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement44t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement44r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement44r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement45">
+            <use id="fileMenuElement45u"/>
+            <rect id="fileMenuElement45r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement45t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement45r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement45r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement46">
+            <use id="fileMenuElement46u"/>
+            <rect id="fileMenuElement46r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement46t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement46r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement46r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement47">
+            <use id="fileMenuElement47u"/>
+            <rect id="fileMenuElement47r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement47t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement47r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement47r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement48">
+            <use id="fileMenuElement48u"/>
+            <rect id="fileMenuElement48r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement48t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement48r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement48r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+        <g id="fileMenuElement49">
+            <use id="fileMenuElement49u"/>
+            <rect id="fileMenuElement49r" x="25" y="0" width="550" height="20" fill="rgb(245,245,245)" stroke="none"/>
+            <text id="fileMenuElement49t" fill="gray" font-family="Comic Sans MS" font-size="20" x="30" y="17"/>
+            <handler ev:event="mouseover">document.getElementById("fileMenuElement49r").setAttribute("fill", "black");</handler>
+            <handler ev:event="mouseout">document.getElementById("fileMenuElement49r").setAttribute("fill", "rgb(245,245,245)");</handler>
+            <handler ev:event="click">;</handler>
+        </g>
+    </defs>
+    <rect id="frame" width="320" height="600" rx="15" fill="black" stroke="black"/>
+    <!--text id="help" fill="rgb(90,90,120)" font-size="12" x="20" y="15">right click on home removes current widget</text-->
+    <g id="execbar" display="none">
+        <g id="remoting" transform="translate(18, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="30" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">Push</text>
+            <handler ev:event="click">on_widget_remote();</handler>
+        </g>
+        <g id="kill" transform="translate(55, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="30" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">KillW</text>
+            <handler ev:event="click">on_kill_widget();</handler>
+        </g>
+        <text id="widgetName" fill="white" font-family="Comic Sans MS" font-size="20" x="110" y="35">widgetName</text> 
+    </g>
+    <g id="homebar" display="inline">
+        <g id="adding" transform="translate(18, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="30" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">Add</text>
+            <handler ev:event="click">on_widget_add_menu();</handler>
+        </g>
+        <g id="removing" transform="translate(55, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="30" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="10" x="2" y="12">Reset</text>
+            <handler ev:event="click">on_clean_up();</handler>
+        </g>
+        <g id="dirscan" transform="translate(92, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="30" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">Scan</text>
+            <handler ev:event="click">on_dir_scan();</handler>
+        </g>
+        <g id="get" transform="translate(130, 22)">
+            <rect rx="8" ry="8" fill="rgb(140,140,50)" width="36" height="16"/>
+            <text fill="black" font-family="Comic Sans MS" font-size="12" x="2" y="12">GetW</text>
+            <handler ev:event="click">on_get_widget();</handler>
+        </g>
+    </g>
+    <rect id="screen" width="320" height="480" fill="white" stroke="black" x="0" y="60"/>
+
+    <g id="homepage" transform="translate(0, 60)">
+        <rect id="gridback" width="320" height="480" fill="rgb(40,40,40)" stroke="black"/>
+        <g id="grid">
+            <use xlink:href="#odd" transform="translate(0, 0)"/>
+            <use xlink:href="#even" transform="translate(0, 80)"/>
+        </g>
+        <g id="icons" transform="translate(0,0)">
+        </g>
+    </g>
+
+    <g transform="translate(0,60)">
+        <g id="widget">
+        </g>
+    </g>
+
+    <g transform="translate(0,60)">
+        <g id="widgetAddList"/>
+    </g>
+
+
+    <g id="commands" transform="translate(0, 540)">
+        <g id="homeButton" transform="translate(160,30)">
+            <circle r="20" fill="rgb(40,40,40)" stroke="yellow"/>
+            <rect width="18" height="18" x="-9" y="-9" fill="none" stroke="yellow"/>
+            <handler ev:event="click">home_button(evt);</handler>
+        </g>
+        <g id="arrows">
+            <g id="left" display="none" transform="translate(10, 10)">
+                <animation xlink:href="icons/left_arrow.svg" width="40" height="40"/>
+                <rect width="40" height="40" fill="none" stroke="none" pointer-events="all"/>
+                <handler ev:event="click">left_button();</handler>
+            </g>
+            <g id="right" display="none" transform="translate(270, 10)">
+                <animation xlink:href="icons/right_arrow.svg" width="40" height="40"/>
+                <rect width="40" height="40" fill="none" stroke="none" pointer-events="all"/>
+                <handler ev:event="click">right_button();</handler>
+            </g>
+        </g>
+        <g id="arrowsW">
+            <g id="leftW" display="none" transform="translate(10, 10)">
+                <animation xlink:href="icons/go-previous.svg" width="40" height="40"/>
+                <rect width="40" height="40" fill="none" stroke="none" pointer-events="all"/>
+                <handler ev:event="click">left_buttonW();</handler>
+            </g>
+            <g id="rightW" display="none" transform="translate(270, 10)">
+                <animation xlink:href="icons/go-next.svg" width="40" height="40"/>
+                <rect width="40" height="40" fill="none" stroke="none" pointer-events="all"/>
+                <handler ev:event="click">right_buttonW();</handler>
+            </g>
+        </g>
+    </g>
+    <rect id="rightCut" width="1000" height="600" x="321" y="0" fill="white" stroke="none"/>
+    <rect id="leftCut" width="1000" height="600" x="-1001" y="0" fill="white" stroke="none"/>
+    <rect id="frame2" width="320" height="600" rx="15" fill="none" stroke="black"/>
+    <script xlink:href="mpegu-core.js"/>
+    <script xlink:href="iphone_wm_gui.js"/>
+    <handler ev:event="resize">resize();</handler>
+    <animateColor id="getAttention" attributeName="fill" xlink:href="#frame" begin="indefinite" dur="1" from="red"
+                  to="black" restart="always" fill="freeze"/>
+</svg>

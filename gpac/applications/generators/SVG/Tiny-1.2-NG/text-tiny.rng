@@ -1,0 +1,213 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Tiny Text
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.Properties.attr' combine='interleave'>
+    <optional>
+      <attribute name='font-family' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='FontFamily.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='font-size' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='FontSize.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='font-style' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>normal</value>
+          <value>italic</value>
+          <value>oblique</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='font-variant' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>normal</value>
+          <value>small-caps</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='font-weight' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>normal</value>
+          <value>bold</value>
+          <value>bolder</value>
+          <value>lighter</value>
+          <value>100</value>
+          <value>200</value>
+          <value>300</value>
+          <value>400</value>
+          <value>500</value>
+          <value>600</value>
+          <value>700</value>
+          <value>800</value>
+          <value>900</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='text-anchor' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>start</value>
+          <value>middle</value>
+          <value>end</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='text-align' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>start</value>
+          <value>center</value>
+          <value>end</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='text-decoration' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>none</value>
+          <value>underline</value>
+          <value>overline</value>
+          <value>line-through</value>
+          <value>blink</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <choice>
+      <ref name='text'/>
+    </choice>
+  </define>
+
+  <define name='svg.Editable.attr' combine='interleave'>
+    <optional>
+      <attribute name='editable' svg:animatable='false' svg:inheritable='false'>
+          <choice>
+  					<value>none</value>
+  					<value>simple</value>
+  				</choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <!--
+    CM defined to have switch an 'a' defined correctly
+    -->
+  <define name='svg.TextCommon-noA.group' combine='choice'>
+    <choice>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.Animate.group'/>
+      <ref name='svg.Handler.group'/>
+      <ref name='svg.Discard.group'/>
+      <ref name='tspan'/>
+      <text/>
+      <element name='switch'>
+        <ref name='switch.AT'/>
+        <zeroOrMore><ref name='svg.TextCommon-noA.group'/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name='svg.TextCommon.group' combine='choice'>
+    <choice>
+      <ref name='svg.Desc.group'/>
+      <ref name='svg.Animate.group'/>
+      <ref name='svg.Handler.group'/>
+      <ref name='svg.Discard.group'/>
+      <ref name='tspan'/>
+      <text/>
+      <element name='switch'>
+        <ref name='switch.AT'/>
+        <zeroOrMore><ref name='svg.TextCommon.group'/></zeroOrMore>
+      </element>
+      <element name='a'>
+        <ref name='a.AT'/>
+        <zeroOrMore><ref name='svg.TextCommon-noA.group'/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+
+
+  <!-- ... text ................................................... -->
+  <define name='text'>
+    <element name='text'>
+      <ref name='text.AT'/>
+      <zeroOrMore><ref name='svg.TextCommon.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='text.AT' combine='interleave'>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Editable.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <optional>
+      <attribute name='x' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinates.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='y' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Coordinates.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='rotate' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Numbers.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... tspan .................................................. -->
+  <define name='tspan'>
+    <element name='tspan'>
+      <ref name='tspan.AT'/>
+      <zeroOrMore><ref name='svg.TextCommon.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='tspan.AT' combine='interleave'>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+  </define>
+
+</grammar>

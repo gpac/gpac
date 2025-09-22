@@ -1,0 +1,53 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Handler
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:ev='http://www.w3.org/2001/xml-events'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <ref name='handler'/>
+  </define>
+
+  <define name='svg.Handler.group' combine='choice'>
+    <ref name='handler'/>
+  </define>
+
+  <!-- ... handler ................................................ -->
+  <define name='handler'>
+    <element name='handler'>
+      <ref name='handler.AT'/>
+      <ref name='handler.CM'/>
+    </element>
+  </define>
+
+  <define name='handler.AT' combine='interleave'>
+    <ref name='svg.CorePreserve.attr'/>
+    <ref name='svg.External.attr'/>
+    <optional>
+      <attribute name='ev:event' svg:animatable='false' svg:inheritable='false'>
+        <ref name='XSLT-QName.datatype'/>
+      </attribute>
+    </optional>
+    <ref name='svg.ContentType.attr'/>
+  </define>
+
+  <define name='handler.CM'>
+    <choice>
+      <group>
+        <ref name='svg.XLinkRequired.attr'/>
+      </group>
+      <text/>
+    </choice>
+  </define>
+
+</grammar>

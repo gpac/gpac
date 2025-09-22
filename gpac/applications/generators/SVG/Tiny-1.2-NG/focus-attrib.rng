@@ -1,0 +1,86 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Focus attributes
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.Focus.attr' combine='interleave'>
+    <optional>
+      <attribute name='focusable' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>auto</value>
+          <ref name='Boolean.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-next' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-prev' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-up' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-up-right' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-right' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-down-right' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-down' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-down-left' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-left' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='nav-up-left' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Focus.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.FocusHighlight.attr' combine='interleave'>
+    <optional>
+      <attribute name='focusHighlight' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>auto</value>
+          <value>none</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

@@ -1,0 +1,113 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Paint attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.Properties.attr' combine='interleave'>
+    <optional>
+      <attribute name='fill' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Paint.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='fill-rule' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <value>nonzero</value>
+          <value>evenodd</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Paint.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke-dasharray' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <value>none</value>
+          <text/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke-dashoffset' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Length.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke-linecap' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>butt</value>
+          <value>round</value>
+          <value>square</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke-linejoin' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>miter</value>
+          <value>round</value>
+          <value>bevel</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke-miterlimit' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stroke-width' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Length.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='color' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>inherit</value>
+          <ref name='SVGColor.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='color-rendering' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>optimizeQuality</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

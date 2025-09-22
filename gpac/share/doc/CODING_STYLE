@@ -1,0 +1,135 @@
+GPAC coding style
+
+Introduction
+  coding styles only concern the GPAC core library (libgpac), and should be used for external filters and modules development.
+  
+  AStyle is a code beautifier tool. Code should be compliant with the following pattern provided by AStyle :
+  AStyle -r --indent=tab '*.c' '*.h' '*.cpp' '*.hpp'
+    
+1 Exported symbols 
+
+  1.0 Informative note
+  The GF_ or gf_ stands for "gpac framework"
+
+  1.1 typedef of structures - typedef of base types - typedef of functions
+
+All symbols defined within libgpac library and exported for application development purposes shall begin with GF_* 
+with the first character of "*" being in capital, regardless of their functionality.
+For example, GF_Thread (structure), GF_Err (redefined type), GF_LineCap (enum typedef)
+    
+All structure typedefs, whether defined (declaration exported through ehaders) or not (declaration intern to the GPAC core lib), must follow
+this principle.
+Furthermore, typedef of non-exported structure shall only apply to the structure itself, not a pointer to it. 
+    typedef struct _my_gpac_thingy *GF_LPMYGPACSTUFF;    /*this is FORBIDDEN*/
+    typedef struct _my_gpac_thingy GF_MyGPACStuff;    /*this is OK*/
+This will allow easy exporting of structure declaration if needed at some point in the development.
+
+
+  1.2 constants
+
+All constants (whether #defines or enums) shall be in capital letters and begin with "GF_" and use "_" for word separation
+For example, error code GF_BAD_PARAM.
+
+Enums names shall refer to the main module they are used in through a keyword right after the GF_ .
+For example, 
+  * enums referring to file format (isomedia) will be prefixed by GF_ISOM_
+  * enums referring to MPEG-4 OD tools (odf) will be prefixed by GF_ODF_
+  
+  1.3 functions
+
+All exported functions and pointer to functions shall begin with "gf_". The name shall refer to the main module they are sued in 
+through a keyword right after the gf_ when reasonable (gf_isom_, gf_odf_, gf_filter_), or to the tool they refer to (gf_bs_, gf_url, ...)
+  
+2 Miscalleanous
+
+All exported functions' names shall be in lower case exclusively.
+All exported functions' parameters should be in lower case exclusively.
+Exported structures may use case in any fashion as long as they respect the rules expressed in section 1 above.
+Exported structures member should preferably all be lower case - this may not be feasible for scene graph nodes & like...
+
+All exported header files shall be in lower case
+All source files within the gpac core shall be in lower case
+
+All comments should be C-like ones (/**/) not C++ ones (//)
+All exported headers documentation should be written with doxygen syntax
+All constructor-like functions should be of style gf_zzz_new
+All destructor like functions should be of style gf_zzz_del
+
+3 Current structure of the GPAC repository
+  
+This is a short overview of the gpac source repository. 
+
+- *gpac/applications/*
+    various apps of GPAC, including MP4Box, gpac, platform-specific ports and test apps
+- *gpac/bin/*
+    output path of build system
+- *gpac/build/*
+    various build systems (MSVC, Android, XCode, ...)
+- *gpac/debian/*
+    files for debian packaging
+- *gpac/extra_lib/*
+    external lib directory used by different build systems
+- *gpac/include/gpac/*
+    all exported files of the lib (high level APIs, full documentation available).
+- *gpac/include/gpac/internal/*
+    all development files of the lib (low level access).
+- *gpac/include/gpac/modules/*
+    all module APIs defined in GPAC.
+- *gpac/packagers/*
+    installer scripts for Windows and OSX
+- *gpac/modules/*
+    various modules of GPAC (video and audio output, font engine,  sensors, ...)
+- *gpac/share/doc*
+    doxygen for GPAC
+- *gpac/share/doc/idl
+    doxygen for JS APIs developped in GPAC
+- *gpac/share/doc/man*
+    man pages for GPAC
+- *gpac/share/gui/*
+    BIFS+SVG based GUI used by client.
+- *gpac/share/lang/*
+    Language files (under development) for GPAC options and help
+- *gpac/share/res/*
+    various resource files used in installers
+- *gpac/share/scripts/*
+    various JS scripts used by GPAC.
+- *gpac/share/shaders/*
+    GLSL shaders used by the compositor.
+- *gpac/share/vis/*
+    Remotery web client.
+- *gpac/src/bifs/*
+    BInary Format for Scene coding (decoder and encoder) (BIFS tables are with MPEG4Gen application in gpac/applications/generators/MPEG4)
+- *gpac/src/compositor/*
+    interactive composition engine  for 2D & 3D drawing - handles MPEG-4, X3D/VRML and SVG.
+- *gpac/src/crypto/*
+    cryptographic tools (AES 128 CBC and CTR only)
+- *gpac/src/evg/*
+    anti-aliased software rasterizer for 2D vector graphics
+- *gpac/src/filter_core/*
+    filter engine of GPAC, in charge of filter graph resolution, filter scheduling, packets handling.
+- *gpac/src/filters/*
+    filters defined in GPAC. This include encoders, decoders, av output, wrapper for GPAC's compositor, ISOBMF, RTP, M2TS muxers and demuxers, etc ...
+- *gpac/src/ietf/*
+    small RTP/RTSP/SDP library, plus media packetizers.
+- *gpac/src/isomedia/*
+    ISOBMFF (Iso Base Media File Format), features file reading/writing/editing, precise interleaving, hint track creation and movie fragments (read/write). Includes 3GPP/3GPP2 ,  AVC/SVC, HEVC/L-HEVC and JPEG2000 support.
+- *gpac/src/jsmods/*
+    Various JavaScript modules
+- *gpac/src/laser/*
+    MPEG-4 LAsER (Lightweight Application Scene Representation)
+- *gpac/src/media_tools/*
+    media tools for authoring: ISMA & 3GPP tools, AV parsers, media importing and exporting, hinting ...
+- *gpac/src/odf/*
+    MPEG-4 Object Descriptor Framework: encoding/decoding of all descriptors, OD codec and OCI codec
+- *gpac/src/quickjs/*
+    QuickJS javascript engine sources
+- *gpac/src/scene_manager/*
+    memory representation of the scene, importers (BT/XMT/SWF/QT), dumpers and encoding
+- *gpac/src/scenegraph/*
+    scene Graph API (MPEG4/VRML/X3D/SVG) - BIFS/VRML/X3D nodes are generated using gpac/applications/generators/*
+- *gpac/src/utils/*
+    all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* .
+- *gpac/testsuite/*
+    tests suite for GPAC - this is a GIT submodulen repository URL is https://github.com/gpac/testsuite.
+
+    

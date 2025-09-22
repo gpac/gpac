@@ -1,0 +1,118 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Tiny Flowable Text
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.Properties.attr' combine='interleave'>
+    <optional>
+      <attribute name='display-align' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>before</value>
+          <value>center</value>
+          <value>after</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='line-increment' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <choice>
+      <ref name='textArea'/>
+    </choice>
+  </define>
+
+
+  <!--
+    This will be meaningless if you support textArea but not text, which is
+    considered improbable at best
+    -->
+  <define name='svg.TextCommon-noA.group' combine='choice'>
+    <choice>
+      <ref name='tbreak'/>
+    </choice>
+  </define>
+
+  <define name='svg.TextCommon.group' combine='choice'>
+    <choice>
+      <ref name='tbreak'/>
+    </choice>
+  </define>
+
+
+  <!-- ... textArea ............................................... -->
+  <define name='textArea'>
+    <element name='textArea'>
+      <ref name='textArea.AT'/>
+      <zeroOrMore><ref name='svg.TextCommon.group'/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name='textArea.AT' combine='interleave'>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.XY.attr'/>
+    <ref name='svg.Editable.attr'/>
+    <optional>
+      <attribute name='width' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <ref name='Length.datatype'/>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='height' svg:animatable='true' svg:inheritable='false'>
+      <choice>
+        <ref name='Length.datatype'/>
+        <value>auto</value>
+      </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... tbreak ................................................. -->
+  <define name='tbreak'>
+    <element name='tbreak'>
+      <ref name='tbreak.AT'/>
+      <empty/>
+    </element>
+  </define>
+
+  <define name='tbreak.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+  </define>
+
+</grammar>
+
+
+
+
+
+

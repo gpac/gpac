@@ -1,0 +1,251 @@
+InitialObjectDescriptor {
+  objectDescriptorID 1
+  ODProfileLevelIndication 0x01
+  sceneProfileLevelIndication 0x01
+  audioProfileLevelIndication 0xFF
+  visualProfileLevelIndication 0xFE
+  graphicsProfileLevelIndication 0x01
+
+  esdescr [
+    ES_Descriptor {
+      es_id 1
+      decConfigDescr DecoderConfigDescriptor {
+				streamType 3
+				decSpecificInfo BIFSConfig {
+				  isCommandStream true
+				  pixelMetric true
+				  pixelWidth 400
+				  pixelHeight 400
+				}
+      }
+    }
+    ES_Descriptor {
+      es_id 2
+      decConfigDescr DecoderConfigDescriptor {
+				streamType 1
+      }
+    }
+  ]
+}
+
+OrderedGroup {
+//Group { 
+ children [
+  Background2D {backColor 1 1 1}
+
+  WorldInfo {
+   title "InputSensor Test - StringSensor device"
+   info ["This shows usage of String Sensor" "" "GPAC Regression Tests" "(C) 2002 ENST"]
+  }
+  DEF VP Viewpoint {
+   position 0 0 400
+  }
+  
+  Transform2D { 
+   children [
+    Shape { 
+     appearance DEF APP Appearance { 
+      material Material2D { 
+       emissiveColor 0.0 0.0 0.0
+       filled TRUE
+      }
+     }
+     geometry DEF TEXT Text { 
+      string [ "WiiMote Sensor" ]
+      fontStyle FontStyle { 
+       justify [ "MIDDLE" "MIDDLE" ]
+       size 20.0
+      }
+     }
+    }
+   ]
+  }
+  DEF RECT Transform2D { 
+   children [
+    Shape { 
+     appearance Appearance { 
+      material Material2D { 
+       emissiveColor 1 0 0
+       filled TRUE
+      }
+     }
+#     geometry Box { size 100 100 100 } 
+     geometry Rectangle { size 100 100 } 
+    }
+   ]
+  }
+   
+  DEF SC Script {
+   eventIn SFInt32 on_uid
+	 eventIn SFBool on_key_one
+	 eventIn SFBool on_key_two
+	 eventIn SFBool on_key_A
+	 eventIn SFBool on_key_B
+	 eventIn SFBool on_key_minus
+	 eventIn SFBool on_key_home
+	 eventIn SFBool on_key_plus
+	 eventIn SFBool on_key_left
+	 eventIn SFBool on_key_right
+	 eventIn SFBool on_key_down
+	 eventIn SFBool on_key_up
+	 eventIn SFVec3f on_ypr
+	 eventIn SFVec3f on_gravity
+	 
+	 field SFNode text USE TEXT
+	 field SFNode rect USE RECT
+	 field SFNode vp USE VP
+	 url "javascript:
+
+function initialize()
+{
+   uid=0;
+	 key_one = key_two = key_A = key_B  = key_minus = key_home = key_plus = key_left = key_right = key_down = key_up = FALSE;
+	 ypr = new SFVec3f(0,0,0);
+	 grav = new SFVec3f(0,0,0);
+	 h_rot = new SFRotation(0,1,0,0);
+	 v_rot = new SFRotation(1,0,0,0);
+}
+
+function update()
+{
+  text.string[1] = 'UID '+uid; 
+  text.string[2] = '1 '+key_one + ' ; 2 '+key_two; 
+  text.string[3] = 'A '+key_A + ' ; B '+key_B; 
+  text.string[4] = '- '+key_minus + ' ; home '+key_home + ' ; + '+key_plus; 
+  text.string[5] = 'left '+key_left + ' ; right '+key_right + ' ; down '+key_down + ' ; up '+key_up; 
+  text.string[6] = 'Yaw '+ypr.x; 
+  text.string[7] = 'Pitch '+ypr.y; 
+  text.string[8] = 'Roll '+ypr.z; 
+  text.string[9] = 'GravX '+grav.x; 
+  text.string[10] = 'GravY '+grav.y; 
+  text.string[11] = 'GravZ '+grav.z; 
+  
+//  rect.rotationAngle = -ypr.y;
+  h_rot.angle = -ypr.z;
+  v_rot.angle = -ypr.y;
+  vp.orientation = h_rot.multiply(v_rot);
+ 
+  if (key_A) vp.position.z -= 40;
+  else if (key_B) vp.position.z += 40;
+
+  rect.rotationAngle = -grav.z;
+}
+
+function on_uid(value)
+{
+ uid=value;
+ update();
+}
+
+function on_key_one(value)
+{
+ key_one=value;
+ update();
+}
+function on_key_two(value)
+{
+ key_two=value;
+ update();
+}
+function on_key_A(value)
+{
+print(''+value);
+ key_A=value;
+ update();
+}
+function on_key_B(value)
+{
+ key_B=value;
+ update();
+}
+function on_key_minus(value)
+{
+ key_minus=value;
+ update();
+}
+function on_key_home(value)
+{
+ key_home=value;
+ update();
+}
+function on_key_plus(value)
+{
+ key_plus=value;
+ update();
+}
+function on_key_left(value)
+{
+ key_left=value;
+ update();
+}
+function on_key_right(value)
+{
+ key_right=value;
+ update();
+}
+function on_key_down(value)
+{
+ key_down=value;
+ update();
+}
+function on_key_up(value)
+{
+ key_up=value;
+ update();
+}
+function on_ypr(value)
+{
+  ypr = value;
+  update();
+}
+function on_gravity(value)
+{
+  grav = value;
+  update();
+}
+
+
+   "
+  }
+
+  InputSensor { 
+   url [ "10" ]
+   buffer {
+    REPLACE SC.on_uid BY 0
+    REPLACE SC.on_key_one BY FALSE
+    REPLACE SC.on_key_two BY FALSE
+    REPLACE SC.on_key_A BY FALSE
+    REPLACE SC.on_key_B BY FALSE
+    REPLACE SC.on_key_minus BY FALSE
+    REPLACE SC.on_key_home BY FALSE
+    REPLACE SC.on_key_plus BY FALSE
+    REPLACE SC.on_key_left BY FALSE
+    REPLACE SC.on_key_right BY FALSE
+    REPLACE SC.on_key_down BY FALSE
+    REPLACE SC.on_key_up BY FALSE
+    REPLACE SC.on_ypr BY 0 0 0
+    REPLACE SC.on_gravity BY 0 0 0
+   }
+  }
+ ]
+}
+
+
+AT 0 {
+	UPDATE OD [
+		ObjectDescriptor {
+		  objectDescriptorID 10
+		  esdescr [
+		    ES_Descriptor {
+		      es_id 5
+		      decConfigDescr DecoderConfigDescriptor {
+						streamType 0x0A
+						decSpecificInfo UIConfig {
+						  deviceName "WiiMote"
+						}
+		      }
+		    }
+		  ]
+		}
+	]
+}

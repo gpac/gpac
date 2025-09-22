@@ -1,0 +1,156 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Gradients
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+
+  <define name='svg.Properties.attr' combine='interleave'>
+    <optional>
+      <attribute name='stop-color' svg:animatable='true' svg:inheritable='explicit'>
+        <choice>
+          <value>inherit</value>
+          <ref name='SVGColor.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='stop-opacity' svg:animatable='true' svg:inheritable='explicit'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.GCommon.group' combine='choice'>
+    <choice>
+      <ref name='linearGradient'/>
+      <ref name='radialGradient'/>
+    </choice>
+  </define>
+
+
+  <!-- ... *Gradient .............................................. -->
+  <define name='svg.GradientCommon.attr' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <optional>
+      <attribute name='gradientUnits' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>userSpaceOnUse</value>
+          <value>objectBoundingBox</value>
+        </choice>
+      </attribute>
+    </optional>
+
+
+
+    <!-- ... ZZZgradients full ... -->
+    <optional>
+      <attribute name='spreadMethod'>
+        <choice>
+          <value>pad</value>
+          <value>reflect</value>
+          <value>repeat</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='gradientTransform'>
+        <ref name='TransformList.datatype'/>
+      </attribute>
+    </optional>
+    <!-- seems to have disapeared from tiny ?? -->
+    <ref name='svg.XLinkEmbed.attr'/>
+  </define>
+
+  <define name='GradientCommon.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='svg.Animate.group'/>
+        <ref name='svg.Discard.group'/>
+        <ref name='stop'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+  <!-- ... linearGradient ......................................... -->
+  <define name='linearGradient'>
+    <element name='linearGradient'>
+      <ref name='linearGradient.AT'/>
+      <ref name='GradientCommon.CM'/>
+    </element>
+  </define>
+
+  <define name='linearGradient.AT' combine='interleave'>
+    <ref name='svg.GradientCommon.attr'/>
+    <ref name='svg.X12Y12.attr'/>
+  </define>
+
+
+  <!-- ... radialGradient ......................................... -->
+  <define name='radialGradient'>
+    <element name='radialGradient'>
+      <ref name='radialGradient.AT'/>
+      <ref name='GradientCommon.CM'/>
+    </element>
+  </define>
+
+  <define name='radialGradient.AT' combine='interleave'>
+    <ref name='svg.GradientCommon.attr'/>
+    <ref name='svg.CxCy.attr'/>
+    <ref name='svg.R.attr'/>
+
+  <!-- ... radialgradient full ... -->
+    <optional>
+      <attribute name='fx'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='fy'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <!-- ... stop ................................................... -->
+  <define name='stop'>
+    <element name='stop'>
+      <ref name='stop.AT'/>
+      <ref name='stop.CM'/>
+    </element>
+  </define>
+
+  <define name='stop.CM'>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='svg.Animate.group'/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+  <define name='stop.AT' combine='interleave'>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <optional>
+      <attribute name='offset' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

@@ -1,0 +1,25 @@
+* text=auto
+
+*.c text
+*.cpp text
+*.h text
+*.ttx text
+Makefile text
+
+#unix
+*.sh text eol=lf
+configure text eol=lf
+
+#windows
+*.bat text eol=crlf
+*.sln text eol=crlf
+*.vcproj text eol=crlf
+*.vcxproj text eol=crlf
+*.dsp text eol=crlf
+*.dsw text eol=crlf
+
+#tests
+tests/media/xmlin4/input.txt text eol=crlf
+tests/media/xmlin4/input.xml text eol=lf
+tests/media/laser/*.xml text eol=lf
+tests/media/ttml/ebu-ttd_sample.ttml text eol=lf

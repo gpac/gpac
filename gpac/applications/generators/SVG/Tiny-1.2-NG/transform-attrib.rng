@@ -1,0 +1,25 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Transform attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.Transform.attr' combine='interleave'>
+    <optional>
+      <attribute name='transform' svg:animatable='true' svg:inheritable='false'>
+		<choice>
+          <ref name='TransformList.datatype'/>
+          <value>none</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

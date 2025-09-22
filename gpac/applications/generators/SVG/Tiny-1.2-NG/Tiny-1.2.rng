@@ -1,0 +1,55 @@
+
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Tiny Driver
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:xlink='http://www.w3.org/1999/xlink'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <!-- ... common libraries and attributes ........................ -->
+  <include href='datatypes.rng'/>
+  <include href='headers.rng'/>
+  <include href='core-attrib.rng'/>
+  <include href='coordinate-attrib.rng'/>
+  <include href='extresources-attrib.rng'/>
+  <include href='focus-attrib.rng'/>
+  <include href='graphics-attrib.rng'/>
+  <include href='media-attrib.rng'/>
+  <include href='transform-attrib.rng'/>
+  <include href='xlink-attrib.rng'/>
+  <include href='opacity-attrib-tiny.rng'/>
+  <include href='paint-attrib-tiny.rng'/>
+  <include href='vectoreffects-attrib-tiny.rng'/>
+  <include href='viewport-attrib-tiny.rng'/>
+  <include href='contenttype-attrib.rng'/>
+
+  <!-- ... element definitions .................................... -->
+  <include href='structure-tiny.rng'/>
+  <include href='animate.rng'/>
+  <include href='animation-element.rng'/>
+  <include href='audio.rng'/>
+  <include href='conditional.rng'/>
+  <include href='extensibility.rng'/>
+  <include href='handler.rng'/>
+  <include href='hyperlink.rng'/>
+  <include href='image.rng'/>
+  <include href='discard.rng'/>
+  <include href='prefetch.rng'/>
+  <include href='script.rng'/>
+  <include href='shapes.rng'/>
+  <include href='solidcolor.rng'/>
+  <include href='video.rng'/>
+  <include href='flowable-text-tiny.rng'/>
+  <include href='font-tiny.rng'/>
+  <include href='gradient-tiny.rng'/>
+  <include href='text-tiny.rng'/>
+  <include href='xml-events.rng'/>
+
+  <include href='laser-ext.rng'/>
+</grammar>

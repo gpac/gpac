@@ -1,0 +1,68 @@
+PROTO FootPrintSetNode [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
+exposedField	MFGeometryNode		children		[]
+]{}
+
+PROTO FootPrintNode [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
+
+exposedField	SFInt32		index			-1	#%b=[0,65535]
+exposedField	SFGeometryNode	footprint		NULL
+]{}
+
+PROTO BuildingPartNode [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
+
+exposedField	SFInt32		index			-1	#%b=[0,65535]
+exposedField	SFGeometryNode	footprint		NULL	
+exposedField	SFInt32 buildingIndex   	-1	#%b=[0,65535]
+exposedField	SFFloat	height	0					#%b=[0,I]
+exposedField	SFFloat	altitude	0				#%b=[0,I]
+exposedField	MFGeometryNode		alternativeGeometry	[]
+exposedField	MFGeometryNode  		roofs	[]
+exposedField	MFGeometryNode  		facades	[]
+]{}
+
+
+
+PROTO RoofNode [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
+
+exposedField	SFInt32		Type			0	#%b=[0,65535]
+exposedField	SFFloat			Height			0.0	#%b=[0,I]
+exposedField	MFFloat 		SlopeAngle		[0.0]	#%b=[0,6.2831854]
+exposedField	SFFloat			EaveProjection		0.0
+exposedField	SFInt32			EdgeSupportIndex	-1	#%b=[0,65535]
+exposedField	SFURL			RoofTextureURL		""
+exposedField	SFBool  		IsGenericTexture	TRUE	
+exposedField	SFFloat			TextureXScale		1.0	#%b=[0,I]
+exposedField	SFFloat			TextureYScale		1.0	#%b=[0,I]
+exposedField	SFFloat			TextureXPosition	0.0	#%b=[0,I]
+exposedField	SFFloat			TextureYPosition	0.0	#%b=[0,I]
+exposedField	SFFloat			TextureRotation		0.0	#%b=[0,I]
+]{}
+
+
+
+PROTO FacadeNode [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
+exposedField	SFFloat			WidthRatio		1.0	#%b=[-I,I]
+exposedField	SFFloat			XScale			1.0	#%b=[-I,I]
+exposedField	SFFloat			YScale			1.0	#%b=[-I,I]
+exposedField	SFFloat			XPosition		0.0	#%b=[-I,I]
+exposedField	SFFloat			YPosition		0.0	#%b=[-I,I]
+exposedField	SFFloat			XRepeatInterval		0.0	#%b=[-I,I]
+exposedField	SFFloat			YRepeatInterval		0.0	#%b=[-I,I]
+exposedField	SFBool			Repeat			FALSE
+exposedField	SFURL			FacadePrimitive		""
+exposedField	SFInt32  		NbStories		0	#%b=[0,65535]
+exposedField	MFInt32		NbFacadeCellsByStorey	0	
+exposedField	MFFloat			StoreyHeight		1.0	#%b=[0,I]
+exposedField	MFGeometryNode		FacadeCellsArray	[]
+]{}
+
+
+PROTO Shadow [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
+eventIn		MF3DNode			addChildren	
+eventIn		MF3DNode			removeChildren	
+exposedField	MF3DNode			children		[]
+exposedField	SFBool			enabled			TRUE
+exposedField	SFBool			cast			TRUE
+exposedField	SFBool			receive			TRUE
+exposedField	SFFloat			penumbra		0	#%b=[0,I]
+]{}

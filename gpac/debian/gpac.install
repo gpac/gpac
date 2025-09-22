@@ -1,0 +1,4 @@
+debian/tmp/usr/bin
+debian/tmp/usr/share
+debian/tmp/usr/lib/*.so*
+debian/tmp/usr/lib/gpac
