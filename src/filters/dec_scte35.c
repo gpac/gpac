@@ -783,7 +783,7 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					*size = emib->message_data_size;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
 
-					if (emib->scheme_id_uri && strcmp(emib->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
+					if (ctx->mode == 0 && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode.\n", emib->scheme_id_uri));
 						ctx->mode = 1;
 						gf_isom_box_del(a);
@@ -848,7 +848,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	u32 size = 0;
 	Bool own = GF_FALSE;
 	const u8 *data = scte35dec_pck_get_data(ctx, pck, &size, &own);
-	if (data && size) {
+	if (data && size && !IS_PASSTHRU) {
 		GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
 		if (own)
 			gf_free((void*)data);
