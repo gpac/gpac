@@ -72,6 +72,7 @@ typedef struct {
 	u8 emeb_box[8];
 
 	GF_FilterPacket *dash_pck; // when called from the dasher
+	Bool is_dash;
 } SCTE35DecCtx;
 
 static GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
@@ -202,8 +203,8 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 			gf_filter_pck_merge_properties(ctx->dash_pck, pck);
 			gf_filter_pck_unref(ctx->dash_pck);
 			ctx->dash_pck = NULL;
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU". Ignore this message if not using the dasher.\n", dts));
+		} else if (ctx->is_dash) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU".\n", dts));
 		}
 	}
 
@@ -864,6 +865,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 			if (ctx->dash_pck)
 				gf_filter_pck_unref(ctx->dash_pck);
 			ctx->dash_pck = pck;
+			ctx->is_dash = GF_TRUE;
 			gf_filter_pck_ref_props(&ctx->dash_pck);
 		}
 
