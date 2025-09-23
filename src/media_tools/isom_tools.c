@@ -4269,7 +4269,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 	return GF_OK;
 }
 
-GF_Err rfc_6381_get_codec_imaf(char *szCodec, GF_IAConfig *cfg)
+GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 {
 	IAMFState state;
 	gf_iamf_init_state(&state);
@@ -4584,13 +4584,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 
 	case GF_ISOM_SUBTYPE_IAMF:
 	{
-		GF_IAConfig *imaf = gf_isom_iamf_config_get(movie, track, stsd_idx);
-		if (!imaf) {
+		GF_IAConfig *iamf = gf_isom_iamf_config_get(movie, track, stsd_idx);
+		if (!iamf) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] No config found for IAMF file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		e = rfc_6381_get_codec_imaf(szCodec, imaf);
-		gf_odf_iamf_cfg_del(imaf);
+		e = rfc_6381_get_codec_iamf(szCodec, iamf);
+		gf_odf_iamf_cfg_del(iamf);
 		return e;
 	}
 
