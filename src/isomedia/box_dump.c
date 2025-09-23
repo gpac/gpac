@@ -7278,6 +7278,25 @@ GF_Err evte_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err silb_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SchemeIdListBox *p = (GF_SchemeIdListBox *) a;
+	gf_isom_box_dump_start(a, "SchemeIdListBox", trace);
+
+	fprintf(trace, "number_of_schemes=\"%u\" other_schemes_flag=\"%u\"",
+		p->number_of_schemes, p->other_schemes_flag);
+	gf_fprintf(trace, ">\n");
+
+	for (u32 i=0; i<p->number_of_schemes; ++i) {
+		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry*)gf_list_get(p->schemes, i);
+		fprintf(trace, "<SchemeIdListBoxEntry scheme_id_uri=\"%s\" value=\"%s\" value=\"%u\"/>\n",
+			ent->scheme_id_uri, ent->value, ent->atleast_once_flag);
+	}
+
+	gf_isom_box_dump_done("SchemeIdListBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err csgp_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
