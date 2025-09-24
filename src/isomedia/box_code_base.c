@@ -10372,6 +10372,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		}
 		break;
 
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 	case GF_ISOM_SAMPLE_GROUP_TSAS:
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		null_size_ok = GF_TRUE;
@@ -10708,6 +10709,7 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return 20;
 	case GF_ISOM_SAMPLE_GROUP_LBLI:
 		return 2;
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 	case GF_ISOM_SAMPLE_GROUP_TSAS:
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		return 0;

@@ -916,7 +916,7 @@ typedef struct
 {
 	Bool is_first_frame;
 	Bool seen_frame_header, seen_seq_header;
-	Bool key_frame, show_frame;
+	Bool key_frame, switch_frame, show_frame;
 	AV1FrameType frame_type;
 	GF_List *header_obus, *frame_obus; /*GF_AV1_OBUArrayEntry*/
 	AV1Tile tiles[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];

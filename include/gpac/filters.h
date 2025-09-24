@@ -4826,6 +4826,8 @@ typedef enum
 	GF_FILTER_SAP_NONE = 0,
 	/*! closed gop no leading */
 	GF_FILTER_SAP_1,
+	/*! AV1 switch frame */
+	GF_FILTER_SAP_1_SWITCH,
 	/*! closed gop leading */
 	GF_FILTER_SAP_2,
 	/*! open gop */
