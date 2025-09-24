@@ -1456,7 +1456,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_PROP(GF_PROP_PID_REP_DESC, ds->p_rep_desc, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_BASE_URL, ds->p_base_url, GF_EOS)
 		CHECK_PROP_PROP(GF_PROP_PID_ROLE, ds->p_role, GF_EOS)
-		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
 		//if manifest generation mode with template and no template at PID or filter level, switch to main profile
@@ -1518,6 +1517,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (p && p->value.lfrac.den) ds->clamped_dur = p->value.lfrac;
 
 		//HLS variant playlist is allowed to use templates, resolve
+		char *old_hls_vp_name = ds->hls_vp_name;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HLS_PLAYLIST);
+		ds->hls_vp_name = (p && p->value.string) ? gf_strdup(p->value.string) : NULL;
 		if (ds->hls_vp_name) {
 			char szTempName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
 			e = gf_filter_pid_resolve_file_template(ds->ipid, ds->hls_vp_name, szTempName, 0, NULL);
@@ -1530,11 +1532,20 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_free(ds->hls_vp_name);
 				ds->hls_vp_name = gf_strdup(szFinalName);
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Failed to solve HLS variant playlist template %s: %s - will use default\n", ds->hls_vp_name, gf_error_to_string(e)));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Failed to solve HLS variant playlist template %s: %s - will use default\n", ds->hls_vp_name, gf_error_to_string(e)));
 				gf_free(ds->hls_vp_name);
 				ds->hls_vp_name = NULL;
 			}
 		}
+		//we cannot use the CHECK_PROP_STR macro since this might use template and hls_vp_name is the resolved version
+		if (old_hls_vp_name) {
+			if (!ds->hls_vp_name || strcmp(ds->hls_vp_name, old_hls_vp_name))
+				period_switch = GF_TRUE;
+			gf_free(old_hls_vp_name);
+		} else if (ds->hls_vp_name) {
+			period_switch = GF_TRUE;
+		}
+
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
 		if(p){
@@ -4755,6 +4766,43 @@ static void dasher_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimel
 	}
 }
 
+static void send_file_delete(GF_DasherCtx *ctx, GF_DashStream *ds, const char *filename, const char *filepath, s32 part_idx)
+{
+	GF_FilterEvent anevt;
+	char szPath[GF_MAX_PATH];
+	GF_FEVT_INIT(anevt, GF_FEVT_FILE_DELETE, ds->opid);
+
+	//for gfio we signal the filename relative to the parent gfio manifest
+	//we could build a gfio for the segment or part but that would require user apps to track too many gfio files
+	//which we want to avoid
+	if (!strncmp(filepath, "gfio://", 7)) {
+		char *hls_sep = (ctx->do_m3u8 && ds->hls_vp_name) ? strrchr(ds->hls_vp_name, '/') : NULL;
+		//special case for HLS variant in dedicated folder, the ctx filename is relative to the variant
+		//but we need relative to the manifest
+		if (hls_sep) {
+			char *path = gf_url_concatenate(ds->hls_vp_name, filename);
+			if (part_idx>=0)
+				sprintf(szPath, "%s@%s.%u", ctx->out_path, path ? path : filename, part_idx);
+			else
+				sprintf(szPath, "%s@%s", ctx->out_path, path ? path : filename);
+			if (path) gf_free(path);
+		} else {
+			if (part_idx>=0)
+				sprintf(szPath, "%s@%s.%u", ctx->out_path, filename, part_idx);
+			else
+				sprintf(szPath, "%s@%s", ctx->out_path, filename);
+		}
+		anevt.file_del.url = szPath;
+	} else {
+		if (part_idx>=0)
+			sprintf(szPath, "%s.%u", filepath, part_idx);
+		else
+			sprintf(szPath, "%s", filepath);
+		anevt.file_del.url = szPath;
+	}
+	gf_filter_pid_send_event(ds->opid, &anevt);
+}
+
 static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 {
 	Double min_valid_mpd_time;
@@ -4823,23 +4871,16 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				continue;
 			}
 			if (sctx->filepath) {
-				GF_FilterEvent evt;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath));
 
-				GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
-				evt.file_del.url = sctx->filepath;
-				gf_filter_pid_send_event(ds->opid, &evt);
+				send_file_delete(ctx, ds, sctx->filename, sctx->filepath, -1);
+
 				//purge LLHLS frags
 				if (sctx->frags && (sctx->llhls_mode==GF_DASH_LL_HLS_SF || ds->set->ssr_mode)) {
 					u32 k;
 					for (k=0; k<sctx->nb_frags; k++) {
-						char szTmp[100];
-						sprintf(szTmp, ".%u", k + (ds->set->ssr_mode || !gf_sys_is_test_mode() ? 0 : 1));
-						char *frag_url = gf_strdup(sctx->filepath);
-						gf_dynstrcat(&frag_url, szTmp, NULL);
-						evt.file_del.url = frag_url;
-						gf_filter_pid_send_event(ds->opid, &evt);
-						gf_free(frag_url);
+						s32 part_idx = k + ((ds->set->ssr_mode || !gf_sys_is_test_mode()) ? 0 : 1);
+						send_file_delete(ctx, ds, sctx->filename, sctx->filepath, part_idx);
 					}
 				}
 				gf_free(sctx->filepath);
@@ -10699,12 +10740,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					if (prev_sctx->llhls_mode==GF_DASH_LL_HLS_SF) {
 						u32 k;
 						for (k=0; k<prev_sctx->nb_frags; k++) {
-							GF_FilterEvent anevt;
-							char szPath[GF_MAX_PATH];
-							sprintf(szPath, "%s.%u", prev_sctx->filepath, k + (ds->set->ssr_mode || !gf_sys_is_test_mode() ? 0 : 1));
-							GF_FEVT_INIT(anevt, GF_FEVT_FILE_DELETE, ds->opid);
-							anevt.file_del.url = szPath;
-							gf_filter_pid_send_event(ds->opid, &anevt);
+							s32 part_idx = k + (ds->set->ssr_mode || !gf_sys_is_test_mode() ? 0 : 1);
+							send_file_delete(ctx, ds, prev_sctx->filename, prev_sctx->filepath, part_idx);
 						}
 					}
 					prev_sctx->llhls_mode = GF_DASH_LL_HLS_OFF;
