@@ -572,6 +572,8 @@ typedef enum {
 	RAP = 1,
 	/*! sync point (IDR)*/
 	SAP_TYPE_1 = 1,
+	/*! sync point (IDR Switch Frame)*/
+	SAP_TYPE_1_SWITCH = 1,
 	/*! sync point (IDR)*/
 	SAP_TYPE_2 = 2,
 	/*! RAP, OpenGOP*/
@@ -5012,6 +5014,16 @@ GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *isom_file, GF_ISOTrack
 */
 GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples);
 
+/*! sets AV1 Switching Frame information for a sample in a track fragment
+\param isom_file the target ISO file
+\param trackID the ID of the target track
+\param sample_number_in_frag the sample number of the sample in the traf
+\param is_rap set to GF_TRUE to indicate the sample is a RAP sample (open-GOP), GF_FALSE otherwise
+\param num_leading_samples set to the number of leading pictures for a RAP sample
+\return error if any
+*/
+GF_Err gf_isom_fragment_set_sample_av1_switch_frame_group(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_switch_Frame);
+
 /*! sets sample dependency flags in a track fragment - see ISO/IEC 14496-12 and \ref gf_filter_pck_set_dependency_flags
 \param isom_file the target ISO file
 \param trackID the ID of the target track
@@ -7193,6 +7205,7 @@ enum {
 	GF_ISOM_SAMPLE_GROUP_VIPR = GF_4CC( 'v', 'i', 'p', 'r'), //p15
 	GF_ISOM_SAMPLE_GROUP_LBLI = GF_4CC( 'l', 'b', 'l', 'i'), //p15
 	GF_ISOM_SAMPLE_GROUP_3GAG = GF_4CC( '3', 'g', 'a', 'g'), //3gpp
+	GF_ISOM_SAMPLE_GROUP_AV1S = GF_4CC( 'a', 'v', '1', 's'), //av1-isobmff
 	GF_ISOM_SAMPLE_GROUP_AVCB = GF_4CC( 'a', 'v', 'c', 'b'), //avif
 	GF_ISOM_SAMPLE_GROUP_SPOR = GF_4CC( 's', 'p', 'o', 'r'), //p15
 	GF_ISOM_SAMPLE_GROUP_SULM = GF_4CC( 's', 'u', 'l', 'm'), //p15
@@ -7296,6 +7309,18 @@ GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \return error if any
 */
 GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool is_rap, u32 num_leading_samples);
+
+/*! sets AV1 Switching Frame info for sample_number
+\warning Sample group info MUST be added in order (no insertion in the tables)
+
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleNumber the target sample number
+\param is_rap indicates if the sample is a RAP (open gop) sample
+\param num_leading_samples indicates the number of leading samples (samples after this RAP that have dependences on samples before this RAP and hence should be discarded when tuning in)
+\return error if any
+*/
+GF_Err gf_isom_set_sample_av1_switch_frame_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool is_switch_Frame);
 
 /*! sets roll_distance info for sample_number (number of frames before (<0) or after (>0) this sample to have a complete refresh of the decoded data (used by GDR in AVC)
 

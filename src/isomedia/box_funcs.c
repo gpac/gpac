@@ -1171,6 +1171,8 @@ static struct box_registry_entry {
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_3GAG, "3gpp"),
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVCB, "3gpp"),
 
+	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AV1S, "av1-isobmff"),
+
 	//internal boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRM, gnrm, "stsd", "unknown"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRV, gnrv, "stsd", "unknown"),
