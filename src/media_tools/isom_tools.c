@@ -1342,6 +1342,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	if (subtype == GF_ISOM_SUBTYPE_3GP_DIMS) {
 		GF_BitStream *bs;
 		GF_DIMSDescription dims;
+		GF_Err e = gf_isom_get_dims_description(mp4, track, 1, &dims);
+		if (e!=GF_OK) return NULL;
 		esd = gf_odf_desc_esd_new(0);
 		if (!esd) return NULL;
 		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
@@ -1350,7 +1352,6 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
 		/*use private DSI*/
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_DIMS;
-		gf_isom_get_dims_description(mp4, track, 1, &dims);
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u8(bs, dims.profile);
