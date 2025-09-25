@@ -698,14 +698,14 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
 	}
-	
+
 	Float dpih, dpiv;
 	dpih = (Float) (p->horiz_res&0xFFFF);
 	dpih /= 0xFFFF;
 	dpih += (p->vert_res>>16);
 	dpiv = (Float) (p->vert_res&0xFFFF);
 	dpiv /= 0xFFFF;
-	dpiv += (p->vert_res>>16); 
+	dpiv += (p->vert_res>>16);
 	if (gf_sys_is_test_mode()) {
 		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	} else {
@@ -4286,8 +4286,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
 
-		if (txt->is_forced) gf_fprintf(dump, " !!!");
-		else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		//if (txt->is_forced) gf_fprintf(dump, " !!!");
+		//else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
 
 		gf_fprintf(dump, "\n");
 

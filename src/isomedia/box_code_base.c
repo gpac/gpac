@@ -14585,6 +14585,7 @@ static s32 read_signed_int(GF_BitStream *bs, u32 nb_bits, s32 max_val)
 {
 	s32 val = gf_bs_read_int(bs, nb_bits);
 	if (val<max_val) return val;
+	if (max_val>=GF_INT_MAX/2) return max_val;
 	return val - (2*max_val);
 }
 
