@@ -6878,7 +6878,8 @@ static Bool filter_pck_check_prop_change(GF_FilterPidInst *pidinst, GF_FilterPac
 				}
 			}
 		}
-		if (!skip_props) {
+		//pidinst->filter may be null if graph is being reconfigured
+		if (!skip_props && pidinst->filter) {
 			if (do_notif) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
 

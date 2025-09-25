@@ -1977,7 +1977,12 @@ typedef struct
 typedef struct
 {
 	FILTER_EVENT_BASE
-	/*! URL to delete, or "__gpac_self__" when asking source filter to delete file */
+	/*! URL to delete, or "__gpac_self__" when asking source filter to delete file
+
+	For gfio files, the syntax gfio://PTR@URL is allowed, with:
+		- PTR: the parent gfio pointer
+		- URL: the url of the file to delete, relative to the parent gfio
+	*/
 	const char *url;
 } GF_FEVT_FileDelete;
 

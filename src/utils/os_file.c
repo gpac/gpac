@@ -219,6 +219,25 @@ void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc)
 	}
 }
 
+GF_Err gf_fileio_file_delete(const char *fileName, const char *parent_gfio)
+{
+	if (!gfio_delete_handlers || !fileName) return GF_OK;
+	if (!parent_gfio) {
+		if (strncmp(fileName, "gfio://", 7)) return GF_EOS;
+	} else {
+		if (strncmp(parent_gfio, "gfio://", 7)) return GF_EOS;
+	}
+
+	u32 i, count=gf_list_count(gfio_delete_handlers);
+	for (i=0; i<count; i++) {
+		gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
+		GF_Err ret = del_proc(fileName, parent_gfio);
+		if (ret==GF_EOS) continue;
+		return ret;
+	}
+	return GF_OK;
+}
+
 GF_EXPORT
 GF_Err gf_file_delete(const char *fileName)
 {
@@ -227,15 +246,7 @@ GF_Err gf_file_delete(const char *fileName)
 		return GF_OK;
 	}
 	if (!strncmp(fileName, "gfio://", 7)) {
-		if (!gfio_delete_handlers) return GF_OK;
-		u32 i, count=gf_list_count(gfio_delete_handlers);
-		for (i=0; i<count; i++) {
-			gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
-			GF_Err ret = del_proc(fileName);
-			if (ret==GF_EOS) continue;
-			return ret;
-		}
-		return GF_OK;
+		return gf_fileio_file_delete(fileName, NULL);
 	}
 
 #if defined(_WIN32_WCE)
@@ -1035,6 +1046,7 @@ struct __gf_file_io
 	char *res_url;
 	void *udta;
 
+	u32 creation_time;
 	u64 bytes_done, file_size_plus_one;
 	Bool main_th;
 	GF_FileIOCacheState cache_state;
@@ -1186,6 +1198,8 @@ static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
 	return ptr;
 }
 
+GF_List *allocated_gfios = NULL;
+
 GF_EXPORT
 GF_FileIO *gf_fileio_new(char *url, void *udta,
 	gfio_open_proc open,
@@ -1217,9 +1231,18 @@ GF_FileIO *gf_fileio_new(char *url, void *udta,
 	if (url)
 		tmp->res_url = gf_strdup(url);
 
-	sprintf(szURL, "gfio://%p", tmp);
+	//add clock as cookie to avoid creating twice th same gfio url in case the above malloc returns
+	//the same adress as a previously allocated gfio
+	tmp->creation_time = gf_sys_clock();
+	sprintf(szURL, "gfio://%p&%u", tmp, tmp->creation_time);
 	tmp->url = gf_strdup(szURL);
 	tmp->__this = tmp;
+	//track all allocated gfios so that we don't attempt accessing a freed one !
+	gf_mx_p(logs_mx);
+	if (!allocated_gfios) allocated_gfios = gf_list_new();
+	gf_list_add(allocated_gfios, tmp);
+	gf_mx_v(logs_mx);
+
 	return tmp;
 }
 
@@ -1239,10 +1262,23 @@ GF_EXPORT
 void gf_fileio_del(GF_FileIO *gfio)
 {
 	if (!gfio) return;
+	gf_mx_p(logs_mx);
+	if (gf_list_del_item(allocated_gfios, gfio)<0) {
+		gf_mx_v(logs_mx);
+		return;
+	}
+	if (!gf_list_count(allocated_gfios)) {
+		gf_list_del(allocated_gfios);
+		allocated_gfios = NULL;
+	}
+	gf_mx_v(logs_mx);
+
 	if (gfio->url) gf_free(gfio->url);
 	if (gfio->res_url) gf_free(gfio->res_url);
 	if (gfio->printf_buf) gf_free(gfio->printf_buf);
 	gf_free(gfio);
+
+
 }
 
 GF_EXPORT
@@ -1317,16 +1353,24 @@ GF_EXPORT
 GF_FileIO *gf_fileio_from_url(const char *url)
 {
 	char szURL[100];
+	u32 cookie=0;
 	GF_FileIO *ptr=NULL;
 	if (!url) return NULL;
 	if (strncmp(url, "gfio://", 7)) return NULL;
 
-	sscanf(url, "gfio://%p", &ptr);
-	sprintf(szURL, "gfio://%p", ptr);
+	sscanf(url, "gfio://%p&%u", &ptr, &cookie);
+	sprintf(szURL, "gfio://%p&%u", ptr, cookie);
 	if (strcmp(url, szURL))
 		return NULL;
 
-	if (ptr && ptr->url && !strcmp(ptr->url, url) ) {
+	gf_mx_p(logs_mx);
+	if (gf_list_find(allocated_gfios, ptr)<0) {
+		gf_mx_v(logs_mx);
+		return NULL;
+	}
+	gf_mx_v(logs_mx);
+
+	if (ptr && ptr->url && !strcmp(ptr->url, url) && (ptr->creation_time==cookie) ) {
 		return ptr;
 	}
 	return NULL;

@@ -148,6 +148,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_write_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_register_delete_proc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_unregister_delete_proc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_from_url) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
