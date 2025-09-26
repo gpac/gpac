@@ -873,6 +873,7 @@ ISOM_BOX_IMPL_DECL(emsg)
 ISOM_BOX_IMPL_DECL(emib)
 ISOM_BOX_IMPL_DECL(emeb)
 ISOM_BOX_IMPL_DECL(evte)
+ISOM_BOX_IMPL_DECL(silb)
 
 #endif
 
@@ -1376,6 +1377,7 @@ static struct box_registry_entry {
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMIB, emib, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMEB, emeb, "file", "EventMessageTrack"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_SILB, silb, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EVTE, gen_sample_entry, "stsd", "EventMessageTrack"),
 #endif
 

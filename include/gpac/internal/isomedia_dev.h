@@ -250,6 +250,7 @@ enum
 	GF_ISOM_BOX_TYPE_EMIB	= GF_4CC( 'e', 'm', 'i', 'b' ),
 	GF_ISOM_BOX_TYPE_EMEB	= GF_4CC( 'e', 'm', 'e', 'b' ),
 	GF_ISOM_BOX_TYPE_EVTE	= GF_4CC( 'e', 'v', 't', 'e' ),
+	GF_ISOM_BOX_TYPE_SILB	= GF_4CC( 's', 'i', 'l', 'b' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -3411,9 +3412,26 @@ typedef struct
 
 typedef struct
 {
+	char *scheme_id_uri;
+	char *value;
+	u8 reserved : 7;
+	u8 atleast_once_flag : 1;
+} GF_SchemeIdListBoxEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 number_of_schemes;
+	GF_List *schemes; /*list of GF_SchemeIdListBoxEntry*/
+	u8 reserved : 7;
+	u8 other_schemes_flag : 1;
+} GF_SchemeIdListBox;
+
+typedef struct
+{
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_BitRateBox *btrt;
-	/*GF_SchemeIdListBox*/void *silb; //'silb' box, not implemented yet
+	GF_SchemeIdListBox *silb;
 } GF_EventMessageSampleEntryBox;
 
 

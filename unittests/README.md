@@ -53,7 +53,7 @@ You can include the filter source code file in your test file. This has the adva
 unittest(scte35dec_segmentation_end)
 {
     SCTE35DecCtx ctx = {0};
-    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
+    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK, "%d");
 
     ctx.segdur = (GF_Fraction){1, 1};
 
