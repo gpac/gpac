@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -4166,6 +4166,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	GF_Tx3gSampleEntryBox *txtd;
 	char szDur[100];
 	Bool is_wvtt = GF_FALSE;
+	Bool srt_forced_subs = gf_opts_get_bool("core", "srt-forced");
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
 	u32 subtype = gf_isom_get_media_subtype(the_file, track, 1);
 	if (!trak) return GF_BAD_PARAM;
@@ -4286,8 +4287,10 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
 
-		//if (txt->is_forced) gf_fprintf(dump, " !!!");
-		//else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		if (srt_forced_subs) {
+			if (txt->is_forced) gf_fprintf(dump, " !!!");
+			else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		}
 
 		gf_fprintf(dump, "\n");
 
