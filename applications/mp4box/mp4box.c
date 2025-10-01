@@ -4784,6 +4784,9 @@ static GF_Err do_dash()
 	if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
 		M4_LOG(GF_LOG_WARNING, ("Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration));
 		dash_subduration = dash_duration;
+	} else if (dash_live && !dash_subduration) {
+		M4_LOG(GF_LOG_WARNING, ("Warning: dash-live with no -subdur parameter no longer supported, using segment duration as subdur %g s\n", dash_duration));
+		dash_subduration = dash_duration;
 	}
 
 	if (dash_mode && dash_live)
