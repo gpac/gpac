@@ -1352,7 +1352,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			ctx->fragdur = GF_TRUE;
 	}
 
-	if (ctx->dash_mode && !ctx->tfdt_traf) {
+	if (ctx->dash_mode && ctx->fragdur && !ctx->tfdt_traf) {
 		const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_DUR);
 		GF_Fraction dash_dur = {0};
 		if (p) dash_dur = p->value.frac;
