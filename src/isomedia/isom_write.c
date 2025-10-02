@@ -7647,6 +7647,7 @@ GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, 
 	return gf_isom_add_sample_group_entry(groupList, sample_number, sgdesc, grouping_type_parameter, sampleGroupDescriptionIndex, trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable);
 }
 
+
 void *sg_rap_create_entry(void *udta)
 {
 	GF_VisualRandomAccessEntry *entry;
@@ -7675,6 +7676,31 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_num
 GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples)
 {
 	return gf_isom_set_sample_group_info_internal(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, is_rap ? sg_rap_create_entry : NULL, is_rap ? sg_rap_compare_entry : NULL);
+}
+
+
+void *sg_av1s_create_entry(void *udta)
+{
+	GF_AV1SwitchingEntry *entry;
+	GF_SAFEALLOC(entry, GF_AV1SwitchingEntry);
+	if (!entry) return NULL;
+	return entry;
+}
+
+Bool sg_av1s_compare_entry(void *udta, void *entry)
+{
+	return GF_TRUE;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_sample_av1_switch_frame_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool is_switch_Frame)
+{
+	return gf_isom_set_sample_group_info_internal(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_AV1S, 0, NULL, is_switch_Frame ? sg_av1s_create_entry : NULL, is_switch_Frame ? sg_av1s_compare_entry : NULL);
+}
+
+GF_Err gf_isom_fragment_set_sample_av1_switch_frame_group(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_switch_Frame)
+{
+	return gf_isom_set_sample_group_info_internal(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_AV1S, 0, NULL, is_switch_Frame ? sg_av1s_create_entry : NULL, is_switch_Frame ? sg_av1s_compare_entry : NULL);
 }
 
 
