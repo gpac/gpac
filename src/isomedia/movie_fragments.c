@@ -1149,6 +1149,9 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 			continue;
 		}
 	}
+	// don't write empty fragment
+	if (!gf_list_count(movie->moof->TrackList))
+		return GF_OK;
 
 	buffer = NULL;
 	/*rewind bitstream and load mdat in memory */
