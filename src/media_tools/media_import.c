@@ -990,7 +990,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		if (!strnicmp(sL, "AddChapter(", 11)) {
 			u32 nb_fr;
 			sscanf(sL, "AddChapter(%u,%1023s)", &nb_fr, szTitle);
-			ts = gf_timestamp_rescale(nb_fr, 1000 * import->video_fps.den, import->video_fps.num);
+			ts = gf_timestamp_rescale(nb_fr, import->video_fps.num, 1000 * import->video_fps.den);
 			sL = strchr(sL, ',');
 			strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
