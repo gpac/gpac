@@ -9897,9 +9897,20 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			}
 		}
 		if (dcd || dcd_enh) {
-			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
+			GF_HEVCConfig *hvcc;
+			if (dcd)
+				hvcc = gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE);
+			else
+				hvcc = gf_odf_hevc_cfg_read(dcd_enh->value.data.ptr, dcd_enh->value.data.size, GF_TRUE);
+
 			if (hvcc) {
-				GF_Err e = rfc_6381_get_codec_hevc(szCodec, subtype, hvcc);
+				GF_Err e;
+				if (dcd) {
+					e = rfc_6381_get_codec_hevc(szCodec, subtype, hvcc);
+				} else {
+					snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+					e = GF_OK;
+				}
 				gf_odf_hevc_cfg_del(hvcc);
 				return e;
 			}

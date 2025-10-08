@@ -919,7 +919,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("svcmode", NULL, "`DS` set SVC/LHVC import mode. Value can be:\n"
 		"  - split: each layer is in its own track\n"
 		"  - merge: all layers are merged in a single track\n"
-		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
+		"  - splitbase: all layers are merged in a track, and the base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written\n"
 		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("temporal", NULL, "`DS` set HEVC/LHVC temporal sublayer import mode. Value can be:\n"
