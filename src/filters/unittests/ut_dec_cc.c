@@ -34,13 +34,13 @@ static void ccdec_test_template(int agg, Bool text_with_overlaps, GF_Err (*pck_s
 	ctx.pck_truncate = pck_truncate;
 	ctx.pck_new_alloc = pck_new_alloc;
 
-	for (size_t i=0; i<strlen(txt); ++i) {
+	for (u32 i=0; i<strlen(txt); ++i) {
 		//we write to ctx.txtdata+ctx.txtlen like dec_cc.c does
 		if (text_with_overlaps) {
 			strncpy(ctx.txtdata+ctx.txtlen, txt, i+1);
 			text_aggregate_and_post(&ctx, i+1, i);
 		} else {
-			assert_equal(ctx.txtlen, i);
+			assert_equal(ctx.txtlen, i, "%u");
 			strncpy(ctx.txtdata+ctx.txtlen, txt+i, 1);
 			text_aggregate_and_post(&ctx, 1, i);
 		}
@@ -60,7 +60,7 @@ static GF_Err pck_send_default(GF_FilterPacket *pck)
 	const int num_expected = sizeof(expected)/sizeof(const char*);
 	
 	if (!pck) {
-		assert_equal(calls, num_expected);
+		assert_equal(calls, num_expected, "%d");
 		return GF_OK;
 	}
 	if (calls >= num_expected)
@@ -72,7 +72,7 @@ static GF_Err pck_send_default(GF_FilterPacket *pck)
 	gf_free((u8*)data);
 	gf_free(pck);
 	calls++;
-	assert_equal(size, calls);
+	assert_equal(size, calls, "%u");
 	return GF_OK;
 }
 
@@ -89,7 +89,7 @@ static GF_Err pck_send_aggregation(GF_FilterPacket *pck)
 	const int num_expected = sizeof(expected)/sizeof(const char*);
 
 	if (!pck) {
-		assert_equal(calls, num_expected);
+		assert_equal(calls, num_expected, "%d");
 		calls = 0;
 		return GF_OK;
 	}
@@ -123,7 +123,7 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 	const int num_expected = sizeof(expected)/sizeof(const char*);
 
 	if (!pck) {
-		assert_equal(calls, num_expected);
+		assert_equal(calls, num_expected, "%d");
 		return GF_OK;
 	}
 	if (calls >= num_expected)
