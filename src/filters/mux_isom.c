@@ -49,6 +49,11 @@ enum{
 	NALU_VVC
 };
 
+enum {
+	PRFT_OFF=0,
+	PRFT_SENDER,
+	PRFT_BOTH
+};
 
 enum
 {
@@ -6850,7 +6855,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					if (tkw==ctx->ref_tkw) {
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
 						if (p) {
-							gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts);
+							gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts, GF_FALSE);
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MuxIsom] Segment %s, storing NTP TS "LLU" for CTS "LLU" at "LLU" us, at UTC "LLU"\n", ctx->seg_name ? ctx->seg_name : "singlefile", p->value.longuint, cts, gf_sys_clock_high_res(), gf_net_get_utc()));
 						}
 					}
@@ -6865,8 +6870,11 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			if (ctx->prft && !ctx->dash_mode) {
 				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
 				if (p) {
-					gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts);
+					gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts, ctx->prft == PRFT_BOTH);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MuxIsom] Storing NTP TS "LLU" for CTS "LLU" at "LLU" us, at UTC "LLU"\n", p->value.longuint, cts, gf_sys_clock_high_res(), gf_net_get_utc()));
+				} else if (ctx->prft == PRFT_BOTH) {
+					gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, 0, cts, GF_TRUE);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MuxIsom] Will store mux time NTP TS for CTS "LLU" at "LLU" us, at UTC "LLU"\n", cts, gf_sys_clock_high_res(), gf_net_get_utc()));
 				}
 			}
 
@@ -8080,7 +8088,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	}
 
 	if (ctx->store < MP4MX_MODE_FRAG)
-		ctx->prft = GF_FALSE;
+		ctx->prft = PRFT_OFF;
 
 	if ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign)
 		ctx->insert_tfdt = GF_TRUE;
@@ -8597,7 +8605,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(nofragdef), "disable default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(straf), "use a single traf per moof (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strun), "use a single trun per traf (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(prft), "set `prft` box at segment start, disabled if not fragmented mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(prft), "set `prft` box mode, disabled if not fragmented mode\n"
+	"- off: disable `prft` box\n"
+	"- sender: put ntp time before encoder\n"
+	"- both: put sender time (if available) and ntp time when writing the moof", GF_PROP_UINT, "sender", "off|sender|both", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(psshs), "set `pssh` boxes store mode\n"
 	"- moof: in first moof of each segments\n"
 	"- moov: in movie box\n"
