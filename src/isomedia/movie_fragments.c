@@ -61,7 +61,8 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration, Bool remove_m
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 
 	if (remove_mehd) {
-		gf_assert(duration == 0);
+		if (duration)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] removing mehd box while duration is not zero. Contact the GPAC team!\n"));
 		if (movie->moov->mvex->mehd) {
 			gf_isom_box_del_parent(&movie->moov->mvex->child_boxes, (GF_Box*)movie->moov->mvex->mehd);
 			movie->moov->mvex->mehd = NULL;
