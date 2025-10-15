@@ -3583,6 +3583,11 @@ typedef struct
 	u8 *data;
 } GF_DefaultSampleGroupDescriptionEntry;
 
+/*AV1 Switching Entry - Switching Frames*/
+typedef struct
+{
+} GF_AV1SwitchingEntry;
+
 /*VisualRandomAccessEntry - 'rap ' type*/
 typedef struct
 {
