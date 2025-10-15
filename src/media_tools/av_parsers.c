@@ -11338,8 +11338,6 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length)
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 
-/*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
-returns 1 if success, 0 if error.*/
 Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 {
 	char tag[9];

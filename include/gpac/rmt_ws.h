@@ -3,7 +3,7 @@
 
 //! type for callbacks called when a new client connects
 //! \param task user data sent back to the callback
-//! \param new_client a structure representing the client (of type \ref RMT_ClientCtx)
+//! \param new_client a structure representing the client (of type RMT_ClientCtx)
 typedef void (*rmt_on_new_client_cbk)(void *task, void* new_client);
 
 
@@ -70,6 +70,7 @@ void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk);
 void* gf_rmt_get_on_new_client_task();
 
 //! gets a string representing the client in the format ip:port
+//! \param client the client object
 //! \return a "ip:port" string of the given client
 const char* gf_rmt_get_peer_address(RMT_ClientCtx* client);
 

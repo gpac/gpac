@@ -2802,7 +2802,6 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 /*!
  * Sends the HTTP headers
 \param sess The GF_DownloadSession
-\param sHTTP buffer containing the request
 \return GF_OK if everything went fine, the error otherwise
  */
 static GF_Err http_send_headers(GF_DownloadSession *sess) {
@@ -3258,7 +3257,6 @@ req_sent:
 /*!
  * Parse the remaining part of body
 \param sess The session
-\param sHTTP the data buffer
 \return The error code if any
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
@@ -3386,7 +3384,6 @@ static u32 http_parse_method(const char *comp)
 /*!
  * Waits for the response HEADERS, parse the information... and so on
 \param sess The session
-\param sHTTP the data buffer
  */
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 {

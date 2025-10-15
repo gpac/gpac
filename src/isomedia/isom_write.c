@@ -635,8 +635,6 @@ exit:
 	return e;
 }
 
-//creates a new Track. If trackID = 0, the trackID is chosen by the API
-//returns the track number or 0 if error
 GF_EXPORT
 u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only)
 {
