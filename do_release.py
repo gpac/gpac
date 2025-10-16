@@ -20,6 +20,9 @@ def cmd(command, log=False, check=True, printcmd=False):
 VER_PATTERN = re.compile(r"^(\d+)\.(\d+)(\.(\d+))?$")
 ABI_PATTERN = re.compile(r"define GPAC_VERSION_MAJOR\s+(\d+).*?define GPAC_VERSION_MINOR\s+(\d+).*?define GPAC_VERSION_MICRO\s+(\d+)",  re.M | re.S)
 
+GITLOG_PATTERN = re.compile(r"(fix|fixes|fixed|close|closes) #\d+", re.IGNORECASE)
+
+
 VERSIONH_PATH = "include/gpac/version.h"
 LIBGPACPY_PATH = "share/python/libgpac/libgpac.py"
 
@@ -41,6 +44,20 @@ def get_current_abi(versionh):
     return True, m.group(1), m.group(2), m.group(3)
 
 
+def filter_gitlog(gitlog):
+
+    lines = []
+    for line in gitlog.split("\n"):
+        parts = line.split(" ")
+        #commit = parts[0]
+        msg = " ".join(parts[1:])
+
+        if not GITLOG_PATTERN.search(msg):
+            lines.append(line)
+
+    return "\n".join(lines)
+
+
 
 def main(args):
 
@@ -50,6 +67,18 @@ def main(args):
     if rc or log!="":
         print(f"You have uncommited changes:\n{log}\nStash or commit before running the script.")
         exit(1)
+
+    rc, oldtag = cmd("git describe --tags --abbrev=0 --match 'v*'", log=True)
+    if rc or oldtag=="":
+        print(f"Couldn't get current tag.")
+        exit(1)
+
+    args.oldtag = oldtag.strip()
+    args.nextver = f"{args.v1}.{int(args.v2)+1}-DEV"
+
+    print(f"Current tag: {args.oldtag}")
+    print(f"Next tag: {args.tag}")
+    print(f"Next DEV version: {args.nextver}")
 
 
     with open(VERSIONH_PATH, "r") as f:
@@ -110,12 +139,48 @@ def main(args):
         cmd(f"git commit -am 'GPAC Release {args.version}'", printcmd=True)
         cmd(f"git tag -a {args.tag} -m 'GPAC Release {args.version}'", printcmd=True)
 
+
+        #################################################
+        step+=1; print(f"\n{step}. Generating git log...")
+        rc, gitlog = cmd(f"git log --no-merges --oneline {args.oldtag}..{args.tag}", log=True, printcmd=True)
+        if not rc and gitlog!="":
+            # filter gitlog lines
+            gitlog = filter_gitlog(gitlog)
+            with open(f"gitlog_{args.oldtag}..{args.tag}.txt", "w") as f:
+                f.write(gitlog)
+
+        #################################################
+        if not args.no_nextver:
+            step+=1; print(f"\n{step}. Switching HEAD to new DEV version...")
+
+            with open(VERSIONH_PATH, "r") as f:
+                versionh = f.read()
+
+            versionh = re.sub(r'(#define GPAC_VERSION)(\s+)".*?"', rf'\1\2"{args.nextver}"', versionh)
+
+            with open(VERSIONH_PATH, "w") as f:
+                f.write(versionh)
+
+            rc, log = cmd("bash change_version.sh", log=True)
+            if rc:
+                print("Error running change_version.sh: \n", log)
+                exit(rc)
+
+            #cmd(f"git commit -am 'moving to next dev version [noCI]'")
+
+
         print(f"\nYou can now push with")
         print(f"\tgit push --atomic origin master {args.tag}")
-        print(f"\tOR git push origin master && git push --tags")
+        #print(f"\tOR git push origin master && git push --tags")
 
 
     print(f"\nRelease {args.version} ready to push and publish.")
+
+    if not args.no_nextver:
+        print(f"\nAfter the release is pushed you can commit and push the next DEV version:")
+        print(f"\tgit commit -am 'moving to next dev version [noCI]' && git push")
+
+
 
 
 if __name__ == "__main__":
@@ -127,6 +192,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--no-make', action="store_true", help="skips build after changes")
     parser.add_argument('--no-commit', action="store_true", help="skips commit and tag")
+    parser.add_argument('--no-nextver', action="store_true", help="skips switching to next DEV version")
 
     args = parser.parse_args()
 
