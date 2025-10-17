@@ -156,7 +156,7 @@ typedef struct
 	Any reallocation of the fragment info SHALL be done using  \ref gf_route_dmx_patch_frag_info
 	*/
 	GF_LCTFragInfo *frags;
-	
+
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
 
@@ -256,7 +256,6 @@ Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
 
 /*! Checks for object being timeouts - this should only be called when \ref gf_route_dmx_process returns GF_IP_NETWORK_EMPTY for the first time in a batch
 \param routedmx the ROUTE demultiplexer
-\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
  */
 void gf_route_dmx_check_timeouts(GF_ROUTEDmx *routedmx);
 
@@ -280,9 +279,9 @@ typedef enum
 } GF_RouteProgressiveDispatch;
 
 /*! Allow segments to be sent while being downloaded.
- 
+
 \note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the beginning of the file in that case.
- 
+
 \param routedmx the ROUTE demultiplexer
 \param dispatch_mode set dispatch mode
 \return error code if any
@@ -443,4 +442,3 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
 #endif /* GPAC_DISABLE_ROUTE */
 
 #endif	//_GF_ROUTE_H_
-

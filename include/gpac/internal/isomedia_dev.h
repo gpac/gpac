@@ -250,6 +250,7 @@ enum
 	GF_ISOM_BOX_TYPE_EMIB	= GF_4CC( 'e', 'm', 'i', 'b' ),
 	GF_ISOM_BOX_TYPE_EMEB	= GF_4CC( 'e', 'm', 'e', 'b' ),
 	GF_ISOM_BOX_TYPE_EVTE	= GF_4CC( 'e', 'v', 't', 'e' ),
+	GF_ISOM_BOX_TYPE_SILB	= GF_4CC( 's', 'i', 'l', 'b' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -592,6 +593,7 @@ enum
 
 
 	GF_GPAC_BOX_TYPE_SREF = GF_4CC( 'G', 'P', 'S', 'R' ),
+	GF_ISOM_BOX_TYPE_CDRF = GF_4CC( 'c', 'd', 'r', 'f' ),
 
 	GF_ISOM_BOX_TYPE_CMOV	= GF_4CC( '!', 'm', 'o', 'v' ),
 	GF_ISOM_BOX_TYPE_CMOF	= GF_4CC( '!', 'm', 'o', 'f' ),
@@ -1807,8 +1809,8 @@ typedef struct
 
 typedef struct
 {
-        GF_ISOM_BOX
-        GF_IAConfig *cfg;
+	GF_ISOM_BOX
+	GF_IAConfig *cfg;
 } GF_IAConfigurationBox;
 
 
@@ -1880,8 +1882,8 @@ typedef struct __full_audio_sample_entry
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
 
-        //for IAMF
-        GF_IAConfigurationBox *cfg_iamf;
+	//for IAMF
+	GF_IAConfigurationBox *cfg_iamf;
 
 	//for generic audio sample entry
 	//box type as specified in the file (not this box's type!!)
@@ -2211,6 +2213,9 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 	u32 id_shift;
+
+	//for cdrf
+	u32 cdrf_entries, cdrf_cache_size;
 } GF_SampleReferences;
 
 typedef struct
@@ -3407,9 +3412,26 @@ typedef struct
 
 typedef struct
 {
+	char *scheme_id_uri;
+	char *value;
+	u8 reserved : 7;
+	u8 atleast_once_flag : 1;
+} GF_SchemeIdListBoxEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 number_of_schemes;
+	GF_List *schemes; /*list of GF_SchemeIdListBoxEntry*/
+	u8 reserved : 7;
+	u8 other_schemes_flag : 1;
+} GF_SchemeIdListBox;
+
+typedef struct
+{
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_BitRateBox *btrt;
-	/*GF_SchemeIdListBox*/void *silb; //'silb' box, not implemented yet
+	GF_SchemeIdListBox *silb;
 } GF_EventMessageSampleEntryBox;
 
 

@@ -42,38 +42,38 @@ static void update_first_frag(GF_ROUTEEventFileInfo *finfo)
 //patch TS file, replacing all 188 bytes packets overlaping a gap by padding packets
 static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, Bool repair_start_only)
 {
-    u32 i, pos;
-    Bool drop_if_first = GF_FALSE;
-    u8 *data = finfo->blob->data;
-    u32 patch_first_range_size = 0;
+	u32 i, pos;
+	Bool drop_if_first = GF_FALSE;
+	u8 *data = finfo->blob->data;
+	u32 patch_first_range_size = 0;
 
 
 	if (repair_start_only) {
 		patch_first_range_size = finfo->frags[0].offset;
 	}
 
-    pos = 0;
-    for (i=0; i<finfo->nb_frags; i++) {
-        u32 start_range = finfo->frags[i].offset;
-        u32 end_range = finfo->frags[i].size;
+	pos = 0;
+	for (i=0; i<finfo->nb_frags; i++) {
+		u32 start_range = finfo->frags[i].offset;
+		u32 end_range = finfo->frags[i].size;
 
 		//if we missed first 4 packets, we cannot rely on PAT/PMT being present in the rest of the segment
 		//we could further check this at the demux level, but for now we drop the segment
-        if (!i && (start_range>4*188))
+		if (!i && (start_range>4*188))
 			drop_if_first = GF_TRUE;
 
-        end_range += start_range;
-        //reset all missed byte ranges as padding packets
-        start_range -= pos;
-        while (start_range % 188) start_range++;
-        while (pos<start_range) {
-            data[pos] = 0x47;
-            data[pos+1] = 0x1F;
-            data[pos+2] = 0xFF;
-            data[pos+3] = 0x10;
-            pos += 188;
-        }
-        //end range not aligned with a packet start, rewind position to prev packet start
+		end_range += start_range;
+		//reset all missed byte ranges as padding packets
+		start_range -= pos;
+		while (start_range % 188) start_range++;
+		while (pos<start_range) {
+			data[pos] = 0x47;
+			data[pos+1] = 0x1F;
+			data[pos+2] = 0xFF;
+			data[pos+3] = 0x10;
+			pos += 188;
+		}
+		//end range not aligned with a packet start, rewind position to prev packet start
 		while (end_range % 188) end_range--;
 		pos = end_range;
 
@@ -81,15 +81,15 @@ static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, u32 service_id, GF_
 			update_first_frag(finfo);
 			return GF_FALSE;
 		}
-    }
-    //and patch all end packets
-    while (pos<finfo->blob->size) {
-        data[pos] = 0x47;
-        data[pos+1] = 0x1F;
-        data[pos+2] = 0xFF;
-        data[pos+3] = 0x10;
-        pos += 188;
-    }
+	}
+	//and patch all end packets
+	while (pos<finfo->blob->size) {
+		data[pos] = 0x47;
+		data[pos+1] = 0x1F;
+		data[pos+2] = 0xFF;
+		data[pos+3] = 0x10;
+		pos += 188;
+	}
 	//remove corrupted flag
 	finfo->partial = GF_LCTO_PARTIAL_NONE;
 	gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, finfo->blob->size);
@@ -111,7 +111,7 @@ static u32 nb_top_codes = GF_ARRAY_LENGTH(top_codes);
 
 static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, u32 *cur_pos, u32 *box_size)
 {
-    u32 pos = *cur_pos;
+	u32 pos = *cur_pos;
 	u32 frag_start = 0;
 	u32 frag_end = 0;
 	u32 cur_frag = 0;
@@ -139,44 +139,44 @@ static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, 
 	if (pos < frag_start + 4) pos = frag_start+4;
 
 	//we cannot look outside of fragment
-    while (pos + 8 < frag_end) {
-        u32 i;
+	while (pos + 8 < frag_end) {
+		u32 i;
 		u32 first_box = 0;
 		u32 first_box_size = 0;
 
 		//look for our top-level codes
 		u32 box_code = GF_4CC(data[pos], data[pos+1], data[pos+2], data[pos+3]);
-        for (i=0; i<nb_top_codes; i++) {
+		for (i=0; i<nb_top_codes; i++) {
 			if (box_code == top_codes[i]) {
 				first_box = pos;
 				break;
-            }
-        }
-        //not found
-        if (!first_box) {
-            pos++;
-            continue;
-        }
+			}
+		}
+		//not found
+		if (!first_box) {
+			pos++;
+			continue;
+		}
 		first_box_size = GF_4CC(data[first_box-4], data[first_box-3], data[first_box-2], data[first_box-1]);
 		if (first_box_size<8) {
 			pos++;
 			continue;
 		}
-        *cur_pos = first_box-4;
-        *box_size = first_box_size;
-        return box_code;
-    }
-    return 0;
+		*cur_pos = first_box-4;
+		*box_size = first_box_size;
+		return box_code;
+	}
+	return 0;
 }
 
 #define SAFETY_ERASE_BYTES	32
 //patch ISOBMFF file, replacing all top-level boxes overlaping a gap by free boxes
 static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, Bool repair_start_only)
 {
-    u8 *data = finfo->blob->data;
-    u32 size = finfo->blob->size;
-    u32 partial_status = GF_LCTO_PARTIAL_NONE;
-    u32 pos = 0;
+	u8 *data = finfo->blob->data;
+	u32 size = finfo->blob->size;
+	u32 partial_status = GF_LCTO_PARTIAL_NONE;
+	u32 pos = 0;
 	u32 prev_moof_pos = 0;
 	u32 prev_mdat_pos = 0;
 	u32 last_box_size = 0;
@@ -190,32 +190,32 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 	}
 
 	/* walk through all possible top-level boxes in order
-    - if box completely in a received byte range, keep as is
-    - if incomplete mdat:
+	- if box completely in a received byte range, keep as is
+	- if incomplete mdat:
 		- if strict mode, move to free and move previous moof to free as well
 		- otherwise keep as is
-    - if incomplete moof, move to free
-    - if hole between two known boxes (some box headers where partially or totally lost), inject free box
-    - when injecting a box, if no mdat was detected after the last moof, move the moof to free
+	- if incomplete moof, move to free
+	- if hole between two known boxes (some box headers where partially or totally lost), inject free box
+	- when injecting a box, if no mdat was detected after the last moof, move the moof to free
 
 	Whenever moving a moof to free and no mdat was detected after the moof; we memset to 0 (at most) SAFETY_ERASE_BYTES bytes following the box header
 	This avoids GPAC libisomedia trying to recover a free box into a moof box, which is done by checking for mfhd presence
-    */
-    while ((u64)pos + 8 < size) {
-        u32 i;
+	*/
+	while ((u64)pos + 8 < size) {
+		u32 i;
 		Bool is_mdat = GF_FALSE;
-        Bool box_complete = GF_FALSE;
-        u32 prev_pos = pos;
-        u32 box_size = 0;
+		Bool box_complete = GF_FALSE;
+		u32 prev_pos = pos;
+		u32 box_size = 0;
 
 		if (patch_first_range_size && (pos+8 >= patch_first_range_size)) {
 			update_first_frag(finfo);
 			return;
 		}
 
-        u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
-        //no more top-level found, patch from current pos until end of payload
-        if (!type) {
+		u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
+		//no more top-level found, patch from current pos until end of payload
+		if (!type) {
 			//first top-level not present in first range to repair, wa cannot patch now
 			if (!pos && repair_start_only) {
 				return;
@@ -233,27 +233,27 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			}
 			gf_assert(size > pos);
 
-            u32 remain = size - pos;
-            if (remain<8) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
+			u32 remain = size - pos;
+			if (remain<8) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
 				size -= remain;
 				gf_route_dmx_patch_blob_size(ctx->route_dmx, service_id, finfo, size);
-                if (finfo->blob)
+				if (finfo->blob)
 					finfo->blob->flags |= GF_BLOB_CORRUPTED;
 				goto exit;
-            }
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s injecting last free box pos %u size %u\n", finfo->filename, pos, remain));
-            data[pos] = (remain>>24) & 0xFF;
-            data[pos+1] = (remain>>16) & 0xFF;
-            data[pos+2] = (remain>>8) & 0xFF;
-            data[pos+3] = (remain) & 0xFF;
-            data[pos+4] = 'f';
-            data[pos+5] = 'r';
-            data[pos+6] = 'e';
-            data[pos+7] = 'e';
-            remain-=8;
-            if (remain>SAFETY_ERASE_BYTES) remain = SAFETY_ERASE_BYTES;
-            memset(data+pos+8, 0, remain);
+			data[pos] = (remain>>24) & 0xFF;
+			data[pos+1] = (remain>>16) & 0xFF;
+			data[pos+2] = (remain>>8) & 0xFF;
+			data[pos+3] = (remain) & 0xFF;
+			data[pos+4] = 'f';
+			data[pos+5] = 'r';
+			data[pos+6] = 'e';
+			data[pos+7] = 'e';
+			remain-=8;
+			if (remain>SAFETY_ERASE_BYTES) remain = SAFETY_ERASE_BYTES;
+			memset(data+pos+8, 0, remain);
 
 			//we have a previous moof but no mdat header after, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
@@ -267,12 +267,12 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
 			}
 			goto exit;
-        }
+		}
 		last_box_size = box_size;
 
-        //we missed a box header, insert one at previous pos, indicating a free box !!
-        if (pos > prev_pos) {
-            u32 missed_size = pos - prev_pos;
+		//we missed a box header, insert one at previous pos, indicating a free box !!
+		if (pos > prev_pos) {
+			u32 missed_size = pos - prev_pos;
 
 			//we might have detected a wrong box
 			if (missed_size<8) {
@@ -283,17 +283,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			nb_patches++;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s injecting mid-stream free box between pos %u and pos %u size %u\n", finfo->filename, prev_pos, pos, missed_size));
 
-            data[prev_pos] = (missed_size>>24) & 0xFF;
-            data[prev_pos+1] = (missed_size>>16) & 0xFF;
-            data[prev_pos+2] = (missed_size>>8) & 0xFF;
-            data[prev_pos+3] = (missed_size) & 0xFF;
-            data[prev_pos+4] = 'f';
-            data[prev_pos+5] = 'r';
-            data[prev_pos+6] = 'e';
-            data[prev_pos+7] = 'e';
-            missed_size -= 8;
-            if (missed_size>SAFETY_ERASE_BYTES) missed_size = SAFETY_ERASE_BYTES;
-            memset(data+prev_pos+8, 0, missed_size);
+			data[prev_pos] = (missed_size>>24) & 0xFF;
+			data[prev_pos+1] = (missed_size>>16) & 0xFF;
+			data[prev_pos+2] = (missed_size>>8) & 0xFF;
+			data[prev_pos+3] = (missed_size) & 0xFF;
+			data[prev_pos+4] = 'f';
+			data[prev_pos+5] = 'r';
+			data[prev_pos+6] = 'e';
+			data[prev_pos+7] = 'e';
+			missed_size -= 8;
+			if (missed_size>SAFETY_ERASE_BYTES) missed_size = SAFETY_ERASE_BYTES;
+			memset(data+prev_pos+8, 0, missed_size);
 
 			//we have a previous moof but no mdat header anywere, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
@@ -306,12 +306,12 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
 			}
-        }
+		}
 
-        if (type == GF_4CC('f','r','e','e')) {
+		if (type == GF_4CC('f','r','e','e')) {
 			//don't check / patch for free
-            box_complete = GF_TRUE;
-        } else if (type == GF_4CC('m','d','a','t')) {
+			box_complete = GF_TRUE;
+		} else if (type == GF_4CC('m','d','a','t')) {
 			if (ctx->repair != ROUTEIN_REPAIR_STRICT) {
 				box_complete = GF_TRUE;
 			} else {
@@ -324,25 +324,25 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 		//check if we are indeed in a recevied range
 		if (!box_complete) {
-            for (i=0; i<finfo->nb_frags; i++) {
-                if (pos + box_size < finfo->frags[i].offset)
-                    break;
-                if ((pos >= finfo->frags[i].offset) && (pos+box_size<=finfo->frags[i].offset + finfo->frags[i].size)) {
-                    box_complete = GF_TRUE;
-                    break;
-                }
-            }
-        }
-        if (box_complete) {
+			for (i=0; i<finfo->nb_frags; i++) {
+				if (pos + box_size < finfo->frags[i].offset)
+					break;
+				if ((pos >= finfo->frags[i].offset) && (pos+box_size<=finfo->frags[i].offset + finfo->frags[i].size)) {
+					box_complete = GF_TRUE;
+					break;
+				}
+			}
+		}
+		if (box_complete) {
 			//mdat completely received, reset mdat pos and moof (we assume a single mdat per moof)
 			if (is_mdat) {
 				prev_mdat_pos = 0;
 				prev_moof_pos = 0;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s complete box %s pos %u size %u\n", finfo->filename, gf_4cc_to_str(type), pos, box_size));
-            pos += box_size;
-            continue;
-        }
+			pos += box_size;
+			continue;
+		}
 		//incomplete mdat (strict mode), discard previous moof
 		if (is_mdat) {
 			if (prev_moof_pos) {
@@ -383,15 +383,15 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			if (erase_size>SAFETY_ERASE_BYTES) erase_size = SAFETY_ERASE_BYTES;
 			memset(data+pos+8, 0, MIN(erase_size, size-pos-8));
 		}
-        pos += box_size;
-    }
+		pos += box_size;
+	}
 
 	if (patch_first_range_size) {
 		return;
 	}
 
-    //check if file had no known size and last fragment ends on our last box
-    if (!finfo->total_size && (finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size == pos)) {
+	//check if file had no known size and last fragment ends on our last box
+	if (!finfo->total_size && (finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size == pos)) {
 		if (finfo->nb_frags==1) was_partial = GF_FALSE;
 		finfo->total_size = pos;
 	}

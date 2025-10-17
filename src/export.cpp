@@ -146,6 +146,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_tag_main_thread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_is_main_thread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_write_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_register_delete_proc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_unregister_delete_proc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_from_url) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
@@ -1021,6 +1024,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_unused_box_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_clean_aperture) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dovi_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_iamf_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_opus_config_get_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pcm_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_lpcm_config) )
@@ -2753,6 +2757,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_rfc_6381_codec_string) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_ffdmx_callbacks) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_httpout_callbacks) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_httpout_send_request) )

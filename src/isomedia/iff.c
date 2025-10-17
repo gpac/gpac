@@ -859,9 +859,9 @@ GF_Err auxc_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	//with terminating 0
-    if (p->aux_urn)
-        gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) );
-    gf_bs_write_u8(bs, 0);
+	if (p->aux_urn)
+		gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) );
+	gf_bs_write_u8(bs, 0);
 	gf_bs_write_data(bs, p->data, p->data_size);
 
 	return GF_OK;
@@ -870,7 +870,7 @@ GF_Err auxc_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err auxc_box_size(GF_Box *s)
 {
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
-    p->size += (p->aux_urn ? strlen(p->aux_urn) : 0) + 1 + p->data_size;
+	p->size += (p->aux_urn ? strlen(p->aux_urn) : 0) + 1 + p->data_size;
 	return GF_OK;
 }
 
@@ -906,16 +906,16 @@ GF_Err auxi_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	//with terminating 0
-    if (ptr->aux_track_type)
-        gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) );
-    gf_bs_write_u8(bs, 0);
+	if (ptr->aux_track_type)
+		gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) );
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
 GF_Err auxi_box_size(GF_Box *s)
 {
 	GF_AuxiliaryTypeInfoBox *ptr = (GF_AuxiliaryTypeInfoBox *)s;
-    ptr->size += (ptr->aux_track_type ? strlen(ptr->aux_track_type) : 0 )+ 1;
+	ptr->size += (ptr->aux_track_type ? strlen(ptr->aux_track_type) : 0 )+ 1;
 	return GF_OK;
 }
 
@@ -1238,130 +1238,130 @@ GF_Err iaux_box_size(GF_Box *s)
 
 GF_Box *fnch_box_new()
 {
-    ISOM_DECL_BOX_ALLOC(GF_FontCharacteristicsPropertyBox, GF_ISOM_BOX_TYPE_FNCH);
-    return (GF_Box *)tmp;
+	ISOM_DECL_BOX_ALLOC(GF_FontCharacteristicsPropertyBox, GF_ISOM_BOX_TYPE_FNCH);
+	return (GF_Box *)tmp;
 }
 
 void fnch_box_del(GF_Box *a)
 {
-    GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)a;
-    if (p->font_family)
-        gf_free(p->font_family);
-    if (p->font_style)
-        gf_free(p->font_style);
-    if (p->font_weight)
-        gf_free(p->font_weight);
-    gf_free(p);
+	GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)a;
+	if (p->font_family)
+		gf_free(p->font_family);
+	if (p->font_style)
+		gf_free(p->font_style);
+	if (p->font_weight)
+		gf_free(p->font_weight);
+	gf_free(p);
 }
 
 GF_Err fnch_box_read(GF_Box *s, GF_BitStream *bs)
 {
-    GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
+	GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
 
-    p->font_family = gf_bs_read_utf8(bs);
-    p->font_style = gf_bs_read_utf8(bs);
-    p->font_weight = gf_bs_read_utf8(bs);
-    return GF_OK;
+	p->font_family = gf_bs_read_utf8(bs);
+	p->font_style = gf_bs_read_utf8(bs);
+	p->font_weight = gf_bs_read_utf8(bs);
+	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err fnch_box_write(GF_Box *s, GF_BitStream *bs)
 {
-    GF_Err e;
-    GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
+	GF_Err e;
+	GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
 
-    e = gf_isom_full_box_write(s, bs);
-    if (e)
-        return e;
-    gf_bs_write_utf8(bs, p->font_family);
-    gf_bs_write_utf8(bs, p->font_style);
-    gf_bs_write_utf8(bs, p->font_weight);
-    return GF_OK;
+	e = gf_isom_full_box_write(s, bs);
+	if (e)
+		return e;
+	gf_bs_write_utf8(bs, p->font_family);
+	gf_bs_write_utf8(bs, p->font_style);
+	gf_bs_write_utf8(bs, p->font_weight);
+	return GF_OK;
 }
 
 GF_Err fnch_box_size(GF_Box *s)
 {
-    GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
-    p->size += (p->font_family ? strlen(p->font_family) : 0) + 1;
-    p->size += (p->font_style ? strlen(p->font_style) : 0) + 1;
-    p->size += (p->font_weight ? strlen(p->font_weight) : 0) + 1;
-    return GF_OK;
+	GF_FontCharacteristicsPropertyBox *p = (GF_FontCharacteristicsPropertyBox *)s;
+	p->size += (p->font_family ? strlen(p->font_family) : 0) + 1;
+	p->size += (p->font_style ? strlen(p->font_style) : 0) + 1;
+	p->size += (p->font_weight ? strlen(p->font_weight) : 0) + 1;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *txlo_box_new()
 {
-    ISOM_DECL_BOX_ALLOC(GF_TextLayoutPropertyBox, GF_ISOM_BOX_TYPE_TXLO);
-    return (GF_Box *)tmp;
+	ISOM_DECL_BOX_ALLOC(GF_TextLayoutPropertyBox, GF_ISOM_BOX_TYPE_TXLO);
+	return (GF_Box *)tmp;
 }
 
 void txlo_box_del(GF_Box *a)
 {
-    GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)a;
-    if (p->direction)
-        gf_free(p->direction);
-    if (p->writing_mode)
-        gf_free(p->writing_mode);
-    gf_free(p);
+	GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)a;
+	if (p->direction)
+		gf_free(p->direction);
+	if (p->writing_mode)
+		gf_free(p->writing_mode);
+	gf_free(p);
 }
 
 GF_Err txlo_box_read(GF_Box *s, GF_BitStream *bs)
 {
-    GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)s;
+	GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)s;
 
-    if ((p->flags & 0x1) == 1)
-    {
-        p->reference_width = gf_bs_read_u32(bs);
-        p->reference_height = gf_bs_read_u32(bs);
-        p->x = (s32)gf_bs_read_u32(bs);
-        p->y = (s32)gf_bs_read_u32(bs);
-        p->width = gf_bs_read_u32(bs);
-        p->height = gf_bs_read_u32(bs);
-    }
-    else
-    {
-        p->reference_width = gf_bs_read_u16(bs);
-        p->reference_height = gf_bs_read_u16(bs);
-        p->x = (s16)gf_bs_read_u16(bs);
-        p->y = (s16)gf_bs_read_u16(bs);
-        p->width = gf_bs_read_u16(bs);
-        p->height = gf_bs_read_u16(bs);
-    }
-    p->font_size = gf_bs_read_u16(bs);
-    p->direction = gf_bs_read_utf8(bs);
-    p->writing_mode = gf_bs_read_utf8(bs);
-    return GF_OK;
+	if ((p->flags & 0x1) == 1)
+	{
+		p->reference_width = gf_bs_read_u32(bs);
+		p->reference_height = gf_bs_read_u32(bs);
+		p->x = (s32)gf_bs_read_u32(bs);
+		p->y = (s32)gf_bs_read_u32(bs);
+		p->width = gf_bs_read_u32(bs);
+		p->height = gf_bs_read_u32(bs);
+	}
+	else
+	{
+		p->reference_width = gf_bs_read_u16(bs);
+		p->reference_height = gf_bs_read_u16(bs);
+		p->x = (s16)gf_bs_read_u16(bs);
+		p->y = (s16)gf_bs_read_u16(bs);
+		p->width = gf_bs_read_u16(bs);
+		p->height = gf_bs_read_u16(bs);
+	}
+	p->font_size = gf_bs_read_u16(bs);
+	p->direction = gf_bs_read_utf8(bs);
+	p->writing_mode = gf_bs_read_utf8(bs);
+	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err txlo_box_write(GF_Box *s, GF_BitStream *bs)
 {
-    GF_Err e;
-    GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)s;
-    p->flags = 0x01;
+	GF_Err e;
+	GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)s;
+	p->flags = 0x01;
 
-    e = gf_isom_full_box_write(s, bs);
-    if (e)
-        return e;
-    gf_bs_write_u32(bs, p->reference_width);
-    gf_bs_write_u32(bs, p->reference_height);
-    gf_bs_write_u32(bs, (u32)p->x);
-    gf_bs_write_u32(bs, (u32)p->y);
-    gf_bs_write_u32(bs, p->width);
-    gf_bs_write_u32(bs, p->height);
-    gf_bs_write_u16(bs, p->font_size);
-    gf_bs_write_utf8(bs, p->direction);
-    gf_bs_write_utf8(bs, p->writing_mode);
-    return GF_OK;
+	e = gf_isom_full_box_write(s, bs);
+	if (e)
+		return e;
+	gf_bs_write_u32(bs, p->reference_width);
+	gf_bs_write_u32(bs, p->reference_height);
+	gf_bs_write_u32(bs, (u32)p->x);
+	gf_bs_write_u32(bs, (u32)p->y);
+	gf_bs_write_u32(bs, p->width);
+	gf_bs_write_u32(bs, p->height);
+	gf_bs_write_u16(bs, p->font_size);
+	gf_bs_write_utf8(bs, p->direction);
+	gf_bs_write_utf8(bs, p->writing_mode);
+	return GF_OK;
 }
 
 GF_Err txlo_box_size(GF_Box *s)
 {
-    GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)s;
-    p->size += 26;
-    p->size += (p->direction ? strlen(p->direction) : 0) + 1;
-    p->size += (p->writing_mode ? strlen(p->writing_mode) : 0) + 1;
-    return GF_OK;
+	GF_TextLayoutPropertyBox *p = (GF_TextLayoutPropertyBox *)s;
+	p->size += 26;
+	p->size += (p->direction ? strlen(p->direction) : 0) + 1;
+	p->size += (p->writing_mode ? strlen(p->writing_mode) : 0) + 1;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1698,10 +1698,10 @@ import_next_sample:
 			gf_list_del(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
 			((GF_AV1ConfigurationBox *)config_box)->config->obu_array = NULL;
 			e = gf_media_av1_layer_size_get(fsrc, imported_track, sample_number, image_props->av1_op_index, image_props->av1_layer_size);
-      if (e) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("AV1 operating point index out of range for stream\n"));
-        goto exit;
-      }
+	  if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("AV1 operating point index out of range for stream\n"));
+		goto exit;
+	  }
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;

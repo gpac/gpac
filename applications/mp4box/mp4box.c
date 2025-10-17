@@ -919,7 +919,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("svcmode", NULL, "`DS` set SVC/LHVC import mode. Value can be:\n"
 		"  - split: each layer is in its own track\n"
 		"  - merge: all layers are merged in a single track\n"
-		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
+		"  - splitbase: all layers are merged in a track, and the base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written\n"
 		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("temporal", NULL, "`DS` set HEVC/LHVC temporal sublayer import mode. Value can be:\n"
@@ -3879,6 +3879,10 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 	u8 PL;
 	GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 	if (!esd) return;
+	if (!esd->decoderConfig) {
+		gf_odf_desc_del((GF_Descriptor *) esd);
+		return;
+	}
 
 	switch (esd->decoderConfig->streamType) {
 	case 0x04:
@@ -4779,6 +4783,9 @@ static GF_Err do_dash()
 
 	if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
 		M4_LOG(GF_LOG_WARNING, ("Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration));
+		dash_subduration = dash_duration;
+	} else if (dash_live && !dash_subduration) {
+		M4_LOG(GF_LOG_WARNING, ("Warning: dash-live with no -subdur parameter no longer supported, using segment duration as subdur %g s\n", dash_duration));
 		dash_subduration = dash_duration;
 	}
 

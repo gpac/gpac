@@ -168,7 +168,7 @@ typedef enum
 	//always resync the content of the decoded media buffer to the current time (used for video)
 	GF_MO_FETCH_RESYNC,
 	//never resync the content of the decoded media buffer (used fo audio)
-	//if clock is paused,  do fetch (used for audio extraction)
+	//if clock is paused, do fetch (used for audio extraction)
 	GF_MO_FETCH_PAUSED
 } GF_MOFetchMode;
 

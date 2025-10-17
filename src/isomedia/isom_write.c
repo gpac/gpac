@@ -635,8 +635,6 @@ exit:
 	return e;
 }
 
-//creates a new Track. If trackID = 0, the trackID is chosen by the API
-//returns the track number or 0 if error
 GF_EXPORT
 u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only)
 {
@@ -3128,6 +3126,9 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 		return GF_BAD_PARAM;
 	}
 
+	//we may get null on schemeURI if not set in the source
+	if (!schemeURI) schemeURI = "";
+
 	map = udta_getEntry(udta, GF_ISOM_BOX_TYPE_KIND, NULL);
 	if (map) {
 		count = gf_list_count(map->boxes);
@@ -3152,7 +3153,7 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 	ptr = (GF_KindBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_KIND);
 	if (e) return e;
 
-	if (schemeURI) ptr->schemeURI = gf_strdup(schemeURI);
+	ptr->schemeURI = gf_strdup(schemeURI);
 	if (value) ptr->value = gf_strdup(value);
 	return udta_on_child_box_ex((GF_Box *)udta, (GF_Box *) ptr, GF_FALSE, GF_FALSE);
 }
@@ -6306,9 +6307,9 @@ GF_Err gf_isom_apple_set_tag_ex(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *
 		btype = data ? GF_ISOM_ITUNE_GENRE_USER : GF_ISOM_ITUNE_GENRE;
 	} else if (tag==GF_4CC('c','u','s','t') ) {
 		if (in_cust_name || in_cust_mean) {
-			if (in_cust_mean[0])
+			if (in_cust_mean && in_cust_mean[0])
 				cust_mean = gf_strdup(in_cust_mean);
-			if (in_cust_name[0])
+			if (in_cust_name && in_cust_name[0])
 				cust_name = gf_strdup(in_cust_name);
 			btype = GF_ISOM_BOX_TYPE_iTunesSpecificInfo;
 		} else {
@@ -9428,6 +9429,7 @@ GF_Err isom_sample_refs_push(GF_SampleReferences *sref, s32 refID, u32 nb_refs, 
 				ent->sample_refs[j] += sref->id_shift;
 		}
 	}
+	sref->cdrf_cache_size = 0;
 	return gf_list_add(sref->entries, ent);
 }
 
@@ -9447,7 +9449,7 @@ GF_Err gf_isom_set_sample_references(GF_ISOFile *file, u32 track, u32 sampleNumb
 		return GF_BAD_PARAM;
 
 	if (!stbl->SampleRefs) {
-		stbl->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&stbl->child_boxes, GF_GPAC_BOX_TYPE_SREF);
+		stbl->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_CDRF);
 		if (!stbl->SampleRefs) return GF_OUT_OF_MEM;
 	}
 	return isom_sample_refs_push(stbl->SampleRefs, refID, nb_refs, refs);

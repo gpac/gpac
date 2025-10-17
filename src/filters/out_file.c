@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -705,18 +705,34 @@ restart:
 	}
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
 	if (p) {
+#ifndef GPAC_DISABLE_MPD
 		char *llhas_chunkname = gf_mpd_resolve_subnumber(ctx->llhas_template, ctx->szFileName, p->value.uint);
 		//for now we only use buffered IO for hls chunks, too small to really benefit from direct write
 		fileout_close_hls_chunk(ctx, GF_FALSE);
+
 		if (ctx->use_move) {
 			ctx->llhls_file_name = gf_strdup(llhas_chunkname);
 			gf_dynstrcat(&llhas_chunkname, ATOMIC_SUFFIX, NULL);
-			ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
-		} else {
-			ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
 		}
+
+		//we need a gf_url_concatenate to register target gfio, so simulate one
+		//this works because file subparts are always in the same dir as segment file
+		if (ctx->original_url && !strncmp(ctx->original_url, "gfio://", 7)) {
+			const char *rad = strrchr(llhas_chunkname, '/');
+			if (!rad) rad = strrchr(llhas_chunkname, '\\');
+			if (!rad) rad = llhas_chunkname;
+			else rad += 1;
+			//no need to check return: if failure, following gf_fopen_ex will also fail
+			gf_fileio_open_url(gf_fileio_from_url(ctx->original_url), rad, "url", &e);
+		}
+		ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
+
 		ctx->gfio_pending = GF_TRUE;
 		gf_free(llhas_chunkname);
+#else
+		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 check_gfio:
@@ -954,6 +970,8 @@ check_gfio:
 	return e;
 }
 
+GF_Err gf_fileio_file_delete(const char *fileName, const char *parent_gfio);
+
 static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (evt->base.type==GF_FEVT_FILE_DELETE) {
@@ -962,7 +980,15 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null delete (file name was %s)\n", evt->file_del.url));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] delete file %s\n", evt->file_del.url));
-			if (ctx->use_rel) {
+
+			char *gfio_sep = NULL;
+			if (!strncmp(evt->file_del.url, "gfio://", 7)) gfio_sep = strchr(evt->file_del.url, '@');
+			if (gfio_sep) {
+				gfio_sep[0] = 0;
+				gf_fileio_file_delete(gfio_sep+1, evt->file_del.url);
+				gfio_sep[0] = '@';
+			}
+			else if (ctx->use_rel) {
 				char *fname = gf_url_concatenate(ctx->dst, evt->file_del.url);
 				gf_file_delete(fname);
 				gf_free(fname);
@@ -1036,7 +1062,7 @@ GF_FilterRegister FileOutRegister = {
 		"The output file name can use gpac templating mechanism, see `gpac -h doc`."
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
 		"\n"
-		"By default output files are created directly, which may lead to issues if concourrent programs attempt to access them.\n"
+		"By default output files are created directly, which may lead to issues if concurrent programs attempt to access them.\n"
 		"By enabling [-atomic](), files will be created in target destination folder with the `"ATOMIC_SUFFIX"` suffix and move to their final name upon close.\n"
 		"\n"
 		"# Discard sink mode\n"

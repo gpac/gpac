@@ -903,18 +903,18 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			sess->use_cache_file = GF_TRUE;
 			gf_dm_configure_cache(sess);
 			sess->bytes_done = 0;
-            if (sess->cache_entry && gf_cache_is_deleted(sess->cache_entry)) {
-                sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR(GF_URL_REMOVED)
-                //return GF_OK;
-            } else if (! gf_cache_is_done(sess->cache_entry)) {
-                sess->total_size = 0;
-                sess->status = GF_NETIO_DATA_EXCHANGE;
-            } else {
+			if (sess->cache_entry && gf_cache_is_deleted(sess->cache_entry)) {
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				SET_LAST_ERR(GF_URL_REMOVED)
+				//return GF_OK;
+			} else if (! gf_cache_is_done(sess->cache_entry)) {
+				sess->total_size = 0;
+				sess->status = GF_NETIO_DATA_EXCHANGE;
+			} else {
 				sess->total_size = gf_cache_get_content_length(sess->cache_entry);
-                sess->bytes_done = sess->total_size;
-                sess->status = GF_NETIO_DATA_TRANSFERED;
-                if (!sess->cache_entry) {
+				sess->bytes_done = sess->total_size;
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				if (!sess->cache_entry) {
 					SET_LAST_ERR(GF_URL_ERROR)
 				} else {
 					SET_LAST_ERR(GF_OK)
@@ -1807,7 +1807,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_DATA_EXCHANGE:
 			if (sess->put_state==2) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR(GF_OK)
+				SET_LAST_ERR(GF_OK)
 				go = GF_FALSE;
 				break;
 			}
@@ -2550,16 +2550,16 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			memmove(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
 			e = GF_OK;
 		}
-    } else if (sess->local_cache_only) {
+	} else if (sess->local_cache_only) {
 		Bool was_modified;
-        u32 to_copy, full_cache_size, max_valid_size=0, cache_done;
-        const u8 *ptr;
-        e = GF_OK;
-        gf_assert(sess->cache_entry);
-        //always refresh total size
-        sess->total_size = gf_cache_get_content_length(sess->cache_entry);
+		u32 to_copy, full_cache_size, max_valid_size=0, cache_done;
+		const u8 *ptr;
+		e = GF_OK;
+		gf_assert(sess->cache_entry);
+		//always refresh total size
+		sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 
-        ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size, &was_modified);
+		ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size, &was_modified);
 
 		cache_done = gf_cache_is_done(sess->cache_entry);
 		//something went wrong, we cannot have less valid bytes than what we had at previous call(s)
@@ -2567,31 +2567,31 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			cache_done = 2;
 
 		if ((sess->bytes_done >= full_cache_size)|| (cache_done==2)) {
-            *read_size = 0;
+			*read_size = 0;
 			gf_cache_release_content(sess->cache_entry);
-            if (cache_done==2) {
-                sess->status = GF_NETIO_STATE_ERROR;
-                SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
-                return GF_IP_NETWORK_FAILURE;
-            }
-            else if (cache_done) {
-                sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR( GF_OK)
-                return GF_EOS;
-            }
-            return was_modified ? GF_OK : GF_IP_NETWORK_EMPTY;
-        }
-        if (!ptr) return GF_OUT_OF_MEM;
+			if (cache_done==2) {
+				sess->status = GF_NETIO_STATE_ERROR;
+				SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
+				return GF_IP_NETWORK_FAILURE;
+			}
+			else if (cache_done) {
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				SET_LAST_ERR( GF_OK)
+				return GF_EOS;
+			}
+			return was_modified ? GF_OK : GF_IP_NETWORK_EMPTY;
+		}
+		if (!ptr) return GF_OUT_OF_MEM;
 
-        //only copy valid bytes for http
-        to_copy = max_valid_size - sess->bytes_done;
-        if (to_copy > buffer_size) to_copy = buffer_size;
+		//only copy valid bytes for http
+		to_copy = max_valid_size - sess->bytes_done;
+		if (to_copy > buffer_size) to_copy = buffer_size;
 
-        memcpy(buffer, ptr + sess->bytes_done, to_copy);
-        sess->bytes_done += to_copy;
-        *read_size = to_copy;
-        if (cache_done==1) {
-            sess->status = GF_NETIO_DATA_TRANSFERED;
+		memcpy(buffer, ptr + sess->bytes_done, to_copy);
+		sess->bytes_done += to_copy;
+		*read_size = to_copy;
+		if (cache_done==1) {
+			sess->status = GF_NETIO_DATA_TRANSFERED;
 			SET_LAST_ERR( (cache_done==2) ? GF_IP_NETWORK_FAILURE : GF_OK)
 		} else {
 			sess->total_size = 0;
@@ -2802,7 +2802,6 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 /*!
  * Sends the HTTP headers
 \param sess The GF_DownloadSession
-\param sHTTP buffer containing the request
 \return GF_OK if everything went fine, the error otherwise
  */
 static GF_Err http_send_headers(GF_DownloadSession *sess) {
@@ -3258,7 +3257,6 @@ req_sent:
 /*!
  * Parse the remaining part of body
 \param sess The session
-\param sHTTP the data buffer
 \return The error code if any
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
@@ -3386,7 +3384,6 @@ static u32 http_parse_method(const char *comp)
 /*!
  * Waits for the response HEADERS, parse the information... and so on
 \param sess The session
-\param sHTTP the data buffer
  */
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 {
@@ -4129,8 +4126,8 @@ process_reply:
 			goto exit;
 		}
 		while (
-		    (new_location[strlen(new_location)-1] == '\n')
-		    || (new_location[strlen(new_location)-1] == '\r')  )
+			(new_location[strlen(new_location)-1] == '\n')
+			|| (new_location[strlen(new_location)-1] == '\r')  )
 			new_location[strlen(new_location)-1] = 0;
 
 		/*reset and reconnect*/
@@ -4231,7 +4228,7 @@ process_reply:
 		}
 		return e;
 	}
-    case 400:
+	case 400:
 	case 501:
 		/* Method not implemented ! */
 		if (sess->http_read_type == HEAD) {
@@ -4267,12 +4264,12 @@ process_reply:
 		//fall-through
 
 /*	case 204:
-    case 504:
+	case 504:
 	case 404:
-    case 403:
-    case 416:
+	case 403:
+	case 416:
 */
-    default:
+	default:
 		gf_dm_sess_user_io(sess, &par);
 		if ((BodyStart < (s32) bytesRead)) {
 			sHTTP[bytesRead] = 0;

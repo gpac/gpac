@@ -873,6 +873,7 @@ ISOM_BOX_IMPL_DECL(emsg)
 ISOM_BOX_IMPL_DECL(emib)
 ISOM_BOX_IMPL_DECL(emeb)
 ISOM_BOX_IMPL_DECL(evte)
+ISOM_BOX_IMPL_DECL(silb)
 
 #endif
 
@@ -1376,6 +1377,7 @@ static struct box_registry_entry {
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMIB, emib, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMEB, emeb, "file", "EventMessageTrack"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_SILB, silb, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EVTE, gen_sample_entry, "stsd", "EventMessageTrack"),
 #endif
 
@@ -1848,6 +1850,7 @@ static struct box_registry_entry {
 
 
 	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CDRF, sref, "stbl traf", "p12"),
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
@@ -1981,17 +1984,17 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			}
 		}
 #endif
-        if (is_uuid || (boxType==GF_ISOM_BOX_TYPE_UUID)) {
-            a = uuid_box_new();
-            if (a) a->registry = &box_registry[1];
-        } else {
-            a = unkn_box_new();
-            if (a) {
-            	((GF_UnknownBox *)a)->original_4cc = boxType;
+		if (is_uuid || (boxType==GF_ISOM_BOX_TYPE_UUID)) {
+			a = uuid_box_new();
+			if (a) a->registry = &box_registry[1];
+		} else {
+			a = unkn_box_new();
+			if (a) {
+				((GF_UnknownBox *)a)->original_4cc = boxType;
 				((GF_UnknownBox *)a)->parent_4cc = parentType;
-            	a->registry = &box_registry[0];
+				a->registry = &box_registry[0];
 			}
-        }
+		}
 		return a;
 	}
 	a = box_registry[idx].new_fn();

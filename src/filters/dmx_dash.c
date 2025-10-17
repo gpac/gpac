@@ -64,9 +64,9 @@ enum {
 
 
 GF_OPT_ENUM (GF_DASHBaseURLControlMode,
-    BURL_STRIP = 0,
-    BURL_KEEP,
-    BURL_INJECT,
+	BURL_STRIP = 0,
+	BURL_KEEP,
+	BURL_INJECT,
 );
 
 typedef struct
@@ -2290,7 +2290,7 @@ JSValue dashdmx_bind_js(GF_Filter *f, JSContext *ctx, JSValueConst obj)
 
 static GF_Err dashdmx_initialize_js(GF_DASHDmxCtx *dashctx, char *jsfile)
 {
-    JSContext *ctx;
+	JSContext *ctx;
 	JSValue global_obj, ret;
 	u8 *buf;
 	u32 buf_len;
@@ -2309,7 +2309,7 @@ static GF_Err dashdmx_initialize_js(GF_DASHDmxCtx *dashctx, char *jsfile)
 	JS_SetContextOpaque(ctx, dashctx);
 	dashctx->owns_context = GF_TRUE;
 
-    global_obj = JS_GetGlobalObject(ctx);
+	global_obj = JS_GetGlobalObject(ctx);
 	js_load_constants(ctx, global_obj);
 	dashctx->js_ctx = ctx;
 
@@ -2328,13 +2328,13 @@ static GF_Err dashdmx_initialize_js(GF_DASHDmxCtx *dashctx, char *jsfile)
 
 	if (JS_IsException(ret)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DASHDmx] Error loading script %s\n", jsfile));
-        js_dump_error(dashctx->js_ctx);
+		js_dump_error(dashctx->js_ctx);
 		JS_FreeValue(dashctx->js_ctx, ret);
 		JS_FreeValue(dashctx->js_ctx, global_obj);
 		return GF_BAD_PARAM;
 	}
 	JS_FreeValue(dashctx->js_ctx, ret);
-    JS_FreeValue(dashctx->js_ctx, global_obj);
+	JS_FreeValue(dashctx->js_ctx, global_obj);
 
 	dashctx->rate_fun = JS_GetPropertyStr(ctx, dashctx->js_obj, "rate_adaptation");
 	if (! JS_IsFunction(ctx, dashctx->rate_fun)) {

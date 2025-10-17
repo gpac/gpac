@@ -1454,7 +1454,7 @@ typedef enum {
 	GF_LOCKFILE_FAILED=0,
 	/*! lockfile creation succeeded, creating a new lock file*/
 	GF_LOCKFILE_NEW,
-	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
+	/*! lockfile creation succeeded, lock file was already present and created by this process*/
 	GF_LOCKFILE_REUSE
 } GF_LockStatus;
 
@@ -1808,12 +1808,13 @@ FILE *gf_fopen(const char *file_name, const char *mode);
 \brief file opening
 
 Opens a file, potentially using file IO if the parent URL is a File IO wrapper
+
+\note If a parent GFIO file is used and file_name was obtained without using \ref gf_url_concatenate on the parent GFIO, make sur to call \ref gf_fileio_open_url in "url" mode to prevent further concatenations by the GFIO handler.
+
 \param file_name same as fopen
 \param parent_url URL of parent file. If not a file io wrapper (gfio://), the function is equivalent to gf_fopen
 \param mode same as fopen - value "mkdir" checks if parent dir(s) need to be created, create them if needed and returns NULL (no file open)
 \param no_warn if GF_TRUE, do not throw log message if failure
-\return stream handle of the file object
-\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 \return stream habdle of the file or file IO object*/
 FILE *gf_fopen_ex(const char *file_name, const char *parent_url, const char *mode, Bool no_warn);
 
@@ -1983,7 +1984,7 @@ typedef struct __gf_file_io GF_FileIO;
 \param mode opening mode of file, same as fopen mode. The following additional modes are defined:
 	- "ref": indicates this FileIO object is used by some part of the code and must not be destroyed upon closing of the file. Associated URL is null
 	- "unref": indicates this FileIO object is not used by some part of the code and may be destroyed if no more references to this object are set. Associated URL is null
-	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case its is never used by the callers
+	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case it is never used by the callers
 	- "probe": checks if the file exists, but no need to open the file. The function should return NULL in this case. If file does not exist, set out_error to GF_URL_ERROR
 	- "close": indicates the fileIO object is being closed (fclose)
 \param out_error must be set to error code if any (never NULL)
@@ -2185,6 +2186,27 @@ Bool gf_fileio_read_mode(GF_FileIO *fileio);
 \return GF_TRUE if write is enabled on this object
 */
 Bool gf_fileio_write_mode(GF_FileIO *fileio);
+
+/*! Function callback for GF_FileIO delete events. The callback is NOT thread-safe in GPAC, applications should take care of ensuring safety
+
+\note Applications must make sure that the underlying gfio objects are defined as GPAC does not track allocated gfio objects.
+
+ \param url a gfio:// url to be deleted or a regular  name if parent_gfio_url is NULL.
+ \param parent_gfio_url the parent GFIO associated with the URL string, or NULL if url is a gfio url
+ \return error code if any, GF_EOS if this callback is not handling this specific gfio
+*/
+typedef GF_Err (*gfio_delete_proc)(const char *url, const char *parent_gfio_url);
+
+/*! Register a GF_FileIO delete callback. This function is NOT threadsafe, applications should take care of ensuring safety
+\param del_proc the calback to register. It MUST be valid until unregistered
+\return error if any
+*/
+GF_Err gf_fileio_register_delete_proc(gfio_delete_proc del_proc);
+
+/*! Unregister a GF_FileIO delete callback. This function is NOT threadsafe, applications should take care of ensuring safety
+\param del_proc the calback to unregister.
+*/
+void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc);
 
 /*!	@} */
 

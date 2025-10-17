@@ -236,6 +236,8 @@ GF_Box *gf_isom_audio_sample_get_audio_codec_cfg_box(GF_AudioSampleEntryBox *ptr
 		return (GF_Box *)mpga->cfg_ac4;
 	case GF_ISOM_BOX_TYPE_OPUS:
 		return (GF_Box *)mpga->cfg_opus;
+	case GF_ISOM_BOX_TYPE_IAMF:
+		return (GF_Box *)mpga->cfg_iamf;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		return (GF_Box *)mpga->cfg_mha;
@@ -874,8 +876,11 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metada
 		return GF_OUT_OF_MEM;
 	}
 	entry->cfg_flac->dataSize = metadata_size;
-	entry->cfg_flac->data = gf_malloc(sizeof(u8)*metadata_size);
-	memcpy(entry->cfg_flac->data, metadata, sizeof(u8)*metadata_size);
+	entry->cfg_flac->data = NULL;
+	if (metadata && metadata_size) {
+		entry->cfg_flac->data = gf_malloc(sizeof(u8)*metadata_size);
+		memcpy(entry->cfg_flac->data, metadata, sizeof(u8)*metadata_size);
+	}
 	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -1784,6 +1784,14 @@ u32 get_pix_bgr_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, * (pix+1) & 0xFF, *pix & 0xFF);
 }
+u32 get_pix_332(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u32 r = pix[0]>>5;
+	u32 g = (pix[0]>>2)&0x7;
+	u32 b = pix[0]&0x3;
+	return GF_COL_ARGB(0xFF, (r << 5), (g << 5), (b << 6));
+}
 u32 get_pix_444(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
 	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
@@ -2297,6 +2305,9 @@ static void texture_set_callbacks(EVG_Texture *_this)
 	case GF_PIXEL_RGB_444:
 		_this->tx_get_pixel = get_pix_444;
 		return;
+	case GF_PIXEL_RGB_332:
+		_this->tx_get_pixel = get_pix_332;
+		return;
 	case GF_PIXEL_RGB_555:
 		_this->tx_get_pixel = get_pix_555;
 		return;
@@ -2517,6 +2528,9 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
 		_this->Bpp = 3;
+		break;
+	case GF_PIXEL_RGB_332:
+		_this->Bpp = 1;
 		break;
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -150,6 +150,8 @@ typedef enum
 	GF_PIXEL_ALPHAGREY	=	GF_4CC('G','R','A','L'),
 	/*!16 bit greyscale, first grey, then alpha*/
 	GF_PIXEL_GREYALPHA	=	GF_4CC('A','L','G','R'),
+	/*!8 bit RGB */
+	GF_PIXEL_RGB_332	=	GF_4CC('R','3','3','2'),
 	/*!12 bit RGB on 16 bits (4096 colors)*/
 	GF_PIXEL_RGB_444	=	GF_4CC('R','4','4','4'),
 	/*!15 bit RGB*/
@@ -538,6 +540,7 @@ typedef enum
 	GF_CODECID_DVB_SUBS = GF_4CC( 'd', 'v', 'b', 's' ),
 	GF_CODECID_DVB_TELETEXT = GF_4CC( 'd', 'v', 'b', 't' ),
 
+	/*! codecid for SCTE35 streams (MPEG2-TS Sections payloads as per ANSI/SCTE 67 2017 (13.1.1.3)*/
 	GF_CODECID_SCTE35 = GF_4CC( 's', 'c', '3', '5' ),
 
 	/*!
@@ -624,7 +627,7 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
-	/*Event Message Track*/
+	/*Event Message Track (contains boxes)*/
 	GF_CODECID_EVTE = GF_4CC('e','v','t','e'),
 
 	/*! codecid for FFV1*/

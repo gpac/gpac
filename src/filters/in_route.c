@@ -44,11 +44,11 @@ static void routein_finalize(GF_Filter *filter)
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 
 #ifdef GPAC_ENABLE_COVERAGE
-    if (gf_sys_is_cov_mode())
-        gf_route_dmx_purge_objects(ctx->route_dmx, 1);
+	if (gf_sys_is_cov_mode())
+		gf_route_dmx_purge_objects(ctx->route_dmx, 1);
 #endif
 
-    if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
+	if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 	if (ctx->route_dmx) gf_route_dmx_del(ctx->route_dmx);
 
 	if (ctx->tsi_outs) {
@@ -108,23 +108,23 @@ static void routein_finalize(GF_Filter *filter)
 
 static void push_seg_info(ROUTEInCtx *ctx, GF_FilterPid *pid, GF_ROUTEEventFileInfo *finfo)
 {
-    if (ctx->received_seg_names) {
-        SegInfo *si;
-        GF_SAFEALLOC(si, SegInfo);
-        if (!si) return;
-        si->opid = pid;
-        si->seg_name = gf_strdup(finfo->filename);
-        gf_list_add(ctx->received_seg_names, si);
-    }
-    while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
-        GF_FilterEvent evt;
-        SegInfo *si = gf_list_pop_front(ctx->received_seg_names);
-        GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, si->opid);
-        evt.file_del.url = si->seg_name;
-        gf_filter_pid_send_event(si->opid, &evt);
-        gf_free(si->seg_name);
-        gf_free(si);
-    }
+	if (ctx->received_seg_names) {
+		SegInfo *si;
+		GF_SAFEALLOC(si, SegInfo);
+		if (!si) return;
+		si->opid = pid;
+		si->seg_name = gf_strdup(finfo->filename);
+		gf_list_add(ctx->received_seg_names, si);
+	}
+	while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
+		GF_FilterEvent evt;
+		SegInfo *si = gf_list_pop_front(ctx->received_seg_names);
+		GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, si->opid);
+		evt.file_del.url = si->seg_name;
+		gf_filter_pid_send_event(si->opid, &evt);
+		gf_free(si->seg_name);
+		gf_free(si);
+	}
 }
 
 static void routein_cleanup_objects(ROUTEInCtx *ctx, u32 service_id)
@@ -419,17 +419,17 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		}
 		//fallthrough
 
-    case GF_ROUTE_EVT_DYN_SEG_FRAG:
-        //for now we only write complete files
-        if (ctx->odir) {
-            break;
-        }
-        //no cache, write complete files unless stsi is set (for low latency file forwarding)
-        if (!ctx->gcache) {
+	case GF_ROUTE_EVT_DYN_SEG_FRAG:
+		//for now we only write complete files
+		if (ctx->odir) {
+			break;
+		}
+		//no cache, write complete files unless stsi is set (for low latency file forwarding)
+		if (!ctx->gcache) {
 			if (ctx->stsi)
 				routein_send_file(ctx, evt_param, finfo, evt);
-            break;
-        }
+			break;
+		}
 
 		if (!ctx->clock_init_seg
 			//if full seg push of previously advertized init, reset x-mcast-ll header
@@ -451,7 +451,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		}
 
 		if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc)
-            break;
+			break;
 
 		is_init = GF_FALSE;
 		if (!ctx->sync_tsi) {
@@ -504,9 +504,9 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			}
 		}
 
-        if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
+		if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
 			break;
-        }
+		}
 		finfo->blob->flags &=~ GF_BLOB_IN_TRANSFER;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushing file %s to cache\n", ctx->log_name, finfo->filename));
@@ -600,7 +600,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 		ctx->last_toi = 0;
 		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 		ctx->clock_init_seg = NULL;
-        gf_route_atsc3_tune_in(ctx->route_dmx, sid, GF_TRUE);
+		gf_route_atsc3_tune_in(ctx->route_dmx, sid, GF_TRUE);
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Cache accessing object %s\n", ctx->log_name, url));
 		routein_repair_mark_file(ctx, sid, subr+1, GF_FALSE);
@@ -816,11 +816,11 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
 	if (is_atsc || is_mabr) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Tunein started\n", ctx->log_name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Tunein started\n", ctx->log_name));
 		if (ctx->tune_service_id)
-            gf_route_atsc3_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
+			gf_route_atsc3_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
 		else
-            gf_route_atsc3_tune_in(ctx->route_dmx, (u32) ctx->tunein, GF_TRUE);
+			gf_route_atsc3_tune_in(ctx->route_dmx, (u32) ctx->tunein, GF_TRUE);
 	}
 
 	ctx->start_time = gf_sys_clock();
@@ -909,7 +909,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	"- -3: detect all services and do not join multicast", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
-    { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(skipr), "skip repeated files (ignored in cache mode)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output PID per tsi/serviceID (ignored in cache mode)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -959,8 +959,8 @@ GF_FilterRegister ROUTEInRegister = {
 	"The cached MPD is assigned the following headers:\n"
 	"- `x-mcast`: boolean value, if `yes` indicates the file comes from a multicast.\n"
 	"- `x-mcast-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.\n"
-    "- `x-mcast-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).\n"
-    "- `x-mcast-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if [-cloop]() is set.\n"
+	"- `x-mcast-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).\n"
+	"- `x-mcast-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if [-cloop]() is set.\n"
 	"  \n"
 	"The cached files are assigned the following headers:\n"
 	"- `x-mcast`: boolean value, if `yes` indicates the file comes from a multicast.\n"

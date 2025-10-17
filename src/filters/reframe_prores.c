@@ -151,7 +151,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 
 	stream = gf_fopen_ex(filepath, NULL, "rb", GF_TRUE);
 	if (!stream) {
-		if (gf_fileio_is_main_thread(p->value.string))
+		if (p && gf_fileio_is_main_thread(p->value.string))
 			ctx->file_loaded = GF_TRUE;
 		return;
 	}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1631,6 +1631,7 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
 "- utf16: force UTF-16 little endian\n"
 "- utf16be: force UTF-16 big endian\n"
 "- other: attempt to parse anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("srt-forced", NULL, "enable SRT with forced subtitles extensions", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
 
  GF_DEF_ARG("rmt", NULL, "enable remote monitoring webserver", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-port", NULL, "set rmt ws port", "6363", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
@@ -1646,6 +1647,7 @@ GF_DEF_ARG("rmt-pkey", NULL, "rmt ws: private key file in PEM format to use for 
  GF_DEF_ARG("heif-hevc-urn", NULL, "use HEVC URN for alpha and depth in HEIF instead of MPEG-B URN (HEIF first edition)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("boxdir", NULL, "use box definitions in the given directory for XML dump", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("no-mabr-patch", NULL, "disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+ GF_DEF_ARG("no-cdrf", NULL, "disable cdrf sample dep", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
 
 
  {0}

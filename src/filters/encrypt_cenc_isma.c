@@ -483,17 +483,17 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 					cypherMode = 1;
 			} else if (!strcmp(att->name, "cypherKey")) {
 				e = gf_bin128_parse(att->value, cypherKey);
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannnot parse cypherKey\n"));
-                    break;
-                }
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannnot parse cypherKey\n"));
+					break;
+				}
 				has_key = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherIV")) {
 				e = gf_bin128_parse(att->value, cypherIV);
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannnot parse cypherIV\n"));
-                    break;
-                }
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannnot parse cypherIV\n"));
+					break;
+				}
 				has_IV = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherOffset")) {
 				cypherOffset = atoi(att->value);

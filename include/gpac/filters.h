@@ -54,7 +54,7 @@ This file contains all exported functions for filter management of the GPAC fram
 API Documentation of the filter managment system of GPAC.
 
 The filter management in GPAC is built using the following core objects:
-- \ref GF_FilterSession in charge of:
+- \ref fs_grp "GF_FilterSession" in charge of:
  - loading filters from register, managing argument parsing and co
  - resolving filter graphs to handle PID connection(s)
  - tracking data packets and properties exchanged on PIDs
@@ -62,12 +62,12 @@ The filter management in GPAC is built using the following core objects:
  - ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitly asked not to), but only by a single thread at any time.
 - \ref __gf_filter_register static structure describing possible entry points of the filter, possible arguments and input output PID capabilities.
 	Each filter share the same API (register definition) regardless of its type: source/sink, mux/demux, encode/decode, raw media processing, encoded media processing, ...
-- \ref GF_Filter is an instance of the filter register. A filter implementation typical tasks are:
+- \ref fs_filter "GF_Filter" is an instance of the filter register. A filter implementation typical tasks are:
  - accepting new input PIDs (for non source filters)
  - defining new output PIDs (for non sink filters), applying any property change due to filter processing
  - consuming packets on the input PIDs
  - dispatching packets on the output PIDs
-- \ref GF_FilterPid handling the connections between two filters.
+- \ref fs_pid "GF_FilterPid" handling the connections between two filters.
 	- PID natively supports fan-out (one filter PID connecting to multiple destinations).
 	- A PID is in charge of dispatching packets to possible destinations and storing PID properties in sync with dispatched packets.
 	- Whenever PID properties change, the next packet sent on that PID is associated with the new state, and the destination filter(s) will be called
@@ -78,7 +78,7 @@ The filter management in GPAC is built using the following core objects:
 	for processing. This is a semi-blocking design, which imply that if a filter has one of its PIDs in a non blocking state, it will be scheduled for processing. If a PID has multiple destinations and one of the destination consumes faster than the other one, the filter is currently not blocking (this might change in the near future).
 	- A PID is in charge of managing the packet references across filters, by performing memory management of allocated data packets
 	 (avoid alloc/free at each packet but rather recycle the memory) and tracking shared packets references.
-- \ref GF_FilterPacket holding data to dispatch from a filter on a given PID.
+- \ref fs_pck "GF_FilterPacket" holding data to dispatch from a filter on a given PID.
 	- Packets are always associated to a single output PID, ie it is not possible for a filter to send one packet to multiple PIDs, the data has to be cloned.
 	- Packets have default attributes such as timestamps, size, random access status, start/end frame, etc, as well as optional properties.
 	- All packets are reference counted.
@@ -254,7 +254,7 @@ typedef enum
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, GF_FilterSessionFlags flags, const char *blacklist);
 
 /*! Creates a new filter session, loading parameters from gpac config. This will also load all available filter registers not blacklisted.
-\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META,  \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
+\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META, \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
 \return the created filter session
 */
 GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags flags);
@@ -1468,6 +1468,7 @@ enum
 	GF_PROP_PCK_ORIGINAL_PTS = GF_4CC('O','P','T','S'),
 	GF_PROP_PCK_ORIGINAL_DTS = GF_4CC('O','D','T','S'),
 	GF_PROP_PID_MABR_URLS = GF_4CC('M','A','B','U'),
+	GF_PROP_PCK_FORCED_SUB = GF_4CC('P','C','F','S'),
 
 };
 
@@ -1799,8 +1800,8 @@ typedef enum
 	/*! DASH fragment (cmaf chunk) size info, sent down from muxers to manifest generators*/
 	GF_FEVT_FRAGMENT_SIZE,
 
-	/*! Encoder hints*/
-	GF_FEVT_ENCODE_HINTS,
+	/*! Transport hints*/
+	GF_FEVT_TRANSPORT_HINTS,
 	/*! NTP source clock send by other services (eg from TS to dash using TEMI) */
 	GF_FEVT_NTP_REF,
 	/*! Event sent by DASH/HLS demux to source to notify a quality change  - used for ROUTE/MABR only */
@@ -1897,7 +1898,7 @@ typedef struct
 	u8 is_init_segment;
 	/*!GF_FEVT_SOURCE_SWITCH only, ignore cache expiration directive for HTTP*/
 	u8 skip_cache_expiration;
-	/*! GF_FEVT_SOURCE_SEEK only,  hint block size for source, might not be respected*/
+	/*! GF_FEVT_SOURCE_SEEK only, hint block size for source, might not be respected*/
 	u32 hint_block_size;
 } GF_FEVT_SourceSeek;
 
@@ -1977,7 +1978,12 @@ typedef struct
 typedef struct
 {
 	FILTER_EVENT_BASE
-	/*! URL to delete, or "__gpac_self__" when asking source filter to delete file */
+	/*! URL to delete, or "__gpac_self__" when asking source filter to delete file
+
+	For gfio files, the syntax gfio://PTR@URL is allowed, with:
+		- PTR: the parent gfio pointer
+		- URL: the url of the file to delete, relative to the parent gfio
+	*/
 	const char *url;
 } GF_FEVT_FileDelete;
 
@@ -2010,17 +2016,30 @@ typedef struct
 	Bool pid_only;
 } GF_FEVT_BufferRequirement;
 
+typedef enum
+{
+	/*! no hints */
+	GF_TRANSPORT_HINTS_NONE = 0,
+	/*! event seen by an encoder */
+	GF_TRANSPORT_HINTS_SAW_ENCODER = 1<<0,
+} GF_TransportHintsFlags;
 
-/*! Event structure for GF_FEVT_ENCODE_HINT*/
+/*! Event structure for GF_FEVT_TRANSPORT_HINT*/
 typedef struct
 {
 	FILTER_EVENT_BASE
 
-	/*! duration of intra (IDR, closed GOP) as expected by the dasher */
-	GF_Fraction intra_period;
+	/*! flags for the hints */
+	GF_TransportHintsFlags flags;
+
+	/*! segment duration */
+	GF_Fraction seg_duration;
 	/*! if TRUE codec should only generate DSI (possibly no input frame, and all output packets will be discarded) */
 	Bool gen_dsi_only;
-} GF_FEVT_EncodeHints;
+
+	/* if TRUE reframer should hold packets until theoretical segment boundary */
+	Bool wait_seg_boundary;
+} GF_FEVT_TransportHints;
 
 
 /*! Event structure for GF_FEVT_NTP_REF*/
@@ -2089,7 +2108,7 @@ union __gf_filter_event
 	GF_FEVT_SegmentSize seg_size;
 	GF_FEVT_FragmentSize frag_size;
 	GF_FEVT_FileDelete file_del;
-	GF_FEVT_EncodeHints encode_hints;
+	GF_FEVT_TransportHints transport_hints;
 	GF_FEVT_NTPRef ntp;
 	GF_FEVT_DASHQualitySelection dash_select;
 	GF_FEVT_NetworkHint net_hint;
@@ -2438,7 +2457,7 @@ typedef enum
 	(through get_gl_texture callback) in the main GL thread*/
 	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
 	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter
-	A filter with this flag and a \ref reconfigure_output callback set will be checked when loading a chain for PID property adaptation*/
+	A filter with this flag and a \ref __gf_filter_register.reconfigure_output callback set will be checked when loading a chain for PID property adaptation*/
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
 	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing so that the weight of the reframer+decoder is the same as the weight of other decoders*/
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
@@ -5114,7 +5133,7 @@ The app is responsible for assigning capabilities to the filter, and setting cal
 Each callback is optional, but a custom filter should at least have a process callback, and a configure_pid callback if not a source filter.
 
 Custom filters do not have any arguments exposed, and cannot be selected for sink or source filters.
-If your app requires custom I/Os for source or sinks, use \ref GF_FileIO.
+If your app requires custom I/Os for source or sinks, use \ref osfile_grp "GF_FileIO".
 @{
  */
 

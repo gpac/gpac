@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2024
+ *			Copyright (c) Telecom Paris 2019-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg avfilter filter
@@ -470,12 +470,12 @@ static GF_Err ffavf_setup_filter(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 	avfilter_inout_free(&inputs);
 	if (ret < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to parse filter description: %s\nFilter description was %s\n", av_err2str(ret), ctx->filter_desc));
-        return ctx->in_error = GF_BAD_PARAM;
+		return ctx->in_error = GF_BAD_PARAM;
 	}
 	ret = avfilter_graph_config(ctx->filter_graph, NULL);
 	if (ret < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to validate filter graph: %s\n", av_err2str(ret) ));
-        return ctx->in_error = GF_BAD_PARAM;
+		return ctx->in_error = GF_BAD_PARAM;
 	}
 
 	if (ctx->dump)
@@ -632,7 +632,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 		AVFrame *frame = av_frame_alloc();
 
 		ret = av_buffersink_get_frame(opid->io_filter_ctx, frame);
-        if (ret < 0) {
+		if (ret < 0) {
 			if (ret == AVERROR_EOF) {
 				if (ctx->flush_state==2) {
 					nb_eos++;
@@ -648,8 +648,8 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			}
 			av_frame_free(&frame);
 			break;
-        }
-        if (opid->is_video) {
+		}
+		if (opid->is_video) {
 			u8 *buffer;
 			u32 j;
 			GF_FilterPacket *pck;
@@ -687,7 +687,11 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				opid->stride_uv = 0;
 				opid->bpp = gf_pixel_get_bytes_per_pixel(opid->gf_pfmt);
 				gf_pixel_get_size_info(opid->gf_pfmt, opid->width, opid->height, &opid->out_size, &opid->stride, &opid->stride_uv, NULL, &opid->uv_height);
-				if ((opid->gf_pfmt==GF_PIXEL_YUV444) || (opid->gf_pfmt==GF_PIXEL_YUV444_10)) {
+				if ((opid->gf_pfmt==GF_PIXEL_YUV444)
+					|| (opid->gf_pfmt==GF_PIXEL_YUV444_10)
+					|| (opid->gf_pfmt==GF_PIXEL_NV12)
+					|| (opid->gf_pfmt==GF_PIXEL_NV21)
+				) {
 					opid->uv_width = opid->width;
 				} else if (opid->uv_height) {
 					opid->uv_width = opid->width/2;
@@ -722,9 +726,13 @@ static GF_Err ffavf_process(GF_Filter *filter)
 					memcpy(buffer + j*opid->stride, frame->data[3] + j*frame->linesize[3], opid->width*opid->bpp);
 				}
 			}
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			if (frame->interlaced_frame)
 				gf_filter_pck_set_interlaced(pck, frame->top_field_first ? 1 : 2);
-
+#else
+			if (frame->flags & AV_FRAME_FLAG_INTERLACED)
+				gf_filter_pck_set_interlaced(pck, frame->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST ? 1 : 2);
+#endif
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_cts(pck, frame->pts * opid->tb_num);
 			gf_filter_pck_send(pck);

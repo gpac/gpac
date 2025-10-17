@@ -358,12 +358,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len);
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_len);
 
 /*! parses opus header packets - initializes the config  on success, leave it to NULL otherwise
-\param cfg pointer to a opus config to fill
+\param ocfg pointer to a opus config to fill
 \param data opus header buffer to parse
 \param data_len size of opus header buffer
 \return 1 if success, 0 if error
 */
-Bool gf_opus_parse_header(GF_OpusConfig *cfg, u8 *data, u32 data_len);
+Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len);
 
 /*! checks if an opus frame is valid
 \param cfg pointer to a opus config to use
@@ -641,7 +641,7 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 //! \cond old name
 typedef struct __ac3_config GF_AC3Header;
-//! \endcond 
+//! \endcond
 
 /*! parses an AC-3 header from a buffer
 \param buffer buffer to parse
@@ -884,38 +884,38 @@ const char *gf_av1_get_obu_name(ObuType obu_type);
 
 /*!\brief IAMF OBU types */
 typedef enum {
-        OBU_IA_CODEC_CONFIG = 0,
-        OBU_IA_AUDIO_ELEMENT = 1,
-        OBU_IA_MIX_PRESENTATION = 2,
-        OBU_IA_PARAMETER_BLOCK = 3,
-        OBU_IA_TEMPORAL_DELIMITER = 4,
-        OBU_IA_AUDIO_FRAME = 5,
-        OBU_IA_AUDIO_FRAME_ID0 = 6,
-        OBU_IA_AUDIO_FRAME_ID1 = 7,
-        OBU_IA_AUDIO_FRAME_ID2 = 8,
-        OBU_IA_AUDIO_FRAME_ID3 = 9,
-        OBU_IA_AUDIO_FRAME_ID4 = 10,
-        OBU_IA_AUDIO_FRAME_ID5 = 11,
-        OBU_IA_AUDIO_FRAME_ID6 = 12,
-        OBU_IA_AUDIO_FRAME_ID7 = 13,
-        OBU_IA_AUDIO_FRAME_ID8 = 14,
-        OBU_IA_AUDIO_FRAME_ID9 = 15,
-        OBU_IA_AUDIO_FRAME_ID10 = 16,
-        OBU_IA_AUDIO_FRAME_ID11 = 17,
-        OBU_IA_AUDIO_FRAME_ID12 = 18,
-        OBU_IA_AUDIO_FRAME_ID13 = 19,
-        OBU_IA_AUDIO_FRAME_ID14 = 20,
-        OBU_IA_AUDIO_FRAME_ID15 = 21,
-        OBU_IA_AUDIO_FRAME_ID16 = 22,
-        OBU_IA_AUDIO_FRAME_ID17 = 23,
-        OBU_IA_RESERVED_24 = 24,
-        OBU_IA_RESERVED_25 = 25,
-        OBU_IA_RESERVED_26 = 26,
-        OBU_IA_RESERVED_27 = 27,
-        OBU_IA_RESERVED_28 = 28,
-        OBU_IA_RESERVED_29 = 29,
-        OBU_IA_RESERVED_30 = 30,
-        OBU_IA_SEQUENCE_HEADER = 31
+        OBU_IAMF_CODEC_CONFIG = 0,
+        OBU_IAMF_AUDIO_ELEMENT = 1,
+        OBU_IAMF_MIX_PRESENTATION = 2,
+        OBU_IAMF_PARAMETER_BLOCK = 3,
+        OBU_IAMF_TEMPORAL_DELIMITER = 4,
+        OBU_IAMF_AUDIO_FRAME = 5,
+        OBU_IAMF_AUDIO_FRAME_ID0 = 6,
+        OBU_IAMF_AUDIO_FRAME_ID1 = 7,
+        OBU_IAMF_AUDIO_FRAME_ID2 = 8,
+        OBU_IAMF_AUDIO_FRAME_ID3 = 9,
+        OBU_IAMF_AUDIO_FRAME_ID4 = 10,
+        OBU_IAMF_AUDIO_FRAME_ID5 = 11,
+        OBU_IAMF_AUDIO_FRAME_ID6 = 12,
+        OBU_IAMF_AUDIO_FRAME_ID7 = 13,
+        OBU_IAMF_AUDIO_FRAME_ID8 = 14,
+        OBU_IAMF_AUDIO_FRAME_ID9 = 15,
+        OBU_IAMF_AUDIO_FRAME_ID10 = 16,
+        OBU_IAMF_AUDIO_FRAME_ID11 = 17,
+        OBU_IAMF_AUDIO_FRAME_ID12 = 18,
+        OBU_IAMF_AUDIO_FRAME_ID13 = 19,
+        OBU_IAMF_AUDIO_FRAME_ID14 = 20,
+        OBU_IAMF_AUDIO_FRAME_ID15 = 21,
+        OBU_IAMF_AUDIO_FRAME_ID16 = 22,
+        OBU_IAMF_AUDIO_FRAME_ID17 = 23,
+        OBU_IAMF_RESERVED_24 = 24,
+        OBU_IAMF_RESERVED_25 = 25,
+        OBU_IAMF_RESERVED_26 = 26,
+        OBU_IAMF_RESERVED_27 = 27,
+        OBU_IAMF_RESERVED_28 = 28,
+        OBU_IAMF_RESERVED_29 = 29,
+        OBU_IAMF_RESERVED_30 = 30,
+        OBU_IAMF_SEQUENCE_HEADER = 31
 } IamfObuType;
 
 /*! gets the name of a given IAMF OBU type
@@ -932,4 +932,3 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type);
 
 
 #endif	/*_GF_PARSERS_AV_H_*/
-

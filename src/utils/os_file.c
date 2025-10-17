@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2023
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2025
  *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
@@ -195,6 +195,49 @@ GF_Err gf_dir_cleanup(const char* DirPathName)
 	return GF_OK;
 }
 
+#include <gpac/list.h>
+GF_List *gfio_delete_handlers = NULL;
+
+GF_EXPORT
+GF_Err gf_fileio_register_delete_proc(gfio_delete_proc del_proc)
+{
+	if (!del_proc) return GF_OK;
+
+	if (!gfio_delete_handlers) gfio_delete_handlers = gf_list_new();
+	if (!gfio_delete_handlers) return GF_OUT_OF_MEM;
+	if (gf_list_find(gfio_delete_handlers, del_proc)>=0) return GF_BAD_PARAM;
+	return gf_list_add(gfio_delete_handlers, del_proc);
+}
+GF_EXPORT
+void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc)
+{
+	if (!del_proc || !gfio_delete_handlers) return;
+	gf_list_del_item(gfio_delete_handlers, del_proc);
+	if (!gf_list_count(gfio_delete_handlers)) {
+		gf_list_del(gfio_delete_handlers);
+		gfio_delete_handlers = NULL;
+	}
+}
+
+GF_Err gf_fileio_file_delete(const char *fileName, const char *parent_gfio)
+{
+	if (!gfio_delete_handlers || !fileName) return GF_OK;
+	if (!parent_gfio) {
+		if (strncmp(fileName, "gfio://", 7)) return GF_EOS;
+	} else {
+		if (strncmp(parent_gfio, "gfio://", 7)) return GF_EOS;
+	}
+
+	u32 i, count=gf_list_count(gfio_delete_handlers);
+	for (i=0; i<count; i++) {
+		gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
+		GF_Err ret = del_proc(fileName, parent_gfio);
+		if (ret==GF_EOS) continue;
+		return ret;
+	}
+	return GF_OK;
+}
+
 GF_EXPORT
 GF_Err gf_file_delete(const char *fileName)
 {
@@ -202,6 +245,10 @@ GF_Err gf_file_delete(const char *fileName)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("gf_file_delete with no param - ignoring\n"));
 		return GF_OK;
 	}
+	if (!strncmp(fileName, "gfio://", 7)) {
+		return gf_fileio_file_delete(fileName, NULL);
+	}
+
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	CE_CharToWide((char*)fileName, swzName);
@@ -999,6 +1046,7 @@ struct __gf_file_io
 	char *res_url;
 	void *udta;
 
+	u32 creation_time;
 	u64 bytes_done, file_size_plus_one;
 	Bool main_th;
 	GF_FileIOCacheState cache_state;
@@ -1150,6 +1198,8 @@ static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
 	return ptr;
 }
 
+GF_List *allocated_gfios = NULL;
+
 GF_EXPORT
 GF_FileIO *gf_fileio_new(char *url, void *udta,
 	gfio_open_proc open,
@@ -1181,9 +1231,18 @@ GF_FileIO *gf_fileio_new(char *url, void *udta,
 	if (url)
 		tmp->res_url = gf_strdup(url);
 
-	sprintf(szURL, "gfio://%p", tmp);
+	//add clock as cookie to avoid creating twice th same gfio url in case the above malloc returns
+	//the same adress as a previously allocated gfio
+	tmp->creation_time = gf_sys_clock();
+	sprintf(szURL, "gfio://%p&%u", tmp, tmp->creation_time);
 	tmp->url = gf_strdup(szURL);
 	tmp->__this = tmp;
+	//track all allocated gfios so that we don't attempt accessing a freed one !
+	gf_mx_p(logs_mx);
+	if (!allocated_gfios) allocated_gfios = gf_list_new();
+	gf_list_add(allocated_gfios, tmp);
+	gf_mx_v(logs_mx);
+
 	return tmp;
 }
 
@@ -1203,10 +1262,23 @@ GF_EXPORT
 void gf_fileio_del(GF_FileIO *gfio)
 {
 	if (!gfio) return;
+	gf_mx_p(logs_mx);
+	if (gf_list_del_item(allocated_gfios, gfio)<0) {
+		gf_mx_v(logs_mx);
+		return;
+	}
+	if (!gf_list_count(allocated_gfios)) {
+		gf_list_del(allocated_gfios);
+		allocated_gfios = NULL;
+	}
+	gf_mx_v(logs_mx);
+
 	if (gfio->url) gf_free(gfio->url);
 	if (gfio->res_url) gf_free(gfio->res_url);
 	if (gfio->printf_buf) gf_free(gfio->printf_buf);
 	gf_free(gfio);
+
+
 }
 
 GF_EXPORT
@@ -1281,16 +1353,24 @@ GF_EXPORT
 GF_FileIO *gf_fileio_from_url(const char *url)
 {
 	char szURL[100];
+	u32 cookie=0;
 	GF_FileIO *ptr=NULL;
 	if (!url) return NULL;
 	if (strncmp(url, "gfio://", 7)) return NULL;
 
-	sscanf(url, "gfio://%p", &ptr);
-	sprintf(szURL, "gfio://%p", ptr);
+	sscanf(url, "gfio://%p&%u", &ptr, &cookie);
+	sprintf(szURL, "gfio://%p&%u", ptr, cookie);
 	if (strcmp(url, szURL))
 		return NULL;
 
-	if (ptr && ptr->url && !strcmp(ptr->url, url) ) {
+	gf_mx_p(logs_mx);
+	if (gf_list_find(allocated_gfios, ptr)<0) {
+		gf_mx_v(logs_mx);
+		return NULL;
+	}
+	gf_mx_v(logs_mx);
+
+	if (ptr && ptr->url && !strcmp(ptr->url, url) && (ptr->creation_time==cookie) ) {
 		return ptr;
 	}
 	return NULL;
@@ -1445,19 +1525,22 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	GF_FileIOBlob *gfio_blob;
 	GF_Err e = gf_blob_get(file_name, &blob_data, &blob_size, &flags);
 	if (e || !blob_data) return NULL;
-    gf_blob_release(file_name);
+	gf_blob_release(file_name);
 
-    if (flags) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Attempt at creating a GFIO object on blob corrupted or in transfer, not supported !"));
-        return NULL;
-    }
+	if (flags) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Attempt at creating a GFIO object on blob corrupted or in transfer, not supported !"));
+		return NULL;
+	}
 
 	GF_SAFEALLOC(gfio_blob, GF_FileIOBlob);
 	if (!gfio_blob) return NULL;
 	gfio_blob->data = blob_data;
 	gfio_blob->size = blob_size;
 	GF_FileIO *res = gf_fileio_new((char *) file_name, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
-	if (!res) return NULL;
+	if (!res) {
+		gf_free(gfio_blob);
+		return NULL;
+	}
 	res->gets = gfio_blob_gets;
 	if (file_name)
 		gfio_blob->url_crc = gf_crc_32(file_name, (u32) strlen(file_name) );

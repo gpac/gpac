@@ -123,6 +123,7 @@ is_emcfg="no"
 has_rmtws="yes"
 em_type="js"
 em_size="0"
+em_opt="2"
 fatal_assert="no"
 
 #flags not set by generic lib config
@@ -405,6 +406,7 @@ GPAC build options:
   --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
+  --em-opt=OPT             emscripten optimization level, can be 0, 1, 2, 3, s, or z (default: 2) [$em_opt]
 
 GPAC core configuration:
   --static-modules         embed modules in libgpac rather than using dynamic library modules
@@ -729,6 +731,12 @@ for opt do
         --em-type=*) em_type=`echo $opt | cut -d '=' -f 2`
             ;;
         --em-size=*) em_size=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --em-opt=*) em_opt=`echo $opt | cut -d '=' -f 2`
+            if test "$em_opt" != "0" -a "$em_opt" != "1" -a "$em_opt" != "2" -a "$em_opt" != "3" -a "$em_opt" != "s" -a "$em_opt" != "z"; then
+                echo "! Unrecognized emscripten optimization level $em_opt, using 2 !"
+                em_opt="2"
+            fi
             ;;
         *) echo "! Unrecognized option $opt, ignoring !"
             ;;
@@ -1725,8 +1733,9 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
-config_package ngtcp2 "libngtcp2" "" "-lngtcp2" "" '#include <stdio.h>
+config_package ngtcp2 "libngtcp2" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
 int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
@@ -2775,6 +2784,7 @@ elif test "$sunos" = "yes" ; then
 elif test "$is_em" = "yes" ; then
     echo "CONFIG_EMSCRIPTEN=yes" >> config.mak
     echo "EM_TYPE=$em_type" >> config.mak
+    echo "EM_OPT=$em_opt" >> config.mak
     echo "#define GPAC_CONFIG_EMSCRIPTEN" >> $TMPH
 else
     echo "#define GPAC_CONFIG_GENERIC" >> $TMPH
@@ -3161,6 +3171,7 @@ build_object_files_directory_tree()
 
     mkdir -p modules
     ln -sf "$1/modules/Makefile" modules/Makefile
+    ln -sf "$1/modules/common.mak" modules/common.mak
 
     for moddir in "$1/modules/"* ; do
         if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
@@ -3259,7 +3270,7 @@ generate_pkgconfig () {
 	echo "Name: gpac"
 	echo "Description: GPAC Multimedia Framework"
 	echo "URL: https://gpac.io"
-	echo "Version:$version"
+	echo "Version: $version"
 	echo "Cflags: -I\${prefix}/include"
 	echo "Libs: -L\${libdir} -lgpac"
 }

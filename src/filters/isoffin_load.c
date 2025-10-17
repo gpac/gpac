@@ -678,6 +678,9 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 			}
 			break;
 		}
+
+		if (dyname)
+			gf_free(dyname);
 	}
 
 	if (gf_sys_old_arch_compat()) {

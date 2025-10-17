@@ -407,6 +407,18 @@ Rect rect_intersect(Rect r1, Rect r2);
 */
 void enable_rmtws(bool enable);
 
+/*! get the log tools and levels - see \ref gf_log_get_tools_levels
+\param original_logs if set to true, return the logs set by the application, otherwise current logs as possibly modified by JS
+\return the log-level string
+*/
+DOMString get_logs(bool original_logs=GF_FALSE);
+
+/*! set the log tools and levels - see \ref gf_log_set_tools_levels
+\param logs string describing logs and levels. Using null will reset logs to original value before modified by JS
+\param reset reset all tools if true, otherwise only modify specified tools
+*/
+void set_logs(DOMString logs, bool reset=false);
+
 /*! set the callback function when new clients connect to the websocket server
 * the function shall take one parameter of type \ref JS_RMTClient
 */
@@ -522,6 +534,10 @@ readonly unsigned long version_minor;
 /*! GPAC version micro */
 readonly unsigned long version_micro;
 
+/*! set the callback function for logs, or disable log callback and reset tools to original value if null.
+* the callback function is of form log(DOMString tool, unsigned int level, DOMString message).
+*/
+optional attribute function on_log;
 
 };
 
@@ -974,9 +990,14 @@ interface JS_RMTClient {
 	readonly attribute string peer_address;
 
 	/*! sends data to the client on the websocket
-	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
+	\param data the data to send as a utf8 string
 	*/
-	void send(data);
+	void send(string data);
+
+	/*! sends data to the client on the websocket
+	\param data the data to send as a binary arraybuffer
+	*/
+	void send(arraybuffer data);
 
 
 }
