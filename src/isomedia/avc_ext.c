@@ -330,8 +330,12 @@ GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, u32 sampleNumber, G
 
 	if (!mdia->nalu_parser)
 		mdia->nalu_parser = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
-	else
-		gf_bs_reassign_buffer(mdia->nalu_parser, sample->data, sample->dataLength);
+	else {
+		GF_Err e = gf_bs_reassign_buffer(mdia->nalu_parser, sample->data, sample->dataLength);
+		if (e) {
+			return RAP_NO;
+		}
+	}
 
 	if (!mdia->nalu_parser) return RAP_NO;
 
@@ -658,8 +662,16 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		gf_bs_get_content(mdia->nalu_out_bs, &output, &outSize);
 	}
 
-	if (sample->data && sample->dataLength)
-		gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
+	if (sample->data && sample->dataLength) {
+		e = gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
+		if (e) {
+			// if we couldn't reassign here we need to decouple the bs from its buffer to avoid double frees later
+			u8 *output;
+			u32 outSize, allocSize;
+			gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &output, &outSize, &allocSize);
+			gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
+		}
+	}
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
@@ -763,7 +775,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		nal_size = gf_bs_read_int(mdia->nalu_parser, 8*nal_unit_size_field);
 		if (gf_bs_get_position(mdia->nalu_parser) + nal_size > sample->dataLength) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Sample %u (size %u) rewrite: corrupted NAL Unit (size %u)\n", sampleNumber, sample->dataLength, nal_size));
-			goto exit;
+			break;
 		}
 		if (nal_size > mdia->tmp_nal_copy_buffer_alloc) {
 			mdia->tmp_nal_copy_buffer_alloc = nal_size;
