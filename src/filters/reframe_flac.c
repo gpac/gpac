@@ -744,7 +744,7 @@ restart:
 			cts = GF_FILTER_NO_TS;
 		}
 
-		if (!ctx->in_seek) {
+		if (!ctx->in_seek && remain >= next_frame) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, next_frame, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, start, next_frame);
