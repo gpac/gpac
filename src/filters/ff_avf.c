@@ -46,6 +46,7 @@ typedef struct
 	AVFilterContext *io_filter_ctx;
 	GF_FilterPid *io_pid;
 	u32 timescale, width, height, sr, nb_ch, bps, bpp;
+	GF_Fraction fps;
 	Bool planar;
 	u32 pfmt; //ffmpeg pixel or audio format
 	u64 ch_layout; //ffmpeg channel layout
@@ -111,8 +112,8 @@ static GF_Err ffavf_setup_input(GF_FFAVFilterCtx *ctx, GF_FFAVPid *avpid)
 	if (avpid->width) {
 		avf = avfilter_get_by_name("buffer");
 		snprintf(args, sizeof(args),
-				"video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-				avpid->width, avpid->height, avpid->pfmt, 1, avpid->timescale, avpid->sar.num, avpid->sar.den);
+				"video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:frame_rate=%d/%d:pixel_aspect=%d/%d",
+				avpid->width, avpid->height, avpid->pfmt, 1, avpid->timescale, avpid->fps.num, avpid->fps.den, avpid->sar.num, avpid->sar.den);
 	} else {
 		avf = avfilter_get_by_name("abuffer");
 		snprintf(args, sizeof(args),
@@ -677,7 +678,12 @@ static GF_Err ffavf_process(GF_Filter *filter)
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, NULL);
 
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, opid->io_filter_ctx->inputs[0]->time_base.num) );
+				AVRational fps = av_buffersink_get_frame_rate(opid->io_filter_ctx);
+				if (fps.num && fps.den) {
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(fps.num, fps.den));
+				} else {
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, opid->io_filter_ctx->inputs[0]->time_base.num));
+				}
 
 				opid->width = frame->width;
 				opid->height = frame->height;
@@ -867,7 +873,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		u32 width, height, pix_fmt, gf_pfmt;
-		GF_Fraction sar={1,1};
+		GF_Fraction sar={1,1}, fps={0, 1};
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 		if (!p) return GF_OK; //not ready yet
 		width = p->value.uint;
@@ -880,6 +886,9 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!p) return GF_OK; //not ready yet
 		gf_pfmt = p->value.uint;
 		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt, GF_FALSE);
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p && (p->value.frac.num>0) && p->value.frac.den) fps = p->value.frac;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 		if (p && (p->value.frac.num>0) && p->value.frac.den) sar = p->value.frac;
@@ -906,6 +915,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		pid_ctx->height = height;
 		pid_ctx->pfmt = pix_fmt;
 		pid_ctx->timescale = timebase.den;
+		pid_ctx->fps = fps;
 		pid_ctx->sar = sar;
 	} else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout=0;
