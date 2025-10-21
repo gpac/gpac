@@ -3938,7 +3938,7 @@ static Bool jsfio_eof(GF_FileIO *fileio)
 	JSValue res;
 	s32 ret;
 	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	if (!ioctx || !ioctx->gfio) return GF_FALSE;
 	JSContext *ctx = ioctx->factory->ctx;
 	gf_js_lock(ctx, GF_TRUE);
 	res = JS_Call(ctx, ioctx->factory->eof, ioctx->js_obj, 0, NULL);
