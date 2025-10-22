@@ -113,7 +113,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	GF_AC4Config hdr;
+	GF_AC4Config hdr = {0};
 	u64 duration, rate;
 	u32 sample_rate = 0;
 	const GF_PropertyValue *p;
@@ -143,7 +143,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 	duration = 0;
 
 	// duration
-	while (gf_ac4_parser_bs(bs, &hdr, GF_FALSE)) {
+	while (gf_ac4_parser_bs(bs, &hdr, GF_FALSE, GF_FALSE)) {
 		duration += ctx->hdr.sample_duration;
 		sample_rate = hdr.sample_rate;
 
@@ -385,7 +385,7 @@ restart:
 		Bool res;
 		u32 sync_pos, bytes_to_drop=0;
 
-		res = gf_ac4_parser_bs(ctx->bs, &(ctx->hdr), is_first);
+		res = gf_ac4_parser_bs(ctx->bs, &(ctx->hdr), is_first, GF_FALSE);
 
 		sync_pos = (u32) gf_bs_get_position(ctx->bs);
 		sync_framesize = ctx->hdr.frame_size + ctx->hdr.header_size + ctx->hdr.crc_size;
@@ -546,7 +546,7 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	GF_BitStream *bs = gf_bs_new(_data, _size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs) && nb_frames <= 4) {
 		Bool bytes_lost=GF_FALSE;
-		if (!gf_ac4_parser_bs(bs, &ahdr, GF_FALSE)) {
+		if (!gf_ac4_parser_bs(bs, &ahdr, GF_TRUE, GF_FALSE)) {
 			if (ahdr.sample_rate) nb_frames++;
 			break;
 		}

@@ -169,6 +169,17 @@ GF_OPT_ENUM (DasherSegFlushMode,
 	SFLUSH_END,
 );
 
+enum
+{
+	AC4_OTHER_CONTENT = 0,
+	AC4_IMMERSIVE_STEREO,
+	AC4_IMMERSIVE_STEREO_ATMOS,
+	AC4_CHANNEL_BASED_CONTENT,
+	AC4_CHANNEL_BASED_IMMERSIVE_CONTENT,
+	AC4_OBJECT_BASED_CONTENT,
+	AC4_OBJECT_BASED_AJOC_CONTENT,
+};
+
 //these are not exported for now
 //get destination name by index
 char *gf_filter_pid_get_destination_ex(GF_FilterPid *pid, u32 dst_idx);
@@ -353,6 +364,8 @@ typedef struct _dash_stream
 	char *hls_vp_name;
 	u32 nb_surround, nb_lfe, atmos_complexity_type;
 	u64 ch_layout;
+	u32 ch_mask;
+	u8 ac4_content_type;
 	GF_PropVec4i srd;
 	u32 color_primaries, color_transfer_characteristics, color_matrix, color_transfer_characteristics_alt;
 	Bool sscale;
@@ -1642,6 +1655,45 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
 				}
 				break;
+			case GF_CODECID_AC4:
+				if (dsi) {
+					GF_AC4Config ac4 = {0};
+					gf_odf_ac4_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &ac4);
+					GF_AC4PresentationV1* p = (GF_AC4PresentationV1*)gf_list_get(ac4.stream.presentations, 0);
+					if (p) {
+						ds->ch_mask = p->presentation_channel_mask_v1;
+						_nb_ch = gf_ac4_dolby_channel_count_from_channel_mask_v1(ds->ch_mask);
+						// Dolby AC-4 in MPEG-DASH for Online Delivery Specification 2.5.1 presentation_version of immersive stereo content is 2
+						if (p->presentation_version == 2) {
+							ds->ac4_content_type = AC4_IMMERSIVE_STEREO;
+							if (p->dolby_atmos_indicator) {
+								ds->ac4_content_type = AC4_IMMERSIVE_STEREO_ATMOS;
+							}
+						} else if (p->presentation_version == 1) {
+							// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.10 b_presentation_channel_coded indicates if the presentation is channel-based (1) or object-based (0)
+							if (p->b_presentation_channel_coded == 1) {
+								ds->ac4_content_type = AC4_CHANNEL_BASED_CONTENT;
+								if (p->dsi_presentation_ch_mode == 15 ||
+									(p->dsi_presentation_ch_mode >= 11 && p->dsi_presentation_ch_mode <= 14 && p->pres_top_channel_pairs > 0)) {
+									ds->ac4_content_type = AC4_CHANNEL_BASED_IMMERSIVE_CONTENT;
+								}
+							} else {
+								ds->ac4_content_type = AC4_OBJECT_BASED_CONTENT;
+								GF_AC4SubStreamGroupV1 *sg = gf_list_get(p->substream_groups, 0);
+								if (sg && sg->substreams) {
+									GF_AC4SubStream *ss = gf_list_get(sg->substreams, 0);
+									// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.8 b_ajoc indicates that the substream is coded using the A-JOC coding tool
+									if (ss && ss->b_ajoc == 1) {
+										ds->ac4_content_type = AC4_OBJECT_BASED_AJOC_CONTENT;
+										_nb_ch = ss->n_umx_objects_minus1 + 2;
+									}
+								}
+							}
+						}
+					}
+					gf_odf_ac4_cfg_clean_list(&ac4);
+				}
+				break;
 #endif
 			case GF_CODECID_MHAS:
 			case GF_CODECID_MPHA:
@@ -1653,6 +1705,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 			if (_sr > ds->sr) ds->sr = _sr;
 			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
+			if ((ds->codec_id == GF_CODECID_EAC3 || ds->codec_id == GF_CODECID_AC4) && _nb_ch != 0) ds->nb_ch = _nb_ch;
 		}
 
 
@@ -2484,6 +2537,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	else if (ds->stream_type==GF_STREAM_AUDIO) {
 		Bool use_cicp = GF_FALSE;
 		Bool use_dolbyx = GF_FALSE;
+		Bool use_ac4 = GF_FALSE;
 		Bool use_dtshd = GF_FALSE;
 		Bool use_dtsx = GF_FALSE;
 		GF_MPD_Descriptor *desc;
@@ -2505,6 +2559,10 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			if (ctx->profile > GF_DASH_PROFILE_FULL) {
 				use_dolbyx = GF_TRUE;
 			}
+			use_cicp = GF_TRUE;
+		}
+		if (ds->codec_id==GF_CODECID_AC4) {
+			use_ac4 = GF_TRUE;
 		}
 		if (use_dolbyx) {
 			u32 chanmap=0;
@@ -2516,6 +2574,18 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			}
 			sprintf(value, "%X", chanmap);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
+		} else if (use_ac4) {
+			// ETSI TS 103 190-2 V1.3.1 (2025-07) G.3.3
+			u32 chan=0;
+			if (ds->ch_mask == 0 || ds->ch_mask == 0x800000) {
+				sprintf(value, "%06X", 0x800000);
+				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
+			}
+			else {
+				chan = gf_audio_get_dolby_channel_config_value_from_mask(ds->ch_mask);
+				sprintf(value, "%06X", ds->ch_mask);
+				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
+			}
 		} else if (use_dtshd) {
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dts.com,2014:dash:audio_channel_configuration:2012", value);
@@ -8472,6 +8542,38 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
+
+			// Dolby Digital Plus Online Delivery Playback System Development Guide version 1.5
+			// For Dolby Atmos content, the number of decodable objects followed by a slash (/) and then JOC
+			if (ds->codec_id == GF_CODECID_EAC3 && ds->atmos_complexity_type) {
+				ds->rep->nb_chan = 0;
+				sprintf(ds->rep->str_chan, "%d/JOC", ds->atmos_complexity_type);
+			}
+
+			if (ds->codec_id == GF_CODECID_AC4) {
+				switch(ds->ac4_content_type) {
+				// Dolby AC-4 and HTTP Live Streaming Specification 1 November 2021 4.3
+				case AC4_IMMERSIVE_STEREO:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "2/IMSA");
+					break;
+				case AC4_IMMERSIVE_STEREO_ATMOS:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "2/IMSA,ATMOS");
+					break;
+				case AC4_CHANNEL_BASED_IMMERSIVE_CONTENT:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "%d/IMSA", ds->nb_ch);
+					break;
+				case AC4_OBJECT_BASED_AJOC_CONTENT:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "%d/JOC", ds->nb_ch);
+					break;
+				default:
+					break;
+				}
+			}
+
 			//we need a copy when flushing MPD after a period switch
 			if (ds->rep->m3u8_name) gf_free(ds->rep->m3u8_name);
 			ds->rep->m3u8_name = ds->hls_vp_name ? gf_strdup(ds->hls_vp_name) : NULL;
