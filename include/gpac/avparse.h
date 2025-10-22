@@ -358,12 +358,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len);
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_len);
 
 /*! parses opus header packets - initializes the config  on success, leave it to NULL otherwise
-\param cfg pointer to a opus config to fill
+\param ocfg pointer to a opus config to fill
 \param data opus header buffer to parse
 \param data_len size of opus header buffer
 \return 1 if success, 0 if error
 */
-Bool gf_opus_parse_header(GF_OpusConfig *cfg, u8 *data, u32 data_len);
+Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len);
 
 /*! checks if an opus frame is valid
 \param cfg pointer to a opus config to use
@@ -641,7 +641,7 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 //! \cond old name
 typedef struct __ac3_config GF_AC3Header;
-//! \endcond 
+//! \endcond
 
 /*! parses an AC-3 header from a buffer
 \param buffer buffer to parse
@@ -932,4 +932,3 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type);
 
 
 #endif	/*_GF_PARSERS_AV_H_*/
-

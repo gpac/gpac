@@ -1757,12 +1757,12 @@ Bool routein_is_valid_url(GF_Filter *f, u32 service_id, const char *url);
 static JSValue jsff_source_probe_url(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	Bool ret = GF_FALSE;
-	s32 serviceID;
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
 	if (!f || (argc<2))
 		return GF_JS_EXCEPTION(ctx);
 
 #ifndef GPAC_DISABLE_ROUTE
+	s32 serviceID;
 	JS_ToInt32(ctx, &serviceID, argv[0]);
 	const char *url = JS_ToCString(ctx, argv[1]);
 

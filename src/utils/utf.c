@@ -103,6 +103,8 @@ static const UTF32 halfMask = 0x3FFUL;
 #define UNI_SUR_HIGH_END    (UTF32)0xDBFF
 #define UNI_SUR_LOW_START   (UTF32)0xDC00
 #define UNI_SUR_LOW_END     (UTF32)0xDFFF
+#undef false
+#undef true
 #define false	   0
 #define true	    1
 
@@ -766,4 +768,3 @@ char* gf_wcs_to_utf8(const wchar_t* str)
 	return result;
 }
 #endif
-

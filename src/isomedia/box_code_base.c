@@ -13701,6 +13701,8 @@ void silb_box_del(GF_Box *s)
 	if (ptr == NULL) return;
 	while (gf_list_count(ptr->schemes)) {
 		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry *)gf_list_get(ptr->schemes, 0);
+		gf_free(ent->scheme_id_uri);
+		gf_free(ent->value);
 		gf_free(ent);
 		gf_list_rem(ptr->schemes, 0);
 	}
@@ -13738,6 +13740,8 @@ GF_Err silb_box_read(GF_Box *s, GF_BitStream *bs)
 
 			ent->reserved = gf_bs_read_int(bs, 7);
 			ent->atleast_once_flag = gf_bs_read_int(bs, 1);
+
+			gf_list_add(ptr->schemes, ent);
 		}
 	}
 
@@ -13782,7 +13786,17 @@ GF_Err silb_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err silb_box_size(GF_Box *s)
 {
 	GF_SchemeIdListBox *ptr = (GF_SchemeIdListBox*) s;
-	ptr->size += 4 + ptr->number_of_schemes*sizeof(GF_SchemeIdListBoxEntry) + 1;
+
+	ptr->size += 4;     //number_of_schemes
+	for (u32 i=0; i<ptr->number_of_schemes; i++) {
+		GF_SchemeIdListBoxEntry *ent = gf_list_get(ptr->schemes, i);
+		if (!ent) return GF_BAD_PARAM;
+		ptr->size += 2; //2 NULL-terminated strings
+		if (ent->scheme_id_uri) ptr->size += strlen(ent->scheme_id_uri);
+		if (ent->value) ptr->size += strlen(ent->value);
+		ptr->size += 1; //reserved + atleast_once_flag
+	}
+	ptr->size += 1;     //reserved + other_schemes_flag
 
 	return GF_OK;
 }

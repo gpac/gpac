@@ -635,8 +635,6 @@ exit:
 	return e;
 }
 
-//creates a new Track. If trackID = 0, the trackID is chosen by the API
-//returns the track number or 0 if error
 GF_EXPORT
 u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only)
 {
@@ -4595,6 +4593,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	gf_bs_del(bs);
 	gf_free(data);
 	if (e) return e;
+
 	if (entry->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
 		GF_UnknownBox *ubox = (GF_UnknownBox*)entry;
 		if (internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
@@ -4621,6 +4620,12 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 		ubox->data = NULL;
 		ubox->dataSize = 0;
 		gf_isom_box_del((GF_Box *)ubox);
+	}
+	else if (!gf_box_valid_in_parent(entry, "stsd")) {
+		//TODO: better filter about the type of boxes that can land here
+		e = GF_ISOM_INVALID_MEDIA;
+		goto exit;
+
 	}
 
 	/*get new track and insert clone*/
@@ -5528,7 +5533,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_ENCS:
 			Media_GetESD(trak1->Media, sdesc_index1 ? sdesc_index1 : i+1, &esd1, GF_TRUE);
 			Media_GetESD(trak2->Media, sdesc_index2 ? sdesc_index2 : i+1, &esd2, GF_TRUE);
-			if (!esd1 || !esd2) continue;
+			if (!esd1 || !esd2 || !esd1->decoderConfig || !esd2->decoderConfig) continue;
 			need_memcmp = GF_FALSE;
 			if (esd1->decoderConfig->streamType != esd2->decoderConfig->streamType) return GF_FALSE;
 			if (esd1->decoderConfig->objectTypeIndication != esd2->decoderConfig->objectTypeIndication) return GF_FALSE;

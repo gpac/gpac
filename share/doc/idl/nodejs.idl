@@ -32,7 +32,6 @@ When loading the module, libgpac is innitialized with no memory tracking and the
 
 \param mem_track mem tracker mode
 \param profile profile name, null for default
-\return
 */
 void init(unsigned long mem_track=0, DOMString profile=null);
 
@@ -47,7 +46,6 @@ DOMString e2s(long err);
 
 \param logs
 \param reset if true, resets all logs to default
-\return
 */
 void set_logs(DOMString logs, boolean reset=false);
 
@@ -133,9 +131,14 @@ interface _RMTClient {
 	readonly attribute string peer_address;
 
 	/*! sends data to the client on the websocket
-	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
+	\param data the data to send as a utf8 string
 	*/
-	void send(data);
+	void send(string data);
+
+	/*! sends data to the client on the websocket
+	\param data the data to send as a binary arraybuffer
+	*/
+	void send(arraybuffer data);
 
 
 }
@@ -150,7 +153,7 @@ interface _RMTClient {
 \ingroup nodejs_grp
 \brief FilterSession management
 
-See \ref GF_FilterSession
+See \ref fs_grp
 
 The default behaviour is to run the session in blocking mode, which will prevent executing anything until the end of a session.
 While this may be OK for workers or simple applications, it is obviously problematic if you have async tasks to be performed by your node app.
@@ -334,7 +337,7 @@ CustomFilter new_filter(DOMString name="Custom", unsigned long flags=0);
 \ingroup nodejs_grp
 \brief Filter management
 
-See \ref GF_Filter
+See \ref fs_filter
 
 @{
 */
@@ -639,7 +642,7 @@ cust.process_event = function(evt)
 \endcode
 
 
-See \ref GF_Filter
+See \ref fs_filter
 
 @{
 */
@@ -1425,7 +1428,7 @@ FileIO allows redirecting calls to file access (open, close, read, write) to Nod
 
 This allows generating content in NodeJS without any disk IO, or passing NodeJS data as input to GPAC without intermediate file.
 
-See \ref GF_FileIO for more details
+See \ref osfile_grp for more details
 
 A FileIO object is constructed from the URL to wrap and a factory object with callbacks used to access the file.
 For example, to wrap a file for input:

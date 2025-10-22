@@ -5327,10 +5327,6 @@ Bool gf_filter_is_alias(GF_Filter *filter)
 	return GF_FALSE;
 }
 
-/*! checks if the some PID connection tasks are still pending at the session level
-\param filter target filter
-\return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
-*/
 GF_EXPORT
 Bool gf_filter_connections_pending(GF_Filter *filter)
 {
