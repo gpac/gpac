@@ -2576,13 +2576,11 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
 		} else if (use_ac4) {
 			// ETSI TS 103 190-2 V1.3.1 (2025-07) G.3.3
-			u32 chan=0;
 			if (ds->ch_mask == 0 || ds->ch_mask == 0x800000) {
 				sprintf(value, "%06X", 0x800000);
 				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
 			}
 			else {
-				chan = gf_audio_get_dolby_channel_config_value_from_mask(ds->ch_mask);
 				sprintf(value, "%06X", ds->ch_mask);
 				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
 			}

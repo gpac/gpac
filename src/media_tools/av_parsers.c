@@ -16141,7 +16141,7 @@ Bool gf_ac4_frame_size(GF_BitStream *bs, GF_AC4Config *hdr)
 GF_EXPORT
 Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc)
 {
-	u32 sync_word;
+	u32 sync_word = 0;
 	u64 pos;
 	GF_AC4StreamInfo* stream;
 	if (!hdr || !bs) return GF_FALSE;

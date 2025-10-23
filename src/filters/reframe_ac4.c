@@ -571,6 +571,9 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 		return "audio/ac4";
 	}
 
+	// not ac4 stream, need to clean the allocated config
+	gf_odf_ac4_cfg_clean_list(&ahdr);
+
 	return NULL;
 }
 
