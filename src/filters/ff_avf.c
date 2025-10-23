@@ -124,10 +124,14 @@ static GF_Err ffavf_setup_input(GF_FFAVFilterCtx *ctx, GF_FFAVPid *avpid)
 	}
 	//destroy filter (will remove from graph)
 	if (avpid->io_filter_ctx) avfilter_free(avpid->io_filter_ctx);
-	avpid->io_filter_ctx = NULL;
-	ret = avfilter_graph_create_filter(&avpid->io_filter_ctx, avf, pid_name, args, NULL, ctx->filter_graph);
-	if (ret<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create filter graph: %s\n", av_err2str(ret) ));
+	avpid->io_filter_ctx = avfilter_graph_alloc_filter(ctx->filter_graph, avf, pid_name);
+	if (!avpid->io_filter_ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create filter graph\n"));
+		return GF_OUT_OF_MEM;
+	}
+	ret = avfilter_init_str(avpid->io_filter_ctx, args);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to initialize filter graph: %s\n", av_err2str(ret) ));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;
@@ -213,10 +217,10 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 		if (nb_outputs==1)
 			sprintf(szName, "out");
 
-		ret = avfilter_graph_create_filter(&opid->io_filter_ctx, avf, szName, NULL, NULL, ctx->filter_graph);
-		if (ret<0) {
+		opid->io_filter_ctx = avfilter_graph_alloc_filter(ctx->filter_graph, avf, szName);
+		if (!opid->io_filter_ctx) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create %s filter: %s\n", avf->name, av_err2str(ret) ));
-			return GF_BAD_PARAM;
+			return GF_OUT_OF_MEM;
 		}
 		if (opid->is_video) {
 			if (ctx->pfmt) {
@@ -243,10 +247,14 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 			if (ctx->ch) {
 				ret = av_opt_set_bin(opid->io_filter_ctx, "channels", (uint8_t*)&ctx->ch, sizeof(ctx->ch), AV_OPT_SEARCH_CHILDREN);
 				if (ret < 0) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFAVF] Fail to set %s audio sample rate: %s\n", avf->name, av_err2str(ret) ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFAVF] Fail to set %s audio channel layout: %s\n", avf->name, av_err2str(ret) ));
 				}
 			}
-
+		}
+		ret = avfilter_init_str(opid->io_filter_ctx, NULL);
+		if (ret < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to initialize %s filter: %s\n", avf->name, av_err2str(ret) ));
+			return GF_BAD_PARAM;
 		}
 		io->name = av_strdup(szName);
 		io->filter_ctx = opid->io_filter_ctx;
