@@ -1010,23 +1010,29 @@ u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout);
 */
 u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout);
 
-/*! get dloby chanmap value from cicp layout
+/*! get dolby chanmap value from cicp layout
 \param cicp_layout channel CICP layout
 \return dolby chanmap
 */
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 
-/*! get dloby chanmap value from channel layout
+/*! get dolby chanmap value from channel layout
 \param channel_layout channel layout mask
 \return dolby chanmap
 */
 u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
 
-/*! get dloby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
+/*! get dolby AudioChannelConfiguration value from ac4 presentation_channel_mask_v1
 \param mask presentation channel mask v1
 \return dolby AudioChannelConfiguration value
 */
 u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask);
+
+/*! get dolby channel count for HLS from ac4 presentation_channel_mask_v1
+\param mask presentation channel mask v1
+\return dolby channel count
+*/
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 mask);
 
 /*! enumerates CICP channel layout
 \param idx index of cicp layout value to query

@@ -1133,6 +1133,14 @@ GF_Err gf_dasher_print_session_info(GF_DASHSegmenter *dasher, u32 fs_print_flags
 */
 GF_Err gf_dasher_keep_source_utc(GF_DASHSegmenter *dasher, Bool keep_utc);
 
+/*!
+ Keeps hls info used in -crypt and pass to dasher
+\param dasher the DASH segmenter object
+\param hls_info use for HLS playlist in -crypt, if NULL no HLS info is set
+\return error if any
+*/
+GF_Err gf_dasher_set_hls_info(GF_DASHSegmenter *dasher, char *hls_info);
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!
  save file as fragmented movie

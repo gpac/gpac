@@ -3784,9 +3784,10 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 		gf_fprintf(out, ",URI=\"%s\"", m3u8_name);
 
-		if (!has_chan && rep->nb_chan)
-			gf_fprintf(out, ",CHANNELS=\"%d\"", rep->nb_chan);
-
+		if (!has_chan) {
+			if (rep->nb_chan) gf_fprintf(out, ",CHANNELS=\"%d\"", rep->nb_chan);
+			else if (rep->str_chan[0] != '\0') gf_fprintf(out, ",CHANNELS=\"%s\"", rep->str_chan);
+		}
 		return;
 	}
 
