@@ -566,13 +566,12 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	gf_log_set_tool_level(GF_LOG_CODING, lt);
 	gf_bs_del(bs);
 
+	gf_odf_ac4_cfg_clean_list(&ahdr);
+
 	if (nb_frames>=2) {
 		*score = nb_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/ac4";
-	}
-
-	// not ac4 stream, need to clean the allocated config
-	gf_odf_ac4_cfg_clean_list(&ahdr);
+	}	
 
 	return NULL;
 }
