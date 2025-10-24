@@ -15,6 +15,9 @@ set "BRANCH=%BRANCH:<=-%"
 set "BRANCH=%BRANCH:>=-%"
 set "BRANCH=%BRANCH:|=-%"
 set "BRANCH=%BRANCH:@=-%"
+set "BRANCH=%BRANCH:_=-%"
+set "BRANCH=%BRANCH:(=-%"
+set "BRANCH=%BRANCH:)=-%"
 
 REM remove anotated tag from VERSION
 setlocal enabledelayedexpansion

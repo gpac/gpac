@@ -357,6 +357,7 @@
 		92359C8A250F657B00525A42 /* in_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C89250F657A00525A42 /* in_route.c */; };
 		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
 		92455F8E2A530F560080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8D2A530F560080321C /* dec_cc.c */; };
+		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		92455FDB2A540A640080321C /* libcaption.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92455FDA2A540A640080321C /* libcaption.a */; };
 		9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7624A1240600F72EAD /* filter_session_js.c */; };
 		924AB67F281438E100EC006F /* default.cfg in Resources */ = {isa = PBXBuildFile; fileRef = 924AB67E281438E000EC006F /* default.cfg */; };
@@ -981,6 +982,7 @@
 		92359C89250F657A00525A42 /* in_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_route.c; path = ../../src/filters/in_route.c; sourceTree = "<group>"; };
 		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
 		92455F8D2A530F560080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = ../../src/filters/dec_cc.c; sourceTree = "<group>"; };
+		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = ../../src/filters/enc_cc.c; sourceTree = "<group>"; };
 		92455FDA2A540A640080321C /* libcaption.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcaption.a; path = ../../extra_lib/lib/iOS/libcaption.a; sourceTree = "<group>"; };
 		9246EE7624A1240600F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = ../../src/filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		924AB67E281438E000EC006F /* default.cfg */ = {isa = PBXFileReference; lastKnownFileType = text; name = default.cfg; path = ../../share/default.cfg; sourceTree = "<group>"; };
@@ -2019,6 +2021,7 @@
 				92EB6D9F20E4E19500A97A49 /* dmx_ogg.c */,
 				92EB6D8C20E4E19400A97A49 /* dmx_saf.c */,
 				92EB6DA720E4E19600A97A49 /* dmx_vobsub.c */,
+				3FDEA5BA2D402C3D006F0673 /* enc_cc.c */,
 				92EB6DBF20E4E19700A97A49 /* enc_jpg.c */,
 				92EB6D8F20E4E19400A97A49 /* enc_png.c */,
 				92EB6D8D20E4E19400A97A49 /* encrypt_cenc_isma.c */,
@@ -2731,6 +2734,7 @@
 				92EB6E0420E4E19700A97A49 /* ff_dmx.c in Sources */,
 				92EB6DCE20E4E19700A97A49 /* filelist.c in Sources */,
 				92EB6DE320E4E19700A97A49 /* compose.c in Sources */,
+				3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */,
 				9290E74E25263F4F00BC0EE3 /* reframe_mhas.c in Sources */,
 				92E9DFAF2215CEA700628420 /* raster_rgb.c in Sources */,
 				929DE74924183FB40056AFA7 /* gzio.c in Sources */,

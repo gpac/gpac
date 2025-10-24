@@ -283,6 +283,7 @@
     <ClCompile Include="..\..\src\filters\dmx_ogg.c" />
     <ClCompile Include="..\..\src\filters\dmx_saf.c" />
     <ClCompile Include="..\..\src\filters\dmx_vobsub.c" />
+    <ClCompile Include="..\..\src\filters\enc_cc.c" />
     <ClCompile Include="..\..\src\filters\enc_jpg.c" />
     <ClCompile Include="..\..\src\filters\enc_png.c" />
     <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c" />
