@@ -1232,7 +1232,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		gf_bs_write_u8(bs, 1);
 		gf_bs_write_u24(bs, 4);
 		gf_bs_write_u32(bs, movie->moof->reference_track_ID);
-		gf_bs_write_u64(bs, gf_net_get_ntp_ts());
+		gf_bs_write_u64(bs, !gf_sys_is_test_mode() ? gf_net_get_ntp_ts() : 0);
 		gf_bs_write_u64(bs, movie->moof->timestamp);
 	}
 	if (movie->moof->emsgs) {
