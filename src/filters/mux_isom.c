@@ -49,12 +49,6 @@ enum{
 	NALU_VVC
 };
 
-enum {
-	PRFT_OFF=0,
-	PRFT_SENDER,
-	PRFT_BOTH
-};
-
 enum
 {
 	CENC_NONE=0,
@@ -215,13 +209,18 @@ GF_OPT_ENUM (GF_MP4MuxFileStorageMode,
 	MP4MX_MODE_SFRAG,
 );
 
-
 enum
 {
 	MP4MX_DASH_OFF=0,
 	MP4MX_DASH_ON,
 	MP4MX_DASH_VOD,
 };
+
+GF_OPT_ENUM (GF_MP4MuxPRFTMode,
+	PRFT_OFF=0,
+	PRFT_SENDER,
+	PRFT_BOTH
+);
 
 GF_OPT_ENUM (GF_MP4MuxPsshStoreMode,
 	MP4MX_PSSH_MOOV=0,
@@ -287,7 +286,7 @@ typedef struct
 	u32 msn, msninc;
 	GF_Fraction64 tfdt;
 	Bool nofragdef, straf, strun, sgpd_traf, noinit;
-	Bool prft;
+	GF_MP4MuxPRFTMode prft;
 	GF_MP4MuxTempStorageMode vodcache;
 	GF_MP4MuxPsshStoreMode psshs;
 	u32 trackid;
