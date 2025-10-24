@@ -4582,6 +4582,20 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	if (!entry) return GF_BAD_PARAM;
 	internal_type = ((GF_SampleEntryBox *)entry)->internal_type;
 
+
+	// for generic entries, force the entrytype to unknown to avoid allocating potentially disallowed box types
+	u32 generic_entry_type = 0;
+	if (entry->type == GF_ISOM_BOX_TYPE_GNRV) {
+		generic_entry_type = ((GF_GenericVisualSampleEntryBox *) entry)->EntryType;
+		((GF_GenericVisualSampleEntryBox *) entry)->EntryType = GF_ISOM_BOX_TYPE_UNKNOWN;
+	} else if (entry->type == GF_ISOM_BOX_TYPE_GNRA) {
+		generic_entry_type = ((GF_GenericAudioSampleEntryBox *) entry)->EntryType;
+		((GF_GenericAudioSampleEntryBox *) entry)->EntryType = GF_ISOM_BOX_TYPE_UNKNOWN;
+	} else if (entry->type == GF_ISOM_BOX_TYPE_GNRM) {
+		generic_entry_type = ((GF_GenericSampleEntryBox *) entry)->EntryType;
+		((GF_GenericSampleEntryBox *) entry)->EntryType = GF_ISOM_BOX_TYPE_UNKNOWN;
+	}
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	gf_isom_box_size(entry);
@@ -4589,6 +4603,17 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+
+	// restore the original entrytype before losing the entry pointer
+	if (entry->type == GF_ISOM_BOX_TYPE_GNRV) {
+		((GF_GenericVisualSampleEntryBox *) entry)->EntryType = generic_entry_type;
+	} else if (entry->type == GF_ISOM_BOX_TYPE_GNRA) {
+		((GF_GenericAudioSampleEntryBox *) entry)->EntryType = generic_entry_type;
+	} else if (entry->type == GF_ISOM_BOX_TYPE_GNRM) {
+		((GF_GenericSampleEntryBox *) entry)->EntryType = generic_entry_type;
+	}
+
+
 	e = gf_isom_box_parse(&entry, bs);
 	gf_bs_del(bs);
 	gf_free(data);
@@ -4598,21 +4623,21 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 		GF_UnknownBox *ubox = (GF_UnknownBox*)entry;
 		if (internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 			GF_GenericVisualSampleEntryBox *ve = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
-			ve->EntryType = ubox->type;
+			ve->EntryType = generic_entry_type ? generic_entry_type : ubox->original_4cc;
 			ve->data = ubox->data;
 			ve->data_size = ubox->dataSize;
 			entry = (GF_Box *) ve;
 		}
 		else if (internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
 			GF_GenericAudioSampleEntryBox *ae = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
-			ae->EntryType = ubox->type;
+			ae->EntryType = generic_entry_type ? generic_entry_type : ubox->original_4cc;
 			ae->data = ubox->data;
 			ae->data_size = ubox->dataSize;
 			entry = (GF_Box *) ae;
 		}
 		else {
 			GF_GenericSampleEntryBox *ge = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
-			ge->EntryType = ubox->type;
+			ge->EntryType = generic_entry_type ? generic_entry_type : ubox->original_4cc;
 			ge->data = ubox->data;
 			ge->data_size = ubox->dataSize;
 			entry = (GF_Box *) ge;
@@ -4620,12 +4645,6 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 		ubox->data = NULL;
 		ubox->dataSize = 0;
 		gf_isom_box_del((GF_Box *)ubox);
-	}
-	else if (!gf_box_valid_in_parent(entry, "stsd")) {
-		//TODO: better filter about the type of boxes that can land here
-		e = GF_ISOM_INVALID_MEDIA;
-		goto exit;
-
 	}
 
 	/*get new track and insert clone*/
