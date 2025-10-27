@@ -4854,9 +4854,10 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *isom_file, Bool last_segment);
 \param reference_track_ID the ID of the track used as a reference for media timestamps
 \param ntp absolute NTP time
 \param timestamp media time corresponding to the NTP time, in reference track media timescale
+\param at_mux whether the box should also contain the ntp time of when the movie fragment is written
 \return error if any
 */
-GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *isom_file, GF_ISOTrackID reference_track_ID, u64 ntp, u64 timestamp);
+GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *isom_file, GF_ISOTrackID reference_track_ID, u64 ntp, u64 timestamp, Bool at_mux);
 
 /*! writes an empty sidx in the current movie.
 
