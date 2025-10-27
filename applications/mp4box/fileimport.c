@@ -3167,6 +3167,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			if (samp->nb_pack)
 				j+= samp->nb_pack-1;
 
+			if (samp->data && !samp->dataLength) {
+				// force deletetion, see gf_isom_sample_del()
+				samp->dataLength = samp->alloc_size;
+			}
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;
 
