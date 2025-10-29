@@ -1107,6 +1107,40 @@ u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 	return mask;
 }
 
+// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_channel_mask_v1
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 mask)
+{
+	const u32 channel_mask_v1_2_channel_count[19] = {
+		2,  // L,R
+		1,  // C
+		2,  // Ls,Rs
+		2,  // Lb,Rb
+		2,  //Tfl,Tfr
+		2,  //Tbl,Tbr
+		1,  //LFE
+		2,  //Tl,Tr
+		2,  //Tsl,Tsr
+		1,  //Tfc
+		1,  //Tbc
+		1,  //Tc
+		1,  //LEF2
+		2,  //Bfl,Bfr
+		1,  //Bfc
+		1,  //Cb
+		2,  //Lscr,Rscr
+		2,  //Lw,Rw
+		2   //Vhl,Vhr
+	};
+	u32 count = 0;
+    for(u32 i = 0; i < 19; i++) {
+        if(mask % 2 == 1) {
+            count += channel_mask_v1_2_channel_count[i];
+        }
+        mask /= 2;
+    }
+    return count;
+}
+
 GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 {

@@ -893,7 +893,10 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, 
 GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight);
 GF_Err gf_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], u32 *superframe_index_size);
 
-
+typedef struct
+{
+	GF_AC4Config *config;
+} AC4State;
 
 #define AV1_MAX_TILE_ROWS 64
 #define AV1_MAX_TILE_COLS 64

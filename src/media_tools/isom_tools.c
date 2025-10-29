@@ -4001,35 +4001,28 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 {
 	if (dsi && dsi_size) {
-		u8 bitstream_version = 0;
-		u16 n_presentations = 0;
-		u8 presentation_version = 0;
-		u8 mdcompat = 0;
-
-		if (dsi_size < 3) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AC4] invalid DSI size %u < 3\n", dsi_size));
-			return GF_NON_COMPLIANT_BITSTREAM;
+		GF_AC4Config cfg = {0};
+		GF_BitStream *bs = gf_bs_new((const char *)dsi, dsi_size, GF_BITSTREAM_READ);
+		if (!bs) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] Cannot create bitstream from DSI\n"));
+			return GF_OUT_OF_MEM;
 		}
-		/* 7 bits of AC4 config*/
-		bitstream_version = ((dsi[0] & 0x1F) << 5) + ((dsi[1] & 0xC0) >> 6);
-		/* 9 bits of AC4 config*/
-		n_presentations = ((dsi[1] & 0x01) << 8) + dsi[2];
-		if (n_presentations > 0) {
-			if (dsi_size < 15) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AC4] invalid DSI size %u < 15\n", dsi_size));
-				return GF_NON_COMPLIANT_BITSTREAM;
+		if(!gf_odf_ac4_cfg_parse_bs(bs, &cfg)) {
+			gf_bs_del(bs);
+
+			if (cfg.stream.n_presentations > 0) {
+				GF_AC4PresentationV1 *presentations = (GF_AC4PresentationV1*)gf_list_get(cfg.stream.presentations, 0);
+				if (presentations) {
+					snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", cfg.stream.bitstream_version, presentations->presentation_version, presentations->mdcompat);
+
+					gf_odf_ac4_cfg_clean_list(&cfg);
+					return GF_OK;
+				}
 			}
-
-			presentation_version = dsi[12];
-			mdcompat = dsi[14] & 0x07;
 		}
-
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", bitstream_version, presentation_version, mdcompat);
-		return GF_OK;
 	}
-
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02X", codec_id);
-	return GF_OK;
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] invalid DSI\n"));
+	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
 GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size)
