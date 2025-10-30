@@ -315,7 +315,15 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 	//end of <p>
 	gf_fprintf(dump, ">");
 
+	Bool needs_new_line = GF_FALSE;
 	for (j=0; j<len; j++) {
+		if (needs_new_line) {
+			//safety check for weird files using CR but no LF
+			if (utf16Line[j]=='\r') continue;
+			if (utf16Line[j]!='\n')
+				gf_fprintf(dump, "<br/>");
+			needs_new_line = GF_FALSE;
+		}
 		if (!single_style) {
 			if (txt->styles) {
 				new_styles = txtd->default_style.style_flags;
@@ -382,7 +390,7 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 		}
 
 		if (utf16Line[j]=='\r') {
-
+			needs_new_line = GF_TRUE;
 		} else if (utf16Line[j]=='\n') {
 			gf_fprintf(dump, "<br/>");
 		} else {
