@@ -315,9 +315,20 @@ static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame,
 {
 	char padding[256];
 	ssize_t rv;
+
+	//ultimately we would like to use directly source->ptr but the session could have been destroyed and there is no way to tell nghttp2 to stop
+	//calling us: we may get called before rst_stream is processed
+	//we therefore need to validate the session is indeed still alive, but that's slower...
+#if 0
 	GF_DownloadSession *sess = (GF_DownloadSession *) source->ptr;
 	if (!sess)
 		return NGHTTP2_ERR_EOF;
+
+#else
+	GF_DownloadSession *sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
+	if (!sess)
+		return NGHTTP2_ERR_EOF;
+#endif
 
 	gf_assert(sess->hmux_send_data_len);
 	gf_assert(sess->hmux_send_data_len >= length);

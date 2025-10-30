@@ -483,6 +483,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 		sess->comp_data = NULL;
 	}
 	sess->done = 1;
+	sess->async_pending = 0;
 	sess->flush_close = 0;
 	if (sess->cbk_close)
 		sess->cbk_close(sess->rt_udta, code);
