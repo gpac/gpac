@@ -94,14 +94,20 @@ static void dump_data_string(FILE *trace, char *data, u32 dataLength)
 }
 
 
-GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
+GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags)
 {
 	u32 i;
 	GF_Box *a;
 	if (!list) return GF_OK;
 	i=0;
 	while ((a = (GF_Box *)gf_list_enum(list, &i))) {
-		gf_isom_box_dump(a, trace);
+		if (parent_internal_flags & GF_ISOM_DUMP_SKIP_SIZE) {
+			a->internal_flags |= GF_ISOM_DUMP_SKIP_SIZE;
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
+			a->internal_flags &= ~GF_ISOM_DUMP_SKIP_SIZE;
+		} else {
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
+		}
 	}
 	return GF_OK;
 }
@@ -148,7 +154,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 		} else if (!gf_isom_box_is_file_level(box)) {
 			gf_fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
 		}
-		gf_isom_box_dump(box, trace);
+		gf_isom_box_dump_ex(box, trace, GF_TRUE);
 	}
 	gf_fprintf(trace, "</IsoMediaFile>\n");
 
@@ -900,7 +906,7 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 		gf_fprintf(trace, ">\n");
 		while (gf_list_count(list)) {
 			GF_Box *a = gf_list_pop_front(list);
-			gf_isom_box_dump(a, trace);
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
 			gf_isom_box_del(a);
 		}
 	} else {
@@ -989,7 +995,7 @@ GF_Err udta_box_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
-		gf_isom_box_array_dump(map->boxes, trace);
+		gf_isom_box_array_dump(map->boxes, trace, a->internal_flags);
 	}
 	gf_isom_box_dump_done("UserDataBox", a, trace);
 	return GF_OK;
@@ -6818,7 +6824,7 @@ GF_Err fdsa_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "FDSampleBox", trace);
 	gf_fprintf(trace, ">\n");
 
-	e = gf_isom_box_array_dump(ptr->packetTable, trace);
+	e = gf_isom_box_array_dump(ptr->packetTable, trace, a->internal_flags);
 	if (e) return e;
 	gf_isom_box_dump_done("FDSampleBox", a, trace);
 	return GF_OK;
