@@ -96,6 +96,7 @@ struct __dash_client
 	GF_FileDownload getter;
 
 	char *base_url;
+	char *query_part;
 
 	u32 max_cache_duration, max_width, max_height;
 	u8 max_bit_per_pixel;
@@ -495,6 +496,27 @@ struct _dash_srd_desc
 
 void drm_decrypt(unsigned char * data, unsigned long dataSize, const char * decryptMethod, const char * keyfileURL, const unsigned char * keyIV);
 
+
+
+static GF_Err gf_dash_set_base_url(GF_DashClient *dash, const char *manifest_url)
+{
+	if (!dash || !manifest_url) return GF_BAD_PARAM;
+	GF_Err e = GF_OK;
+	if (dash->base_url) gf_free(dash->base_url);
+	char *sep_query = (char *) strrchr(manifest_url, '?');
+	if (sep_query) sep_query[0] = 0;
+	dash->base_url = gf_strdup(manifest_url);
+	if (!dash->base_url) e = GF_OUT_OF_MEM;
+	if (sep_query) {
+		sep_query[0] = '?';
+		dash->query_part = gf_strdup(sep_query);
+		if (!dash->query_part) e = GF_OUT_OF_MEM;
+	} else if (dash->query_part) {
+		gf_free(dash->query_part);
+		dash->query_part = NULL;
+	}
+	return e;
+}
 
 static GF_DASH_Group *gf_dash_get_active_group(GF_DashClient *dash, u32 idx)
 {
@@ -2569,8 +2591,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 			/*if no absolute URL, use <Location> to get MPD in case baseURL is relative...*/
 			if (!strstr(dash->base_url, "://")) {
-				gf_free(dash->base_url);
-				dash->base_url = gf_strdup(purl);
+				gf_dash_set_base_url(dash, purl);
 			}
 			fetch_only = 1;
 		}
@@ -2594,6 +2615,9 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 	}
 
+	if (dash->query_part && purl && !strrchr(purl, '?')) {
+		gf_dynstrcat(&purl, dash->query_part, NULL);
+	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating Playlist %s...\n", purl ? purl : local_url));
 	if (purl) {
 		const char *mime_type;
@@ -2647,9 +2671,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 		/*if relocated, reassign MPD base URL*/
 		if (strcmp(purl, dash->base_url)) {
-			gf_free(dash->base_url);
-			dash->base_url = gf_strdup(purl);
-
+			gf_dash_set_base_url(dash, purl);
 		}
 		purl = NULL;
 	}
@@ -8973,7 +8995,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 {
 	char local_path[GF_MAX_PATH];
 	const char *local_url;
-	char *sep_cgi = NULL;
+	char *sep_query = NULL;
 	char *sep_frag = NULL;
 	GF_Err e;
 	GF_DOMParser *mpd_parser=NULL;
@@ -8994,11 +9016,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	dash->seek_pending = -1;
 	dash->max_last_seg_start = 0;
 
-	if (dash->base_url) gf_free(dash->base_url);
-	sep_cgi = strrchr(manifest_url, '?');
-	if (sep_cgi) sep_cgi[0] = 0;
-	dash->base_url = gf_strdup(manifest_url);
-	if (sep_cgi) sep_cgi[0] = '?';
+	gf_dash_set_base_url(dash, manifest_url);
 
 	dash->getter.udta = dash;
 	dash->getter.new_session = http_ifce_get;
@@ -9038,8 +9056,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 		/*if relocated use new URL as base URL for all requests*/
 		if (strcmp(reloc_url, manifest_url)) {
-			gf_free(dash->base_url);
-			dash->base_url = gf_strdup(reloc_url);
+			gf_dash_set_base_url(dash, reloc_url);
 		}
 
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
@@ -9057,14 +9074,14 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	if (is_local && strncmp(manifest_url, "gfio://", 7)) {
 		FILE *f = gf_fopen(local_url, "rt");
 		if (!f) {
-			sep_cgi = strrchr(local_url, '?');
-			if (sep_cgi) sep_cgi[0] = 0;
+			sep_query = strrchr(local_url, '?');
+			if (sep_query) sep_query[0] = 0;
 			sep_frag = strrchr(local_url, '#');
 			if (sep_frag) sep_frag[0] = 0;
 
 			f = gf_fopen(local_url, "rt");
 			if (!f) {
-				if (sep_cgi) sep_cgi[0] = '?';
+				if (sep_query) sep_query[0] = '?';
 				if (sep_frag) sep_frag[0] = '#';
 				return GF_URL_ERROR;
 			}
@@ -9148,7 +9165,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		mpd_parser = gf_xml_dom_new();
 		e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
 
-		if (sep_cgi) sep_cgi[0] = '?';
+		if (sep_query) sep_query[0] = '?';
 		if (sep_frag) sep_frag[0] = '#';
 
 		if (e != GF_OK) {
@@ -9410,6 +9427,7 @@ void gf_dash_del(GF_DashClient *dash)
 
 	if (dash->mimeTypeForM3U8Segments) gf_free(dash->mimeTypeForM3U8Segments);
 	if (dash->base_url) gf_free(dash->base_url);
+	if (dash->query_part) gf_free(dash->query_part);
 
 	gf_free(dash);
 }
