@@ -309,7 +309,7 @@ u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer);
 GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2);
 
 
-/*! callback function for procesing RTCP  receiver reports
+/*! callback function for processing RTCP  receiver reports
 \param cbk user data passed to \ref  gf_rtp_streamer_read_rtcp
 \param ssrc ssrc for this report, 0 if same as ssrc of channel
 \param rtt_ms round-trip time estimate in ms

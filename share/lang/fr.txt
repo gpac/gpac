@@ -1796,7 +1796,7 @@ desc=MPEG-2 Transport Stream muxer
 desc_crc=869983974
 help=@GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.
 For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.
-Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option
+Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID indicated by sid option
 name option is overriden by input PID property ServiceName
 provider option is overriden by input PID property ServiceProvider
 
