@@ -4695,15 +4695,18 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			if (ext) ext++;
 
 			if (ext) {
-				char *s = strchr(ext, '#');
-				if (s) s[0] = 0;
+				char *s1 = strchr(ext, '#');
+				char *s2 = strchr(ext, '?');
+				if (s1) s1[0] = 0;
+				if (s2) s2[0] = 0;
 
 				strncpy(tmp_ext, ext, 20);
 				tmp_ext[20] = 0;
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 				ext_len = (u32) strlen(tmp_ext);
-				if (s) s[0] = '#';
+				if (s1) s1[0] = '#';
+				if (s2) s2[0] = '?';
 			}
 		}
 	}
