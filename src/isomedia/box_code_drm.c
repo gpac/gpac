@@ -1060,6 +1060,7 @@ GF_Err piff_psec_box_read(GF_Box *s, GF_BitStream *bs)
 	//as for senc, we skip parsing of the box until we have all saiz/saio info
 	gf_bs_skip_bytes(bs, ptr->size);
 	ptr->size = 0;
+	ptr->load_needed = GF_TRUE;
 	return GF_OK;
 }
 
