@@ -92,10 +92,10 @@ All services using \`http\` option can be exposed by the server without exposing
 - the exposed server path, in which case manifest names are not rewritten
 - or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
 
-EX { 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/'}
+EX { "http": "https://test.com/live/dash/live.mpd", "local": "/service1/"}
 The server will translate any request \`/service1/foo/bar.ext\` into \`https://test.com/live/dash/foo/bar.ext\`.
 
-EX { 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/manifest.mpd'}
+EX { "http": "https://test.com/live/dash/live.mpd", "local": "/service1/manifest.mpd"}
 The server will translate:
 - request \`/service1/manifest.mpd\` into \`https://test.com/live/dash/live.mpd\`
 - any request \`/service1/foo/bar.ext\` into \`https://test.com/live/dash/foo/bar.ext\`
@@ -112,13 +112,13 @@ The server can act as a proxy for HTTP requests, either for any requests or by d
 __Service configuration parameters used :__ \`http\` (mandatory), \`gcache\`, \`local\`.
 
 Configuration for activating proxy for a specific network path:
-EX { 'http': 'https://test.com/video/'}
+EX { "http": "https://test.com/video/"}
 
 Configuration for activating proxy for any network path:
-EX { 'http': '*'}
+EX { "http": "*"}
 
 Configuration for a relay on a given path:
-EX { 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
+EX { "http": "https://test.com/some/path/to/video/", "local": "/myvids/"}
 
 This will resolve any request \`http://localhost/myvids/*\` to \`https://test.com/some/path/to/video/*\`
 
@@ -130,10 +130,10 @@ The server can act as a cache for live HTTP streaming sessions. The live edge ca
 __Service configuration parameters used :__ \`http\` ( mandatory), \`timeshift\`, \`mcache\`, \`gcache\`, \`keepalive\` and \`local\`.
 
 Configuration for proxying while caching a live HTTP streaming service:
-EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
+EX { "http": "https://test.com/dash/live.mpd", "timeshift": 30 }
 
 Configuration for relay caching a live HTTP streaming service:
-EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
+EX { "http": "https://test.com/dash/live.mpd", "timeshift": 30, "local": "/myservice/test.mpd"}
 
 The \`local\` service configuration option can be set to:
 - the exposed server path, in which case manifest names are not rewritten
@@ -152,7 +152,7 @@ For example, with \`local\` set to \`/service/live.mpd\` with \`mabr\` set, the 
 The manifest name can be omitted, in which case the exact manifest name used in the broadcast shall be used (and known to the client).
 
 Configuration for exposing a MABR session:
-EX { 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
+EX { "mabr": "mabr://234.0.0.1:1234", "local": "/service1", "timeshift": 30 }
 
 # Multicast ABR Gateway with HTTP cache
 The server can be configured to use a multicast source as an alternate data source of a given HTTP streaming service.
@@ -183,7 +183,7 @@ If \`timeshift\` is 0 for the service, multicast segments will be trashed as soo
 Note: Manifest files coming from multicast are currently never cached.
 
 Configuration for caching a live HTTP streaming service with MABR backup:
-EX { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
+EX { "http": "https://test.com/dash/live.mpd", "mabr": "mabr://234.0.0.1:1234", "timeshift": 30}
 
 For such services, the custom HTTP header \`X-From-MABR\` is defined:
 - for client request, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
@@ -220,7 +220,7 @@ The \`local\` service configuration option must be set to the desired service pa
 Each source is either a file, a directory or a remote URL.
 
 Configuration for exposing a directory:
-EX { 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
+EX { "local": "/dserv/", "sources": [ { "name": "foo/", "url": "my_dir/" } ] }
 This service will expose the content of directory \`my_dir/*\` as \`http://localhost/dserv/foo/*\`.
 
 In this mode, file serving is handled directly by httpout filter and no memory caching is used.
@@ -2095,10 +2095,16 @@ filter.initialize = function() {
 				if (typeof sd.timeshift != 'number') sd.timeshift = DEFAULT_TIMESHIFT;
 				else if (sd.timeshift < 0) throw "Invalid timeshift property, expecting positive number";
 				if (typeof sd.mcache != 'boolean') sd.mcache = DEFAULT_MCACHE;
-				if (typeof sd.repair != 'string') sd.repair = DEFAULT_REPAIR;
-				if (sd.repair === 'true') sd.repair = 1;
-				else if (sd.repair === 'auto') sd.repair = 2;
-				else sd.repair = 0;
+
+				if (typeof sd.repair != 'boolean') {
+					sd.repair = sd.repair ? 1 : 0;
+				} else {
+					if (typeof sd.repair != 'string') sd.repair = DEFAULT_REPAIR;
+					if (sd.repair === 'true') sd.repair = 1;
+					else if (sd.repair === 'auto') sd.repair = 2;
+					else sd.repair = 0;
+				}
+
 				if (typeof sd.corrupted != 'boolean') sd.corrupted = DEFAULT_CORRUPTED;
 				if (typeof sd.gcache != 'boolean') sd.gcache = DEFAULT_GCACHE;
 				if (typeof sd.keepalive != 'number') sd.keepalive = DEFAULT_KEEPALIVE_SEC;

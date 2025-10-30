@@ -29,7 +29,7 @@ CGI parameters for request are:
 
 
 Configuration for serving a directory with remultiplexing to mp4:
-EX {'local': '/service1/', 'js': 'remux', 'sources': ['name': 'vids', 'url': '/path/to/vids/'}], 'fmt': 'mp4'}
+EX {"local": "/service1/", "js": "remux", "sources": [{"name": "vids", "url": "/path/to/vids/"}], "fmt": "mp4"}
 `;
 
 let config = null;
