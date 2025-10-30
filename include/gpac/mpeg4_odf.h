@@ -1779,6 +1779,8 @@ typedef struct __ac4_config
 	u32 header_size;
 	/*  sync frame CRC size */
 	u32 crc_size;
+	/*  frame toc size */
+	u32 toc_size;
 } GF_AC4Config;
 
 #define GF_AC4_DESCMODE_PARSE 0

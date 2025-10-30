@@ -36,7 +36,7 @@ void print(long log_level, DOMString log_str);
 /*!\brief JSFilterSession API
 
 The JSFilterSession interface has a single instance exposed to the script under the name "session".
-It implements binding to the underlying filter session object, see \ref GF_FilterSession.
+It implements binding to the underlying filter session object, see \ref fs_grp.
 
 */
 interface JSFilterSession {
@@ -216,7 +216,7 @@ readonly DOMString blacklist;
 /*!\brief JSFSFilter API
 
 The JSFSFilter interface provides tools to query and update filters in a session.
-It implements binding to the underlying filter object, see \ref GF_Filter.
+It implements binding to the underlying filter object, see \ref fs_filter.
 */
 interface JSFSFilter {
 /*! filter name - may be changed at run-time by the filter*/

@@ -4697,15 +4697,18 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			if (ext) ext++;
 
 			if (ext) {
-				char *s = strchr(ext, '#');
-				if (s) s[0] = 0;
+				char *s1 = strchr(ext, '#');
+				char *s2 = strchr(ext, '?');
+				if (s1) s1[0] = 0;
+				if (s2) s2[0] = 0;
 
 				strncpy(tmp_ext, ext, 20);
 				tmp_ext[20] = 0;
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 				ext_len = (u32) strlen(tmp_ext);
-				if (s) s[0] = '#';
+				if (s1) s1[0] = '#';
+				if (s2) s2[0] = '?';
 			}
 		}
 	}
@@ -4789,6 +4792,31 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		}
 	}
 
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_raw_gmem(GF_Filter *filter, const char *url, GF_FilterPid **out_pid)
+{
+	u8 *mem_address;
+	u32 mem_size;
+	if (!filter || !url || !out_pid) return GF_BAD_PARAM;
+
+	GF_Err e = gf_blob_get(url, &mem_address, &mem_size, NULL);
+	if (e) return e;
+
+	GF_FilterPacket *opck;
+	e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, mem_address, mem_size, GF_FALSE, out_pid);
+	if (e) {
+		gf_blob_release(url);
+		return e;
+	}
+	gf_filter_pid_set_property(*out_pid, GF_PROP_PID_URL, &PROP_STRING("NULL"));
+	opck = gf_filter_pck_new_shared(*out_pid, mem_address, mem_size, NULL);
+	gf_filter_pck_set_sap(opck, GF_FILTER_SAP_1);
+	gf_filter_pck_send(opck);
+	gf_filter_pid_set_eos(*out_pid);
+	gf_blob_release(url);
 	return GF_OK;
 }
 
@@ -5329,10 +5357,6 @@ Bool gf_filter_is_alias(GF_Filter *filter)
 	return GF_FALSE;
 }
 
-/*! checks if the some PID connection tasks are still pending at the session level
-\param filter target filter
-\return GF_TRUE if some connection tasks are pending, GF_FALSE otherwise
-*/
 GF_EXPORT
 Bool gf_filter_connections_pending(GF_Filter *filter)
 {

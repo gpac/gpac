@@ -18,7 +18,7 @@ jobs:
           echo "" >> release_body.md
           echo "_Detailed info coming soon!_" >> release_body.md
           echo "" >> release_body.md
-          echo "Installers are available at [gpac.io](http://gpac.io/downloads)" >> release_body.md
+          echo "Installers are available at [gpac.io](https://gpac.io/downloads/gpac-nightly-builds/)" >> release_body.md
           echo "" >> release_body.md
           echo "Enjoy, give us feedback and spread the news!" >> release_body.md
           echo "" >> release_body.md

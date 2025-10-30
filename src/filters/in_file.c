@@ -80,6 +80,12 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 	if (!ctx || (!ctx->src && !ctx->pck.size) ) return GF_BAD_PARAM;
 
+	if (!strncmp(ctx->src, "gmem://", 7)) {
+		GF_Err e = gf_filter_pid_raw_gmem(filter, ctx->src, &ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return e;
+	}
+
 	if (ctx->pck.size) {
 		GF_FilterPacket *opck;
 		GF_Err e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, ctx->pck.ptr, ctx->pck.size, GF_FALSE, &ctx->pid);
@@ -293,8 +299,11 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
 	}
-	if (strstr(src, "://"))
+	if (strstr(src, "://")) {
+		if (!strnicmp(url, "gmem://", 7) )
+			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
+	}
 
 
 	//strip any fragment identifier

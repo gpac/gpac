@@ -49,6 +49,7 @@ typedef enum {
 	CENC_FULL_SAMPLE=1,
 
 	/*below types may have several ranges (clear/encrypted) per sample*/
+	CENC_AC4, /*Dolby, ac4 subsample encryption */
 	CENC_AVC, /*AVC, nalu-based*/
 	CENC_HEVC, /*HEVC, nalu-based*/
 	CENC_AV1,  /*AV1, OBU-based*/
@@ -115,6 +116,7 @@ typedef struct
 	Bool rap_roll, warned_clear;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+	AC4State *ac4_state;
 	AVCState *avc_state;
 	HEVCState *hevc_state;
 	AV1State *av1_state;
@@ -656,6 +658,11 @@ static void cenc_pid_reset_codec_states(GF_CENCStream *cstr)
 		gf_free(cstr->vpx_frame_sizes);
 		cstr->vpx_frame_sizes = NULL;
 	}
+	if (cstr->ac4_state) {
+		if (cstr->ac4_state->config) gf_odf_ac4_cfg_del(cstr->ac4_state->config);
+		gf_free(cstr->ac4_state);
+		cstr->ac4_state = NULL;
+	}
 #endif
 }
 
@@ -723,6 +730,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		case GF_CODECID_AAC_MPEG2_SSRP:
 			allow_saes=GF_TRUE;
 			break;
+		case GF_CODECID_AC4:
+			cenc_codec = CENC_AC4;
+			break;
 		}
 		if (cstr->is_saes && !allow_saes) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCCrypt] HLS Sample-AES not supported for codec %s\n", gf_codecid_name(cstr->codec_id) ));
@@ -758,7 +768,12 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
 				if (!cstr->av1_vpx_ranges) return GF_OUT_OF_MEM;
 				break;
-
+			case CENC_AC4:
+				GF_SAFEALLOC(cstr->ac4_state, AC4State);
+				if (!cstr->ac4_state) return GF_OUT_OF_MEM;
+				GF_SAFEALLOC(cstr->ac4_state->config, GF_AC4Config);
+				if (!cstr->ac4_state->config) return GF_OUT_OF_MEM;
+				break;
 #endif
 			}
 		}
@@ -923,7 +938,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
 			}
 			break;
-
+		case CENC_AC4:
+			if(!p)
+				return GF_OK;
+			gf_odf_ac4_cfg_parse(p->value.data.ptr, p->value.data.size, cstr->ac4_state->config);
+			break;
 		default:
 			break;
 		}
@@ -1999,6 +2018,15 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				} else {
 					clear_bytes = nalu_size;
 				}
+				break;
+			case CENC_AC4:
+				pos = gf_bs_get_position(ctx->bs_r);
+				if (!gf_ac4_parser_bs(ctx->bs_r, cstr->ac4_state->config, GF_TRUE, GF_TRUE))
+					return GF_NON_COMPLIANT_BITSTREAM;
+				gf_bs_seek(ctx->bs_r, pos);
+
+				nalu_size = pck_size;
+				clear_bytes = cstr->ac4_state->config->toc_size;
 				break;
 			default:
 				//used by cbcs

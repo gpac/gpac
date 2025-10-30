@@ -1165,8 +1165,10 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 
 		if (nb_samples==1) {
 			tot_samples = stbl->SampleSize->sampleCount - 1;
-		} else {
+		} else if (stbl->SampleSize->sampleCount >= nb_samples) {
 			tot_samples = stbl->SampleSize->sampleCount - nb_samples;
+		} else {
+			tot_samples = 0;
 		}
 		if (tot_samples) {
 			sampNum = 1;
@@ -1212,7 +1214,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		stts->w_LastDTS = tot_samples ? DTSs[tot_samples - 1] : 0;
 		gf_free(DTSs);
 		gf_assert(sampNum == tot_samples);
-		gf_assert(sampNum + nb_samples == stbl->SampleSize->sampleCount);
+
+		gf_assert(!tot_samples || (sampNum + nb_samples == stbl->SampleSize->sampleCount));
 	}
 
 	//reset write the cache to the end

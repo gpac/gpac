@@ -734,7 +734,7 @@ MP4BoxArg m4b_dash_args[] =
 	MP4BOX_ARG("last-dynamic", "same as [-dynamic]() but close the period (insert lmsg brand if needed and update duration)", GF_ARG_BOOL, 0, &dash_mode, GF_DASH_DYNAMIC_LAST, 0),
 	MP4BOX_ARG("mpd-duration", "set the duration in second of a live session (if `0`, you must use [-mpd-refresh]())", GF_ARG_DOUBLE, 0, &mpd_live_duration, 0, 0),
 	MP4BOX_ARG("mpd-refresh", "specify MPD update time in seconds", GF_ARG_DOUBLE, 0, &mpd_update_time, 0, 0),
-	MP4BOX_ARG("time-shift", "specify MPD time shift buffer depth in seconds, `-1` to keep all files)", GF_ARG_INT, 0, &time_shift_depth, 0, 0),
+	MP4BOX_ARG("time-shift", "specify MPD time shift buffer depth in seconds, `-1` to keep all files. Default is 0", GF_ARG_INT, 0, &time_shift_depth, 0, 0),
 	MP4BOX_ARG("subdur", "specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless [-no-loop]() is used which triggers a period end", GF_ARG_DOUBLE, 0, &dash_subduration, 0, 0),
 	MP4BOX_ARG("run-for", "run for given ms  the dash-live session then exits", GF_ARG_INT, 0, &run_for, 0, 0),
 	MP4BOX_ARG("min-buffer", "specify MPD min buffer time in ms", GF_ARG_INT, 0, &min_buffer, 0, ARG_DIV_1000),
@@ -919,7 +919,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("svcmode", NULL, "`DS` set SVC/LHVC import mode. Value can be:\n"
 		"  - split: each layer is in its own track\n"
 		"  - merge: all layers are merged in a single track\n"
-		"  - splitbase: all layers are merged in a track, and the AVC base in another\n"
+		"  - splitbase: all layers are merged in a track, and the base in another\n"
 		"  - splitnox: each layer is in its own track, and no extractors are written\n"
 		"  - splitnoxib: each layer is in its own track, no extractors are written, using inband param set signaling", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("temporal", NULL, "`DS` set HEVC/LHVC temporal sublayer import mode. Value can be:\n"
@@ -3904,11 +3904,11 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
 		case GF_CODECID_AAC_MPEG4:
-		{
-			GF_M4ADecSpecInfo adsi;
-			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &adsi);
-			if (adsi.audioPL > PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_AUDIO, adsi.audioPL);
-		}
+			if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo) {
+				GF_M4ADecSpecInfo adsi;
+				gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &adsi);
+				if (adsi.audioPL > PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_AUDIO, adsi.audioPL);
+			}
 			break;
 		default:
 			if (!PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_AUDIO, 0xFE);
@@ -4783,6 +4783,9 @@ static GF_Err do_dash()
 
 	if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
 		M4_LOG(GF_LOG_WARNING, ("Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration));
+		dash_subduration = dash_duration;
+	} else if (dash_live && !dash_subduration) {
+		M4_LOG(GF_LOG_WARNING, ("Warning: dash-live with no -subdur parameter no longer supported, using segment duration as subdur %g s\n", dash_duration));
 		dash_subduration = dash_duration;
 	}
 

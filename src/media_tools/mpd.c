@@ -3784,9 +3784,10 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 		gf_fprintf(out, ",URI=\"%s\"", m3u8_name);
 
-		if (!has_chan && rep->nb_chan)
-			gf_fprintf(out, ",CHANNELS=\"%d\"", rep->nb_chan);
-
+		if (!has_chan) {
+			if (rep->nb_chan) gf_fprintf(out, ",CHANNELS=\"%d\"", rep->nb_chan);
+			else if (rep->str_chan[0] != '\0') gf_fprintf(out, ",CHANNELS=\"%s\"", rep->str_chan);
+		}
 		return;
 	}
 
@@ -4044,7 +4045,13 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			if (force_base_url)
 				force_url = gf_url_concatenate(force_base_url, rep->hls_single_file_name);
 
-			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : rep->hls_single_file_name);
+			if (rep->init_base64) {
+				const char *mime = rep->mime_type;
+				if (!mime) mime = "video/mp4";
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"data:%s;base64,%s\"\n", mime, rep->init_base64);
+			} else {
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : rep->hls_single_file_name);
+			}
 
 			if (force_url) {
 				gf_free(force_url);

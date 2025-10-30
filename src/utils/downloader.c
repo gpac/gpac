@@ -1329,7 +1329,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		u32 i, count = gf_list_count(sess->dm->all_sessions);
 		for (i=0; i<count; i++) {
 			GF_DownloadSession *a_sess = gf_list_get(sess->dm->all_sessions, i);
-			if (strcmp(a_sess->server_name, sess->server_name)) continue;
+			if (strcmp(a_sess->server_name, sess->server_name) || (a_sess->port != sess->port)) continue;
 			if (!a_sess->hmux_sess) {
 #ifdef GPAC_HAS_HTTP2
 				//we already ahd a connection to this server with H2 failure, do not try h2
@@ -1361,7 +1361,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 			if (a_sess->hmux_sess->do_shutdown) continue;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing %s session\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url, a_sess->log_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing %s session: %s:%u\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url, a_sess->log_name, a_sess->server_name, a_sess->port));
 
 			u32 nb_locks=0;
 			if (sess->mx) {
@@ -1400,7 +1400,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 			gf_mx_v(sess->dm->cache_mx);
 			return;
-		}
+		} // end all_sessions loop
 		gf_mx_v(sess->dm->cache_mx);
 	}
 #endif
@@ -2807,7 +2807,6 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 /*!
  * Sends the HTTP headers
 \param sess The GF_DownloadSession
-\param sHTTP buffer containing the request
 \return GF_OK if everything went fine, the error otherwise
  */
 static GF_Err http_send_headers(GF_DownloadSession *sess) {
@@ -3110,7 +3109,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 			has_body = GF_TRUE;
 		}
 		e = sess->hmux_sess->submit_request(sess, req_name, url, param_string, has_body);
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Sending request %s %s%s\n", req_name, sess->server_name, url));
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Sending request %s %s:%u%s\n", req_name, sess->server_name, sess->port, url));
 
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 
@@ -3263,7 +3262,6 @@ req_sent:
 /*!
  * Parse the remaining part of body
 \param sess The session
-\param sHTTP the data buffer
 \return The error code if any
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
@@ -3391,7 +3389,6 @@ static u32 http_parse_method(const char *comp)
 /*!
  * Waits for the response HEADERS, parse the information... and so on
 \param sess The session
-\param sHTTP the data buffer
  */
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 {

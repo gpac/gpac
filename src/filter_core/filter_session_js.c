@@ -1751,6 +1751,7 @@ static JSValue jsfs_get_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	return jsfs_new_filter_obj(ctx, f);
 }
 
+
 static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *fname, *link_args;

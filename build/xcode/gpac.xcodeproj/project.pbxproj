@@ -218,6 +218,7 @@
 		923E89D020B6F2D300F299B2 /* filter_props.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4721F71642E00616F7C /* filter_props.c */; };
 		923EB53223D1B78D00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53123D1B78D00E1FFA1 /* libbf.c */; };
 		92455F8C2A52B4B90080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8B2A52B4B90080321C /* dec_cc.c */; };
+		3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5B82D402C0B006F0673 /* enc_cc.c */; };
 		9246EE7524A0DA2700F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7424A0DA2700F72EAD /* filter_session_js.c */; };
 		92493D8020E2A64000203C2C /* crypt_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92493D7F20E2A64000203C2C /* crypt_tools.c */; };
 		92493D8220E2A81700203C2C /* crypt_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92493D8120E2A81700203C2C /* crypt_tools.h */; };
@@ -866,6 +867,7 @@
 		923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_tinyaes.c; path = crypto/g_crypt_tinyaes.c; sourceTree = "<group>"; };
 		923EB53123D1B78D00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = quickjs/libbf.c; sourceTree = "<group>"; };
 		92455F8B2A52B4B90080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = filters/dec_cc.c; sourceTree = "<group>"; };
+		3FDEA5B82D402C0B006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = filters/enc_cc.c; sourceTree = "<group>"; };
 		9246EE7424A0DA2700F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		92493D7F20E2A64000203C2C /* crypt_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crypt_tools.c; sourceTree = "<group>"; };
 		92493D8120E2A81700203C2C /* crypt_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypt_tools.h; path = ../include/gpac/crypt_tools.h; sourceTree = "<group>"; };
@@ -2084,6 +2086,7 @@
 				928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */,
 				92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */,
 				926998B31FEACE8F00AA759D /* dmx_vobsub.c */,
+				3FDEA5B82D402C0B006F0673 /* enc_cc.c */,
 				9239B8D5207369E5005F7264 /* enc_jpg.c */,
 				9239B8D72073AFEF005F7264 /* enc_png.c */,
 				920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */,
@@ -2912,6 +2915,7 @@
 				92B9A5841F8660D700A24FE4 /* mpeg4_form.c in Sources */,
 				928E0BD628E2FC1900F2BA27 /* unframer.c in Sources */,
 				92BB9A671F9C827600524E5B /* dmx_dash.c in Sources */,
+				3FDEA5B92D402C0B006F0673 /* enc_cc.c in Sources */,
 				92B9A5A71F8660D700A24FE4 /* texturing_gl.c in Sources */,
 				92B9A5A51F8660D700A24FE4 /* mpeg4_gradients.c in Sources */,
 				9286070B23884A6B00FDA1ED /* ff_mx.c in Sources */,
@@ -3189,11 +3193,13 @@
 					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
 					"/opt/homebrew/include/openjpeg-2.5",
+					../../extra_lib/include/,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
 					/opt/homebrew/lib,
+					../../extra_lib/lib/gcc,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3347,11 +3353,13 @@
 					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
 					"/opt/homebrew/include/openjpeg-2.5",
+					../../extra_lib/include/,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
 					/opt/homebrew/lib,
+					../../extra_lib/lib/gcc,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;

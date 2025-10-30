@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -61,7 +62,9 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration, Bool remove_m
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 
 	if (remove_mehd) {
-		if (!movie->moov->mvex->mehd) {
+		if (duration)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] removing mehd box while duration is not zero. Contact the GPAC team!\n"));
+		if (movie->moov->mvex->mehd) {
 			gf_isom_box_del_parent(&movie->moov->mvex->child_boxes, (GF_Box*)movie->moov->mvex->mehd);
 			movie->moov->mvex->mehd = NULL;
 		}
@@ -1221,6 +1224,15 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		gf_bs_write_u24(bs, 0);
 		gf_bs_write_u32(bs, movie->moof->reference_track_ID);
 		gf_bs_write_u64(bs, movie->moof->ntp);
+		gf_bs_write_u64(bs, movie->moof->timestamp);
+	}
+	if (movie->moof->prft_at_mux) {
+		gf_bs_write_u32(bs, 8*4);
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_PRFT );
+		gf_bs_write_u8(bs, 1);
+		gf_bs_write_u24(bs, 4);
+		gf_bs_write_u32(bs, movie->moof->reference_track_ID);
+		gf_bs_write_u64(bs, !gf_sys_is_test_mode() ? gf_net_get_ntp_ts() : 0);
 		gf_bs_write_u64(bs, movie->moof->timestamp);
 	}
 	if (movie->moof->emsgs) {
@@ -2536,12 +2548,13 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, GF_ISOTrackID reference_track_ID, u64 ntp, u64 timestamp)
+GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, GF_ISOTrackID reference_track_ID, u64 ntp, u64 timestamp, Bool at_mux)
 {
 	if (!movie || !movie->moof) return GF_BAD_PARAM;
 	movie->moof->reference_track_ID = reference_track_ID;
 	movie->moof->ntp = ntp;
 	movie->moof->timestamp = timestamp;
+	movie->moof->prft_at_mux = at_mux;
 	return GF_OK;
 }
 

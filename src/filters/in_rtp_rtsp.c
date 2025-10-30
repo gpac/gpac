@@ -226,6 +226,8 @@ GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control)
 	if (!control) return NULL;
 
 	if (!strcmp(control, "*")) control = (char *) rtp->src;
+	if (!control) return NULL;
+
 	if (gf_rtsp_is_my_session(rtp->session->session, control)) return rtp->session;
 	return NULL;
 }
@@ -345,8 +347,11 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_con
 		if (has_aggregated_control)
 			in_session->flags |= RTSP_AGG_CONTROL;
 	} else if (stream->control) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Cannot locate session by control string %s\n", stream->control));
 		gf_free(stream->control);
 		stream->control = NULL;
+		stream->status = RTP_Unavailable;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	stream->rtsp = in_session;
 	gf_list_add(rtp->streams, stream);

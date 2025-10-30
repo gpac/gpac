@@ -796,25 +796,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		return GF_OK;
 	}
 
-	ctx->nb_frames_out++;
-	if (ctx->init_cts_setup) {
-		ctx->init_cts_setup = GF_FALSE;
-		if (ctx->frame->pts != pkt->pts) {
-			//check shift in PTS - most of the time this is 0 (ffmpeg does not restamp video pts)
-			ctx->ts_shift = (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt->pts;
-
-			//check shift in DTS
-			ctx->ts_shift += (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt->dts;
-		}
-
-		//if ts_shift>0, this means we have a skip
-		if (ctx->ts_shift) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -ctx->ts_shift ) );
-		} else {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
-		}
-	}
-
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
@@ -827,6 +808,30 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (cts == pkt->pts)
 			break;
 		src_pck = NULL;
+	}
+
+	ctx->nb_frames_out++;
+	if (ctx->init_cts_setup) {
+		ctx->init_cts_setup = GF_FALSE;
+		if (ctx->frame->pts != pkt->pts) {
+			//first frame out is not first frame in (SAP 2)
+			if (src_pck && (gf_list_find(ctx->src_packets, src_pck)>0) && (pkt->dts<0)) {
+				ctx->ts_shift = - (s64) pkt->dts;
+			} else {
+				//check shift in PTS - most of the time this is 0 (ffmpeg does not restamp video pts)
+				ctx->ts_shift = (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt->pts;
+
+				//check shift in DTS
+				ctx->ts_shift += (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt->dts;
+			}
+		}
+
+		//if ts_shift>0, this means we have a skip
+		if (ctx->ts_shift) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -ctx->ts_shift ) );
+		} else {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
+		}
 	}
 
 	offset = 0;

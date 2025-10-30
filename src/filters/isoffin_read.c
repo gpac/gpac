@@ -1460,6 +1460,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				const GF_PropertyValue *p = gf_filter_pid_get_info_str(read->pid, "aborted", &pe);
 				if (p && p->value.boolean) read->was_aborted = GF_TRUE;
 				gf_filter_release_property(pe);
+				//leave mem-load mode - needed for DASH/HLS where init segment is in base64 but not the rest
+				read->mem_load_mode = 0;
 			} else {
 				in_is_flush = GF_TRUE;
 			}

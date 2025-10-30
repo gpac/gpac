@@ -51,7 +51,7 @@ enum
 	GF_SEG_BOUNDARY_NONE=0,
 	/*! segment start*/
 	GF_SEG_BOUNDARY_START,
-	/*! segment start with forced PMT - triggered by setting \ref struct __m2ts_mux.force_pat, triggers a forced PCR*/
+	/*! segment start with forced PMT - triggered by setting \ref __m2ts_mux.force_pat, triggers a forced PCR*/
 	GF_SEG_BOUNDARY_FORCE_PMT,
 	/*! segment start with forced PCR*/
 	GF_SEG_BOUNDARY_FORCE_PCR,

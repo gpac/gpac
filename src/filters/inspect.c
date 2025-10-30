@@ -3928,6 +3928,10 @@ props_done:
 		}
 			break;
 		case GF_CODECID_TX3G:
+			if (size < 2) {
+				inspect_printf(dump, "<!-- Invalid TX3G -->\n");
+				break;
+			}
 			data += 2;
 			size -= 2;
 		case GF_CODECID_SUBS_TEXT:

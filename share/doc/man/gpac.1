@@ -1475,6 +1475,11 @@ set charset when not recognized from input. Possible values are:
 * other: attempt to parse anyway
 .br
 .TP
+.B \-srt-forced
+.br
+enable SRT with forced subtitles extensions
+.br
+.TP
 .B \-rmt
 .br
 enable remote monitoring webserver
@@ -1505,6 +1510,11 @@ rmt ws: certificate file in PEM format to use for TLS mode
 rmt ws: private key file in PEM format to use for TLS mode
 .br
 .TP
+.B \-diso-nosize
+.br
+skip box size info when dumping ISOBMFF
+.br
+.TP
 .B \-m2ts-vvc-old
 .br
 hack for old TS streams using 0x32 for VVC instead of 0x33
@@ -1533,6 +1543,11 @@ use box definitions in the given directory for XML dump
 .B \-no-mabr-patch
 .br
 disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)
+.br
+.TP
+.B \-no-cdrf
+.br
+disable cdrf sample dep
 .br
 .SH libgpac logs options:
 .LP
@@ -3887,6 +3902,11 @@ Name of mux source(s), set by dasher to direct its outputs
 DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD
 .br
 .TP
+.B InitBase64 (IB64,bool,D )
+.br
+Inidcate that multiplexer should send the base64 encoded version of the init segment
+.br
+.TP
 .B SegSync (DFSS,bool,D )
 .br
 Indicate segment must be completely flushed before sending segment/fragment size events
@@ -4307,13 +4327,13 @@ Character set for input text PID
 .TP
 .B ForcedSub (PFCS,uint,D )
 .br
-PID or Packet is forced sub
+PID forced sub
 .br
 * 0: not forced
 .br
-* 1: forced frame
+* 1: some frames are forced
 .br
-* 2: all frames are forced (PID only)
+* 2: all frames are forced
 .br
 .TP
 .B ChapTimes (CHPT,uintl,D )
@@ -4580,6 +4600,11 @@ indicate original DTS when remapping M2TS PCR
 .br
 optionnal URLs for MABR - if first is nonesource server is not declared as repair server
 .br
+.TP
+.B Forced (PCFS,bool,DP)
+.br
+indicate packet is a forced subtitle
+.br
 .SH Pixel formats
 .LP
 .br
@@ -4737,6 +4762,11 @@ Alpha+Grey 8 bit
 .B gral (ext *.gral)
 .br
 Grey+Alpha 8 bit
+.br
+.TP
+.B rgb8 (ext *.rgb8)
+.br
+RGB 332, 8 bits / pixel
 .br
 .TP
 .B rgb4 (ext *.rgb4)
@@ -5368,6 +5398,11 @@ Vorbis Audio
 .B opus
 .br
 Opus Audio
+.br
+.TP
+.B iamf
+.br
+AOM IAMF (Immersive Audio Model and Formats)
 .br
 .TP
 .B flac

@@ -250,6 +250,7 @@ enum
 	GF_ISOM_BOX_TYPE_EMIB	= GF_4CC( 'e', 'm', 'i', 'b' ),
 	GF_ISOM_BOX_TYPE_EMEB	= GF_4CC( 'e', 'm', 'e', 'b' ),
 	GF_ISOM_BOX_TYPE_EVTE	= GF_4CC( 'e', 'v', 't', 'e' ),
+	GF_ISOM_BOX_TYPE_SILB	= GF_4CC( 's', 'i', 'l', 'b' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -634,7 +635,10 @@ enum
 //internal flags (up to 16)
 //if flag is set, position checking of child boxes is ignored
 #define GF_ISOM_ORDER_FREEZE 1
+//if flag is set, box uses deflate compression
 #define GF_ISOM_BOX_COMPRESSED 2
+//if flag is set, box dump will skip size info
+#define GF_ISOM_DUMP_SKIP_SIZE 4
 
 	/*the default size is 64, cause we need to handle large boxes...
 
@@ -2788,6 +2792,7 @@ typedef struct
 	//temp storage of prft box
 	GF_ISOTrackID reference_track_ID;
 	u64 ntp, timestamp;
+	u32 prft_at_mux;
 
 	//emsg to inject before moof, not part of the moof hierarchy !
 	GF_List *emsgs;
@@ -3411,9 +3416,26 @@ typedef struct
 
 typedef struct
 {
+	char *scheme_id_uri;
+	char *value;
+	u8 reserved : 7;
+	u8 atleast_once_flag : 1;
+} GF_SchemeIdListBoxEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 number_of_schemes;
+	GF_List *schemes; /*list of GF_SchemeIdListBoxEntry*/
+	u8 reserved : 7;
+	u8 other_schemes_flag : 1;
+} GF_SchemeIdListBox;
+
+typedef struct
+{
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_BitRateBox *btrt;
-	/*GF_SchemeIdListBox*/void *silb; //'silb' box, not implemented yet
+	GF_SchemeIdListBox *silb;
 } GF_EventMessageSampleEntryBox;
 
 
@@ -4955,7 +4977,8 @@ Bool gf_isom_box_equal(GF_Box *a, GF_Box *b);
 GF_Box *gf_isom_clone_config_box(GF_Box *box);
 
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace);
-GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
+GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, Bool subtree_root);
+GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags);
 
 void gf_isom_registry_disable(u32 boxCode, Bool disable);
 

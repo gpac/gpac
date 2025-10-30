@@ -3214,6 +3214,8 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 	stbl = trak->Media->information->sampleTable;
 	if (!stbl->TimeToSample || !stbl->SampleSize || !stbl->SampleToChunk) return GF_ISOM_INVALID_FILE;
 
+	if (stbl->SampleSize->sampleCount < nb_samples) return GF_BAD_PARAM;
+
 	//remove at once nb_samples in stts, ctts, stsz, stco, stsc and stdp (n-times removal is way too slow)
 	//do NOT change the order DTS, CTS, size chunk
 	stbl_RemoveDTS(stbl, 1, nb_samples, 0);

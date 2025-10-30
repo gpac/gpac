@@ -358,12 +358,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len);
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_len);
 
 /*! parses opus header packets - initializes the config  on success, leave it to NULL otherwise
-\param cfg pointer to a opus config to fill
+\param ocfg pointer to a opus config to fill
 \param data opus header buffer to parse
 \param data_len size of opus header buffer
 \return 1 if success, 0 if error
 */
-Bool gf_opus_parse_header(GF_OpusConfig *cfg, u8 *data, u32 data_len);
+Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len);
 
 /*! checks if an opus frame is valid
 \param cfg pointer to a opus config to use
@@ -641,7 +641,7 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 //! \cond old name
 typedef struct __ac3_config GF_AC3Header;
-//! \endcond 
+//! \endcond
 
 /*! parses an AC-3 header from a buffer
 \param buffer buffer to parse
@@ -712,17 +712,19 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 \param pos set to start offset (in bytes) of the AC4 header parsed
 \param out_hdr will be filled by parser
 \param full_parse if GF_TRUE, complete parsing of the header will be done
+\param start_from_toc if GF_TRUE, parsing starts from the toc
 \return GF_TRUE if success
 */
-Bool gf_ac4_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC4Config *out_hdr, Bool full_parse);
+Bool gf_ac4_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC4Config *out_hdr, Bool full_parse, Bool start_from_toc);
 
 /*! parses an AC-4 header from a bitstream
 \param bs bitstream to parse
 \param hdr will be filled by parser
 \param full_parse if GF_TRUE, complete parsing of the header and check for next frame/blocks presence will be done
+\param start_from_toc if GF_TRUE, parsing starts from the toc
 \return GF_TRUE if success
 */
-Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse);
+Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc);
 
 /*! gets basic information from an AVC Sequence Parameter Set
 \param sps SPS NAL buffer
@@ -932,4 +934,3 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type);
 
 
 #endif	/*_GF_PARSERS_AV_H_*/
-

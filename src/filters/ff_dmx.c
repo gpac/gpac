@@ -1509,7 +1509,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 	if (!strncmp(ctx->src, "avf://", 6)) {
 		// We'll use the AVFormatContext* inside ctx->src
-		ctx->demuxer = (AVFormatContext *) strtoul(ctx->src + 6, NULL, 16);
+		ctx->demuxer = (AVFormatContext *) strtoull(ctx->src + 6, NULL, 16);
 		if (!ctx->demuxer) {
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Invalid AVFormatContext pointer %s\n", ctx->fname, ctx->src));
 			return GF_URL_ERROR;

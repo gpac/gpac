@@ -11338,8 +11338,6 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length)
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 
-/*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
-returns 1 if success, 0 if error.*/
 Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 {
 	char tag[9];
@@ -15443,6 +15441,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
 					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
 					// In ETSI TS 103 190-2 V1.2.1 (2018-02), this should be 1
+					// Main + DE are considered as one substream group in logic, but there are two substream group configurations spearately in bitstream
 					pinfo->n_substream_groups = 2;
 					break;
 				case 2:
@@ -15798,6 +15797,33 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 	return pres_ch_mode_core;
 }
 
+static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
+{
+	u32 n_substreams, s; //, substream_size;
+	u8 b_size_present, b_more_bits;
+
+	n_substreams = gf_bs_read_int_log(bs, 2, "n_substreams");
+    if (n_substreams == 0) {
+        n_substreams = gf_ac4_variable_bits(bs, 2) + 4;
+    }
+    if (n_substreams == 1) {
+        b_size_present = gf_bs_read_int_log(bs, 1, "b_size_present");
+    } else {
+        b_size_present = 1;
+    }
+    if (b_size_present) {
+        for (s = 0; s < n_substreams; s++) {
+            b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
+            /*substream_size = */gf_bs_read_int_log(bs, 10, "substream_size");
+            if (b_more_bits) {
+                //substream_size += (gf_ac4_variable_bits(bs, 2) << 10);
+                gf_ac4_variable_bits(bs, 2);
+            }
+        }
+    }
+	return GF_TRUE;
+}
+
 static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_parse)
 {
 	u8 bitstream_version, fs_index, b_program_id, b_program_uuid_present = 0, b_iframe_global = 0;
@@ -15811,8 +15837,12 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 	GF_AC4SubStreamGroupV1 *group;
 	GF_List *temp_groups, *hdr_p_list;
 	GF_AC4StreamInfo* stream = &(hdr->stream);
+	u64 toc_pos;
+	GF_Err e = GF_OK;
 
 	// ac4_toc
+	toc_pos = gf_bs_get_position(bs);
+
 	bitstream_version = gf_bs_read_int_log(bs, 2, "bitstream_version");
 	if (bitstream_version == 3) {
 		bitstream_version += gf_ac4_variable_bits(bs, 2);
@@ -15965,7 +15995,8 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 					gf_list_add(p->substream_groups, group);
 					p->dolby_atmos_indicator |= group->dolby_atmos_indicator;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Cannot find substream group %d for presentation %d\n", *idx, i));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Cannot find substream group %d for presentation %d\n", *idx, i));
+					e = GF_NOT_SUPPORTED;
 					break;
 				}
 			}
@@ -16039,9 +16070,12 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		}
 	}
 
-	// skip the rest gf_ac4_substream_index_table(bs, header);
+	gf_ac4_substream_index_table(bs, hdr);
+	gf_bs_align(bs);
 
-	return GF_TRUE;
+	hdr->toc_size = gf_bs_get_position(bs) - toc_pos;
+
+	return e == GF_OK ? GF_TRUE : GF_FALSE;
 }
 
 static Bool AC4_FindSyncCodeBS(GF_BitStream *bs)
@@ -16067,6 +16101,8 @@ static Bool AC4_FindSyncCodeBS(GF_BitStream *bs)
 
 static u32 AC4_FindSyncCode(u8 *buf, u32 buflen)
 {
+	if (buflen<6) return buflen;
+
 	u32 end = buflen - 6;
 	u32 offset = 0;
 	while (offset <= end) {
@@ -16078,7 +16114,7 @@ static u32 AC4_FindSyncCode(u8 *buf, u32 buflen)
 	return buflen;
 }
 
-Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_parse)
+Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc)
 {
 	GF_BitStream *bs;
 	Bool ret;
@@ -16088,7 +16124,7 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	if (*pos >= buflen) return GF_FALSE;
 
 	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
-	ret = gf_ac4_parser_bs(bs, hdr, full_parse);
+	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 
 	return ret;
@@ -16106,12 +16142,12 @@ Bool gf_ac4_frame_size(GF_BitStream *bs, GF_AC4Config *hdr)
 }
 
 GF_EXPORT
-Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
+Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc)
 {
-	u32 sync_word;
+	u32 sync_word = 0;
 	u64 pos;
 	GF_AC4StreamInfo* stream;
-	if (!hdr || !AC4_FindSyncCodeBS(bs)) return GF_FALSE;
+	if (!hdr || !bs) return GF_FALSE;
 
 	pos = gf_bs_get_position(bs);
 	stream = &(hdr->stream);
@@ -16120,6 +16156,15 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 	if (full_parse) {
 		gf_odf_ac4_cfg_clean_list(hdr);
 	}
+
+	if (start_from_toc) {
+		goto skip_header;
+	}
+
+	if (!AC4_FindSyncCodeBS(bs)) {
+		return GF_FALSE;
+	}
+	pos = gf_bs_get_position(bs);
 
 	sync_word = gf_bs_read_u16(bs);
 	if (sync_word != 0xAC40 && sync_word != 0xAC41) {
@@ -16130,8 +16175,9 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 
 	gf_ac4_frame_size(bs, hdr);
 
+skip_header:
 	if (!gf_ac4_raw_frame(bs, hdr, full_parse)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Fail to parse raw ac4 frame\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Fail to parse raw ac4 frame\n"));
 
 		gf_bs_seek(bs, pos);
 		return GF_FALSE;
