@@ -15799,7 +15799,7 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 
 static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
 {
-	u32 n_substreams, substream_size, s;
+	u32 n_substreams, s; //, substream_size;
 	u8 b_size_present, b_more_bits;
 
 	n_substreams = gf_bs_read_int_log(bs, 2, "n_substreams");
@@ -15814,9 +15814,10 @@ static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
     if (b_size_present) {
         for (s = 0; s < n_substreams; s++) {
             b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
-            substream_size = gf_bs_read_int_log(bs, 10, "substream_size");
+            /*substream_size = */gf_bs_read_int_log(bs, 10, "substream_size");
             if (b_more_bits) {
-                substream_size += (gf_ac4_variable_bits(bs, 2) << 10);
+                //substream_size += (gf_ac4_variable_bits(bs, 2) << 10);
+                gf_ac4_variable_bits(bs, 2);
             }
         }
     }
@@ -16100,6 +16101,8 @@ static Bool AC4_FindSyncCodeBS(GF_BitStream *bs)
 
 static u32 AC4_FindSyncCode(u8 *buf, u32 buflen)
 {
+	if (buflen<6) return buflen;
+
 	u32 end = buflen - 6;
 	u32 offset = 0;
 	while (offset <= end) {
@@ -16161,6 +16164,7 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse, Bool
 	if (!AC4_FindSyncCodeBS(bs)) {
 		return GF_FALSE;
 	}
+	pos = gf_bs_get_position(bs);
 
 	sync_word = gf_bs_read_u16(bs);
 	if (sync_word != 0xAC40 && sync_word != 0xAC41) {

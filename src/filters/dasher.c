@@ -2559,6 +2559,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			if (ctx->profile > GF_DASH_PROFILE_FULL) {
 				use_dolbyx = GF_TRUE;
 			}
+			//ETSI TS 102 366 section I.1.2.1: AC3 and EAC3 should use CICP
 			use_cicp = GF_TRUE;
 		}
 		if (ds->codec_id==GF_CODECID_AC4) {
