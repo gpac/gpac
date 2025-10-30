@@ -199,7 +199,7 @@ typedef struct
 	GF_DASH_ContentLocationMode cp;
 	s32 subs_sidx;
 	s32 buf, timescale;
-	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge, keep_ts;
+	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge, keep_ts, base64;
 	DasherAdaptSetGenMode mha_compat;
 	DasherSegFlushMode sflush;
 	DasherSAPStrictMode strict_sap;
@@ -370,6 +370,7 @@ typedef struct _dash_stream
 	u32 color_primaries, color_transfer_characteristics, color_matrix, color_transfer_characteristics_alt;
 	Bool sscale;
 	Bool skip_sap;
+	char *init_base_64;
 
 	//TODO: get the values for all below
 	u32 view_id;
@@ -3748,6 +3749,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	case DASHER_SEGSYNC_NO:
 		break;
 	}
+	if (ctx->base64)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_INIT_BASE64, &PROP_BOOL(GF_TRUE) );
 
 	if (init_trashed)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_NO_INIT, &PROP_BOOL(GF_TRUE));
@@ -5965,6 +5968,9 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->multi_pids = NULL;
 	if (ds->multi_tracks) gf_list_del(ds->multi_tracks);
 	ds->multi_tracks = NULL;
+
+	if (ds->init_base_64) gf_free(ds->init_base_64);
+	ds->init_base_64 = NULL;
 
 	if (ds->pending_segment_urls) gf_list_del(ds->pending_segment_urls);
 	ds->pending_segment_urls = NULL;
@@ -10812,6 +10818,33 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ds->muxed_base)
 			ds = ds->muxed_base;
 
+		if (evt->seg_size.is_init && evt->seg_size.base64_version) {
+			if (!ds->init_base_64) {
+				ds->init_base_64 = gf_strdup(evt->seg_size.base64_version);
+				u32 k;
+				for (k=0; k<count; k++) {
+					GF_DashStream *a_ds = gf_list_get(ctx->pids, k);
+					if (!a_ds->rep) continue;
+					if ((a_ds != ds) && (a_ds->muxed_base != ds)) continue;
+					a_ds->rep->init_base64 = ds->init_base_64;
+
+					char **init_url_ptr = NULL;
+					if (a_ds->set->segment_template && a_ds->set->segment_template->initialization) {
+						init_url_ptr = &a_ds->set->segment_template->initialization;
+					} else if (a_ds->rep->segment_template && a_ds->rep->segment_template->initialization) {
+						init_url_ptr = &a_ds->rep->segment_template->initialization;
+					}
+					if (init_url_ptr) {
+						gf_free(*init_url_ptr);
+						*init_url_ptr = gf_strdup("data:");
+						gf_dynstrcat(init_url_ptr, a_ds->rep->mime_type ? a_ds->rep->mime_type : "video/mp4" , NULL);
+						gf_dynstrcat(init_url_ptr, ";base64,", NULL);
+						gf_dynstrcat(init_url_ptr, ds->init_base_64, NULL);
+					}
+				}
+			}
+		}
+
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
 			if (!sctx || !ctx->nb_seg_url_pending) {
@@ -11461,6 +11494,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{0}
 };
@@ -11748,6 +11782,7 @@ GF_FilterRegister DasherRegister = {
 "- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"
 "- LLHLS: identifies LLHLS is used; the multiplexer must send fragment size events back to the dasher, and set `LLHLSFragNum` on the first packet of each fragment\n"
 "- SegSync: indicates that fragments/segments must be completely flushed before sending back size events\n"
+"- InitBase64: inidcates that the base64-encoded init segment must be set in the init segment size event\n"
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,

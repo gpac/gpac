@@ -4045,7 +4045,13 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			if (force_base_url)
 				force_url = gf_url_concatenate(force_base_url, rep->hls_single_file_name);
 
-			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : rep->hls_single_file_name);
+			if (rep->init_base64) {
+				const char *mime = rep->mime_type;
+				if (!mime) mime = "video/mp4";
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"data:%s;base64,%s\"\n", mime, rep->init_base64);
+			} else {
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : rep->hls_single_file_name);
+			}
 
 			if (force_url) {
 				gf_free(force_url);

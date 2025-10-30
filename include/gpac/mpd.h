@@ -719,6 +719,8 @@ typedef struct {
 
 	Bool sub_forced;
 	const char *hls_forced;
+
+	const char *init_base64;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/

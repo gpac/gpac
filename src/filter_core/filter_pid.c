@@ -7787,8 +7787,12 @@ static Bool evt_get_refstr(GF_FilterEvent *evt, u32 r_idx, GF_RefString **ref_st
 		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_SEGMENT_SIZE) {
-		if (r_idx) return GF_FALSE;
-		*ref_str = TO_REFSTRING(evt->seg_size.seg_url);
+		if (!r_idx)
+			*ref_str = TO_REFSTRING(evt->seg_size.seg_url);
+		else if (r_idx==1)
+			*ref_str = TO_REFSTRING(evt->seg_size.base64_version);
+		else
+			return GF_FALSE;
 		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_DASH_QUALITY_SELECT) {
@@ -7852,9 +7856,15 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			url_addr_src = (char **) &evt->seek.source_switch;
 			url_addr_dst = (char **) &an_evt->seek.source_switch;
 		} else if (evt->base.type==GF_FEVT_SEGMENT_SIZE) {
-			if (i) break;
-			url_addr_src = (char **) &evt->seg_size.seg_url;
-			url_addr_dst = (char **) &an_evt->seg_size.seg_url;
+			if (!i) {
+				url_addr_src = (char **) &evt->seg_size.seg_url;
+				url_addr_dst = (char **) &an_evt->seg_size.seg_url;
+			} else if (i==1) {
+				url_addr_src = (char **) &evt->seg_size.base64_version;
+				url_addr_dst = (char **) &an_evt->seg_size.base64_version;
+			} else {
+				break;
+			}
 		} else if (evt->base.type==GF_FEVT_DASH_QUALITY_SELECT) {
 			if (!i) {
 				url_addr_src = (char **) &evt->dash_select.period_id;

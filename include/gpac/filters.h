@@ -1309,6 +1309,7 @@ enum
 	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
 	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
 	GF_PROP_PID_DASH_MULTI_TRACK = GF_4CC('D','M','T','K'),
+	GF_PROP_PID_DASH_INIT_BASE64 = GF_4CC('I','B','6','4'),
 	GF_PROP_PID_ROLE = GF_4CC('R','O','L','E'),
 	GF_PROP_PID_PERIOD_DESC = GF_4CC('P','D','E','S'),
 	GF_PROP_PID_AS_COND_DESC = GF_4CC('A','C','D','S'),
@@ -1908,6 +1909,8 @@ typedef struct
 	FILTER_EVENT_BASE
 	/*! URL of segment this info is for, or NULL if single file*/
 	const char *seg_url;
+	/*! base64 of segment payload (for init) or NULL*/
+	const char *base64_version;
 	/*! media start range in segment file*/
 	u64 media_range_start;
 	/*! media end range in segment file*/
@@ -3713,6 +3716,14 @@ void gf_filter_pid_remove(GF_FilterPid *PID);
 \return error code if any
 */
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, const u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
+
+/*! Creates an output PID for a gmem block, send packet as FILE and set created pid to EOS
+\param filter the target filter
+\param url gmem URL of the data block
+\param out_pid the output PID to create or update. If no referer PID, a new PID will be created otherwise the PID will be updated
+\return error code if any
+*/
+GF_Err gf_filter_pid_raw_gmem(GF_Filter *filter, const char *url, GF_FilterPid **out_pid);
 
 /*! Sets a new property on an output PID for built-in property names.
 Setting a new property will trigger a PID reconfigure at the consumption point of the next dispatched packet.

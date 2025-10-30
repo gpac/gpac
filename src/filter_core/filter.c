@@ -4794,6 +4794,31 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 }
 
 GF_EXPORT
+GF_Err gf_filter_pid_raw_gmem(GF_Filter *filter, const char *url, GF_FilterPid **out_pid)
+{
+	u8 *mem_address;
+	u32 mem_size;
+	if (!filter || !url || !out_pid) return GF_BAD_PARAM;
+
+	GF_Err e = gf_blob_get(url, &mem_address, &mem_size, NULL);
+	if (e) return e;
+
+	GF_FilterPacket *opck;
+	e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, mem_address, mem_size, GF_FALSE, out_pid);
+	if (e) {
+		gf_blob_release(url);
+		return e;
+	}
+	gf_filter_pid_set_property(*out_pid, GF_PROP_PID_URL, &PROP_STRING("NULL"));
+	opck = gf_filter_pck_new_shared(*out_pid, mem_address, mem_size, NULL);
+	gf_filter_pck_set_sap(opck, GF_FILTER_SAP_1);
+	gf_filter_pck_send(opck);
+	gf_filter_pid_set_eos(*out_pid);
+	gf_blob_release(url);
+	return GF_OK;
+}
+
+GF_EXPORT
 const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size, GF_FilterProbeScore *pscore)
 {
 	u32 i, count;

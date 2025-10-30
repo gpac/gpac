@@ -28,6 +28,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/id3.h>
+#include <gpac/base_coding.h>
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MP4MX)
 
@@ -360,6 +361,7 @@ typedef struct
 	u64 flush_size, flush_done;
 
 	u32 dash_mode, llhas_mode;
+	Bool send_base64;
 	GF_Fraction dash_dur;
 	Double media_dur;
 	u32 sidx_max_size, sidx_chunk_offset;
@@ -1325,6 +1327,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	else if (ctx->noinit) {
 		ctx->dash_mode = MP4MX_DASH_ON;
 	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_INIT_BASE64);
+	ctx->send_base64 = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHAS_MODE);
 	ctx->llhas_mode = p ? p->value.uint : GF_LLHAS_NONE;
@@ -5871,6 +5876,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_range, u64 idx_end_range, Bool signal_flush)
 {
 	GF_FilterEvent evt;
+	u8 *base64_init = NULL;
 	TrackWriter *tkw = NULL;
 
 	if (ctx->dst_pck) {
@@ -5905,6 +5911,15 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			data[7] = ctx->m4cc[3];
 			mp4_mux_on_data(ctx, data, 8, NULL, 0);
 		}
+
+		if (!ctx->single_file && ctx->dash_mode && is_init && ctx->send_base64) {
+			u32 init_size, size_b64;
+			const u8 *init_data = gf_filter_pck_get_data(ctx->dst_pck, &init_size);
+			size_b64 = 2*init_size + 3;
+			base64_init = gf_malloc(sizeof(char) * size_b64);
+			size_b64 = gf_base64_encode((const char *)init_data, init_size, (char *)base64_init, size_b64);
+			base64_init[size_b64] = 0;
+		}
 		mp4mux_send_output(ctx);
 		if (signal_flush)
 			gf_filter_pid_send_flush(ctx->opid);
@@ -5925,6 +5940,9 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		if (idx_end_range && (ctx->vodcache==MP4MX_VODCACHE_INSERT))
 			evt.seg_size.is_shift = 1;
 
+		if (base64_init) {
+			evt.seg_size.base64_version = base64_init;
+		}
 		evt.seg_size.idx_range_start = idx_start_range;
 		evt.seg_size.idx_range_end = idx_end_range;
 		gf_filter_pid_send_event(tkw->ipid, &evt);
@@ -5935,6 +5953,8 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		ctx->frag_size = 0;
 		ctx->frag_num = 0;
 		ctx->frag_has_intra = GF_FALSE;
+		if (base64_init) gf_free(base64_init);
+
 		//changing file
 		if (ctx->seg_name) {
 			ctx->first_pck_sent = GF_FALSE;

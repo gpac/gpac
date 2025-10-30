@@ -5969,6 +5969,8 @@ The segmenter adds the following properties to the output PIDs:
 .br
 * SegSync: indicates that fragments/segments must be completely flushed before sending back size events
 .br
+* InitBase64: inidcates that the base64-encoded init segment must be set in the init segment size event
+.br
 
 .br
 .SH Options (expert):
@@ -6331,6 +6333,8 @@ inband_event (bool, default: false): insert a default inband event stream in the
 ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
 .br
 evte_agg (bool, default: false): force aggregation of Event Track samples of a DASH segment into a single sample
+.br
+base64 (bool, default: false): embed init segments in manifests as base64
 .br
 
 .br
