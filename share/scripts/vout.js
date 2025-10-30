@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / vout default ui
@@ -617,6 +617,7 @@ function update_play()
 
 	let src = vout ? vout.ipid_source(0) : aout.ipid_source(0);
 	let hdr = src.ipid_props(0, 'X-From-MABR');
+	if (!hdr) hdr = src.ipid_props(0, 'x-from-mabr');
 	if (hdr) {
 		text.fontsize = 16;
 		let msg = 'MABR ' + ((hdr=='yes') ? 'on' : ((hdr=='no') ? 'off' : hdr));
