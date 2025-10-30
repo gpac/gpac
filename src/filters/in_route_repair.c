@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -567,7 +567,7 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	//no losses - should not happen, frags should be merged by routedmx
 	if (!gf_list_count(rsi->ranges)) return;
 
-	if (ctx->minrecv && finfo->total_size && (nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv)) {
+	if (!ctx->minrecv || (finfo->total_size && (nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv))) {
 		RouteRepairRange *rr;
 		while (gf_list_count(rsi->ranges)>1) {
 			rr = gf_list_pop_back(rsi->ranges);
@@ -575,9 +575,9 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 		}
 		rr = gf_list_get(rsi->ranges, 0);
 		memset(rr, 0, sizeof(RouteRepairRange));
-		rr->br_start = 0; //we could keep the start ?
+		rr->br_start = 0;
 		rr->br_end = finfo->total_size;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s to many bytes lost (%u %%), redownloading full file\n", rsi->finfo.filename, (u32) (nb_bytes_ok*100/finfo->total_size) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s to many bytes lost (%u %%), redownloading full file\n", rsi->finfo.filename, finfo->total_size ? (u32) (nb_bytes_ok*100/finfo->total_size) : 100 ));
 	}
 	else if (bytes_overlap) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s merging repair ranges, downloading %u bytes already received\n", rsi->finfo.filename, bytes_overlap));
@@ -787,14 +787,13 @@ static void route_repair_build_ranges_isobmf(ROUTEInCtx *ctx, RepairSegmentInfo 
 		return;
 	}
 
-	if ((rsi->isox_state==REPAIR_ISO_STATUS_INIT) && ctx->minrecv && finfo->total_size && use_repair) {
+	if ((rsi->isox_state==REPAIR_ISO_STATUS_INIT) && finfo->total_size && use_repair) {
 		u32 nb_bytes_ok=0;
 		for (i=0; i<finfo->nb_frags; i++) {
 			nb_bytes_ok += finfo->frags[i].size;
 		}
-		if (nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv) {
-			u32 brstart = (finfo->frags[0].offset==0) ? finfo->frags[0].size : 0;
-			queue_repair_range(ctx, rsi, brstart, finfo->total_size);
+		if (!ctx->minrecv || ((nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv))) {
+			queue_repair_range(ctx, rsi, 0, finfo->total_size);
 			rsi->isox_state = REPAIR_ISO_STATUS_DONE;
 			return;
 		}
@@ -1114,9 +1113,6 @@ void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 servi
 	}
 }
 
-#define CHECK_ISOBMF
-
-#ifdef CHECK_ISOBMF
 static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 pos = 0;
@@ -1132,9 +1128,14 @@ static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 		case GF_4CC('m','o','o','f'):
 		case GF_4CC('f','r','e','e'):
 		case GF_4CC('m','d','a','t'):
+		case GF_4CC('e','m','s','g'):
+		case GF_4CC('s','i','d','x'):
+		case GF_4CC('s','s','i','x'):
+		case GF_4CC('p','c','r','b'):
+		case GF_4CC('p','r','f','t'):
 			break;
 		default:
-			fprintf(stderr, "Unknown top-level %s\n", gf_4cc_to_str(btype));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Unknown top-level %s\n", gf_4cc_to_str(btype) ));
 		}
 		pos += bsize;
 		if (!bsize) {
@@ -1143,18 +1144,19 @@ static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 		}
 	}
 	if (!finfo->nb_frags) {
-		fprintf(stderr, "File lost\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: File lost\n"));
 	}
 	else if (pos!=finfo->total_size) {
-		fprintf(stderr, "Invalid top-level box size\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Invalid top-level box size\n"));
 	} else {
-		fprintf(stderr, "Recovered file OK: %s size %u !\n", finfo->filename, finfo->total_size);
-		gf_assert(finfo->nb_frags == 1);
-		gf_assert(finfo->frags[0].offset == 0);
-		gf_assert(finfo->frags[0].size == finfo->total_size);
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Recovered file OK: %s size %u !\n", finfo->filename, finfo->total_size));
+		if (!ctx->gcache) {
+			gf_assert(finfo->nb_frags == 1);
+			gf_assert(finfo->frags[0].offset == 0);
+			gf_assert(finfo->frags[0].size == finfo->total_size);
+		}
 	}
 }
-#endif
 
 
 static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool start_only)
@@ -1190,9 +1192,8 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 		break;
 	case ROUTE_FTYPE_ISOBMF:
 		routein_repair_segment_isobmf_local(ctx, evt_param, finfo, start_only);
-#ifdef CHECK_ISOBMF
-		routein_check_isobmf(ctx, finfo);
-#endif
+		if (ctx->chkiso)
+			routein_check_isobmf(ctx, finfo);
 		break;
 	default:
 		break;

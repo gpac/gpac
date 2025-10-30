@@ -891,6 +891,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	}
 	sess->total_size = 0;
 	sess->bytes_done = 0;
+	sess->full_resource_size = 0;
 	//could be not-0 after a byte-range request using chunk transfer
 	sess->remaining_data_size = 0;
 

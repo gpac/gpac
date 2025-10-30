@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -987,7 +987,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(llmode), "enable low-latency access", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(dynsel), "dynamically enable and disable multicast groups based on their selection state", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(range_merge), "merge ranges in HTTP repair if distant from less than given amount of bytes", GF_PROP_UINT, "10000", NULL, 0},
-	{ OFFS(minrecv), "redownload full file in HTTP repair if received bytes is less than given percentage of file size", GF_PROP_UINT, "20", NULL, 0},
+	{ OFFS(minrecv), "redownload full file in HTTP repair if received bytes is less than given percentage of file size, 0 means complete file redownload if any error", GF_PROP_UINT, "20", NULL, 0},
 	{ OFFS(riso), "advanced options for ISOBMFF HTTP repair\n"
 		"- none: use regular http repair\n"
 		"- simple: first repair all non-mdat boxes then repair mdat in order\n"
@@ -995,6 +995,8 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- deps: same as simple and repair only samples depended upon by other samples\n"
 		"- depx: same as deps but do not hide moof of incomplete mdat (tests only)", GF_PROP_UINT, "none", "none|simple|partial|deps|depx", 0},
 	{ OFFS(ka), "keep service alive if multicast is down", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(chkiso), "check isobmf structure after repair (debug)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{0}
 };
 
