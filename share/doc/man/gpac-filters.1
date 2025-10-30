@@ -2517,13 +2517,21 @@ tfdt (lfrac, default: 0):      set initial decode time (tfdt) of first traf
 .br
 tfdt_traf (bool, default: false): force tfdt box in each traf
 .br
-nofragdef (bool, default: false): disable default flags in fragments
+nofragdef (bool, default: false): disable default fragment flags in initial moov
 .br
 straf (bool, default: false):  use a single traf per moof (smooth streaming and co)
 .br
 strun (bool, default: false):  use a single trun per traf (smooth streaming and co)
 .br
-prft (bool, default: true):    set prft box at segment start, disabled if not fragmented mode
+prft (enum, default: sender):  set prft box mode, disabled if not fragmented mode
+.br
+* off: disable prft box
+.br
+* sender: put ntp time before encoder
+.br
+* both: put sender time (if available) and ntp time when writing the moof
+.br
+
 .br
 psshs (enum, default: moov):   set pssh boxes store mode
 .br
@@ -6052,7 +6060,7 @@ muxtype (enum, default: auto): muxtype to use for the segments
 .br
 rawsub (bool, default: no):    use raw subtitle format instead of encapsulating in container
 .br
-asto (dbl, default: 0):        availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
+asto (dbl, default: 0):        availabilityTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
 profile (enum, default: auto): target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main
 .br
@@ -6321,6 +6329,8 @@ tpl_force (bool, default: false): use template string as is without trying to ad
 inband_event (bool, default: false): insert a default inband event stream in the DASH manifest
 .br
 ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
+.br
+evte_agg (bool, default: false): force aggregation of Event Track samples of a DASH segment into a single sample
 .br
 
 .br
@@ -10328,7 +10338,10 @@ Only a subset of CEA 608/708 is supported.
 .br
 
 .br
-No options
+.SH Options (expert):
+.LP
+.br
+vb_time (frac, default: 1/1):  time to hold video packets if no caption is available
 .br
 
 .br
@@ -10358,7 +10371,7 @@ mode (enum, default: 23001-18): mode to operate in
 .br
 
 .br
-segdur (frac, default: 1/1):   segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)
+sampdur (frac, default: 0/1):  segmentation duration in seconds. Default value 0 only flushes when content changes
 .br
 
 .br

@@ -734,7 +734,7 @@ MP4BoxArg m4b_dash_args[] =
 	MP4BOX_ARG("last-dynamic", "same as [-dynamic]() but close the period (insert lmsg brand if needed and update duration)", GF_ARG_BOOL, 0, &dash_mode, GF_DASH_DYNAMIC_LAST, 0),
 	MP4BOX_ARG("mpd-duration", "set the duration in second of a live session (if `0`, you must use [-mpd-refresh]())", GF_ARG_DOUBLE, 0, &mpd_live_duration, 0, 0),
 	MP4BOX_ARG("mpd-refresh", "specify MPD update time in seconds", GF_ARG_DOUBLE, 0, &mpd_update_time, 0, 0),
-	MP4BOX_ARG("time-shift", "specify MPD time shift buffer depth in seconds, `-1` to keep all files)", GF_ARG_INT, 0, &time_shift_depth, 0, 0),
+	MP4BOX_ARG("time-shift", "specify MPD time shift buffer depth in seconds, `-1` to keep all files. Default is 0", GF_ARG_INT, 0, &time_shift_depth, 0, 0),
 	MP4BOX_ARG("subdur", "specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless [-no-loop]() is used which triggers a period end", GF_ARG_DOUBLE, 0, &dash_subduration, 0, 0),
 	MP4BOX_ARG("run-for", "run for given ms  the dash-live session then exits", GF_ARG_INT, 0, &run_for, 0, 0),
 	MP4BOX_ARG("min-buffer", "specify MPD min buffer time in ms", GF_ARG_INT, 0, &min_buffer, 0, ARG_DIV_1000),
