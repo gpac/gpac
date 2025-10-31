@@ -14297,7 +14297,9 @@ const u32 AC4_MEDIA_TIMESCALE_441[] = {
 static u32 gf_ac4_variable_bits(GF_BitStream *bs, int bits)
 {
 	u32 value = 0;
-	u32 b_moreBits;
+	if (!gf_bs_available(bs)) return value;
+
+	u32 b_moreBits = 0;
 	do{
 		value += gf_bs_read_int(bs, bits);
 		b_moreBits = gf_bs_read_int(bs, 1);
@@ -14305,7 +14307,7 @@ static u32 gf_ac4_variable_bits(GF_BitStream *bs, int bits)
 			value <<= bits;
 			value += (1<<bits);
 	  }
-	} while (b_moreBits == 1);
+	} while (b_moreBits == 1 && gf_bs_available(bs));
 	return value;
 }
 
@@ -15812,7 +15814,7 @@ static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
         b_size_present = 1;
     }
     if (b_size_present) {
-        for (s = 0; s < n_substreams; s++) {
+        for (s = 0; s < n_substreams && gf_bs_available(bs); s++) {
             b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
             /*substream_size = */gf_bs_read_int_log(bs, 10, "substream_size");
             if (b_more_bits) {
