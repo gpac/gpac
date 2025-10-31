@@ -294,11 +294,11 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 
 	// Add EBP to the SEI
 	// sei_render_size includes nal_type (1 byte)
-	u32 nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(sei_data + 1, sei_render_size - 1);
-	u32 sei_payload_size = sei_render_size - 1 + nb_bytes_to_add;
+	u32 nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(sei_data + 1, (u32) sei_render_size - 1);
+	u32 sei_payload_size = (u32) sei_render_size - 1 + nb_bytes_to_add;
 	u8 *sei_data_with_epb = gf_malloc(sei_payload_size);
 	CHECK_OOM(sei_data_with_epb);
-	gf_media_nalu_add_emulation_bytes(sei_data + 1, sei_data_with_epb, sei_render_size - 1);
+	gf_media_nalu_add_emulation_bytes(sei_data + 1, sei_data_with_epb, (u32) sei_render_size - 1);
 	gf_free(sei_data);
 
 	// Prepare the NALU writer
@@ -308,7 +308,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	CHECK_OOM(bs);
 
 	// Write the NALU header
-	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len * 8);
+	gf_bs_write_int(bs, (u32) nal_size - ctx->nalu_size_len, ctx->nalu_size_len * 8);
 
 	// Write the NALU type
 	if (ctx->cctype == CCTYPE_HEVC) {
@@ -336,7 +336,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	gf_bs_write_data(bs, vdata, size);
 
 	// Check the size
-	u32 new_size = nal_size + size;
+	u32 new_size = (u32) nal_size + size;
 	gf_assert(new_size == gf_bs_get_position(bs));
 
 	// Create the new video packet
