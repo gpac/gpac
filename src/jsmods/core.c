@@ -4487,7 +4487,10 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
 #endif // GPAC_STATIC_BIN
 
-JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
+JSModuleDef *create_json_module(JSContext *ctx, const char *module_name, JSValue val);
+int js_module_test_json(JSContext *ctx, JSValueConst attributes);
+
+JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque, JSValueConst attributes)
 {
 	JSModuleDef *m;
 	const char *fext = gf_file_ext_start(module_name);
@@ -4519,16 +4522,36 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
 			return NULL;
 		}
-		/* compile the module */
-		func_val = JS_Eval(ctx, buf ? (char *) buf : "", buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-		gf_free(buf);
-		if (JS_IsException(func_val))
-			return NULL;
-		/* XXX: could propagate the exception */
-		js_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
-		/* the module is already referenced, so we must free it */
-		m = JS_VALUE_GET_PTR(func_val);
-		JS_FreeValue(ctx, func_val);
+
+		char *fext = gf_file_ext_start(module_name);
+        int res = js_module_test_json(ctx, attributes);
+        if ((fext && !stricmp(fext, ".json")) || res > 0) {
+            /* compile as JSON or JSON5 depending on "type" */
+            JSValue val;
+            int flags;
+            if (res == 2)
+                flags = JS_PARSE_JSON_EXT;
+            else
+                flags = 0;
+            val = JS_ParseJSON2(ctx, (char *)buf, buf_len, module_name, flags);
+            js_free(ctx, buf);
+            if (JS_IsException(val))
+                return NULL;
+            m = create_json_module(ctx, module_name, val);
+            if (!m)
+                return NULL;
+        } else {
+			/* compile the module */
+			func_val = JS_Eval(ctx, buf ? (char *) buf : "", buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+			gf_free(buf);
+			if (JS_IsException(func_val))
+				return NULL;
+			/* XXX: could propagate the exception */
+			js_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
+			/* the module is already referenced, so we must free it */
+			m = JS_VALUE_GET_PTR(func_val);
+			JS_FreeValue(ctx, func_val);
+		}
 	}
 	return m;
 }
@@ -4565,7 +4588,7 @@ static void qjs_init_runtime_libc(JSRuntime *rt)
 		return;
 
 	/* module loader */
-	JS_SetModuleLoaderFunc(rt, NULL, qjs_module_loader, NULL);
+	JS_SetModuleLoaderFunc2(rt, NULL, qjs_module_loader, NULL, NULL);
 
 #ifndef GPAC_DISABLE_QJS_LIBC
 

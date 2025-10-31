@@ -153,7 +153,7 @@ LIBGPAC_QUICKJS=
 LIBGPAC_JSMODS=
 JSMODS_CFLAGS=
 ifeq ($(CONFIG_JS),yes)
-LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/libbf.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o quickjs/quickjs-libc.o
+LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/dtoa.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o quickjs/quickjs-libc.o
 LIBGPAC_JSMODS+=jsmods/core.o jsmods/evg.o jsmods/scene_js.o jsmods/storage.o jsmods/webgl.o jsmods/xhr.o
 endif
 

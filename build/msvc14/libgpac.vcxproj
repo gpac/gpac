@@ -490,7 +490,7 @@
     <ClCompile Include="..\..\src\odf\qos.c" />
     <ClCompile Include="..\..\src\odf\slc.c" />
     <ClCompile Include="..\..\src\quickjs\cutils.c" />
-    <ClCompile Include="..\..\src\quickjs\libbf.c">
+    <ClCompile Include="..\..\src\quickjs\dtoa.c">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">Level1</WarningLevel>
