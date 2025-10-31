@@ -124,6 +124,7 @@ typedef SSIZE_T ssize_t;
 /* enable the os.Worker API. It relies on POSIX threads */
 #define USE_WORKER
 
+#endif
 
 #ifdef USE_WORKER
 #include <gpac/thread.h>
@@ -678,8 +679,6 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
 }
 
 
-#ifndef GPAC_DISABLE_QJS_LIBC
-
 static int json_module_init(JSContext *ctx, JSModuleDef *m)
 {
     JSValue val;
@@ -701,6 +700,9 @@ JSModuleDef *create_json_module(JSContext *ctx, const char *module_name, JSValue
     JS_SetModulePrivateValue(ctx, m, val);
     return m;
 }
+
+#ifndef GPAC_DISABLE_QJS_LIBC
+
 
 /* in order to conform with the specification, only the keys should be
    tested and not the associated values. */
@@ -733,6 +735,7 @@ int js_module_check_attributes(JSContext *ctx, void *opaque,
     JS_FreePropertyEnum(ctx, tab, len);
     return ret;
 }
+#endif
 
 /* return > 0 if the attributes indicate a JSON module */
 int js_module_test_json(JSContext *ctx, JSValueConst attributes)
@@ -762,6 +765,8 @@ int js_module_test_json(JSContext *ctx, JSValueConst attributes)
     JS_FreeCString(ctx, cstr);
     return res;
 }
+
+#ifndef GPAC_DISABLE_QJS_LIBC
 
 #ifndef GPAC_HAS_QJS
 
@@ -4814,6 +4819,5 @@ void js_std_eval_binary_json_module(JSContext *ctx,
         exit(1);
     }
 }
-#endif
 
 #endif //GPAC_DISABLE_QJS_LIBC

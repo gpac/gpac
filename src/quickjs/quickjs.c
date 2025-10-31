@@ -58181,7 +58181,7 @@ static struct list_head js_atomics_waiter_list =
 #include <mach/mach.h>
 #endif
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) && !defined GPAC_CONFIG_IOS
 static inline void cpu_pause(void)
 {
     asm volatile("yield" ::: "memory");
