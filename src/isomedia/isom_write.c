@@ -30,6 +30,7 @@
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
+GF_EXPORT
 GF_Err CanAccessMovie(GF_ISOFile *movie, GF_ISOOpenMode Mode)
 {
 	if (!movie) return GF_BAD_PARAM;
@@ -3619,7 +3620,7 @@ found:
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_reset_alt_brands_ex(GF_ISOFile *movie, Bool leave_empty)
 {
 	u32 *p;
@@ -7817,6 +7818,7 @@ GF_Err gf_isom_force_ctts(GF_ISOFile *file, u32 track)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 {
 	u32 i, shift;
@@ -8486,6 +8488,7 @@ GF_Err gf_isom_set_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDesc
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_sample_group_in_traf(GF_ISOFile *file)
 {
 	GF_Err e;
@@ -8545,7 +8548,7 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u8 *data, u32 size)
 {
 	GF_BitStream *bs;
@@ -9013,7 +9016,7 @@ void gf_isom_disable_inplace_rewrite(GF_ISOFile *movie)
 		movie->no_inplace_rewrite = GF_TRUE;
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, GF_ISOM_Y3D_Info *info)
 {
 	GF_Err e;

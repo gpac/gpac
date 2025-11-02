@@ -1726,6 +1726,7 @@ GF_AV1Config *gf_odf_av1_cfg_read(u8 *dsi, u32 dsi_size)
 	return cfg;
 }
 
+GF_EXPORT
 GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 {
 	GF_DOVIDecoderConfigurationRecord *cfg;
@@ -1809,6 +1810,7 @@ GF_Err gf_odf_ac3_cfg_write_bs(GF_AC3Config *cfg, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1864,6 +1866,7 @@ GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *c
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg)
 {
 	GF_BitStream *bs;
@@ -2326,6 +2329,7 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_parse(u8 *dsi, u32 dsi_len, GF_AC4Config *cfg)
 {
 	GF_BitStream *bs;
@@ -2495,6 +2499,8 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg)
 {
 	GF_BitStream *bs;

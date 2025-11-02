@@ -1218,6 +1218,7 @@ GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalI
 	return NULL;
 }
 
+GF_EXPORT
 GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;

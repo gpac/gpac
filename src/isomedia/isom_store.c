@@ -27,10 +27,12 @@
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
-#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC"
+//#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC"
+#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with MediaExcel-HERO"
 
 #include <gpac/revision.h>
-#define GPAC_ISOM_CPRT_NOTICE_VERSION GPAC_ISOM_CPRT_NOTICE" "GPAC_VERSION "-rev" GPAC_GIT_REVISION
+//#define GPAC_ISOM_CPRT_NOTICE_VERSION GPAC_ISOM_CPRT_NOTICE" "GPAC_VERSION "-rev" GPAC_GIT_REVISION
+#define GPAC_ISOM_CPRT_NOTICE_VERSION GPAC_ISOM_CPRT_NOTICE
 
 static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 {

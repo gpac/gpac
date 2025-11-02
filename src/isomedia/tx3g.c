@@ -969,6 +969,7 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_forced_text(GF_ISOFile *file, u32 track, u32 stsd_idx, u32 flags)
 {
 	GF_TrackBox *trak;
