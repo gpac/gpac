@@ -57,6 +57,7 @@ GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID)
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+GF_EXPORT
 GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration, Bool remove_mehd)
 {
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
@@ -3457,6 +3458,7 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, GF_ISOTrackID 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_enable_mfra(GF_ISOFile *file)
 {
 	if (!file) return GF_BAD_PARAM;

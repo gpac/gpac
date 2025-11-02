@@ -6628,6 +6628,7 @@ GF_Err gf_isom_merge_external_edit(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *s
 	return GF_OK;
 }
 
+GF_EXPORT
 s32 gf_isom_get_min_negative_cts_offset(GF_ISOFile *the_file, u32 trackNumber, GF_ISOMMinNegCtsQuery query_mode)
 {
 	GF_TrackBox *trak;

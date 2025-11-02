@@ -5360,6 +5360,7 @@ u32 gf_mp3_get_next_header_mem(const u8 *buffer, u32 size, u32 *pos)
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+GF_EXPORT
 Bool gf_avcc_use_extensions(u8 profile_idc)
 {
 	switch (profile_idc) {
@@ -10496,6 +10497,7 @@ u32 gf_ac3_get_bitrate(u32 brcode)
 	return ac3_sizecod_to_bitrate[brcode];
 }
 
+GF_EXPORT
 Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_parse)
 {
 	GF_BitStream *bs;

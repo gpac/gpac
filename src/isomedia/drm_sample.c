@@ -586,6 +586,7 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index,
                                   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
                                   Bool selective_encryption, u32 KI_length, u32 IV_length)
@@ -621,6 +622,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_generic_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, char *scheme_uri, char *kms_URI)
 {
 	GF_Err e;
@@ -752,6 +754,7 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
                                    u32 scheme_version, u32 default_IsEncrypted, u32 default_crypt_byte_block, u32 default_skip_byte_block,
 								    u8 *key_info, u32 key_info_size)
@@ -879,6 +882,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 }
 #endif
 
+GF_EXPORT
 GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, u8 *data, u32 len, u32 pssh_mode)
 {
 	GF_ProtectionSystemHeaderBox *pssh = NULL;
@@ -988,7 +992,7 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 }
 
 
-
+GF_EXPORT
 GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber)
 {
 	u32 i;
@@ -1029,6 +1033,7 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
 {
 	u32 i;
@@ -1133,6 +1138,7 @@ GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags)
 	return senc;
 }
 
+GF_EXPORT
 GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -1145,6 +1151,7 @@ GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber)
 	return gf_list_add(trak->child_boxes, trak->sample_encryption);
 }
 
+GF_EXPORT
 GF_Err gf_isom_piff_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 AlgorithmID, u8 IV_size, bin128 KID)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -1298,6 +1305,7 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
+GF_EXPORT
 GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 *buf, u32 len, Bool use_subsamples, Bool use_saio_32bit, Bool use_multikey)
 {
 	GF_SampleEncryptionBox *senc;
@@ -1834,6 +1842,7 @@ GF_Err gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 
 /*
 	Adobe'protection scheme
 */
+GF_EXPORT
 GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len)
 {
 	GF_ProtectionSchemeInfoBox *sinf;
@@ -1956,7 +1965,7 @@ void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file)
 }
 #endif
 
-
+GF_EXPORT
 Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
 {
 	u32 i, n_keys, kpos, nb_missing = 19;

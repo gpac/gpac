@@ -441,6 +441,7 @@ GF_Err gf_isom_truehd_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stre
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+GF_EXPORT
 GF_Err gf_isom_truehd_config_new(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, u32 format, u32 peak_rate, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -1192,6 +1193,7 @@ GF_Err gf_isom_get_xml_metadata_description(GF_ISOFile *file, u32 track, u32 sam
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_Err gf_isom_new_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber,
         const char *_namespace, const char *schema_loc, const char *content_encoding,
         u32 *outDescriptionIndex)
@@ -1421,6 +1423,7 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+GF_EXPORT
 GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type,
                                     const char *mime, const char *encoding, const char * config,
                                     u32 *outDescriptionIndex)
@@ -1639,7 +1642,7 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 }
 #endif
 
-
+GF_EXPORT
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, const char *config)
 {
 	GF_TrackBox *trak;
@@ -1687,6 +1690,7 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, const 
 #endif /*GPAC_DISABLE_VTT*/
 #endif //GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool create)
 {
 	u32 i=0;
@@ -1873,6 +1877,7 @@ GF_Err gf_isom_evte_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 *outDe
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_size, u32 mha_subtype)
 {
 	GF_TrackBox *trak;

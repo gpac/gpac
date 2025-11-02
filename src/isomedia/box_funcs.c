@@ -92,6 +92,7 @@ u64 unused_bytes = 0;
 
 #define GF_SKIP_BOX 10
 
+GF_EXPORT
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size)
 {
 	u32 type, otype, uuid_type, hdr_size, restore_type;
@@ -2476,6 +2477,7 @@ Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 void gf_isom_box_del_parent(GF_List **child_boxes, GF_Box*b)
 {
 	if (child_boxes) {

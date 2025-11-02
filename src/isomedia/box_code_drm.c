@@ -1259,6 +1259,7 @@ void senc_box_del(GF_Box *s)
 
 #endif //ISOM
 
+GF_EXPORT
 u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
 {
 	u32 i=0, kpos=3;
