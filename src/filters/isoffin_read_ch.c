@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -911,8 +911,6 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 	}
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
-
 void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 {
 	u32 offset = 0;
@@ -941,7 +939,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 			idx<<=8;
 			idx |= sai_p[1];
 
-			mk_iv_size = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, idx, NULL, NULL);
+			mk_iv_size = gf_cenc_key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, idx, NULL, NULL);
 			mk_iv_size += 2; //idx
 			if (mk_iv_size > remain) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
@@ -954,7 +952,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 		sub_count_size = 4; //32bit sub count
 
 	} else {
-		offset = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
+		offset = gf_cenc_key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
 		sub_count_size = 2; //16bit sub count
 	}
 	if (sai_size < offset + sub_count_size) return;

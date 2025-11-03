@@ -3455,7 +3455,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	GF_RTPPacket *pck;
 	char *szName;
 
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
 
 	tmp = gf_isom_get_sample(the_file, trackNumber, SampleNum, &descIndex);
@@ -3863,7 +3863,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	Bool box_dump = (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE;
 	Bool skip_empty = (dump_type==GF_TEXTDUMPTYPE_TTXT_CHAP) ? GF_TRUE : GF_FALSE;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4173,7 +4173,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	char szDur[100];
 	Bool is_wvtt = GF_FALSE;
 	Bool srt_forced_subs = gf_opts_get_bool("core", "srt-forced");
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	u32 subtype = gf_isom_get_media_subtype(the_file, track, 1);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
@@ -4320,7 +4320,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	u64 start, end;
 	GF_BitStream *bs;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4403,7 +4403,7 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 	u64 start;
 	GF_BitStream *bs;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4553,7 +4553,7 @@ GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, F
 	GF_Err e;
 	GF_TrackBox *trak;
 
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
 
@@ -6025,8 +6025,6 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv);
-
 GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, sample_count;
@@ -6117,7 +6115,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
 				u32 idx = gf_bs_read_u16(bs);
-				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
+				u8 mk_iv_size = gf_cenc_key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
 				pos = (u32) gf_bs_get_position(bs);
 				if (mk_iv_size + pos <= sai->cenc_data_size) {
 					gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);

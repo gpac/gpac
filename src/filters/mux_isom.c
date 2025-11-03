@@ -2977,7 +2977,7 @@ sample_entry_setup:
 		memset(&ac3cfg, 0, sizeof(GF_AC3Config));
 
 		if (dsi) {
-			gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3cfg);
+			gf_odf_ac3_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3cfg);
 		} else {
 			if (codec_id==GF_CODECID_EAC3) ac3cfg.is_ec3 = GF_TRUE;
 		}
@@ -3520,8 +3520,8 @@ multipid_stsd_setup:
 		}
 	} else if (!tkw->is_encrypted) {
 		//in case we used track template
-		gf_isom_remove_samp_enc_box(ctx->file, tkw->track_num);
-		gf_isom_remove_samp_group_box(ctx->file, tkw->track_num);
+		gf_isom_remove_cenc_senc_box(ctx->file, tkw->track_num);
+		gf_isom_remove_cenc_seig_sample_group(ctx->file, tkw->track_num);
 	}
 
 	if (is_true_pid) {
@@ -4391,7 +4391,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 		else if (tkw->scheme_type==GF_ISOM_PIFF_SCHEME) mode = 1;
 		else mode = 0;
 
-		gf_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len, mode);
+		gf_isom_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len, mode);
 		gf_bs_skip_bytes(ctx->bs_r, len);
 		if (gf_bs_is_overflow(ctx->bs_r))
 			break;
@@ -4655,7 +4655,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		u32 offset = 0;
 		u32 first_sub_clear, sub_count_size;
 		u8 *sai_d;
-		u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 		gf_assert(tkw->cenc_subsamples);
 
@@ -4674,7 +4673,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				idx<<=8;
 				idx |= sai_p[1];
 
-				mk_iv_size = key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, idx, NULL, NULL);
+				mk_iv_size = gf_cenc_key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, idx, NULL, NULL);
 				mk_iv_size += 2; //idx
 				if (mk_iv_size > remain) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
@@ -4691,7 +4690,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			sub_count_size = 4; //32bit sub count
 
 		} else {
-			offset = key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, 1, NULL, NULL);
+			offset = gf_cenc_key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, 1, NULL, NULL);
 			sub_count_size = 2; //16bit sub count
 		}
 		if (sai_size < offset + sub_count_size + 6) {

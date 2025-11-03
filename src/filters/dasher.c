@@ -1643,7 +1643,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_EAC3:
 				if (dsi) {
 					GF_AC3Config ac3 = {0};
-					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
+					gf_odf_ac3_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
 					ds->nb_surround = gf_ac3_get_surround_channels(ac3.streams[0].acmod);

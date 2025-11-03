@@ -693,6 +693,13 @@ GF_Err gf_isom_close(GF_ISOFile *isom_file);
 */
 void gf_isom_delete(GF_ISOFile *isom_file);
 
+/*! Checks if an open movie can be accessed in the given mode
+\param isom_file the target ISO file
+\param mode the desried open mode
+\return GF_OK if access is possible, GF_ISOM_INVALID_MODE if access is not possible, GF_BAD_PARAM otherwise
+*/
+GF_Err gf_isom_can_access_movie(GF_ISOFile *isom_file, GF_ISOOpenMode Mode);
+
 /*! gets the last fatal error that occured in the file
 ANY FUNCTION OF THIS API WON'T BE PROCESSED IF THE FILE HAS AN ERROR
 \note Some function may return an error while the movie has no error
@@ -6067,20 +6074,21 @@ GF_Err gf_isom_set_cenc_protection_mkey(GF_ISOFile *isom_file, u32 trackNumber, 
 \param pssh_mode 0: regular PSSH in moov, 1: PIFF PSSH in moov, 2: regular PSSH in meta
 \return error if any
 */
-GF_Err gf_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len, u32 pssh_mode);
+GF_Err gf_isom_cenc_set_pssh(GF_ISOFile *isom_file, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, u8 *data, u32 len, u32 pssh_mode);
 
 /*! removes CENC senc box info
 \param isom_file the target ISO file
 \param trackNumber the target track
 \return error if any
 */
-GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *isom_file, u32 trackNumber);
+GF_Err gf_isom_remove_cenc_senc_box(GF_ISOFile *isom_file, u32 trackNumber);
+
 /*! removes all CENC sample groups
 \param isom_file the target ISO file
 \param trackNumber the target track
 \return error if any
 */
-GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *isom_file, u32 trackNumber);
+GF_Err gf_isom_remove_cenc_seig_sample_group(GF_ISOFile *isom_file, u32 trackNumber);
 
 #endif //GPAC_DISABLE_ISOM_WRITE
 
