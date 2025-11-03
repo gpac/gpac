@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,7 +22,6 @@
 		2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2897039B1A13C4050063E9C0 /* libswresample.a */; };
 		3F04FCBA2C9CB139002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */; };
 		3F5F3F212C7EAD0C00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F202C7EAD0C00C58257 /* id3.c */; };
-		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		7141FF301292CB9200FCB27D /* alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7141FF2F1292CB9200FCB27D /* alloc.c */; };
 		71A19BB212797D1B00ACFF58 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BB112797D1B00ACFF58 /* OpenGLES.framework */; };
 		71A19BC412797D9200ACFF58 /* libobjc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71A19BC312797D9200ACFF58 /* libobjc.dylib */; };
@@ -356,7 +355,9 @@
 		92359C86250F651900525A42 /* rmt_ws.h in Headers */ = {isa = PBXBuildFile; fileRef = 92359C80250F651900525A42 /* rmt_ws.h */; };
 		92359C88250F652700525A42 /* route_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C87250F652700525A42 /* route_dmx.c */; };
 		92359C8A250F657B00525A42 /* in_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C89250F657A00525A42 /* in_route.c */; };
+		923EB53423D1B87E00E1FFA1 /* dtoa.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* dtoa.c */; };
 		92455F8E2A530F560080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8D2A530F560080321C /* dec_cc.c */; };
+		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		92455FDB2A540A640080321C /* libcaption.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92455FDA2A540A640080321C /* libcaption.a */; };
 		9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7624A1240600F72EAD /* filter_session_js.c */; };
 		924AB67F281438E100EC006F /* default.cfg in Resources */ = {isa = PBXBuildFile; fileRef = 924AB67E281438E000EC006F /* default.cfg */; };
@@ -432,6 +433,7 @@
 		92C3486729E69CBF00C63E8A /* dmx_ghi.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C3486629E69CBF00C63E8A /* dmx_ghi.c */; };
 		92C69C62281323B800051866 /* compositor_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C69C5F281323B800051866 /* compositor_tools.c */; };
 		92C69C63281323B800051866 /* gpac_help.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C69C60281323B800051866 /* gpac_help.c */; };
+		92C69C65281323D700051866 /* ios-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 92C69C64281323D700051866 /* ios-Info.plist */; };
 		92C69C6D281323EA00051866 /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 92C69C66281323EA00051866 /* icon_ipad.png */; };
 		92C69C6E281323EA00051866 /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 92C69C67281323EA00051866 /* icon_ipad_retina.png */; };
 		92C69C6F281323EA00051866 /* iTunesArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 92C69C68281323EA00051866 /* iTunesArtwork */; };
@@ -574,7 +576,6 @@
 		92EB6E3E20E4EC8600A97A49 /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92EB6E3C20E4EC5600A97A49 /* libavdevice.a */; };
 		92EB6E4020E4EC9700A97A49 /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92EB6E3F20E4EC9700A97A49 /* libavfilter.a */; };
 		92EB6E4220E4ECD500A97A49 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92EB6E4120E4ECD500A97A49 /* AVFoundation.framework */; };
-		92ECB1A62EB8995600205CB5 /* dtoa.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CC92333AB9900DA6052 /* dtoa.c */; };
 		92F930861A5ADC1A0072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930841A5ADC1A0072A85C /* os_divers.c */; };
 		970A26C913434D2C0007362C /* m3u8.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C713434D2C0007362C /* m3u8.c */; };
 		970A26CA13434D2C0007362C /* mpd.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C813434D2C0007362C /* mpd.c */; };
@@ -629,7 +630,6 @@
 		2897039B1A13C4050063E9C0 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../extra_lib/lib/iOS/libswresample.a; sourceTree = "<group>"; };
 		3F04FCB92C9CB139002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		3F5F3F202C7EAD0C00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
-		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = ../../src/filters/enc_cc.c; sourceTree = "<group>"; };
 		7141FF2F1292CB9200FCB27D /* alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = alloc.c; sourceTree = "<group>"; };
 		71847811127860F000917298 /* libc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libc.dylib; path = usr/lib/libc.dylib; sourceTree = SDKROOT; };
 		71847813127860F000917298 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
@@ -970,7 +970,6 @@
 		92334CBE2333AB9900DA6051 /* libunicode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libunicode.c; path = ../../src/quickjs/libunicode.c; sourceTree = "<group>"; };
 		92334CC22333AB9900DA6051 /* quickjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = quickjs.c; path = ../../src/quickjs/quickjs.c; sourceTree = "<group>"; };
 		92334CC92333AB9900DA6051 /* cutils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cutils.c; path = ../../src/quickjs/cutils.c; sourceTree = "<group>"; };
-		92334CC92333AB9900DA6052 /* dtoa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dtoa.c; path = ../../src/quickjs/dtoa.c; sourceTree = "<group>"; };
 		92334CCA2333AB9A00DA6051 /* libregexp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libregexp.c; path = ../../src/quickjs/libregexp.c; sourceTree = "<group>"; };
 		92334CCC2333AB9A00DA6051 /* quickjs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = quickjs.h; path = ../../src/quickjs/quickjs.h; sourceTree = "<group>"; };
 		92359C7B250F651900525A42 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = main.h; sourceTree = "<group>"; };
@@ -981,7 +980,9 @@
 		92359C80250F651900525A42 /* rmt_ws.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rmt_ws.h; sourceTree = "<group>"; };
 		92359C87250F652700525A42 /* route_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = route_dmx.c; sourceTree = "<group>"; };
 		92359C89250F657A00525A42 /* in_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_route.c; path = ../../src/filters/in_route.c; sourceTree = "<group>"; };
+		923EB53323D1B87E00E1FFA1 /* dtoa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dtoa.c; path = ../../src/quickjs/dtoa.c; sourceTree = "<group>"; };
 		92455F8D2A530F560080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = ../../src/filters/dec_cc.c; sourceTree = "<group>"; };
+		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = ../../src/filters/enc_cc.c; sourceTree = "<group>"; };
 		92455FDA2A540A640080321C /* libcaption.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcaption.a; path = ../../extra_lib/lib/iOS/libcaption.a; sourceTree = "<group>"; };
 		9246EE7624A1240600F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = ../../src/filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		924AB67E281438E000EC006F /* default.cfg */ = {isa = PBXFileReference; lastKnownFileType = text; name = default.cfg; path = ../../share/default.cfg; sourceTree = "<group>"; };
@@ -1868,7 +1869,7 @@
 			isa = PBXGroup;
 			children = (
 				9285D1BF266FB8D3008FCD14 /* quickjs-libc.c */,
-				92334CC92333AB9900DA6052 /* dtoa.c */,
+				923EB53323D1B87E00E1FFA1 /* dtoa.c */,
 				92334CC92333AB9900DA6051 /* cutils.c */,
 				92334CCA2333AB9A00DA6051 /* libregexp.c */,
 				92334CBE2333AB9900DA6051 /* libunicode.c */,
@@ -2302,8 +2303,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 1020;
 				TargetAttributes = {
 					71A19B1912796B5600ACFF58 = {
 						DevelopmentTeam = Y3MQ824CRS;
@@ -2342,6 +2342,7 @@
 				92C69C6E281323EA00051866 /* icon_ipad_retina.png in Resources */,
 				92C69C70281323EA00051866 /* icon.png in Resources */,
 				92C69C71281323EA00051866 /* Default-568h@2x.png in Resources */,
+				92C69C65281323D700051866 /* ios-Info.plist in Resources */,
 				92C69C72281323EA00051866 /* icon_retina.png in Resources */,
 				92C69C6D281323EA00051866 /* icon_ipad.png in Resources */,
 				9251E542251E39A300CEB84D /* scripts in Resources */,
@@ -2387,7 +2388,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				92ECB1A62EB8995600205CB5 /* dtoa.c in Sources */,
 				925546B52D3175DC00E0AAF9 /* downloader_ngtcp2.c in Sources */,
 				89162EF52C00DA10004EA21C /* dec_scte35.c in Sources */,
 				92F930861A5ADC1A0072A85C /* os_divers.c in Sources */,
@@ -2582,6 +2582,7 @@
 				71CCF2B41277045100339E12 /* drm_sample.c in Sources */,
 				92EB6DCD20E4E19700A97A49 /* reframe_nalu.c in Sources */,
 				9210BA1D234A909400ED2DFF /* evg.c in Sources */,
+				923EB53423D1B87E00E1FFA1 /* dtoa.c in Sources */,
 				71CCF2B51277045100339E12 /* isom_intern.c in Sources */,
 				71CCF2B61277045100339E12 /* isom_read.c in Sources */,
 				92EB6DCF20E4E19700A97A49 /* dmx_mpegps.c in Sources */,
@@ -2728,6 +2729,7 @@
 				92EB6DC720E4E19700A97A49 /* mux_ts.c in Sources */,
 				92EB6DD220E4E19700A97A49 /* ff_common.c in Sources */,
 				92EB6E1820E4E19700A97A49 /* dec_opensvc.c in Sources */,
+				92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */,
 				92EB6E3620E4E58E00A97A49 /* media_object.c in Sources */,
 				92EB6E0420E4E19700A97A49 /* ff_dmx.c in Sources */,
 				92EB6DCE20E4E19700A97A49 /* filelist.c in Sources */,
@@ -2823,6 +2825,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = NO;
 				DEPLOYMENT_LOCATION = YES;
 				DEVELOPMENT_TEAM = Y3MQ824CRS;
 				ENABLE_BITCODE = NO;
@@ -2846,12 +2849,12 @@
 				);
 				INFOPLIST_FILE = "../../applications/gpac/ios-Info.plist";
 				INSTALL_PATH = /Applications;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = "";
 				OTHER_CFLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -2892,12 +2895,12 @@
 				);
 				INFOPLIST_FILE = "../../applications/gpac/ios-Info.plist";
 				INSTALL_PATH = /Applications;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = "";
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
@@ -2942,7 +2945,7 @@
 					../../extra_lib/include/SDL2,
 					../../extra_lib/include/freetype,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
@@ -2984,7 +2987,7 @@
 					../../extra_lib/include/SDL2,
 					../../extra_lib/include/freetype,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
@@ -3008,7 +3011,6 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEPLOYMENT_LOCATION = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_OBJC_CALL_CXX_CDTORS = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -3022,7 +3024,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
@@ -3039,7 +3041,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEPLOYMENT_LOCATION = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_OBJC_CALL_CXX_CDTORS = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -3053,7 +3054,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				PROVISIONING_PROFILE = "";
