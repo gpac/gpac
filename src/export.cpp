@@ -1298,6 +1298,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_sample_description_from_template))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_y3d_info))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_movie_duration))
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_track_from_template))
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_stsd_templates))
+
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING

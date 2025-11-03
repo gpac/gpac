@@ -3319,6 +3319,15 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sample
 */
 GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u16 revision, u32 vendor, u32 temporalQ, u32 spatialQ, u32 horiz_res, u32 vert_res, u16 frames_per_sample, const char *compressor_name, s16 color_table_index);
 
+/*! Sets all sample descriptions from a serialized sample description box, removing all child boxes of stsd
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param stsd_data a serialized sample description box
+\param stsd_data_size size of the serialized sample description
+\return error if any
+*/
+GF_Err gf_isom_set_track_stsd_templates(GF_ISOFile *isom_file, u32 trackNumber, u8 *stsd_data, u32 stsd_data_size);
+
 /*! updates a sample description from a serialized sample description box. Only child boxes are removed in the process
 \param isom_file the target ISO file
 \param trackNumber the target track number
@@ -3328,7 +3337,6 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *isom_file, u32 track
 \return error if any
 */
 GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u8 *data, u32 size);
-
 
 /*! creates a new unknown StreamDescription in the file.
 \note use this to store media not currently supported by the ISO media format or media types not implemented in this library

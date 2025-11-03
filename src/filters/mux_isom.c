@@ -1543,8 +1543,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				gf_isom_update_bitrate(ctx->file, tkw->track_num, 0, 0, 0, 0);
 			}
 			if (!udta_only) {
-				GF_Err gf_isom_set_track_stsd_templates(GF_ISOFile *movie, u32 trackNumber, u8 *stsd_data, u32 stsd_data_size);
-
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES);
 				if (p) {
 					gf_isom_set_track_stsd_templates(ctx->file, tkw->track_num, p->value.data.ptr, p->value.data.size);
