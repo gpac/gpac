@@ -132,7 +132,7 @@ void *_Cdecl farmalloc( unsigned long nbytes );
 #    include <unix.h> /* for fdopen */
 #  else
 #    ifndef fdopen
-#      define fdopen(fd,mode) NULL /* No fdopen() */
+//#      define fdopen(fd,mode) NULL /* No fdopen() */
 #    endif
 #  endif
 #endif
