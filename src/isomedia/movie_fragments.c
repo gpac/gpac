@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3261,7 +3261,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, 
 	traf = gf_isom_get_traf(dest, TrackID);
 	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
-	trak = gf_isom_get_track_from_file(orig, track);
+	trak = gf_isom_get_track_box(orig, track);
 	if (!trak) return GF_BAD_PARAM;
 
 	/*modify depends flags*/

@@ -1601,8 +1601,6 @@ static GF_Err cenc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
-
 static GFINLINE void cenc_decrypt_block(GF_CENCDecCtx *ctx, GF_Crypt *crypt, Bool valid_key, u8 *data, u32 size)
 {
 	if (!valid_key) {
@@ -1696,7 +1694,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, NULL, NULL);
+			IV_size = gf_cenc_key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, NULL, NULL);
 			if (!IV_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] invalid SAI multikey with IV size 0\n" ));
 				e = GF_NON_COMPLIANT_BITSTREAM;
@@ -1714,7 +1712,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			for (k=0; k<cstr->multikey; k++) {
 				u8 const_iv_size;
 				const u8 *const_iv=NULL;
-				u8 IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, k+1, &const_iv_size, &const_iv);
+				u8 IV_size = gf_cenc_key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, k+1, &const_iv_size, &const_iv);
 				if (IV_size) continue;
 				memset(IV, 0, sizeof(char)*17);
 				e = cenc_dec_push_iv(cstr, k, IV, 0, const_iv_size, const_iv);
@@ -1813,7 +1811,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				bytes_encrypted_data = gf_bs_read_u32(ctx->bs_r);
 
 				if (kidx) {
-					key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, &const_iv_size, &const_iv);
+					gf_cenc_key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, &const_iv_size, &const_iv);
 					kidx-=1;
 				}
 				//to clarify in the spec: kidx 0 should be allowed for clear subsamples

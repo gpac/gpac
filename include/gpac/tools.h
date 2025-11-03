@@ -509,6 +509,30 @@ Compares two timecodes
  */
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2);
 
+
+/*!
+\brief Get CENC IV size
+
+Get CENC IV size from a key info chunk
+\param key_info CENC key info buffer
+\param key_info_size CENC key info buffer size
+\param key_idx index of key for multi-key cases, 0 otherwise
+\param const_iv_size set to const IV size if const IV is used, otherwise set to 0 - can be NULL
+\param const_iv set to const IV start in key_info buffer when constant IV is used, otherwise set to NULL - can be NULL
+\return IV size in bytes if constant IV is not used, otherwise 0
+ */
+u8 gf_cenc_key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 key_idx, u8 *const_iv_size, const u8 **const_iv);
+
+/*!
+\brief validate a CENC key info chunk
+
+Checks whether a CENC key info chunk is valid or not
+\param key_info CENC key info buffer
+\param key_info_size CENC key info buffer size
+\return GF_TRUE if this chunk looks like a CENC key info buffer, GF_FALSE otherwise
+*/
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size);
+
 /*! @} */
 
 /*!

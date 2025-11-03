@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1219,7 +1219,7 @@ GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalI
 }
 
 GF_EXPORT
-GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *movie, u32 trackNumber)
+GF_TrackBox *gf_isom_get_track_box(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	if (!movie) return NULL;
@@ -1630,7 +1630,7 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 #if 0 //unused
 u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
 {
-	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(movie, track);
 	if (!track) return 0;
 	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return 0;
 	return gf_list_count(trak->Media->information->sampleTable->sub_samples);
@@ -1640,7 +1640,7 @@ u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
 Bool gf_isom_get_subsample_types(GF_ISOFile *movie, u32 track, u32 subs_index, u32 *flags)
 {
 	GF_SubSampleInformationBox *sub_samples=NULL;
-	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(movie, track);
 
 	if (!track || !subs_index) return GF_FALSE;
 	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return GF_FALSE;
@@ -1654,7 +1654,7 @@ u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleN
 {
 	u32 i, count, last_sample;
 	GF_SubSampleInformationBox *sub_samples=NULL;
-	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(movie, track);
 	if (sub_sample) *sub_sample = NULL;
 	if (!track) return 0;
 	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return 0;

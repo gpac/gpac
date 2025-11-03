@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -1757,6 +1757,7 @@ void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg)
 	gf_free(cfg);
 }
 
+GF_EXPORT
 GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitStream *bs)
 {
 	gf_bs_write_u8(bs,  cfg->dv_version_major);
@@ -1776,6 +1777,7 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 }
 
 
+GF_EXPORT
 GF_Err gf_odf_ac3_cfg_write_bs(GF_AC3Config *cfg, GF_BitStream *bs)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -1827,7 +1829,8 @@ GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size)
 	return e;
 }
 
-GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg)
+GF_EXPORT
+GF_Err gf_odf_ac3_cfg_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
 	memset(cfg, 0, sizeof(GF_AC3Config));
@@ -1867,13 +1870,13 @@ GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *c
 }
 
 GF_EXPORT
-GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg)
+GF_Err gf_odf_ac3_cfg_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg)
 {
 	GF_BitStream *bs;
 	GF_Err e;
 	if (!cfg || !dsi) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
-	e = gf_odf_ac3_config_parse_bs(bs, is_ec3, cfg);
+	e = gf_odf_ac3_cfg_parse_bs(bs, is_ec3, cfg);
 	if (is_ec3 && gf_bs_available(bs)>=2) {
 		gf_bs_read_int(bs, 7);
 		cfg->atmos_ec3_ext = gf_bs_read_int(bs, 1);
@@ -2143,6 +2146,8 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 	return GF_OK;
 }
 
+static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src);
+
 GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size, u8 desc_mode)
 {
 	u32 i, j, add_pres_bytes, presentation_bytes, skip_bytes, ims_pres_num = 0, legacy_pres_num = 0;
@@ -2292,6 +2297,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -2304,6 +2310,7 @@ GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_write(GF_AC4Config *cfg, u8 **data, u32 *size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2313,6 +2320,7 @@ GF_Err gf_odf_ac4_cfg_write(GF_AC4Config *cfg, u8 **data, u32 *size)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 {
 	GF_AC4StreamInfo* dsi = &cfg->stream;
@@ -2341,6 +2349,7 @@ GF_Err gf_odf_ac4_cfg_parse(u8 *dsi, u32 dsi_len, GF_AC4Config *cfg)
 	return e;
 }
 
+GF_EXPORT
 u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg)
 {
 	GF_AC4StreamInfo* dsi = &cfg->stream;
@@ -2354,6 +2363,7 @@ u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg)
 	return size / 8;
 }
 
+GF_EXPORT
 void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 {
 	u32 i;
@@ -2380,7 +2390,7 @@ void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 	}
 }
 
-void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src)
+static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src)
 {
 	u32 j, s;
 	GF_AC4SubStreamGroupV1 *group_dst, *group_src;
@@ -2483,6 +2493,7 @@ void gf_odf_ac4_cfg_del(GF_AC4Config *cfg)
 	gf_free(cfg);
 }
 
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
 {
 	memset(cfg, 0, sizeof(GF_OpusConfig));
@@ -2512,6 +2523,7 @@ GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_write_bs(GF_OpusConfig *cfg, GF_BitStream *bs)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -2529,6 +2541,7 @@ GF_Err gf_odf_opus_cfg_write_bs(GF_OpusConfig *cfg, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);

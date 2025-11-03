@@ -9147,7 +9147,7 @@ GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 	pos = gf_bs_get_position(bs);
-	e = gf_odf_ac3_config_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
+	e = gf_odf_ac3_cfg_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
 	if (e) return e;
 	pos = gf_bs_get_position(bs) - pos;
 	ISOM_DECREASE_SIZE(ptr, pos);

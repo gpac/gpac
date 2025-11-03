@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -614,7 +614,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 	char szName[40];
 	GF_MetaBox *meta;
 
-	GF_Err e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	GF_Err e = gf_isom_can_access_movie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -704,7 +704,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	if (!XMLFileName && !data)
 		return GF_BAD_PARAM;
 
-	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	e = gf_isom_can_access_movie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -1446,7 +1446,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	u32 lastItemID = 0;
 	u32 item_id = io_item_id ? *io_item_id : 0;
 
-	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	e = gf_isom_can_access_movie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) {
