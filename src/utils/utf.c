@@ -742,8 +742,8 @@ wchar_t* gf_utf8_to_wcs(const char* str)
 	size_t source_len;
 	wchar_t* result;
 	if (str == 0) return 0;
-	source_len = strlen(str);
-	result = gf_calloc(source_len + 1, sizeof(wchar_t));
+	source_len = 1+strlen(str);
+	result = gf_calloc(source_len, sizeof(wchar_t));
 	if (!result)
 		return 0;
 	if (gf_utf8_mbstowcs(result, source_len, &str) == GF_UTF8_FAIL) {
@@ -759,8 +759,8 @@ char* gf_wcs_to_utf8(const wchar_t* str)
 	size_t source_len;
 	char* result;
 	if (str == 0) return 0;
-	source_len = wcslen(str);
-	result = gf_calloc(source_len + 1, UTF8_MAX_BYTES_PER_CHAR);
+	source_len = 1+wcslen(str);
+	result = gf_calloc(source_len, UTF8_MAX_BYTES_PER_CHAR);
 	if (!result)
 		return 0;
 	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) == GF_UTF8_FAIL) {
