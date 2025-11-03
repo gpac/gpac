@@ -461,9 +461,15 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (!prop || !prop->value.string) {
 		if (!read->mem_load_mode)
 			read->mem_load_mode = 1;
+
 		if (!read->pid) read->pid = pid;
 		read->input_loaded = GF_FALSE;
 		return GF_OK;
+	}
+	//we started with a base64 embedding of init segment, but now have an associated file, leave mem-load mode
+	else if (read->mem_load_mode) {
+		read->mem_load_mode = 0;
+		gf_isom_reset_data_offset(read->mov, NULL);
 	}
 
 	if (read->pid && prop->value.string) {
@@ -1460,8 +1466,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				const GF_PropertyValue *p = gf_filter_pid_get_info_str(read->pid, "aborted", &pe);
 				if (p && p->value.boolean) read->was_aborted = GF_TRUE;
 				gf_filter_release_property(pe);
-				//leave mem-load mode - needed for DASH/HLS where init segment is in base64 but not the rest
-				read->mem_load_mode = 0;
 			} else {
 				in_is_flush = GF_TRUE;
 			}
