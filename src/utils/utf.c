@@ -459,6 +459,7 @@ u32 gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 
 		ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 		if (res != conversionOK) return GF_UTF8_FAIL;
+		if (targetStart >= targetEnd) return GF_UTF8_FAIL;
 		*targetStart = 0;
 		*srcp=NULL;
 		return (u32) strlen(dest);
@@ -478,6 +479,7 @@ u32 gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 		ConversionFlags flags = strictConversion;
 		ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 		if (res != conversionOK) return GF_UTF8_FAIL;
+		if (targetStart >= targetEnd) return GF_UTF8_FAIL;
 		*targetStart = 0;
 		*srcp=NULL;
 		return gf_utf8_wcslen(dest);
