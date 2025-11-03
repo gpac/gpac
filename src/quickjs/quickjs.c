@@ -124,7 +124,7 @@
 #include <errno.h>
 #endif
 
-#define CONFIG_VERSION "2020-11-08-rc2"
+#define CONFIG_VERSION "2025-09-13"
 
 enum {
     /* classid tag        */    /* union usage   | properties */

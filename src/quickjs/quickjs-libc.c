@@ -50,7 +50,6 @@
 #else
 #include <sys/utime.h>
 #include <sys/timeb.h>
-#include <gpac/tools.h>
 #include <io.h>
 #include <direct.h>
 #endif

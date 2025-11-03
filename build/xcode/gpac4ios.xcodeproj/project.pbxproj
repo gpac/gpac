@@ -574,7 +574,6 @@
 		92EB6E3E20E4EC8600A97A49 /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92EB6E3C20E4EC5600A97A49 /* libavdevice.a */; };
 		92EB6E4020E4EC9700A97A49 /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92EB6E3F20E4EC9700A97A49 /* libavfilter.a */; };
 		92EB6E4220E4ECD500A97A49 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92EB6E4120E4ECD500A97A49 /* AVFoundation.framework */; };
-		92ECB1A52EB898E000205CB5 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 924AB6862816F20300EC006F /* CoreHaptics.framework */; };
 		92ECB1A62EB8995600205CB5 /* dtoa.c in Sources */ = {isa = PBXBuildFile; fileRef = 92334CC92333AB9900DA6052 /* dtoa.c */; };
 		92F930861A5ADC1A0072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930841A5ADC1A0072A85C /* os_divers.c */; };
 		970A26C913434D2C0007362C /* m3u8.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C713434D2C0007362C /* m3u8.c */; };
@@ -1227,7 +1226,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				92ECB1A52EB898E000205CB5 /* CoreHaptics.framework in Frameworks */,
 				89F956CB2A6595470049D6D3 /* libmpegh.a in Frameworks */,
 				92455FDB2A540A640080321C /* libcaption.a in Frameworks */,
 				924AB6852816F1E200EC006F /* GameController.framework in Frameworks */,
