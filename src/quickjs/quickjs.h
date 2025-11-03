@@ -1208,7 +1208,6 @@ int JS_IsArrayBuffer(JSContext *ctx, JSValueConst val);
 /* return -1 if exception (proxy case) or TRUE/FALSE */
 int JS_SwitchClassID(JSValue obj, JSClassID class_id);
 
-#define JS_GetOpaque_Nocheck(obj) JS_GetAnyOpaque(obj, NULL);
 /*end GPAC patched*/
 
 #ifdef __cplusplus

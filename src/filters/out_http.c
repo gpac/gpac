@@ -1210,7 +1210,8 @@ void js_sess_close(void *udta, GF_Err code)
 
 static JSValue httpout_js_send(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_HTTPOutSession *sess = JS_GetOpaque_Nocheck(this_val);
+	JSClassID _classID;
+	GF_HTTPOutSession *sess = JS_GetAnyOpaque(this_val, &_classID);
 
 	if (!sess)
 		return js_throw_err_msg(c, GF_BAD_PARAM, "send() called on invalid session\n");

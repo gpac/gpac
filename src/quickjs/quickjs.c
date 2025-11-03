@@ -10624,11 +10624,11 @@ void *JS_GetAnyOpaque(JSValueConst obj, JSClassID *class_id)
 {
     JSObject *p;
     if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT) {
-        if (class_id) *class_id = 0;
+        *class_id = 0;
         return NULL;
     }
     p = JS_VALUE_GET_OBJ(obj);
-    if (class_id) *class_id = p->class_id;
+    *class_id = p->class_id;
     return p->u.opaque;
 }
 
