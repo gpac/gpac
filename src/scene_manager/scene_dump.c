@@ -426,7 +426,7 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 	u32 len, i;
 	u16 *uniLine;
 	if (!str) return;
-	len = (u32) strlen(str);
+	len = 1 + (u32) strlen(str);
 	if (!len) return;
 	uniLine = (u16*)gf_malloc(sizeof(u16) * len*4);
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
