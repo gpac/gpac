@@ -45,6 +45,11 @@
 /*set to 1 if you want MPD to use SegmentTimeline*/
 #define M3U8_TO_MPD_USE_SEGTIMELINE	0
 
+//number of segments to wait before timout when refreshing manifest
+//we keep this high for MABR cases where the manifest is most - note that we don't check if session is MABR
+//as the session could be HTTP on a MABR->HTTP gateway
+#define SEGLIST_TIMEOUT_SEG		4
+
 
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
@@ -2596,10 +2601,12 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			fetch_only = 1;
 		}
 	} else {
+#if 0
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
-		if (local_url) {
+		if (local_url && !dash->manifest_pending) {
 			gf_file_delete(local_url);
 		}
+#endif
 		//use the redirected url stored in base URL - DO NOT USE the redirected URL of the session since
 		//the session may have been reused for period XLINK dowload.
 		purl = gf_strdup( dash->base_url );
@@ -3375,7 +3382,7 @@ process_m3u8_manifest:
 					if (!found) {
 						//use group last modification time
 						u32 timer = gf_sys_clock() - group->last_mpd_change_time;
-						if (!group->segment_duration || (timer < group->segment_duration * 2000) ) {
+						if (!group->segment_duration || (timer < group->segment_duration * 1000 * SEGLIST_TIMEOUT_SEG) ) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Cannot find segment for given HLS SN %d - forcing manifest update\n", group->hls_next_seq_num));
 							HLS_MIN_RELOAD_TIME(dash)
 						} else {
@@ -7540,7 +7547,7 @@ llhls_rety:
 
 						//use group last modification time
 						timer = now - group->last_mpd_change_time;
-						if (timer < group->segment_duration * 2000) {
+						if (timer < group->segment_duration * 1000 * SEGLIST_TIMEOUT_SEG) {
 							//no more segment, force a manifest update now
 							dash->force_mpd_update = GF_TRUE;
 						} else {
@@ -7566,7 +7573,7 @@ llhls_rety:
 					//dyn mode, check group last modification time, if time elapsed less than 2 seg dur, wait
 					if (dyn_type==GF_MPD_TYPE_DYNAMIC) {
 						timer = now - group->last_mpd_change_time;
-						if (timer < 2 * group->segment_duration * 1000)
+						if (timer < group->segment_duration * 1000 * SEGLIST_TIMEOUT_SEG)
 							return GF_DASH_DownloadCancel;
 					}
 

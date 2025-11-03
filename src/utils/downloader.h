@@ -190,7 +190,9 @@ typedef struct __partialDownloadStruct {
 
 typedef struct
 {
+	//if null, task is detached and object must be discarded
 	struct __gf_download_session *sess;
+	Bool in_task;
 } GF_SessTask;
 
 struct __gf_download_session

@@ -355,7 +355,7 @@
 		92359C86250F651900525A42 /* rmt_ws.h in Headers */ = {isa = PBXBuildFile; fileRef = 92359C80250F651900525A42 /* rmt_ws.h */; };
 		92359C88250F652700525A42 /* route_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C87250F652700525A42 /* route_dmx.c */; };
 		92359C8A250F657B00525A42 /* in_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C89250F657A00525A42 /* in_route.c */; };
-		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
+		923EB53423D1B87E00E1FFA1 /* dtoa.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* dtoa.c */; };
 		92455F8E2A530F560080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8D2A530F560080321C /* dec_cc.c */; };
 		3FDEA5BB2D402C3D006F0673 /* enc_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 3FDEA5BA2D402C3D006F0673 /* enc_cc.c */; };
 		92455FDB2A540A640080321C /* libcaption.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92455FDA2A540A640080321C /* libcaption.a */; };
@@ -980,7 +980,7 @@
 		92359C80250F651900525A42 /* rmt_ws.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rmt_ws.h; sourceTree = "<group>"; };
 		92359C87250F652700525A42 /* route_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = route_dmx.c; sourceTree = "<group>"; };
 		92359C89250F657A00525A42 /* in_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_route.c; path = ../../src/filters/in_route.c; sourceTree = "<group>"; };
-		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
+		923EB53323D1B87E00E1FFA1 /* dtoa.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dtoa.c; path = ../../src/quickjs/dtoa.c; sourceTree = "<group>"; };
 		92455F8D2A530F560080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = ../../src/filters/dec_cc.c; sourceTree = "<group>"; };
 		3FDEA5BA2D402C3D006F0673 /* enc_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_cc.c; path = ../../src/filters/enc_cc.c; sourceTree = "<group>"; };
 		92455FDA2A540A640080321C /* libcaption.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcaption.a; path = ../../extra_lib/lib/iOS/libcaption.a; sourceTree = "<group>"; };
@@ -1869,7 +1869,7 @@
 			isa = PBXGroup;
 			children = (
 				9285D1BF266FB8D3008FCD14 /* quickjs-libc.c */,
-				923EB53323D1B87E00E1FFA1 /* libbf.c */,
+				923EB53323D1B87E00E1FFA1 /* dtoa.c */,
 				92334CC92333AB9900DA6051 /* cutils.c */,
 				92334CCA2333AB9A00DA6051 /* libregexp.c */,
 				92334CBE2333AB9900DA6051 /* libunicode.c */,
@@ -2582,7 +2582,7 @@
 				71CCF2B41277045100339E12 /* drm_sample.c in Sources */,
 				92EB6DCD20E4E19700A97A49 /* reframe_nalu.c in Sources */,
 				9210BA1D234A909400ED2DFF /* evg.c in Sources */,
-				923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */,
+				923EB53423D1B87E00E1FFA1 /* dtoa.c in Sources */,
 				71CCF2B51277045100339E12 /* isom_intern.c in Sources */,
 				71CCF2B61277045100339E12 /* isom_read.c in Sources */,
 				92EB6DCF20E4E19700A97A49 /* dmx_mpegps.c in Sources */,

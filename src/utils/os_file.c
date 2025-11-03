@@ -1705,9 +1705,9 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		if (strpbrk(mode, "wa")) {
 #if defined(WIN32)
 			u32 err = GetLastError();
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": 0x%08x\n", file_name, mode, err));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": 0x%08x (%u opened)\n", file_name, mode, err, gpac_file_handles));
 #else
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": %d\n", file_name, mode, errno));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": %d (%u opened)\n", file_name, mode, errno, gpac_file_handles));
 #endif
 		}
 	}
