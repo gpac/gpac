@@ -266,8 +266,11 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		if (evt_type != GF_ROUTE_EVT_DYN_SEG_FRAG) {
 			//full file, we shall have a single fragment with same size as the file
 			gf_assert(finfo->nb_frags == 1);
-			gf_assert(finfo->frags[0].size == finfo->blob->size);
-			gf_assert(finfo->frags[0].size == finfo->total_size);
+			//in iso repair we may skip patching of last frag if mdat is incomplete but full header is present
+			if (!ctx->riso) {
+				gf_assert(finfo->frags[0].size == finfo->blob->size);
+				gf_assert(finfo->frags[0].size == finfo->total_size);
+			}
 		} else if (tsio) {
 			//we can only disptach from first block
 			to_write = finfo->frags[0].size;

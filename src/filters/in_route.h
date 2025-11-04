@@ -207,7 +207,6 @@ struct _route_repair_seg_info
 	TSI_Output *tsio;
 
 	u32 isox_state;
-	u32 total_size;
 
 	//set to true if repair session is over but kept in list for TSIO reordering purposes
 	Bool done;

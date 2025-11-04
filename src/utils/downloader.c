@@ -3818,10 +3818,15 @@ process_reply:
 
 					if (val[0] == '*') {
 						sscanf(val, "*/%u", &total_size);
+						sess->full_resource_size = total_size;
+						sess->rsp_code = 416;
+					} else if (strstr(val, "/*")) {
+						sscanf(val, "%u-%u/*", &first_byte, &last_byte);
+						sess->full_resource_size = 0;
 					} else {
 						sscanf(val, "%u-%u/%u", &first_byte, &last_byte, &total_size);
+						sess->full_resource_size = total_size;
 					}
-					sess->full_resource_size = total_size;
 				}
 			}
 			else if (!stricmp(hdr->name, "Accept-Ranges")) {
@@ -3971,7 +3976,7 @@ process_reply:
 	}
 
 	//if we issued an open-range from end of file till unknown we may get a 416. If the server is indicating
-	//resource size and it matches our range, move o 206
+	//resource size and it matches our range, move to 206
 	if ((sess->rsp_code==416) && (sess->range_start==sess->full_resource_size)) {
 		sess->rsp_code = 206;
 		ContentLength = 0;
@@ -4696,6 +4701,7 @@ u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess)
 {
 	if (!sess) return 0;
 	if (sess->full_resource_size) return sess->full_resource_size;
+	if (sess->needs_range) return 0;
 	return sess->total_size;
 }
 
