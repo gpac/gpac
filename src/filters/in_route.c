@@ -182,7 +182,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 
 	p_pid = &ctx->opid;
 	if (finfo && finfo->tsi) {
-		//for non-segment data, do not foward corrupted files or repeated files if not asked for it
+		//for non-segment data, do not forward corrupted files or repeated files if not asked for it
 		if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD) || (evt_type==GF_ROUTE_EVT_HLS_VARIANT)) {
 			if (ctx->skipr && !finfo->updated) return;
 			if (finfo->blob->flags & GF_BLOB_CORRUPTED) return;
