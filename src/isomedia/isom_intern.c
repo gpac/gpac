@@ -32,7 +32,6 @@
 /**************************************************************
 		Some Local functions for movie creation
 **************************************************************/
-GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *boxType, u64 *bytesExpected, Bool progressive_mode);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)

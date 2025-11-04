@@ -1175,6 +1175,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_desc_to_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_generic_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_bitrate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_bitrate_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_pl_indications) )
@@ -2844,11 +2845,5 @@
 There is no gaurantee that these symbols won't be dropped in the future
 
 */
-
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_box))
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_sample_entry_get_bitrate_box))
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_del_parent))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_parse_ex))
-
-
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_parse_root_box))

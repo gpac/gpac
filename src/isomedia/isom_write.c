@@ -831,6 +831,7 @@ err_exit:
 	return 0;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_track_stsd_templates(GF_ISOFile *movie, u32 trackNumber, u8 *stsd_data, u32 stsd_data_size)
 {
 	GF_TrackBox *trak;

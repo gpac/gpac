@@ -30,6 +30,7 @@
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
 //is the number of bytes missing to parse the box...
+GF_EXPORT
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *box_type, u64 *bytesExpected, Bool progressive_mode)
 {
 	GF_Err ret;

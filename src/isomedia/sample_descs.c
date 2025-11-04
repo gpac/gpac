@@ -1706,7 +1706,7 @@ GF_BitRateBox *gf_isom_sample_entry_get_bitrate_box(GF_SampleEntryBox *ent, Bool
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
-GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size)
+GF_Err gf_isom_update_bitrate_ex(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size, Bool forced_for_mpeg4)
 {
 	GF_BitRateBox *a;
 	GF_Err e;
@@ -1760,7 +1760,8 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 				if (decode_buffer_size)
 					esds->desc->decoderConfig->bufferSizeDB = decode_buffer_size;
 			}
-			continue;
+			if (!forced_for_mpeg4)
+				continue;
 		}
 
 		//using BTRT
@@ -1781,6 +1782,13 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size)
+{
+
+	return gf_isom_update_bitrate_ex(movie, trackNumber, sampleDescriptionIndex, average_bitrate, max_bitrate, decode_buffer_size, GF_FALSE);
+
+}
 
 GF_EXPORT
 GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_num, u32 fps_den, s32 frames_per_counter_tick, Bool is_drop, Bool is_counter, u32 *outDescriptionIndex)

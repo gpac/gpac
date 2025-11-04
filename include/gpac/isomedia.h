@@ -2826,6 +2826,20 @@ if both average_bitrate and max_bitrate are 0, this removes any bitrate informat
 GF_Err gf_isom_update_bitrate(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size);
 
 
+/*! updates average and max bitrate of a sample description
+if both average_bitrate and max_bitrate are 0, this removes any bitrate information
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description
+\param average_bitrate the average bitrate of the media for that sample description
+\param max_bitrate the maximum bitrate of the media for that sample description
+\param decode_buffer_size the decoder buffer size in bytes for that sample description
+\param forced_for_mpeg4 if set to TRUE, the bitrate box will be added/removed even for MPEG-4 systems entries (mp4a, mp4v, mp4s) where the info is usually in the esds
+\return error if any
+*/
+GF_Err gf_isom_update_bitrate_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size, Bool forced_for_mpeg4);
+
+
 /*! track clone flags*/
 typedef enum
 {
