@@ -3833,7 +3833,7 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 Discontinuities may happen quite ofter in streaming sessions due to resolution switching, codec change, etc ...
 .br
-While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is knwon to have no disctinuitiies but GPAC detects some due to network errors or other changing properties that should be ignored.
+While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is knwon to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.
 .br
 The .I nodisc option allows removing all discontinuities once a stream is setup.
 .br
@@ -3845,7 +3845,7 @@ gpac -i SOMEURL reframer:nodisc -o DASH_ORIGIN
 .br
 
 .br
-In such a case, the dasher never trigger a period switch due to input stream discontinuity.
+In this example, the dasher filter will never trigger a period switch due to input stream discontinuity.
 .br
 
 .br
@@ -3856,11 +3856,13 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 rt (enum, default: off, updatable): real-time regulation mode of input
 .br
-* off: disables real-time regulation
+* off: disable real-time regulation
 .br
-* on: enables real-time regulation, one clock per PID
+* on: enable real-time regulation, one clock per PID
 .br
-* sync: enables real-time regulation one clock for all PIDs
+* sync: enable real-time regulation, one clock for all PIDs
+.br
+* align: send packets in DTS order following one clock for all PIDs (undo input packet bursts), no real-time regulation
 .br
 
 .br
@@ -4728,7 +4730,7 @@ Playlist refreshing will abort:
 .br
 A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:
 .br
-* repeat=N: repeats N times the content (hence played N+1).
+* repeat=N: repeats N times the content (hence played N+1), infinite loop if negative.
 .br
 * start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.
 .br
