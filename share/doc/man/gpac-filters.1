@@ -3828,6 +3828,27 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 
 .br
+.SH Absorbing stream discontinuities
+.LP
+.br
+Discontinuities may happen quite ofter in streaming sessions due to resolution switching, codec change, etc ...
+.br
+While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is knwon to have no disctinuitiies but GPAC detects some due to network errors or other changing properties that should be ignored.
+.br
+The .I nodisc option allows removing all discontinuities once a stream is setup.
+.br
+Warning: Make sure you know what you are doing as using this option could make the stream not playable (ignoring a codec config change).
+.br
+Example
+.br
+gpac -i SOMEURL reframer:nodisc -o DASH_ORIGIN
+.br
+
+.br
+In such a case, the dasher never trigger a period switch due to input stream discontinuity.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -3930,6 +3951,8 @@ cues (enum, default: no, updatable): cue filtering mode
 sapcue (uint, default: 0):     treat SAPs smaller than or equal to this value as cue points
 .br
 rmseek (bool, default: false, updatable): remove seek flag of all sent packets
+.br
+nodisc (bool, default: false, updatable): ignore all discontinuities from input - see filter help
 .br
 
 .br
@@ -7081,6 +7104,10 @@ If .I kc option is set, corrupted files will be kept. If .I fullseg is not set a
 .br
 
 .br
+Note: A partially patched segment is no longer considered corrupted and will be dispatched regardless of .I kc.
+.br
+
+.br
 .SH Interface setup
 .LP
 .br
@@ -7173,7 +7200,25 @@ dynsel (bool, default: true):  dynamically enable and disable multicast groups b
 .br
 range_merge (uint, default: 10000): merge ranges in HTTP repair if distant from less than given amount of bytes
 .br
-minrecv (uint, default: 20):   redownload full file in HTTP repair if received bytes is less than given percentage of file size
+minrecv (uint, default: 20):   redownload full file in HTTP repair if received bytes is less than given percentage of file size, 0 means complete file redownload if any error
+.br
+riso (enum, default: none):    advanced options for ISOBMFF HTTP repair
+.br
+* none: use regular http repair
+.br
+* simple: first repair all non-mdat boxes then repair mdat in order
+.br
+* partial: only repair all non-mdat moxes, leaving holes in mdat
+.br
+* deps: same as simple and repair only samples depended upon by other samples
+.br
+* depx: same as deps but do not hide moof of incomplete mdat (tests only)
+.br
+
+.br
+ka (bool, default: false):     keep service alive if multicast is down
+.br
+chkiso (bool, default: false): check isobmf structure after repair (debug)
 .br
 
 .br
@@ -9661,7 +9706,7 @@ These will demultiplex the input, re-dash it and send the output of the dasher t
 .SH Error simulation
 .LP
 .br
-It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:
+It is possible to simulate errors with (-errsim)[]. In this mode the LCT network sender implements a 2-state Markov chain:
 .br
 .br
 gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0
@@ -11032,17 +11077,23 @@ Each service is a JSON object with one or more of the following properties:
 .br
 * timeshift: (number, default 10) time in seconds a cached file remains in memory
 .br
-* unload: (number, default 4 multicast unload policy
+* unload: (number, default 4) multicast unload policy
 .br
 * activate: (number, default 1) multicast activation policy
 .br
-* repair: (boolean, default false) enable unicast repair in MABR stack
+* mcache: (boolean, default false) cache manifest files
 .br
-* mcache: (boolean, default false) cache manifest files (experimental)
+* repair: (string, default false) enable unicast repair in MABR stack
+.br
+  * false: disable repair
+.br
+  * true: enable repair using source URL or repair servers indicated in MABR
+.br
+  * auto: enable repair only from repair servers indicated in MABR
 .br
 * corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
 .br
-* check_ip: (boolean, , default false monitor IP address and port rather than connection when tracking active clients
+* check_ip: (boolean, , default false) monitor IP address and port rather than connection when tracking active clients
 .br
 * noproxy: (boolean) disable proxy for service when local mount point is set. Default is true if both local and http are set, false otherwise
 .br
@@ -11077,7 +11128,7 @@ All services using http option can be exposed by the server without exposing the
 .br
 Example
 .br
-{ 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/'}
+{ "http": "https://test.com/live/dash/live.mpd", "local": "/service1/"}
 .br
 
 .br
@@ -11087,7 +11138,7 @@ The server will translate any request /service1/foo/bar.ext into https://test.co
 .br
 Example
 .br
-{ 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/manifest.mpd'}
+{ "http": "https://test.com/live/dash/live.mpd", "local": "/service1/manifest.mpd"}
 .br
 
 .br
@@ -11125,7 +11176,7 @@ Service configuration parameters used : http (mandatory), gcache, local.
 Configuration for activating proxy for a specific network path:
 .br
 .br
-{ 'http': 'https://test.com/video/'}
+{ "http": "https://test.com/video/"}
 .br
 
 .br
@@ -11134,7 +11185,7 @@ Configuration for activating proxy for a specific network path:
 Configuration for activating proxy for any network path:
 .br
 .br
-{ 'http': '*'}
+{ "http": "*"}
 .br
 
 .br
@@ -11143,7 +11194,7 @@ Configuration for activating proxy for any network path:
 Configuration for a relay on a given path:
 .br
 .br
-{ 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
+{ "http": "https://test.com/some/path/to/video/", "local": "/myvids/"}
 .br
 
 .br
@@ -11171,7 +11222,7 @@ Service configuration parameters used : http ( mandatory), timeshift, mcache, gc
 Configuration for proxying while caching a live HTTP streaming service:
 .br
 .br
-{ 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
+{ "http": "https://test.com/dash/live.mpd", "timeshift": 30 }
 .br
 
 .br
@@ -11180,7 +11231,7 @@ Configuration for proxying while caching a live HTTP streaming service:
 Configuration for relay caching a live HTTP streaming service:
 .br
 .br
-{ 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
+{ "http": "https://test.com/dash/live.mpd", "timeshift": 30, "local": "/myservice/test.mpd"}
 .br
 
 .br
@@ -11222,7 +11273,7 @@ The manifest name can be omitted, in which case the exact manifest name used in 
 Configuration for exposing a MABR session:
 .br
 .br
-{ 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
+{ "mabr": "mabr://234.0.0.1:1234", "local": "/service1", "timeshift": 30 }
 .br
 
 .br
@@ -11235,7 +11286,7 @@ The server can be configured to use a multicast source as an alternate data sour
 .br
 
 .br
-Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active, keepalive and js.
+Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, activate, keepalive and js.
 .br
 
 .br
@@ -11251,7 +11302,7 @@ The qualities in the multicast service can be dynamically activated or deactivat
 .br
 - if 0, multicast streams are never deactivated,
 .br
-- otherwise, a multicast representation is activated only if at least active clients are consuming it, and deactivated otherwise.
+- otherwise, a multicast representation is activated only if at least activate clients are consuming it, and deactivated otherwise.
 .br
 
 .br
@@ -11288,7 +11339,7 @@ Note: Manifest files coming from multicast are currently never cached.
 Configuration for caching a live HTTP streaming service with MABR backup:
 .br
 .br
-{ 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
+{ "http": "https://test.com/dash/live.mpd", "mabr": "mabr://234.0.0.1:1234", "timeshift": 30}
 .br
 
 .br
@@ -11298,7 +11349,7 @@ For such services, the custom HTTP header X-From-MABR is defined:
 .br
 - for client request, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
 .br
-- for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no, the content comes from HTTP
+- for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no or off-edge, the content comes from HTTP (off-edge indicates a request outside of the timeshift buffer)
 .br
 
 .br
@@ -11320,19 +11371,27 @@ The js option can be set to a JS module exporting the following functions:
 .br
 
 .br
-* quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+* quality_activation : (optional) The function is called when the given quality is to be activated or deactivated. If not present, (de)activation always happens. Parameters (in order):
 .br
   * do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
 .br
   * service_id (integer): ID of the service as announced in the multicast
 .br
-  * period_id (string): ID of the DASH Period, ignored for HLS
+  * period_id (string): ID of the DASH Period, ignored (empty) for HLS
 .br
-  * adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+  * adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored (-1) for HLS
 .br
   * representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
 .br
   * return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
+.br
+
+.br
+* get_mcast_address : (optional) The function is called when the service is activated. Parameters:
+.br
+  * service_url (string): URL of service for which the multicast adress is queried
+.br
+  * return value: shall be the multicast address to use for the service or null if no multicast is used (active multicast wil then be deactivated).
 .br
 
 .br
@@ -11356,7 +11415,7 @@ Each source is either a file, a directory or a remote URL.
 Configuration for exposing a directory:
 .br
 .br
-{ 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
+{ "local": "/dserv/", "sources": [ { "name": "foo/", "url": "my_dir/" } ] }
 .br
 
 .br
@@ -11471,7 +11530,7 @@ CGI parameters for request are:
 Configuration for serving a directory with remultiplexing to mp4:
 .br
 .br
-{'local': '/service1/', 'js': 'remux', 'sources': ['name': 'vids', 'url': '/path/to/vids/'}], 'fmt': 'mp4'}
+{"local": "/service1/", "js": "remux", "sources": [{"name": "vids", "url": "/path/to/vids/"}], "fmt": "mp4"}
 .br
 
 .br
@@ -12465,7 +12524,7 @@ Only the active property can be animated or updated in a watcher.
 .br
 Example
 .br
-{'watch': 's1@rotation', 'target': 's2@rotation'}
+{"watch": "s1@rotation", "target": "s2@rotation"}
 .br
 
 .br
@@ -12475,7 +12534,7 @@ This will copy s1.rotation to s2.rotation.
 .br
 Example
 .br
-{'watch': 's1@rotation', 'target': 'get_scene('s2').set('rotation', -value); }
+{"watch": "s1@rotation", "target": "get_scene('s2').set('rotation', -value);" }
 .br
 
 .br
@@ -12513,7 +12572,7 @@ The javascript function will be called with a single argument evt containing the
 .br
 Example
 .br
-{'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );'}
+{"watch": "mousemove", "target": "let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );"}
 .br
 
 .br
