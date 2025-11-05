@@ -752,8 +752,8 @@ GF_FilterRegister FileInRegister = {
 	"The filter handles both files and GF_FileIO objects as input URL.\n"
 	"\n"
 	"## Packet Injecting\n"
-	"The filter can be used to inject a single packet instead of a file using (-pck)[] option.\n"
-	"No specific properties are attached, except a timescale if (-ptime)[] is set.\n"
+	"The filter can be used to inject a single packet instead of a file using [-pck]() option.\n"
+	"No specific properties are attached, except a timescale if [-ptime]() is set.\n"
 	"EX gpac fin:pck=str@\"My Sample Text\":ptime=2500/100:#CodecID=stxt:#StreamType=text\n"
 	"This will declare the PID as WebVTT and send a single packet with payload `My Sample Text` and a timestamp value of 25 second.\n"
 	)
