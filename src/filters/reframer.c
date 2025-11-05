@@ -225,7 +225,7 @@ typedef struct
 	u32 last_clock_probe;
 
 	u32 nb_align_pending;
-	u32 next_cts_align;
+	u64 next_cts_align;
 } GF_ReframerCtx;
 
 static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st, Bool do_free)
@@ -823,8 +823,8 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				do_align = GF_TRUE;
 			}
 			//no more packets and the stream is the next to be scheduled
-			else if (!ctx->nb_align_pending && (st->cts_us_at_init == ctx->next_cts_align)) {
-				st_clock->sys_clock_at_init = ctx->next_cts_align;
+			else if (!ctx->nb_align_pending && ((st->cts_us_at_init == ctx->next_cts_align) || !ctx->next_cts_align) ) {
+				st_clock->sys_clock_at_init = st->cts_us_at_init;
 				do_align = GF_TRUE;
 			} else if (cts_us <= st_clock->sys_clock_at_init - 1) {
 				do_send = GF_TRUE;
@@ -2015,8 +2015,11 @@ refetch_streams:
 							nb_start_range_reached++;
 						}
 						if (!ctx->is_range_extraction) {
-							if (!st->in_eos && ctx->nb_align_pending)
+							if (!st->in_eos && ctx->nb_align_pending) {
 								ctx->nb_align_pending--;
+								if (st->cts_us_at_init == ctx->next_cts_align)
+									ctx->next_cts_align = 0;
+							}
 							st->in_eos = GF_TRUE;
 						}
 						continue;
@@ -2024,8 +2027,11 @@ refetch_streams:
 
 					if (!ctx->is_range_extraction) {
 						check_split = GF_TRUE;
-						if (!st->in_eos && ctx->nb_align_pending)
+						if (!st->in_eos && ctx->nb_align_pending) {
 							ctx->nb_align_pending--;
+							if (st->cts_us_at_init == ctx->next_cts_align)
+								ctx->next_cts_align = 0;
+						}
 						st->in_eos = GF_TRUE;
 					} else {
 						st->range_start_computed = 2;
@@ -2685,6 +2691,8 @@ refetch_streams:
 						gf_filter_pid_set_eos(st->opid);
 						if (!st->in_eos && ctx->nb_align_pending) {
 							ctx->nb_align_pending--;
+							if (st->cts_us_at_init == ctx->next_cts_align)
+								ctx->next_cts_align = 0;
 							st->in_eos = GF_TRUE;
 						}
 						nb_eos++;
