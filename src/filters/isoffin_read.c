@@ -246,6 +246,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	if (prop && prop->value.boolean)
 		read->input_loaded = GF_TRUE;
 
+	read->in_is_eos = GF_FALSE;
 	read->refresh_fragmented = GF_FALSE;
 	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
@@ -1189,7 +1190,11 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				}
 			}
 		}
-
+		//activate first channel - if input is loaded and we canceled the event, remember we may no onger receive eos signals from source
+		//this happens because the last playing track may have send a STOP to the source but we here no longer send play
+		if (!read->nb_playing) {
+			read->in_is_eos = (read->input_loaded && cancel_event) ? GF_TRUE : GF_FALSE;
+		}
 
 		read->nb_playing++;
 		//trigger play on all "disconnected" channels
@@ -1506,6 +1511,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		read->moov_not_loaded = GF_FALSE;
 		return isoffin_setup(filter, read, in_is_eos);
 	}
+	if (read->in_is_eos)
+		in_is_eos = GF_TRUE;
 
 	if (read->refresh_fragmented) {
 		const GF_PropertyValue *prop;
