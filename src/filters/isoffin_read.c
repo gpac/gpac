@@ -892,9 +892,8 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						else if (e==GF_EOS) {
 							e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 						}
-						//trash sample
+						//trash sample - do not free data, it was dispatched as a filter packet
 						if (ch->static_sample && ch->static_sample->data) {
-							gf_free(ch->static_sample->data);
 							ch->static_sample->data = NULL;
 							ch->static_sample->dataLength = 0;
 							ch->static_sample->alloc_size = 0;
