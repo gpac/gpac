@@ -7037,7 +7037,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		}
 		//done with this track - if single track per moof, request new fragment but don't touch the
 		//fragmentation state of the track writers
-		if (ctx->straf && (i+1 < count)) {
+		if (ctx->straf && (i+1 < count) && ctx->fragment_started) {
 			GF_ISOStartFragmentFlags flags = 0;
 			if (ctx->moof_first) flags |= GF_ISOM_FRAG_MOOF_FIRST;
 #ifdef GF_ENABLE_CTRN
