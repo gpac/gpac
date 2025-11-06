@@ -385,8 +385,8 @@ static JSClassDef jsf_pck_class = {
 	.gc_mark = jsf_filter_pck_mark
 };
 
-#ifndef GPAC_DISABLE_FONTS
 GF_FilterSession *jsff_get_session(JSContext *c, JSValue this_val);
+#ifndef GPAC_DISABLE_FONTS
 struct _gf_ft_mgr *gf_fs_get_font_manager(GF_FilterSession *fsess);
 #endif
 GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs);

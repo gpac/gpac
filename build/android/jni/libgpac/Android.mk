@@ -187,6 +187,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dmx_ogg.c \
 	../../../../src/filters/dmx_saf.c \
 	../../../../src/filters/dmx_vobsub.c \
+	../../../../src/filters/enc_cc.c \
 	../../../../src/filters/enc_jpg.c \
 	../../../../src/filters/enc_png.c \
 	../../../../src/filters/encrypt_cenc_isma.c \
@@ -365,7 +366,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/odf/qos.c \
 	../../../../src/odf/slc.c \
 	../../../../src/quickjs/cutils.c \
-	../../../../src/quickjs/libbf.c \
+	../../../../src/quickjs/dtoa.c \
 	../../../../src/quickjs/libregexp.c \
 	../../../../src/quickjs/libunicode.c \
 	../../../../src/quickjs/quickjs.c \

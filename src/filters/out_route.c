@@ -2364,7 +2364,6 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 {
 	u32 i, count, nb_done;
-	Bool manifest_sent=GF_FALSE;
 	if (!serv->service_ready) return GF_OK;
 
 	//carousel STSID bundle
@@ -2455,15 +2454,13 @@ next_packet:
 						init_tsi = ctx->dvb_mabr_tsi;
 					}
 
-					if (!manifest_sent) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
-						manifest_sent = GF_TRUE;
-						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+					//always send manifest before init
+					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s (TOI %u PID type %u)\n", serv->log_name, serv->manifest_name, serv->manifest_toi, rpid->stream_type));
+					routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
 
-						if (serv->manifest_alt) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
-							routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
-						}
+					if (serv->manifest_alt) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
+						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
 					}
 					init_toi = rpid->init_toi;
 				}
@@ -3139,6 +3136,11 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				}
 				if (!skip_source_repair && !self_found && serv->manifest_server && !strstr(serv->manifest_server, "mabr://")) {
 					gf_dynstrcat(&payload_text, serv->manifest_server, "<BaseURL>");
+					if (serv->manifest_server_port) {
+						char szPort[100];
+						sprintf(szPort, ":%u", serv->manifest_server_port);
+						gf_dynstrcat(&payload_text, szPort, NULL);
+					}
 					gf_dynstrcat(&payload_text, serv->manifest_url, "/");
 					gf_dynstrcat(&payload_text, "</BaseURL>\n", NULL);
 				}
@@ -3529,13 +3531,13 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- add `SOME_ALT_URL` as a repair URL\n"
 		"\n"
 		"# Low latency mode\n"
-		"When using low-latency mode (-llmode)(), the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
+		"When using low-latency mode [-llmode](), the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
 		"In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.\n"
 		"If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by [-brinc]() percent for safety.\n"
 		"If this fails, the filter will trigger warnings and send as fast as possible.\n"
 		"Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.\n"
 		"\n"
-		"In this mode, init segments and manifests are sent at the frequency given by property `MCASTCarousel` of the source PID if set or by (-carousel)[] option.\n"
+		"In this mode, init segments and manifests are sent at the frequency given by property `MCASTCarousel` of the source PID if set or by [-carousel]() option.\n"
 		"Indicating `MCASTCarousel=0` will disable mid-segment repeating of manifests and init segments.\n"
 		"# Examples\n"
 		"Since the ROUTE filter only consumes files, it is required to insert:\n"
@@ -3564,7 +3566,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"These will demultiplex the input, re-dash it and send the output of the dasher to ROUTE\n"
 		"\n"
 		"# Error simulation\n"
-		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
+		"It is possible to simulate errors with [-errsim](). In this mode the LCT network sender implements a 2-state Markov chain:\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
 		"This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.\n"
 	)

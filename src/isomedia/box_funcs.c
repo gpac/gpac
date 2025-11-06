@@ -30,6 +30,7 @@
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
 //is the number of bytes missing to parse the box...
+GF_EXPORT
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *box_type, u64 *bytesExpected, Bool progressive_mode)
 {
 	GF_Err ret;
@@ -92,6 +93,7 @@ u64 unused_bytes = 0;
 
 #define GF_SKIP_BOX 10
 
+GF_EXPORT
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size)
 {
 	u32 type, otype, uuid_type, hdr_size, restore_type;
@@ -873,6 +875,7 @@ ISOM_BOX_IMPL_DECL(emsg)
 ISOM_BOX_IMPL_DECL(emib)
 ISOM_BOX_IMPL_DECL(emeb)
 ISOM_BOX_IMPL_DECL(evte)
+ISOM_BOX_IMPL_DECL(silb)
 
 #endif
 
@@ -1376,6 +1379,7 @@ static struct box_registry_entry {
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMIB, emib, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMEB, emeb, "file", "EventMessageTrack"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_SILB, silb, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EVTE, gen_sample_entry, "stsd", "EventMessageTrack"),
 #endif
 
@@ -2352,10 +2356,13 @@ u32 gf_isom_get_supported_box_type(u32 idx)
 GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version, const char *spec, const char *container)
 {
 	gf_fprintf(trace, "<%s ", name);
-	if (a->size > 0xFFFFFFFF) {
-		gf_fprintf(trace, "LargeSize=\""LLU"\" ", a->size);
-	} else {
-		gf_fprintf(trace, "Size=\"%u\" ", (u32) a->size);
+
+	if (!(a->internal_flags & GF_ISOM_DUMP_SKIP_SIZE)) {
+		if (a->size > 0xFFFFFFFF) {
+			gf_fprintf(trace, "LargeSize=\""LLU"\" ", a->size);
+		} else {
+			gf_fprintf(trace, "Size=\"%u\" ", (u32) a->size);
+		}
 	}
 	if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
 		gf_fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(((GF_UnknownBox*)a)->original_4cc));
@@ -2392,7 +2399,7 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 	return gf_isom_box_dump_start_ex(a, name, trace, GF_FALSE, NULL, NULL);
 }
 
-GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
+GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, Bool subtree_root)
 {
 	GF_Box *a = (GF_Box *) ptr;
 
@@ -2404,14 +2411,24 @@ GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] trying to dump box %s not registered\n", gf_4cc_to_str(a->type) ));
 		return GF_ISOM_INVALID_FILE;
 	}
-	a->registry->dump_fn(a, trace);
+	if (subtree_root && gf_opts_get_bool("core", "diso-nosize")) {
+		a->internal_flags |= GF_ISOM_DUMP_SKIP_SIZE;
+		a->registry->dump_fn(a, trace);
+		a->internal_flags &= ~GF_ISOM_DUMP_SKIP_SIZE;
+	} else {
+		a->registry->dump_fn(a, trace);
+	}
 	return GF_OK;
+}
+GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
+{
+	return gf_isom_box_dump_ex(ptr, trace, GF_TRUE);
 }
 
 void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace)
 {
 	if (ptr && ptr->child_boxes) {
-		gf_isom_box_array_dump(ptr->child_boxes, trace);
+		gf_isom_box_array_dump(ptr->child_boxes, trace, ptr->internal_flags);
 	}
 	if (name)
 		gf_fprintf(trace, "</%s>\n", name);
@@ -2461,6 +2478,7 @@ Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 void gf_isom_box_del_parent(GF_List **child_boxes, GF_Box*b)
 {
 	if (child_boxes) {

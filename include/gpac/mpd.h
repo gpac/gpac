@@ -676,6 +676,8 @@ typedef struct {
 	const char *hls_single_file_name;
 	/*! number of audio channels - HLS only*/
 	u32 nb_chan;
+	/*! CHANNELS attribute in string for special content - HLS only*/
+	char str_chan[20];
 	/*! video FPS - HLS only*/
 	Double fps;
 	/*! groupID (for HLS)*/
@@ -717,6 +719,8 @@ typedef struct {
 
 	Bool sub_forced;
 	const char *hls_forced;
+
+	const char *init_base64;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/

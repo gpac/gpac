@@ -295,7 +295,9 @@ typedef struct
 	s32 extra_filter; //- removes the sei, + keeps the sei
 } SEI_Filter;
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 /*return sps ID or -1 if error*/
 s32 gf_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 s32 gf_avc_read_sps_bs(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
@@ -314,6 +316,10 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 /*nota: 'buffer' remains unmodified but cannot be set const*/
 u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc, SEI_Filter *sei_filter);
+#ifdef __cplusplus
+}
+#endif
+
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -875,11 +881,18 @@ typedef struct _vvc_state
 	u32 parse_mode;
 } VVCState;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 void gf_vvc_parse_sei(char* buffer, u32 nal_size, VVCState *vvc);
 u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
 Bool gf_vvc_slice_is_ref(VVCState *vvc);
 s32 gf_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+#ifdef __cplusplus
+}
+#endif
+
 
 void gf_vvc_parse_ps(GF_VVCConfig* hevccfg, VVCState* vvc, u32 nal_type);
 
@@ -893,7 +906,10 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, 
 GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight);
 GF_Err gf_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_frames_in_superframe, u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME], u32 *superframe_index_size);
 
-
+typedef struct
+{
+	GF_AC4Config *config;
+} AC4State;
 
 #define AV1_MAX_TILE_ROWS 64
 #define AV1_MAX_TILE_COLS 64

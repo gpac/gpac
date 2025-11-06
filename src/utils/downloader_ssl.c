@@ -846,6 +846,8 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
  * \brief Saves the digest for authentication of password and username
 \param dm The download manager
 \param creds The credentials to fill
+\param password the password
+\param store_info write to cred file or not
 \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
 static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserCredentials * creds, const char * password, Bool store_info) {
@@ -984,6 +986,7 @@ static void on_user_pass(void *udta, const char *user, const char *pass, Bool st
  * \brief Asks the user for credentials for given site
 \param dm The download manager
 \param creds The credentials to fill
+\param secure is auth required?
 \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
 static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, GF_UserCredentials * creds, Bool secure)

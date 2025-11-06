@@ -3094,7 +3094,7 @@ GF_FilterRegister FileListRegister = {
 		"- if the input playlist has not been modified for the [-timeout]() option value (infinite by default).\n"
 		"## Playlist directives\n"
 		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
-		"- repeat=N: repeats `N` times the content (hence played N+1).\n"
+		"- repeat=N: repeats `N` times the content (hence played N+1), infinite loop if negative.\n"
 		"- start=T: tries to play the file from start time `T` seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
 		"- stop=T: stops source playback after `T` seconds (double format only). This works on any source (implemented independently from seek support).\n"
 		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.\n"

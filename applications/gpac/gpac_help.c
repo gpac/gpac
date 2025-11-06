@@ -936,7 +936,7 @@ static const char *gpac_defer =
 "- `@F` indicates the destination filter using a 0-based index `F` starting from the last laoded filter, e.g. `@0` indicates the last loaded filter.\n"
 "- `@@F` indicates the target filter using a 0-based index `F` starting from the first laoded filter, e.g. `@@1` indicates the second loaded filter.\n"
 "- `@SRC`or `@@SRC`: same syntax as link directives\n"
-"Sources MUST be set before relinking outputs using (-rl)[].\n"
+"Sources MUST be set before relinking outputs using [-rl]().\n"
 "EX gpac -dl -i SRC F1 F2 [...] @1@2 @0@2\n"
 "This will set SRC as source to F1 and SRC as source to F2 after loading all filters.\n"
 "\n"

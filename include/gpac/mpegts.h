@@ -1538,7 +1538,7 @@ typedef struct __elementary_stream_ifce
 	u32 gpac_meta_dsi_size;
 	/*! GPAC unmapped meta codec decoder config*/
 	u8 *gpac_meta_dsi;
-	/*! GPAC unmapped meta codec name if knwon*/
+	/*! GPAC unmapped meta codec name if known*/
 	const char *gpac_meta_name;
 } GF_ESInterface;
 

@@ -1005,7 +1005,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	/*depacketize SL Header*/
 	if (((GF_M2TS_ES*)pck->stream)->slcfg) {
-		gf_sl_depacketize(slc, &slh, pck->data, pck->data_len, &slh_len);
+		gf_odf_sl_depacketize(slc, &slh, pck->data, pck->data_len, &slh_len);
 		slh.m2ts_version_number_plus_one = pck->version_number + 1;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] MPEG-4 SL-packetized stream without SLConfig assigned - ignoring packet\n") );

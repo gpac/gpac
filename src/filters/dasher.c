@@ -169,6 +169,17 @@ GF_OPT_ENUM (DasherSegFlushMode,
 	SFLUSH_END,
 );
 
+enum
+{
+	AC4_OTHER_CONTENT = 0,
+	AC4_IMMERSIVE_STEREO,
+	AC4_IMMERSIVE_STEREO_ATMOS,
+	AC4_CHANNEL_BASED_CONTENT,
+	AC4_CHANNEL_BASED_IMMERSIVE_CONTENT,
+	AC4_OBJECT_BASED_CONTENT,
+	AC4_OBJECT_BASED_AJOC_CONTENT,
+};
+
 //these are not exported for now
 //get destination name by index
 char *gf_filter_pid_get_destination_ex(GF_FilterPid *pid, u32 dst_idx);
@@ -188,7 +199,7 @@ typedef struct
 	GF_DASH_ContentLocationMode cp;
 	s32 subs_sidx;
 	s32 buf, timescale;
-	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge, keep_ts;
+	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge, keep_ts, base64;
 	DasherAdaptSetGenMode mha_compat;
 	DasherSegFlushMode sflush;
 	DasherSAPStrictMode strict_sap;
@@ -213,7 +224,7 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, segcts, sreg, ttml_agg;
+	Bool cmpd, dual, segcts, sreg, ttml_agg, evte_agg;
 	char *styp;
 	Bool sigfrag;
 	DasherTSSHandlingMode sbound;
@@ -353,10 +364,13 @@ typedef struct _dash_stream
 	char *hls_vp_name;
 	u32 nb_surround, nb_lfe, atmos_complexity_type;
 	u64 ch_layout;
+	u32 ch_mask;
+	u8 ac4_content_type;
 	GF_PropVec4i srd;
 	u32 color_primaries, color_transfer_characteristics, color_matrix, color_transfer_characteristics_alt;
 	Bool sscale;
 	Bool skip_sap;
+	char *init_base_64;
 
 	//TODO: get the values for all below
 	u32 view_id;
@@ -1629,7 +1643,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_EAC3:
 				if (dsi) {
 					GF_AC3Config ac3 = {0};
-					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
+					gf_odf_ac3_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
 					ds->nb_surround = gf_ac3_get_surround_channels(ac3.streams[0].acmod);
@@ -1640,6 +1654,45 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					}
 					if (ds->nb_lfe) _nb_ch++;
 					ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
+				}
+				break;
+			case GF_CODECID_AC4:
+				if (dsi) {
+					GF_AC4Config ac4 = {0};
+					gf_odf_ac4_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &ac4);
+					GF_AC4PresentationV1* p = (GF_AC4PresentationV1*)gf_list_get(ac4.stream.presentations, 0);
+					if (p) {
+						ds->ch_mask = p->presentation_channel_mask_v1;
+						_nb_ch = gf_ac4_dolby_channel_count_from_channel_mask_v1(ds->ch_mask);
+						// Dolby AC-4 in MPEG-DASH for Online Delivery Specification 2.5.1 presentation_version of immersive stereo content is 2
+						if (p->presentation_version == 2) {
+							ds->ac4_content_type = AC4_IMMERSIVE_STEREO;
+							if (p->dolby_atmos_indicator) {
+								ds->ac4_content_type = AC4_IMMERSIVE_STEREO_ATMOS;
+							}
+						} else if (p->presentation_version == 1) {
+							// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.10 b_presentation_channel_coded indicates if the presentation is channel-based (1) or object-based (0)
+							if (p->b_presentation_channel_coded == 1) {
+								ds->ac4_content_type = AC4_CHANNEL_BASED_CONTENT;
+								if (p->dsi_presentation_ch_mode == 15 ||
+									(p->dsi_presentation_ch_mode >= 11 && p->dsi_presentation_ch_mode <= 14 && p->pres_top_channel_pairs > 0)) {
+									ds->ac4_content_type = AC4_CHANNEL_BASED_IMMERSIVE_CONTENT;
+								}
+							} else {
+								ds->ac4_content_type = AC4_OBJECT_BASED_CONTENT;
+								GF_AC4SubStreamGroupV1 *sg = gf_list_get(p->substream_groups, 0);
+								if (sg && sg->substreams) {
+									GF_AC4SubStream *ss = gf_list_get(sg->substreams, 0);
+									// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.8 b_ajoc indicates that the substream is coded using the A-JOC coding tool
+									if (ss && ss->b_ajoc == 1) {
+										ds->ac4_content_type = AC4_OBJECT_BASED_AJOC_CONTENT;
+										_nb_ch = ss->n_umx_objects_minus1 + 2;
+									}
+								}
+							}
+						}
+					}
+					gf_odf_ac4_cfg_clean_list(&ac4);
 				}
 				break;
 #endif
@@ -1653,6 +1706,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 			if (_sr > ds->sr) ds->sr = _sr;
 			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
+			if ((ds->codec_id == GF_CODECID_EAC3 || ds->codec_id == GF_CODECID_AC4) && _nb_ch != 0) ds->nb_ch = _nb_ch;
 		}
 
 
@@ -2484,6 +2538,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	else if (ds->stream_type==GF_STREAM_AUDIO) {
 		Bool use_cicp = GF_FALSE;
 		Bool use_dolbyx = GF_FALSE;
+		Bool use_ac4 = GF_FALSE;
 		Bool use_dtshd = GF_FALSE;
 		Bool use_dtsx = GF_FALSE;
 		GF_MPD_Descriptor *desc;
@@ -2505,6 +2560,11 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			if (ctx->profile > GF_DASH_PROFILE_FULL) {
 				use_dolbyx = GF_TRUE;
 			}
+			//ETSI TS 102 366 section I.1.2.1: AC3 and EAC3 should use CICP
+			use_cicp = GF_TRUE;
+		}
+		if (ds->codec_id==GF_CODECID_AC4) {
+			use_ac4 = GF_TRUE;
 		}
 		if (use_dolbyx) {
 			u32 chanmap=0;
@@ -2516,6 +2576,16 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			}
 			sprintf(value, "%X", chanmap);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
+		} else if (use_ac4) {
+			// ETSI TS 103 190-2 V1.3.1 (2025-07) G.3.3
+			if (ds->ch_mask == 0 || ds->ch_mask == 0x800000) {
+				sprintf(value, "%06X", 0x800000);
+				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
+			}
+			else {
+				sprintf(value, "%06X", ds->ch_mask);
+				desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2015:dash:audio_channel_configuration:2015", value);
+			}
 		} else if (use_dtshd) {
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dts.com,2014:dash:audio_channel_configuration:2012", value);
@@ -3679,6 +3749,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	case DASHER_SEGSYNC_NO:
 		break;
 	}
+	if (ctx->base64)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_INIT_BASE64, &PROP_BOOL(GF_TRUE) );
 
 	if (init_trashed)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_NO_INIT, &PROP_BOOL(GF_TRUE));
@@ -3769,7 +3841,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	}
 
 	//inject scte35dec filter
-	if (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE)
+	if (ctx->evte_agg && (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE))
 		dasher_inject_scte35_processor(filter, ds, szSRC);
 }
 
@@ -5601,6 +5673,8 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->m3u8_use_repid = GF_TRUE;
 
 	tmp = gf_file_temp(NULL);
+	if (!tmp) return GF_IO_ERR;
+
 	if (do_m3u8) {
 		GF_M3U8WriteMode mode = GF_M3U8_WRITE_ALL;
 		if (ctx->from_index==IDXMODE_MANIFEST) mode = GF_M3U8_WRITE_MASTER;
@@ -5896,6 +5970,9 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->multi_pids = NULL;
 	if (ds->multi_tracks) gf_list_del(ds->multi_tracks);
 	ds->multi_tracks = NULL;
+
+	if (ds->init_base_64) gf_free(ds->init_base_64);
+	ds->init_base_64 = NULL;
 
 	if (ds->pending_segment_urls) gf_list_del(ds->pending_segment_urls);
 	ds->pending_segment_urls = NULL;
@@ -8472,6 +8549,38 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
+
+			// Dolby Digital Plus Online Delivery Playback System Development Guide version 1.5
+			// For Dolby Atmos content, the number of decodable objects followed by a slash (/) and then JOC
+			if (ds->codec_id == GF_CODECID_EAC3 && ds->atmos_complexity_type) {
+				ds->rep->nb_chan = 0;
+				sprintf(ds->rep->str_chan, "%d/JOC", ds->atmos_complexity_type);
+			}
+
+			if (ds->codec_id == GF_CODECID_AC4) {
+				switch(ds->ac4_content_type) {
+				// Dolby AC-4 and HTTP Live Streaming Specification 1 November 2021 4.3
+				case AC4_IMMERSIVE_STEREO:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "2/IMSA");
+					break;
+				case AC4_IMMERSIVE_STEREO_ATMOS:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "2/IMSA,ATMOS");
+					break;
+				case AC4_CHANNEL_BASED_IMMERSIVE_CONTENT:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "%d/IMSA", ds->nb_ch);
+					break;
+				case AC4_OBJECT_BASED_AJOC_CONTENT:
+					ds->rep->nb_chan = 0;
+					sprintf(ds->rep->str_chan, "%d/JOC", ds->nb_ch);
+					break;
+				default:
+					break;
+				}
+			}
+
 			//we need a copy when flushing MPD after a period switch
 			if (ds->rep->m3u8_name) gf_free(ds->rep->m3u8_name);
 			ds->rep->m3u8_name = ds->hls_vp_name ? gf_strdup(ds->hls_vp_name) : NULL;
@@ -10711,6 +10820,33 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ds->muxed_base)
 			ds = ds->muxed_base;
 
+		if (evt->seg_size.is_init && evt->seg_size.base64_version) {
+			if (!ds->init_base_64) {
+				ds->init_base_64 = gf_strdup(evt->seg_size.base64_version);
+				u32 k;
+				for (k=0; k<count; k++) {
+					GF_DashStream *a_ds = gf_list_get(ctx->pids, k);
+					if (!a_ds->rep) continue;
+					if ((a_ds != ds) && (a_ds->muxed_base != ds)) continue;
+					a_ds->rep->init_base64 = ds->init_base_64;
+
+					char **init_url_ptr = NULL;
+					if (a_ds->set->segment_template && a_ds->set->segment_template->initialization) {
+						init_url_ptr = &a_ds->set->segment_template->initialization;
+					} else if (a_ds->rep->segment_template && a_ds->rep->segment_template->initialization) {
+						init_url_ptr = &a_ds->rep->segment_template->initialization;
+					}
+					if (init_url_ptr) {
+						gf_free(*init_url_ptr);
+						*init_url_ptr = gf_strdup("data:");
+						gf_dynstrcat(init_url_ptr, a_ds->rep->mime_type ? a_ds->rep->mime_type : "video/mp4" , NULL);
+						gf_dynstrcat(init_url_ptr, ";base64,", NULL);
+						gf_dynstrcat(init_url_ptr, ds->init_base_64, NULL);
+					}
+				}
+			}
+		}
+
 		if (ctx->store_seg_states && !evt->seg_size.is_init) {
 			GF_DASH_SegmentContext *sctx = gf_list_pop_front(ds->pending_segment_states);
 			if (!sctx || !ctx->nb_seg_url_pending) {
@@ -11222,7 +11358,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- raw: uses raw media format (disables multiplexed representations)\n"
 		"- auto: guesses format based on extension, defaults to mp4 if no extension is provided", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
 	{ OFFS(rawsub), "use raw subtitle format instead of encapsulating in container", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(asto), "availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(asto), "availabilityTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
 		"- live: DASH live profile, using segment template\n"
@@ -11357,8 +11493,10 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(inband_event), "insert a default inband event stream in the DASH manifest", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{0}
 };
@@ -11480,7 +11618,7 @@ GF_FilterRegister DasherRegister = {
 "This may result in temporary mismatches between segment/part size currently received versus size as advertized in manifest.\n"
 "When [-seg_sync]() is enabled, the segmenter will wait for the last byte of the fragment/segment to be pushed before announcing a new segment in the manifest(s). This can however slightly increase the latency in MPEG-DASH low-latency.\n"
 "\n"
-"When (-sflush)[] is set to `single`, segmentation is skipped and a single segment is generated per input.\n"
+"When [-sflush]() is set to `single`, segmentation is skipped and a single segment is generated per input.\n"
 "\n"
 "## Dynamic (real-time live) Mode\n"
 "The dasher does not perform real-time regulation by default.\n"
@@ -11600,7 +11738,7 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "The inputs will be segmented for a duration of [-subdur]() if set, otherwise the input media duration.\n"
 "When inputs are over, they are restarted if [-loop]() is set otherwise a new period is created.\n"
-"To avoid this behaviour, the [-sflush]() option should be set to `end` or `single`, indicating that further sources for the same representations will be added in subsequent calls. When [-sflush]() is not `off`, the (-loop)[] option is ignored.\n"
+"To avoid this behaviour, the [-sflush]() option should be set to `end` or `single`, indicating that further sources for the same representations will be added in subsequent calls. When [-sflush]() is not `off`, the [-loop]() option is ignored.\n"
 "\n"
 "EX gpac -i SRC -o dash.mpd:segdur=2:state=CTX && gpac -i SRC -o dash.mpd:segdur=2:state=CTX\n"
 "This will generate all dash segments for `SRC` (last one possibly shorter) and create a new period at end of input.\n"
@@ -11611,7 +11749,7 @@ GF_FilterRegister DasherRegister = {
 "EX gpac -i SRC1 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts && gpac -i SRC2 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts\n"
 "This will generate all dash segments for `SRC1` without looping/closing the period at end of input, then for `SRC2`. Timestamps of the sources will not be rewritten.\n"
 "\n"
-"Note: The default behaviour of MP4Box `-dash-ctx` option is to set the (-loop)[] to true.\n"
+"Note: The default behaviour of MP4Box `-dash-ctx` option is to set the [-loop]() to true.\n"
 "\n"
 "## Output redirecting\n"
 "When loaded implicitly during link resolution, the dasher will only link its outputs to the target sink\n"
@@ -11646,6 +11784,7 @@ GF_FilterRegister DasherRegister = {
 "- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"
 "- LLHLS: identifies LLHLS is used; the multiplexer must send fragment size events back to the dasher, and set `LLHLSFragNum` on the first packet of each fragment\n"
 "- SegSync: indicates that fragments/segments must be completely flushed before sending back size events\n"
+"- InitBase64: indicates that the base64-encoded init segment must be set in the init segment size event\n"
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,

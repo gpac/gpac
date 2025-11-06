@@ -4000,36 +4000,30 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 
 GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size)
 {
-	if (dsi && dsi_size) {
-		u8 bitstream_version = 0;
-		u16 n_presentations = 0;
-		u8 presentation_version = 0;
-		u8 mdcompat = 0;
+	GF_Err e = GF_NON_COMPLIANT_BITSTREAM;
+	if (!dsi || !dsi_size) return e;
 
-		if (dsi_size < 3) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AC4] invalid DSI size %u < 3\n", dsi_size));
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-		/* 7 bits of AC4 config*/
-		bitstream_version = ((dsi[0] & 0x1F) << 5) + ((dsi[1] & 0xC0) >> 6);
-		/* 9 bits of AC4 config*/
-		n_presentations = ((dsi[1] & 0x01) << 8) + dsi[2];
-		if (n_presentations > 0) {
-			if (dsi_size < 15) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AC4] invalid DSI size %u < 15\n", dsi_size));
-				return GF_NON_COMPLIANT_BITSTREAM;
+	GF_AC4Config cfg = {0};
+	GF_BitStream *bs = gf_bs_new((const char *)dsi, dsi_size, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	e = gf_odf_ac4_cfg_parse_bs(bs, &cfg);
+	gf_bs_del(bs);
+	if (e == GF_OK) {
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		if (cfg.stream.n_presentations > 0) {
+			GF_AC4PresentationV1 *presentations = (GF_AC4PresentationV1*)gf_list_get(cfg.stream.presentations, 0);
+			if (presentations) {
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", cfg.stream.bitstream_version, presentations->presentation_version, presentations->mdcompat);
+				e = GF_OK;
 			}
-
-			presentation_version = dsi[12];
-			mdcompat = dsi[14] & 0x07;
 		}
-
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02d.%02d.%02d", bitstream_version, presentation_version, mdcompat);
-		return GF_OK;
 	}
-
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "ac-4.%02X", codec_id);
-	return GF_OK;
+	gf_odf_ac4_cfg_clean_list(&cfg);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] invalid AC4 DSI %s\n", gf_error_to_string(e) ));
+	}
+	return e;
 }
 
 GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size)
@@ -4270,7 +4264,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 	return GF_OK;
 }
 
-GF_Err rfc_6381_get_codec_imaf(char *szCodec, GF_IAConfig *cfg)
+GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 {
 	IAMFState state;
 	gf_iamf_init_state(&state);
@@ -4585,13 +4579,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 
 	case GF_ISOM_SUBTYPE_IAMF:
 	{
-		GF_IAConfig *imaf = gf_isom_iamf_config_get(movie, track, stsd_idx);
-		if (!imaf) {
+		GF_IAConfig *iamf = gf_isom_iamf_config_get(movie, track, stsd_idx);
+		if (!iamf) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] No config found for IAMF file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		e = rfc_6381_get_codec_imaf(szCodec, imaf);
-		gf_odf_iamf_cfg_del(imaf);
+		e = rfc_6381_get_codec_iamf(szCodec, iamf);
+		gf_odf_iamf_cfg_del(iamf);
 		return e;
 	}
 

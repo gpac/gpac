@@ -2264,7 +2264,9 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					JS_SetPropertyStr(ctx, var, "live_seg_num", JS_NewInt64(ctx, 0) );
 				} else {
 					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, cur) );
-					JS_SetPropertyStr(ctx, var, "duration", JS_NewFloat64(ctx, cur_dur ? cur_dur : target_dur) );
+					if (!cur_dur) cur_dur = target_dur;
+					JS_SetPropertyStr(ctx, var, "duration", JS_NewFloat64(ctx, cur_dur) );
+					cur_dur = 0;
 				}
 				vidx++;
 				if (!sep) break;
@@ -2341,6 +2343,11 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 			JS_SetPropertyStr(ctx, mpdo, "seq_start", JS_NewInt32(ctx, media_seq) );
 			JS_SetPropertyStr(ctx, mpdo, "live_seg_num", JS_NewInt32(ctx, media_seq+vidx) );
 		}
+		if (!is_master) {
+			JS_SetPropertyStr(ctx, mpdo, "min_update", JS_NewInt64(ctx, (s32) (cur_dur * 1000) ) );
+		} else {
+			JS_SetPropertyStr(ctx, mpdo, "min_update", JS_NewInt64(ctx, -1 ) );
+		}
 		gf_free(str);
 		return mpdo;
 	} else if (!strstr(str, "<MPD ")) {
@@ -2369,6 +2376,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_SetPropertyStr(ctx, mpdo, "ast", JS_NewInt64(ctx, mpd->availabilityStartTime) );
 	JS_SetPropertyStr(ctx, mpdo, "tsb", JS_NewInt32(ctx, mpd->time_shift_buffer_depth) );
 	JS_SetPropertyStr(ctx, mpdo, "live", JS_NewBool(ctx, mpd->type==GF_MPD_TYPE_DYNAMIC) );
+	JS_SetPropertyStr(ctx, mpdo, "min_update", JS_NewInt64(ctx, mpd->minimum_update_period) );
 
 	u64 now = gf_net_get_utc();
 	JS_SetPropertyStr(ctx, mpdo, "live_utc", JS_NewInt64(ctx, now) );
@@ -2483,6 +2491,8 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 							JSValue sego = JS_NewObject(ctx);
 							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
 
+							//move back to timescale
+							segdur_ms = gf_timestamp_rescale(segdur_ms, 1000, mpd_timescale ? mpd_timescale : 1);
 							JS_SetPropertyStr(ctx, sego, "url", JS_NewString(ctx, seg_url) );
 							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, (u32) segdur_ms) );
 
@@ -3938,7 +3948,7 @@ static Bool jsfio_eof(GF_FileIO *fileio)
 	JSValue res;
 	s32 ret;
 	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	if (!ioctx || !ioctx->gfio) return GF_FALSE;
 	JSContext *ctx = ioctx->factory->ctx;
 	gf_js_lock(ctx, GF_TRUE);
 	res = JS_Call(ctx, ioctx->factory->eof, ioctx->js_obj, 0, NULL);
@@ -4477,7 +4487,10 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
 #endif // GPAC_STATIC_BIN
 
-JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
+JSModuleDef *create_json_module(JSContext *ctx, const char *module_name, JSValue val);
+int js_module_test_json(JSContext *ctx, JSValueConst attributes);
+
+JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque, JSValueConst attributes)
 {
 	JSModuleDef *m;
 	const char *fext = gf_file_ext_start(module_name);
@@ -4509,16 +4522,36 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
 			return NULL;
 		}
-		/* compile the module */
-		func_val = JS_Eval(ctx, buf ? (char *) buf : "", buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-		gf_free(buf);
-		if (JS_IsException(func_val))
-			return NULL;
-		/* XXX: could propagate the exception */
-		js_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
-		/* the module is already referenced, so we must free it */
-		m = JS_VALUE_GET_PTR(func_val);
-		JS_FreeValue(ctx, func_val);
+
+		char *fext = gf_file_ext_start(module_name);
+        int res = js_module_test_json(ctx, attributes);
+        if ((fext && !stricmp(fext, ".json")) || res > 0) {
+            /* compile as JSON or JSON5 depending on "type" */
+            JSValue val;
+            int flags;
+            if (res == 2)
+                flags = JS_PARSE_JSON_EXT;
+            else
+                flags = 0;
+            val = JS_ParseJSON2(ctx, (char *)buf, buf_len, module_name, flags);
+            js_free(ctx, buf);
+            if (JS_IsException(val))
+                return NULL;
+            m = create_json_module(ctx, module_name, val);
+            if (!m)
+                return NULL;
+        } else {
+			/* compile the module */
+			func_val = JS_Eval(ctx, buf ? (char *) buf : "", buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+			gf_free(buf);
+			if (JS_IsException(func_val))
+				return NULL;
+			/* XXX: could propagate the exception */
+			js_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
+			/* the module is already referenced, so we must free it */
+			m = JS_VALUE_GET_PTR(func_val);
+			JS_FreeValue(ctx, func_val);
+		}
 	}
 	return m;
 }
@@ -4555,7 +4588,7 @@ static void qjs_init_runtime_libc(JSRuntime *rt)
 		return;
 
 	/* module loader */
-	JS_SetModuleLoaderFunc(rt, NULL, qjs_module_loader, NULL);
+	JS_SetModuleLoaderFunc2(rt, NULL, qjs_module_loader, NULL, NULL);
 
 #ifndef GPAC_DISABLE_QJS_LIBC
 

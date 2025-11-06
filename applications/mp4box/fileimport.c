@@ -292,7 +292,7 @@ static GF_Err set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_tra
 		gf_isom_reset_sample_count(NULL);
 		gf_isom_set_traf_mss_timeext(NULL, 0, 0, 0);
 		gf_isom_get_next_moof_number(NULL);
-		gf_isom_set_fragment_reference_time(NULL, 0, 0, 0);
+		gf_isom_set_fragment_reference_time(NULL, 0, 0, 0, 0);
 #endif
 		//this one is not tested in master due to old-arch compat, to remove when we enable tests without old-arch
 		gf_isom_get_audio_layout(file, track, 1, &layout);
@@ -2599,32 +2599,36 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 	avc_src = gf_isom_avc_config_get(orig, src_track, 1);
 	avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
 
-	if (!force_cat && (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication)) {
-		dst_tk = 0;
-	} else if (!force_cat && (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication)) {
-		dst_tk = 0;
-	}
-	else {
-		/*rewrite all samples if using different NALU size*/
-		if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
-			gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
-			avc_dst->nal_unit_size = avc_src->nal_unit_size;
-		} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
-			*orig_nal_len = avc_src->nal_unit_size;
-			*dst_nal_len = avc_dst->nal_unit_size;
+	if (avc_src && avc_dst) {
+
+		if (!force_cat && (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication)) {
+			dst_tk = 0;
+		} else if (!force_cat && (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication)) {
+			dst_tk = 0;
+		}
+		else {
+			/*rewrite all samples if using different NALU size*/
+			if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
+				gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
+				avc_dst->nal_unit_size = avc_src->nal_unit_size;
+			} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
+				*orig_nal_len = avc_src->nal_unit_size;
+				*dst_nal_len = avc_dst->nal_unit_size;
+			}
+
+			/*merge PS*/
+			if (!merge_parameter_set(avc_src->sequenceParameterSets, avc_dst->sequenceParameterSets, "SPS"))
+				dst_tk = 0;
+			if (!merge_parameter_set(avc_src->pictureParameterSets, avc_dst->pictureParameterSets, "PPS"))
+				dst_tk = 0;
+
+			gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
 		}
 
-		/*merge PS*/
-		if (!merge_parameter_set(avc_src->sequenceParameterSets, avc_dst->sequenceParameterSets, "SPS"))
-			dst_tk = 0;
-		if (!merge_parameter_set(avc_src->pictureParameterSets, avc_dst->pictureParameterSets, "PPS"))
-			dst_tk = 0;
-
-		gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
 	}
-
 	gf_odf_avc_cfg_del(avc_src);
 	gf_odf_avc_cfg_del(avc_dst);
+
 
 	if (!dst_tk) {
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
@@ -3163,6 +3167,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			if (samp->nb_pack)
 				j+= samp->nb_pack-1;
 
+			if (samp->data && !samp->dataLength) {
+				// force deletetion, see gf_isom_sample_del()
+				samp->dataLength = samp->alloc_size;
+			}
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;
 
@@ -3773,7 +3781,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 \param inputContext initial BT upon which the chunk is based (shall not be NULL)
 \param outputContext: file name to dump the context after applying the new chunk to the input context
                    can be NULL, without .bt
-\param tmpdir can be NULL
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext)
 {

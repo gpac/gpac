@@ -33,6 +33,7 @@ GF_OPT_ENUM (GF_RealTimeRegulationMode,
 	REFRAME_RT_OFF = 0,
 	REFRAME_RT_ON,
 	REFRAME_RT_SYNC,
+	REFRAME_RT_ALIGN,
 );
 
 GF_OPT_ENUM (GF_ExtractionStartAdjustment,
@@ -150,7 +151,7 @@ typedef struct
 	Double speed;
 	GF_ForceInputDecodingMode raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts, nodisc;
 	GF_ExtractionStartAdjustment xround;
 	GF_UTCReferenceMode utc_ref;
 	u32 utc_probe;
@@ -222,6 +223,9 @@ typedef struct
 
 	u64 last_utc_time_s;
 	u32 last_clock_probe;
+
+	u32 nb_align_pending;
+	u64 next_cts_align;
 } GF_ReframerCtx;
 
 static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st, Bool do_free)
@@ -297,6 +301,8 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		st->ipid = pid;
 		st->pck_queue = gf_list_new();
 		st->all_saps = GF_TRUE;
+	} else if (ctx->nodisc) {
+		return GF_OK;
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
@@ -802,6 +808,52 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		if (cts_us==GF_FILTER_NO_TS) {
 			do_send = GF_TRUE;
+		} else if (ctx->rt==REFRAME_RT_ALIGN) {
+			Bool do_align = GF_FALSE;
+			RTStream *st_clock = st;
+			cts_us += st->tk_delay;
+			cts_us = gf_timestamp_rescale(cts_us, st->timescale, 1000000);
+
+			if (!ctx->clock) ctx->clock = st;
+			st_clock = ctx->clock;
+
+			//very first packet sent
+			if (!st_clock->sys_clock_at_init) {
+				st_clock->sys_clock_at_init = cts_us+1;
+				do_align = GF_TRUE;
+			}
+			//no more packets and the stream is the next to be scheduled
+			else if (!ctx->nb_align_pending && ((st->cts_us_at_init == ctx->next_cts_align) || !ctx->next_cts_align) ) {
+				st_clock->sys_clock_at_init = st->cts_us_at_init;
+				do_align = GF_TRUE;
+			} else if (cts_us <= st_clock->sys_clock_at_init - 1) {
+				do_send = GF_TRUE;
+			}
+			//ahead of clock, signal first time we see this
+			else if (st->cts_us_at_init != cts_us+1) {
+				//remember last cts
+				st->cts_us_at_init = cts_us+1;
+				gf_assert(ctx->nb_align_pending);
+				ctx->nb_align_pending--;
+				//elect as clock for next regulation period if less than next align time
+				if (!ctx->next_cts_align || (cts_us < ctx->next_cts_align-1))
+					ctx->next_cts_align = cts_us+1;
+			}
+
+			if (do_align) {
+				ctx->next_cts_align = 0;
+				ctx->nb_align_pending = 0;
+				u32 i;
+				for (i=0; i<gf_list_count(ctx->streams); i++) {
+					RTStream *ast = gf_list_get(ctx->streams, i);
+					//reset last cts, and increment nb_align_pending for all playing streams
+					ast->cts_us_at_init = 0;
+					if (ast->in_eos) continue;
+					if (!ast->is_playing) continue;
+					ctx->nb_align_pending++;
+				}
+				do_send = GF_TRUE;
+			}
 		} else {
 			RTStream *st_clock = st;
 			u64 clock = ctx->clock_val;
@@ -1963,6 +2015,11 @@ refetch_streams:
 							nb_start_range_reached++;
 						}
 						if (!ctx->is_range_extraction) {
+							if (!st->in_eos && ctx->nb_align_pending) {
+								ctx->nb_align_pending--;
+								if (st->cts_us_at_init == ctx->next_cts_align)
+									ctx->next_cts_align = 0;
+							}
 							st->in_eos = GF_TRUE;
 						}
 						continue;
@@ -1970,6 +2027,11 @@ refetch_streams:
 
 					if (!ctx->is_range_extraction) {
 						check_split = GF_TRUE;
+						if (!st->in_eos && ctx->nb_align_pending) {
+							ctx->nb_align_pending--;
+							if (st->cts_us_at_init == ctx->next_cts_align)
+								ctx->next_cts_align = 0;
+						}
 						st->in_eos = GF_TRUE;
 					} else {
 						st->range_start_computed = 2;
@@ -2627,6 +2689,12 @@ refetch_streams:
 
 					if (gf_filter_pid_is_eos(ipid)) {
 						gf_filter_pid_set_eos(st->opid);
+						if (!st->in_eos && ctx->nb_align_pending) {
+							ctx->nb_align_pending--;
+							if (st->cts_us_at_init == ctx->next_cts_align)
+								ctx->next_cts_align = 0;
+							st->in_eos = GF_TRUE;
+						}
 						nb_eos++;
 					}
 				}
@@ -2970,9 +3038,10 @@ static const GF_FilterArgs ReframerArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "real-time regulation mode of input\n"
-	"- off: disables real-time regulation\n"
-	"- on: enables real-time regulation, one clock per PID\n"
-	"- sync: enables real-time regulation one clock for all PIDs", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
+	"- off: disable real-time regulation\n"
+	"- on: enable real-time regulation, one clock per PID\n"
+	"- sync: enable real-time regulation, one clock for all PIDs\n"
+	"- align: send packets in DTS order following one clock for all PIDs (undo input packet bursts), no real-time regulation", GF_PROP_UINT, "off", "off|on|sync|align", GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
 	{ OFFS(saps), "list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
 	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
 	{ OFFS(speed), "speed for real-time regulation mode, a value of 0 uses speed from play commands", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
@@ -3012,6 +3081,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(sapcue), "treat SAPs smaller than or equal to this value as cue points", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(rmseek), "remove seek flag of all sent packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(nodisc), "ignore all discontinuities from input - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -3118,6 +3188,14 @@ GF_FilterRegister ReframerRegister = {
 		"- `S`VAL: split source by chunks of estimated size `VAL` bytes (can use property multipliers, e.g. `m`)\n"
 		"\n"
 		"Note: In these modes, [-splitrange]() and [-xadjust]() are implicitly set.\n"
+		"\n"
+		"# Absorbing stream discontinuities\n"
+		"Discontinuities may happen quite often in streaming sessions due to resolution switching, codec change, etc ...\n"
+		"While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is known to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.\n"
+		"The [-nodisc]() option allows removing all discontinuities once a stream is setup.\n"
+		"Warning: Make sure you know what you are doing as using this option could make the stream not playable (ignoring a codec config change).\n"
+		"EX gpac -i SOMEURL reframer:nodisc -o DASH_ORIGIN\n"
+		"In this example, the dasher filter will never trigger a period switch due to input stream discontinuity.\n"
 		"\n"
 	)
 	.private_size = sizeof(GF_ReframerCtx),
