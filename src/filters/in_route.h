@@ -204,6 +204,7 @@ struct _route_repair_seg_info
 	u32 pending;
 	GF_List *ranges;
 	u32 nb_errors;
+	u32 nb_bytes_repaired;
 	TSI_Output *tsio;
 
 	u32 isox_state;

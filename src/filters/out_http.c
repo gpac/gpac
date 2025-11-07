@@ -935,6 +935,10 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 				request_ok = GF_FALSE;
 				break;
 			}
+			if (sess->ranges[i].start > (s64) sess->ranges[i].end) {
+				request_ok = GF_FALSE;
+				break;
+			}
 		} else {
 			if (known_file_size==0) {
 				request_ok = GF_FALSE;
@@ -947,6 +951,11 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 			}
 			sess->ranges[i].start = known_file_size - sess->ranges[i].end;
 			sess->ranges[i].end = known_file_size - 1;
+
+			if (sess->ranges[i].start > (s64) sess->ranges[i].end) {
+				request_ok = GF_FALSE;
+				break;
+			}
 		}
 		sess->bytes_in_req += (sess->ranges[i].end + 1 - sess->ranges[i].start);
 	}
