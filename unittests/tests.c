@@ -71,7 +71,6 @@ int run_tests(int argc, char *argv[])
       continue;
     }
 
-
     int prev_checks_failed = checks_failed;
     tests[i].test_function();
     if(checks_failed > prev_checks_failed) {

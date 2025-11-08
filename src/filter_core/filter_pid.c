@@ -3996,7 +3996,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				}
 			}
 			//if first in new chain is the same as one of the existing output relink the existing output and do not load chain
-			//this avoids loading multiple times the same filters instead of using fanouts on dynamicallly loaded filter
+			//this avoids loading multiple times the same filters instead of using fanouts on dynamically loaded filter
 			//see examples in #2851
 			if (!i && pid->num_destinations) {
 				u32 pidx;

@@ -849,7 +849,6 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 	ds->period = ctx->next_period;
 
 exit:
-
 	ds->stl = ctx->stl;
 	if (ctx->sigfrag) {
 		const GF_PropertyValue *p = gf_filter_pid_get_property_str(ds->ipid, "source_template");
