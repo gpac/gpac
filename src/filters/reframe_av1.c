@@ -492,7 +492,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			duration += ctx->cur_fps.den;
 			cur_dur += ctx->cur_fps.den;
 		}
-		if (ctx->bsmode != IAMF && (av1state->frame_state.key_frame || av1state->frame_state.switch_frame) )
+		if (ctx->bsmode != IAMF && av1state->frame_state.key_frame)
 		 	is_sap = GF_TRUE;
 
 		//only index at I-frame start
@@ -1020,7 +1020,6 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u32 pck_size = 0;
 	GF_FilterPacket *pck = NULL;
 	u8 *output = NULL;
-	GF_FilterSAPType sap = GF_FILTER_SAP_NONE;
 
 	if (!ctx->opid)
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -1051,13 +1050,8 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pck_merge_properties(ctx->src_pck, pck);
 
 	gf_filter_pck_set_cts(pck, ctx->cts);
-
-	if (ctx->state.frame_state.key_frame) {
-		sap = GF_FILTER_SAP_1;
-	} else if (ctx->state.frame_state.switch_frame) {
-		sap = GF_FILTER_SAP_1_SWITCH;
-	}
-	gf_filter_pck_set_sap(pck, sap);
+	gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+	gf_filter_pck_set_switch_frame(pck, ctx->state.frame_state.switch_frame);
 
 	if (ctx->is_iamf) {
 		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);

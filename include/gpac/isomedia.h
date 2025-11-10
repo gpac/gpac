@@ -572,8 +572,6 @@ typedef enum {
 	RAP = 1,
 	/*! sync point (IDR)*/
 	SAP_TYPE_1 = 1,
-	/*! sync point (IDR Switch Frame)*/
-	SAP_TYPE_1_SWITCH = 1,
 	/*! sync point (IDR)*/
 	SAP_TYPE_2 = 2,
 	/*! RAP, OpenGOP*/

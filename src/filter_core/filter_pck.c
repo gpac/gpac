@@ -1749,6 +1749,23 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 }
 
 GF_EXPORT
+GF_Err gf_filter_pck_set_switch_frame(GF_FilterPacket *pck, Bool is_switch_frame)
+{
+	PCK_SETTER_CHECK("switch_frame")
+	pck->info.flags_ext &= ~GF_PCKF_SWITCH_FRAME;
+	if (is_switch_frame) pck->info.flags_ext |= GF_PCKF_SWITCH_FRAME;
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_pck_get_switch_frame(GF_FilterPacket *pck)
+{
+	gf_assert(pck);
+	//get true packet pointer
+	return (Bool) (pck->pck->info.flags_ext & GF_PCKF_SWITCH_FRAME) ? GF_TRUE : GF_FALSE;
+}
+
+GF_EXPORT
 GF_Err gf_filter_pck_set_roll_info(GF_FilterPacket *pck, s16 roll_count)
 {
 	PCK_SETTER_CHECK("ROLL")

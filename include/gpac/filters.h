@@ -4831,8 +4831,6 @@ typedef enum
 	GF_FILTER_SAP_NONE = 0,
 	/*! closed gop no leading */
 	GF_FILTER_SAP_1,
-	/*! AV1 switch frame */
-	GF_FILTER_SAP_1_SWITCH,
 	/*! closed gop leading */
 	GF_FILTER_SAP_2,
 	/*! open gop */
@@ -4855,6 +4853,19 @@ GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type);
 \return sap_type SAP type of the packet
 */
 GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck);
+
+/*! Sets packet switch frame flag
+\param pck target packet
+\param is_switch_frame switch frame flag of the packet
+\return error code if any
+*/
+GF_Err gf_filter_pck_set_switch_frame(GF_FilterPacket *pck, Bool is_switch_frame);
+
+/*! Sets packet switch frame flag
+\param pck target packet
+\return switch frame flag of the packet
+*/
+Bool gf_filter_pck_get_switch_frame(GF_FilterPacket *pck);
 
 
 /*! Sets packet video interlacing flag
