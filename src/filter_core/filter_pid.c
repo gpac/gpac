@@ -3996,7 +3996,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				}
 			}
 			//if first in new chain is the same as one of the existing output relink the existing output and do not load chain
-			//this avoids loading multiple times the same filters instead of using fanouts on dynamicallly loaded filter
+			//this avoids loading multiple times the same filters instead of using fanouts on dynamically loaded filter
 			//see examples in #2851
 			if (!i && pid->num_destinations) {
 				u32 pidx;
@@ -5740,7 +5740,7 @@ single_retry:
 		goto restart;
 	}
 
-	//special case: if we found a destination, ignore any  force_link filter that is an alias filter and has a matching sourceID
+	//special case: if we found a destination, ignore any force_link filter that is an alias filter and has a matching sourceID
 	//This is needed because a filter calling gf_filter_set_source on a alias filter
 	//will never modify the sourceID of the original (non-alias) filter
 	//eg [...] dasher -> scte35dec(injected) -> httpout(alias)
@@ -7787,8 +7787,12 @@ static Bool evt_get_refstr(GF_FilterEvent *evt, u32 r_idx, GF_RefString **ref_st
 		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_SEGMENT_SIZE) {
-		if (r_idx) return GF_FALSE;
-		*ref_str = TO_REFSTRING(evt->seg_size.seg_url);
+		if (!r_idx)
+			*ref_str = TO_REFSTRING(evt->seg_size.seg_url);
+		else if (r_idx==1)
+			*ref_str = TO_REFSTRING(evt->seg_size.base64_version);
+		else
+			return GF_FALSE;
 		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_DASH_QUALITY_SELECT) {
@@ -7852,9 +7856,15 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			url_addr_src = (char **) &evt->seek.source_switch;
 			url_addr_dst = (char **) &an_evt->seek.source_switch;
 		} else if (evt->base.type==GF_FEVT_SEGMENT_SIZE) {
-			if (i) break;
-			url_addr_src = (char **) &evt->seg_size.seg_url;
-			url_addr_dst = (char **) &an_evt->seg_size.seg_url;
+			if (!i) {
+				url_addr_src = (char **) &evt->seg_size.seg_url;
+				url_addr_dst = (char **) &an_evt->seg_size.seg_url;
+			} else if (i==1) {
+				url_addr_src = (char **) &evt->seg_size.base64_version;
+				url_addr_dst = (char **) &an_evt->seg_size.base64_version;
+			} else {
+				break;
+			}
 		} else if (evt->base.type==GF_FEVT_DASH_QUALITY_SELECT) {
 			if (!i) {
 				url_addr_src = (char **) &evt->dash_select.period_id;
@@ -9709,7 +9719,7 @@ GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *pid, u32 rtt_ms, u32 jitter_us, 
 #include <gpac/internal/media_dev.h>
 GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size, Bool force_sbr);
 GF_Err dolby_get_codec_ac4(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size);
-GF_Err rfc_6381_get_codec_imaf(char *szCodec, GF_IAConfig *cfg);
+GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg);
 GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size);
 GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
 GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
@@ -9842,7 +9852,7 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		return dolby_get_codec_ac4(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
 	case GF_CODECID_IAMF: {
 		GF_IAConfig *cfg = gf_odf_iamf_cfg_read(dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
-		GF_Err e = rfc_6381_get_codec_imaf(szCodec, cfg);
+		GF_Err e = rfc_6381_get_codec_iamf(szCodec, cfg);
 		gf_odf_iamf_cfg_del(cfg);
 		return e;
 	}
@@ -9897,9 +9907,20 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			}
 		}
 		if (dcd || dcd_enh) {
-			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
+			GF_HEVCConfig *hvcc;
+			if (dcd)
+				hvcc = gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE);
+			else
+				hvcc = gf_odf_hevc_cfg_read(dcd_enh->value.data.ptr, dcd_enh->value.data.size, GF_TRUE);
+
 			if (hvcc) {
-				GF_Err e = rfc_6381_get_codec_hevc(szCodec, subtype, hvcc);
+				GF_Err e;
+				if (dcd) {
+					e = rfc_6381_get_codec_hevc(szCodec, subtype, hvcc);
+				} else {
+					snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+					e = GF_OK;
+				}
 				gf_odf_hevc_cfg_del(hvcc);
 				return e;
 			}

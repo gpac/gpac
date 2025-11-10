@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1165,8 +1165,10 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 
 		if (nb_samples==1) {
 			tot_samples = stbl->SampleSize->sampleCount - 1;
-		} else {
+		} else if (stbl->SampleSize->sampleCount >= nb_samples) {
 			tot_samples = stbl->SampleSize->sampleCount - nb_samples;
+		} else {
+			tot_samples = 0;
 		}
 		if (tot_samples) {
 			sampNum = 1;
@@ -1212,7 +1214,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		stts->w_LastDTS = tot_samples ? DTSs[tot_samples - 1] : 0;
 		gf_free(DTSs);
 		gf_assert(sampNum == tot_samples);
-		gf_assert(sampNum + nb_samples == stbl->SampleSize->sampleCount);
+
+		gf_assert(!tot_samples || (sampNum + nb_samples == stbl->SampleSize->sampleCount));
 	}
 
 	//reset write the cache to the end
@@ -2298,7 +2301,7 @@ GF_Err gf_isom_refresh_size_info(GF_ISOFile *file, u32 trackNumber)
 	u32 i, size;
 	GF_TrackBox *trak;
 	GF_SampleSizeBox *stsz;
-	trak = gf_isom_get_track_from_file(file, trackNumber);
+	trak = gf_isom_get_track_box(file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
 	stsz = trak->Media->information->sampleTable->SampleSize;

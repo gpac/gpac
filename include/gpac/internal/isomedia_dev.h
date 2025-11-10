@@ -250,6 +250,7 @@ enum
 	GF_ISOM_BOX_TYPE_EMIB	= GF_4CC( 'e', 'm', 'i', 'b' ),
 	GF_ISOM_BOX_TYPE_EMEB	= GF_4CC( 'e', 'm', 'e', 'b' ),
 	GF_ISOM_BOX_TYPE_EVTE	= GF_4CC( 'e', 'v', 't', 'e' ),
+	GF_ISOM_BOX_TYPE_SILB	= GF_4CC( 's', 'i', 'l', 'b' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -634,7 +635,10 @@ enum
 //internal flags (up to 16)
 //if flag is set, position checking of child boxes is ignored
 #define GF_ISOM_ORDER_FREEZE 1
+//if flag is set, box uses deflate compression
 #define GF_ISOM_BOX_COMPRESSED 2
+//if flag is set, box dump will skip size info
+#define GF_ISOM_DUMP_SKIP_SIZE 4
 
 	/*the default size is 64, cause we need to handle large boxes...
 
@@ -721,6 +725,7 @@ GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
 GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs);
 
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size);
+GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *boxType, u64 *bytesExpected, Bool progressive_mode);
 
 //writes box header - shall be called at the beginning of each xxxx_Write function
 //this function is not factorized in order to let box serializer modify box type before writing
@@ -1377,7 +1382,7 @@ typedef struct
 	u32 avgBitrate;
 } GF_BitRateBox;
 
-GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool create);
+GF_BitRateBox *gf_isom_sample_entry_get_bitrate_box(GF_SampleEntryBox *ent, Bool create);
 
 typedef struct
 {
@@ -2788,6 +2793,7 @@ typedef struct
 	//temp storage of prft box
 	GF_ISOTrackID reference_track_ID;
 	u64 ntp, timestamp;
+	u32 prft_at_mux;
 
 	//emsg to inject before moof, not part of the moof hierarchy !
 	GF_List *emsgs;
@@ -3411,9 +3417,26 @@ typedef struct
 
 typedef struct
 {
+	char *scheme_id_uri;
+	char *value;
+	u8 reserved : 7;
+	u8 atleast_once_flag : 1;
+} GF_SchemeIdListBoxEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 number_of_schemes;
+	GF_List *schemes; /*list of GF_SchemeIdListBoxEntry*/
+	u8 reserved : 7;
+	u8 other_schemes_flag : 1;
+} GF_SchemeIdListBox;
+
+typedef struct
+{
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_BitRateBox *btrt;
-	/*GF_SchemeIdListBox*/void *silb; //'silb' box, not implemented yet
+	GF_SchemeIdListBox *silb;
 } GF_EventMessageSampleEntryBox;
 
 
@@ -4422,7 +4445,7 @@ void gf_isom_set_last_error(GF_ISOFile *the_file, GF_Err error);
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode);
 GF_ISOFile *gf_isom_new_movie();
 /*Movie and Track access functions*/
-GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *the_file, u32 trackNumber);
+GF_TrackBox *gf_isom_get_track_box(GF_ISOFile *the_file, u32 trackNumber);
 GF_TrackBox *gf_isom_get_track(GF_MovieBox *moov, u32 trackNumber);
 GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, GF_ISOTrackID trackID);
 GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalID, u32 originalFile);
@@ -4514,7 +4537,6 @@ GF_Err gf_isom_set_sample_group_description_internal(GF_ISOFile *movie, u32 trac
 GF_Err isom_on_block_out(void *cbk, u8 *data, u32 block_size);
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
-GF_Err CanAccessMovie(GF_ISOFile *movie, GF_ISOOpenMode Mode);
 GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir);
 GF_Err gf_isom_insert_moov(GF_ISOFile *file);
 
@@ -4642,9 +4664,6 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 void gf_isom_parse_trif_info(const u8 *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h);
 
 Bool gf_isom_is_encrypted_entry(u32 entryType);
-
-//too export in constants
-Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size);
 
 GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 sampleNumber, u32 aux_type, u32 aux_info, u8 *data, u32 size);
 
@@ -4960,7 +4979,8 @@ Bool gf_isom_box_equal(GF_Box *a, GF_Box *b);
 GF_Box *gf_isom_clone_config_box(GF_Box *box);
 
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace);
-GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
+GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, Bool subtree_root);
+GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags);
 
 void gf_isom_registry_disable(u32 boxCode, Bool disable);
 
@@ -4977,7 +4997,6 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, u32 meta_type);
 
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc);
 GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace);
 GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version, const char *spec, const char *container);
 void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace);

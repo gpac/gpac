@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / SL header file
@@ -169,7 +169,7 @@ u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header);
 \param PDULength the size of the SL packet
 \param HeaderLen set to size of the SL header - payload will start at PDU + *HeaderLen
 */
-void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen);
+void gf_odf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen);
 
 /*! @} */
 

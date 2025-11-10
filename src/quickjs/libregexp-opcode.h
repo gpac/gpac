@@ -1,6 +1,6 @@
 /*
  * Regular Expression Engine
- * 
+ *
  * Copyright (c) 2017-2018 Fabrice Bellard
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,11 +26,15 @@
 
 DEF(invalid, 1) /* never used */
 DEF(char, 3)
+DEF(char_i, 3)
 DEF(char32, 5)
+DEF(char32_i, 5)
 DEF(dot, 1)
 DEF(any, 1) /* same as dot but match any character including line terminator */
 DEF(line_start, 1)
+DEF(line_start_m, 1)
 DEF(line_end, 1)
+DEF(line_end_m, 1)
 DEF(goto, 5)
 DEF(split_goto_first, 5)
 DEF(split_next_first, 5)
@@ -42,16 +46,21 @@ DEF(loop, 5) /* decrement the top the stack and goto if != 0 */
 DEF(push_i32, 5) /* push integer on the stack */
 DEF(drop, 1)
 DEF(word_boundary, 1)
+DEF(word_boundary_i, 1)
 DEF(not_word_boundary, 1)
+DEF(not_word_boundary_i, 1)
 DEF(back_reference, 2)
-DEF(backward_back_reference, 2) /* must come after back_reference */
+DEF(back_reference_i, 2) /* must come after */
+DEF(backward_back_reference, 2) /* must come after */
+DEF(backward_back_reference_i, 2) /* must come after */
 DEF(range, 3) /* variable length */
+DEF(range_i, 3) /* variable length */
 DEF(range32, 3) /* variable length */
+DEF(range32_i, 3) /* variable length */
 DEF(lookahead, 5)
 DEF(negative_lookahead, 5)
 DEF(push_char_pos, 1) /* push the character position on the stack */
-DEF(bne_char_pos, 5) /* pop one stack element and jump if equal to the character
- position */
+DEF(check_advance, 1) /* pop one stack element and check that it is different from the character position */
 DEF(prev, 1) /* go to the previous char */
 DEF(simple_greedy_quant, 17)
 

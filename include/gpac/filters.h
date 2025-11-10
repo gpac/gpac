@@ -54,7 +54,7 @@ This file contains all exported functions for filter management of the GPAC fram
 API Documentation of the filter managment system of GPAC.
 
 The filter management in GPAC is built using the following core objects:
-- \ref GF_FilterSession in charge of:
+- \ref fs_grp "GF_FilterSession" in charge of:
  - loading filters from register, managing argument parsing and co
  - resolving filter graphs to handle PID connection(s)
  - tracking data packets and properties exchanged on PIDs
@@ -62,12 +62,12 @@ The filter management in GPAC is built using the following core objects:
  - ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitly asked not to), but only by a single thread at any time.
 - \ref __gf_filter_register static structure describing possible entry points of the filter, possible arguments and input output PID capabilities.
 	Each filter share the same API (register definition) regardless of its type: source/sink, mux/demux, encode/decode, raw media processing, encoded media processing, ...
-- \ref GF_Filter is an instance of the filter register. A filter implementation typical tasks are:
+- \ref fs_filter "GF_Filter" is an instance of the filter register. A filter implementation typical tasks are:
  - accepting new input PIDs (for non source filters)
  - defining new output PIDs (for non sink filters), applying any property change due to filter processing
  - consuming packets on the input PIDs
  - dispatching packets on the output PIDs
-- \ref GF_FilterPid handling the connections between two filters.
+- \ref fs_pid "GF_FilterPid" handling the connections between two filters.
 	- PID natively supports fan-out (one filter PID connecting to multiple destinations).
 	- A PID is in charge of dispatching packets to possible destinations and storing PID properties in sync with dispatched packets.
 	- Whenever PID properties change, the next packet sent on that PID is associated with the new state, and the destination filter(s) will be called
@@ -78,7 +78,7 @@ The filter management in GPAC is built using the following core objects:
 	for processing. This is a semi-blocking design, which imply that if a filter has one of its PIDs in a non blocking state, it will be scheduled for processing. If a PID has multiple destinations and one of the destination consumes faster than the other one, the filter is currently not blocking (this might change in the near future).
 	- A PID is in charge of managing the packet references across filters, by performing memory management of allocated data packets
 	 (avoid alloc/free at each packet but rather recycle the memory) and tracking shared packets references.
-- \ref GF_FilterPacket holding data to dispatch from a filter on a given PID.
+- \ref fs_pck "GF_FilterPacket" holding data to dispatch from a filter on a given PID.
 	- Packets are always associated to a single output PID, ie it is not possible for a filter to send one packet to multiple PIDs, the data has to be cloned.
 	- Packets have default attributes such as timestamps, size, random access status, start/end frame, etc, as well as optional properties.
 	- All packets are reference counted.
@@ -1309,6 +1309,7 @@ enum
 	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
 	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
 	GF_PROP_PID_DASH_MULTI_TRACK = GF_4CC('D','M','T','K'),
+	GF_PROP_PID_DASH_INIT_BASE64 = GF_4CC('I','B','6','4'),
 	GF_PROP_PID_ROLE = GF_4CC('R','O','L','E'),
 	GF_PROP_PID_PERIOD_DESC = GF_4CC('P','D','E','S'),
 	GF_PROP_PID_AS_COND_DESC = GF_4CC('A','C','D','S'),
@@ -1468,6 +1469,7 @@ enum
 	GF_PROP_PCK_ORIGINAL_PTS = GF_4CC('O','P','T','S'),
 	GF_PROP_PCK_ORIGINAL_DTS = GF_4CC('O','D','T','S'),
 	GF_PROP_PID_MABR_URLS = GF_4CC('M','A','B','U'),
+	GF_PROP_PCK_FORCED_SUB = GF_4CC('P','C','F','S'),
 
 };
 
@@ -1907,6 +1909,8 @@ typedef struct
 	FILTER_EVENT_BASE
 	/*! URL of segment this info is for, or NULL if single file*/
 	const char *seg_url;
+	/*! base64 of segment payload (for init) or NULL*/
+	const char *base64_version;
 	/*! media start range in segment file*/
 	u64 media_range_start;
 	/*! media end range in segment file*/
@@ -2456,7 +2460,7 @@ typedef enum
 	(through get_gl_texture callback) in the main GL thread*/
 	GF_FS_REG_CONFIGURE_MAIN_THREAD = 1<<2,
 	/*! when set indicates the filter does not take part of dynamic filter chain resolution and can only be used by explicitly loading the filter
-	A filter with this flag and a \ref reconfigure_output callback set will be checked when loading a chain for PID property adaptation*/
+	A filter with this flag and a \ref __gf_filter_register.reconfigure_output callback set will be checked when loading a chain for PID property adaptation*/
 	GF_FS_REG_EXPLICIT_ONLY = 1<<3,
 	/*! when set ignores the filter weight during link resolution - this is typically needed by decoders requiring a specific reframing so that the weight of the reframer+decoder is the same as the weight of other decoders*/
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
@@ -3712,6 +3716,14 @@ void gf_filter_pid_remove(GF_FilterPid *PID);
 \return error code if any
 */
 GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, const u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
+
+/*! Creates an output PID for a gmem block, send packet as FILE and set created pid to EOS
+\param filter the target filter
+\param url gmem URL of the data block
+\param out_pid the output PID to create or update. If no referer PID, a new PID will be created otherwise the PID will be updated
+\return error code if any
+*/
+GF_Err gf_filter_pid_raw_gmem(GF_Filter *filter, const char *url, GF_FilterPid **out_pid);
 
 /*! Sets a new property on an output PID for built-in property names.
 Setting a new property will trigger a PID reconfigure at the consumption point of the next dispatched packet.
@@ -5145,7 +5157,7 @@ The app is responsible for assigning capabilities to the filter, and setting cal
 Each callback is optional, but a custom filter should at least have a process callback, and a configure_pid callback if not a source filter.
 
 Custom filters do not have any arguments exposed, and cannot be selected for sink or source filters.
-If your app requires custom I/Os for source or sinks, use \ref GF_FileIO.
+If your app requires custom I/Os for source or sinks, use \ref osfile_grp "GF_FileIO".
 @{
  */
 

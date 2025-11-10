@@ -341,7 +341,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 
 	if (pathSepCount)
 		had_sep_count = GF_TRUE;
-	/*remove the last /*/
+	/*remove the last */
 	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
 		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {

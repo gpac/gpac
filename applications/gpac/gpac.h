@@ -49,9 +49,9 @@ Bool mp4c_handle_prompt(u8 char_val);
 Bool mp4c_task(void );
 void mp4c_help(u32 argmode);
 
-GF_Err gf_fs_process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link);
-
 #endif
+
+GF_Err gf_fs_process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link);
 
 
 //if uncommented, check argument description matches our conventions - see filter.h
@@ -105,4 +105,3 @@ void gpac_open_urls(const char *urls);
 #ifdef GPAC_DEFER_MODE
 void gpac_defer_help(void);
 #endif // GPAC_DEFER_MODE
-

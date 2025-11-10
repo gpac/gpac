@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 Object Descriptor sub-project
@@ -1640,7 +1640,7 @@ GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size);
 \param cfg the AC3/EC3 config to fill
 \return Error if any
 */
-GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg);
+GF_Err gf_odf_ac3_cfg_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg);
 
 /*! parses an AC3/EC3 sample description from bitstream
 \param bs the bitstream object
@@ -1648,7 +1648,7 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 \param cfg the AC3/EC3 config to fill
 \return Error if any
 */
-GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
+GF_Err gf_odf_ac3_cfg_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
 
 typedef struct {
     u8 b_4_back_channels_present;
@@ -1779,6 +1779,8 @@ typedef struct __ac4_config
 	u32 header_size;
 	/*  sync frame CRC size */
 	u32 crc_size;
+	/*  frame toc size */
+	u32 toc_size;
 } GF_AC4Config;
 
 #define GF_AC4_DESCMODE_PARSE 0
@@ -1835,12 +1837,6 @@ u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg);
 \param src the address of source
 */
 void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src);
-
-/*! copy the GF_AC4PresentationV1
-\param pres_dst the address of GF_AC4PresentationV1 to fill
-\param pres_src the address of source
-*/
-void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src);
 
 /*! clean the GF_List data in GF_AC4Config
 \param hdr the address of AC4 config to clean

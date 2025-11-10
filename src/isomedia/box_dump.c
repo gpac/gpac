@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -94,14 +94,20 @@ static void dump_data_string(FILE *trace, char *data, u32 dataLength)
 }
 
 
-GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
+GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags)
 {
 	u32 i;
 	GF_Box *a;
 	if (!list) return GF_OK;
 	i=0;
 	while ((a = (GF_Box *)gf_list_enum(list, &i))) {
-		gf_isom_box_dump(a, trace);
+		if (parent_internal_flags & GF_ISOM_DUMP_SKIP_SIZE) {
+			a->internal_flags |= GF_ISOM_DUMP_SKIP_SIZE;
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
+			a->internal_flags &= ~GF_ISOM_DUMP_SKIP_SIZE;
+		} else {
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
+		}
 	}
 	return GF_OK;
 }
@@ -148,7 +154,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 		} else if (!gf_isom_box_is_file_level(box)) {
 			gf_fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
 		}
-		gf_isom_box_dump(box, trace);
+		gf_isom_box_dump_ex(box, trace, GF_TRUE);
 	}
 	gf_fprintf(trace, "</IsoMediaFile>\n");
 
@@ -698,14 +704,14 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
 	}
-	
+
 	Float dpih, dpiv;
 	dpih = (Float) (p->horiz_res&0xFFFF);
 	dpih /= 0xFFFF;
 	dpih += (p->vert_res>>16);
 	dpiv = (Float) (p->vert_res&0xFFFF);
 	dpiv /= 0xFFFF;
-	dpiv += (p->vert_res>>16); 
+	dpiv += (p->vert_res>>16);
 	if (gf_sys_is_test_mode()) {
 		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	} else {
@@ -900,7 +906,7 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 		gf_fprintf(trace, ">\n");
 		while (gf_list_count(list)) {
 			GF_Box *a = gf_list_pop_front(list);
-			gf_isom_box_dump(a, trace);
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
 			gf_isom_box_del(a);
 		}
 	} else {
@@ -989,7 +995,7 @@ GF_Err udta_box_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
-		gf_isom_box_array_dump(map->boxes, trace);
+		gf_isom_box_array_dump(map->boxes, trace, a->internal_flags);
 	}
 	gf_isom_box_dump_done("UserDataBox", a, trace);
 	return GF_OK;
@@ -3449,7 +3455,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	GF_RTPPacket *pck;
 	char *szName;
 
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
 
 	tmp = gf_isom_get_sample(the_file, trackNumber, SampleNum, &descIndex);
@@ -3857,7 +3863,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	Bool box_dump = (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE;
 	Bool skip_empty = (dump_type==GF_TEXTDUMPTYPE_TTXT_CHAP) ? GF_TRUE : GF_FALSE;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4166,7 +4172,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	GF_Tx3gSampleEntryBox *txtd;
 	char szDur[100];
 	Bool is_wvtt = GF_FALSE;
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	Bool srt_forced_subs = gf_opts_get_bool("core", "srt-forced");
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	u32 subtype = gf_isom_get_media_subtype(the_file, track, 1);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
@@ -4286,8 +4293,10 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
 
-		if (txt->is_forced) gf_fprintf(dump, " !!!");
-		else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		if (srt_forced_subs) {
+			if (txt->is_forced) gf_fprintf(dump, " !!!");
+			else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		}
 
 		gf_fprintf(dump, "\n");
 
@@ -4311,7 +4320,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	u64 start, end;
 	GF_BitStream *bs;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4394,7 +4403,7 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 	u64 start;
 	GF_BitStream *bs;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4544,7 +4553,7 @@ GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, F
 	GF_Err e;
 	GF_TrackBox *trak;
 
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
 
@@ -6016,8 +6025,6 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv);
-
 GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, sample_count;
@@ -6108,7 +6115,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
 				u32 idx = gf_bs_read_u16(bs);
-				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
+				u8 mk_iv_size = gf_cenc_key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
 				pos = (u32) gf_bs_get_position(bs);
 				if (mk_iv_size + pos <= sai->cenc_data_size) {
 					gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);
@@ -6815,7 +6822,7 @@ GF_Err fdsa_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "FDSampleBox", trace);
 	gf_fprintf(trace, ">\n");
 
-	e = gf_isom_box_array_dump(ptr->packetTable, trace);
+	e = gf_isom_box_array_dump(ptr->packetTable, trace, a->internal_flags);
 	if (e) return e;
 	gf_isom_box_dump_done("FDSampleBox", a, trace);
 	return GF_OK;
@@ -7275,6 +7282,25 @@ GF_Err evte_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "EventMessageSampleEntryBox", trace);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("EventMessageSampleEntryBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err silb_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SchemeIdListBox *p = (GF_SchemeIdListBox *) a;
+	gf_isom_box_dump_start(a, "SchemeIdListBox", trace);
+
+	fprintf(trace, "number_of_schemes=\"%u\" other_schemes_flag=\"%u\"",
+		p->number_of_schemes, p->other_schemes_flag);
+	gf_fprintf(trace, ">\n");
+
+	for (u32 i=0; i<p->number_of_schemes; ++i) {
+		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry*)gf_list_get(p->schemes, i);
+		fprintf(trace, "<SchemeIdListBoxEntry scheme_id_uri=\"%s\" value=\"%s\" value=\"%u\"/>\n",
+			ent->scheme_id_uri, ent->value, ent->atleast_once_flag);
+	}
+
+	gf_isom_box_dump_done("SchemeIdListBox", a, trace);
 	return GF_OK;
 }
 

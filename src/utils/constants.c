@@ -1107,6 +1107,40 @@ u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 	return mask;
 }
 
+// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_channel_mask_v1
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 mask)
+{
+	const u32 channel_mask_v1_2_channel_count[19] = {
+		2,  // L,R
+		1,  // C
+		2,  // Ls,Rs
+		2,  // Lb,Rb
+		2,  //Tfl,Tfr
+		2,  //Tbl,Tbr
+		1,  //LFE
+		2,  //Tl,Tr
+		2,  //Tsl,Tsr
+		1,  //Tfc
+		1,  //Tbc
+		1,  //Tc
+		1,  //LEF2
+		2,  //Bfl,Bfr
+		1,  //Bfc
+		1,  //Cb
+		2,  //Lscr,Rscr
+		2,  //Lw,Rw
+		2   //Vhl,Vhr
+	};
+	u32 count = 0;
+    for(u32 i = 0; i < 19; i++) {
+        if(mask % 2 == 1) {
+            count += channel_mask_v1_2_channel_count[i];
+        }
+        mask /= 2;
+    }
+    return count;
+}
+
 GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 {
@@ -2913,4 +2947,43 @@ GF_EXPORT
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
 {
 	TIMECODE_COMPARE(==)
+}
+
+GF_EXPORT
+u8 gf_cenc_key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
+{
+	u32 i=0, kpos=3;
+	if (const_iv_size) *const_iv_size = 0;
+	if (const_iv) *const_iv = NULL;
+
+	if (!key_info || !key_info_size)
+		return 0;
+
+	while (1) {
+		u8 civ_size=0;
+		const u8 *civ = NULL;
+		u8 iv_size = key_info[kpos];
+		kpos += 17;
+
+		if (!iv_size) {
+			if (kpos>key_info_size)
+				break;
+			civ_size = key_info[kpos];
+			civ = key_info + kpos + 1;
+			kpos += 1 + civ_size;
+		}
+
+		if (kpos>key_info_size)
+			break;
+
+		if (i+1==idx) {
+			if (const_iv_size) *const_iv_size = civ_size;
+			if (const_iv) *const_iv = civ;
+			return iv_size;
+		}
+		i++;
+		if (kpos==key_info_size)
+			break;
+	}
+	return 0;
 }

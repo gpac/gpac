@@ -200,12 +200,12 @@ Gets the SDP asscoiated with all media in the streaming session (only media part
 \param tx text window horizontal offset
 \param ty text window vertical offset
 \param tl text window z-index
-\param nb_chan number of audio channels, 0 if unknown
+\param nb_channels number of audio channels, 0 if unknown
 \param for_rtsp if GF_TRUE, produces the SDP for an RTSP describe (no port info)
 \param out_sdp_buffer location to the SDP buffer to allocate and fill
 \return error if any
  */
-GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, const u8 *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, u32 nb_chan, Bool for_rtsp, char **out_sdp_buffer);
+GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, const u8 *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, u32 nb_channels, Bool for_rtsp, char **out_sdp_buffer);
 
 /*! sends a full Access Unit over RTP
 \param rtp the target RTP streamer
@@ -309,7 +309,7 @@ u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer);
 GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2);
 
 
-/*! callback function for procesing RTCP  receiver reports
+/*! callback function for processing RTCP  receiver reports
 \param cbk user data passed to \ref  gf_rtp_streamer_read_rtcp
 \param ssrc ssrc for this report, 0 if same as ssrc of channel
 \param rtt_ms round-trip time estimate in ms
@@ -353,4 +353,3 @@ u32 gf_rtp_streamer_get_codecid(GF_RTPStreamer *streamer);
 #endif //GPAC_DISABLE_ISOM && GPAC_DISABLE_STREAMING
 
 #endif		/*_GF_RTPSTREAMER_H_*/
-

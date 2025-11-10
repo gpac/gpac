@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1787,7 +1787,7 @@ import_next_sample:
 
 					gf_isom_get_pssh_info(fsrc, i+1, SystemID, &version, &KID_count, &KIDs, &private_data, &private_data_size);
 					
-					gf_cenc_set_pssh(movie, SystemID, version, KID_count, (bin128 *) KIDs, (u8 *) private_data, private_data_size, 2);
+					gf_isom_cenc_set_pssh(movie, SystemID, version, KID_count, (bin128 *) KIDs, (u8 *) private_data, private_data_size, 2);
 				}
 			}
 

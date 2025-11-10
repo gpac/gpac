@@ -990,9 +990,14 @@ interface JS_RMTClient {
 	readonly attribute string peer_address;
 
 	/*! sends data to the client on the websocket
-	\param data the data to send, can be either of type string (for utf8 data) or arraybuffer (for binary data)
+	\param data the data to send as a utf8 string
 	*/
-	void send(data);
+	void send(string data);
+
+	/*! sends data to the client on the websocket
+	\param data the data to send as a binary arraybuffer
+	*/
+	void send(arraybuffer data);
 
 
 }

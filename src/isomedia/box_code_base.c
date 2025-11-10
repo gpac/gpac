@@ -9147,7 +9147,7 @@ GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 	pos = gf_bs_get_position(bs);
-	e = gf_odf_ac3_config_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
+	e = gf_odf_ac3_cfg_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
 	if (e) return e;
 	pos = gf_bs_get_position(bs) - pos;
 	ISOM_DECREASE_SIZE(ptr, pos);
@@ -13691,6 +13691,119 @@ GF_Err emsg_box_size(GF_Box *s)
 #endif // GPAC_DISABLE_ISOM_WRITE
 
 
+GF_Box *silb_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SchemeIdListBox, GF_ISOM_BOX_TYPE_SILB);
+	return (GF_Box *)tmp;
+}
+
+void silb_box_del(GF_Box *s)
+{
+	GF_SchemeIdListBox *ptr = (GF_SchemeIdListBox *) s;
+	if (ptr == NULL) return;
+	while (gf_list_count(ptr->schemes)) {
+		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry *)gf_list_get(ptr->schemes, 0);
+		gf_free(ent->scheme_id_uri);
+		gf_free(ent->value);
+		gf_free(ent);
+		gf_list_rem(ptr->schemes, 0);
+	}
+	gf_list_del(ptr->schemes);
+	gf_free(ptr);
+}
+
+GF_Err silb_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SchemeIdListBox *ptr = (GF_SchemeIdListBox*) s;
+
+	ptr->number_of_schemes = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 4+ptr->number_of_schemes*sizeof(GF_SchemeIdListBoxEntry)+1);
+	if (ptr->number_of_schemes) {
+		ptr->schemes = gf_list_new();
+		if (!ptr->schemes) return GF_OUT_OF_MEM;
+
+		for (u32 i=0; i<ptr->number_of_schemes; i++) {
+			GF_SchemeIdListBoxEntry *ent = gf_malloc(sizeof(GF_SchemeIdListBoxEntry));
+			if (!ent) return GF_OUT_OF_MEM;
+			memset(ent, 0, sizeof(GF_SchemeIdListBoxEntry));
+
+			e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ent->scheme_id_uri);
+			if (e) {
+				gf_free(ent);
+				return e;
+			}
+			e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ent->value);
+			if (e) {
+				if (ent->scheme_id_uri) gf_free(ent->scheme_id_uri);
+				gf_free(ent);
+				return e;
+			}
+
+			ent->reserved = gf_bs_read_int(bs, 7);
+			ent->atleast_once_flag = gf_bs_read_int(bs, 1);
+
+			gf_list_add(ptr->schemes, ent);
+		}
+	}
+
+	ptr->reserved = gf_bs_read_int(bs, 7);
+	ptr->other_schemes_flag = gf_bs_read_int(bs, 1);
+
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err silb_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SchemeIdListBox *ptr = (GF_SchemeIdListBox*) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->number_of_schemes);
+	for (u32 i=0; i<ptr->number_of_schemes; i++) {
+		GF_SchemeIdListBoxEntry *ent = gf_list_get(ptr->schemes, i);
+
+		u32 len = ent->scheme_id_uri ? (u32) strlen(ent->scheme_id_uri) : 0;
+		if (len) gf_bs_write_data(bs, ent->scheme_id_uri, len);
+		gf_bs_write_u8(bs, 0);
+
+		len = ent->value ? (u32) strlen(ent->value) : 0;
+		if (len) gf_bs_write_data(bs, ent->value, len);
+		gf_bs_write_u8(bs, 0);
+
+		gf_bs_write_int(bs, ent->reserved, 7);
+		gf_bs_write_int(bs, ent->atleast_once_flag, 1);
+	}
+
+	gf_bs_write_int(bs, ptr->reserved, 7);
+	gf_bs_write_int(bs, ptr->other_schemes_flag, 1);
+
+	return GF_OK;
+}
+
+GF_Err silb_box_size(GF_Box *s)
+{
+	GF_SchemeIdListBox *ptr = (GF_SchemeIdListBox*) s;
+
+	ptr->size += 4;     //number_of_schemes
+	for (u32 i=0; i<ptr->number_of_schemes; i++) {
+		GF_SchemeIdListBoxEntry *ent = gf_list_get(ptr->schemes, i);
+		if (!ent) return GF_BAD_PARAM;
+		ptr->size += 2; //2 NULL-terminated strings
+		if (ent->scheme_id_uri) ptr->size += strlen(ent->scheme_id_uri);
+		if (ent->value) ptr->size += strlen(ent->value);
+		ptr->size += 1; //reserved + atleast_once_flag
+	}
+	ptr->size += 1;     //reserved + other_schemes_flag
+
+	return GF_OK;
+}
+#endif // GPAC_DISABLE_ISOM_WRITE
+
 
 GF_Box *emib_box_new()
 {
@@ -14587,6 +14700,7 @@ static s32 read_signed_int(GF_BitStream *bs, u32 nb_bits, s32 max_val)
 {
 	s32 val = gf_bs_read_int(bs, nb_bits);
 	if (val<max_val) return val;
+	if (max_val>=GF_INT_MAX/2) return max_val;
 	return val - (2*max_val);
 }
 

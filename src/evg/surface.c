@@ -1407,7 +1407,7 @@ GF_Err gf_evg_surface_multi_fill(GF_EVGSurface *surf, GF_EVGMultiTextureMode ope
 	surf->sten = sten1;
 	surf->update_run = NULL;
 
-	/*setup ft raster calllbacks*/
+	/*setup ft raster callbacks*/
 	if (!setup_grey_callback(surf, GF_FALSE, sten2 ? GF_TRUE : GF_FALSE)) return GF_OK;
 
 	get_surface_world_matrix(surf, &mat);
@@ -1540,7 +1540,7 @@ GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, 
 	u32 max_gray;
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
-	/*setup ft raster calllbacks*/
+	/*setup ft raster callbacks*/
 	if (!setup_grey_callback(surf, GF_TRUE, GF_FALSE)) return GF_OK;
 
 	if (surf->useClipper) {
@@ -1575,7 +1575,7 @@ GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 	u32 max_gray;
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
-	/*setup ft raster calllbacks*/
+	/*setup ft raster callbacks*/
 	if (!setup_grey_callback(surf, GF_TRUE, GF_FALSE)) return GF_OK;
 
 	if (surf->useClipper) {

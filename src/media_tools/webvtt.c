@@ -973,6 +973,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			}
 			break;
 		}
+		had_marks = GF_FALSE;
 		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
 		if (parser->is_srt && sOK && !strncmp(sOK, "WEBVTT", 6)) {
