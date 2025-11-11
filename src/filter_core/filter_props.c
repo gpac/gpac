@@ -1707,6 +1707,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- same value as ASID: regular SSR not used for cross-AS switching\n"
 	"- ID of another AdaptationSet: enable cross-AS switching between this AS and the referenced one\n"
 	"- negative value: LL-HLS compatability mode", GF_PROP_SINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AS_QUERY, "ASQuery", "Query string to add to this Adaptation Set when requesting segments", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_MUX_SRC, "MuxSrc", "Name of mux source(s), set by dasher to direct its outputs", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_MODE, "DashMode", "DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_INIT_BASE64, "InitBase64", "Indicate that multiplexer should send the base64 encoded version of the init segment", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
