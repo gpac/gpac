@@ -22,8 +22,9 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
+#include <inttypes.h>
 #include "downloader.h"
+#include <sys/resource.h>
 
 #ifndef GPAC_DISABLE_NETWORK
 
@@ -2354,44 +2355,86 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 		u64 run_time;
 
 #ifdef GPAC_HTTPMUX
-		if (sess->hmux_sess && !sess->server_mode)
-			sess->hmux_stream_id = -1;
+        if (sess->hmux_sess && !sess->server_mode)
+            sess->hmux_stream_id = -1;
 #endif
 
-		if (sess->use_cache_file) {
-			//for chunk transfer or H2/H3
-			gf_cache_set_content_length(sess->cache_entry, sess->total_size);
-			gf_cache_close_write_cache(sess->cache_entry, sess, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE,
-			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
+        if (sess->use_cache_file) {
+            //for chunk transfer or H2/H3
+            gf_cache_set_content_length(sess->cache_entry, sess->total_size);
+            gf_cache_close_write_cache(sess->cache_entry, sess, GF_TRUE);
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE,
+                   ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 
-			if (sess->dm && sess->dm->cache_clean_ms) {
-				sess->dm->cur_cache_size += sess->total_size;
-				if (sess->dm->cur_cache_size > sess->dm->max_cache_size) {
-					if (!sess->dm->next_cache_clean) sess->dm->next_cache_clean = gf_sys_clock()+sess->dm->cache_clean_ms;
-					else if (gf_sys_clock()>sess->dm->next_cache_clean) {
-						sess->dm->cur_cache_size = gf_cache_cleanup(sess->dm->cache_directory, sess->dm->max_cache_size);
-						sess->dm->next_cache_clean = 0;
-					}
-				}
-			}
-		}
+            if (sess->dm && sess->dm->cache_clean_ms) {
+                sess->dm->cur_cache_size += sess->total_size;
+                if (sess->dm->cur_cache_size > sess->dm->max_cache_size) {
+                    if (!sess->dm->next_cache_clean) sess->dm->next_cache_clean = gf_sys_clock()+sess->dm->cache_clean_ms;
+                    else if (gf_sys_clock()>sess->dm->next_cache_clean) {
+                        sess->dm->cur_cache_size = gf_cache_cleanup(sess->dm->cache_directory, sess->dm->max_cache_size);
+                        sess->dm->next_cache_clean = 0;
+                    }
+                }
+            }
+        }
 
-		gf_dm_disconnect(sess, HTTP_NO_CLOSE);
-		par.msg_type = GF_NETIO_DATA_TRANSFERED;
-		par.error = GF_OK;
+        gf_dm_disconnect(sess, HTTP_NO_CLOSE);
+        par.msg_type = GF_NETIO_DATA_TRANSFERED;
+        par.error = GF_OK;
 
-		gf_dm_sess_user_io(sess, &par);
-		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
-		run_time = gf_sys_clock_high_res() - sess->start_time;
+        gf_dm_sess_user_io(sess, &par);
+        sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
+        run_time = gf_sys_clock_high_res() - sess->start_time;
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", sess->log_name, gf_file_basename(gf_cache_get_url(sess->cache_entry)), sess->bytes_done,
-		                                     run_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time));
+        GF_LOG(GF_LOG_INFO, GF_LOG_HTTP,
+   ("[%s] %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n",
+    sess->log_name,
+    gf_file_basename(gf_cache_get_url(sess->cache_entry)),
+    sess->bytes_done,
+    run_time,
+    8*sess->bytes_per_sec/1000,
+    sess->total_time_since_req,
+    sess->reply_time));
 
-		if (sess->chunked && (payload_size==2))
-			payload_size=0;
-		sess->last_error = GF_OK;
-	}
+/*  H1-METRICS (only for true H1)  */
+{
+    Bool is_h1 = GF_TRUE;
+    /* If HTTP/2 mux is present 1 */
+#if defined(GPAC_HTTPMUX)
+    if (sess->hmux_sess) is_h1 = GF_FALSE;
+#endif
+    /* If QUIC/H3 flag is set */
+    if (sess->flags & GF_NETIO_SESSION_USE_QUIC) is_h1 = GF_FALSE;
+
+    if (is_h1) {
+        struct rusage usage;
+        getrusage(RUSAGE_SELF, &usage);
+
+        double dur_s = (double)sess->total_time_since_req / 1e6;
+        double thr   = (dur_s > 0) ? (8.0 * (double)sess->bytes_done / dur_s / 1e6) : 0.0;
+
+        GF_LOG(GF_LOG_INFO, GF_LOG_HTTP,
+           ("[H1-METRICS] mode=%s url=%s bytes=%" PRIu64 " ttfb_us=%u dur_us=%u thr=%.3fMb/s "
+            "cpu_user_ms=%ld cpu_sys_ms=%ld mem=%ld phase=%s\n",
+            sess->server_mode ? "server" : "client",
+            sess->orig_url ? sess->orig_url : "",
+            sess->bytes_done,
+            sess->reply_time,
+            sess->total_time_since_req,
+            thr,
+            usage.ru_utime.tv_sec*1000 + usage.ru_utime.tv_usec/1000,
+            usage.ru_stime.tv_sec*1000 + usage.ru_stime.tv_usec/1000,
+            usage.ru_maxrss,
+            sess->last_error ? "error" : "close"));
+    }
+}
+/* end H1-METRICS  */
+
+        if (sess->chunked && (payload_size==2))
+            payload_size = 0;
+        sess->last_error = GF_OK;
+
+    }
 
 	if (rewrite_size && sess->chunked && data) {
 		if (original_payload) {

@@ -46,10 +46,67 @@
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
 #include <nghttp3/nghttp3.h>
 
+#if !defined(_WIN32)
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+#include <stdio.h>
+
 #define NGTCP2_STATELESS_RESET_BURST 100
 #define NGTCP2_SV_SCIDLEN 18
 #define MAX_CONNID_LEN	255
 #define MAX_ADDR_LEN	100
+
+//amount of bytes we store internally
+#define SOCK_BUF_SIZE	200000
+
+// METRCIS TEST
+typedef struct {
+	u64 t_submit_us;    /* request submit time */
+	u64 t_first_us;     /* first byte time (0 until set) */
+	u64 t_end_us;       /* end time */
+	u64 bytes;          /* payload bytes received */
+	long ru_maxrss_kb;
+	long user_ms;
+	long sys_ms;
+} H3Metrics;
+static inline u64 h3_now_us(void) { return gf_sys_clock_high_res(); }
+
+static void h3_metrics_capture_rusage(H3Metrics *m)
+{
+    if (!m) return;
+#if !defined(_WIN32)
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru)==0) {
+        m->ru_maxrss_kb = ru.ru_maxrss;
+        m->user_ms = (long)(ru.ru_utime.tv_sec*1000L + ru.ru_utime.tv_usec/1000);
+        m->sys_ms  = (long)(ru.ru_stime.tv_sec*1000L + ru.ru_stime.tv_usec/1000);
+    }
+#endif
+}
+
+static void h3_metrics_emit(const GF_DownloadSession *sess, const H3Metrics *m, const char *phase)
+{
+    if (!m) return;
+
+    double dur_s  = (m->t_end_us > m->t_submit_us) ? (m->t_end_us - m->t_submit_us)/1e6 : 0.0;
+    double ttfb_s = (m->t_first_us && (m->t_first_us >= m->t_submit_us)) ? (m->t_first_us - m->t_submit_us)/1e6 : 0.0;
+    double mbps   = (dur_s>0) ? ((double)m->bytes * 8.0 / dur_s / 1e6) : 0.0;
+
+    const char *url  = (sess && sess->orig_url) ? sess->orig_url : "";
+    const char *mode = (sess && sess->server_mode) ? "server" : "client";
+    const char *ph   = phase ? phase : "";
+
+    GF_LOG(GF_LOG_INFO, GF_LOG_HTTP,
+        ("[H3-METRICS] mode=%s url=%s bytes=%llu ttfb_us=%llu dur_us=%llu thr=%.3fMb/s "
+         "cpu_user_ms=%ld cpu_sys_ms=%ld rss_kb=%ld phase=%s\n",
+         mode, url,
+         (unsigned long long)m->bytes,
+         (unsigned long long)(m->t_first_us ? (m->t_first_us - m->t_submit_us) : 0),
+         (unsigned long long)(m->t_end_us - m->t_submit_us),
+         mbps, m->user_ms, m->sys_ms, m->ru_maxrss_kb, ph));
+}
+
 
 const u8 *gf_sk_get_address(GF_Socket *sock, u32 *addr_size);
 
@@ -291,26 +348,44 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 
 static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 {
-	if (is_destroy) {
-		if (sess->hmux_priv) {
-			GF_QuicDataRead *qr = sess->hmux_priv;
-			if (qr->second_local_buf) gf_free(qr->second_local_buf);
-			gf_free(sess->hmux_priv);
-			sess->hmux_priv = NULL;
-		}
-		return GF_OK;
-	}
+    if (is_destroy) {
+        // destroy path 
+        if (sess->metrics_priv) {
+            gf_free(sess->metrics_priv);
+            sess->metrics_priv = NULL;
+        }
 
-	if (!sess->hmux_priv) {
-		GF_SAFEALLOC(sess->hmux_priv, GF_QuicDataRead);
-		if (!sess->hmux_priv) return GF_OUT_OF_MEM;
-		if (sess->log_name) gf_free(sess->log_name);
-		sess->log_name = gf_strdup("HTTP/3");
-	}
-	GF_QuicDataRead *qr = sess->hmux_priv;
-	qr->data_read.read_data = ngh3_data_source_read_callback;
-	return GF_OK;
+        if (sess->hmux_priv) {
+            GF_QuicDataRead *qr = sess->hmux_priv;
+            if (qr->second_local_buf) gf_free(qr->second_local_buf);
+            gf_free(sess->hmux_priv);
+            sess->hmux_priv = NULL;
+        }
+
+        return GF_OK;
+    }
+
+    // init path 
+    if (!sess->metrics_priv) {
+        sess->metrics_priv = gf_malloc(sizeof(H3Metrics));
+        if (!sess->metrics_priv) return GF_OUT_OF_MEM;
+        memset(sess->metrics_priv, 0, sizeof(H3Metrics));
+    }
+
+    if (!sess->hmux_priv) {
+        GF_SAFEALLOC(sess->hmux_priv, GF_QuicDataRead);
+        if (!sess->hmux_priv) return GF_OUT_OF_MEM;
+
+        if (sess->log_name) gf_free(sess->log_name);
+        sess->log_name = gf_strdup("HTTP/3");
+    }
+
+    GF_QuicDataRead *qr = sess->hmux_priv;
+    qr->data_read.read_data = ngh3_data_source_read_callback;
+
+    return GF_OK;
 }
+
 
 static int ngh3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *data,
                    size_t datalen, void *conn_user_data, void *stream_user_data)
@@ -331,6 +406,19 @@ static int ngh3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *
 	}
 	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, datalen);
 	sess->hmux_buf.size += (u32) datalen;
+	/*  Metrics: first byte + accumulate  */
+    H3Metrics *m = (H3Metrics*)sess->metrics_priv;
+	if (m) {
+		if (!m->t_first_us) {
+			m->t_first_us = h3_now_us();
+			/* NEW: also feed the generic TTFB used by summary logs */
+			if (!sess->reply_time)
+			sess->reply_time = (u32)(m->t_first_us - sess->request_start_time);
+		}
+		m->bytes += datalen;
+	}
+
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLD" received %d bytes (%d/%d total)\n", sess->hmux_stream_id, (u32) datalen, sess->hmux_buf.size, sess->total_size));
 	return 0;
 }
@@ -432,24 +520,39 @@ static int ngh3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token
 }
 
 static int ngh3_end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
-	void *conn_user_data, void *stream_user_data)
+    void *conn_user_data, void *stream_user_data)
 {
-	GF_DownloadSession *sess = stream_user_data;
-	sess->hmux_headers_seen = 1;
-	if (sess->server_mode) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
-	}
-	if (fin && !sess->server_mode) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) data done\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
-		sess->hmux_data_done = 1;
-		sess->hmux_is_eos = 0;
-		sess->hmux_send_data = NULL;
-		sess->hmux_send_data_len = 0;
-	}
-	return 0;
+    GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
+    if (!sess) return 0;
+
+    sess->hmux_headers_seen = 1;
+
+    /* Set TTFB at first response headers */
+    if (!sess->server_mode && !sess->reply_time) {
+        H3Metrics *m = (H3Metrics *)sess->metrics_priv;
+        if (m && m->t_submit_us) {
+            u64 now = h3_now_us();
+            sess->reply_time = (u32)(now - m->t_submit_us);
+        }
+    }
+
+    if (sess->server_mode) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+    }
+
+    if (fin && !sess->server_mode) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) data done\n",
+            stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+        sess->hmux_data_done = 1;
+        sess->hmux_is_eos = 0;
+        sess->hmux_send_data = NULL;
+        sess->hmux_send_data_len = 0;
+    }
+    return 0;
 }
+
 
 static int ngh3_begin_trailers(nghttp3_conn *conn, int64_t stream_id, void *conn_user_data, void *stream_user_data) {
 	return 0;
@@ -563,6 +666,20 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 			sess->last_error = GF_OK;
 		}
 	}
+	/*  Metrics: finalize & emit  */
+	H3Metrics *m = (H3Metrics*)sess->metrics_priv;
+	if (m) {
+		if (!m->t_end_us) m->t_end_us = h3_now_us();
+		h3_metrics_capture_rusage(m);
+		
+		// If download completed (bytes_done matches expected), treat as close
+		const char *phase = "error";
+		if (app_error_code == NGHTTP3_H3_NO_ERROR || sess->bytes_done == m->bytes) {
+			phase = "close";
+		}
+		h3_metrics_emit(sess, m, phase);
+	}
+
 
 	//stream closed
 	sess->hmux_stream_id = -1;
@@ -761,6 +878,19 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	sess->hmux_data_done = 0;
 	sess->hmux_headers_seen = 0;
 	sess->hmux_ready_to_send = 0;
+	/*  Metrics: mark request submit time  */
+	H3Metrics *m = (H3Metrics*)sess->metrics_priv;
+	if (m) {
+		m->t_submit_us = h3_now_us();
+		m->t_first_us  = 0;
+		m->t_end_us    = 0;
+		m->bytes       = 0;
+		m->ru_maxrss_kb = 0;
+		m->user_ms = m->sys_ms = 0;
+	}
+	// reset TTFB used by generic summary
+	sess->reply_time = 0;
+
 	GF_Err e = GF_OK;
     int rv = ngtcp2_conn_open_bidi_stream(qc->conn, &sess->hmux_stream_id, sess);
     if (rv != 0) {
@@ -1486,38 +1616,73 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		nghttp3_set_debug_vprintf_callback(ngq_debug_trace_noop);
 	}
 
-	settings.initial_ts = ngtcp2_timestamp();
-	settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
-	settings.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT;
-	settings.max_window = 0;
-	settings.max_stream_window = 0;
-	settings.handshake_timeout = sess->conn_timeout*1000000;
-	settings.handshake_timeout = UINT64_MAX;
-	settings.no_pmtud = 0;
-	settings.ack_thresh = 2;
-	settings.initial_pkt_num = 1;
+	// After ngtcp2_settings_default(&settings) and initial fields
+settings.initial_ts = ngtcp2_timestamp();
+settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
+settings.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT;
+settings.max_window = 0;
+settings.max_stream_window = 0;
+settings.handshake_timeout = sess->conn_timeout*1000000;
+settings.handshake_timeout = UINT64_MAX;
+settings.no_pmtud = 0;
+settings.ack_thresh = 2;
+settings.initial_pkt_num = 1;
 
-	//server config
-	if (sess->server_mode) {
-		settings.token = srv_hd->token;
-		settings.tokenlen = srv_hd->tokenlen;
-		settings.token_type = token_type;
-		settings.max_window = 6000000;
-		settings.max_stream_window = 6000000;
-	}
+/* NEW: read tunables once, apply to BOTH sides */
+int wnd_kb    = gf_opts_get_int("core", "h3-maxwnd");
+int ack_thr   = gf_opts_get_int("core", "h3-ack-thresh");
+const char *algo = gf_opts_get_key("core", "h3-algo");
+if (wnd_kb   <= 0) wnd_kb   = 16000;   // 16 MB
+if (ack_thr  <= 0) ack_thr  = 2;
+if (!algo)         algo     = "cubic";
+
+/* apply on both client & server (receive windows matter on receiver) */
+settings.max_window        = 1000 * wnd_kb;
+settings.max_stream_window = 1000 * wnd_kb;
+settings.ack_thresh        = ack_thr;
+
+/* keep server-only extras + logging */
+if (sess->server_mode) {
+    settings.token      = srv_hd ? srv_hd->token : NULL;
+    settings.tokenlen   = srv_hd ? srv_hd->tokenlen : 0;
+    settings.token_type = token_type;
+
+    if (!strcmp(algo, "bbr"))
+        settings.cc_algo = NGTCP2_CC_ALGO_BBR;
+
+    static int tuning_logged = 0;
+    if (!tuning_logged) {
+        fprintf(stderr, "[H3-TUNING] Server config: max_window=%d, ack_thresh=%d, cc_algo=%s\n",
+                1000*wnd_kb, ack_thr, algo);
+        tuning_logged = 1;
+    }
+}
+
+
+
+
+
+
 
 	ngtcp2_transport_params_default(&params);
 
-	params.initial_max_data = 1024 * 1024;
-	params.initial_max_stream_data_bidi_local = sess->server_mode ? 0 : 16777216;
-	params.initial_max_stream_data_bidi_remote = sess->server_mode ? 16777216 : 0;
-	params.initial_max_stream_data_uni = 16777216;
-	params.initial_max_streams_bidi = sess->server_mode ? 100 : 0;
-	params.initial_max_streams_uni = 3;
-	params.max_idle_timeout = 30 * NGTCP2_SECONDS;
-	params.active_connection_id_limit = 7;
-	params.grease_quic_bit = 1;
-
+	/* NEW: larger flow-control budgets */
+	const uint32_t imd  = 64u * 1024u * 1024u;  // 64 MB connection window
+	const uint32_t imsd = 32u * 1024u * 1024u;  // 32 MB per-stream window
+	params.initial_max_data = imd;
+	/* HTTP/3 uses client-initiated bidi streams for response data:
+   - client must set bidi_local high (lets the *peer* send on our locally-initiated streams)
+   - server must set bidi_remote high (lets the *peer* send on its remotely-initiated streams) */
+   params.initial_max_stream_data_bidi_local  = sess->server_mode ? 0 : imsd;
+   params.initial_max_stream_data_bidi_remote = sess->server_mode ? imsd : 0;
+   params.initial_max_stream_data_uni = imsd;
+   params.initial_max_streams_bidi = sess->server_mode ? 100 : 0;
+   params.initial_max_streams_uni = 3;
+   params.max_idle_timeout = 30 * NGTCP2_SECONDS;
+   params.active_connection_id_limit = 7;
+   params.grease_quic_bit = 1;
+	
+		
 	if (sess->server_mode) {
 		params.stateless_reset_token_present = 1;
 		if (srv_ocid) {

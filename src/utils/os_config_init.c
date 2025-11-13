@@ -1575,8 +1575,13 @@ GF_GPACArg GPAC_Args[] = {
 #endif
 
 #ifdef GPAC_HAS_NGTCP2
- GF_DEF_ARG("h3-trace", NULL, "trace QUIC and HTTP3", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+GF_DEF_ARG("h3-trace", NULL, "trace QUIC and HTTP3", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+GF_DEF_ARG("h3-algo", NULL, "algo to use for QUIC, one of\n"
+"- cubic: bla\n"
+"- bbr: foo", "cubic", "cubic|bbr", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+GF_DEF_ARG("h3-maxwnd", NULL, "max window size in kilo bytes", "16000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
+
 
 
  GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status(disable_depth), weight, src_cap_idx -> dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),

@@ -36,8 +36,106 @@
 #pragma comment(lib, "nghttp2")
 #endif
 
+/* 
+ * Inline metrics collection
+ *
+ * Emits one CSV line per transfer if GPAC_METRICS is set, otherwise emits a single log line.
+ * Collected:
+ *  - bytes
+ *  - ttfb_us (submit -> first data)
+ *  - duration_us (submit -> end)
+ *  - throughput_mbps (computed)
+ *  - cpu_user_ms, cpu_sys_ms, maxrss_kb (best-effort via getrusage on POSIX)
+ */
+
+#if !defined(_WIN32)
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+#include <stdio.h>
+
+typedef struct {
+	u64 t_submit_us;    /* request submit time */
+	u64 t_first_us;     /* first byte time (0 until set) */
+	u64 t_end_us;       /* end time */
+	u64 bytes;          /* payload bytes received/sent */
+	/* process resource snapshot at end (best-effort) */
+	long ru_maxrss_kb;
+	long user_ms;
+	long sys_ms;
+} H2Metrics;
+
+static inline u64 h2_now_us(void) { return gf_sys_clock_high_res(); }
+
+static inline const char *h2_mode_str(const GF_DownloadSession *sess) {
+    return (sess && sess->server_mode) ? "server" : "client";
+}
+
+
+static void h2_metrics_capture_rusage(H2Metrics *m)
+{
+	if (!m) return;
+#if !defined(_WIN32)
+	struct rusage ru;
+	if (getrusage(RUSAGE_SELF, &ru)==0) {
+		m->ru_maxrss_kb = ru.ru_maxrss; /* KB on Linux */
+		m->user_ms = (long)(ru.ru_utime.tv_sec*1000L + ru.ru_utime.tv_usec/1000);
+		m->sys_ms  = (long)(ru.ru_stime.tv_sec*1000L + ru.ru_stime.tv_usec/1000);
+	}
+#endif
+}
+
+static void h2_metrics_emit(const GF_DownloadSession *sess, const H2Metrics *m, const char *phase)
+{
+	if (!m) return;
+
+	double dur_s  = (m->t_end_us > m->t_submit_us) ? (m->t_end_us - m->t_submit_us)/1e6 : 0.0;
+	double ttfb_s = (m->t_first_us && (m->t_first_us >= m->t_submit_us)) ? (m->t_first_us - m->t_submit_us)/1e6 : 0.0;
+	double mbps   = (dur_s>0) ? ((double)m->bytes * 8.0 / dur_s / 1e6) : 0.0;
+
+	const char *csv = getenv("GPAC_METRICS");
+
+	const char *url  = (sess && sess->orig_url) ? sess->orig_url : "";
+	const char *mode = h2_mode_str(sess);
+	const char *ph   = phase ? phase : "";
+
+	if (csv && csv[0]) {
+		FILE *f = fopen(csv, "a");
+		if (f) {
+			/* proto,mode,url,bytes,ttfb_us,duration_us,throughput_mbps,cpu_user_ms,cpu_sys_ms,maxrss_kb,phase */
+			fprintf(f, "h2,%s,%s,%llu,%llu,%llu,%.3f,%ld,%ld,%ld,%s\n",
+				mode, url,
+				(unsigned long long)m->bytes,
+				(unsigned long long)(m->t_first_us ? (m->t_first_us - m->t_submit_us) : 0),
+				(unsigned long long)(m->t_end_us - m->t_submit_us),
+				mbps, m->user_ms, m->sys_ms, m->ru_maxrss_kb, ph);
+			fclose(f);
+		}
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP,
+			("[H2-METRICS] mode=%s url=%s bytes=%llu ttfb_us=%llu dur_us=%llu thr=%.3fMb/s cpu_user_ms=%ld cpu_sys_ms=%ld rss_kb=%ld phase=%s\n",
+			 mode, url,
+			 (unsigned long long)m->bytes,
+			 (unsigned long long)(m->t_first_us ? (m->t_first_us - m->t_submit_us) : 0),
+			 (unsigned long long)(m->t_end_us - m->t_submit_us),
+			 mbps, m->user_ms, m->sys_ms, m->ru_maxrss_kb, ph));
+	}
+}
+
+/* Accessor: pack metrics right after nghttp2_data_provider in hmux_priv */
+static inline H2Metrics *h2_metrics_ptr(GF_DownloadSession *sess)
+{
+    if (!sess || !sess->hmux_priv) return NULL;
+    return (H2Metrics *)((u8*)sess->hmux_priv + sizeof(nghttp2_data_provider));
+}
+
 
 static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf);
+
+/* 
+ * Original code follows,
+ * with small hooks for metrics + restored h2c gate
+ */
 
 static int h2_header_callback(nghttp2_session *session,
 								const nghttp2_frame *frame, const uint8_t *name,
@@ -114,68 +212,95 @@ static int h2_begin_headers_callback(nghttp2_session *session, const nghttp2_fra
 
 static int h2_frame_recv_callback(nghttp2_session *session, const nghttp2_frame *frame, void *user_data)
 {
-	GF_DownloadSession *sess;
-	switch (frame->hd.type) {
-	case NGHTTP2_HEADERS:
-		sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
-		if (!sess)
-			return NGHTTP2_ERR_CALLBACK_FAILURE;
+    GF_DownloadSession *sess;
+    switch (frame->hd.type) {
+    case NGHTTP2_HEADERS:
+        sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
+        if (!sess)
+            return NGHTTP2_ERR_CALLBACK_FAILURE;
 
-		if (
-			(!sess->server_mode && (frame->headers.cat == NGHTTP2_HCAT_RESPONSE))
-			|| (sess->server_mode && ((frame->headers.cat == NGHTTP2_HCAT_HEADERS) || (frame->headers.cat == NGHTTP2_HCAT_REQUEST)))
-		) {
-			sess->hmux_headers_seen = 1;
-			if (sess->server_mode) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
-			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
-			}
-		}
-		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
-			sess->hmux_data_done = 1;
-			sess->hmux_is_eos = 0;
-			sess->hmux_send_data = NULL;
-			sess->hmux_send_data_len = 0;
-		}
-		break;
-	case NGHTTP2_DATA:
-		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-			sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
-			//if no session with such ID this means we got all our bytes and considered the session done, do not throw an error
-			if (sess) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
-				sess->hmux_data_done = 1;
-			}
-		}
-		break;
-	case NGHTTP2_RST_STREAM:
-		sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
-		// cancel from remote peer, signal if not done
-		if (sess && sess->server_mode && !sess->hmux_is_eos) {
-			GF_NETIO_Parameter param;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) canceled\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
-			memset(&param, 0, sizeof(GF_NETIO_Parameter));
-			param.msg_type = GF_NETIO_CANCEL_STREAM;
-			gf_mx_p(sess->mx);
-			sess->in_callback = GF_TRUE;
-			param.sess = sess;
-			sess->user_proc(sess->usr_cbk, &param);
-			sess->in_callback = GF_FALSE;
-			gf_mx_v(sess->mx);
-		}
-		break;
-	}
+        if (
+            (!sess->server_mode && (frame->headers.cat == NGHTTP2_HCAT_RESPONSE))
+            || (sess->server_mode && ((frame->headers.cat == NGHTTP2_HCAT_HEADERS) || (frame->headers.cat == NGHTTP2_HCAT_REQUEST)))
+        ) {
+            sess->hmux_headers_seen = 1;
 
-	return 0;
+            /* Set TTFB at first response headers (submit -> headers) */
+            if (!sess->server_mode && !sess->reply_time) {
+                H2Metrics *m = h2_metrics_ptr(sess);
+                if (m && m->t_submit_us) {
+                    u64 now = h2_now_us();
+                    sess->reply_time = (u32)(now - m->t_submit_us);
+                }
+            }
+
+            if (sess->server_mode) {
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+            } else {
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+            }
+        }
+        if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+            sess->hmux_data_done = 1;
+            sess->hmux_is_eos = 0;
+            sess->hmux_send_data = NULL;
+            sess->hmux_send_data_len = 0;
+        }
+        break;
+
+    case NGHTTP2_DATA:
+        if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+            sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
+            // if no session with such ID this means we got all our bytes and considered the session done, do not throw an error
+            if (sess) {
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+                sess->hmux_data_done = 1;
+            }
+        }
+        break;
+
+    case NGHTTP2_RST_STREAM:
+        sess = hmux_get_session(user_data, frame->hd.stream_id, GF_FALSE);
+        // cancel from remote peer, signal if not done
+        if (sess && sess->server_mode && !sess->hmux_is_eos) {
+            GF_NETIO_Parameter param;
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) canceled\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+            memset(&param, 0, sizeof(GF_NETIO_Parameter));
+            param.msg_type = GF_NETIO_CANCEL_STREAM;
+            gf_mx_p(sess->mx);
+            sess->in_callback = GF_TRUE;
+            param.sess = sess;
+            sess->user_proc(sess->usr_cbk, &param);
+            sess->in_callback = GF_FALSE;
+            gf_mx_v(sess->mx);
+        }
+        break;
+    }
+
+    return 0;
 }
+
 
 static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, int32_t stream_id, const uint8_t *data, size_t len, void *user_data)
 {
 	GF_DownloadSession *sess = hmux_get_session(user_data, stream_id, GF_FALSE);
 	if (!sess)
 		return NGHTTP2_ERR_CALLBACK_FAILURE;
+
+	/* Metrics: first byte + accumulate bytes */
+	{
+		H2Metrics *m = h2_metrics_ptr(sess);
+if (m) {
+    if (!m->t_first_us) {
+        m->t_first_us = h2_now_us();
+        /* Fallback TTFB if HEADERS didn’t set it */
+        if (!sess->reply_time && m->t_submit_us)
+            sess->reply_time = (u32)(m->t_first_us - m->t_submit_us);
+    }
+    m->bytes += (u64)len;
+}
+	}
 
 	if (sess->hmux_buf.size + len > sess->hmux_buf.alloc) {
 		sess->hmux_buf.alloc = sess->hmux_buf.size + (u32) len;
@@ -184,7 +309,7 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 	}
 	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, len);
 	sess->hmux_buf.size += (u32) len;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id "LLD" received %d bytes (%d/%d total) - flags %d\n", sess->hmux_stream_id, len, sess->hmux_buf.size, sess->total_size, flags));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id "LLD" received %d bytes (%d/%d total) - flags %d\n", sess->hmux_stream_id, (int)len, (int)sess->hmux_buf.size, (int)sess->total_size, (int)flags));
 	return 0;
 }
 
@@ -227,6 +352,16 @@ static int h2_stream_close_callback(nghttp2_session *session, int32_t stream_id,
 		}
 	}
 
+	/* Metrics: finalize and emit on close (with error or success) */
+	{
+		H2Metrics *m = h2_metrics_ptr(sess);
+		if (m) {
+			if (!m->t_end_us) m->t_end_us = h2_now_us();
+			h2_metrics_capture_rusage(m);
+			h2_metrics_emit(sess, m, error_code ? "error" : "close");
+		}
+	}
+
 	//stream closed
 	sess->hmux_stream_id = -1;
 	gf_mx_v(sess->mx);
@@ -245,10 +380,10 @@ static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size
 	GF_Err e = dm_sess_write(sess, data, (u32) length);
 	switch (e) {
 	case GF_OK:
-		return length;
+		return (ssize_t)length;
 	case GF_IP_NETWORK_EMPTY:
 		if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
-			return length;
+			return (ssize_t)length;
 		return NGHTTP2_ERR_WOULDBLOCK;
 	case GF_IP_CONNECTION_CLOSED:
 		SET_LAST_ERR(GF_IP_CONNECTION_CLOSED)
@@ -300,14 +435,14 @@ ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t stream_id
 		memcpy(buf, sess->hmux_send_data, copy);
 		sess->hmux_send_data += copy;
 		sess->hmux_send_data_len -= copy;
-		return copy;
+		return (ssize_t)copy;
 	}
 
 	*data_flags = NGHTTP2_DATA_FLAG_NO_COPY;
 	if (sess->hmux_send_data_len > length) {
-		return length;
+		return (ssize_t)length;
 	}
-	return sess->hmux_send_data_len;
+	return (ssize_t)sess->hmux_send_data_len;
 }
 
 
@@ -341,7 +476,7 @@ static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame,
 
 	while (frame->data.padlen > 0) {
 		u32 padlen = (u32) frame->data.padlen - 1;
-		rv = h2_write_data(sess, padding, padlen);
+		rv = h2_write_data(sess, (const uint8_t*)padding, padlen);
 		if (rv<0) {
 			if (rv==NGHTTP2_ERR_WOULDBLOCK) continue;
 			goto err;
@@ -469,6 +604,17 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 		gf_assert(data_io->source.ptr != NULL);
 	}
 #endif
+
+	/* Metrics: mark request submit time and reset counters */
+	{
+		H2Metrics *m = h2_metrics_ptr(sess);
+		if (m) {
+			memset(m, 0, sizeof(*m));
+			m->t_submit_us = h2_now_us();
+			m->bytes = 0;
+		}
+	}
+
 	sess->hmux_data_done = 0;
 	sess->hmux_headers_seen = 0;
 	sess->hmux_stream_id = nghttp2_submit_request(sess->hmux_sess->hmux_udta, NULL, hdrs, nb_hdrs+4,
@@ -615,12 +761,21 @@ static GF_Err h2_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 		return GF_OK;
 	}
 	if (!sess->hmux_priv) {
-		GF_SAFEALLOC(sess->hmux_priv, nghttp2_data_provider);
-		if (!sess->hmux_priv) return GF_OUT_OF_MEM;
+		/* Allocate a single block for nghttp2_data_provider + inline H2Metrics */
+		void *blk = gf_malloc(sizeof(nghttp2_data_provider) + sizeof(H2Metrics));
+		if (!blk) return GF_OUT_OF_MEM;
+		memset(blk, 0, sizeof(nghttp2_data_provider) + sizeof(H2Metrics));
+		sess->hmux_priv = blk;
 	}
-	nghttp2_data_provider *data_io = sess->hmux_priv;
+	nghttp2_data_provider *data_io = (nghttp2_data_provider*)sess->hmux_priv;
 	data_io->read_callback = h2_data_source_read_callback;
 	data_io->source.ptr = sess;
+
+	/* Metrics: clear on (re)setup */
+	{
+		H2Metrics *m = h2_metrics_ptr(sess);
+		if (m) memset(m, 0, sizeof(*m));
+	}
 	return GF_OK;
 }
 
@@ -739,24 +894,58 @@ void h2_initialize_session(GF_DownloadSession *sess)
 		nghttp2_session_callbacks_set_send_data_callback(callbacks, h2_send_data_callback);
 
 	if (sess->server_mode) {
-		nghttp2_session_server_new((nghttp2_session**) &sess->hmux_sess->hmux_udta, callbacks, sess->hmux_sess);
-	} else {
-		nghttp2_session_client_new((nghttp2_session**) &sess->hmux_sess->hmux_udta, callbacks, sess->hmux_sess);
-	}
-	nghttp2_session_callbacks_del(callbacks);
-	sess->hmux_sess->net_sess = sess;
-	//setup function pointers
-	sess->hmux_sess->submit_request = h2_submit_request;
-	sess->hmux_sess->send_reply = h2_send_reply;
-	sess->hmux_sess->write = h2_session_write;
-	sess->hmux_sess->destroy = h2_destroy;
-	sess->hmux_sess->stream_reset = h2_stream_reset;
-	sess->hmux_sess->resume = h2_resume_stream;
-	sess->hmux_sess->data_received = h2_data_received;
-	sess->hmux_sess->setup_session = h2_setup_session;
-	sess->hmux_sess->send_pending_data = h2_data_pending;
-	sess->hmux_sess->async_flush = h2_async_flush;
-	sess->hmux_sess->close_session = h2_close_session;
+    nghttp2_session_server_new((nghttp2_session**)&sess->hmux_sess->hmux_udta, callbacks, sess->hmux_sess);
+} else {
+    nghttp2_session_client_new((nghttp2_session**)&sess->hmux_sess->hmux_udta, callbacks, sess->hmux_sess);
+}
+
+/* H2 THROUGHPUT TUNING */
+{
+    nghttp2_session *h2 = (nghttp2_session*)sess->hmux_sess->hmux_udta;
+
+    /* Big windows to avoid stop-and-go (tune as you like) */
+    const uint32_t H2_STREAM_WIN = 32u * 1024u * 1024u;  /* 32 MB per stream */
+    const uint32_t H2_CONN_WIN   = 64u * 1024u * 1024u;  /* 64 MB per connection */
+    const uint32_t H2_MAX_FRAME  = 1u  * 1024u * 1024u;  /* 1 MB frame size (optional, <= 16,777,215) */
+
+    /*  peer  use a large INITIAL_WINDOW_SIZE (fixing the bootleneck that we had earlier) */
+    nghttp2_settings_entry iv[] = {
+        { NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE,   H2_STREAM_WIN },
+        { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 256 },
+        { NGHTTP2_SETTINGS_MAX_FRAME_SIZE,        H2_MAX_FRAME }, /* optional but helps on localhost */
+    };
+    int rv = nghttp2_submit_settings(h2, NGHTTP2_FLAG_NONE, iv, (size_t)(sizeof(iv)/sizeof(iv[0])));
+    if (rv) {
+        GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP/2] submit_settings failed: %d\n", rv));
+    }
+
+    /* Also enlarge OUR local receive window (connection level). Do this early. */
+    rv = nghttp2_session_set_local_window_size(h2, NGHTTP2_FLAG_NONE, 0 /* connection */, (int32_t)H2_CONN_WIN);
+    if (rv) {
+        GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP/2] set_local_window_size(conn) failed: %d\n", rv));
+    }
+
+    /* Note: Per-stream local window for streams created later will use the advertised INITIAL_WINDOW_SIZE.
+       If you want to bump window for an already-open inbound stream, also call:
+         nghttp2_session_set_local_window_size(h2, NGHTTP2_FLAG_NONE, stream_id, (int32_t)H2_STREAM_WIN);
+       right after you accept/see its HEADERS. */
+}
+	
+nghttp2_session_callbacks_del(callbacks);
+
+sess->hmux_sess->net_sess = sess;
+/* setup function pointers */
+sess->hmux_sess->submit_request   = h2_submit_request;
+sess->hmux_sess->send_reply       = h2_send_reply;
+sess->hmux_sess->write            = h2_session_write;
+sess->hmux_sess->destroy          = h2_destroy;
+sess->hmux_sess->stream_reset     = h2_stream_reset;
+sess->hmux_sess->resume           = h2_resume_stream;
+sess->hmux_sess->data_received    = h2_data_received;
+sess->hmux_sess->setup_session    = h2_setup_session;
+sess->hmux_sess->send_pending_data= h2_data_pending;
+sess->hmux_sess->async_flush      = h2_async_flush;
+sess->hmux_sess->close_session    = h2_close_session;
 
 	sess->hmux_sess->connected = GF_TRUE;
 
@@ -812,6 +1001,17 @@ void http2_set_upgrade_headers(GF_DownloadSession *sess)
 		{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100},
 		{NGHTTP2_SETTINGS_ENABLE_PUSH, 0}
 	};
+
+	/* Restore original gate:
+	   If GPAC_NO_H2=1, do NOT attempt clear-text HTTP/2 upgrade here.
+	   (Your boss noted the feature is already enabled elsewhere.) */
+	{
+		const char *env = getenv("GPAC_NO_H2");
+		if (env && !strcmp(env, "1")) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] HTTP/2 upgrade disabled via env var GPAC_NO_H2=1\n"));
+			return;
+		}
+	}
 
 	PUSH_HDR("Connection", "Upgrade, HTTP2-Settings")
 	PUSH_HDR("Upgrade", "h2c")
