@@ -196,7 +196,8 @@ enum
 	GF_PCKF_FORCE_MAIN = 1<<12,
 	//only valid when GF_PCK_CMD_PID_EOS is set
 	GF_PCKF_IS_FLUSH = 1<<11,
-	//RESERVED bits [8,10]
+	GF_PCKF_IS_SWITCH_FRAME = 1<<10,
+	//RESERVED bits [8,9]
 
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,
@@ -215,15 +216,11 @@ enum
 	GF_PCK_CMD_PID_EOS = 1<<GF_PCK_CMD_POS,
 	GF_PCK_CMD_PID_REM = 2<<GF_PCK_CMD_POS,
 };
-enum {
-	GF_PCKF_SWITCH_FRAME = 1<<0,
-};
 
 typedef struct __gf_filter_pck_info
 {
 	/*! packet flags */
 	u32 flags;
-	u32 flags_ext;
 
 	//packet timing in pid_props->timescale units
 	u64 dts, cts;

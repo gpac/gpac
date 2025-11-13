@@ -1752,8 +1752,8 @@ GF_EXPORT
 GF_Err gf_filter_pck_set_switch_frame(GF_FilterPacket *pck, Bool is_switch_frame)
 {
 	PCK_SETTER_CHECK("switch_frame")
-	pck->info.flags_ext &= ~GF_PCKF_SWITCH_FRAME;
-	if (is_switch_frame) pck->info.flags_ext |= GF_PCKF_SWITCH_FRAME;
+	pck->info.flags &= ~GF_PCKF_IS_SWITCH_FRAME;
+	if (is_switch_frame) pck->info.flags |= GF_PCKF_IS_SWITCH_FRAME;
 	return GF_OK;
 }
 
@@ -1762,7 +1762,7 @@ Bool gf_filter_pck_get_switch_frame(GF_FilterPacket *pck)
 {
 	gf_assert(pck);
 	//get true packet pointer
-	return (Bool) (pck->pck->info.flags_ext & GF_PCKF_SWITCH_FRAME) ? GF_TRUE : GF_FALSE;
+	return (Bool) (pck->pck->info.flags & GF_PCKF_IS_SWITCH_FRAME) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
