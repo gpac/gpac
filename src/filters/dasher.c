@@ -391,6 +391,7 @@ typedef struct _dash_stream
 	//0: not done, 1: eos/abort, 2: subdur exceeded
 	u32 done;
 	Bool seg_done;
+	u32 ts_disc_idx;
 
 	u32 nb_comp, nb_comp_done;
 
@@ -1779,6 +1780,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 	}
 
+	//check if we have an explicit time dsicontinuity , in which case we switch periods
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
+	if (p && (p->value.uint != ds->ts_disc_idx)) period_switch = GF_TRUE;
+	ds->ts_disc_idx = p ? p->value.uint : 0;
 
 	if (ctx->do_index || ctx->from_index) {
 		if (!ds->template && ctx->def_template) {
@@ -11607,6 +11612,7 @@ GF_FilterRegister DasherRegister = {
 "- `HLSPL`: name of variant playlist, can use templates\n"
 "- `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as `,foo,bar=val`\n"
 "- `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as `#foo \\n #bar=val`\n"
+"- `Discontinuity`: indicate a time discontinuity in source, triggering a new period\n"
 "- Non-dash properties: `Bitrate`, `SAR`, `Language`, `Width`, `Height`, `SampleRate`, `NumChannels`, `Language`, `ID`, `DependencyID`, `FPS`, `Interlaced`, `Codec`. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 "  \n"
 "EX gpac -i test.mp4:#Bitrate=1M -o test.mpd\n"
