@@ -214,6 +214,7 @@ typedef struct
 	DasherMuxType muxtype;
 	Bool rawsub;
 	char *profX;
+	char *query;
 	Double asto;
 	char *ast;
 	char *state;
@@ -7649,6 +7650,44 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		return e;
 	}
 
+	//set query parameters if requested
+	for (i = 0; i < count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+		prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AS_QUERY);
+
+		if (ctx->query || (prop && prop->value.string)) {
+			GF_MPD_Descriptor *desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:urlparam:2014", NULL);
+			if (!desc) continue;
+			char *as_query = ctx->query;
+			if (prop && prop->value.string) as_query = prop->value.string;
+
+			desc->x_attributes = gf_list_new();
+			desc->x_children = gf_list_new();
+
+			if (desc->x_attributes) {
+				GF_XMLAttribute *attr = gf_xml_dom_create_attribute("xmlns:up", "urn:mpeg:dash:schema:urlparam:2014");
+				if (attr) gf_list_add(desc->x_attributes, attr);
+			}
+
+			if (desc->x_children) {
+				GF_XMLNode *qinfo = gf_xml_dom_node_new("up", "UrlQueryInfo");
+				if (qinfo) {
+					qinfo->attributes = gf_list_new();
+					if (qinfo->attributes) {
+						GF_XMLAttribute *att;
+						att = gf_xml_dom_create_attribute("queryTemplate", "$querypart$");
+						if (att) gf_list_add(qinfo->attributes, att);
+						att = gf_xml_dom_create_attribute("queryString", as_query);
+						if (att) gf_list_add(qinfo->attributes, att);
+					}
+					gf_list_add(desc->x_children, qinfo);
+				}
+			}
+
+			gf_list_add(ds->set->essential_properties, desc);
+		}
+	}
 
 	//setup adaptation sets bitstream switching
 	for (i=0; i<count; i++) {
@@ -11370,6 +11409,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)"
 		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll", 0 },
 	{ OFFS(profX), "list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used. If starting with `+`, the profile string by default is erased and `+` is skipped", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(query), "query parameters to append for segment requests (Annex I)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(cp), "content protection element location\n"
 	"- set: in adaptation set element\n"
 	"- rep: in representation element\n"
