@@ -808,6 +808,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 	Bool has_file_end=GF_FALSE;
 	u64 known_file_size;
 	RangeState rst = RANGE_OK;
+	const char *range_msg = NULL;
 
 	sess->nb_ranges = 0;
 	sess->nb_bytes = 0;
@@ -816,6 +817,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 
 	if (sess->in_source && !sess->ctx->has_read_dir) {
 		rst = RANGE_NOT_ALLOWED;
+		range_msg = "no associated read directory";
 		goto exit;
 	}
 
@@ -892,6 +894,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 		//cannot fetch end of file it is not yet known !
 		if (has_file_end) {
 			rst = RANGE_NOT_ALLOWED;
+			range_msg = "resource does not yet existing";
 			goto exit;
 		}
 		known_file_size = sess->in_source->nb_write;
@@ -932,6 +935,10 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 				request_ok = GF_FALSE;
 				break;
 			}
+			if (sess->ranges[i].start > (s64) sess->ranges[i].end) {
+				request_ok = GF_FALSE;
+				break;
+			}
 		} else {
 			if (known_file_size==0) {
 				request_ok = GF_FALSE;
@@ -944,6 +951,11 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 			}
 			sess->ranges[i].start = known_file_size - sess->ranges[i].end;
 			sess->ranges[i].end = known_file_size - 1;
+
+			if (sess->ranges[i].start > (s64) sess->ranges[i].end) {
+				request_ok = GF_FALSE;
+				break;
+			}
 		}
 		sess->bytes_in_req += (sess->ranges[i].end + 1 - sess->ranges[i].start);
 	}
@@ -954,6 +966,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 	if (!request_ok) {
 		if (!sess->in_source || (sess->nb_ranges>1)) {
 			rst = RANGE_NOT_ALLOWED;
+			range_msg = sess->in_source ? "multiple byte ranges not allowed" : "no associated source";
 			goto exit;
 		}
 		//source in progress, we accept single range - note that this could be further refined by postponing the request until the source
@@ -982,6 +995,9 @@ exit:
 	}
 	sess->reply_code = 416;
 	gf_dynstrcat(response_body, range, NULL);
+	if (range_msg)
+		gf_dynstrcat(response_body, range_msg, " : ");
+
 	GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] %s\n", *response_body));
 	return GF_FALSE;
 }
