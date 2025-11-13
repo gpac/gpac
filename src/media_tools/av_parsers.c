@@ -2384,26 +2384,31 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 {
 	u32 i;
-	u64 val;
+	u64 val[8] = {0};
 	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
 	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
 
 	//3x{display_primaries_x, display_primaries_y} + whitePoint_x + whitePoint_y
 	//translate from AV1 representation 0.16 float to MPEG in increments of 0.00002 (1/50000)
 	for (i=0; i<8; i++) {
-		val = gf_bs_read_u16(bs_r);
-		val = (50000 * val) / 65536;
-		gf_bs_write_u16(bs_w, (u32) val);
+		val[i] = gf_bs_read_u16(bs_r);
+	}
+	for (i=0; i<8; i++) {
+		int j=i;
+		// reorder color primaries, see issue 3331
+		if (i==2) j=3;
+		else if (i==3) j=2;
+		gf_bs_write_u16(bs_w, (u32) ((50000 * val[j]) / 65536));
 	}
 	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
-	val = gf_bs_read_u32(bs_r);
-	val = (10000 * val) / 256;
-	gf_bs_write_u32(bs_w, (u32) val);
+	*val = gf_bs_read_u32(bs_r);
+	*val = (10000 * *val) / 256;
+	gf_bs_write_u32(bs_w, (u32) *val);
 
 	//min_display_mastering_luminance: 18.14 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
-	val = gf_bs_read_u32(bs_r);
-	val = (10000 * val) / 16384;
-	gf_bs_write_u32(bs_w, (u32) val);
+	*val = gf_bs_read_u32(bs_r);
+	*val = (10000 * *val) / 16384;
+	gf_bs_write_u32(bs_w, (u32) *val);
 	gf_bs_del(bs_r);
 	gf_bs_del(bs_w);
 }
