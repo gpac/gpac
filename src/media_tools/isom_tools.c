@@ -3768,8 +3768,12 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			for (j=0; j<nb_tiles; j++) {
 				sample->dataLength = 0;
 				gf_bs_get_content(tiles[j].sample_data, &sample->data, &sample->dataLength);
-				if (!sample->data)
+				if (!sample->data) {
+					gf_bs_del(tiles[j].sample_data);
+					tiles[j].sample_data = NULL;
 					continue;
+				}
+
 
 				e = gf_isom_add_sample(file, tiles[j].track, 1, sample);
 				if (e) goto err_exit;
