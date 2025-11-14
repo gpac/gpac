@@ -1383,6 +1383,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 	Bool is_cenc = GF_FALSE;
 	Bool is_first = GF_TRUE;
 	Bool neg_time = (image_props && image_props->time<0) ? GF_TRUE : GF_FALSE;
+	char *tile_name = NULL;
 	u8 *sai = NULL;
 	u32 sai_size = 0, sai_alloc_size = 0;
 	u32 sample_desc_index = 0;
@@ -1403,7 +1404,6 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		u32 i, count;
 		u32 tile_track;
 		GF_List *tile_item_ids;
-		char sz_item_name[256];
 		GF_TileItemMode orig_tile_mode;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
@@ -1428,11 +1428,17 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			gf_list_add(tile_item_ids, tile_item_id);
 			e = gf_isom_get_reference(movie, imported_track, GF_ISOM_REF_SABT, 1, &tile_track);
 			if (e) return e;
-			if (item_name)
-				sprintf(sz_item_name, "%s-Tile%d", item_name, i + 1);
-			if (orig_tile_mode != TILE_ITEM_SINGLE || image_props->single_tile_number == i + 1) {
-				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, item_name ? sz_item_name : NULL, *tile_item_id, NULL, NULL);
+			tile_name = NULL;
+			if (item_name) {
+				char szTmp[50];
+				sprintf(szTmp, "-Tile%d", i+1);
+				gf_dynstrcat(&tile_name, item_name, NULL);
+				gf_dynstrcat(&tile_name, szTmp, NULL);
 			}
+			if (orig_tile_mode != TILE_ITEM_SINGLE || image_props->single_tile_number == i + 1) {
+				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, tile_name, *tile_item_id, NULL, NULL);
+			}
+			if (tile_name) gf_free(tile_name);
 			if (e) return e;
 			gf_isom_remove_track(movie, tile_track);
 			if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
@@ -1440,14 +1446,19 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			}
 			if (e) return e;
 		}
-		if (item_name)
-			sprintf(sz_item_name, "%s-TileBase", item_name);
+		tile_name = NULL;
+		if (item_name) {
+			gf_dynstrcat(&tile_name, item_name, NULL);
+			gf_dynstrcat(&tile_name, "-TileBase", NULL);
+		}
 		if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
-			gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, imported_track, item_name ? sz_item_name : NULL, item_id, image_props, tile_item_ids);
+			gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, imported_track, tile_name, item_id, image_props, tile_item_ids);
 		}
 		else if (orig_tile_mode == TILE_ITEM_ALL_GRID) {
 			// TODO
 		}
+		if (tile_name) gf_free(tile_name);
+
 		for (i = 0; i < count; i++) {
 			u32 *tile_item_id = gf_list_get(tile_item_ids, i);
 			gf_free(tile_item_id);
