@@ -100,7 +100,7 @@ GF_Err a1lx_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
 	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)s;
-	
+
 	ISOM_DECREASE_SIZE(p, 1);
 	gf_bs_read_int(bs, 7);
 	p->large_size = gf_bs_read_int(bs, 1);
@@ -1094,7 +1094,7 @@ GF_Err mdcv_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, p->mdcv.white_point_y);
 	gf_bs_write_u32(bs, p->mdcv.max_display_mastering_luminance);
 	gf_bs_write_u32(bs, p->mdcv.min_display_mastering_luminance);
-	
+
 	return GF_OK;
 }
 
@@ -1429,7 +1429,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			e = gf_isom_get_reference(movie, imported_track, GF_ISOM_REF_SABT, 1, &tile_track);
 			if (e) return e;
 			if (item_name)
-				sprintf(sz_item_name, "%s-Tile%d", item_name, i + 1);
+				snprintf(sz_item_name, GF_ARRAY_LENGTH(sz_item_name), "%s-Tile%d", item_name, i + 1);
 			if (orig_tile_mode != TILE_ITEM_SINGLE || image_props->single_tile_number == i + 1) {
 				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, item_name ? sz_item_name : NULL, *tile_item_id, NULL, NULL);
 			}
@@ -1441,7 +1441,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			if (e) return e;
 		}
 		if (item_name)
-			sprintf(sz_item_name, "%s-TileBase", item_name);
+			snprintf(sz_item_name, GF_ARRAY_LENGTH(sz_item_name), "%s-TileBase", item_name);
 		if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
 			gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, imported_track, item_name ? sz_item_name : NULL, item_id, image_props, tile_item_ids);
 		}
@@ -1786,7 +1786,7 @@ import_next_sample:
 					u32 private_data_size;
 
 					gf_isom_get_pssh_info(fsrc, i+1, SystemID, &version, &KID_count, &KIDs, &private_data, &private_data_size);
-					
+
 					gf_isom_cenc_set_pssh(movie, SystemID, version, KID_count, (bin128 *) KIDs, (u8 *) private_data, private_data_size, 2);
 				}
 			}
@@ -1828,7 +1828,7 @@ import_next_sample:
 		//}
 	}
 
-	
+
 	if (neg_time)
 		image_props->time = -1;
 
