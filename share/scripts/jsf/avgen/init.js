@@ -79,6 +79,8 @@ filter.set_arg({ name: "alter", desc: "beep alternatively on each channel", type
 filter.set_arg({ name: "blen", desc: "length of beep in milliseconds", type: GF_PROP_UINT, def: "50"} );
 filter.set_arg({ name: "fps", desc: "video frame rate", type: GF_PROP_FRACTION, def: "25"} );
 filter.set_arg({ name: "sizes", desc: "video size in pixels", type: GF_PROP_VEC2I_LIST, def: "1280x720"} );
+filter.set_arg({ name: "disc", desc: "discontinuity timestamps (in video timescale, or audio if video is not present)", type: GF_PROP_UINT_LIST, def: ""} );
+filter.set_arg({ name: "discdur", desc: "discontinuity duration", type: GF_PROP_FRACTION, def: "1/1"} );
 filter.set_arg({ name: "pfmt", desc: "output pixel format", type: GF_PROP_PIXFMT, def: "yuv"} );
 filter.set_arg({ name: "lock", desc: "lock timing to video generation", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "dyn", desc: "move bottom banner", type: GF_PROP_BOOL, def: "true"} );
@@ -118,6 +120,7 @@ let video_playing=false;
 let start_date = 0;
 let frame_offset = 0;
 let nb_frame_init = 0;
+let ts_disc_idx = 0;
 let utc_init = 0;
 let ntp_init = 0;
 
@@ -547,6 +550,18 @@ function process_audio()
 		}
 	}
 
+	if (!video_playing && filter.disc && (ts_disc_idx < filter.disc.length)) {
+		let disc_cts = filter.disc[ts_disc_idx];
+		if (audio_cts >= disc_cts) {
+			if (audio_cts != disc_cts) {
+				print(GF_LOG_WARNING, "Warning: discontinuity at cts "+disc_cts+" not aligned on audio frame boundary");
+			}
+			pck.set_prop('Discontinuity', ts_disc_idx);
+			audio_cts += filter.discdur.n * filter.sr / filter.discdur.d;
+			ts_disc_idx++;
+		}
+	}
+
 	/*set packet properties and send it*/
 	pck.cts = audio_cts;
 	pck.dur = filter.flen;
@@ -652,6 +667,17 @@ function process_video()
 				} else {
 					pck = vpid.new_packet(vsrc.video_buffer, true,  () => { filter.frame_pending--; } );
 					filter.frame_pending ++;
+				}
+				if (filter.disc && (ts_disc_idx < filter.disc.length)) {
+					let disc_cts = filter.disc[ts_disc_idx];
+					if (video_cts >= disc_cts) {
+						if (video_cts != disc_cts) {
+							print(GF_LOG_WARNING, "Warning: discontinuity at cts "+disc_cts+" not aligned on video frame boundary");
+						}
+						pck.set_prop('Discontinuity', ts_disc_idx);
+						video_cts += filter.discdur.n * filter.fps.n / filter.discdur.d;
+						ts_disc_idx++;
+					}
 				}
 				/*set packet properties and send it*/
 				pck.cts = video_cts;
