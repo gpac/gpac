@@ -3588,6 +3588,12 @@ typedef struct
 	u8 *data;
 } GF_DefaultSampleGroupDescriptionEntry;
 
+/*AV1 Switching Entry - Switching Frames*/
+typedef struct
+{
+	int unused; // C requires that a struct or union has at least one member
+} GF_AV1SwitchingEntry;
+
 /*VisualRandomAccessEntry - 'rap ' type*/
 typedef struct
 {

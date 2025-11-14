@@ -1189,7 +1189,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				}
 			}
 		}
-		//activate first channel - if input is loaded and we canceled the event, remember we may no onger receive eos signals from source
+		//activate first channel - if input is loaded and we canceled the event, remember we may no longer receive eos signals from source
 		//this happens because the last playing track may have send a STOP to the source but we here no longer send play
 		if (!read->nb_playing) {
 			read->in_is_eos = (read->input_loaded && cancel_event) ? GF_TRUE : GF_FALSE;
