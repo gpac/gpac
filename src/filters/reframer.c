@@ -138,7 +138,7 @@ typedef struct
 	Bool fetch_done;
 
 	u64 last_utc_ref, last_utc_ref_ts;
-	u64 last_ts_sent_ms;
+	u64 last_ts_sent;
 	u32 ts_disc_idx;
 } RTStream;
 
@@ -154,7 +154,7 @@ typedef struct
 	GF_ForceInputDecodingMode raw;
 	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
-	s32 chkdisc;
+	GF_Fraction chkdisc;
 	GF_ExtractionStartAdjustment xround;
 	GF_UTCReferenceMode utc_ref;
 	u32 utc_probe;
@@ -304,7 +304,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		st->ipid = pid;
 		st->pck_queue = gf_list_new();
 		st->all_saps = GF_TRUE;
-	} else if (ctx->chkdisc<0) {
+	} else if (ctx->chkdisc.num<0) {
 		return GF_OK;
 	}
 
@@ -933,26 +933,26 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	if (!do_send)
 		return GF_FALSE;
 
-	if (!ctx->is_range_extraction && ctx->chkdisc>0) {
-		u64 ts_ms = gf_filter_pck_get_dts(pck);
-		if (ts_ms==GF_FILTER_NO_TS)
-			ts_ms = gf_filter_pck_get_cts(pck);
+	if (!ctx->is_range_extraction && ctx->chkdisc.num>0) {
+		u64 ts = gf_filter_pck_get_dts(pck);
+		if (ts==GF_FILTER_NO_TS)
+			ts = gf_filter_pck_get_cts(pck);
 
-		if (ts_ms!=GF_FILTER_NO_TS) {
+		if (ts!=GF_FILTER_NO_TS) {
 			Bool is_ts_disc = GF_FALSE;
-			ts_ms = gf_timestamp_rescale(ts_ms, st->timescale, 1000);
-			if (!st->last_ts_sent_ms) {
-			} else if (ts_ms < st->last_ts_sent_ms) {
+			ts = gf_timestamp_rescale(ts, st->timescale, ctx->chkdisc.den);
+			if (!st->last_ts_sent) {
+			} else if (ts < st->last_ts_sent) {
 				is_ts_disc = GF_TRUE;
-			} else if (ts_ms > st->last_ts_sent_ms + ctx->chkdisc) {
+			} else if (ts > st->last_ts_sent + ctx->chkdisc.num) {
 				is_ts_disc = GF_TRUE;
 			}
 			if (is_ts_disc) {
 				st->ts_disc_idx++;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Detected time discontinuity on pid %s (timestamps: old "LLU" ms, new "LLU" ms)\n", gf_filter_pid_get_name(st->ipid), st->last_ts_sent_ms, ts_ms));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Detected time discontinuity on pid %s (timestamps: old "LLU", new "LLU")\n", gf_filter_pid_get_name(st->ipid), st->last_ts_sent, ts));
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIME_DISCONTINUITY, &PROP_UINT(st->ts_disc_idx));
 			}
-			st->last_ts_sent_ms = ts_ms;
+			st->last_ts_sent = ts;
 		}
 	}
 
@@ -3107,7 +3107,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(sapcue), "treat SAPs smaller than or equal to this value as cue points", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(rmseek), "remove seek flag of all sent packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
-	{ OFFS(chkdisc), "discontinuity detection in milliseconds - see filter help", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(chkdisc), "discontinuity detection in milliseconds - see filter help", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -3215,7 +3215,7 @@ GF_FilterRegister ReframerRegister = {
 		"\n"
 		"Note: In these modes, [-splitrange]() and [-xadjust]() are implicitly set.\n"
 		"\n"
-		"# Handlin stream discontinuities\n"
+		"# Handling stream discontinuities\n"
 		"Discontinuities may happen quite often in streaming sessions due to resolution switching, codec change, etc ...\n"
 		"While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is known to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.\n"
 		"A negative value for [-chkdisc]() option allows removing all discontinuities once a stream is setup.\n"
