@@ -600,6 +600,8 @@ typedef struct
 	u32 nb_frags;
 	/*! number of fragment infos */
 	GF_DASH_FragmentContext *frags;
+	/*! indicates if the period starts with a discontinuity*/
+	Bool is_discontinuity;
 	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
 	GF_DashHLSLowLatencyType llhls_mode;
 	/*! HLS LL segment done */
@@ -988,6 +990,9 @@ typedef struct {
 	GF_DashAbsoluteURLMode hls_abs_url;
 	Bool m3u8_use_repid;
 	Bool hls_audio_primary;
+
+	/*! number of past discontinuities */
+	u32 nb_past_discont;
 
 	/*! requested segment duration for index mode */
 	u32 segment_duration;
