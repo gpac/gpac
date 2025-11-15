@@ -4026,6 +4026,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	if (as->starts_with_sap<GF_FILTER_SAP_3)
 		gf_fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
 
+	if (mpd->nb_past_discont)
+		gf_fprintf(out,"#EXT-X-DISCONTINUITY-SEQUENCE:%d\n", mpd->nb_past_discont);
+
 	if (mpd->m3u8_time && rep->timescale_mpd && (mpd->type == GF_MPD_TYPE_DYNAMIC)) {
 		u64 seg_ast = mpd->availabilityStartTime;
 		seg_ast += (sctx->time * 1000) / rep->timescale_mpd;
@@ -4068,6 +4071,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 			u64 next_br_start_plus_one=0;
 			u32 next_seg_idx=0;
+
+			if (sctx->is_discontinuity)
+				gf_fprintf(out,"#EXT-X-DISCONTINUITY\n");
 
 			//LL-HLS related
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {

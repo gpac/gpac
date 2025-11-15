@@ -5002,6 +5002,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 			ds->nb_segments_purged ++;
 			ds->dur_purged += dur;
+			ctx->mpd->nb_past_discont += sctx->is_discontinuity ? 1 : 0;
 			gf_fatal_assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			if (sctx->filename) gf_free(sctx->filename);
 			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
@@ -8712,6 +8713,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			}
 		}
+
+		if (seg_state->seg_num == 1 && gf_list_count(ctx->mpd->periods)-1 == ds->ts_disc_idx)
+			seg_state->is_discontinuity = GF_TRUE;
 
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {
