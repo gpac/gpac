@@ -1652,7 +1652,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				gf_filter_pck_set_dts(pck, ch->dts);
 				gf_filter_pck_set_cts(pck, ch->cts + ch->cts_offset);
-				if (ch->sample->IsRAP==-1) {
+				if (ch->sample->IsRAP==RAP_REDUNDANT) {
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 					ch->redundant = 1;
 				} else {
@@ -1664,6 +1664,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				else if (ch->sap_4_type) {
 					gf_filter_pck_set_sap(pck, (ch->sap_4_type==GF_ISOM_SAMPLE_PREROLL) ? GF_FILTER_SAP_4_PROL : GF_FILTER_SAP_4);
 					gf_filter_pck_set_roll_info(pck, ch->roll);
+				}
+
+				if (ch->switch_frame) {
+					gf_filter_pck_set_switch_frame(pck, GF_TRUE);
 				}
 
 				sample_dur = ch->sample->duration;
