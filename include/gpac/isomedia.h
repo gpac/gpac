@@ -7297,7 +7297,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \param trackNumber the target track
 \param sample_number sample number to query
 \param grouping_type four character code of grouping type of sample group description to query
-\param grouping_type_parameter  grouping type parameter of sample group description to query
+\param grouping_type_parameter grouping type parameter of sample group description to query
 \param sampleGroupDescIndex set to the 1-based sample group description index, or 0 if no sample group of this type is associated
 \return error if any
 */
