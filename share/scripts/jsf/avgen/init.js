@@ -66,6 +66,8 @@ filter.set_help(
 +"If a single video PID is produced, it is assigned the name `video` and ID `2`.\n"
 +"If multiple video PIDs are produced, they are assigned the names `videoN` and ID `N+1`, N in [1, sizes].\n"
 +"If multiple [-views]() are generated, they are assigned the names `videoN_vK` and ID `N*views+K-1`, N in [1, sizes], K in [1, views].\n"
++"# Discontinuity simulation\n"
++"Using [-disc](), discontinuities can be simulated at given interval. The timestamp will be reset to 0 at each discontinuity.\n"
 );
 
 filter.set_arg({ name: "type", desc: "output selection\n- a: audio only\n- v: video only\n- av: audio and video", type: GF_PROP_UINT, def: "av", minmax_enum: "a|v|av"} );
@@ -79,8 +81,7 @@ filter.set_arg({ name: "alter", desc: "beep alternatively on each channel", type
 filter.set_arg({ name: "blen", desc: "length of beep in milliseconds", type: GF_PROP_UINT, def: "50"} );
 filter.set_arg({ name: "fps", desc: "video frame rate", type: GF_PROP_FRACTION, def: "25"} );
 filter.set_arg({ name: "sizes", desc: "video size in pixels", type: GF_PROP_VEC2I_LIST, def: "1280x720"} );
-filter.set_arg({ name: "disc", desc: "discontinuity timestamps (in video timescale, or audio if video is not present)", type: GF_PROP_UINT_LIST, def: ""} );
-filter.set_arg({ name: "discdur", desc: "discontinuity duration", type: GF_PROP_FRACTION, def: "1/1"} );
+filter.set_arg({ name: "disc", desc: "discontinuity interval - see filter help", type: GF_PROP_FRACTION, def: "-1/1"} );
 filter.set_arg({ name: "pfmt", desc: "output pixel format", type: GF_PROP_PIXFMT, def: "yuv"} );
 filter.set_arg({ name: "lock", desc: "lock timing to video generation", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "dyn", desc: "move bottom banner", type: GF_PROP_BOOL, def: "true"} );
@@ -110,10 +111,12 @@ let audio_beep_len=0;
 let audio_playing=false;
 let audio_in_beep=false;
 let audio_beep_ch=0;
+let audio_cts_offset=0;
 
 let videos = [];
 let video_cts=0;
 let video_frame=0;
+let video_cts_offset=0;
 
 let brush = new evg.SolidBrush();
 let video_playing=false;
@@ -550,23 +553,20 @@ function process_audio()
 		}
 	}
 
-	if (!video_playing && filter.disc && (ts_disc_idx < filter.disc.length)) {
-		let disc_cts = filter.disc[ts_disc_idx];
-		if (audio_cts >= disc_cts) {
-			if (audio_cts != disc_cts) {
-				print(GF_LOG_WARNING, "Warning: discontinuity at cts "+disc_cts+" not aligned on audio frame boundary");
-			}
+	if (!video_playing && filter.disc.n > 0) {
+		let disc_cts = filter.disc.n * filter.flen / filter.disc.d;
+		if (audio_cts % disc_cts == 0) {
 			pck.set_prop('Discontinuity', ts_disc_idx);
-			audio_cts += filter.discdur.n * filter.sr / filter.discdur.d;
+			audio_cts_offset = audio_cts;
 			ts_disc_idx++;
 		}
 	}
 
 	/*set packet properties and send it*/
-	pck.cts = audio_cts;
+	pck.cts = audio_cts - audio_cts_offset;
 	pck.dur = filter.flen;
 	pck.sap = GF_FILTER_SAP_1;
-	
+
 	//when prop value is set to true for 'SenderNTP', automatically set 
 	if (!videos.length && filter.ntp)
 		pck.set_prop('SenderNTP', true);
@@ -668,19 +668,17 @@ function process_video()
 					pck = vpid.new_packet(vsrc.video_buffer, true,  () => { filter.frame_pending--; } );
 					filter.frame_pending ++;
 				}
-				if (filter.disc && (ts_disc_idx < filter.disc.length)) {
-					let disc_cts = filter.disc[ts_disc_idx];
-					if (video_cts >= disc_cts) {
-						if (video_cts != disc_cts) {
-							print(GF_LOG_WARNING, "Warning: discontinuity at cts "+disc_cts+" not aligned on video frame boundary");
-						}
+				if (filter.disc.n > 0) {
+					let disc_cts = filter.disc.n * filter.fps.n / filter.disc.d;
+					if (video_cts % disc_cts == 0) {
+						print(GF_LOG_WARNING, "Inserting discontinuity at video cts "+video_cts);
 						pck.set_prop('Discontinuity', ts_disc_idx);
-						video_cts += filter.discdur.n * filter.fps.n / filter.discdur.d;
+						video_cts_offset = video_cts
 						ts_disc_idx++;
 					}
 				}
-				/*set packet properties and send it*/
-				pck.cts = video_cts;
+				/*set packet properties*/
+				pck.cts = video_cts - video_cts_offset;
 				pck.dur = filter.fps.d;
 				pck.sap = GF_FILTER_SAP_1;
 				if (filter.ntp)
