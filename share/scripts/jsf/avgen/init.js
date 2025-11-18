@@ -123,7 +123,6 @@ let video_playing=false;
 let start_date = 0;
 let frame_offset = 0;
 let nb_frame_init = 0;
-let ts_disc_idx = 0;
 let utc_init = 0;
 let ntp_init = 0;
 
@@ -555,10 +554,9 @@ function process_audio()
 
 	if (!video_playing && filter.disc.n > 0) {
 		let disc_cts = filter.disc.n * filter.flen / filter.disc.d;
-		if (audio_cts % disc_cts == 0) {
-			pck.set_prop('Discontinuity', ts_disc_idx);
+		if (audio_cts % disc_cts == 0 && audio_cts > 0) {
+			pck.set_prop("PacketDiscontinuity", true);
 			audio_cts_offset = audio_cts;
-			ts_disc_idx++;
 		}
 	}
 
@@ -670,11 +668,9 @@ function process_video()
 				}
 				if (filter.disc.n > 0) {
 					let disc_cts = filter.disc.n * filter.fps.n / filter.disc.d;
-					if (video_cts % disc_cts == 0) {
-						print(GF_LOG_WARNING, "Inserting discontinuity at video cts "+video_cts);
-						pck.set_prop('Discontinuity', ts_disc_idx);
-						video_cts_offset = video_cts
-						ts_disc_idx++;
+					if (video_cts % disc_cts == 0 && video_cts > 0) {
+						pck.set_prop("PacketDiscontinuity", true);
+						video_cts_offset = video_cts;
 					}
 				}
 				/*set packet properties*/

@@ -7764,6 +7764,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
 
+	dasher_update_period_duration(ctx, GF_FALSE);
+
 	return GF_OK;
 }
 
