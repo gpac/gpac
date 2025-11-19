@@ -933,13 +933,13 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	if (!do_send)
 		return GF_FALSE;
 
+	Bool is_ts_disc = GF_FALSE;
 	if (!ctx->is_range_extraction && ctx->chkdisc.num>0) {
 		u64 ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts = gf_filter_pck_get_cts(pck);
 
 		if (ts!=GF_FILTER_NO_TS) {
-			Bool is_ts_disc = GF_FALSE;
 			ts = gf_timestamp_rescale(ts, st->timescale, ctx->chkdisc.den);
 			if (!st->last_ts_sent) {
 			} else if (ts < st->last_ts_sent) {
@@ -1124,6 +1124,9 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			}
 		}
 
+		//signal discontinuity
+		if (is_ts_disc) gf_filter_pck_set_property(new_pck, GF_PROP_PCK_TIME_DISCONTINUITY, &PROP_BOOL(GF_TRUE));
+
 		//rewrite timestamps
 		ts = gf_filter_pck_get_cts(pck) + cts_offset;
 
@@ -1258,6 +1261,9 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_merge_properties(pck, dst);
 			if (ctx->rmseek)
 				gf_filter_pck_set_seek_flag(dst, GF_FALSE);
+
+			//signal discontinuity
+			if (is_ts_disc) gf_filter_pck_set_property(dst, GF_PROP_PCK_TIME_DISCONTINUITY, &PROP_BOOL(GF_TRUE));
 
 			// forward SAPs as cue points
 			u32 sap = gf_filter_pck_get_sap(dst);

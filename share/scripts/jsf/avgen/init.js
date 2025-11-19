@@ -554,10 +554,7 @@ function process_audio()
 
 	if (!video_playing && filter.disc.n > 0) {
 		let disc_cts = filter.disc.n * filter.flen / filter.disc.d;
-		if (audio_cts % disc_cts == 0 && audio_cts > 0) {
-			pck.set_prop("PacketDiscontinuity", true);
-			audio_cts_offset = audio_cts;
-		}
+		if (audio_cts % disc_cts == 0 && audio_cts > 0) audio_cts_offset = audio_cts;
 	}
 
 	/*set packet properties and send it*/
@@ -668,10 +665,7 @@ function process_video()
 				}
 				if (filter.disc.n > 0) {
 					let disc_cts = filter.disc.n * filter.fps.n / filter.disc.d;
-					if (video_cts % disc_cts == 0 && video_cts > 0) {
-						pck.set_prop("PacketDiscontinuity", true);
-						video_cts_offset = video_cts;
-					}
+					if (video_cts % disc_cts == 0 && video_cts > 0) video_cts_offset = video_cts;
 				}
 				/*set packet properties*/
 				pck.cts = video_cts - video_cts_offset;
