@@ -259,6 +259,8 @@ rbuffer (uint, default: 0, updatable): rebuffer trigger in ms. If 0 or more than
 .br
 stats (bool, default: false):  compute statistics for PIDs
 .br
+timeout (uint, default: 5000): timeout in ms when doing simple inspection in case no packets are received on some PIDs
+.br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
@@ -754,7 +756,7 @@ player (enum, default: no):    set compositor in player mode
 .br
 noaudio (bool, default: false): disable audio output
 .br
-opfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format to use for output. Ignored in .I player mode
+opfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb8|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format to use for output. Ignored in .I player mode
 .br
 
 .br
@@ -1367,6 +1369,39 @@ index (dbl, default: 1.0):     indexing window length
 .br
 
 .br
+.SH rfac4
+.LP
+.br
+Description: AC4 reframer
+.br
+
+.br
+This filter parses AC4 files/data and outputs corresponding audio PID and frames.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH ufac4
+.LP
+.br
+Description: AC4 writer
+.br
+
+.br
+This filter converts MPEG-H Audio streams into AC4 encapsulated data.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+rcfg (bool, default: true):    force repeating decoder config at each I-frame
+.br
+
+.br
 .SH a52dec
 .LP
 .br
@@ -1474,6 +1509,18 @@ sigfrag (bool, default: false): signal segment boundaries on output packets for 
 .br
 dvbtxt (bool, default: false): export DVB teletext streams
 .br
+upes (enum, default: no):      keep unknown PES streams
+.br
+* no: ignored the streams
+.br
+* info: declare the stream as fake (no data forward), turns on dvbtxt
+.br
+* full: declare the stream and sends data
+.br
+
+.br
+mappcr (bool, default: true):  remap PCR and timestamps into continuous timeline
+.br
 
 .br
 .SH sockin
@@ -1572,15 +1619,43 @@ Description: DVB for Linux
 .br
 
 .br
-Experimental DVB support for linux, requires a channel config file through .I chcfg
+This filter reads raw MPEG-2 TS from DVB-T/T2 and DVB-S/S2 cards on linux.
 .br
-  
+
 .br
-The URL syntax is dvb://CHANNAME[@FRONTEND], with:
+The URL scheme used is dvb:// with the following syntaxes:
 .br
- * CHANNAME: the channel name as listed in the channel config file
+* `dvb://CHAN`: tunes to channel CHAN in the channel configuration file.
 .br
- * frontend: the index of the DVB adapter to use (optional, default is 0)
+* `dvb://+CHAN`: tunes to multiplex contaning channel CHAN and expose all programs.
+.br
+* `dvb://=N`: tunes to the N-th channel in the channel configuration file.
+.br
+* `dvb://@FREQ`: tunes to frequency FREQ and exposes all channels in multiplex.
+.br
+* `dvb://@=N`: tunes to N-th frequency and exposes all channels in multiplex.
+.br
+* `dvb://@chlist`: populates the .I chans option with available channels in the configuration file and do nothing else.
+.br
+
+.br
+When tuning by channel name CHAN, the first entry in the channel configuration file starting with CHAN will be used.
+.br
+
+.br
+The channel configuration file is set through .I chcfg. The expected format is VDR as produced by w_scan, with a syntax extended for comment lines, starting with #.
+.br
+Within a comment line, the following keywords can be used to override defaults:
+.br
+ * `dev=N`: set the adapter index (N integer) or full path (N string).
+.br
+ * `idx=K`: set the frontend index K.
+.br
+ * `csidx=S`: set the committed switch index for DiSEqC.
+.br
+
+.br
+To view the default channels, use gpac -hx dvbin.
 .br
 
 .br
@@ -1589,9 +1664,21 @@ The URL syntax is dvb://CHANNAME[@FRONTEND], with:
 .br
 src (cstr):                    URL of source content
 .br
-block_size (uint, default: 65536): block size used to read file
+block_size (uint, default: 65536): block size used to read device
 .br
-chcfg (cstr):                  path to channels.conf file
+chcfg (cstr, default: $GCFG/channels.conf): path to channels configuration file
+.br
+dev (str, default: 0):         path to DVB adapter - if first character is a number, this is the device index
+.br
+idx (uint, default: 0):        frontend index
+.br
+timeout (uint, default: 5000): timeout in ms before tune failure
+.br
+csleep (uint, default: 15):    config sleep in ms between DiSEqC commands
+.br
+csidx (uint, default: 0):      committed switch index for DiSEqC
+.br
+chans (strl):                  list of all channels, only pupulated for dvb://@chlist URL
 .br
 
 .br
@@ -2226,6 +2313,8 @@ Other tag class may be specified using tag_NAME property names, and will be adde
 .br
   
 .br
+Property names formatted as cust_NAME@MEAN are added as a custom tag with name NAME and mean MEAN. Both NAME and MEAN can be empty.
+.br
 .SH User data
 .LP
 .br
@@ -2428,13 +2517,21 @@ tfdt (lfrac, default: 0):      set initial decode time (tfdt) of first traf
 .br
 tfdt_traf (bool, default: false): force tfdt box in each traf
 .br
-nofragdef (bool, default: false): disable default flags in fragments
+nofragdef (bool, default: false): disable default fragment flags in initial moov
 .br
 straf (bool, default: false):  use a single traf per moof (smooth streaming and co)
 .br
 strun (bool, default: false):  use a single trun per traf (smooth streaming and co)
 .br
-prft (bool, default: true):    set prft box at segment start, disabled if not fragmented mode
+prft (enum, default: sender):  set prft box mode, disabled if not fragmented mode
+.br
+* off: disable prft box
+.br
+* sender: put ntp time before encoder
+.br
+* both: put sender time (if available) and ntp time when writing the moof
+.br
+
 .br
 psshs (enum, default: moov):   set pssh boxes store mode
 .br
@@ -2803,6 +2900,8 @@ refs (bool, default: false):   import sample reference picture list (currently o
 seirw (bool, default: true):   rewrite AVC sei messages for ISOBMFF constraints
 .br
 audelim (bool, default: false): keep Access Unit delimiter in payload
+.br
+keepfiller (bool, default: false): keep filler NAL units in output
 .br
 notime (bool, default: false): ignore input timestamps, rebuild from 0
 .br
@@ -3337,6 +3436,12 @@ The output file name can use gpac templating mechanism, see gpac -h doc.The filt
 .br
 
 .br
+By default output files are created directly, which may lead to issues if concurrent programs attempt to access them.
+.br
+By enabling .I atomic, files will be created in target destination folder with the .gftmp suffix and move to their final name upon close.
+.br
+
+.br
 .SH Discard sink mode
 .LP
 .br
@@ -3413,6 +3518,8 @@ redund (bool, default: false): keep redundant packet in output file
 max_cache_segs (sint, default: 0): maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)
 .br
 force_null (bool, default: false): force no output regardless of file name
+.br
+atomic (bool, default: false): use atomic file write for non append modes
 .br
 
 .br
@@ -3555,7 +3662,7 @@ The filter can perform time range extraction of the source using .I xs and .I xe
 .br
 The formats allowed for times specifiers are:
 .br
-- 'TC'HH:MM:SS:FF specify time in timecode
+* 'TC'HH:MM:SS:FF: specify time in timecode
 .br
 * 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds
 .br
@@ -3721,6 +3828,27 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 
 .br
+.SH Absorbing stream discontinuities
+.LP
+.br
+Discontinuities may happen quite ofter in streaming sessions due to resolution switching, codec change, etc ...
+.br
+While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is knwon to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.
+.br
+The .I nodisc option allows removing all discontinuities once a stream is setup.
+.br
+Warning: Make sure you know what you are doing as using this option could make the stream not playable (ignoring a codec config change).
+.br
+Example
+.br
+gpac -i SOMEURL reframer:nodisc -o DASH_ORIGIN
+.br
+
+.br
+In this example, the dasher filter will never trigger a period switch due to input stream discontinuity.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -3728,11 +3856,13 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 rt (enum, default: off, updatable): real-time regulation mode of input
 .br
-* off: disables real-time regulation
+* off: disable real-time regulation
 .br
-* on: enables real-time regulation, one clock per PID
+* on: enable real-time regulation, one clock per PID
 .br
-* sync: enables real-time regulation one clock for all PIDs
+* sync: enable real-time regulation, one clock for all PIDs
+.br
+* align: send packets in DTS order following one clock for all PIDs (undo input packet bursts), no real-time regulation
 .br
 
 .br
@@ -3802,6 +3932,8 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 .br
 * media: use UTC of media (abort if none found)
 .br
+* tc: use timecode of media (be careful: considered day will be today)
+.br
 
 .br
 utc_probe (uint, default: 5000): timeout in milliseconds to try to acquire UTC reference from media
@@ -3821,6 +3953,8 @@ cues (enum, default: no, updatable): cue filtering mode
 sapcue (uint, default: 0):     treat SAPs smaller than or equal to this value as cue points
 .br
 rmseek (bool, default: false, updatable): remove seek flag of all sent packets
+.br
+nodisc (bool, default: false, updatable): ignore all discontinuities from input - see filter help
 .br
 
 .br
@@ -3842,7 +3976,7 @@ The writegen filter should usually not be explicitly loaded without a source ID 
 .br
 exporter (bool, default: false): compatibility with old exporter, displays export results
 .br
-pfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format for raw extract. If not set, derived from extension
+pfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb8|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format for raw extract. If not set, derived from extension
 .br
 
 .br
@@ -3885,6 +4019,8 @@ vtth (enum, default: seg):     vtt header injection mode
 
 .br
 add_nl (bool, default: false): add new line after each packet when dumping text streams
+.br
+rawb (bool, default: false):   force direct dump of input without framing rewrite. In this mode, all codec types are supported
 .br
 
 .br
@@ -4408,7 +4544,7 @@ The filter also parses YUV4MPEG format.
 .br
 size (v2di, default: 0x0):     source video resolution
 .br
-spfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): source pixel format. When not set, derived from file extension
+spfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb8|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): source pixel format. When not set, derived from file extension
 .br
 
 .br
@@ -4594,7 +4730,7 @@ Playlist refreshing will abort:
 .br
 A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:
 .br
-* repeat=N: repeats N times the content (hence played N+1).
+* repeat=N: repeats N times the content (hence played N+1), infinite loop if negative.
 .br
 * start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.
 .br
@@ -4948,6 +5084,8 @@ Each TEMI description is formatted as ID_OR_URL or #OPT1[#OPT2]#ID_OR_URL. Optio
 .br
 * N: insert NTP timestamp in TEMI timeline descriptor
 .br
+* n: insert NTP timestamp using NTP for first packet than incrementing based on media timestamp (for non real-time)
+.br
 * ID_OR_URL: If number, indicate the TEMI ID to use for external timeline. Otherwise, give the URL to insert
 .br
   
@@ -5120,7 +5258,7 @@ flush_rap (bool, default: false): force flushing mux program when RAP is found o
 .br
 pcr_only (bool, default: false): enable PCR-only TS packets
 .br
-pcr_init (lsint, default: -1): set initial PCR value for the programs. A negative value means random value is picked
+pcr_init (lsint, default: -1): set initial PCR value for the programs. -1 means random value is picked, other negative value means offset to maximum PCR
 .br
 sid (uint, default: 0):        set service ID for the program
 .br
@@ -5856,6 +5994,8 @@ The segmenter adds the following properties to the output PIDs:
 .br
 * SegSync: indicates that fragments/segments must be completely flushed before sending back size events
 .br
+* InitBase64: indicates that the base64-encoded init segment must be set in the init segment size event
+.br
 
 .br
 .SH Options (expert):
@@ -5947,7 +6087,7 @@ muxtype (enum, default: auto): muxtype to use for the segments
 .br
 rawsub (bool, default: no):    use raw subtitle format instead of encapsulating in container
 .br
-asto (dbl, default: 0):        availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
+asto (dbl, default: 0):        availabilityTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations
 .br
 profile (enum, default: auto): target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main
 .br
@@ -6066,6 +6206,8 @@ cmpd (bool, default: false):   skip line feed and spaces in MPD XML for compactn
 styp (str):                    indicate the 4CC to use for styp boxes when using ISOBMFF output
 .br
 dual (bool):                   indicate to produce both MPD and M3U files
+.br
+segcts (bool):                 compute the segment number by dividing the first CTS by .I segdur
 .br
 sigfrag (bool):                use manifest generation only mode
 .br
@@ -6215,6 +6357,10 @@ inband_event (bool, default: false): insert a default inband event stream in the
 .br
 ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
 .br
+evte_agg (bool, default: false): force aggregation of Event Track samples of a DASH segment into a single sample
+.br
+base64 (bool, default: false): embed init segments in manifests as base64
+.br
 
 .br
 .SH tileagg
@@ -6306,6 +6452,8 @@ gpac -i stdin vout
 
 .br
 
+.br
+When reading from stdin, the default timeout is 10 seconds.
 .br
 .SH Named pipes
 .LP
@@ -6777,8 +6925,6 @@ Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf o
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
 .br
-tc (bool, default: false):     inject metadata timecodes
-.br
 
 .br
 .SH nvdec
@@ -6960,6 +7106,10 @@ If .I kc option is set, corrupted files will be kept. If .I fullseg is not set a
 .br
 
 .br
+Note: A partially patched segment is no longer considered corrupted and will be dispatched regardless of .I kc.
+.br
+
+.br
 .SH Interface setup
 .LP
 .br
@@ -7052,7 +7202,25 @@ dynsel (bool, default: true):  dynamically enable and disable multicast groups b
 .br
 range_merge (uint, default: 10000): merge ranges in HTTP repair if distant from less than given amount of bytes
 .br
-minrecv (uint, default: 20):   redownload full file in HTTP repair if received bytes is less than given percentage of file size
+minrecv (uint, default: 20):   redownload full file in HTTP repair if received bytes is less than given percentage of file size, 0 means complete file redownload if any error
+.br
+riso (enum, default: none):    advanced options for ISOBMFF HTTP repair
+.br
+* none: use regular http repair
+.br
+* simple: first repair all non-mdat boxes then repair mdat in order
+.br
+* partial: only repair all non-mdat moxes, leaving holes in mdat
+.br
+* deps: same as simple and repair only samples depended upon by other samples
+.br
+* depx: same as deps but do not hide moof of incomplete mdat (tests only)
+.br
+
+.br
+ka (bool, default: false):     keep service alive if multicast is down
+.br
+chkiso (bool, default: false): check isobmf structure after repair (debug)
 .br
 
 .br
@@ -7415,6 +7583,10 @@ When a single read directory is specified, the server root / is the content of t
 When multiple read directories are specified, the server root / contains the list of the mount points with their directory names.
 .br
 When a write directory is specified, the upload resource name identifies a file in this directory (the write directory name is not present in the URL).
+.br
+  
+.br
+Warning: files uploaded / created in the write directory are always created in non-atomic modes.
 .br
   
 .br
@@ -8009,6 +8181,8 @@ gendts (bool, default: false): generate timestamps on output packets based on PC
 .br
 kpad (bool, default: false):   keep padding (null) TS packets
 .br
+rt (bool, default: false):     enable real-time regulation
+.br
 
 .br
 .SH tsgendts
@@ -8028,6 +8202,8 @@ This filter restamps input MPEG-2 transport stream based on PCR.
 nb_pack (uint, default: 10):   pack N packets before sending
 .br
 kpad (bool, default: false):   keep padding (null) TS packets
+.br
+rt (bool, default: false):     enable real-time regulation
 .br
 
 .br
@@ -8058,6 +8234,10 @@ The filter can currently modify the following properties in video bitstreams:
 .br
   - color primaries, transfer characteristics and matrix coefficients (or remove all info)
 .br
+  - (AVC|HEVC) timecode- AV1:
+.br
+  - timecode
+.br
 - ProRes:
 .br
   - sample aspect ratio
@@ -8082,6 +8262,67 @@ The filter can currently modify the following properties in the stream configura
 .br
 The filter will work in passthrough mode for all other codecs and media types.
 .br
+.SH Timecode Manipulation
+.LP
+.br
+One can optionally set the .I tcxs and .I tcxe to define the start and end of timecode manipulation. By default, the filter will process all packets.
+.br
+Some modes require you to define .I tcsc. This follows the same format as the timecode itself (.I -. The use of negative values is only meaningful in the shift mode. It's also possible to set .I tcsc to first to infer the value from the first timecode when timecode manipulation starts. In this case, unless a timecode is found, the filter will not perform any operation.
+.br
+.SS Modes
+.br
+Timecode manipulation has four modes and they all have their own operating nuances.
+.br
+.P
+.B
+Remove
+.br
+Remove all timecodes from the bitstream.
+.br
+.P
+.B
+Insert
+.br
+Insert timecodes based on the CTS. If .I tcsc is set, it will be used as timecode offset.
+.br
+This mode will overwrite existing timecodes (if any).
+.br
+.P
+.B
+Shift
+.br
+Shift all timecodes by the value defined in .I tcsc.
+.br
+This mode will only modify timecodes if they exists, no new timecode will be inserted.
+.br
+.P
+.B
+Constant
+.br
+Set all timecodes to the value defined in .I tcsc.
+.br
+Again, this mode wouldn't insert new timecodes.
+.br
+.P
+.B
+UTC
+.br
+Uses the SenderNTP property, UTC property on the packet, or the current UTC time to set the timecode.
+.br
+This mode will overwrite existing timecodes (if any).
+.br
+.SS Examples
+.br
+Example
+.br
+gpac -i in.mp4 bsrw:tc=insert [dst]
+.br
+gpac -i in.mp4 bsrw:tc=insert:tcsc=TC00:00:10:00 [dst]
+.br
+gpac -i in.mp4 bsrw:tc=shift:tcsc=TC00:00:10:00:tcxs=TC00:01:00:00 [dst]
+.br
+
+.br
 
 .br
 .SH Options (expert):
@@ -8095,7 +8336,7 @@ ctfc (ctfc, default: -1, Enum: reserved0|BT709|undef|reserved3|BT470M|BT470BG|SM
 .br
 
 .br
-cmx (cmxc, default: -1, Enum: GBR|BT709|undef|FCC|BT601|SMPTE170|SMPTE240|YCgCo|BT2020|BT2020cl|YDzDx, updatable): color matrix coeficients according to ISO/IEC 23001-8 / 23091-2
+cmx (cmxc, default: -1, Enum: GBR|BT709|undef|FCC|BT601|SMPTE170|SMPTE240|YCgCo|BT2020|BT2020cl|YDzDx, updatable): color matrix coefficients according to ISO/IEC 23001-8 / 23091-2
 .br
 
 .br
@@ -8120,6 +8361,30 @@ pidc (sint, default: -1, updatable): profile IDC for HEVC and VVC
 pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
+.br
+tcxs (str, updatable):         timecode manipulation start
+.br
+tcxe (str, updatable):         timecode manipulation end
+.br
+tcdf (bool, default: false, updatable): use NTSC drop-frame counting for timecodes
+.br
+tcsc (str, updatable):         timecode constant for use with shift/constant modes
+.br
+tc (enum, default: none, updatable): timecode manipulation mode
+.br
+* none: do not change anything
+.br
+* remove: remove timecodes
+.br
+* insert: insert timecodes based on cts or tcsc (if provided)
+.br
+* shift: shift timecodes based by tcsc
+.br
+* constant: overwrite timecodes with tcsc
+.br
+* utc: insert timecodes based on the utc time on the packet or the current time
+.br
+
 .br
 seis (uintl, updatable):       list of SEI message types (4,137,144,...). When used with rmsei, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist
 .br
@@ -8445,7 +8710,7 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .br
 Description: FFmpeg demultiplexer
 .br
-Version: Lavf61.9.100
+Version: Lavf62.4.102
 .br
 
 .br
@@ -8463,6 +8728,23 @@ For example, if ffdmx:rtmp is listed as input protocol, this means rtmp:// sourc
 .br
 
 .br
+.SH Raw protocol mode
+.LP
+.br
+The .I proto flag will disable FFmpeg demuxer and use GPAC instead. Default format is probed from initial data but can be set using .I ext or .I mime if probing is disabled.
+.br
+Example
+.br
+gpac -i srt://127.0.0.1:1234:gpac:proto inspectThis will use the SRT protocol handler but GPAC demultiplexer
+.br
+
+.br
+
+.br
+In this mode, the filter uses the time between the last two received packets to estimates how often it should check for inputs. The maximum and minimum times to wait between two calls is given by the .I mwait option. The maximum time may need to be reduced for very high bitrates sources.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -8474,6 +8756,14 @@ block_size (uint, default: 4096): block size used to read file when using GFIO c
 .br
 strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's input stream
 .br
+proto (bool, default: false):  use protocol handler only and bypass FFmpeg demuxer
+.br
+mwait (v2di, default: 1x30):   set min and max wait times in ms to avoid too frequent polling in proto mode
+.br
+ext (str):                     indicate file extension of data in raw protocol mode
+.br
+mime (str):                    indicate mime type of data in raw protocol mode
+.br
 * (str):                       any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffdmx and gpac -hx ffdmx:*
 .br
 
@@ -8483,7 +8773,7 @@ strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's 
 .br
 Description: FFmpeg decoder
 .br
-Version: Lavc61.24.100
+Version: Lavc62.15.100
 .br
 
 .br
@@ -8544,7 +8834,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFmpeg AV capture
 .br
-Version: Lavd61.4.100
+Version: Lavd62.2.100
 .br
 
 .br
@@ -8636,7 +8926,7 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .br
 Description: FFmpeg video rescaler
 .br
-Version: SwS8.9.101
+Version: SwS9.3.100
 .br
 
 .br
@@ -8711,7 +9001,7 @@ See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more detail
 .br
 osize (v2di):                  osize of output video
 .br
-ofmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format for output video. When not set, input format is used
+ofmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb8|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format for output video. When not set, input format is used
 .br
 
 .br
@@ -8756,7 +9046,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFmpeg encoder
 .br
-Version: Lavc61.24.100
+Version: Lavc62.15.100
 .br
 
 .br
@@ -8854,7 +9144,7 @@ round (sint, default: 1, updatable): round video up or down
 .br
 Description: FFmpeg multiplexer
 .br
-Version: Lavf61.9.100
+Version: Lavf62.4.102
 .br
 
 .br
@@ -8886,6 +9176,16 @@ All PID properties prefixed with meta: will be added as metadata.
 .br
 
 .br
+The .I proto flag will disable FFmpeg muxer and use GPAC instead. Default format is MPEG-2 TS and can be specified using .I ext or .I mime.
+.br
+Example
+.br
+gpac -i SRC -o srt://127.0.0.1:1234:gpac:proto[:ext=mp4:frag]This will use the SRT protocol handler but GPAC m2ts multiplexer or mp4 muxer if ext=mp4:frag is set
+.br
+
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -8909,6 +9209,10 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 keepts (bool, default: true):  do not shift input timeline back to 0
 .br
+proto (bool, default: false):  use protocol only: do not try to mux (useful when sending a SRT stream with remuxing)
+.br
+psleep (uint, default: 1000):  in protocol only mode, sleep for given amount of ms before EOS (do not kill connection right away for some protocols)
+.br
 * (str):                       any possible options defined for AVFormatContext and sub-classes (see gpac -hx ffmx and gpac -hx ffmx:*)
 .br
 
@@ -8918,7 +9222,7 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 Description: FFmpeg AV Filter
 .br
-Version: Lavfi10.6.101
+Version: Lavfi11.8.100
 .br
 
 .br
@@ -9059,7 +9363,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFmpeg bitstream filter
 .br
-Version: Lavu59.46.100
+Version: Lavu60.12.100
 .br
 
 .br
@@ -9271,15 +9575,35 @@ The ROUTE session will include a multi-part MIME unsigned package containing man
 .br
 In this mode, the filter allows multiple service multiplexing, identified through the ServiceID and ServiceName properties.
 .br
-Note: .I ip and .I first_port are used to send the multicast gateway configuration, init segments and manifests. .I first_port is used only if no port is specified in .I dst.
+Note: .I ip and .I first_port are used to send the multicast gateway configuration. .I first_port is used only if no port is specified in .I dst.
 .br
 
 .br
-The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1
+The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1. The .I use_inband option can be used to send manifests and init segments in media multicast sessions.
 .br
 
 .br
 The FLUTE session always uses a symbol length of .I mtu minus 44 bytes.
+.br
+
+.br
+The MABRBaseURLs property can be set on sources to declare a list of alternate repair servers to be injected.
+.br
+Each base URL can be prefixed with N;, where N gives the relative weight of the server, a negative value skipping the server.
+.br
+The special value src is used to indicate the source of the session.
+.br
+Example
+.br
+gpac -i HTTP_MPD_URL:gpac::#MABRBaseURLs=-1;src,SOME_ALT_URL dashin:forward=file -o mabr://225.0.0.1:1234/
+.br
+
+.br
+This will forward the source DASH session to multicast and:
+.br
+- hide the source server as a repair URL
+.br
+- add SOME_ALT_URL as a repair URL
 .br
 
 .br
@@ -9384,7 +9708,7 @@ These will demultiplex the input, re-dash it and send the output of the dasher t
 .SH Error simulation
 .LP
 .br
-It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:
+It is possible to simulate errors with (-errsim)[]. In this mode the LCT network sender implements a 2-state Markov chain:
 .br
 .br
 gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0
@@ -9442,8 +9766,6 @@ runfor (uint, default: 0):     run for the given time in ms
 .br
 nozip (bool, default: false):  do not zip signaling package (STSID+manifest)
 .br
-furl (bool, default: false):   inject full URLs of source service in the signaling instead of stripped server path
-.br
 flute (bool, default: true):   use flute for DVB-MABR object delivery
 .br
 csum (enum, default: meta):    send MD5 checksum for DVB flute
@@ -9460,7 +9782,7 @@ recv_obj_timeout (uint, default: 50): set timeout period in ms before client res
 .br
 errsim (v2d, default: 0.0x100.0): simulate errors using a 2-state Markov chain. Value are percentages
 .br
-use_inband (bool, default: false): DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session
+use_inband (bool, default: false): send manifest and init segments in media transport sessions for MABR
 .br
 ssm (bool, default: false):    indicate source-specific multicast for DVB-MABR, requires ifce to be set
 .br
@@ -10050,6 +10372,30 @@ agg (enum, default: none):     output aggregation mode
 .br
 
 .br
+.SH ccenc
+.LP
+.br
+Description: Closed-Caption encoder
+.br
+
+.br
+This filter encodes Closed Captions to the video stream.
+.br
+Supported video media types are MPEG2, AVC, HEVC, VVC and AV1 streams.
+.br
+
+.br
+Only a subset of CEA 608/708 is supported.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+vb_time (frac, default: 1/1):  time to hold video packets if no caption is available
+.br
+
+.br
 .SH scte35dec
 .LP
 .br
@@ -10076,7 +10422,22 @@ mode (enum, default: 23001-18): mode to operate in
 .br
 
 .br
-segdur (frac, default: 1/1):   segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)
+sampdur (frac, default: 0/1):  segmentation duration in seconds. Default value 0 only flushes when content changes
+.br
+
+.br
+.SH seiload
+.LP
+.br
+Description: SEI message loader
+.br
+
+.br
+This filter loads known inband metadata as packet properties
+.br
+
+.br
+No options
 .br
 
 .br
@@ -10597,7 +10958,7 @@ If set to 'utc', the filter will generate text based on the current UTC time. If
 .br
 When the .I unit is set to 'w', the filter will generate text based on words. When set to 'l', the filter will generate text based on lines
 .br
-The .I udur parameter sets the frame duration of the text stream. Total duration of the text stream is set by the .I dur parameter. If set to 0/0, the text stream will be infinite
+The .I fdur parameter sets the frame duration of the text stream. Total duration of the text stream is set by the .I dur parameter. If set to 0/0, the text stream will be infinite
 .br
 The .I rollup parameter enables roll-up mode up to the specified number of lines. In roll-up mode, the filter will accumulate text until the specified number of lines is reached.
 .br
@@ -10614,7 +10975,7 @@ When .I rt is set to true, the filter will generate text in real-time. If set to
 .SH Options (expert):
 .LP
 .br
-src (str, default: /usr/local/share/gpac/scripts/jsf/txtgen//lipsum.txt): source of text. If not set, the filter will use lorem ipsum text
+src (str, default: /usr/local/share/gpac/scripts/jsf/txtgen/lipsum.txt): source of text. If not set, the filter will use lorem ipsum text
 .br
 type (enum, default: txt):     type of text to generate
 .br
@@ -10634,7 +10995,7 @@ unit (enum, default: l):       minimum unit of text from the source
 .br
 
 .br
-udur (frac, default: 1/1):     duration of each text unit
+fdur (frac, default: 1/1):     duration of each frame
 .br
 lmax (uint, default: 32):      maximum number of characters in a line. If the line in the source file is longer than this, the excess text will be wrapped. 0 means no limit
 .br
@@ -10718,17 +11079,23 @@ Each service is a JSON object with one or more of the following properties:
 .br
 * timeshift: (number, default 10) time in seconds a cached file remains in memory
 .br
-* unload: (number, default 4 multicast unload policy
+* unload: (number, default 4) multicast unload policy
 .br
 * activate: (number, default 1) multicast activation policy
 .br
-* repair: (boolean, default false) enable unicast repair in MABR stack
+* mcache: (boolean, default false) cache manifest files
 .br
-* mcache: (boolean, default false) cache manifest files (experimental)
+* repair: (string, default false) enable unicast repair in MABR stack
+.br
+  * false: disable repair
+.br
+  * true: enable repair using source URL or repair servers indicated in MABR
+.br
+  * auto: enable repair only from repair servers indicated in MABR
 .br
 * corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
 .br
-* check_ip: (boolean, , default false monitor IP address and port rather than connection when tracking active clients
+* check_ip: (boolean, , default false) monitor IP address and port rather than connection when tracking active clients
 .br
 * noproxy: (boolean) disable proxy for service when local mount point is set. Default is true if both local and http are set, false otherwise
 .br
@@ -10763,7 +11130,7 @@ All services using http option can be exposed by the server without exposing the
 .br
 Example
 .br
-{ 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/'}
+{ "http": "https://test.com/live/dash/live.mpd", "local": "/service1/"}
 .br
 
 .br
@@ -10773,7 +11140,7 @@ The server will translate any request /service1/foo/bar.ext into https://test.co
 .br
 Example
 .br
-{ 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/manifest.mpd'}
+{ "http": "https://test.com/live/dash/live.mpd", "local": "/service1/manifest.mpd"}
 .br
 
 .br
@@ -10811,7 +11178,7 @@ Service configuration parameters used : http (mandatory), gcache, local.
 Configuration for activating proxy for a specific network path:
 .br
 .br
-{ 'http': 'https://test.com/video/'}
+{ "http": "https://test.com/video/"}
 .br
 
 .br
@@ -10820,7 +11187,7 @@ Configuration for activating proxy for a specific network path:
 Configuration for activating proxy for any network path:
 .br
 .br
-{ 'http': '*'}
+{ "http": "*"}
 .br
 
 .br
@@ -10829,7 +11196,7 @@ Configuration for activating proxy for any network path:
 Configuration for a relay on a given path:
 .br
 .br
-{ 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
+{ "http": "https://test.com/some/path/to/video/", "local": "/myvids/"}
 .br
 
 .br
@@ -10857,7 +11224,7 @@ Service configuration parameters used : http ( mandatory), timeshift, mcache, gc
 Configuration for proxying while caching a live HTTP streaming service:
 .br
 .br
-{ 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
+{ "http": "https://test.com/dash/live.mpd", "timeshift": 30 }
 .br
 
 .br
@@ -10866,7 +11233,7 @@ Configuration for proxying while caching a live HTTP streaming service:
 Configuration for relay caching a live HTTP streaming service:
 .br
 .br
-{ 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
+{ "http": "https://test.com/dash/live.mpd", "timeshift": 30, "local": "/myservice/test.mpd"}
 .br
 
 .br
@@ -10908,7 +11275,7 @@ The manifest name can be omitted, in which case the exact manifest name used in 
 Configuration for exposing a MABR session:
 .br
 .br
-{ 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
+{ "mabr": "mabr://234.0.0.1:1234", "local": "/service1", "timeshift": 30 }
 .br
 
 .br
@@ -10921,7 +11288,7 @@ The server can be configured to use a multicast source as an alternate data sour
 .br
 
 .br
-Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active, keepalive and js.
+Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, activate, keepalive and js.
 .br
 
 .br
@@ -10937,7 +11304,7 @@ The qualities in the multicast service can be dynamically activated or deactivat
 .br
 - if 0, multicast streams are never deactivated,
 .br
-- otherwise, a multicast representation is activated only if at least active clients are consuming it, and deactivated otherwise.
+- otherwise, a multicast representation is activated only if at least activate clients are consuming it, and deactivated otherwise.
 .br
 
 .br
@@ -10974,7 +11341,7 @@ Note: Manifest files coming from multicast are currently never cached.
 Configuration for caching a live HTTP streaming service with MABR backup:
 .br
 .br
-{ 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
+{ "http": "https://test.com/dash/live.mpd", "mabr": "mabr://234.0.0.1:1234", "timeshift": 30}
 .br
 
 .br
@@ -10984,7 +11351,7 @@ For such services, the custom HTTP header X-From-MABR is defined:
 .br
 - for client request, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
 .br
-- for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no, the content comes from HTTP
+- for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no or off-edge, the content comes from HTTP (off-edge indicates a request outside of the timeshift buffer)
 .br
 
 .br
@@ -11006,15 +11373,15 @@ The js option can be set to a JS module exporting the following functions:
 .br
 
 .br
-* quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+* quality_activation : (optional) The function is called when the given quality is to be activated or deactivated. If not present, (de)activation always happens. Parameters (in order):
 .br
   * do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
 .br
   * service_id (integer): ID of the service as announced in the multicast
 .br
-  * period_id (string): ID of the DASH Period, ignored for HLS
+  * period_id (string): ID of the DASH Period, ignored (empty) for HLS
 .br
-  * adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+  * adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored (-1) for HLS
 .br
   * representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
 .br
@@ -11022,10 +11389,18 @@ The js option can be set to a JS module exporting the following functions:
 .br
 
 .br
+* get_mcast_address : (optional) The function is called when the service is activated. Parameters:
+.br
+  * service_url (string): URL of service for which the multicast adress is queried
+.br
+  * return value: shall be the multicast address to use for the service or null if no multicast is used (active multicast wil then be deactivated).
+.br
+
+.br
 .SH File Services
 .LP
 .br
-A file system directory can be exposed as a service. 
+A file system directory can be exposed as a service.
 .br
 
 .br
@@ -11042,7 +11417,7 @@ Each source is either a file, a directory or a remote URL.
 Configuration for exposing a directory:
 .br
 .br
-{ 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
+{ "local": "/dserv/", "sources": [ { "name": "foo/", "url": "my_dir/" } ] }
 .br
 
 .br
@@ -11157,7 +11532,7 @@ CGI parameters for request are:
 Configuration for serving a directory with remultiplexing to mp4:
 .br
 .br
-{'local': '/service1/', 'js': 'remux', 'sources': ['name': 'vids', 'url': '/path/to/vids/'}], 'fmt': 'mp4'}
+{"local": "/service1/", "js": "remux", "sources": [{"name": "vids", "url": "/path/to/vids/"}], "fmt": "mp4"}
 .br
 
 .br
@@ -12151,7 +12526,7 @@ Only the active property can be animated or updated in a watcher.
 .br
 Example
 .br
-{'watch': 's1@rotation', 'target': 's2@rotation'}
+{"watch": "s1@rotation", "target": "s2@rotation"}
 .br
 
 .br
@@ -12161,7 +12536,7 @@ This will copy s1.rotation to s2.rotation.
 .br
 Example
 .br
-{'watch': 's1@rotation', 'target': 'get_scene('s2').set('rotation', -value); }
+{"watch": "s1@rotation", "target": "get_scene('s2').set('rotation', -value);" }
 .br
 
 .br
@@ -12199,7 +12574,7 @@ The javascript function will be called with a single argument evt containing the
 .br
 Example
 .br
-{'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );'}
+{"watch": "mousemove", "target": "let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );"}
 .br
 
 .br
@@ -12445,38 +12820,6 @@ Example
 .SH Scene modules
 .LP
 .br
-.SS Scene mask
-.br
-This scene sets the canvas alpha mask mode.
-.br
-
-.br
-The canvas alpha mask is always full screen.
-.br
-
-.br
-In software mode, combining mask effect in record mode and reverse group drawing allows drawing front to back while writing pixels only once.
-.br
-
-.br
-Options:
-.br
-* mode ('off'): if set, reset clipper otherwise set it to scene position and size
-.br
-  * off: mask is disabled
-.br
-  * on: mask is enabled and cleared, further draw operations will take place on mask
-.br
-  * onkeep: mask is enabled but not cleared, further draw operations will take place on mask
-.br
-  * use: mask is enabled, further draw operations will be filtered by mask
-.br
-  * use_inv: mask is enabled, further draw operations will be filtered by 1-mask
-.br
-  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
-.br
- 
-.br
 .SS Scene clear
 .br
 This scene clears the canvas area covered by the scene with a given color. 
@@ -12516,6 +12859,38 @@ Options:
 * reset (false): if set, reset clipper otherwise set it to scene position and size
 .br
 * stack (true): if false, clipper is set/reset independently of the clipper stack (no intersection, no push/pop of the stack)
+.br
+.SS Scene mask
+.br
+This scene sets the canvas alpha mask mode.
+.br
+
+.br
+The canvas alpha mask is always full screen.
+.br
+
+.br
+In software mode, combining mask effect in record mode and reverse group drawing allows drawing front to back while writing pixels only once.
+.br
+
+.br
+Options:
+.br
+* mode ('off'): if set, reset clipper otherwise set it to scene position and size
+.br
+  * off: mask is disabled
+.br
+  * on: mask is enabled and cleared, further draw operations will take place on mask
+.br
+  * onkeep: mask is enabled but not cleared, further draw operations will take place on mask
+.br
+  * use: mask is enabled, further draw operations will be filtered by mask
+.br
+  * use_inv: mask is enabled, further draw operations will be filtered by 1-mask
+.br
+  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
+.br
+ 
 .br
 .SS Scene shape
 .br
@@ -12884,6 +13259,14 @@ Options:
 .SH Transition modules
 .LP
 .br
+.SS Transition fade - software/GPU
+.br
+This transition performs fade to/from color of source videos
+.br
+Options:
+.br
+* color ('black'): fade color
+.br
 .SS Transition gltrans - GPU only
 .br
 This transition module wraps gl-transitions, see https://gl-transitions.com/ and gpac -h avmix:gltrans for builtin transitions
@@ -12891,6 +13274,10 @@ This transition module wraps gl-transitions, see https://gl-transitions.com/ and
 Options:
 .br
 * fx (''): effect name for built-in effects, or path to gl-transition GLSL file
+.br
+.SS Transition mix - software/GPU
+.br
+This transition performs cross-fade of source videos
 .br
 .SS Transition swipe - software/GPU
 .br
@@ -12929,20 +13316,6 @@ Options:
   * grow: video 2 size increases, video 1 not modified
 .br
   * swap: video 2 size increases, video 1 size decreases
-.br
-
-.br
-.SS Transition mix - software/GPU
-.br
-This transition performs cross-fade of source videos
-.br
-.SS Transition fade - software/GPU
-.br
-This transition performs fade to/from color of source videos
-.br
-Options:
-.br
-* color ('black'): fade color
 .br
 
 .br
@@ -13150,6 +13523,8 @@ views (uint, default: 1):      number of views
 rates (strl):                  number of target bitrates to assign, one per size
 .br
 logt (bool):                   log frame time to console
+.br
+banner (str, default: many thanks to QuickJS, FreeType, OpenSSL, SDL, FFmpeg, OpenHEVC, libjpeg, libpng, faad2, libmad, a52dec, xvid, OGG ...): banner text to display
 .br
 
 .br

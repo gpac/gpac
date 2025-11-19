@@ -984,6 +984,11 @@ static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 		nf->src_port = 0;
 	}
 
+	if (gf_bs_is_overflow(nf->cap_bs)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted netcap file, aborting\n"));
+		nf->pck_len = -1;
+	}
+
 	//broken packet
 	if (nf->pck_len <0) {
 		nf->dst_v4 = 0;
@@ -4253,7 +4258,9 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 		return GF_BAD_PARAM;
 
 	if (!(sock->flags & GF_SOCK_IS_TCP)) {
+#if defined(IPV6_MTU_DISCOVER) || defined(IPV6_PMTUDISC_DO) || defined(IPV6_DONTFRAG) || defined(IP_MTU_DISCOVER) || defined(IP_DONTFRAG)
 		int val;
+#endif
 #ifdef GPAC_HAS_IPV6
 		sock->dest_addr_len = sizeof(struct sockaddr_storage);
 #else
@@ -4457,7 +4464,7 @@ char *gf_net_bump_ip_address(const char *in_ip, u32 increment)
 	if (!increment) return gf_strdup(in_ip);
 
 	u32 new_range=0;
-	
+
 	char *alloc_ip=NULL;
 	if (!strnicmp(in_ip, "ff", 2)) {
 		char *add_end = strstr(in_ip, "::");

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -74,7 +74,7 @@ GF_Err sinf_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->original_format, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->scheme_type, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->info, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -293,16 +293,16 @@ GF_Err iKMS_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-    if (ptr->URI)
-        gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI));
-    gf_bs_write_u8(bs, 0);
+	if (ptr->URI)
+		gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI));
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
 GF_Err iKMS_box_size(GF_Box *s)
 {
 	GF_ISMAKMSBox *ptr = (GF_ISMAKMSBox *)s;
-    ptr->size += (ptr->URI ? strlen(ptr->URI) : 0) + 1;
+	ptr->size += (ptr->URI ? strlen(ptr->URI) : 0) + 1;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -1060,6 +1060,7 @@ GF_Err piff_psec_box_read(GF_Box *s, GF_BitStream *bs)
 	//as for senc, we skip parsing of the box until we have all saiz/saio info
 	gf_bs_skip_bytes(bs, ptr->size);
 	ptr->size = 0;
+	ptr->load_needed = GF_TRUE;
 	return GF_OK;
 }
 
@@ -1203,10 +1204,10 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->private_data_size = gf_bs_read_u32(bs);
 
 	if (ptr->size < ptr->private_data_size)
-	    return GF_ISOM_INVALID_FILE;
+		return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 	if (!ptr->private_data)
-	    return GF_OUT_OF_MEM;
+		return GF_OUT_OF_MEM;
 
 	ISOM_DECREASE_SIZE(ptr, ptr->private_data_size);
 	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
@@ -1255,48 +1256,6 @@ void senc_box_del(GF_Box *s)
 	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
 	gf_free(s);
 }
-
-#endif //ISOM
-
-u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
-{
-	u32 i=0, kpos=3;
-	if (const_iv_size) *const_iv_size = 0;
-	if (const_iv) *const_iv = NULL;
-
-	if (!key_info || !key_info_size)
-		return 0;
-
-	while (1) {
-		u8 civ_size=0;
-		const u8 *civ = NULL;
-		u8 iv_size = key_info[kpos];
-		kpos += 17;
-
-		if (!iv_size) {
-			if (kpos>key_info_size)
-				break;
-			civ_size = key_info[kpos];
-			civ = key_info + kpos + 1;
-			kpos += 1 + civ_size;
-		}
-
-		if (kpos>key_info_size)
-			break;
-
-		if (i+1==idx) {
-			if (const_iv_size) *const_iv_size = civ_size;
-			if (const_iv) *const_iv = civ;
-			return iv_size;
-		}
-		i++;
-		if (kpos==key_info_size)
-			break;
-	}
-	return 0;
-}
-
-#ifndef GPAC_DISABLE_ISOM
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 max_nb_samples)
@@ -1449,7 +1408,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				u32 nb_iv_init = gf_bs_read_u16(bs);
 				for (j=0; j<nb_iv_init; j++) {
 					u32 idx = gf_bs_read_u16(bs);
-					IV_size = key_info_get_iv_size(key_info, key_info_size, idx, NULL, NULL);
+					IV_size = gf_cenc_key_info_get_iv_size(key_info, key_info_size, idx, NULL, NULL);
 					if (!IV_size) {
 						gf_isom_cenc_samp_aux_info_del(sai);
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI multikey with IV size 0\n" ));
@@ -1654,7 +1613,7 @@ GF_Err adkm_box_size(GF_Box *s)
 	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->header, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->au_format, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -1699,7 +1658,7 @@ GF_Err ahdr_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->std_enc_params, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -1747,7 +1706,7 @@ GF_Err aprm_box_size(GF_Box *s)
 	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->enc_info, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->key_info, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
@@ -1855,7 +1814,7 @@ GF_Err akey_box_size(GF_Box *s)
 	u32 pos=0;
 	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
 	gf_isom_check_position(s, (GF_Box *)ptr->params, &pos);
-    return GF_OK;
+	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 

@@ -117,6 +117,7 @@ typedef struct
 	u32 has_pending_segments, nb_force_flush;
 
 	Bool disconnected;
+	Bool in_is_eos;
 	Bool no_order_check;
 	u32 moov_not_loaded;
     Bool invalid_segment;

@@ -4,20 +4,12 @@ vpath %.c $(SRC_PATH)/modules/validator
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS)
 
-ifeq ($(DEBUGBUILD),yes)
-CFLAGS+=-g
-LDFLAGS+=-g
-endif
-
-ifeq ($(GPROFBUILD),yes)
-CFLAGS+=-pg
-LDFLAGS+=-pg
-endif
+include ../common.mak
 
 #common obj
 OBJS=validator.o
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_validator$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
@@ -34,13 +26,13 @@ ifeq ($(STATIC_BUILD),yes)
 endif
 
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

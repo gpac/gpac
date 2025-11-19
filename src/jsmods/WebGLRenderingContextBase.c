@@ -496,6 +496,8 @@ static JSValue wgl_deleteBuffer(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_FreeValue(ctx, glo->obj);
 	glo->obj = JS_UNDEFINED;
 	gf_list_del_item(glo->par_ctx->all_objects, glo);
+	gf_free(glo);
+	JS_SetOpaque(argv[0], NULL);
 	}
 	}
 	return ret_val_js;
@@ -516,6 +518,8 @@ static JSValue wgl_deleteFramebuffer(JSContext *ctx, JSValueConst this_val, int 
 	JS_FreeValue(ctx, glo->obj);
 	glo->obj = JS_UNDEFINED;
 	gf_list_del_item(glo->par_ctx->all_objects, glo);
+	gf_free(glo);
+	JS_SetOpaque(argv[0], NULL);
 	}
 	}
 	return ret_val_js;
@@ -536,6 +540,8 @@ static JSValue wgl_deleteProgram(JSContext *ctx, JSValueConst this_val, int argc
 	JS_FreeValue(ctx, glo->obj);
 	glo->obj = JS_UNDEFINED;
 	gf_list_del_item(glo->par_ctx->all_objects, glo);
+	gf_free(glo);
+	JS_SetOpaque(argv[0], NULL);
 	}
 	}
 	return ret_val_js;
@@ -556,6 +562,8 @@ static JSValue wgl_deleteRenderbuffer(JSContext *ctx, JSValueConst this_val, int
 	JS_FreeValue(ctx, glo->obj);
 	glo->obj = JS_UNDEFINED;
 	gf_list_del_item(glo->par_ctx->all_objects, glo);
+	gf_free(glo);
+	JS_SetOpaque(argv[0], NULL);
 	}
 	}
 	return ret_val_js;
@@ -576,6 +584,8 @@ static JSValue wgl_deleteShader(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_FreeValue(ctx, glo->obj);
 	glo->obj = JS_UNDEFINED;
 	gf_list_del_item(glo->par_ctx->all_objects, glo);
+	gf_free(glo);
+	JS_SetOpaque(argv[0], NULL);
 	}
 	}
 	return ret_val_js;
@@ -596,6 +606,8 @@ static JSValue wgl_deleteTexture(JSContext *ctx, JSValueConst this_val, int argc
 	JS_FreeValue(ctx, glo->obj);
 	glo->obj = JS_UNDEFINED;
 	gf_list_del_item(glo->par_ctx->all_objects, glo);
+	gf_free(glo);
+	JS_SetOpaque(argv[0], NULL);
 	}
 	}
 	return ret_val_js;

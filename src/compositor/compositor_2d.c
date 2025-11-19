@@ -1362,7 +1362,7 @@ Bool visual_2d_overlaps_overlay(GF_VisualManager *visual, DrawableContext *ctx, 
 			ol = ol->next;
 			continue;
 		}
-		/*check previsously drawn areas*/
+		/*check previously drawn areas*/
 		for (i=0; i<ol->ra.count; i++) {
 			/*we have drawn something here, don't draw*/
 			if (gf_irect_inside(&ol->ra.list[i].rect, &clip))

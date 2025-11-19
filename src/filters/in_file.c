@@ -80,6 +80,12 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 	if (!ctx || (!ctx->src && !ctx->pck.size) ) return GF_BAD_PARAM;
 
+	if (!strncmp(ctx->src, "gmem://", 7)) {
+		GF_Err e = gf_filter_pid_raw_gmem(filter, ctx->src, &ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return e;
+	}
+
 	if (ctx->pck.size) {
 		GF_FilterPacket *opck;
 		GF_Err e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, ctx->pck.ptr, ctx->pck.size, GF_FALSE, &ctx->pid);
@@ -293,8 +299,11 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
 	}
-	if (strstr(src, "://"))
+	if (strstr(src, "://")) {
+		if (!strnicmp(url, "gmem://", 7) )
+			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
+	}
 
 
 	//strip any fragment identifier
@@ -743,8 +752,8 @@ GF_FilterRegister FileInRegister = {
 	"The filter handles both files and GF_FileIO objects as input URL.\n"
 	"\n"
 	"## Packet Injecting\n"
-	"The filter can be used to inject a single packet instead of a file using (-pck)[] option.\n"
-	"No specific properties are attached, except a timescale if (-ptime)[] is set.\n"
+	"The filter can be used to inject a single packet instead of a file using [-pck]() option.\n"
+	"No specific properties are attached, except a timescale if [-ptime]() is set.\n"
 	"EX gpac fin:pck=str@\"My Sample Text\":ptime=2500/100:#CodecID=stxt:#StreamType=text\n"
 	"This will declare the PID as WebVTT and send a single packet with payload `My Sample Text` and a timestamp value of 25 second.\n"
 	)

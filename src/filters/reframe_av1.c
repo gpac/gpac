@@ -171,7 +171,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->state.config = gf_odf_av1_cfg_new();
 
 	if (!ctx->iamfstate.config) {
-		ctx->iamfstate.config = gf_odf_ia_cfg_new();
+		ctx->iamfstate.config = gf_odf_iamf_cfg_new();
 		if (!ctx->iamfstate.config) return GF_OUT_OF_MEM;
 	}
 
@@ -422,7 +422,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	switch (ctx->bsmode) {
 	case IAMF:
 		gf_iamf_init_state(iamfstate);
-		iamfstate->config = gf_odf_ia_cfg_new();
+		iamfstate->config = gf_odf_iamf_cfg_new();
 		if (!iamfstate->config) return;
 		break;
 	default:
@@ -514,7 +514,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	gf_fclose(stream);
 	switch (ctx->bsmode) {
 	case IAMF:
-		if (iamfstate->config) gf_odf_ia_cfg_del(iamfstate->config);
+		if (iamfstate->config) gf_odf_iamf_cfg_del(iamfstate->config);
 		gf_iamf_reset_state(iamfstate, GF_TRUE);
 		gf_free(iamfstate);
 		break;
@@ -705,7 +705,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			gf_list_rem(ctx->iamfstate.frame_state.descriptor_obus, 0);
 		}
 
-		gf_odf_ia_cfg_write(ctx->iamfstate.config, &dsi, &dsi_size);
+		gf_odf_iamf_cfg_write(ctx->iamfstate.config, &dsi, &dsi_size);
 
 		// Compute the CRC of the entire iacb box.
 		crc = gf_crc_32(dsi, (u32) dsi_size);
@@ -1025,6 +1025,10 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (ctx->is_iamf) {
+		if (ctx->iamfstate.temporal_unit_obus) {
+			gf_free(ctx->iamfstate.temporal_unit_obus);
+			ctx->iamfstate.temporal_unit_obus = NULL;
+		}
 		gf_bs_get_content_no_truncate(ctx->iamfstate.bs, &ctx->iamfstate.temporal_unit_obus, &pck_size, &ctx->iamfstate.temporal_unit_obus_alloc);
 	} else if (ctx->state.bs && gf_bs_get_size(ctx->state.bs)) {
 		gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);
@@ -1050,10 +1054,10 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	if (ctx->is_iamf) {
 		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);
-                if (ctx->iamfstate.audio_roll_distance != 0) {
+		if (ctx->iamfstate.audio_roll_distance != 0) {
 			gf_filter_pck_set_roll_info(pck, ctx->iamfstate.audio_roll_distance);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
-                }
+		}
 		if (ctx->iamfstate.frame_state.num_samples_to_trim_at_end > 0) {
 			u64 trimmed_duration = ctx->iamfstate.num_samples_per_frame - ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
 			gf_filter_pck_set_duration(pck, (u32) trimmed_duration);
@@ -1400,7 +1404,7 @@ static void av1dmx_finalize(GF_Filter *filter)
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 
 	gf_iamf_reset_state(&ctx->iamfstate, GF_TRUE);
-	if (ctx->iamfstate.config) gf_odf_ia_cfg_del(ctx->iamfstate.config);
+	if (ctx->iamfstate.config) gf_odf_iamf_cfg_del(ctx->iamfstate.config);
 	if (ctx->iamfstate.bs) gf_bs_del(ctx->iamfstate.bs);
 	if (ctx->iamfstate.temporal_unit_obus) gf_free(ctx->iamfstate.temporal_unit_obus);
 	if (ctx->sei_loader)

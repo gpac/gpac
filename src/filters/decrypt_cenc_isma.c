@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -129,6 +129,7 @@ typedef struct
 	u32 codec_id;
 
 	Bool force_hls_iv;
+	Bool hls_ignore_iv;
 
 	Bool gpac_master_leaf;
 	bin128 master_key;
@@ -886,7 +887,8 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	cstr->is_hls = GF_TRUE;
 
 	//copy IV
-	memcpy(cstr->hls_IV, key_IV, sizeof(bin128));
+	if (!cstr->hls_ignore_iv)
+		memcpy(cstr->hls_IV, key_IV, sizeof(bin128));
 	//switch key if needed IV
 	if (cstr->hls_key_url && key_url && !strcmp(cstr->hls_key_url, key_url)) {
 		if (cstr->crypt_init)
@@ -912,6 +914,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	cstr->KID_count = 1;
 	cstr->keys = (bin128 *)gf_realloc(cstr->keys, cstr->KID_count*sizeof(bin128));
 
+	cstr->hls_ignore_iv = GF_FALSE;
 	if (!strncmp(key_url, "urn:gpac:keys:value:", 20)) {
 		u32 i;
 		u8 *key_data = (u8 *) cstr->keys[0];
@@ -936,7 +939,12 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	else if (gf_url_is_local(key_url)) {
 		FILE *fkey = gf_fopen(key_url, "rb");
 		if (!fkey) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] key %s not found\n", key_url))
+			//using DRM config file, ignore IV from stream
+			if (cstr->keys) {
+				cstr->hls_ignore_iv = GF_TRUE;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] key %s not found\n", key_url))
+			}
 			return GF_URL_ERROR;
 		} else {
 			u32 read = (u32) gf_fread(cstr->keys[0], 16, fkey);
@@ -1409,10 +1417,13 @@ static GF_Err cenc_dec_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 
 	if (prop || ctx->cinfo) {
 		e = cenc_dec_setup_cenc(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
 		if (e) return e;
-		if (!cstr->cenc_ki && cstr->nb_crypts && cstr->crypts[0].crypt && !cstr->crypts[0].key_valid) {
-			bin128 IV;
+		if (!cstr->cenc_ki && cstr->nb_crypts && cstr->KID_count && !cstr->crypts[0].key_valid) {
 			memcpy(cstr->crypts[0].key, cstr->keys[0], 16);
-			cenc_dec_push_iv(cstr, 0, IV, 0, 16, cstr->hls_IV);
+			cstr->crypts[0].key_valid = GF_TRUE;
+			if (cstr->crypts[0].crypt) {
+				bin128 IV;
+				cenc_dec_push_iv(cstr, 0, IV, 0, 16, cstr->hls_IV);
+			}
 		}
 		return GF_OK;
 	}
@@ -1590,8 +1601,6 @@ static GF_Err cenc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
-
 static GFINLINE void cenc_decrypt_block(GF_CENCDecCtx *ctx, GF_Crypt *crypt, Bool valid_key, u8 *data, u32 size)
 {
 	if (!valid_key) {
@@ -1685,7 +1694,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, NULL, NULL);
+			IV_size = gf_cenc_key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, NULL, NULL);
 			if (!IV_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] invalid SAI multikey with IV size 0\n" ));
 				e = GF_NON_COMPLIANT_BITSTREAM;
@@ -1703,7 +1712,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			for (k=0; k<cstr->multikey; k++) {
 				u8 const_iv_size;
 				const u8 *const_iv=NULL;
-				u8 IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, k+1, &const_iv_size, &const_iv);
+				u8 IV_size = gf_cenc_key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, k+1, &const_iv_size, &const_iv);
 				if (IV_size) continue;
 				memset(IV, 0, sizeof(char)*17);
 				e = cenc_dec_push_iv(cstr, k, IV, 0, const_iv_size, const_iv);
@@ -1802,7 +1811,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				bytes_encrypted_data = gf_bs_read_u32(ctx->bs_r);
 
 				if (kidx) {
-					key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, &const_iv_size, &const_iv);
+					gf_cenc_key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, &const_iv_size, &const_iv);
 					kidx-=1;
 				}
 				//to clarify in the spec: kidx 0 should be allowed for clear subsamples

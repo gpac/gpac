@@ -496,14 +496,14 @@ size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsig
 
 typedef struct s_memory_element
 {
-    void *ptr;
-    unsigned int size;
-    struct s_memory_element *next;
+	void *ptr;
+	unsigned int size;
+	struct s_memory_element *next;
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-    char *backtrace_stack;
+	char *backtrace_stack;
 #endif
-    int line;
-    char *filename;
+	int line;
+	char *filename;
 } memory_element;
 
 /*pointer to the first element of the list*/
@@ -539,17 +539,17 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, unsigned int size
 	element->line = line;
 
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-    if (gf_mem_backtrace_enabled) {
-        element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
+	if (gf_mem_backtrace_enabled) {
+		element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
 		if (!element->backtrace_stack) {
 			gf_memory_log(GF_MEMORY_WARNING, ("[Mem] Fail to register backtrace of allocation\n"));
 			element->backtrace_stack = NULL;
 		} else {
 			store_backtrace(element->backtrace_stack);
 		}
-    } else {
-        element->backtrace_stack = NULL;
-    }
+	} else {
+		element->backtrace_stack = NULL;
+	}
 #endif
 
 	element->filename = MALLOC(strlen(filename) + 1);
@@ -586,11 +586,11 @@ static unsigned int gf_memory_del_item_stack(memory_element **p, void *ptr)
 			else *p = curr_element->next;
 			size = curr_element->size;
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-            if (curr_element->backtrace_stack) {
-                FREE(curr_element->backtrace_stack);
-            }
+			if (curr_element->backtrace_stack) {
+				FREE(curr_element->backtrace_stack);
+			}
 #endif
-            FREE(curr_element);
+			FREE(curr_element);
 			return size;
 		}
 		prev_element = curr_element;
@@ -698,13 +698,13 @@ static void register_address(void *ptr, size_t size, const char *filename, int l
 void log_backtrace(unsigned int log_level, memory_element *element)
 {
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-    if (gf_mem_backtrace_enabled) {
-        gf_memory_log(log_level, "file %s at line %d\n%s\n", element->filename, element->line, element->backtrace_stack);
-    } else
+	if (gf_mem_backtrace_enabled) {
+		gf_memory_log(log_level, "file %s at line %d\n%s\n", element->filename, element->line, element->backtrace_stack);
+	} else
 #endif
-    {
-        gf_memory_log(log_level, "file %s at line %d\n", element->filename, element->line);
-    }
+	{
+		gf_memory_log(log_level, "file %s at line %d\n", element->filename, element->line);
+	}
 }
 
 
@@ -729,7 +729,7 @@ Bool gf_mem_check_address(void *ptr)
 		gf_assert(element);
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
 		res = GF_FALSE;
-        log_backtrace(GF_MEMORY_ERROR, element);
+		log_backtrace(GF_MEMORY_ERROR, element);
 	}
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);

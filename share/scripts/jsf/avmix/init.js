@@ -2441,7 +2441,7 @@ function process_audio()
 	let mix_pids = [];
 
 	//if video is playing and not blocking, process audio event if blocking - this avoids cases where output frames are consumed by burst
-	//and the video burst happens befor the audio burst: we need to send video to fill the burst then unblock audio, but video won't be procesed
+	//and the video burst happens befor the audio burst: we need to send video to fill the burst then unblock audio, but video won't be processed
 	//if audio is blocking...
 	if (aout.would_block && (!video_playing || vout.would_block)) {
 		return;

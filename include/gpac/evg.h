@@ -173,7 +173,7 @@ When auto matrix mode is not activated,, the stencil matrix must describe the co
 Stencils are by default created in auto matrix mode.
 
 \param stencil the target stencil
-\param auto_on  If true,  the surface current matrix will be added to the stencil matrix when drawing, otherwise the stencil matrix is in final surface coordinates
+\param auto_on  If true, the surface current matrix will be added to the stencil matrix when drawing, otherwise the stencil matrix is in final surface coordinates
 \return error if any
 */
 GF_Err gf_evg_stencil_set_auto_matrix(GF_EVGStencil * stencil, Bool auto_on);
@@ -999,7 +999,7 @@ GF_Err gf_evg_surface_disable_early_depth(GF_EVGSurface *surf, Bool disable);
 /*! disables depth buffer write
 \note this is only used for 3D rasterizer, and fails 2D mode
 \param surf the target 3D surface
-\param do_write if GF_TRUE,  depth values are written to the depth buffer (default when creating the rasterizer)
+\param do_write if GF_TRUE, depth values are written to the depth buffer (default when creating the rasterizer)
 \return error if any
  */
 GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write);

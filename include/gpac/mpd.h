@@ -676,6 +676,8 @@ typedef struct {
 	const char *hls_single_file_name;
 	/*! number of audio channels - HLS only*/
 	u32 nb_chan;
+	/*! CHANNELS attribute in string for special content - HLS only*/
+	char str_chan[20];
 	/*! video FPS - HLS only*/
 	Double fps;
 	/*! groupID (for HLS)*/
@@ -691,7 +693,7 @@ typedef struct {
 	/*! temp file for m3u8 generation*/
 	FILE *m3u8_var_file;
 
-	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC*/
+	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC CBC, 2: CENC CTR*/
 	u8 crypto_type;
 	u8 def_kms_used;
 
@@ -717,6 +719,8 @@ typedef struct {
 
 	Bool sub_forced;
 	const char *hls_forced;
+
+	const char *init_base64;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -902,9 +906,9 @@ typedef struct {
 	char *profiles;
 	/*! offering type*/
 	GF_MPD_Type type;
-	/*! UTC of availability start anchor,  expressed in milliseconds, MANDATORY if type=dynamic*/
+	/*! UTC of availability start anchor, expressed in milliseconds, MANDATORY if type=dynamic*/
 	u64 availabilityStartTime;
-	/*! UTC of availability end anchor,  expressed in milliseconds*/
+	/*! UTC of availability end anchor, expressed in milliseconds*/
 	u64 availabilityEndTime;
 	/*! UTC of last publishing of the manifest*/
 	u64 publishTime;

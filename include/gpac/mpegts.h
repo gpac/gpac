@@ -295,6 +295,7 @@ typedef enum
 	GF_M2TS_SUBTITLE_DVB				= 0x100,
 	GF_M2TS_AUDIO_OPUS					= 0x101,
 	GF_M2TS_VIDEO_AV1					= 0x102,
+	GF_M2TS_AUDIO_AC4					= 0x103,
 
 	GF_M2TS_DVB_TELETEXT				= 0x152,
 	GF_M2TS_DVB_VBI						= 0x153,
@@ -324,7 +325,8 @@ enum
 
 	GF_M2TS_RA_STREAM_GPAC		= GF_4CC('G','P','A','C'),
 	GF_M2TS_RA_STREAM_SRT		= GF_4CC('S','R','T',' '),
-	GF_M2TS_RA_STREAM_TXT		= GF_4CC('T','E','X','T')
+	GF_M2TS_RA_STREAM_TXT		= GF_4CC('T','E','X','T'),
+	GF_M2TS_RA_STREAM_AC4		= GF_4CC('A','C','-','4'),
 };
 
 
@@ -359,17 +361,11 @@ typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 /*! Maximum number of service in a TS*/
 #define GF_M2TS_MAX_SERVICES	65535
 
-/*! Maximum size of the buffer in UDP */
-#ifdef WIN32
-#define GF_M2TS_UDP_BUFFER_SIZE	0x80000
-#else
-//fixme - issues on linux and OSX with large stack size
-//we need to change default stack size for TS thread
-#define GF_M2TS_UDP_BUFFER_SIZE	0x40000
-#endif
-
 /*! Maximum PCR value */
 #define GF_M2TS_MAX_PCR	2576980377811ULL
+
+/*! Maximum PCR value in 90Khz scale */
+#define GF_M2TS_MAX_PCR_90K	8589934592
 
 /*! gets the stream name for an MPEG-2 stream type
 \param streamType the target stream type
@@ -710,6 +706,8 @@ typedef struct
 	/*! continuity counter check for pure PCR PIDs*/
 	s16 pcr_cc;
 
+	s64 pcr_base_offset;
+
 	void *user;
 } GF_M2TS_Program;
 
@@ -795,6 +793,7 @@ typedef struct
 	u64 DTS;
 	/*! size of PES header*/
 	u8 hdr_data_len;
+	u8 has_pts;
 } GF_M2TS_PESHeader;
 
 /*! Section elementary stream*/
@@ -1539,7 +1538,7 @@ typedef struct __elementary_stream_ifce
 	u32 gpac_meta_dsi_size;
 	/*! GPAC unmapped meta codec decoder config*/
 	u8 *gpac_meta_dsi;
-	/*! GPAC unmapped meta codec name if knwon*/
+	/*! GPAC unmapped meta codec name if known*/
 	const char *gpac_meta_name;
 } GF_ESInterface;
 
@@ -1672,7 +1671,7 @@ typedef struct __m2ts_mux_stream {
 	is available in PES, don't copy from next*/
 	u32 min_bytes_copy_from_next;
 	/*! process PES or table update/framing
-	returns the priority of the stream,  0 meaning not scheduled, 1->N highest priority sent first*/
+	returns the priority of the stream, 0 meaning not scheduled, 1->N highest priority sent first*/
 	u32 (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
 
 	/*! stream type*/
@@ -2053,7 +2052,7 @@ GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode a
 
 /*! sets initial PCR value for all programs in multiplex. If this is not called, each program will use a random initial PCR
 \param muxer the target MPEG-2 TS multiplexer
-\param init_pcr_value initial PCR value in 90kHz
+\param init_pcr_value initial PCR value in 27 MHz
 \return error if any
 */
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);

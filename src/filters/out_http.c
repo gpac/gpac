@@ -190,9 +190,9 @@ typedef struct __httpout_input
 	u8 *tunein_data;
 	u32 tunein_data_size;
 
-    Bool force_dst_name;
-    Bool in_error;
-    u32 clock_first_error;
+	Bool force_dst_name;
+	Bool in_error;
+	u32 clock_first_error;
 
 	//max number of files to keep per pid
 	u32 max_segs;
@@ -483,6 +483,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 		sess->comp_data = NULL;
 	}
 	sess->done = 1;
+	sess->async_pending = 0;
 	sess->flush_close = 0;
 	if (sess->cbk_close)
 		sess->cbk_close(sess->rt_udta, code);
@@ -557,7 +558,7 @@ static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session
 	return GF_TRUE;
 }
 
-static void httpout_format_date(u64 time, char szDate[200], Bool for_listing)
+void httpout_format_date(u64 time, char szDate[200], Bool for_listing)
 {
 	time_t gtime;
 	struct tm *t;
@@ -785,9 +786,9 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	if (!strchr("/\\", dir[len-1]))
 		gf_dynstrcat(&in->local_path, "/", NULL);
     if (in->path[0]=='/')
-        gf_dynstrcat(&in->local_path, in->path+1, NULL);
-    else
-        gf_dynstrcat(&in->local_path, in->path, NULL);
+		gf_dynstrcat(&in->local_path, in->path+1, NULL);
+	else
+		gf_dynstrcat(&in->local_path, in->path, NULL);
 }
 
 typedef enum
@@ -807,6 +808,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 	Bool has_file_end=GF_FALSE;
 	u64 known_file_size;
 	RangeState rst = RANGE_OK;
+	const char *range_msg = NULL;
 
 	sess->nb_ranges = 0;
 	sess->nb_bytes = 0;
@@ -815,6 +817,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 
 	if (sess->in_source && !sess->ctx->has_read_dir) {
 		rst = RANGE_NOT_ALLOWED;
+		range_msg = "no associated read directory";
 		goto exit;
 	}
 
@@ -891,6 +894,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 		//cannot fetch end of file it is not yet known !
 		if (has_file_end) {
 			rst = RANGE_NOT_ALLOWED;
+			range_msg = "resource does not yet existing";
 			goto exit;
 		}
 		known_file_size = sess->in_source->nb_write;
@@ -931,18 +935,27 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 				request_ok = GF_FALSE;
 				break;
 			}
+			if (sess->ranges[i].start > (s64) sess->ranges[i].end) {
+				request_ok = GF_FALSE;
+				break;
+			}
 		} else {
 			if (known_file_size==0) {
 				request_ok = GF_FALSE;
 				break;
 			}
 			//no start, end is a file size
-			if (sess->ranges[i].end >= (s64) known_file_size) {
+			if (sess->ranges[i].end > (s64) known_file_size) {
 				request_ok = GF_FALSE;
 				break;
 			}
 			sess->ranges[i].start = known_file_size - sess->ranges[i].end;
 			sess->ranges[i].end = known_file_size - 1;
+
+			if (sess->ranges[i].start > (s64) sess->ranges[i].end) {
+				request_ok = GF_FALSE;
+				break;
+			}
 		}
 		sess->bytes_in_req += (sess->ranges[i].end + 1 - sess->ranges[i].start);
 	}
@@ -953,6 +966,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char 
 	if (!request_ok) {
 		if (!sess->in_source || (sess->nb_ranges>1)) {
 			rst = RANGE_NOT_ALLOWED;
+			range_msg = sess->in_source ? "multiple byte ranges not allowed" : "no associated source";
 			goto exit;
 		}
 		//source in progress, we accept single range - note that this could be further refined by postponing the request until the source
@@ -981,6 +995,9 @@ exit:
 	}
 	sess->reply_code = 416;
 	gf_dynstrcat(response_body, range, NULL);
+	if (range_msg)
+		gf_dynstrcat(response_body, range_msg, " : ");
+
 	GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] %s\n", *response_body));
 	return GF_FALSE;
 }
@@ -1209,7 +1226,8 @@ void js_sess_close(void *udta, GF_Err code)
 
 static JSValue httpout_js_send(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	GF_HTTPOutSession *sess = JS_GetOpaque_Nocheck(this_val);
+	JSClassID _classID;
+	GF_HTTPOutSession *sess = JS_GetAnyOpaque(this_val, &_classID);
 
 	if (!sess)
 		return js_throw_err_msg(c, GF_BAD_PARAM, "send() called on invalid session\n");
@@ -2192,7 +2210,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_fseek(sess->resource, 0, SEEK_SET);
 		}
 		//only put content length if not using chunk transfer - bytes_in_req may be > 0 if we have a byte range on a chunk-transfer session
-		if (sess->bytes_in_req && !sess->use_chunk_transfer) {
+		if ((sess->bytes_in_req || (sess->nb_ranges==1)) && !sess->use_chunk_transfer) {
 			sprintf(szFmt, LLU, sess->bytes_in_req);
 			gf_dm_sess_set_header(sess->http_sess, "Content-Length", szFmt);
 		}
@@ -2208,7 +2226,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 		if (!is_head && sess->nb_ranges) {
 			char *ranges = NULL;
-			gf_dynstrcat(&ranges, "bytes=", NULL);
+			//BNF: UNIT SP range, no bytes= as in request Range header ...
+			gf_dynstrcat(&ranges, "bytes ", NULL);
 			for (i=0; i<sess->nb_ranges; i++) {
 				if (sess->ranges[i].end==-1) {
 					sprintf(szFmt, LLD"-/*", sess->ranges[i].start);
@@ -2409,6 +2428,10 @@ exit:
 	if (sess->reply_code == 401) {
 		gf_dm_sess_set_header(sess->http_sess, "WWW-Authenticate", "Basic");
 	}
+	if (sess->reply_code == 416) {
+		sprintf(szFmt, "bytes */"LLU, sess->file_size);
+		gf_dm_sess_set_header(sess->http_sess, "Content-Range", szFmt);
+	}
 
 	if (response_body || sess->body_or_file) {
 		body_size = (u32) strlen(response_body ? response_body : sess->body_or_file);
@@ -2594,7 +2617,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_HTTPOutCtx *ctx_orig;
 		Bool patch_blocks = GF_FALSE;
 		GF_FilterEvent evt;
-        const char *res_path;
+		const char *res_path;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 		if (p && p->value.uint) {
@@ -2613,7 +2636,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		/*if PID was connected to an alias, get the alias context to get the destination
 		Otherwise PID was directly connected to the main filter, use main filter destination*/
 		ctx_orig = (GF_HTTPOutCtx *) gf_filter_pid_get_alias_udta(pid);
-        if (!ctx_orig) ctx_orig = ctx;
+		if (!ctx_orig) ctx_orig = ctx;
 
 		if (!ctx_orig->dst && (ctx->hmode==MODE_PUSH))  {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Push output but no destination set !\n"));
@@ -2657,26 +2680,27 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (!ctx->hmode && !ctx->has_read_dir) {
 				if (!ctx->reopen) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set is meaningless\n"));
+					gf_filter_abort(filter);
 					return GF_FILTER_NOT_SUPPORTED;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in unconsistent file states, use at your own risks\n"));
 				}
 			}
 		}
-        res_path = NULL;
+		res_path = NULL;
 		if (ctx_orig->dst) {
-            res_path = ctx_orig->dst;
-            char *path = strstr(res_path, "://");
-            if (path) path = strchr(path+3, '/');
-            if (path) pctx->path = gf_strdup(path);
-        } else if (!ctx->dst) {
-            p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-            if (p && p->value.string) {
-                res_path = p->value.string;
-                pctx->path = gf_strdup(res_path);
-            }
-        }
-        if (res_path) {
+			res_path = ctx_orig->dst;
+			char *path = strstr(res_path, "://");
+			if (path) path = strchr(path+3, '/');
+			if (path) pctx->path = gf_strdup(path);
+		} else if (!ctx->dst) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+			if (p && p->value.string) {
+				res_path = p->value.string;
+				pctx->path = gf_strdup(res_path);
+			}
+		}
+		if (res_path) {
 
 			if (ctx->hmode==MODE_PUSH) {
 				GF_Err e;
@@ -3919,7 +3943,7 @@ resend:
 		Bool range_done=GF_FALSE;
 		//current range is done
 		if ((sess->ranges[sess->range_idx].end>0)
-			&& ((s64) sess->file_pos >= sess->ranges[sess->range_idx].end)
+			&& ((s64) sess->file_pos > sess->ranges[sess->range_idx].end)
 		) {
 			//load next range, seeking file
 			if (sess->range_idx+1<sess->nb_ranges) {
@@ -4137,70 +4161,70 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 {
 //	Bool reassign_clients = GF_TRUE;
 	u32 len = 0;
-    char *o_url = NULL;
-    const char *dir = NULL;
-    const char *sep;
+	char *o_url = NULL;
+	const char *dir = NULL;
+	const char *sep;
 
-    if (in->is_open && !is_delete) return GF_FALSE;
-    if (!in->upload) {
-        //single session mode, not recording, nothing to do
-        if (ctx->single_mode) {
+	if (in->is_open && !is_delete) return GF_FALSE;
+	if (!in->upload) {
+		//single session mode, not recording, nothing to do
+		if (ctx->single_mode) {
 			if (is_fake) return GF_FALSE;
 			in->done = GF_FALSE;
 			in->is_open = GF_TRUE;
 			return GF_FALSE;
 		}
-        //server mode not recording, nothing to do
+		//server mode not recording, nothing to do
 		if (!ctx->rdirs.nb_items) return GF_FALSE;
-        //otherwise pickup first dir - this should be refined
-        HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
+		//otherwise pickup first dir - this should be refined
+		HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
 		if (!di || !di->path) return GF_FALSE;
 		len = (u32) strlen(di->path);
 		if (!len) return GF_FALSE;
 		dir = di->path;
-        if (in->resource) return GF_FALSE;
-    }
+		if (in->resource) return GF_FALSE;
+	}
 
-    sep = name ? strstr(name, "://") : NULL;
-    if (sep) sep = strchr(sep+3, '/');
+	sep = name ? strstr(name, "://") : NULL;
+	if (sep) sep = strchr(sep+3, '/');
 	if (!sep) {
-        if (in->force_dst_name) {
-            sep = in->path;
-        } else if (ctx->dst) {
-            u32 i, count = gf_list_count(ctx->inputs);
-            for (i=0; i<count; i++) {
-                char *path_sep;
-                GF_HTTPOutInput *an_in = gf_list_get(ctx->inputs, i);
-                if (an_in==in) continue;
-                if (!an_in->path) continue;
-                if (ctx->dst && !an_in->force_dst_name) continue;
-                if (!gf_filter_pid_share_origin(in->ipid, an_in->ipid))
-                    continue;
+		if (in->force_dst_name) {
+			sep = in->path;
+		} else if (ctx->dst) {
+			u32 i, count = gf_list_count(ctx->inputs);
+			for (i=0; i<count; i++) {
+				char *path_sep;
+				GF_HTTPOutInput *an_in = gf_list_get(ctx->inputs, i);
+				if (an_in==in) continue;
+				if (!an_in->path) continue;
+				if (ctx->dst && !an_in->force_dst_name) continue;
+				if (!gf_filter_pid_share_origin(in->ipid, an_in->ipid))
+					continue;
 
-                o_url = gf_strdup(an_in->path);
-                path_sep = strrchr(o_url, '/');
-                if (path_sep) {
-                    path_sep[1] = 0;
-                    if (name[0]=='/')
+				o_url = gf_strdup(an_in->path);
+				path_sep = strrchr(o_url, '/');
+				if (path_sep) {
+					path_sep[1] = 0;
+					if (name[0]=='/')
 						gf_dynstrcat(&o_url, name+1, NULL);
-                    else
+					else
 						gf_dynstrcat(&o_url, name, NULL);
-                    sep = o_url;
-                } else {
-                    sep = name;
-                }
-                break;
-            }
+					sep = o_url;
+				} else {
+					sep = name;
+				}
+				break;
+			}
 		} else {
 			sep = name;
 		}
-    }
-    //default to name
-    if (!sep && ctx->dst && in->path) {
+	}
+	//default to name
+	if (!sep && ctx->dst && in->path) {
 		sep = name;
-    }
-    if (!sep) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] %s output %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
+	}
+	if (!sep) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] %s output %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
 		return GF_FALSE;
 	}
 
@@ -4318,7 +4342,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (in->path) gf_free(in->path);
 		in->path = gf_strdup(sep);
 	}
-    if (o_url) gf_free(o_url);
+	if (o_url) gf_free(o_url);
 
 	httpout_set_local_path(ctx, in);
 	if (is_fake) return GF_FALSE;

@@ -30,6 +30,7 @@
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
 //is the number of bytes missing to parse the box...
+GF_EXPORT
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *box_type, u64 *bytesExpected, Bool progressive_mode)
 {
 	GF_Err ret;
@@ -92,6 +93,7 @@ u64 unused_bytes = 0;
 
 #define GF_SKIP_BOX 10
 
+GF_EXPORT
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size)
 {
 	u32 type, otype, uuid_type, hdr_size, restore_type;
@@ -844,6 +846,7 @@ ISOM_BOX_IMPL_DECL(ac3)
 ISOM_BOX_IMPL_DECL(ec3)
 ISOM_BOX_IMPL_DECL(dac3)
 ISOM_BOX_IMPL_DECL(dec3)
+ISOM_BOX_IMPL_DECL(dac4)
 ISOM_BOX_IMPL_DECL(dmlp)
 ISOM_BOX_IMPL_DECL(lsrc)
 ISOM_BOX_IMPL_DECL_CHILD(lsr1)
@@ -872,6 +875,7 @@ ISOM_BOX_IMPL_DECL(emsg)
 ISOM_BOX_IMPL_DECL(emib)
 ISOM_BOX_IMPL_DECL(emeb)
 ISOM_BOX_IMPL_DECL(evte)
+ISOM_BOX_IMPL_DECL(silb)
 
 #endif
 
@@ -944,6 +948,8 @@ ISOM_BOX_IMPL_DECL_CHILD(trgr)
 ISOM_BOX_IMPL_DECL(trgt)
 ISOM_BOX_IMPL_DECL(ienc)
 ISOM_BOX_IMPL_DECL(iaux)
+ISOM_BOX_IMPL_DECL(txlo)
+ISOM_BOX_IMPL_DECL(fnch)
 
 /* MIAF declarations */
 ISOM_BOX_IMPL_DECL(clli)
@@ -1228,7 +1234,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MFRA, mfra, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MFRO, mfro, "mfra", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFRA, tfra, "mfra", 1),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk ipco", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
@@ -1373,6 +1379,7 @@ static struct box_registry_entry {
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMIB, emib, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMEB, emeb, "file", "EventMessageTrack"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_SILB, silb, "file", 1, "EventMessageTrack"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EVTE, gen_sample_entry, "stsd", "EventMessageTrack"),
 #endif
 
@@ -1434,11 +1441,12 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv ipco dav1", "av1"),
 
 	// VP8-9 boxes
-	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 encv resv", 1, 0, "vp"),
+	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP08, video_sample_entry, "stsd", "vp"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP09, video_sample_entry, "stsd", "vp"),
-	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 encv resv", 1, 0, "vp"),
-	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 encv resv", 1, 0, "vp"),
+	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP10, video_sample_entry, "stsd", "vp"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
 
 	//Opus in ISOBMFF boxes
 #ifndef GPAC_DISABLE_OGG
@@ -1495,6 +1503,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TXLO, txlo, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_FNCH, fnch, "ipco", 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IENC, ienc, "ipco", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
 
@@ -1707,6 +1717,7 @@ static struct box_registry_entry {
 	//dolby boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
+	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AC4, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3 wave enca", "dolby"),
 	{GF_ISOM_BOX_TYPE_DEC3, dec3_box_new, dac3_box_del, dac3_box_read,
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1716,6 +1727,7 @@ static struct box_registry_entry {
 		dac3_box_dump,
 #endif
 		0, 0, 0, "ec-3 wave enca", "dolby" },
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DAC4, dac4, "ac-4 wave enca", "dolby"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvav dva1 dvhe dvh1 dav1 avc1 avc2 avc3 avc4 hev1 hvc1 av01 encv resv", "DolbyVision"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVVC, dvvC, "dvav dva1 dvhe dvh1 dav1 avc1 avc2 avc3 avc4 hev1 hvc1 av01 encv resv", "DolbyVision"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DVHE, video_sample_entry, "stsd", "DolbyVision"),
@@ -1840,6 +1852,7 @@ static struct box_registry_entry {
 
 
 	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CDRF, sref, "stbl traf", "p12"),
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
@@ -1973,17 +1986,17 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			}
 		}
 #endif
-        if (is_uuid || (boxType==GF_ISOM_BOX_TYPE_UUID)) {
-            a = uuid_box_new();
-            if (a) a->registry = &box_registry[1];
-        } else {
-            a = unkn_box_new();
-            if (a) {
-            	((GF_UnknownBox *)a)->original_4cc = boxType;
+		if (is_uuid || (boxType==GF_ISOM_BOX_TYPE_UUID)) {
+			a = uuid_box_new();
+			if (a) a->registry = &box_registry[1];
+		} else {
+			a = unkn_box_new();
+			if (a) {
+				((GF_UnknownBox *)a)->original_4cc = boxType;
 				((GF_UnknownBox *)a)->parent_4cc = parentType;
-            	a->registry = &box_registry[0];
+				a->registry = &box_registry[0];
 			}
-        }
+		}
 		return a;
 	}
 	a = box_registry[idx].new_fn();
@@ -2343,10 +2356,13 @@ u32 gf_isom_get_supported_box_type(u32 idx)
 GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version, const char *spec, const char *container)
 {
 	gf_fprintf(trace, "<%s ", name);
-	if (a->size > 0xFFFFFFFF) {
-		gf_fprintf(trace, "LargeSize=\""LLU"\" ", a->size);
-	} else {
-		gf_fprintf(trace, "Size=\"%u\" ", (u32) a->size);
+
+	if (!(a->internal_flags & GF_ISOM_DUMP_SKIP_SIZE)) {
+		if (a->size > 0xFFFFFFFF) {
+			gf_fprintf(trace, "LargeSize=\""LLU"\" ", a->size);
+		} else {
+			gf_fprintf(trace, "Size=\"%u\" ", (u32) a->size);
+		}
 	}
 	if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
 		gf_fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(((GF_UnknownBox*)a)->original_4cc));
@@ -2383,7 +2399,7 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 	return gf_isom_box_dump_start_ex(a, name, trace, GF_FALSE, NULL, NULL);
 }
 
-GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
+GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, Bool subtree_root)
 {
 	GF_Box *a = (GF_Box *) ptr;
 
@@ -2395,14 +2411,24 @@ GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] trying to dump box %s not registered\n", gf_4cc_to_str(a->type) ));
 		return GF_ISOM_INVALID_FILE;
 	}
-	a->registry->dump_fn(a, trace);
+	if (subtree_root && gf_opts_get_bool("core", "diso-nosize")) {
+		a->internal_flags |= GF_ISOM_DUMP_SKIP_SIZE;
+		a->registry->dump_fn(a, trace);
+		a->internal_flags &= ~GF_ISOM_DUMP_SKIP_SIZE;
+	} else {
+		a->registry->dump_fn(a, trace);
+	}
 	return GF_OK;
+}
+GF_Err gf_isom_box_dump(void *ptr, FILE * trace)
+{
+	return gf_isom_box_dump_ex(ptr, trace, GF_TRUE);
 }
 
 void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace)
 {
 	if (ptr && ptr->child_boxes) {
-		gf_isom_box_array_dump(ptr->child_boxes, trace);
+		gf_isom_box_array_dump(ptr->child_boxes, trace, ptr->internal_flags);
 	}
 	if (name)
 		gf_fprintf(trace, "</%s>\n", name);
@@ -2452,6 +2478,7 @@ Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 void gf_isom_box_del_parent(GF_List **child_boxes, GF_Box*b)
 {
 	if (child_boxes) {

@@ -285,12 +285,12 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 		//if we reattached the input, we must send a play request
 		gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
 		gf_filter_pid_send_event(iopid->ipid, &evt);
-        iopid->skip_dts_init = GF_FALSE;
-        if (iopid->play_state==FLIST_STATE_STOP) {
-            GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
-            gf_filter_pid_send_event(iopid->ipid, &evt);
-            iopid->skip_dts_init = GF_TRUE;
-        }
+		iopid->skip_dts_init = GF_FALSE;
+		if (iopid->play_state==FLIST_STATE_STOP) {
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
+			gf_filter_pid_send_event(iopid->ipid, &evt);
+			iopid->skip_dts_init = GF_TRUE;
+		}
 	}
 
 	//and convert back cts/dts offsets to output timescale
@@ -655,9 +655,9 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		iopid = gf_list_get(ctx->io_pids, i);
 		if (!iopid->ipid) continue;
 
-        //only send on non connected inputs or on the one matching the pid event
-        if (iopid->opid && (iopid->opid != evt->base.on_pid))
-            continue;
+		//only send on non connected inputs or on the one matching the pid event
+		if (iopid->opid && (iopid->opid != evt->base.on_pid))
+			continue;
 
 		fevt.base.on_pid = iopid->ipid;
 		if (evt->base.type==GF_FEVT_PLAY) {
@@ -2029,7 +2029,7 @@ restart:
 			GF_FilterPacket *pck;
 			u64 dts;
 			iopid = gf_list_get(ctx->io_pids, i);
-            if (!iopid->ipid) {
+			if (!iopid->ipid) {
 				if (ctx->src_error) {
 					nb_eos++;
 					continue;
@@ -2039,8 +2039,8 @@ restart:
 				if (iopid->opid_aux) gf_filter_pid_set_eos(iopid->opid_aux);
 				return GF_OK;
 			}
-            if (iopid->skip_dts_init) continue;
-            pck = gf_filter_pid_get_packet(iopid->ipid);
+			if (iopid->skip_dts_init) continue;
+			pck = gf_filter_pid_get_packet(iopid->ipid);
 
 			if (!pck) {
 				//still waiting for EOS on source
@@ -2186,31 +2186,31 @@ restart:
 	for (i=0; i<count; i++) {
 		iopid = gf_list_get(ctx->io_pids, i);
 		if (!iopid->ipid) {
-            iopid->splice_ready = GF_TRUE;
+			iopid->splice_ready = GF_TRUE;
 			nb_inactive++;
 			continue;
 		}
 		if (iopid->play_state==FLIST_STATE_WAIT_PLAY)
 			continue;
-        if (iopid->play_state==FLIST_STATE_STOP) {
+		if (iopid->play_state==FLIST_STATE_STOP) {
 			nb_stop++;
-            //in case the input still dispatch packets, drop them
-            while (1) {
-                GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->ipid);
-                if (!pck) break;
-                gf_filter_pid_drop_packet(iopid->ipid);
-            }
-            while (iopid->splice_ipid) {
-                GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->splice_ipid);
-                if (!pck) break;
-                gf_filter_pid_drop_packet(iopid->splice_ipid);
-            }
-            nb_done++;
-            iopid->splice_ready = GF_TRUE;
-            continue;
-        }
+			//in case the input still dispatch packets, drop them
+			while (1) {
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->ipid);
+				if (!pck) break;
+				gf_filter_pid_drop_packet(iopid->ipid);
+			}
+			while (iopid->splice_ipid) {
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->splice_ipid);
+				if (!pck) break;
+				gf_filter_pid_drop_packet(iopid->splice_ipid);
+			}
+			nb_done++;
+			iopid->splice_ready = GF_TRUE;
+			continue;
+		}
 		if (iopid->is_eos) {
-            iopid->splice_ready = GF_TRUE;
+			iopid->splice_ready = GF_TRUE;
 			nb_done++;
 			continue;
 		}
@@ -3094,7 +3094,7 @@ GF_FilterRegister FileListRegister = {
 		"- if the input playlist has not been modified for the [-timeout]() option value (infinite by default).\n"
 		"## Playlist directives\n"
 		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
-		"- repeat=N: repeats `N` times the content (hence played N+1).\n"
+		"- repeat=N: repeats `N` times the content (hence played N+1), infinite loop if negative.\n"
 		"- start=T: tries to play the file from start time `T` seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
 		"- stop=T: stops source playback after `T` seconds (double format only). This works on any source (implemented independently from seek support).\n"
 		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.\n"

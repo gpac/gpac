@@ -49,7 +49,7 @@ GF_OPT_ENUM (GF_VttHeaderInjectionMode,
 typedef struct
 {
 	//opts
-	Bool exporter, frame, split, merge_region, add_nl;
+	Bool exporter, frame, split, merge_region, add_nl, rawb;
 	u32 sstart, send;
 	GF_VttHeaderInjectionMode vtth;
 	u32 pfmt, afmt;
@@ -91,7 +91,7 @@ typedef struct
 
 	GF_FilterPacket *ttml_dash_pck;
 
-	Bool dump_srt;
+	Bool dump_srt, srt_dump_forced;
 	Bool need_ttxt_footer;
 	u8 *write_buf;
 	u32 write_alloc;
@@ -517,6 +517,11 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NB_FRAMES, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+
+	if (ctx->dump_srt && gf_opts_get_bool("core", "srt-forced"))
+		ctx->srt_dump_forced = GF_TRUE;
+	else
+		ctx->srt_dump_forced = GF_FALSE;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
@@ -1019,7 +1024,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		GF_XMLAttribute *div_reg = NULL;
 		GF_XMLNode *div_global, *div_pck;
 		div_pck = gf_list_get(body_pck->content, k);
-		if (div_pck->type) continue;
+		if (!div_pck || div_pck->type) continue;
 		if (strcmp(div_pck->name, "div")) continue;
 
 		if (ctx->merge_region)
@@ -1167,7 +1172,7 @@ static GF_Err writegen_flush_ttxt(GF_GenDumpCtx *ctx)
 
 
 #include <gpac/webvtt.h>
-static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u32 timescale, Bool write_srt)
+static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u32 timescale, Bool write_srt, Bool forced)
 {
 #ifndef GPAC_DISABLE_VTT
 	char szTS[200];
@@ -1197,6 +1202,10 @@ static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u
 	}
 	sprintf(szTS, "%02u:%02u%c%03u", end.min, end.sec, write_srt ? ',' : '.', end.ms);
 	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
+
+	if (write_srt && forced) {
+		gf_bs_write_data(bs, " !!!", 4);
+	}
 #endif
 }
 
@@ -1479,6 +1488,8 @@ GF_Err writegen_process(GF_Filter *filter)
 		u64 end = start + gf_filter_pck_get_duration(pck);
 		u32 timescale = gf_filter_pck_get_timescale(pck);
 		Bool first = ctx->first;
+		Bool forced = GF_FALSE;
+
 		//in dash mode always inject the webvtt header for HLS
 		if (ctx->dash_mode && (ctx->vtth!=VTTH_SINGLE) && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM))
 			first = GF_TRUE;
@@ -1512,6 +1523,12 @@ GF_Err writegen_process(GF_Filter *filter)
 			if (len && (p->value.string[len-1]!='\n'))
 				gf_bs_write_data(ctx->bs, "\n", 1);
 		}
+		if (ctx->srt_dump_forced) {
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FORCED_SUB);
+			if (p && p->value.boolean) {
+				forced = GF_TRUE;
+			}
+		}
 
 		if (!empty_seg) {
 			if (ctx->dump_srt) {
@@ -1519,7 +1536,7 @@ GF_Err writegen_process(GF_Filter *filter)
 				sprintf(szCID, "%d\n", ctx->sample_num);
 				gf_bs_write_data(ctx->bs, szCID, (u32) strlen(szCID));
 			}
-			webvtt_timestamps_dump(ctx->bs, start, end, timescale, ctx->dump_srt);
+			webvtt_timestamps_dump(ctx->bs, start, end, timescale, ctx->dump_srt, forced);
 
 			p = gf_filter_pck_get_property_str(pck, "vtt_settings");
 			if (!ctx->dump_srt && p && p->value.string) {
@@ -1662,6 +1679,14 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "obu|av1|av1b|ivf"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1"),
+	{0},
+
+	//we accept unframed AC4 without sync word and size
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AC4),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "ac4"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/x-ac4|audio/ac4"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
@@ -2011,6 +2036,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- seg: inject at each non-empty segment\n"
 	"- all: inject at each segment even empty ones", GF_PROP_UINT, "seg", "single|seg|all", 0},
 	{ OFFS(add_nl), "add new line after each packet when dumping text streams", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(rawb), "force direct dump of input without framing rewrite. In this mode, all codec types are supported", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2058,7 +2084,7 @@ static const GF_FilterCapability FrameDumpCaps[] =
 static GF_Err writegen_initialize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
-	if (ctx->frame) {
+	if (ctx->frame || ctx->rawb) {
 		return gf_filter_override_caps(filter, (const GF_FilterCapability *) FrameDumpCaps, sizeof(FrameDumpCaps) / sizeof(GF_FilterCapability));
 	}
 	return GF_OK;

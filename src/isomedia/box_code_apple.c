@@ -38,7 +38,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 sub_type;
-	GF_Box *a;
+	GF_Box *a = NULL;
 	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 	while (ptr->size) {
 		/*if no ilst type coded, break*/
@@ -47,7 +47,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_parse_ex(&a, bs, s->type, GF_FALSE, s->size);
 
 			/* the macro will return in this case before we can free */
-			if (!e && ptr->size < a->size) {
+			if (!e && a && ptr->size < a->size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(ptr->type), ptr->size, a->size, __FILE__, __LINE__ )); \
 				e = GF_ISOM_INVALID_FILE;
 			}
@@ -55,6 +55,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 				if (a) gf_isom_box_del(a);
 				return e;
 			}
+			if (!a) return GF_NON_COMPLIANT_BITSTREAM;
 
 			ISOM_DECREASE_SIZE(ptr, a->size);
 			gf_list_add(ptr->child_boxes, a);
@@ -878,7 +879,7 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
 	if (!ptr->audio_descs) return GF_OUT_OF_MEM;
-	
+
 	for (i=0; i<ptr->num_audio_description; i++) {
 		GF_AudioChannelDescription *adesc = &ptr->audio_descs[i];
 		ISOM_DECREASE_SIZE(s, 20);

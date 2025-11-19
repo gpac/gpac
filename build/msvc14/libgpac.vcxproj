@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug - MP4Box_only|Win32">
@@ -104,7 +104,7 @@
     <ClInclude Include="..\..\include\gpac\nodes_svg.h" />
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h" />
     <ClInclude Include="..\..\include\gpac\path2d.h" />
-    <ClInclude Include="..\..\include\gpac\Remotery.h" />
+    <ClInclude Include="..\..\include\gpac\rmt_ws.h" />
     <ClInclude Include="..\..\include\gpac\revision.h" />
     <ClInclude Include="..\..\include\gpac\rtp_streamer.h" />
     <ClInclude Include="..\..\include\gpac\scenegraph.h" />
@@ -283,6 +283,7 @@
     <ClCompile Include="..\..\src\filters\dmx_ogg.c" />
     <ClCompile Include="..\..\src\filters\dmx_saf.c" />
     <ClCompile Include="..\..\src\filters\dmx_vobsub.c" />
+    <ClCompile Include="..\..\src\filters\enc_cc.c" />
     <ClCompile Include="..\..\src\filters\enc_jpg.c" />
     <ClCompile Include="..\..\src\filters\enc_png.c" />
     <ClCompile Include="..\..\src\filters\encrypt_cenc_isma.c" />
@@ -335,6 +336,7 @@
     <ClCompile Include="..\..\src\filters\out_video.c" />
     <ClCompile Include="..\..\src\filters\reframer.c" />
     <ClCompile Include="..\..\src\filters\reframe_ac3.c" />
+    <ClCompile Include="..\..\src\filters\reframe_ac4.c" />
     <ClCompile Include="..\..\src\filters\reframe_adts.c" />
     <ClCompile Include="..\..\src\filters\reframe_amr.c" />
     <ClCompile Include="..\..\src\filters\reframe_av1.c" />
@@ -355,6 +357,7 @@
     <ClCompile Include="..\..\src\filters\sei_load.c" />
     <ClCompile Include="..\..\src\filters\restamp.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
+    <ClCompile Include="..\..\src\filters\rewrite_ac4.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mhas.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mp4v.c" />
@@ -487,7 +490,7 @@
     <ClCompile Include="..\..\src\odf\qos.c" />
     <ClCompile Include="..\..\src\odf\slc.c" />
     <ClCompile Include="..\..\src\quickjs\cutils.c" />
-    <ClCompile Include="..\..\src\quickjs\libbf.c">
+    <ClCompile Include="..\..\src\quickjs\dtoa.c">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">Level1</WarningLevel>
@@ -593,7 +596,7 @@
     <ClCompile Include="..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\src\utils\path2d.c" />
     <ClCompile Include="..\..\src\utils\path2d_stroker.c" />
-    <ClCompile Include="..\..\src\utils\Remotery.c" />
+    <ClCompile Include="..\..\src\utils\rmt_ws.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\sha256.c" />
     <ClCompile Include="..\..\src\utils\md5.c" />
@@ -743,7 +746,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -782,7 +785,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -821,7 +824,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -861,7 +864,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -898,7 +901,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -933,7 +936,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -969,7 +972,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -1005,7 +1008,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>CompileAsC</CompileAs>
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4996;4018;4244</DisableSpecificWarnings>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>

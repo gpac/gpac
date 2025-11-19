@@ -14,8 +14,12 @@ const HLS_MASTER = 1;
 const HLS_VARIANT = 2;
 const LIVE_EDGE_MAX_DIST = 5;
 const DEACTIVATE_TIMEOUT_MS = 5000;
-//how long we will make the client wait - this should be refined depending on whether repair is used (fragments pushed on the fly) or not (full file loaded)
-const MABR_TIMEOUT_SAFETY = 1000;
+//safety on how long we will make the client wait for the MABR file to be available
+//the overall timeout depends on repair parameters
+const MABR_TIMEOUT_SAFETY = 200;
+
+//timeout before MABR self-deactivates if no request on a PID
+const MABR_PID_DEACTIVATION_TIMEOUT = 10000;
 
 const CACHE_TYPE_HTTP = 0;
 const CACHE_TYPE_MOD = 1;
@@ -25,7 +29,7 @@ const DEFAULT_MABR_UNLOAD_SEC = 4;
 const DEFAULT_KEEPALIVE_SEC = 4;
 const DEFAULT_ACTIVATE_CLIENTS = 1;
 const DEFAULT_MCACHE = false;
-const DEFAULT_REPAIR = false;
+const DEFAULT_REPAIR = 'false'; // 'false', 'true' or 'auto'
 const DEFAULT_CORRUPTED = false;
 const DEFAULT_TIMESHIFT = 10;
 const DEFAULT_GCACHE = false;
@@ -64,12 +68,15 @@ Each service is a JSON object with one or more of the following properties:
 - keepalive: (number, default ${DEFAULT_KEEPALIVE_SEC}) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
 - mabr: (string, default null) address of multicast ABR source for this service
 - timeshift: (number, default ${DEFAULT_TIMESHIFT}) time in seconds a cached file remains in memory
-- unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC} multicast unload policy
+- unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC}) multicast unload policy
 - activate: (number, default ${DEFAULT_ACTIVATE_CLIENTS}) multicast activation policy
-- repair: (boolean, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
-- mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files (experimental)
+- mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files
+- repair: (string, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
+  - false: disable repair
+  - true: enable repair using source URL or repair servers indicated in MABR
+  - auto: enable repair only from repair servers indicated in MABR
 - corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
-- check_ip: (boolean, , default ${DEFAULT_CHECKIP} monitor IP address and port rather than connection when tracking active clients
+- check_ip: (boolean, , default ${DEFAULT_CHECKIP}) monitor IP address and port rather than connection when tracking active clients
 - noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
 - sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
 - name: name as used in resource path,
@@ -85,10 +92,10 @@ All services using \`http\` option can be exposed by the server without exposing
 - the exposed server path, in which case manifest names are not rewritten
 - or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
 
-EX { 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/'}
+EX { "http": "https://test.com/live/dash/live.mpd", "local": "/service1/"}
 The server will translate any request \`/service1/foo/bar.ext\` into \`https://test.com/live/dash/foo/bar.ext\`.
 
-EX { 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/manifest.mpd'}
+EX { "http": "https://test.com/live/dash/live.mpd", "local": "/service1/manifest.mpd"}
 The server will translate:
 - request \`/service1/manifest.mpd\` into \`https://test.com/live/dash/live.mpd\`
 - any request \`/service1/foo/bar.ext\` into \`https://test.com/live/dash/foo/bar.ext\`
@@ -105,13 +112,13 @@ The server can act as a proxy for HTTP requests, either for any requests or by d
 __Service configuration parameters used :__ \`http\` (mandatory), \`gcache\`, \`local\`.
 
 Configuration for activating proxy for a specific network path:
-EX { 'http': 'https://test.com/video/'}
+EX { "http": "https://test.com/video/"}
 
 Configuration for activating proxy for any network path:
-EX { 'http': '*'}
+EX { "http": "*"}
 
 Configuration for a relay on a given path:
-EX { 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
+EX { "http": "https://test.com/some/path/to/video/", "local": "/myvids/"}
 
 This will resolve any request \`http://localhost/myvids/*\` to \`https://test.com/some/path/to/video/*\`
 
@@ -123,10 +130,10 @@ The server can act as a cache for live HTTP streaming sessions. The live edge ca
 __Service configuration parameters used :__ \`http\` ( mandatory), \`timeshift\`, \`mcache\`, \`gcache\`, \`keepalive\` and \`local\`.
 
 Configuration for proxying while caching a live HTTP streaming service:
-EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
+EX { "http": "https://test.com/dash/live.mpd", "timeshift": 30 }
 
 Configuration for relay caching a live HTTP streaming service:
-EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
+EX { "http": "https://test.com/dash/live.mpd", "timeshift": 30, "local": "/myservice/test.mpd"}
 
 The \`local\` service configuration option can be set to:
 - the exposed server path, in which case manifest names are not rewritten
@@ -145,12 +152,12 @@ For example, with \`local\` set to \`/service/live.mpd\` with \`mabr\` set, the 
 The manifest name can be omitted, in which case the exact manifest name used in the broadcast shall be used (and known to the client).
 
 Configuration for exposing a MABR session:
-EX { 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
+EX { "mabr": "mabr://234.0.0.1:1234", "local": "/service1", "timeshift": 30 }
 
 # Multicast ABR Gateway with HTTP cache
 The server can be configured to use a multicast source as an alternate data source of a given HTTP streaming service.
 
-__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`active\`, \`keepalive\` and \`js\`.
+__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`activate\`, \`keepalive\` and \`js\`.
 
 The multicast service can be dynamically loaded at run-time using the \`unload\` service configuration option:
 - if 0, the multicast is started when loading the server and never ended,
@@ -158,7 +165,7 @@ The multicast service can be dynamically loaded at run-time using the \`unload\`
 
 The qualities in the multicast service can be dynamically activated or deactivated using the \`activate\` service configuration option:
 - if 0, multicast streams are never deactivated,
-- otherwise, a multicast representation is activated only if at least \`active\` clients are consuming it, and deactivated otherwise.
+- otherwise, a multicast representation is activated only if at least \`activate\` clients are consuming it, and deactivated otherwise.
 
 The multicast service can use repair options of the MABR stack using \`repair\` service configuration option:
 - if false, the file will not be sent until completely received (this increases latency),
@@ -176,11 +183,11 @@ If \`timeshift\` is 0 for the service, multicast segments will be trashed as soo
 Note: Manifest files coming from multicast are currently never cached.
 
 Configuration for caching a live HTTP streaming service with MABR backup:
-EX { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
+EX { "http": "https://test.com/dash/live.mpd", "mabr": "mabr://234.0.0.1:1234", "timeshift": 30}
 
 For such services, the custom HTTP header \`X-From-MABR\` is defined:
 - for client request, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
-- for client response, a value of \`yes\` indicates the content comes from the MABR cache; if absent or value is \`no\`, the content comes from HTTP
+- for client response, a value of \`yes\` indicates the content comes from the MABR cache; if absent or value is \`no\` or \`off-edge\`, the content comes from HTTP (\`off-edge\` indicates a request outside of the timeshift buffer)
 
 
 The \`js\` option can be set to a JS module exporting the following functions:
@@ -192,13 +199,17 @@ The \`js\` option can be set to a JS module exporting the following functions:
   - do_activate (boolean): if true, service is being loaded otherwise it is being unloaded
   - return value: none
 
-- quality_activation : (mandatory) The function is called when the given quality is to be activated service is activated or deactivated. Parameters (in order):
+- quality_activation : (optional) The function is called when the given quality is to be activated or deactivated. If not present, (de)activation always happens. Parameters (in order):
   - do_activate (boolean): if true, quality is being activated otherwise it is being deactivated
   - service_id (integer): ID of the service as announced in the multicast
-  - period_id (string): ID of the DASH Period, ignored for HLS
-  - adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored for HLS
+  - period_id (string): ID of the DASH Period, ignored (empty) for HLS
+  - adaptationSet_ID (integer): ID of the DASH AdaptationSet, ignored (-1) for HLS
   - representation_ID (string): ID of the DASH representation or name of the HLS variant playlist
   - return value: shall be true if activation/deactivation shall proceed and false if activation/deactivation shall be canceled.
+
+- get_mcast_address : (optional) The function is called when the service is activated. Parameters:
+  - service_url (string): URL of service for which the multicast adress is queried
+  - return value: shall be the multicast address to use for the service or null if no multicast is used (active multicast wil then be deactivated).
 
 # File Services
 A file system directory can be exposed as a service.
@@ -209,7 +220,7 @@ The \`local\` service configuration option must be set to the desired service pa
 Each source is either a file, a directory or a remote URL.
 
 Configuration for exposing a directory:
-EX { 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
+EX { "local": "/dserv/", "sources": [ { "name": "foo/", "url": "my_dir/" } ] }
 This service will expose the content of directory \`my_dir/*\` as \`http://localhost/dserv/foo/*\`.
 
 In this mode, file serving is handled directly by httpout filter and no memory caching is used.
@@ -258,6 +269,7 @@ function setup_representation(rep)
 	rep.mabr_active = false;
 	rep.mabr_deactivate_timeout = 0;
 	rep.nb_active = 0;
+	rep.first_mabr_tune = 0;
 	rep.seg_id = null;
 	rep.seg_dur = 0;
 	rep.hls_seq_start = 0;
@@ -274,7 +286,7 @@ function setup_representation(rep)
 	}
 }
 
-function update_manifest(manifest_ab, target_url, mabr_service)
+function update_manifest(manifest_ab, target_url, mabr_service, cache_file)
 {
 	let mani = sys.mpd_parse(manifest_ab);
 	if (!mani) return;
@@ -333,6 +345,9 @@ function update_manifest(manifest_ab, target_url, mabr_service)
 		hls_active_rep.hls_seq_start = mani.seq_start;
 		hls_active_rep.live_seg_num = mani.live_seg_num;
 		service.manifest.live = mani.live;
+		if (cache_file) {
+			cache_file.manifest_min_update = mani.min_update;
+		}
 
 		do_log(GF_LOG_DEBUG, `Service ${service.id} updated HLS manifest`); // + JSON.stringify(service.manifest));
 		return;
@@ -390,6 +405,9 @@ function update_manifest(manifest_ab, target_url, mabr_service)
 				old_p.reps = old_p.reps.sort((a, b) => a.bandwidth - b.bandwidth);
 			}
 		}
+	}
+	if (cache_file) {
+		cache_file.manifest_min_update = mani.min_update;
 	}
 	do_log(GF_LOG_DEBUG, `Service ${service.id} manifest ${ (updated ? 'updated' : 'received')} for ${target_url}`); // + ': ' + JSON.stringify(service.manifest));
 }
@@ -585,6 +603,7 @@ httpout.on_request = (req) =>
 	req.do_cache = false;
 	req.jsmod=null;
 	req.up_rate=0;
+	req.service = null;
 
 	all_requests.push(req);
 
@@ -654,7 +673,7 @@ httpout.on_request = (req) =>
 		if (src_ab.byteLength <= this.ab_offset) {
 			if (this.cache_file.done) {
 				this.on_done();
-				this.cache_file.nb_users --;
+				this.cache_file.release(this);
 				this.cache_file = null;
 				if (this.activate_rep_timeout) this.activate_rep_timeout.update();
 				return 0;
@@ -687,8 +706,7 @@ httpout.on_request = (req) =>
 		this.jsmod = null;
 
 		this.ab_queue = null;
-		if (this.cache_file) this.cache_file.nb_users --;
-
+		if (this.cache_file) this.cache_file.release(this);
 		if (this.activate_rep_timeout) this.activate_rep_timeout.update();
 		else if (req.service && req.service.keepalive && !req.service.mabr) {
 			let timeout = (code<GF_OK) ? 100 : 1000*req.service.keepalive;
@@ -734,6 +752,9 @@ httpout.on_request = (req) =>
 		if (this.cache_file.cache_type==CACHE_TYPE_MABR) {
 			this.headers_out.push( { "name" : 'X-From-MABR', "value": 'yes'} );
 		}
+		else if (this.service && this.service.mabr) {
+			this.headers_out.push( { "name" : 'X-From-MABR', "value": this.live_edge ? 'no' : 'off-edge'} );
+		}
 		this.send();
 	};
 
@@ -742,6 +763,14 @@ httpout.on_request = (req) =>
 		//already setup through set_cache_file - typically happens when N requests are pending on MABR file that is later cancelled
 		//if source can still be cached, a cache file will be created and assigned to all pending requests for the same url
 		if (this.cache_file) return;
+
+		//MABR without origin server
+		if (this.service && !this.service.url && !this.service.mabr_repair_url) {
+			do_log(GF_LOG_DEBUG, `No URL for base repair, cannot fetch ${this.target_url}`);
+			this.reply = 404;
+			this.send();
+			return;
+		}
 
 		this.ab_queue = [];
 		this.manifest_ab = null;
@@ -758,6 +787,10 @@ httpout.on_request = (req) =>
 			this.cache_file = this.service.create_cache_file(this.target_url,(this.manifest_type==MANI_DASH) ? "application/dash+xml" : "application/vnd.apple", this.br_start, this.br_end, CACHE_TYPE_HTTP);
 			this.cache_file.nb_users ++;
 			this.read = this._read_from_buffer;
+		}
+		//MABR without origin server but repair URL signaled from mabr, update target url
+		if (this.service && !this.service.url) {
+			this.target_url = sys.url_cat(this.service.mabr_repair_url, this.target_url);
 		}
 
 		this.xhr = null;
@@ -818,11 +851,11 @@ httpout.on_request = (req) =>
 			}
 		};
 
-		req.xhr.onreadystatechange = function() {
+		this.xhr.onreadystatechange = function() {
 			if (this.readyState == 4) {
 				do_log(GF_LOG_DEBUG, `${req.target_url} received`);
 				if (req.manifest_type) {
-					update_manifest(req.manifest_ab, req.target_url, req.service);
+					update_manifest(req.manifest_ab, req.target_url, req.service, req.cache_file);
 					req.manifest_ab = null;
 				}
 				//cache can be set for manifests or media
@@ -880,6 +913,9 @@ httpout.on_request = (req) =>
 			});
 			do_log(GF_LOG_DEBUG, `Sending reply to ${req.url} code ${req.xhr.status}`);
 			req.reply = req.xhr.status;
+			if (req.service && req.service.mabr) {
+				req.headers_out.push( { "name" : 'X-From-MABR', "value": req.live_edge ? 'no' : 'off-edge'} );
+			}
 			req.send();
 
 			if (req.cache_file) {
@@ -914,7 +950,7 @@ httpout.on_request = (req) =>
 		else if ((hlwr == "x-from-mabr") && (h.value.toLowerCase() == 'no')) disable_mabr_cache = true;
 		else if (hlwr == "range") {
 			let hdr_range = h.value.split('=');
-			let range = [1];
+			let range = hdr_range[1];
 			if (range.indexOf(',')>=0) {
 				req.no_cache = true;
 			} else {
@@ -998,6 +1034,7 @@ httpout.on_request = (req) =>
 
 				if (!resolved) {
 					if (!req.reply) {
+						do_log(GF_LOG_DEBUG, `Invalid JS handler for ${req.url}`);
 						req.reply = 404;
 						req.send();
 					}
@@ -1037,6 +1074,7 @@ httpout.on_request = (req) =>
 				let e = service_def.sources.find( a => (a.name == my_url) );
 				if (!e) e = service_def.sources.find( a => my_url.startsWith(a.name) );
 				if (!e) {
+					do_log(GF_LOG_DEBUG, `Invalid service definition for ${req.url}`);
 					req.reply = 404;
 					req.send();
 					return;
@@ -1054,6 +1092,7 @@ httpout.on_request = (req) =>
 						req.send();
 						return;
 					} else {
+						do_log(GF_LOG_DEBUG, `Invalid local path for ${req.url}`);
 						req.reply = 404;
 						req.send();
 						return;
@@ -1101,13 +1140,14 @@ httpout.on_request = (req) =>
 		req.target_url = (use_tls ? 'https://' : 'http://') + host + req.url;
 	}
 	if (! req.target_url) {
+		do_log(GF_LOG_DEBUG, `No service found for ${req.url}`);
 		req.reply = 404;
 		req.send('No such service');
 		return;
 	}
 
-	do_log(GF_LOG_INFO, `Processing request ${req.method} for ${req.url} (resolved ${req.target_url})`);
-
+	do_log(GF_LOG_INFO, `Processing request ${req.method} for ${req.url}`);
+	do_log(GF_LOG_DEBUG, `Resolved request URL ${req.target_url}`);
 	let url_lwr = req.target_url.toLowerCase();
 	if (url_lwr.indexOf('.m3u8')>=0) req.manifest_type = MANI_HLS;
 	else if (url_lwr.indexOf('.mpd')>=0) req.manifest_type = MANI_DASH;
@@ -1136,7 +1176,6 @@ httpout.on_request = (req) =>
 	}
 
 	if (!req.service && check_any_allowed) {
-		print('check any allowed');
 		//pure proxy, check allowed domains
 		let service_def = services_defs.find( s => (!s.noproxy && (host === s.http_host) && req.url.startsWith(s.http_path)) );
 		if (!service_def) service_def = services_defs.find( s => (s.http === '*') );
@@ -1147,28 +1186,39 @@ httpout.on_request = (req) =>
 			return;
 		}
 		req.do_cache = service_def.gcache;
+		//little opt: create mabr service for dash before sending the request, so that we can signal X-From-MABR=no in the answer
+		if (req.manifest_type && service_def.mabr) {
+			req.service = create_service(req.target_url, true, null);
+		}
 	}
 
 	if (req.service) {
 		req.do_cache = req.service.gcache;
-		//deactivate timeout, will be reactivated when removing reques
+		//deactivate timeout, will be reactivated when removing request
 		req.service.unload_timeout = 0;
 		if (req.manifest_type && !req.service.mani_cache && !req.from_cache) req.no_cache = true;
+
+		//check mcast
+		if (req.service.dyn_mabr) {
+			req.service.check_dyn_mabr();
+		}
 	}
 
 	//look in mem cache
 	if (req.service && !req.no_cache) {
 		let f = req.service.get_file(req.from_cache ? req.target_url : req.url, req.br_start, req.br_end);
-		//only cache manifest if not too old - for now we hardcode this to 1 sec, we should get this from the manifest
-		if (f && !f.sticky && req.manifest_type && (f.received + 1000 < sys.clock_ms())) {
-			//trash
-			req.service.mem_cache.splice(req.service.mem_cache.indexOf(f) , 1);
-			do_log(GF_LOG_DEBUG, `Cached manifest ${req.url} too old, removing and refreshing`);
-			f = null;
+		//only cache manifest if not too old - we use more than the min update due to transfer times in mabr
+		if (f && !f.sticky && (f.cache_type == CACHE_TYPE_MABR) && req.manifest_type && (req.service.url || req.service.mabr_repair_url)) {
+			if (f.manifest_min_update && (f.received + 3*f.manifest_min_update/2 < sys.clock_ms())) {
+				//trash
+				req.service.mem_cache.splice(req.service.mem_cache.indexOf(f) , 1);
+				do_log(GF_LOG_WARNING, `Cached manifest ${req.url} too old by ${sys.clock_ms() - f.received - f.manifest_min_update} ms - removing and refreshing (${f.received} - ${f.url})`);
+				f = null;
+			}
 		}
 
 		if (f) {
-			do_log(GF_LOG_INFO, `File ${req.url} present in cache ${ f.done ? '(completed)' : '(transfer in progress)'}`);
+			do_log(GF_LOG_INFO, `File ${req.url} present in cache ${ f.done ? '(completed)' : '(transfer in progress)'} (${f.received} - ${f.url})`);
 			req.service.mark_active_rep(active_rep, req);
 			return req.set_cache_file(f);
 		}
@@ -1191,7 +1241,7 @@ httpout.on_request = (req) =>
 	//multicast service only
 	if (req.service.mabr && !req.service.url && !active_rep && !disable_mabr_cache) {
 		req.waiting_mabr_start = sys.clock_ms();
-		req.waiting_mabr = req.waiting_mabr_start + 4*MABR_TIMEOUT_SAFETY;
+		req.waiting_mabr = req.waiting_mabr_start + MABR_TIMEOUT_SAFETY;
 		req.service.pending_reqs.push(req);
 		return;
 	}
@@ -1212,22 +1262,25 @@ httpout.on_request = (req) =>
 		}
 		//check if we have mabr active
 		else if (active_rep.live_edge && active_rep.mabr_active) {
-			if (req.service.source && req.service.source.probe_url(req.service.mabr_service_id, req.url)) {
-				req.waiting_mabr = 0;
-				do_log(GF_LOG_INFO, `Waiting for file ${req.url} from MABR (ID ${req.service.mabr_service_id} (announced in multicast))`);
+			if (req.service && req.service.last_mabr_active && (req.service.last_mabr_active + 3*active_rep.seg_dur/2 < req.start_time)) {
+				do_log(GF_LOG_WARNING, `Rep ${active_rep.ID} MABR is down since ${req.start_time - req.service.last_mabr_active} ms, going for HTTP`);
+			}
+			else if (active_rep.first_mabr_tune) {
+				do_log(GF_LOG_INFO, `Rep ${active_rep.ID} seg ${req.url} first segment request and no low-latency, going for HTTP`);
+				active_rep.first_mabr_tune = 0;
 			} else {
-				do_log(GF_LOG_INFO, `Waiting for file ${req.url} from MABR (ID ${req.service.mabr_service_id})`);
 				//set a timeout for the request in case MABR fails
 				req.waiting_mabr_start = sys.clock_ms();
-				if (req.service.repair) {
-					req.waiting_mabr = req.waiting_mabr_start + 2*active_rep.seg_dur/3 + MABR_TIMEOUT_SAFETY;
-				} else {
-					//we gather full files when not in repair, we need a longer timeout
-					req.waiting_mabr = req.waiting_mabr_start + 3*active_rep.seg_dur/2 + MABR_TIMEOUT_SAFETY;
-				}
+				//we use 3 x segment duration since we don't know if the source was low-latency or not so in worst case we have:
+				//- one seg_dur delay for multicaster to send the file
+				//- one seg_dur delay for the file to be received
+				//- repair delay
+				req.waiting_mabr = req.waiting_mabr_start + 3*active_rep.seg_dur + MABR_TIMEOUT_SAFETY;
+				do_log(GF_LOG_INFO, `Waiting for file ${req.url} from MABR (ID ${req.service.mabr_service_id}) - will wait max ${req.waiting_mabr-req.waiting_mabr_start} ms for seg dur ${active_rep.seg_dur}`);
+
+				req.service.pending_reqs.push(req);
+				return;
 			}
-			req.service.pending_reqs.push(req);
-			return;
 		} else if (active_rep.mabr_active) {
 			do_log(GF_LOG_INFO, `Rep ${active_rep.ID} seg ${req.url} num ${active_rep.seg_num} is not on live edge ${active_rep.live_seg_num}, going for HTTP`);
 		} else if (req.service.mabr_service_id) {
@@ -1258,6 +1311,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	s.active_reps_timeouts=[];
 	s.nb_mabr_active = 0;
 	s.mabr_unload_timeout = 0;
+	s.dyn_mabr = false;
+	s.last_mabr_active = 0;
 	s.unload_timeout = 0;
 	s.purge_delay = 0;
 	s.mani_cache = false;
@@ -1266,13 +1321,18 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	s.keepalive = DEFAULT_KEEPALIVE_SEC;
 	s.xhr_cache = [];
 	s.pending_deactivate = [];
+	s.mabr_repair_url = null;
 	if (http_url && http_url.toLowerCase().startsWith('https://')) s.force_tls = true;
 	else s.force_tls = false;
 	s.hdlr = null;
 	s.manifest = null;
 	//do we have a mcast service for this ?
-	let url_noport = forced_sdesc ? null : http_url.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
-	let serv_cfg = forced_sdesc ? forced_sdesc : services_defs.find(e => e.http == url_noport);
+	let serv_cfg = forced_sdesc;
+	if (!forced_sdesc) {
+		let url_noport = http_url.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
+		serv_cfg = services_defs.find(e => e.http == url_noport);
+		if (!serv_cfg) serv_cfg = services_defs.find(e => e.http == http_url);
+	}
 
 	if (serv_cfg) {
 		do_log(GF_LOG_DEBUG, `Service ${forced_sdesc ? forced_sdesc.local_base : http_url} has custom config${ (serv_cfg.mabr ? ' and MABR' : '')}`);
@@ -1288,6 +1348,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		s.gcache = serv_cfg.gcache;
 		s.check_ip = serv_cfg.check_ip;
 		if (serv_cfg.id) s.id = serv_cfg.id;
+		s.dyn_mabr = serv_cfg.dyn_mabr;
 	}
 
 	if (!http_url) {
@@ -1332,7 +1393,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		if (!pending && from_mabr && !s.url) {
 			let ext = url.split('.').pop().toLowerCase();
 			if ((ext==="mpd") || (ext==="m3u8")) {
-				pending = this.pending_reqs.find (r => r.url.indexOf(ext) );
+				pending = this.pending_reqs.find (r => {
+					if (r.url.indexOf(ext)>=0) return true;
+					return false;
+				});
 			}
 		}
 		if (pending)
@@ -1347,6 +1411,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		file.mime = mime || 'video/mp4';
 		file.received = sys.clock_ms();
 		file.data = new ArrayBuffer();
+		file.data_tmp = null;
+		file.data_tmp_done = false;
 		this.mem_cache.push(file);
 		file.done = false;
 		file.aborted = false;
@@ -1360,9 +1426,24 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		file.cache_type = cache_type;
 		file.range = null;
 		file.pid = pid;
+		file.manifest_min_update = 0;
 		if (cache_type) {
 			file.xhr_status = 200;
 		}
+		file.release = function(req=null) {
+			this.nb_users --;
+			if (!this.nb_users && this.data_tmp) {
+				this.data = this.data_tmp;
+				this.data_tmp = null;
+				this.done = this.data_tmp_done;
+				this.data_tmp_done = false;
+			}
+			//special case for files created for out of date cached manifests, revert cache type to MABR
+			if (req && !this.nb_users && req.service && req.manifest_type && req.service.mani_cache) {
+				this.cache_type = CACHE_TYPE_MABR;
+				this.xhr_status = 200;
+			}
+		};
 
 		//get any pending request(s) for this file
 		while (true) {
@@ -1371,7 +1452,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			if (!pending) break;
 			pending.waiting_mabr = 0;
 			pending.set_cache_file(file);
-			do_log(GF_LOG_DEBUG, `Found pending request for ${file.url}, canceling timeout`);
+			let ellapsed = pending.waiting_mabr_start ? (sys.clock_ms() - pending.waiting_mabr_start) : 0;
+			do_log(GF_LOG_DEBUG, `Found pending request (${url} ${pending.target_url}) for ${file.url}, canceling timeout (${ellapsed} ms since request)`);
 			if (pid) pid.deactivate_timeout=0;
 		}
 		do_log(GF_LOG_DEBUG, `Start ${(cache_type==CACHE_TYPE_MABR) ? 'MABR ' : ''}reception of ${file.url} mime ${file.mime} - ${this.mem_cache.length} files in service cache`);
@@ -1390,6 +1472,8 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//mark number of active requests for this quality
 		if (!rep.nb_active) {
 			do_log(GF_LOG_INFO, `Service ${this.id} Rep ${rep.ID} is now active`);
+			if (!this.repair)
+				rep.first_mabr_tune = 1;
 		} else {
 			//check if we have active requests on the same connection to be deactivated. If so, extend timeout of last found
 			//and do not change nb_active
@@ -1425,7 +1509,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	{
 		if (!this.mabr_service_id || !this.source || !rep) return;
 
-		if (serv_cfg && serv_cfg.js_mod) {
+		if (serv_cfg && serv_cfg.js_mod && (serv_cfg.js_mod.quality_activation != null)) {
 			let req_ok = serv_cfg.js_mod.quality_activation(do_activate, this.mabr_service_id, rep.period_id, rep.AS_ID, rep.ID);
 			if (!req_ok) return;
 		}
@@ -1440,12 +1524,11 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			if (!this.nb_mabr_active && this.unload) {
 				this.mabr_unload_timeout = sys.clock_ms() + 1000*this.unload;
 			}
-		}
-
-		//no deactivation of multicast channels
-		if (this.mabr_min_active==0) {
-			rep.mabr_active = true;
-			return;
+			//no deactivation of multicast channels
+			if (this.mabr_min_active==0) {
+				rep.mabr_active = true;
+				return;
+			}
 		}
 
 		let evt = new FilterEvent(GF_FEVT_DASH_QUALITY_SELECT);
@@ -1461,26 +1544,32 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	s.load_mabr = function()
 	{
 		if (!this.mabr || this.mabr_loaded) return;
-		//load routein in no-cache mode, single pid per TSI
+		//load routein
 		let args = 'src=' + this.mabr;
 		if (this.mabr.indexOf('gpac:')<0) args += ':gpac';
-		//set require source ID in case we use a capture file, we could get the first PID before returning from the add_filter function
-		args += ':gcache=0:stsi:RSID';
-		//multicast is dynamically enabled/disabled, start with all services tuned but disabled
-		//only do this if HTTP mirror - otherwise, activate everything to make sure we fetch the manifests and init segments
+		//routein config:
+		// - no-cache mode to fetch files directly
+		// - single pid per TSI to have files for a given quality on a single PID
+		// - keep alive to disable timeout when multicast is down
+		// - require source ID in case we use a capture file, we could get the first PID before returning from the add_filter function
+		args += ':gcache=0:stsi:ka:RSID';
+		// - multicast is dynamically enabled/disabled, start with all services tuned but disabled
+		//		only do this if HTTP mirror - otherwise, activate everything to make sure we fetch the manifests and init segments
 		if (this.url && this.mabr_min_active>0) args += ':tunein=-3';
 		//add repair option last
 		if (! this.url) {
-			this.repair = true;
-			args += ':repair=' + (s.corrupted ? 'strict' : 'strict');
+			if (!this.repair) {
+				args += ':repair=strict';
+				this.repair = 1;
+			} else {
+				args += ':repair=full';
+			}
 		}
 		else if (this.repair) {
-			if (s.corrupted) {
-				args += ':repair=strict';
-			} else {
-				//escape URL option
-				args += '::repair_urls='+this.url;
-			}
+			//escape URL option
+			args += '::repair_urls='+this.url;
+		} else if (s.corrupted) {
+			args += ':repair=strict';
 		}
 
 		this.source = session.add_filter(args);
@@ -1491,6 +1580,9 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		}
 		this.source.require_source_id();
 		this.mabr_loaded = true;
+		this.nb_mabr_active = 0;
+		this.mabr_unload_timeout = 0;
+		this.last_mabr_active = 0;
 
 		//create custom sink accepting files
 		this.sink = session.new_filter("RouteSink"+this.id);
@@ -1510,7 +1602,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 
 		this.sink.configure_pid = function(pid)
 		{
-			//reconfigure (new file), get previsou file and mar as done
+			//reconfigure (new file), get previous file and mar as done
 			if (this.pids.indexOf(pid)>=0) {
 				//get previous file
 				if (pid.url) {
@@ -1531,7 +1623,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 				if (!s.repair) pid.framing = true;
 				//auto-deactivate unless unload is set
 				if (s.mabr_min_active) {
-					pid.deactivate_timeout = 5000 + sys.clock_ms();
+					pid.deactivate_timeout = MABR_PID_DEACTIVATION_TIMEOUT + sys.clock_ms();
 				}
 				else
 					pid.deactivate_timeout = 0;
@@ -1541,6 +1633,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 				s.mabr_service_id = pid.get_prop('ServiceID');
 				do_log(GF_LOG_INFO, `MABR configured for service ${s.mabr_service_id}`);
 			}
+			s.last_mabr_active = sys.clock_ms();
 			//get new URL for this pid	- can be null when service is just being announced
 			pid.url = pid.get_prop('URL');
 			if (pid.url && (pid.url.charAt(0) != '/')) pid.url = '/' + pid.url;
@@ -1556,9 +1649,16 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			pid.do_skip = false;
 			pid.is_manifest = false;
 			if (is_manifest) {
-				if (s.url == null) pid.is_manifest = true;
-				else pid.do_skip = true;
+				pid.is_manifest = true;
+				//we want full files for the manifest
+				pid.framing = true;
+				if ((s.url !== null) && !s.mani_cache)
+					pid.do_skip = true;
 				pid.deactivate_timeout = 0;
+			}
+			if (!s.url) {
+				let urls = pid.get_prop('MABRBaseURLs');
+				s.mabr_repair_url = urls ? urls[0] : null;
 			}
 		};
 
@@ -1570,11 +1670,13 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			}
 			//file corrupted and no repair, move to HTTP
 			if (!s.repair && corrupted) {
+				let log_done = false;
 				//cache file shall never be created at this point since we only aggregate full files when no repair
 				if (file) {
 					do_log(GF_LOG_ERROR, `Service ${this.id} receiving corrupted MABR packet and cache file was already setup, bug in code !`);
+					file.data.byteLength = 0;
 				}
-				do_log(GF_LOG_INFO, `Corrupted MABR packet for ${pid.url} (valid container ${corrupted==2}), switching to HTTP`);
+
 				//get any pending request(s) for this file
 				while (true) {
 					let pending = this.unqueue_pending_request(pid.url, true);
@@ -1585,21 +1687,47 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 						pending.activate_rep_timeout.update();
 						pending.activate_rep_timeout.mabr_canceled = true;
 					}
+					if (!log_done) {
+						do_log(GF_LOG_INFO, `Corrupted MABR packet for ${pid.url} (valid container ${corrupted==2}), switching to HTTP`);
+						log_done = true;
+					}
 					//the first one will create a cache file if possible, associated it to the other pending requests and potentially removing them
 					pending.fetch_unicast();
+				}
+				if (!log_done) {
+					do_log(GF_LOG_INFO, `Corrupted MABR packet for ${pid.url} (valid container ${corrupted==2}), removing`);
 				}
 				return;
 			} else if (corrupted) {
 				do_log(GF_LOG_WARNING, `MABR Repair failed for ${pid.url} (valid container ${corrupted==2}), broken data sent to client`);
 			}
-			if (!file) file = this.create_cache_file(pid.url, pid.mime, 0, 0, CACHE_TYPE_MABR, pid);
+			if (!file) {
+				file = this.create_cache_file(pid.url, pid.mime, 0, 0, CACHE_TYPE_MABR, pid);
+			}
+			//cache file exists, it was created from a pending request or an old request
+			else if (pck.start) {
+				//update to a file being sent, we need to create a temp buffer
+				//which will be reassigned once no more users are on the file
+				if (file.nb_users) {
+					file.data_tmp = new ArrayBuffer();
+					file.data_tmp_done = false;
+				} else {
+					file.data = new ArrayBuffer();
+					file.data_tmp = null;
+					file.data_tmp_done = false;
+					file.done = false;
+				}
+			}
 
 			do_log(GF_LOG_DEBUG, `Service ${this.id} receiving MABR packet for ${pid.url} size ${pck.size} end ${pck.end}`);
 
 			//reagregate packet
-			if (pck.size)
-				file.data = cat_buffer(file.data, pck.data);
-
+			if (pck.size) {
+				if (file.data_tmp)
+					file.data_tmp = cat_buffer(file.data_tmp, pck.data);
+				else
+					file.data = cat_buffer(file.data, pck.data);
+			}
 			if (pck.start && pck.end) {
 				do_log(GF_LOG_INFO, `Service ${this.id} got MABR file ${pid.url} in one packet`);
 			}
@@ -1610,16 +1738,28 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 				do_log(GF_LOG_INFO, `Service ${this.id} received MABR file ${pid.url}`);
 			}
 			if (pck.end) {
-				do_log(GF_LOG_INFO, `Service ${this.id} MABR file ${pid.url} end`);
-				file.done = true;
+				if (file.data_tmp) {
+					if (!file.nb_users) {
+						file.data = file.data_tmp;
+						file.data_tmp = null;
+						file.data_tmp_done = false;
+						file.done = true;
+					} else {
+						file.data_tmp_done = true;
+					}
+				} else {
+					file.done = true;
+				}
+				file.received = sys.clock_ms();
 				if (pid.is_manifest) {
-					update_manifest(file.data, file.url, s);
+					update_manifest(file.data_tmp ? file.data_tmp : file.data, file.url, s, file);
 				}
 			}
 		};
 
 		this.sink.process = function(pid)
 		{
+			let has_pck=false;
 			this.pids.forEach(function(pid) {
 				while (1) {
 					let pck = pid.get_packet();
@@ -1627,6 +1767,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 					if (!pid.do_skip && !pid.corrupted)
 						s.push_to_cache(pid, pck);
 					pid.drop_packet();
+					has_pck=true;
 				}
 				if (pid.deactivate_timeout && (pid.deactivate_timeout<sys.clock_ms())) {
 					print(GF_LOG_INFO, `PID ${pid.url} without active requests - deactivating multicast`);
@@ -1640,6 +1781,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 					pid.deactivate_timeout = 0;
 				}
 			});
+			if (has_pck) s.last_mabr_active = sys.clock_ms();
 		};
 		//don't use dash client, we just need to get the files
 		this.sink.set_source(this.source);
@@ -1662,12 +1804,74 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			if (serv_cfg && serv_cfg.js_mod && typeof serv_cfg.js_mod.service_activation === 'function') {
 				serv_cfg.js_mod.service_activation(false);
 			}
+			//cancel all pending requests on MABR files
+			this.check_pending_requests(sys.clock_ms(), true);
+
+			//clear all cache files from the multicast
+			this.mem_cache.forEach(f => {
+				if (f.cache_type == CACHE_TYPE_MABR) {
+					f.done = true;
+					f.aborted = true;
+				}
+			});
+			//abort all active reps
+			for (let i=0; i<this.active_reps_timeouts.length; i++) {
+				let o = this.active_reps_timeouts[i];
+				let active_rep = o.rep;
+				this.active_reps_timeouts.splice(i, 1);
+				i--;
+				active_rep.mabr_active=0;
+			}
+			this.mabr_service_id = 0;
+		}
+	};
+
+	s.check_dyn_mabr = function() {
+		let mabr_old = this.mabr;
+		this.mabr = serv_cfg.js_mod.get_mcast_address(serv_cfg.http);
+		if (this.mabr == mabr_old) return;
+		if (this.mabr_loaded) this.unload_mabr();
+		if (!this.mabr) return;
+		this.load_mabr();
+	};
+
+	s.check_pending_requests = function(now, force_deactivate) {
+		//check timeout on pending reqs waiting for MABR
+		for (let i=0; i<this.pending_reqs.length; i++) {
+			let req = this.pending_reqs[i];
+			if (!force_deactivate) {
+				if (!req.waiting_mabr || (req.waiting_mabr>now)) continue;
+			}
+			if (! this.url && !this.mabr_repair_url) {
+				do_log(GF_LOG_DEBUG, `MABR timeout for ${req.url} after ${now - req.waiting_mabr_start} ms`);
+				this.pending_reqs.splice(i, 1);
+				i--;
+				req.reply = 404;
+				req.send();
+				continue;
+			}
+			do_log(GF_LOG_DEBUG, `MABR timeout for ${req.url} after ${now - req.waiting_mabr_start} ms - fetching from HTTP at ` + req.target_url);
+			this.pending_reqs.splice(this.pending_reqs.indexOf(req), 1);
+			i--;
+			if (req.activate_rep_timeout) {
+				req.activate_rep_timeout.update();
+				req.activate_rep_timeout.mabr_canceled = true;
+				if (req.cache_file) req.cache_file.cache_type = CACHE_TYPE_HTTP
+			}
+			req.waiting_mabr = 0;
+			//the first one will create a cache file if possible, associated it to the other pending requests and potentially removing them
+			let prev_len = this.pending_reqs.length;
+			req.fetch_unicast();
+			//if some pending were removed, restart the loop
+			if (prev_len != this.pending_reqs.length) {
+				i = -1;
+			}
 		}
 	};
 
 	all_services.push(s);
-	do_log(GF_LOG_INFO, `Created Service ID ${s.id} for ${s.url ? s.url : serv_cfg.local_base}${s.mabr ? ' with MABR' : ''}`);
-	//and load if requested - we force mcast activation when an acess to the mpd is first detected
+	do_log(GF_LOG_INFO, `Created Service ID ${s.id} for ${s.url ? s.url : serv_cfg.local_base}${(s.mabr || s.dyn_mabr) ? ' with MABR' : ''}`);
+	//and load if requested - we force mcast activation when an access to the mpd is first detected
 	if (force_mcast_activate && s.mabr)
 		s.load_mabr();
 	return s;
@@ -1704,6 +1908,7 @@ function do_init()
 	//preload services
 	services_defs.forEach(sd => {
 		if (sd.unload) return;
+		if (sd.dyn_mabr) return;
 		let s = create_service(sd.http, false, sd);
 		if (!s) {
 			do_log(GF_LOG_ERROR, `Failed to create service ${sd.http}`);
@@ -1728,37 +1933,8 @@ function do_init()
 			}
 
 			//check timeout on pending reqs waiting for MABR
-			for (let i=0; i<s.pending_reqs.length; i++) {
-				let req = s.pending_reqs[i];
-				if (!req.waiting_mabr || (req.waiting_mabr>now)) continue;
-				if (! s.url) {
-					do_log(GF_LOG_DEBUG, `MABR timeout for ${req.url} after ${now - req.waiting_mabr_start} ms`);
-					s.pending_reqs.splice(i, 1);
-					i--;
-					req.reply = 404;
-					req.send();
-					continue;
-				}
-				if (s.source && s.source.probe_url(s.mabr_service_id, req.url)) {
-					req.waiting_mabr = 0;
-					continue;
-				}
-				do_log(GF_LOG_DEBUG, `MABR timeout for ${req.url} after ${now - req.waiting_mabr_start} ms - fetching from HTTP at ` + req.target_url);
-				s.pending_reqs.splice(s.pending_reqs.indexOf(req), 1);
-				i--;
-				if (req.activate_rep_timeout) {
-					req.activate_rep_timeout.update();
-					req.activate_rep_timeout.mabr_canceled = true;
-				}
-				req.waiting_mabr = 0;
-				//the first one will create a cache file if possible, associated it to the other pending requests and potentially removing them
-				let prev_len = s.pending_reqs.length;
-				req.fetch_unicast();
-				//if some pending were removed, restart the loop
-				if (prev_len != s.pending_reqs.length) {
-					i = -1;
-				}
-			}
+			s.check_pending_requests(now, false);
+
 			//check reps that could be deactivated after a MABR timeout
 			for (let i=0; i<s.pending_deactivate.length; i++) {
 				let rep = s.pending_deactivate[i];
@@ -1893,7 +2069,7 @@ filter.initialize = function() {
 	}
 	if (!filter.scfg || !filter.scfg.length) {
 		//todo: we should allow to specify a default service description file in ~/.gpac
-		print("No service description provided, configuring as proxy for any URL");
+		do_log(GF_LOG_WARNING, "No service description provided, configuring as proxy for any URL");
 		services_defs = [ {'http': '*', 'unload': true} ];
 	} else {
 		try {
@@ -1904,6 +2080,8 @@ filter.initialize = function() {
 			services_defs = services_defs.filter(e => ((typeof e.active === 'undefined') || e.active) && typeof e.comment === 'undefined' );
 			services_defs.forEach(sd => {
 				//check options are valid
+				if (typeof sd.active == 'undefined') sd.active = true;
+				else if (typeof sd.active != 'boolean') sd.active = false;
 				if (typeof sd.http == 'undefined') sd.http = null;
 				else if (typeof sd.http != 'string') throw "Missing or invalid http property, expecting string got "+typeof sd.http;
 				if (typeof sd.mabr == 'undefined') sd.mabr = null;
@@ -1917,7 +2095,16 @@ filter.initialize = function() {
 				if (typeof sd.timeshift != 'number') sd.timeshift = DEFAULT_TIMESHIFT;
 				else if (sd.timeshift < 0) throw "Invalid timeshift property, expecting positive number";
 				if (typeof sd.mcache != 'boolean') sd.mcache = DEFAULT_MCACHE;
-				if (typeof sd.repair != 'boolean') sd.repair = DEFAULT_REPAIR;
+
+				if (typeof sd.repair != 'boolean') {
+					sd.repair = sd.repair ? 1 : 0;
+				} else {
+					if (typeof sd.repair != 'string') sd.repair = DEFAULT_REPAIR;
+					if (sd.repair === 'true') sd.repair = 1;
+					else if (sd.repair === 'auto') sd.repair = 2;
+					else sd.repair = 0;
+				}
+
 				if (typeof sd.corrupted != 'boolean') sd.corrupted = DEFAULT_CORRUPTED;
 				if (typeof sd.gcache != 'boolean') sd.gcache = DEFAULT_GCACHE;
 				if (typeof sd.keepalive != 'number') sd.keepalive = DEFAULT_KEEPALIVE_SEC;
@@ -1946,7 +2133,6 @@ filter.initialize = function() {
 
 				//extract proto, host and path
 				if (sd.http) {
-					sd.http = sd.http.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
 					//remove default ports
 					let url_lwr = sd.http.toLowerCase();
 					if (url_lwr.startsWith('https://')) {
@@ -1961,7 +2147,11 @@ filter.initialize = function() {
 					sd.http_host = str[0];
 					str.shift();
 					str.pop();
-					sd.http_path = '/'+str.join('/') + '/';
+					if(str.length) {
+						sd.http_path = '/'+str.join('/') + '/';
+					} else {
+						sd.http_path = '/';
+					}
 				} else {
 					sd.http_proto = null;
 					sd.http_host = null;
@@ -1982,9 +2172,24 @@ filter.initialize = function() {
 					}
 				}
 				//load JS module if present
+				sd.dyn_mabr = false;
+			});
+			//remove all inactive services
+			services_defs = services_defs.filter(e => e.active );
+			//check for duplicates
+			services_defs.forEach(sd => {
+				if (!sd.active) return;
+				let same_orig = services_defs.filter( e => (e.active && e.http === sd.http));
+				if (same_orig.length > 1) {
+					throw `Multiple active services with same origin ${sd.http} not allowed`;
+				}
+			});
+
+			//check for JS modules
+			services_defs.forEach(sd => {
 				if (sd.js) {
 					mods_pending++;
-					let script_src = sd.js;
+					let script_src = sys.url_cat(filter.scfg, sd.js);
 					//local path
 					if (sys.file_exists(script_src)) {}
 					else if (sys.file_exists(sd.js+'.js')) {
@@ -1997,8 +2202,12 @@ filter.initialize = function() {
 					}
 					import(script_src).then(obj_mod => {
 						if (typeof obj_mod.init !== 'function') throw "Invalid module, missing `init` function";
-						if (sd.mabr) {
-							if (typeof obj_mod.quality_activation !== 'function') throw "Invalid module, missing `quality_activation` function";
+						if (typeof obj_mod.get_mcast_address === 'function') {
+							sd.dyn_mabr = true;
+							sd.mabr = null;
+						}
+						if (sd.mabr || sd.dyn_mabr) {
+							if (typeof obj_mod.quality_activation !== 'function') obj_mod.quality_activation = null;
 						} else {
 							if (typeof obj_mod.resolve !== 'function') throw "Invalid module, missing `resolve` function";
 						}

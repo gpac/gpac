@@ -183,7 +183,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		u32 dsi_len = 0;
 		u32 dsi_enh_len = 0;
 		u32 nb_chan = 0;
-        const GF_PropertyValue *p;
+		const GF_PropertyValue *p;
 		GF_RTPOutStream *stream = gf_list_get(streams, i);
 		if (!stream->rtp) continue;
 

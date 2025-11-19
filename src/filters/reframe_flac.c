@@ -387,7 +387,7 @@ static u32 flac_dmx_crc16(const u8 *data, u32 len)
 {
 	u32 crc = 0;
 	const u8 *end = data+len;
-    while (data < end) {
+	while (data < end) {
 		crc = flac_dmx_crc16_table[((u8) crc) ^ *data++] ^ (crc >> 8);
 	}
 	return crc;
@@ -426,16 +426,16 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 		return GF_FALSE;
 
 	ch_lay = gf_bs_read_int(ctx->bs, 4);
-    if (ch_lay < FLAC_CHANNELS) {
-    } else if (ch_lay < FLAC_CHANNELS + FLAC_MID_SIDE) {
-        ch_lay = 1;
-    } else {
+	if (ch_lay < FLAC_CHANNELS) {
+	} else if (ch_lay < FLAC_CHANNELS + FLAC_MID_SIDE) {
+		ch_lay = 1;
+	} else {
 		return GF_FALSE;
-    }
+	}
 
 
 	u32 bps = gf_bs_read_int(ctx->bs, 3);
-    if (bps == 3)
+	if (bps == 3)
 		return GF_FALSE;
 	//reserved=0
 	if (gf_bs_read_int(ctx->bs, 1))
@@ -487,18 +487,18 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 	if (crc != crc_hdr) {
 		return GF_FALSE;
 	}
-    // subframe reserved zero bit
-    if (gf_bs_read_int(ctx->bs, 1) != 0)
-        return GF_FALSE;
-    // subframe type
-    crc = gf_bs_read_int(ctx->bs, 6);
-    if ((crc == 0) || (crc == 1)
+	// subframe reserved zero bit
+	if (gf_bs_read_int(ctx->bs, 1) != 0)
+		return GF_FALSE;
+	// subframe type
+	crc = gf_bs_read_int(ctx->bs, 6);
+	if ((crc == 0) || (crc == 1)
 		|| ((crc >= 8) && (crc <= 12))
 		|| (crc >= 32)
 	) {
 	} else {
-        return GF_FALSE;
-    }
+		return GF_FALSE;
+	}
 
 	if (gf_bs_is_overflow(ctx->bs))
 		return GF_FALSE;
@@ -744,7 +744,7 @@ restart:
 			cts = GF_FILTER_NO_TS;
 		}
 
-		if (!ctx->in_seek) {
+		if (!ctx->in_seek && remain >= next_frame) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, next_frame, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, start, next_frame);
