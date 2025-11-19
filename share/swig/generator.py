@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import json
 import subprocess
 import tempfile
@@ -8,9 +9,11 @@ import pickle
 import logging
 from dataclasses import dataclass, field
 
+if not (sys.version_info.major == 3 and sys.version_info.minor >= 12):
+    raise RuntimeError("This script requires Python 3.12 or higher.")
+
 
 class CustomFormatter(logging.Formatter):
-
     dark_grey = "\x1b[38;5;236m"
     grey = "\x1b[38;20m"
     yellow = "\x1b[33;20m"
@@ -70,6 +73,7 @@ IGNORE_FNS = [
     "gf_bin128_parse",  # issue
     "gf_filter_set_probe_data_cbk",  # issue
     "gf_filter_pid_raw_new",  # defined in __gf_filter and __gf_filter_pid
+    "gf_filter_pid_raw_gmem", # defined in __gf_filter and __gf_filter_pid
     "gf_user_credentials_find_for_site",  # requires manual mapping
     "gf_user_credentials_register",  # requires manual mapping
     "gf_props_reset_single",  # requires manual mapping
@@ -402,9 +406,9 @@ def prepare_structs(structs, functions):
                                 f"{fn.name} is a cross-struct constructor from {struct.name}"
                             )
                             struct_functions[struct.name]["functions"].append(fn_decl)
-                            assert (
-                                fn.args[0]["type"] == f"{struct.name} *"
-                            ), f"Function {fn.name}'s first argument ({fn.args[0]['type']}) does not match the parent struct {struct.name} ({struct.internal_name})"
+                            assert fn.args[0]["type"] == f"{struct.name} *", (
+                                f"Function {fn.name}'s first argument ({fn.args[0]['type']}) does not match the parent struct {struct.name} ({struct.internal_name})"
+                            )
                             break
                     else:
                         logger.error(
@@ -425,9 +429,9 @@ def prepare_structs(structs, functions):
             elif alias and re.match(alias, fn.name):
                 # Remove the alias from the function name
                 fn_decl.alias = re.sub(alias, "", fn.name)
-                assert (
-                    fn.args[0]["type"] == f"{struct_name} *"
-                ), f"Function {fn.name}'s first argument ({fn.args[0]['type']}) does not match the parent struct {struct_name} ({struct_info['iname']})"
+                assert fn.args[0]["type"] == f"{struct_name} *", (
+                    f"Function {fn.name}'s first argument ({fn.args[0]['type']}) does not match the parent struct {struct_name} ({struct_info['iname']})"
+                )
             else:
                 logger.error(
                     f"Function {fn.name} does not start with prefix {prefix} or alias {alias}, skipping"
@@ -458,7 +462,7 @@ def prepare_structs(structs, functions):
     logger.info("Deciding on constructors and destructors.")
     for struct_name, struct_info in struct_functions.items():
         prefix = STRUCT_FN_ALIAS.get(
-            struct_info["iname"], rf"^{struct_info["iname"].replace("__", "")}"
+            struct_info["iname"], rf"^{struct_info['iname'].replace('__', '')}"
         )
         for fn in functions:
             if any(fn.name == sfn.alias for sfn in struct_info["functions"]):
@@ -479,9 +483,9 @@ def prepare_structs(structs, functions):
                         # Create the function declaration
                         fn_decl = fn.copy()
                         fn_decl.dtor = True
-                        assert (
-                            len(fn_decl.args) == 1
-                        ), f"Destructor {fn.name} should have one argument"
+                        assert len(fn_decl.args) == 1, (
+                            f"Destructor {fn.name} should have one argument"
+                        )
                         logger.debug(
                             f"Found destructor {fn.name} for struct {struct_name}"
                         )
@@ -504,9 +508,9 @@ def prepare_structs(structs, functions):
                     # Check if default constructor
                     if re.match(r".*new$", fn.name):
                         fn_decl.ctor = True
-                        assert (
-                            fn_decl.return_type == f"{struct_name} *"
-                        ), f"Function {fn.name} should return {struct_name} *"
+                        assert fn_decl.return_type == f"{struct_name} *", (
+                            f"Function {fn.name} should return {struct_name} *"
+                        )
                         logger.debug(
                             f"Found constructor {fn.name} for struct {struct_name}"
                         )
@@ -536,7 +540,7 @@ def prepare_structs(structs, functions):
     logger.info("Checking unmapped functions for constructors.")
     for struct_name, struct_info in struct_functions.items():
         prefix = STRUCT_FN_ALIAS.get(
-            struct_info["iname"], rf"^{struct_info["iname"].replace("__", "")}"
+            struct_info["iname"], rf"^{struct_info['iname'].replace('__', '')}"
         )
         for fn in functions:
             if (
@@ -610,7 +614,7 @@ def generate_swig_file(struct_functions, structs, lang):
     swig_out += "// Forward declarations\n"
     swig_out += "%{\n"
     for _, struct_info in sorted(struct_functions.items(), key=lambda s: s[0]):
-        swig_out += f"struct {struct_info["iname"]} {{}};\n"
+        swig_out += f"struct {struct_info['iname']} {{}};\n"
     swig_out += "%}\n"
 
     # Rename non-compliant structs
@@ -738,18 +742,18 @@ def generate_swig_file(struct_functions, structs, lang):
             for arg in fn.args:
                 if arg["type"] == "GF_Err *":
                     errp_count += 1
-            assert (
-                errp_count <= 1
-            ), f"Function {fn.name} has more than one GF_Err * argument"
+            assert errp_count <= 1, (
+                f"Function {fn.name} has more than one GF_Err * argument"
+            )
 
             if errp_count == 0 and fn.return_type != "GF_Err":
                 internal = get_args(fn)[1]
                 return f"\t\treturn {fn.name}({internal});"
 
             if errp_count == 1:
-                assert (
-                    fn.return_type != "GF_Err"
-                ), f"Function {fn.name} has GF_Err * argument and returns GF_Err"
+                assert fn.return_type != "GF_Err", (
+                    f"Function {fn.name} has GF_Err * argument and returns GF_Err"
+                )
 
                 if lang == "go":
                     # In Go, we need to return the error as a second return value
