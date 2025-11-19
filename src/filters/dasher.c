@@ -1780,7 +1780,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 	}
 
-	//check if we have an explicit time dsicontinuity , in which case we switch periods
+	//check if we have an explicit time discontinuity, in which case we switch periods
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
 	if (p && (p->value.uint != ds->ts_disc_idx)) period_switch = GF_TRUE;
 	ds->ts_disc_idx = p ? p->value.uint : 0;
@@ -8714,8 +8714,12 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			}
 		}
 
-		if (seg_state->seg_num == 1 && gf_list_count(ctx->mpd->periods)-1 == ds->ts_disc_idx)
+		const GF_PropertyValue *disc_p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_TIME_DISCONTINUITY);
+		if (disc_p && disc_p->value.boolean) {
+			gf_assert(seg_state->seg_num == 1);
+			gf_assert(gf_list_count(ctx->mpd->periods)-1 == ds->ts_disc_idx);
 			seg_state->is_discontinuity = GF_TRUE;
+		}
 
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {

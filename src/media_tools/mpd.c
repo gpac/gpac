@@ -4042,6 +4042,12 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		gf_fprintf(out,"#EXT-X-I-FRAMES-ONLY\n");
 	}
 
+	//signal discontinuity if needed
+	sctx = gf_list_get(rep->state_seg_list, rep->tsb_first_entry);
+	if (sctx->is_discontinuity) {
+		gf_fprintf(out,"#EXT-X-DISCONTINUITY\n");
+	}
+
 	//one file per segment
 	if (sctx && sctx->filename) {
 		if (rep->hls_single_file_name) {
@@ -4071,9 +4077,6 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 			u64 next_br_start_plus_one=0;
 			u32 next_seg_idx=0;
-
-			if (sctx->is_discontinuity)
-				gf_fprintf(out,"#EXT-X-DISCONTINUITY\n");
 
 			//LL-HLS related
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
