@@ -27,9 +27,12 @@ TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 --match "
 VERSION:=$(shell echo `git --git-dir=$(SRC_PATH)/.git describe --tags --long --match "v*" || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
 BRANCH:=$(shell git --git-dir=$(SRC_PATH)/.git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 
+# strip illegal debian version string characters + illegal filename charachers
+DHBRANCH:=$(shell echo "$(BRANCH)" | sed 's/[^-+.0-9a-zA-Z~]/-/g' )
+
 version:
 	@if [ -d $(SRC_PATH)/".git" ]; then \
-		echo "#define GPAC_GIT_REVISION	\"$(VERSION)-$(BRANCH)\"" > $(GITREV_PATH).new; \
+		echo "#define GPAC_GIT_REVISION	\"$(VERSION)-$(DHBRANCH)\"" > $(GITREV_PATH).new; \
 		if ! diff -q $(GITREV_PATH) $(GITREV_PATH).new >/dev/null ; then \
 			mv $(GITREV_PATH).new  $(GITREV_PATH); \
 		fi; \
@@ -72,7 +75,7 @@ distclean:
 	@rm -f bin/gcc/gf_*$(DYN_LIB_SUFFIX) 2> /dev/null
 
 doc:
-	@cd $(SRC_PATH)/share/doc && doxygen
+	@cd $(SRC_PATH)/share/doc && doxygen && cp versions.html html-libgpac/
 
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
@@ -138,7 +141,7 @@ lcov_only:
 	@echo "Generating lcov info in coverage.info"
 	@rm -f ./gpac-conf-* > /dev/null
 	@lcov -q -capture --directory . --output-file all.info
-	@lcov --remove all.info '*/usr/*' '*/opt/*' '*/include/*' '*/validator/*' '*/quickjs/*' '*/jsmods/WebGLRenderingContextBase*' '*/utils/Remotery*' '*/utils/gzio*'  --output coverage.info
+	@lcov --remove all.info '*/usr/*' '*/opt/*' '*/include/*' '*/validator/*' '*/quickjs/*' '*/jsmods/WebGLRenderingContextBase*' '*/utils/gzio*'  --output coverage.info
 	@rm all.info
 	@echo "Purging lcov info"
 	@cd src ; for dir in * ; do cd .. ; sed -i -- "s/$$dir\/$$dir\//$$dir\//g" coverage.info; cd src; done ; cd ..
@@ -196,7 +199,7 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/scripts"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/python"
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/vis"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/rmtws"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/default.cfg $(DESTDIR)$(prefix)/share/gpac/
 
 ifneq ($(CONFIG_DARWIN),yes)
@@ -219,7 +222,7 @@ ifeq ($(CONFIG_DARWIN),yes)
 	cp -R $(SRC_PATH)/share/scripts/* "$(DESTDIR)$(prefix)/share/gpac/scripts/"
 	cp -R $(SRC_PATH)/share/python/* "$(DESTDIR)$(prefix)/share/gpac/python/"
 	cp $(SRC_PATH)/share/res/* "$(DESTDIR)$(prefix)/share/gpac/res/"
-	cp -R $(SRC_PATH)/share/vis/* "$(DESTDIR)$(prefix)/share/gpac/vis/"
+	cp -R $(SRC_PATH)/share/rmtws/* "$(DESTDIR)$(prefix)/share/gpac/rmtws/"
 else
 	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
 	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
@@ -227,7 +230,7 @@ else
 	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/scripts/* $(DESTDIR)$(prefix)/share/gpac/scripts/
 	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/python/* $(DESTDIR)$(prefix)/share/gpac/python/
 	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/res/* $(DESTDIR)$(prefix)/share/gpac/res/
-	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/vis/* $(DESTDIR)$(prefix)/share/gpac/vis/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/share/rmtws/* $(DESTDIR)$(prefix)/share/gpac/rmtws/
 endif
 
 lninstall:
@@ -276,7 +279,7 @@ uninstall:
 
 
 installdylib:
-ifneq ($(STATIC_BINARY),yes)
+ifneq ($(STATIC_BUILD),yes)
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 
@@ -350,9 +353,6 @@ dmg:
 endif
 
 ifeq ($(CONFIG_LINUX),yes)
-
-# strip illegal debian version string characters
-DHBRANCH:=$(shell echo "$(BRANCH)" | sed 's/[^-+:.0-9a-zA-Z~]/-/g' )
 
 deb:
 	git checkout --	debian/changelog

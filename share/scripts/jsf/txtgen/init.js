@@ -51,7 +51,7 @@ filter.set_arg({
   name: "src",
   desc: "source of text. If not set, the filter will use lorem ipsum text",
   type: GF_PROP_STRING,
-  def: filter.jspath + "/lipsum.txt",
+  def: filter.jspath + "lipsum.txt",
 });
 filter.set_arg({
   name: "type",

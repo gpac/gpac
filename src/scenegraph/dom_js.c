@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom ParisTech 2007-2025
  *			All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -258,14 +258,16 @@ static void define_dom_exception(JSContext *c, JSValue global)
 
 GF_Node *dom_get_node(JSValue obj)
 {
-	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	GF_Node *n = (GF_Node *) JS_GetAnyOpaque(obj, &_classID);
 	if (n && n->sgprivate) return n;
 	return NULL;
 }
 
 GF_Node *dom_get_element(JSContext *c, JSValue obj)
 {
-	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	GF_Node *n = (GF_Node *) JS_GetAnyOpaque(obj, &_classID);
 	if (!n || !n->sgprivate) return NULL;
 	if (n->sgprivate->tag==TAG_DOMText) return NULL;
 	return n;
@@ -273,7 +275,8 @@ GF_Node *dom_get_element(JSContext *c, JSValue obj)
 
 GF_SceneGraph *dom_get_doc(JSContext *c, JSValue obj)
 {
-	GF_SceneGraph *sg = (GF_SceneGraph *) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	GF_SceneGraph *sg = (GF_SceneGraph *) JS_GetAnyOpaque(obj, &_classID);
 	if (sg && !sg->__reserved_null) return sg;
 	return NULL;
 }
@@ -907,7 +910,8 @@ JSValue dom_event_remove_listener(JSContext *c, JSValueConst obj, int argc, JSVa
 /*dom3 node*/
 static void dom_node_finalize(JSRuntime *rt, JSValue obj)
 {
-	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	GF_Node *n = (GF_Node *) JS_GetAnyOpaque(obj, &_classID);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!n) return;
 	if (!n->sgprivate) return;
@@ -1442,7 +1446,8 @@ fortunately a sg cannot be created like that...*/
 void dom_document_finalize(JSRuntime *rt, JSValue obj)
 {
 	GF_SceneGraph *sg;
-	sg = (GF_SceneGraph*) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	sg = (GF_SceneGraph*) JS_GetAnyOpaque(obj, &_classID);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!sg) return;
 
@@ -2690,7 +2695,8 @@ static const JSCFunctionListEntry nodeList_Funcs[] =
 void domDocument_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
 {
 	GF_SceneGraph *sg;
-	sg = (GF_SceneGraph*) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	sg = (GF_SceneGraph*) JS_GetAnyOpaque(obj, &_classID);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!sg || !sg->js_data) return;
 	if (!JS_IsUndefined(sg->js_data->document))
@@ -2698,7 +2704,8 @@ void domDocument_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func
 }
 void domElement_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
 {
-	GF_Node *n = (GF_Node *) JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	GF_Node *n = (GF_Node *) JS_GetAnyOpaque(obj, &_classID);
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!n) return;
 	if (!n->sgprivate || !n->sgprivate->interact || !n->sgprivate->interact->js_binding) return;

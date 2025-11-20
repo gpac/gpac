@@ -134,6 +134,13 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
+
+	//for base64 segment embedding
+	if (server && !strncmp(server, "gmem://", 7)) {
+		GF_Err e = gf_filter_pid_raw_gmem(filter, server, &ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return e;
+	}
 	if (server && strncmp(ctx->src, "http://gmcast", 13) && strstr(server, "://")) {
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
@@ -362,9 +369,9 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
-            e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
+			e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 
-        if (e) {
+		if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
@@ -412,7 +419,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	if (!ctx->pid) {
 		if (ctx->nb_read)
-            return GF_SERVICE_ERROR;
+			return GF_SERVICE_ERROR;
 	} else {
 		//TODO: go on fetching data to cache even when not consuming, and reread from cache
 		if (gf_filter_pid_would_block(ctx->pid))
@@ -496,7 +503,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				}
 			}
 		}
-        gf_blob_release(cached);
+		gf_blob_release(cached);
 	}
 	//we read from network
 	else {
@@ -533,6 +540,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 			return e;
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
+
+		//special case for no data when first source - be silent after source switch giving 0 bytes
+		if (!ctx->initial_ack_done && (e==GF_EOS) && !nb_read && !ctx->nb_read && !total_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPIn] No data in stream\n"));
+			httpin_notify_error(filter, ctx, GF_EOS);
+			ctx->is_end = GF_TRUE;
+			return GF_EOS;
+		}
 
 		if (!ctx->pid || ctx->do_reconfigure) {
 			u32 idx;
@@ -586,6 +601,17 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 			/*in test mode don't expose http headers (they contain date/version/etc)*/
 			if (! gf_sys_is_test_mode()) {
+				//remove old headers
+				idx=0;
+				while (1) {
+					u32 p4cc;
+					const char *pname;
+					const GF_PropertyValue *p = gf_filter_pid_enum_properties(ctx->pid, &idx, &p4cc, &pname);
+					if (!p) break;
+					if (p4cc) continue;
+					gf_filter_pid_set_property_str(ctx->pid, pname, NULL);
+					idx--;
+				}
 				idx = 0;
 				while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
 					gf_filter_pid_set_property_dyn(ctx->pid, (char *) hname, & PROP_STRING(hval));

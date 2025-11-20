@@ -329,7 +329,7 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 group_idx, u32 gr
 */
 Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 group_idx);
 
-/*! selects a group for playback. If group selection is enabled,  other groups are alternate to this group (through the group attribute), they are automatically deselected
+/*! selects a group for playback. If group selection is enabled, other groups are alternate to this group (through the group attribute), they are automatically deselected
 
  Seeking is NOT performed, it is the responsability to call \ref gf_dash_group_seek - this can be called before or after selecting
 

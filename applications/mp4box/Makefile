@@ -24,7 +24,7 @@ ifeq ($(CONFIG_EMSCRIPTEN),yes)
 else ifeq ($(CONFIG_DARWIN),yes)
 #LINKFLAGS+= -Wl,-rpath,'@loader_path'
 else
-LINKFLAGS+= -Wl,-rpath,'$$ORIGIN' -Wl,-rpath-link,../../bin/gcc
+LINKFLAGS+= -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(prefix)/lib -Wl,-rpath-link,../../bin/gcc
 endif
 
 ifeq ($(STATIC_BUILD),yes)

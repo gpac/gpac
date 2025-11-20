@@ -51,7 +51,7 @@ enum
 	GF_SEG_BOUNDARY_NONE=0,
 	/*! segment start*/
 	GF_SEG_BOUNDARY_START,
-	/*! segment start with forced PMT - triggered by setting \ref struct __m2ts_mux.force_pat, triggers a forced PCR*/
+	/*! segment start with forced PMT - triggered by setting \ref __m2ts_mux.force_pat, triggers a forced PCR*/
 	GF_SEG_BOUNDARY_FORCE_PMT,
 	/*! segment start with forced PCR*/
 	GF_SEG_BOUNDARY_FORCE_PCR,
@@ -827,6 +827,11 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				es_info_length += 2;
 				type = GF_M2TS_PRIVATE_DATA;
 				break;
+			case GF_M2TS_AUDIO_AC4:
+				//reg desc
+				es_info_length += 2 + 4;
+				type = GF_M2TS_PRIVATE_DATA;
+				break;
 			case GF_M2TS_VIDEO_VC1:
 			case GF_M2TS_AUDIO_DTS:
 			case GF_M2TS_AUDIO_OPUS:
@@ -855,11 +860,17 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 					es_info_length += 2 + dv_len;
 				}
 				break;
-			case GF_M2TS_HLS_AC3_CRYPT:
-			case GF_M2TS_HLS_EC3_CRYPT:
-			case GF_M2TS_HLS_AAC_CRYPT:
 			case GF_M2TS_HLS_AVC_CRYPT:
 				es_info_length += 6;
+				break;
+			case GF_M2TS_HLS_AC3_CRYPT:
+				es_info_length += 6;
+				es_info_length += 10;
+				break;
+			case GF_M2TS_HLS_EC3_CRYPT:
+			case GF_M2TS_HLS_AAC_CRYPT:
+				es_info_length += 6;
+				es_info_length += 10 + es->ifce->decoder_config_size;
 				break;
 
 			default:
@@ -992,6 +1003,12 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				gf_bs_write_int(bs,	4, 8);
 				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_EAC3);
 				break;
+			case GF_M2TS_AUDIO_AC4:
+				//write reg desc
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_AC4);
+				break;
 			case GF_M2TS_AUDIO_DTS:
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	4, 8);
@@ -1015,16 +1032,42 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
 				gf_bs_write_u8(bs, 4);
 				gf_bs_write_u32(bs,	GF_4CC('a', 'c', '3', 'd'));
+
+				//add reg descriptor for SAES
+				gf_bs_write_u8(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR);
+				gf_bs_write_u8(bs, 8);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'a', 'c', '3'));
+				gf_bs_write_u16(bs, 0); //priming
+				gf_bs_write_u8(bs, 1); //version
+				gf_bs_write_u8(bs, 0);
 				break;
 			case GF_M2TS_HLS_EC3_CRYPT:
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
 				gf_bs_write_u8(bs, 4);
 				gf_bs_write_u32(bs,	GF_4CC('e', 'c', '3', 'd'));
+
+				//add reg descriptor for SAES
+				gf_bs_write_u8(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR);
+				gf_bs_write_u8(bs, 8);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'e', 'c', '3'));
+				gf_bs_write_u16(bs, 0); //priming
+				gf_bs_write_u8(bs, 1); //version
+				gf_bs_write_u8(bs, es->ifce->decoder_config_size); //config size
+				gf_bs_write_data(bs, es->ifce->decoder_config, es->ifce->decoder_config_size); //config size
 				break;
 			case GF_M2TS_HLS_AAC_CRYPT:
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
 				gf_bs_write_u8(bs, 4);
 				gf_bs_write_u32(bs,	GF_4CC('a', 'a', 'c', 'd'));
+
+				//add reg descriptor for SAES
+				gf_bs_write_u8(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR);
+				gf_bs_write_u8(bs, 8+es->ifce->decoder_config_size);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'a', 'a', 'c'));
+				gf_bs_write_u16(bs, 0); //priming
+				gf_bs_write_u8(bs, 1); //version
+				gf_bs_write_u8(bs, es->ifce->decoder_config_size); //config size
+				gf_bs_write_data(bs, es->ifce->decoder_config, es->ifce->decoder_config_size); //config size
 				break;
 			case GF_M2TS_HLS_AVC_CRYPT:
 				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
@@ -2793,6 +2836,9 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 				stream->mpeg2_stream_type = GF_M2TS_AUDIO_EC3;
 			break;
 
+		case GF_CODECID_AC4:
+			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC4;
+			break;
 		case GF_CODECID_DTS_CA:
 		case GF_CODECID_DTS_HD_HR_MASTER:
 		case GF_CODECID_DTS_HD_LOSSLESS:

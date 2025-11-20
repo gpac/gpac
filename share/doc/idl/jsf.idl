@@ -30,7 +30,7 @@ attribute JSFilter filter;
 \param log the string to write
 */
 void print(DOMString log);
-/*! global context function for printing 
+/*! global context function for printing
 \param log_level the log level to use: GF_LOG_DEBUG, GF_LOG_INFO, GF_LOG_WARNING, GF_LOG_ERROR. The special value -2 means print as gf_sys_format_help without highlight, the special value -1 means print as gf_sys_format_help with hightlight of first)
 \param log_str the string to write
 */
@@ -40,7 +40,7 @@ void print(long log_level, DOMString log_str);
 /*!\brief JSFilter API
 
 The JSFilter interface has a single instance exposed to the script under the name "filter".
-It implements binding to the underlying filter object, see \ref GF_Filter.
+It implements binding to the underlying filter object, see \ref fs_filter "GF_Filter".
 The JSFilter provides callback functions mapping the functionalities of \ref __gf_filter_register.
 */
 interface JSFilter {
@@ -51,7 +51,6 @@ See \ref __gf_filter_register.initialize.
 attribute GF_Err initialize();
 /*! finalize the filter. This is a callback function assignable by the script. It is called immediately before destruction of the JavaScript context.
 See \ref __gf_filter_register.finalize.
-\return void
 */
 attribute void finalize();
 /*! configures or reconfigures an input pid
@@ -184,7 +183,7 @@ FilterPid new_pid();
 void send_event(FilterEvent evt, optional boolean upstream=false);
 
 /*! queries info on a filter
- an event on the filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str 
+ an event on the filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str
 \param info_name the property name or ID of the info to query
 \param is_string indicate if the name describes a built-in property or a user-defined property
 \return the property if found, null otherwise
@@ -313,7 +312,6 @@ interface FilterInstance {
 
 /*! setup failure notification. This is a callback function assignable by the script. It is when loading a source or destination filter fails asynchronously
 \param e error code if any
-\return void
 */
 attribute void on_setup_failure(GF_Err e);
 
@@ -323,7 +321,7 @@ attribute void on_setup_failure(GF_Err e);
 void send_event(FilterEvent evt);
 
 /*! queries info on a filter
- an event on the filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str 
+ an event on the filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str
 \param info_name the property name or ID of the info to query
 \param is_string indicate if the name describes a built-in property or a user-defined property
 \return the property if found, null otherwise
@@ -353,7 +351,7 @@ void set_source_restricted(Filter from, optional DOMString source_id=null);
 /*! removes a source filter - see \ref gf_filter_remove_src*/
 void remove();
 
-/*! checks if a filter and its connected output chain(s) have PID connection pending 
+/*! checks if a filter and its connected output chain(s) have PID connection pending
 \param stop_at a Filter or a FilterInstance object indicating where to stop the analysis. If not set and the filter is a source filter, automatically set to the Filter running the script
 \return true if pid connections are pending
 */
@@ -389,7 +387,7 @@ attribute DOMString iname;
 
 };
 
-/*! The FilterPid object is a binding for \ref GF_FilterPid*/
+/*! The FilterPid object is a binding for \ref fs_pid "GF_FilterPid" */
 interface FilterPid {
 
 /*! name of the PID*/
@@ -460,7 +458,7 @@ readonly attribute boolean has_decoder;
 void send_event(FilterEvent evt);
 
 /*! enumerates properties or info on the pid - see \ref gf_filter_pid_enum_properties and \ref gf_filter_pid_enum_info
-\param index the 0-based index of the property. 
+\param index the 0-based index of the property.
 \param enum_info if set, enumerates info instead of properties
 \return null if no more properties to enumerate; otherwise an object:
 \code
@@ -501,7 +499,7 @@ void drop_packet();
 boolean is_filter_in_parents(GF_Filter filter);
 
 /*! gets buffer occupancy - see \ref gf_filter_pid_get_buffer_occupancy
-\param filter the Filter or FilterInstance object to check 
+\param filter the Filter or FilterInstance object to check
 \return a buffer occupancy object:
 \code
 {
@@ -542,7 +540,7 @@ DOMString resolve_file_template(DOMString template, unsigned long file_idx, opti
 FilterProperty query_caps(DOMString name, optional boolean is_user);
 
 
-/*! gets statistics for the pid 
+/*! gets statistics for the pid
 \return A statistics object
 \code
 boolean disconnected;
@@ -568,7 +566,7 @@ unsigned long nb_buffer_units;
 */
 Object get_stats();
 
-/*! gets clock info for the pid 
+/*! gets clock info for the pid
 \return A clock info object:
 \code
 unsigned long type;
@@ -678,9 +676,9 @@ void forward(FilterPacket pck);
 
 };
 
-/*! FilterPacket provides binding for \ref GF_FilterPacket
+/*! FilterPacket provides binding for \ref fs_pck "GF_FilterPacket"
 
-Packet data is made accessible through an ArrayBuffer object. This object is destroyed when truncating or expanding the data, you must get it again using pck.data.   
+Packet data is made accessible through an ArrayBuffer object. This object is destroyed when truncating or expanding the data, you must get it again using pck.data.
 */
 interface FilterPacket {
 /*!start flag*/
@@ -747,7 +745,7 @@ void set_readonly();
 
 /*! enumerates properties of the packet
 
-\param index the 0-based index of the property. 
+\param index the 0-based index of the property.
 \return null if no more properties to enumerate; otherwise an object:
 \code
 {
@@ -781,7 +779,7 @@ void send();
 /*! discard packet - gf_filter_pck_discard*/
 void discard();
 
-/*! sets a property on packet - see \ref gf_filter_pck_set_property 
+/*! sets a property on packet - see \ref gf_filter_pck_set_property
 \param name the ID or name of the builtin property
 \param prop the property to set. If null, removes the property.
 \param is_user if set, indicates the queried property is a user-defined property rather than a built-in property
@@ -789,14 +787,14 @@ void discard();
 void set_prop(DOMString name, FilterProperty prop, optional boolean is_user=false);
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
-\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call.
 \param str the string to append
 \return an arraybuffer containing the corresponding appended packet data. Full packet data is available through FilterPacket.data
 */
 ArrayBuffer append(DOMString str);
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
-\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call.
 \param size the number of bytes to append
 \return an arraybuffer containing the corresponding appended packet data. Full packet data is available through FilterPacket.data
 */
@@ -804,14 +802,14 @@ ArrayBuffer append(unsigned long size);
 
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
-\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call.
 \param ab the array buffer to append
 \return an arraybuffer containing the corresponding appended packet data. Full packet data is available through FilterPacket.data
 */
 ArrayBuffer append(ArrayBuffer ab);
 
 /*! truncates the packet to the indicated size - \ref gf_filter_pck_truncate
-\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
+\warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call.
 \param size new packet size*/
 void truncate(unsigned long size);
 
@@ -829,12 +827,12 @@ The resulting packet can be explicitly discarded using \ref discard, otherwise w
 \param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
 \return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
 */
-void clone(optional FilterPacket cached_pck = null);
+FilterPacket clone(optional FilterPacket cached_pck = null);
 
 };
 
 /*! FilterEvent expose a filter event object, either for processing a received event or triggering a new event.
-The read access to the members of the structure is cross-checked with the event type and throw an error when attempting to access the wrong field 
+The read access to the members of the structure is cross-checked with the event type and throw an error when attempting to access the wrong field
 
 When a field is marked as read-only, this means the event cannot be fired, it can only be received.
 */
@@ -843,7 +841,7 @@ interface FilterEvent {
 /*! constructor
 \param type the type of event. This type cannot be changed
 
-\code 
+\code
 let evt = new FilterEvent(GF_FEVT_PLAY);
 \endcode
 */
@@ -1046,4 +1044,3 @@ typedef Object FilterProperty;
 
 
 /*! @} */
-

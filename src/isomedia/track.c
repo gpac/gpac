@@ -100,7 +100,7 @@ GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_
 
 		e = Track_FindRef(trak, ref , &dpnd);
 		if (e) return e;
-		if (dpnd) {
+		if (dpnd && dpnd->trackIDCount) {
 			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
 			if (!k && (dpnd->trackIDCount != 1)) return GF_ISOM_INVALID_MEDIA;
 			//fix the spec: where is the index located ??
@@ -1275,12 +1275,16 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			if (nb_saio != 1) {
 				u32 saio_idx = saio_get_index(traf, i);
 				if (saio_idx>=saio->entry_count) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of offset less than number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of offset less than number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
 					break;
 				}
 				offset = saio->offsets[j] + moof_offset;
 			}
 			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+			if (!size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] SAI of size 0 cannot be merged\n"));
+				continue;
+			}
 
 			u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
 			gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
@@ -1672,14 +1676,32 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 		if (sinf && sinf->original_format) entry_type = sinf->original_format->data_format;
 
+		GF_MPEGSampleEntryBox *mpgs_entry = NULL;
+		entry_v = NULL;
+		entry_a = NULL;
+		switch (entry->internal_type) {
+		case GF_ISOM_SAMPLE_ENTRY_GENERIC:
+			break;
+		case GF_ISOM_SAMPLE_ENTRY_VIDEO:
+			entry_v = (GF_MPEGVisualSampleEntryBox*) entry;
+			break;
+		case GF_ISOM_SAMPLE_ENTRY_AUDIO:
+			entry_a = (GF_MPEGAudioSampleEntryBox*) entry;
+			break;
+		case GF_ISOM_SAMPLE_ENTRY_MP4S:
+			mpgs_entry = (GF_MPEGSampleEntryBox *) entry;
+			break;
+		}
+
 		switch (entry_type) {
 		case GF_ISOM_BOX_TYPE_MP4S:
+			if (!mpgs_entry) return GF_ISOM_INVALID_FILE;
 			//OK, delete the previous ESD
 			gf_odf_desc_del((GF_Descriptor *) entry->esd->desc);
 			entry->esd->desc = esd;
 			break;
 		case GF_ISOM_BOX_TYPE_MP4V:
-			entry_v = (GF_MPEGVisualSampleEntryBox*) entry;
+			if (!entry_v) return GF_ISOM_INVALID_MEDIA;
 			if (entry_v->esd) {
 				gf_odf_desc_del((GF_Descriptor *) entry_v->esd->desc);
 				entry_v->esd->desc = esd;
@@ -1688,7 +1710,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			}
 			break;
 		case GF_ISOM_BOX_TYPE_MP4A:
-			entry_a = (GF_MPEGAudioSampleEntryBox*) entry;
+			if (!entry_a) return GF_ISOM_INVALID_MEDIA;
             if (entry_a->esd) { // some non-conformant files may not have an ESD ...
                 //OK, delete the previous ESD
                 gf_odf_desc_del((GF_Descriptor *) entry_a->esd->desc);
@@ -1714,7 +1736,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		case GF_ISOM_BOX_TYPE_HVT1:
 		case GF_ISOM_BOX_TYPE_VVC1:
 		case GF_ISOM_BOX_TYPE_VVI1:
-			e = AVC_HEVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry, esd);
+			if (!entry_v) return GF_ISOM_INVALID_MEDIA;
+			e = AVC_HEVC_UpdateESD(entry_v, esd);
 			if (e) return e;
 			break;
 		case GF_ISOM_BOX_TYPE_LSR1:
@@ -1788,6 +1811,13 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				if (!opus->cfg_opus) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*)opus;
 				gf_odf_desc_del((GF_Descriptor *) esd);
+			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_IAMF) {
+				GF_MPEGAudioSampleEntryBox *iamf = (GF_MPEGAudioSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IAMF);
+				if (!iamf) return GF_OUT_OF_MEM;
+				iamf->cfg_iamf = (GF_IAConfigurationBox *)gf_isom_box_new_parent(&iamf->child_boxes, GF_ISOM_BOX_TYPE_IACB);
+				if (!iamf->cfg_iamf) return GF_OUT_OF_MEM;
+				entry = (GF_MPEGSampleEntryBox*)iamf;
+				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC3) {
 				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 				if (!ac3) return GF_OUT_OF_MEM;
@@ -1801,6 +1831,13 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				eac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new_parent(&eac3->child_boxes, GF_ISOM_BOX_TYPE_DEC3);
 				if (!eac3->cfg_ac3) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*) eac3;
+				gf_odf_desc_del((GF_Descriptor *) esd);
+			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC4) {
+				GF_MPEGAudioSampleEntryBox *ac4 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC4);
+				if (!ac4) return GF_OUT_OF_MEM;
+				ac4->cfg_ac4 = (GF_AC4ConfigBox *) gf_isom_box_new_parent(&ac4->child_boxes, GF_ISOM_BOX_TYPE_DAC4);
+				if (!ac4->cfg_ac4) return GF_OUT_OF_MEM;
+				entry = (GF_MPEGSampleEntryBox*) ac4;
 				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else {
 				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);

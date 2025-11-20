@@ -49,34 +49,35 @@ typedef struct __jsfs_task
 
 static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
-    GF_FilterSession *fs = JS_GetOpaque(val, fs_class_id);
-    if (fs) {
-        u32 i, count=gf_list_count(fs->jstasks);
-        for (i=0; i<count; i++) {
+	GF_FilterSession *fs = JS_GetOpaque(val, fs_class_id);
+	if (fs) {
+		u32 i, count=gf_list_count(fs->jstasks);
+		for (i=0; i<count; i++) {
 			JSFS_Task *task = gf_list_get(fs->jstasks, i);
-            JS_MarkValue(rt, task->fun, mark_func);
-            JS_MarkValue(rt, task->_obj, mark_func);
-            if (!JS_IsUndefined(task->_obj2)) {
+			JS_MarkValue(rt, task->fun, mark_func);
+			JS_MarkValue(rt, task->_obj, mark_func);
+			if (!JS_IsUndefined(task->_obj2)) {
 				JS_MarkValue(rt, task->fun2, mark_func);
 				JS_MarkValue(rt, task->_obj2, mark_func);
 			}
 		}
+
 		gf_fs_lock_filters(fs, GF_TRUE);
 		count = gf_list_count(fs->filters);
-        for (i=0; i<count; i++) {
+		for (i=0; i<count; i++) {
 			GF_Filter *f = gf_list_get(fs->filters, i);
 			if (!JS_IsUndefined(f->jsval))
 				JS_MarkValue(rt, f->jsval, mark_func);
 		}
 		gf_fs_lock_filters(fs, GF_FALSE);
-    }
+	}
 }
 #define GF_FS_FLAG_USER_SESSION	(1<<29)
 
 static void jsfs_finalizer(JSRuntime *rt, JSValue val)
 {
-    GF_FilterSession *fs = JS_GetOpaque(val, fs_class_id);
-    if (!fs) return;
+	GF_FilterSession *fs = JS_GetOpaque(val, fs_class_id);
+	if (!fs) return;
 
 	if (fs->flags & GF_FS_FLAG_USER_SESSION ) {
 		gf_fs_del(fs);
@@ -84,7 +85,7 @@ static void jsfs_finalizer(JSRuntime *rt, JSValue val)
 }
 
 static JSClassDef fs_class = {
-    "FilterSession",
+	"FilterSession",
 	.gc_mark = jsfs_mark,
 	.finalizer = jsfs_finalizer
 };
@@ -92,7 +93,7 @@ static JSClassDef fs_class = {
 
 static JSClassID fs_f_class_id;
 static JSClassDef fs_f_class = {
-    "Filter",
+	"Filter",
 };
 
 enum
@@ -101,11 +102,10 @@ enum
 	JSFS_LAST_TASK,
 	JSFS_HTTP_MAX_RATE,
 	JSFS_HTTP_RATE,
-	JSFS_RMT_SAMPLING,
 	JSFS_CONNECTED,
 	JSFS_LAST_PROCESS_ERR,
 	JSFS_LAST_CONNECT_ERR,
-	JSFS_PATH
+	JSFS_PATH,
 };
 
 GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val)
@@ -152,13 +152,6 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	gf_js_lock(task->ctx, GF_FALSE);
 }
 
-static void jsfs_rmt_user_callback(void *udta, const char* text)
-{
-	JSFS_Task *task = udta;
-	if (!task) return;
-	jsfs_exec_task_custom(task, text, NULL, NULL);
-}
-
 static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
@@ -186,8 +179,6 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 			return JS_NewInt32(ctx, gf_dm_get_global_rate(fs->download_manager) );
 #endif
 		return JS_NULL;
-	case JSFS_RMT_SAMPLING:
-		return JS_NewBool(ctx, gf_sys_profiler_sampling_enabled() );
 	case JSFS_LAST_CONNECT_ERR:
 		return JS_NewInt32(ctx, gf_fs_get_last_process_error(fs) );
 	case JSFS_LAST_PROCESS_ERR:
@@ -213,9 +204,6 @@ static JSValue jsfs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst
 			gf_dm_set_data_rate(fs->download_manager, (u32) ival);
 		}
 #endif
-		break;
-	case JSFS_RMT_SAMPLING:
-		gf_sys_profiler_enable_sampling(JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE);
 		break;
 	}
 	return JS_UNDEFINED;
@@ -266,7 +254,7 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 	u32 delay=0;
 	const char *tname = NULL;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
 	if (!JS_IsFunction(ctx, argv[0]) ) return GF_JS_EXCEPTION(ctx);
 
 	GF_SAFEALLOC(task, JSFS_Task);
@@ -290,14 +278,14 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 	if (tname)
 		JS_FreeCString(ctx, tname);
 
-    return JS_UNDEFINED;
+	return JS_UNDEFINED;
 }
 
 static JSValue jsfs_abort(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 flush_type = GF_FS_FLUSH_NONE;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs) return GF_JS_EXCEPTION(ctx);
+	if (!fs) return GF_JS_EXCEPTION(ctx);
 	if (argc) {
 		JS_ToInt32(ctx, &flush_type, argv[0]);
 	}
@@ -308,48 +296,13 @@ static JSValue jsfs_lock_filters(JSContext *ctx, JSValueConst this_val, int argc
 {
 	Bool do_lock;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
 	if (JS_IsBool(argv[0])) do_lock = JS_ToBool(ctx, argv[0]);
 	else return GF_JS_EXCEPTION(ctx);
 
 	gf_fs_lock_filters(fs, do_lock);
 	return JS_UNDEFINED;
 }
-
-Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown);
-
-static JSValue jsfs_enable_rmt(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs) return GF_JS_EXCEPTION(ctx);
-	gf_sys_enable_remotery(GF_TRUE, GF_FALSE);
-	return JS_UNDEFINED;
-}
-
-static JSValue jsfs_rmt_log(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	const char *msg;
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-	if (!fs ||!argc) return GF_JS_EXCEPTION(ctx);
-	msg = JS_ToCString(ctx, argv[0]);
-	if (!msg) return GF_JS_EXCEPTION(ctx);
-	gf_sys_profiler_log(msg);
-	JS_FreeCString(ctx, msg);
-	return JS_UNDEFINED;
-}
-
-static JSValue jsfs_rmt_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	const char *msg;
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs ||!argc) return GF_JS_EXCEPTION(ctx);
-    msg = JS_ToCString(ctx, argv[0]);
-    if (!msg) return GF_JS_EXCEPTION(ctx);
-	gf_sys_profiler_send(msg);
-	JS_FreeCString(ctx, msg);
-	return JS_UNDEFINED;
-}
-
 
 void jsfs_on_filter_created(GF_Filter *new_filter)
 {
@@ -436,16 +389,16 @@ static JSClassID jsf_auth_class_id;
 static void jsf_auth_finalizer(JSRuntime *rt, JSValue val)
 {
 	JSFAuthContext *actx = JS_GetOpaque(val, jsf_auth_class_id);
-    if (!actx) return;
+	if (!actx) return;
 
 	if (actx->on_usr_pass) {
 		actx->on_usr_pass(actx->async_usr_data, NULL, NULL, GF_FALSE);
 	}
-    gf_free(actx);
+	gf_free(actx);
 }
 static JSClassDef jsf_auth_class = {
-    "AsyncAuth",
-    .finalizer = jsf_auth_finalizer
+	"AsyncAuth",
+	.finalizer = jsf_auth_finalizer
 };
 
 static JSValue js_auth_done(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -529,9 +482,9 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 	u32 i, count;
 	Bool is_rem = GF_FALSE;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
 
-    if (JS_IsNull(argv[0]))
+	if (JS_IsNull(argv[0]))
 		is_rem = GF_TRUE;
 	else if (!JS_IsFunction(ctx, argv[0]) )
 		return GF_JS_EXCEPTION(ctx);
@@ -563,9 +516,8 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 			gf_list_del_item(fs->jstasks, task);
 			gf_free(task);
 		}
-		if (cbk_type == 1)
-			gf_sys_profiler_set_callback(task, NULL);
-		else if (cbk_type == 2)
+		if (cbk_type == 1) {
+		} else if (cbk_type == 2)
 			fs->new_f_task = NULL;
 		else if (cbk_type == 3)
 			fs->del_f_task = NULL;
@@ -600,12 +552,7 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 	task->_obj = JS_DupValue(ctx, this_val);
 
 	if (cbk_type == 1) {
-		gf_sys_profiler_set_callback(task, jsfs_rmt_user_callback);
-#ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_cov_mode()) {
-			jsfs_rmt_user_callback(task, "test");
-		}
-#endif
+		// old profiler stuff, depr
 	}
 	else if (cbk_type == 2)
 		fs->new_f_task = task;
@@ -615,13 +562,9 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 		fs->on_evt_task = task;
 	else if (cbk_type == 5)
 		fs->on_auth_task = task;
-    return JS_UNDEFINED;
+	return JS_UNDEFINED;
 }
 
-static JSValue jsfs_set_rmt_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 1);
-}
 static JSValue jsfs_set_new_filter_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 2);
@@ -883,7 +826,11 @@ static JSValue jsff_enum_pid_props(JSContext *ctx, JSValueConst this_val, int ar
 		if (!prop) break;
 		if (prop->type==GF_PROP_POINTER) continue;
 
-		args[0] = JS_NewString(ctx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc) );
+		const char* cc_name = gf_props_4cc_get_name(prop_4cc);
+		if (!prop_name && !cc_name)
+			continue;
+
+		args[0] = JS_NewString(ctx, prop_name ? prop_name : cc_name );
 		args[1] = JS_NewString(ctx, gf_props_get_type_name(prop->type) );
 		if (prop_4cc) {
 			args[2] = jsf_NewPropTranslate(ctx, prop, prop_4cc);
@@ -1417,7 +1364,7 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 	gf_fs_lock_filters(f->session, GF_FALSE);
 
 	f->dst_filter = new_f;
-	
+
 	//reconnect outputs of source
 	gf_filter_reconnect_output((GF_Filter *) f, opid);
 
@@ -1777,9 +1724,9 @@ static JSValue jsfs_get_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	u32 idx;
 	GF_Filter *f = NULL;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-    if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
 
-    if (JS_IsString(argv[0])) {
+	if (JS_IsString(argv[0])) {
 		const char *iname = JS_ToCString(ctx, argv[0]);
 		if (iname) {
 			u32 i, count;
@@ -1804,28 +1751,7 @@ static JSValue jsfs_get_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	return jsfs_new_filter_obj(ctx, f);
 }
 
-#ifndef GPAC_DISABLE_ROUTE
-Bool routein_is_valid_url(GF_Filter *f, u32 service_id, const char *url);
-#endif
-static JSValue jsff_source_probe_url(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	Bool ret = GF_FALSE;
-	s32 serviceID;
-	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
-	if (!f || (argc<2))
-		return GF_JS_EXCEPTION(ctx);
 
-#ifndef GPAC_DISABLE_ROUTE
-	JS_ToInt32(ctx, &serviceID, argv[0]);
-	const char *url = JS_ToCString(ctx, argv[1]);
-
-	ret = routein_is_valid_url(f, (u32) serviceID, url);
-
-	JS_FreeCString(ctx, url);
-#endif
-
-	return ret ? JS_TRUE : JS_FALSE;
-}
 static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *fname, *link_args;
@@ -1887,12 +1813,6 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	gf_fs_lock_filters(fs, GF_FALSE);
 
 	JSValue fobj = jsfs_new_filter_obj(ctx, new_f);
-	if (is_source) {
-		//ugly hack
-		if (!strcmp(new_f->freg->name, "routein")) {
-			JS_SetPropertyStr(ctx, fobj, "probe_url", JS_NewCFunction(ctx, jsff_source_probe_url, "probe_url", 1));
-		}
-	}
 	return fobj;
 }
 
@@ -1992,33 +1912,28 @@ static JSValue jsfs_remove_filter(JSContext *ctx, JSValueConst this_val, int arg
 }
 
 static const JSCFunctionListEntry fs_funcs[] = {
-    JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
-    JS_CGETSET_MAGIC_DEF_ENUM("last_task", jsfs_prop_get, NULL, JSFS_LAST_TASK),
+	JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
+	JS_CGETSET_MAGIC_DEF_ENUM("last_task", jsfs_prop_get, NULL, JSFS_LAST_TASK),
 	JS_CGETSET_MAGIC_DEF("http_max_bitrate", jsfs_prop_get, jsfs_prop_set, JSFS_HTTP_MAX_RATE),
 	JS_CGETSET_MAGIC_DEF("http_bitrate", jsfs_prop_get, NULL, JSFS_HTTP_RATE),
-	JS_CGETSET_MAGIC_DEF("rmt_sampling", jsfs_prop_get, jsfs_prop_set, JSFS_RMT_SAMPLING),
 	JS_CGETSET_MAGIC_DEF("connected", jsfs_prop_get, NULL, JSFS_CONNECTED),
 	JS_CGETSET_MAGIC_DEF("last_process_error", jsfs_prop_get, NULL, JSFS_LAST_PROCESS_ERR),
 	JS_CGETSET_MAGIC_DEF("last_connect_error", jsfs_prop_get, NULL, JSFS_LAST_CONNECT_ERR),
 	JS_CGETSET_MAGIC_DEF("jspath", jsfs_prop_get, NULL, JSFS_PATH),
 
-    JS_CFUNC_DEF("post_task", 0, jsfs_post_task),
-    JS_CFUNC_DEF("abort", 0, jsfs_abort),
-    JS_CFUNC_DEF("get_filter", 0, jsfs_get_filter),
-    JS_CFUNC_DEF("lock_filters", 0, jsfs_lock_filters),
-    JS_CFUNC_DEF("enable_rmt", 0, jsfs_enable_rmt),
-    JS_CFUNC_DEF("rmt_send", 0, jsfs_rmt_send),
-    JS_CFUNC_DEF("rmt_log", 0, jsfs_rmt_log),
-    JS_CFUNC_DEF("set_rmt_fun", 0, jsfs_set_rmt_fun),
-    JS_CFUNC_DEF("set_new_filter_fun", 0, jsfs_set_new_filter_fun),
-    JS_CFUNC_DEF("set_del_filter_fun", 0, jsfs_set_del_filter_fun),
-    JS_CFUNC_DEF("set_event_fun", 0, jsfs_set_event_fun),
-    JS_CFUNC_DEF("add_filter", 0, jsfs_add_filter),
-    JS_CFUNC_DEF("fire_event", 0, jsfs_fire_event),
-    JS_CFUNC_DEF("reporting", 0, jsfs_reporting),
-    JS_CFUNC_DEF("new_filter", 0, jsfs_new_filter),
-    JS_CFUNC_DEF("remove_filter", 0, jsfs_remove_filter),
-    JS_CFUNC_DEF("set_auth_fun", 0, jsfs_set_auth_fun),
+	JS_CFUNC_DEF("post_task", 0, jsfs_post_task),
+	JS_CFUNC_DEF("abort", 0, jsfs_abort),
+	JS_CFUNC_DEF("get_filter", 0, jsfs_get_filter),
+	JS_CFUNC_DEF("lock_filters", 0, jsfs_lock_filters),
+	JS_CFUNC_DEF("set_new_filter_fun", 0, jsfs_set_new_filter_fun),
+	JS_CFUNC_DEF("set_del_filter_fun", 0, jsfs_set_del_filter_fun),
+	JS_CFUNC_DEF("set_event_fun", 0, jsfs_set_event_fun),
+	JS_CFUNC_DEF("add_filter", 0, jsfs_add_filter),
+	JS_CFUNC_DEF("fire_event", 0, jsfs_fire_event),
+	JS_CFUNC_DEF("reporting", 0, jsfs_reporting),
+	JS_CFUNC_DEF("new_filter", 0, jsfs_new_filter),
+	JS_CFUNC_DEF("remove_filter", 0, jsfs_remove_filter),
+	JS_CFUNC_DEF("set_auth_fun", 0, jsfs_set_auth_fun),
 	JS_CFUNC_DEF("filter_args", 0, jsfs_filter_args),
 	JS_CFUNC_DEF("run", 0, jsfs_run_sess),
 	JS_CFUNC_DEF("stop", 0, jsfs_stop_sess),
@@ -2089,7 +2004,7 @@ static JSValue session_constructor(JSContext *ctx, JSValueConst new_target, int 
 		gf_fs_del(fs);
 		return anobj;
 	}
-    JS_SetOpaque(anobj, fs);
+	JS_SetOpaque(anobj, fs);
 	return anobj;
 }
 GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
@@ -2109,7 +2024,7 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	js_load_constants(c, global_obj);
 
 #define DEF_CONST( _val ) \
-    JS_SetPropertyStr(c, global_obj, #_val, JS_NewInt32(c, _val));
+	JS_SetPropertyStr(c, global_obj, #_val, JS_NewInt32(c, _val));
 
 	DEF_CONST(GF_FS_FLUSH_NONE)
 	DEF_CONST(GF_FS_FLUSH_ALL)
@@ -2119,7 +2034,7 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 		fs->jstasks = gf_list_new();
 		if (!fs->jstasks) return GF_OUT_OF_MEM;
 	}
-	
+
 
 	//initialize filter class and create a single filter object in global scope
 	JS_NewClassID(&fs_class_id);
@@ -2134,10 +2049,9 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	JS_SetPropertyFunctionList(c, proto, jsf_auth_funcs, countof(jsf_auth_funcs));
 	JS_SetClassProto(c, jsf_auth_class_id, proto);
 
-
 	fs_obj = JS_NewObjectClass(c, fs_class_id);
-    JS_SetPropertyFunctionList(c, fs_obj, fs_funcs, countof(fs_funcs));
-    JS_SetOpaque(fs_obj, fs);
+	JS_SetPropertyFunctionList(c, fs_obj, fs_funcs, countof(fs_funcs));
+	JS_SetOpaque(fs_obj, fs);
 	JS_SetPropertyStr(c, global_obj, "session", fs_obj);
 
 	//filtersession constructor
@@ -2146,22 +2060,22 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	JS_SetClassProto(c, fs_class_id, proto);
 	JSValue ctor = JS_NewCFunction2(c, session_constructor, "FilterSession", 1, JS_CFUNC_constructor, 0);
 	JS_SetPropertyStr(c, global_obj, "FilterSession", ctor);
-    /*JS_SetModuleExport(c, m, "FilterSession", ctor);
+	/*JS_SetModuleExport(c, m, "FilterSession", ctor);
 	*/
 
-    JS_FreeValue(c, global_obj);
-    return GF_OK;
+	JS_FreeValue(c, global_obj);
+	return GF_OK;
 }
 
 static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSContext *in_ctx, GF_Filter *for_filter)
 {
 	GF_Err e;
-    JSValue global_obj;
+	JSValue global_obj;
 	u8 *buf;
 	u32 buf_len;
 	u32 flags = JS_EVAL_TYPE_GLOBAL;
-    JSValue ret;
-    JSContext *ctx;
+	JSValue ret;
+	JSContext *ctx;
 
 
 	if (!fs) return GF_BAD_PARAM;
@@ -2220,7 +2134,7 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 
 	if (JS_IsException(ret)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script %s\n", jsfile));
-        js_dump_error(ctx);
+		js_dump_error(ctx);
 		JS_FreeValue(ctx, ret);
 		return GF_BAD_PARAM;
 	}
@@ -2269,6 +2183,7 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		i--;
 		count--;
 	}
+
 	if (fs->js_ctx || js_ctx) {
 		JSContext *c = fs->js_ctx ? fs->js_ctx : js_ctx;
 		gf_js_lock(c, GF_TRUE);
@@ -2332,6 +2247,3 @@ void gf_filter_load_script(GF_Filter *filter, const char *js_file, const char *f
 }
 
 #endif
-
-
-

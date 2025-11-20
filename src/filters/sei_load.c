@@ -54,35 +54,35 @@ struct _gf_sei_loader
 
 static GF_Err seiloader_set_type(GF_SEILoader *sei, u32 type)
 {
-	if (type==sei->codec_type) return GF_OK;
+	//reset shared pointers
 	if (sei->external) {
 		sei->external = GF_FALSE;
 		sei->avc_state = NULL;
 		sei->hevc_state = NULL;
 		sei->vvc_state = NULL;
 	}
-	else if (type==sei->codec_type)
+	if (type==sei->codec_type)
 		return GF_OK;
 
 	sei->codec_type = 0;
 	if (type==COD_TYPE_AVC) {
 		if (sei->hevc_state) { gf_free(sei->hevc_state); sei->hevc_state = NULL; }
 		if (sei->vvc_state) { gf_free(sei->vvc_state); sei->vvc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 		GF_SAFEALLOC(sei->avc_state, AVCState);
 		if (!sei->avc_state) return GF_OUT_OF_MEM;
 	}
 	if (type==COD_TYPE_HEVC) {
 		if (sei->avc_state) { gf_free(sei->avc_state); sei->avc_state = NULL; }
 		if (sei->vvc_state) { gf_free(sei->vvc_state); sei->vvc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 		GF_SAFEALLOC(sei->hevc_state, HEVCState);
 		if (!sei->hevc_state) return GF_OUT_OF_MEM;
 	}
 	if (type==COD_TYPE_VVC) {
 		if (sei->hevc_state) { gf_free(sei->hevc_state); sei->hevc_state = NULL; }
 		if (sei->avc_state) { gf_free(sei->avc_state); sei->avc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 		GF_SAFEALLOC(sei->vvc_state, VVCState);
 		if (!sei->vvc_state) return GF_OUT_OF_MEM;
 	}
@@ -98,7 +98,7 @@ static GF_Err seiloader_set_type(GF_SEILoader *sei, u32 type)
 		if (sei->avc_state) { gf_free(sei->avc_state); sei->avc_state = NULL; }
 		if (sei->hevc_state) { gf_free(sei->hevc_state); sei->hevc_state = NULL; }
 		if (sei->vvc_state) { gf_free(sei->vvc_state); sei->vvc_state = NULL; }
-		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->vvc_state = NULL; }
+		if (sei->av1_state) { gf_av1_reset_state(sei->av1_state, GF_TRUE); gf_free(sei->av1_state); sei->av1_state = NULL; }
 	}
 	sei->codec_type = type;
 	return GF_OK;
@@ -281,7 +281,7 @@ static GF_Err gf_sei_load_from_packet_nalu(GF_SEILoader *sei, GF_FilterPacket *p
 		}
 		size |= data[pos+tmp];
 		//we allow nal_size=0 for incomplete files, abort as soon as we see one to avoid parsing thousands of 0 bytes
-		if (!size) break;
+		if (!size || size >= GF_UINT_MAX-pos-sei->nalu_size) break;
 		if (pos+sei->nalu_size+size > data_len) break;
 
 		gf_bs_reassign_buffer(sei->bs, data+pos+sei->nalu_size, size);
@@ -472,7 +472,7 @@ void gf_sei_loader_del(GF_SEILoader *sei)
 #endif
 
 
-#ifndef GPAC_DISABLE_SEILOAD
+#if !defined(GPAC_DISABLE_SEI_LOAD) && !defined(GPAC_DISABLE_AV_PARSERS)
 
 typedef struct
 {
@@ -575,6 +575,7 @@ static const GF_FilterCapability SEILoadCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
 	CAP_BOOL(GF_CAPFLAG_RECONFIG, GF_PROP_PID_SEI_LOADED, GF_TRUE),
 };
@@ -586,6 +587,9 @@ GF_FilterRegister SEILoadRegister = {
 	)
 	.private_size = sizeof(SEILoadCtx),
 	.max_extra_pids = 0xFFFFFFFF,
+	//only allow explicit loading or as PID adaptation filter: since the caps allow any codec and any stream type, the filter could
+	//otherwise get elected in place of a transcoding chain
+	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = SEILoadArgs,
 	SETCAPS(SEILoadCaps),
 	.initialize = seiload_initialize,
@@ -593,9 +597,6 @@ GF_FilterRegister SEILoadRegister = {
 	.configure_pid = seiload_configure_pid,
 	.process = seiload_process,
 	.reconfigure_output = seiload_reconfigure_output,
-	//assign lowest priority so that we don't get picked up in graph solving
-	//if a better chain is possible
-	.priority = 0x7FFF,
 	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
@@ -609,4 +610,3 @@ const GF_FilterRegister *seiload_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_SEILOAD
-

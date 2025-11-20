@@ -235,6 +235,7 @@ static struct log_tool_info {
 	{ GF_LOG_ROUTE, "route", GF_LOG_WARNING, .alt = "flute" },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
+	{ GF_LOG_RMTWS, "rmtws", GF_LOG_WARNING },
 };
 
 #define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)
@@ -874,7 +875,7 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 
 
 
-static void *user_log_cbk = NULL;
+void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
 #ifdef GPAC_CONFIG_EMSCRIPTEN
@@ -887,6 +888,8 @@ Bool gf_log_use_color()
 	return (log_cbk == default_log_callback_color) ? GF_TRUE : GF_FALSE;
 }
 
+static Bool in_log_callback = GF_FALSE;
+
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
@@ -897,12 +900,17 @@ void gf_log(const char *fmt, ...)
 		});
 	}
 #endif
-	va_list vl;
-	va_start(vl, fmt);
 	gf_mx_p(logs_mx);
-	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	//don't allow GF_LOG to be called from GF_LOG this will likely throw infinite recursion
+	if (!in_log_callback) {
+		va_list vl;
+		va_start(vl, fmt);
+		in_log_callback = GF_TRUE;
+		log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+		in_log_callback = GF_FALSE;
+		va_end(vl);
+	}
 	gf_mx_v(logs_mx);
-	va_end(vl);
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
 		EM_ASM({
@@ -1522,6 +1530,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_RFAC3
 	                       "GPAC_DISABLE_RFAC3 "
 #endif
+#ifdef GPAC_DISABLE_RFAC4
+	                       "GPAC_DISABLE_RFAC4 "
+#endif
 #ifdef GPAC_DISABLE_RFADTS
 	                       "GPAC_DISABLE_RFADTS "
 #endif
@@ -1587,6 +1598,9 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_UFMHAS
 	                       "GPAC_DISABLE_UFMHAS "
+#endif
+#ifdef GPAC_DISABLE_UFAC4
+	                       "GPAC_DISABLE_UFAC4 "
 #endif
 #ifdef GPAC_DISABLE_UFM4V
 	                       "GPAC_DISABLE_UFM4V "
@@ -2275,6 +2289,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		frac->den = 1;
 		while (i<len) {
 			i++;
+			if (frac->den > GF_UINT64_MAX / 10)
+				return GF_FALSE;
 			frac->den *= 10;
 		}
 		//trash trailing zero
@@ -2283,6 +2299,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 			if (sep[i] != '0') {
 				break;
 			}
+			if (div_trail_zero > GF_UINT_MAX / 10)
+				return GF_FALSE;
 			div_trail_zero *= 10;
 			i--;
 		}

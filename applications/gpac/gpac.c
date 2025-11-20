@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -494,65 +494,6 @@ static void run_sess(void)
 	}
 }
 #endif
-
-static GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
-{
-	char *link_prev_filter_ext = NULL;
-	GF_Filter *link_from;
-	Bool reverse_order = GF_FALSE;
-	s32 link_filter_idx = -1;
-
-	if (!filter) {
-		u32 idx=0, count = gf_list_count(loaded_filters);
-		if (!ext_link || !count) return GF_BAD_PARAM;
-		ext_link[0] = 0;
-		if (link[1] == separator_set[SEP_LINK]) {
-			idx = atoi(link+2);
-		} else {
-			idx = atoi(link+1);
-			if (count - 1 < idx) return GF_BAD_PARAM;
-			idx = count-1-idx;
-		}
-		ext_link[0] = separator_set[SEP_LINK];
-		filter = gf_list_get(loaded_filters, idx);
-		link = ext_link;
-	}
-
-	char *ext = strchr(link, separator_set[SEP_FRAG]);
-	if (ext) {
-		ext[0] = 0;
-		link_prev_filter_ext = ext+1;
-	}
-	if (strlen(link)>1) {
-		if (link[1] == separator_set[SEP_LINK] ) {
-			reverse_order = GF_TRUE;
-			link++;
-		}
-		link_filter_idx = 0;
-		if (strlen(link)>1) {
-			link_filter_idx = get_u32(link+1, "Link filter index");
-			if (link_filter_idx < 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
-				return GF_BAD_PARAM;
-			}
-		}
-	} else {
-		link_filter_idx = 0;
-	}
-	if (ext) ext[0] = separator_set[SEP_FRAG];
-
-	if (reverse_order)
-		link_from = gf_list_get(loaded_filters, link_filter_idx);
-	else
-		link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
-
-	if (!link_from) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
-		return GF_BAD_PARAM;
-	}
-	gf_filter_set_source(filter, link_from, link_prev_filter_ext);
-	return GF_OK;
-}
 
 #ifndef GPAC_CONFIG_ANDROID
 static
@@ -1048,7 +989,7 @@ int gpac_main(int _argc, char **_argv)
 			if (alias_val) alias_val[0] = ' ';
 			alias_set = GF_TRUE;
 		}
-		else if (!strncmp(arg, "-seps", 5)) {
+		else if (!strncmp(arg, "-seps", 6)) {
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
@@ -1420,7 +1361,7 @@ restart:
 					next_sep = strchr(arg+1, separator_set[SEP_LINK]);
 				}
 				if (next_sep) {
-					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					e = gf_fs_process_link_directive(arg, NULL, loaded_filters, next_sep);
 					if (e) {
 						ERR_EXIT
 					}
@@ -1492,7 +1433,7 @@ restart:
 
 		while (gf_list_count(links_directive)) {
 			char *link = gf_list_pop_front(links_directive);
-			e = process_link_directive(link, filter, loaded_filters, NULL);
+			e = gf_fs_process_link_directive(link, filter, loaded_filters, NULL);
 			if (e) {
 				ERR_EXIT
 			}
@@ -2831,6 +2772,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	*out_err = GF_OK;
 
 	if (!strcmp(mode, "ref")) {
+		if (!ioctx_ref->nb_refs && (gf_list_find(all_gfio_defined, fileio_ref)<0))
+			gf_list_add(all_gfio_defined, fileio_ref);
 		ioctx_ref->nb_refs++;
 		return fileio_ref;
 	}
@@ -2840,6 +2783,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		if (ioctx_ref->nb_refs)
 			return fileio_ref;
 
+		//fallback to close
 		url = NULL;
 	}
 
@@ -2952,6 +2896,37 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	return gfio;
 }
 
+static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
+{
+	GF_FileIO *gfio;
+	FileIOCtx *ioctx;
+	//delete on a gfio object
+	if (!parent_gfio) {
+		gfio = gf_fileio_from_url(url);
+		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+			return GF_EOS;
+		ioctx = gf_fileio_get_udta(gfio);
+		if (ioctx->filep) return GF_BAD_PARAM;
+		if (ioctx->path) gf_file_delete(ioctx->path);
+		return GF_OK;
+	}
+	//delete by URL relative to a parent gfio
+	gfio = gf_fileio_from_url(parent_gfio);
+	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+		return GF_EOS;
+	ioctx = gf_fileio_get_udta(gfio);
+	if (!ioctx->path) return GF_EOS;
+
+	char *path = gf_url_concatenate(ioctx->path, url);
+	if (path) {
+		gf_file_delete(path);
+		gf_free(path);
+		return GF_OK;
+	}
+	return GF_EOS;
+}
+
+Bool gfiodel_registered=GF_FALSE;
 
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_mode, GF_Err *e)
 {
@@ -2960,6 +2935,11 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
+
+	if (!gfiodel_registered) {
+		gfiodel_registered = GF_TRUE;
+		gf_fileio_register_delete_proc(gpac_gfio_del);
+	}
 
 	GF_SAFEALLOC(ioctx, FileIOCtx);
 	if (!ioctx) return NULL;
@@ -2992,6 +2972,11 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 
 static void cleanup_file_io()
 {
+	if (gfiodel_registered) {
+		gfiodel_registered = GF_FALSE;
+		gf_fileio_unregister_delete_proc(gpac_gfio_del);
+	}
+
 	if (!all_gfio_defined) return;
 	while (gf_list_count(all_gfio_defined)) {
 		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);
@@ -3381,7 +3366,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	u32 size;
 
 	burl = gf_blob_register(&b);
-	gf_sys_profiler_set_callback(NULL, NULL);
 
 	gf_blob_get(burl, &data, &size, NULL);
 	gf_blob_unregister(&b);
@@ -3638,7 +3622,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_audio_fmt_to_isobmf(0);
 	gf_pixel_fmt_probe(0, NULL);
 	gf_net_ntp_to_utc(0);
-	gf_sys_profiler_sampling_enabled();
 
 
 #endif

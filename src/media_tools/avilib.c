@@ -1769,15 +1769,14 @@ int AVI_close(avi_t *AVI)
 		}
 		gf_free(AVI->video_superindex);
 	}
-
 	for (j=0; j<AVI->anum; j++)
 	{
 		if(AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 		if(AVI->track[j].audio_superindex) {
 			avisuperindex_chunk *asi = AVI->track[j].audio_superindex;
-			if (asi->aIndex) gf_free(asi->aIndex);
+			if (asi && asi->aIndex) gf_free(asi->aIndex);
 
-			if (asi->stdindex) {
+			if (asi && asi->stdindex) {
 				for (j=0; j < NR_IXNN_CHUNKS; j++) {
 					if (asi->stdindex[j]->aIndex)
 						gf_free(asi->stdindex[j]->aIndex);
@@ -2198,7 +2197,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Invalid Header, bIndexSubType != 0\n"));
 						}
 						avail -= 32;
-						if (avail < (int) AVI->video_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
+						if (AVI->video_superindex->nEntriesInUse >= GF_INT_MAX/16 ||
+							avail < (int) AVI->video_superindex->nEntriesInUse*16) {
+
+								ERR_EXIT(AVI_ERR_READ)
+						}
 
 						AVI->video_superindex->aIndex = (avisuperindex_entry*)
 						                                gf_malloc (AVI->video_superindex->wLongsPerEntry * AVI->video_superindex->nEntriesInUse * sizeof (u32));
@@ -2243,7 +2246,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						int avail = (int) (hdrl_len-i);
 						if (avail<32) ERR_EXIT(AVI_ERR_READ)
 
-						AVI->track[AVI->aptr].audio_superindex = (avisuperindex_chunk *) gf_malloc (sizeof (avisuperindex_chunk));
+						GF_SAFEALLOC(AVI->track[AVI->aptr].audio_superindex, avisuperindex_chunk);
 						memcpy (AVI->track[AVI->aptr].audio_superindex->fcc, a, 4);
 						a += 4;
 						AVI->track[AVI->aptr].audio_superindex->dwSize = str2ulong((unsigned char*)a);
@@ -2269,7 +2272,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						}
 
 						avail -= 32;
-						if (avail < (int) AVI->track[AVI->aptr].audio_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
+						if (AVI->track[AVI->aptr].audio_superindex->nEntriesInUse >= GF_INT_MAX/16
+							|| avail < (int) AVI->track[AVI->aptr].audio_superindex->nEntriesInUse*16) {
+
+								ERR_EXIT(AVI_ERR_READ)
+						}
 
 						AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
 						        gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *
@@ -2616,6 +2623,7 @@ multiple_riff:
 
 		for(j=0; j<AVI->anum; ++j) {
 			if(AVI->track[j].audio_chunks) {
+				if (AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 				AVI->track[j].audio_index = (audio_index_entry *) gf_malloc((nai[j]+1)*sizeof(audio_index_entry));
 				memset(AVI->track[j].audio_index, 0, (nai[j]+1)*(sizeof(audio_index_entry)));
 				if(AVI->track[j].audio_index==0) ERR_EXIT(AVI_ERR_NO_MEM);
@@ -2644,11 +2652,15 @@ multiple_riff:
 				aud_chunks += AVI->total_frames;
 				AVI->track[j].audio_index = (audio_index_entry *)
 				                            gf_realloc( AVI->track[j].audio_index, (aud_chunks+1)*sizeof(audio_index_entry));
+
 				if (!AVI->track[j].audio_index) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Internal error in avilib -- no mem\n"));
 					AVI_errno = AVI_ERR_NO_MEM;
 					return -1;
 				}
+
+				if (AVI->anum <= j)
+					AVI->anum = j+1;
 			}
 
 			/* Check if we got a tag ##db, ##dc or ##wb */
@@ -2734,6 +2746,7 @@ multiple_riff:
 
 		for(j=0; j<AVI->anum; ++j) {
 			if(AVI->track[j].audio_chunks) {
+				if (AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 				AVI->track[j].audio_index = (audio_index_entry *) gf_malloc((nai[j]+1)*sizeof(audio_index_entry));
 				memset(AVI->track[j].audio_index, 0, (nai[j]+1)*(sizeof(audio_index_entry)));
 				if(AVI->track[j].audio_index==0) ERR_EXIT(AVI_ERR_NO_MEM);

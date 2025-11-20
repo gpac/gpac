@@ -76,7 +76,8 @@ GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size)
 #ifdef GPAC_HAS_SSL
 	if (session->ssl) {
 		e = gf_ssl_write(session, buffer, size, &written);
-		if (e==GF_IP_NETWORK_FAILURE) e = GF_IP_CONNECTION_CLOSED;
+		if (e==GF_IP_NETWORK_FAILURE)
+			e = GF_IP_CONNECTION_CLOSED;
 	} else
 #endif
 	{
@@ -222,6 +223,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	case 206: gf_dynstrcat(&rsp_buf, "Partial Content", NULL); break;
 	case 200: gf_dynstrcat(&rsp_buf, "OK", NULL); break;
 	case 201: gf_dynstrcat(&rsp_buf, "Created", NULL); break;
+	case 101: gf_dynstrcat(&rsp_buf, "Switching Protocols", NULL); break;
 	default:
 		gf_dynstrcat(&rsp_buf, "ERROR", NULL); break;
 	}
@@ -356,7 +358,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	/*self-destruction, let the download manager destroy us*/
 	if (sess->th || sess->ftask) {
 		sess->destroy = GF_TRUE;
-		return;
+		if (sess->ftask->in_task)
+			return;
 	}
 	gf_dm_disconnect(sess, HTTP_CLOSE);
 	gf_dm_sess_clear_headers(sess);
@@ -434,14 +437,14 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 #ifndef GPAC_DISABLE_LOG
 	if (sess->log_name) gf_free(sess->log_name);
 #endif
+	assert(!sess->ftask || !sess->ftask->in_task || !sess->mx);
 	gf_mx_del(sess->mx);
 
 	if (sess->http_buf) gf_free(sess->http_buf);
 
 	if (sess->ftask) {
 		sess->ftask->sess = NULL;
-		if (gf_fs_is_last_task(sess->dm->filter_session))
-			gf_free(sess->ftask);
+		sess->ftask = NULL;
 	}
 
 	gf_free(sess);
@@ -888,6 +891,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	}
 	sess->total_size = 0;
 	sess->bytes_done = 0;
+	sess->full_resource_size = 0;
 	//could be not-0 after a byte-range request using chunk transfer
 	sess->remaining_data_size = 0;
 
@@ -902,18 +906,18 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			sess->use_cache_file = GF_TRUE;
 			gf_dm_configure_cache(sess);
 			sess->bytes_done = 0;
-            if (sess->cache_entry && gf_cache_is_deleted(sess->cache_entry)) {
-                sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR(GF_URL_REMOVED)
-                //return GF_OK;
-            } else if (! gf_cache_is_done(sess->cache_entry)) {
-                sess->total_size = 0;
-                sess->status = GF_NETIO_DATA_EXCHANGE;
-            } else {
+			if (sess->cache_entry && gf_cache_is_deleted(sess->cache_entry)) {
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				SET_LAST_ERR(GF_URL_REMOVED)
+				//return GF_OK;
+			} else if (! gf_cache_is_done(sess->cache_entry)) {
+				sess->total_size = 0;
+				sess->status = GF_NETIO_DATA_EXCHANGE;
+			} else {
 				sess->total_size = gf_cache_get_content_length(sess->cache_entry);
-                sess->bytes_done = sess->total_size;
-                sess->status = GF_NETIO_DATA_TRANSFERED;
-                if (!sess->cache_entry) {
+				sess->bytes_done = sess->total_size;
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				if (!sess->cache_entry) {
 					SET_LAST_ERR(GF_URL_ERROR)
 				} else {
 					SET_LAST_ERR(GF_OK)
@@ -971,11 +975,14 @@ Bool gf_dm_session_task(GF_FilterSession *fsess, void *callback, u32 *reschedule
 {
 	GF_SessTask *task = callback;
 	GF_DownloadSession *sess = task->sess;
-	if (!sess) {
+	if (!sess || sess->destroy) {
 		gf_free(task);
+		if (sess) sess->ftask = NULL;
 		return GF_FALSE;
 	}
+	task->in_task = GF_TRUE;
 	Bool ret = gf_dm_session_do_task(sess);
+	task->in_task = GF_FALSE;
 	if (ret) {
 		if (sess->rate_regulated) {
 			*reschedule_ms = (sess->last_cap_rate_bytes_per_sec > sess->max_data_rate) ? 1000 : 100;
@@ -1323,7 +1330,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		u32 i, count = gf_list_count(sess->dm->all_sessions);
 		for (i=0; i<count; i++) {
 			GF_DownloadSession *a_sess = gf_list_get(sess->dm->all_sessions, i);
-			if (strcmp(a_sess->server_name, sess->server_name)) continue;
+			if (strcmp(a_sess->server_name, sess->server_name) || (a_sess->port != sess->port)) continue;
 			if (!a_sess->hmux_sess) {
 #ifdef GPAC_HAS_HTTP2
 				//we already ahd a connection to this server with H2 failure, do not try h2
@@ -1355,7 +1362,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 			if (a_sess->hmux_sess->do_shutdown) continue;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing %s session\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url, a_sess->log_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] associating session %s to existing %s session: %s:%u\n", sess->log_name, sess->remote_path ? sess->remote_path : sess->orig_url, a_sess->log_name, a_sess->server_name, a_sess->port));
 
 			u32 nb_locks=0;
 			if (sess->mx) {
@@ -1394,7 +1401,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			}
 			gf_mx_v(sess->dm->cache_mx);
 			return;
-		}
+		} // end all_sessions loop
 		gf_mx_v(sess->dm->cache_mx);
 	}
 #endif
@@ -1806,7 +1813,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_DATA_EXCHANGE:
 			if (sess->put_state==2) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR(GF_OK)
+				SET_LAST_ERR(GF_OK)
 				go = GF_FALSE;
 				break;
 			}
@@ -2549,16 +2556,16 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			memmove(sess->init_data, sess->init_data+buffer_size, sizeof(char)*sess->init_data_size);
 			e = GF_OK;
 		}
-    } else if (sess->local_cache_only) {
+	} else if (sess->local_cache_only) {
 		Bool was_modified;
-        u32 to_copy, full_cache_size, max_valid_size=0, cache_done;
-        const u8 *ptr;
-        e = GF_OK;
-        gf_assert(sess->cache_entry);
-        //always refresh total size
-        sess->total_size = gf_cache_get_content_length(sess->cache_entry);
+		u32 to_copy, full_cache_size, max_valid_size=0, cache_done;
+		const u8 *ptr;
+		e = GF_OK;
+		gf_assert(sess->cache_entry);
+		//always refresh total size
+		sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 
-        ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size, &was_modified);
+		ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size, &was_modified);
 
 		cache_done = gf_cache_is_done(sess->cache_entry);
 		//something went wrong, we cannot have less valid bytes than what we had at previous call(s)
@@ -2566,31 +2573,31 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			cache_done = 2;
 
 		if ((sess->bytes_done >= full_cache_size)|| (cache_done==2)) {
-            *read_size = 0;
+			*read_size = 0;
 			gf_cache_release_content(sess->cache_entry);
-            if (cache_done==2) {
-                sess->status = GF_NETIO_STATE_ERROR;
-                SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
-                return GF_IP_NETWORK_FAILURE;
-            }
-            else if (cache_done) {
-                sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR( GF_OK)
-                return GF_EOS;
-            }
-            return was_modified ? GF_OK : GF_IP_NETWORK_EMPTY;
-        }
-        if (!ptr) return GF_OUT_OF_MEM;
+			if (cache_done==2) {
+				sess->status = GF_NETIO_STATE_ERROR;
+				SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
+				return GF_IP_NETWORK_FAILURE;
+			}
+			else if (cache_done) {
+				sess->status = GF_NETIO_DATA_TRANSFERED;
+				SET_LAST_ERR( GF_OK)
+				return GF_EOS;
+			}
+			return was_modified ? GF_OK : GF_IP_NETWORK_EMPTY;
+		}
+		if (!ptr) return GF_OUT_OF_MEM;
 
-        //only copy valid bytes for http
-        to_copy = max_valid_size - sess->bytes_done;
-        if (to_copy > buffer_size) to_copy = buffer_size;
+		//only copy valid bytes for http
+		to_copy = max_valid_size - sess->bytes_done;
+		if (to_copy > buffer_size) to_copy = buffer_size;
 
-        memcpy(buffer, ptr + sess->bytes_done, to_copy);
-        sess->bytes_done += to_copy;
-        *read_size = to_copy;
-        if (cache_done==1) {
-            sess->status = GF_NETIO_DATA_TRANSFERED;
+		memcpy(buffer, ptr + sess->bytes_done, to_copy);
+		sess->bytes_done += to_copy;
+		*read_size = to_copy;
+		if (cache_done==1) {
+			sess->status = GF_NETIO_DATA_TRANSFERED;
 			SET_LAST_ERR( (cache_done==2) ? GF_IP_NETWORK_FAILURE : GF_OK)
 		} else {
 			sess->total_size = 0;
@@ -2801,7 +2808,6 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 /*!
  * Sends the HTTP headers
 \param sess The GF_DownloadSession
-\param sHTTP buffer containing the request
 \return GF_OK if everything went fine, the error otherwise
  */
 static GF_Err http_send_headers(GF_DownloadSession *sess) {
@@ -3104,7 +3110,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 			has_body = GF_TRUE;
 		}
 		e = sess->hmux_sess->submit_request(sess, req_name, url, param_string, has_body);
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Sending request %s %s%s\n", req_name, sess->server_name, url));
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Sending request %s %s:%u%s\n", req_name, sess->server_name, sess->port, url));
 
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 
@@ -3257,7 +3263,6 @@ req_sent:
 /*!
  * Parse the remaining part of body
 \param sess The session
-\param sHTTP the data buffer
 \return The error code if any
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
@@ -3385,7 +3390,6 @@ static u32 http_parse_method(const char *comp)
 /*!
  * Waits for the response HEADERS, parse the information... and so on
 \param sess The session
-\param sHTTP the data buffer
  */
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 {
@@ -3396,6 +3400,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 	u32 method=0;
 	u32 ContentLength=0, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = GF_FALSE;
+	Bool has_content_length = GF_FALSE;
 	Bool connection_keep_alive = GF_FALSE;
 	u32 connection_timeout=0;
 	char buf[1025];
@@ -3774,6 +3779,7 @@ process_reply:
 #endif
 			if (!stricmp(hdr->name, "Content-Length") ) {
 				ContentLength = (u32) atoi(hdr->value);
+				has_content_length=GF_TRUE;
 
 				if ((sess->rsp_code<300) && sess->cache_entry)
 					gf_cache_set_content_length(sess->cache_entry, ContentLength);
@@ -3807,15 +3813,20 @@ process_reply:
 			else if (!stricmp(hdr->name, "Content-Range")) {
 				if (!strnicmp(hdr->value, "bytes", 5)) {
 					val = hdr->value + 5;
-					if (val[0] == ':') val += 1;
-					while (val[0] == ' ') val += 1;
+					while (strchr(":= ", val[0]))
+						val++;
 
 					if (val[0] == '*') {
 						sscanf(val, "*/%u", &total_size);
+						sess->full_resource_size = total_size;
+						sess->rsp_code = 416;
+					} else if (strstr(val, "/*")) {
+						sscanf(val, "%u-%u/*", &first_byte, &last_byte);
+						sess->full_resource_size = 0;
 					} else {
 						sscanf(val, "%u-%u/%u", &first_byte, &last_byte, &total_size);
+						sess->full_resource_size = total_size;
 					}
-					sess->full_resource_size = total_size;
 				}
 			}
 			else if (!stricmp(hdr->name, "Accept-Ranges")) {
@@ -3964,6 +3975,18 @@ process_reply:
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 	}
 
+	//if we issued an open-range from end of file till unknown we may get a 416. If the server is indicating
+	//resource size and it matches our range, move to 206
+	if ((sess->rsp_code==416) && (sess->range_start==sess->full_resource_size)) {
+		sess->rsp_code = 206;
+		ContentLength = 0;
+		has_content_length = GF_TRUE;
+	}
+	//if no start range, a server may reply with 200 if open end range or if end range is file size
+	//move this to 200 to avoid triggering a byte range not supported detection
+	else if (sess->needs_range && (sess->rsp_code==200) && !sess->range_start && (!sess->range_end || (sess->range_end+1==ContentLength))) {
+		sess->rsp_code = 206;
+	}
 
 	par.msg_type = GF_NETIO_PARSE_REPLY;
 	par.error = GF_OK;
@@ -4128,8 +4151,8 @@ process_reply:
 			goto exit;
 		}
 		while (
-		    (new_location[strlen(new_location)-1] == '\n')
-		    || (new_location[strlen(new_location)-1] == '\r')  )
+			(new_location[strlen(new_location)-1] == '\n')
+			|| (new_location[strlen(new_location)-1] == '\r')  )
 			new_location[strlen(new_location)-1] = 0;
 
 		/*reset and reconnect*/
@@ -4187,7 +4210,7 @@ process_reply:
 
 		gf_dm_sess_user_io(sess, &par);
 		sess->status = GF_NETIO_DATA_EXCHANGE;
-		e = GF_OK;
+		e = GF_EOS;
 		break;
 	}
 	case 401:
@@ -4230,7 +4253,7 @@ process_reply:
 		}
 		return e;
 	}
-    case 400:
+	case 400:
 	case 501:
 		/* Method not implemented ! */
 		if (sess->http_read_type == HEAD) {
@@ -4266,12 +4289,12 @@ process_reply:
 		//fall-through
 
 /*	case 204:
-    case 504:
+	case 504:
 	case 404:
-    case 403:
-    case 416:
+	case 403:
+	case 416:
 */
-    default:
+	default:
 		gf_dm_sess_user_io(sess, &par);
 		if ((BodyStart < (s32) bytesRead)) {
 			sHTTP[bytesRead] = 0;
@@ -4289,7 +4312,9 @@ process_reply:
 		/* Forbidden */
 		case 403: e = GF_AUTHENTICATION_FAILURE; break;
 		/* Range not accepted */
-		case 416: e = GF_SERVICE_ERROR; break;
+		case 416:
+			e = GF_SERVICE_ERROR;
+			break;
 		case 504: e = GF_URL_ERROR; break;
 		default:
 			if (sess->rsp_code>=500) e = GF_REMOTE_SERVICE_ERROR;
@@ -4342,7 +4367,7 @@ process_reply:
 		sess->icy_bytes = 0;
 		sess->total_size = SIZE_IN_STREAM;
 		sess->status = GF_NETIO_DATA_EXCHANGE;
-	} else if (!ContentLength && !sess->chunked
+	} else if (!ContentLength && !has_content_length && !sess->chunked
 #ifdef GPAC_HTTPMUX
 		&& !sess->hmux_sess
 #endif
@@ -4378,6 +4403,12 @@ process_reply:
 		}
 		sess->status = GF_NETIO_DATA_EXCHANGE;
 		sess->bytes_done = 0;
+		if (!ContentLength && has_content_length) {
+			gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+			gf_dm_disconnect(sess, HTTP_NO_CLOSE);
+			sess->status = GF_NETIO_DATA_TRANSFERED;
+			return GF_OK;
+		}
 	}
 
 	/* we may have existing data in this buffer ... */
@@ -4408,7 +4439,7 @@ exit:
 		gf_cache_remove_entry_from_session(sess);
 		sess->cache_entry = NULL;
 		gf_dm_disconnect(sess, HTTP_NO_CLOSE);
-		if (connection_closed)
+		if ((e<0) && connection_closed)
 			sess->status = GF_NETIO_STATE_ERROR;
 		else
 			sess->status = GF_NETIO_DATA_TRANSFERED;
@@ -4655,10 +4686,13 @@ GF_HTTPSessionType gf_dm_sess_is_hmux(GF_DownloadSession *sess)
 Bool gf_dm_sess_use_tls(GF_DownloadSession * sess)
 {
 #ifdef GPAC_HAS_SSL
-	if (sess->ssl) return GF_TRUE;
+	if (sess->ssl)
+		return GF_TRUE;
 #endif
+
 #ifdef GPAC_HTTPMUX
-	if (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC) return GF_TRUE;
+	if (sess->hmux_sess && (sess->hmux_sess->net_sess->flags & GF_NETIO_SESSION_USE_QUIC))
+		return GF_TRUE;
 #endif
 	return GF_FALSE;
 }
@@ -4667,6 +4701,7 @@ u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess)
 {
 	if (!sess) return 0;
 	if (sess->full_resource_size) return sess->full_resource_size;
+	if (sess->needs_range) return 0;
 	return sess->total_size;
 }
 

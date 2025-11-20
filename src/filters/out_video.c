@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -137,7 +137,7 @@ typedef struct
 	//hold the frame until its CTS is reached, triggering drops at capture time
 	u32 raw_grab;
 	GF_DisplayOrientationType screen_orientation;
-	
+
 #ifdef VOUT_USE_OPENGL
 	GLint glsl_program;
 	GF_SHADERID vertex_shader;
@@ -236,6 +236,11 @@ static void vout_reset_overlay(GF_Filter *filter, GF_VideoOutCtx *ctx)
 		}
 		glDeleteTextures(1, &ctx->overlay_tx);
 		ctx->overlay_tx = 0;
+
+		if (!ctx->pid) {
+			glClear(GL_COLOR_BUFFER_BIT);
+			ctx->video_out->Flush(ctx->video_out, NULL);
+		}
 		if (filter)
 			gf_filter_lock(filter, GF_FALSE);
 	}
@@ -429,7 +434,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p && p->value.uint) {
 		if (ctx->buffer < p->value.uint) ctx->buffer = p->value.uint;
 	}
-	
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
 	ctx->raw_grab = p ? p->value.uint : 0;
 
@@ -689,6 +694,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_XRGB:
 	case GF_PIXEL_XBGR:
 	case GF_PIXEL_RGBX:
+	case GF_PIXEL_RGB_332:
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
@@ -1375,6 +1381,11 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			}
 		}
 
+		if (!ctx->sar.num || ctx->sar.den) {
+			ctx->sar.num = 1;
+			ctx->sar.den = 1;
+		}
+
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * v_h / v_w > ctx->display_height) {
 			ctx->dw = (Float) (ctx->display_height * v_w / v_h);
@@ -1750,17 +1761,25 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (!ctx->pid) {
+		GF_Err ret = GF_OK;
+		u32 resched = 100000;
 		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 
-		if (gf_filter_has_connect_errors(filter) || (gf_filter_all_sinks_done(filter) && !gf_filter_connections_pending(filter)))
+		if (gf_filter_has_connect_errors(filter)) {
 			return GF_EOS;
-		//when we use vout+aout on audio only, we want the filter to still be active to process events
-		gf_filter_post_process_task(filter);
-		gf_filter_ask_rt_reschedule(filter, 10000);
-
-		return ctx->oldata.ptr ? GF_OK : GF_EOS;
+		}
+		if (gf_filter_all_sinks_done(filter) && !gf_filter_connections_pending(filter)) {
+			ret = GF_EOS;
+		}
+		else if (ctx->oldata.ptr) {
+			ret = GF_EOS;
+			resched = 40000;
+		}
+		//we always reschedule when no input to avoid having a non-responding window
+		gf_filter_ask_rt_reschedule(filter, resched);
+		return ret;
 	}
 
 	pck = gf_filter_pid_get_packet(ctx->pid);
@@ -1806,7 +1825,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 		return ctx->aborted ? GF_EOS : GF_OK;
 	}
-	
+
 	if (!ctx->width || !ctx->height) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] pid display wsize unknown, discarding packet\n"));
 		gf_filter_pid_drop_packet(ctx->pid);
@@ -2150,10 +2169,8 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 	if ((ctx->pfmt && ctx->last_pck) || !ctx->pid || ctx->update_oldata) {
 #ifdef VOUT_USE_OPENGL
 		if (ctx->disp < MODE_2D) {
-			gf_rmt_begin_gl(vout_draw_gl);
 			glGetError();
 			vout_draw_gl(ctx, ctx->last_pck);
-			gf_rmt_end_gl();
 			glGetError();
 		} else
 #endif

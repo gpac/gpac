@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -241,11 +241,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		gf_filter_pid_drop_packet(ctx->in_pid);
 		return GF_OK;
 	}
-    //we don't own the codec and we're in end of stream, don't try to decode (the context might have been closed)
-    if (!pck && !ctx->owns_context) {
-        gf_filter_pid_set_eos(ctx->out_pid);
-        return GF_EOS;
-    }
+	//we don't own the codec and we're in end of stream, don't try to decode (the context might have been closed)
+	if (!pck && !ctx->owns_context) {
+		gf_filter_pid_set_eos(ctx->out_pid);
+		return GF_EOS;
+	}
 
 restart:
 
@@ -451,9 +451,9 @@ restart:
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	}
 
-    //rewrite dts and pts to PTS value
-    gf_filter_pck_set_dts(dst_pck, out_cts);
-    gf_filter_pck_set_cts(dst_pck, out_cts);
+	//rewrite dts and pts to PTS value
+	gf_filter_pck_set_dts(dst_pck, out_cts);
+	gf_filter_pck_set_cts(dst_pck, out_cts);
 
 	ff_pfmt = ctx->decoder->pix_fmt;
 	if (ff_pfmt==AV_PIX_FMT_YUVJ420P) {
@@ -478,6 +478,11 @@ restart:
 		dst_planes[0] =  (uint8_t *)out_buffer;
 		dst_stride[0] = 4*ctx->width;
 		pix_out = AV_PIX_FMT_RGBA;
+		break;
+	case GF_PIXEL_BGRA:
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_stride[0] = 4*ctx->width;
+		pix_out = AV_PIX_FMT_BGRA;
 		break;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YUV_10:
@@ -535,8 +540,13 @@ restart:
 
 	gf_filter_pck_set_seek_flag(dst_pck, GF_FALSE);
 
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 	if (frame->interlaced_frame)
 		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
+#else
+	if (frame->flags & AV_FRAME_FLAG_INTERLACED)
+		gf_filter_pck_set_interlaced(dst_pck, frame->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST ? 2 : 1);
+#endif
 
 	gf_filter_pck_send(dst_pck);
 
@@ -1119,9 +1129,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	else {
 		u32 codec_id, ff_codectag=0;
 
-        if (!ctx->owns_context) {
-            ctx->decoder = NULL;
-        }
+		if (!ctx->owns_context) {
+			ctx->decoder = NULL;
+		}
 		if (ctx->decoder) {
 			codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
 			//same codec, same config, don't reinit
@@ -1136,7 +1146,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				}
 			}
 
-            
+
 			//we could further optimize by detecting we have the same codecid and injecting the extradata
 			//but this is not 100% reliable, and will require parsing AVC/HEVC config
 			//since this seems to work properly with decoder close/open, we keep it as is

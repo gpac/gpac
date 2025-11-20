@@ -1,7 +1,7 @@
 # Common Dockerfile for building GPAC WASM
-FROM ubuntu:latest as base
+FROM ubuntu:latest AS base
 
-ARG EMSDK_VERSION=3.1.32
+ARG EMSDK_VERSION=4.0.12
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
@@ -24,10 +24,10 @@ RUN cd emsdk && ./emsdk install $EMSDK_VERSION && ./emsdk activate $EMSDK_VERSIO
 # Update environment variables
 ENV PATH="/emsdk:/emsdk/upstream/emscripten:${PATH}"
 ENV EMSDK="/emsdk"
-ENV EMSDK_NODE="/emsdk/node/18.20.3_64bit/bin/node"
+ENV EMSDK_NODE="/emsdk/node/22.16.0_64bit/bin/node"
 
 # Build GPAC WASM dependencies
-FROM base as deps
+FROM base AS deps
 
 # Install GPAC WASM dependencies
 RUN git clone --recurse-submodules --depth 1 https://github.com/gpac/deps_wasm
@@ -37,7 +37,7 @@ WORKDIR /deps_wasm
 RUN ./wasm_extra_libs.sh --enable-threading
 
 # Build GPAC
-FROM base as gpac
+FROM base AS gpac
 
 # Copy GPAC source code
 COPY . /gpac_public
@@ -46,6 +46,7 @@ WORKDIR /gpac_public
 # Copy GPAC WASM dependencies
 COPY --from=deps /deps_wasm/wasm_thread /deps_wasm/wasm_thread
 ENV PKG_CONFIG_PATH=/deps_wasm/wasm_thread/lib/pkgconfig
+
 
 # Configure GPAC
 RUN make distclean; ./configure --emscripten --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion"

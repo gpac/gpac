@@ -38,7 +38,8 @@ GF_OPT_ENUM (BsrwTimecodeMode,
 	BSRW_TC_REMOVE,
 	BSRW_TC_INSERT,
 	BSRW_TC_SHIFT,
-	BSRW_TC_CONSTANT
+	BSRW_TC_CONSTANT,
+	BSRW_TC_UTC
 );
 
 struct _bsrw_pid_ctx
@@ -81,6 +82,7 @@ struct _bsrw_ctx
 	char *tcxs, *tcxe, *tcsc;
 	GF_TimeCode tcxs_val, tcxe_val, tcsc_val;
 	BsrwTimecodeMode tc;
+	u64 last_tc_utc_now;
 };
 
 static GF_Err none_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket *pck)
@@ -150,7 +152,7 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	//get the current timecode
 	GF_TimeCode now = {0};
 	if (!tc_in) {
-		now.n_frames = n_frames;
+		now.n_frames = (u16) n_frames;
 		now.seconds = seconds;
 		now.minutes = minutes;
 		now.hours = hours;
@@ -183,11 +185,11 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 
 	//get max fps
 	Float fps = (Float) pctx->fps.num / pctx->fps.den;
-	u32 max_fps = gf_ceil(fps);
+	u32 max_fps = (u32) gf_ceil(fps);
 
 	//reset the output timecode
 	memset(tc_out, 0, sizeof(GF_TimeCode));
-	tc_out->max_fps = max_fps;
+	tc_out->max_fps = (Float)  max_fps;
 	tc_out->counting_type = ctx->tcdf ? 4 : 0;
 
 	//apply the timecode manipulation
@@ -197,14 +199,14 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		break;
 	case BSRW_TC_INSERT:
 		if (!ctx->tcsc_inferred) {
-			tc_out->n_frames = n_frames;
-			tc_out->seconds = seconds;
-			tc_out->minutes = minutes;
-			tc_out->hours = hours;
+			tc_out->n_frames = now.n_frames;
+			tc_out->seconds = now.seconds;
+			tc_out->minutes = now.minutes;
+			tc_out->hours = now.hours;
 			break;
 		} else {
 			//reset now, we will overwrite what we have
-			now.n_frames = n_frames;
+			now.n_frames = (u16) n_frames;
 			now.seconds = seconds;
 			now.minutes = minutes;
 			now.hours = hours;
@@ -250,6 +252,36 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 		tc_out->minutes = ctx->tcsc_val.minutes;
 		tc_out->hours = ctx->tcsc_val.hours;
 		break;
+	case BSRW_TC_UTC: {
+		u64 now = 0;
+		//check sender NTP on packet
+		const GF_PropertyValue *date = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
+		if (date) now = gf_net_ntp_to_utc(date->value.longuint);
+		//otherwise check UTC date mapping
+		else if ((date = gf_filter_pck_get_property(pck, GF_PROP_PCK_UTC_TIME))) {
+			now = date->value.longuint;
+		} else {
+			//otherwise use the current time
+			now = gf_net_get_utc();
+			//safety check: two consecutives gf_net_get_utc() calls could return the same value
+			if (now == ctx->last_tc_utc_now) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[BSRW] system call for getting provided the same value (" LLU "), increment by 1 frame. Consider adding a reframer with 'rt' option in your graph.\n", now));
+				now += gf_timestamp_rescale(1, max_fps, 1000)+1;
+			}
+			ctx->last_tc_utc_now = now;
+		}
+
+		//get tm struct
+		time_t utc_now = (time_t) (now / 1000);
+		struct tm *tm = gf_gmtime(&utc_now);
+
+		//convert to timecode
+		tc_out->n_frames = (u16) gf_timestamp_rescale(now % 1000, 1000, max_fps);
+		tc_out->seconds = (u8) tm->tm_sec;
+		tc_out->minutes = (u8) tm->tm_min;
+		tc_out->hours = (u8) tm->tm_hour;
+		break;
+	}
 
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] Unsupported timecode mode\n"));
@@ -257,11 +289,11 @@ static Bool bsrw_manipulate_tc(GF_FilterPacket *pck, GF_BSRWCtx *ctx, BSRWPid *p
 	}
 
 	if (ctx->tcdf) {
-		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
+		u32 frame_drift = (u32) gf_ceil(60 * (max_fps - fps));
 
 		//apply existing drop frame rollover
 		if (pctx->tc_drop_count) {
-			s32 drop_adj = gf_filter_pck_get_cts(pck) < pctx->drop_change_cts ? -frame_drift : 0;
+			s32 drop_adj = (gf_filter_pck_get_cts(pck) < pctx->drop_change_cts) ? -(s32)frame_drift : 0;
 			tc_out->n_frames += pctx->tc_drop_count + drop_adj;
 			tc_out->seconds += tc_out->n_frames / max_fps;
 			tc_out->n_frames %= max_fps;
@@ -374,7 +406,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 	GF_TimeCode tc_out;
 	Bool tc_change = bsrw_manipulate_tc(pck, ctx, pctx, tc_in, &tc_out);
-	sei_filter.extra_filter = tc_change ? -tc_sei_type : 0;
+	sei_filter.extra_filter = tc_change ? -(s32)tc_sei_type : 0;
 	if (tc_change && ctx->tc > BSRW_TC_REMOVE) {
 		gf_bs_write_int(bs_w, 0, 8*pctx->nalu_size_length);
 
@@ -443,10 +475,10 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		//write the SEI size
 		pos = gf_bs_get_position(bs_w);
 		gf_bs_seek(bs_w, size_pos);
-		gf_bs_write_int(bs_w, sei_size, 8);
+		gf_bs_write_int(bs_w, (u32) sei_size, 8);
 
 		//write the NAL size
-		u32 nal_size = pos - pctx->nalu_size_length;
+		u32 nal_size = (u32)pos - pctx->nalu_size_length;
 		gf_bs_seek(bs_w, 0);
 		gf_bs_write_int(bs_w, nal_size, 8*pctx->nalu_size_length);
 		gf_bs_seek(bs_w, pos);
@@ -514,7 +546,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		}
 	}
 
-	pck_size = gf_bs_get_position(bs_w);
+	pck_size = (u32) gf_bs_get_position(bs_w);
 	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
 	if (!dst) return GF_OUT_OF_MEM;
 	gf_filter_pck_merge_properties(pck, dst);
@@ -697,7 +729,7 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 
 	//send packet
 	u8* output = NULL;
-	pck_size = gf_bs_get_position(bs_w);
+	pck_size = (u32) gf_bs_get_position(bs_w);
 	GF_FilterPacket *dst = gf_filter_pck_new_alloc(pctx->opid, pck_size, &output);
 	gf_filter_pck_merge_properties(pck, dst);
 
@@ -806,6 +838,31 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
+static GF_Err reconfigure_alternative_transfer_characteristic(GF_BSRWCtx *ctx, BSRWPid *pctx)
+{
+	// skip if not applicable
+	const GF_PropertyValue *prop;
+	prop = gf_filter_pid_get_property(pctx->ipid, GF_PROP_PID_COLR_TRANSFER_ALT);
+	if (!prop) return GF_OK;
+	Bool rm_alt_trc_sei=GF_FALSE;
+	if(ctx->seis.nb_items > 0){
+		// atc SEI explicitly listed
+		for (u32 i = 0; i < ctx->seis.nb_items; i++) {
+			if (ctx->seis.vals[i] == 147) {
+				rm_alt_trc_sei = ctx->rmsei;
+				break;
+			}
+		}	
+	} else {
+		// explicit removal
+		rm_alt_trc_sei = ctx->rmsei;
+	}
+	if (rm_alt_trc_sei){
+		return gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, NULL);
+	}
+	return GF_OK;
+}
+
 static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
 	GF_HEVCConfig *hvcc;
@@ -841,7 +898,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if (ctx->pidc>=0) hvcc->profile_idc = ctx->pidc;
 	if (ctx->pspace>=0) hvcc->profile_space = ctx->pspace;
 	if (ctx->gpcflags>=0) hvcc->general_profile_compatibility_flags = ctx->gpcflags;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_hevc_cfg_write(hvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = hvcc->nal_unit_size;
@@ -883,7 +940,7 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	if (ctx->pidc>=0) vvcc->general_profile_idc = ctx->pidc;
 	if (ctx->lev>=0) vvcc->general_level_idc = ctx->pidc;
-
+	e = reconfigure_alternative_transfer_characteristic(ctx, pctx);
 
 	gf_odf_vvc_cfg_write(vvcc, &dsi, &dsi_size);
 	pctx->nalu_size_length = vvcc->nal_unit_size;
@@ -1120,8 +1177,8 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (ctx->tcdf) {
 		Float fps = (Float) pctx->fps.num / pctx->fps.den;
-		u32 max_fps = gf_ceil(fps);
-		u32 frame_drift = gf_ceil(60 * (max_fps - fps));
+		u32 max_fps = (u32) gf_ceil(fps);
+		u32 frame_drift = (u32) gf_ceil(60 * (max_fps - fps));
 		if (!frame_drift) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Requested to use NTSC drop-frame timecode, but fps does not impose any drift. Disabling drop-frame timecode\n"));
 			ctx->tcdf = GF_FALSE;
@@ -1268,7 +1325,8 @@ static GF_FilterArgs BSRWArgs[] =
 	"- remove: remove timecodes\n"
 	"- insert: insert timecodes based on cts or `tcsc` (if provided)\n"
 	"- shift: shift timecodes based by `tcsc`\n"
-	"- constant: overwrite timecodes with `tcsc`", GF_PROP_UINT, "none", "none|remove|insert|shift|constant", GF_FS_ARG_UPDATE},
+	"- constant: overwrite timecodes with `tcsc`\n"
+	"- utc: insert timecodes based on the utc time on the packet or the current time", GF_PROP_UINT, "none", "none|remove|insert|shift|constant|utc", GF_FS_ARG_UPDATE},
 	{ OFFS(seis), "list of SEI message types (4,137,144,...). When used with `rmsei`, this serves as a blacklist. If left empty, all SEIs will be removed. Otherwise, it serves as a whitelist", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
@@ -1350,6 +1408,9 @@ GF_FilterRegister BSRWRegister = {
 	"### Constant\n"
 	"Set all timecodes to the value defined in [-tcsc]().\n"
 	"Again, this mode wouldn't insert new timecodes.\n"
+	"### UTC\n"
+	"Uses the `SenderNTP` property, `UTC` property on the packet, or the current UTC time to set the timecode.\n"
+	"This mode will overwrite existing timecodes (if any).\n"
 	"## Examples\n"
 	"EX gpac -i in.mp4 bsrw:tc=insert [dst]\n"
 	"EX gpac -i in.mp4 bsrw:tc=insert:tcsc=TC00:00:10:00 [dst]\n"

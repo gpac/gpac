@@ -1016,7 +1016,7 @@ static GF_Err none_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacket *pck, u32 codec_type)
 {
 	u32 size, pck_size, min_nal_size;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u64 pck_ts;
 	Bool has_svc_prefix = GF_FALSE;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);

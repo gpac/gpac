@@ -292,10 +292,11 @@ _libgpac.gf_props_get_type_name.restype = c_char_p
 _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
-_libgpac.gf_sys_profiler_log.argtypes = [c_char_p]
-_libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
-_libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
-_libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
+_libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
+_libgpac.gf_rmt_get_peer_address.argtypes = [c_void_p]
+_libgpac.gf_rmt_get_peer_address.restype = c_char_p
+_libgpac.gf_rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
+
 
 _libgpac.gf_4cc_to_str.argtypes = [c_uint]
 _libgpac.gf_4cc_to_str.restype = c_char_p
@@ -403,57 +404,130 @@ def set_args(args):
     _libgpac.gf_sys_set_args(nb_args, cast(_libgpac._args, POINTER(POINTER(c_char))) )
 
 
+
+## enables websocket monitoring server
+# \param enable True/False enable or disable server
+def enable_rmtws(enable=True):
+    _libgpac.user_init = True
+    _libgpac.gf_sys_enable_rmtws(enable)
+
+
 ##\cond private
-_libgpac.gf_sys_profiler_set_callback.argtypes = [py_object, c_void_p]
-@CFUNCTYPE(c_int, c_void_p, c_char_p)
-def rmt_fun_cbk(_udta, text):
+_libgpac.gf_rmt_client_set_on_del_cbk.argtypes = [c_void_p, py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p)
+def rmt_fun_on_client_close_cbk(_udta):
+    print("rmt_fun_on_client_close_cbk")
     obj = cast(_udta, py_object).value
-    obj.on_rmt_event(text.decode('utf-8'))
+    obj._on_delete()
+    return 0
+##\endcond private
+
+##\cond private
+_libgpac.gf_rmt_client_set_on_data_cbk.argtypes = [c_void_p, py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p, c_void_p, c_uint64, gf_bool)
+def rmt_fun_on_client_data_cbk(_udta, data, size, is_binary):
+    obj = cast(_udta, py_object).value
+    data = string_at(data, size)
+    print(f"raw data: {data}")
+    obj._on_data(data, size, is_binary)
     return 0
 ##\endcond private
 
 
-## set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
-# \param callback_obj object to call back, must have a method `on_rmt_event` taking a single string parameter
-# \return True if success, False if no Remotery support
-def set_rmt_fun(callback_obj):
+## RMTClient object representing a websocket client
+# will be passed as parameter on rmt_ws callbacks
+class RMTClient():
+    def __init__(self, handler, client):
+        self._handler = handler
+        self._client = client
+
+        if hasattr(self._handler, 'on_client_close'):
+            _libgpac.gf_rmt_client_set_on_del_cbk(self._client, py_object(self), rmt_fun_on_client_close_cbk)
+
+        if hasattr(self._handler, 'on_client_data'):
+            _libgpac.gf_rmt_client_set_on_data_cbk(self._client, py_object(self), rmt_fun_on_client_data_cbk)
+
+
+    def _on_data(self, data, size, is_binary):
+        if hasattr(self._handler, 'on_client_data'):
+            if not is_binary:
+                data = data.decode("utf-8")
+            self._handler.on_client_data(self, data)
+
+
+    def _on_delete(self):
+        if hasattr(self._handler, 'on_client_data'):
+            err = _libgpac.gf_rmt_client_set_on_data_cbk(self._client, py_object(), None)
+
+        if hasattr(self._handler, 'on_client_close'):
+            err = _libgpac.gf_rmt_client_set_on_del_cbk(self._client, py_object(), None)
+            self._handler.on_client_close(self)
+
+        self._client = None
+
+    ## get the ip+port of the client (can be used as client id)
+    def peer_address(self):
+        if self._client:
+            return _libgpac.gf_rmt_get_peer_address(self._client).decode("utf-8")
+        pass
+
+    ## send data to the client on the websocket
+    def send(self, data):
+        print(f"client {self._client} sending {data} type {type(data)}")
+        if self._client:
+            is_binary = True
+            if type(data) == str:
+                data = data.encode('utf-8')
+                is_binary = False
+
+            return _libgpac.gf_rmt_client_send_to_ws(self._client, data, len(data), is_binary)
+        pass
+
+## RMTHandler object handling the callbacks for rmtws events
+#
+# to be passed to \ref python.libgpac.libgpac.set_rmt_handler "set_rmt_handler()"
+class RMTHandler():
+
+
+    ## called when a new client connects to the websocket
+    # \param client an object of type \ref python.libgpac.libgpac.RMTClient "RMTClient" representing the new client
+    def on_new_client(self, client: RMTClient):
+        pass
+
+    ## called when a client disconnects from the websocket
+    # \param client an object of type \ref python.libgpac.libgpac.RMTClient "RMTClient" representing the client
+    def on_client_close(self, client: RMTClient):
+        pass
+
+    ## called when a client receives data on its websocket
+    # \param client an object of type \ref python.libgpac.libgpac.RMTClient "RMTClient" representing the client
+    # \param data the received data, can be either str or bytes depending on the exchanged data
+    def on_client_data(self, client: RMTClient, data):
+        pass
+
+
+
+##\cond private
+_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
+@CFUNCTYPE(c_int, c_void_p, c_void_p)
+def rmt_fun_on_new_client_cbk(_udta, client):
+    obj = cast(_udta, py_object).value
+
+    rmt_client = RMTClient(obj, client)
+    obj.on_new_client(rmt_client)
+    return 0
+##\endcond private
+
+## set the handler for rmt_ws
+# \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
+def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
-    if hasattr(callback_obj, 'on_rmt_event')==False:
-        raise Exception('No on_rmt_event function on callback')
-    err = _libgpac.gf_sys_profiler_set_callback(py_object(callback_obj), rmt_fun_cbk)
-    if err<0:
-        return False
+    if hasattr(callback_obj, 'on_new_client'):
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        if err<0:
+            return False
+
     return True
-
-## send message to profiler (Remotery) - see \ref gf_sys_profiler_log
-# \param text text to send
-# \return True if success, False if no Remotery support
-def rmt_log(text):
-    err = _libgpac.gf_sys_profiler_log(text.encode('utf-8'))
-    if err<0:
-        return False
-    return True
-
-## send message to profiler (Remotery) - see \ref gf_sys_profiler_send
-# \param text text to send
-# \return True if success, False if no Remotery support
-def rmt_send(text):
-    err = _libgpac.gf_sys_profiler_send(text.encode('utf-8'))
-    if err<0:
-        return False
-    return True
-
-## check if profiler (Remotery) sampling is enabled - see \ref gf_sys_profiler_sampling_enabled
-# \return True if enabled, False otherwise
-def rmt_on():
-    return _libgpac.gf_sys_profiler_sampling_enabled()
-
-## enable or disable sampling in profiler (Remotery) - see \ref gf_sys_profiler_enable_sampling
-# \param value enable or disable sampling
-# \return
-def rmt_enable(value):
-    _libgpac.user_init = True
-    _libgpac.gf_sys_profiler_enable_sampling(value)
 
 
 ## sleep for given time in milliseconds
@@ -874,14 +948,16 @@ class FEVT_BufferRequirement(Structure):
     ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FEVT_EncodeHints
-class FEVT_EncodeHints(Structure):
+#Fields have the same types, names and semantics as \ref GF_FEVT_TransportHints
+class FEVT_TransportHints(Structure):
     ## \cond private
     _fields_ =  [
         ("type", c_uint),
         ("on_pid", _gf_filter_pid),
-        ("intra_period", Fraction),
-        ("gen_dsi_only", gf_bool)
+        ("flags", c_uint),
+        ("seg_duration", Fraction),
+        ("gen_dsi_only", gf_bool),
+        ("wait_seg_boundary", gf_bool)
     ]
     ## \endcond
 
@@ -1020,14 +1096,14 @@ class FilterEvent(Union):
         ("play", FEVT_Play),
         ("seek", FEVT_SourceSeek),
         ("attach_scene", FEVT_AttachScene),
-        ("user", FEVT_UserEvent),
+        ("user_event", FEVT_UserEvent),
         ("quality_switch", FEVT_QualitySwitch),
         ("visibility_hint", FEVT_VisibilityHint),
         ("buffer_req", FEVT_BufferRequirement),
         ("seg_size", FEVT_SegmentSize),
         ("frag_size", FEVT_FragmentSize),
         ("file_del", FEVT_FileDelete),
-        ("encode_hints", FEVT_EncodeHints),
+        ("transport_hints", FEVT_TransportHints),
         ("ntp", FEVT_NTPRef)
     ]
     ## \endcond
@@ -1649,7 +1725,7 @@ class FilterTask:
         return -1
 
 
-## filter session object - see \ref GF_FilterSession
+## filter session object - see \ref fs_grp
 class FilterSession:
     ## constructor for filter session - see \ref gf_fs_new
     #\param flags session flags (int)
@@ -1901,6 +1977,10 @@ _libgpac.gf_filter_get_id.argtypes = [_gf_filter]
 _libgpac.gf_filter_get_id.restype = c_char_p
 _libgpac.gf_filter_get_ipid_count.argtypes = [_gf_filter]
 _libgpac.gf_filter_get_opid_count.argtypes = [_gf_filter]
+_libgpac.gf_filter_get_status.argtypes = [_gf_filter]
+_libgpac.gf_filter_get_status.restype = c_char_p
+_libgpac.gf_filter_get_bytes_done.argtypes = [_gf_filter]
+
 
 
 
@@ -1969,6 +2049,9 @@ _libgpac.gf_filter_get_info.argtypes = [_gf_filter, c_uint, POINTER(POINTER(_gf_
 _libgpac.gf_filter_get_info.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_get_info_str.argtypes = [_gf_filter, c_char_p, POINTER(POINTER(_gf_property_entry))]
 _libgpac.gf_filter_get_info_str.restype = POINTER(PropertyValue)
+
+_libgpac.gf_filter_get_arg.argtypes = [_gf_filter, c_char_p, POINTER(PropertyValue)]
+_libgpac.gf_filter_get_arg.restype = gf_bool
 
 _libgpac.gf_filter_require_source_id.argtypes = [_gf_filter]
 
@@ -2084,7 +2167,7 @@ class HTTPOutRequest:
     def on_request(self, method, url, auth_code, headers):
         self.send()
 
-    ## Send the reply to the client. This can be called aither upon \ref on_request or later (asynchronously)
+    ## Send the reply to the client. This can be called aither upon \ref python.libgpac.libgpac.HTTPOutRequest.on_request "on_request()" or later (asynchronously)
     #\return
     def send(self):
         hdrs = None
@@ -2415,17 +2498,17 @@ class DASHCustomAlgorithm:
         pass
 
     ##Callback (optional) called when a new group (adaptation set) is created
-    #\param group the newly created \ref DASHGroup
+    #\param group the newly created \ref python.libgpac.libgpac.DASHGroup
     #\return
     def on_new_group(self, group):
         pass
 
 
     ##Callback (mandatory) called at the end of the segment download to perform rate adaptation
-    #\param group the \ref DASHGroup on which to perform adaptation
-    #\param base_group the associated base \ref DASHGroup (tiling only), or None if no base group
+    #\param group the \ref python.libgpac.libgpac.DASHGroup "DASHGroup" on which to perform adaptation
+    #\param base_group the associated base \ref python.libgpac.libgpac.DASHGroup "DASHGroup" (tiling only), or None if no base group
     #\param force_low_complexity indicates that the client would like a lower complexity (typically because it is dropping frames)
-    #\param stats the \ref DASHGroupStatistics  for the downloaded segment
+    #\param stats the \ref python.libgpac.libgpac.DASHGroupStatistics  for the downloaded segment
     #\return value can be:
     # - new quality index,
     # - -1 to take no decision
@@ -2435,8 +2518,8 @@ class DASHCustomAlgorithm:
         pass
 
     ##Callback (optional) called on regular basis during a segment download
-    #\param group the \ref DASHGroup associated with the current download
-    #\param stats the \ref DASHGroupDownloadStatistics for the download
+    #\param group the \ref python.libgpac.libgpac.DASHGroup "DASHGroup" associated with the current download
+    #\param stats the \ref python.libgpac.libgpac.DASHGroupDownloadStatistics "DASHGroupDownloadStatistics" for the download
     #\return value can be:
     #   - `-1` to continue download
     #   - `-2` to abort download but without retrying to downloading the same segment at lower quality
@@ -2535,7 +2618,7 @@ def _prop_to_python(pname, prop):
     if ptype==GF_PROP_VEC4I:
         return prop.value.vec4i
     if ptype==GF_PROP_STRING or ptype==GF_PROP_STRING_NO_COPY or ptype==GF_PROP_NAME:
-        return prop.value.string.decode('utf-8')
+        return prop.value.string.decode('utf-8') if prop.value.string else ""
     if ptype==GF_PROP_DATA or ptype==GF_PROP_DATA_NO_COPY or ptype==GF_PROP_CONST_DATA:
         return prop.value.data
     if ptype==GF_PROP_POINTER:
@@ -2597,6 +2680,12 @@ class Filter:
             ##number of output pids for that filter, readonly - see \ref gf_filter_get_opid_count
             #\hideinitializer
             self.nb_opid=0
+            ##status string for some filters, readonly - see \ref gf_filter_get_status
+            #\hideinitializer
+            self.status=0
+            ##bytes processed, readonly - see \ref gf_filter_get_bytes_done
+            #\hideinitializer
+            self.bytes_done=0
 
 
     ## \cond  private
@@ -2688,6 +2777,11 @@ class Filter:
             prop = _libgpac.gf_filter_pid_get_property_str(pid, _name)
         if prop:
             return _prop_to_python(prop_name, prop.contents)
+        else:
+            pypid = FilterPid(self, pid, None)
+            if hasattr(pypid, prop_name):
+                return getattr(pypid, prop_name)
+
         return None
 
     def _pid_prop(self, idx, prop_name, IsInput):
@@ -2831,6 +2925,40 @@ class Filter:
             a_idx+=1
         return res
 
+    ##gets the current value of an argument of the filter - see \ref gf_filter_get_arg
+    #\param arg_name name of argument (as python str)
+    #\return argument value or None if not found
+    def get_arg_value(self, arg_name):
+        prop = PropertyValue()
+        res = _libgpac.gf_filter_get_arg(self._filter, arg_name.encode('utf-8'), byref(prop))
+        if res:
+            return _prop_to_python(arg_name, prop)
+        else:
+            return None
+
+
+    ##gets all arguments of filter with type, description, and value as a python dict
+    #\return array of dictionnary structure containing arguments details
+    def all_args_value(self):
+        res = []
+
+        for arg in self.all_args():
+            arg_name = arg.name.decode('utf-8')
+            argval = self.get_arg_value(arg_name)
+
+            res.append( {
+                'name': arg_name,
+                'type': _libgpac.gf_props_get_type_name(arg.type).decode('utf-8'),
+                'value': str(argval),
+                'description': arg.description.decode('utf-8'),
+                'default': "" if not arg.default else arg.default.decode('utf-8'),
+                'min_max_enum': "" if not arg.min_max_enum else arg.min_max_enum.decode('utf-8'),
+            })
+
+        return res
+
+
+
     ##gets a property info on a filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str
     #\param prop_name property to query
     #\return property value or None if not found
@@ -2921,7 +3049,7 @@ class Filter:
     #
     #Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
     #
-    #For DASH, the object must derive from or implement the methods of the \ref DASHCustomAlgorithm class:
+    #For DASH, the object must derive from or implement the methods of the \ref python.libgpac.libgpac.DASHCustomAlgorithm "DASHCustomAlgorithm" class:
     #
     #\param object object to bind
     #\return
@@ -2952,6 +3080,14 @@ class Filter:
     @property
     def nb_opid(self):
         return _libgpac.gf_filter_get_opid_count(self._filter)
+
+    @property
+    def status(self):
+        return _libgpac.gf_filter_get_status(self._filter).decode('utf-8')
+
+    @property
+    def bytes_done(self):
+        return _libgpac.gf_filter_get_bytes_done(self._filter)
 
     ##\endcond
 
@@ -3635,6 +3771,9 @@ class FilterPid:
             ##True if buffer is full, readonly - see \ref gf_filter_pid_query_buffer_duration
             #\hideinitializer
             self.buffer_full=0
+            ##total level of buffer, readonly - see \ref gf_filter_pid_query_buffer_duration
+            #\hideinitializer
+            self.buffer_total=0
             ##True if no pending packet, readonly - see \ref gf_filter_pid_first_packet_is_empty
             #\hideinitializer
             self.first_empty=0
@@ -4117,6 +4256,12 @@ class FilterPid:
         else:
             return False
 
+    ##total buffer level - see \ref gf_filter_pid_query_buffer_duration
+    #\return
+    @property
+    def buffer_total(self):
+        return _libgpac.gf_filter_pid_query_buffer_duration(self._pid, True)
+
     ##True if no pending packet - see \ref gf_filter_pid_first_packet_is_empty
     #\return
     @property
@@ -4448,7 +4593,7 @@ class FilterPacket:
     ##creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
     #The resulting packet is read/write mode and may have its own memory allocated.
     #This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
-    #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garbage collected.
+    #the resulting packet can be explicitly discarded using \ref python.libgpac.libgpac.FilterPacket.discard "discard()", otherwise will be garbage collected.
     #\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
     #\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
     def clone(self, cached_pck=None):

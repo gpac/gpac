@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -157,13 +157,14 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 
 }
 
-
+//set to 0 to disable max URL len - we don't use MAX_PATH as it can be small on some systems
+#define MAX_URL_LEN		4096
 static char *gf_url_concatenate_ex(const char *parentName, const char *pathName, Bool relative_to_parent)
 {
 	u32 pathSepCount, i, prot_type;
 	Bool had_sep_count = GF_FALSE;
 	char *outPath, *name, *rad, *tmp2;
-	char tmp[GF_MAX_PATH];
+	char *tmp = NULL;
 
 	if (!pathName && !parentName) return NULL;
 	if (!pathName) return gf_strdup(parentName);
@@ -179,10 +180,13 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 			return NULL;
 		return gf_strdup( gf_fileio_url(gfio_new) );
 	}
-	if ((strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH)) {
+
+#if MAX_URL_LEN
+	if ((strlen(parentName) > MAX_URL_LEN) || (strlen(pathName) > MAX_URL_LEN)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("URL too long for concatenation: \n%s\n", pathName));
 		return NULL;
 	}
+#endif
 
 	while (!strncmp(parentName, "./.", 3) || !strncmp(parentName, ".\\.", 3)) {
 		parentName += 2;
@@ -303,7 +307,9 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	}
 	if (!name) name = (char *) pathName;
 
-	strcpy(tmp, parentName);
+	gf_dynstrcat(&tmp, parentName, NULL);
+	if (!tmp) return NULL;
+
 	while (strchr(" \r\n\t", tmp[strlen(tmp)-1])) {
 		tmp[strlen(tmp)-1] = 0;
 	}
@@ -335,7 +341,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 
 	if (pathSepCount)
 		had_sep_count = GF_TRUE;
-	/*remove the last /*/
+	/*remove the last */
 	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
 		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {
@@ -350,13 +356,13 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	if (!i) {
 		tmp[i] = 0;
 		while (pathSepCount) {
-			strcat(tmp, "../");
+			gf_dynstrcat(&tmp, "../", NULL);
 			pathSepCount--;
 		}
 	}
 	//path is relative to current dir
 	else if (!relative_to_parent && (pathName[0]=='.') && ((pathName[1]=='/') || (pathName[1]=='\\') ) ) {
-		strcat(tmp, "/");
+		gf_dynstrcat(&tmp, "/", NULL);
 	}
 	//parent is relative to current dir
 	else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
@@ -386,11 +392,13 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 			len -= sep_len;
 			nb_path_sep--;
 		}
-		strcpy(tmp, "");
+		if (tmp) gf_free(tmp);
+		tmp=NULL;
+		gf_dynstrcat(&tmp, "", NULL);
 		while (nb_path_sep--)
-			strcat(tmp, "../");
+			gf_dynstrcat(&tmp, "../", NULL);
 	} else {
-		strcat(tmp, "/");
+		gf_dynstrcat(&tmp, "/", NULL);
 	}
 
 	i = (u32) strlen(tmp);
@@ -417,6 +425,7 @@ check_spaces:
 		}
 		i++;
 	}
+	if (tmp) gf_free(tmp);
 	return outPath;
 }
 GF_EXPORT

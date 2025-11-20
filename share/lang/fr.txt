@@ -282,7 +282,7 @@ toolX peut être l'un des suivants:
 	author: outils de création (hint, import, export)
 	sync: messages de synchro
 	codec: messages des encodeurs/décodeurs
-	parser: scene parsers (svg, xmt, bt) 
+	parser: scene parsers (svg, xmt, bt)
 	media: gestion des objets media dans le compositor
 	scene: arbre de scene et gestionnaire de scene
 	script: scripts
@@ -439,24 +439,18 @@ font-dirs=indique une liste de répertoires (séparés par des virgules) où tro
 font-dirs_crc=111907503
 rescan-fonts=ndique que le(s) répertoire(s) des polices de charactères doit être réanalysé
 rescan-fonts_crc=3797274707
-rmt=active le profilage via Remotery (https://github.com/Celtoys/Remotery). Une copie du visualiseur Remotery se trouve dans gpac/share/vis, généralement installée dans /usr/share/gpac/vis ou Program Files/GPAC/vis
-rmt_crc=2323200474
-rmt-port=définit le port de Remotery
-rmt-port_crc=3708528921
-rmt-reuse=autorise la réutilisation de port ouvert par Remotery
-rmt-reuse_crc=3607580606
-rmt-localhost=force Remotery à n'autoriser que les connections depuis localhost
-rmt-localhost_crc=1239978781
-rmt-sleep=temps de veille de Remotery en ms entre deux mise à jours serveur
-rmt-sleep_crc=3230696886
-rmt-nmsg=définit le nombre de messages par mise à jour pour Remotery
-rmt-nmsg_crc=4237510619
-rmt-qsize=définit la taille de la queue de message pour Remotery
-rmt-qsize_crc=1971622359
-rmt-log=redirige les journaux vers remotery (expérimental, généralement mal géré par le navigateur)
-rmt-log_crc=3311201781
-rmt-ogl=analyse aussi les performances OpenGL pour Remotery
-rmt-ogl_crc=978980191
+rmt=active le monitoring via websocket rmtws. Des exemples d'utilisation se trouvent dans gpac/share/rmtws, généralement installée dans /usr/share/gpac/rmtws ou Program Files/GPAC/rmtws
+rmt_crc=1219471459
+rmt-port=définit le port de rmtws
+rmt-port_crc=1480720728
+rmt-localhost=force rmtws à n'autoriser que les connections depuis localhost
+rmt-localhost_crc=2774751684
+rmt-sleep=temps de veille de rmtws en ms entre deux mise à jours serveur
+rmt-sleep_crc=2301762439
+rmt-cert=Fichier contenant le certificat au format PEM pour activer le mode TLS de rmtws
+rmt-cert_crc=1601346270
+rmt-pkey=Fichier contenant la clé privée au format PEM pour activer le mode TLS de rmtws
+rmt-pkey_crc=2436185140
 [properties]
 ID=ID du flux
 ID_crc=131976233
@@ -542,7 +536,7 @@ PixelFormat=Format de pixel des données décompréssées
 PixelFormat_crc=1678811690
 Stride=Largeur de ligne en octet d'un plan Y/alpha ou de l'image (formats non planaire)
 Stride_crc=76106405
-StrideUV=Largeur de ligne en octet d'un plan U/V 
+StrideUV=Largeur de ligne en octet d'un plan U/V
 StrideUV_crc=1964825709
 BitDepthLuma=Nombre de bits pour les composants luma
 BitDepthLuma_crc=4028264643
@@ -654,7 +648,7 @@ SenderNTP=Temps d'envoi NTP
 SenderNTP_crc=618552461
 Encrypted=Les paquets du flux sont cryptés par défaut (mais l'état de cryptage est indiqué par  paquet) - les modifications sont signalées via pid_set_info (pas de reconfiguration)
 Encrypted_crc=18696922
-OMAPreview=Plage d'aperçu en clair pour OMA 
+OMAPreview=Plage d'aperçu en clair pour OMA
 OMAPreview_crc=112468299
 CENC_PSSH=Blob binaire PSSH pour CENC, au format (u32)NbSystems [(bin128)SystemID(u32)version(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
 CENC_PSSH_crc=297854741
@@ -941,7 +935,7 @@ fpack=indicates default frame packing of input video
 fpack_crc=2619447659
 camlay=sets camera layout in multiview modes
 camlay_crc=4152486677
-iod=specifies the eye separation in cm (distance between the cameras). 
+iod=specifies the eye separation in cm (distance between the cameras).
 iod_crc=1720965022
 rview=reverse view order
 rview_crc=591231777
@@ -1123,7 +1117,7 @@ index_dur_crc=400520
 [oggdmx]
 desc=OGG demuxer
 desc_crc=209586963
-index_dur=indexing window length (unimplemented, only 0 disables stream probing for duration), 
+index_dur=indexing window length (unimplemented, only 0 disables stream probing for duration),
 index_dur_crc=4269948406
 [vorbisdec]
 desc=OGG/Vorbis decoder
@@ -1171,7 +1165,7 @@ mime=indicates mime type of udp data
 mime_crc=2546177900
 block=set blocking mode for socket(s)
 block_crc=3267148328
-reorder_pck=number of packets delay for RTP reordering (M2TS over RTP) 
+reorder_pck=number of packets delay for RTP reordering (M2TS over RTP)
 reorder_pck_crc=2530740796
 reorder_delay=number of ms delay for RTP reordering (M2TS over RTP)
 reorder_delay_crc=3603041699
@@ -1304,7 +1298,7 @@ pack_nal=repacks NALU size length to minimum possible size for AVC/HEVC/...
 pack_nal_crc=2589428755
 xps_inband=Use inband param set for AVC/HEVC/.... If mix, creates non-standard files using single sample entry with first PSs found, and moves other PS inband
 xps_inband_crc=131735851
-store=Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.  
+store=Write mode. inter uses cdur to interleave the file. flat writes a flat file, file at end. cap flushes to disk as soon as samples are added. tight uses per-sample interleaving of all tracks. frag framents the file using cdur duration. sfrag framents the file using cdur duration but adjusting to start with SAP1/3.
 store_crc=809072118
 cdur=chunk duration for interleaving and fragmentation modes
 cdur_crc=3889103669
@@ -1545,7 +1539,7 @@ help=@The file output filter can work as a null sink when its destination is "nu
 In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a start block set, unless operating in cat mode.
 The output file name can use gpac templating mechanism, see gpac help.@
 help_crc=606079466
-dst=location of destination file - see filter help 
+dst=location of destination file - see filter help
 dst_crc=2944539646
 append=open in append mode
 append_crc=3838208913
@@ -1802,7 +1796,7 @@ desc=MPEG-2 Transport Stream muxer
 desc_crc=869983974
 help=@GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.
 For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.
-Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID inidcated by sid option
+Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID indicated by sid option
 name option is overriden by input PID property ServiceName
 provider option is overriden by input PID property ServiceProvider
 
@@ -2113,7 +2107,7 @@ It can be set to run forever (until the session is closed), ignoring any potenti
 Data format of the pipe should be specified using extension (either in file name or through ext option) or mime type.
 If neither is set, data format probing will be done
 
-On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set 
+On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set
 	EX dst=mypipe resolves in \\.\pipe\gpac\mypipe
 	EX dst=\\.\pipe\myapp\mypipe resolves in \\.\pipe\myapp\mypipe
 Any destination name starting with \\ is used as is, with \ translated in /
@@ -2151,7 +2145,7 @@ The assoicated protocol scheme is pipe:// when loaded as a generic output (eg, -
 Data format of the pipe must currently be specified using extension (either in filename or through ext option) or mime type
 The pipe name indicated in dst can use template mechanisms from gpac, e.g. dst=pipe_$ServiceID$
 
-On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set 
+On Windows hosts, the default pipe prefix is "\\.\pipe\gpac\" if no prefix is set
 	EX dst=mypipe resolves in \\.\pipe\gpac\mypipe
 	EX dst=\\.\pipe\myapp\mypipe resolves in \\.\pipe\myapp\mypipe
 Any destination name starting with \\ is used as is, with \ translated in /

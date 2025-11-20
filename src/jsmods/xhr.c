@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2024
+ *			Copyright (c) Telecom ParisTech 2007-2025
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
@@ -371,8 +371,9 @@ static void xml_http_finalize(JSRuntime *rt, JSValue obj)
 static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 {
 	GF_SceneGraph *scene;
+	JSClassID _classID;
 	JSValue global = JS_GetGlobalObject(c);
-	scene = (GF_SceneGraph *) JS_GetOpaque_Nocheck(global);
+	scene = (GF_SceneGraph *) JS_GetAnyOpaque(global, &_classID);
 	JS_FreeValue(c, global);
 	return scene;
 }

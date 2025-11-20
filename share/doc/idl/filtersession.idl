@@ -26,7 +26,7 @@ attribute JSFilterSession session;
 \param log the string to write
 */
 void print(DOMString log);
-/*! global context function for printing 
+/*! global context function for printing
 \param log_level the log level to use: GF_LOG_DEBUG, GF_LOG_INFO, GF_LOG_WARNING, GF_LOG_ERROR. The special value -2 means print as gf_sys_format_help without highlight, the special value -1 means print as gf_sys_format_help with hightlight of first)
 \param log_str the string to write
 */
@@ -36,7 +36,7 @@ void print(long log_level, DOMString log_str);
 /*!\brief JSFilterSession API
 
 The JSFilterSession interface has a single instance exposed to the script under the name "session".
-It implements binding to the underlying filter session object, see \ref GF_FilterSession.
+It implements binding to the underlying filter session object, see \ref fs_grp.
 
 */
 interface JSFilterSession {
@@ -71,34 +71,17 @@ The session only needs to be locked when enumerating filters
 */
 void lock_filters(boolean do_lock);
 
-/*! returns the JSFSFilter object for the given index. 
-\param index index of filter to query. This index is only valid when session is locked 
+/*! returns the JSFSFilter object for the given index.
+\param index index of filter to query. This index is only valid when session is locked
 \return the filter object, null if none found
 */
 JSFSFilter get_filter(unsigned long index);
 
-/*! returns the JSFSFilter object for a given filter iname. 
-\param iname the iname of filter to query 
+/*! returns the JSFSFilter object for a given filter iname.
+\param iname the iname of filter to query
 \return the filter object, null if none found
 */
 JSFSFilter get_filter(DOMString iname);
-
-
-/*! enable remotery - this should be called as early as possible in the session
-*/
-void enable_rmt();
-
-/*! sends the given string to the remotery client(s)
-\param command the command to send
-\return error code if any
-*/
-void rmt_send(DOMString command);
-
-/*! sets callback function to use when processing remotery client request
-\param callback the callback function to call. This function takes one parameter which is the text being received
-\return error code if any
-*/
-void set_rmt_fun(function callback);
 
 /*! inserts a filter in graph
 
@@ -127,7 +110,7 @@ void set_new_filter_fun(function callback);
 */
 void set_del_filter_fun(function callback);
 
-/*! sets callback function to get events being sent back to application (see \ref gf_fs_set_ui_callback). 
+/*! sets callback function to get events being sent back to application (see \ref gf_fs_set_ui_callback).
 \param callback callback function - it is passed a single parameter set, an event instance of FilterEvent interface. The return value of the function should be as indicated for each event type*/
 void set_event_fun(function callback);
 
@@ -149,7 +132,7 @@ void set_auth_fun(function callback);
 \return true if event was fired, false if no event target was found or if the filter is not an event target*/
 boolean fire_event(FilterEvent evt, optional JSFSFilter *filter=null, optional boolean upstream=false);
 
-/*! enables session reporting - see \ref gf_fs_enable_reporting. 
+/*! enables session reporting - see \ref gf_fs_enable_reporting.
 \param enable enables reporting if true*/
 void reporting(boolean enable);
 
@@ -232,8 +215,8 @@ readonly DOMString blacklist;
 
 /*!\brief JSFSFilter API
 
-The JSFSFilter interface provides tools to query and update filters in a session. 
-It implements binding to the underlying filter object, see \ref GF_Filter.
+The JSFSFilter interface provides tools to query and update filters in a session.
+It implements binding to the underlying filter object, see \ref fs_filter.
 */
 interface JSFSFilter {
 /*! filter name - may be changed at run-time by the filter*/
@@ -314,7 +297,7 @@ FilterProperty ipid_props(unsigned long idx, DOMString name);
 
 /*! Enumerates properties on input pid
 \param idx the index of the input pid to query
-\param fun_callback function called for each property in the input pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
+\param fun_callback function called for each property in the input pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty)
 */
 void ipid_props(unsigned long idx, function fun_callback);
 
@@ -327,7 +310,7 @@ FilterProperty opid_props(unsigned long idx, DOMString name);
 
 /*! Enumerates properties on output pid
 \param idx the index of the output pid to query
-\param fun_callback function called for each property in the output pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty) 
+\param fun_callback function called for each property in the output pid. The function has three parameters: name (DOMString), type (DOMString), value (FilterProperty)
 */
 void opid_props(unsigned long idx, function fun_callback);
 
@@ -385,13 +368,13 @@ Array opid_sinks(unsigned long idx);
 
 /*! Gets all arguments (options) of the filter
 \param value_only if true, only returns name (DOMString) and value (FilterProperty) of each argument. Otherwise returns the full argument (JSFSFilterArg)
-\return array of JSFSFilterArg 
+\return array of JSFSFilterArg
 */
 Array all_args(optional boolean value_only=true);
 
 /*! Gets value of a given argument of the filter
 \param arg_name argument name
-\return property value, or null 
+\return property value, or null
 */
 FilterProperty get_arg(DOMString arg_name);
 
@@ -453,6 +436,4 @@ optional attribute DOMString hint;
 };
 
 
-
 /*! @} */
-

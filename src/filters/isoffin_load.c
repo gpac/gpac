@@ -678,6 +678,9 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 			}
 			break;
 		}
+
+		if (dyname)
+			gf_free(dyname);
 	}
 
 	if (gf_sys_old_arch_compat()) {
@@ -763,6 +766,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		kinds.value.string_list.nb_items = nb_udta = gf_isom_get_user_data_count(read->mov, ch->track, GF_ISOM_BOX_TYPE_KIND, NULL);
 		if (nb_udta) {
 			kinds.value.string_list.vals = gf_malloc(sizeof(char*)*nb_udta);
+			memset(kinds.value.string_list.vals, 0, sizeof(char*)*nb_udta);
 			for (i=0; i<nb_udta; i++) {
 				char *scheme=NULL, *val=NULL;
 				gf_isom_get_track_kind(read->mov, ch->track, i, &scheme, &val);
@@ -1095,6 +1099,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 			break;
 
+		case GF_ISOM_SUBTYPE_AC4:
+		{
+			GF_AC4Config *ac4cfg = gf_isom_ac4_config_get(read->mov, track, stsd_idx);
+			codec_id = GF_ISOM_SUBTYPE_AC4;
+			if (ac4cfg) {
+				gf_odf_ac4_cfg_write(ac4cfg, &dsi, &dsi_size);
+				gf_odf_ac4_cfg_del(ac4cfg);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d missing AC4 configuration !\n", track));
+			}
+		}
+			break;
 		case GF_ISOM_SUBTYPE_MLPA:
 		{
 			u32 fmt, prate;
