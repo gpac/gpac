@@ -1,7 +1,8 @@
-import nodeGypBuild from "node-gyp-build";
 import fs from "fs";
 import url from "url";
 import path from "path";
+import { createRequire } from "module";
+import nodePreGyp from "@mapbox/node-pre-gyp";
 
 const scriptDir =
   typeof __dirname !== "undefined"
@@ -16,6 +17,7 @@ const scriptDir =
         })()
       );
 const packageDir = path.resolve(scriptDir, "..");
+const require = createRequire(packageDir);
 
 // Check the package version
 const packageJSONPath = path.resolve(packageDir, "package.json");
@@ -23,8 +25,11 @@ const packageJSON = JSON.parse(fs.readFileSync(packageJSONPath, "utf8"));
 const { version } = packageJSON;
 const [major, minor, _] = version.split(".").map(Number);
 
+// Load the native addon
+const binding_path = nodePreGyp.find(packageJSONPath);
+const gpac = require(binding_path);
+
 // Check the ABI version
-const gpac = nodeGypBuild(packageDir);
 const gpac_major = gpac.gf_gpac_abi_major();
 const gpac_minor = gpac.gf_gpac_abi_minor();
 

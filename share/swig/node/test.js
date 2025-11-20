@@ -1,17 +1,9 @@
-import gpac from "./index.js";
+import gpac from "./dist/index.mjs";
+import assert from "assert";
 
-gpac.gf_sys_init(gpac.GF_MemTrackerNone, "");
-
+process.stdout.write("[test] gpac loads...");
+gpac.gf_sys_init(gpac.GF_MemTrackerNone, "gpac");
 const fs = gpac.GF_FilterSession.new_defaults(0);
-
-fs.load_filter("avgen:v:dur=2");
-fs.load_filter("vout");
-
-try {
-  fs.run();
-} catch (e) {
-  console.log("Error stopping filter session:", e.message);
-}
-
-fs.stop();
-console.log("Filter session stopped and deleted");
+assert(fs !== null, "Failed to create default filter session");
+gpac.gf_sys_close();
+process.stdout.write(" OK\n");

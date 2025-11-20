@@ -18,7 +18,6 @@
   "module": "./dist/index.mjs",
   "types": "index.d.ts",
   "files": [
-    "prebuilds/",
     "dist/",
     "binding.gyp",
     "gpac_wrap.cpp",
@@ -43,19 +42,24 @@
   "author": "Team GPAC",
   "scripts": {
     "prepublishOnly": "cp ../../../README.md .",
-    "install": "node-gyp-build",
-    "prebuild": "prebuildify --strip --napi",
-    "build": "npm run build:esm && npm run build:cjs",
+    "install": "node-pre-gyp install --fallback-to-build",
+    "test": "npm run build && node test.js",
+    "build": "npm run install && npm run build:esm && npm run build:cjs",
     "build:esm": "esbuild --platform=node --format=esm --outfile=dist/index.mjs index.js",
     "build:cjs": "esbuild --platform=node --format=cjs --outfile=dist/index.cjs index.js"
   },
   "dependencies": {
-    "node-addon-api": "^8.3.1",
-    "node-gyp": "^11.2.0",
-    "node-gyp-build": "^4.8.4"
+    "@mapbox/node-pre-gyp": "^2.0.0",
+    "node-addon-api": "^8.5.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.4",
-    "prebuildify": "^6.0.1"
+    "esbuild": "^0.25.4"
+  },
+  "binary": {
+    "module_name": "gpac-js",
+    "module_path": "./lib/binding/{node_abi}-{platform}-{arch}/",
+    "remote_path": "./v{version}/",
+    "host": "https://dist.gpac.io/gpac/node",
+    "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{arch}.tar.gz"
   }
 }

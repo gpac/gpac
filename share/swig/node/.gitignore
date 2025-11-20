@@ -3,6 +3,6 @@ build
 node_modules
 gpac_wrap.cpp
 index.d.ts
-prebuilds
+lib
 dist
 README.md
