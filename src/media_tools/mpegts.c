@@ -1563,6 +1563,15 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						case GF_M2TS_RA_STREAM_DTS3:
 							es->stream_type = GF_M2TS_AUDIO_DTS;
 							break;
+						case GF_M2TS_RA_STREAM_AVSA:
+							es->stream_type = GF_M2TS_AUDIO_AVS3;
+							break;
+						case GF_M2TS_RA_STREAM_AVSV:
+							es->stream_type = GF_M2TS_VIDEO_AVS3;
+							// AVS3-P6-TAI 109.6 Table-9
+							if (len<10) break;
+							memcpy(pes->avs3_video_descriptor, data+6, 10);
+							break;
 						case GF_M2TS_RA_STREAM_OPUS:
 							es->stream_type = GF_M2TS_AUDIO_OPUS;
 							break;

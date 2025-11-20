@@ -325,6 +325,8 @@ enum
 	GF_M2TS_RA_STREAM_DTS3		= GF_4CC('D','T','S','3'),
 	GF_M2TS_RA_STREAM_OPUS		= GF_4CC('O','p','u','s'),
 	GF_M2TS_RA_STREAM_DOVI		= GF_4CC('D','O','V','I'),
+	GF_M2TS_RA_STREAM_AVSA		= GF_4CC('A','V','S','A'), // AVS2-3 Audio
+	GF_M2TS_RA_STREAM_AVSV		= GF_4CC('A','V','S','V'), // AVS2-3 Video
 	GF_M2TS_RA_STREAM_AV1		= GF_4CC('A','V','0','1'),
 	GF_M2TS_RA_STREAM_SCTE35	= GF_4CC('C','U','E','I'),
 
@@ -909,6 +911,8 @@ typedef struct tag_m2ts_pes
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
 	/*! Metadata descriptor (for ID3)*/
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
+	/*! AVS3 Video descriptors*/
+	u8 avs3_video_descriptor[10];
 
 	/*! last received TEMI payload*/
 	u8 *temi_tc_desc;
