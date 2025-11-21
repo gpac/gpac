@@ -73,7 +73,7 @@ IGNORE_FNS = [
     "gf_bin128_parse",  # issue
     "gf_filter_set_probe_data_cbk",  # issue
     "gf_filter_pid_raw_new",  # defined in __gf_filter and __gf_filter_pid
-    "gf_filter_pid_raw_gmem", # defined in __gf_filter and __gf_filter_pid
+    "gf_filter_pid_raw_gmem",  # defined in __gf_filter and __gf_filter_pid
     "gf_user_credentials_find_for_site",  # requires manual mapping
     "gf_user_credentials_register",  # requires manual mapping
     "gf_props_reset_single",  # requires manual mapping
@@ -704,6 +704,8 @@ def generate_swig_file(struct_functions, structs, lang):
                         public_type.group(1),
                         f"struct {struct_functions[public_type.group(1)]['iname']}",
                     )
+            elif name == "Bool":
+                return "bool"
             return name
 
         def get_args(fn):
@@ -997,7 +999,9 @@ type UnexportedStruct = {
         for fn in sorted(struct_info["functions"], key=lambda f: f.name):
             out += f"\t{fn.alias}("
             out += ", ".join(
-                f"{arg['name']}: {jsify_type(arg['type'])}" for arg in fn.args
+                f"{arg['name']}: {jsify_type(arg['type'])}"
+                for arg in fn.args
+                if arg["type"] != struct_name + " *" and arg["type"] != "GF_Err *"
             )
             out += f"): {jsify_type(fn.return_type)};\n"
             fns_decl.add(fn.name)
