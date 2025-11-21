@@ -141,12 +141,12 @@ typedef enum
 /*! non-VCL crypt modes (for avc1 CTR CENC edition 1) */
 typedef enum
 {
+	/*! all encrypted (except nal header) */
+	GF_CRYPT_NONVCL_CLEAR_NONE = 0,
 	/*! keep SEI and AUD in clear */
-	GF_CRYPT_NONVCL_CLEAR_SEI_AUD = 0,
+	GF_CRYPT_NONVCL_CLEAR_SEI_AUD,
 	/*! all clear */
 	GF_CRYPT_NONVCL_CLEAR_ALL,
-	/*! all encrypted (except nal header) */
-	GF_CRYPT_NONVCL_CLEAR_NONE,
 } GF_CryptNonVCL;
 
 /*! Crypto information for one media stream*/
