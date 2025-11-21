@@ -9394,6 +9394,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
+
 			u64 ts = gf_filter_pck_get_cts(pck);
 			if (ts != GF_FILTER_NO_TS) {
 				//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
@@ -9452,6 +9453,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (!ds->request_period_switch) {
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
+
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
 					//in closest mode, flush queue
@@ -10022,8 +10024,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 
 				if (is_cue_split) {
-					if (!sap_type) {
-						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
+					Bool switch_frame = gf_filter_pck_get_switch_frame(pck);
+					if (!sap_type && !switch_frame) {
+						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not a RAP nor a switch frame!\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
 						if (ctx->strict_cues) {
 							gf_filter_pid_drop_packet(ds->ipid);
 							gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
@@ -10053,7 +10056,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 						else
 							ds->set->starts_with_sap = sap_type;
 					}
-
 
 					seg_over = GF_TRUE;
 					if (ds == base_ds) {

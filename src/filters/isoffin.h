@@ -161,7 +161,7 @@ typedef struct
 	GF_ISOSample *sample;
 	u64 sample_data_offset, last_valid_sample_data_offset;
 	GF_Err last_state;
-	Bool sap_3;
+	Bool sap_3, switch_frame;
 	GF_ISOSampleRollType sap_4_type;
 	s32 roll;
 	u32 xps_mask;

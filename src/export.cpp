@@ -2695,6 +2695,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_timescale ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_sap ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_sap ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_switch_frame ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_switch_frame ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_roll_info ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_roll_info ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_interlaced ) )

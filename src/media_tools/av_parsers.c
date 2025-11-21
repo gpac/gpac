@@ -3515,6 +3515,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		if (frame_state->is_first_frame) {
 			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
 		}
+		if (frame_state->frame_type == AV1_SWITCH_FRAME) {
+			frame_state->switch_frame = GF_TRUE;
+		}
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			gf_bs_read_int_log(bs, state->frame_presentation_time_length, "frame_presentation_time");
 		}

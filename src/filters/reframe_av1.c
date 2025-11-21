@@ -1051,6 +1051,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	gf_filter_pck_set_cts(pck, ctx->cts);
 	gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+	gf_filter_pck_set_switch_frame(pck, ctx->state.frame_state.switch_frame);
 
 	if (ctx->is_iamf) {
 		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);
@@ -1069,7 +1070,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->deps) {
 		u8 flags = 0;
 		//dependsOn
-		flags = ( ctx->state.frame_state.key_frame) ? 2 : 1;
+		flags = (ctx->state.frame_state.key_frame || ctx->state.frame_state.switch_frame) ? 2 : 1;
 		flags <<= 2;
 		//dependedOn
 	 	flags |= ctx->state.frame_state.refresh_frame_flags ? 1 : 2;

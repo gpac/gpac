@@ -1439,6 +1439,7 @@ static struct box_registry_entry {
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv ipco dav1", "av1"),
+	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AV1S, "av1"),
 
 	// VP8-9 boxes
 	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),

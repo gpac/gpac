@@ -196,7 +196,8 @@ enum
 	GF_PCKF_FORCE_MAIN = 1<<12,
 	//only valid when GF_PCK_CMD_PID_EOS is set
 	GF_PCKF_IS_FLUSH = 1<<11,
-	//RESERVED bits [8,10]
+	GF_PCKF_IS_SWITCH_FRAME = 1<<10,
+	//RESERVED bits [8,9]
 
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,

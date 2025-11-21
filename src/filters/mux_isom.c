@@ -5207,15 +5207,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	}
 
 	//compat with old arch: write sample to group info for all samples
-	if ((sap_type==3) || tkw->has_open_gop)  {
+	if ((sap_type==GF_FILTER_SAP_3) || tkw->has_open_gop)  {
 		if (!ctx->norap) {
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==GF_FILTER_SAP_3) ? GF_TRUE : GF_FALSE, 0);
 #else
 				e = GF_NOT_SUPPORTED;
 #endif
-			} else if (sap_type==3) {
+			} else if (sap_type==GF_FILTER_SAP_3) {
 				e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
 			}
 			if (e) {
@@ -5224,6 +5224,22 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 		tkw->has_open_gop = GF_TRUE;
 	}
+
+	if (gf_filter_pck_get_switch_frame(pck)) {
+		if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			e = gf_isom_fragment_set_sample_av1_switch_frame_group(ctx->file, tkw->track_id, tkw->samples_in_frag, GF_TRUE);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
+		} else {
+			e = gf_isom_set_sample_av1_switch_frame_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE);
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+		}
+	}
+
 	if (!ctx->noroll) {
 		if ((sap_type==GF_FILTER_SAP_4) || (sap_type==GF_FILTER_SAP_4_PROL) || tkw->gdr_type) {
 			GF_ISOSampleRollType roll_type = 0;
