@@ -1665,7 +1665,6 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		return NULL;
 	}
 
-
 	while (size) {
 		u64 pos, obu_size;
 		ObuType obu_type;
@@ -1725,6 +1724,55 @@ GF_AV1Config *gf_odf_av1_cfg_read(u8 *dsi, u32 dsi_size)
 	gf_bs_del(bs);
 	return cfg;
 }
+
+
+
+GF_EXPORT
+GF_AVS3VConfig *gf_odf_avs3v_cfg_new()
+{
+	GF_AVS3VConfig *cfg;
+	GF_SAFEALLOC(cfg, GF_AVS3VConfig);
+	if (!cfg) return NULL;
+	return cfg;
+}
+
+GF_EXPORT
+void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg)
+{
+	if (!cfg) return;
+	if (cfg->sequence_header) gf_free(cfg->sequence_header);
+	gf_free(cfg);
+}
+
+GF_EXPORT
+GF_AVS3VConfig *gf_odf_avs3v_cfg_read_bs(GF_BitStream *bs)
+{
+	GF_AVS3VConfig *cfg = gf_odf_avs3v_cfg_new();
+
+	cfg->configurationVersion = gf_bs_read_int(bs, 8);
+	cfg->sequence_header_length = gf_bs_read_int(bs, 16);
+	cfg->sequence_header = gf_malloc(cfg->sequence_header_length);
+	if (!cfg->sequence_header) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVS3 Video] Sequence header allocation failed\n"));
+		gf_odf_avs3v_cfg_del(cfg);
+		return NULL;
+	}
+	gf_bs_read_data(bs, (char *)cfg->sequence_header, (u32)cfg->sequence_header_length);
+	gf_bs_read_int(bs, 6); //reserved
+	cfg->library_dependency_idc = gf_bs_read_int(bs, 2); // 6 bits reserved at '1' + 2 bits
+
+	return cfg;
+}
+
+GF_EXPORT
+GF_AVS3VConfig *gf_odf_avs3v_cfg_read(u8 *dsi, u32 dsi_size)
+{
+	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+	GF_AVS3VConfig *cfg = gf_odf_avs3v_cfg_read_bs(bs);
+	gf_bs_del(bs);
+	return cfg;
+}
+
 
 GF_EXPORT
 GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)

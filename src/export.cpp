@@ -757,7 +757,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write_bs) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_del ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_new) )

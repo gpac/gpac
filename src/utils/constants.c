@@ -153,8 +153,8 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9|ivf", NULL, "video/vp9", .unframe=GF_TRUE},
 	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
 
-	{GF_CODECID_AVS3_VIDEO, 0, GF_STREAM_VISUAL, "AVS 3 Video", "avsv|avs3", NULL, "video/avs3"},
-	{GF_CODECID_AVS3_AUDIO, 0, GF_STREAM_AUDIO,  "AVS 3 Audio", "avsa|avs3", NULL, "audio/avs3"},
+	{GF_CODECID_AVS3_VIDEO, 0, GF_STREAM_VISUAL, "AVS3 Video", "avsv|avs3", NULL, "video/avs3"},
+	{GF_CODECID_AVS3_AUDIO, 0, GF_STREAM_AUDIO,  "AVS3 Audio", "avsa|avs3", NULL, "audio/avs3"},
 
 	{GF_CODECID_MPHA, 0, GF_STREAM_AUDIO, "MPEG-H Audio", "mhas", "mha1", "audio/x-mpegh", .unframe=GF_TRUE},
 	{GF_CODECID_MHAS, 0, GF_STREAM_AUDIO, "MPEG-H AudioMux", "mhas", "mhm1", "audio/x-mhas", .unframe=GF_TRUE},

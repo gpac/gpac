@@ -4560,6 +4560,9 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_VPCC:
 		BOX_FIELD_ASSIGN(vp_config, GF_VPConfigurationBox)
 		break;
+	case GF_ISOM_BOX_TYPE_AV3C:
+		BOX_FIELD_ASSIGN(av3v_config, GF_AVS3VConfigurationBox)
+		break;
 	case GF_ISOM_BOX_TYPE_DVCC:
 	case GF_ISOM_BOX_TYPE_DVVC:
 		BOX_FIELD_ASSIGN(dovi_config, GF_DOVIConfigurationBox)
@@ -7017,6 +7020,8 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_VP09:
 		case GF_ISOM_BOX_TYPE_VP10:
 		case GF_ISOM_BOX_TYPE_AV1C:
+		case GF_ISOM_BOX_TYPE_AV3C:
+		case GF_ISOM_BOX_TYPE_AVS3:
 		case GF_ISOM_BOX_TYPE_JPEG:
 		case GF_ISOM_BOX_TYPE_PNG:
 		case GF_ISOM_BOX_TYPE_JP2K:

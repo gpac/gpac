@@ -949,6 +949,7 @@ static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 	GF_VVCConfig *vvcc;
 	GF_AV1Config *av1c;
 	GF_VPConfig *vpxc;
+	GF_AVS3VConfig *av3c;
 
 	if (!dsi_size) dsi = NULL;
 
@@ -1004,6 +1005,13 @@ static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 		vpxc = dsi ? gf_odf_vp_cfg_read(dsi, dsi_size) : NULL;
 		if (vpxc) {
 			gf_odf_vp_cfg_del(vpxc);
+			return 0;
+		}
+		return 1;
+	case GF_CODECID_AVS3_AUDIO:
+		av3c = dsi ? gf_odf_avs3v_cfg_read(dsi, dsi_size) : NULL;
+		if (av3c) {
+			gf_odf_avs3v_cfg_del(av3c);
 			return 0;
 		}
 		return 1;

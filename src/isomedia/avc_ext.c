@@ -3382,6 +3382,67 @@ GF_Err av1c_box_size(GF_Box *s) {
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+GF_Box *av3c_box_new() {
+	GF_AVS3VConfigurationBox *tmp = (GF_AVS3VConfigurationBox *)gf_malloc(sizeof(GF_AVS3VConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_AVS3VConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_AV3C;
+	return (GF_Box *)tmp;
+}
+
+void av3c_box_del(GF_Box *s) {
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)s;
+	if (ptr->config) gf_odf_avs3v_cfg_del(ptr->config);
+	gf_free(ptr);
+}
+
+GF_Err av3c_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u64 pos;
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)s;
+
+	if (ptr->config) gf_odf_avs3v_cfg_del(ptr->config);
+	ptr->config = NULL;
+
+	pos = gf_bs_get_position(bs);
+	ptr->config = gf_odf_avs3v_cfg_read_bs(bs);
+	pos = gf_bs_get_position(bs) - pos ;
+
+	if (pos < ptr->size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] AVS3VConfigurationBox: read only "LLU" bytes (expected "LLU").\n", pos, ptr->size));
+	if (pos > ptr->size)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AVS3VConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", pos, ptr->size));
+
+	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err av3c_box_write(GF_Box *s, GF_BitStream *bs) {
+	GF_Err e;
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)s;
+	if (!s) return GF_BAD_PARAM;
+	if (!ptr->config) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	return GF_NOT_SUPPORTED; //gf_odf_avs3v_cfg_write_bs(ptr->config, bs);
+}
+
+GF_Err av3c_box_size(GF_Box *s) {
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox *)s;
+	if (!ptr->config) {
+		ptr->size = 0;
+		return GF_BAD_PARAM;
+	}
+
+	ptr->size += 4;
+	ptr->size += ptr->config->sequence_header_length;
+
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 
 void vpcc_box_del(GF_Box *s)
