@@ -713,7 +713,7 @@ Linking can be done once filters are loaded, using the syntax @F@SRC or @@F@SRC:
 .br
 * `@SRC`or `@@SRC`: same syntax as link directives
 .br
-Sources MUST be set before relinking outputs using (-rl)[].
+Sources MUST be set before relinking outputs using .I rl.
 .br
 Example
 .br
@@ -3890,6 +3890,11 @@ ID of Adaptation Set:
 * ID of another AdaptationSet: enable cross-AS switching between this AS and the referenced one
 .br
 * negative value: LL-HLS compatability mode
+.br
+.TP
+.B ASQuery (ASQR,str,D )
+.br
+Query string to add to this Adaptation Set when requesting segments
 .br
 .TP
 .B MuxSrc (MSRC,str,D )
