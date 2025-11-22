@@ -4561,7 +4561,7 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		BOX_FIELD_ASSIGN(vp_config, GF_VPConfigurationBox)
 		break;
 	case GF_ISOM_BOX_TYPE_AV3C:
-		BOX_FIELD_ASSIGN(av3v_config, GF_AVS3VConfigurationBox)
+		BOX_FIELD_ASSIGN(avs3v_config, GF_AVS3VConfigurationBox)
 		break;
 	case GF_ISOM_BOX_TYPE_DVCC:
 	case GF_ISOM_BOX_TYPE_DVVC:

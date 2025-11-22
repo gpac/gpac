@@ -248,7 +248,7 @@ enum
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
 	/*AVS3 Video media type*/
-	GF_ISOM_SUBTYPE_AV3V = GF_4CC('a', 'v', '3', 'v'),
+	GF_ISOM_SUBTYPE_AVS3 = GF_4CC('a', 'v', 's', '3'),
 
 	/*Opus media type*/
 	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
@@ -3582,6 +3582,14 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 \return the VP8/9 config - user is responsible for deleting it
 */
 GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+/*! gets AVS3 Video config for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return the AVS3 Video config - user is responsible for deleting it
+*/
+GF_AVS3VConfig *gf_isom_avs3v_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 /*! gets DOVI config for a sample description
 \param isom_file the target ISO file

@@ -1503,6 +1503,20 @@ static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg)
 	return out;
 }
 
+static GF_AVS3VConfig* AVS3V_DuplicateConfig(GF_AVS3VConfig const * const cfg)
+{
+	GF_AVS3VConfig *out = gf_odf_avs3v_cfg_new();
+	if (out) {
+		out->configurationVersion = cfg->configurationVersion;
+		out->sequence_header_length = cfg->sequence_header_length;
+		out->sequence_header = gf_malloc(cfg->sequence_header_length);
+		memcpy(out->sequence_header, cfg->sequence_header, cfg->sequence_header_length);
+		out->library_dependency_idc = cfg->library_dependency_idc;
+	}
+
+	return out;
+}
+
 void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *mdia)
 {
 	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate_box((GF_SampleEntryBox *)vp9, GF_FALSE);
@@ -2563,7 +2577,6 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return AV1_DuplicateConfig(entry->av1_config->config);
 }
 
-
 GF_EXPORT
 GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
@@ -2576,6 +2589,20 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 De
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
 	if (!entry->vp_config || !entry->vp_config->config) return NULL;
 	return VP_DuplicateConfig(entry->vp_config->config);
+}
+
+GF_EXPORT
+GF_AVS3VConfig *gf_isom_avs3v_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	trak = gf_isom_get_track_box(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
+	if (!entry) return NULL;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
+	if (!entry->avs3v_config || !entry->avs3v_config->config) return NULL;
+	return AVS3V_DuplicateConfig(entry->avs3v_config->config);
 }
 
 GF_EXPORT

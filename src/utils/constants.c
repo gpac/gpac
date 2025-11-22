@@ -284,6 +284,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_VP9;
 	case GF_ISOM_SUBTYPE_VP10:
 		return GF_CODECID_VP10;
+	case GF_ISOM_SUBTYPE_AVS3:
+		return GF_CODECID_AVS3_VIDEO;
 
 	case GF_QT_SUBTYPE_APCH:
 		return GF_CODECID_APCH;

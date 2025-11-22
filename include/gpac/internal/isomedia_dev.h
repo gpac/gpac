@@ -1680,7 +1680,7 @@ typedef struct __full_video_sample_entry
 	/*vp8-9 extension*/
 	GF_VPConfigurationBox *vp_config;
 	/*avs3 video extension*/
-	GF_AVS3VConfigurationBox *av3v_config;
+	GF_AVS3VConfigurationBox *avs3v_config;
 	/*jp2k extension*/
 	GF_J2KHeaderBox *jp2h;
 	/*dolbyvision extension*/
