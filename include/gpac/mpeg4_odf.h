@@ -1573,22 +1573,33 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 \param cfg the DolbyVision config to destroy*/
 void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg);
 
-
 /*! creates a AVS3 Video descriptor
 \return a newly allocated descriptor
 */
 GF_AVS3VConfig *gf_odf_avs3v_cfg_new();
-
 /*! AVS3 Video config constructor
 \param cfg the AVS3 Video config to destroy*/
 void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg);
-
-/*! gets AV1 config from bitstream
+/*! writes AVS3 Video config to bitstream
+\param cfg the AVS3 Video config to write
+\param bs bitstream containing the encoded AVS3 Video decoder specific info
+\param is_v0 if GF_TRUE, this is a version 0 config
+\return error code if any
+*/
+GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs);
+/*! writes AVS3 Video config to buffer
+\param cfg the AVS3 Video config to write
+\param outData set to an allocated encoded buffer - it is the caller responsibility to free this
+\param outSize set to the encoded buffer size
+\param is_v0 if GF_TRUE, this is a version 0 config
+\return error if any
+*/
+GF_Err gf_odf_avs3v_cfg_write(GF_AVS3VConfig *cfg, u8 **outData, u32 *outSize);
+/*! gets AVS3 Video config from bitstream
 \param bs bitstream containing the encoded AV1 decoder specific info
 \return the decoded AVS3 Video config
 */
 GF_AVS3VConfig *gf_odf_avs3v_cfg_read_bs(GF_BitStream *bs);
-
 /*! gets AVS3 Video config from buffer
 \param dsi encoded AVS3 Video config
 \param dsi_size size of encoded AVS3 Video config

@@ -2035,6 +2035,44 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 }
 
 GF_EXPORT
+GF_Err gf_isom_avs3v_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVS3VConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_MPEGVisualSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+
+	e = gf_isom_can_access_movie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(the_file, trackNumber);
+	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	//create a new entry
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_AVS3);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->avs3v_config = (GF_AVS3VConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_AV3C);
+	if (!entry->avs3v_config) return GF_OUT_OF_MEM;
+	entry->avs3v_config->config = AVS3V_DuplicateConfig(cfg);
+	if (!entry->avs3v_config->config) return GF_OUT_OF_MEM;
+	entry->dataReferenceIndex = dataRefIndex;
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
+	return e;
+}
+
+GF_EXPORT
 GF_Err gf_isom_iamf_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_IAConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -3452,7 +3490,7 @@ GF_Err av3c_box_write(GF_Box *s, GF_BitStream *bs) {
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	return GF_NOT_SUPPORTED; //gf_odf_avs3v_cfg_write_bs(ptr->config, bs);
+	return gf_odf_avs3v_cfg_write_bs(ptr->config, bs);
 }
 
 GF_Err av3c_box_size(GF_Box *s) {

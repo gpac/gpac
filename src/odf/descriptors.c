@@ -1745,6 +1745,33 @@ void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg)
 }
 
 GF_EXPORT
+GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs)
+{
+	gf_bs_write_int(bs, cfg->configurationVersion, 8);
+	gf_bs_write_int(bs, cfg->sequence_header_length, 16);
+	gf_bs_write_data(bs, cfg->sequence_header, cfg->sequence_header_length);
+	gf_bs_write_int(bs, 0xFF, 6); //reserved
+	gf_bs_write_int(bs, cfg->library_dependency_idc, 2);
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_avs3v_cfg_write(GF_AVS3VConfig *cfg, u8 **outData, u32 *outSize)
+{
+	GF_Err e;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	*outSize = 0;
+	*outData = NULL;
+	e = gf_odf_avs3v_cfg_write_bs(cfg, bs);
+	if (e==GF_OK)
+		gf_bs_get_content(bs, outData, outSize);
+
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
 GF_AVS3VConfig *gf_odf_avs3v_cfg_read_bs(GF_BitStream *bs)
 {
 	GF_AVS3VConfig *cfg = gf_odf_avs3v_cfg_new();
