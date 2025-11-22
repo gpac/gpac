@@ -4189,6 +4189,19 @@ GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COL
 	return GF_OK;
 }
 
+GF_Err rfc_6381_get_codec_avs3v(char *szCodec, u32 subtype, GF_AVS3VConfig *av3c, COLR colr)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	gf_fatal_assert(av3c && av3c->sequence_header && av3c->sequence_header_length >= 6);
+	u8 profile = av3c->sequence_header[4];
+	u8 level = av3c->sequence_header[5];
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%2x.%2x", gf_4cc_to_str(subtype), profile, level);
+	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
 GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi)
 {
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(subtype), dovi->dv_profile, dovi->dv_level);
@@ -4510,6 +4523,24 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			return e;
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFC6381] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		return GF_BAD_PARAM;
+	}
+
+	case GF_ISOM_SUBTYPE_AVS3:
+	{
+		GF_AVS3VConfig *av3c = gf_isom_avs3v_config_get(movie, track, stsd_idx);
+		if (av3c) {
+			u32 colour_type;
+			COLR colr;
+			memset(&colr, 0, sizeof(colr));
+			if (GF_OK == gf_isom_get_color_info(movie, track, stsd_idx, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
+				colr.override = GF_TRUE;
+			}
+			e = rfc_6381_get_codec_avs3v(szCodec, subtype, av3c, colr);
+			gf_odf_avs3v_cfg_del(av3c);
+			return e;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFC6381] No config found for AVS3 Video file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 

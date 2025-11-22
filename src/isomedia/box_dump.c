@@ -2472,6 +2472,20 @@ GF_Err vpcc_box_dump(GF_Box *a, FILE *trace) {
 	return GF_OK;
 }
 
+
+GF_Err av3c_box_dump(GF_Box *a, FILE *trace) {
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)a;
+	gf_fprintf(trace, "<AVS3ConfigurationBox>\n");
+	if (ptr->config) {
+		gf_fprintf(trace, "<AVS3Config version=\"%u\" library_dependency_idc=\"%u\" sequence_header_length=\"%u\" sequence_header=\"", (u32)ptr->config->configurationVersion, (u32)ptr->config->library_dependency_idc, (u32)ptr->config->sequence_header_length);
+		dump_data(trace, (char *)ptr->config->sequence_header, (u32)ptr->config->sequence_header_length);
+		gf_fprintf(trace, "\"/>\n");
+	}
+	gf_fprintf(trace, "</AVS3ConfigurationBox>\n");
+	return GF_OK;
+}
+
+
 GF_Err SmDm_box_dump(GF_Box *a, FILE *trace) {
 	GF_SMPTE2086MasteringDisplayMetadataBox * ptr = (GF_SMPTE2086MasteringDisplayMetadataBox *)a;
 	if (!a) return GF_BAD_PARAM;

@@ -757,7 +757,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_write_bs) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_odf_av1_cfg_del ) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_write_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avs3v_cfg_del ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_new) )
@@ -1042,6 +1047,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_max_sample_delta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_mpegh_compatible_profiles) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_get ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_avs3v_config_get ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_mvc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item_get_cenc_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_subtitle_get_mime) )
@@ -1377,6 +1383,8 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_av1_config_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_avs3v_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_avs3v_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_equal) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close_fragments) )

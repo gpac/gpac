@@ -4397,6 +4397,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			gf_odf_av1_cfg_del(av1c);
 		}
 	}
+	else if (codec_id==GF_CODECID_AVS3_VIDEO) {
+		inspect_printf(dump, " AVS3");
+	}
 	else if ((codec_id==GF_CODECID_AAC_MPEG4) || (codec_id==GF_CODECID_AAC_MPEG2_MP) || (codec_id==GF_CODECID_AAC_MPEG2_LCP) || (codec_id==GF_CODECID_AAC_MPEG2_SSRP)) {
 		if (dsi) {
 			const char *name, *sep;
