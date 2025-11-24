@@ -268,7 +268,7 @@ static const GF_FilterCapability FileListCapsSrc_RAW_V[] =
 
 static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 prev_timescale, Bool is_reassign)
 {
-	//PID is stoped, send a ply/stop sequence to reset all buffers and ignore
+	//PID is stopped, send a ply/stop sequence to reset all buffers and ignore
 	if (iopid->play_state==FLIST_STATE_STOP) {
 		iopid->is_eos = GF_TRUE;
 		GF_FilterEvent evt;
@@ -2048,7 +2048,7 @@ restart:
 					nb_eos++;
 					continue;
 				}
-				//PID is stoped, don't check for EOS
+				//PID is stopped, don't check for EOS
 				if (iopid->play_state==FLIST_STATE_STOP)
 					continue;
 

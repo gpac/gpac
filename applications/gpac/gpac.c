@@ -411,7 +411,7 @@ void gpac_em_sig_handler(int type)
 		gf_fs_abort(session, GF_FS_FLUSH_FAST);
 		break;
 	case 3:
-		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stoping loops" : "");
+		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stopping loops" : "");
 		gf_fs_abort(session, GF_FS_FLUSH_NONE);
 		nb_loops=0;
 		break;
