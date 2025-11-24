@@ -71,7 +71,7 @@ typedef struct
 	Bool skip_dts_init;
 	u32 play_state;
 
-	Bool send_cue;
+	Bool send_cue, send_period_switch;
 	s32 delay, initial_delay;
 
 	RawAudioInfo ra_info, splice_ra_info;
@@ -132,7 +132,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool revert, sigcues, fdel, keepts, flush;
+	Bool revert, sigcues, sigperiods, fdel, keepts, flush;
 	GF_FileListForceRawMode raw;
 	s32 floop;
 	GF_FileListFileSortMode fsort;
@@ -450,6 +450,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		gf_list_add(ctx->io_pids, iopid);
 		iopid->send_cue = ctx->sigcues;
+		iopid->send_period_switch = ctx->sigperiods;
 		iopid->play_state = FLIST_STATE_WAIT_PLAY;
 		first_config = GF_TRUE;
 	}
@@ -1935,6 +1936,10 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 			iopid->send_cue = GF_FALSE;
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 		}
+		if (iopid->send_period_switch) {
+			iopid->send_period_switch = GF_FALSE;
+			gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE));
+		}
 	}
 
 	if (ctx->sigfrag_mode && ctx->abs_url) {
@@ -2630,7 +2635,6 @@ restart:
 	}
 
 
-
 	if ((nb_inactive!=count) && (nb_done+nb_inactive==count)) {
 		//compute max cts and dts
 		GF_Fraction64 max_cts, max_dts;
@@ -2654,6 +2658,7 @@ restart:
 			u64 ts;
 			iopid = gf_list_get(ctx->io_pids, i);
 			iopid->send_cue = ctx->sigcues;
+			iopid->send_period_switch = ctx->sigperiods;
 			if (!iopid->ipid) continue;
 			if (iopid->play_state==FLIST_STATE_STOP) continue;
 			iopid->prev_max_dts = iopid->max_dts;
@@ -3029,6 +3034,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 		, GF_PROP_UINT, "no", "no|name|size|date|datex", 0},
 
 	{ OFFS(sigcues), "inject `CueStart` property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigperiods), "ask for a new DASH Period at each source begin ; useful when media timing needs to be reset at loops (TTML, ...)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdel), "delete source files after processing in playlist mode (does not delete the playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(keepts), "keep initial timestamps unmodified (no reset to 0)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input AV streams to be in raw format\n"
