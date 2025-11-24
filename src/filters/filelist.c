@@ -268,7 +268,7 @@ static const GF_FilterCapability FileListCapsSrc_RAW_V[] =
 
 static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 prev_timescale, Bool is_reassign)
 {
-	//PID is stopped, send a ply/stop sequence to reset all buffers and ignore
+	//PID is stopped, send a play/stop sequence to reset all buffers and ignore
 	if (iopid->play_state==FLIST_STATE_STOP) {
 		iopid->is_eos = GF_TRUE;
 		GF_FilterEvent evt;
@@ -470,7 +470,6 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 		p = gf_filter_pid_get_property(iopid->ipid, GF_PROP_PID_URL);
 		if (p && p->value.string) src_url = gf_strdup(p->value.string);
-
 	}
 	opid = iopid->opid;
 
@@ -1281,7 +1280,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 	ctx->load_next = GF_FALSE;
 
-	if (! next_url_ok) {
+	if (!next_url_ok) {
 		if (ctx->splice_state==FL_SPLICE_ACTIVE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] No next URL for splice but splice period still active, resuming splice with possible broken coding dependencies!\n"));
 			ctx->wait_splice_end = GF_TRUE;
@@ -1439,7 +1438,6 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				return GF_SERVICE_ERROR;
 			}
 			if (is_filter_chain) {
-
 				if (!filters) filters = gf_list_new();
 				if (!gf_list_count(filters)) gf_list_add(filters, fsrc);
 
