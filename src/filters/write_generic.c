@@ -99,6 +99,7 @@ typedef struct
 	Bool unframe_only;
 	Bool vc1_ilaced;
 	Bool ttml_merger;
+	u64 ttml_cts_offset; // used to rewrite ttml timestamps over reconfigure (i.e. DASH period change)
 	u64 ttml_first_cts;
 	GF_FilterPacket *ttml_first_pck;
 } GF_GenDumpCtx;
@@ -516,6 +517,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (ctx->ttml_merger) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NB_FRAMES, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		ctx->ttml_cts_offset = GF_FILTER_NO_TS;
 	}
 
 	if (ctx->dump_srt && gf_opts_get_bool("core", "srt-forced"))
@@ -773,9 +775,11 @@ static Bool ttml_same_attr(GF_XMLNode *n1, GF_XMLNode *n2)
 		u32 j=0;
 		GF_XMLAttribute *att2;
 		while ( (att2 = gf_list_enum(n2->attributes, &j))) {
-			if (!strcmp(att1->name, att2->name) && !strcmp(att1->value, att2->value)) {
-				found = GF_TRUE;
-				break;
+			if (!strcmp(att1->name, att2->name)) {
+				if (!strcmp(att1->value, att2->value)) {
+					found = GF_TRUE;
+					break;
+				}
 			}
 		}
 		if (!found) return GF_FALSE;
@@ -937,6 +941,57 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 	return GF_OK;
 }
 
+
+//from filter txtin
+u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *ttml_fps_den, u32 *ttml_sfps);
+
+static u64 ttml_get_timestamp(char *value)
+{
+	u32 ttml_fps_num, ttml_fps_den, ttml_sfps;
+	return ttml_get_timestamp_ex(value, 25, &ttml_fps_num, &ttml_fps_den, &ttml_sfps);
+}
+
+static void writegen_rewrite_timestamp_ttml(s64 ts_offset, GF_XMLAttribute *att, s64 *value)
+{
+	u64 v;
+	char szTS[21];
+	u32 h, m, s, ms;
+	*value = ttml_get_timestamp(att->value);
+	if (!ts_offset)
+		return;
+
+	*value += ts_offset;
+	v = (u64) (*value / 1000);
+	h = (u32) (v / 3600);
+	m = (u32) (v - h*60) / 60;
+	s = (u32) (v - h*3600 - m*60);
+	ms = (*value) % 1000;
+
+	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	szTS[20] = 0;
+	gf_free(att->value);
+	att->value = gf_strdup(szTS);
+	return;
+}
+
+static void ttml_rewrite_timestamp(u64 offset, GF_List *p_attributes)
+{
+	u32 p_idx = 0;
+	GF_XMLAttribute *p_att;
+
+	while ( (p_att = (GF_XMLAttribute*)gf_list_enum(p_attributes, &p_idx))) {
+		if (!strcmp(p_att->name, "begin")) {
+			s64 unused = 0;
+			writegen_rewrite_timestamp_ttml(offset, p_att, &unused); //Romain: we don't need &being, &end, &drop
+		}
+		if (!strcmp(p_att->name, "end")) {
+			s64 unused = 0;
+			writegen_rewrite_timestamp_ttml(offset, p_att, &unused);
+		}
+	}
+}
+
+
 static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *in_pck)
 {
 	const GF_PropertyValue *subs = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SUBS);
@@ -993,6 +1048,26 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	}
 	if (!ctx->ttml_root) {
 		ctx->ttml_root = gf_xml_dom_detach_root(dom);
+
+		// walk through the document to find <p> to rewrite timestamps
+		body_pck = ttml_get_body(root_pck);
+		if (body_pck) {
+			div_idx = 0;
+			nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
+			for (k=0; k<nb_children; k++) {
+				GF_XMLNode  *div_pck;
+				div_pck = gf_list_get(body_pck->content, k);
+				if (div_pck) {
+					u32 j=0;
+					while ( (p_pck = gf_list_enum(div_pck->content, &j)) ) {
+						if (p_pck->type) continue;
+						if (strcmp(p_pck->name, "p")) continue;
+
+						ttml_rewrite_timestamp(ctx->ttml_cts_offset, p_pck->attributes);
+					}
+				}
+			}
+		}
 		goto exit;
 	}
 	root_global = ctx->ttml_root;
@@ -1068,6 +1143,9 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 			} else {
 				idx = gf_list_count(div_global->content);
 			}
+
+			// rewrite the appended timestamp
+			ttml_rewrite_timestamp(ctx->ttml_cts_offset, p_pck->attributes);
 
 			i--;
 			gf_list_rem(div_pck->content, i);
@@ -1410,17 +1488,21 @@ GF_Err writegen_process(GF_Filter *filter)
 		ctx->nb_bytes += 44;
 		return GF_OK;
 	} else if (ctx->ttml_agg) {
-		GF_Err e = writegen_push_ttml(ctx, data, pck_size, pck);
 		ctx->first = GF_FALSE;
 		if (ctx->ttml_merger) {
 			if (!ctx->ttml_first_pck) {
 				ctx->ttml_first_cts = gf_filter_pck_get_cts(pck);
 				ctx->ttml_first_pck = pck;
 				gf_filter_pck_ref_props(&ctx->ttml_first_pck);
+
+				// initialized once per reconfigure
+				if (ctx->ttml_cts_offset == GF_FILTER_NO_TS)
+					ctx->ttml_cts_offset = ctx->ttml_first_cts;
 			} else {
 				gf_filter_pck_merge_properties(pck, ctx->ttml_first_pck);
 			}
 		}
+		GF_Err e = writegen_push_ttml(ctx, data, pck_size, pck);
 		if (e) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return e;
