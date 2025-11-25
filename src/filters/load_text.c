@@ -1487,7 +1487,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 	u64 ts = GF_FILTER_NO_TS;
 	u32 len = (u32) strlen(value);
 
-	//tick metrick - cannot be fractional
+	//tick metric - cannot be fractional
 	if (len && (value[len-1]=='t')) {
 		value[len-1] = 0;
 		ts = (s64) (atoi(value) * 1000);
@@ -4536,7 +4536,6 @@ force_format:
 static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	return txtin_configure_pid_ex(filter, pid, is_remove, 0);
-
 }
 static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
