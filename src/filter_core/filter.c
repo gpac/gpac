@@ -3861,6 +3861,9 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	if (filter==until_filter)
 		return;
 
+	//we no longer watch setup error
+	filter->on_setup_error = NULL;
+	
 	if (until_filter) {
 		//check if filter has not been removed
 		s32 res = gf_list_find(until_filter->session->filters, filter);
