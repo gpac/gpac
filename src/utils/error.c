@@ -31,7 +31,7 @@
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
 static char szTYPE_BUF[NB_4CC_BUF][GF_4CC_MSIZE];
-static u32 buf_4cc_idx = NB_4CC_BUF;
+static u32 buf_4cc_idx = 0;
 
 GF_EXPORT
 const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
@@ -80,10 +80,16 @@ GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	if (!type) return "00000000";
-	if (safe_int_dec(&buf_4cc_idx)==0)
-		buf_4cc_idx=NB_4CC_BUF;
 
-	return gf_4cc_to_str_safe(type, szTYPE_BUF[buf_4cc_idx-1]);
+	// we get the value *before* the increment insuring that other thread get another value
+	u32 old_idx = safe_int_fetch_add(&buf_4cc_idx, 1);
+
+	// keep our specific value between 0 and NB_4CC_BUF-1
+	// we might have an issue when buf_4cc_idx > INT_MAX since our atomics cast to int
+	// when it gets > UINT_MAX it should just wrap around and be ok
+	u32 buffer_index = old_idx % NB_4CC_BUF;
+
+	return gf_4cc_to_str_safe(type, szTYPE_BUF[buffer_index]);
 }
 
 
