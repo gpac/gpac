@@ -951,6 +951,7 @@ static u64 ttml_get_timestamp(char *value)
 	return ttml_get_timestamp_ex(value, 25, &ttml_fps_num, &ttml_fps_den, &ttml_sfps);
 }
 
+// modifications in this function should be mirrored in load_text.c-ttml_rewrite_timestamp()
 static void writegen_rewrite_timestamp_ttml(s64 ts_offset, GF_XMLAttribute *att, s64 *value)
 {
 	u64 v;

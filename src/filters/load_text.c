@@ -1851,6 +1851,7 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 	return GF_OK;
 }
 
+// modifications in this function should be mirrored in writegen_rewrite_timestamp_ttml()
 static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, s64 ttml_zero, GF_XMLAttribute *att, s64 *value, Bool *drop)
 {
 	u64 v;
