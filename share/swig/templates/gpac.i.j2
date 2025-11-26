@@ -1,0 +1,198 @@
+%module gpac
+
+{% if lang == 'node' %}
+{% from 'node.i.j2' import SETUP_CALLBACK_HANDLER, GENERATE_CALLBACK_HELPER %}
+{% endif -%}
+
+// Include the headers
+%{
+{% for header in config.headers %}
+#include <{{ header }}>
+{% endfor %}
+
+{% if lang == 'node'  %}
+#include <stdexcept>
+{% endif %}
+%}
+
+// Handle scalar types
+%include <stdint.i>
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
+typedef int64_t s64;
+typedef int32_t s32;
+typedef int16_t s16;
+typedef int8_t s8;
+
+%include <cpointer.i>
+%pointer_functions(uint64_t, u64p);
+%pointer_functions(uint32_t, u32p);
+%pointer_functions(uint16_t, u16p);
+%pointer_functions(uint8_t, u8p);
+%pointer_functions(int64_t, s64p);
+%pointer_functions(int32_t, s32p);
+%pointer_functions(int16_t, s16p);
+%pointer_functions(int8_t, s8p);
+
+{% if lang != 'go' %}
+%exception {
+    try {
+        $action
+    } catch (const std::exception& e) {
+        SWIG_exception(SWIG_RuntimeError, e.what());
+    }
+}
+{% endif %}
+
+// Forward declarations
+%{
+{% for decl in forward_declarations %}
+struct {{ decl }} {};
+{% endfor %}
+%}
+
+{% if lang == 'node' %}
+%typemap(in) Bool {
+    long tmp;
+    if (!SWIG_IsOK(SWIG_AsVal_long($input, &tmp))) {
+        SWIG_exception_fail(SWIG_TypeError, "Expected a boolean");
+    }
+    bool b = (tmp != 0);
+    $1 = b ? GF_TRUE : GF_FALSE;
+}
+
+%typemap(out) Bool {
+    /* JS boolean is tinyint in SWIG’s internal representation */
+    $result = SWIG_From_long(env, ($1 == GF_TRUE) ? 1 : 0);
+}
+{% endif %}
+
+{% if lang == 'node' %}
+{{ SETUP_CALLBACK_HANDLER() }}
+{% for cb in function_pointers %}
+{{ GENERATE_CALLBACK_HELPER(
+    cb.name,
+    cb.return_type,
+    cb.arg_list,
+    cb.arg_names,
+    cb.arg_types
+)}}
+{% endfor %}
+{% endif %}
+
+// Rename non-compliant structs
+{% for struct_name, new_name in non_compliant_structs %}
+%rename({{ struct_name }}) {{ new_name }};
+struct {{ new_name }} {};
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}
+
+// Rename extra internal types
+{% for sname, rename in extra_internal_renames %}
+%rename({{ rename }}) {{ sname }};
+{% endfor %}
+
+{% if lang == 'go' %}
+// Rename non-compliant types for Go
+%rename(gf_type) type;
+{% endif %}
+
+// Global ignores
+{% for fn in config.ignore_fns %}
+%ignore {{ fn }};
+{% endfor %}
+
+{% for struct, info in struct_functions %}
+// Extend {{ struct }}
+{% for fn in struct_ignored_functions(struct) %}
+%ignore {{ fn }};
+{% endfor %}
+
+%nodefaultctor {{ info.iname }};
+%nodefaultdtor {{ info.iname }};
+
+{% macro wrap_gf_err(fn, returns) %}
+{% with public, internal = get_args(fn, lang) %}
+{% set has_errp = fn.args | map(attribute='type') | list | contains('GF_Err *') %}
+{% if has_errp %}
+GF_Err swig_err = GF_OK;
+{{ returns }} obj = {{ fn.name }}({{ internal }});
+if (swig_err != GF_OK) {
+    throw std::runtime_error(gf_error_to_string(swig_err));
+}
+return obj;
+{% else %}
+{% if fn.return_type != 'GF_Err' %}
+return {{ fn.name }}({{ internal }});
+{% else %}
+GF_Err swig_err = {{ fn.name }}({{ internal }});
+if (swig_err != GF_OK) {
+    throw std::runtime_error(gf_error_to_string(swig_err));
+}
+{% endif %}
+{% endif %}
+{% endwith %}
+{% endmacro %}
+
+%extend {{ info.iname }} {
+    {% for fn in info.constructors %}
+    {% if fn.alias in config.reserved_keywords[lang] %}
+        {% continue %}
+    {% endif %}
+    {% with public, internal = get_args(fn, lang) %}
+    {% if fn.ctor %}
+    {{ csn(info.iname, True) }}({{ public }}) {
+        {{ wrap_gf_err(fn, csn(info.iname) + ' *') }}
+    }
+    {% elif fn.static %}
+    static {{ csn(fn.return_type) }} {{ fn.alias }}({{ public }}) {
+        {{ wrap_gf_err(fn, csn(fn.return_type)) }}
+    }
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
+
+    {% if info.destructor %}
+    {% with public, internal = get_args(info.destructor, lang) %}
+    ~{{ csn(info.iname, True) }}() {
+        {{ info.destructor.name }}({{ internal }});
+    }
+    {% endwith %}
+    {% endif %}
+
+    {% for fn in info.functions + info.extra_functions %}
+    {% if fn.alias in config.reserved_keywords[lang] %}
+        {% continue %}
+    {% endif %}
+    {% with public, internal = get_args(fn, lang) %}
+    {% if csn(fn.return_type) == 'GF_Err' %}
+    {{ 'static ' if fn.static else '' }}void {{ fn.alias }}({{ public }}) {
+        {{ wrap_gf_err(fn, csn(fn.return_type)) }}
+    }
+    {% else %}
+    {{ 'static ' if fn.static else '' }}{{ csn(fn.return_type) }} {{ fn.alias }}({{ public }}) {
+        {{ wrap_gf_err(fn, csn(fn.return_type)) }}
+    }
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
+
+    {% for ctor in info.constructors if ctor.static %}
+    %newobject {{ csn(info.iname, True) }}::{{ ctor.alias }};
+    {% endfor %}
+}
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}
+
+// Include the headers
+%immutable;
+{% for header in config.headers %}
+%include <{{ header }}>;
+{% endfor %}
+%mutable;

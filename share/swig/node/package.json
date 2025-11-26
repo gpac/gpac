@@ -58,7 +58,7 @@
   "binary": {
     "module_name": "gpac-js",
     "module_path": "./lib/binding/{node_abi}-{platform}-{arch}/",
-    "remote_path": "./v{version}/",
+    "remote_path": "./v{major}.{minor}/{patch}/",
     "host": "https://dist.gpac.io/gpac/node",
     "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{arch}.tar.gz"
   }

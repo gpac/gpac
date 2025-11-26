@@ -87,7 +87,7 @@ swigclean:
 swig: lib
 ifneq ($(strip $(SWIG)),)
 	@echo "Generating SWIG files"
-	@cd $(SRC_PATH)/share/swig && python3 generator.py -s -l $(SWIG)
+	@cd $(SRC_PATH)/share/swig && python3 src/main.py -s -l $(SWIG)
 ifeq ($(SWIG),node)
 	@cd $(SRC_PATH)/share/swig && npm -C node --silent --ignore-scripts install
 	@cd $(SRC_PATH)/share/swig && npm -C node run build
