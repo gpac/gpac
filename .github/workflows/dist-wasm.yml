@@ -1,4 +1,4 @@
-name: Build For WebAssembly
+name: Build & Distribute (WebAssembly)
 
 on:
   workflow_call:
@@ -166,3 +166,69 @@ jobs:
           name: wasm-${{ env.DIST_TYPE }}@${{ matrix.variant.config }}-${{ matrix.variant.threaded && 'threaded' || 'single' }}
           path: output/*
           retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.DIST_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DIST_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-${{ inputs.tag == 'nightly' && 'nightly-latest' || format('main-{0}', inputs.tag) }}@*-*
+          path: artifacts
+
+      - name: Publish to S3 (bash)
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          root="artifacts"
+          bucket="${{ secrets.DIST_S3_BUCKET }}"
+          extras="--endpoint-url ${{ secrets.DIST_S3_ENDPOINT }}"
+
+          echo "Uploading artifacts from $root to bucket $bucket"
+          for dir in "$root"/wasm-*; do
+            [ -d "$dir" ] || continue
+
+            slug="$(basename "$dir")"
+            component_part="${slug#wasm-}"
+            component_part="${component_part%%@*}"
+
+            if [ "$component_part" = "nightly-latest" ]; then
+              tag="$(date -u +%Y%m%d)"
+              prefix="wasm/nightly/$tag"
+            elif [[ "$component_part" =~ ^main-(.+)$ ]]; then
+              tag="${BASH_REMATCH[1]}"
+              prefix="wasm/main/$tag"
+            else
+              echo "Skipping unrecognized component part: $component_part" >&2
+              continue
+            fi
+
+            echo "Processing $slug -> prefix $prefix"
+            for f in "$dir"/*; do
+              [ -f "$f" ] || continue
+              dest="s3://$bucket/$prefix/$(basename "$f")"
+              echo "Uploading $f -> $dest"
+              aws s3 cp "$f" "$dest" $extras
+            done
+          done
+
+          if [ "${{ inputs.tag }}" = "nightly" ]; then
+            echo "Updating 'latest' pointers"
+            for dir in "$root"/wasm-nightly-latest@*-*; do
+              [ -d "$dir" ] || continue
+              prefix="wasm"
+              slug="$(basename "$dir")"
+              for f in "$dir"/*; do
+                [ -f "$f" ] || continue
+                dest="s3://$bucket/$prefix/$(basename "$f")"
+                echo "Uploading $f -> $dest"
+                aws s3 cp "$f" "$dest" $extras
+              done
+            done
+          fi

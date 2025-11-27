@@ -1,11 +1,11 @@
-name: Distribution (APT and WASM)
+name: Distribution
 
 on:
   # Used when nigthly builds needs to be refreshed or
   # a tag should be added to main components
   workflow_dispatch:
     inputs:
-      refresh-nightly:
+      refresh:
         description: "Trigger a rebuild of today's nightly builds"
         required: false
         type: boolean
@@ -46,8 +46,8 @@ jobs:
       - name: Check workflow inputs
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          if [ "${{ github.event.inputs.reset }}" = "false" ] && [ -z "${{ github.event.inputs.tag }}" ] && [ "${{ github.event.inputs.refresh-nightly }}" = "false" ]; then
-            echo "Error: 'tag' input must be provided when 'reset' and 'refresh-nightly' are both false."
+          if [ "${{ github.event.inputs.reset }}" = "false" ] && [ -z "${{ github.event.inputs.tag }}" ] && [ "${{ github.event.inputs.refresh }}" = "false" ]; then
+            echo "Error: 'tag' input must be provided when 'reset' and 'refresh' are both false."
             exit 1
           fi
 
@@ -85,12 +85,12 @@ jobs:
 
           # Add "nightly" type if:
           # - scheduled run and had new commits since last run
-          # - manual refresh-nightly and had new commits since last run
+          # - manual refresh and had new commits since last run
           # - manual reset
           has_new_commits="${{ steps.git-status.outputs.has_new_commits }}"
           if { 
             [[ "${{ github.event_name }}" == "schedule" && "$has_new_commits" == "true" ]] ||
-            [[ "${{ github.event.inputs.refresh-nightly }}" == "true" && "$has_new_commits" == "true" ]] ||
+            [[ "${{ github.event.inputs.refresh }}" == "true" && "$has_new_commits" == "true" ]] ||
             [[ "${{ github.event.inputs.reset }}" == "true" ]]; 
           }; then
             types+=("\"nightly\"")
@@ -129,7 +129,7 @@ jobs:
           echo "### Inputs" >> $GITHUB_STEP_SUMMARY
           echo "- Tag: ${{ github.event.inputs.tag }}" >> $GITHUB_STEP_SUMMARY
           echo "- Reset: ${{ github.event.inputs.reset }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Refresh Nightly: ${{ github.event.inputs.refresh-nightly }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Refresh Nightly: ${{ github.event.inputs.refresh }}" >> $GITHUB_STEP_SUMMARY
           echo "### Types to Build" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.set-types.outputs.types }}" = "[]" ]; then
             echo "No types to build." >> $GITHUB_STEP_SUMMARY
@@ -141,7 +141,7 @@ jobs:
           echo "### Main Tag" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.decide-main-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
 
-  build-linux:
+  dist-linux:
     strategy:
       matrix:
         type: ${{ fromJson(needs.prepare.outputs.types) }}
@@ -155,7 +155,7 @@ jobs:
       tag: ${{ matrix.type == 'main' && needs.prepare.outputs.main-tag || 'nightly' }}
     secrets: inherit
 
-  build-wasm:
+  dist-wasm:
     strategy:
       matrix:
         type: ${{ fromJson(needs.prepare.outputs.types) }}
@@ -170,96 +170,3 @@ jobs:
     with:
       tag: ${{ matrix.type == 'main' && needs.prepare.outputs.main-tag || 'nightly' }}
     secrets: inherit
-
-  publish:
-    name: Publish artifacts
-    needs: [prepare, build-linux, build-wasm]
-    runs-on: ubuntu-latest
-    if: ${{ needs.prepare.outputs.types != '[]' }}
-
-    services:
-      http:
-        image: nginx:alpine
-        ports:
-          - 8080:80
-        volumes:
-          - ${{ github.workspace }}/ftp:/usr/share/nginx/html
-        options: --name nginx
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github
-
-      - name: Add scripts to PATH
-        run: echo "${{ github.workspace }}/.github/scripts" >> $GITHUB_PATH
-
-      - name: Install tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y aptly lftp
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Import GPG key
-        id: import-gpg
-        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          trust_level: 5 # ultimate
-
-      - name: Mirror FTP server
-        if: ${{ github.event.inputs.reset != 'true' }}
-        run: |
-          lftp -e "
-            set ssl:verify-certificate no
-            set net:reconnect-interval-base 2
-            set mirror:parallel-transfer-count 8
-            open ${{ secrets.FTP_HOST }}
-            user ${{ secrets.FTP_USERNAME }} ${{ secrets.FTP_PASSWORD }}
-            mirror -v / ftp
-            bye
-          "
-
-      - name: Restart nginx -- feed the volume
-        uses: docker://docker
-        with:
-          args: docker restart nginx
-
-      - name: Create and Mirror repositories
-        env:
-          SKIP_MIRROR: ${{ github.event.inputs.reset || 'false' }}
-        run: publish.py mirror
-
-      - name: Publish artifacts
-        run: publish.py publish
-
-      - name: Export public key
-        run: gpg --armor --export "${{ steps.import-gpg.outputs.fingerprint }}" > "$HOME/.aptly/public/gpg.asc"
-
-      - name: Create public directory
-        run: |
-          mkdir -p public/linux
-          mkdir -p public/wasm
-          cp -r "$HOME/.aptly/public"/* public/linux/
-          cp -r /tmp/wasm-mirror/* public/wasm/
-
-      - name: Print the public directory
-        run: tree public
-
-      - name: Deploy via lftp
-        run: |
-          lftp -e "
-            set ssl:verify-certificate no
-            set net:reconnect-interval-base 2
-            set mirror:parallel-transfer-count 8
-            open ${{ secrets.FTP_HOST }}
-            user ${{ secrets.FTP_USERNAME }} ${{ secrets.FTP_PASSWORD }}
-            mirror -v -R public / --delete --exclude-glob .htaccess
-            bye
-          "
