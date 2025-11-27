@@ -58,7 +58,7 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 			} else {
 				szTmp[0] = 0xc3;
 				if (gf_utf8_is_legal(szTmp, 2)) {
-					name[0] = 0xc2;
+					name[0] = 0xc3;
 					name[1] = ch;
 					name+=2;
 				} else {
