@@ -2835,12 +2835,16 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	return GF_EOS;
 }
 
+#define MAX_LINE_SIZE 2048
+
+#define LINE_CAT(line, str) (strncat((line), (str), ((size_t)(MAX(0, (int)(MAX_LINE_SIZE-j-1-strlen(str)))))))
+
 static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 i, j, len, line;
 	u32 state = 0;
 	GF_TextSample *samp;
-	char szLine[2048], szText[2048];
+	char szLine[MAX_LINE_SIZE], szText[MAX_LINE_SIZE];
 
 	//same setup as for srt
 	if (!ctx->is_setup) {
@@ -2964,11 +2968,19 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 		while (1) {
 			char c = start_p[i];
 			if (c == 0) {
+				if (j >= MAX_LINE_SIZE) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Line too long\n"));
+					return GF_BAD_PARAM;
+				}
 				szText[j] = 0;
 				break;
 			}
 			if (c=='\\') {
 				if ((start_p[i+1] == 'N') || (start_p[i+1] == 'n')) {
+					if (j >= MAX_LINE_SIZE) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Line too long\n"));
+						return GF_BAD_PARAM;
+					}
 					szText[j] = 0;
 					parse_srt_line(ctx, szText, &char_len, &set_start_char, &set_end_char);
 
@@ -3017,28 +3029,32 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 					i++;
 
 					if (style==1) {
-						if (is_end) {strcat(szText, "</i>"); j+=4;}
-						else {strcat(szText, "<i>"); j+=3;}
+						if (is_end) {LINE_CAT(szText, "</i>"); j+=4;}
+						else {LINE_CAT(szText, "<i>"); j+=3;}
 					} else if (style==2) {
-						if (is_end) {strcat(szText, "</b>"); j+=4;}
-						else {strcat(szText, "<b>"); j+=3;}
+						if (is_end) {LINE_CAT(szText, "</b>"); j+=4;}
+						else {LINE_CAT(szText, "<b>"); j+=3;}
 					} else if (style==3) {
-						if (is_end) {strcat(szText, "</u>"); j+=4;}
-						else {strcat(szText, "<u>"); j+=3;}
+						if (is_end) {LINE_CAT(szText, "</u>"); j+=4;}
+						else {LINE_CAT(szText, "<u>"); j+=3;}
 					} else if (style==4) {
-						if (is_end) {strcat(szText, "</font>"); j+=7;}
+						if (is_end) {LINE_CAT(szText, "</font>"); j+=7;}
 						else {
 							char szFont[100];
 							sprintf(szFont, "<font color=\"0x%X\">", color);
-							strcat(szText, szFont);
+							LINE_CAT(szText, szFont);
 							j+=(u32) strlen(szFont);
 						}
 					} else if (style==5) {
-						if (is_end) {strcat(szText, "</strike>"); j+=9;}
-						else {strcat(szText, "<strike>"); j+=8;}
+						if (is_end) {LINE_CAT(szText, "</strike>"); j+=9;}
+						else {LINE_CAT(szText, "<strike>"); j+=8;}
 					}
 					continue;
 				}
+			}
+			if (j >= MAX_LINE_SIZE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Line too long\n"));
+				return GF_BAD_PARAM;
 			}
 			szText[j] = c;
 			j++;
@@ -3069,7 +3085,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	return GF_EOS;
 }
 
-
+#undef LINE_CAT
 
 static u32 ttxt_get_color(char *val)
 {
