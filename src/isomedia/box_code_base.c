@@ -10525,6 +10525,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_RAP:
 	case GF_ISOM_SAMPLE_GROUP_TELE:
 	case GF_ISOM_SAMPLE_GROUP_SAP:
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 		gf_free(entry);
 		return;
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
