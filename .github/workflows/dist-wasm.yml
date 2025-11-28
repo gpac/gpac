@@ -183,7 +183,7 @@ jobs:
       - name: Publish to S3 (bash)
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           shopt -s nullglob
 
           root="artifacts"
