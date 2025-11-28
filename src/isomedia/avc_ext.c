@@ -918,6 +918,13 @@ exit:
 	if (sei_suffix_bs)
 		gf_bs_del(sei_suffix_bs);
 
+	if (e && mdia->in_nalu_rewrite) {
+		// avoid double free later
+		u8 *output;
+		u32 outSize, allocSize;
+		gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &output, &outSize, &allocSize);
+	}
+
 	mdia->in_nalu_rewrite = GF_FALSE;
 	return e;
 }
