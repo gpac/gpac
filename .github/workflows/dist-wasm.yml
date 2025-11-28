@@ -177,7 +177,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: wasm-${{ inputs.tag == 'nightly' && 'nightly-latest' || format('main-{0}', inputs.tag) }}@*-*
+          pattern: wasm-${{ inputs.tag == 'nightly' && 'nightly-latest' || format('main-{0}', inputs.tag) }}@*-*
           path: artifacts
 
       - name: Publish to S3 (bash)
