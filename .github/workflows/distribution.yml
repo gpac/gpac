@@ -14,11 +14,6 @@ on:
         description: "Tag to build and add to the main components"
         required: false
         type: string
-      reset:
-        description: "Reset all published artifacts and start fresh"
-        required: false
-        type: boolean
-        default: false
 
   # Used when publishing the release as main components
   release:
@@ -46,8 +41,8 @@ jobs:
       - name: Check workflow inputs
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          if [ "${{ github.event.inputs.reset }}" = "false" ] && [ -z "${{ github.event.inputs.tag }}" ] && [ "${{ github.event.inputs.refresh }}" = "false" ]; then
-            echo "Error: 'tag' input must be provided when 'reset' and 'refresh' are both false."
+          if [ -z "${{ github.event.inputs.tag }}" ] && [ "${{ github.event.inputs.refresh }}" = "false" ]; then
+            echo "Error: 'tag' input must be provided when 'refresh' is false."
             exit 1
           fi
 
@@ -74,11 +69,9 @@ jobs:
           # Add "main" type if:
           # - release event
           # - manual tag input
-          # - manual reset
           if { 
             [[ "${{ github.event_name }}" == "release" ]] || 
-            [[ -n "${{ github.event.inputs.tag }}" ]] || 
-            [[ "${{ github.event.inputs.reset }}" == "true" ]]; 
+            [[ -n "${{ github.event.inputs.tag }}" ]]
           }; then
             types+=("\"main\"")
           fi
@@ -86,12 +79,10 @@ jobs:
           # Add "nightly" type if:
           # - scheduled run and had new commits since last run
           # - manual refresh and had new commits since last run
-          # - manual reset
           has_new_commits="${{ steps.git-status.outputs.has_new_commits }}"
           if { 
             [[ "${{ github.event_name }}" == "schedule" && "$has_new_commits" == "true" ]] ||
-            [[ "${{ github.event.inputs.refresh }}" == "true" && "$has_new_commits" == "true" ]] ||
-            [[ "${{ github.event.inputs.reset }}" == "true" ]]; 
+            [[ "${{ github.event.inputs.refresh }}" == "true" && "$has_new_commits" == "true" ]]
           }; then
             types+=("\"nightly\"")
           fi
@@ -128,7 +119,6 @@ jobs:
           fi
           echo "### Inputs" >> $GITHUB_STEP_SUMMARY
           echo "- Tag: ${{ github.event.inputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Reset: ${{ github.event.inputs.reset }}" >> $GITHUB_STEP_SUMMARY
           echo "- Refresh Nightly: ${{ github.event.inputs.refresh }}" >> $GITHUB_STEP_SUMMARY
           echo "### Types to Build" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.set-types.outputs.types }}" = "[]" ]; then
