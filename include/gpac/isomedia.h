@@ -247,6 +247,9 @@ enum
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/*AVS3 Video media type*/
+	GF_ISOM_SUBTYPE_AVS3 = GF_4CC('a', 'v', 's', '3'),
+
 	/*Opus media type*/
 	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
 	GF_ISOM_SUBTYPE_FLAC = GF_4CC( 'f', 'L', 'a', 'C' ),
@@ -488,6 +491,8 @@ enum
 
 
 	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
+
+	GF_ISOM_BRAND_CAV3 = GF_4CC( 'c', 'a', 'v', '3'), // AVS 3 Video
 
 	GF_ISOM_BRAND_OPUS = GF_4CC( 'O', 'p', 'u', 's'),
 
@@ -3580,6 +3585,14 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 */
 GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
+/*! gets AVS3 Video config for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return the AVS3 Video config - user is responsible for deleting it
+*/
+GF_AVS3VConfig *gf_isom_avs3v_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
 /*! gets DOVI config for a sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -3850,7 +3863,6 @@ GF_Err gf_isom_vvc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 */
 GF_Err gf_isom_vp_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VPConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u32 vpx_type);
 
-
 /*! creates new AV1 config
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -3861,6 +3873,18 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VPConfig
 \return error if any
 */
 GF_Err gf_isom_av1_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AV1Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! creates new AVS 3 Video config
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the AVS3 Video config for this sample description
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_avs3v_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AVS3VConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
 
 /*! creates new IAMF config
 \param isom_file the target ISO file

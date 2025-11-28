@@ -208,6 +208,10 @@ enum
 	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
 	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/*AVS3 Video*/
+	GF_ISOM_BOX_TYPE_AV3C = GF_4CC('a', 'v', '3', 'c'),
+	GF_ISOM_BOX_TYPE_AVS3 = GF_4CC('a', 'v', 's', '3'),
+
 	/*WebM*/
 	GF_ISOM_BOX_TYPE_VPCC = GF_4CC('v', 'p', 'c', 'C'),
 	GF_ISOM_BOX_TYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
@@ -1561,6 +1565,14 @@ typedef struct
 	GF_VPConfig *config;
 } GF_VPConfigurationBox;
 
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_AVS3VConfig *config;
+} GF_AVS3VConfigurationBox;
+
+
 typedef struct
 {
 	GF_ISOM_FULL_BOX
@@ -1667,6 +1679,8 @@ typedef struct __full_video_sample_entry
 	GF_AV1ConfigurationBox *av1_config;
 	/*vp8-9 extension*/
 	GF_VPConfigurationBox *vp_config;
+	/*avs3 video extension*/
+	GF_AVS3VConfigurationBox *avs3v_config;
 	/*jp2k extension*/
 	GF_J2KHeaderBox *jp2h;
 	/*dolbyvision extension*/

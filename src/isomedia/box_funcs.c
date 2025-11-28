@@ -897,6 +897,7 @@ ISOM_BOX_IMPL_DECL(ccst)
 ISOM_BOX_IMPL_DECL(auxi)
 ISOM_BOX_IMPL_DECL(hvcc)
 ISOM_BOX_IMPL_DECL(av1c)
+ISOM_BOX_IMPL_DECL(av3c)
 ISOM_BOX_IMPL_DECL(dOps)
 ISOM_BOX_IMPL_DECL(iamf)
 ISOM_BOX_IMPL_DECL(iacb)
@@ -1448,6 +1449,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_VP10, video_sample_entry, "stsd", "vp"),
 	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_SMDM, SmDm, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
 	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_COLL, CoLL, "vp08 vp09 vp10 encv resv", 1, 0, "vp"),
+
+	//AVS3 in ISOBMFF boxes
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_AVS3, video_sample_entry, "stsd", "avs"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV3C, av3c, "avs3 encv resv ipco", "avs"),
 
 	//Opus in ISOBMFF boxes
 #ifndef GPAC_DISABLE_OGG
