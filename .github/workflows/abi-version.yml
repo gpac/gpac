@@ -29,6 +29,7 @@ jobs:
           echo "latest_abi=$(git rev-parse $latest_tag)" >> $GITHUB_OUTPUT
 
   build-commits:
+    if: ${{ needs.prepare-matrix.outputs.latest_abi != github.sha }}
     runs-on: ubuntu-latest
     container: gpac/ubuntu-deps:latest
     needs: prepare-matrix
@@ -108,7 +109,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          abipkgdiff latest-abi/gpac*.deb current-commit/gpac*.deb > abi-diff.txt
+          abidiff --ignore-soname --no-unreferenced-symbols latest-abi/libgpac.so current-commit/libgpac.so > abi-diff.txt
           ret=$?
           set -e
 
@@ -194,6 +195,7 @@ jobs:
           git commit -a \
             -m "Update ABI version to ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" \
             -m "${{ steps.read-abi-diff.outputs.body }}"
+          git push origin master
           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Update ABI tags
@@ -206,12 +208,12 @@ jobs:
             git tag -a $new_minor \
               -m "ABI version ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" \
               ${{ steps.commit-version.outputs.commit_sha }}
-            git push --follow-tags origin $new_minor
+            git push origin $new_minor
           fi
 
           if ! git rev-parse -q --verify "refs/tags/$new_major" >/dev/null; then
             git tag -a $new_major \
               -m "ABI version ${{ steps.decide-abi.outputs.major }}" \
               ${{ steps.commit-version.outputs.commit_sha }}
-            git push --follow-tags origin $new_major
+            git push origin $new_major
           fi
