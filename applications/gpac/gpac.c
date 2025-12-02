@@ -2389,8 +2389,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
 	if (static_logs) {
-		if (is_final && (!log_write || !static_logs[log_write-1].szMsg))
+		if (is_final && (!log_write || !static_logs[log_write-1].szMsg)) {
+			gf_fs_lock_filters(fsess, GF_FALSE);
 			return;
+		}
 
 		fprintf(stderr, "\nLogs:\n");
 		for (i=0; i<log_write; i++) {
