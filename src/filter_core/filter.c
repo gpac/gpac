@@ -531,11 +531,13 @@ void gf_filter_check_pending_pids(GF_Filter *filter)
 {
 	//flush all pending pid init requests
 	if (filter->has_pending_pids && !filter->deferred_link) {
-		filter->has_pending_pids=GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
 			gf_filter_pid_post_init_task(filter, pid);
 		}
+		//reset has_pending_pids once init tasks are posted, otherwise we could be in a state with no pending pids
+		//and no init task pending which could break check_connection_pending in ultithreaded mode
+		filter->has_pending_pids = GF_FALSE;
 	}
 }
 
@@ -2764,7 +2766,9 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 
 	if (is_new_chain) {
 		//mark this filter has having pid connection pending to prevent packet dispatch until the connection is done
+		gf_mx_p(pid->filter->tasks_mx);
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
+		gf_mx_v(pid->filter->tasks_mx);
 		gf_filter_pid_post_connect_task(new_f, pid);
 	} else {
 		gf_fs_post_task(filter->session, gf_filter_pid_reconfigure_task, filter_dst, pid, "pidinst_reconfigure", NULL);
@@ -5133,35 +5137,54 @@ void gf_filter_disable_inputs(GF_Filter *filter)
 static Bool gf_filter_has_pid_connection_pending_internal(GF_Filter *filter, GF_Filter *stop_at_filter)
 {
 	u32 i, j;
+	Bool has_c_pending = GF_FALSE;
 	if (filter == stop_at_filter) return GF_FALSE;
 
-	if (filter->has_pending_pids) return GF_TRUE;
-	if (filter->in_pid_connection_pending) return GF_TRUE;
-	if (filter->out_pid_connection_pending) return GF_TRUE;
+	gf_mx_p(filter->tasks_mx);
 
-	if (!filter->num_output_pids) {
+	if (filter->has_pending_pids) {
+		has_c_pending = GF_TRUE;
+	} else if (filter->in_pid_connection_pending) {
+		has_c_pending = GF_TRUE;
+	} else if (filter->out_pid_connection_pending) {
+		has_c_pending = GF_TRUE;
+	} else if (!filter->num_output_pids) {
 		if (!filter->act_as_sink && !filter->multi_sink_target) {
 			if (filter->forced_caps) {
-				if (gf_filter_has_out_caps(filter->forced_caps, filter->nb_forced_caps))
-					return GF_TRUE;
+				if (gf_filter_has_out_caps(filter->forced_caps, filter->nb_forced_caps)) {
+					has_c_pending = GF_TRUE;
+				}
 			} else {
-				if (gf_filter_has_out_caps(filter->freg->caps, filter->freg->nb_caps))
-					return GF_TRUE;
+				if (gf_filter_has_out_caps(filter->freg->caps, filter->freg->nb_caps)) {
+					has_c_pending = GF_TRUE;
+				}
 			}
 		}
-		return GF_FALSE;
 	}
-
-	for (i=0; i<filter->num_output_pids; i++) {
-		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		if (pid->init_task_pending) return GF_TRUE;
-		for (j=0; j<pid->num_destinations; j++) {
-			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-			Bool res = gf_filter_has_pid_connection_pending_internal(pidi->filter, stop_at_filter);
-			if (res) return GF_TRUE;
+	else {
+		for (i=0; i<filter->num_output_pids; i++) {
+			GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+			if (pid->init_task_pending) {
+				has_c_pending = GF_TRUE;
+				break;
+			}
+			//unlock in case another thread is handling a pid init task for this filter
+			gf_mx_v(filter->tasks_mx);
+			for (j=0; j<pid->num_destinations; j++) {
+				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+				Bool res = gf_filter_has_pid_connection_pending_internal(pidi->filter, stop_at_filter);
+				if (res) {
+					has_c_pending = GF_TRUE;
+					break;
+				}
+			}
+			gf_mx_p(filter->tasks_mx);
+			if (has_c_pending)
+				break;
 		}
 	}
-	return GF_FALSE;
+	gf_mx_v(filter->tasks_mx);
+	return has_c_pending;
 }
 
 GF_EXPORT
