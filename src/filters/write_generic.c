@@ -964,11 +964,11 @@ static void writegen_rewrite_timestamp_ttml(s64 ts_offset, GF_XMLAttribute *att,
 	*value += ts_offset;
 	v = (u64) (*value / 1000);
 	h = (u32) (v / 3600);
-	m = (u32) (v - h*60) / 60;
+	m = (u32) (v - h*3600) / 60;
 	s = (u32) (v - h*3600 - m*60);
 	ms = (*value) % 1000;
 
-	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	snprintf(szTS, 20, "%02u:%02u:%02u.%03u", h, m, s, ms);
 	szTS[20] = 0;
 	gf_free(att->value);
 	att->value = gf_strdup(szTS);
