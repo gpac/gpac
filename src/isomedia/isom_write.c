@@ -7422,7 +7422,7 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 		void *sgde_dst = gf_list_get(sgdesc->group_descriptions, k);
 		if (gf_isom_is_identical_sgpd(entry, sgde_dst, sgdesc->grouping_type)) {
 			if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = k+1;
-			sgpd_del_entry(sgdesc->grouping_type, entry);
+			sgpd_del_entry(sgdesc->grouping_type, entry, sgdesc->is_opaque);
 			if (use_default) {
 				u32 idx = k+1;
 				if (is_traf_sgpd && *is_traf_sgpd) idx |= 0x10000;
@@ -7440,7 +7440,7 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 
 	e = gf_list_add(sgdesc->group_descriptions, entry);
 	if (e) {
-		sgpd_del_entry(sgdesc->grouping_type, entry);
+		sgpd_del_entry(sgdesc->grouping_type, entry, sgdesc->is_opaque);
 		return e;
 	}
 

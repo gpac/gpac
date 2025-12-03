@@ -10516,8 +10516,15 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 	return def_ptr;
 }
 
-void sgpd_del_entry(u32 grouping_type, void *entry)
+void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 {
+	if (is_opaque) {
+		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
+		if (ptr && ptr->data) gf_free(ptr->data);
+		gf_free(entry);
+		return;
+	}
+
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_SYNC:
 	case GF_ISOM_SAMPLE_GROUP_ROLL:
@@ -10779,7 +10786,7 @@ void sgpd_box_del(GF_Box *a)
 	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)a;
 	while (gf_list_count(p->group_descriptions)) {
 		void *ptr = gf_list_last(p->group_descriptions);
-		sgpd_del_entry(p->grouping_type, ptr);
+		sgpd_del_entry(p->grouping_type, ptr, p->is_opaque);
 		gf_list_rem_last(p->group_descriptions);
 	}
 	gf_list_del(p->group_descriptions);

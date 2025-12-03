@@ -958,7 +958,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 							count ++;
 							new_entry = GF_FALSE;
 
-							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry);
+							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry, new_sgdesc->is_opaque);
 							break;
 						}
 					}
