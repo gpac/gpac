@@ -294,6 +294,8 @@ struct __httpout_session {
 	u64 next_process_clock;
 };
 
+static void httpout_delete_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in);
+
 /*GF FileIO for mem mode*/
 typedef struct __gf_http_io
 {
@@ -2619,6 +2621,8 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_FilterEvent evt;
 		const char *res_path;
 
+		if (is_remove) return GF_OK;
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLE_PROGRESSIVE);
 		if (p && p->value.uint) {
 			if (ctx->hmode==MODE_PUSH) {
@@ -2756,6 +2760,10 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	}
 	if (is_remove) {
+		if (pctx) {
+			gf_list_del_item(ctx->inputs, pctx);
+			httpout_delete_input(ctx, pctx);
+		}
 		return GF_OK;
 	}
 
@@ -3425,6 +3433,49 @@ static void httpout_close_llhas_part(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bo
 	in->llhas_part_local_path = NULL;
 }
 
+static void httpout_delete_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
+{
+	if (in->local_path) gf_free(in->local_path);
+	if (in->path) gf_free(in->path);
+	if (in->mime) gf_free(in->mime);
+
+	httpout_close_llhas_part(ctx, in, GF_TRUE);
+
+	if (in->resource) gf_fclose(in->resource);
+	if (in->llhas_upload) gf_dm_sess_del(in->llhas_upload);
+	if (in->llhas_url) gf_free(in->llhas_url);
+	if (in->upload) {
+		if (in->upload_sock)
+			gf_sk_group_unregister(ctx->sg, in->upload_sock);
+		gf_dm_sess_del(in->upload);
+	}
+	if (in->file_deletes) {
+		while (gf_list_count(in->file_deletes)) {
+			char *url = gf_list_pop_back(in->file_deletes);
+			gf_free(url);
+		}
+		gf_list_del(in->file_deletes);
+	}
+	if (in->mem_files) {
+		while (gf_list_count(in->mem_files)) {
+			GF_HTTPFileIO *hio = gf_list_pop_back(in->mem_files);
+			httpio_del(hio);
+		}
+		gf_list_del(in->mem_files);
+	}
+	if (in->past_files) {
+		while (gf_list_count(in->past_files)) {
+			char *url = gf_list_pop_back(in->past_files);
+			gf_free(url);
+		}
+		gf_list_del(in->past_files);
+	}
+	if (in->no_cte_llhas_cache) gf_filter_pck_discard(in->no_cte_llhas_cache);
+	if (in->no_cte_cache) gf_filter_pck_discard(in->no_cte_cache);
+	if (in->llhas_template) gf_free(in->llhas_template);
+
+	gf_free(in);
+}
 
 static void httpout_finalize(GF_Filter *filter)
 {
@@ -3444,46 +3495,7 @@ static void httpout_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->inputs)) {
 		GF_HTTPOutInput *in = gf_list_pop_back(ctx->inputs);
-		if (in->local_path) gf_free(in->local_path);
-		if (in->path) gf_free(in->path);
-		if (in->mime) gf_free(in->mime);
-
-		httpout_close_llhas_part(ctx, in, GF_TRUE);
-
-		if (in->resource) gf_fclose(in->resource);
-		if (in->llhas_upload) gf_dm_sess_del(in->llhas_upload);
-		if (in->llhas_url) gf_free(in->llhas_url);
-		if (in->upload) {
-			if (in->upload_sock)
-				gf_sk_group_unregister(ctx->sg, in->upload_sock);
-			gf_dm_sess_del(in->upload);
-		}
-		if (in->file_deletes) {
-			while (gf_list_count(in->file_deletes)) {
-				char *url = gf_list_pop_back(in->file_deletes);
-				gf_free(url);
-			}
-			gf_list_del(in->file_deletes);
-		}
-		if (in->mem_files) {
-			while (gf_list_count(in->mem_files)) {
-				GF_HTTPFileIO *hio = gf_list_pop_back(in->mem_files);
-				httpio_del(hio);
-			}
-			gf_list_del(in->mem_files);
-		}
-		if (in->past_files) {
-			while (gf_list_count(in->past_files)) {
-				char *url = gf_list_pop_back(in->past_files);
-				gf_free(url);
-			}
-			gf_list_del(in->past_files);
-		}
-		if (in->no_cte_llhas_cache) gf_filter_pck_discard(in->no_cte_llhas_cache);
-		if (in->no_cte_cache) gf_filter_pck_discard(in->no_cte_cache);
-		if (in->llhas_template) gf_free(in->llhas_template);
-
-		gf_free(in);
+		httpout_delete_input(ctx, in);
 	}
 	gf_list_del(ctx->inputs);
 	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
