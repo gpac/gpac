@@ -3143,7 +3143,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (!skip_block_mode && filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
 		gf_mx_p(task->filter->tasks_mx);
 		//it may happen that by the time we get the lock, the filter has been unblocked by another thread. If so, don't skip task
-		if (filter->would_block) {
+		if (filter->would_block && (filter->would_block + filter->num_out_pids_not_connected == filter->num_output_pids ) ) {
 			filter->nb_tasks_done--;
 			task->filter->process_task_queued = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skipping process\n", filter->name));
@@ -3227,9 +3227,13 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (e==GF_EOS) {
 		if (filter->postponed_packets && filter->num_input_pids) {
 		 	e = GF_OK;
-		} else if (filter->process_task_queued) {
-			e = GF_OK;
-			force_block_state_check = GF_TRUE;
+		} else {
+			gf_mx_p(filter->tasks_mx);
+			if (filter->process_task_queued) {
+				e = GF_OK;
+				force_block_state_check = GF_TRUE;
+			}
+			gf_mx_v(filter->tasks_mx);
 		}
 	}
 

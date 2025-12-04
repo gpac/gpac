@@ -6810,6 +6810,10 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 		gf_assert(pcki->pid->nb_eos_signaled);
 		safe_int_dec(&pcki->pid->nb_eos_signaled);
 		is_internal = GF_TRUE;
+
+		if (strcmp(pidi->pid->filter->name, "mp4dmx") && strcmp(pidi->pid->filter->name, "fin"))
+			is_internal = GF_TRUE;
+		
 	} else if (ctype == GF_PCK_CMD_PID_REM) {
 		safe_int_dec(&pidi->filter->session->remove_tasks);
 		safe_int_dec(&pidi->pid->filter->pid_rem_packet_pending);
