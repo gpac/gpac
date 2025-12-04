@@ -189,6 +189,8 @@ For such services, the custom HTTP header \`X-From-MABR\` is defined:
 - for client request, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
 - for client response, a value of \`yes\` indicates the content comes from the MABR cache; if absent or value is \`no\` or \`off-edge\`, the content comes from HTTP (\`off-edge\` indicates a request outside of the timeshift buffer)
 
+The dedicated root endpoint \`/stats\` returns, the response content type's count (\`yes\`, \`no\`, \`off-edge\`) served by the gateway.
+
 
 The \`js\` option can be set to a JS module exporting the following functions:
 - init : (mandatory) The function is called once at the start of the server. Parameters:
@@ -561,6 +563,30 @@ function cat_buffer(dst_ab, src_ab)
 }
 globalThis.cat_buffer = cat_buffer;
 
+const mabr_stats = {};
+const mabr_stats_track_request = (req, from_mabr) => {
+	if(!req.service){
+		return;
+	}
+	if(!(req.service in mabr_stats)){
+		mabr_stats[req.service.id]['x-from-mabr'] = {
+			'yes': 0,
+			'no': 0,
+			'off-edge': 0
+		}
+	}
+	switch(from_mabr){
+		case 'yes':
+			mabr_stats[req.service.id]['x-from-mabr']['yes']++;
+			break;
+		case 'off-edge':
+			mabr_stats[req.service.id]['x-from-mabr']['off-edge']++;
+			break;
+		default:
+			mabr_stats[req.service.id]['x-from-mabr']['no']++;
+			break;
+	}
+}
 
 //custom HTTPout request handler
 let httpout = {};
@@ -581,6 +607,14 @@ httpout.on_request = (req) =>
 	}
 
 	do_log(GF_LOG_DEBUG, `Got request ${req.method} for ${req.url}`);
+
+	if (req.url.startsWith('/stats')){
+		let data = JSON.stringify(mabr_stats);
+		req.reply = 200;
+		req.body = data;
+		req.send();
+		return;
+	}
 
 	//setup request
 	req.target_url = null;
@@ -750,9 +784,12 @@ httpout.on_request = (req) =>
 			this.headers_out.push( { "name" : 'Transfer-Encoding', "value": 'chunked'} );
 		}
 		if (this.cache_file.cache_type==CACHE_TYPE_MABR) {
+			mabr_stats_track_request(this, 'yes');
 			this.headers_out.push( { "name" : 'X-From-MABR', "value": 'yes'} );
 		}
 		else if (this.service && this.service.mabr) {
+			const val = this.live_edge ? 'no' : 'off-edge';
+			mabr_stats_track_request(this, val);
 			this.headers_out.push( { "name" : 'X-From-MABR', "value": this.live_edge ? 'no' : 'off-edge'} );
 		}
 		this.send();
@@ -914,7 +951,9 @@ httpout.on_request = (req) =>
 			do_log(GF_LOG_DEBUG, `Sending reply to ${req.url} code ${req.xhr.status}`);
 			req.reply = req.xhr.status;
 			if (req.service && req.service.mabr) {
-				req.headers_out.push( { "name" : 'X-From-MABR', "value": req.live_edge ? 'no' : 'off-edge'} );
+				const val = req.live_edge ? 'no' : 'off-edge';
+				mabr_stats_track_request(req, val);
+				req.headers_out.push( { "name" : 'X-From-MABR', "value": val} );
 			}
 			req.send();
 
