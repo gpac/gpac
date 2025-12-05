@@ -125,6 +125,7 @@ em_type="js"
 em_size="0"
 em_opt="2"
 fatal_assert="no"
+no_stack_prot="no"
 
 #flags not set by generic lib config
 has_x11="no"
@@ -384,6 +385,7 @@ GPAC build options:
   --extra-libs=ELIBS       add ELIBS [$ELIBS]
   --cpu=CPU                force cpu to CPU  [$cpu]
   --check-stack-size=SIZE  maximum stack size [$check_stack_size bytes]
+  --no-stack-protector     disables the default stack canaries
   --enable-debug           produce debug version
   --enable-gprof           enable profiling
   --enable-gcov            enable coverage
@@ -635,6 +637,8 @@ for opt do
         --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
             ;;
         --check-stack-size=*) check_stack_size=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --no-stack-protector) no_stack_prot="yes"
             ;;
         --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
             ;;
@@ -1150,10 +1154,21 @@ CFLAGS="$CFLAGS -Wall"
 if docc -fno-strict-aliasing ; then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
+if test "$no_stack_prot" = "yes"; then
+    if docc -fno-stack-protector ; then
+        CFLAGS="$CFLAGS -fno-stack-protector"
+    fi
+else
+    if docc -fstack-protector-strong ; then
+        CFLAGS="$CFLAGS -fstack-protector-strong"
+    fi
+fi
 CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
+
 
 
 #GCC opt
@@ -2633,7 +2648,7 @@ fi
 else
 
 if test "$enable_sanitizer" = "yes" ; then
-    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -DASAN_ENABLED"
+    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -fno-stack-protector -U_FORTIFY_SOURCE -DASAN_ENABLED"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
 fi
 
