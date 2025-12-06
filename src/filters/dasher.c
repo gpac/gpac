@@ -270,6 +270,7 @@ typedef struct
 	Bool no_fragments_defaults;
 
 	Bool is_eos;
+	u32 pending_discontinuity_idx;
 	u32 nb_seg_url_pending;
 	u64 last_evt_check_time;
 	Bool on_demand_done;
@@ -1782,7 +1783,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//check if we have an explicit time discontinuity, in which case we switch periods
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
-	if (p && (p->value.uint != ds->ts_disc_idx)) period_switch = GF_TRUE;
+	if (p && (p->value.uint != ds->ts_disc_idx)) {
+		ctx->pending_discontinuity_idx = gf_list_count(ctx->mpd->periods) + 1;
+		period_switch = GF_TRUE;
+	}
 	ds->ts_disc_idx = p ? p->value.uint : 0;
 
 	if (ctx->do_index || ctx->from_index) {
@@ -5701,7 +5705,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 			ctx->mpd->force_llhls_mode = 0;
 
 		char *opath = ctx->explicit_mode ? gf_file_basename(ctx->out_path) : ctx->out_path;
-		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, gf_list_last(ctx->mpd->periods), mode);
+		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, ctx->mpd->periods, mode);
 	} else {
 		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
 	}
@@ -6928,6 +6932,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		gf_list_add(ctx->mpd->periods, ctx->current_period->period);
 	}
 
+	if (gf_list_count(ctx->mpd->periods) == ctx->pending_discontinuity_idx) {
+		ctx->current_period->period->is_discontinuity = GF_TRUE;
+		ctx->pending_discontinuity_idx = 0;
+	}
 
 	if (remote_xlink) {
 		ctx->current_period->period->xlink_href = gf_strdup(remote_xlink);
@@ -8589,9 +8597,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					if (ds->rawmux)
 						break;
 					if (ds->set->bitstream_switching && ds->set->segment_template)
-						ds->rep->hls_single_file_name = ds->set->segment_template->hls_init_name;
+						ds->rep->hls_single_file_name = gf_strdup(ds->set->segment_template->hls_init_name);
 					else
-						ds->rep->hls_single_file_name = ds->init_seg;
+						ds->rep->hls_single_file_name = gf_strdup(ds->init_seg);
 				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
