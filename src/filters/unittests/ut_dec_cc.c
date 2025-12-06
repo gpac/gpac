@@ -3,6 +3,7 @@
 #include "../../filter_core/filter_session.h" // GF_FilterPacket
 
 
+#ifdef GPAC_HAS_LIBCAPTION
 static GF_Err pck_truncate(GF_FilterPacket *pck, u32 size)
 {
 	pck->data_length = size;
@@ -20,6 +21,7 @@ static GF_FilterPacket* pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **dat
 	pck->filter_owns_mem = 0;
 	return pck;
 }
+#endif
 
 
 const char* txt = "GP\nA C \n1 2";
@@ -116,6 +118,7 @@ unittest(ccdec_aggregation_overlaps)
 }
 
 
+#ifdef GPAC_HAS_LIBCAPTION
 static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 {
 	static int calls = 0;
@@ -137,6 +140,7 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 	calls++;
 	return GF_OK;
 }
+#endif
 
 unittest(ccdec_several_entries)
 {

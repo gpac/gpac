@@ -1,4 +1,4 @@
-name: Build For Linux
+name: Build & Distribute (Linux)
 
 on:
   workflow_call:
@@ -102,3 +102,96 @@ jobs:
           name: linux-${{ env.DIST_TYPE }}-${{ matrix.target.distro }}-${{ matrix.target.codename }}@${{ matrix.architecture }}
           path: gpac_public/*gpac*.deb
           retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.DIST_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DIST_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: linux-${{ inputs.tag == 'nightly' && 'nightly-latest' || format('main-{0}', inputs.tag) }}-*-*@*
+          path: artifacts
+
+      - name: Import GPG key
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          trust_level: 5 # ultimate
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Install deb-s3
+        run: gem install deb-s3
+
+      - name: Publish the artifacts
+        shell: bash
+        run: |
+          set -euxo pipefail
+          shopt -s nullglob
+
+          for folder in artifacts/*; do
+            echo "Processing folder $folder"
+
+            for artifact in "$folder"/*; do
+              echo "Adding artifact $artifact to ${{ secrets.DIST_S3_BUCKET }} repository."
+
+              # Rename the artifact so that there is no conflict
+              if [[ $artifact == *.deb ]]; then
+                folder_name=$(basename "$(dirname "$artifact")")
+
+                # Extract the required parts from the folder name
+                if [[ $folder_name =~ linux-([^-]+)-[^-]+-([^-]+)-([^-]+)@([^-]+) ]]; then
+                  component="${BASH_REMATCH[1]}"
+                  distro="${BASH_REMATCH[2]}"
+                  codename="${BASH_REMATCH[3]}"
+                  arch="${BASH_REMATCH[4]}"
+                  date=$(date +"%s%3N")
+
+                  # Get the version from the artifact name
+                  file_name=$(basename "$artifact")
+                  identifier=$(echo "$file_name" | cut -d'-' -f1) # gpac or libgpac
+
+                  # Create a new name for the artifact
+                  new_name="${identifier}_${component}_${distro}_${codename}_${arch}_${date}.deb"
+
+                  # Copy the artifact to a new file with the new name
+                  cp "$artifact" "${{ runner.temp }}/$new_name"
+
+                  # Upload the artifact with the new name
+                  deb-s3 upload \
+                    ${{ runner.temp }}/$new_name \
+                    --bucket ${{ secrets.DIST_S3_BUCKET }} \
+                    --endpoint ${{ secrets.DIST_S3_ENDPOINT }} \
+                    --sign "${{ steps.import-gpg.outputs.keyid }}" \
+                    --prefix linux/$distro/ \
+                    --component $component \
+                    --codename $codename \
+                    --arch $arch \
+                    --origin https://dist.gpac.io \
+                    --lock \
+                    --preserve-versions
+                  echo "Uploaded $new_name to ${{ secrets.DIST_S3_BUCKET }}/linux/$distro/"
+                else
+                  echo "Invalid folder name format: $folder_name"
+                  exit 1
+                fi
+              else
+                echo "Artifact must be a .deb file: $artifact"
+                exit 1
+              fi
+            done
+          done
+
+      - name: Upload the public key
+        run: |
+          gpg --armor --export "${{ steps.import-gpg.outputs.fingerprint }}" > gpg.asc
+          aws s3 cp gpg.asc s3://${{ secrets.DIST_S3_BUCKET }}/linux/gpg.asc --endpoint-url ${{ secrets.DIST_S3_ENDPOINT }}

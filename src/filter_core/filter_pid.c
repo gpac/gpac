@@ -235,7 +235,9 @@ static void gf_filter_pid_inst_check_dependencies(GF_FilterPidInst *pidi)
 			gf_fs_post_disconnect_task(filter->session, a_pidi->filter, a_pid);
 
 			//reconnect this pid instance to the new decoder
+			gf_mx_p(pid->filter->tasks_mx);
 			safe_int_inc(&pid->filter->out_pid_connection_pending);
+			gf_mx_v(pid->filter->tasks_mx);
 			gf_filter_pid_post_connect_task(pidi->filter, a_pid);
 
 		}
@@ -666,6 +668,9 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		dst->is_end_of_stream = src->is_end_of_stream;
 		dst->nb_eos_signaled = src->nb_eos_signaled;
 		dst->buffer_duration = src->buffer_duration;
+		src->buffer_duration = 0;
+		src->in_swap = GF_TRUE;
+
 		dst->nb_clocks_signaled = src->nb_clocks_signaled;
 
 		//switch previous src property map to this new pid (this avoids rewriting props of already dispatched packets)
@@ -844,6 +849,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				//reattach new filter and pid
 				pidinst->filter = filter;
 				pidinst->pid = pid;
+				pidinst->in_swap = GF_FALSE;
 
 				gf_assert(!pidinst->props);
 
@@ -5638,8 +5644,8 @@ single_retry:
 			gf_assert(pid->pid->filter->freg != filter_dst->freg);
 		}
 
-		safe_int_inc(&pid->filter->out_pid_connection_pending);
 		gf_mx_p(filter_dst->tasks_mx);
+		safe_int_inc(&pid->filter->out_pid_connection_pending);
 		gf_list_add(filter_dst->temp_input_pids, pid);
 		if (pid->filter != filter_dst->single_source)
 			filter_dst->single_source = NULL;
@@ -5942,7 +5948,9 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	gf_assert(!pid->filter->removed);
 	gf_assert(!pid->removed);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
+	gf_mx_p(filter->tasks_mx);
 	safe_int_inc(&filter->in_pid_connection_pending);
+	gf_mx_v(filter->tasks_mx);
 	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE, 0);
 }
 
@@ -5980,8 +5988,13 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	char szName[30];
 	GF_FilterPid *pid;
 	if (!filter) return NULL;
+	gf_mx_p(filter->tasks_mx);
+
 	GF_SAFEALLOC(pid, GF_FilterPid);
-	if (!pid) return NULL;
+	if (!pid) {
+		gf_mx_v(filter->tasks_mx);
+		return NULL;
+	}
 	pid->filter = filter;
 	pid->destinations = gf_list_new();
 	pid->properties = gf_list_new();
@@ -6000,7 +6013,6 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	filter->has_pending_pids = GF_TRUE;
 	gf_fq_add(filter->pending_pids, pid);
 
-	gf_mx_p(filter->tasks_mx);
 	//by default copy properties if only one input pid
 	if (filter->num_input_pids==1) {
 		GF_FilterPid *pidi = gf_list_get(filter->input_pids, 0);
@@ -7238,9 +7250,10 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	gf_mx_p(pid->filter->tasks_mx);
 	nb_pck = gf_fq_count(pidinst->packets);
 
-	if (!nb_pck) {
-		safe_int64_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
-	} else if (pck->info.duration && (pck->info.flags & GF_PCKF_BLOCK_START) && timescale) {
+	//always substract duration, do not reset to 0 if no more packets for multithreaded cases:
+	//we may have 0 packets in the queue but the buffer_duration can already include the next packet to be added (multithreaded mode)
+	//since we don't lock the mutex when updating duration
+	if (pck->info.duration && (pck->info.flags & GF_PCKF_BLOCK_START) && timescale) {
 		s64 d = gf_timestamp_rescale(pck->info.duration, timescale, 1000000);
 		if (d > pidinst->buffer_duration) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), dropping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
@@ -9725,6 +9738,7 @@ GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
 GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
 GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, COLR colr);
 GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COLR colr);
+GF_Err rfc_6381_get_codec_avs3v(char *szCodec, u32 subtype, GF_AVS3VConfig *av3c, COLR colr);
 GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi);
 GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc);
 GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl);
@@ -9971,6 +9985,23 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find VPX config, using default %s\n", szCodec));
+		return GF_OK;
+
+	case GF_CODECID_AVS3_VIDEO:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_AVS3;
+
+		if (dcd) {
+			GF_AVS3VConfig *av3c = gf_odf_avs3v_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+			if (av3c) {
+				GF_Err e = rfc_6381_get_codec_avs3v(szCodec, subtype, av3c, colr);
+				gf_odf_avs3v_cfg_del(av3c);
+				return e;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] AVS3 Video config not conformant\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find AVS3 Video config, using default %s\n", szCodec));
 		return GF_OK;
 
 	case GF_CODECID_MHAS:

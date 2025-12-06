@@ -4869,6 +4869,19 @@ GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type);
 */
 GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck);
 
+/*! Sets packet switch frame flag
+\param pck target packet
+\param is_switch_frame switch frame flag of the packet
+\return error code if any
+*/
+GF_Err gf_filter_pck_set_switch_frame(GF_FilterPacket *pck, Bool is_switch_frame);
+
+/*! Sets packet switch frame flag
+\param pck target packet
+\return switch frame flag of the packet
+*/
+Bool gf_filter_pck_get_switch_frame(GF_FilterPacket *pck);
+
 
 /*! Sets packet video interlacing flag
 \param pck target packet

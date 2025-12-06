@@ -4560,6 +4560,9 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_VPCC:
 		BOX_FIELD_ASSIGN(vp_config, GF_VPConfigurationBox)
 		break;
+	case GF_ISOM_BOX_TYPE_AV3C:
+		BOX_FIELD_ASSIGN(avs3v_config, GF_AVS3VConfigurationBox)
+		break;
 	case GF_ISOM_BOX_TYPE_DVCC:
 	case GF_ISOM_BOX_TYPE_DVVC:
 		BOX_FIELD_ASSIGN(dovi_config, GF_DOVIConfigurationBox)
@@ -7017,6 +7020,8 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_VP09:
 		case GF_ISOM_BOX_TYPE_VP10:
 		case GF_ISOM_BOX_TYPE_AV1C:
+		case GF_ISOM_BOX_TYPE_AV3C:
+		case GF_ISOM_BOX_TYPE_AVS3:
 		case GF_ISOM_BOX_TYPE_JPEG:
 		case GF_ISOM_BOX_TYPE_PNG:
 		case GF_ISOM_BOX_TYPE_JP2K:
@@ -10372,6 +10377,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		}
 		break;
 
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 	case GF_ISOM_SAMPLE_GROUP_TSAS:
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		null_size_ok = GF_TRUE;
@@ -10510,8 +10516,15 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 	return def_ptr;
 }
 
-void sgpd_del_entry(u32 grouping_type, void *entry)
+void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 {
+	if (is_opaque) {
+		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
+		if (ptr && ptr->data) gf_free(ptr->data);
+		gf_free(entry);
+		return;
+	}
+
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_SYNC:
 	case GF_ISOM_SAMPLE_GROUP_ROLL:
@@ -10519,6 +10532,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_RAP:
 	case GF_ISOM_SAMPLE_GROUP_TELE:
 	case GF_ISOM_SAMPLE_GROUP_SAP:
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 		gf_free(entry);
 		return;
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
@@ -10708,6 +10722,7 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return 20;
 	case GF_ISOM_SAMPLE_GROUP_LBLI:
 		return 2;
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 	case GF_ISOM_SAMPLE_GROUP_TSAS:
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		return 0;
@@ -10771,7 +10786,7 @@ void sgpd_box_del(GF_Box *a)
 	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)a;
 	while (gf_list_count(p->group_descriptions)) {
 		void *ptr = gf_list_last(p->group_descriptions);
-		sgpd_del_entry(p->grouping_type, ptr);
+		sgpd_del_entry(p->grouping_type, ptr, p->is_opaque);
 		gf_list_rem_last(p->group_descriptions);
 	}
 	gf_list_del(p->group_descriptions);

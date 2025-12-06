@@ -2385,6 +2385,7 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 {
 	u32 i;
 	u64 val[8] = {0};
+	u8 shuffle[8] = {4,5,0,1,2,3,6,7}; //RGB->GBR
 	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
 	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
 
@@ -2394,11 +2395,7 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 		val[i] = gf_bs_read_u16(bs_r);
 	}
 	for (i=0; i<8; i++) {
-		int j=i;
-		// reorder color primaries, see issue 3331
-		if (i==2) j=3;
-		else if (i==3) j=2;
-		gf_bs_write_u16(bs_w, (u32) ((50000 * val[j]) / 65536));
+		gf_bs_write_u16(bs_w, (u32) ((50000 * val[shuffle[i]]) / 65536));
 	}
 	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
 	*val = gf_bs_read_u32(bs_r);
@@ -3517,6 +3514,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		frame_state->show_frame = gf_bs_read_int_log(bs, 1, "show_frame");
 		if (frame_state->is_first_frame) {
 			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+		}
+		if (frame_state->frame_type == AV1_SWITCH_FRAME) {
+			frame_state->switch_frame = GF_TRUE;
 		}
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			gf_bs_read_int_log(bs, state->frame_presentation_time_length, "frame_presentation_time");

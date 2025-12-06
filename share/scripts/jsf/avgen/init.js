@@ -705,6 +705,18 @@ function process_video()
 	}
 }
 
+function ntpFractionToInt(fraction) {
+    if (typeof fraction !== 'bigint') {
+        // Coerce to BigInt so that very large values are handled safely
+        fraction = BigInt(Math.floor(Number(fraction)));
+    }
+
+    const DENUM   = 2**32-1;
+
+    // Perform the division in double precision.
+    return Number(fraction) / Number(DENUM);
+}
+
 function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video_frame, date, utc, ntp)
 {
 	let disp_w = vsrc.w;
@@ -833,7 +845,7 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 	if (view_idx && !filter.pack)
 		return;
 
-	text.set_text([' Date: ' + date.toUTCString(), ' Local: ' + date], ' UTC (ms): ' + utc, ' NTP (s.f):  ' + ntp.n + '.' + ntp.d.toString(16) );
+	text.set_text([' Date: ' + date.toUTCString(), ' Local: ' + date], ' UTC (ms): ' + utc, ' NTP (s.f):  ' + ntp.n + '.' + ntpFractionToInt(ntp.d) );
 
 	mx.identity = true;
 	if (filter.pack==1)

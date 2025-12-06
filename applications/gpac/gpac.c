@@ -411,7 +411,7 @@ void gpac_em_sig_handler(int type)
 		gf_fs_abort(session, GF_FS_FLUSH_FAST);
 		break;
 	case 3:
-		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stoping loops" : "");
+		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stopping loops" : "");
 		gf_fs_abort(session, GF_FS_FLUSH_NONE);
 		nb_loops=0;
 		break;
@@ -2389,8 +2389,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
 	if (static_logs) {
-		if (is_final && (!log_write || !static_logs[log_write-1].szMsg))
+		if (is_final && (!log_write || !static_logs[log_write-1].szMsg)) {
+			gf_fs_lock_filters(fsess, GF_FALSE);
 			return;
+		}
 
 		fprintf(stderr, "\nLogs:\n");
 		for (i=0; i<log_write; i++) {

@@ -9409,6 +9409,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
+
 			u64 ts = gf_filter_pck_get_cts(pck);
 			if (ts != GF_FILTER_NO_TS) {
 				//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
@@ -9467,6 +9468,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (!ds->request_period_switch) {
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
+
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
 					//in closest mode, flush queue
@@ -10037,8 +10039,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 
 				if (is_cue_split) {
-					if (!sap_type) {
-						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
+					Bool switch_frame = gf_filter_pck_get_switch_frame(pck);
+					if (!sap_type && !switch_frame) {
+						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not a RAP nor a switch frame!\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
 						if (ctx->strict_cues) {
 							gf_filter_pid_drop_packet(ds->ipid);
 							gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
@@ -10068,7 +10071,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 						else
 							ds->set->starts_with_sap = sap_type;
 					}
-
 
 					seg_over = GF_TRUE;
 					if (ds == base_ds) {
@@ -10221,7 +10223,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->starts_with_sap = sap_type;
 					}
 
-					//if sap2, silently move startWithSAP to 2 if previsouly 0, 1 or 2
+					//if sap2, silently move startWithSAP to 2 if previously 0, 1 or 2
 					if (sap_type == GF_FILTER_SAP_2) {
 						if (ctx->sseg)
 							ds->set->subsegment_starts_with_sap = MAX(ds->set->subsegment_starts_with_sap, sap_type);
@@ -10792,7 +10794,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 				if (tpl) {
 					if (!tpl->nb_parts || (tpl->nb_parts != sctx->nb_frags)) {
 						if (tpl->nb_parts && !ds->done) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s uses SSR but varying number of sub-segments %d vs %d previsously, consider re-encoding or using segment timeline\n", gf_filter_pid_get_name(ds->ipid), tpl->nb_parts, sctx->nb_frags));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s uses SSR but varying number of sub-segments %d vs %d previously, consider re-encoding or using segment timeline\n", gf_filter_pid_get_name(ds->ipid), tpl->nb_parts, sctx->nb_frags));
 						}
 						tpl->nb_parts = MAX(tpl->nb_parts, sctx->nb_frags);
 					}

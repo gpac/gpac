@@ -1602,7 +1602,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 
 		this.sink.configure_pid = function(pid)
 		{
-			//reconfigure (new file), get previsou file and mar as done
+			//reconfigure (new file), get previous file and mar as done
 			if (this.pids.indexOf(pid)>=0) {
 				//get previous file
 				if (pid.url) {

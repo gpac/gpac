@@ -918,6 +918,13 @@ exit:
 	if (sei_suffix_bs)
 		gf_bs_del(sei_suffix_bs);
 
+	if (e && mdia->in_nalu_rewrite) {
+		// avoid double free later
+		u8 *output;
+		u32 outSize, allocSize;
+		gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &output, &outSize, &allocSize);
+	}
+
 	mdia->in_nalu_rewrite = GF_FALSE;
 	return e;
 }
@@ -1503,6 +1510,20 @@ static GF_VPConfig* VP_DuplicateConfig(GF_VPConfig const * const cfg)
 	return out;
 }
 
+static GF_AVS3VConfig* AVS3V_DuplicateConfig(GF_AVS3VConfig const * const cfg)
+{
+	GF_AVS3VConfig *out = gf_odf_avs3v_cfg_new();
+	if (out) {
+		out->configurationVersion = cfg->configurationVersion;
+		out->sequence_header_length = cfg->sequence_header_length;
+		out->sequence_header = gf_malloc(cfg->sequence_header_length);
+		memcpy(out->sequence_header, cfg->sequence_header, cfg->sequence_header_length);
+		out->library_dependency_idc = cfg->library_dependency_idc;
+	}
+
+	return out;
+}
+
 void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *mdia)
 {
 	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate_box((GF_SampleEntryBox *)vp9, GF_FALSE);
@@ -2015,6 +2036,44 @@ GF_Err gf_isom_av1_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AV1Confi
 	if (!entry->av1_config) return GF_OUT_OF_MEM;
 	entry->av1_config->config = AV1_DuplicateConfig(cfg);
 	if (!entry->av1_config->config) return GF_OUT_OF_MEM;
+	entry->dataReferenceIndex = dataRefIndex;
+	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_isom_avs3v_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVS3VConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_MPEGVisualSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+
+	e = gf_isom_can_access_movie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(the_file, trackNumber);
+	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	//create a new entry
+	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new_parent(&stsd->child_boxes, GF_ISOM_BOX_TYPE_AVS3);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->avs3v_config = (GF_AVS3VConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_AV3C);
+	if (!entry->avs3v_config) return GF_OUT_OF_MEM;
+	entry->avs3v_config->config = AVS3V_DuplicateConfig(cfg);
+	if (!entry->avs3v_config->config) return GF_OUT_OF_MEM;
 	entry->dataReferenceIndex = dataRefIndex;
 	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
 	return e;
@@ -2563,7 +2622,6 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return AV1_DuplicateConfig(entry->av1_config->config);
 }
 
-
 GF_EXPORT
 GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
@@ -2576,6 +2634,20 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 De
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
 	if (!entry->vp_config || !entry->vp_config->config) return NULL;
 	return VP_DuplicateConfig(entry->vp_config->config);
+}
+
+GF_EXPORT
+GF_AVS3VConfig *gf_isom_avs3v_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	trak = gf_isom_get_track_box(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
+	if (!entry) return NULL;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
+	if (!entry->avs3v_config || !entry->avs3v_config->config) return NULL;
+	return AVS3V_DuplicateConfig(entry->avs3v_config->config);
 }
 
 GF_EXPORT
@@ -3381,6 +3453,67 @@ GF_Err av1c_box_size(GF_Box *s) {
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+GF_Box *av3c_box_new() {
+	GF_AVS3VConfigurationBox *tmp = (GF_AVS3VConfigurationBox *)gf_malloc(sizeof(GF_AVS3VConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_AVS3VConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_AV3C;
+	return (GF_Box *)tmp;
+}
+
+void av3c_box_del(GF_Box *s) {
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)s;
+	if (ptr->config) gf_odf_avs3v_cfg_del(ptr->config);
+	gf_free(ptr);
+}
+
+GF_Err av3c_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u64 pos;
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)s;
+
+	if (ptr->config) gf_odf_avs3v_cfg_del(ptr->config);
+	ptr->config = NULL;
+
+	pos = gf_bs_get_position(bs);
+	ptr->config = gf_odf_avs3v_cfg_read_bs(bs);
+	pos = gf_bs_get_position(bs) - pos ;
+
+	if (pos < ptr->size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] AVS3VConfigurationBox: read only "LLU" bytes (expected "LLU").\n", pos, ptr->size));
+	if (pos > ptr->size)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AVS3VConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", pos, ptr->size));
+
+	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err av3c_box_write(GF_Box *s, GF_BitStream *bs) {
+	GF_Err e;
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)s;
+	if (!s) return GF_BAD_PARAM;
+	if (!ptr->config) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	return gf_odf_avs3v_cfg_write_bs(ptr->config, bs);
+}
+
+GF_Err av3c_box_size(GF_Box *s) {
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox *)s;
+	if (!ptr->config) {
+		ptr->size = 0;
+		return GF_BAD_PARAM;
+	}
+
+	ptr->size += 4;
+	ptr->size += ptr->config->sequence_header_length;
+
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 

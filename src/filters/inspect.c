@@ -1770,7 +1770,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 	case OBU_METADATA:
 		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
-			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
+			u8 nb_bytes = 0;
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, &nb_bytes);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
 				case OBU_METADATA_TYPE_TIMECODE:
@@ -1784,6 +1785,10 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 					break;
 				case OBU_METADATA_TYPE_HDR_MDCV:
 					dump_mdcv(dump, bs, GF_FALSE);
+					break;
+				case OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE:
+				case OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE_BIS:
+					dump_unregistered_sei(dump, bs, obu_size - hdr_size - nb_bytes);
 					break;
 				default:
 					break;
@@ -4396,6 +4401,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 			gf_odf_av1_cfg_del(av1c);
 		}
+	}
+	else if (codec_id==GF_CODECID_AVS3_VIDEO) {
+		inspect_printf(dump, " AVS3");
 	}
 	else if ((codec_id==GF_CODECID_AAC_MPEG4) || (codec_id==GF_CODECID_AAC_MPEG2_MP) || (codec_id==GF_CODECID_AAC_MPEG2_LCP) || (codec_id==GF_CODECID_AAC_MPEG2_SSRP)) {
 		if (dsi) {

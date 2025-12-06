@@ -611,11 +611,15 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->last_state = GF_OK;
 
 	ch->sap_3 = GF_FALSE;
+	ch->switch_frame = GF_FALSE;
 	ch->sap_4_type = 0;
 	ch->roll = 0;
 
 	if (ch->sample) {
 		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
+
+		GF_Err isom_get_sample_switch_frame(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *switch_frame);
+		isom_get_sample_switch_frame(ch->owner->mov, ch->track, ch->sample_num, &ch->switch_frame);
 
 		/*still seeking or not ?
 		 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
@@ -1170,7 +1174,6 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(sai_data, sai_size) );
 	}
 
-
 	while (1) {
 		GF_Err gf_isom_pop_emsg(GF_ISOFile *the_file, u8 **emsg_data, u32 *emsg_size);
 		u8 *data=NULL;
@@ -1180,7 +1183,6 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 
 		gf_filter_pck_set_property_str(pck, "emsg", &PROP_DATA_NO_COPY(data, size));
 	}
-
 }
 
 

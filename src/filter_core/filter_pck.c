@@ -1144,7 +1144,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
-		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process) continue;
+		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process || dst->in_swap) continue;
 
 		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
@@ -1746,6 +1746,25 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 	gf_assert(pck);
 	//get true packet pointer
 	return (GF_FilterSAPType) ( (pck->pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pck_set_switch_frame(GF_FilterPacket *pck, Bool is_switch_frame)
+{
+	PCK_SETTER_CHECK("switch_frame")
+	pck->info.flags &= ~GF_PCKF_IS_SWITCH_FRAME;
+	if (is_switch_frame) {
+		pck->info.flags |= GF_PCKF_IS_SWITCH_FRAME;
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_pck_get_switch_frame(GF_FilterPacket *pck)
+{
+	gf_assert(pck);
+	//get true packet pointer
+	return (Bool) (pck->pck->info.flags & GF_PCKF_IS_SWITCH_FRAME) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT

@@ -122,6 +122,7 @@ typedef struct
 	u32 inband_hdr_size, inband_hdr_non_rap_size;
 	u32 is_nalu;
 	Bool is_av1, is_vpx;
+	Bool is_avs3v;
 	Bool is_ac4;
 	Bool fragment_done;
 	s32 ts_delay, negctts_shift;
@@ -983,6 +984,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_vvc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
 	Bool use_av1 = GF_FALSE;
+	Bool use_avs3v = GF_FALSE;
 	Bool use_iamf = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
 	Bool use_mj2 = GF_FALSE;
@@ -2211,6 +2213,12 @@ sample_entry_setup:
 		use_av1 = GF_TRUE;
 		comp_name = "AOM AV1 Video";
 		break;
+	case GF_CODECID_AVS3_VIDEO:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_AVS3;
+		use_avs3v = GF_TRUE;
+		comp_name = "AVS 3 Video";
+		break;
 	case GF_CODECID_IAMF:
 		use_gen_sample_entry = GF_FALSE;
 		m_subtype = GF_ISOM_SUBTYPE_IAMF;
@@ -2881,6 +2889,33 @@ sample_entry_setup:
 		}
 
 		gf_odf_av1_cfg_del(av1c);
+	} else if (use_avs3v) {
+		GF_AVS3VConfig *avs3v;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for AVS 3 Video\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		avs3v = gf_odf_avs3v_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!avs3v) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to parser AVS 3 Video decoder specific info\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		e = gf_isom_avs3v_config_new(ctx->file, tkw->track_num, avs3v, (char *) src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AVS 3 Video sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->is_avs3v = GF_TRUE;
+
+		if (!tkw->has_brands) {
+			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_CAV3, GF_TRUE);
+		}
+
+		gf_odf_avs3v_cfg_del(avs3v);
 	} else if (use_iamf) {
 		GF_IAConfig *iacb;
 
@@ -5207,15 +5242,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	}
 
 	//compat with old arch: write sample to group info for all samples
-	if ((sap_type==3) || tkw->has_open_gop)  {
+	if ((sap_type==GF_FILTER_SAP_3) || tkw->has_open_gop)  {
 		if (!ctx->norap) {
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==GF_FILTER_SAP_3) ? GF_TRUE : GF_FALSE, 0);
 #else
 				e = GF_NOT_SUPPORTED;
 #endif
-			} else if (sap_type==3) {
+			} else if (sap_type==GF_FILTER_SAP_3) {
 				e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
 			}
 			if (e) {
@@ -5224,6 +5259,22 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 		tkw->has_open_gop = GF_TRUE;
 	}
+
+	if (gf_filter_pck_get_switch_frame(pck)) {
+		if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			e = gf_isom_fragment_set_sample_av1_switch_frame_group(ctx->file, tkw->track_id, tkw->samples_in_frag, GF_TRUE);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
+		} else {
+			e = gf_isom_set_sample_av1_switch_frame_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE);
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+		}
+	}
+
 	if (!ctx->noroll) {
 		if ((sap_type==GF_FILTER_SAP_4) || (sap_type==GF_FILTER_SAP_4_PROL) || tkw->gdr_type) {
 			GF_ISOSampleRollType roll_type = 0;

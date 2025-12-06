@@ -2933,6 +2933,17 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	if (ctx->speed != 0)
 		ctx->rt_speed = ctx->speed;
 
+	if ((ctx->xs.nb_items==0) && (ctx->xe.nb_items)) {
+		if (ctx->xe.nb_items==1) {
+			ctx->xs.nb_items = 1;
+			ctx->xs.vals = gf_malloc(sizeof(char *));
+			ctx->xs.vals[0] = gf_strdup("0");
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] Multiple `xe` set but no `xs`, cannot extract range\n"));
+			return GF_BAD_PARAM;
+		}
+	}
+
 	reframer_load_range(ctx);
 
 	if (ctx->utc_ref==UTCREF_TC) {
@@ -3083,7 +3094,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(frames), "drop all except listed frames (first being 1). A negative value `-V` keeps only first frame every `V` frames", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(xs), "extraction start time(s)", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(xs), "extraction start time(s). If not set and an extraction end time is set, 0 is used", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xround), "adjust start time of extraction range to I-frame\n"
 	"- before: use first I-frame preceding or matching range start\n"

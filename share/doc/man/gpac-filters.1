@@ -1015,9 +1015,9 @@ The filter handles both files and GF_FileIO objects as input URL.
 .br
 .SS Packet Injecting
 .br
-The filter can be used to inject a single packet instead of a file using (-pck)[] option.
+The filter can be used to inject a single packet instead of a file using .I pck option.
 .br
-No specific properties are attached, except a timescale if (-ptime)[] is set.
+No specific properties are attached, except a timescale if .I ptime is set.
 .br
 Example
 .br
@@ -3831,9 +3831,9 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .SH Absorbing stream discontinuities
 .LP
 .br
-Discontinuities may happen quite ofter in streaming sessions due to resolution switching, codec change, etc ...
+Discontinuities may happen quite often in streaming sessions due to resolution switching, codec change, etc ...
 .br
-While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is knwon to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.
+While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is known to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.
 .br
 The .I nodisc option allows removing all discontinuities once a stream is setup.
 .br
@@ -3888,7 +3888,7 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .br
 frames (sintl, updatable):     drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
 .br
-xs (strl):                     extraction start time(s)
+xs (strl):                     extraction start time(s). If not set and an extraction end time is set, 0 is used
 .br
 xe (strl):                     extraction end time(s). If less values than start times, the last time interval extracted is an open range
 .br
@@ -5578,7 +5578,7 @@ When .I seg_sync is enabled, the segmenter will wait for the last byte of the fr
 .br
 
 .br
-When (-sflush)[] is set to single, segmentation is skipped and a single segment is generated per input.
+When .I sflush is set to single, segmentation is skipped and a single segment is generated per input.
 .br
 
 .br
@@ -5878,7 +5878,7 @@ The inputs will be segmented for a duration of .I subdur if set, otherwise the i
 .br
 When inputs are over, they are restarted if .I loop is set otherwise a new period is created.
 .br
-To avoid this behaviour, the .I sflush option should be set to end or single, indicating that further sources for the same representations will be added in subsequent calls. When .I sflush is not off, the (-loop)[] option is ignored.
+To avoid this behaviour, the .I sflush option should be set to end or single, indicating that further sources for the same representations will be added in subsequent calls. When .I sflush is not off, the .I loop option is ignored.
 .br
 
 .br
@@ -5916,7 +5916,7 @@ This will generate all dash segments for SRC1 without looping/closing the period
 .br
 
 .br
-Note: The default behaviour of MP4Box -dash-ctx option is to set the (-loop)[] to true.
+Note: The default behaviour of MP4Box -dash-ctx option is to set the .I loop to true.
 .br
 
 .br
@@ -6112,6 +6112,8 @@ profile (enum, default: auto): target DASH profile. This will set default option
 
 .br
 profX (str):                   list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used. If starting with +, the profile string by default is erased and + is skipped
+.br
+query (str):                   query parameters to append for segment requests (Annex I)
 .br
 cp (enum, default: set):       content protection element location
 .br
@@ -9610,7 +9612,7 @@ This will forward the source DASH session to multicast and:
 .SH Low latency mode
 .LP
 .br
-When using low-latency mode (-llmode)(), the input media segments are not re-assembled in a single packet but are instead sent as they are received.
+When using low-latency mode .I llmode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.
 .br
 In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.
 .br
@@ -9622,7 +9624,7 @@ Note: The LCT objects are sent with no length (TOL header) assigned until the fi
 .br
 
 .br
-In this mode, init segments and manifests are sent at the frequency given by property MCASTCarousel of the source PID if set or by (-carousel)[] option.
+In this mode, init segments and manifests are sent at the frequency given by property MCASTCarousel of the source PID if set or by .I carousel option.
 .br
 Indicating MCASTCarousel=0 will disable mid-segment repeating of manifests and init segments.
 .br
@@ -9708,7 +9710,7 @@ These will demultiplex the input, re-dash it and send the output of the dasher t
 .SH Error simulation
 .LP
 .br
-It is possible to simulate errors with (-errsim)[]. In this mode the LCT network sender implements a 2-state Markov chain:
+It is possible to simulate errors with .I errsim. In this mode the LCT network sender implements a 2-state Markov chain:
 .br
 .br
 gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0
