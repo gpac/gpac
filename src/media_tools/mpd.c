@@ -4028,7 +4028,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	}
 
 	//signal discontinuity if needed
-	if (sctx->is_discontinuity) gf_fprintf(out,"#EXT-X-DISCONTINUITY\n");
+	if (period->is_discontinuity) gf_fprintf(out,"#EXT-X-DISCONTINUITY\n");
 
 	for (i=0; i<rep->nb_hls_variant_tags; i++) {
 		gf_fprintf(out,"%s\n", rep->hls_variant_tags[i]);
@@ -4550,6 +4550,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 			//write all relevant periods
 			j=start_period_idx;
+			u32 period_count = gf_list_count(periods) - start_period_idx;
 			FILE* prev_file = NULL;
 			GF_MPD_Period *cur_period;
 			while ( (cur_period = (GF_MPD_Period *) gf_list_enum(periods, &j))) {
@@ -4580,7 +4581,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 					return GF_IO_ERR;
 				}
 
-				if (j-1==start_period_idx) {
+				if (j-1==start_period_idx && period_count>1) {
 					//keep the file handle to append next periods
 					if (cur_rep->m3u8_var_file) {
 						rep->m3u8_var_file = cur_rep->m3u8_var_file;
