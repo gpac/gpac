@@ -552,7 +552,6 @@ function locate_service_quality(target_url, in_service)
 }
 
 
-
 function cat_buffer(dst_ab, src_ab)
 {
 	let tmp = new Uint8Array(dst_ab ? dst_ab.byteLength + src_ab.byteLength : src_ab.byteLength);
@@ -563,30 +562,15 @@ function cat_buffer(dst_ab, src_ab)
 }
 globalThis.cat_buffer = cat_buffer;
 
-const mabr_stats = {};
-const mabr_stats_track_request = (req, from_mabr) => {
-	if(!req.service){
-		return;
-	}
-	if(!(req.service in mabr_stats)){
-		mabr_stats[req.service.id]['x-from-mabr'] = {
-			'yes': 0,
-			'no': 0,
-			'off-edge': 0
-		}
-	}
-	switch(from_mabr){
-		case 'yes':
-			mabr_stats[req.service.id]['x-from-mabr']['yes']++;
-			break;
-		case 'off-edge':
-			mabr_stats[req.service.id]['x-from-mabr']['off-edge']++;
-			break;
-		default:
-			mabr_stats[req.service.id]['x-from-mabr']['no']++;
-			break;
-	}
+
+function mediaserver_stats(){
+	return all_services.reduce((r,s) => {
+		r[s.id] = s.stats;
+		return r;
+	}, {});
 }
+globalThis.mediaserver_stats = mediaserver_stats;
+
 
 //custom HTTPout request handler
 let httpout = {};
@@ -609,9 +593,8 @@ httpout.on_request = (req) =>
 	do_log(GF_LOG_DEBUG, `Got request ${req.method} for ${req.url}`);
 
 	if (req.url.startsWith('/stats')){
-		let data = JSON.stringify(mabr_stats);
 		req.reply = 200;
-		req.body = data;
+		req.body = JSON.stringify(mediaserver_stats());
 		req.send();
 		return;
 	}
@@ -784,13 +767,13 @@ httpout.on_request = (req) =>
 			this.headers_out.push( { "name" : 'Transfer-Encoding', "value": 'chunked'} );
 		}
 		if (this.cache_file.cache_type==CACHE_TYPE_MABR) {
-			mabr_stats_track_request(this, 'yes');
+			this.service.update_mabr_stats('yes');
 			this.headers_out.push( { "name" : 'X-From-MABR', "value": 'yes'} );
 		}
 		else if (this.service && this.service.mabr) {
 			const val = this.live_edge ? 'no' : 'off-edge';
-			mabr_stats_track_request(this, val);
-			this.headers_out.push( { "name" : 'X-From-MABR', "value": this.live_edge ? 'no' : 'off-edge'} );
+			this.service.update_mabr_stats(val);
+			this.headers_out.push( { "name" : 'X-From-MABR', "value": val} );
 		}
 		this.send();
 	};
@@ -952,7 +935,7 @@ httpout.on_request = (req) =>
 			req.reply = req.xhr.status;
 			if (req.service && req.service.mabr) {
 				const val = req.live_edge ? 'no' : 'off-edge';
-				mabr_stats_track_request(req, val);
+				req.service.update_mabr_stats(val);
 				req.headers_out.push( { "name" : 'X-From-MABR', "value": val} );
 			}
 			req.send();
@@ -1913,6 +1896,21 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	//and load if requested - we force mcast activation when an access to the mpd is first detected
 	if (force_mcast_activate && s.mabr)
 		s.load_mabr();
+
+	s.stats = {
+		"X-From-MABR": {
+			"yes": 0,
+			"no": 0,
+			"off-edge": 0
+		}
+	}
+	s.update_mabr_stats = function(x_from_mabr){		
+		if(this.stats["X-From-MABR"][x_from_mabr] != undefined){
+			this.stats["X-From-MABR"][x_from_mabr]++
+		} else {
+			do_log(GF_LOG_INFO, `update_mabr_stats ${this.stats} `);
+		}
+	}
 	return s;
 }
 globalThis.all_services = all_services;
