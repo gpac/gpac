@@ -142,11 +142,14 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 	}
 	//if we are in end of stream state and done with all packets, stay blocked
 	if (pid->has_seen_eos && !pid->nb_buffer_unit && !pid->eos_keepalive) {
+		//lock before reading would_block otherwise we may increase it too much if changed by another thread
+		gf_mx_p(pid->filter->tasks_mx);
 		if (!pid->would_block) {
 			safe_int_inc(&pid->would_block);
 			safe_int_inc(&pid->filter->would_block);
 			gf_assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 		}
+		gf_mx_v(pid->filter->tasks_mx);
 		return;
 	}
 
@@ -465,6 +468,7 @@ static void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 
 	//some more destinations on pid, update blocking state
 	if (pid->num_destinations || pid->init_task_pending) {
+		//no need to lock here, the lock is done in check_unblock / would_block
 		if (pid->would_block)
 			gf_filter_pid_check_unblock(pid);
 		else
