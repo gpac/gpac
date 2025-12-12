@@ -189,6 +189,8 @@ For such services, the custom HTTP header \`X-From-MABR\` is defined:
 - for client request, a value of \`no\` will disable MABR cache for this request; if absent or value is \`yes\`, MABR cache will be used if available
 - for client response, a value of \`yes\` indicates the content comes from the MABR cache; if absent or value is \`no\` or \`off-edge\`, the content comes from HTTP (\`off-edge\` indicates a request outside of the timeshift buffer)
 
+The dedicated root endpoint \`/stats\` returns, the response content type's count (\`yes\`, \`no\`, \`off-edge\`) served by the gateway.
+
 
 The \`js\` option can be set to a JS module exporting the following functions:
 - init : (mandatory) The function is called once at the start of the server. Parameters:
@@ -550,7 +552,6 @@ function locate_service_quality(target_url, in_service)
 }
 
 
-
 function cat_buffer(dst_ab, src_ab)
 {
 	let tmp = new Uint8Array(dst_ab ? dst_ab.byteLength + src_ab.byteLength : src_ab.byteLength);
@@ -560,6 +561,15 @@ function cat_buffer(dst_ab, src_ab)
 	return tmp.buffer;
 }
 globalThis.cat_buffer = cat_buffer;
+
+
+function get_mediaserver_stats(){
+	return all_services.reduce((r,s) => {
+		r[s.id] = s.stats;
+		return r;
+	}, {});
+}
+globalThis.get_mediaserver_stats = get_mediaserver_stats;
 
 
 //custom HTTPout request handler
@@ -581,6 +591,13 @@ httpout.on_request = (req) =>
 	}
 
 	do_log(GF_LOG_DEBUG, `Got request ${req.method} for ${req.url}`);
+
+	if (req.url.startsWith('/stats')){
+		req.reply = 200;
+		req.body = JSON.stringify(get_mediaserver_stats());
+		req.send();
+		return;
+	}
 
 	//setup request
 	req.target_url = null;
@@ -750,10 +767,13 @@ httpout.on_request = (req) =>
 			this.headers_out.push( { "name" : 'Transfer-Encoding', "value": 'chunked'} );
 		}
 		if (this.cache_file.cache_type==CACHE_TYPE_MABR) {
+			this.service.update_mabr_stats('yes');
 			this.headers_out.push( { "name" : 'X-From-MABR', "value": 'yes'} );
 		}
 		else if (this.service && this.service.mabr) {
-			this.headers_out.push( { "name" : 'X-From-MABR', "value": this.live_edge ? 'no' : 'off-edge'} );
+			const val = this.live_edge ? 'no' : 'off-edge';
+			this.service.update_mabr_stats(val);
+			this.headers_out.push( { "name" : 'X-From-MABR', "value": val} );
 		}
 		this.send();
 	};
@@ -914,7 +934,9 @@ httpout.on_request = (req) =>
 			do_log(GF_LOG_DEBUG, `Sending reply to ${req.url} code ${req.xhr.status}`);
 			req.reply = req.xhr.status;
 			if (req.service && req.service.mabr) {
-				req.headers_out.push( { "name" : 'X-From-MABR', "value": req.live_edge ? 'no' : 'off-edge'} );
+				const val = req.live_edge ? 'no' : 'off-edge';
+				req.service.update_mabr_stats(val);
+				req.headers_out.push( { "name" : 'X-From-MABR', "value": val} );
 			}
 			req.send();
 
@@ -1874,6 +1896,21 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 	//and load if requested - we force mcast activation when an access to the mpd is first detected
 	if (force_mcast_activate && s.mabr)
 		s.load_mabr();
+
+	s.stats = {
+		"X-From-MABR": {
+			"yes": 0,
+			"no": 0,
+			"off-edge": 0
+		}
+	}
+	s.update_mabr_stats = function(x_from_mabr){		
+		if(this.stats["X-From-MABR"][x_from_mabr] != undefined){
+			this.stats["X-From-MABR"][x_from_mabr]++
+		} else {
+			do_log(GF_LOG_INFO, `update_mabr_stats ${this.stats} `);
+		}
+	}
 	return s;
 }
 globalThis.all_services = all_services;
