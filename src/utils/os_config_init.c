@@ -1579,8 +1579,13 @@ GF_DEF_ARG("h3-trace", NULL, "trace QUIC and HTTP3", NULL, NULL, GF_ARG_BOOL, GF
 GF_DEF_ARG("h3-algo", NULL, "algo to use for QUIC, one of\n"
 "- cubic: bla\n"
 "- bbr: foo", "cubic", "cubic|bbr", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+GF_DEF_ARG("h3-ack-thresh", NULL,
+    "ACK threshold for QUIC (ngtcp2_settings.ack_thresh)",
+    "2", NULL,
+    GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 GF_DEF_ARG("h3-maxwnd", NULL, "max window size in kilo bytes", "16000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
+
 
 
 

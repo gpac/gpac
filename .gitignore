@@ -1,3 +1,16 @@
+# Certificates / keys
+*.pem
+*.key
+*.csr
+
+# Media / outputs
+*.mp4
+
+# Benchmark outputs
+*.csv
+
+# Local scripts
+benchmark.py
 
 *.o
 *.suo

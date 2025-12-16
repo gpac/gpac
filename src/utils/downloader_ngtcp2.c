@@ -1609,12 +1609,13 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 
 	ngtcp2_settings_default(&settings);
 
-	if (gf_opts_get_bool("core", "h3-trace")) {
-		settings.log_printf = ngq_printf;
-		nghttp3_set_debug_vprintf_callback(ngq_debug_trace);
-	} else {
-		nghttp3_set_debug_vprintf_callback(ngq_debug_trace_noop);
-	}
+	if (gf_opts_get_bool("temp", "h3-trace")) {
+    settings.log_printf = ngq_printf;
+    nghttp3_set_debug_vprintf_callback(ngq_debug_trace);
+} else {
+    nghttp3_set_debug_vprintf_callback(ngq_debug_trace_noop);
+}
+
 
 	// After ngtcp2_settings_default(&settings) and initial fields
 settings.initial_ts = ngtcp2_timestamp();
@@ -1629,12 +1630,15 @@ settings.ack_thresh = 2;
 settings.initial_pkt_num = 1;
 
 /* NEW: read tunables once, apply to BOTH sides */
-int wnd_kb    = gf_opts_get_int("core", "h3-maxwnd");
-int ack_thr   = gf_opts_get_int("core", "h3-ack-thresh");
-const char *algo = gf_opts_get_key("core", "h3-algo");
+int wnd_kb    = gf_opts_get_int("temp", "h3-maxwnd");
+int ack_thr   = gf_opts_get_int("temp", "h3-ack-thresh");
+const char *algo = gf_opts_get_key("temp", "h3-algo");
+
+/* Fallbacks if no CLI override */
 if (wnd_kb   <= 0) wnd_kb   = 16000;   // 16 MB
 if (ack_thr  <= 0) ack_thr  = 2;
 if (!algo)         algo     = "cubic";
+
 
 /* apply on both client & server (receive windows matter on receiver) */
 settings.max_window        = 1000 * wnd_kb;
