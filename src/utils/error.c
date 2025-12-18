@@ -932,7 +932,15 @@ void gf_log(const char *fmt, ...)
 GF_EXPORT
 void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vl)
 {
-	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	gf_mx_p(logs_mx);
+	//don't allow GF_LOG to be called from GF_LOG this will likely throw infinite recursion
+	if (!in_log_callback) {
+		in_log_callback = GF_TRUE;
+		log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+		in_log_callback = GF_FALSE;
+	}
+	gf_mx_v(logs_mx);
+
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
 	}
