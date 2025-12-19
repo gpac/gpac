@@ -15955,6 +15955,11 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 										frame_rate_index,
 										&max_group_index);
 			gf_list_add(hdr_p_list, pinfo);
+
+			if (gf_bs_is_overflow(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 		}
 
 		// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
@@ -15986,12 +15991,18 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			if (channel_count < local_channel_count) {
 				channel_count = local_channel_count;
 			}
+			if (gf_bs_is_overflow(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 		}
 
 		// write into header
 		for (i = 0; i < n_presentations; i++) {
 			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
-
+			if (p == NULL) {
+				break;
+			}
 
 			// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
 			p->substream_groups = gf_list_new();
@@ -16049,6 +16060,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		// remove from temp groups that have been added elsewhere to avoid double frees
 		for (i = 0; i < n_presentations; i++) {
 			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
+			if (p == NULL) {
+				break;
+			}
 			for (j=0; j < gf_list_count(p->substream_groups); j++) {
 				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
 				if (group) {
