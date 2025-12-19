@@ -946,7 +946,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 #endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reconfigure\n", pidinst->filter->name, pidinst->pid->name));
+	gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, (ctype==GF_PID_CONF_REMOVE) ? GF_TRUE : GF_FALSE);
+	gf_logs_thread_untag(filter);
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs) {
@@ -1002,7 +1004,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		if (!filter->num_input_pids)
 			filter->single_source = NULL;
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		filter->freg->configure_pid(filter, (GF_FilterPid *) pidinst, GF_TRUE);
+		gf_logs_thread_untag(filter);
 		gf_mx_v(filter->tasks_mx);
 
 		gf_mx_p(pidinst->pid->filter->tasks_mx);
@@ -1104,7 +1108,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
 					FSESS_CHECK_THREAD(filter)
 					filter->num_input_pids--;
+					gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 					filter->freg->configure_pid(filter, (GF_FilterPid *) a_pidinst, GF_TRUE);
+					gf_logs_thread_untag(filter);
 
 					gf_filter_pid_post_init_task(a_pidinst->pid->filter, a_pidinst->pid);
 					gf_fs_post_pid_instance_delete_task(filter->session, a_pidinst->pid->filter, a_pidinst->pid, a_pidinst);
@@ -1178,7 +1184,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				if (pid->filter->freg->process_event) {
 					GF_FilterEvent evt;
 					GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+
+					gf_logs_thread_tag(pid->filter, GF_LOG_TAG_FILTER);
 					pid->filter->freg->process_event(pid->filter, &evt);
+					gf_logs_thread_untag(pid->filter);
 				}
 				filter->session->last_connect_error = e;
 			}
@@ -1326,7 +1335,9 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			pidinst->pid = task->pid;
 			safe_int_dec(&pidinst->detach_pending);
 			//delete pid
+			gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 			filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, GF_TRUE);
+			gf_logs_thread_untag(filter);
 			gf_filter_pid_inst_del(pidinst);
 			break;
 		}
@@ -5893,7 +5904,10 @@ single_retry:
 		}
 		if (pid->filter->freg->process_event) {
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+
+			gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 			pid->filter->freg->process_event(filter, &evt);
+			gf_logs_thread_untag(filter);
 		}
 		pid->not_connected = 1;
 	}
@@ -6983,7 +6997,9 @@ restart:
 
 			//the following may fail when some filters use threading on their own
 			//FSESS_CHECK_THREAD(pidinst->filter)
+			gf_logs_thread_tag(pidinst->filter, GF_LOG_TAG_FILTER);
 			res = pidinst->filter->freg->process_event(pidinst->filter, &evt);
+			gf_logs_thread_untag(pidinst->filter);
 		}
 
 		if (!res) {
@@ -8131,7 +8147,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 		if (f->freg->process_event) {
 			FSESS_CHECK_THREAD(f)
+
+			gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
 			canceled = f->freg->process_event(f, evt);
+			gf_logs_thread_untag(f);
 		}
 		if (!canceled && (evt->base.type==GF_FEVT_STOP) && evt->play.forced_dash_segment_switch) {
 			GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, 0);
@@ -8310,7 +8329,13 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 		return;
 	}
 
-	canceled = f->freg->process_event ? f->freg->process_event(f, evt) : GF_FALSE;
+	if (f->freg->process_event) {
+		gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
+		canceled = f->freg->process_event(f, evt);
+		gf_logs_thread_untag(f);
+	} else {
+		canceled = GF_FALSE;
+	}
 	if (!canceled) {
 		for (i=0; i<f->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(f->output_pids, i);
@@ -8538,7 +8563,10 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	if (pid->pid->filter->freg->process_event) {
 		if (evt->base.on_pid) evt->base.on_pid = evt->base.on_pid->pid;
 		FSESS_CHECK_THREAD(pid->pid->filter)
+
+		gf_logs_thread_tag(pid->pid->filter, GF_LOG_TAG_FILTER);
 		pid->pid->filter->freg->process_event(pid->pid->filter, evt);
+		gf_logs_thread_untag(pid->pid->filter);
 	}
 }
 

@@ -1317,5 +1317,14 @@ Bool gf_fq_res_add(GF_FilterQueue *fq, void *item);
 Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_clone, const char *source_ids);
 const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first);
 
+enum {
+	GF_LOG_TAG_FILTERSESSION = 0,
+	GF_LOG_TAG_FILTERSESSION_THREAD = 1,
+	GF_LOG_TAG_FILTER = 2
+};
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type);
+void gf_logs_thread_untag(void *tag_val);
+void gf_logs_thread_tag_del(void *tag_val);
 
 #endif //_GF_FILTER_SESSION_H_
