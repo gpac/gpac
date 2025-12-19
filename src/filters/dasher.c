@@ -1259,9 +1259,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #define CHECK_PROP_PROP(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
-	if (p != _mem) period_switch = GF_TRUE;\
+	if (p && _mem && !gf_props_equal(p, _mem)) period_switch = GF_TRUE;\
+	else if (!p && _mem) period_switch = GF_TRUE; \
+	else if (p && !_mem) period_switch = GF_TRUE; \
 	_mem = p; \
-
 
 	prev_stream_type = ds->stream_type;
 	CHECK_PROP(GF_PROP_PID_STREAM_TYPE, ds->stream_type, GF_NOT_SUPPORTED)
