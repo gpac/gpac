@@ -3081,18 +3081,23 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 					ctx->has_read_dir = GF_TRUE;
 				}
 				gf_cfg_del(rules);
-			} else if (gf_dir_exists(dpath) || !strcmp(dpath, "gmem")) {
+			} else {
 				HTTP_DIRInfo *di;
 				if (!strcmp(dpath, "gmem")) {
 					if (has_gmem) continue;
 					has_gmem = GF_TRUE;
+				} else if (!gf_dir_exists(dpath)) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[HTTPOut] No such directory \"%s\": creating\n", dpath));
+					GF_Err err = gf_mkdir(dpath);
+					if (err) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] Failed to create directory \"%s\", ignoring rule\n", dpath));
+						continue;
+					}
 				}
 				GF_SAFEALLOC(di, HTTP_DIRInfo);
 				di->path = gf_strdup(dpath);
 				gf_list_add(ctx->directories, di);
 				ctx->has_read_dir = GF_TRUE;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] No such directory %s, ignoring rule\n", dpath));
 			}
 		}
 		if (ctx->wdir) {
