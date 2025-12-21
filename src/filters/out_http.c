@@ -2683,9 +2683,19 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			pctx->is_manifest = GF_TRUE;
 			if (!ctx->hmode && !ctx->has_read_dir) {
 				if (!ctx->reopen) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set is meaningless\n"));
-					gf_filter_abort(filter);
-					return GF_FILTER_NOT_SUPPORTED;
+					HTTP_DIRInfo *di;
+					char szFName[GF_MAX_PATH];
+					const char *cache_dir = gf_get_default_cache_directory();
+					sprintf(szFName, "%s%cgpac_%u_" LLU "_%u", cache_dir, GF_PATH_SEPARATOR, gf_sys_get_process_id(), gf_sys_clock_high_res(), gf_rand());
+
+					GF_SAFEALLOC(di, HTTP_DIRInfo);
+					di->path = gf_strdup(szFName);
+					if (!ctx->directories)
+						ctx->directories = gf_list_new();
+					gf_list_add(ctx->directories, di);
+					ctx->has_read_dir = GF_TRUE;
+
+					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] DASH/HLS in server mode with no directory set: defaulting to %s\n", szFName));
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in unconsistent file states, use at your own risks\n"));
 				}
