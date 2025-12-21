@@ -3054,7 +3054,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 					const char *dname = gf_cfg_get_section_name(rules, j);
 					if (!strcmp(dpath, "gmem")) {
 						if (has_gmem) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] Only a single gmem directory can be specified, ignoring rule\n"));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Only a single gmem directory can be specified, ignoring rule\n"));
 							continue;
 						}
 						has_gmem = GF_TRUE;
@@ -3097,10 +3097,10 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 					if (has_gmem) continue;
 					has_gmem = GF_TRUE;
 				} else if (!gf_dir_exists(dpath)) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[HTTPOut] No such directory \"%s\": creating\n", dpath));
+					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] No such directory \"%s\": creating\n", dpath));
 					GF_Err err = gf_mkdir(dpath);
 					if (err) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] Failed to create directory \"%s\", ignoring rule\n", dpath));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to create directory \"%s\", ignoring rule\n", dpath));
 						continue;
 					}
 				}
