@@ -1590,11 +1590,11 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in PID graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("sched", NULL, "set scheduler mode\n"
-		"- free: lock-free queues except for task list (default)\n"
-		"- lock: mutexes for queues when several threads\n"
+		"- free: lock-free queues except for task list (default on most platforms)\n"
+		"- lock: mutexes for queues when several threads (default on arm64/aarch64)\n"
 		"- freex: lock-free queues including for task lists (experimental)\n"
 		"- flock: mutexes for queues even when no thread (debug mode)\n"
-		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", GPAC_SCHED_DEFAULT, "free|lock|flock|freex|direct", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links. Default value covers for __[ in -> ] dmx -> reframe -> decode -> encode -> reframe -> mx [ -> out]__. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-sleep", NULL, "set maximum sleep time slot in milliseconds when regulation is enabled", "50", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("step-link", NULL, "load filters one by one when solvink a link instead of loading all filters for the solved path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),

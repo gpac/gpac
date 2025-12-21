@@ -74,6 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
+sched=`free`
 check_stack_size="32768"
 debuginfo="no"
 sdl_path=""
@@ -817,11 +818,16 @@ case "$cpu" in
             fi
         fi
         ;;
+    arm64)
+        cpu="arm64"
+        sched=lock
+        ;;
     armv4l|arm)
         cpu="armv4l"
         ;;
     aarch64)
         cpu="aarch64"
+        sched=lock
         if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
             is_64="yes"
             PIC_CFLAGS="-fPIC -DPIC"
@@ -2813,6 +2819,9 @@ else
     echo "EXE_SUFFIX=.exe" >> config.mak
     echo "DYN_LIB_SUFFIX=.dll" >> config.mak
 fi
+
+
+echo "#define GPAC_SCHED_DEFAULT \"$sched\"" >> $TMPH
 
 
 echo "INSTFLAGS=$INSTFLAGS" >> config.mak
