@@ -14,12 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       latest_abi: ${{ steps.get-tags.outputs.latest_abi }}
+      skip_build: ${{ steps.check-abi-ahead.outputs.skip_build }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          sparse-checkout: ""
+          sparse-checkout: "include/gpac/version.h"
 
       - name: Get latest `abi-*` tags
         id: get-tags
@@ -28,7 +29,43 @@ jobs:
           latest_tag=$(git tag -l 'abi-*' --sort=-creatordate | head -n 1)
           echo "latest_abi=$(git rev-parse $latest_tag)" >> $GITHUB_OUTPUT
 
+      - name: Check if ABI on code is ahead of latest tag
+        id: check-abi-ahead
+        run: |
+          current_major=$(grep "define GPAC_VERSION_MAJOR" include/gpac/version.h | awk '{print $3}')
+          current_minor=$(grep "define GPAC_VERSION_MINOR" include/gpac/version.h | awk '{print $3}')
+
+          latest_tag=$(git tag -l 'abi-*.*' --sort=-creatordate | head -n 1)
+          latest_tag=${latest_tag:4}
+          tag_major=$(echo $latest_tag | cut -d. -f1)
+          tag_minor=$(echo $latest_tag | cut -d. -f2)
+
+          if [ "$current_major" -gt "$tag_major" ] || ([ "$current_major" -eq "$tag_major" ] && [ "$current_minor" -gt "$tag_minor" ]); then
+            echo "ABI version in code ($current_major.$current_minor) is ahead of latest tag ($tag_major.$tag_minor)"
+
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            new_minor=abi-$current_major.$current_minor
+            new_major=abi-$current_major
+
+            echo "Tagging current commit with $new_minor and $new_major"
+
+            if ! git rev-parse -q --verify "refs/tags/$new_minor" >/dev/null; then
+              git tag -a $new_minor -m "ABI version $current_major.$current_minor" ${{ github.sha }}
+              git push origin $new_minor
+            fi
+
+            if ! git rev-parse -q --verify "refs/tags/$new_major" >/dev/null; then
+              git tag -a $new_major -m "ABI version $current_major" ${{ github.sha }}
+              git push origin $new_major
+            fi
+
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          fi
+
   build-commits:
+    if: ${{ needs.prepare-matrix.outputs.latest_abi != github.sha && needs.prepare-matrix.outputs.skip_build != 'true' }}
     runs-on: ubuntu-latest
     container: gpac/ubuntu-deps:latest
     needs: prepare-matrix
@@ -108,7 +145,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          abipkgdiff latest-abi/gpac*.deb current-commit/gpac*.deb > abi-diff.txt
+          abidiff --ignore-soname --no-unreferenced-symbols latest-abi/libgpac.so current-commit/libgpac.so > abi-diff.txt
           ret=$?
           set -e
 
@@ -194,6 +231,7 @@ jobs:
           git commit -a \
             -m "Update ABI version to ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" \
             -m "${{ steps.read-abi-diff.outputs.body }}"
+          git push origin master
           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Update ABI tags
@@ -206,12 +244,12 @@ jobs:
             git tag -a $new_minor \
               -m "ABI version ${{ steps.decide-abi.outputs.major }}.${{ steps.decide-abi.outputs.minor }}" \
               ${{ steps.commit-version.outputs.commit_sha }}
-            git push --follow-tags origin $new_minor
+            git push origin $new_minor
           fi
 
           if ! git rev-parse -q --verify "refs/tags/$new_major" >/dev/null; then
             git tag -a $new_major \
               -m "ABI version ${{ steps.decide-abi.outputs.major }}" \
               ${{ steps.commit-version.outputs.commit_sha }}
-            git push --follow-tags origin $new_major
+            git push origin $new_major
           fi

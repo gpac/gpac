@@ -833,12 +833,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				do_send = GF_TRUE;
 			}
 			//ahead of clock, signal first time we see this
-			else if (st->cts_us_at_init != cts_us+1) {
+			else if (ctx->nb_align_pending && st->cts_us_at_init != cts_us+1) {
 				//remember last cts
 				st->cts_us_at_init = cts_us+1;
-				gf_assert(ctx->nb_align_pending);
 				ctx->nb_align_pending--;
-				//elect as clock for next regulation period if less than next align time
+				//select as clock for next regulation period if less than next align time
 				if (!ctx->next_cts_align || (cts_us < ctx->next_cts_align-1))
 					ctx->next_cts_align = cts_us+1;
 			}

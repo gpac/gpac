@@ -1469,7 +1469,15 @@ static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool,
 	//in case mutex@debug is set, unlock logs mutex before locking JS runtime
 	//not doing so could create a deadlock while unlocking logs_mx or the JS runtime
 	gf_mx_v(logs_mx);
-	gf_js_lock(ctx, GF_TRUE);
+
+	//if context is locked by another thread and we cannot grab it, drop the log
+	//this typically happen when audio thread releases a packet (lock tasks_mx) and the main thread//is querying
+	//through JS the filter stats which requires tasks_mx access
+	//usulaly only happens if mutex logs are on but we do the check for all tools
+	if (!gf_js_try_lock(ctx)) {
+		gf_mx_p(logs_mx);
+		return;
+	}
 
 	args[0] = JS_NewString(ctx, gf_log_tool_name(log_tool) );
 	args[1] = JS_NewInt32(ctx, log_level);

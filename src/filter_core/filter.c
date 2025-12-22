@@ -3881,6 +3881,12 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s from session\n", filter->name));
 	}
+	//lock before the loop for multithreaded cases:
+	//1- gf_fs_post_disconnect_task can be called, triggering a filter_post_remove
+	//2- the filter_remove could be executed before we reach the end of the loop, hence crash
+	//By locking, we'll force filter_post_remove to wait
+	gf_mx_p(filter->tasks_mx);
+
 	//get all dest pids, post disconnect and mark filters as removed
 	gf_assert(!filter->removed);
 	filter->removed = 1;
@@ -3901,7 +3907,6 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 			}
 		}
 	}
-	gf_mx_p(filter->tasks_mx);
 
 	if (!filter->num_output_pids && !filter->num_input_pids) {
 		gf_filter_post_remove(filter);
