@@ -74,7 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
-sched=`free`
+sched="free"
 check_stack_size="32768"
 debuginfo="no"
 sdl_path=""
