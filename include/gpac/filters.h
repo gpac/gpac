@@ -1472,6 +1472,8 @@ enum
 	GF_PROP_PID_MABR_URLS = GF_4CC('M','A','B','U'),
 	GF_PROP_PCK_FORCED_SUB = GF_4CC('P','C','F','S'),
 
+	GF_PROP_PID_TIME_DISCONTINUITY = GF_4CC('P','D','I','S'),
+	GF_PROP_PCK_TIME_DISCONTINUITY = GF_4CC('P','C','D','I'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE

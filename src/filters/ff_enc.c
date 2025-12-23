@@ -518,6 +518,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (p && p->value.boolean) {
 		force_intra = 2;
 	}
+	//if discontinuity is set on input, force IDR sync
+	p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_TIME_DISCONTINUITY) : NULL;
+	if (p && p->value.boolean) {
+		force_intra = 2;
+		ctx->prev_dts = 0;
+	}
 
 	//don't repeat encoder reconfiguration if we already forced one
 	if (force_intra == 2) {
