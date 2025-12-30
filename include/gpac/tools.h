@@ -1656,8 +1656,8 @@ GF_Err gf_dir_cleanup(const char* DirPathName);
 
 
 /**
-Gets a newly allocated string containing the default cache directory.
-It is the responsibility of the caller to free the string.
+Gets a globally allocated string containing the default cache directory.
+The caller shall not free the string.
 \return a fully qualified path to the default cache directory
  */
 const char * gf_get_default_cache_directory();
