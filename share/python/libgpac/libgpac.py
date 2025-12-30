@@ -2131,34 +2131,34 @@ class HTTPOutRequest:
         ## even values are header names, odd values are header values
         self.headers_out=[]
 
-    ## throttle the connection - if not overriden by subclass, not used
+    ## throttle the connection - if not overridden by subclass, not used
     #\param done amount of bytes of ressource sent
     #\param total total size of ressource
     #\return a timeout in microseconds, or 0 to process immediately
     def throttle(self, done, total):
         return 0
 
-    ## read data for the request - if not overriden by subclass, not used
+    ## read data for the request - if not overridden by subclass, not used
     #\param buf NP array (or c_ubyte pointer if no numpy support) to write data to
     #\param size size of array to fill
     #\return amount of bytes read, negative value means no data available yet, 0 means end of file
     def read(self, buf, size):
         return 0
 
-    ## write data for the request (PUT/POST) - if not overriden by subclass, not used
+    ## write data for the request (PUT/POST) - if not overridden by subclass, not used
     #\param buf NP array (or c_ubyte pointer if no numpy support) containing data from client
     #\param size number of valid bytes in the array
     #\return
     def write(self, buf, size):
         pass
 
-    ## close callback for the request - if not overriden by subclass, not used
+    ## close callback for the request - if not overridden by subclass, not used
     #\param reason GPAC error code of the end of session. If 1 (GF_EOS), the session is ended but underlying network is kept alive, otherwise session is destroyed
     #\return
     def close(self, reason):
         pass
 
-    ## callback for the request - this shoulld be overriden by subclass, default behaviour being to delegate to GPAC
+    ## callback for the request - this shoulld be overridden by subclass, default behaviour being to delegate to GPAC
     #\param method HTTP method used, as string
     #\param url URL of the HTTP request
     #\param auth_code Authentication reply code - requests are pre-identified using GPAC credentials: a value of 401 indicates no identification, 200 indicates identification OK, 403 indicates failure

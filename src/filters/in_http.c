@@ -773,7 +773,7 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	char *help = gf_strdup(HTTPInRegister.help);
 	gf_dynstrcat(&help, "\n## libCURL Support\n", NULL);
 	gf_dynstrcat(&help, "This build supports using libcurl for HTTP and other protocol downloads."\
-		" For http(s), the default behaviour is to use GPAC and can be overriden using the option [-curl](core).\n", NULL);
+		" For http(s), the default behaviour is to use GPAC and can be overridden using the option [-curl](core).\n", NULL);
 	gf_dynstrcat(&help, "Session parameters can be set using the `curl` configuration section, eg `-cfg=curl:FTPPORT=222`.\n", NULL);
 	gf_dynstrcat(&help, "The key `curl:trace=yes` can be set to log all CURL activity using logs `http@debug`.\n\n", NULL);
 	gf_dynstrcat(&help, "Libcurl version: ", NULL);
