@@ -8168,7 +8168,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		//store max duration in period at end of segment
 		ds->max_period_dur = ds->current_max_period_dur;
 
-		if (ctx->do_m3u8) {
+		if (ctx->do_m3u8 && !(ds->stream_type == GF_STREAM_TEXT && ctx->rawsub)) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
 				s64 diff = gf_timestamp_rescale(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, 1000);
