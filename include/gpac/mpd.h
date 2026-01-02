@@ -360,7 +360,6 @@ typedef enum
 /*! Macro for common attributes and elements (representation, AdaptationSet, Preselection, ...)
 
 not yet implemented;
-	GF_List *inband_event_stream;	\
 	GF_List *switching;	\
 	GF_List *random_access;	\
 	GF_List *group_labels;	\
