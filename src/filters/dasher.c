@@ -340,7 +340,7 @@ typedef struct
 
 	Bool move_to_static;
 	Bool explicit_mode;
-	Bool inband_event;
+	GF_PropStringList inband_event; //{GF_MPD_Inband_Event}
 } GF_DasherCtx;
 
 typedef struct _dash_stream
@@ -3033,23 +3033,41 @@ static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue 
 	}
 }
 
-static void dasher_add_inband_event(GF_DashStream *ds)
+static void dasher_add_inband_event(GF_DashStream *ds, GF_PropStringList *event_list)
 {
-	GF_MPD_Inband_Event *nielsen_event;
-	GF_MPD_Inband_Event *custom_event;
-	if(ds->stream_type == GF_STREAM_AUDIO) {
-		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
-		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-		custom_event->value = gf_strdup("https://aomedia.org/emsg/ID3");
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", custom_event->scheme_id_uri, custom_event->value))
+	//inband events syntax: expecting triplets {scheme_id_uri,value,stream_type} separated by '@'
+	for (u32 i=0; i<event_list->nb_items; ++i) {
+		char *sep1 = strchr(event_list->vals[i], '@');
+		if (!sep1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Invalid inband events syntax: missing first '@' separator in \"%s\" - ignoring\n", event_list->vals[i]));
+			continue;
+		}
+		char *sep2 = strchr(sep1+1, '@');
+		if (!sep2) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Invalid inband events syntax: missing second '@' separator in \"%s\"\n", event_list->vals[i]));
+			continue;
+		}
+		sep1[0] = 0;
+		sep2[0] = 0;
 
-		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
-		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-		nielsen_event->value = gf_strdup("www.nielsen.com:id3:v1");
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", nielsen_event->scheme_id_uri, nielsen_event->value))
+		u32 stream_type = 0;
+		if (!strcmp(sep2+1, "audio")) stream_type = GF_STREAM_AUDIO;
+		else if (!strcmp(sep2+1, "video")) stream_type = GF_STREAM_VISUAL;
+		else if (!strcmp(sep2+1, "text")) stream_type = GF_STREAM_TEXT;
+		else if (!strcmp(sep2+1, "0")) stream_type = 0;
+		else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid inband events syntax: unrecognized stream type \"%s\", use \"audio\", \"video\", \"text\", or \"all\". Inferring \"all\"\n", sep2+1));
+			stream_type = 0; //all streams
+		}
 
-		gf_list_add(ds->set->inband_event, nielsen_event);
-		gf_list_add(ds->set->inband_event, custom_event);
+		if (!stream_type || ds->stream_type == stream_type) {
+			GF_MPD_Inband_Event *event;
+			GF_SAFEALLOC(event, GF_MPD_Inband_Event);
+			event->scheme_id_uri = gf_strdup(event_list->vals[i]);
+			event->value = gf_strdup(sep1+1);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", event->scheme_id_uri, event->value))
+			gf_list_add(ds->set->inband_event, event);
+		}
 	}
 }
 
@@ -3178,9 +3196,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		}
 
 		//add custom inband event in manifest
-		if (ctx->inband_event) {
-			dasher_add_inband_event(ds);
-		}
+		dasher_add_inband_event(ds, &ctx->inband_event);
 	}
 	if (ctx->check_main_role && !main_role_set) {
 		GF_MPD_Descriptor *desc;
@@ -11533,7 +11549,9 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(inband_event), "insert a default inband event stream in the DASH manifest", GF_PROP_BOOL, "false", NULL, 0 },
+	{ OFFS(inband_event), "insert inband event in the DASH manifest described as triplets {schemeIdUri,value,streamType}\n"
+		"with streamType being \"audio\", \"video\", \"text\", or \"all\"\n"
+		, GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
@@ -11767,6 +11785,10 @@ GF_FilterRegister DasherRegister = {
 "This will trash the manifest and open `mypipe` as destination for the muxer result.\n"
 "Warning: Options for segment destination cannot be set through the [-template](), global options must be used.\n"
 "\n"
+"## Inband and outband events\n"
+"Inband events syntax is a list of triplets {scheme_id_uri,value,stream_type} separated by '@'.\n"
+"EX gpac -i SRC -o dash.mpd::inband_event=https://aomedia.org/emsg/ID3@https://aomedia.org/emsg/ID3@audio,https://aomedia.org/emsg/ID3@www.nielsen.com:id3:v1@audio\n"
+"The doubled colon (::) is used to avoid escaping the colons in the nielsen.com value.\n"
 "## Batch Operations\n"
 "The segmentation can be performed in multiple calls using a DASH context set with [-state]().\n"
 "Between calls, the PIDs are reassigned by checking that the PID ID match between the calls and:\n"
