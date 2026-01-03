@@ -827,6 +827,9 @@ typedef struct {
 	char *scheme_id_uri;
 	/*! Value of the inband event */
 	char *value;
+
+	/*! Stream Type to write to */
+	u32 stream_type;
 } GF_MPD_Inband_Event;
 
 /*! MPD offering type*/
