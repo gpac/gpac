@@ -213,7 +213,7 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
 	jack_options_t options = JackNullOption;
 
 	memset (ctx->jackClientName, 0, MAX_JACK_CLIENT_NAME_SZ);
-	snprintf (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ, "gpac-%d", gf_sys_get_process_id() );
+	snprintf (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ, "gpac-%u", gf_sys_get_process_id() );
 
 	ctx->autoConnect = gf_module_get_bool((GF_BaseInterface *)dr, "auto-connect");
 
