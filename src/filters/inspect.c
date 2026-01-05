@@ -4286,7 +4286,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		HEVCState *hvcs = NULL;
 		GF_HEVCConfig *hvcc=NULL;
 		if (dsi) {
-			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (!dsi_enh && (codec_id==GF_CODECID_LHVC)) ? GF_TRUE : GF_FALSE);
 			if (dsi_enh) {
 				GF_SAFEALLOC(hvcs, HEVCState);
 				for (i=0; i<gf_list_count(hvcc->param_array); i++) {
