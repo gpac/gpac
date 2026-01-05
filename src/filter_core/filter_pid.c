@@ -9756,6 +9756,7 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 	u32 subtype=0, subtype_src=0, codec_id, stream_type;
 	s32 mha_pl=-1;
 	Bool is_tile_base = GF_FALSE;
+	Bool use_scal_refs = GF_FALSE;
 	const GF_PropertyValue *p, *dcd, *dcd_enh, *dovi, *codec;
 	COLR colr;
 
@@ -9776,6 +9777,9 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	p = gf_filter_pid_get_property_str(pid, "isom:scal");
+	if (p && p->value.uint_list.nb_items) use_scal_refs = GF_TRUE;
 
 	// If colour information is supplied in [the colr] box, and also in the video bitstream, [the] box takes precedence
 	{
@@ -9903,20 +9907,28 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		return GF_OK;
 
 	case GF_CODECID_LHVC:
-		subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
-		//fallthrough
 	case GF_CODECID_HEVC_TILES:
-		if (!subtype) subtype = GF_ISOM_SUBTYPE_HVT1;
-		if (!dcd && tile_base_dcd) dcd = tile_base_dcd;
-
-		//fallthrough
 	case GF_CODECID_HEVC:
+		if (codec_id==GF_CODECID_HEVC_TILES) {
+			if (!subtype) subtype = GF_ISOM_SUBTYPE_HVT1;
+			if (!dcd && tile_base_dcd) dcd = tile_base_dcd;
+		} else if (codec_id==GF_CODECID_LHVC) {
+			if (!dcd || !dcd_enh) {
+				subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
+			}
+		}
+
 		if (!subtype) {
 			if (is_tile_base) {
 				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
 			} else if (dcd_enh) {
 				if (dcd) {
-					subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+					//if scal track refs are found, assume extractors are present and use hev2/hvc2
+					if (use_scal_refs)
+						subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+					//otherwise use backward compatible signaling
+					else
+						subtype = force_inband ? GF_ISOM_SUBTYPE_HEV1 : GF_ISOM_SUBTYPE_HVC1;
 				} else {
 					subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
 				}
