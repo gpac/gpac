@@ -1690,7 +1690,6 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, const 
 #endif /*GPAC_DISABLE_VTT*/
 #endif //GPAC_DISABLE_ISOM_WRITE
 
-GF_EXPORT
 GF_BitRateBox *gf_isom_sample_entry_get_bitrate_box(GF_SampleEntryBox *ent, Bool create)
 {
 	u32 i=0;
