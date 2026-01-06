@@ -47,6 +47,8 @@ typedef struct __jsfs_task
 	JSContext *ctx;
 } JSFS_Task;
 
+void gf_mx_toggle_log(GF_Mutex *mx, Bool nolog);
+
 static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
 	GF_FilterSession *fs = JS_GetOpaque(val, fs_class_id);
@@ -62,6 +64,7 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 			}
 		}
 
+		gf_mx_toggle_log(fs->filters_mx, GF_TRUE);
 		gf_fs_lock_filters(fs, GF_TRUE);
 		count = gf_list_count(fs->filters);
 		for (i=0; i<count; i++) {
@@ -70,6 +73,7 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 				JS_MarkValue(rt, f->jsval, mark_func);
 		}
 		gf_fs_lock_filters(fs, GF_FALSE);
+		gf_mx_toggle_log(fs->filters_mx, GF_FALSE);
 	}
 }
 #define GF_FS_FLAG_USER_SESSION	(1<<29)
@@ -99,6 +103,7 @@ static JSClassDef fs_f_class = {
 enum
 {
 	JSFS_NB_FILTERS = 0,
+	JSFS_TYPE,
 	JSFS_LAST_TASK,
 	JSFS_HTTP_MAX_RATE,
 	JSFS_HTTP_RATE,
@@ -161,6 +166,8 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 	switch (magic) {
 	case JSFS_NB_FILTERS:
 		return JS_NewInt32(ctx, gf_fs_get_filters_count(fs));
+	case JSFS_TYPE:
+		return JS_NewString(ctx, "FilterSession");
 	case JSFS_LAST_TASK:
 		return gf_fs_is_last_task(fs) ? JS_TRUE : JS_FALSE;
 	case JSFS_CONNECTED:
@@ -341,6 +348,7 @@ Bool jsfs_on_event(GF_FilterSession *fs, GF_Event *evt)
 	JSValue arg, ret;
 	Bool res;
 	gf_assert(fs->on_evt_task);
+
 	gf_js_lock(fs->on_evt_task->ctx, GF_TRUE);
 
 	memset(&fevt, 0, sizeof(GF_FilterEvent));
@@ -1912,6 +1920,7 @@ static JSValue jsfs_remove_filter(JSContext *ctx, JSValueConst this_val, int arg
 }
 
 static const JSCFunctionListEntry fs_funcs[] = {
+	JS_CGETSET_MAGIC_DEF("type", jsfs_prop_get, NULL, JSFS_TYPE),
 	JS_CGETSET_MAGIC_DEF_ENUM("nb_filters", jsfs_prop_get, NULL, JSFS_NB_FILTERS),
 	JS_CGETSET_MAGIC_DEF_ENUM("last_task", jsfs_prop_get, NULL, JSFS_LAST_TASK),
 	JS_CGETSET_MAGIC_DEF("http_max_bitrate", jsfs_prop_get, jsfs_prop_set, JSFS_HTTP_MAX_RATE),
@@ -2229,6 +2238,32 @@ void gf_filter_load_script(GF_Filter *filter, const char *js_file, const char *f
 	}
 	gf_fs_load_script_ex(filter->session, js_file, filter->session->js_ctx, filter);
 	gf_mx_v(filter->session->filters_mx);
+}
+
+JSValue gf_fs_get_script_data(JSContext *ctx, void *udta, u32 tag_type)
+{
+	if (tag_type == GF_LOG_TAG_FILTER) {
+		GF_Filter *f = (GF_Filter *)udta;
+		return JS_DupValue(ctx, f->jsval);
+	}
+	if ((tag_type == GF_LOG_TAG_FILTERSESSION) || (tag_type == GF_LOG_TAG_FILTERSESSION_THREAD)) {
+		GF_FilterSession *fs = NULL;
+		if (tag_type == GF_LOG_TAG_FILTERSESSION_THREAD) {
+			GF_SessionThread *sess_thread = (GF_SessionThread *) udta;
+			fs = sess_thread->fsess;
+		} else {
+			fs = (GF_FilterSession *)udta;
+		}
+		if (!fs) return JS_NULL;
+
+		if (fs->js_ctx) {
+			JSValue global_obj = JS_GetGlobalObject(ctx);
+			JSValue fsobj = JS_GetPropertyStr(ctx, global_obj, "session");
+			JS_FreeValue(ctx, global_obj);
+			return fsobj;
+		}
+	}
+	return JS_NULL;
 }
 
 #else

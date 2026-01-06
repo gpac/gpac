@@ -534,8 +534,13 @@ readonly unsigned long version_minor;
 /*! GPAC version micro */
 readonly unsigned long version_micro;
 
+
+/*! get/set extended log mode status*/
+boolean use_logx;
+
 /*! set the callback function for logs, or disable log callback and reset tools to original value if null.
-* the callback function is of form log(DOMString tool, unsigned int level, DOMString message).
+* - For regular mode, the callback function is of form log(DOMString tool, unsigned int level, DOMString message).
+* - For extended mode, the callback function is of form log(DOMString tool, unsigned int level, DOMString message, unsigned int thread_id, Object caller), with object either a FilterSession, a Filter or null.
 */
 optional attribute function on_log;
 
