@@ -47,7 +47,9 @@ typedef struct __jsfs_task
 	JSContext *ctx;
 } JSFS_Task;
 
+#ifndef GPAC_DISABLE_THREADS
 void gf_mx_toggle_log(GF_Mutex *mx, Bool nolog);
+#endif
 
 static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
@@ -64,7 +66,9 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 			}
 		}
 
+#ifndef GPAC_DISABLE_THREADS
 		gf_mx_toggle_log(fs->filters_mx, GF_TRUE);
+#endif
 		gf_fs_lock_filters(fs, GF_TRUE);
 		count = gf_list_count(fs->filters);
 		for (i=0; i<count; i++) {
@@ -73,7 +77,9 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 				JS_MarkValue(rt, f->jsval, mark_func);
 		}
 		gf_fs_lock_filters(fs, GF_FALSE);
+#ifndef GPAC_DISABLE_THREADS
 		gf_mx_toggle_log(fs->filters_mx, GF_FALSE);
+#endif
 	}
 }
 #define GF_FS_FLAG_USER_SESSION	(1<<29)
