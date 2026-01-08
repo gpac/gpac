@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -160,13 +160,13 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 	}
 
 #ifdef GPAC_HAS_QJS
-	if (fs->on_evt_task && jsfs_on_event(fs, evt))
+	if (fs->jstasks && jsfs_on_event(fs, evt))
 		return GF_TRUE;
 #endif
 
 	if (evt->type==GF_EVENT_AUTHORIZATION) {
 #ifdef GPAC_HAS_QJS
-		if (fs->on_auth_task && jsfs_on_auth(fs, evt))
+		if (fs->jstasks && jsfs_on_auth(fs, evt))
 			return GF_TRUE;
 #endif
 

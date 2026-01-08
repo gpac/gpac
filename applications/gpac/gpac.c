@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -452,7 +452,7 @@ static Bool dump_proto_schemes = GF_FALSE;
 static Bool write_profile=GF_FALSE;
 static Bool write_core_opts=GF_FALSE;
 static Bool write_extensions=GF_FALSE;
-static const char *session_js=NULL;
+static GF_List *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
 #ifdef GPAC_DEFER_MODE
@@ -1001,7 +1001,8 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-qe")) {
 			exit_nocleanup = GF_TRUE;
 		} else if (!strcmp(arg, "-js")) {
-			session_js = arg_val;
+			if (!session_js) session_js = gf_list_new();
+			gf_list_add(session_js, arg_val);
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
 			if (arg_val && !strlen(arg_val)) {
@@ -1210,10 +1211,14 @@ restart:
 	}
 
 	if (session_js) {
-		e = gf_fs_load_script(session, session_js);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-		ERR_EXIT
+		u32 ijs, nb_js=gf_list_count(session_js);
+		for (ijs=0; ijs<nb_js; ijs++) {
+			const char *js_src = gf_list_get(session_js, ijs);
+			e = gf_fs_load_script(session, js_src);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+				ERR_EXIT
+			}
 		}
 	}
 
@@ -1665,6 +1670,8 @@ exit:
 		goto restart;
 #endif
 	}
+
+	if (session_js) gf_list_del(session_js);
 
 	gpac_exit(e);
 }

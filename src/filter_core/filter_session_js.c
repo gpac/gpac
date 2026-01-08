@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -33,17 +33,22 @@
 static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSContext *in_ctx, GF_Filter *for_filter);
 
 
+enum {
+	GF_JSFS_TASK_USER = 0,
+	GF_JSFS_TASK_FILTER_NEW,
+	GF_JSFS_TASK_FILTER_DEL,
+	GF_JSFS_TASK_EVENT,
+	GF_JSFS_TASK_AUTHENTICATION,
+	GF_JSFS_TASK_REMOVE,
+};
+
 static JSClassID fs_class_id;
 typedef struct __jsfs_task
 {
 	JSValue fun;
 	JSValue _obj;
-
-	//for event callback, we allow 2 user-defined functions
-	JSValue fun2;
-	JSValue _obj2;
-
 	u32 type;
+	u64 id;
 	JSContext *ctx;
 } JSFS_Task;
 
@@ -60,10 +65,6 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 			JSFS_Task *task = gf_list_get(fs->jstasks, i);
 			JS_MarkValue(rt, task->fun, mark_func);
 			JS_MarkValue(rt, task->_obj, mark_func);
-			if (!JS_IsUndefined(task->_obj2)) {
-				JS_MarkValue(rt, task->fun2, mark_func);
-				JS_MarkValue(rt, task->_obj2, mark_func);
-			}
 		}
 
 #ifndef GPAC_DISABLE_THREADS
@@ -132,28 +133,23 @@ GF_FilterSession *jsff_get_session(JSContext *c, JSValue this_val)
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f);
 
 
-static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *new_filter, GF_Filter *del_filter)
+static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *for_filter)
 {
 	JSValue ret, arg;
 
 	gf_js_lock(task->ctx, GF_TRUE);
 	if (text) {
 		arg = JS_NewString(task->ctx, text);
-	} else if (new_filter) {
-		arg = jsfs_new_filter_obj(task->ctx, new_filter);
-	} else {
-		gf_assert(del_filter);
-		arg = JS_DupValue(task->ctx, del_filter->jsval);
+	} else if (task->type==GF_JSFS_TASK_FILTER_NEW) {
+		gf_assert(for_filter);
+		arg = jsfs_new_filter_obj(task->ctx, for_filter);
+	} else if (task->type==GF_JSFS_TASK_FILTER_DEL) {
+		gf_assert(for_filter);
+		arg = JS_DupValue(task->ctx, for_filter->jsval);
 	}
 
 	ret = JS_Call(task->ctx, task->fun, task->_obj, 1, &arg);
 	JS_FreeValue(task->ctx, arg);
-
-	if (del_filter) {
-		JS_SetOpaque(del_filter->jsval, NULL);
-		JS_FreeValue(task->ctx, del_filter->jsval);
-		del_filter->jsval = JS_UNDEFINED;
-	}
 
 	if (JS_IsException(ret)) {
 		js_dump_error(task->ctx);
@@ -161,6 +157,15 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	JS_FreeValue(task->ctx, ret);
 	js_std_loop(task->ctx);
 	gf_js_lock(task->ctx, GF_FALSE);
+}
+static void jsfs_exec_tasks_custom(GF_FilterSession *fs, u32 task_type, const char *text, GF_Filter *for_filter)
+{
+	u32 i=0;
+	JSFS_Task *task;
+	while ((task = gf_list_enum(fs->jstasks, &i))) {
+		if (task->type != task_type) continue;
+		jsfs_exec_task_custom(task, text, for_filter);
+	}
 }
 
 static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
@@ -228,28 +233,33 @@ static Bool jsfs_task_exec(GF_FilterSession *fs, void *udta, u32 *timeout_ms)
 	s32 ret_val;
 	Bool do_free=GF_TRUE;
 	JSFS_Task *task = udta;
-	gf_js_lock(task->ctx, GF_TRUE);
-	ret = JS_Call(task->ctx, task->fun, task->_obj, 0, NULL);
 
-	*timeout_ms = 0;
-	if (JS_IsException(ret)) {
-		js_dump_error(task->ctx);
-	}
-	else if (JS_IsBool(ret)) {
-		if (JS_ToBool(task->ctx, ret))
-			do_free = GF_FALSE;
-	}
-	else if (JS_IsInteger(ret)) {
-		JS_ToInt32(task->ctx, (int*)&ret_val, ret);
-		if (ret_val>=0) {
-			*timeout_ms = ret_val;
-			do_free = GF_FALSE;
+	if (task->type == GF_JSFS_TASK_REMOVE) {
+		do_free = GF_TRUE;
+	} else if (task->type == GF_JSFS_TASK_USER) {
+		gf_js_lock(task->ctx, GF_TRUE);
+		ret = JS_Call(task->ctx, task->fun, task->_obj, 0, NULL);
+
+		*timeout_ms = 0;
+		if (JS_IsException(ret)) {
+			js_dump_error(task->ctx);
 		}
-	}
+		else if (JS_IsBool(ret)) {
+			if (JS_ToBool(task->ctx, ret))
+				do_free = GF_FALSE;
+		}
+		else if (JS_IsInteger(ret)) {
+			JS_ToInt32(task->ctx, (int*)&ret_val, ret);
+			if (ret_val>=0) {
+				*timeout_ms = ret_val;
+				do_free = GF_FALSE;
+			}
+		}
 
-	JS_FreeValue(task->ctx, ret);
-	js_std_loop(task->ctx);
-	gf_js_lock(task->ctx, GF_FALSE);
+		JS_FreeValue(task->ctx, ret);
+		js_std_loop(task->ctx);
+		gf_js_lock(task->ctx, GF_FALSE);
+	}
 
 	if (do_free) {
 		JS_FreeValue(task->ctx, task->fun);
@@ -273,6 +283,8 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 	GF_SAFEALLOC(task, JSFS_Task);
 	if (!task) return GF_JS_EXCEPTION(ctx);
 	task->ctx = ctx;
+	task->id = (u64) task;
+	task->type = GF_JSFS_TASK_USER;
 
 	if (argc>1) {
 		if (JS_IsString(argv[1])) {
@@ -291,7 +303,7 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 	if (tname)
 		JS_FreeCString(ctx, tname);
 
-	return JS_UNDEFINED;
+	return JS_NewInt64(ctx, task->id);
 }
 
 static JSValue jsfs_abort(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -319,8 +331,8 @@ static JSValue jsfs_lock_filters(JSContext *ctx, JSValueConst this_val, int argc
 
 void jsfs_on_filter_created(GF_Filter *new_filter)
 {
-	if (!new_filter->session->new_f_task) return;
-	jsfs_exec_task_custom(new_filter->session->new_f_task, NULL, new_filter, NULL);
+	if (!new_filter->session->jstasks) return;
+	jsfs_exec_tasks_custom(new_filter->session, GF_JSFS_TASK_FILTER_NEW, NULL, new_filter);
 }
 
 void jsfs_on_filter_destroyed(GF_Filter *del_filter)
@@ -328,69 +340,67 @@ void jsfs_on_filter_destroyed(GF_Filter *del_filter)
 	if (! JS_IsUndefined(del_filter->jsval)) {
 		void *p = JS_GetOpaque(del_filter->jsval, fs_f_class_id);
 		if (!p) return;
-		if (del_filter->session->del_f_task) {
-			jsfs_exec_task_custom(del_filter->session->del_f_task, NULL, NULL, del_filter);
-		} else {
-			JSRuntime *gf_js_get_rt();
-			JSRuntime *rt = gf_js_get_rt();
-			if (rt) {
-				gf_js_lock(NULL, GF_TRUE);
-				JS_SetOpaque(del_filter->jsval, NULL);
-				JS_FreeValueRT(rt, del_filter->jsval);
-				gf_js_lock(NULL, GF_FALSE);
-			}
+
+
+		if (del_filter->session->jstasks) {
+			jsfs_exec_tasks_custom(del_filter->session, GF_JSFS_TASK_FILTER_DEL, NULL, del_filter);
 		}
+		JSRuntime *gf_js_get_rt();
+		JSRuntime *rt = gf_js_get_rt();
+		if (!rt) return;
+
+		gf_js_lock(NULL, GF_TRUE);
+		JS_SetOpaque(del_filter->jsval, NULL);
+		JS_FreeValueRT(rt, del_filter->jsval);
 		del_filter->jsval = JS_UNDEFINED;
+		gf_js_lock(NULL, GF_FALSE);
 	}
 }
 
 Bool jsfs_on_event(GF_FilterSession *fs, GF_Event *evt)
 {
 	GF_FilterEvent fevt;
-	Bool pass2=GF_FALSE;
 	JSValue fun, obj;
 	JSValue js_init_evt_obj(JSContext *ctx, const GF_FilterEvent *evt);
 
 	JSValue arg, ret;
 	Bool res;
-	gf_assert(fs->on_evt_task);
+	u32 idx=0;
+	JSFS_Task *task;
+	while ((task = gf_list_enum(fs->jstasks, &idx))) {
+		if (task->type != GF_JSFS_TASK_EVENT) continue;
 
-	gf_js_lock(fs->on_evt_task->ctx, GF_TRUE);
+		gf_js_lock(task->ctx, GF_TRUE);
 
-	memset(&fevt, 0, sizeof(GF_FilterEvent));
-	fevt.user_event.event = *evt;
-	fevt.base.type = GF_FEVT_USER;
+		memset(&fevt, 0, sizeof(GF_FilterEvent));
+		fevt.user_event.event = *evt;
+		fevt.base.type = GF_FEVT_USER;
 
-	fun = fs->on_evt_task->fun;
-	obj = fs->on_evt_task->_obj;
+		fun = task->fun;
+		obj = task->_obj;
 
+		arg = js_init_evt_obj(task->ctx, &fevt);
+		ret = JS_Call(task->ctx, fun, obj, 1, &arg);
+		JS_SetOpaque(arg, NULL);
+		JS_FreeValue(task->ctx, arg);
 
-retry:
-	arg = js_init_evt_obj(fs->on_evt_task->ctx, &fevt);
-	ret = JS_Call(fs->on_evt_task->ctx, fun, obj, 1, &arg);
-	JS_SetOpaque(arg, NULL);
-	JS_FreeValue(fs->on_evt_task->ctx, arg);
+		if (JS_IsException(ret)) {
+			js_dump_error(task->ctx);
+		}
+		fevt.user_event.event.type = evt->type;
+		*evt = fevt.user_event.event;
+		res = JS_ToBool(task->ctx, ret) ? GF_TRUE : GF_FALSE;
+		if (!res && (evt->type==GF_EVENT_COPY_TEXT) && evt->clipboard.text) {
+			gf_free(evt->clipboard.text);
+			evt->clipboard.text = NULL;
+		}
+		JS_FreeValue(task->ctx, ret);
+		js_std_loop(task->ctx);
+		gf_js_lock(task->ctx, GF_FALSE);
 
-	if (JS_IsException(ret)) {
-		js_dump_error(fs->on_evt_task->ctx);
+		if (res) return GF_TRUE;
 	}
-	fevt.user_event.event.type = evt->type;
-	*evt = fevt.user_event.event;
-	res = JS_ToBool(fs->on_evt_task->ctx, ret) ? GF_TRUE : GF_FALSE;
-	if (!res && (evt->type==GF_EVENT_COPY_TEXT) && evt->clipboard.text) {
-		gf_free(evt->clipboard.text);
-		evt->clipboard.text = NULL;
-	}
-	JS_FreeValue(fs->on_evt_task->ctx, ret);
-	if (!pass2 && !res && !JS_IsUndefined(fs->on_evt_task->_obj2)) {
-		pass2 = GF_TRUE;
-		fun = fs->on_evt_task->fun2;
-		obj = fs->on_evt_task->_obj2;
-		goto retry;
-	}
-	js_std_loop(fs->on_evt_task->ctx);
-	gf_js_lock(fs->on_evt_task->ctx, GF_FALSE);
-	return res;
+	return GF_FALSE;
 }
 
 typedef struct
@@ -447,153 +457,121 @@ static const JSCFunctionListEntry jsf_auth_funcs[] = {
 Bool jsfs_on_auth(GF_FilterSession *fs, GF_Event *evt)
 {
 	JSValue args[5], ret, obj;
-	Bool res = GF_TRUE;
+	u32 nb_ok=0;
 	JSContext *ctx;
-	gf_assert(fs->on_auth_task);
-	ctx = fs->on_auth_task->ctx;
-	gf_js_lock(ctx, GF_TRUE);
+	u32 idx=0;
+	JSFS_Task *task;
+	while ((task = gf_list_enum(fs->jstasks, &idx))) {
+		if (task->type != GF_JSFS_TASK_AUTHENTICATION) continue;
+		ctx = task->ctx;
+		gf_js_lock(ctx, GF_TRUE);
 
-	JSFAuthContext *actx;
-	GF_SAFEALLOC(actx, JSFAuthContext);
-	if (!actx) {
+		JSFAuthContext *actx;
+		GF_SAFEALLOC(actx, JSFAuthContext);
+		if (!actx) {
+			gf_js_lock(ctx, GF_FALSE);
+			continue;
+		}
+		actx->on_usr_pass = evt->auth.on_usr_pass;
+		actx->async_usr_data = evt->auth.async_usr_data;
+		obj = JS_NewObjectClass(ctx, jsf_auth_class_id);
+		JS_SetOpaque(obj, actx);
+
+		args[0] = JS_NewString(ctx, evt->auth.site_url);
+		args[1] = JS_NewString(ctx, evt->auth.user);
+		args[2] = JS_NewString(ctx, evt->auth.password);
+		args[3] = JS_NewBool(ctx, evt->auth.secure);
+		args[4] = obj;
+
+		ret = JS_Call(ctx, task->fun, task->_obj, 5, args);
+
+		JS_FreeValue(ctx, args[0]);
+		JS_FreeValue(ctx, args[1]);
+		JS_FreeValue(ctx, args[2]);
+		JS_FreeValue(ctx, args[3]);
+		JS_FreeValue(ctx, args[4]);
+
+		if (JS_IsException(ret)) {
+			js_dump_error(ctx);
+		} else {
+			nb_ok++;
+		}
+		JS_FreeValue(ctx, ret);
+
+		js_std_loop(ctx);
 		gf_js_lock(ctx, GF_FALSE);
-		return GF_FALSE;
 	}
-	actx->on_usr_pass = evt->auth.on_usr_pass;
-	actx->async_usr_data = evt->auth.async_usr_data;
-	obj = JS_NewObjectClass(ctx, jsf_auth_class_id);
-	JS_SetOpaque(obj, actx);
-
-	args[0] = JS_NewString(ctx, evt->auth.site_url);
-	args[1] = JS_NewString(ctx, evt->auth.user);
-	args[2] = JS_NewString(ctx, evt->auth.password);
-	args[3] = JS_NewBool(ctx, evt->auth.secure);
-	args[4] = obj;
-
-	ret = JS_Call(ctx, fs->on_auth_task->fun, fs->on_auth_task->_obj, 5, args);
-
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, args[1]);
-	JS_FreeValue(ctx, args[2]);
-	JS_FreeValue(ctx, args[3]);
-	JS_FreeValue(ctx, args[4]);
-
-	if (JS_IsException(ret)) {
-		js_dump_error(ctx);
-		res = GF_FALSE;
-	}
-	JS_FreeValue(ctx, ret);
-
-	js_std_loop(ctx);
-	gf_js_lock(ctx, GF_FALSE);
-	return res;
+	return nb_ok ? GF_TRUE : GF_FALSE;
 }
 
 
 static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 cbk_type)
 {
 	JSFS_Task *task = NULL;
-	u32 i, count;
+	u64 rem_task_id=0;
 	Bool is_rem = GF_FALSE;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
 	if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
 
-	if (JS_IsNull(argv[0]))
+	if (cbk_type==GF_JSFS_TASK_REMOVE) {
 		is_rem = GF_TRUE;
-	else if (!JS_IsFunction(ctx, argv[0]) )
+		if (JS_ToInt64(ctx, &rem_task_id, argv[0]))
+			return GF_JS_EXCEPTION(ctx);
+	} else if (!JS_IsFunction(ctx, argv[0]) ) {
 		return GF_JS_EXCEPTION(ctx);
-
-	if (cbk_type==2) {
-		task = fs->new_f_task;
-	} else if (cbk_type==3) {
-		task = fs->del_f_task;
-	} else if (cbk_type==4) {
-		task = fs->on_evt_task;
-	} else if (cbk_type==5) {
-		task = fs->on_auth_task;
-	} else {
-		count = gf_list_count(fs->jstasks);
-		for (i=0; i<count; i++) {
-			task = gf_list_get(fs->jstasks, i);
-			if (task->type==1) break;
-			task = NULL;
-		}
 	}
-	if (is_rem) {
-		if (task) {
-			JS_FreeValue(ctx, task->fun);
-			JS_FreeValue(ctx, task->_obj);
-			if (!JS_IsUndefined(task->_obj2)) {
-				JS_FreeValue(ctx, task->fun2);
-				JS_FreeValue(ctx, task->_obj2);
-			}
-			gf_list_del_item(fs->jstasks, task);
-			gf_free(task);
-		}
-		if (cbk_type == 1) {
-		} else if (cbk_type == 2)
-			fs->new_f_task = NULL;
-		else if (cbk_type == 3)
-			fs->del_f_task = NULL;
-		else if (cbk_type == 4)
-			fs->on_evt_task = NULL;
-		else if (cbk_type == 5)
-			fs->on_auth_task = NULL;
 
+	if (is_rem) {
+		u32 idx=0;
+		while ((task = gf_list_enum(fs->jstasks, &idx))) {
+			if (task->id != rem_task_id) continue;
+			break;
+		}
+		if (!task)
+			return JS_UNDEFINED;
+
+		//do not delete user tasks right away as they are in the scheduler !
+		if (task->type == GF_JSFS_TASK_USER) {
+			task->type = GF_JSFS_TASK_REMOVE;
+			return JS_UNDEFINED;
+		}
+		JS_FreeValue(ctx, task->fun);
+		JS_FreeValue(ctx, task->_obj);
+		gf_list_del_item(fs->jstasks, task);
+		gf_free(task);
 		return JS_UNDEFINED;
 	}
 
-	if (task) {
-		if ((cbk_type == 4) && JS_IsUndefined(task->fun2)) {
-			task->fun2 = task->fun;
-			task->_obj2 = task->_obj;
-			task->fun = JS_UNDEFINED;
-			task->_obj = JS_UNDEFINED;
-		} else {
-			JS_FreeValue(ctx, task->fun);
-			JS_FreeValue(ctx, task->_obj);
-		}
-	} else {
-		GF_SAFEALLOC(task, JSFS_Task);
-		if (!task) return GF_JS_EXCEPTION(ctx);
-		gf_list_add(fs->jstasks, task);
-		task->type = cbk_type;
-		task->ctx = ctx;
-		task->fun2 = JS_UNDEFINED;
-		task->_obj2 = JS_UNDEFINED;
-	}
+	GF_SAFEALLOC(task, JSFS_Task);
+	if (!task) return GF_JS_EXCEPTION(ctx);
+	gf_list_add(fs->jstasks, task);
+	task->type = cbk_type;
+	task->ctx = ctx;
+	task->id = (u64) task;
 	task->fun = JS_DupValue(ctx, argv[0]);
 	task->_obj = JS_DupValue(ctx, this_val);
-
-	if (cbk_type == 1) {
-		// old profiler stuff, depr
-	}
-	else if (cbk_type == 2)
-		fs->new_f_task = task;
-	else if (cbk_type == 3)
-		fs->del_f_task = task;
-	else if (cbk_type == 4)
-		fs->on_evt_task = task;
-	else if (cbk_type == 5)
-		fs->on_auth_task = task;
-	return JS_UNDEFINED;
+	return JS_NewInt64(ctx, task->id);
 }
 
 static JSValue jsfs_set_new_filter_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 2);
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_FILTER_NEW);
 }
 static JSValue jsfs_set_del_filter_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 3);
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_FILTER_DEL);
 }
 static JSValue jsfs_set_event_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 4);
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_EVENT);
 }
 static JSValue jsfs_set_auth_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 5);
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_AUTHENTICATION);
+}
+static JSValue jsfs_remove_callback(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_REMOVE);
 }
 
 enum
@@ -1949,6 +1927,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CFUNC_DEF("new_filter", 0, jsfs_new_filter),
 	JS_CFUNC_DEF("remove_filter", 0, jsfs_remove_filter),
 	JS_CFUNC_DEF("set_auth_fun", 0, jsfs_set_auth_fun),
+	JS_CFUNC_DEF("remove_callback", 0, jsfs_remove_callback),
 	JS_CFUNC_DEF("filter_args", 0, jsfs_filter_args),
 	JS_CFUNC_DEF("run", 0, jsfs_run_sess),
 	JS_CFUNC_DEF("stop", 0, jsfs_stop_sess),
@@ -2084,20 +2063,26 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 
 static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSContext *in_ctx, GF_Filter *for_filter)
 {
+#ifndef GPAC_HAS_QJS
+	return GF_NOT_SUPPORTED;
+#else
 	GF_Err e;
 	JSValue global_obj;
 	u8 *buf;
 	u32 buf_len;
 	u32 flags = JS_EVAL_TYPE_GLOBAL;
 	JSValue ret;
-	JSContext *ctx;
-
+	Bool skip_modules = GF_FALSE;
+	JSContext *ctx = NULL;
 
 	if (!fs) return GF_BAD_PARAM;
-	if (!in_ctx) {
-		if (fs->js_ctx) return GF_NOT_SUPPORTED;
 
-#ifdef GPAC_HAS_QJS
+	if (in_ctx) {
+		ctx = in_ctx;
+	} else if (fs->js_ctx) {
+		ctx = fs->js_ctx;
+		skip_modules = GF_TRUE;
+	} else {
 		ctx = gf_js_create_context();
 		if (!ctx) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
@@ -2112,8 +2097,6 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_log_name", JS_NewString(fs->js_ctx, gf_file_basename(jsfile) ) );
 		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, jsfile ) );
 		JS_FreeValue(fs->js_ctx, global_obj);
-	} else {
-		ctx = in_ctx;
 	}
 
 	//load script
@@ -2136,7 +2119,8 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	}
 
 	if (in_ctx || (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len))) {
-		qjs_init_all_modules(ctx, GF_FALSE, GF_FALSE);
+		if (!skip_modules)
+			qjs_init_all_modules(ctx, GF_FALSE, GF_FALSE);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 
@@ -2156,10 +2140,7 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	JS_FreeValue(ctx, ret);
 	js_std_loop(ctx);
 	return GF_OK;
-#else
-	return GF_NOT_SUPPORTED;
 #endif
-
 }
 
 GF_EXPORT
@@ -2171,14 +2152,6 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 {
 	u32 i, count=gf_list_count(fs->jstasks);
-
-	gf_js_lock(js_ctx, GF_TRUE);
-	fs->new_f_task = NULL;
-	fs->del_f_task = NULL;
-	fs->on_evt_task = NULL;
-	fs->on_auth_task = NULL;
-	gf_js_lock(js_ctx, GF_FALSE);
-
 	for (i=0; i<count; i++) {
 		JSFS_Task *task = gf_list_get(fs->jstasks, i);
 		if (js_ctx && (task->ctx != js_ctx))
@@ -2187,10 +2160,6 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		gf_js_lock(js_ctx, GF_TRUE);
 		JS_FreeValue(task->ctx, task->fun);
 		JS_FreeValue(task->ctx, task->_obj);
-		if (!JS_IsUndefined(task->_obj2)) {
-			JS_FreeValue(task->ctx, task->fun2);
-			JS_FreeValue(task->ctx, task->_obj2);
-		}
 		gf_js_lock(js_ctx, GF_FALSE);
 
 		gf_free(task);

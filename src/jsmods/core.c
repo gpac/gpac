@@ -1580,6 +1580,13 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		break;
 
 	case JS_SYS_ON_LOG:
+		//do not allow override of log call, only assign if non-null
+		if (!JS_IsUndefined(js_rt->log_fun) && !JS_IsNull(js_rt->log_fun)) {
+			if (JS_IsUndefined(value) || JS_IsNull(value)) {
+				return JS_UNDEFINED;
+			}
+		}
+
 		JS_FreeValue(ctx, js_rt->log_fun);
 		js_rt->log_fun = JS_UNDEFINED;
 		JS_FreeValue(ctx, js_rt->log_obj);

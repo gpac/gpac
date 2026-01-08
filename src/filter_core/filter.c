@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -5285,6 +5285,9 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	memcpy(filter->status_str, szStatus, len+1);
 	filter->status_percent = percent;
 	filter->report_updated = GF_TRUE;
+
+	if ((s32)percent<0)
+		return GF_OK;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_PROGRESS;
