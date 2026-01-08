@@ -6217,16 +6217,14 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->entries = gf_malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
 	if (!ptr->entries) return GF_OUT_OF_MEM;
 
-	u32 all_samples = 0;
 	for (i=0; i<ptr->nb_entries; i++) {
 		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
 		ptr->entries[i].sampleDelta = gf_bs_read_u32(bs);
-		all_samples += ptr->entries[i].sampleCount;
 
 		//check for 0-duration
 		if (!ptr->entries[i].sampleDelta
 			//forbiden if not last sample
-			&& ((i < ptr->nb_entries) || (ptr->entries[i].sampleCount>1))
+			&& ((i+1 < ptr->nb_entries) || (ptr->entries[i].sampleCount>1))
 		) {
 			needs_patch += ptr->entries[i].sampleCount;
 			if (i + 1 == ptr->nb_entries) needs_patch --;
