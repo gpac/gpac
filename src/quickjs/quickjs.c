@@ -78,11 +78,8 @@
 #define CONFIG_ATOMICS
 #endif
 
-//no stack limit in GPAC doesn't work with multithreaded context switch
-#if defined(GPAC_QJS_STACK_CHECK)
 /* enable stack limitation */
 #define CONFIG_STACK_CHECK
-#endif
 
 
 /* dump object free */

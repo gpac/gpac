@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2024 Telecom ParisTech
+#     (c) 2003-2026 Telecom Paris
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -242,7 +242,6 @@ push_feature "vtt" "WebVTT support"
 push_feature "route" "ROUTE (ATSC3) support"
 push_feature "qjs" "QuickJS support"
 push_feature "qjs-libc" "QuickJS libc module support"
-push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multithreaded modes)"
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
@@ -2474,10 +2473,6 @@ fi
 if test "$disable_depth_compositor" = "no" ; then
     echo "Depth Compositor enabled"
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
-fi
-
-if test "$disable_qjs_stack" = "no" ; then
-    echo "#define GPAC_QJS_STACK_CHECK" >> $TMPH
 fi
 
 if test "$disable_doc" = "yes" ; then

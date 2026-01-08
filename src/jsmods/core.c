@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2024
+ *			Copyright (c) Telecom ParisTech 2007-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript libgpac Core bindings
@@ -184,6 +184,11 @@ void gf_js_lock(struct JSContext *cx, Bool LockIt)
 
 	if (LockIt) {
 		gf_mx_p(js_rt->mx);
+		//if this is the first time the thread grabs the mutex, update stack top
+		//do not do it if not first otherwise we would keep extending the current stack size
+		if (gf_mx_get_num_locks(js_rt->mx)==1) {
+			JS_UpdateStackTop(js_rt->js_runtime);
+		}
 	} else {
 		gf_mx_v(js_rt->mx);
 	}
