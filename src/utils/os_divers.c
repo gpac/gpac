@@ -3088,6 +3088,9 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
 	FILE *file = gf_fopen(file_name, "rb");
 
 	if (!file) {
+		if (!gf_file_exists(file_name))
+			return GF_URL_ERROR;
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open file %s\n", file_name));
 		return GF_IO_ERR;
 	}

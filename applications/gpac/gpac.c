@@ -585,7 +585,6 @@ int gpac_main(int _argc, char **_argv)
 
 	gf_sys_init(mem_track, profile);
 
-
 #ifdef GPAC_CONFIG_ANDROID
 	//prevent destruction of JSRT until we unload the JNI gpac wrapper (see applications/gpac_android/src/main/jni/gpac_jni.cpp)
 	gf_opts_set_key("temp", "static-jsrt", "true");
@@ -658,6 +657,11 @@ int gpac_main(int _argc, char **_argv)
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	use_step_mode = GF_TRUE;
 #endif
+
+	if (gf_opts_get_bool("core", "rmt")) {
+		if (!session_js) session_js = gf_list_new();
+		gf_list_insert(session_js, "$GSHARE/scripts/rmt.js", 0);
+	}
 
 	for (i=1; i<argc; i++) {
 		char szArgName[1024];
@@ -1216,8 +1220,12 @@ restart:
 			const char *js_src = gf_list_get(session_js, ijs);
 			e = gf_fs_load_script(session, js_src);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-				ERR_EXIT
+				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt.js")) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Monitoring script %s not found, check your installation\n Disabling remote monitoring\n", js_src));
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+					ERR_EXIT
+				}
 			}
 		}
 	}

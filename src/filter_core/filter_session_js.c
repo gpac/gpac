@@ -2077,6 +2077,25 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 
 	if (!fs) return GF_BAD_PARAM;
 
+	//load script
+	if (!strncmp(jsfile, "$GSHARE/", 8)) {
+		char szPath[GF_MAX_PATH];
+		if (gf_opts_default_shared_directory(szPath)) {
+			strcat(szPath, jsfile + 7);
+			e = gf_file_load_data(szPath, &buf, &buf_len);
+		} else {
+			e = GF_URL_ERROR;
+		}
+	} else {
+		e = gf_file_load_data(jsfile, &buf, &buf_len);
+	}
+	if (e) {
+		if (e!=GF_URL_ERROR) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script file %s: %s\n", jsfile, gf_error_to_string(e) ));
+		}
+		return e;
+	}
+
 	if (in_ctx) {
 		ctx = in_ctx;
 	} else if (fs->js_ctx) {
@@ -2097,25 +2116,6 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_log_name", JS_NewString(fs->js_ctx, gf_file_basename(jsfile) ) );
 		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, jsfile ) );
 		JS_FreeValue(fs->js_ctx, global_obj);
-	}
-
-	//load script
-	if (!strncmp(jsfile, "$GSHARE/", 8)) {
-		char szPath[GF_MAX_PATH];
-		if (gf_opts_default_shared_directory(szPath)) {
-			strcat(szPath, jsfile + 7);
-			e = gf_file_load_data(szPath, &buf, &buf_len);
-		} else {
-			e = GF_NOT_FOUND;
-		}
-	} else {
-		e = gf_file_load_data(jsfile, &buf, &buf_len);
-	}
-	if (e) {
-		if (e!=GF_NOT_FOUND) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script file %s: %s\n", jsfile, gf_error_to_string(e) ));
-		}
-		return e;
 	}
 
 	if (in_ctx || (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len))) {
