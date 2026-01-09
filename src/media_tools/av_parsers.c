@@ -15527,6 +15527,10 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 
 	for(i = 0; i < stream->n_presentations; i++) {
 		p = gf_list_get(stream->presentations, i);
+		if (!p) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] presentation %u/%u is NULL: ignoring\n", i, stream->n_presentations));
+			continue;
+		}
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {
