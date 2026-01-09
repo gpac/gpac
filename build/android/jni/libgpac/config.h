@@ -3,6 +3,7 @@
 #define GF_CONFIG_H
 
 #define GPAC_CONFIG_LINUX 1
+#define GPAC_SCHED_DEFAULT "lock"
 #define GF_STATIC static
 #define GF_NOT_EXPORTED
 #define GPAC_HAS_QJS 1
