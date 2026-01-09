@@ -296,6 +296,11 @@ _libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
 _libgpac.gf_sys_get_rmtws.argtypes = []
 _libgpac.gf_sys_get_rmtws.restype = c_void_p
 
+_libgpac.gf_sys_enable_userws.argtypes = [gf_bool]
+_libgpac.gf_sys_get_userws.argtypes = []
+_libgpac.gf_sys_get_userws.restype = c_void_p
+
+
 _libgpac.gf_rmt_get_peer_address.argtypes = [c_void_p]
 _libgpac.gf_rmt_get_peer_address.restype = c_char_p
 _libgpac.gf_rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
@@ -413,6 +418,12 @@ def set_args(args):
 def enable_rmtws(enable=True):
     _libgpac.user_init = True
     _libgpac.gf_sys_enable_rmtws(enable)
+
+## enables the user websocket server
+# \param enable True/False enable or disable server
+def enable_userws(enable=True):
+    _libgpac.user_init = True
+    _libgpac.gf_sys_enable_userws(enable)
 
 
 ##\cond private
@@ -534,6 +545,17 @@ def set_rmt_handler(callback_obj):
 
     return True
 
+## set the handler for the user websocket server
+# \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
+def set_userws_handler(callback_obj):
+    _libgpac.user_init = True
+    rmt = _libgpac.gf_sys_get_userws()
+    if hasattr(callback_obj, 'on_new_client'):
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(rmt, py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        if err<0:
+            return False
+
+    return True
 
 ## sleep for given time in milliseconds
 # \param value time to sleep

@@ -171,6 +171,7 @@ u64 gf_sys_clock_high_res()
 #endif
 
 GF_Err gf_sys_enable_rmtws(Bool start);
+GF_Err gf_sys_enable_userws(Bool start);
 
 static Bool gpac_disable_rti = GF_FALSE;
 
@@ -1165,13 +1166,29 @@ const char *gf_sys_find_global_arg(const char *arg)
 
 
 #ifndef GPAC_DISABLE_RMTWS
-RMT_WS *rmtws_handle=NULL;
+RMT_WS* rmtws_handle=NULL;
+RMT_WS* userws_handle=NULL;
 #endif
 
 GF_EXPORT
 void* gf_sys_get_rmtws() {
+#ifndef GPAC_DISABLE_RMTWS
 	return (void*)rmtws_handle;
+#else
+	return NULL;
+#endif
 }
+
+GF_EXPORT
+void* gf_sys_get_userws() {
+#ifndef GPAC_DISABLE_RMTWS
+	return (void*)userws_handle;
+#else
+	return NULL;
+#endif
+}
+
+
 GF_EXPORT
 GF_Err gf_sys_enable_rmtws(Bool start) {
 #ifndef GPAC_DISABLE_RMTWS
@@ -1198,6 +1215,40 @@ GF_Err gf_sys_enable_rmtws(Bool start) {
 
 		rmt_ws_del(rmtws_handle);
 		rmtws_handle=NULL;
+
+	}
+	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_sys_enable_userws(Bool start) {
+#ifndef GPAC_DISABLE_RMTWS
+	if (start && !userws_handle) {
+
+		userws_handle = rmt_ws_new();
+		if (!userws_handle) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize RMT websocket server\n"));
+			return GF_OUT_OF_MEM;
+		}
+
+		RMT_Settings *rmcfg = gf_rmt_get_settings(userws_handle);
+
+		rmcfg->port = gf_opts_get_int("core", "userws-port");
+		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "userws-localhost");
+		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("core", "userws-sleep");
+		rmcfg->cert = gf_opts_get_key("core", "userws-cert");
+		rmcfg->pkey = gf_opts_get_key("core", "userws-pkey");
+
+		rmt_ws_run(userws_handle);
+
+
+	} else if (!start && userws_handle) {
+
+		rmt_ws_del(userws_handle);
+		userws_handle=NULL;
 
 	}
 	return GF_OK;

@@ -1637,8 +1637,14 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
  GF_DEF_ARG("rmt-port", NULL, "set rmt ws port", "6363", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-localhost", NULL, "make rmt ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-sleep", NULL, "set rmt ws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
-GF_DEF_ARG("rmt-cert", NULL, "rmt ws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
-GF_DEF_ARG("rmt-pkey", NULL, "rmt ws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-cert", NULL, "rmt ws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-pkey", NULL, "rmt ws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-port", NULL, "set user ws port", "6364", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-localhost", NULL, "make userws ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-sleep", NULL, "set userws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-cert", NULL, "userws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-pkey", NULL, "userws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+
 
  GF_DEF_ARG("diso-nosize", NULL, "skip box size info when dumping ISOBMFF", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 

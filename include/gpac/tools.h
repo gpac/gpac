@@ -760,10 +760,21 @@ Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 */
 GF_Err gf_sys_enable_rmtws(Bool start);
 
+/*! Enables or disables the rmt websocket user server
+\param start If true starts the webserver, if false stops it
+\return GF_OK if success, GF_BAD_PARAM if error, GF_NOT_SUPPORTED if ws server not supported
+*/
+GF_Err gf_sys_enable_userws(Bool start);
+
 /*! Returns the monitoring websocket server handler
 \return the object to cast to RMT_WS*
 */
 void* gf_sys_get_rmtws();
+
+/*! Returns the user websocket server handler
+\return the object to cast to RMT_WS*
+*/
+void* gf_sys_get_userws();
 
 /*!
 GPAC Log tools

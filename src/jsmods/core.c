@@ -121,12 +121,25 @@ void gf_js_delete_context(JSContext *ctx)
 	gf_js_call_gc(ctx);
 
 	RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
-	JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
-		JS_FreeValue(ctx, task->fun);
-		JS_FreeValue(ctx, task->_obj);
-		gf_free(task);
+	if (rmt) {
+		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+		if (task && task->type == RMT_CALLBACK_JS) {
+			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+			JS_FreeValue(ctx, task->fun);
+			JS_FreeValue(ctx, task->_obj);
+			gf_free(task);
+		}
+	}
+
+	rmt = (RMT_WS*) gf_sys_get_userws();
+	if (rmt) {
+		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+		if (task && task->type == RMT_CALLBACK_JS) {
+			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+			JS_FreeValue(ctx, task->fun);
+			JS_FreeValue(ctx, task->_obj);
+			gf_free(task);
+		}
 	}
 
 	gf_mx_p(js_rt->mx);
@@ -972,6 +985,12 @@ static JSValue js_sys_enable_rmtws(JSContext *ctx, JSValueConst this_val, int ar
 	gf_sys_enable_rmtws(enable);
 	return JS_UNDEFINED;
 }
+static JSValue js_sys_enable_userws(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	Bool enable = GF_TRUE;
+	if (argc > 0 && JS_IsBool(argv[0])) enable = JS_ToBool(ctx, argv[0]);
+	gf_sys_enable_userws(enable);
+	return JS_UNDEFINED;
+}
 
 static void js_sys_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
 
@@ -1282,6 +1301,7 @@ enum
 	JS_SYS_V_MICRO,
 	JS_SYS_LOGX,
 	JS_SYS_RMT_ON_NEW_CLIENT,
+	JS_SYS_USERWS_ON_NEW_CLIENT,
 	JS_SYS_ON_LOG,
 };
 
@@ -1551,8 +1571,11 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		gpac_use_logx = JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE;
 		break;
 	case JS_SYS_RMT_ON_NEW_CLIENT:
+	case JS_SYS_USERWS_ON_NEW_CLIENT:;
 
-		RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
+		RMT_WS* rmt = NULL;
+		if (magic == JS_SYS_RMT_ON_NEW_CLIENT) 		rmt = (RMT_WS*) gf_sys_get_rmtws();
+		if (magic == JS_SYS_USERWS_ON_NEW_CLIENT) 	rmt = (RMT_WS*) gf_sys_get_userws();
 		if (!rmt)
 			break;
 
@@ -3395,6 +3418,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("use_logx", js_sys_prop_get, js_sys_prop_set, JS_SYS_LOGX),
 
 	JS_CGETSET_MAGIC_DEF_ENUM("rmt_on_new_client", NULL, js_sys_prop_set, JS_SYS_RMT_ON_NEW_CLIENT),
+	JS_CGETSET_MAGIC_DEF_ENUM("userws_on_new_client", NULL, js_sys_prop_set, JS_SYS_USERWS_ON_NEW_CLIENT),
 	JS_CGETSET_MAGIC_DEF_ENUM("on_log", NULL, js_sys_prop_set, JS_SYS_ON_LOG),
 
 	JS_CFUNC_DEF("set_arg_used", 0, js_sys_set_arg_used),
@@ -3468,6 +3492,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
 
 	JS_CFUNC_DEF("enable_rmtws", 0, js_sys_enable_rmtws),
+	JS_CFUNC_DEF("enable_userws", 0, js_sys_enable_userws),
 	JS_CFUNC_DEF("set_logs", 0, js_sys_set_logs),
 	JS_CFUNC_DEF("get_logs", 0, js_sys_get_logs),
 };

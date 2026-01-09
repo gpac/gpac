@@ -114,6 +114,8 @@ void gf_rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_
 //! gets the userdata associated with the client on deleted callback if defined
 void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client);
 
+//! gets the ws server handler associated with a client
+RMT_WS* gf_rmt_client_get_rmt(RMT_ClientCtx* client);
 
 
 #endif

@@ -138,6 +138,14 @@ void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client) {
     return NULL;
 }
 
+GF_EXPORT
+RMT_WS* gf_rmt_client_get_rmt(RMT_ClientCtx* client) {
+    if (client && client->ctx)
+        return client->ctx->rmt;
+    return NULL;
+}
+
+
 void rmt_clientctx_del(RMT_ClientCtx* client) {
 
     if (!client) return;
@@ -908,10 +916,10 @@ void rmt_ws_run(RMT_WS* rmt) {
 
 #else //GPAC_DISABLE_RMTWS
 
-void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
+void gf_rmt_set_on_new_client_cbk(RMT_WS* rmt, void *task, rmt_on_new_client_cbk cbk) {
 
 }
-void* gf_rmt_get_on_new_client_task() {
+void* gf_rmt_get_on_new_client_task(RMT_WS* rmt) {
     return NULL;
 }
 
@@ -933,6 +941,10 @@ void gf_rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_
 
 }
 void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client) {
+    return NULL;
+}
+
+RMT_WS* gf_rmt_client_get_rmt(RMT_ClientCtx* client) {
     return NULL;
 }
 
