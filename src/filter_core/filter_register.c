@@ -89,6 +89,7 @@ REG_DEC(rfh263)
 REG_DEC(rfmpgvid)
 REG_DEC(nhntr)
 REG_DEC(nhmlr)
+REG_DEC(smil2pl)
 REG_DEC(rfnalu)
 REG_DEC(m2psdmx)
 REG_DEC(avidmx)
@@ -259,6 +260,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(rfmpgvid),
 	REG_IT(nhntr),
 	REG_IT(nhmlr),
+	REG_IT(smil2pl),
 	REG_IT(rfnalu),
 	REG_IT(m2psdmx),
 	REG_IT(avidmx),

@@ -276,6 +276,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/write_nhml.c \
 	../../../../src/filters/write_nhnt.c \
 	../../../../src/filters/write_qcp.c \
+	../../../../src/filters/write_smil.c \
 	../../../../src/filters/write_tx3g.c \
 	../../../../src/filters/write_vtt.c \
 	../../../../src/ietf/rtcp.c \

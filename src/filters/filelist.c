@@ -144,6 +144,7 @@ typedef struct
 
 	GF_FilterPid *file_pid;
 	char *file_path;
+	GF_FileIO *fio;
 	u32 last_url_crc;
 	u32 last_url_lineno;
 	u32 last_splice_crc;
@@ -702,7 +703,7 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 {
 	char *res_url = NULL;
 	char *sep, *o_url = szURL;
-	if (ctx->file_path) {
+	if (ctx->file_path && !gf_fileio_check(ctx->file_list)) {
 		res_url = gf_url_concatenate(ctx->file_path, szURL);
 		szURL = res_url;
 	}
@@ -1976,7 +1977,6 @@ restart:
 		pck = gf_filter_pid_get_packet(ctx->file_pid);
 		if (pck) {
 			gf_filter_pck_get_framing(pck, &start, &end);
-			gf_filter_pid_drop_packet(ctx->file_pid);
 
 			if (end) {
 				const GF_PropertyValue *p;
@@ -1995,16 +1995,27 @@ restart:
 						frag[0] = 0;
 						ctx->frag_url = gf_strdup(frag+1);
 					}
-					f = gf_fopen(ctx->file_path, "rt");
+				} else {
+					const u8 *data;
+					u32 size;
+					p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_URL);
+					data = gf_filter_pck_get_data(pck, &size);
+					if (ctx->fio) gf_fclose((FILE*) ctx->fio);
+					if (ctx->file_path) gf_free(ctx->file_path);
+					ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, data, size);
+					ctx->file_path = gf_strdup(gf_fileio_url(ctx->fio));
 				}
+				f = gf_fopen(ctx->file_path, "rt");
 				if (!f) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
+					gf_filter_pid_drop_packet(ctx->file_pid);
 					return GF_SERVICE_ERROR;
 				} else {
 					gf_fclose(f);
 					ctx->load_next = is_first;
 				}
 			}
+			gf_filter_pid_drop_packet(ctx->file_pid);
 		}
 	}
 	if (ctx->is_eos)
@@ -2948,6 +2959,7 @@ static void filelist_finalize(GF_Filter *filter)
 	gf_list_del(ctx->io_pids);
 	gf_list_del(ctx->filter_srcs);
 	if (ctx->file_path) gf_free(ctx->file_path);
+	if (ctx->fio) gf_fclose((FILE*) ctx->fio);
 	if (ctx->frag_url) gf_free(ctx->frag_url);
 	if (ctx->unknown_params) gf_free(ctx->unknown_params);
 	if (ctx->pid_props) gf_free(ctx->pid_props);
@@ -3195,7 +3207,7 @@ GF_FilterRegister FileListRegister = {
 		"If no `Period` property is set on main or spliced media, period switch can still be forced using [-pswitch](dasher) DASH option.\n"
 		"\n"
 		"If `mark` directive is set for a main media, no content replacement is done and the splice boundaries will be signaled in the main media.\n"
-		"If `keep` directive is set for a main media, the main media is forwarded along with the replacement content.\n"
+		"If `keep` directive is set for a main media, the maipn media is forwarded along with the replacement content.\n"
 		"When `mark` or `keep` directives are set, it is possible to alter the PID properties of the main media using `sprops` directive.\n"
 		"\n"
 		"EX #out=2 in=4 mark sprops=#xlink=http://foo.bar/\nEX src:#Period=main\n"

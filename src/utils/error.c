@@ -1597,6 +1597,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_NHNTR
 	                       "GPAC_DISABLE_NHNTR "
 #endif
+#ifdef GPAC_DISABLE_SMIL2PL
+	                       "GPAC_DISABLE_SMIL2PL "
+#endif
 #ifdef GPAC_DISABLE_CECRYPT
 	                       "GPAC_DISABLE_CECRYPT "
 #endif

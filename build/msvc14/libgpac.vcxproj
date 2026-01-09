@@ -375,6 +375,7 @@
     <ClCompile Include="..\..\src\filters\write_nhml.c" />
     <ClCompile Include="..\..\src\filters\write_nhnt.c" />
     <ClCompile Include="..\..\src\filters\write_qcp.c" />
+    <ClCompile Include="..\..\src\filters\write_smil.c" />
     <ClCompile Include="..\..\src\filters\write_tx3g.c" />
     <ClCompile Include="..\..\src\filters\write_vtt.c" />
     <ClCompile Include="..\..\src\filters\dec_webcodec.c" />

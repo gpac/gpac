@@ -1658,6 +1658,9 @@
     <ClCompile Include="..\..\src\filters\write_tx3g.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_smil.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_mediacodec.c">
       <Filter>filters</Filter>
     </ClCompile>
