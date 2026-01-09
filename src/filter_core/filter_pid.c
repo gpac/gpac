@@ -6733,14 +6733,14 @@ GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 
 }
 
-static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk, Bool is_merge)
+static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk, Bool is_merge, GF_PropertyMap *force_src_props)
 {
 	GF_PropertyMap *dst_props, *src_props = NULL, *old_dst_props=NULL;
 	if (PID_IS_INPUT(dst_pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reset all properties on input PID in filter %s - ignoring\n", dst_pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	if (is_merge) {
+	if (is_merge && src_pid) {
 		gf_mx_p(src_pid->filter->tasks_mx);
 		old_dst_props = gf_list_last(dst_pid->properties);
 		gf_mx_v(src_pid->filter->tasks_mx);
@@ -6753,8 +6753,12 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", dst_pid->filter->name));
 		return GF_OUT_OF_MEM;
 	}
+
+	if (force_src_props) {
+		src_props = force_src_props;
+	}
 	//if pid is input, use the current properties - cf filter_pid_get_prop_map
-	if (PID_IS_INPUT(src_pid)) {
+	else if (PID_IS_INPUT(src_pid)) {
 		GF_FilterPidInst *pidi = (GF_FilterPidInst *)src_pid;
 		if (!pidi->props) {
 			//see \ref gf_filter_pid_merge_properties_internal for mutex
@@ -6767,7 +6771,8 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 		src_props = pidi->props;
 	}
 	//move to real pid
-	src_pid = src_pid->pid;
+	if (src_pid)
+		src_pid = src_pid->pid;
 	//this is a copy props on output pid
 	if (!src_props) {
 		//our list is not thread-safe, so we must lock the filter when destroying the props
@@ -6780,7 +6785,7 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 			return GF_OK;
 		}
 	}
-	if (src_pid->name && !old_dst_props)
+	if (src_pid && src_pid->name && !old_dst_props)
 		gf_filter_pid_set_name(dst_pid, src_pid->name);
 
 	if (!is_merge) {
@@ -6798,12 +6803,30 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 GF_EXPORT
 GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk )
 {
-	return gf_filter_pid_merge_properties_internal(dst_pid, src_pid, filter_prop, cbk, GF_TRUE);
+	return gf_filter_pid_merge_properties_internal(dst_pid, src_pid, filter_prop, cbk, GF_TRUE, NULL);
 }
 GF_EXPORT
 GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid)
 {
-	return gf_filter_pid_merge_properties_internal(dst_pid, src_pid, NULL, NULL, GF_FALSE);
+	return gf_filter_pid_merge_properties_internal(dst_pid, src_pid, NULL, NULL, GF_FALSE, NULL);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_copy_properties_from_packet(GF_FilterPid *dst_pid, GF_FilterPacket *src_pck)
+{
+	if (!src_pck) return GF_BAD_PARAM;
+	src_pck = src_pck->pck;
+	if (!src_pck->pid_props) return GF_OK;
+	return gf_filter_pid_merge_properties_internal(dst_pid, NULL, NULL, NULL, GF_FALSE, src_pck->pid_props);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_merge_properties_from_packet(GF_FilterPid *dst_pid, GF_FilterPacket *src_pck, gf_filter_prop_filter filter_prop, void *cbk)
+{
+	if (!src_pck) return GF_BAD_PARAM;
+	src_pck = src_pck->pck;
+	if (!src_pck->pid_props) return GF_OK;
+	return gf_filter_pid_merge_properties_internal(dst_pid, NULL, filter_prop, cbk, GF_TRUE, src_pck->pid_props);
 }
 
 
