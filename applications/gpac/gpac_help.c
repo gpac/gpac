@@ -830,7 +830,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("cache-unflat", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("cache-list", NULL, "list entries in cache", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("cache-clean", NULL, "clean cache", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session (can be set multiple times for multiple scripts)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("wc", NULL, "write all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "write all file extensions in the config file unless already set (useful to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),

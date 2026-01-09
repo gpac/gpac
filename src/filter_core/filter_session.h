@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -504,7 +504,6 @@ struct __gf_filter_session
 #ifdef GPAC_HAS_QJS
 	struct JSContext *js_ctx;
 	GF_List *jstasks;
-	struct __jsfs_task *new_f_task, *del_f_task, *on_evt_task, *on_auth_task;
 #endif
 
 	gf_fs_on_filter_creation on_filter_create_destroy;
@@ -734,6 +733,10 @@ struct __gf_filter
 	u64 nb_hw_pck_sent;
 	//number of processing errors in the lifetime of the filter
 	u32 nb_errors;
+	//number of consecutive errors, reset at each successfull process - only used for logs
+	//Difference with nb_consecutive_errors: nb_consecutive_errors is reset whenever there is a packet IO
+	//to avoid killing a filter were all process() lead to error due to input bitstream
+	u32 nb_current_errors;
 
 	//number of bytes sent by this filter
 	u64 nb_bytes_sent;
@@ -1317,5 +1320,14 @@ Bool gf_fq_res_add(GF_FilterQueue *fq, void *item);
 Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_clone, const char *source_ids);
 const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first);
 
+enum {
+	GF_LOG_TAG_FILTERSESSION = 0,
+	GF_LOG_TAG_FILTERSESSION_THREAD = 1,
+	GF_LOG_TAG_FILTER = 2
+};
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type);
+void gf_logs_thread_untag(void *tag_val);
+void gf_logs_thread_tag_del(void *tag_val);
 
 #endif //_GF_FILTER_SESSION_H_

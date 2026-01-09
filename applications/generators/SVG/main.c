@@ -523,7 +523,7 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
 		}
-	} else { /* for some attributes, the type given in the RNG needs to be overriden */
+	} else { /* for some attributes, the type given in the RNG needs to be overridden */
 		if (!strcmp(att->svg_name, "color")) {
 			strcpy(att->impl_type, "SVG_Paint");
 		} else if (!strcmp(att->svg_name, "viewport-fill")) {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -452,7 +452,7 @@ static Bool dump_proto_schemes = GF_FALSE;
 static Bool write_profile=GF_FALSE;
 static Bool write_core_opts=GF_FALSE;
 static Bool write_extensions=GF_FALSE;
-static const char *session_js=NULL;
+static GF_List *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
 #ifdef GPAC_DEFER_MODE
@@ -585,7 +585,6 @@ int gpac_main(int _argc, char **_argv)
 
 	gf_sys_init(mem_track, profile);
 
-
 #ifdef GPAC_CONFIG_ANDROID
 	//prevent destruction of JSRT until we unload the JNI gpac wrapper (see applications/gpac_android/src/main/jni/gpac_jni.cpp)
 	gf_opts_set_key("temp", "static-jsrt", "true");
@@ -658,6 +657,11 @@ int gpac_main(int _argc, char **_argv)
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	use_step_mode = GF_TRUE;
 #endif
+
+	if (gf_opts_get_bool("core", "rmt")) {
+		if (!session_js) session_js = gf_list_new();
+		gf_list_insert(session_js, "$GSHARE/scripts/rmt.js", 0);
+	}
 
 	for (i=1; i<argc; i++) {
 		char szArgName[1024];
@@ -1001,7 +1005,8 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-qe")) {
 			exit_nocleanup = GF_TRUE;
 		} else if (!strcmp(arg, "-js")) {
-			session_js = arg_val;
+			if (!session_js) session_js = gf_list_new();
+			gf_list_add(session_js, arg_val);
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
 			if (arg_val && !strlen(arg_val)) {
@@ -1210,10 +1215,18 @@ restart:
 	}
 
 	if (session_js) {
-		e = gf_fs_load_script(session, session_js);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-		ERR_EXIT
+		u32 ijs, nb_js=gf_list_count(session_js);
+		for (ijs=0; ijs<nb_js; ijs++) {
+			const char *js_src = gf_list_get(session_js, ijs);
+			e = gf_fs_load_script(session, js_src);
+			if (e) {
+				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt.js")) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Monitoring script %s not found, check your installation\n Disabling remote monitoring\n", js_src));
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+					ERR_EXIT
+				}
+			}
 		}
 	}
 
@@ -1665,6 +1678,8 @@ exit:
 		goto restart;
 #endif
 	}
+
+	if (session_js) gf_list_del(session_js);
 
 	gpac_exit(e);
 }

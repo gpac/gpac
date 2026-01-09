@@ -859,6 +859,8 @@ static Bool gpac_discard_config = GF_FALSE;
 extern FILE *gpac_log_file;
 extern Bool gpac_log_time_start;
 extern Bool gpac_log_utc_time;
+void gf_logs_init();
+void gf_logs_close();
 #endif
 
 GF_EXPORT
@@ -1391,6 +1393,7 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #endif
 
 #ifndef GPAC_DISABLE_LOG
+		gf_logs_init();
 		/*by default log subsystem is initialized to error on all tools, and info on console to debug scripts*/
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 		gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
@@ -1546,10 +1549,7 @@ void gf_sys_close()
 		gf_uninit_global_config(gpac_discard_config);
 
 #ifndef GPAC_DISABLE_LOG
-		if (gpac_log_file) {
-			gf_fclose(gpac_log_file);
-			gpac_log_file = NULL;
-		}
+		gf_logs_close();
 #endif
 		if (gpac_lang_file) gf_cfg_del(gpac_lang_file);
 		gpac_lang_file = NULL;
@@ -3088,6 +3088,9 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
 	FILE *file = gf_fopen(file_name, "rb");
 
 	if (!file) {
+		if (!gf_file_exists(file_name))
+			return GF_URL_ERROR;
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open file %s\n", file_name));
 		return GF_IO_ERR;
 	}

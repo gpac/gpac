@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -652,6 +652,8 @@ typedef struct
 	u64 nb_hw_pck_sent;
 	/*!number of processing errors in the lifetime of the filter*/
 	u32 nb_errors;
+	/*!number of errors since last process without errors*/
+	u32 nb_current_errors;
 
 	/*!number of bytes sent by this filter*/
 	u64 nb_bytes_sent;
@@ -3660,6 +3662,19 @@ const char *gf_filter_meta_get_instances(GF_Filter *filter);
 \return NULL or first option found (including option separator)
 */
 const char *gf_filter_path_escape_colon(GF_Filter *filter, const char *path);
+
+
+/*! Tags a filter for logging
+
+ All logs generated on a thread with a tagged filter will be marked as issued by the associated filter.
+
+ Tagging is handled internally for most filters. The function should only be used for filters using external threads calling back into libgpac (e.g. audio thread).
+ Tagging (resp. untagging) should be done before (resp. after) calling libgpac
+
+\param filter target filter
+\param is_untag  if true, untags the filter otherwise tags it
+*/
+void gf_filter_log_tag(GF_Filter *filter, Bool is_untag);
 
 /*! @} */
 

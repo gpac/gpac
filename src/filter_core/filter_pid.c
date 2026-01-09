@@ -946,7 +946,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 #endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reconfigure\n", pidinst->filter->name, pidinst->pid->name));
+	gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, (ctype==GF_PID_CONF_REMOVE) ? GF_TRUE : GF_FALSE);
+	gf_logs_thread_untag(filter);
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs) {
@@ -1002,7 +1004,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		if (!filter->num_input_pids)
 			filter->single_source = NULL;
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		filter->freg->configure_pid(filter, (GF_FilterPid *) pidinst, GF_TRUE);
+		gf_logs_thread_untag(filter);
 		gf_mx_v(filter->tasks_mx);
 
 		gf_mx_p(pidinst->pid->filter->tasks_mx);
@@ -1104,7 +1108,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
 					FSESS_CHECK_THREAD(filter)
 					filter->num_input_pids--;
+					gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 					filter->freg->configure_pid(filter, (GF_FilterPid *) a_pidinst, GF_TRUE);
+					gf_logs_thread_untag(filter);
 
 					gf_filter_pid_post_init_task(a_pidinst->pid->filter, a_pidinst->pid);
 					gf_fs_post_pid_instance_delete_task(filter->session, a_pidinst->pid->filter, a_pidinst->pid, a_pidinst);
@@ -1178,7 +1184,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				if (pid->filter->freg->process_event) {
 					GF_FilterEvent evt;
 					GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+
+					gf_logs_thread_tag(pid->filter, GF_LOG_TAG_FILTER);
 					pid->filter->freg->process_event(pid->filter, &evt);
+					gf_logs_thread_untag(pid->filter);
 				}
 				filter->session->last_connect_error = e;
 			}
@@ -1326,7 +1335,9 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			pidinst->pid = task->pid;
 			safe_int_dec(&pidinst->detach_pending);
 			//delete pid
+			gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 			filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, GF_TRUE);
+			gf_logs_thread_untag(filter);
 			gf_filter_pid_inst_del(pidinst);
 			break;
 		}
@@ -5893,7 +5904,10 @@ single_retry:
 		}
 		if (pid->filter->freg->process_event) {
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+
+			gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 			pid->filter->freg->process_event(filter, &evt);
+			gf_logs_thread_untag(filter);
 		}
 		pid->not_connected = 1;
 	}
@@ -6983,7 +6997,9 @@ restart:
 
 			//the following may fail when some filters use threading on their own
 			//FSESS_CHECK_THREAD(pidinst->filter)
+			gf_logs_thread_tag(pidinst->filter, GF_LOG_TAG_FILTER);
 			res = pidinst->filter->freg->process_event(pidinst->filter, &evt);
+			gf_logs_thread_untag(pidinst->filter);
 		}
 
 		if (!res) {
@@ -8131,7 +8147,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 		if (f->freg->process_event) {
 			FSESS_CHECK_THREAD(f)
+
+			gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
 			canceled = f->freg->process_event(f, evt);
+			gf_logs_thread_untag(f);
 		}
 		if (!canceled && (evt->base.type==GF_FEVT_STOP) && evt->play.forced_dash_segment_switch) {
 			GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, 0);
@@ -8310,7 +8329,13 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 		return;
 	}
 
-	canceled = f->freg->process_event ? f->freg->process_event(f, evt) : GF_FALSE;
+	if (f->freg->process_event) {
+		gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
+		canceled = f->freg->process_event(f, evt);
+		gf_logs_thread_untag(f);
+	} else {
+		canceled = GF_FALSE;
+	}
 	if (!canceled) {
 		for (i=0; i<f->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(f->output_pids, i);
@@ -8538,7 +8563,10 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	if (pid->pid->filter->freg->process_event) {
 		if (evt->base.on_pid) evt->base.on_pid = evt->base.on_pid->pid;
 		FSESS_CHECK_THREAD(pid->pid->filter)
+
+		gf_logs_thread_tag(pid->pid->filter, GF_LOG_TAG_FILTER);
 		pid->pid->filter->freg->process_event(pid->pid->filter, evt);
+		gf_logs_thread_untag(pid->pid->filter);
 	}
 }
 
@@ -9756,6 +9784,7 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 	u32 subtype=0, subtype_src=0, codec_id, stream_type;
 	s32 mha_pl=-1;
 	Bool is_tile_base = GF_FALSE;
+	Bool use_scal_refs = GF_FALSE;
 	const GF_PropertyValue *p, *dcd, *dcd_enh, *dovi, *codec;
 	COLR colr;
 
@@ -9776,6 +9805,9 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	p = gf_filter_pid_get_property_str(pid, "isom:scal");
+	if (p && p->value.uint_list.nb_items) use_scal_refs = GF_TRUE;
 
 	// If colour information is supplied in [the colr] box, and also in the video bitstream, [the] box takes precedence
 	{
@@ -9903,20 +9935,28 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		return GF_OK;
 
 	case GF_CODECID_LHVC:
-		subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
-		//fallthrough
 	case GF_CODECID_HEVC_TILES:
-		if (!subtype) subtype = GF_ISOM_SUBTYPE_HVT1;
-		if (!dcd && tile_base_dcd) dcd = tile_base_dcd;
-
-		//fallthrough
 	case GF_CODECID_HEVC:
+		if (codec_id==GF_CODECID_HEVC_TILES) {
+			if (!subtype) subtype = GF_ISOM_SUBTYPE_HVT1;
+			if (!dcd && tile_base_dcd) dcd = tile_base_dcd;
+		} else if (codec_id==GF_CODECID_LHVC) {
+			if (!dcd || !dcd_enh) {
+				subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
+			}
+		}
+
 		if (!subtype) {
 			if (is_tile_base) {
 				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
 			} else if (dcd_enh) {
 				if (dcd) {
-					subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+					//if scal track refs are found, assume extractors are present and use hev2/hvc2
+					if (use_scal_refs)
+						subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+					//otherwise use backward compatible signaling
+					else
+						subtype = force_inband ? GF_ISOM_SUBTYPE_HEV1 : GF_ISOM_SUBTYPE_HVC1;
 				} else {
 					subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
 				}
