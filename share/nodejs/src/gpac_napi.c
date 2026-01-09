@@ -603,7 +603,8 @@ Bool fs_flush_rmt(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 
 		void* client = gf_list_pop_front(gpac->rmt_new_clients);
 
-		NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+		RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
+		NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task(rmt);
 		if (task && gpac->rmt_ctx) {
 
 			napi_value res, _this, fun;
@@ -725,8 +726,9 @@ static void gpac_napi_finalize(napi_env env, void* finalize_data, void* finalize
 
 	if (inst->str_buf) gf_free(inst->str_buf);
 
-	NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
-	gf_rmt_set_on_new_client_cbk(NULL, NULL);
+	RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
+	NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task(rmt);
+	gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
 	napi_rmt_task_del(env, task);
 
 	if (inst->rmt_new_clients) {
@@ -5220,16 +5222,20 @@ napi_value nodegpac_setter(napi_env env, napi_callback_info info)
 		napi_valuetype rtype;
 		napi_typeof(env, argv[0], &rtype);
 
+		RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
+		if (!rmt)
+			return NULL;
+
 		if (rtype == napi_null || rtype == napi_undefined ) {
 
 			if (gpac->rmt_ctx) {
 				napi_async_destroy(env, gpac->rmt_ctx);
 				gpac->rmt_ctx = NULL;
 			}
-			NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+			NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task(rmt);
 			napi_rmt_task_del(env, task);
 
-			gf_rmt_set_on_new_client_cbk(NULL, NULL);
+			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
 
 
 		} else if (rtype == napi_function) {
@@ -5249,7 +5255,7 @@ napi_value nodegpac_setter(napi_env env, napi_callback_info info)
 			napi_create_reference(env, argv[0], 1, &task->fun);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("setting on new client cb %p\n", gpac_rmt_on_new_client));
-			gf_rmt_set_on_new_client_cbk(task, gpac_rmt_on_new_client);
+			gf_rmt_set_on_new_client_cbk(rmt, task, gpac_rmt_on_new_client);
 
 		}
 

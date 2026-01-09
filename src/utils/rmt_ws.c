@@ -9,10 +9,6 @@
 #ifndef GPAC_DISABLE_RMTWS
 
 
-// Global settings
-static RMT_Settings g_Settings;
-static Bool g_SettingsInitialized = GF_FALSE;
-
 static const char websocket_guid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 
@@ -23,6 +19,8 @@ struct RMT_WS {
 
     // Should we stop the thread?
     Bool should_stop;
+
+    RMT_Settings settings;
 
 };
 
@@ -58,6 +56,8 @@ enum {
 static char RMT_WEBSOCKET_PING_MSG[2] = { 0x89, 0x00 };
 
 struct __rmt_serverctx {
+
+    RMT_WS* rmt;
 
     GF_Socket* server_sock;
 
@@ -108,8 +108,8 @@ void* gf_rmt_client_get_on_data_task(RMT_ClientCtx* client) {
 }
 
 GF_EXPORT
-void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
-    RMT_Settings *rmtcfg = gf_rmt_get_settings();
+void gf_rmt_set_on_new_client_cbk(RMT_WS* rmt, void *task, rmt_on_new_client_cbk cbk) {
+    RMT_Settings *rmtcfg = gf_rmt_get_settings(rmt);
     if (rmtcfg) {
         rmtcfg->on_new_client_cbk = cbk;
         rmtcfg->on_new_client_cbk_task = task;
@@ -117,8 +117,9 @@ void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk) {
 }
 
 GF_EXPORT
-void* gf_rmt_get_on_new_client_task() {
-    return g_Settings.on_new_client_cbk_task;
+void* gf_rmt_get_on_new_client_task(RMT_WS* rmt) {
+    if (!rmt) return NULL;
+    return rmt->settings.on_new_client_cbk_task;
 }
 
 GF_EXPORT
@@ -245,10 +246,12 @@ GF_Err rmt_send_reply(GF_DownloadSession* http_sess, int responseCode, char* res
 static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *parameter) {
 
     RMT_ClientCtx* client_ctx = (RMT_ClientCtx*) usr_cbk;
-    if (!client_ctx) {
+    if (!client_ctx || !client_ctx->ctx) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] sess io on null session\n"));
         return;
     }
+    RMT_Settings* rmt_settings = gf_rmt_get_settings(client_ctx->ctx->rmt);
+
     GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("rmt_on_http_session_data on peer %s param %p msg_type %d \nerror %s \ndata %p \nsize %d \nname %p \nvalue %p \nreply %d\n",
                     client_ctx->peer_address,
                     parameter,
@@ -327,9 +330,9 @@ static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *paramete
                 if (e==GF_OK) {
                     client_ctx->is_ws = GF_TRUE;
 
-                    if (g_Settings.on_new_client_cbk && g_Settings.on_new_client_cbk_task) {
-                        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d calling on new client cb %p with client %p\n", __FILE__,__LINE__, g_Settings.on_new_client_cbk, client_ctx));
-                        g_Settings.on_new_client_cbk(g_Settings.on_new_client_cbk_task, client_ctx);
+                    if (rmt_settings->on_new_client_cbk && rmt_settings->on_new_client_cbk_task) {
+                        GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("%s:%d calling on new client cb %p with client %p\n", __FILE__,__LINE__, rmt_settings->on_new_client_cbk, client_ctx));
+                        rmt_settings->on_new_client_cbk(rmt_settings->on_new_client_cbk_task, client_ctx);
                     }
                 }
                 gf_free(resp_key);
@@ -353,14 +356,16 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
 
     rmt_serverctx_reset(ctx);
 
-    if (g_Settings.cert && g_Settings.pkey) {
+    RMT_Settings* rmt_settings = gf_rmt_get_settings(ctx->rmt);
+
+    if (rmt_settings->cert && rmt_settings->pkey) {
 #ifdef GPAC_HAS_SSL
-		if (!gf_file_exists(g_Settings.cert)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] Certificate file %s not found\n", g_Settings.cert));
+		if (!gf_file_exists(rmt_settings->cert)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] Certificate file %s not found\n", rmt_settings->cert));
 			return GF_IO_ERR;
 		}
-		if (!gf_file_exists(g_Settings.pkey)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] Private key file %s not found\n", g_Settings.pkey));
+		if (!gf_file_exists(rmt_settings->pkey)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] Private key file %s not found\n", rmt_settings->pkey));
 			return GF_IO_ERR;
 		}
 		if (gf_ssl_init_lib()) {
@@ -372,7 +377,7 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
         if (!prev_noh2)
             gf_opts_set_key("core", "no-h2", "1");
 
-        ctx->ssl_ctx = gf_ssl_server_context_new(g_Settings.cert, g_Settings.pkey);
+        ctx->ssl_ctx = gf_ssl_server_context_new(rmt_settings->cert, rmt_settings->pkey);
 
         if (!prev_noh2)
             gf_opts_set_key("core", "no-h2", "0");
@@ -389,20 +394,20 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
 
     ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
     e = gf_sk_bind( ctx->server_sock,
-                    g_Settings.limit_connections_to_localhost ? "127.0.0.1" : "0.0.0.0",
-                    g_Settings.port,
+                    rmt_settings->limit_connections_to_localhost ? "127.0.0.1" : "0.0.0.0",
+                    rmt_settings->port,
                     NULL, 0, GF_SOCK_REUSE_PORT );
 
     if (!e) e = gf_sk_listen(ctx->server_sock, 0);
     if (e) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] failed to start server on port %d: %s\n", g_Settings.port, gf_error_to_string(e) ));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] failed to start server on port %d: %s\n", rmt_settings->port, gf_error_to_string(e) ));
         return e;
     }
 
     gf_sk_group_register(ctx->sg, ctx->server_sock);
 
     gf_sk_server_mode(ctx->server_sock, GF_TRUE);
-    GF_LOG(GF_LOG_INFO, GF_LOG_RMTWS, ("[RMT] Server running on port %d\n", g_Settings.port));
+    GF_LOG(GF_LOG_INFO, GF_LOG_RMTWS, ("[RMT] Server running on port %d\n", rmt_settings->port));
 
     Bool prev_noh2 = gf_opts_get_bool("core", "no-h2");
     if (!prev_noh2)
@@ -686,10 +691,11 @@ GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size
 Bool rmt_client_should_close(RMT_ClientCtx* client) {
 
     // check valid object
-    if (!client || !client->client_sock) {
+    if (!client || !client->client_sock || !client->ctx) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("[RMT] weird dead session in rmt\n"));
         return GF_TRUE;
     }
+    RMT_Settings* rmt_settings = gf_rmt_get_settings(client->ctx->rmt);
 
     if (client->should_close) {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("Disconnected socket %p %s because request done\n",  client, client->peer_address));
@@ -704,9 +710,9 @@ Bool rmt_client_should_close(RMT_ClientCtx* client) {
     }
 
     // check timeout
-    if (g_Settings.timeout_secs) {
+    if (rmt_settings->timeout_secs) {
         u32 diff_sec = (u32) (gf_sys_clock_high_res() - client->last_active_time)/1000000;
-        if ( diff_sec > g_Settings.timeout_secs ) {
+        if ( diff_sec > rmt_settings->timeout_secs ) {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("Disconnected socket %p %s for timeout \n",  client, client->peer_address));
             return GF_TRUE;
         }
@@ -717,6 +723,8 @@ Bool rmt_client_should_close(RMT_ClientCtx* client) {
 }
 
 GF_Err rmt_server_wait_for_event(RMT_ServerCtx* ctx) {
+
+    RMT_Settings* rmt_settings = gf_rmt_get_settings(ctx->rmt);
 
     GF_Err e = gf_sk_group_select(ctx->sg, 10, GF_SK_SELECT_BOTH);
 
@@ -752,11 +760,11 @@ GF_Err rmt_server_wait_for_event(RMT_ServerCtx* ctx) {
                 if (gf_sk_group_sock_is_set(client->ctx->sg, client->client_sock, GF_SK_SELECT_WRITE)) {
 
                     // check if we should send ping
-                    if (g_Settings.ping_secs) {
+                    if (rmt_settings->ping_secs) {
 
                         u32 diff_sec = (u32) (gf_sys_clock_high_res() - client->last_ping_time)/1000000;
 
-                        if ( diff_sec > g_Settings.ping_secs ) {
+                        if ( diff_sec > rmt_settings->ping_secs ) {
 
                             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("Sending PING on client %p %s\n",  client, client->peer_address));
                             e = rmt_client_send_ping(client);
@@ -781,7 +789,7 @@ GF_Err rmt_server_wait_for_event(RMT_ServerCtx* ctx) {
 
     }
 
-    gf_sleep(g_Settings.msSleepBetweenServerUpdates);
+    gf_sleep(rmt_settings->msSleepBetweenServerUpdates);
     return e;
 
 }
@@ -792,6 +800,7 @@ static u32 rmt_ws_thread_main(void* par) {
 
     RMT_ServerCtx* ctx;
     GF_SAFEALLOC(ctx, RMT_ServerCtx);
+    ctx->rmt = rmt;
 
     GF_Err e;
 
@@ -827,28 +836,11 @@ static u32 rmt_ws_thread_main(void* par) {
 
 
 
-RMT_Settings* gf_rmt_get_settings()
+RMT_Settings* gf_rmt_get_settings(RMT_WS* rmt)
 {
-    // Default-initialize on first call
-    if( g_SettingsInitialized == GF_FALSE ) {
+    if (!rmt) return NULL;
 
-        g_Settings.port = 6363;
-        g_Settings.timeout_secs = 20;
-        g_Settings.ping_secs = 7;
-
-        g_Settings.limit_connections_to_localhost = GF_FALSE;
-        g_Settings.msSleepBetweenServerUpdates = 50;
-
-        g_Settings.on_new_client_cbk = NULL;
-        g_Settings.on_new_client_cbk_task = NULL;
-
-        g_Settings.cert = NULL;
-        g_Settings.pkey = NULL;
-
-        g_SettingsInitialized = GF_TRUE;
-    }
-
-    return &g_Settings;
+    return &rmt->settings;
 }
 
 
@@ -884,9 +876,23 @@ RMT_WS* rmt_ws_new() {
         return NULL;
     }
 
+    rmt->settings.port = 6363;
+    rmt->settings.timeout_secs = 20;
+    rmt->settings.ping_secs = 7;
 
-    // Default-initialise if user has not set values
-    gf_rmt_get_settings();
+    rmt->settings.limit_connections_to_localhost = GF_FALSE;
+    rmt->settings.msSleepBetweenServerUpdates = 50;
+
+    rmt->settings.on_new_client_cbk = NULL;
+    rmt->settings.on_new_client_cbk_task = NULL;
+
+    rmt->settings.cert = NULL;
+    rmt->settings.pkey = NULL;
+
+    return rmt;
+}
+
+void rmt_ws_run(RMT_WS* rmt) {
 
     rmt->thread = gf_th_new("rmt_ws_main_th");
     rmt->should_stop = GF_FALSE;
@@ -897,9 +903,6 @@ RMT_WS* rmt_ws_new() {
         rmt_ws_del(rmt);
         rmt = NULL;
     }
-
-    return rmt;
-
 
 }
 

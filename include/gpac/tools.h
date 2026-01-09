@@ -760,6 +760,10 @@ Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 */
 GF_Err gf_sys_enable_rmtws(Bool start);
 
+/*! Returns the monitoring websocket server handler
+\return the object to cast to RMT_WS*
+*/
+void* gf_sys_get_rmtws();
 
 /*!
 GPAC Log tools

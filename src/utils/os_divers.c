@@ -1169,10 +1169,21 @@ RMT_WS *rmtws_handle=NULL;
 #endif
 
 GF_EXPORT
+void* gf_sys_get_rmtws() {
+	return (void*)rmtws_handle;
+}
+GF_EXPORT
 GF_Err gf_sys_enable_rmtws(Bool start) {
 #ifndef GPAC_DISABLE_RMTWS
 	if (start && !rmtws_handle) {
-		RMT_Settings *rmcfg = gf_rmt_get_settings();
+
+		rmtws_handle = rmt_ws_new();
+		if (!rmtws_handle) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize RMT websocket server\n"));
+			return GF_OUT_OF_MEM;
+		}
+
+		RMT_Settings *rmcfg = gf_rmt_get_settings(rmtws_handle);
 
 		rmcfg->port = gf_opts_get_int("core", "rmt-port");
 		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "rmt-localhost");
@@ -1180,11 +1191,7 @@ GF_Err gf_sys_enable_rmtws(Bool start) {
 		rmcfg->cert = gf_opts_get_key("core", "rmt-cert");
 		rmcfg->pkey = gf_opts_get_key("core", "rmt-pkey");
 
-		rmtws_handle = rmt_ws_new();
-		if (!rmtws_handle) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize RMT websocket server\n"));
-			return GF_OUT_OF_MEM;
-		}
+		rmt_ws_run(rmtws_handle);
 
 
 	} else if (!start && rmtws_handle) {

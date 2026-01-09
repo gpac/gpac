@@ -293,6 +293,9 @@ _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
 _libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
+_libgpac.gf_sys_get_rmtws.argtypes = []
+_libgpac.gf_sys_get_rmtws.restype = c_void_p
+
 _libgpac.gf_rmt_get_peer_address.argtypes = [c_void_p]
 _libgpac.gf_rmt_get_peer_address.restype = c_char_p
 _libgpac.gf_rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
@@ -508,7 +511,8 @@ class RMTHandler():
 
 
 ##\cond private
-_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
+_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [c_void_p, py_object, c_void_p]
+
 @CFUNCTYPE(c_int, c_void_p, c_void_p)
 def rmt_fun_on_new_client_cbk(_udta, client):
     obj = cast(_udta, py_object).value
@@ -522,8 +526,9 @@ def rmt_fun_on_new_client_cbk(_udta, client):
 # \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
 def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
+    rmt = _libgpac.gf_sys_get_rmtws()
     if hasattr(callback_obj, 'on_new_client'):
-        err = _libgpac.gf_rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(rmt, py_object(callback_obj), rmt_fun_on_new_client_cbk)
         if err<0:
             return False
 
