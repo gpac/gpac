@@ -254,10 +254,14 @@ static void ffenc_finalize(GF_Filter *filter)
 	return;
 }
 
-static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
+static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx, GF_FilterPacket *src_pck)
 {
 	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
+	if (src_pck)
+		gf_filter_pid_copy_properties_from_packet(ctx->out_pid, src_pck);
+	else
+		gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
+
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, NULL);
 	if (!ctx->codecid) {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG) );
@@ -921,7 +925,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (src_pck) {
 		if (ctx->disc_pck_ref == src_pck) {
 			ctx->disc_pck_ref = NULL;
-			ffenc_copy_pid_props(ctx);
+			//use PID properties of source packet, not current ones as they could already no longer be valid
+			//due to long buffering/flushing of the encoder
+			ffenc_copy_pid_props(ctx, src_pck);
 		}
 
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
@@ -1379,7 +1385,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (src_pck) {
 		if (src_pck==ctx->disc_pck_ref) {
 			ctx->disc_pck_ref = NULL;
-			ffenc_copy_pid_props(ctx);
+			ffenc_copy_pid_props(ctx, NULL);
 		}
 
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
@@ -1560,7 +1566,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!is_force_reconf) {
 		//not yet setup or no delay, copy directly props, otherwise signal discontinuity
 		if (!ctx->encoder || !gf_list_count(ctx->src_packets)) {
-			ffenc_copy_pid_props(ctx);
+			ffenc_copy_pid_props(ctx, NULL);
 		} else {
 			ctx->discontunity = GF_TRUE;
 		}
@@ -2185,7 +2191,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ffmpeg_report_options(filter, options, ctx->options);
 
 	if (!is_force_reconf)
-		ffenc_copy_pid_props(ctx);
+		ffenc_copy_pid_props(ctx, NULL);
 	return GF_OK;
 }
 
