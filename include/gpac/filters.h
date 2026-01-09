@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -652,6 +652,8 @@ typedef struct
 	u64 nb_hw_pck_sent;
 	/*!number of processing errors in the lifetime of the filter*/
 	u32 nb_errors;
+	/*!number of errors since last process without errors*/
+	u32 nb_current_errors;
 
 	/*!number of bytes sent by this filter*/
 	u64 nb_bytes_sent;

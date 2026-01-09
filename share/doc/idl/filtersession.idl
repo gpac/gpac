@@ -267,8 +267,10 @@ attribute readonly unsigned long long pck_ifce_sent;
 attribute readonly unsigned long long bytes_sent;
 /*! number of tasks executed*/
 attribute readonly unsigned long tasks;
-/*! number of errors*/
+/*! number of errors on the filter, never reseted*/
 attribute readonly unsigned long errors;
+/*! number of consecutive errors, reseted at each successfull processing*/
+attribute readonly unsigned long current_errors;
 /*! set to true if report has been updated since last query*/
 attribute readonly boolean report_updated;
 /*! class of filter, can be "rawin", "demuxer", "decoder", "encoder", "muxer", "rawout", "mediasink", "mediasource", "unknown"*/

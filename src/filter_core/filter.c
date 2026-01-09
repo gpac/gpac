@@ -3064,6 +3064,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 		filter->session->last_process_error = e;
 
 		filter->nb_errors ++;
+		filter->nb_current_errors++;
 		if (!filter->nb_consecutive_errors) filter->time_at_first_error = gf_sys_clock_high_res();
 
 		filter->nb_consecutive_errors ++;
@@ -3096,6 +3097,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			filter->nb_consecutive_errors = 0;
 			filter->nb_pck_io = 0;
 		}
+		filter->nb_current_errors = 0;
 	}
 
 	if (kill_filter) {

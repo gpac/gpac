@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2025
+#          Copyright (c) Telecom Paris 2020-2026
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -236,8 +236,8 @@ except OSError:
             os._exit(1)
 
 #change this to reflect API we encapsulate. An incompatibility in either of these will throw a warning
-GF_ABI_MAJOR=12
-GF_ABI_MINOR=16
+GF_ABI_MAJOR=16
+GF_ABI_MINOR=2
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -583,6 +583,7 @@ class FilterStats(Structure):
 		("nb_pck_sent", c_ulonglong),
 		("nb_hw_pck_sent", c_ulonglong),
 		("nb_errors", c_uint),
+		("nb_current_errors", c_uint),
 		("nb_bytes_sent", c_ulonglong),
 		("time_process", c_ulonglong),
 		("percent", c_int),

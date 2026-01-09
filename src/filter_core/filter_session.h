@@ -733,6 +733,10 @@ struct __gf_filter
 	u64 nb_hw_pck_sent;
 	//number of processing errors in the lifetime of the filter
 	u32 nb_errors;
+	//number of consecutive errors, reset at each successfull process - only used for logs
+	//Difference with nb_consecutive_errors: nb_consecutive_errors is reset whenever there is a packet IO
+	//to avoid killing a filter were all process() lead to error due to input bitstream
+	u32 nb_current_errors;
 
 	//number of bytes sent by this filter
 	u64 nb_bytes_sent;

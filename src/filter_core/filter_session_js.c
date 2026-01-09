@@ -594,6 +594,7 @@ enum
 	JSFF_BYTES_SENT,
 	JSFF_NB_TASKS,
 	JSFF_NB_ERRORS,
+	JSFF_NB_CURRENT_ERRORS,
 	JSFF_REPORT_UPDATED,
 	JSFF_CLASS,
 	JSFF_CODEC,
@@ -661,6 +662,8 @@ static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt64(ctx, f->nb_tasks_done);
 	case JSFF_NB_ERRORS:
 		return JS_NewInt64(ctx, f->nb_errors);
+	case JSFF_NB_CURRENT_ERRORS:
+		return JS_NewInt64(ctx, f->nb_current_errors);
 	case JSFF_REPORT_UPDATED:
 		val_b = f->report_updated;
 		f->report_updated = GF_FALSE;
@@ -1672,6 +1675,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("bytes_sent", jsfs_f_prop_get, NULL, JSFF_BYTES_SENT),
 	JS_CGETSET_MAGIC_DEF_ENUM("tasks", jsfs_f_prop_get, NULL, JSFF_NB_TASKS),
 	JS_CGETSET_MAGIC_DEF_ENUM("errors", jsfs_f_prop_get, NULL, JSFF_NB_ERRORS),
+	JS_CGETSET_MAGIC_DEF_ENUM("current_errors", jsfs_f_prop_get, NULL, JSFF_NB_CURRENT_ERRORS),
 	JS_CGETSET_MAGIC_DEF_ENUM("report_updated", jsfs_f_prop_get, NULL, JSFF_REPORT_UPDATED),
 	JS_CGETSET_MAGIC_DEF_ENUM("class", jsfs_f_prop_get, NULL, JSFF_CLASS),
 	JS_CGETSET_MAGIC_DEF_ENUM("streamtype", jsfs_f_prop_get, NULL, JSFF_STREAMTYPE),
