@@ -4187,7 +4187,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 				GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 				GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 				if (txt) {
-					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text);
+					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text ? txt->text  : "");
 					gf_isom_delete_text_sample(txt);
 				}
 				gf_bs_del(bs);
