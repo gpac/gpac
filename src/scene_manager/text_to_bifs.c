@@ -47,7 +47,7 @@ enum
 		if (strchr(__sep, __str[_len])) __str[_len] = 0;	\
 		else break;	\
 	}	\
- 
+
 
 static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 {
@@ -315,6 +315,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			len = 0;
 			for (i=0; i<strlen(ptr); i++) {
 				/*FIXME - UTF16 support !!*/
+				if (len >= GF_ARRAY_LENGTH(szText)) break;
 				if (ptr[i] & 0x80) {
 					/*non UTF8 (likely some win-CP)*/
 					if ((ptr[i+1] & 0xc0) != 0x80) {
@@ -329,10 +330,11 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 						i++;
 					}
 				}
+				if (len >= GF_ARRAY_LENGTH(szText)) break;
 				szText[len] = ptr[i];
 				len++;
 			}
-			szText[len] = 0;
+			szText[MIN(len, GF_ARRAY_LENGTH(szText)-1)] = 0;
 			sfstr->buffer = gf_strdup(szText);
 			break;
 		}
@@ -545,4 +547,3 @@ GF_Err gf_sm_import_bifs_subtitle(GF_SceneManager *ctx, GF_ESD *src, GF_MuxInfo 
 	return GF_NOT_SUPPORTED;
 #endif
 }
-

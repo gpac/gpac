@@ -6244,7 +6244,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 		//we patch exitsing sample_delta=0 to sample_delta=1 but we want to avoid breaking the timing of following samples
 		//accumulate the ticks added due to patching and remove them from previous entries - cf #3319
 		if (needs_patch) {
-			u32 k;
+			s64 k;
 			//walk down the previous samples and try to shorten the duration
 			for (k=i; k>=0; k--) {
 				if (ptr->entries[k].sampleDelta == 1) continue;
