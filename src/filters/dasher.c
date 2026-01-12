@@ -428,7 +428,7 @@ typedef struct _dash_stream
 	Bool forced_period_switch;
 	u64 first_cts;
 	u64 first_dts;
-	s64 pts_minus_cts;
+	s64 pts_minus_cts, prev_pts_minus_cts;
 	Bool is_encrypted;
 	//only used for SegmentTimeline
 	u64 presentation_time_offset;
@@ -1712,7 +1712,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if ((ds->codec_id == GF_CODECID_EAC3 || ds->codec_id == GF_CODECID_AC4) && _nb_ch != 0) ds->nb_ch = _nb_ch;
 		}
 
-
+		ds->prev_pts_minus_cts = ds->pts_minus_cts;
 		ds->pts_minus_cts = 0;
 		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DELAY);
 		if (p && p->value.longsint) {
@@ -1861,7 +1861,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p && p->value.string && ds->last_period) {
 		if (!ds->last_period->ID) {
 			if (p->value.string[0]) {
-				ds->last_period->ID = p->value.string;
+				ds->last_period->ID = gf_strdup(p->value.string);
 			} else {
 				char szPName[50];
 				sprintf(szPName, "P%d", 1 + gf_list_find(ctx->mpd->periods, ds->last_period));
@@ -9739,6 +9739,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						ds->presentation_time_offset = cts + 1;
 
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Representation not initialized, dropping non-SAP1/2 packet CTS "LLU"/%u\n", cts, ds->timescale));
+
 					dasher_drop_input(ctx, ds, GF_FALSE);
 					//reset ast until we get SAP
 					ctx->mpd->availabilityStartTime = 0;
@@ -9794,6 +9795,19 @@ static GF_Err dasher_process(GF_Filter *filter)
 						if (ctx->min_cts_period.den) {
 							u64 diff = gf_timestamp_rescale(ctx->min_cts_period.num, ctx->min_cts_period.den, ds->mpd_timescale);
 							pto_adj = diff;
+						}
+						//check against period continuity - if we're close to previous period end, consider we are contiguous
+						//and resume from there
+						if (ctx->period_switch_cts.den) {
+							s64 last_pts = ctx->period_switch_cts.num;
+							if (ds->prev_pts_minus_cts<0) last_pts += ds->prev_pts_minus_cts;
+
+							u64 diff = gf_timestamp_rescale(last_pts, ctx->period_switch_cts.den, ds->mpd_timescale);
+							s64 pts_diff = diff;
+							pts_diff -= pto_adj;
+							if (ABS(pts_diff) < 2 * ds->mpd_timescale) {
+								pto_adj = diff;
+							}
 						}
 
 						if (ds->rep->segment_list)
