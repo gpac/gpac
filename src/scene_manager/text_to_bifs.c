@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -170,55 +170,61 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
-			if (!sOK || !strlen(szLine)) {
-				state = 0;
-				if (au) {
-					/*if italic or underscore do it*/
-					if (font && (italic || underlined || bold)) {
-						com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-						com->node = font;
-						gf_node_register(font, NULL);
-						inf = gf_sg_command_field_new(com);
-						inf->fieldIndex = style.fieldIndex;
-						inf->fieldType = style.fieldType;
-						inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
-						sfstr = (SFString *)inf->field_ptr;
-						if (bold && italic && underlined) sfstr->buffer = gf_strdup("BOLDITALIC UNDERLINED");
-						else if (italic && underlined) sfstr->buffer = gf_strdup("ITALIC UNDERLINED");
-						else if (bold && underlined) sfstr->buffer = gf_strdup("BOLD UNDERLINED");
-						else if (underlined) sfstr->buffer = gf_strdup("UNDERLINED");
-						else if (bold && italic) sfstr->buffer = gf_strdup("BOLDITALIC");
-						else if (bold) sfstr->buffer = gf_strdup("BOLD");
-						else sfstr->buffer = gf_strdup("ITALIC");
-						gf_list_add(au->commands, com);
-					}
-
-					au = gf_sm_stream_au_new(srt, end, 0, 1);
+		if (!sOK || !strlen(szLine)) {
+			state = 0;
+			if (au) {
+				/*if italic or underscore do it*/
+				if (font && (italic || underlined || bold)) {
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-					com->node = text;
-					gf_node_register(text, NULL);
+					com->node = font;
+					gf_node_register(font, NULL);
 					inf = gf_sg_command_field_new(com);
-					inf->fieldIndex = string.fieldIndex;
-					inf->fieldType = string.fieldType;
-					inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
+					inf->fieldIndex = style.fieldIndex;
+					inf->fieldType = style.fieldType;
+					inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+					sfstr = (SFString *)inf->field_ptr;
+					if (bold && italic && underlined) sfstr->buffer = gf_strdup("BOLDITALIC UNDERLINED");
+					else if (italic && underlined) sfstr->buffer = gf_strdup("ITALIC UNDERLINED");
+					else if (bold && underlined) sfstr->buffer = gf_strdup("BOLD UNDERLINED");
+					else if (underlined) sfstr->buffer = gf_strdup("UNDERLINED");
+					else if (bold && italic) sfstr->buffer = gf_strdup("BOLDITALIC");
+					else if (bold) sfstr->buffer = gf_strdup("BOLD");
+					else sfstr->buffer = gf_strdup("ITALIC");
 					gf_list_add(au->commands, com);
-					/*reset font styles so that all AUs are true random access*/
-					if (font) {
-						com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-						com->node = font;
-						gf_node_register(font, NULL);
-						inf = gf_sg_command_field_new(com);
-						inf->fieldIndex = style.fieldIndex;
-						inf->fieldType = style.fieldType;
-						inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
-						gf_list_add(au->commands, com);
-					}
-					au = NULL;
 				}
-				inf = NULL;
-				if (!sOK) break;
-				continue;
+
+				au = gf_sm_stream_au_new(srt, end, 0, 1);
+				com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
+				com->node = text;
+				gf_node_register(text, NULL);
+				inf = gf_sg_command_field_new(com);
+				inf->fieldIndex = string.fieldIndex;
+				inf->fieldType = string.fieldType;
+				inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
+				gf_list_add(au->commands, com);
+				/*reset font styles so that all AUs are true random access*/
+				if (font) {
+					com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
+					com->node = font;
+					gf_node_register(font, NULL);
+					inf = gf_sg_command_field_new(com);
+					inf->fieldIndex = style.fieldIndex;
+					inf->fieldType = style.fieldType;
+					inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+					gf_list_add(au->commands, com);
+				}
+				au = NULL;
 			}
+			inf = NULL;
+			if (!sOK) break;
+			continue;
+		}
+
+		if (!gf_utf8_is_legal(sOK, strlen(szLine))) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] Illegal UTF8 data\n"));
+			e = GF_CORRUPTED_DATA;
+			goto exit;
+		}
 
 		switch (state) {
 		case 0:
