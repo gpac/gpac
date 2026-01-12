@@ -895,7 +895,8 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 		fprintf(dump, "<RTPHintTrack trackID=\"%d\">\n", gf_isom_get_track_id(file, i+1));
 		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
-		fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
+		if (sdp && size)
+			fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		for (j=0; j<gf_isom_get_sample_count(file, i+1); j++) {
