@@ -1340,7 +1340,7 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 	JS_SetPropertyStr(c, sess->obj, "send", JS_NewCFunction(c, httpout_js_send, "send", 0) );
 	JS_SetPropertyStr(c, sess->obj, "reply", JS_NewInt32(c, 0));
 	JS_SetPropertyStr(c, sess->obj, "tls", JS_NewBool(c, gf_dm_sess_use_tls(sess->http_sess) ? 1 : 0));
-	JS_SetPropertyStr(c, sess->obj, "netid", JS_NewInt64(c, sess->socket ? (s64) sess->socket : 0));
+	JS_SetPropertyStr(c, sess->obj, "netid", JS_NewInt64(c, sess->socket ? (s64)(uintptr_t) sess->socket : 0));
 	JS_SetPropertyStr(c, sess->obj, "IP", JS_NewString(c, sess->peer_address));
 	JS_SetPropertyStr(c, sess->obj, "port", JS_NewInt32(c, sess->peer_port));
 

@@ -539,7 +539,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	tmp[0] = '\0';
 	/*generate hash of the full url*/
 	if (start_range && end_range) {
-		sprintf(tmp, "%s_"LLD"-"LLD, url, start_range, end_range );
+		snprintf(tmp, GF_MAX_PATH, "%s_"LLD"-"LLD, url, start_range, end_range );
 	} else {
 		strcpy ( tmp, url );
 	}

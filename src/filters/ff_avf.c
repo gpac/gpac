@@ -219,7 +219,7 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 
 		opid->io_filter_ctx = avfilter_graph_alloc_filter(ctx->filter_graph, avf, szName);
 		if (!opid->io_filter_ctx) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create %s filter: %s\n", avf->name, av_err2str(ret) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create %s filter\n", avf->name));
 			return GF_OUT_OF_MEM;
 		}
 		if (opid->is_video) {
@@ -902,7 +902,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!pid_ctx) {
 		GF_SAFEALLOC(pid_ctx, GF_FFAVPid);
 		if (!pid_ctx) return GF_OUT_OF_MEM;
-		
+
 		pid_ctx->io_pid = pid;
 		gf_filter_pid_set_udta(pid, pid_ctx);
 		gf_list_add(ctx->ipids, pid_ctx);

@@ -1409,7 +1409,7 @@ static const char *_xml_get_child_text(const GF_XMLNode *n, const char *child_na
 	if (!n) return NULL;
 	while ((c = gf_list_enum(n->content, &i))) {
 		if (c->type==GF_XML_TEXT_TYPE && !child_name) return c->name;
-		if (!c->type && !strcmp(c->name, child_name)) {
+		if (!c->type && child_name && !strcmp(c->name, child_name)) {
 			c = gf_list_get(c->content, 0);
 			return c->name;
 		}

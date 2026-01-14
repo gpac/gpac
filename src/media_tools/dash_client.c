@@ -2551,7 +2551,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	GF_DOMParser *mpd_parser;
 	u8 signature[GF_SHA1_DIGEST_SIZE];
 	GF_MPD_Period *period=NULL, *new_period=NULL;
-	const char *local_url;
+	const char *local_url = NULL;
 	char mime[128];
 	char * purl;
 	Double timeline_start_time=0;
