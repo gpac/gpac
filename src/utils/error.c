@@ -921,6 +921,9 @@ static void gf_logs_set_thread_tag_internal(void *tag_val, u32 tag_type, Bool is
 	if (!is_rem && !gpac_use_logx && (tag_type>1))
 		return;
 
+	if (!logs_thread_tags)
+		return;
+
 	gf_mx_p(logs_mx);
 	u32 i, count = gf_list_count(logs_thread_tags);
 	GF_LogThreadTag *tag = NULL;
