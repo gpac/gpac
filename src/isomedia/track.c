@@ -699,7 +699,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			flags = def_flags;
 
 			//CTS - if flag not set (trun or ctrn) defaults to 0 which is the base value after alloc
-			//we just need to overrite its value if inherited
+			//we just need to overwrite its value if inherited
 			cts_offset = ent->CTS_Offset;
 
 #ifdef GF_ENABLE_CTRN

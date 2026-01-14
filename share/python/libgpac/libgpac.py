@@ -5150,7 +5150,7 @@ def fileio_cbk_eof(_fio):
 #Writes the file
 #- buffer: numpy array to fill if numpy support, ctypes.c_ubyte otherwise
 #- size: number of bytes to write starting from first byte in buffer
-#- return number of bytes writen, at most the size of the array
+#- return number of bytes written, at most the size of the array
 #
 # \code int read(numy buffer, unsigned long size)\endcode
 #Reads the file

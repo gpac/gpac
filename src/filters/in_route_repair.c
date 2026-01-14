@@ -1147,7 +1147,7 @@ void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 		case GF_4CC('s','s','i','x'):
 		case GF_4CC('p','c','r','b'):
 		case GF_4CC('p','r','f','t'):
-			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Found top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Found top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Unknown top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
@@ -1271,7 +1271,7 @@ static GF_BlobRangeStatus routein_check_blob_range(GF_Blob *blob, Bool check_whe
 	}
 
 	//get maximum number of bytes that will not be modified by file patcher
-	//this works even when we re-download the complete file: we will then overrite bytes already sent in the blob but will not resend them
+	//this works even when we re-download the complete file: we will then overwrite bytes already sent in the blob but will not resend them
 	u32 max_size = routein_get_max_dispatch_len(&finfo);
 
 	size = *io_size;
