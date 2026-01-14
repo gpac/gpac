@@ -1598,6 +1598,7 @@ void gf_sys_close()
 #endif
 
 		gf_sys_enable_rmtws(GF_FALSE);
+		gf_sys_enable_userws(GF_FALSE);
 
 #ifdef GPAC_HAS_QJS
 		void gf_js_delete_runtime();

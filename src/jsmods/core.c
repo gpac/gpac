@@ -1592,10 +1592,20 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		}
 
 		if (JS_IsFunction(ctx, value)) {
-			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
-			//not allowed
-			if (task && task->type == RMT_CALLBACK_JS)
-				return GF_JS_EXCEPTION(ctx);
+			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+
+			if (task && task->type == RMT_CALLBACK_JS) {
+				//not allowed
+				if (magic == JS_SYS_RMT_ON_NEW_CLIENT) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("Attempting to redefine rmt_on_new_client ignored. Set it to null first to reset.\n", __FILE__, __LINE__));
+					return JS_UNDEFINED;
+				} else {
+					gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+					JS_FreeValue(ctx, task->fun);
+					JS_FreeValue(ctx, task->_obj);
+					gf_free(task);
+				}
+			}
 
 			GF_SAFEALLOC(task, JS_Sys_Task);
 			if (!task) return GF_JS_EXCEPTION(ctx);
