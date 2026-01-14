@@ -222,6 +222,8 @@ RouteRepairServer *routein_push_repair_server(ROUTEInCtx *ctx, const char *url, 
 void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filename, Bool is_delete);
 void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo);
 
+void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo);
+
 void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool is_defer_repair, Bool drop_if_first);
 
 //return GF_EOS if nothing active, GF_OK otherwise
