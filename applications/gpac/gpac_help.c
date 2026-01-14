@@ -3806,7 +3806,9 @@ void parse_sep_set(const char *arg, Bool *override_seps)
 	if (len+1>sizeof(separator_set)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Separator set too long (%s): ", arg));
 	}
-	strncpy(separator_set, arg, MIN(len, sizeof(separator_set)-1));
+	u32 copy_len = MIN(len, sizeof(separator_set)-1);
+	memcpy(separator_set, arg, copy_len);
+	separator_set[copy_len] = 0;
 	if (len+1>sizeof(separator_set)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("truncating to (%s)\n", separator_set));
 	}

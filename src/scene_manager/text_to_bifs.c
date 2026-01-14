@@ -220,7 +220,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			continue;
 		}
 
-		if (!gf_utf8_is_legal(sOK, strlen(szLine))) {
+		if (!gf_utf8_is_legal(sOK, (u32)strlen(szLine))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] Illegal UTF8 data\n"));
 			e = GF_CORRUPTED_DATA;
 			goto exit;

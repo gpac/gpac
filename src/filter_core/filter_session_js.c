@@ -283,7 +283,7 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 	GF_SAFEALLOC(task, JSFS_Task);
 	if (!task) return GF_JS_EXCEPTION(ctx);
 	task->ctx = ctx;
-	task->id = (u64) task;
+	task->id = (u64)(uintptr_t)task;
 	task->type = GF_JSFS_TASK_USER;
 
 	if (argc>1) {
@@ -547,7 +547,7 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 	gf_list_add(fs->jstasks, task);
 	task->type = cbk_type;
 	task->ctx = ctx;
-	task->id = (u64) task;
+	task->id = (u64)(uintptr_t)task;
 	task->fun = JS_DupValue(ctx, argv[0]);
 	task->_obj = JS_DupValue(ctx, this_val);
 	return JS_NewInt64(ctx, task->id);

@@ -519,7 +519,7 @@ void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 		u64 end = gf_bs_get_position(bs);
 
 		gf_bs_seek(bs, start);
-		emib->message_data = (u8*)before;          //dumb non-null pointer
+		emib->message_data = (u8*)(uintptr_t)before;          //dumb non-null pointer
 		emib->message_data_size = (u32) (end - before);
 		gf_isom_box_size((GF_Box*)emib);
 		gf_isom_full_box_write((GF_Box*)emib, bs); //rewrite size
