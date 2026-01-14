@@ -123,7 +123,7 @@ typedef struct {
 } GF_FLUTELLMapEntry;
 
 
-typedef struct
+typedef struct __gf_lct_object
 {
 	u32 toi, tsi;
 	u32 total_length;
@@ -704,34 +704,6 @@ GF_Err gf_route_set_dispatch_mode(GF_ROUTEDmx *routedmx, GF_RouteProgressiveDisp
 	return GF_OK;
 }
 
-static GF_BlobRangeStatus routedmx_check_blob_range(GF_Blob *blob, u64 start_offset, u32 *io_size)
-{
-	GF_LCTObject *obj = blob->range_udta;
-	if (!obj) return GF_BLOB_RANGE_CORRUPTED;
-	if (obj->status==GF_LCT_OBJ_INIT)
-		return GF_BLOB_RANGE_CORRUPTED;
-	u32 i, size = *io_size;
-	*io_size = 0;
-	gf_mx_p(blob->mx);
-	for (i=0; i<obj->nb_frags; i++) {
-		GF_LCTFragInfo *frag = &obj->frags[i];
-		if ((frag->offset<=start_offset) && (start_offset+size <= frag->offset + frag->size)) {
-			gf_mx_v(blob->mx);
-			*io_size = size;
-			return GF_BLOB_RANGE_VALID;
-		}
-		//start is in fragment but exceeds it
-		if ((frag->offset <= start_offset) && (start_offset <= frag->offset + frag->size)) {
-			*io_size = (u32) (frag->offset + frag->size - start_offset);
-			break;
-		}
-	}
-	gf_mx_v(blob->mx);
-	if (blob->flags & GF_BLOB_IN_TRANSFER)
-		return GF_BLOB_RANGE_IN_TRANSFER;
-	return GF_BLOB_RANGE_CORRUPTED;
-}
-
 
 static GF_Err gf_route_dmx_process_slt(GF_ROUTEDmx *routedmx, GF_XMLNode *root)
 {
@@ -1290,7 +1262,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		obj->toi = toi;
 		obj->tsi = tsi;
 		obj->blob.flags = 0;
-		obj->blob.range_valid = routedmx_check_blob_range;
+		obj->blob.range_valid = NULL;
 		obj->blob.range_udta = obj;
 		obj->last_active_time = gf_sys_clock_high_res();
 
@@ -2073,7 +2045,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 		obj->toi = toi;
 		obj->tsi = tsi;
-		obj->blob.range_valid = routedmx_check_blob_range;
+		obj->blob.range_valid = NULL;
 		obj->blob.range_udta = obj;
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
@@ -4341,5 +4313,18 @@ void gf_route_dmx_get_repair_info(GF_ROUTEDmx *routedmx, u32 service_id, const c
 	return;
 }
 
+Bool gf_route_dmx_get_object_info(struct __gf_lct_object *lct_obj, GF_ROUTEEventFileInfo *finfo)
+{
+	if (!lct_obj || !finfo) return GF_FALSE;
+	if (lct_obj->status==GF_LCT_OBJ_INIT) return GF_FALSE;
+
+
+	memset(finfo, 0, sizeof(GF_ROUTEEventFileInfo));
+	finfo->blob = &lct_obj->blob;
+	finfo->frags = lct_obj->frags;
+	finfo->nb_frags = lct_obj->nb_frags;
+	finfo->channel_hint = lct_obj->rlct ? lct_obj->rlct->channel_hint : (lct_obj->rlct_file ? lct_obj->rlct_file->channel_hint : 0);
+	return GF_TRUE;
+}
 
 #endif /* !GPAC_DISABLE_ROUTE */

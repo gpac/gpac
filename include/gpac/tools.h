@@ -1267,8 +1267,9 @@ typedef struct __gf_blob
     u64 last_modification_time;
 	/*! function used to query if a range of a blob in transfer is valid. If NULL, any range is invalid until transfer is done
 	when set this function overrides the blob flags for gf_blob_query_range
+	If check_when_complete is true, range will be check when blob transfer is over; if false, range will either be valid or corrupted for a transferred blob
 	size is updated to the maximum number of consecutive bytes starting from the goven offset */
-	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, u64 start, u32 *size);
+	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, Bool check_when_complete, u64 start, u32 *size);
 	/*! private data for range_valid function*/
 	void *range_udta;
 } GF_Blob;
@@ -1286,11 +1287,12 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob
 /*!
  * Checks if a given byte range is valid in blob
 \param blob  blob object
+\param check_when_complete when true, range will be check when blob transfer is over; when false, range will either be valid or corrupted for a transferred blob)
 \param start_offset start offset of data to check in blob
 \param size size of data to check in blob
 \return blob range status
  */
-GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size);
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 size);
 
 /*!
  * Releases blob data

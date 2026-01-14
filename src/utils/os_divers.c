@@ -1282,10 +1282,10 @@ GF_Blob *gf_blob_from_url(const char *blob_url)
 
 
 GF_EXPORT
-GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size)
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 size)
 {
 	if (!blob) return GF_BLOB_RANGE_CORRUPTED;
-	if (blob->range_valid) return blob->range_valid(blob, start_offset, &size);
+	if (blob->range_valid) return blob->range_valid(blob, check_when_complete, start_offset, &size);
 
 	if (blob->flags & GF_BLOB_IN_TRANSFER) return GF_BLOB_RANGE_IN_TRANSFER;
 	return GF_BLOB_RANGE_VALID;
