@@ -566,8 +566,6 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		if (ctx->max_segs && (evt==GF_ROUTE_EVT_DYN_SEG))
 			push_seg_info(ctx, ctx->opid, finfo);
 
-		if (ctx->chkiso)
-			routein_check_isobmf(ctx, finfo);
 		if (is_loop) break;
 
 		//cf routein_local_cache_probe
