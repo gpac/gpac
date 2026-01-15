@@ -2074,6 +2074,8 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	JSValue global_obj;
 	u8 *buf;
 	u32 buf_len;
+	char szFilePath[GF_MAX_PATH];
+	const char *js_file_path;
 	u32 flags = JS_EVAL_TYPE_GLOBAL;
 	JSValue ret;
 	Bool skip_modules = GF_FALSE;
@@ -2082,16 +2084,17 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	if (!fs) return GF_BAD_PARAM;
 
 	//load script
+	szFilePath[0] = 0;
 	if (!strncmp(jsfile, "$GSHARE/", 8)) {
-		char szPath[GF_MAX_PATH];
-		if (gf_opts_default_shared_directory(szPath)) {
-			strcat(szPath, jsfile + 7);
-			e = gf_file_load_data(szPath, &buf, &buf_len);
+		if (gf_opts_default_shared_directory(szFilePath)) {
+			strcat(szFilePath, jsfile + 7);
+			e = gf_file_load_data(szFilePath, &buf, &buf_len);
 		} else {
 			e = GF_URL_ERROR;
 		}
 	} else {
 		e = gf_file_load_data(jsfile, &buf, &buf_len);
+
 	}
 	if (e) {
 		if (e!=GF_URL_ERROR) {
@@ -2099,6 +2102,8 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 		}
 		return e;
 	}
+
+	js_file_path = szFilePath[0] ? szFilePath : jsfile;
 
 	if (in_ctx) {
 		ctx = in_ctx;
@@ -2118,7 +2123,7 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 		fs->js_ctx = ctx;
 
 		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_log_name", JS_NewString(fs->js_ctx, gf_file_basename(jsfile) ) );
-		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, jsfile ) );
+		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, js_file_path ) );
 		JS_FreeValue(fs->js_ctx, global_obj);
 	}
 
@@ -2132,7 +2137,7 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	JS_SetPropertyStr(ctx, global, "parent_filter", for_filter ? jsfs_new_filter_obj(ctx, for_filter) : JS_NULL);
 	JS_FreeValue(ctx, global);
 
-	ret = JS_Eval(ctx, (char *)buf, buf_len, jsfile, flags);
+	ret = JS_Eval(ctx, (char *)buf, buf_len, js_file_path, flags);
 	gf_free(buf);
 
 	if (JS_IsException(ret)) {

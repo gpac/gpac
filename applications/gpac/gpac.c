@@ -660,7 +660,7 @@ int gpac_main(int _argc, char **_argv)
 
 	if (gf_opts_get_bool("core", "rmt")) {
 		if (!session_js) session_js = gf_list_new();
-		gf_list_insert(session_js, "$GSHARE/scripts/rmt.js", 0);
+		gf_list_insert(session_js, "$GSHARE/scripts/rmt/server.js", 0);
 	}
 
 	for (i=1; i<argc; i++) {
