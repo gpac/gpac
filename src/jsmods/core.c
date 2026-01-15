@@ -1551,9 +1551,8 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		gpac_use_logx = JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE;
 		break;
 	case JS_SYS_RMT_ON_NEW_CLIENT:
-
+		//reset to NULL
 		if (JS_IsUndefined(value) || JS_IsNull(value)) {
-
 			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
 			if (task && task->type == RMT_CALLBACK_JS) {
 				gf_rmt_set_on_new_client_cbk(NULL, NULL);
@@ -1561,12 +1560,15 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 				JS_FreeValue(ctx, task->_obj);
 				gf_free(task);
 			}
-
+			return JS_UNDEFINED;
 		}
 
 		if (JS_IsFunction(ctx, value)) {
+			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
+			//not allowed
+			if (task && task->type == RMT_CALLBACK_JS)
+				return GF_JS_EXCEPTION(ctx);
 
-			JS_Sys_Task *task;
 			GF_SAFEALLOC(task, JS_Sys_Task);
 			if (!task) return GF_JS_EXCEPTION(ctx);
 
