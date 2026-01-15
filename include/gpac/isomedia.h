@@ -532,6 +532,8 @@ enum
 	GF_ISOM_BRAND_COMP  = GF_4CC( 'c', 'o', 'm', 'p' ),
 	GF_ISOM_BRAND_ISOC  = GF_4CC( 'i', 's', 'o', 'C' ),
 
+	/* Dolby Vision */
+	GF_ISOM_BRAND_DBY1  = GF_4CC( 'd', 'b', 'y', '1' ),
 };
 
 /*! sample roll information type*/
@@ -1932,6 +1934,13 @@ Bool gf_isom_has_keep_utc_times(GF_ISOFile *isom_file);
 */
 GF_Err gf_isom_set_timescale(GF_ISOFile *isom_file, u32 timeScale);
 
+/*! sets the vexu box of the movie.
+\param isom_file the target ISO file
+\param hero_eye the value of hero_eye_indicator
+\return error if any
+*/
+GF_Err gf_isom_set_vexu(GF_ISOFile *isom_file, u32 hero_eye);
+
 /*! loads a set of top-level boxes in moov udta and child boxes. UDTA will be replaced if already present
 \param isom_file the target ISO file
 \param moov_boxes a serialized array of boxes to add
@@ -2693,6 +2702,17 @@ GF_Err gf_isom_set_image_sequence_alpha(GF_ISOFile *isom_file, u32 trackNumber, 
 \return error if any
 */
 GF_Err gf_isom_set_visual_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 colour_type, u16 colour_primaries, u16 transfer_characteristics, u16 matrix_coefficients, Bool full_range_flag, u8 *icc_data, u32 icc_size);
+
+/*! sets ambient viewing environment information for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\param ambient_illuminance the environmental illluminance of the ambient viewing environment in units of 0.0001 lux as defined in ITU-T H.265
+\param ambient_light_x the normalized x chromaticity coordinates as defined in ITU-T H.265
+\param ambient_light_y the normalized y chromaticity coordinates as defined in ITU-T H.265
+\return error if any
+*/
+GF_Err gf_isom_set_ambient_viewing_environment(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 ambient_illuminance, u16 ambient_light_x, u16 ambient_light_y);
 
 
 /*! Audio Sample Description signaling mode*/

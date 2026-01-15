@@ -1116,7 +1116,8 @@ typedef struct {
 	Bool el_present_flag;
 	Bool bl_present_flag;
 	u8 dv_bl_signal_compatibility_id; //4 bits
-	//const unsigned int (28) reserved = 0;
+	u8 dv_md_compression; //2 bits
+	//const unsigned int (26) reserved = 0;
 	//const unsigned int (32)[4] reserved = 0;
 
 	//internal, force dvhe or dvh1 signaling

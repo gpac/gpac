@@ -252,6 +252,14 @@ typedef struct
 
 typedef struct
 {
+	Bool amve_valid;
+	u32 ambient_illuminance;
+	u16 ambient_light_x;
+	u16 ambient_light_y;
+} AVCSeiAmbientViewingEnv;
+
+typedef struct
+{
 	AVCSeiRecoveryPoint recovery_point;
 	//valid if num_clock_ts is set
 	AVCSeiPicTiming pic_timing;
@@ -262,6 +270,7 @@ typedef struct
 	u8 clli_valid, mdcv_valid;
 	u8 has_3d_ref_disp_info;
 	u8 alternative_transfer_characteristics;
+	AVCSeiAmbientViewingEnv ambient_view;
 } GF_SEIInfo;
 
 typedef struct

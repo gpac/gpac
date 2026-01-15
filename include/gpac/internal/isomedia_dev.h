@@ -384,6 +384,14 @@ enum
 	GF_ISOM_BOX_TYPE_TEXT	= GF_4CC( 't', 'e', 'x', 't' ),
 	GF_ISOM_HANDLER_TYPE_MDTA	= GF_4CC( 'm', 'd', 't', 'a' ),
 
+	/*3D HEVC extension */
+	GF_ISOM_BOX_TYPE_VEXU	 = GF_4CC( 'v', 'e', 'x', 'u' ),
+	GF_ISOM_BOX_TYPE_EYES	 = GF_4CC( 'e', 'y', 'e', 's' ),
+	GF_ISOM_BOX_TYPE_HERO	 = GF_4CC( 'h', 'e', 'r', 'o' ),
+
+	/*HDR video metadata */
+	GF_ISOM_BOX_TYPE_AMVE	 = GF_4CC( 'a', 'm', 'v', 'e' ),
+
 	/*OMA (P)DCF boxes*/
 	GF_ISOM_BOX_TYPE_OHDR	= GF_4CC( 'o', 'h', 'd', 'r' ),
 	GF_ISOM_BOX_TYPE_GRPI	= GF_4CC( 'g', 'r', 'p', 'i' ),
@@ -3262,6 +3270,41 @@ typedef struct
 {
 	GF_ISOM_BOX
 } GF_ItemListBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+} GF_VideoExtendedUsageBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+
+	// mandatory Stereo view information 'stri' box
+	struct GF_StereoViewInformationBox
+	{
+		GF_ISOM_FULL_BOX
+		u8 reserved;
+		u8 eye_views_reversed;
+		u8 has_additional_views;
+		u8 has_right_eye_view;
+		u8 has_left_eye_view;
+	} stri;
+} GF_StereoViewBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 hero_eye_indicator;
+} GF_HeroStereoEyeDescriptionBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 ambient_illuminance;
+	u16 ambient_light_x;
+	u16 ambient_light_y;
+} GF_AmbientViewingEnvBox;
 
 /*DECE*/
 typedef struct

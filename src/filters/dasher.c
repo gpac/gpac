@@ -2198,6 +2198,110 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	return gf_filter_pid_get_rfc_6381_codec_string(ds->ipid, szCodec, force_inband, force_sbr, tile_base_dcd, &ds->inband_params);
 }
 
+static GF_Err dasher_add_x_attribute(GF_List* list, const char *name, const char *value)
+{
+	Bool has_attr = GF_FALSE;
+	for (u32 i=0; i<gf_list_count(list); i++) {
+		GF_XMLAttribute *att = gf_list_get(list, i);
+		if (!strcmp(att->name, name)) {
+			has_attr = GF_TRUE;
+			gf_free(att->value);
+			att->value = gf_strdup(value);
+		}
+	}
+	if (!has_attr) {
+		GF_XMLAttribute *att = gf_xml_dom_create_attribute(name, value);
+		gf_list_add(list, att);
+	}
+	return GF_OK;
+}
+
+static GF_Err dasher_add_dolby_vision_attribute(GF_DasherCtx *ctx, GF_DashStream *ds, Bool force_inband)
+{
+	GF_FilterPid *pid = ds->ipid;
+	const GF_PropertyValue *p, *dovi;
+	char supplementalCodecs[RFC6381_CODEC_NAME_SIZE_MAX] = {0};
+	char supplementalProfiles[RFC6381_CODEC_NAME_SIZE_MAX] = {0};
+	char supplementalForHls[RFC6381_CODEC_NAME_SIZE_MAX + RFC6381_CODEC_NAME_SIZE_MAX] = {0};
+	u32 subtype=0, codec_id;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!p) return GF_BAD_PARAM;
+	codec_id = p->value.uint;
+
+	if (!force_inband) {
+		force_inband = ds->inband_params;
+	}
+
+	dovi = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
+	if (!dovi) { // not dolby vision
+		return GF_OK;
+	}
+
+	GF_BitStream *bs = gf_bs_new(dovi->value.data.ptr, dovi->value.data.size, GF_BITSTREAM_READ);
+	GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
+	gf_bs_del(bs);
+	if (!dvcc) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DAHSER] No config found for Dolby Vision file\n"));
+		return GF_BAD_PARAM;
+	}
+
+	// According to Dolby Vision streams within the HTTP Live Streaming format version 3.0 and Dolby Vision streams within the MPEG-DASH format version 3.0, add the attributes if needed
+	if (!ds->rep->x_attributes) ds->rep->x_attributes = gf_list_new();
+	if (!ds->rep->m3u8_x_attributes) ds->rep->m3u8_x_attributes = gf_list_new();
+
+	// cross-compatible Dolby Vision streams should add scte214:supplementalCodecs and scte214:supplementalProfiles for DASH, SUPPLEMENTAL-CODECS for HLS
+	if (dvcc->dv_bl_signal_compatibility_id == 1 || dvcc->dv_bl_signal_compatibility_id == 4) {
+		switch (codec_id) {
+		case GF_CODECID_HEVC:
+			snprintf(supplementalCodecs, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(force_inband ? GF_ISOM_SUBTYPE_DVHE : GF_ISOM_SUBTYPE_DVH1), dvcc->dv_profile, dvcc->dv_level);
+			break;
+		case GF_CODECID_AVC:
+			snprintf(supplementalCodecs, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(force_inband ? GF_ISOM_SUBTYPE_DVAV : GF_ISOM_SUBTYPE_DVA1), dvcc->dv_profile, dvcc->dv_level);
+			break;
+		case GF_CODECID_AV1:
+			snprintf(supplementalCodecs, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(GF_ISOM_SUBTYPE_DAV1), dvcc->dv_profile, dvcc->dv_level);
+			break;
+		default:
+			gf_odf_dovi_cfg_del(dvcc);
+			return GF_NOT_SUPPORTED;
+		}
+
+		if (dvcc->dv_bl_signal_compatibility_id == 1) {
+			snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db1p");
+		} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
+			if (dvcc->dv_profile == 8 && ds->color_transfer_characteristics == GF_COLOR_TRC_BT2020_10) {
+				snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db4g");
+			} else {
+				snprintf(supplementalProfiles, RFC6381_CODEC_NAME_SIZE_MAX, "db4h");
+			}
+		}
+
+		dasher_add_x_attribute(ctx->mpd->x_attributes, "xmlns:scte214", "urn:scte:dash:scte214-extensions");
+		dasher_add_x_attribute(ds->rep->x_attributes, "scte214:supplementalCodecs", supplementalCodecs);
+		dasher_add_x_attribute(ds->rep->x_attributes, "scte214:supplementalProfiles", supplementalProfiles);
+
+		sprintf(supplementalForHls, "%s/%s", supplementalCodecs, supplementalProfiles);
+		dasher_add_x_attribute(ds->rep->m3u8_x_attributes, "SUPPLEMENTAL-CODECS", supplementalForHls);
+	}
+
+	// The VIDEO-RANGE attribute must be present as indicated and must match the transfer characteristic of the video base layer based on the Dolby Vision cross-compatibility ID (CCID)
+	if (dvcc->dv_bl_signal_compatibility_id == 0 || dvcc->dv_bl_signal_compatibility_id == 1) {
+		dasher_add_x_attribute(ds->rep->m3u8_x_attributes, "VIDEO-RANGE", "PQ");
+	} else if(dvcc->dv_bl_signal_compatibility_id == 4) {
+		dasher_add_x_attribute(ds->rep->m3u8_x_attributes, "VIDEO-RANGE", "HLG");
+	}
+
+	// RFC8216 specifies that the value of the REQ-VIDEO-LAYOUT attribute must be set to CH-STEREO for stereoscopic video
+	if (dvcc->dv_profile == 20) {
+		dasher_add_x_attribute(ds->rep->m3u8_x_attributes, "REQ-VIDEO-LAYOUT", "CH-STEREO");
+	}
+
+	gf_odf_dovi_cfg_del(dvcc);
+
+	return GF_OK;
+}
+
 static GF_DashStream *get_base_ds(GF_DasherCtx *ctx, GF_DashStream *for_ds)
 {
 	u32 i, count;
@@ -2628,6 +2732,8 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		dasher_get_rfc_6381_codec_name(ctx, ds, szCodec, ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE, GF_TRUE);
 		if (ds->rep->codecs) gf_free(ds->rep->codecs);
 		ds->rep->codecs = gf_strdup(szCodec);
+
+		dasher_add_dolby_vision_attribute(ctx, ds, ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE);
 	}
 
 	if (ds->interlaced) ds->rep->scan_type = GF_MPD_SCANTYPE_INTERLACED;

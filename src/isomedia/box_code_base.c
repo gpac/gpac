@@ -4594,6 +4594,7 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_AUXI:
 	case GF_ISOM_BOX_TYPE_RVCC:
 	case GF_ISOM_BOX_TYPE_M4DS:
+	case GF_ISOM_BOX_TYPE_VEXU:
 		if (!is_rem && !gf_isom_box_check_unique(s->child_boxes, a)) {
 			ERROR_ON_DUPLICATED_BOX(a, ptr)
 		}
@@ -12707,7 +12708,8 @@ GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->DOVIConfig.el_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
-	if (gf_bs_read_int(bs, 28) != 0)
+	ptr->DOVIConfig.dv_md_compression = gf_bs_read_int(bs, 2);
+	if (gf_bs_read_int(bs, 26) != 0)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bits are not zero\n"));
 
 	for (i = 0; i < 4; i++) {
@@ -12748,7 +12750,8 @@ GF_Err dvcC_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->DOVIConfig.el_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.dv_bl_signal_compatibility_id, 4);
-	gf_bs_write_int(bs, 0, 28);
+	gf_bs_write_int(bs, ptr->DOVIConfig.dv_md_compression, 2);
+	gf_bs_write_int(bs, 0, 26);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);

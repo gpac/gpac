@@ -658,6 +658,8 @@ typedef struct {
 	u32 m3u8_low_latency;
 	/*! internal, HLS:  sequence number of last indeendent  segment or PART in playlist*/
 	u32 m3u8_media_seq_indep_last;
+	/*! user defined attributes for m3u8*/
+	GF_List* m3u8_x_attributes;
 
 	/*! GPAC dasher context*/
 	GF_DASH_SegmenterContext *dasher_ctx;
