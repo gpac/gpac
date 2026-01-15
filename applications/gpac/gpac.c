@@ -1220,7 +1220,7 @@ restart:
 			const char *js_src = gf_list_get(session_js, ijs);
 			e = gf_fs_load_script(session, js_src);
 			if (e) {
-				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt.js")) {
+				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt/server.js")) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Monitoring script %s not found, check your installation\n Disabling remote monitoring\n", js_src));
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
