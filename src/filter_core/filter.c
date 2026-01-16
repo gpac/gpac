@@ -5566,15 +5566,26 @@ GF_Err gf_filter_push_caps(GF_Filter *filter, u32 code, GF_PropertyValue *value,
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to push cap on non custom filter %s\n", filter->freg->name));
 		return GF_BAD_PARAM;
 	}
+	if (flags & GF_CAPFLAG_IN_BUNDLE) {
+		if (!value) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set cap without value on custom filter %s\n", filter->name));
+			return GF_BAD_PARAM;
+		}
+	} else {
+		flags = 0;
+	}
 	caps = (GF_FilterCapability *)filter->forced_caps;
 	nb_caps = filter->nb_forced_caps;
 	caps = gf_realloc(caps, sizeof(GF_FilterCapability)*(nb_caps+1) );
 	if (!caps) return GF_OUT_OF_MEM;
+	memset(&caps[nb_caps], 0, sizeof(GF_FilterCapability));
 	caps[nb_caps].code = code;
-	caps[nb_caps].val = *value;
+	if (value) {
+		caps[nb_caps].val = *value;
+		caps[nb_caps].flags = flags;
+	}
 	caps[nb_caps].name = name ? gf_strdup(name) : NULL;
 	caps[nb_caps].priority = priority;
-	caps[nb_caps].flags = flags;
 	filter->nb_forced_caps++;
 	filter->forced_caps = caps;
 	filter->nb_forced_bundles = filter->nb_forced_caps ? gf_filter_caps_bundle_count(filter->forced_caps, filter->nb_forced_caps) : 0;

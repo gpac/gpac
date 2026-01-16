@@ -5189,7 +5189,7 @@ GF_Filter *gf_fs_new_filter(GF_FilterSession *session, const char *name, u32 fla
 /*! Push a new capability for a custom filter
 \param filter the target filter
 \param code the capability code - cf \ref GF_FilterCapability
-\param value the capability value - cf \ref GF_FilterCapability
+\param value the capability value - cf \ref GF_FilterCapability - must not be NULL unless cap is a bundle start (i.e. flags is 0)
 \param name the capability name - cf \ref GF_FilterCapability
 \param flags the capability flags - cf \ref GF_FilterCapability
 \param priority the capability priority - cf \ref GF_FilterCapability
