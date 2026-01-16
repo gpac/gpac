@@ -2150,6 +2150,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			dumper.trackID = trackID;
 			dumper.dump_file = dump;
 
+			if (msubtype == GF_ISOM_SUBTYPE_MPEG4_CRYP)
+				gf_isom_get_original_format_type(the_file, i+1, 1, &msubtype);
+
 			e = GF_OK;
 			if (mtype == GF_ISOM_MEDIA_HINT) {
 #ifndef GPAC_DISABLE_ISOM_HINTING
