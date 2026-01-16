@@ -1941,6 +1941,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			{
 				if (n>0xFFFFFFFF) ERR_EXIT(AVI_ERR_READ)
 				hdrl_len = (u32) n;
+				if (hdrl_data)
+					gf_free(hdrl_data);
 				hdrl_data = (unsigned char *) gf_malloc((u32)n);
 				if(hdrl_data==0) ERR_EXIT(AVI_ERR_NO_MEM);
 
