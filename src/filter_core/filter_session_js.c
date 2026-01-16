@@ -2110,6 +2110,10 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	} else if (fs->js_ctx) {
 		ctx = fs->js_ctx;
 		skip_modules = GF_TRUE;
+		global_obj = JS_GetGlobalObject(ctx);
+		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_log_name", JS_NewString(fs->js_ctx, gf_file_basename(jsfile) ) );
+		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, js_file_path ) );
+		JS_FreeValue(fs->js_ctx, global_obj);
 	} else {
 		ctx = gf_js_create_context();
 		if (!ctx) {

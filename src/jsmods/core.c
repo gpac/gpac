@@ -4564,8 +4564,11 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		const char *par_url = jsf_get_script_filename(ctx);
 		url = gf_url_concatenate(par_url, module_name);
 
+		//depending on caller context, module_name may already be resolved against parent
 		if (gf_file_exists(url ? url : module_name)) {
 			e = gf_file_load_data(url ? url : module_name, &buf, &buf_len);
+		} else if (url && gf_file_exists(module_name)) {
+			e = gf_file_load_data(module_name, &buf, &buf_len);
 		} else {
 			e = GF_URL_ERROR;
 		}
