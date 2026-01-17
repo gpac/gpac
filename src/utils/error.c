@@ -1087,6 +1087,11 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 }
 
 #else
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type){}
+void gf_logs_thread_untag(void *tag_val){}
+void gf_logs_thread_tag_del(void *tag_val){}
+
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
