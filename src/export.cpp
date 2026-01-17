@@ -2527,6 +2527,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_enum_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_enum_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_reset_single) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_equal) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_equal_strict) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new_defaults) )
