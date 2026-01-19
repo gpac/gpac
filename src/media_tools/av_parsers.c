@@ -8476,14 +8476,22 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	}
 	if (rps->modif_flag_l0 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l0_active; i++) {
-			u32 idx = (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0)) ? rps->modif_idx_l0[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0))
+				idx = rps->modif_idx_l0[i];
+			else if (num_poc_total)
+				idx =  i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l0))
 				gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
 		}
 	}
 	if (rps->modif_flag_l1 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l1_active; i++) {
-			u32 idx = (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1)) ? rps->modif_idx_l1[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1))
+				idx = rps->modif_idx_l1[i];
+			else if (num_poc_total)
+				idx = i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l1))
 				gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
 		}

@@ -71,16 +71,16 @@ void gf_isom_datamap_close(GF_MediaInformationBox *minf)
 	}
 
 	//if ent NULL, the data entry was not used (smooth)
-	if (ent == NULL) return;
-
-	//self contained, do nothing
-	switch (ent->type) {
-	case GF_ISOM_BOX_TYPE_URL:
-	case GF_ISOM_BOX_TYPE_URN:
-		if (ent->flags == 1) return;
-		break;
-	default:
-		return;
+	if (ent) {
+		//self contained, do nothing
+		switch (ent->type) {
+		case GF_ISOM_BOX_TYPE_URL:
+		case GF_ISOM_BOX_TYPE_URN:
+			if (ent->flags == 1) return;
+			break;
+		default:
+			return;
+		}
 	}
 
 	//finally close it
