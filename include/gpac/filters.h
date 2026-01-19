@@ -1474,6 +1474,8 @@ enum
 	GF_PROP_PID_MABR_URLS = GF_4CC('M','A','B','U'),
 	GF_PROP_PCK_FORCED_SUB = GF_4CC('P','C','F','S'),
 
+	GF_PROP_PID_TIME_DISCONTINUITY = GF_4CC('P','D','I','S'),
+	GF_PROP_PCK_TIME_DISCONTINUITY = GF_4CC('P','C','D','I'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -4086,7 +4088,23 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 \param cbk callback data passed to the callback function
 \return error code if any
 */
-GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk );
+GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk);
+
+/*! Push a new set of properties on destination PID using all properties from source packet. Old properties in destination will be lost (i.e. reset properties is always performed during copy properties)
+\param dst_pid the destination filter PID
+\param src_pck the source filter packet
+\return error code if any
+*/
+GF_Err gf_filter_pid_copy_properties_from_packet(GF_FilterPid *dst_pid, GF_FilterPacket *src_pck);
+
+/*! Push a new set of properties on destination PID, using all properties from source packet, potentially filtering them. Currently defined properties are not reseted.
+\param dst_pid the destination filter PID
+\param src_pck the source filter PID
+\param filter_prop callback filtering function
+\param cbk callback data passed to the callback function
+\return error code if any
+*/
+GF_Err gf_filter_pid_merge_properties_from_packet(GF_FilterPid *dst_pid, GF_FilterPacket *src_pck, gf_filter_prop_filter filter_prop, void *cbk);
 
 /*! Gets a built-in property of the PID
 Warning: properties are only valid until the next configure_pid is called. Attempting to use a property

@@ -270,6 +270,7 @@ typedef struct
 	Bool no_fragments_defaults;
 
 	Bool is_eos;
+	u32 pending_discontinuity_idx;
 	u32 nb_seg_url_pending;
 	u64 last_evt_check_time;
 	Bool on_demand_done;
@@ -391,6 +392,7 @@ typedef struct _dash_stream
 	//0: not done, 1: eos/abort, 2: subdur exceeded
 	u32 done;
 	Bool seg_done;
+	u32 ts_disc_idx;
 
 	u32 nb_comp, nb_comp_done;
 
@@ -1780,6 +1782,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 	}
 
+	//check if we have an explicit time discontinuity, in which case we switch periods
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
+	if (p && (p->value.uint != ds->ts_disc_idx)) {
+		ctx->pending_discontinuity_idx = gf_list_count(ctx->mpd->periods) + 1;
+		period_switch = GF_TRUE;
+	}
+	ds->ts_disc_idx = p ? p->value.uint : 0;
 
 	if (ctx->do_index || ctx->from_index) {
 		if (!ds->template && ctx->def_template) {
@@ -4998,6 +5007,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 			ds->nb_segments_purged ++;
 			ds->dur_purged += dur;
+			ctx->mpd->nb_past_discont += sctx->is_discontinuity ? 1 : 0;
 			gf_fatal_assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			if (sctx->filename) gf_free(sctx->filename);
 			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
@@ -5696,7 +5706,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 			ctx->mpd->force_llhls_mode = 0;
 
 		char *opath = ctx->explicit_mode ? gf_file_basename(ctx->out_path) : ctx->out_path;
-		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, gf_list_last(ctx->mpd->periods), mode);
+		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, ctx->mpd->periods, mode);
 	} else {
 		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
 	}
@@ -6923,6 +6933,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		gf_list_add(ctx->mpd->periods, ctx->current_period->period);
 	}
 
+	if (gf_list_count(ctx->mpd->periods) == ctx->pending_discontinuity_idx) {
+		ctx->current_period->period->is_discontinuity = GF_TRUE;
+		ctx->pending_discontinuity_idx = 0;
+	}
 
 	if (remote_xlink) {
 		ctx->current_period->period->xlink_href = gf_strdup(remote_xlink);
@@ -7760,6 +7774,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
 
+	dasher_update_period_duration(ctx, GF_FALSE);
+
 	return GF_OK;
 }
 
@@ -8582,9 +8598,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					if (ds->rawmux)
 						break;
 					if (ds->set->bitstream_switching && ds->set->segment_template)
-						ds->rep->hls_single_file_name = ds->set->segment_template->hls_init_name;
+						ds->rep->hls_single_file_name = gf_strdup(ds->set->segment_template->hls_init_name);
 					else
-						ds->rep->hls_single_file_name = ds->init_seg;
+						ds->rep->hls_single_file_name = gf_strdup(ds->init_seg);
 				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
@@ -8705,6 +8721,13 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					seg_state->hls_key_uri = gf_strdup(kms_uri);
 				}
 			}
+		}
+
+		const GF_PropertyValue *disc_p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_TIME_DISCONTINUITY);
+		if (disc_p && disc_p->value.boolean) {
+			gf_assert(seg_state->seg_num == 1);
+			gf_assert(gf_list_count(ctx->mpd->periods)-1 == ds->ts_disc_idx);
+			seg_state->is_discontinuity = GF_TRUE;
 		}
 
 		gf_list_add(ds->rep->state_seg_list, seg_state);
@@ -11614,6 +11637,7 @@ GF_FilterRegister DasherRegister = {
 "- `HLSPL`: name of variant playlist, can use templates\n"
 "- `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as `,foo,bar=val`\n"
 "- `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as `#foo \\n #bar=val`\n"
+"- `Discontinuity`: indicate a time discontinuity in source, triggering a new period\n"
 "- Non-dash properties: `Bitrate`, `SAR`, `Language`, `Width`, `Height`, `SampleRate`, `NumChannels`, `Language`, `ID`, `DependencyID`, `FPS`, `Interlaced`, `Codec`. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 "  \n"
 "EX gpac -i test.mp4:#Bitrate=1M -o test.mpd\n"

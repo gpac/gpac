@@ -1337,6 +1337,7 @@ void gf_mpd_representation_free(void *_item)
 		gf_list_del(ptr->state_seg_list);
 	}
 	if (ptr->m3u8_name) gf_free(ptr->m3u8_name);
+	if (ptr->hls_single_file_name) gf_free(ptr->hls_single_file_name);
 	if (ptr->m3u8_var_name) gf_free(ptr->m3u8_var_name);
 	if (ptr->m3u8_var_file) gf_fclose(ptr->m3u8_var_file);
 	if (ptr->res_url) gf_free(ptr->res_url);
@@ -3982,43 +3983,53 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
-static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url)
+static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url, Bool delta_update, FILE* out_file)
 {
 	u32 i, count;
 	GF_DASH_SegmentContext *sctx;
-	FILE *out;
+	FILE *out = out_file;
 	char *force_url=NULL;
 	const char *last_kms = NULL;
 	Bool close_file = GF_FALSE;
 
-	if (!strcmp(m3u8_name, "std")) out = stdout;
-	else if (mpd->create_m3u8_files) {
-		out = gf_fopen(m3u8_name, "wb");
-		if (!out) return GF_IO_ERR;
-		close_file = GF_TRUE;
-	} else {
-		out = gf_file_temp(NULL);
-		if (rep->m3u8_var_file) gf_fclose(rep->m3u8_var_file);
-		rep->m3u8_var_file = out;
+	if (!out_file) {
+		if (!strcmp(m3u8_name, "std")) out = stdout;
+		else if (mpd->create_m3u8_files) {
+			out = gf_fopen(m3u8_name, delta_update ? "ab" : "wb");
+			if (!out) return GF_IO_ERR;
+			close_file = GF_TRUE;
+		} else {
+			out = gf_file_temp(NULL);
+			if (rep->m3u8_var_file) gf_fclose(rep->m3u8_var_file);
+			rep->m3u8_var_file = out;
+		}
 	}
 
 	count = gf_list_count(rep->state_seg_list);
 	sctx = gf_list_get(rep->state_seg_list, rep->tsb_first_entry);
 
-	gf_fprintf(out,"#EXTM3U\n");
-	gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n", (u32) gf_ceil( ((Double) rep->hls_max_seg_dur.num) / rep->hls_max_seg_dur.den) );
-	gf_fprintf(out,"#EXT-X-VERSION:%d\n", hls_version);
-	gf_fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx ? sctx->seg_num : 0);
-	if (as->use_hls_ll) {
-		//PART-HOLD-BACK is REQUIRED if the Playlist contains the EXT-X-PART-INF tag
-		//we use the recommended (should) PART-TARGET x 3
-		if (mpd->llhls_part_holdback>0) {
-			gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", mpd->llhls_part_holdback);
-		} else {
-			gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", 3 * max_part_dur_session);
+	if (!delta_update) {
+		gf_fprintf(out,"#EXTM3U\n");
+		gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n", (u32) gf_ceil( ((Double) rep->hls_max_seg_dur.num) / rep->hls_max_seg_dur.den) );
+		gf_fprintf(out,"#EXT-X-VERSION:%d\n", hls_version);
+		gf_fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx ? sctx->seg_num : 0);
+		if (as->use_hls_ll) {
+			//PART-HOLD-BACK is REQUIRED if the Playlist contains the EXT-X-PART-INF tag
+			//we use the recommended (should) PART-TARGET x 3
+			if (mpd->llhls_part_holdback>0) {
+				gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", mpd->llhls_part_holdback);
+			} else {
+				gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", 3 * max_part_dur_session);
+			}
+			gf_fprintf(out,"#EXT-X-PART-INF:PART-TARGET=%g\n", rep->hls_ll_part_dur);
 		}
-		gf_fprintf(out,"#EXT-X-PART-INF:PART-TARGET=%g\n", rep->hls_ll_part_dur);
+		if (mpd->nb_past_discont)
+			gf_fprintf(out,"#EXT-X-DISCONTINUITY-SEQUENCE:%d\n", mpd->nb_past_discont);
 	}
+
+	//signal discontinuity if needed
+	if (period->is_discontinuity) gf_fprintf(out,"#EXT-X-DISCONTINUITY\n");
+
 	for (i=0; i<rep->nb_hls_variant_tags; i++) {
 		gf_fprintf(out,"%s\n", rep->hls_variant_tags[i]);
 	}
@@ -4303,7 +4314,7 @@ static char *get_rep_variant_filename(GF_MPD const * const mpd, GF_MPD_Represent
 	return gf_strdup(name);
 }
 
-GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode)
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_List *periods, GF_M3U8WriteMode mode)
 {
 	u32 i, j, hls_version;
 	u32 var_idx;
@@ -4327,6 +4338,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool has_audio = GF_FALSE;
 	Bool has_cc = GF_FALSE;
 
+	GF_MPD_Period *period = gf_list_last(periods);
 	if (!m3u8_name || !period) return GF_BAD_PARAM;
 
 	i=0;
@@ -4500,11 +4512,83 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				name = gf_file_basename(rep->m3u8_var_name);
 			}
 
-			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version, max_part_dur_session,
-				((mpd->hls_abs_url==GF_DASH_ABS_URL_VARIANT) || (mpd->hls_abs_url==GF_DASH_ABS_URL_BOTH)) ? force_base_url : NULL);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
-				return GF_IO_ERR;
+			//backtrack periods until non-discontinuity change or no segments within timeshift window
+			u32 m=gf_list_count(periods)-1;
+			u32 start_period_idx = m;
+			while (m>0 && period->is_discontinuity) {
+				GF_MPD_Period *prev_period = gf_list_get(periods, m-1);
+
+				// Find the representation
+				GF_MPD_Representation *prev_rep = NULL;
+				GF_MPD_AdaptationSet *prev_as;
+				u32 k=0;
+				while ( (prev_as = (GF_MPD_AdaptationSet *) gf_list_enum(prev_period->adaptation_sets, &k))) {
+					if (prev_as->id != as->id) continue;
+					u32 l=0;
+					while ( (prev_rep = (GF_MPD_Representation *) gf_list_enum(prev_as->representations, &l))) {
+						if (prev_rep->id && rep->id && !strcmp(prev_rep->id, rep->id) && !strcmp(gf_file_basename(prev_rep->m3u8_var_name), name)) {
+							break;
+						}
+						prev_rep = NULL;
+					}
+					if (prev_rep) break;
+				}
+
+				// Couldn't find the same representation, continue with the current one
+				if (!prev_rep) break;
+
+				// Check if we still have segments in this representations
+				u32 segment_cnt = gf_list_count(prev_rep->state_seg_list);
+				if (segment_cnt == 0) break;
+
+				// It's safe to use this period
+				start_period_idx = --m;
+
+				// If this is not a discontinuity then we are done
+				if (!prev_period->is_discontinuity) break;
+			}
+
+			//write all relevant periods
+			m=start_period_idx;
+			u32 period_count = gf_list_count(periods) - start_period_idx;
+			FILE* prev_file = NULL;
+			GF_MPD_Period *cur_period;
+			while ( (cur_period = (GF_MPD_Period *) gf_list_enum(periods, &m))) {
+				// Find the adaptation set
+				GF_MPD_AdaptationSet *cur_as = NULL;
+				u32 k=0;
+				while ( (cur_as = (GF_MPD_AdaptationSet *) gf_list_enum(cur_period->adaptation_sets, &k))) {
+					if (cur_as->id == as->id) break; // FIXME: This comparison is wrong
+					cur_as = NULL;
+				}
+				if (!cur_as) continue;
+
+				// Find the representation
+				GF_MPD_Representation *cur_rep = NULL;
+				k=0;
+				while ( (cur_rep = (GF_MPD_Representation *) gf_list_enum(cur_as->representations, &k))) {
+					if (cur_rep->id && rep->id && !strcmp(cur_rep->id, rep->id) && !strcmp(gf_file_basename(cur_rep->m3u8_var_name), name)) {
+						break;
+					}
+					cur_rep = NULL;
+				}
+				if (!cur_rep) continue;
+
+				e = gf_mpd_write_m3u8_playlist(mpd, cur_period, cur_as, cur_rep, name, hls_version, max_part_dur_session,
+					((mpd->hls_abs_url==GF_DASH_ABS_URL_VARIANT) || (mpd->hls_abs_url==GF_DASH_ABS_URL_BOTH)) ? force_base_url : NULL, m-1!=start_period_idx, prev_file);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
+					return GF_IO_ERR;
+				}
+
+				if (m-1==start_period_idx && period_count>1) {
+					//keep the file handle to append next periods
+					if (cur_rep->m3u8_var_file) {
+						rep->m3u8_var_file = cur_rep->m3u8_var_file;
+						prev_file = rep->m3u8_var_file;
+						cur_rep->m3u8_var_file = NULL;
+					}
+				}
 			}
 		}
 	}

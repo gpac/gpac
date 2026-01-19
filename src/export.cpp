@@ -2754,6 +2754,8 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_check_caps ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_copy_properties ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_copy_properties_from_packet ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_merge_properties_from_packet ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_drop_packet ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_name ) )
