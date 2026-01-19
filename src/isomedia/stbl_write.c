@@ -299,7 +299,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 	}
 
 	//NOPE we are inserting a sample...
-	CTSs = (u32*)gf_malloc(sizeof(u32) * (stbl->SampleSize->sampleCount+1) );
+	GF_SAFE_ALLOC_N(CTSs, (stbl->SampleSize->sampleCount+1), u32);
 	if (!CTSs) return GF_OUT_OF_MEM;
 	sampNum = 0;
 	for (i=0; i<ctts->nb_entries; i++) {
@@ -1299,7 +1299,7 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_sample
 
 	if ((nb_samples>1) && (sampleNumber>1))
 		return GF_BAD_PARAM;
-	
+
 	//raw audio or constant sample size and dur
 	if (stsc->nb_entries < stbl->SampleSize->sampleCount) {
 		if (sampleNumber==stbl->SampleSize->sampleCount+1) {
@@ -1785,7 +1785,7 @@ GF_Err stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 	GF_ChunkOffsetBox *stco;
 	GF_ChunkLargeOffsetBox *co64;
 	u32 i;
-	
+
 	//we may have to convert the table...
 	if (stbl->ChunkOffset->type==GF_ISOM_BOX_TYPE_STCO) {
 		stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
