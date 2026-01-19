@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools ROUTE (ATSC3, DVB-MABR) and DVB-MABR Flute demux sub-project
@@ -2407,6 +2407,8 @@ static GF_Err gf_route_service_parse_mbms_enveloppe(GF_ROUTEDmx *routedmx, GF_RO
 	return GF_OK;
 }
 
+Bool gf_mpd_check_print_format(const char *print_fmt);
+
 static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, char *content, char *content_location)
 {
 	GF_Err e;
@@ -2766,12 +2768,17 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				sep[0] = '$';
 
 				if (sep[4]=='$') {
-					gf_dynstrcat(&rlct->toi_template, "%d", NULL);
+					gf_dynstrcat(&rlct->toi_template, "%u", NULL);
 					sep += 5;
 				} else {
 					char *sep_end = strchr(sep+3, '$');
 					sep_end[0] = 0;
-					gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
+					if (gf_mpd_check_print_format(sep+4)) {
+						gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Corrupted TOI template %s, patching\n", s->log_name, file_template));
+						gf_dynstrcat(&rlct->toi_template, "%u", NULL);
+					}
 					sep_end[0] = '$';
 					sep = sep_end + 1;
 				}
