@@ -974,7 +974,7 @@ EOF
 
     FreeBSD)
         make="gmake"
-        LDFLAGS="$LDFLAGS -export-dynamic"
+        LDFLAGS="$LDFLAGS -rdynamic"
         PTHREAD_CFLAGS=-pthread
         PTHREAD_LDFLAGS=-pthread
         freebsd="yes"
