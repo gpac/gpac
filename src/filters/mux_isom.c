@@ -8880,7 +8880,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"- if `Sparse` is true, empty packet is inserted for all stream types\n"
 	"- if `Sparse` is false, empty packet is never injected\n"
 	"  \n"
-	"The default media type used for a PID can be overriden using property `StreamSubtype`. \n"
+	"The default media type used for a PID can be overridden using property `StreamSubtype`. \n"
 	"EX -i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4 \n"
 	"This will force the text stream to use `sbtl` handler type instead of default `text` one."
 	"\n"

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -567,6 +567,8 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	if (filter->freg->initialize) {
 		GF_Err e;
 		FSESS_CHECK_THREAD(filter)
+
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		if (((arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE) || (arg_type==GF_FILTER_ARG_EXPLICIT_SINK)) && !filter->orig_args) {
 			filter->orig_args = (char *)args;
 			e = filter->freg->initialize(filter);
@@ -574,6 +576,8 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 		} else {
 			e = filter->freg->initialize(filter);
 		}
+		gf_logs_thread_untag(filter);
+
 		if (e) return e;
 	}
 	if ((filter->freg->flags & GF_FS_REG_SCRIPT) && filter->freg->update_arg) {
@@ -581,7 +585,11 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 		gf_filter_parse_args(filter, args, arg_type, GF_TRUE);
 		char *next_args = strchr(args, filter->session->sep_args);
 		filter->orig_args = (char*)next_args;
+
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		e = filter->freg->update_arg(filter, NULL, NULL);
+		gf_logs_thread_untag(filter);
+
 		filter->orig_args = NULL;
 		if (e) return e;
 	}
@@ -1243,7 +1251,9 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 			}
 			//if no update function consider the arg OK
 			if (filter->freg->update_arg) {
+				gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 				e = filter->freg->update_arg(filter, arg_name, &argv);
+				gf_logs_thread_untag(filter);
 			}
 			if (e==GF_OK) {
 				if (!is_meta)
@@ -1585,7 +1595,10 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
 		argv.value.string = (char *) arg_val;
+
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		filter->freg->update_arg(filter, arg_name, &argv);
+		gf_logs_thread_untag(filter);
 	}
 	if (!gf_sys_has_filter_global_meta_args()
 		//allow -- syntax as well
@@ -1641,7 +1654,9 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		}
 #undef META_MAX_ARG
 
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		e = filter->freg->update_arg(filter, szArg + len, &argv);
+		gf_logs_thread_untag(filter);
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Error assigning argument %s to filter %s: %s\n", szArg, filter->name, gf_errno_str(e) ));
 		}
@@ -2069,7 +2084,9 @@ skip_date:
 						gf_filter_set_arg(filter, save_a, &argv);
 					} else if (filter->freg->update_arg) {
 						FSESS_CHECK_THREAD(filter)
+						gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 						filter->freg->update_arg(filter, save_a->arg_name, &argv);
+						gf_logs_thread_untag(filter);
 						opaque_arg = GF_FALSE;
 						if ((argv.type==GF_PROP_STRING) || (argv.type==GF_PROP_STRING_LIST))
 							gf_props_reset_single(&argv);
@@ -2301,7 +2318,9 @@ skip_date:
 				if (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT) ) {
 					GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
 					FSESS_CHECK_THREAD(filter)
+					gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 					e = filter->freg->update_arg(filter, szArg, &argv);
+					gf_logs_thread_untag(filter);
 					if (argv.value.string) gf_free(argv.value.string);
 					//opaque arg not found for meta, report it
 					if ((e==GF_NOT_FOUND) && opaque_arg) {
@@ -2404,7 +2423,9 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 				gf_filter_set_arg(filter, a, &argv);
 			} else if (filter->freg->update_arg) {
 				FSESS_CHECK_THREAD(filter)
+				gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 				filter->freg->update_arg(filter, a->arg_name, &argv);
+				gf_logs_thread_untag(filter);
 				gf_props_reset_single(&argv);
 			}
 		} else {
@@ -2796,7 +2817,9 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	pid->caps_negotiate = filter->caps_negotiate;
 	filter->caps_negotiate = NULL;
 	if (filter->freg->reconfigure_output) {
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		e = filter->freg->reconfigure_output(filter, pid);
+		gf_logs_thread_untag(filter);
 	} else {
 		//happens for decoders
 		e = GF_OK;
@@ -2858,7 +2881,10 @@ static void gf_filter_renegotiate_output(GF_Filter *filter, Bool force_afchain_i
 
 			//we cannot reconfigure output if more than one destination
 			if (reconfig_direct && filter->freg->reconfigure_output && !force_afchain_insert) {
-				GF_Err e = filter->freg->reconfigure_output(filter, pid);
+				GF_Err e;
+				gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
+				e = filter->freg->reconfigure_output(filter, pid);
+				gf_logs_thread_untag(filter);
 				if (e) {
 					if (filter->is_pid_adaptation_filter) {
 						GF_FilterPidInst *src_pidi = gf_list_get(filter->input_pids, 0);
@@ -3038,6 +3064,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 		filter->session->last_process_error = e;
 
 		filter->nb_errors ++;
+		filter->nb_current_errors++;
 		if (!filter->nb_consecutive_errors) filter->time_at_first_error = gf_sys_clock_high_res();
 
 		filter->nb_consecutive_errors ++;
@@ -3070,6 +3097,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			filter->nb_consecutive_errors = 0;
 			filter->nb_pck_io = 0;
 		}
+		filter->nb_current_errors = 0;
 	}
 
 	if (kill_filter) {
@@ -3204,6 +3232,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 
 	filter->in_process_callback = GF_TRUE;
 
+	gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
+
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
 		e = gf_filter_process_check_alloc(filter);
@@ -3211,6 +3241,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 #endif
 		e = filter->freg->process(filter);
 
+	gf_logs_thread_untag(filter);
 	filter->in_process_callback = GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done\n", filter->name));
 
@@ -3342,6 +3373,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 
 	filter->in_process = GF_TRUE;
 	filter->in_process_callback = GF_TRUE;
+	gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
@@ -3350,6 +3382,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 #endif
 		e = filter->freg->process(filter);
 
+	gf_logs_thread_untag(filter);
 	filter->in_process_callback = GF_FALSE;
 	filter->in_process = GF_FALSE;
 
@@ -3569,7 +3602,10 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 
 	if (!f->finalized && f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
+
+		gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
 		f->freg->finalize(f);
+		gf_logs_thread_tag_del(f);
 	}
 	gf_mx_p(f->session->filters_mx);
 
@@ -3759,7 +3795,10 @@ void gf_filter_remove_task(GF_FSTask *task)
 
 	if (f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
+
+		gf_logs_thread_tag(f, GF_LOG_TAG_FILTER);
 		f->freg->finalize(f);
+		gf_logs_thread_tag_del(f);
 	}
 
 	gf_mx_p(f->session->filters_mx);
@@ -3881,6 +3920,12 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s from session\n", filter->name));
 	}
+	//lock before the loop for multithreaded cases:
+	//1- gf_fs_post_disconnect_task can be called, triggering a filter_post_remove
+	//2- the filter_remove could be executed before we reach the end of the loop, hence crash
+	//By locking, we'll force filter_post_remove to wait
+	gf_mx_p(filter->tasks_mx);
+
 	//get all dest pids, post disconnect and mark filters as removed
 	gf_assert(!filter->removed);
 	filter->removed = 1;
@@ -3901,7 +3946,6 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 			}
 		}
 	}
-	gf_mx_p(filter->tasks_mx);
 
 	if (!filter->num_output_pids && !filter->num_input_pids) {
 		gf_filter_post_remove(filter);
@@ -4076,7 +4120,11 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 
 	if (filter->freg->finalize) {
 		FSESS_CHECK_THREAD(filter)
+
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 		filter->freg->finalize(filter);
+		gf_logs_thread_tag_del(filter);
+
 		filter->finalized = GF_TRUE;
 	}
 	gf_list_add(filter->blacklisted, (void *)filter->freg);
@@ -5240,6 +5288,9 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	filter->status_percent = percent;
 	filter->report_updated = GF_TRUE;
 
+	if ((s32)percent<0)
+		return GF_OK;
+
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_PROGRESS;
 	evt.progress.progress_type = 3;
@@ -5515,15 +5566,26 @@ GF_Err gf_filter_push_caps(GF_Filter *filter, u32 code, GF_PropertyValue *value,
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to push cap on non custom filter %s\n", filter->freg->name));
 		return GF_BAD_PARAM;
 	}
+	if (flags & GF_CAPFLAG_IN_BUNDLE) {
+		if (!value) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set cap without value on custom filter %s\n", filter->name));
+			return GF_BAD_PARAM;
+		}
+	} else {
+		flags = 0;
+	}
 	caps = (GF_FilterCapability *)filter->forced_caps;
 	nb_caps = filter->nb_forced_caps;
 	caps = gf_realloc(caps, sizeof(GF_FilterCapability)*(nb_caps+1) );
 	if (!caps) return GF_OUT_OF_MEM;
+	memset(&caps[nb_caps], 0, sizeof(GF_FilterCapability));
 	caps[nb_caps].code = code;
-	caps[nb_caps].val = *value;
+	if (value) {
+		caps[nb_caps].val = *value;
+		caps[nb_caps].flags = flags;
+	}
 	caps[nb_caps].name = name ? gf_strdup(name) : NULL;
 	caps[nb_caps].priority = priority;
-	caps[nb_caps].flags = flags;
 	filter->nb_forced_caps++;
 	filter->forced_caps = caps;
 	filter->nb_forced_bundles = filter->nb_forced_caps ? gf_filter_caps_bundle_count(filter->forced_caps, filter->nb_forced_caps) : 0;
@@ -5961,3 +6023,15 @@ GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char
 	if (! *res_list) return GF_FILTER_NOT_FOUND;
 	return GF_OK;
 }
+
+GF_EXPORT
+void gf_filter_log_tag(GF_Filter *filter, Bool is_untag)
+{
+	if (!filter) return;
+
+	if (is_untag)
+		gf_logs_thread_untag(filter);
+	else
+		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
+}
+

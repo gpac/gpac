@@ -760,6 +760,21 @@ Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 */
 GF_Err gf_sys_enable_rmtws(Bool start);
 
+/*! Enables or disables the rmt websocket user server
+\param start If true starts the webserver, if false stops it
+\return GF_OK if success, GF_BAD_PARAM if error, GF_NOT_SUPPORTED if ws server not supported
+*/
+GF_Err gf_sys_enable_userws(Bool start);
+
+/*! Returns the monitoring websocket server handler
+\return the object to cast to RMT_WS*
+*/
+void* gf_sys_get_rmtws();
+
+/*! Returns the user websocket server handler
+\return the object to cast to RMT_WS*
+*/
+void* gf_sys_get_userws();
 
 /*!
 GPAC Log tools
@@ -1267,8 +1282,9 @@ typedef struct __gf_blob
     u64 last_modification_time;
 	/*! function used to query if a range of a blob in transfer is valid. If NULL, any range is invalid until transfer is done
 	when set this function overrides the blob flags for gf_blob_query_range
+	If check_when_complete is true, range will be checked when blob transfer is over; if false, range will either be valid or corrupted for a transferred blob
 	size is updated to the maximum number of consecutive bytes starting from the goven offset */
-	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, u64 start, u32 *size);
+	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, Bool check_when_complete, u64 start, u32 *size);
 	/*! private data for range_valid function*/
 	void *range_udta;
 } GF_Blob;
@@ -1286,11 +1302,12 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob
 /*!
  * Checks if a given byte range is valid in blob
 \param blob  blob object
+\param check_when_complete when true, range will be checked when blob transfer is over; when false, range will either be valid or corrupted for a transferred blob)
 \param start_offset start offset of data to check in blob
 \param size size of data to check in blob
 \return blob range status
  */
-GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size);
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 size);
 
 /*!
  * Releases blob data
@@ -1656,8 +1673,8 @@ GF_Err gf_dir_cleanup(const char* DirPathName);
 
 
 /**
-Gets a newly allocated string containing the default cache directory.
-It is the responsibility of the caller to free the string.
+Gets a globally allocated string containing the default cache directory.
+The caller shall not free the string.
 \return a fully qualified path to the default cache directory
  */
 const char * gf_get_default_cache_directory();

@@ -199,6 +199,25 @@ gpac.rmt_on_new_client = function(client) {
 
 
 }
+
+
+gpac.enable_userws(true);
+
+gpac.userws_on_new_client = function(client) {
+
+    console.log("[USERWS] new client ", client.peer_address);
+
+    client.on_data = (msg) =>  {
+        console.log("[USERWS] client", client.peer_address, "received", msg);
+
+        client.send("ACK");
+    }
+
+    client.on_close = () => {
+        console.log("[USERWS] client", client.peer_address, "disconnected");
+    }
+}
+
 ///////////////////
 let filter_uid = 0;
 

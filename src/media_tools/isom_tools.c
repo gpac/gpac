@@ -4193,7 +4193,8 @@ GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COL
 GF_Err rfc_6381_get_codec_avs3v(char *szCodec, u32 subtype, GF_AVS3VConfig *av3c, COLR colr)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	gf_fatal_assert(av3c && av3c->sequence_header && av3c->sequence_header_length >= 6);
+	if (!av3c || !av3c->sequence_header || av3c->sequence_header_length < 6)
+		return GF_BAD_PARAM;
 	u8 profile = av3c->sequence_header[4];
 	u8 level = av3c->sequence_header[5];
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%2x.%2x", gf_4cc_to_str(subtype), profile, level);

@@ -2596,7 +2596,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		memcpy(buffer, ptr + sess->bytes_done, to_copy);
 		sess->bytes_done += to_copy;
 		*read_size = to_copy;
-		if (cache_done==1) {
+		if ((cache_done==1) && (sess->bytes_done == sess->total_size) ) {
 			sess->status = GF_NETIO_DATA_TRANSFERED;
 			SET_LAST_ERR( (cache_done==2) ? GF_IP_NETWORK_FAILURE : GF_OK)
 		} else {

@@ -1192,9 +1192,10 @@ static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
 		len = (u32) (next - buf);
 		if (len + blob->pos<blob->size) len++;
 	}
-	if (len > size) len = size;
+	if (len + 1 > size) len = size - 1;
 	memcpy(ptr, blob->data+blob->pos, len);
 	blob->pos += len;
+	ptr[len] = 0;
 	return ptr;
 }
 

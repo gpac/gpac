@@ -1126,9 +1126,10 @@ void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 servi
 	}
 }
 
-static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 pos = 0;
+	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] CHKISO on file %s\n", finfo->filename ));
 	u8 *data = finfo->blob->data;
 	while (pos < finfo->total_size) {
 		u32 bsize = GF_4CC(data[pos], data[pos+1], data[pos+2], data[pos+3]);
@@ -1146,7 +1147,7 @@ static void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 		case GF_4CC('s','s','i','x'):
 		case GF_4CC('p','c','r','b'):
 		case GF_4CC('p','r','f','t'):
-			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Found top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Found top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Unknown top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
@@ -1224,7 +1225,7 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 	return drop_if_first;
 }
 
-static u32 get_max_dispatch_len(GF_ROUTEEventFileInfo *finfo)
+u32 routein_get_max_dispatch_len(GF_ROUTEEventFileInfo *finfo)
 {
 	u32 max_len = 0;
 	//figure out largest safest size from start
@@ -1253,6 +1254,56 @@ static u32 get_max_dispatch_len(GF_ROUTEEventFileInfo *finfo)
 	return max_len;
 }
 
+Bool gf_route_dmx_get_object_info(void *lct_obj, GF_ROUTEEventFileInfo *finfo);
+
+static GF_BlobRangeStatus routein_check_blob_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 *io_size)
+{
+	u32 i, size;
+	GF_ROUTEEventFileInfo finfo;
+	assert(io_size);
+	if (!gf_route_dmx_get_object_info(blob->range_udta, &finfo))
+		return GF_BLOB_RANGE_CORRUPTED;
+
+	//blob completed, do not check byte ranges
+	if (!check_when_complete && !(blob->flags & GF_BLOB_IN_TRANSFER)) {
+		if (blob->flags & GF_BLOB_CORRUPTED) return GF_BLOB_RANGE_CORRUPTED;
+		return GF_BLOB_RANGE_VALID;
+	}
+
+	//get maximum number of bytes that will not be modified by file patcher
+	//this works even when we re-download the complete file: we will then overwrite bytes already sent in the blob but will not resend them
+	u32 max_size = routein_get_max_dispatch_len(&finfo);
+
+	size = *io_size;
+	*io_size = 0;
+	gf_mx_p(blob->mx);
+	for (i=0; i<finfo.nb_frags; i++) {
+		GF_LCTFragInfo *frag = &finfo.frags[i];
+		if ((frag->offset<=start_offset) && (start_offset+size <= frag->offset + frag->size)) {
+			if (finfo.channel_hint && (size + start_offset>max_size)) {
+				size = (max_size > start_offset) ? (max_size - start_offset) : 0;
+			}
+			*io_size = size;
+			gf_mx_v(blob->mx);
+			return GF_BLOB_RANGE_VALID;
+		}
+		//start is in fragment but exceeds it
+		if ((frag->offset <= start_offset) && (start_offset <= frag->offset + frag->size)) {
+			size = (u32) (frag->offset + frag->size - start_offset);
+			if (finfo.channel_hint && (size + start_offset>max_size)) {
+				size = (max_size > start_offset) ? (max_size - start_offset) : 0;
+			}
+			*io_size = size;
+			break;
+		}
+	}
+	gf_mx_v(blob->mx);
+	if (blob->flags & GF_BLOB_IN_TRANSFER)
+		return GF_BLOB_RANGE_IN_TRANSFER;
+	return GF_BLOB_RANGE_CORRUPTED;
+}
+
+
 void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 i, count;
@@ -1262,6 +1313,11 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	if (evt==GF_ROUTE_EVT_LATE_DATA) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Late data patching not yet implemented !\n"));
 		return;
+	}
+
+	//assign range checker if not done yet for object
+	if (!finfo->blob->range_valid) {
+		finfo->blob->range_valid = routein_check_blob_range;
 	}
 
 	if (ctx->repair==ROUTEIN_REPAIR_NO) {
@@ -1322,7 +1378,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 			}
 
 			u32 true_size = finfo->frags[0].size;
-			finfo->frags[0].size = get_max_dispatch_len(finfo);
+			finfo->frags[0].size = routein_get_max_dispatch_len(finfo);
 			if (finfo->frags[0].size > tsio->bytes_sent)
 				routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 			finfo->frags[0].size = true_size;
@@ -1364,7 +1420,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		//this ensures we push data asap in the output pids
 		else if ((finfo->partial!=GF_LCTO_PARTIAL_ANY) && can_flush_fragment) {
 			u32 true_size = finfo->frags[0].size;
-			finfo->frags[0].size = get_max_dispatch_len(finfo);
+			finfo->frags[0].size = routein_get_max_dispatch_len(finfo);
 			if (finfo->frags[0].size > tsio->bytes_sent)
 				routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 

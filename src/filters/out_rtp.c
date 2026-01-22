@@ -1243,7 +1243,7 @@ static GF_FilterProbeScore rtpout_probe_url(const char *url, const char *mime)
 }
 
 //regular caps when solving to sdp
-//for direct rtp:// scheme invocation, caps are overriden in rtpin_initialize
+//for direct rtp:// scheme invocation, caps are overridden in rtpin_initialize
 static const GF_FilterCapability RTPOutCaps[] =
 {
 	//media stream (not file and framed) result in SDP

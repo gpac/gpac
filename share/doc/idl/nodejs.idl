@@ -71,10 +71,22 @@ void set_args(Array args);
 */
 void enable_rmtws(boolean enable);
 
-/*! set the callback function when new clients connect to the websocket server
+/*! enables user websocket server - see \ref gf_sys_enable_userws
+*
+* define the \ref userws_on_new_client attribute to set callbacks
+* \param enable (default: true) will enable the server if true, stop it if false
+*/
+void enable_userws(bool enable);
+
+/*! set the callback function when new clients connect to the monitoring websocket server
 * the function shall take one parameter of type \ref _RMTClient
 */
 optional attribute function rmt_on_new_client;
+
+/*! set the callback function when new clients connect to the user websocket server
+* the function shall take one parameter of type \ref _RMTClient
+*/
+optional attribute function userws_on_new_client;
 
 /*! GPAC event proc callback, initially set to null
 \param evt the user event being dispatched
@@ -114,6 +126,7 @@ attribute _FileIO FileIO;
 /*! Object representing a monitoring websocket client
 *
 * will be passed to the session \ref rmt_on_new_client callback
+* and to \ref userws_on_new_client if the user websocket server is enabled
 */
 interface _RMTClient {
 

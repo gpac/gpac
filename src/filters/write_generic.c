@@ -138,6 +138,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->codecid = cid;
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		if (!ctx->opid)
+			return GF_OUT_OF_MEM;
 		ctx->first = GF_TRUE;
 	}
 
@@ -964,11 +966,11 @@ static void writegen_rewrite_timestamp_ttml(s64 ts_offset, GF_XMLAttribute *att,
 	*value += ts_offset;
 	v = (u64) (*value / 1000);
 	h = (u32) (v / 3600);
-	m = (u32) (v - h*60) / 60;
+	m = (u32) (v - h*3600) / 60;
 	s = (u32) (v - h*3600 - m*60);
 	ms = (*value) % 1000;
 
-	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	snprintf(szTS, 20, "%02u:%02u:%02u.%03u", h, m, s, ms);
 	szTS[20] = 0;
 	gf_free(att->value);
 	att->value = gf_strdup(szTS);
@@ -1647,7 +1649,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
-	
+
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//don't keep byte offset
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
@@ -2278,4 +2280,3 @@ const GF_FilterRegister *ttmlmerge_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_WRITEGEN
-

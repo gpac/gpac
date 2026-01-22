@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2025
+#          Copyright (c) Telecom Paris 2020-2026
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -236,8 +236,8 @@ except OSError:
             os._exit(1)
 
 #change this to reflect API we encapsulate. An incompatibility in either of these will throw a warning
-GF_ABI_MAJOR=12
-GF_ABI_MINOR=16
+GF_ABI_MAJOR=16
+GF_ABI_MINOR=2
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -293,6 +293,14 @@ _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
 _libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
+_libgpac.gf_sys_get_rmtws.argtypes = []
+_libgpac.gf_sys_get_rmtws.restype = c_void_p
+
+_libgpac.gf_sys_enable_userws.argtypes = [gf_bool]
+_libgpac.gf_sys_get_userws.argtypes = []
+_libgpac.gf_sys_get_userws.restype = c_void_p
+
+
 _libgpac.gf_rmt_get_peer_address.argtypes = [c_void_p]
 _libgpac.gf_rmt_get_peer_address.restype = c_char_p
 _libgpac.gf_rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
@@ -411,6 +419,12 @@ def enable_rmtws(enable=True):
     _libgpac.user_init = True
     _libgpac.gf_sys_enable_rmtws(enable)
 
+## enables the user websocket server
+# \param enable True/False enable or disable server
+def enable_userws(enable=True):
+    _libgpac.user_init = True
+    _libgpac.gf_sys_enable_userws(enable)
+
 
 ##\cond private
 _libgpac.gf_rmt_client_set_on_del_cbk.argtypes = [c_void_p, py_object, c_void_p]
@@ -508,7 +522,8 @@ class RMTHandler():
 
 
 ##\cond private
-_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
+_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [c_void_p, py_object, c_void_p]
+
 @CFUNCTYPE(c_int, c_void_p, c_void_p)
 def rmt_fun_on_new_client_cbk(_udta, client):
     obj = cast(_udta, py_object).value
@@ -522,13 +537,25 @@ def rmt_fun_on_new_client_cbk(_udta, client):
 # \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
 def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
+    rmt = _libgpac.gf_sys_get_rmtws()
     if hasattr(callback_obj, 'on_new_client'):
-        err = _libgpac.gf_rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(rmt, py_object(callback_obj), rmt_fun_on_new_client_cbk)
         if err<0:
             return False
 
     return True
 
+## set the handler for the user websocket server
+# \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
+def set_userws_handler(callback_obj):
+    _libgpac.user_init = True
+    rmt = _libgpac.gf_sys_get_userws()
+    if hasattr(callback_obj, 'on_new_client'):
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(rmt, py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        if err<0:
+            return False
+
+    return True
 
 ## sleep for given time in milliseconds
 # \param value time to sleep
@@ -583,6 +610,7 @@ class FilterStats(Structure):
 		("nb_pck_sent", c_ulonglong),
 		("nb_hw_pck_sent", c_ulonglong),
 		("nb_errors", c_uint),
+		("nb_current_errors", c_uint),
 		("nb_bytes_sent", c_ulonglong),
 		("time_process", c_ulonglong),
 		("percent", c_int),
@@ -2131,34 +2159,34 @@ class HTTPOutRequest:
         ## even values are header names, odd values are header values
         self.headers_out=[]
 
-    ## throttle the connection - if not overriden by subclass, not used
+    ## throttle the connection - if not overridden by subclass, not used
     #\param done amount of bytes of ressource sent
     #\param total total size of ressource
     #\return a timeout in microseconds, or 0 to process immediately
     def throttle(self, done, total):
         return 0
 
-    ## read data for the request - if not overriden by subclass, not used
+    ## read data for the request - if not overridden by subclass, not used
     #\param buf NP array (or c_ubyte pointer if no numpy support) to write data to
     #\param size size of array to fill
     #\return amount of bytes read, negative value means no data available yet, 0 means end of file
     def read(self, buf, size):
         return 0
 
-    ## write data for the request (PUT/POST) - if not overriden by subclass, not used
+    ## write data for the request (PUT/POST) - if not overridden by subclass, not used
     #\param buf NP array (or c_ubyte pointer if no numpy support) containing data from client
     #\param size number of valid bytes in the array
     #\return
     def write(self, buf, size):
         pass
 
-    ## close callback for the request - if not overriden by subclass, not used
+    ## close callback for the request - if not overridden by subclass, not used
     #\param reason GPAC error code of the end of session. If 1 (GF_EOS), the session is ended but underlying network is kept alive, otherwise session is destroyed
     #\return
     def close(self, reason):
         pass
 
-    ## callback for the request - this shoulld be overriden by subclass, default behaviour being to delegate to GPAC
+    ## callback for the request - this shoulld be overridden by subclass, default behaviour being to delegate to GPAC
     #\param method HTTP method used, as string
     #\param url URL of the HTTP request
     #\param auth_code Authentication reply code - requests are pre-identified using GPAC credentials: a value of 401 indicates no identification, 200 indicates identification OK, 403 indicates failure
@@ -5149,7 +5177,7 @@ def fileio_cbk_eof(_fio):
 #Writes the file
 #- buffer: numpy array to fill if numpy support, ctypes.c_ubyte otherwise
 #- size: number of bytes to write starting from first byte in buffer
-#- return number of bytes writen, at most the size of the array
+#- return number of bytes written, at most the size of the array
 #
 # \code int read(numy buffer, unsigned long size)\endcode
 #Reads the file

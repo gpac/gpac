@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2024 Telecom ParisTech
+#     (c) 2003-2026 Telecom Paris
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -74,6 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
+sched="free"
 check_stack_size="32768"
 debuginfo="no"
 sdl_path=""
@@ -125,6 +126,7 @@ em_type="js"
 em_size="0"
 em_opt="2"
 fatal_assert="no"
+no_stack_prot="no"
 
 #flags not set by generic lib config
 has_x11="no"
@@ -241,7 +243,6 @@ push_feature "vtt" "WebVTT support"
 push_feature "route" "ROUTE (ATSC3) support"
 push_feature "qjs" "QuickJS support"
 push_feature "qjs-libc" "QuickJS libc module support"
-push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multithreaded modes)"
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
@@ -384,6 +385,7 @@ GPAC build options:
   --extra-libs=ELIBS       add ELIBS [$ELIBS]
   --cpu=CPU                force cpu to CPU  [$cpu]
   --check-stack-size=SIZE  maximum stack size [$check_stack_size bytes]
+  --no-stack-protector     disables the default stack canaries
   --enable-debug           produce debug version
   --enable-gprof           enable profiling
   --enable-gcov            enable coverage
@@ -636,6 +638,8 @@ for opt do
             ;;
         --check-stack-size=*) check_stack_size=`echo $opt | cut -d '=' -f 2`
             ;;
+        --no-stack-protector) no_stack_prot="yes"
+            ;;
         --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
             ;;
         --disable-opt) no_gcc_opt="yes"
@@ -813,11 +817,16 @@ case "$cpu" in
             fi
         fi
         ;;
+    arm64)
+        cpu="arm64"
+        sched=lock
+        ;;
     armv4l|arm)
         cpu="armv4l"
         ;;
     aarch64)
         cpu="aarch64"
+        sched=lock
         if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
             is_64="yes"
             PIC_CFLAGS="-fPIC -DPIC"
@@ -965,7 +974,7 @@ EOF
 
     FreeBSD)
         make="gmake"
-        LDFLAGS="$LDFLAGS -export-dynamic"
+        LDFLAGS="$LDFLAGS -rdynamic"
         PTHREAD_CFLAGS=-pthread
         PTHREAD_LDFLAGS=-pthread
         freebsd="yes"
@@ -1150,10 +1159,21 @@ CFLAGS="$CFLAGS -Wall"
 if docc -fno-strict-aliasing ; then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
+if test "$no_stack_prot" = "yes"; then
+    if docc -fno-stack-protector ; then
+        CFLAGS="$CFLAGS -fno-stack-protector"
+    fi
+else
+    if docc -fstack-protector-strong ; then
+        CFLAGS="$CFLAGS -fstack-protector-strong"
+    fi
+fi
 CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
+
 
 
 #GCC opt
@@ -2461,10 +2481,6 @@ if test "$disable_depth_compositor" = "no" ; then
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
 fi
 
-if test "$disable_qjs_stack" = "no" ; then
-    echo "#define GPAC_QJS_STACK_CHECK" >> $TMPH
-fi
-
 if test "$disable_doc" = "yes" ; then
     echo "Doc disabled"
     echo "#define GPAC_DISABLE_DOC" >> $TMPH
@@ -2633,7 +2649,7 @@ fi
 else
 
 if test "$enable_sanitizer" = "yes" ; then
-    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -DASAN_ENABLED"
+    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -fno-stack-protector -U_FORTIFY_SOURCE -DASAN_ENABLED"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
 fi
 
@@ -2798,6 +2814,9 @@ else
     echo "EXE_SUFFIX=.exe" >> config.mak
     echo "DYN_LIB_SUFFIX=.dll" >> config.mak
 fi
+
+
+echo "#define GPAC_SCHED_DEFAULT \"$sched\"" >> $TMPH
 
 
 echo "INSTFLAGS=$INSTFLAGS" >> config.mak

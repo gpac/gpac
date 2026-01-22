@@ -300,6 +300,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video=GF_FALSE;
+	u32 inject_rap_sample_group = 0;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
 	u64 mtimescale;
 	s32 trans_x, trans_y;
@@ -630,6 +631,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	}
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 
+
 	if (is_cenc) {
 		u32 container_type;
 		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, &container_type, NULL, NULL);
@@ -657,6 +659,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				gf_isom_sample_del(&samp);
 				break;
 			}
+
+			if ((import->flags & GF_IMPORT_FORCE_SYNC) && ((samp->IsRAP==SAP_TYPE_3) || (samp->IsRAP==SAP_TYPE_4))) {
+				samp->IsRAP = SAP_TYPE_1;
+			}
+
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
@@ -697,11 +704,28 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				break;
 			}
 
+			if ((import->flags & GF_IMPORT_FORCE_SYNC) && ((samp->IsRAP==SAP_TYPE_3) || (samp->IsRAP==SAP_TYPE_4))) {
+				samp->IsRAP = SAP_TYPE_1;
+			}
+
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
 		if (samp->nb_pack)
 			i+= samp->nb_pack-1;
+
+		//when importing files indicating SAP3 as sync points, we will drop all SAP3 points - check if we need to add 'rap '
+		//sample to group info, ie if it was not present in source track - cf #2992
+		if (!(import->flags & GF_IMPORT_FORCE_SYNC) && (samp->IsRAP == SAP_TYPE_3)) {
+			if (!inject_rap_sample_group) {
+				u32 sgdi=0;
+				gf_isom_get_sample_to_group_info(import->orig, track_in, i+1, GF_ISOM_SAMPLE_GROUP_RAP, 0, &sgdi);
+				inject_rap_sample_group = sgdi ? 1 : 2;
+			}
+			if (inject_rap_sample_group == 2) {
+				e = gf_isom_set_sample_rap_group(import->dest, track, i+1, GF_TRUE, 0);
+			}
+		}
 		gf_isom_sample_del(&samp);
 
 		//this will also copy all sample to group mapping, including seig for CENC

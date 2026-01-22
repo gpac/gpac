@@ -56,7 +56,8 @@ typedef struct {
 	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
 	GF_Err (*pck_send)(GF_FilterPacket *pck);
 
-	GF_List *ordered_events; // Event: events ordered by dispatch time
+	// events ordered by dispatch time
+	GF_List *ordered_events;
 	u32 last_event_id;
 
 	// used to compute immediate dispatch event duration
@@ -71,25 +72,31 @@ typedef struct {
 	u32 segnum;
 	u8 emeb_box[8];
 
-	GF_FilterPacket *dash_pck; // when called from the dasher
+	// when called from the dasher
+	GF_FilterPacket *dash_pck;
 	Bool is_dash;
 } SCTE35DecCtx;
 
 static GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
 {
 	ctx->ordered_events = gf_list_new();
+	if (!ctx->ordered_events) return GF_OUT_OF_MEM;
 
 	GF_Box *emeb = gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
 	if (!emeb) return GF_OUT_OF_MEM;
 	GF_Err e = gf_isom_box_size((GF_Box*)emeb);
 	if (e) return e;
 	GF_BitStream *bs = gf_bs_new(ctx->emeb_box, sizeof(ctx->emeb_box), GF_BITSTREAM_WRITE);
+	if (!bs) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	e = gf_isom_box_write((GF_Box*)emeb, bs);
-	gf_bs_del(bs);
-	if (e) return e;
-	gf_isom_box_del(emeb);
 
-	return GF_OK;
+exit:
+	gf_bs_del(bs);
+	gf_isom_box_del(emeb);
+	return e;
 }
 
 static GF_Err scte35dec_initialize(GF_Filter *filter)
@@ -227,7 +234,6 @@ static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 	if (!seg_emeb) return GF_OUT_OF_MEM;
 
 	scte35dec_send_pck(ctx, seg_emeb, dts, dur != GF_UINT_MAX ? dur : (u32)(dts - ctx->last_dispatched_dts));
-
 	return GF_OK;
 }
 
@@ -861,7 +867,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
 		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
-			//remember first pck of segment
+			//DASH: remember first pck of segment
 			if (ctx->dash_pck)
 				gf_filter_pck_unref(ctx->dash_pck);
 			ctx->dash_pck = pck;

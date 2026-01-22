@@ -13,6 +13,9 @@ typedef struct RMT_WS RMT_WS;
 //! creates the main instance
 RMT_WS* rmt_ws_new();
 
+//! starts the server thread
+void rmt_ws_run(RMT_WS*);
+
 //! deletes the main instance
 void rmt_ws_del(RMT_WS* rmt_ws);
 
@@ -47,7 +50,7 @@ typedef struct RMT_Settings {
 } RMT_Settings;
 
 //! gets the current rmtws settings (creates the structure if necessary)
-RMT_Settings* gf_rmt_get_settings();
+RMT_Settings* gf_rmt_get_settings(RMT_WS*);
 
 //! structure representing the http server
 typedef struct __rmt_serverctx RMT_ServerCtx;
@@ -62,12 +65,13 @@ typedef enum {
 } RMT_Callback_type;
 
 //! sets the callback called when new clients connect to the sever
+//! \param rmt the structure representing the server handler
 //! \param task user data stored and passed back to the callback
 //! \param cbk the callback of type \ref rmt_on_new_client_cbk
-void gf_rmt_set_on_new_client_cbk(void *task, rmt_on_new_client_cbk cbk);
+void gf_rmt_set_on_new_client_cbk(RMT_WS* rmt, void *task, rmt_on_new_client_cbk cbk);
 
 //! gets the userdata associated with the new client callback if defined
-void* gf_rmt_get_on_new_client_task();
+void* gf_rmt_get_on_new_client_task(RMT_WS*);
 
 //! gets a string representing the client in the format ip:port
 //! \param client the client object
@@ -110,6 +114,8 @@ void gf_rmt_client_set_on_del_cbk(RMT_ClientCtx* client, void* task, rmt_client_
 //! gets the userdata associated with the client on deleted callback if defined
 void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client);
 
+//! gets the ws server handler associated with a client
+RMT_WS* gf_rmt_client_get_rmt(RMT_ClientCtx* client);
 
 
 #endif

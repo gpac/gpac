@@ -1,0 +1,48 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+
+        <pre id="precontent">
+
+        </pre>
+        <script>
+
+let Socket = new WebSocket("ws://localhost:6364");
+Socket.binaryType = "arraybuffer";
+
+function greet() {
+    Socket.send("USERWS YO");
+}
+
+Socket.onopen = function (evt) {
+    console.log("ws connected", evt);
+
+    setInterval(greet, 2000);
+};
+
+var msg_count = 0;
+
+function handleWSmessage(text) {
+    msg_count++;
+    document.getElementById("precontent").innerText = msg_count + ": " + text;
+
+}
+
+Socket.onmessage = function (msg) {
+
+    if (typeof(msg.data)=="string") {
+        decoded = msg.data;
+        handleWSmessage(decoded);
+    } else {
+        decoded = new Uint8Array(msg.data);
+        // do something with binary messages?
+    }
+
+};
+
+        </script>
+
+    </body>
+</html>

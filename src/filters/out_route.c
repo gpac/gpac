@@ -1086,7 +1086,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					//for route we alternate MAX_INT-1 and MAX_INT-2 and update S-TSID each time
 					//NOTE: ROUTE spec is not really designed for HLS with variant playlist updates
 					//in particular is silent about what happens when FDT-Instance changes during updates
-					//we assume than any file removed from the FDT-nstance by an update is no longer available
+					//we assume than any file removed from the FDT-Instance by an update is no longer available
 					media_pid->hld_child_pl_version = media_pid->hld_child_pl_version ? 0 : 1;
 					if (!serv->use_flute)
 						serv->needs_reconfig = GF_TRUE;

@@ -75,6 +75,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_enable_rmtws) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_enable_userws) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_rmtws) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_userws) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmt_get_settings) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmt_set_on_new_client_cbk) )
@@ -85,6 +88,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_get_on_data_task) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_set_on_del_cbk) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_get_on_del_task) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rmt_client_get_rmt) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_solve_path) )
 
@@ -2527,6 +2532,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_enum_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_enum_all_names) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_reset_single) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_equal) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_equal_strict) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_new_defaults) )
@@ -2564,6 +2571,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_abort ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_lock ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_lock_all) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_log_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_all_connections ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_check_filter_register_cap ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )

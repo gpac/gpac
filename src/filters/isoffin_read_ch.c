@@ -785,7 +785,7 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 {
 	s32 ps_id;
 	u32 i, count, state=0;
-	GF_NALUFFParam *sl;
+	GF_NALUFFParam *sl, *last_sl = NULL;
 	GF_List *list=NULL;
 	if (ch->avcc) {
 		if (nal_type==GF_AVC_NALU_PIC_PARAM) {
@@ -870,8 +870,21 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
 		sl = gf_list_get(list, i);
+		//ID not set yet, assign it and purge all previous PS in list with same ID
 		if (!sl->id) {
 			sl->id = 1 + isor_ps_get_id(nal_type, sl->data, sl->size, ch->avcc ? 1 : 0);
+			u32 j;
+			for (j=0; j<i; j++) {
+				GF_NALUFFParam *prev_sl = gf_list_get(list, j);
+				if (prev_sl->id == sl->id) {
+					gf_list_rem(list, j);
+					gf_free(prev_sl->data);
+					gf_free(prev_sl);
+					j--;
+					i--;
+					count--;
+				}
+			}
 		}
 		if (sl->id != ps_id) {
 			//reset everything whenever we change ID of seq / vps / dci
@@ -899,19 +912,28 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		else if (!ch->xps_mask) {
 			isor_reset_all_ps(ch);
 			break;
+		} else {
+			//in case we have several SPS with same ID in the same AU (...), remember last occurence to avoid reallocating
+			last_sl = sl;
 		}
 	}
 	ch->xps_mask |= state;
 	*needs_reset = 1;
 
 	if (list) {
-		GF_SAFEALLOC(sl, GF_NALUFFParam);
-		if (!sl) return;
-		sl->data = gf_malloc(sizeof(char)*size);
-		memcpy(sl->data, data, size);
-		sl->size = size;
-		sl->id = ps_id;
-		gf_list_add(list, sl);
+		if (!last_sl) {
+			GF_SAFEALLOC(sl, GF_NALUFFParam);
+			if (!sl) return;
+			sl->data = gf_malloc(sizeof(char)*size);
+			memcpy(sl->data, data, size);
+			sl->size = size;
+			sl->id = ps_id;
+			gf_list_add(list, sl);
+		} else {
+			last_sl->data = gf_realloc(last_sl->data, size);
+			memcpy(last_sl->data, data, size);
+			last_sl->size = size;
+		}
 	}
 }
 

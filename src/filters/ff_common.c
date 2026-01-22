@@ -1857,23 +1857,23 @@ GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_i
 		gf_bs_del(bs);
 		if (!flac_dsi || !flac_dsi_size) return GF_NON_COMPLIANT_BITSTREAM;
 		*dsi_out_size = flac_dsi_size;
-		*dsi_out = av_malloc(sizeof(char) * (flac_dsi_size) );
+		*dsi_out = av_malloc(sizeof(char) * (flac_dsi_size) + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, flac_dsi, flac_dsi_size);
 	} else if (gpac_codec_id==GF_CODECID_OPUS) {
 		*dsi_out_size = dsi_in_size+8;
-		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size+8) );
+		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size+8) + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, "OpusHead", 8);
 		memcpy(*dsi_out+8, dsi_in, dsi_in_size);
 	} else if ((gpac_codec_id==GF_CODECID_SMPTE_VC1) && (dsi_in_size>7)) {
 		*dsi_out_size = dsi_in_size-7;
-		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size-7) );
+		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size-7) + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, dsi_in+7, dsi_in_size-7);
 	} else {
 		*dsi_out_size = dsi_in_size;
-		*dsi_out = av_malloc(sizeof(char) * dsi_in_size);
+		*dsi_out = av_malloc(sizeof(char) * dsi_in_size + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, dsi_in, dsi_in_size);
 	}

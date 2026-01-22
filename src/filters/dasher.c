@@ -1259,9 +1259,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #define CHECK_PROP_PROP(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
-	if (p != _mem) period_switch = GF_TRUE;\
+	if (p && _mem && !gf_props_equal(p, _mem)) period_switch = GF_TRUE;\
+	else if (!p && _mem) period_switch = GF_TRUE; \
+	else if (p && !_mem) period_switch = GF_TRUE; \
 	_mem = p; \
-
 
 	prev_stream_type = ds->stream_type;
 	CHECK_PROP(GF_PROP_PID_STREAM_TYPE, ds->stream_type, GF_NOT_SUPPORTED)
@@ -8273,7 +8274,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		//store max duration in period at end of segment
 		ds->max_period_dur = ds->current_max_period_dur;
 
-		if (ctx->do_m3u8) {
+		if (ctx->do_m3u8 && !(ds->stream_type == GF_STREAM_TEXT && ctx->rawsub)) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
 				s64 diff = gf_timestamp_rescale(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, 1000);
@@ -9716,6 +9717,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 					ds->seg_done = GF_TRUE;
 					force_flush_manifest = GF_TRUE;
 					ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
+					if ((ds->stream_type==GF_STREAM_TEXT) && !ds->muxed_base && (ds->first_cts_in_next_seg == ds->first_cts_in_seg)) {
+						u64 segdur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+						if (segdur) ds->first_cts_in_next_seg = ds->first_cts_in_seg + segdur;
+					}
 					ds->est_first_cts_in_next_seg = 0;
 					if (base_ds->nb_comp_done < base_ds->nb_comp) {
 						base_ds->nb_comp_done ++;
@@ -11602,7 +11607,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_preload_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overriden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overridden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
 	"- no: do not use absolute URL\n"

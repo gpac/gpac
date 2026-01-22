@@ -242,7 +242,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 	fprintf(stderr, "\n");
 
 	if (!found && track_id->ID_or_num) {
-		M4_LOG(GF_LOG_ERROR, ("Cannot find track %d in file\n", track_id->ID_or_num));
+		M4_LOG(GF_LOG_ERROR, ("Cannot find track %u in file\n", track_id->ID_or_num));
 		return GF_BAD_PARAM;
 	}
 	M4_LOG(GF_LOG_INFO, ("For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName)));

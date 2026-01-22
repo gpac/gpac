@@ -407,6 +407,13 @@ Rect rect_intersect(Rect r1, Rect r2);
 */
 void enable_rmtws(bool enable);
 
+/*! enables user websocket server - see \ref gf_sys_enable_userws
+*
+* define the \ref userws_on_new_client attribute to set callbacks
+* \param enable (default: true) will enable the server if true, stop it if false
+*/
+void enable_userws(bool enable);
+
 /*! get the log tools and levels - see \ref gf_log_get_tools_levels
 \param original_logs if set to true, return the logs set by the application, otherwise current logs as possibly modified by JS
 \return the log-level string
@@ -419,10 +426,15 @@ DOMString get_logs(bool original_logs=GF_FALSE);
 */
 void set_logs(DOMString logs, bool reset=false);
 
-/*! set the callback function when new clients connect to the websocket server
+/*! set the callback function when new clients connect to the monitoring websocket server
 * the function shall take one parameter of type \ref JS_RMTClient
 */
 optional attribute function rmt_on_new_client;
+
+/*! set the callback function when new clients connect to the user websocket server
+* the function shall take one parameter of type \ref JS_RMTClient
+*/
+optional attribute function userws_on_new_client;
 
 /*! number of cores */
 attribute readonly unsigned long nb_cores;
@@ -534,8 +546,13 @@ readonly unsigned long version_minor;
 /*! GPAC version micro */
 readonly unsigned long version_micro;
 
+
+/*! get/set extended log mode status*/
+boolean use_logx;
+
 /*! set the callback function for logs, or disable log callback and reset tools to original value if null.
-* the callback function is of form log(DOMString tool, unsigned int level, DOMString message).
+* - For regular mode, the callback function is of form log(DOMString tool, unsigned int level, DOMString message).
+* - For extended mode, the callback function is of form log(DOMString tool, unsigned int level, DOMString message, unsigned int thread_id, Object caller), with object either a FilterSession, a Filter or null.
 */
 optional attribute function on_log;
 
@@ -973,6 +990,7 @@ attribute readonly FileIO parent;
 /*! Object representing a monitoring websocket client
 *
 * will be passed to the session \ref rmt_on_new_client callback
+* and to \ref userws_on_new_client if the user websocket server is enabled
 */
 interface JS_RMTClient {
 

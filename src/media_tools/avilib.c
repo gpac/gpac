@@ -1941,6 +1941,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			{
 				if (n>0xFFFFFFFF) ERR_EXIT(AVI_ERR_READ)
 				hdrl_len = (u32) n;
+				if (hdrl_data)
+					gf_free(hdrl_data);
 				hdrl_data = (unsigned char *) gf_malloc((u32)n);
 				if(hdrl_data==0) ERR_EXIT(AVI_ERR_NO_MEM);
 
@@ -2106,9 +2108,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						memcpy(AVI->compressor2, hdrl_data+i+16, 4);
 						AVI->compressor2[4] = 0;
 
-						if (n>40) {
+						if ((n>40) && (hdrl_len > (i+40))) {
 							if (n>0xFFFFFFFF) ERR_EXIT(AVI_ERR_READ)
-							AVI->extradata_size = (u32) (n - 40);
+							AVI->extradata_size = (u32) MIN(n - 40, hdrl_len-i-40);
 							AVI->extradata = gf_malloc(sizeof(u8)* AVI->extradata_size);
 							if (!AVI->extradata) ERR_EXIT(AVI_ERR_NO_MEM)
 							memcpy(AVI->extradata, hdrl_data + i + 40, AVI->extradata_size);
