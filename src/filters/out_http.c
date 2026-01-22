@@ -2697,7 +2697,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] DASH/HLS in server mode with no directory set: defaulting to %s\n", szFName));
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in unconsistent file states, use at your own risks\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in inconsistent file states, use at your own risks\n"));
 				}
 			}
 		}
@@ -2967,7 +2967,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		return GF_BAD_PARAM;
 	}
 	if (!ctx->port.nb_items) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Invalid port spcifier, at least one port shall be indicated\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Invalid port specifier, at least one port shall be indicated\n"));
 		return GF_BAD_PARAM;
 	}
 	port = def_port = ctx->port.vals[0];
