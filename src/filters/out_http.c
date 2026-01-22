@@ -2602,6 +2602,120 @@ static void httpout_in_io_llhas(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	httpout_in_io_ex(usr_cbk, parameter, GF_TRUE);
 }
 
+static void httpout_configure_directories(GF_HTTPOutCtx *ctx)
+{
+	u32 i;
+	Bool has_gmem = GF_FALSE;
+	ctx->has_read_dir = GF_FALSE;
+	ctx->has_write_dir = GF_FALSE;
+	ctx->directories = gf_list_new();
+	for (i=0; i<ctx->rdirs.nb_items; i++) {
+		char *dpath = ctx->rdirs.vals[i];
+		if (gf_file_exists(dpath)) {
+			GF_Config *rules = gf_cfg_new(NULL, dpath);
+			u32 j, count = gf_cfg_get_section_count(rules);
+			for (j=0; j<count; j++) {
+				const char *dname = gf_cfg_get_section_name(rules, j);
+				if (!strcmp(dpath, "gmem")) {
+					if (has_gmem) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Only a single gmem directory can be specified, ignoring rule\n"));
+						continue;
+					}
+					has_gmem = GF_TRUE;
+				}
+				//we allow for non-existing directory names for virtual services
+
+				const char *fnames = gf_cfg_get_key(rules, dname, "filters");
+				if (fnames && strcmp(fnames, "*") && strcmp(fnames, "all")) {
+					if (!strstr(fnames, "httpout")) continue;
+				}
+				HTTP_DIRInfo *di;
+				GF_SAFEALLOC(di, HTTP_DIRInfo);
+				di->path = gf_strdup(dname);
+				gf_list_add(ctx->directories, di);
+				di->name = (char*)gf_cfg_get_key(rules, dname, "name");
+				if (di->name) {
+					di->name = gf_strdup(di->name);
+					di->name_len = (u32) strlen(di->name);
+					if (di->name[di->name_len-1] != '/') {
+						gf_dynstrcat(&di->name, "/", NULL);
+						di->name_len += 1;
+					}
+				}
+				di->ru = (char*)gf_cfg_get_key(rules, dname, "ru");
+				if (di->ru) di->ru = gf_strdup(di->ru);
+				di->rg = (char*)gf_cfg_get_key(rules, dname, "rg");
+				if (di->rg) di->rg = gf_strdup(di->rg);
+				di->wu = (char*)gf_cfg_get_key(rules, dname, "wu");
+				if (di->wu) di->wu = gf_strdup(di->wu);
+				di->wg = (char*)gf_cfg_get_key(rules, dname, "wg");
+				if (di->wg) di->wg = gf_strdup(di->wg);
+
+				if (di->wu || di->wg) ctx->has_write_dir = GF_TRUE;
+				ctx->has_read_dir = GF_TRUE;
+			}
+			gf_cfg_del(rules);
+		} else {
+			HTTP_DIRInfo *di;
+			if (!strcmp(dpath, "gmem")) {
+				if (has_gmem) continue;
+				has_gmem = GF_TRUE;
+			} else if (!gf_dir_exists(dpath)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] No such directory \"%s\": creating\n", dpath));
+				GF_Err err = gf_mkdir(dpath);
+				if (err) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to create directory \"%s\", ignoring rule\n", dpath));
+					continue;
+				}
+			}
+			GF_SAFEALLOC(di, HTTP_DIRInfo);
+			di->path = gf_strdup(dpath);
+			gf_list_add(ctx->directories, di);
+			ctx->has_read_dir = GF_TRUE;
+		}
+	}
+	if (ctx->wdir) {
+		HTTP_DIRInfo *di;
+		GF_SAFEALLOC(di, HTTP_DIRInfo);
+		di->path = gf_strdup(ctx->wdir);
+		di->wu = gf_strdup("$ALL");
+		gf_list_add(ctx->directories, di);
+		ctx->has_write_dir = GF_TRUE;
+	}
+
+	u32 count = gf_list_count(ctx->directories);
+	for (i=0; i<count; i++) {
+		HTTP_DIRInfo *di = gf_list_get(ctx->directories, i);
+		u32 j, len = (u32) strlen(di->path);
+		for (j=0; j<count; j++) {
+			if (i==j) continue;
+			HTTP_DIRInfo *adi = gf_list_get(ctx->directories, j);
+			if (adi->is_subpath) continue;
+			u32 alen = (u32) strlen(adi->path);
+			if (alen>len) {
+				if (!strncmp(di->path, adi->path, len)) adi->is_subpath = GF_TRUE;
+			} else if (alen<len) {
+				if (!strncmp(adi->path, di->path, alen)) di->is_subpath = GF_TRUE;
+			}
+		}
+	}
+
+	if (has_gmem) {
+		ctx->mem_fileio = gf_fileio_new("gmem", NULL, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
+		ctx->mem_url = gf_fileio_url(ctx->mem_fileio);
+		if (ctx->max_cache_segs==0) ctx->max_cache_segs = 1;
+		else if (ctx->max_cache_segs<0) ctx->max_cache_segs = -ctx->max_cache_segs;
+
+		ctx->has_read_dir = GF_TRUE;
+
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_cov_mode()) {
+			httpio_eof(ctx->mem_fileio);
+		}
+#endif
+	}
+}
+
 static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
@@ -2683,19 +2797,18 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			pctx->is_manifest = GF_TRUE;
 			if (!ctx->hmode && !ctx->has_read_dir) {
 				if (!ctx->reopen) {
-					HTTP_DIRInfo *di;
 					char szFName[GF_MAX_PATH];
 					const char *cache_dir = gf_get_default_cache_directory();
 					sprintf(szFName, "%s%cgpac_%u_" LLU "_%u", cache_dir, GF_PATH_SEPARATOR, gf_sys_get_process_id(), gf_sys_clock_high_res(), gf_rand());
-
-					GF_SAFEALLOC(di, HTTP_DIRInfo);
-					di->path = gf_strdup(szFName);
-					if (!ctx->directories)
-						ctx->directories = gf_list_new();
-					gf_list_add(ctx->directories, di);
-					ctx->has_read_dir = GF_TRUE;
-
 					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] DASH/HLS in server mode with no directory set: defaulting to %s\n", szFName));
+
+					// create a fake rdir and propagate the change
+					ctx->rdirs.nb_items = 1;
+					ctx->rdirs.vals = gf_malloc(sizeof(char*));
+					ctx->rdirs.vals[0] = gf_strdup(szFName);
+					gf_filter_make_sticky(filter);
+					httpout_configure_directories(ctx);
+					ctx->single_mode = GF_FALSE;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in inconsistent file states, use at your own risks\n"));
 				}
@@ -2715,7 +2828,6 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 		}
 		if (res_path) {
-
 			if (ctx->hmode==MODE_PUSH) {
 				GF_Err e;
 				u32 flags = GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT|GF_NETIO_SESSION_SHARE_SOCKET;
@@ -2767,7 +2879,6 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		gf_filter_pid_init_play_event(pid, &evt, 0.0, 1.0, "HTTPOut");
 		gf_filter_pid_send_event(pid, &evt);
-
 	}
 	if (is_remove) {
 		if (pctx) {
@@ -3036,121 +3147,9 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	//configure directories
 	if (ctx->rdirs.nb_items || ctx->wdir) {
 		gf_filter_make_sticky(filter);
-
-		u32 i;
-		Bool has_gmem = GF_FALSE;
-		ctx->has_read_dir = GF_FALSE;
-		ctx->has_write_dir = GF_FALSE;
-		ctx->directories = gf_list_new();
-		for (i=0; i<ctx->rdirs.nb_items; i++) {
-			char *dpath = ctx->rdirs.vals[i];
-			if (gf_file_exists(dpath)) {
-				GF_Config *rules = gf_cfg_new(NULL, dpath);
-				u32 j, count = gf_cfg_get_section_count(rules);
-				for (j=0; j<count; j++) {
-					const char *dname = gf_cfg_get_section_name(rules, j);
-					if (!strcmp(dpath, "gmem")) {
-						if (has_gmem) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Only a single gmem directory can be specified, ignoring rule\n"));
-							continue;
-						}
-						has_gmem = GF_TRUE;
-					}
-					//we allow for non-existing directory names for virtual services
-
-					const char *fnames = gf_cfg_get_key(rules, dname, "filters");
-					if (fnames && strcmp(fnames, "*") && strcmp(fnames, "all")) {
-						if (!strstr(fnames, "httpout")) continue;
-					}
-					HTTP_DIRInfo *di;
-					GF_SAFEALLOC(di, HTTP_DIRInfo);
-					di->path = gf_strdup(dname);
-					gf_list_add(ctx->directories, di);
-					di->name = (char*)gf_cfg_get_key(rules, dname, "name");
-					if (di->name) {
-						di->name = gf_strdup(di->name);
-						di->name_len = (u32) strlen(di->name);
-						if (di->name[di->name_len-1] != '/') {
-							gf_dynstrcat(&di->name, "/", NULL);
-							di->name_len += 1;
-						}
-					}
-					di->ru = (char*)gf_cfg_get_key(rules, dname, "ru");
-					if (di->ru) di->ru = gf_strdup(di->ru);
-					di->rg = (char*)gf_cfg_get_key(rules, dname, "rg");
-					if (di->rg) di->rg = gf_strdup(di->rg);
-					di->wu = (char*)gf_cfg_get_key(rules, dname, "wu");
-					if (di->wu) di->wu = gf_strdup(di->wu);
-					di->wg = (char*)gf_cfg_get_key(rules, dname, "wg");
-					if (di->wg) di->wg = gf_strdup(di->wg);
-
-					if (di->wu || di->wg) ctx->has_write_dir = GF_TRUE;
-					ctx->has_read_dir = GF_TRUE;
-				}
-				gf_cfg_del(rules);
-			} else {
-				HTTP_DIRInfo *di;
-				if (!strcmp(dpath, "gmem")) {
-					if (has_gmem) continue;
-					has_gmem = GF_TRUE;
-				} else if (!gf_dir_exists(dpath)) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] No such directory \"%s\": creating\n", dpath));
-					GF_Err err = gf_mkdir(dpath);
-					if (err) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to create directory \"%s\", ignoring rule\n", dpath));
-						continue;
-					}
-				}
-				GF_SAFEALLOC(di, HTTP_DIRInfo);
-				di->path = gf_strdup(dpath);
-				gf_list_add(ctx->directories, di);
-				ctx->has_read_dir = GF_TRUE;
-			}
-		}
-		if (ctx->wdir) {
-			HTTP_DIRInfo *di;
-			GF_SAFEALLOC(di, HTTP_DIRInfo);
-			di->path = gf_strdup(ctx->wdir);
-			di->wu = gf_strdup("$ALL");
-			gf_list_add(ctx->directories, di);
-			ctx->has_write_dir = GF_TRUE;
-		}
-
-		u32 count = gf_list_count(ctx->directories);
-		for (i=0; i<count; i++) {
-			HTTP_DIRInfo *di = gf_list_get(ctx->directories, i);
-			u32 j, len = (u32) strlen(di->path);
-			for (j=0; j<count; j++) {
-				if (i==j) continue;
-				HTTP_DIRInfo *adi = gf_list_get(ctx->directories, j);
-				if (adi->is_subpath) continue;
-				u32 alen = (u32) strlen(adi->path);
-				if (alen>len) {
-					if (!strncmp(di->path, adi->path, len)) adi->is_subpath = GF_TRUE;
-				} else if (alen<len) {
-					if (!strncmp(adi->path, di->path, alen)) di->is_subpath = GF_TRUE;
-				}
-			}
-		}
-
-		if (has_gmem) {
-			ctx->mem_fileio = gf_fileio_new("gmem", NULL, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
-			ctx->mem_url = gf_fileio_url(ctx->mem_fileio);
-			if (ctx->max_cache_segs==0) ctx->max_cache_segs = 1;
-			else if (ctx->max_cache_segs<0) ctx->max_cache_segs = -ctx->max_cache_segs;
-
-			ctx->has_read_dir = GF_TRUE;
-
-#ifdef GPAC_ENABLE_COVERAGE
-			if (gf_sys_is_cov_mode()) {
-				httpio_eof(ctx->mem_fileio);
-			}
-#endif
-		}
-
+		httpout_configure_directories(ctx);
 	} else if (ctx->hmode!=MODE_PUSH) {
 		ctx->single_mode = GF_TRUE;
 	}
