@@ -1822,7 +1822,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 			return fio->gets(fio, ptr, (u32) size);
 
 		u32 i, read, nb_read=0;
-		for (i=0; i<size; i++) {
+		for (i=0; i<size-1; i++) {
 			u8 buf[1];
 			read = (u32) gf_fileio_read(fio, buf, 1);
 			if (!read) break;
@@ -1831,6 +1831,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 			nb_read++;
 			if (buf[0]=='\n') break;
 		}
+		ptr[nb_read]=0;
 		if (!nb_read) return NULL;
 		return ptr;
 	}
