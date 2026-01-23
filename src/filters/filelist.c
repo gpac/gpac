@@ -1187,7 +1187,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 		char *res_url = gf_url_concatenate(ctx->temp_base_url, szURL);
 		if (res_url) {
 			strncpy(szURL, res_url, GF_MAX_PATH-2);
-			szURL[GF_MAX_PATH]=0;
+			szURL[GF_MAX_PATH-1]=0;
 			gf_free(res_url);
 		}
 	}
