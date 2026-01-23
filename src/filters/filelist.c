@@ -215,7 +215,7 @@ typedef struct
 	GF_PropStringList chap_names;
 
 	GF_FileIO *fio;
-	GF_FilterPacket *pl_ck_ref;
+	char *dyn_pl_data;
 	char *temp_base_url;
 
 } GF_FileListCtx;
@@ -871,7 +871,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 		return GF_TRUE;
 	}
 
-	if (ctx->wait_update_start || is_splice_update) {
+	if ((ctx->wait_update_start && !ctx->fio) || is_splice_update) {
 		u64 last_modif_time = gf_file_modification_time(ctx->file_path);
 		if (ctx->last_file_modif_time >= last_modif_time) {
 			if (!is_splice_update) {
@@ -1053,6 +1053,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				} else if (!strcmp(args, "base_url")) {
 					if (ctx->temp_base_url) gf_free(ctx->temp_base_url);
 					ctx->temp_base_url = aval && aval[0] ? gf_strdup(aval) : NULL;
+				} else if (!strcmp(args, "replace") || !strcmp(args, "purge")) {
 				} else {
 					if (!ctx->unknown_params || !strstr(ctx->unknown_params, args)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Unrecognized directive %s, ignoring\n", args));
@@ -2033,22 +2034,55 @@ restart:
 				f = gf_fopen(ctx->file_path, "rt");
 			} else {
 				const u8 *data;
-				u32 size;
+				u32 size, len;
+				Bool replace = GF_FALSE;
 				data = gf_filter_pck_get_data(pck, &size);
 				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_URL);
 				if (ctx->fio) gf_fclose((FILE*) ctx->fio);
-				if (ctx->pl_ck_ref) gf_filter_pck_unref(ctx->pl_ck_ref);
-				ctx->pl_ck_ref = pck;
-				gf_filter_pck_ref(&ctx->pl_ck_ref);
+				//full replacement
+				if (data && (size>=8) && !strncmp(data, "#replace", 8)) {
+					replace = GF_TRUE;
+					if (ctx->dyn_pl_data) gf_free(ctx->dyn_pl_data);
+					ctx->dyn_pl_data = NULL;
+				}
+				//look for #purge in existing playlist
+				if (ctx->dyn_pl_data) {
+					char *purge_start = strstr(ctx->dyn_pl_data, "purge");
+					while (purge_start) {
+						char *purge_next = strstr(purge_start, "purge");
+						if (!purge_next) break;
+						purge_start = purge_next;
+					}
+					if (purge_start) {
+						purge_start = gf_strdup(purge_start);
+						gf_free(ctx->dyn_pl_data);
+						ctx->dyn_pl_data = purge_start;
+					}
+				} else {
+					replace = GF_TRUE;
+				}
+				//concatenate playlists
+				len = ctx->dyn_pl_data ? (u32) strlen(ctx->dyn_pl_data) : 0;
+				ctx->dyn_pl_data = gf_realloc(ctx->dyn_pl_data, size+len+1);
+				memcpy(ctx->dyn_pl_data+len, data, size);
+				size += len;
+				ctx->dyn_pl_data[size] = 0;
 
-				ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, data, size);
+				if (ctx->fio) gf_fclose((FILE*) ctx->fio);
+				ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, ctx->dyn_pl_data, size);
 				if (ctx->file_path) gf_free(ctx->file_path);
 				ctx->file_path = gf_strdup( gf_fileio_url(ctx->fio) );
 				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_URL);
-				//reset last url crc we want to reload everything
-				ctx->last_url_crc = 0;
-				//full playlist reload
-				is_first = GF_TRUE;
+
+				ctx->ka = 1000;
+				if (replace) {
+					//reset last url crc we want to reload everything
+					ctx->last_url_crc = 0;
+					//full playlist reload
+					is_first = GF_TRUE;
+				} else {
+					is_first = GF_FALSE;
+				}
 			}
 			gf_filter_pid_drop_packet(ctx->file_pid);
 
@@ -2059,6 +2093,8 @@ restart:
 				if (f) gf_fclose(f);
 				ctx->load_next = is_first;
 			}
+		} else if (gf_filter_pid_is_eos(ctx->file_pid) && !gf_filter_pid_is_flush_eos(ctx->file_pid)) {
+			ctx->ka = 0;
 		}
 	}
 	if (ctx->is_eos)
@@ -3019,7 +3055,7 @@ static void filelist_finalize(GF_Filter *filter)
 	gf_props_reset_single(&p);
 
 	if (ctx->fio) gf_fclose((FILE*) ctx->fio);
-	if (ctx->pl_ck_ref) gf_filter_pck_unref(ctx->pl_ck_ref);
+	if (ctx->dyn_pl_data) gf_free(ctx->dyn_pl_data);
 	if (ctx->temp_base_url) gf_free(ctx->temp_base_url);
 
 }
@@ -3180,6 +3216,10 @@ GF_FilterRegister FileListRegister = {
 		"- sprops=STR: assigns properties described in `STR` to all PIDs of the main content during a splice (cf below). `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
 		"- chap=NAME: assigns chapter name at the start of next URL (filter always removes source chapter names).\n"
 		"- base_url=PATH: overrides base URL for all following entries in the playlist. To reset, use an empty string.\n"
+		"\n"
+		"When the playlist is transmitted as packets (pipes, sockets, ...), the following directives also apply:\n"
+		"- replace: replaces the entire playlist content with new packet payload, otherwise concatenate (payload must start with `#replace`).\n"
+		"- purge: avoids having the playlist continuously growing by removing all inactive content before previous `#purge` directive, evaluated at each new packet only (payload must start with `#purge`).\n"
 		"\n"
 		"The following global options (applying to the filter, not the sources) may also be set in the playlist:\n"
 		"- ka=N: force [-ka]() option to `N` millisecond refresh.\n"
