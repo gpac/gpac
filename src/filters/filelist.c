@@ -214,6 +214,7 @@ typedef struct
 	GF_PropUIntList chap_times;
 	GF_PropStringList chap_names;
 
+	Bool is_gfio;
 	GF_FileIO *fio;
 	char *dyn_pl_data;
 	char *temp_base_url;
@@ -708,7 +709,8 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 {
 	char *res_url = NULL;
 	char *sep, *o_url = szURL;
-	if (ctx->file_path) {
+	//do NOT concatenate if source is GFIO
+	if (ctx->file_path && !ctx->is_gfio) {
 		res_url = gf_url_concatenate(ctx->file_path, szURL);
 		if (res_url)
 			szURL = res_url;
@@ -871,7 +873,12 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 		return GF_TRUE;
 	}
 
-	if ((ctx->wait_update_start && !ctx->fio) || is_splice_update) {
+	Bool check_ftime = GF_TRUE;
+	//don't check for file time if we use a GFIO or a file-io mapping from source packets
+	if (ctx->fio) check_ftime = GF_FALSE;
+	else if (ctx->is_gfio) check_ftime = GF_FALSE;
+
+	if ((ctx->wait_update_start && check_ftime) || is_splice_update) {
 		u64 last_modif_time = gf_file_modification_time(ctx->file_path);
 		if (ctx->last_file_modif_time >= last_modif_time) {
 			if (!is_splice_update) {
@@ -1452,7 +1459,8 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				f = gf_filter_load_filter(filter, url, &e);
 				if (f) gf_filter_require_source_id(f);
 			} else {
-				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_FALSE, &e);
+				//no parent path if gfio
+				fsrc = gf_filter_connect_source(filter, url, ctx->is_gfio ? NULL : ctx->file_path, GF_FALSE, &e);
 
 				if (fsrc) {
 					gf_filter_set_setup_failure_callback(filter, fsrc, filelist_on_filter_setup_error, filter);
@@ -2019,6 +2027,14 @@ restart:
 			Bool is_first = GF_TRUE;
 			FILE *f=NULL;
 			p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_FILEPATH);
+			if (!p) {
+				p = gf_filter_pid_get_property(ctx->file_pid, GF_PROP_PID_URL);
+				if (p && p->value.string && !strncmp(p->value.string, "gfio://", 7)) {
+					ctx->is_gfio = GF_TRUE;
+				} else {
+					p = NULL;
+				}
+			}
 			if (p) {
 				char *frag;
 				if (ctx->file_path) {
@@ -2093,7 +2109,7 @@ restart:
 				if (f) gf_fclose(f);
 				ctx->load_next = is_first;
 			}
-		} else if (gf_filter_pid_is_eos(ctx->file_pid) && !gf_filter_pid_is_flush_eos(ctx->file_pid)) {
+		} else if (ctx->dyn_pl_data && gf_filter_pid_is_eos(ctx->file_pid) && !gf_filter_pid_is_flush_eos(ctx->file_pid)) {
 			ctx->ka = 0;
 		}
 	}
@@ -3197,6 +3213,9 @@ GF_FilterRegister FileListRegister = {
 		"Playlist refreshing will abort:\n"
 		"- if the input playlist has a line not ending with a LF `(\\n)` character, in order to avoid asynchronous issues when reading the playlist.\n"
 		"- if the input playlist has not been modified for the [-timeout]() option value (infinite by default).\n"
+		"\n"
+		"Note: When the source playlist is a GFIO object, URLs inside the playlist are NOT translated into GFIO objects.\n"
+		"\n"
 		"## Playlist directives\n"
 		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
 		"- repeat=N: repeats `N` times the content (hence played N+1), infinite loop if negative.\n"
