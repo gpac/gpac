@@ -391,6 +391,7 @@ typedef struct _dash_stream
 	//0: not done, 1: eos/abort, 2: subdur exceeded
 	u32 done;
 	Bool seg_done;
+	Bool removed;
 
 	u32 nb_comp, nb_comp_done;
 
@@ -1001,7 +1002,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (ctx->next_period)
 				gf_list_del_item(ctx->next_period->streams, ds);
 			dasher_reset_stream(filter, ds, GF_TRUE);
-			gf_free(ds);
+			//do not free here !
 		}
 		return GF_OK;
 	}
@@ -1297,7 +1298,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		if (!ds->timescale) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Dasher] Input PID %s has no timescale, cannot dash\n", gf_filter_pid_get_name(pid) ));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			return GF_FILTER_NOT_SUPPORTED;
 		}
 
 		if (ds->stream_type==GF_STREAM_VISUAL) {
@@ -5962,6 +5963,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 {
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
 	//removing it explicitly will discard the upper chain and any packets not yet processed
+	if (ds->removed) return;
 
 	ds->dst_filter = NULL;
 	if (ds->seg_template) gf_free(ds->seg_template);
@@ -6008,7 +6010,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 #ifndef GPAC_DISABLE_CRYPTO
 		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
 #endif
-
+		ds->removed = GF_TRUE;
 		return;
 	}
 	ds->init_seg = ds->seg_template = ds->idx_template = NULL;
@@ -9459,6 +9461,18 @@ static GF_Err dasher_process(GF_Filter *filter)
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
 
+				if (ds->removed) {
+					gf_list_rem(ctx->current_period->streams, i);
+					if (ds->ipid)
+						gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+					if (ds->opid)
+						gf_filter_pid_set_eos(ds->opid);
+					gf_free(ds);
+					i--;
+					count--;
+					break;
+				}
+
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
 					//in closest mode, flush queue
@@ -9835,6 +9849,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
+			if (dur > 600 * ds->timescale) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Packet with suspicious duration %g seconds, clamping to 10 min!\n", ((Double)o_dur)/ds->timescale ));
+				dur = o_dur = ds->timescale;
+			}
 			pcont_cts += dur;
 			if (ds->period_continuity_next_cts < pcont_cts)
 				ds->period_continuity_next_cts = pcont_cts;
