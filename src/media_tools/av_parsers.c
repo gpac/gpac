@@ -2690,15 +2690,6 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 			if (metadata_type == OBU_METADATA_TYPE_TIMECODE) {
 				return;
 			}
-			else if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
-				if (!state->mem_mode) {
-					av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.frame_obus, NULL);
-				}
-				else {
-					av1_add_obu_internal(bs, pos, obu_length, obu_type, NULL, state);
-				}
-				return;
-			}
 		}
 
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
