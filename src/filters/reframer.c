@@ -242,6 +242,9 @@ static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st, Bool do_fre
 	st->split_pck = NULL;
 	if (st->reinsert_single_pck) gf_filter_pck_unref(st->reinsert_single_pck);
 	st->reinsert_single_pck = NULL;
+	if (ctx->clock == st)
+		ctx->clock = NULL;
+
 	if (do_free)
 		gf_free(st);
 }
