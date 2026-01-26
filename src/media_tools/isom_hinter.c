@@ -989,6 +989,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			e = gf_isom_text_get_encoded_tx3g(tkHint->file, tkHint->TrackNum, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
 			if (e) {
 				if (i) continue;
+				if (sdp_line) gf_free(sdp_line);
 				return GF_ISOM_INVALID_FILE;
 			}
 			len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);

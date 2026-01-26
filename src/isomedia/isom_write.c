@@ -2941,6 +2941,14 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
+	if (the_trak && the_trak->Media && the_trak->Media->information) {
+		if (the_trak->Media->information->dataHandler == movie->movieFileMap || the_trak->Media->information->dataHandler == movie->editFileMap)
+			the_trak->Media->information->dataHandler = NULL;
+
+		if (the_trak->Media->information->scalableDataHandler == movie->movieFileMap || the_trak->Media->information->scalableDataHandler == movie->editFileMap)
+			the_trak->Media->information->scalableDataHandler = NULL;
+	}
+
 	if (movie->moov->iods && movie->moov->iods->descriptor) {
 		GF_Descriptor *desc;
 		GF_ES_ID_Inc *inc;
