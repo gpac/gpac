@@ -3313,7 +3313,10 @@ void mdia_box_del(GF_Box *s)
 	if (ptr->extracted_samp) gf_isom_sample_del(&ptr->extracted_samp);
 	if (ptr->in_sample_buffer) gf_free(ptr->in_sample_buffer);
 	if (ptr->tmp_nal_copy_buffer) gf_free(ptr->tmp_nal_copy_buffer);
-	if (ptr->information && ptr->information->dataHandler) gf_isom_datamap_del(ptr->information->dataHandler);
+	if (ptr->information && ptr->information->dataHandler) {
+		gf_isom_datamap_del(ptr->information->dataHandler);
+		ptr->information->dataHandler = NULL;
+	}
 	gf_free(ptr);
 }
 
