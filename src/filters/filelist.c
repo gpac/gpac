@@ -63,7 +63,7 @@ typedef struct
 	//in output timescale
 	u64 cts_o, dts_o;
 	Bool single_frame;
-	Bool is_eos;
+	Bool is_eos, detached;
 	u64 dts_sub;
 	u64 first_dts_plus_one;
 	u64 prev_max_dts, prev_cts_o, prev_dts_o;
@@ -468,6 +468,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 		if (!p) return GF_NOT_SUPPORTED;
 		iopid->stream_type = p->value.uint;
+		iopid->detached = GF_FALSE;
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
@@ -2144,15 +2145,18 @@ restart:
 					continue;
 				}
 
-				if (iopid->opid) {
+				if (iopid->opid && !iopid->detached) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Output PID %s no longer has an associated input, signaling EOS\n", gf_filter_pid_get_name(iopid->opid) ));
 					gf_filter_pid_set_eos(iopid->opid);
 				}
-				if (iopid->opid_aux) {
+				if (iopid->opid_aux && !iopid->detached) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Output PID %s no longer has an associated input, signaling EOS\n", gf_filter_pid_get_name(iopid->opid_aux) ));
 					gf_filter_pid_set_eos(iopid->opid_aux);
 				}
-				return GF_OK;
+				iopid->detached = GF_TRUE;
+
+				nb_eos++;
+				continue;
 			}
 			if (iopid->skip_dts_init) continue;
 			pck = gf_filter_pid_get_packet(iopid->ipid);
