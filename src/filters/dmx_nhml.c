@@ -1767,7 +1767,10 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 
 	if (ctx->parsing_state == 0) {
 		e = nhmldmx_init_parsing(filter, ctx);
-		if (e) goto eos;
+		if (e) {
+			gf_filter_abort(filter);
+			goto eos;
+		}
 		ctx->parsing_state = 1;
 	}
 
