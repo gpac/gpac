@@ -2185,7 +2185,8 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
 			CHECK_IMGPROP
-			strcpy(meta->image_props->iccPath, szSlot+9);
+			strncpy(meta->image_props->iccPath, szSlot+9, GF_ARRAY_LENGTH(meta->image_props->iccPath)-1);
+			meta->image_props->iccPath[GF_ARRAY_LENGTH(meta->image_props->iccPath)-1] = 0;
 		}
 		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
 			CHECK_IMGPROP
@@ -4150,13 +4151,21 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName)
 	orig_box_overhead = 0;
 	final_box_overhead = 0;
 	while (gf_bs_available(bs_in)) {
+
 		u32 size = gf_bs_read_u32(bs_in);
+
+		if (size < 8) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+
 		u32 type = gf_bs_read_u32(bs_in);
 		const char *b4cc = gf_4cc_to_str(type);
 		const u8 *replace = (const u8 *) strstr(compress_top_boxes, b4cc);
 		if (!strcmp(b4cc, "moov")) has_mov = GF_TRUE;
 
 		if (!replace && !replace_all) {
+
 			gf_bs_write_u32(bs_out, size);
 			gf_bs_write_u32(bs_out, type);
 
