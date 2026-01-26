@@ -2055,8 +2055,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						AVI->track[AVI->aptr].a_vbr = !str2ulong(hdrl_data+i+44);
 
 						AVI->track[AVI->aptr].padrate = str2ulong(hdrl_data+i+24);
-						memcpy(&AVI->stream_headers[AVI->aptr], hdrl_data + i,
-						       sizeof(alAVISTREAMHEADER));
+						if (i + sizeof(alAVISTREAMHEADER) > hdrl_len) {
+							ERR_EXIT(AVI_ERR_READ);
+						}
+
+						memcpy(&AVI->stream_headers[AVI->aptr], hdrl_data + i, sizeof(alAVISTREAMHEADER));
 
 						//	   auds_strh_seen = 1;
 						lasttag = 2; /* auds */
@@ -2487,6 +2490,10 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			// skip header
 			en += hdrl_len;
 			nvi += nrEntries;
+			if (nvi <= 0 || nvi >= GF_INT_MAX/sizeof(video_index_entry)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] invalid nvi value %d\n", nvi));
+				ERR_EXIT(AVI_ERR_READ);
+			}
 			AVI->video_index = (video_index_entry *) gf_realloc (AVI->video_index, nvi * sizeof (video_index_entry));
 			if (!AVI->video_index) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] out of mem (size = %ld)\n", nvi * sizeof (video_index_entry)));
