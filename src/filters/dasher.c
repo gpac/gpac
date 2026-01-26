@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -7012,7 +7012,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->period_not_ready)
 		return GF_OK;
 
-	return dasher_setup_period(filter, ctx, NULL);
+	GF_Err e = dasher_setup_period(filter, ctx, NULL);
+	//update previous period duration and current period start now, otherwise we may have a wrong AST on the first segment(s)
+	//hence warnings and possible remove
+	dasher_update_period_duration(ctx, GF_TRUE);
+	return e;
 }
 
 //set SSR (sub-segment representation) related descriptors
