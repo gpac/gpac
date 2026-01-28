@@ -374,13 +374,14 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 
 #include <gpac/internal/media_dev.h>
 
-static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
+static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, u32 dv_md_compression)
 {
 	GF_Err e;
 	Bool remove=GF_FALSE;
 	Bool force_dv=GF_FALSE;
 	u32 dv_profile = 0;
 	u32 dv_compat_id=0;
+	u32 dv_version_major = 1;
 	char *sep = strchr(dv_profile_str, '.');
 	if (sep) {
 		sep[0] = 0;
@@ -410,14 +411,20 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 				M4_LOG(GF_LOG_ERROR, ("DV profile 8 must indicate a compatibility mode `hdr10`, `bt709` or `hlg2100`\n"));
 				return GF_BAD_PARAM;
 			}
-		}
+		} else if (dv_profile==20) {
+			// Dolby Vision Streams Within the ISO Base Media File Format specification version 2.6 section 2.2
+			dv_version_major = 3;
+ 		}
 	}
 
 	GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(dest, track, 1);
 	if (dovi) {
+		dovi->dv_version_major = dv_version_major;
 		dovi->dv_profile = dv_profile;
 		dovi->dv_bl_signal_compatibility_id = dv_compat_id;
 		dovi->force_dv = force_dv;
+		dovi->dv_md_compression = dv_md_compression;
+		dovi->rpu_present_flag = 1;
 		e = gf_isom_set_dolby_vision_profile(dest, track, 1, remove ? NULL : dovi);
 		gf_odf_dovi_cfg_del(dovi);
 		return e;
@@ -431,11 +438,16 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 
 	GF_DOVIDecoderConfigurationRecord _dovi;
 	memset(&_dovi, 0, sizeof(GF_DOVIDecoderConfigurationRecord));
-	_dovi.dv_version_major = 1;
+	_dovi.dv_version_major = dv_version_major;
 	_dovi.dv_version_minor = 0;
 	_dovi.dv_profile = dv_profile;
 	_dovi.dv_bl_signal_compatibility_id = dv_compat_id;
 	_dovi.force_dv = force_dv;
+	_dovi.dv_md_compression = dv_md_compression;
+
+	// This flag must always be set to 1 given the deprecation of certain profiles
+	// Dolby Vision Streams Within the ISO Base Media File Format specification version 2.6 section 2.2
+	_dovi.rpu_present_flag = 1;
 
 	u32 w, h;
 	u32 codec_id = 0;
@@ -490,8 +502,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 				u32 nal_type = gf_bs_read_u8(bs);
 				nal_type = nal_type & 0x1F;
 				nal_size--;
-				if (nal_type == GF_AVC_NALU_DV_RPU) _dovi.rpu_present_flag = 1;
-				else if (nal_type == GF_AVC_NALU_DV_EL) _dovi.el_present_flag = 1;
+				if (nal_type == GF_AVC_NALU_DV_EL) _dovi.el_present_flag = 1;
 				else if (nal_type <= GF_AVC_NALU_IDR_SLICE) _dovi.bl_present_flag = 1;
 
 				gf_bs_skip_bytes(bs, nal_size-1);
@@ -501,8 +512,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 				u32 nal_type = gf_bs_read_int(bs, 6);
 				gf_bs_read_int(bs, 1);
 				nal_size--;
-				if (nal_type == GF_HEVC_NALU_DV_RPU) _dovi.rpu_present_flag = 1;
-				else if (nal_type == GF_HEVC_NALU_DV_EL) _dovi.el_present_flag = 1;
+				if (nal_type == GF_HEVC_NALU_DV_EL) _dovi.el_present_flag = 1;
 				else if (nal_type <= GF_HEVC_NALU_SLICE_CRA) _dovi.bl_present_flag = 1;
 
 				gf_bs_skip_bytes(bs, nal_size-1);
@@ -525,22 +535,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 						obu_size = samp->dataLength - (u32) gf_bs_get_position(bs);
 					}
 					obu_size += obu_hdr_size;
-					if (obu_type==OBU_METADATA) {
-						gf_bs_seek(bs, obu_start+obu_hdr_size);
-						ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
-						if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
-							//cf issue #2549
-							if (gf_bs_read_u8(bs)==0xB5) {
-								const u8 rpu_hdr[] = {0x00, 0x3B, 0x00, 0x00, 0x08, 0x00, 0x37, 0xCD, 0x08};
-								const u32 rpu_hdr_len = sizeof (rpu_hdr);
-								u32 pos = (u32) gf_bs_get_position(bs);
-								u8 *t35_start = samp->data + pos;
-								if (!memcmp(t35_start, rpu_hdr, rpu_hdr_len)) {
-									_dovi.rpu_present_flag = 1;
-								}
-							}
-						}
-					} else if (obu_type<=OBU_TILE_LIST) {
+					if (obu_type<=OBU_TILE_LIST) {
 						_dovi.bl_present_flag = 1;
 					}
 					gf_bs_seek(bs, obu_start+obu_size);
@@ -724,6 +719,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	s32 mx[9];
 	u32 bitdepth=0;
 	char dv_profile[100]; /*Dolby Vision*/
+	u32 dv_md_compression;  /*Dolby Vision*/
 	u32 clr_type=0;
 	u32 clr_prim;
 	u32 clr_tranf;
@@ -769,6 +765,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	GF_MediaImporter *import = NULL;
 
 	dv_profile[0] = 0;
+	dv_md_compression = 0;
 	rvc_predefined = 0;
 	chapter_name = NULL;
 	new_timescale = 1;
@@ -1315,6 +1312,17 @@ reparse_opts:
 			strncpy(dv_profile, ext + 5, 99);
 			dv_profile[99]=0;
 		}
+		else if (!strnicmp(ext + 1, "dvmdc=", 6)) {
+			dv_md_compression = parse_s32(ext+7, "dvmdc=");
+			if (dv_md_compression == 2) {
+				e = GF_BAD_PARAM;
+				GOTO_EXIT("2 is reserved for Dolby Vision metadata compression")
+			}
+			if (dv_md_compression > 3) {
+				e = GF_BAD_PARAM;
+				GOTO_EXIT("Dolby Vision metadata compression valid value: 0, 1, 3. default = 0")
+			}
+		}
 		//old name
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
 			M4_LOG(GF_LOG_WARNING, ("Deprecated option name, use `:dvp=` instead\n"));
@@ -1810,7 +1818,7 @@ reparse_opts:
 				GOTO_EXIT("setting HDR info")
 			}
 			if (dv_profile[0]) {
-				e = set_dv_profile(dest, track, dv_profile);
+				e = set_dv_profile(dest, track, dv_profile, dv_md_compression);
 				GOTO_EXIT("setting DV profile")
 			}
 

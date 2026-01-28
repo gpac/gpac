@@ -496,6 +496,67 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_vexu(GF_ISOFile *movie, u32 hero_eye)
+{
+	GF_TrackBox *trak;
+	GF_SampleDescriptionBox* stsd;
+	GF_Box *box, *hvc1, *dvh1, *vexu;
+	GF_StereoViewBox *eyes;
+	GF_HeroStereoEyeDescriptionBox *hero;
+	u32 i = 0;
+	GF_Err e;
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	e = gf_isom_insert_moov(movie);
+	if (e) return e;
+
+	if (hero_eye >= 3) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to insert VEXU box: hero_eye_indicator >= 3 is reserved.\n"));
+		return GF_BAD_PARAM;
+	}
+
+	while ((trak = (GF_TrackBox*)gf_list_enum(movie->moov->trackList, &i))) {
+		if (!gf_isom_is_video_handler_type(trak->Media->handler->handlerType)) {
+			continue;
+		}
+
+		stsd = trak->Media->information->sampleTable->SampleDescription;
+		hvc1 = gf_isom_box_find_child(stsd->child_boxes, GF_ISOM_BOX_TYPE_HVC1);
+		dvh1 = gf_isom_box_find_child(stsd->child_boxes, GF_ISOM_BOX_TYPE_DVH1);
+		box = hvc1 ? hvc1 : dvh1;
+
+		if(!box) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("No additional VEXU box is needed for Track %d: lack of dvh1/hvc1 boxes.\n", trak->index));
+			continue;
+		}
+		if (!gf_isom_box_find_child(box->child_boxes, GF_ISOM_BOX_TYPE_LHVC)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("No additional VEXU box is needed for Track %d: the video is monoscopic.\n", trak->index));
+			continue;
+		}
+		if (gf_isom_box_find_child(box->child_boxes, GF_ISOM_BOX_TYPE_VEXU)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Track %d already has VEXU box.\n", trak->index));
+			continue;
+		}
+
+		// ISO Base Media File Format and Apple HEVC Stereo Video Version 0.9
+		vexu = gf_isom_box_new_parent(&box->child_boxes, GF_ISOM_BOX_TYPE_VEXU);
+		if (!vexu) return GF_OUT_OF_MEM;
+
+		eyes = (GF_StereoViewBox*)gf_isom_box_new_parent(&vexu->child_boxes, GF_ISOM_BOX_TYPE_EYES);
+		if (!eyes) return GF_OUT_OF_MEM;
+		eyes->stri.has_left_eye_view = 1;
+		eyes->stri.has_right_eye_view = 1;
+
+		hero = (GF_HeroStereoEyeDescriptionBox*)gf_isom_box_new_parent(&eyes->child_boxes, GF_ISOM_BOX_TYPE_HERO);
+		if (!hero) return GF_OUT_OF_MEM;
+		hero->hero_eye_indicator = hero_eye;
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("VEXU box is added to Track %d.\n", trak->index));
+	}
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_set_pl_indication(GF_ISOFile *movie, GF_ISOProfileLevelType PL_Code, u8 ProfileLevel)
@@ -1948,6 +2009,53 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 }
 
 GF_EXPORT
+GF_Err gf_isom_set_ambient_viewing_environment(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 ambient_illuminance, u16 ambient_light_x, u16 ambient_light_y)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+	GF_AmbientViewingEnvBox *amve=NULL;
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->child_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_SampleEntryBox*)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_BAD_PARAM;
+	if (!movie->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_OK;
+
+	amve = (GF_AmbientViewingEnvBox*) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_AMVE);
+
+	// ambient_illuminance shall not be equal to 0
+	// The values of ambient_light_x and ambient_light_y shall be in the range of 0 to 50000, inclusive
+	if (ambient_illuminance == 0 || ambient_light_x > 50000 || ambient_light_y > 50000) {
+		if (amve) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *)amve);
+		return GF_OK;
+	}
+
+	if (!amve) {
+		amve = (GF_AmbientViewingEnvBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_AMVE);
+		if (!amve) return GF_OUT_OF_MEM;
+	}
+	amve->ambient_illuminance = ambient_illuminance;
+	amve->ambient_light_x = ambient_light_x;
+	amve->ambient_light_y = ambient_light_y;
+
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc)
 {
 	GF_Err e;
@@ -2059,6 +2167,17 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		dovi->type = GF_ISOM_BOX_TYPE_DVVC;
 	}
 	dovi->DOVIConfig = *dvcc;
+
+	if (dvcc->dv_profile == 20) {
+		if (dvcc->dv_bl_signal_compatibility_id != 4) {
+			entry->type = GF_ISOM_BOX_TYPE_DVH1;
+		}
+		dovi->type = GF_ISOM_BOX_TYPE_DVCC;
+	}
+	if (dvcc->dv_profile == 10 && dvcc->dv_bl_signal_compatibility_id == 0) {
+		entry->type = GF_ISOM_BOX_TYPE_DAV1;
+		dovi->type = GF_ISOM_BOX_TYPE_DVVC;
+	}
 
 	if (dv_cfge) gf_isom_box_del_parent(&entry->child_boxes, dv_cfge);
 	dv_cfge = NULL;

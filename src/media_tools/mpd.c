@@ -3434,6 +3434,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, B
 		rep->codecs = bck_codecs;
 	}
 
+	gf_mpd_extensible_print_attr(out, rep->x_attributes);
 
 	gf_fprintf(out, ">");
 	gf_mpd_lf(out, indent);
@@ -3705,6 +3706,17 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 	}
 	if (prim_group_id) {
 		gf_fprintf(out, ",%s=\"%s\"", (rep->streamtype==GF_STREAM_VISUAL) ? "VIDEO" : "AUDIO", prim_group_id);
+	}
+	if (rep->m3u8_x_attributes) {
+		u32 j=0;
+		GF_XMLAttribute *att;
+		while ((att = (GF_XMLAttribute *)gf_list_enum(rep->m3u8_x_attributes, &j))) {
+			if (strstr(att->name, "VIDEO-RANGE")) {
+				gf_fprintf(out, ",%s=%s", att->name, att->value);
+			} else {
+				gf_fprintf(out, ",%s=\"%s\"", att->name, att->value);
+			}
+		}
 	}
 	gf_fprintf(out,"\n");
 
@@ -4305,7 +4317,7 @@ static char *get_rep_variant_filename(GF_MPD const * const mpd, GF_MPD_Represent
 
 GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode)
 {
-	u32 i, j, hls_version;
+	u32 i, j, x, hls_version;
 	u32 var_idx;
 	GF_Err e;
 	GF_MPD_AdaptationSet *as;
@@ -4326,6 +4338,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool has_video = GF_FALSE;
 	Bool has_audio = GF_FALSE;
 	Bool has_cc = GF_FALSE;
+	Bool has_req = GF_FALSE;
 
 	if (!m3u8_name || !period) return GF_BAD_PARAM;
 
@@ -4369,6 +4382,12 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 					}
 				}
 			}
+			// RFC 8216: EXT-X-VERSION of 12 or higher if it contains an attribute whose name starts with "REQ-"
+			for (x=0; x<gf_list_count(rep->m3u8_x_attributes); x++) {
+				GF_XMLAttribute *attr = gf_list_get(rep->m3u8_x_attributes, x);
+				if (!strncmp(attr->name, "REQ-", 4))
+					has_req = GF_TRUE;
+			}
 		}
 	}
 	//we by default use floating point durations
@@ -4376,6 +4395,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	if (use_range) hls_version = 4;
 	if (use_intra_only || use_saes_crypto) hls_version = 5;
 	if (is_fmp4 || use_init || has_cc) hls_version = 6;
+	if (has_req) hls_version = 12;
 
 	if (mode!=GF_M3U8_WRITE_CHILD) {
 
