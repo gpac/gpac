@@ -258,6 +258,8 @@ enum
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
 	/*! imports sample dependencies information*/
 	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
+	/*! marks content for AC3 compat signalling*/
+	GF_IMPORT_AC3_COMPAT  = 1<<30,
 	
 	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };

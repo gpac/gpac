@@ -1152,6 +1152,9 @@ reparse_opts:
 				GOTO_EXIT("Unrecognized dolby atmos mode")
 			}
 		}
+		else if (!strnicmp(ext+1, "ac3compat", 9)) {
+			import_flags |= GF_IMPORT_AC3_COMPAT;
+		}
 
 		else if (!strnicmp(ext+1, "novpsext", 8)) { CHECK_FAKEIMPORT("novpsext") import_flags |= GF_IMPORT_NO_VPS_EXTENSIONS; }
 		else if (!strnicmp(ext+1, "keepav1t", 8)) { CHECK_FAKEIMPORT("keepav1t") import_flags |= GF_IMPORT_KEEP_AV1_TEMPORAL_OBU; }
@@ -2046,6 +2049,15 @@ reparse_opts:
 				gf_isom_ac3_config_update(dest, track, 1, ac3c);
 				gf_free(ac3c);
 			}
+		}
+		if ((import_flags & GF_IMPORT_AC3_COMPAT) && (gf_isom_get_media_subtype(dest, track, 1)==GF_ISOM_SUBTYPE_AC3 || gf_isom_get_media_subtype(dest, track, 1)==GF_ISOM_SUBTYPE_EC3)) {
+			GF_AC3Config *ac3c = gf_isom_ac3_config_get(dest, track, 1);
+			if (ac3c) {
+				ac3c->ac3_legacy_ase = GF_TRUE;
+				gf_isom_ac3_config_update(dest, track, 1, ac3c);
+				gf_free(ac3c);
+			} else
+				GOTO_EXIT("Cannot get AC3/E-AC3 config");
 		}
 
 		//if track order is required, gather track IDs - we cannot change directly track order since this impacts track number

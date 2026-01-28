@@ -1655,6 +1655,9 @@ typedef struct __ac3_config
 	u8 atmos_ec3_ext;
 	/*! atmos complexity index*/
 	u8 complexity_index_type;
+
+	/*! write actual channel count and sample size value in the (e)AC3Audio Sample Entry (backward-compatibility)*/
+	Bool ac3_legacy_ase;
 } GF_AC3Config;
 
 

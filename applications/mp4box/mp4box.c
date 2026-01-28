@@ -959,6 +959,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"- no: disable Atmos signaling\n"
 		"- auto: use Atmos signaling from first sample\n"
 		"- N: force Atmos signaling using compatibility type index N", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("ac3compat", NULL, "write actual channel count and sample size value for Dolby (e)AC3", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("size", NULL, "specify font size for text import (default `18`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("text_layout", NULL, "specify the track text layout as WxHxXxY\n"
