@@ -2765,7 +2765,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			szTime[i] = szLine[i+1];
 			i++;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		ctx->start = atoi(szTime);
 		if (ctx->start < ctx->end) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, ctx->start, ctx->end));
@@ -2786,7 +2786,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			szTime[i] = szLine[i+1+j];
 			i++;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		ctx->end = atoi(szTime);
 		j+=i+2;
 
