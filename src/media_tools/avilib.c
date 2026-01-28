@@ -2283,9 +2283,20 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 								ERR_EXIT(AVI_ERR_READ)
 						}
 
-						AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
+						if (AVI->track[AVI->aptr].audio_superindex->nEntriesInUse) {
+
+							// must be 4 so that wLongsPerEntry*sizeof(u32) == sizeof(avisuperindex_entry)
+							if (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry != 4) {
+								ERR_EXIT(AVI_ERR_READ)
+							}
+
+							AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
 						        gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *
 						                   AVI->track[AVI->aptr].audio_superindex->nEntriesInUse * sizeof (u32));
+						}
+						else {
+							AVI->track[AVI->aptr].audio_superindex->aIndex = NULL;
+						}
 
 						// position of ix## chunks
 						for (j=0; j<AVI->track[AVI->aptr].audio_superindex->nEntriesInUse; ++j) {
@@ -2490,14 +2501,19 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			// skip header
 			en += hdrl_len;
 			nvi += nrEntries;
+
 			if (nvi <= 0 || nvi >= GF_INT_MAX/sizeof(video_index_entry)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] invalid nvi value %d\n", nvi));
+				gf_free(chunk_start);
 				ERR_EXIT(AVI_ERR_READ);
 			}
+
 			AVI->video_index = (video_index_entry *) gf_realloc (AVI->video_index, nvi * sizeof (video_index_entry));
+
 			if (!AVI->video_index) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] out of mem (size = %ld)\n", nvi * sizeof (video_index_entry)));
-				exit(1);
+				gf_free(chunk_start);
+				ERR_EXIT(AVI_ERR_NO_MEM);
 			}
 
 			while (k < nvi) {
