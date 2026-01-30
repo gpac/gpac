@@ -905,8 +905,9 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("ps", NULL, "same as [-ps]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("psx", NULL, "same as [-psx]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("asemode", NULL, "`XS` set the mode to create the AudioSampleEntry. Value can be:\n"
-		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
+		"  - v0-s: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2, except for Dolby (e)AC3) - default\n"
 		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
+		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream\n"
 		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("audio_roll", NULL, "`S` add a roll sample group with roll_distance `N` for audio tracks", NULL, NULL, GF_ARG_INT, 0),

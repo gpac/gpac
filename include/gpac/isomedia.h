@@ -2699,10 +2699,12 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32
 GF_OPT_ENUM (GF_AudioSampleEntryImportMode,
 	/*! use ISOBMF sample entry v0*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
-	/*! use ISOBMF sample entry v0*/
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
+	/*! use ISOBMF sample entry v0 for best backward-compatibility*/
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT,
 	/*! use ISOBMF sample entry v0 and forces channel count to 2*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2,
+	/*! use ISOBMF sample entry v0 and forces values from bitstream*/
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
 	/*! use ISOBMF sample entry v1*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG,
 	/*! use QTFF sample entry v1*/
