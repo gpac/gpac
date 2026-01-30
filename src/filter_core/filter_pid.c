@@ -4521,8 +4521,10 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					reset_prop = GF_TRUE;
 				}
 			}
+			if (reset_prop) {
+				gf_props_reset_single(&p);
+			}
 			gf_filter_pid_set_property_dyn(pid, name, &p);
-			if (reset_prop) gf_props_reset_single(&p);
 		}
 		if (value_next_list)
 			value_next_list[0] = sep_list;
