@@ -410,7 +410,7 @@ void gf_fs_register_test_filters(GF_FilterSession *session);
 /*! Loads a source filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typically using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -420,7 +420,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *session, const char *url, const c
 /*! Loads a destination filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typically using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error

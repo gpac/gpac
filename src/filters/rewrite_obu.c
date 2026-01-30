@@ -631,7 +631,7 @@ GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
 	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB rewriter")
 	GF_FS_SET_HELP("This filter rewrites VPx or AV1 bitstreams into a IVF, annexB or OBU sequence.\n"
-	"The temporal delimiter OBU is re-inserted in annexB (`.av1` and `.av1b`files, with obu_size set) and OBU sequences (`.obu`files, without obu_size)\n"
+	"The temporal delimiter OBU is re-inserted in annexB (`.av1` and `.av1b` files, with obu_size set) and OBU sequences (`.obu` files, without obu_size)\n"
 	"Timecode metadata optionally inserted\n"
 	"Note: VP8/9 codecs will only use IVF output (equivalent to file extension `.ivf` or `:ext=ivf` set on output).\n"
 	)
