@@ -254,17 +254,8 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 	gf_bs_write_u16(bs, ptr->version);
 	gf_bs_write_u16(bs, ptr->revision);
 	gf_bs_write_u32(bs, ptr->vendor);
-	// According to ETSI TS 102 366 V1.4.1 (2017-09), the channel_count of AC3, EC3 (based on AudioSampleEntry) should always be 2, and the sample size should always be 16
-	//for now we disable this in test mode to avoid invalidating hashes
-	if (!gf_sys_is_test_mode()
-		&& (ptr->version == 0)
-		&& (ptr->type == GF_ISOM_BOX_TYPE_AC3 || ptr->type == GF_ISOM_BOX_TYPE_EC3)) {
-		gf_bs_write_u16(bs, 2);
-		gf_bs_write_u16(bs, 16);
-	} else {
-		gf_bs_write_u16(bs, ptr->channel_count);
-		gf_bs_write_u16(bs, ptr->bitspersample);
-	}
+	gf_bs_write_u16(bs, ptr->channel_count);
+	gf_bs_write_u16(bs, ptr->bitspersample);
 	gf_bs_write_u16(bs, ptr->compression_id);
 	gf_bs_write_u16(bs, ptr->packet_size);
 	gf_bs_write_u16(bs, ptr->samplerate_hi);
