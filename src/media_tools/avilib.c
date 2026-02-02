@@ -2078,7 +2078,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				}
 				else if(strnicmp((char*)hdrl_data+i,"dmlh",4) == 0) {
 
-					if (i+12>hdrl_len) ERR_EXIT(AVI_ERR_READ)
+					if (i+8+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 					AVI->total_frames = str2ulong(hdrl_data+i+8);
 #ifdef DEBUG_ODML
@@ -2091,9 +2091,12 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					i += 8;
 					if(lasttag == 1)
 					{
+						if (i+sizeof(alBITMAPINFOHEADER)>hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
 						alBITMAPINFOHEADER bih;
 
 						memcpy(&bih, hdrl_data + i, sizeof(alBITMAPINFOHEADER));
+						if (bih.bi_size < 4) ERR_EXIT(AVI_ERR_READ)
 						bih.bi_size = str2ulong((unsigned char *)&bih.bi_size);
 
 						if (i + bih.bi_size > hdrl_len) ERR_EXIT(AVI_ERR_READ)
@@ -2101,6 +2104,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						AVI->bitmap_info_header = (alBITMAPINFOHEADER *) gf_malloc(bih.bi_size);
 						if (AVI->bitmap_info_header != NULL)
 							memcpy(AVI->bitmap_info_header, hdrl_data + i, bih.bi_size);
+
+						if (i+16+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->width  = str2ulong(hdrl_data+i+4);
 						AVI->height = str2ulong(hdrl_data+i+8);
@@ -2122,6 +2127,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					}
 					else if(lasttag == 2)
 					{
+						if (i>=hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
 						alWAVEFORMATEX *wfe;
 						char *nwfe;
 						int wfes;
@@ -2151,6 +2158,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 							}
 							AVI->wave_format_ex[AVI->aptr] = wfe;
 						}
+						if (i+14+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->track[AVI->aptr].a_fmt   = str2ushort(hdrl_data+i  );
 
