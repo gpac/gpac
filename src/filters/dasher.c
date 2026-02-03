@@ -341,6 +341,8 @@ typedef struct
 	Bool move_to_static;
 	Bool explicit_mode;
 	Bool inband_event;
+
+	Bool has_pid_removed;
 } GF_DasherCtx;
 
 typedef struct _dash_stream
@@ -391,7 +393,6 @@ typedef struct _dash_stream
 	//0: not done, 1: eos/abort, 2: subdur exceeded
 	u32 done;
 	Bool seg_done;
-	Bool removed;
 
 	u32 nb_comp, nb_comp_done;
 
@@ -1002,7 +1003,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (ctx->next_period)
 				gf_list_del_item(ctx->next_period->streams, ds);
 			dasher_reset_stream(filter, ds, GF_TRUE);
-			//do not free here !
+			gf_free(ds);
+			ctx->has_pid_removed = GF_TRUE;
 		}
 		return GF_OK;
 	}
@@ -5963,8 +5965,6 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 {
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
 	//removing it explicitly will discard the upper chain and any packets not yet processed
-	if (ds->removed) return;
-
 	ds->dst_filter = NULL;
 	if (ds->seg_template) gf_free(ds->seg_template);
 	if (ds->idx_template) gf_free(ds->idx_template);
@@ -6010,7 +6010,6 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 #ifndef GPAC_DISABLE_CRYPTO
 		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
 #endif
-		ds->removed = GF_TRUE;
 		return;
 	}
 	ds->init_seg = ds->seg_template = ds->idx_template = NULL;
@@ -9344,6 +9343,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	u32 nb_seg_waiting = 0;
 	u32 nb_seg_active = 0;
 
+	ctx->has_pid_removed = GF_FALSE;
 	if (ctx->in_error) {
 		gf_filter_abort(filter);
 		return GF_SERVICE_ERROR;
@@ -9401,6 +9401,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
+			if (ctx->has_pid_removed) return GF_OK;
 
 			u64 ts = gf_filter_pck_get_cts(pck);
 			if (ts != GF_FILTER_NO_TS) {
@@ -9461,17 +9462,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
 
-				if (ds->removed) {
-					gf_list_rem(ctx->current_period->streams, i);
-					if (ds->ipid)
-						gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
-					if (ds->opid)
-						gf_filter_pid_set_eos(ds->opid);
-					gf_free(ds);
-					i--;
-					count--;
-					break;
-				}
+				//pid removal while fetching, abort current process
+				if (ctx->has_pid_removed) return GF_OK;
 
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
