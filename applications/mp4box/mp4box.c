@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -1412,7 +1412,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
 		"- depth: indicate that the image is a depth image (should use ref=auxl also)\n"
-		"- it=ID: indicate the item ID of the source item to import\n"
+		"- it=ID: indicate the item ID of the source item to import. If unspecified and source has no tracks, all items are imported\n"
 		"- itp=ID: same as `it=` but copy over all properties of the source item\n"
 		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
 		"- samp=N: indicate the sample number of the source sample\n"
@@ -5235,6 +5235,7 @@ static GF_Err do_meta_act()
 			u32 src_tk_id = 1;
 			GF_Fraction _frac = {0,0};
 			GF_ISOFile *fsrc = file;
+			Bool add_all_src_items = GF_FALSE;
 			self_ref = GF_FALSE;
 
 			tk = 0;
@@ -5246,9 +5247,28 @@ static GF_Err do_meta_act()
 				self_ref = GF_TRUE;
 				src_tk_id = tk_id;
 			} else if (meta->szPath) {
-				if (meta->image_props && gf_isom_probe_file(meta->szPath) && !meta->image_props->tile_mode) {
-					meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
-					e = gf_isom_last_error(meta->image_props->src_file);
+				e = GF_OK;
+				if (src_tk_id && !meta->image_props && gf_isom_probe_file(meta->szPath)) {
+					GF_ISOFile *src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
+					if (src_file && !gf_isom_get_track_count(src_file)) {
+						GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+						if (!meta->image_props) {
+							e = GF_OUT_OF_MEM;
+							gf_isom_delete(src_file);
+						} else {
+							meta->image_props->src_file = src_file;
+							src_tk_id = 0;
+							add_all_src_items = GF_TRUE;
+						}
+					} else if (src_file) {
+						gf_isom_delete(src_file);
+					}
+				}
+				if ((e==GF_OK) && meta->image_props && gf_isom_probe_file(meta->szPath) && !meta->image_props->tile_mode) {
+					if (!meta->image_props->src_file) {
+						meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
+						e = gf_isom_last_error(meta->image_props->src_file);
+					}
 					fsrc = meta->image_props->src_file;
 					if (meta->image_props->item_ref_id)
 						src_tk_id = 0;
@@ -5276,7 +5296,7 @@ static GF_Err do_meta_act()
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						if (!src_tk_id && (!meta->image_props || !meta->image_props->item_ref_id) ) {
+						if (!src_tk_id && (!meta->image_props || (!add_all_src_items && !meta->image_props->item_ref_id)) ) {
 							u32 j;
 							for (j=0; j<gf_isom_get_track_count(fsrc); j++) {
 								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, j+1))) {
