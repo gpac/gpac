@@ -35,4 +35,4 @@ RUN npm ci --ignore-scripts --omit=dev && \
     npm cache clean --force && \
     MP4Box -h > /dev/null
 
-ENTRYPOINT ["node", "dist/index.js"]
+ENTRYPOINT ["node", "/app/dist/index.js"]
