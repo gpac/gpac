@@ -2384,26 +2384,28 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 {
 	u32 i;
-	u64 val;
+	u64 val[8] = {0};
+	u8 shuffle[8] = {4,5,0,1,2,3,6,7}; //RGB->GBR
 	GF_BitStream *bs_r = gf_bs_new(mdcv_in, 24, GF_BITSTREAM_READ);
 	GF_BitStream *bs_w = gf_bs_new(mdcv_out, 24, GF_BITSTREAM_WRITE);
 
 	//3x{display_primaries_x, display_primaries_y} + whitePoint_x + whitePoint_y
 	//translate from AV1 representation 0.16 float to MPEG in increments of 0.00002 (1/50000)
 	for (i=0; i<8; i++) {
-		val = gf_bs_read_u16(bs_r);
-		val = (50000 * val) / 65536;
-		gf_bs_write_u16(bs_w, (u32) val);
+		val[i] = gf_bs_read_u16(bs_r);
+	}
+	for (i=0; i<8; i++) {
+		gf_bs_write_u16(bs_w, (u32) ((50000 * val[shuffle[i]]) / 65536));
 	}
 	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
-	val = gf_bs_read_u32(bs_r);
-	val = (10000 * val) / 256;
-	gf_bs_write_u32(bs_w, (u32) val);
+	*val = gf_bs_read_u32(bs_r);
+	*val = (10000 * *val) / 256;
+	gf_bs_write_u32(bs_w, (u32) *val);
 
 	//min_display_mastering_luminance: 18.14 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
-	val = gf_bs_read_u32(bs_r);
-	val = (10000 * val) / 16384;
-	gf_bs_write_u32(bs_w, (u32) val);
+	*val = gf_bs_read_u32(bs_r);
+	*val = (10000 * *val) / 16384;
+	gf_bs_write_u32(bs_w, (u32) *val);
 	gf_bs_del(bs_r);
 	gf_bs_del(bs_w);
 }
@@ -2411,6 +2413,10 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24])
 GF_EXPORT
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
+	u64 pos = gf_bs_get_position(bs);
+	if (gf_bs_bits_available(bs) < 8)
+		return GF_BUFFER_TOO_SMALL;
+
 	Bool forbidden = gf_bs_read_int(bs, 1);
 	if (forbidden) {
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -2423,6 +2429,10 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (*obu_extension_flag) {
+		if (gf_bs_bits_available(bs) < 8) {
+			gf_bs_seek(bs, pos);
+			return GF_BUFFER_TOO_SMALL;
+		}
 		*temporal_id = gf_bs_read_int(bs, 3);
 		*spatial_id = gf_bs_read_int(bs, 2);
 		/*extension_header_reserved_3bits = */gf_bs_read_int(bs, 3);
@@ -2486,13 +2496,12 @@ static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
 
 Bool iamf_is_audio_frame_obu(IamfObuType obu_type)
 {
-	return OBU_IA_AUDIO_FRAME <= obu_type && obu_type <= OBU_IA_AUDIO_FRAME_ID17;
+	return OBU_IAMF_AUDIO_FRAME <= obu_type && obu_type <= OBU_IAMF_AUDIO_FRAME_ID17;
 }
 
 Bool iamf_is_temporal_unit_obu(IamfObuType obu_type)
 {
-	if (iamf_is_audio_frame_obu(obu_type) || obu_type == OBU_IA_PARAMETER_BLOCK || obu_type == OBU_IA_TEMPORAL_DELIMITER)
-	{
+	if (iamf_is_audio_frame_obu(obu_type) || obu_type == OBU_IAMF_PARAMETER_BLOCK || obu_type == OBU_IAMF_TEMPORAL_DELIMITER) {
 		return GF_TRUE;
 	}
 
@@ -2501,12 +2510,11 @@ Bool iamf_is_temporal_unit_obu(IamfObuType obu_type)
 
 Bool iamf_is_descriptor_obu(IamfObuType obu_type)
 {
-	switch (obu_type)
-	{
-	case OBU_IA_CODEC_CONFIG:
-	case OBU_IA_AUDIO_ELEMENT:
-	case OBU_IA_MIX_PRESENTATION:
-	case OBU_IA_SEQUENCE_HEADER:
+	switch (obu_type) {
+	case OBU_IAMF_CODEC_CONFIG:
+	case OBU_IAMF_AUDIO_ELEMENT:
+	case OBU_IAMF_MIX_PRESENTATION:
+	case OBU_IAMF_SEQUENCE_HEADER:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -3507,6 +3515,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		if (frame_state->is_first_frame) {
 			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
 		}
+		if (frame_state->frame_type == AV1_SWITCH_FRAME) {
+			frame_state->switch_frame = GF_TRUE;
+		}
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			gf_bs_read_int_log(bs, state->frame_presentation_time_length, "frame_presentation_time");
 		}
@@ -4157,6 +4168,7 @@ void gf_iamf_init_state(IAMFState *state)
 		return;
 
 	memset(state, 0, sizeof(IAMFState));
+	state->codec_id = 0;
 	state->num_samples_per_frame = 0;
 	state->sample_size = 0;
 	state->sample_rate = 0;
@@ -4165,7 +4177,7 @@ void gf_iamf_init_state(IAMFState *state)
 	state->pre_skip = 0;
 
 	state->frame_state.seen_first_frame = GF_FALSE;
-	state->frame_state.seen_valid_ia_seq_header = GF_FALSE;
+	state->frame_state.seen_valid_iamf_seq_header = GF_FALSE;
 	state->frame_state.previous_obu_is_descriptor = GF_FALSE;
 	state->frame_state.pre_skip_is_finalized = GF_FALSE;
 	state->frame_state.previous_num_samples_to_trim_at_start = 0;
@@ -4183,10 +4195,8 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 {
 	GF_List *l1, *l2;
 
-	if (state->frame_state.descriptor_obus && (!state->frame_state.cache_descriptor_obus || is_destroy))
-	{
-		while (gf_list_count(state->frame_state.descriptor_obus))
-		{
+	if (state->frame_state.descriptor_obus && (!state->frame_state.cache_descriptor_obus || is_destroy)) {
+		while (gf_list_count(state->frame_state.descriptor_obus)) {
 			GF_IamfObu *a = (GF_IamfObu *)gf_list_pop_back(state->frame_state.descriptor_obus);
 			if (a->raw_obu_bytes)
 				gf_free(a->raw_obu_bytes);
@@ -4194,10 +4204,8 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 		}
 	}
 
-	if (state->frame_state.temporal_unit_obus)
-	{
-		while (gf_list_count(state->frame_state.temporal_unit_obus))
-		{
+	if (state->frame_state.temporal_unit_obus) {
+		while (gf_list_count(state->frame_state.temporal_unit_obus)) {
 			GF_IamfObu *a = (GF_IamfObu *)gf_list_pop_back(state->frame_state.temporal_unit_obus);
 			if (a->raw_obu_bytes)
 				gf_free(a->raw_obu_bytes);
@@ -4213,8 +4221,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
 	state->frame_state.num_audio_frames_in_temporal_unit = 0;
 
-	if (is_destroy)
-	{
+	if (is_destroy) {
 		gf_list_del(l1);
 		gf_list_del(l2);
 		if (state->bs) {
@@ -4226,8 +4233,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 			gf_bs_del(state->bs);
 			state->bs = NULL;
 		}
-	}
-	else
+	} else
 	{
 		state->frame_state.temporal_unit_obus = l1;
 		state->frame_state.descriptor_obus = l2;
@@ -4325,10 +4331,10 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 {
 	av1_parse_frame_header(bs, state);
 	//byte alignment
-    {
-        u32 nbBits = gf_bs_align(bs);
-        gf_bs_log_idx(bs, nbBits, "alignment", 0, -1, -1, -1);
-    }
+	{
+		u32 nbBits = gf_bs_align(bs);
+		gf_bs_log_idx(bs, nbBits, "alignment", 0, -1, -1, -1);
+	}
 	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
@@ -4600,42 +4606,42 @@ GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_fra
 GF_EXPORT
 const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 {
-        switch (obu_type) {
-                case OBU_IA_CODEC_CONFIG: return "codec_config";
-                case OBU_IA_AUDIO_ELEMENT: return "audio_element";
-                case OBU_IA_MIX_PRESENTATION: return "mix_presentation";
-                case OBU_IA_PARAMETER_BLOCK: return "parameter_block";
-                case OBU_IA_TEMPORAL_DELIMITER: return "temporal_delimiter";
-                case OBU_IA_AUDIO_FRAME: return "audio_frame";
-                case OBU_IA_AUDIO_FRAME_ID0: return "audio_frame_id0";
-                case OBU_IA_AUDIO_FRAME_ID1: return "audio_frame_id1";
-                case OBU_IA_AUDIO_FRAME_ID2: return "audio_frame_id2";
-                case OBU_IA_AUDIO_FRAME_ID3: return "audio_frame_id3";
-                case OBU_IA_AUDIO_FRAME_ID4: return "audio_frame_id4";
-                case OBU_IA_AUDIO_FRAME_ID5: return "audio_frame_id5";
-                case OBU_IA_AUDIO_FRAME_ID6: return "audio_frame_id6";
-                case OBU_IA_AUDIO_FRAME_ID7: return "audio_frame_id7";
-                case OBU_IA_AUDIO_FRAME_ID8: return "audio_frame_id8";
-                case OBU_IA_AUDIO_FRAME_ID9: return "audio_frame_id9";
-                case OBU_IA_AUDIO_FRAME_ID10: return "audio_frame_id10";
-                case OBU_IA_AUDIO_FRAME_ID11: return "audio_frame_id11";
-                case OBU_IA_AUDIO_FRAME_ID12: return "audio_frame_id12";
-                case OBU_IA_AUDIO_FRAME_ID13: return "audio_frame_id13";
-                case OBU_IA_AUDIO_FRAME_ID14: return "audio_frame_id14";
-                case OBU_IA_AUDIO_FRAME_ID15: return "audio_frame_id15";
-                case OBU_IA_AUDIO_FRAME_ID16: return "audio_frame_id16";
-                case OBU_IA_AUDIO_FRAME_ID17: return "audio_frame_id17";
-                case OBU_IA_RESERVED_24:
-                case OBU_IA_RESERVED_25:
-                case OBU_IA_RESERVED_26:
-                case OBU_IA_RESERVED_27:
-                case OBU_IA_RESERVED_28:
-                case OBU_IA_RESERVED_29:
-                case OBU_IA_RESERVED_30:
-                        return "reserved";
-                case OBU_IA_SEQUENCE_HEADER: return "ia_sequence_header";
-                default: return "unknown";
-        }
+	switch (obu_type) {
+		case OBU_IAMF_CODEC_CONFIG: return "codec_config";
+		case OBU_IAMF_AUDIO_ELEMENT: return "audio_element";
+		case OBU_IAMF_MIX_PRESENTATION: return "mix_presentation";
+		case OBU_IAMF_PARAMETER_BLOCK: return "parameter_block";
+		case OBU_IAMF_TEMPORAL_DELIMITER: return "temporal_delimiter";
+		case OBU_IAMF_AUDIO_FRAME: return "audio_frame";
+		case OBU_IAMF_AUDIO_FRAME_ID0: return "audio_frame_id0";
+		case OBU_IAMF_AUDIO_FRAME_ID1: return "audio_frame_id1";
+		case OBU_IAMF_AUDIO_FRAME_ID2: return "audio_frame_id2";
+		case OBU_IAMF_AUDIO_FRAME_ID3: return "audio_frame_id3";
+		case OBU_IAMF_AUDIO_FRAME_ID4: return "audio_frame_id4";
+		case OBU_IAMF_AUDIO_FRAME_ID5: return "audio_frame_id5";
+		case OBU_IAMF_AUDIO_FRAME_ID6: return "audio_frame_id6";
+		case OBU_IAMF_AUDIO_FRAME_ID7: return "audio_frame_id7";
+		case OBU_IAMF_AUDIO_FRAME_ID8: return "audio_frame_id8";
+		case OBU_IAMF_AUDIO_FRAME_ID9: return "audio_frame_id9";
+		case OBU_IAMF_AUDIO_FRAME_ID10: return "audio_frame_id10";
+		case OBU_IAMF_AUDIO_FRAME_ID11: return "audio_frame_id11";
+		case OBU_IAMF_AUDIO_FRAME_ID12: return "audio_frame_id12";
+		case OBU_IAMF_AUDIO_FRAME_ID13: return "audio_frame_id13";
+		case OBU_IAMF_AUDIO_FRAME_ID14: return "audio_frame_id14";
+		case OBU_IAMF_AUDIO_FRAME_ID15: return "audio_frame_id15";
+		case OBU_IAMF_AUDIO_FRAME_ID16: return "audio_frame_id16";
+		case OBU_IAMF_AUDIO_FRAME_ID17: return "audio_frame_id17";
+		case OBU_IAMF_RESERVED_24:
+		case OBU_IAMF_RESERVED_25:
+		case OBU_IAMF_RESERVED_26:
+		case OBU_IAMF_RESERVED_27:
+		case OBU_IAMF_RESERVED_28:
+		case OBU_IAMF_RESERVED_29:
+		case OBU_IAMF_RESERVED_30:
+			return "reserved";
+		case OBU_IAMF_SEQUENCE_HEADER: return "ia_sequence_header";
+		default: return "unknown";
+	}
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -4643,28 +4649,26 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 static
 GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size, u64 *num_samples_to_trim_at_start, u64 *num_samples_to_trim_at_end)
 {
-        Bool obu_redundant_copy;
-        Bool obu_trimming_status_flag;
-        Bool obu_extension_flag;
-        u64 extension_header_size;
-        u8 leb128_size;
-        int i;
+	Bool obu_redundant_copy;
+	Bool obu_trimming_status_flag;
+	Bool obu_extension_flag;
+	u64 extension_header_size;
+	u8 leb128_size;
+	int i;
 
-        *obu_type = gf_bs_read_int(bs, 5);
+	*obu_type = gf_bs_read_int(bs, 5);
 
-        obu_redundant_copy = gf_bs_read_int(bs, 1);
-        if (obu_redundant_copy) {
-		if (iamf_is_temporal_unit_obu(*obu_type))
-		{
+	obu_redundant_copy = gf_bs_read_int(bs, 1);
+	if (obu_redundant_copy) {
+		if (iamf_is_temporal_unit_obu(*obu_type)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_redundant_copy set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
 
 	obu_trimming_status_flag = gf_bs_read_int(bs, 1);
-        if (obu_trimming_status_flag) {
-		if (!iamf_is_audio_frame_obu(*obu_type))
-		{
+	if (obu_trimming_status_flag) {
+		if (!iamf_is_audio_frame_obu(*obu_type)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -4672,16 +4676,16 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 	obu_extension_flag = gf_bs_read_int(bs, 1);
 
 
-        /* gpac's `obu_size` includes the header and payload, which is different
-         * from the `obu_size` field in the IAMF bitstream. The latter includes the
-         * partial header size and payload size.
-         * The size of the header read so far is 1 byte. */
-        *obu_size = 1;
+	/* gpac's `obu_size` includes the header and payload, which is different
+	 * from the `obu_size` field in the IAMF bitstream. The latter includes the
+	 * partial header size and payload size.
+	 * The size of the header read so far is 1 byte. */
+	*obu_size = 1;
 
-        /* Add the remaining size of the OBU, carried in the `obu_size` field in
-         * the OBU header, plus the number of bytes used the encode that leb128 field. */
-        *obu_size += (u32)gf_av1_leb128_read(bs, &leb128_size);
-        *obu_size += leb128_size;
+	/* Add the remaining size of the OBU, carried in the `obu_size` field in
+	 * the OBU header, plus the number of bytes used the encode that leb128 field. */
+	*obu_size += (u32)gf_av1_leb128_read(bs, &leb128_size);
+	*obu_size += leb128_size;
 
 	u64 read_num_samples_to_trim_at_start = 0;
 	u64 read_num_samples_to_trim_at_end = 0;
@@ -4698,7 +4702,7 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 
 	if (obu_extension_flag) {
 		extension_header_size = gf_av1_leb128_read(bs, NULL);
-                if (gf_bs_available(bs) < extension_header_size) {
+		if (gf_bs_available(bs) < extension_header_size) {
 			return GF_BUFFER_TOO_SMALL;
 		}
 		for (i = 0; i < extension_header_size; ++i) {
@@ -4706,7 +4710,7 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 		}
 	}
 
-        return GF_OK;
+	return GF_OK;
 }
 
 static Bool iamf_is_profile_supported(u8 profile)
@@ -4714,17 +4718,17 @@ static Bool iamf_is_profile_supported(u8 profile)
 	return profile == 0 || profile == 1 || profile == 2;
 }
 
-static GF_Err iamf_parse_ia_sequence_header(GF_BitStream *bs)
+static GF_Err iamf_parse_iamf_sequence_header(GF_BitStream *bs, IAMFState *state)
 {
 	u32 ia_code = gf_bs_read_int_log(bs, 32, "ia_code");
-	if (ia_code != GF_4CC('i', 'a', 'm', 'f'))
-	{
+	if (ia_code != GF_4CC('i', 'a', 'm', 'f')) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	u8 primary_profile = gf_bs_read_int_log(bs, 8, "primary_profile");
+	if (state) state->primary_profile = primary_profile;
 	u8 additional_profile = gf_bs_read_int_log(bs, 8, "additional_profile");
-	if (iamf_is_profile_supported(primary_profile) || iamf_is_profile_supported(additional_profile))
-	{
+	if (state) state->additional_profile = additional_profile;
+	if (iamf_is_profile_supported(primary_profile) || iamf_is_profile_supported(additional_profile)) {
 		return GF_OK;
 	}
 
@@ -4737,10 +4741,10 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 	GF_Descriptor *desc = NULL;
 	GF_Err e = GF_OK;
 	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
-	u32 codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
+	state->codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
 	state->num_samples_per_frame = (int) gf_av1_leb128_read(bs, NULL);
 	state->audio_roll_distance = gf_bs_read_int_log(bs, 16, "roll_distance");
-	switch (codec_id) {
+	switch (state->codec_id) {
 	case GF_4CC('O', 'p', 'u', 's'):
 		state->sample_rate = 48000;
 		state->sample_size = 16;
@@ -4828,12 +4832,11 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 	u64 obu_size;
 
 	obu_type = gf_bs_peek_bits(bs, 5, 0);
-	if (obu_type != OBU_IA_SEQUENCE_HEADER)
-	{
+	if (obu_type != OBU_IAMF_SEQUENCE_HEADER) {
 		return GF_FALSE;
 	}
 
-	// Likely IAMF. Check the IA Sequence header is valid.
+	// Likely IAMF. Check the IAMF Sequence header is valid.
 	start = gf_bs_get_position(bs);
 	e = gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL, NULL);
 	if (e) {
@@ -4841,7 +4844,7 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 		return GF_FALSE;
 	}
 
-	e = iamf_parse_ia_sequence_header(bs);
+	e = iamf_parse_iamf_sequence_header(bs, NULL);
 	gf_bs_seek(bs, start);
 	return !e;
 }
@@ -4849,41 +4852,42 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 GF_EXPORT
 GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size, IAMFState *state)
 {
-        GF_Err e = GF_OK;
-        u64 pos = gf_bs_get_position(bs);
+	GF_Err e = GF_OK;
+	u64 pos = gf_bs_get_position(bs);
 
-        if (!bs || !obu_type) {
-              return GF_BAD_PARAM;
-        }
+	if (!bs || !obu_type) {
+	      return GF_BAD_PARAM;
+	}
 
-        gf_bs_mark_overflow(bs, GF_TRUE);
+	gf_bs_mark_overflow(bs, GF_TRUE);
 
-        e = gf_iamf_parse_obu_header(bs, obu_type, obu_size,
+	e = gf_iamf_parse_obu_header(bs, obu_type, obu_size,
 				     &state->frame_state.previous_num_samples_to_trim_at_start,
 				     &state->frame_state.num_samples_to_trim_at_end);
-		u64 header_size = gf_bs_get_position(bs) - pos;
-		if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < (*obu_size - header_size)) ) {
-			gf_bs_seek(bs, pos);
-			return GF_BUFFER_TOO_SMALL;
-		}
+	u64 header_size = gf_bs_get_position(bs) - pos;
+	if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < (*obu_size - header_size)) ) {
+		gf_bs_seek(bs, pos);
+		return GF_BUFFER_TOO_SMALL;
+	}
 
-        if (gf_bs_is_overflow(bs)) {
-              GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
-              e = GF_NON_COMPLIANT_BITSTREAM;
-        }
+	if (gf_bs_is_overflow(bs)) {
+	      GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
+	      e = GF_NON_COMPLIANT_BITSTREAM;
+	}
 	if (e)
 		return e;
+
 	switch (*obu_type) {
-	case OBU_IA_SEQUENCE_HEADER:
-		e = iamf_parse_ia_sequence_header(bs);
+	case OBU_IAMF_SEQUENCE_HEADER:
+		e = iamf_parse_iamf_sequence_header(bs, state);
 		if (!e)
-			state->frame_state.seen_valid_ia_seq_header = GF_TRUE;
+			state->frame_state.seen_valid_iamf_seq_header = GF_TRUE;
 		state->total_substreams = 0;
 		break;
-	case OBU_IA_CODEC_CONFIG:
+	case OBU_IAMF_CODEC_CONFIG:
 		e = iamf_parse_codec_config(bs, state);
 		break;
-	case OBU_IA_AUDIO_ELEMENT:
+	case OBU_IAMF_AUDIO_ELEMENT:
 		iamf_parse_audio_element(bs, state);
 		break;
 	default:
@@ -4961,20 +4965,15 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 static void iamf_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, IamfObuType obu_type, IAMFState *state)
 {
 	GF_List **list;
-	if (iamf_is_descriptor_obu(obu_type))
-	{
+	if (iamf_is_descriptor_obu(obu_type)) {
 		list = &state->frame_state.descriptor_obus;
-	}
-	else if (iamf_is_temporal_unit_obu(obu_type))
-	{
+	} else if (iamf_is_temporal_unit_obu(obu_type)) {
 		list = &state->frame_state.temporal_unit_obus;
 	}
 	// Treat reserved OBUs based on the most recent OBU seen.
-	else if (state->frame_state.previous_obu_is_descriptor)
-	{
+	else if (state->frame_state.previous_obu_is_descriptor) {
 		list = &state->frame_state.descriptor_obus;
-	} else
-	{
+	} else {
 		list = &state->frame_state.temporal_unit_obus;
 	}
 	iamf_add_obu_internal(bs, pos, obu_length, obu_type, list, state);
@@ -4986,8 +4985,7 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 		return GF_BAD_PARAM;
 
 	IamfObuType obu_type;
-	while (1)
-	{
+	while (1) {
 		GF_Err e;
 		if (!gf_bs_available(bs))
 			return GF_BUFFER_TOO_SMALL;
@@ -4998,26 +4996,21 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 		if (e)
 			return e;
 
-		if (obu_size != gf_bs_get_position(bs) - pos)
-		{
+		if (obu_size != gf_bs_get_position(bs) - pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU size " LLU " different from consumed bytes " LLU ".\n", obu_size, gf_bs_get_position(bs) - pos));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		if (obu_type == OBU_IA_TEMPORAL_DELIMITER)
-		{
-			if (!state->frame_state.seen_first_frame)
-			{
+		if (obu_type == OBU_IAMF_TEMPORAL_DELIMITER) {
+			if (!state->frame_state.seen_first_frame) {
 				// IAMF requires all or no temporal units to have temporal delimiters. Determine it from the first frame.
 				state->bitstream_has_temporal_delimiters = GF_TRUE;
 			}
-			if (!state->bitstream_has_temporal_delimiters)
-			{
+			if (!state->bitstream_has_temporal_delimiters) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Expected all or no frames to have temporal delimiters.\n"));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			if (state->frame_state.num_audio_frames_in_temporal_unit)
-			{
+			if (state->frame_state.num_audio_frames_in_temporal_unit) {
 				if (state->frame_state.num_audio_frames_in_temporal_unit != state->total_substreams)
 				{
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Failed to find enough audio frames in a temporal unit.\n"));
@@ -5031,18 +5024,15 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[IAMF] OBU detected (size " LLU ")\n", obu_size));
 		iamf_populate_state_from_obu(bs, pos, obu_size, obu_type, state);
 
-		if (iamf_is_temporal_unit_obu(obu_type))
-		{
+		if (iamf_is_temporal_unit_obu(obu_type)) {
 			// Made it passed the descriptors. We are now in the first frame.
 			state->frame_state.seen_first_frame = GF_TRUE;
 			state->frame_state.seen_first_obu_in_temporal_unit = GF_TRUE;
-			if (iamf_is_audio_frame_obu(obu_type))
-			{
+			if (iamf_is_audio_frame_obu(obu_type)) {
 				state->frame_state.num_audio_frames_in_temporal_unit++;
 			}
 
-			if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams)
-			{
+			if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams) {
 				// Track the cumulative trimming information from the state.
 				if (state->frame_state.pre_skip_is_finalized && state->frame_state.previous_num_samples_to_trim_at_start) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Cannot have frames trimmed from start after the first frame with samples.\n"));
@@ -5375,6 +5365,7 @@ u32 gf_mp3_get_next_header_mem(const u8 *buffer, u32 size, u32 *pos)
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+GF_EXPORT
 Bool gf_avcc_use_extensions(u8 profile_idc)
 {
 	switch (profile_idc) {
@@ -8445,7 +8436,7 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_lt_curr[nb_poc_lt_curr] = 0; //todo, get LT from SH
 		nb_poc_lt_curr++;
-    }
+	}
 	//compute deps
 	u32 num_poc_total = nb_poc_st_curr0 + nb_poc_st_curr1 + nb_poc_lt_curr + num_interlayer_ref_idx;
 	//build L0
@@ -8485,14 +8476,22 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	}
 	if (rps->modif_flag_l0 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l0_active; i++) {
-			u32 idx = (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0)) ? rps->modif_idx_l0[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0))
+				idx = rps->modif_idx_l0[i];
+			else if (num_poc_total)
+				idx =  i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l0))
 				gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
 		}
 	}
 	if (rps->modif_flag_l1 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l1_active; i++) {
-			u32 idx = (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1)) ? rps->modif_idx_l1[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1))
+				idx = rps->modif_idx_l1[i];
+			else if (num_poc_total)
+				idx = i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l1))
 				gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
 		}
@@ -10511,6 +10510,7 @@ u32 gf_ac3_get_bitrate(u32 brcode)
 	return ac3_sizecod_to_bitrate[brcode];
 }
 
+GF_EXPORT
 Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_parse)
 {
 	GF_BitStream *bs;
@@ -11353,8 +11353,6 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length)
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 
-/*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
-returns 1 if success, 0 if error.*/
 Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 {
 	char tag[9];
@@ -11419,63 +11417,63 @@ u32 gf_opus_check_frame(GF_OpusConfig *ocfg, u8 *data, u32 data_length)
 
 /* return nb bytes read */
 static u8 gf_opus_read_length(u8 *data, u32 data_length, u32 offset, u16 *read_length) {
-    if (!data || !data_length || !read_length) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Cannot read Opus length value\n"));
-        return 0;
-    }
-    if (offset >= data_length) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough bytes to read Opus length\n"));
-        return 0;
-    }
-    if (data[offset] < 252) {
-        *read_length = data[offset];
-        return 1;
-    } else {
-        if (offset+1 >= data_length) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough bytes to read 2-byte Opus length\n"));
-            return 0;
-        }
-        *read_length = data[offset+1]*4+data[offset];
-        return 2;
-    }
+	if (!data || !data_length || !read_length) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Cannot read Opus length value\n"));
+		return 0;
+	}
+	if (offset >= data_length) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough bytes to read Opus length\n"));
+		return 0;
+	}
+	if (data[offset] < 252) {
+		*read_length = data[offset];
+		return 1;
+	} else {
+		if (offset+1 >= data_length) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough bytes to read 2-byte Opus length\n"));
+			return 0;
+		}
+		*read_length = data[offset+1]*4+data[offset];
+		return 2;
+	}
 }
 
 GF_EXPORT
 u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header)
 {
-    u32 i;
-    u32 nb_read_bytes;
-    if (!data || !data_length)
-        return 0;
-    if (!header)
-        return 0;
-    if (data_length>=8 && !memcmp(data, "OpusHead", sizeof(char)*8))
-        return 0;
-    if (data_length>=8 && !memcmp(data, "OpusTags", sizeof(char)*8))
-        return 0;
+	u32 i;
+	u32 nb_read_bytes;
+	if (!data || !data_length)
+		return 0;
+	if (!header)
+		return 0;
+	if (data_length>=8 && !memcmp(data, "OpusHead", sizeof(char)*8))
+		return 0;
+	if (data_length>=8 && !memcmp(data, "OpusTags", sizeof(char)*8))
+		return 0;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("Processing Opus packet, self: %d, size %d\n", self_delimited, data_length));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("Processing Opus packet, self: %d, size %d\n", self_delimited, data_length));
 
-    if (data_length < 1) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Opus packet size must be at least one to parse TOC byte\n"));
-        return 0;
-    }
-    memset(header, 0, sizeof(GF_OpusPacketHeader));
-    header->self_delimited = self_delimited;
-    header->TOC_config = (data[0] & 0xf8) >> 3;
-    header->TOC_stereo = (data[0] & 0x4) >> 2;
-    header->TOC_code = data[0] & 0x03;
-    header->size = 1;
-    if (header->TOC_code == 0) {
-        header->nb_frames = 1;
-        if (self_delimited) {
-            nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
-            if (nb_read_bytes) {
-                header->size += nb_read_bytes;
-            } else {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 0\n"));
-                return 0;
-            }
+	if (data_length < 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Opus packet size must be at least one to parse TOC byte\n"));
+		return 0;
+	}
+	memset(header, 0, sizeof(GF_OpusPacketHeader));
+	header->self_delimited = self_delimited;
+	header->TOC_config = (data[0] & 0xf8) >> 3;
+	header->TOC_stereo = (data[0] & 0x4) >> 2;
+	header->TOC_code = data[0] & 0x03;
+	header->size = 1;
+	if (header->TOC_code == 0) {
+		header->nb_frames = 1;
+		if (self_delimited) {
+			nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
+			if (nb_read_bytes) {
+				header->size += nb_read_bytes;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 0\n"));
+				return 0;
+			}
 //            0                   1                   2                   3
 //            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11485,8 +11483,8 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //           :                                                               |
 //           |                                                               |
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            header->frame_lengths[0] = header->self_delimited_length;
-        } else {
+			header->frame_lengths[0] = header->self_delimited_length;
+		} else {
 //            0                   1                   2                   3
 //            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11496,19 +11494,19 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //           :                                                               |
 //           |                                                               |
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            header->frame_lengths[0] = data_length - header->size;
-        }
-        header->packet_size = header->size + header->frame_lengths[0];
-    } else if (header->TOC_code == 1) {
-        header->nb_frames = 2;
-        if (self_delimited) {
-            nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
-            if (nb_read_bytes) {
-                header->size += nb_read_bytes;
-            } else {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 1\n"));
-                return 0;
-            }
+			header->frame_lengths[0] = data_length - header->size;
+		}
+		header->packet_size = header->size + header->frame_lengths[0];
+	} else if (header->TOC_code == 1) {
+		header->nb_frames = 2;
+		if (self_delimited) {
+			nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
+			if (nb_read_bytes) {
+				header->size += nb_read_bytes;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 1\n"));
+				return 0;
+			}
 //            0                   1                   2                   3
 //            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11522,9 +11520,9 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //           :                                               +-+-+-+-+-+-+-+-+
 //           |                                               |
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            header->frame_lengths[0] = header->self_delimited_length;
-            header->frame_lengths[1] = header->self_delimited_length;
-        } else {
+			header->frame_lengths[0] = header->self_delimited_length;
+			header->frame_lengths[1] = header->self_delimited_length;
+		} else {
 //            0                   1                   2                   3
 //            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11538,33 +11536,33 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //           :                                               +-+-+-+-+-+-+-+-+
 //           |                                               |
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            if ((data_length-header->size) % 2) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Size of non-self-delimited Opus packet with code 2 must be even but is %d\n",data_length-header->size));
-                return 0;
-            }
-            header->frame_lengths[0] = (data_length-header->size)/2;
-            header->frame_lengths[1] = (data_length-header->size)/2;
-        }
-        header->packet_size = header->size + header->frame_lengths[0] + header->frame_lengths[1];
-    } else if (header->TOC_code == 2) {
-        header->nb_frames = 2;
-        if (self_delimited) {
-            nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
-            if (nb_read_bytes) {
-                header->size += nb_read_bytes;
-            } else {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 2\n"));
-                return 0;
-            }
-        }
-        nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->code2_frame_length);
-        if (nb_read_bytes) {
-            header->size += nb_read_bytes;
-        } else {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read frame length in Opus packet code 2\n"));
-            return 0;
-        }
-        if (self_delimited) {
+			if ((data_length-header->size) % 2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Size of non-self-delimited Opus packet with code 2 must be even but is %d\n",data_length-header->size));
+				return 0;
+			}
+			header->frame_lengths[0] = (data_length-header->size)/2;
+			header->frame_lengths[1] = (data_length-header->size)/2;
+		}
+		header->packet_size = header->size + header->frame_lengths[0] + header->frame_lengths[1];
+	} else if (header->TOC_code == 2) {
+		header->nb_frames = 2;
+		if (self_delimited) {
+			nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
+			if (nb_read_bytes) {
+				header->size += nb_read_bytes;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 2\n"));
+				return 0;
+			}
+		}
+		nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->code2_frame_length);
+		if (nb_read_bytes) {
+			header->size += nb_read_bytes;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read frame length in Opus packet code 2\n"));
+			return 0;
+		}
+		if (self_delimited) {
 //            0                   1                   2                   3
 //            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11578,9 +11576,9 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //           :                                                               |
 //           |                                                               |
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            header->frame_lengths[0] = header->self_delimited_length;
-            header->frame_lengths[1] = header->code2_frame_length;
-        } else {
+			header->frame_lengths[0] = header->self_delimited_length;
+			header->frame_lengths[1] = header->code2_frame_length;
+		} else {
 //            0                   1                   2                   3
 //            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11594,52 +11592,52 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //           :                                                               |
 //           |                                                               |
 //           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            header->frame_lengths[0] = header->code2_frame_length;
-            header->frame_lengths[1] = data_length - header->size - header->code2_frame_length;
-        }
-        header->packet_size = header->size + header->frame_lengths[0] + header->frame_lengths[1];
-    } else if (header->TOC_code == 3) {
-        u32 sum = 0;
-        if (data_length <= header->size) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
-            return 0;
-        }
-        header->code3_vbr = (data[header->size] & 0x80) >> 7;
-        header->code3_padding = (data[header->size] & 0x40) >> 6;
-        header->nb_frames = data[header->size] & 0x3f;
-        header->size++;
-        if (header->code3_padding) {
-            if (data_length <= header->size) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 padding length\n"));
-                return 0;
-            }
-            if (data[header->size] == 255) {
-                if (data_length <= (u32) header->size+1) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
-                    return 0;
-                }
-                header->code3_padding_length = 254 + data[header->size+1];
-                header->size += 2;
-            } else {
-                header->code3_padding_length = data[header->size];
-                header->size++;
-            }
-        } else {
-            header->code3_padding_length = 0;
-        }
-        if (self_delimited) {
-            nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
-            if (nb_read_bytes) {
-                header->size += nb_read_bytes;
-            } else {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 3\n"));
-                return 0;
-            }
-        }
-        if (header->code3_vbr) {
-            u32 max;
-            u32 min;
-            if (self_delimited) {
+			header->frame_lengths[0] = header->code2_frame_length;
+			header->frame_lengths[1] = data_length - header->size - header->code2_frame_length;
+		}
+		header->packet_size = header->size + header->frame_lengths[0] + header->frame_lengths[1];
+	} else if (header->TOC_code == 3) {
+		u32 sum = 0;
+		if (data_length <= header->size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
+			return 0;
+		}
+		header->code3_vbr = (data[header->size] & 0x80) >> 7;
+		header->code3_padding = (data[header->size] & 0x40) >> 6;
+		header->nb_frames = data[header->size] & 0x3f;
+		header->size++;
+		if (header->code3_padding) {
+			if (data_length <= header->size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 padding length\n"));
+				return 0;
+			}
+			if (data[header->size] == 255) {
+				if (data_length <= (u32) header->size+1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 data\n"));
+					return 0;
+				}
+				header->code3_padding_length = 254 + data[header->size+1];
+				header->size += 2;
+			} else {
+				header->code3_padding_length = data[header->size];
+				header->size++;
+			}
+		} else {
+			header->code3_padding_length = 0;
+		}
+		if (self_delimited) {
+			nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &header->self_delimited_length);
+			if (nb_read_bytes) {
+				header->size += nb_read_bytes;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read self delimited length in Opus packet code 3\n"));
+				return 0;
+			}
+		}
+		if (header->code3_vbr) {
+			u32 max;
+			u32 min;
+			if (self_delimited) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11665,11 +11663,11 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                header->frame_lengths[0] = header->self_delimited_length;
-                min = 1;
-                max = header->nb_frames;
-                sum += header->frame_lengths[0];
-            } else {
+				header->frame_lengths[0] = header->self_delimited_length;
+				min = 1;
+				max = header->nb_frames;
+				sum += header->frame_lengths[0];
+			} else {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11695,30 +11693,30 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                min = 0;
-                max = header->nb_frames ? header->nb_frames-1 : 0;
-            }
-            for (i = min; i < max; i++) {
-                if (data_length <= header->size) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 length\n"));
-                    return 0;
-                }
-                nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &(header->frame_lengths[i]));
-                if (nb_read_bytes) {
-                    header->size += nb_read_bytes;
-                } else {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read frame length in Opus packet code 3\n"));
-                    return 0;
-                }
-                sum += header->frame_lengths[i];
-            }
-            if (!self_delimited && header->nb_frames) {
-                header->frame_lengths[header->nb_frames-1] = data_length - header->size - header->code3_padding_length - sum;
-                sum += header->frame_lengths[header->nb_frames-1];
-            }
-        } else {
-            u32 cbr_length=0;
-            if (self_delimited) {
+				min = 0;
+				max = header->nb_frames ? header->nb_frames-1 : 0;
+			}
+			for (i = min; i < max; i++) {
+				if (data_length <= header->size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Not enough data to parse TOC code 3 length\n"));
+					return 0;
+				}
+				nb_read_bytes = gf_opus_read_length(data, data_length, header->size, &(header->frame_lengths[i]));
+				if (nb_read_bytes) {
+					header->size += nb_read_bytes;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Could not read frame length in Opus packet code 3\n"));
+					return 0;
+				}
+				sum += header->frame_lengths[i];
+			}
+			if (!self_delimited && header->nb_frames) {
+				header->frame_lengths[header->nb_frames-1] = data_length - header->size - header->code3_padding_length - sum;
+				sum += header->frame_lengths[header->nb_frames-1];
+			}
+		} else {
+			u32 cbr_length=0;
+			if (self_delimited) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11742,8 +11740,8 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                cbr_length = header->self_delimited_length;
-            } else if (header->nb_frames) {
+				cbr_length = header->self_delimited_length;
+			} else if (header->nb_frames) {
 //                0                   1                   2                   3
 //                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -11767,20 +11765,20 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //               :                  Opus Padding (Optional)...                   |
 //               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                if ((data_length - header->size - header->code3_padding_length) % header->nb_frames) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Sum of frame lengths is not a multiple of the number of frames\n"));
-                    return 0;
-                }
-                cbr_length = (data_length - header->size - header->code3_padding_length)/header->nb_frames;
-            }
-            for (i = 0; i < header->nb_frames; i++) {
-                header->frame_lengths[i] = cbr_length;
-                sum += header->frame_lengths[i];
-            }
-        }
-        header->packet_size = header->size + header->code3_padding_length + sum;
-    }
-    return 1;
+				if ((data_length - header->size - header->code3_padding_length) % header->nb_frames) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Sum of frame lengths is not a multiple of the number of frames\n"));
+					return 0;
+				}
+				cbr_length = (data_length - header->size - header->code3_padding_length)/header->nb_frames;
+			}
+			for (i = 0; i < header->nb_frames; i++) {
+				header->frame_lengths[i] = cbr_length;
+				sum += header->frame_lengths[i];
+			}
+		}
+		header->packet_size = header->size + header->code3_padding_length + sum;
+	}
+	return 1;
 }
 
 u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3)
@@ -12378,6 +12376,10 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		for (i=0; i<numQpTables; i++) {
 			gf_bs_read_se_log_idx(bs, "sps_qp_table_start_minus26", i);
 			u32 j, sps_num_points_in_qp_table = 1 + gf_bs_read_ue_log_idx(bs, "sps_num_points_in_qp_table_minus1", i);
+			if (sps_num_points_in_qp_table>36) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_points_in_qp_table too high %u\n", sps_num_points_in_qp_table));
+				VVC_SPS_BROKEN
+			}
 			for (j=0; j<sps_num_points_in_qp_table; j++) {
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_in_val_minus1", i, j);
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_diff_val", i, j);
@@ -13552,8 +13554,8 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 			}
 		}
 	} else {
-        si->num_ref_idx_active[0] = (si->slice_type == GF_VVC_SLICE_TYPE_I) ? 0 : 1;
-        si->num_ref_idx_active[1] = (si->slice_type == GF_VVC_SLICE_TYPE_B) ? 1 : 0;
+		si->num_ref_idx_active[0] = (si->slice_type == GF_VVC_SLICE_TYPE_I) ? 0 : 1;
+		si->num_ref_idx_active[1] = (si->slice_type == GF_VVC_SLICE_TYPE_B) ? 1 : 0;
 	}
 
 	if (si->slice_type != GF_VVC_SLICE_TYPE_I) {
@@ -14313,58 +14315,60 @@ const u32 AC4_MEDIA_TIMESCALE_441[] = {
 
 static u32 gf_ac4_variable_bits(GF_BitStream *bs, int bits)
 {
-    u32 value = 0;
-    u32 b_moreBits;
-    do{
-        value += gf_bs_read_int(bs, bits);
-        b_moreBits = gf_bs_read_int(bs, 1);
-        if (b_moreBits == 1) {
-            value <<= bits;
-            value += (1<<bits);
-      }
-    } while (b_moreBits == 1);
-    return value;
+	u32 value = 0;
+	if (!gf_bs_available(bs)) return value;
+
+	u32 b_moreBits = 0;
+	do{
+		value += gf_bs_read_int(bs, bits);
+		b_moreBits = gf_bs_read_int(bs, 1);
+		if (b_moreBits == 1) {
+			value <<= bits;
+			value += (1<<bits);
+	  }
+	} while (b_moreBits == 1 && gf_bs_available(bs));
+	return value;
 }
 
 static Bool gf_ac4_frame_rate_multiply_info(GF_BitStream *bs, GF_AC4PresentationV1* pinfo, u32 frame_rate_idx)
 {
 	u8 multiplier_bit;
 	switch (frame_rate_idx) {
-        case 2:
-        case 3:
-        case 4:
+		case 2:
+		case 3:
+		case 4:
 			// The value of dsi_frame_rate_multiply_info is defined by ETSI TS 103 190-1 V1.3.1 (2018-02) E.4
-            if (gf_bs_read_int_log(bs, 1, "b_multiplier")) {
-                multiplier_bit = gf_bs_read_int_log(bs, 1, "multiplier_bit");
+			if (gf_bs_read_int_log(bs, 1, "b_multiplier")) {
+				multiplier_bit = gf_bs_read_int_log(bs, 1, "multiplier_bit");
 				pinfo->dsi_frame_rate_multiply_info = (multiplier_bit == 0)? 1: 2;
-            } else {
-                pinfo->dsi_frame_rate_multiply_info = 0;
+			} else {
+				pinfo->dsi_frame_rate_multiply_info = 0;
 			}
-            break;
-        case 0:
-        case 1:
-        case 7:
-        case 8:
-        case 9:
+			break;
+		case 0:
+		case 1:
+		case 7:
+		case 8:
+		case 9:
 			if (gf_bs_read_int_log(bs, 1, "b_multiplier")) {
 				pinfo->dsi_frame_rate_multiply_info = 1;
 			} else {
 				pinfo->dsi_frame_rate_multiply_info = 0;
 			}
-            break;
-        default:
+			break;
+		default:
 			pinfo->dsi_frame_rate_multiply_info = 0;
-            break;
-    }
+			break;
+	}
 	return GF_TRUE;
 }
 
 static Bool gf_ac4_presentation_version(GF_BitStream *bs, GF_AC4PresentationV1* pinfo, u8 bitstream_version)
 {
 	pinfo->presentation_version = 0;
-    while(gf_bs_read_int(bs, 1) == 1){
-        pinfo->presentation_version ++;
-    }
+	while(gf_bs_read_int(bs, 1) == 1){
+		pinfo->presentation_version ++;
+	}
 	return GF_TRUE;
 }
 
@@ -14383,33 +14387,33 @@ static Bool gf_ac4_emdf_protection(GF_BitStream *bs)
 	protection_length_secondary = gf_bs_read_int_log(bs, 2, "protection_length_secondary");
 
 	switch (protection_length_primary) {
-        case 1:
-            gf_bs_read_int_log(bs, 8, "protection_bits_primary");
-            break;
-        case 2:
-            for (unsigned idx = 0; idx < 4; idx ++)  { gf_bs_read_int_log(bs, 8, "protection_bits_primary"); }
-            break;
-        case 3:
-            for (unsigned idx = 0; idx < 16; idx ++) { gf_bs_read_int_log(bs, 8, "protection_bits_primary"); }
-            break;
-        default:
-            break;
-    }
+		case 1:
+			gf_bs_read_int_log(bs, 8, "protection_bits_primary");
+			break;
+		case 2:
+			for (unsigned idx = 0; idx < 4; idx ++)  { gf_bs_read_int_log(bs, 8, "protection_bits_primary"); }
+			break;
+		case 3:
+			for (unsigned idx = 0; idx < 16; idx ++) { gf_bs_read_int_log(bs, 8, "protection_bits_primary"); }
+			break;
+		default:
+			break;
+	}
 	switch (protection_length_secondary) {
-        case 0:
-            break;
-        case 1:
-            gf_bs_read_int_log(bs, 8, "protection_bits_secondary");
-            break;
-        case 2:
-            for (unsigned idx = 0; idx < 4; idx ++)  { gf_bs_read_int_log(bs, 8, "protection_bits_secondary"); }
-            break;
-        case 3:
-            for (unsigned idx = 0; idx < 16; idx ++) { gf_bs_read_int_log(bs, 8, "protection_bits_secondary"); }
-            break;
-        default:
-            break;
-    }
+		case 0:
+			break;
+		case 1:
+			gf_bs_read_int_log(bs, 8, "protection_bits_secondary");
+			break;
+		case 2:
+			for (unsigned idx = 0; idx < 4; idx ++)  { gf_bs_read_int_log(bs, 8, "protection_bits_secondary"); }
+			break;
+		case 3:
+			for (unsigned idx = 0; idx < 16; idx ++) { gf_bs_read_int_log(bs, 8, "protection_bits_secondary"); }
+			break;
+		default:
+			break;
+	}
 	return GF_TRUE;
 }
 
@@ -14470,69 +14474,69 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 									u8 *dolby_atmos_indicator)
 {
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.2.7.2 Table 78
-    u32 channel_mode_code = 0;
-    channel_mode_code = gf_bs_read_int(bs, 1);
-    if (channel_mode_code == 0) {   // Mono 0b0
-        return AC4_CH_MODE_MONO;
-    }
-    channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
-    if (channel_mode_code == 2) {   // Stereo  0b10
-        return AC4_CH_MODE_STEREO;
-    }
-    channel_mode_code = (channel_mode_code << 2) | gf_bs_read_int(bs, 2);
-    switch (channel_mode_code) {
-        case 12:                    // 3.0 0b1100
-            return AC4_CH_MODE_3_0;
-        case 13:                    // 5.0 0b1101
-            return AC4_CH_MODE_5_0;
-        case 14:                    // 5.1 0b1110
-            return AC4_CH_MODE_5_1;
-    }
-    channel_mode_code = (channel_mode_code << 3) | gf_bs_read_int(bs, 3);
-    switch (channel_mode_code) {
-        case 120:                   // 7.0: 3/4/0   0b1111000
+	u32 channel_mode_code = 0;
+	channel_mode_code = gf_bs_read_int(bs, 1);
+	if (channel_mode_code == 0) {   // Mono 0b0
+		return AC4_CH_MODE_MONO;
+	}
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
+	if (channel_mode_code == 2) {   // Stereo  0b10
+		return AC4_CH_MODE_STEREO;
+	}
+	channel_mode_code = (channel_mode_code << 2) | gf_bs_read_int(bs, 2);
+	switch (channel_mode_code) {
+		case 12:                    // 3.0 0b1100
+			return AC4_CH_MODE_3_0;
+		case 13:                    // 5.0 0b1101
+			return AC4_CH_MODE_5_0;
+		case 14:                    // 5.1 0b1110
+			return AC4_CH_MODE_5_1;
+	}
+	channel_mode_code = (channel_mode_code << 3) | gf_bs_read_int(bs, 3);
+	switch (channel_mode_code) {
+		case 120:                   // 7.0: 3/4/0   0b1111000
 			// Dolby AC-4 in MPEG-DASH for Broadcast Services Specification 2.5.3
 			if (presentation_version == 2) {
 				return AC4_CH_MODE_STEREO; // signaling Dolby content in IMS
 			} else {
 				return AC4_CH_MODE_70_34;
 			}
-        case 121:                   // 7.1: 3/4/0.1 0b1111001
+		case 121:                   // 7.1: 3/4/0.1 0b1111001
 			if (presentation_version == 2) {
-                *dolby_atmos_indicator |= 1;
+				*dolby_atmos_indicator |= 1;
 				return AC4_CH_MODE_STEREO; // signaling Dolby Atmos content in IMS
-            } else {
+			} else {
 				return AC4_CH_MODE_71_34;
 			}
-        case 122:                   // 7.0: 5/2/0   0b1111010
-            return AC4_CH_MODE_70_52;
-        case 123:                   // 7.1: 5/2/0.1 0b1111011
-            return AC4_CH_MODE_71_52;
-        case 124:                   // 7.0: 3/2/2   0b1111100
-            return AC4_CH_MODE_70_322;
-        case 125:                   // 7.1: 3/2/2.1 0b1111101
-            return AC4_CH_MODE_71_322;
-    }
-    channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
-    switch (channel_mode_code) {
-        case 252:                   // 7.0.4 0b11111100
-            return AC4_CH_MODE_7_0_4;
-        case 253:                   // 7.1.4 0b11111101
-            return AC4_CH_MODE_7_1_4;
-    }
-    channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
-    switch (channel_mode_code) {
-        case 508:                   // 9.0.4 0b111111100
-            return AC4_CH_MODE_9_0_4;
-        case 509:                   // 9.1.4 0b111111101
-            return AC4_CH_MODE_9_1_4;
-        case 510:                   // 22.2 0b111111110
-            return AC4_CH_MODE_22_2;
-        case 511:                   // Reserved, escape value 0b111111111
-        default:
-            gf_ac4_variable_bits(bs, 2);
-            return AC4_CH_MODE_RESERVED;
-    }
+		case 122:                   // 7.0: 5/2/0   0b1111010
+			return AC4_CH_MODE_70_52;
+		case 123:                   // 7.1: 5/2/0.1 0b1111011
+			return AC4_CH_MODE_71_52;
+		case 124:                   // 7.0: 3/2/2   0b1111100
+			return AC4_CH_MODE_70_322;
+		case 125:                   // 7.1: 3/2/2.1 0b1111101
+			return AC4_CH_MODE_71_322;
+	}
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
+	switch (channel_mode_code) {
+		case 252:                   // 7.0.4 0b11111100
+			return AC4_CH_MODE_7_0_4;
+		case 253:                   // 7.1.4 0b11111101
+			return AC4_CH_MODE_7_1_4;
+	}
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
+	switch (channel_mode_code) {
+		case 508:                   // 9.0.4 0b111111100
+			return AC4_CH_MODE_9_0_4;
+		case 509:                   // 9.1.4 0b111111101
+			return AC4_CH_MODE_9_1_4;
+		case 510:                   // 22.2 0b111111110
+			return AC4_CH_MODE_22_2;
+		case 511:                   // Reserved, escape value 0b111111111
+		default:
+			gf_ac4_variable_bits(bs, 2);
+			return AC4_CH_MODE_RESERVED;
+	}
 }
 
 static Bool gf_ac4_dsi_sf_mutiplier(GF_BitStream *bs, GF_AC4SubStream* substream, u32 fs_index)
@@ -14615,15 +14619,15 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 			mask &= ~0x2; // Remove centre channel (C) from mask
 		}
 		switch (substream->top_channels_present) {
-            case 0:
-                mask &= ~0x30; // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
-                break;
-            case 1:
-            case 2:
-                mask &= ~0x30; // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
-                mask |=  0x80; // Add top channels (Tl, Tr) from mask;
-                break;
-        }
+			case 0:
+				mask &= ~0x30; // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
+				break;
+			case 1:
+			case 2:
+				mask &= ~0x30; // Remove top channels (Tfl,Tfr,Tbl,Tbr) from mask
+				mask |=  0x80; // Add top channels (Tl, Tr) from mask;
+				break;
+		}
 	}
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.7
 	substream->dsi_substream_channel_mask = mask;
@@ -14675,59 +14679,59 @@ static Bool gf_ac4_oamd_substream_info(GF_BitStream *bs, u8 b_substreams_present
 
 static u32 gf_ac4_obj_num_from_is_config(u32 isf_config)
 {
-    u32 obj_num = 0;
-    switch (isf_config){
-        case 0: obj_num = 4 ; break;
-        case 1: obj_num = 8 ; break;
-        case 2: obj_num = 10; break;
-        case 3: obj_num = 14; break;
-        case 4: obj_num = 15; break;
-        case 5: obj_num = 30; break;
-        default: obj_num = 0;
-    }
-    return obj_num;
+	u32 obj_num = 0;
+	switch (isf_config){
+		case 0: obj_num = 4 ; break;
+		case 1: obj_num = 8 ; break;
+		case 2: obj_num = 10; break;
+		case 3: obj_num = 14; break;
+		case 4: obj_num = 15; break;
+		case 5: obj_num = 30; break;
+		default: obj_num = 0;
+	}
+	return obj_num;
 }
 
 static u32 gf_ac4_bed_num_from_assign_code(u32 assign_code)
 {
-    u32 bed_num = 0;
-    switch (assign_code){
-        case 0: bed_num = 2 ; break;
-        case 1: bed_num = 3 ; break;
-        case 2: bed_num = 6 ; break;
-        case 3: bed_num = 8 ; break;
-        case 4: bed_num = 10; break;
-        case 5: bed_num = 8 ; break;
-        case 6: bed_num = 10; break;
-        case 7: bed_num = 12; break;
-        default: bed_num = 0;
-    }
-    return bed_num;
+	u32 bed_num = 0;
+	switch (assign_code){
+		case 0: bed_num = 2 ; break;
+		case 1: bed_num = 3 ; break;
+		case 2: bed_num = 6 ; break;
+		case 3: bed_num = 8 ; break;
+		case 4: bed_num = 10; break;
+		case 5: bed_num = 8 ; break;
+		case 6: bed_num = 10; break;
+		case 7: bed_num = 12; break;
+		default: bed_num = 0;
+	}
+	return bed_num;
 }
 
 static u32 gf_ac4_bed_num_from_non_std_mask(u32 non_std_mask)
 {
-    u32 bed_num = 0, idx;
-    // Table 85: nonstd_bed_channel_assignment AC-4 part-2 v1.2.1
-    for (idx = 0; idx < 17; idx ++) {
-        if ((non_std_mask >> idx) & 0x1){
-            bed_num ++;
-        }
-    }
-    return bed_num;
+	u32 bed_num = 0, idx;
+	// Table 85: nonstd_bed_channel_assignment AC-4 part-2 v1.2.1
+	for (idx = 0; idx < 17; idx ++) {
+		if ((non_std_mask >> idx) & 0x1){
+			bed_num ++;
+		}
+	}
+	return bed_num;
 }
 
 static u32 gf_ac4_bed_num_from_std_mask(u32 std_mask)
 {
-    u32 bed_num = 0, idx;
-    // Table 86 std_bed_channel_assignment_flag[] AC-4 part-2 v1.2.1
-    for (idx = 0; idx < 10; idx ++) {
-        if ((std_mask >> idx) & 0x1){
-            if ((idx == 1) || (idx == 2) || (idx == 9)) { bed_num ++;}
-            else { bed_num += 2; }
-        }
-    }
-    return bed_num;
+	u32 bed_num = 0, idx;
+	// Table 86 std_bed_channel_assignment_flag[] AC-4 part-2 v1.2.1
+	for (idx = 0; idx < 10; idx ++) {
+		if ((std_mask >> idx) & 0x1){
+			if ((idx == 1) || (idx == 2) || (idx == 9)) { bed_num ++;}
+			else { bed_num += 2; }
+		}
+	}
+	return bed_num;
 }
 
 static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
@@ -14755,11 +14759,11 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 
 				// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
 				if (is_upmix) {
-                    substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
-                    if (n_signals > gf_ac4_bed_num_from_assign_code(bed_chan_assign_code)) {
-                        substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
-                    }
-                }
+					substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
+					if (n_signals > gf_ac4_bed_num_from_assign_code(bed_chan_assign_code)) {
+						substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
+					}
+				}
 			} else {
 				if (gf_bs_read_int_log(bs, 1, "b_chan_assign_mask")) {
 					if (gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment")) {
@@ -14767,27 +14771,27 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 
 						// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
 						if (is_upmix) {
-                            bed_num = gf_ac4_bed_num_from_non_std_mask(nonstd_bed_channel_assignment_mask);
-                            if (bed_num > 0) {
+							bed_num = gf_ac4_bed_num_from_non_std_mask(nonstd_bed_channel_assignment_mask);
+							if (bed_num > 0) {
 								substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
 							}
-                            if (n_signals > bed_num) {
-                                substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
-                            }
-                        }
+							if (n_signals > bed_num) {
+								substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
+							}
+						}
 					} else {
 						std_bed_channel_assignment_mask = gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_mask");
 
 						// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
 						if (is_upmix) {
-                            bed_num = gf_ac4_bed_num_from_std_mask(std_bed_channel_assignment_mask);
-                            if (bed_num > 0) {
+							bed_num = gf_ac4_bed_num_from_std_mask(std_bed_channel_assignment_mask);
+							if (bed_num > 0) {
 								substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
 							}
-                            if (n_signals > bed_num) {
-                                substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
-                            }
-                        }
+							if (n_signals > bed_num) {
+								substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
+							}
+						}
 					}
 				} else {
 					if (n_signals > 1) {
@@ -14802,11 +14806,11 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 
 					// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
 					if (is_upmix) {
-                        substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
-                        if (n_signals > n_bed_signals){
+						substream->b_substream_contains_bed_objects |= 1; // obj_type[n_objs] = BED;
+						if (n_signals > n_bed_signals){
 							substream->b_substream_contains_dynamic_objects |= 1; // b_ajoc_coded[n_objs] = 1;
 						}
-                    }
+					}
 				}
 			}
 		}
@@ -15418,8 +15422,8 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 	}
 
 	if (b_single_substream_group != 1 && pinfo->presentation_config == 6){
-        pinfo->b_add_emdf_substreams = 1;
-    }
+		pinfo->b_add_emdf_substreams = 1;
+	}
 	else {
 		if (bitstream_version != 1) {
 			pinfo->mdcompat = gf_bs_read_int_log(bs, 3, "mdcompat");
@@ -15433,7 +15437,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		gf_ac4_frame_rate_fractions_info(bs, pinfo, frame_rate_index);
 		gf_ac4_emdf_info(bs, &emdf_version, &key_id);
 		pinfo->presentation_emdf_version = emdf_version;
-        pinfo->presentation_key_id = key_id;
+		pinfo->presentation_key_id = key_id;
 
 		pinfo->b_presentation_filter = gf_bs_read_int_log(bs, 1, "b_presentation_filter");
 		if (pinfo->b_presentation_filter) {
@@ -15458,6 +15462,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
 					gf_ac4_sgi_specifier_add(bs, substream_group_indexes, bitstream_version, &group_index);
 					// In ETSI TS 103 190-2 V1.2.1 (2018-02), this should be 1
+					// Main + DE are considered as one substream group in logic, but there are two substream group configurations spearately in bitstream
 					pinfo->n_substream_groups = 2;
 					break;
 				case 2:
@@ -15501,9 +15506,9 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		}
 		pinfo->b_pre_virtualized = gf_bs_read_int_log(bs, 1, "b_pre_virtualized");
 		// IMS shall set b_pre_virtualized = 1 based on Dolby AC-4 in MPEG-DASH for Broadcast Services Specification
-        if (pinfo->presentation_version == 2) {
-            pinfo->b_pre_virtualized  = 1;
-        }
+		if (pinfo->presentation_version == 2) {
+			pinfo->b_pre_virtualized  = 1;
+		}
 		pinfo->b_add_emdf_substreams = gf_bs_read_int_log(bs, 1, "b_add_emdf_substreams");
 		gf_ac4_presentation_substream_info(bs);
 	}
@@ -15517,7 +15522,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 
 			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.8.16 & E.8.17
 			pinfo->substream_emdf_version[i] = emdf_version;
-            pinfo->substream_key_id[i] = key_id;
+			pinfo->substream_key_id[i] = key_id;
 		}
 	}
 
@@ -15534,6 +15539,10 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 
 	for(i = 0; i < stream->n_presentations; i++) {
 		p = gf_list_get(stream->presentations, i);
+		if (!p) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] presentation %u/%u is NULL: ignoring\n", i, stream->n_presentations));
+			continue;
+		}
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {
@@ -15561,134 +15570,134 @@ static Bool gf_ac4_is_substream_group_part_of_default_presentation(GF_List *pres
 static u32 gf_ac4_get_channel_count_from_speaker_group_index_mask(u32 mask)
 {
 	u32 ch= 0;
-    if ((mask & 1) != 0) { // 0: L,R 0b1
-        ch += 2;
-    }
-    if ((mask & 2) != 0) { // 1: C 0b10
-        ch += 1;
-    }
-    if ((mask & 4) != 0) { // 2: Ls,Rs 0b100
-        ch += 2;
-    }
-    if ((mask & 8) != 0) { // 3: Lb,Rb 0b1000
-        ch += 2;
-    }
-    if ((mask & 16) != 0) { // 4: Tfl,Tfr 0b10000
-        ch += 2;
-    }
-    if ((mask & 32) != 0) { // 5: Tbl,Tbr 0b100000
-        ch += 2;
-    }
-    if ((mask & 64) != 0) { // 6: LFE 0b1000000
-        ch += 1;
-    }
-    if ((mask & 128) != 0) { // 7: TL,TR 0b10000000
-        ch += 2;
-    }
-    if ((mask & 256) != 0) { // 8: Tsl,Tsr 0b100000000
-        ch += 2;
-    }
-    if ((mask & 512) != 0) { // 9: Tfc
-        ch += 1;
-    }
-    if ((mask & 1024) != 0) { // 10: Tbc
-        ch += 1;
-    }
-    if ((mask & 2048) != 0) { // 11: Tc
-        ch += 1;
-    }
-    if ((mask & 4096) != 0) { // 12: LFE2
-        ch += 1;
-    }
-    if ((mask & 8192) != 0) { // 13: Bfl,Bfr
-        ch += 2;
-    }
-    if ((mask & 16384) != 0) { // 14: Bfc
-        ch += 1;
-    }
-    if ((mask & 32768) != 0) { // 15: Cb
-        ch += 1;
-    }
-    if ((mask & 65536) != 0) { // 16: Lscr,Rscr
-        ch += 2;
-    }
-    if ((mask & 131072) != 0) { // 17: Lw,Rw
-        ch += 2;
-    }
-    if ((mask & 262144) != 0) { // 18: Vhl,Vhr
-        ch += 2;
-    }
+	if ((mask & 1) != 0) { // 0: L,R 0b1
+		ch += 2;
+	}
+	if ((mask & 2) != 0) { // 1: C 0b10
+		ch += 1;
+	}
+	if ((mask & 4) != 0) { // 2: Ls,Rs 0b100
+		ch += 2;
+	}
+	if ((mask & 8) != 0) { // 3: Lb,Rb 0b1000
+		ch += 2;
+	}
+	if ((mask & 16) != 0) { // 4: Tfl,Tfr 0b10000
+		ch += 2;
+	}
+	if ((mask & 32) != 0) { // 5: Tbl,Tbr 0b100000
+		ch += 2;
+	}
+	if ((mask & 64) != 0) { // 6: LFE 0b1000000
+		ch += 1;
+	}
+	if ((mask & 128) != 0) { // 7: TL,TR 0b10000000
+		ch += 2;
+	}
+	if ((mask & 256) != 0) { // 8: Tsl,Tsr 0b100000000
+		ch += 2;
+	}
+	if ((mask & 512) != 0) { // 9: Tfc
+		ch += 1;
+	}
+	if ((mask & 1024) != 0) { // 10: Tbc
+		ch += 1;
+	}
+	if ((mask & 2048) != 0) { // 11: Tc
+		ch += 1;
+	}
+	if ((mask & 4096) != 0) { // 12: LFE2
+		ch += 1;
+	}
+	if ((mask & 8192) != 0) { // 13: Bfl,Bfr
+		ch += 2;
+	}
+	if ((mask & 16384) != 0) { // 14: Bfc
+		ch += 1;
+	}
+	if ((mask & 32768) != 0) { // 15: Cb
+		ch += 1;
+	}
+	if ((mask & 65536) != 0) { // 16: Lscr,Rscr
+		ch += 2;
+	}
+	if ((mask & 131072) != 0) { // 17: Lw,Rw
+		ch += 2;
+	}
+	if ((mask & 262144) != 0) { // 18: Vhl,Vhr
+		ch += 2;
+	}
 	if ((mask & 1) != 0 && (mask & 2) != 0 && ch == 3) { // mono_stereo
-        ch = 2;
-    }
-    return ch;
+		ch = 2;
+	}
+	return ch;
 }
 
 s32 gf_ac4_cfg_super_set(s32 lvalue, s32 rvalue)
 {
 	// This function takes two ch_mode values and returns one ch_mode value. The returned ch_mode value indicates the lowest possible ch_mode which includes all channels present in the two provided ch_mode values.
-    if ((lvalue == -1) || (lvalue > 15)) return rvalue;
-    if ((rvalue == -1) || (rvalue > 15)) return lvalue;
-    return AC4_SUPER_SET_CH_MODE[lvalue][rvalue];
+	if ((lvalue == -1) || (lvalue > 15)) return rvalue;
+	if ((rvalue == -1) || (rvalue > 15)) return lvalue;
+	return AC4_SUPER_SET_CH_MODE[lvalue][rvalue];
 }
 
 static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 {
-    s32 pres_ch_mode = -1, b_obj_or_ajoc = 0;
+	s32 pres_ch_mode = -1, b_obj_or_ajoc = 0;
 	u32 i, j;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.27 Table 91
-    for (i = 0; i < p->n_substream_groups; i++){
+	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-        for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
 			if (!substream) continue;
-            if (group->b_channel_coded){
-                pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
-            }else {
-                b_obj_or_ajoc = 1;
-            }
-        }
-    }
-    if (b_obj_or_ajoc == 1) {
+			if (group->b_channel_coded){
+				pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
+			}else {
+				b_obj_or_ajoc = 1;
+			}
+		}
+	}
+	if (b_obj_or_ajoc == 1) {
 		pres_ch_mode = -1;
 	}
-    return pres_ch_mode;
+	return pres_ch_mode;
 }
 
 static u32 gf_ac4_presentation_channel_mask_v1(GF_AC4PresentationV1 *p)
 {
-    u32 channel_mask = 0, i, j;
-    u8 b_obj_or_ajoc = 0;
+	u32 channel_mask = 0, i, j;
+	u8 b_obj_or_ajoc = 0;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.14
-    for (i = 0; i < p->n_substream_groups; i++){
+	for (i = 0; i < p->n_substream_groups; i++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-        for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
-            if (group->b_channel_coded){
-                channel_mask |= substream->dsi_substream_channel_mask;
-            }else {
-                b_obj_or_ajoc = 1;
-            }
-        }
-    }
+			if (group->b_channel_coded){
+				channel_mask |= substream->dsi_substream_channel_mask;
+			}else {
+				b_obj_or_ajoc = 1;
+			}
+		}
+	}
 
-    // TODO: temporary solution according to Dolby's internal discussion
-    if (channel_mask == 0x03) { channel_mask = 0x01;}
+	// TODO: temporary solution according to Dolby's internal discussion
+	if (channel_mask == 0x03) { channel_mask = 0x01;}
 
-    // If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
-    if ((channel_mask & 0x30) && (channel_mask & 0x80))  { channel_mask &= ~0x80;}
+	// If one substream contains Tfl, Tfr, Tbl, Tbr, Tl and Tr shall be removed.
+	if ((channel_mask & 0x30) && (channel_mask & 0x80))  { channel_mask &= ~0x80;}
 
-    // objective channel mask
-    if (b_obj_or_ajoc == 1) { channel_mask = 0x800000; }
-    return channel_mask;
+	// objective channel mask
+	if (b_obj_or_ajoc == 1) { channel_mask = 0x800000; }
+	return channel_mask;
 }
 
 static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
@@ -15699,47 +15708,47 @@ static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
 	GF_AC4SubStream *substream;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.12
-    for (i = 0; i < p->n_substream_groups; i ++){
+	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-        for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
-            mask |= substream->b_4_back_channels_present;
-        }
-    }
-    return mask;
+			mask |= substream->b_4_back_channels_present;
+		}
+	}
+	return mask;
 }
 
 static u8 gf_ac4_pres_top_channel_pairs(GF_AC4PresentationV1 *p)
 {
-    u8 tmp_pres_top_channel_pairs = 0;
+	u8 tmp_pres_top_channel_pairs = 0;
 	u32 i, j;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.30 Table 94
-    for (i = 0; i < p->n_substream_groups; i ++){
+	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-        for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
-            if (tmp_pres_top_channel_pairs < substream->top_channels_present) {
-                tmp_pres_top_channel_pairs = substream->top_channels_present;
-            }
-        }
-    }
-    switch (tmp_pres_top_channel_pairs){
-        case 0:
-            return 0;
-        case 1:
-        case 2:
-            return 1;
-        case 3:
-            return 2;
-        default:
-            return 0;
-    }
-    return 0;
+			if (tmp_pres_top_channel_pairs < substream->top_channels_present) {
+				tmp_pres_top_channel_pairs = substream->top_channels_present;
+			}
+		}
+	}
+	switch (tmp_pres_top_channel_pairs){
+		case 0:
+			return 0;
+		case 1:
+		case 2:
+			return 1;
+		case 3:
+			return 2;
+		default:
+			return 0;
+	}
+	return 0;
 }
 
 static s32 gf_ac4_get_ch_mode_core(u8 b_channel_coded,
@@ -15749,68 +15758,95 @@ static s32 gf_ac4_get_ch_mode_core(u8 b_channel_coded,
 								   u32 ch_mode)
 {
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) Table 92
-    if (b_channel_coded == 0 && b_ajoc == 1 && b_static_dmx == 1 && b_lfe == 0) {
-        return 3;
-    }
+	if (b_channel_coded == 0 && b_ajoc == 1 && b_static_dmx == 1 && b_lfe == 0) {
+		return 3;
+	}
 	if (b_channel_coded == 0 && b_ajoc == 1 && b_static_dmx == 1 && b_lfe == 1) {
-        return 4;
-    }
+		return 4;
+	}
 	if (b_channel_coded == 1 && (ch_mode == 11 || ch_mode == 13)) {
-        return 5;
-    }
+		return 5;
+	}
 	if (b_channel_coded == 1 && (ch_mode == 12 || ch_mode == 14)) {
-        return 6;
-    }
-    return -1;
+		return 6;
+	}
+	return -1;
 }
 
 static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 pres_ch_mode)
 {
-    s32 pres_ch_mode_core = -1, ch_mode_core = -1;
-    u8 b_obj_or_ajoc_adaptive = 0;
+	s32 pres_ch_mode_core = -1, ch_mode_core = -1;
+	u8 b_obj_or_ajoc_adaptive = 0;
 	u32 i, j;
 	GF_AC4SubStreamGroupV1 *group;
 	GF_AC4SubStream *substream;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) Table 93
-    for (i = 0; i < p->n_substream_groups; i ++){
+	for (i = 0; i < p->n_substream_groups; i ++){
 		group = gf_list_get(p->substream_groups, i);
 		if (!group) continue;
-        for (j = 0; j < group->n_lf_substreams; j++){
+		for (j = 0; j < group->n_lf_substreams; j++){
 			substream = gf_list_get(group->substreams, j);
 			if (!substream) continue;
-            if (group->b_channel_coded){
+			if (group->b_channel_coded){
 				ch_mode_core = gf_ac4_get_ch_mode_core(group->b_channel_coded,
 													   substream->b_ajoc,
 													   substream->b_static_dmx,
 													   substream->b_lfe,
 													   substream->ch_mode);
-                pres_ch_mode_core = gf_ac4_cfg_super_set(pres_ch_mode_core, ch_mode_core);
-            } else {
-                if (substream->b_ajoc){
-                    if (substream->b_static_dmx){
+				pres_ch_mode_core = gf_ac4_cfg_super_set(pres_ch_mode_core, ch_mode_core);
+			} else {
+				if (substream->b_ajoc){
+					if (substream->b_static_dmx){
 						ch_mode_core = gf_ac4_get_ch_mode_core(group->b_channel_coded,
 													   substream->b_ajoc,
 													   substream->b_static_dmx,
 													   substream->b_lfe,
 													   substream->ch_mode);
-                        pres_ch_mode_core = gf_ac4_cfg_super_set(pres_ch_mode_core, ch_mode_core);
-                    } else {
-                        b_obj_or_ajoc_adaptive = 1;
-                    }
-                } else {
-                    b_obj_or_ajoc_adaptive = 1;
-                }
+						pres_ch_mode_core = gf_ac4_cfg_super_set(pres_ch_mode_core, ch_mode_core);
+					} else {
+						b_obj_or_ajoc_adaptive = 1;
+					}
+				} else {
+					b_obj_or_ajoc_adaptive = 1;
+				}
+			}
+		}
+	}
+	if (b_obj_or_ajoc_adaptive) {
+		pres_ch_mode_core = -1;
+	}
+	if (pres_ch_mode_core == pres_ch_mode) {
+		pres_ch_mode_core = -1;
+	}
+	return pres_ch_mode_core;
+}
+
+static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
+{
+	u32 n_substreams, s; //, substream_size;
+	u8 b_size_present, b_more_bits;
+
+	n_substreams = gf_bs_read_int_log(bs, 2, "n_substreams");
+    if (n_substreams == 0) {
+        n_substreams = gf_ac4_variable_bits(bs, 2) + 4;
+    }
+    if (n_substreams == 1) {
+        b_size_present = gf_bs_read_int_log(bs, 1, "b_size_present");
+    } else {
+        b_size_present = 1;
+    }
+    if (b_size_present) {
+        for (s = 0; s < n_substreams && gf_bs_available(bs); s++) {
+            b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
+            /*substream_size = */gf_bs_read_int_log(bs, 10, "substream_size");
+            if (b_more_bits) {
+                //substream_size += (gf_ac4_variable_bits(bs, 2) << 10);
+                gf_ac4_variable_bits(bs, 2);
             }
         }
     }
-    if (b_obj_or_ajoc_adaptive) {
-        pres_ch_mode_core = -1;
-    }
-    if (pres_ch_mode_core == pres_ch_mode) {
-        pres_ch_mode_core = -1;
-    }
-    return pres_ch_mode_core;
+	return GF_TRUE;
 }
 
 static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_parse)
@@ -15826,33 +15862,37 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 	GF_AC4SubStreamGroupV1 *group;
 	GF_List *temp_groups, *hdr_p_list;
 	GF_AC4StreamInfo* stream = &(hdr->stream);
+	u64 toc_pos;
+	GF_Err e = GF_OK;
 
 	// ac4_toc
+	toc_pos = gf_bs_get_position(bs);
+
 	bitstream_version = gf_bs_read_int_log(bs, 2, "bitstream_version");
 	if (bitstream_version == 3) {
-	    bitstream_version += gf_ac4_variable_bits(bs, 2);
+		bitstream_version += gf_ac4_variable_bits(bs, 2);
 	}
 
 	gf_bs_read_int_log(bs, 10, "sequence_counter");
 	if (gf_bs_read_int_log(bs, 1, "b_wait_frames")) {
-	    wait_frames = gf_bs_read_int_log(bs, 3, "wait_frames");
-	    if (wait_frames > 0) {
+		wait_frames = gf_bs_read_int_log(bs, 3, "wait_frames");
+		if (wait_frames > 0) {
 			gf_bs_read_int_log(bs, 2, "reserved");
 		}
 	} else {
-	    wait_frames = -1;
+		wait_frames = -1;
 	}
 	fs_index = gf_bs_read_int_log(bs, 1, "fs_index");
 	frame_rate_index = gf_bs_read_int_log(bs, 4, "frame_rate_index");
 	b_iframe_global = gf_bs_read_int_log(bs, 1, "b_iframe_global");
 	if (gf_bs_read_int_log(bs, 1, "b_single_presentation") == 1){
-	    n_presentations = 1;
+		n_presentations = 1;
 	} else {
-	    if (gf_bs_read_int_log(bs, 1, "b_more_presentations") == 1){
-	        n_presentations = gf_ac4_variable_bits(bs, 2) + 2;
-	    } else {
-	        n_presentations = 0;
-	    }
+		if (gf_bs_read_int_log(bs, 1, "b_more_presentations") == 1){
+			n_presentations = gf_ac4_variable_bits(bs, 2) + 2;
+		} else {
+			n_presentations = 0;
+		}
 	}
 
 	payload_base = 0;
@@ -15870,7 +15910,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 	stream->frame_rate_index = frame_rate_index;
 	stream->n_presentations = n_presentations;
 
-    if (bitstream_version <= 1) {
+	if (bitstream_version <= 1) {
 		/* ac4_presentation_info() is described in ETSI TS 103 190-1 [1] and it is deprecated.
 			for (i = 0; i < n_presentations; i++) {
 				gf_ac4_ac4_presentation_info();
@@ -15879,15 +15919,15 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		return GF_TRUE;
 	} else {
 		b_program_id = gf_bs_read_int_log(bs, 1, "b_program_id");
-	    if (b_program_id == 1) {
+		if (b_program_id == 1) {
 			short_program_id = gf_bs_read_int_log(bs, 16, "short_program_id");
 			b_program_uuid_present = gf_bs_read_int_log(bs, 1, "b_program_uuid_present");
-	        if (b_program_uuid_present == 1){
-	            for (i = 0; i < 16; i++){
+			if (b_program_uuid_present == 1){
+				for (i = 0; i < 16; i++){
 					program_uuid[i] = gf_bs_read_int_log(bs, 8, "program_uuid");
-	            }
-	        }
-	    }
+				}
+			}
+		}
 
 		// write into GF_AC4StreamInfo
 		stream->b_program_id = b_program_id;
@@ -15915,11 +15955,11 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 		// calloc the space for GF_LIST<GF_AC4PresentationV1>
 		if (n_presentations > 0){
-            stream->presentations = gf_list_new();
-        } else {
-            stream->presentations = NULL;
+			stream->presentations = gf_list_new();
+		} else {
+			stream->presentations = NULL;
 			return GF_TRUE;
-        }
+		}
 
 		hdr_p_list = stream->presentations;
 
@@ -15931,6 +15971,11 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 										frame_rate_index,
 										&max_group_index);
 			gf_list_add(hdr_p_list, pinfo);
+
+			if (gf_bs_is_overflow(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 		}
 
 		// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
@@ -15962,12 +16007,18 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			if (channel_count < local_channel_count) {
 				channel_count = local_channel_count;
 			}
+			if (gf_bs_is_overflow(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 		}
 
 		// write into header
 		for (i = 0; i < n_presentations; i++) {
 			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
-
+			if (p == NULL) {
+				break;
+			}
 
 			// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
 			p->substream_groups = gf_list_new();
@@ -15980,15 +16031,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 					gf_list_add(p->substream_groups, group);
 					p->dolby_atmos_indicator |= group->dolby_atmos_indicator;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Cannot find substream group %d for presentation %d\n", *idx, i));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Cannot find substream group %d for presentation %d\n", *idx, i));
+					e = GF_NOT_SUPPORTED;
 					break;
-				}
-			}
-			// remove added groups from temp to avoid double frees
-			for (j=0; j < gf_list_count(p->substream_groups); j++) {
-				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
-				if (group) {
-					gf_list_del_item(temp_groups, group);
 				}
 			}
 
@@ -16028,6 +16073,20 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			gf_list_del(p->substream_group_indexs);
 		}
 
+		// remove from temp groups that have been added elsewhere to avoid double frees
+		for (i = 0; i < n_presentations; i++) {
+			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
+			if (p == NULL) {
+				break;
+			}
+			for (j=0; j < gf_list_count(p->substream_groups); j++) {
+				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
+				if (group) {
+					gf_list_del_item(temp_groups, group);
+				}
+			}
+		}
+
 		// free auxiliary information temp_groups that have not been copied elsewhere
 		while ((group = (GF_AC4SubStreamGroupV1*)gf_list_pop_back(temp_groups))) {
 			if (group->substreams) {
@@ -16050,9 +16109,12 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		}
 	}
 
-	// skip the rest gf_ac4_substream_index_table(bs, header);
+	gf_ac4_substream_index_table(bs, hdr);
+	gf_bs_align(bs);
 
-	return GF_TRUE;
+	hdr->toc_size = gf_bs_get_position(bs) - toc_pos;
+
+	return e == GF_OK ? GF_TRUE : GF_FALSE;
 }
 
 static Bool AC4_FindSyncCodeBS(GF_BitStream *bs)
@@ -16078,6 +16140,8 @@ static Bool AC4_FindSyncCodeBS(GF_BitStream *bs)
 
 static u32 AC4_FindSyncCode(u8 *buf, u32 buflen)
 {
+	if (buflen<6) return buflen;
+
 	u32 end = buflen - 6;
 	u32 offset = 0;
 	while (offset <= end) {
@@ -16089,7 +16153,7 @@ static u32 AC4_FindSyncCode(u8 *buf, u32 buflen)
 	return buflen;
 }
 
-Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_parse)
+Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc)
 {
 	GF_BitStream *bs;
 	Bool ret;
@@ -16099,7 +16163,7 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	if (*pos >= buflen) return GF_FALSE;
 
 	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
-	ret = gf_ac4_parser_bs(bs, hdr, full_parse);
+	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 
 	return ret;
@@ -16117,12 +16181,12 @@ Bool gf_ac4_frame_size(GF_BitStream *bs, GF_AC4Config *hdr)
 }
 
 GF_EXPORT
-Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
+Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc)
 {
-	u32 sync_word;
+	u32 sync_word = 0;
 	u64 pos;
 	GF_AC4StreamInfo* stream;
-	if (!hdr || !AC4_FindSyncCodeBS(bs)) return GF_FALSE;
+	if (!hdr || !bs) return GF_FALSE;
 
 	pos = gf_bs_get_position(bs);
 	stream = &(hdr->stream);
@@ -16131,6 +16195,15 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 	if (full_parse) {
 		gf_odf_ac4_cfg_clean_list(hdr);
 	}
+
+	if (start_from_toc) {
+		goto skip_header;
+	}
+
+	if (!AC4_FindSyncCodeBS(bs)) {
+		return GF_FALSE;
+	}
+	pos = gf_bs_get_position(bs);
 
 	sync_word = gf_bs_read_u16(bs);
 	if (sync_word != 0xAC40 && sync_word != 0xAC41) {
@@ -16141,8 +16214,9 @@ Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse)
 
 	gf_ac4_frame_size(bs, hdr);
 
+skip_header:
 	if (!gf_ac4_raw_frame(bs, hdr, full_parse)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] Fail to parse raw ac4 frame\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AC4] Fail to parse raw ac4 frame\n"));
 
 		gf_bs_seek(bs, pos);
 		return GF_FALSE;

@@ -126,6 +126,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_THEORA, 0xDF, GF_STREAM_VISUAL, "Theora Video", "theo|theora", NULL, "video/theora"},
 	{GF_CODECID_VORBIS, 0xDD, GF_STREAM_AUDIO, "Vorbis Audio", "vorb|vorbis", NULL, "audio/vorbis"},
 	{GF_CODECID_OPUS, 0xDE, GF_STREAM_AUDIO, "Opus Audio", "opus", NULL, "audio/opus"},
+	{GF_CODECID_IAMF, 0, GF_STREAM_AUDIO, "AOM IAMF (Immersive Audio Model and Formats)", "iamf", NULL, "audio/iamf", .unframe=GF_TRUE},
 	{GF_CODECID_FLAC, 0, GF_STREAM_AUDIO, "Flac Audio", "flac", "fLaC", "audio/flac", .unframe=GF_TRUE},
 	{GF_CODECID_SPEEX, 0, GF_STREAM_AUDIO, "Speex Audio", "spx|speex", NULL, "audio/speex"},
 	{GF_CODECID_SUBPIC, 0xE0, GF_STREAM_TEXT, "VobSub Subtitle", "vobsub", NULL, "text/x-vobsub"},
@@ -151,6 +152,9 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8|ivf", NULL, "video/vp8"},
 	{GF_CODECID_VP9, 0, GF_STREAM_VISUAL, "VP9 Video", "vp9|ivf", NULL, "video/vp9", .unframe=GF_TRUE},
 	{GF_CODECID_VP10, 0, GF_STREAM_VISUAL, "VP10 Video", "vp10|ivf", NULL, "video/vp10"},
+
+	{GF_CODECID_AVS3_VIDEO, 0, GF_STREAM_VISUAL, "AVS3 Video", "avsv|avs3", NULL, "video/avs3"},
+	{GF_CODECID_AVS3_AUDIO, 0, GF_STREAM_AUDIO,  "AVS3 Audio", "avsa|avs3", NULL, "audio/avs3"},
 
 	{GF_CODECID_MPHA, 0, GF_STREAM_AUDIO, "MPEG-H Audio", "mhas", "mha1", "audio/x-mpegh", .unframe=GF_TRUE},
 	{GF_CODECID_MHAS, 0, GF_STREAM_AUDIO, "MPEG-H AudioMux", "mhas", "mhm1", "audio/x-mhas", .unframe=GF_TRUE},
@@ -280,6 +284,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_VP9;
 	case GF_ISOM_SUBTYPE_VP10:
 		return GF_CODECID_VP10;
+	case GF_ISOM_SUBTYPE_AVS3:
+		return GF_CODECID_AVS3_VIDEO;
 
 	case GF_QT_SUBTYPE_APCH:
 		return GF_CODECID_APCH;
@@ -359,7 +365,8 @@ GF_EXPORT
 const char *gf_codecid_name(GF_CodecID codecid)
 {
 	CodecIDReg *r = gf_codecid_reg_find(codecid);
-	if (!r) return "Codec Not Supported";
+	if (!r)
+		return "Codec Not Supported";
 	return r->name;
 }
 
@@ -1106,6 +1113,40 @@ u32 gf_audio_get_dolby_channel_config_value_from_mask(u32 mask)
 	return mask;
 }
 
+// ETSI TS 103 190-2 V1.3.1 (2018-02) E10.14 presentation_channel_mask_v1
+u32 gf_ac4_dolby_channel_count_from_channel_mask_v1(u32 mask)
+{
+	const u32 channel_mask_v1_2_channel_count[19] = {
+		2,  // L,R
+		1,  // C
+		2,  // Ls,Rs
+		2,  // Lb,Rb
+		2,  //Tfl,Tfr
+		2,  //Tbl,Tbr
+		1,  //LFE
+		2,  //Tl,Tr
+		2,  //Tsl,Tsr
+		1,  //Tfc
+		1,  //Tbc
+		1,  //Tc
+		1,  //LEF2
+		2,  //Bfl,Bfr
+		1,  //Bfc
+		1,  //Cb
+		2,  //Lscr,Rscr
+		2,  //Lw,Rw
+		2   //Vhl,Vhr
+	};
+	u32 count = 0;
+    for(u32 i = 0; i < 19; i++) {
+        if(mask % 2 == 1) {
+            count += channel_mask_v1_2_channel_count[i];
+        }
+        mask /= 2;
+    }
+    return count;
+}
+
 GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 {
@@ -1157,6 +1198,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_GREYSCALE, "grey", "Greyscale 8 bit"},
 	{GF_PIXEL_ALPHAGREY, "algr", "Alpha+Grey 8 bit"},
 	{GF_PIXEL_GREYALPHA, "gral", "Grey+Alpha 8 bit"},
+	{GF_PIXEL_RGB_332, "rgb8", "RGB 332, 8 bits / pixel"},
 	{GF_PIXEL_RGB_444, "rgb4", "RGB 444, 12 bits (16 stored) / pixel"},
 	{GF_PIXEL_RGB_555, "rgb5", "RGB 555, 15 bits (16 stored) / pixel"},
 	{GF_PIXEL_RGB_565, "rgb6", "RGB 555, 16 bits / pixel"},
@@ -1360,6 +1402,13 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		stride = no_in_stride ? 2*width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
+		size = stride * height;
+		planes=1;
+		break;
+	case GF_PIXEL_RGB_332:
+		stride = no_in_stride ? width : *out_stride;
 		if (stride && height >= GF_UINT_MAX / stride)
 			return GF_FALSE;
 		size = stride * height;
@@ -1637,6 +1686,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 {
 	switch (pixfmt) {
 	case GF_PIXEL_GREYSCALE:
+	case GF_PIXEL_RGB_332:
 		return 1;
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
@@ -1717,6 +1767,7 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		return 2;
+	case GF_PIXEL_RGB_332:
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
@@ -2431,6 +2482,14 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 		comps_ID[0] = 0;
 		comps_ID[1] = 7;
 		break;
+	case GF_PIXEL_RGB_332:
+		nb_comps=3;
+		comps_ID[0] = 4;
+		comps_ID[1] = 5;
+		comps_ID[2] = 6;
+		bits[0] = bits[1] = 3;
+		bits[2] = 2;
+		break;
 	case GF_PIXEL_RGB_444:
 		nb_comps=3;
 		comps_ID[0] = 4;
@@ -2894,4 +2953,43 @@ GF_EXPORT
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2)
 {
 	TIMECODE_COMPARE(==)
+}
+
+GF_EXPORT
+u8 gf_cenc_key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
+{
+	u32 i=0, kpos=3;
+	if (const_iv_size) *const_iv_size = 0;
+	if (const_iv) *const_iv = NULL;
+
+	if (!key_info || !key_info_size)
+		return 0;
+
+	while (1) {
+		u8 civ_size=0;
+		const u8 *civ = NULL;
+		u8 iv_size = key_info[kpos];
+		kpos += 17;
+
+		if (!iv_size) {
+			if (kpos>key_info_size)
+				break;
+			civ_size = key_info[kpos];
+			civ = key_info + kpos + 1;
+			kpos += 1 + civ_size;
+		}
+
+		if (kpos>key_info_size)
+			break;
+
+		if (i+1==idx) {
+			if (const_iv_size) *const_iv_size = civ_size;
+			if (const_iv) *const_iv = civ;
+			return iv_size;
+		}
+		i++;
+		if (kpos==key_info_size)
+			break;
+	}
+	return 0;
 }

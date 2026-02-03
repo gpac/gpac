@@ -895,7 +895,8 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 		fprintf(dump, "<RTPHintTrack trackID=\"%d\">\n", gf_isom_get_track_id(file, i+1));
 		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
-		fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
+		if (sdp && size)
+			fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		for (j=0; j<gf_isom_get_sample_count(file, i+1); j++) {
@@ -1736,6 +1737,8 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		u64 doffset;
 
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
+		if (!samp)
+			continue;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		traf_start = gf_isom_sample_is_fragment_start(file, track, i+1, NULL);
@@ -2146,6 +2149,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			dumper.file = the_file;
 			dumper.trackID = trackID;
 			dumper.dump_file = dump;
+
+			if (msubtype == GF_ISOM_SUBTYPE_MPEG4_CRYP)
+				gf_isom_get_original_format_type(the_file, i+1, 1, &msubtype);
 
 			e = GF_OK;
 			if (mtype == GF_ISOM_MEDIA_HINT) {
@@ -3711,7 +3717,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 		fprintf(stderr, "\n");
 	}
 
-	if ( gf_media_get_rfc_6381_codec_name(file, trackNum, stsd_idx, szCodec, GF_FALSE, GF_FALSE) == GF_OK) {
+	if (gf_media_get_rfc_6381_codec_name(file, trackNum, stsd_idx, szCodec, GF_FALSE, GF_FALSE) == GF_OK) {
 		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
 }
@@ -4184,7 +4190,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 				GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 				GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 				if (txt) {
-					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text);
+					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text ? txt->text  : "");
 					gf_isom_delete_text_sample(txt);
 				}
 				gf_bs_del(bs);
@@ -4568,7 +4574,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					fprintf(dumper->pes_out_nhml, "baseMediaFile=\"%s\" ", dumper->dump);
 					fprintf(dumper->pes_out_nhml, "inRootOD=\"yes\">\n");
 				}
-				gf_sl_depacketize(esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
+				gf_odf_sl_depacketize(esd->slConfig, &header, sl_pck->data, sl_pck->data_len, &header_len);
 				gf_fwrite(sl_pck->data+header_len, sl_pck->data_len-header_len, dumper->pes_out);
 				fprintf(dumper->pes_out_nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" isRAP=\"%s\"/>\n", header.decodingTimeStamp, sl_pck->data_len-header_len, (header.randomAccessPointFlag?"yes":"no"));
 			}

@@ -753,7 +753,7 @@ specify MPD update time in seconds
 .TP
 .B \-time-shift (int)
 .br
-specify MPD time shift buffer depth in seconds, -1 to keep all files)
+specify MPD time shift buffer depth in seconds, -1 to keep all files. Default is 0
 .br
 .TP
 .B \-subdur (number)
@@ -1682,7 +1682,7 @@ DS set SVC/LHVC import mode. Value can be:
 .br
   * merge: all layers are merged in a single track
 .br
-  * splitbase: all layers are merged in a track, and the AVC base in another
+  * splitbase: all layers are merged in a track, and the base in another
 .br
   * splitnox: each layer is in its own track, and no extractors are written
 .br
@@ -1717,7 +1717,7 @@ S add default HEIF ccst box to visual sample entry
 .TP
 .B forcesync
 .br
-force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points
+SE force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points
 .br
 Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players
 .br

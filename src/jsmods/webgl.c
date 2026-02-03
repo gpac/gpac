@@ -874,9 +874,9 @@ static JSValue wgl_getUniform(JSContext *ctx, JSValueConst this_val, int argc, J
 			strcpy(sname, name);
 			if ((size > 1) && (j >= 1)) {
 				char szIdx[100];
-                sprintf(szIdx, "[%d]", j);
-                strcat(sname, szIdx);
-            }
+				sprintf(szIdx, "[%d]", j);
+				strcat(sname, szIdx);
+			}
 			GLint loc = glGetUniformLocation(program_shader, sname);
 			if (loc == location) {
 				found = GF_TRUE;
@@ -2504,17 +2504,17 @@ static int js_webgl_load_module(JSContext *c, JSModuleDef *m)
 
 	}
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, webgl_funcs, countof(webgl_funcs));
-    JS_SetPropertyFunctionList(c, proto, WebGLRenderingContextBase_funcs, countof(WebGLRenderingContextBase_funcs));
-    JS_SetClassProto(c, WebGLRenderingContextBase_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, webgl_funcs, countof(webgl_funcs));
+	JS_SetPropertyFunctionList(c, proto, WebGLRenderingContextBase_funcs, countof(WebGLRenderingContextBase_funcs));
+	JS_SetClassProto(c, WebGLRenderingContextBase_class_id, proto);
 
 	proto = JS_NewObject(c);
-    JS_SetPropertyFunctionList(c, proto, webgl_named_tx_funcs, countof(webgl_named_tx_funcs));
-    JS_SetClassProto(c, NamedTexture_class_id, proto);
+	JS_SetPropertyFunctionList(c, proto, webgl_named_tx_funcs, countof(webgl_named_tx_funcs));
+	JS_SetClassProto(c, NamedTexture_class_id, proto);
 
 	/*export constructors*/
 	ctor = JS_NewCFunction2(c, webgl_constructor, "WebGLContext", 1, JS_CFUNC_constructor, 0);
-    JS_SetModuleExport(c, m, "WebGLContext", ctor);
+	JS_SetModuleExport(c, m, "WebGLContext", ctor);
 	return 0;
 }
 

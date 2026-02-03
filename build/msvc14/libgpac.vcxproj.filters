@@ -1271,6 +1271,9 @@
     <ClCompile Include="..\..\src\filters\dmx_vobsub.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\enc_cc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\enc_jpg.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1574,7 +1577,7 @@
     <ClCompile Include="..\..\src\quickjs\cutils.c">
       <Filter>quickjs</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\quickjs\libbf.c">
+    <ClCompile Include="..\..\src\quickjs\dtoa.c">
       <Filter>quickjs</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\quickjs\libregexp.c">

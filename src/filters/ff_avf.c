@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2024
+ *			Copyright (c) Telecom Paris 2019-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg avfilter filter
@@ -46,6 +46,7 @@ typedef struct
 	AVFilterContext *io_filter_ctx;
 	GF_FilterPid *io_pid;
 	u32 timescale, width, height, sr, nb_ch, bps, bpp;
+	GF_Fraction fps;
 	Bool planar;
 	u32 pfmt; //ffmpeg pixel or audio format
 	u64 ch_layout; //ffmpeg channel layout
@@ -67,6 +68,8 @@ typedef struct
 
 	GF_List *ipids;
 	GF_List *opids;
+
+	GF_List *src_packets;
 
 	AVFilterGraph *filter_graph;
 	char *filter_desc;
@@ -111,8 +114,8 @@ static GF_Err ffavf_setup_input(GF_FFAVFilterCtx *ctx, GF_FFAVPid *avpid)
 	if (avpid->width) {
 		avf = avfilter_get_by_name("buffer");
 		snprintf(args, sizeof(args),
-				"video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-				avpid->width, avpid->height, avpid->pfmt, 1, avpid->timescale, avpid->sar.num, avpid->sar.den);
+				"video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:frame_rate=%d/%d:pixel_aspect=%d/%d",
+				avpid->width, avpid->height, avpid->pfmt, 1, avpid->timescale, avpid->fps.num, avpid->fps.den, avpid->sar.num, avpid->sar.den);
 	} else {
 		avf = avfilter_get_by_name("abuffer");
 		snprintf(args, sizeof(args),
@@ -121,10 +124,14 @@ static GF_Err ffavf_setup_input(GF_FFAVFilterCtx *ctx, GF_FFAVPid *avpid)
 	}
 	//destroy filter (will remove from graph)
 	if (avpid->io_filter_ctx) avfilter_free(avpid->io_filter_ctx);
-	avpid->io_filter_ctx = NULL;
-	ret = avfilter_graph_create_filter(&avpid->io_filter_ctx, avf, pid_name, args, NULL, ctx->filter_graph);
-	if (ret<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create filter graph: %s\n", av_err2str(ret) ));
+	avpid->io_filter_ctx = avfilter_graph_alloc_filter(ctx->filter_graph, avf, pid_name);
+	if (!avpid->io_filter_ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create filter graph\n"));
+		return GF_OUT_OF_MEM;
+	}
+	ret = avfilter_init_str(avpid->io_filter_ctx, args);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to initialize filter graph: %s\n", av_err2str(ret) ));
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;
@@ -210,10 +217,10 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 		if (nb_outputs==1)
 			sprintf(szName, "out");
 
-		ret = avfilter_graph_create_filter(&opid->io_filter_ctx, avf, szName, NULL, NULL, ctx->filter_graph);
-		if (ret<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create %s filter: %s\n", avf->name, av_err2str(ret) ));
-			return GF_BAD_PARAM;
+		opid->io_filter_ctx = avfilter_graph_alloc_filter(ctx->filter_graph, avf, szName);
+		if (!opid->io_filter_ctx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to create %s filter\n", avf->name));
+			return GF_OUT_OF_MEM;
 		}
 		if (opid->is_video) {
 			if (ctx->pfmt) {
@@ -240,10 +247,14 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 			if (ctx->ch) {
 				ret = av_opt_set_bin(opid->io_filter_ctx, "channels", (uint8_t*)&ctx->ch, sizeof(ctx->ch), AV_OPT_SEARCH_CHILDREN);
 				if (ret < 0) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFAVF] Fail to set %s audio sample rate: %s\n", avf->name, av_err2str(ret) ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFAVF] Fail to set %s audio channel layout: %s\n", avf->name, av_err2str(ret) ));
 				}
 			}
-
+		}
+		ret = avfilter_init_str(opid->io_filter_ctx, NULL);
+		if (ret < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to initialize %s filter: %s\n", avf->name, av_err2str(ret) ));
+			return GF_BAD_PARAM;
 		}
 		io->name = av_strdup(szName);
 		io->filter_ctx = opid->io_filter_ctx;
@@ -296,6 +307,7 @@ static GF_Err ffavf_initialize(GF_Filter *filter)
 
 	ctx->ipids = gf_list_new();
 	ctx->opids = gf_list_new();
+	ctx->src_packets = gf_list_new();
 	ctx->frame = av_frame_alloc();
 
 	ffmpeg_setup_logs(GF_LOG_MEDIA);
@@ -470,12 +482,12 @@ static GF_Err ffavf_setup_filter(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 	avfilter_inout_free(&inputs);
 	if (ret < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to parse filter description: %s\nFilter description was %s\n", av_err2str(ret), ctx->filter_desc));
-        return ctx->in_error = GF_BAD_PARAM;
+		return ctx->in_error = GF_BAD_PARAM;
 	}
 	ret = avfilter_graph_config(ctx->filter_graph, NULL);
 	if (ret < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Fail to validate filter graph: %s\n", av_err2str(ret) ));
-        return ctx->in_error = GF_BAD_PARAM;
+		return ctx->in_error = GF_BAD_PARAM;
 	}
 
 	if (ctx->dump)
@@ -489,6 +501,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	u32 i, count, nb_eos;
 	GF_FFAVFilterCtx *ctx = (GF_FFAVFilterCtx *) gf_filter_get_udta(filter);
+	Bool can_merge_props = gf_list_count(ctx->opids) == 1 && gf_list_count(ctx->ipids) == 1;
 
 	if (ctx->in_error)
 		return ctx->in_error;
@@ -572,6 +585,12 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			}
 		}
 
+		//keep ref to source properties
+		if (pck && can_merge_props) {
+			gf_filter_pck_ref_props(&pck);
+			gf_list_add(ctx->src_packets, pck);
+		}
+
 		if (frame_ok) {
 			u64 cts = gf_filter_pck_get_cts(pck);
 			ctx->frame->pts = cts;
@@ -632,7 +651,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 		AVFrame *frame = av_frame_alloc();
 
 		ret = av_buffersink_get_frame(opid->io_filter_ctx, frame);
-        if (ret < 0) {
+		if (ret < 0) {
 			if (ret == AVERROR_EOF) {
 				if (ctx->flush_state==2) {
 					nb_eos++;
@@ -648,8 +667,8 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			}
 			av_frame_free(&frame);
 			break;
-        }
-        if (opid->is_video) {
+		}
+		if (opid->is_video) {
 			u8 *buffer;
 			u32 j;
 			GF_FilterPacket *pck;
@@ -660,10 +679,48 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			else {
 				update_props = GF_FALSE;
 			}
+
+			//ensure out_size is correct
+			if (update_props) {
+				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac(frame->format, GF_FALSE);
+				opid->pfmt = frame->format;
+				opid->width = frame->width;
+				opid->height = frame->height;
+				opid->tb_num = opid->io_filter_ctx->inputs[0]->time_base.num;
+				opid->stride = 0;
+				opid->stride_uv = 0;
+				opid->bpp = gf_pixel_get_bytes_per_pixel(opid->gf_pfmt);
+				gf_pixel_get_size_info(opid->gf_pfmt, opid->width, opid->height, &opid->out_size, &opid->stride, &opid->stride_uv, NULL, &opid->uv_height);
+				if ((opid->gf_pfmt==GF_PIXEL_YUV444)
+					|| (opid->gf_pfmt==GF_PIXEL_YUV444_10)
+					|| (opid->gf_pfmt==GF_PIXEL_NV12)
+					|| (opid->gf_pfmt==GF_PIXEL_NV21)
+				) {
+					opid->uv_width = opid->width;
+				} else if (opid->uv_height) {
+					opid->uv_width = opid->width/2;
+				} else {
+					opid->uv_width = 0;
+				}
+			}
+
+			//allocate packet
+			pck = gf_filter_pck_new_alloc(opid->io_pid, opid->out_size, &buffer);
+			if (!pck) return GF_OUT_OF_MEM;
+
+			//merge properties from source if any
+			if (gf_list_count(ctx->src_packets) && can_merge_props) {
+				GF_FilterPacket *src_pck = gf_list_pop_front(ctx->src_packets);
+				if (src_pck) {
+					gf_filter_pck_merge_properties(src_pck, pck);
+					gf_filter_pck_unref(src_pck);
+				}
+			}
+
+			//update properties
 			if (update_props) {
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, &PROP_UINT(frame->width));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(frame->height));
-				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac(frame->format, GF_FALSE);
 				if (ffmpeg_pixfmt_is_fullrange(frame->format)) {
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
 				} else {
@@ -677,29 +734,17 @@ static GF_Err ffavf_process(GF_Filter *filter)
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, NULL);
 
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, opid->io_filter_ctx->inputs[0]->time_base.num) );
-
-				opid->width = frame->width;
-				opid->height = frame->height;
-				opid->pfmt = frame->format;
-				opid->tb_num = opid->io_filter_ctx->inputs[0]->time_base.num;
-				opid->stride = 0;
-				opid->stride_uv = 0;
-				opid->bpp = gf_pixel_get_bytes_per_pixel(opid->gf_pfmt);
-				gf_pixel_get_size_info(opid->gf_pfmt, opid->width, opid->height, &opid->out_size, &opid->stride, &opid->stride_uv, NULL, &opid->uv_height);
-				if ((opid->gf_pfmt==GF_PIXEL_YUV444) || (opid->gf_pfmt==GF_PIXEL_YUV444_10)) {
-					opid->uv_width = opid->width;
-				} else if (opid->uv_height) {
-					opid->uv_width = opid->width/2;
+				AVRational fps = av_buffersink_get_frame_rate(opid->io_filter_ctx);
+				if (fps.num && fps.den) {
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(fps.num, fps.den));
 				} else {
-					opid->uv_width = 0;
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, opid->io_filter_ctx->inputs[0]->time_base.num));
 				}
+
 				if (ctx->nb_a_out+ctx->nb_v_out>1) {
 					gf_filter_pid_set_property_str(opid->io_pid, "ffid", &PROP_STRING(opid->io_filter_ctx->name));
 				}
 			}
-			pck = gf_filter_pck_new_alloc(opid->io_pid, opid->out_size, &buffer);
-			if (!pck) return GF_OUT_OF_MEM;
 
 			for (j=0; j<opid->height; j++) {
 				memcpy(buffer + j*opid->stride, frame->data[0] + j*frame->linesize[0], opid->width*opid->bpp);
@@ -722,9 +767,13 @@ static GF_Err ffavf_process(GF_Filter *filter)
 					memcpy(buffer + j*opid->stride, frame->data[3] + j*frame->linesize[3], opid->width*opid->bpp);
 				}
 			}
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 			if (frame->interlaced_frame)
 				gf_filter_pck_set_interlaced(pck, frame->top_field_first ? 1 : 2);
-
+#else
+			if (frame->flags & AV_FRAME_FLAG_INTERLACED)
+				gf_filter_pck_set_interlaced(pck, frame->flags & AV_FRAME_FLAG_TOP_FIELD_FIRST ? 1 : 2);
+#endif
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_cts(pck, frame->pts * opid->tb_num);
 			gf_filter_pck_send(pck);
@@ -745,6 +794,25 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			else {
 				update_props = GF_FALSE;
 			}
+
+			out_size = 0;
+			for (j=0; j<8; j++) {
+				if (!frame->linesize[j]) break;
+				out_size += frame->linesize[j];
+			}
+
+			pck = gf_filter_pck_new_alloc(opid->io_pid, out_size, &buffer);
+			if (!pck) return GF_OUT_OF_MEM;
+
+			//merge properties from source if any
+			if (gf_list_count(ctx->src_packets) && can_merge_props) {
+				GF_FilterPacket *src_pck = gf_list_pop_front(ctx->src_packets);
+				if (src_pck) {
+					gf_filter_pck_merge_properties(src_pck, pck);
+					gf_filter_pck_unref(src_pck);
+				}
+			}
+
 			if (update_props) {
 #ifdef FFMPEG_OLD_CHLAYOUT
 				u32 nb_ch = frame->channels;
@@ -771,14 +839,6 @@ static GF_Err ffavf_process(GF_Filter *filter)
 					gf_filter_pid_set_property_str(opid->io_pid, "ffid", &PROP_STRING(opid->io_filter_ctx->name));
 				}
 			}
-			out_size = 0;
-			for (j=0; j<8; j++) {
-				if (!frame->linesize[j]) break;
-				out_size += frame->linesize[j];
-			}
-
-			pck = gf_filter_pck_new_alloc(opid->io_pid, out_size, &buffer);
-			if (!pck) return GF_OUT_OF_MEM;
 
 			for (j=0; j<8; j++) {
 				if (!frame->linesize[j]) break;
@@ -842,7 +902,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!pid_ctx) {
 		GF_SAFEALLOC(pid_ctx, GF_FFAVPid);
 		if (!pid_ctx) return GF_OUT_OF_MEM;
-		
+
 		pid_ctx->io_pid = pid;
 		gf_filter_pid_set_udta(pid, pid_ctx);
 		gf_list_add(ctx->ipids, pid_ctx);
@@ -859,7 +919,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		u32 width, height, pix_fmt, gf_pfmt;
-		GF_Fraction sar={1,1};
+		GF_Fraction sar={1,1}, fps={0, 1};
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 		if (!p) return GF_OK; //not ready yet
 		width = p->value.uint;
@@ -872,6 +932,9 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!p) return GF_OK; //not ready yet
 		gf_pfmt = p->value.uint;
 		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt, GF_FALSE);
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p && (p->value.frac.num>0) && p->value.frac.den) fps = p->value.frac;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 		if (p && (p->value.frac.num>0) && p->value.frac.den) sar = p->value.frac;
@@ -898,6 +961,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		pid_ctx->height = height;
 		pid_ctx->pfmt = pix_fmt;
 		pid_ctx->timescale = timebase.den;
+		pid_ctx->fps = fps;
 		pid_ctx->sar = sar;
 	} else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout=0;
@@ -989,6 +1053,11 @@ static void ffavf_finalize(GF_Filter *filter)
 		gf_free(opid);
 	}
 	gf_list_del(ctx->opids);
+	while (gf_list_count(ctx->src_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		gf_filter_pck_unref(pck);
+	}
+	gf_list_del(ctx->src_packets);
 	if (ctx->filter_desc) gf_free(ctx->filter_desc);
 	if (ctx->frame) av_frame_free(&ctx->frame);
 }

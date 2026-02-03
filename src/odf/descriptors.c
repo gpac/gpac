@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -1665,7 +1665,6 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		return NULL;
 	}
 
-
 	while (size) {
 		u64 pos, obu_size;
 		ObuType obu_type;
@@ -1726,6 +1725,83 @@ GF_AV1Config *gf_odf_av1_cfg_read(u8 *dsi, u32 dsi_size)
 	return cfg;
 }
 
+
+
+GF_EXPORT
+GF_AVS3VConfig *gf_odf_avs3v_cfg_new()
+{
+	GF_AVS3VConfig *cfg;
+	GF_SAFEALLOC(cfg, GF_AVS3VConfig);
+	if (!cfg) return NULL;
+	return cfg;
+}
+
+GF_EXPORT
+void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg)
+{
+	if (!cfg) return;
+	if (cfg->sequence_header) gf_free(cfg->sequence_header);
+	gf_free(cfg);
+}
+
+GF_EXPORT
+GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs)
+{
+	gf_bs_write_int(bs, cfg->configurationVersion, 8);
+	gf_bs_write_int(bs, cfg->sequence_header_length, 16);
+	gf_bs_write_data(bs, cfg->sequence_header, cfg->sequence_header_length);
+	gf_bs_write_int(bs, 0xFF, 6); //reserved
+	gf_bs_write_int(bs, cfg->library_dependency_idc, 2);
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_avs3v_cfg_write(GF_AVS3VConfig *cfg, u8 **outData, u32 *outSize)
+{
+	GF_Err e;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	*outSize = 0;
+	*outData = NULL;
+	e = gf_odf_avs3v_cfg_write_bs(cfg, bs);
+	if (e==GF_OK)
+		gf_bs_get_content(bs, outData, outSize);
+
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
+GF_AVS3VConfig *gf_odf_avs3v_cfg_read_bs(GF_BitStream *bs)
+{
+	GF_AVS3VConfig *cfg = gf_odf_avs3v_cfg_new();
+
+	cfg->configurationVersion = gf_bs_read_int(bs, 8);
+	cfg->sequence_header_length = gf_bs_read_int(bs, 16);
+	cfg->sequence_header = gf_malloc(cfg->sequence_header_length);
+	if (!cfg->sequence_header) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVS3 Video] Sequence header allocation failed\n"));
+		gf_odf_avs3v_cfg_del(cfg);
+		return NULL;
+	}
+	gf_bs_read_data(bs, (char *)cfg->sequence_header, (u32)cfg->sequence_header_length);
+	gf_bs_read_int(bs, 6); //reserved
+	cfg->library_dependency_idc = gf_bs_read_int(bs, 2); // 6 bits reserved at '1' + 2 bits
+
+	return cfg;
+}
+
+GF_EXPORT
+GF_AVS3VConfig *gf_odf_avs3v_cfg_read(u8 *dsi, u32 dsi_size)
+{
+	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+	GF_AVS3VConfig *cfg = gf_odf_avs3v_cfg_read_bs(bs);
+	gf_bs_del(bs);
+	return cfg;
+}
+
+
+GF_EXPORT
 GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 {
 	GF_DOVIDecoderConfigurationRecord *cfg;
@@ -1756,6 +1832,7 @@ void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg)
 	gf_free(cfg);
 }
 
+GF_EXPORT
 GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitStream *bs)
 {
 	gf_bs_write_u8(bs,  cfg->dv_version_major);
@@ -1766,15 +1843,16 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 	gf_bs_write_int(bs, cfg->el_present_flag, 1);
 	gf_bs_write_int(bs, cfg->bl_present_flag, 1);
 	gf_bs_write_int(bs, cfg->dv_bl_signal_compatibility_id, 4);
-    gf_bs_write_int(bs, 0, 28);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
+	gf_bs_write_int(bs, 0, 28);
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, 0);
 	return GF_OK;
 }
 
 
+GF_EXPORT
 GF_Err gf_odf_ac3_cfg_write_bs(GF_AC3Config *cfg, GF_BitStream *bs)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -1809,6 +1887,7 @@ GF_Err gf_odf_ac3_cfg_write_bs(GF_AC3Config *cfg, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1825,7 +1904,8 @@ GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size)
 	return e;
 }
 
-GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg)
+GF_EXPORT
+GF_Err gf_odf_ac3_cfg_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
 	memset(cfg, 0, sizeof(GF_AC3Config));
@@ -1864,13 +1944,14 @@ GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *c
 	return GF_OK;
 }
 
-GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg)
+GF_EXPORT
+GF_Err gf_odf_ac3_cfg_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg)
 {
 	GF_BitStream *bs;
 	GF_Err e;
 	if (!cfg || !dsi) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
-	e = gf_odf_ac3_config_parse_bs(bs, is_ec3, cfg);
+	e = gf_odf_ac3_cfg_parse_bs(bs, is_ec3, cfg);
 	if (is_ec3 && gf_bs_available(bs)>=2) {
 		gf_bs_read_int(bs, 7);
 		cfg->atmos_ec3_ext = gf_bs_read_int(bs, 1);
@@ -1920,26 +2001,26 @@ GF_Err gf_odf_ac4_cfg_substream_dsi(GF_AC4SubStream *s, GF_BitStream *bs, u8 b_c
 	u32 zero_val = 0;
 
 	GF_AC4_SSS(bs, s->dsi_sf_multiplier, 2, size, desc_mode);
-    GF_AC4_SSS(bs, s->b_substream_bitrate_indicator, 1, size, desc_mode);
-    if (s->b_substream_bitrate_indicator == 1) {
-        GF_AC4_SSS(bs, s->substream_bitrate_indicator, 5, size, desc_mode);
-    }
-    if (b_channel_coded == 1) {
-        GF_AC4_SSS(bs, s->dsi_substream_channel_mask, 24, size, desc_mode);
-    }else {
-        GF_AC4_SSS(bs, s->b_ajoc, 1, size, desc_mode);
-        if (s->b_ajoc == 1) {
-            GF_AC4_SSS(bs, s->b_static_dmx, 1, size, desc_mode);
-            if (s->b_static_dmx == 0) {
-                GF_AC4_SSS(bs, s->n_dmx_objects_minus1, 4, size, desc_mode);
-            }
-            GF_AC4_SSS(bs, s->n_umx_objects_minus1, 6, size, desc_mode);
-        }
-        GF_AC4_SSS(bs, s->b_substream_contains_bed_objects, 1, size, desc_mode);
-        GF_AC4_SSS(bs, s->b_substream_contains_dynamic_objects, 1, size, desc_mode);
-        GF_AC4_SSS(bs, s->b_substream_contains_ISF_objects, 1, size, desc_mode);
-        GF_AC4_SSS(bs, zero_val, 1, size, desc_mode); //reserved bit
-    }
+	GF_AC4_SSS(bs, s->b_substream_bitrate_indicator, 1, size, desc_mode);
+	if (s->b_substream_bitrate_indicator == 1) {
+		GF_AC4_SSS(bs, s->substream_bitrate_indicator, 5, size, desc_mode);
+	}
+	if (b_channel_coded == 1) {
+		GF_AC4_SSS(bs, s->dsi_substream_channel_mask, 24, size, desc_mode);
+	} else {
+		GF_AC4_SSS(bs, s->b_ajoc, 1, size, desc_mode);
+		if (s->b_ajoc == 1) {
+			GF_AC4_SSS(bs, s->b_static_dmx, 1, size, desc_mode);
+			if (s->b_static_dmx == 0) {
+				GF_AC4_SSS(bs, s->n_dmx_objects_minus1, 4, size, desc_mode);
+			}
+			GF_AC4_SSS(bs, s->n_umx_objects_minus1, 6, size, desc_mode);
+		}
+		GF_AC4_SSS(bs, s->b_substream_contains_bed_objects, 1, size, desc_mode);
+		GF_AC4_SSS(bs, s->b_substream_contains_dynamic_objects, 1, size, desc_mode);
+		GF_AC4_SSS(bs, s->b_substream_contains_ISF_objects, 1, size, desc_mode);
+		GF_AC4_SSS(bs, zero_val, 1, size, desc_mode); //reserved bit
+	}
 	return GF_OK;
 }
 
@@ -1948,16 +2029,16 @@ GF_Err gf_odf_ac4_cfg_content_type(GF_AC4SubStreamGroupV1 *g, GF_BitStream *bs, 
 	u32 i;
 
 	GF_AC4_SSS(bs, g->b_content_type, 1, size, desc_mode);
-    if (g->b_content_type == 1){
-        GF_AC4_SSS(bs, g->content_classifier, 3, size, desc_mode);
-        GF_AC4_SSS(bs, g->b_language_indicator, 1, size, desc_mode);
-        if (g->b_language_indicator == 1){
-            GF_AC4_SSS(bs, g->n_language_tag_bytes, 6, size, desc_mode);
-            for (i = 0; i < g->n_language_tag_bytes; i++ ){
-                GF_AC4_SSS(bs, g->language_tag_bytes[i], 8, size, desc_mode);
-            }
-        }
-    }
+	if (g->b_content_type == 1){
+		GF_AC4_SSS(bs, g->content_classifier, 3, size, desc_mode);
+		GF_AC4_SSS(bs, g->b_language_indicator, 1, size, desc_mode);
+		if (g->b_language_indicator == 1){
+			GF_AC4_SSS(bs, g->n_language_tag_bytes, 6, size, desc_mode);
+			for (i = 0; i < g->n_language_tag_bytes; i++ ){
+				GF_AC4_SSS(bs, g->language_tag_bytes[i], 8, size, desc_mode);
+			}
+		}
+	}
 	return GF_OK;
 }
 
@@ -1970,14 +2051,14 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 		return GF_BAD_PARAM;
 
 	GF_AC4_SSS(bs, g->b_substreams_present, 1, size, desc_mode);
-    GF_AC4_SSS(bs, g->b_hsf_ext, 1, size, desc_mode);
-    GF_AC4_SSS(bs, g->b_channel_coded, 1, size, desc_mode);
-    GF_AC4_SSS(bs, g->n_lf_substreams, 8, size, desc_mode);
+	GF_AC4_SSS(bs, g->b_hsf_ext, 1, size, desc_mode);
+	GF_AC4_SSS(bs, g->b_channel_coded, 1, size, desc_mode);
+	GF_AC4_SSS(bs, g->n_lf_substreams, 8, size, desc_mode);
 
 	if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 		g->substreams = gf_list_new();
 	}
-    for (i = 0; i < g->n_lf_substreams; i++ ){
+	for (i = 0; i < g->n_lf_substreams; i++ ){
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			GF_SAFEALLOC(s, GF_AC4SubStream);
 		} else { // write or get_size
@@ -1987,16 +2068,16 @@ GF_Err gf_odf_ac4_cfg_substream_group_dsi(GF_AC4SubStreamGroupV1 *g, GF_BitStrea
 		if (desc_mode == GF_AC4_DESCMODE_PARSE) {
 			gf_list_add(g->substreams, s);
 		}
-    }
+	}
 	gf_odf_ac4_cfg_content_type(g, bs, size, desc_mode);
-    return GF_OK;
+	return GF_OK;
 }
 
 GF_Err gf_odf_ac4_cfg_bitrate_dsi(GF_AC4BitrateDsi *bitr, GF_BitStream *bs, u64 *size, u8 desc_mode)
 {
 	GF_AC4_SSS(bs, bitr->bit_rate_mode, 2, size, desc_mode);
-    GF_AC4_SSS(bs, bitr->bit_rate, 32, size, desc_mode);
-    GF_AC4_SSS(bs, bitr->bit_rate_precision, 32, size, desc_mode);
+	GF_AC4_SSS(bs, bitr->bit_rate, 32, size, desc_mode);
+	GF_AC4_SSS(bs, bitr->bit_rate_precision, 32, size, desc_mode);
 	return GF_OK;
 }
 
@@ -2117,9 +2198,9 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 	}
 	GF_AC4_ALLIGN(bs, size, desc_mode);
 	 /*
-     * TODO: Not implement, need the information from ac4_substream.
-     * Currently just set the value to 1 according to Dolby's internal discussion.
-     */
+	 * TODO: Not implement, need the information from ac4_substream.
+	 * Currently just set the value to 1 according to Dolby's internal discussion.
+	 */
 	p->de_indicator = 1;
 	GF_AC4_SSS(bs, p->de_indicator, 1, size, desc_mode);
 	GF_AC4_SSS(bs, p->dolby_atmos_indicator, 1, size, desc_mode);
@@ -2127,7 +2208,7 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 
 	if (p->presentation_id > 31) {
 		p->b_extended_presentation_id = 1;
-        p->extended_presentation_id = p->presentation_id;
+		p->extended_presentation_id = p->presentation_id;
 	}
 	GF_AC4_SSS(bs, p->b_extended_presentation_id, 1, size, desc_mode);
 	if (p->b_extended_presentation_id) {
@@ -2139,6 +2220,8 @@ GF_Err gf_odf_ac4_cfg_presentation_v1_dsi(GF_AC4PresentationV1 *p, GF_BitStream 
 
 	return GF_OK;
 }
+
+static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src);
 
 GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size, u8 desc_mode)
 {
@@ -2289,6 +2372,7 @@ GF_Err gf_odf_ac4_cfg_dsi_v1(GF_AC4StreamInfo *dsi, GF_BitStream *bs, u64 *size,
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -2301,6 +2385,7 @@ GF_Err gf_odf_ac4_cfg_write_bs(GF_AC4Config *cfg, GF_BitStream *bs)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_write(GF_AC4Config *cfg, u8 **data, u32 *size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2310,6 +2395,7 @@ GF_Err gf_odf_ac4_cfg_write(GF_AC4Config *cfg, u8 **data, u32 *size)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 {
 	GF_AC4StreamInfo* dsi = &cfg->stream;
@@ -2326,6 +2412,7 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_ac4_cfg_parse(u8 *dsi, u32 dsi_len, GF_AC4Config *cfg)
 {
 	GF_BitStream *bs;
@@ -2337,6 +2424,7 @@ GF_Err gf_odf_ac4_cfg_parse(u8 *dsi, u32 dsi_len, GF_AC4Config *cfg)
 	return e;
 }
 
+GF_EXPORT
 u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg)
 {
 	GF_AC4StreamInfo* dsi = &cfg->stream;
@@ -2350,6 +2438,7 @@ u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg)
 	return size / 8;
 }
 
+GF_EXPORT
 void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 {
 	u32 i;
@@ -2376,7 +2465,7 @@ void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src)
 	}
 }
 
-void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src)
+static void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src)
 {
 	u32 j, s;
 	GF_AC4SubStreamGroupV1 *group_dst, *group_src;
@@ -2426,7 +2515,10 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 	if (!cfg)
 		return;
 
+
 	if (cfg->stream.presentations) {
+
+		GF_List* groups_to_del = gf_list_new();
 
 		while ( (pres = gf_list_pop_back(cfg->stream.presentations)) ) {
 
@@ -2434,33 +2526,34 @@ void gf_odf_ac4_cfg_clean_list(GF_AC4Config *cfg)
 
 				while ( (group = gf_list_pop_back(pres->substream_groups)) ) {
 
-					if (group->substreams) {
+					if (group && gf_list_find(groups_to_del, group) < 0)
+						gf_list_add(groups_to_del, group);
 
-						for (s = 0; s < gf_list_count(group->substreams); s++) {
-							subs = gf_list_get(group->substreams, s);
-							if (!subs) {
-								continue;
-							}
-
-							gf_free(subs);
-						}
-						gf_list_del(group->substreams);
-
-					}
-					gf_free(group);
-
-					// remove potential duplicates of group
-					s32 idx = 1;
-					while (idx>=0) {
-						idx = gf_list_find(pres->substream_groups, group);
-						if (idx>=0) gf_list_rem(pres->substream_groups, idx);
-					}
 				}
 				gf_list_del(pres->substream_groups);
 
 			}
 			gf_free(pres);
 		}
+
+		while ( (group = gf_list_pop_back(groups_to_del)) ) {
+			if (group->substreams) {
+
+				for (s = 0; s < gf_list_count(group->substreams); s++) {
+					subs = gf_list_get(group->substreams, s);
+					if (!subs) {
+						continue;
+					}
+
+					gf_free(subs);
+				}
+				gf_list_del(group->substreams);
+
+			}
+			gf_free(group);
+
+		}
+		gf_list_del(groups_to_del);
 
 		gf_list_del(cfg->stream.presentations);
 		cfg->stream.presentations = NULL;
@@ -2475,6 +2568,7 @@ void gf_odf_ac4_cfg_del(GF_AC4Config *cfg)
 	gf_free(cfg);
 }
 
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
 {
 	memset(cfg, 0, sizeof(GF_OpusConfig));
@@ -2491,6 +2585,8 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg)
 {
 	GF_BitStream *bs;
@@ -2502,6 +2598,7 @@ GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg)
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_write_bs(GF_OpusConfig *cfg, GF_BitStream *bs)
 {
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -2519,6 +2616,7 @@ GF_Err gf_odf_opus_cfg_write_bs(GF_OpusConfig *cfg, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2530,125 +2628,124 @@ GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_new()
+GF_IAConfig *gf_odf_iamf_cfg_new()
 {
-        GF_IAConfig *cfg = NULL;
-        GF_SAFEALLOC(cfg, GF_IAConfig);
-        if (!cfg) return NULL;
-        cfg->configurationVersion = 1;
-        cfg->configOBUs_size = 0;
-        cfg->configOBUs = gf_list_new();
-        if (!cfg->configOBUs) {
+	GF_IAConfig *cfg = NULL;
+	GF_SAFEALLOC(cfg, GF_IAConfig);
+	if (!cfg) return NULL;
+	cfg->configurationVersion = 1;
+	cfg->configOBUs_size = 0;
+	cfg->configOBUs = gf_list_new();
+	if (!cfg->configOBUs) {
 		gf_free(cfg);
 		return NULL;
 	}
-        return cfg;
+	return cfg;
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
+GF_IAConfig *gf_odf_iamf_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	IAMFState *state = NULL;
 	GF_IAConfig *cfg = NULL;
-        u8 leb128_size;
+	u8 leb128_size;
 
-        if (!size) size = (u32) gf_bs_available(bs);
-        if (!size) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown IAConfigurationBox size to read\n"));
-                return NULL;
-        }
+	if (!size) size = (u32) gf_bs_available(bs);
+	if (!size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown IAConfigurationBox size to read\n"));
+		return NULL;
+	}
 
 	GF_SAFEALLOC(state, IAMFState);
 	if (!state) return NULL;
-	cfg = gf_odf_ia_cfg_new();
+	cfg = gf_odf_iamf_cfg_new();
 	gf_iamf_init_state(state);
 
-        cfg->configurationVersion = gf_bs_read_u8(bs);
-        if (cfg->configurationVersion != 1) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown configurationVersion %d\n", cfg->configurationVersion));
-		gf_odf_ia_cfg_del(cfg);
+	cfg->configurationVersion = gf_bs_read_u8(bs);
+	if (cfg->configurationVersion != 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown configurationVersion %d\n", cfg->configurationVersion));
+		gf_odf_iamf_cfg_del(cfg);
 		gf_free(state);
-                return NULL;
-        }
-        size--;
+		return NULL;
+	}
+	size--;
 
-        cfg->configOBUs_size = (u32)gf_av1_leb128_read(bs, &leb128_size);
-        size -= leb128_size;
+	cfg->configOBUs_size = (u32)gf_av1_leb128_read(bs, &leb128_size);
+	size -= leb128_size;
 
-        while(size) {
-                u64 pos, obu_size;
-                IamfObuType obu_type;
-                GF_IamfObu *config_obu;
+	while(size) {
+		u64 pos, obu_size;
+		IamfObuType obu_type;
+		GF_IamfObu *config_obu;
 
-                pos = gf_bs_get_position(bs);
-                obu_size = 0;
-                if (gf_iamf_parse_obu(bs, &obu_type, &obu_size, state) != GF_OK) {
-                      GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] could not parse configOBUs at position "LLU". Leaving parsing.\n", pos));
-                      break;
-                }
-                gf_assert(obu_size == gf_bs_get_position(bs) - pos);
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[IAMF] parsed OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+		pos = gf_bs_get_position(bs);
+		obu_size = 0;
+		if (gf_iamf_parse_obu(bs, &obu_type, &obu_size, state) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] could not parse configOBUs at position "LLU". Leaving parsing.\n", pos));
+			break;
+		}
+		gf_assert(obu_size == gf_bs_get_position(bs) - pos);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[IAMF] parsed OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
-                GF_SAFEALLOC(config_obu, GF_IamfObu);
-                if (!config_obu) break;
-                config_obu->raw_obu_bytes = gf_malloc((size_t)obu_size);
-                if (!config_obu->raw_obu_bytes) {
-                      gf_free(config_obu);
-                      break;
-                }
-                gf_bs_seek(bs, pos);
-                gf_bs_read_data(bs, (char *)config_obu->raw_obu_bytes, (u32)obu_size);
-                config_obu->obu_length = obu_size;
-                config_obu->obu_type = obu_type;
-                gf_list_add(cfg->configOBUs, config_obu);
+		GF_SAFEALLOC(config_obu, GF_IamfObu);
+		if (!config_obu) break;
+		config_obu->raw_obu_bytes = gf_malloc((size_t)obu_size);
+		if (!config_obu->raw_obu_bytes) {
+			gf_free(config_obu);
+			break;
+		}
+		gf_bs_seek(bs, pos);
+		gf_bs_read_data(bs, (char *)config_obu->raw_obu_bytes, (u32)obu_size);
+		config_obu->obu_length = obu_size;
+		config_obu->obu_type = obu_type;
+		gf_list_add(cfg->configOBUs, config_obu);
 
-                if (size < obu_size) {
-                      GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] IAMF config misses %d bytes to fit the entire OBU\n", obu_size - size));
-                      break;
-                }
-                size -= (u32) obu_size;
-        }
+		if (size < obu_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] IAMF config misses %d bytes to fit the entire OBU\n", obu_size - size));
+			break;
+		}
+		size -= (u32) obu_size;
+	}
 
 	gf_iamf_reset_state(state, GF_TRUE);
 	gf_bs_align(bs);
 	gf_free(state);
-        return cfg;
-
+	return cfg;
 #else
-        return NULL;
+	return NULL;
 #endif
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs) {
-        return gf_odf_ia_cfg_read_bs_size(bs, 0);
+GF_IAConfig *gf_odf_iamf_cfg_read_bs(GF_BitStream *bs) {
+	return gf_odf_iamf_cfg_read_bs_size(bs, 0);
 }
 
 GF_EXPORT
-GF_IAConfig *gf_odf_ia_cfg_read(u8 *dsi, u32 dsi_size)
+GF_IAConfig *gf_odf_iamf_cfg_read(u8 *dsi, u32 dsi_size)
 {
-        GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
-        GF_IAConfig *cfg = gf_odf_ia_cfg_read_bs(bs);
-        gf_bs_del(bs);
-        return cfg;
+	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+	GF_IAConfig *cfg = gf_odf_iamf_cfg_read_bs(bs);
+	gf_bs_del(bs);
+	return cfg;
 }
 
 GF_EXPORT
-void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
+void gf_odf_iamf_cfg_del(GF_IAConfig *cfg)
 {
-        if (!cfg) return;
-        while (gf_list_count(cfg->configOBUs)) {
-                GF_IamfObu *configOBU = (GF_IamfObu*)gf_list_get(cfg->configOBUs, 0);
-                if (configOBU->raw_obu_bytes) gf_free(configOBU->raw_obu_bytes);
-                gf_list_rem(cfg->configOBUs, 0);
-                gf_free(configOBU);
-        }
-        gf_list_del(cfg->configOBUs);
-        gf_free(cfg);
+	if (!cfg) return;
+	while (gf_list_count(cfg->configOBUs)) {
+		GF_IamfObu *configOBU = (GF_IamfObu*)gf_list_get(cfg->configOBUs, 0);
+		if (configOBU->raw_obu_bytes) gf_free(configOBU->raw_obu_bytes);
+		gf_list_rem(cfg->configOBUs, 0);
+		gf_free(configOBU);
+	}
+	gf_list_del(cfg->configOBUs);
+	gf_free(cfg);
 }
 
 GF_EXPORT
-GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
+GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 {
 	u32 i;
 	if (!cfg || !bs) return GF_BAD_PARAM;
@@ -2666,12 +2763,12 @@ GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 }
 
 GF_EXPORT
-GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
+GF_Err gf_odf_iamf_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 	GF_Err e;
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	*outSize = 0;
 	*outData = NULL;
-	e = gf_odf_ia_cfg_write_bs(cfg, bs);
+	e = gf_odf_iamf_cfg_write_bs(cfg, bs);
 	if (e == GF_OK)
 		gf_bs_get_content(bs, outData, outSize);
 
@@ -2680,7 +2777,7 @@ GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
 }
 
 GF_EXPORT
-u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
+u32 gf_odf_iamf_cfg_size(GF_IAConfig *cfg)
 {
 	if (!cfg) return 0;
 

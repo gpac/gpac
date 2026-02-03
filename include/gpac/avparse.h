@@ -154,7 +154,7 @@ void gf_m4v_parser_del(GF_M4VParser *m4v);
 void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v);
 /*! parses the decoder specific info (if found)
 \param m4v the mpeg video parser
-\param dsi the decoder spcific info structure to fill
+\param dsi the decoder specific info structure to fill
 \return GF_OK if found, GF_EOS if not enough data, error otherwise
 */
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi);
@@ -184,14 +184,14 @@ u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*! decodes DSI/VOSHeader for MPEG4
 \param rawdsi encoded MPEG-4 decoder config
 \param rawdsi_size size of encoded MPEG-4 decoder config
-\param dsi the decoder spcific info structure to fill
+\param dsi the decoder specific info structure to fill
 \return error if any
 */
 GF_Err gf_m4v_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*! decodes DSI/VOSHeader for MPEG12
 \param rawdsi encoded MPEG-1/2 decoder config
 \param rawdsi_size size of encoded MPEG-1/2 decoder config
-\param dsi the decoder spcific info structure to fill
+\param dsi the decoder specific info structure to fill
 \return error if any
 */
 GF_Err gf_mpegv12_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
@@ -358,12 +358,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len);
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_len);
 
 /*! parses opus header packets - initializes the config  on success, leave it to NULL otherwise
-\param cfg pointer to a opus config to fill
+\param ocfg pointer to a opus config to fill
 \param data opus header buffer to parse
 \param data_len size of opus header buffer
 \return 1 if success, 0 if error
 */
-Bool gf_opus_parse_header(GF_OpusConfig *cfg, u8 *data, u32 data_len);
+Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len);
 
 /*! checks if an opus frame is valid
 \param cfg pointer to a opus config to use
@@ -641,7 +641,7 @@ const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 //! \cond old name
 typedef struct __ac3_config GF_AC3Header;
-//! \endcond 
+//! \endcond
 
 /*! parses an AC-3 header from a buffer
 \param buffer buffer to parse
@@ -712,17 +712,19 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 \param pos set to start offset (in bytes) of the AC4 header parsed
 \param out_hdr will be filled by parser
 \param full_parse if GF_TRUE, complete parsing of the header will be done
+\param start_from_toc if GF_TRUE, parsing starts from the toc
 \return GF_TRUE if success
 */
-Bool gf_ac4_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC4Config *out_hdr, Bool full_parse);
+Bool gf_ac4_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC4Config *out_hdr, Bool full_parse, Bool start_from_toc);
 
 /*! parses an AC-4 header from a bitstream
 \param bs bitstream to parse
 \param hdr will be filled by parser
 \param full_parse if GF_TRUE, complete parsing of the header and check for next frame/blocks presence will be done
+\param start_from_toc if GF_TRUE, parsing starts from the toc
 \return GF_TRUE if success
 */
-Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse);
+Bool gf_ac4_parser_bs(GF_BitStream *bs, GF_AC4Config *hdr, Bool full_parse, Bool start_from_toc);
 
 /*! gets basic information from an AVC Sequence Parameter Set
 \param sps SPS NAL buffer
@@ -873,7 +875,9 @@ typedef enum {
 	OBU_METADATA_TYPE_HDR_MDCV = 2,
 	OBU_METADATA_TYPE_SCALABILITY = 3,
 	OBU_METADATA_TYPE_ITUT_T35 = 4,
-	OBU_METADATA_TYPE_TIMECODE = 5
+	OBU_METADATA_TYPE_TIMECODE = 5,
+	OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE = 7,
+	OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE_BIS = 32, //same as 7
 } ObuMetadataType;
 
 /*! gets the name of a given OBU type
@@ -884,38 +888,38 @@ const char *gf_av1_get_obu_name(ObuType obu_type);
 
 /*!\brief IAMF OBU types */
 typedef enum {
-        OBU_IA_CODEC_CONFIG = 0,
-        OBU_IA_AUDIO_ELEMENT = 1,
-        OBU_IA_MIX_PRESENTATION = 2,
-        OBU_IA_PARAMETER_BLOCK = 3,
-        OBU_IA_TEMPORAL_DELIMITER = 4,
-        OBU_IA_AUDIO_FRAME = 5,
-        OBU_IA_AUDIO_FRAME_ID0 = 6,
-        OBU_IA_AUDIO_FRAME_ID1 = 7,
-        OBU_IA_AUDIO_FRAME_ID2 = 8,
-        OBU_IA_AUDIO_FRAME_ID3 = 9,
-        OBU_IA_AUDIO_FRAME_ID4 = 10,
-        OBU_IA_AUDIO_FRAME_ID5 = 11,
-        OBU_IA_AUDIO_FRAME_ID6 = 12,
-        OBU_IA_AUDIO_FRAME_ID7 = 13,
-        OBU_IA_AUDIO_FRAME_ID8 = 14,
-        OBU_IA_AUDIO_FRAME_ID9 = 15,
-        OBU_IA_AUDIO_FRAME_ID10 = 16,
-        OBU_IA_AUDIO_FRAME_ID11 = 17,
-        OBU_IA_AUDIO_FRAME_ID12 = 18,
-        OBU_IA_AUDIO_FRAME_ID13 = 19,
-        OBU_IA_AUDIO_FRAME_ID14 = 20,
-        OBU_IA_AUDIO_FRAME_ID15 = 21,
-        OBU_IA_AUDIO_FRAME_ID16 = 22,
-        OBU_IA_AUDIO_FRAME_ID17 = 23,
-        OBU_IA_RESERVED_24 = 24,
-        OBU_IA_RESERVED_25 = 25,
-        OBU_IA_RESERVED_26 = 26,
-        OBU_IA_RESERVED_27 = 27,
-        OBU_IA_RESERVED_28 = 28,
-        OBU_IA_RESERVED_29 = 29,
-        OBU_IA_RESERVED_30 = 30,
-        OBU_IA_SEQUENCE_HEADER = 31
+        OBU_IAMF_CODEC_CONFIG = 0,
+        OBU_IAMF_AUDIO_ELEMENT = 1,
+        OBU_IAMF_MIX_PRESENTATION = 2,
+        OBU_IAMF_PARAMETER_BLOCK = 3,
+        OBU_IAMF_TEMPORAL_DELIMITER = 4,
+        OBU_IAMF_AUDIO_FRAME = 5,
+        OBU_IAMF_AUDIO_FRAME_ID0 = 6,
+        OBU_IAMF_AUDIO_FRAME_ID1 = 7,
+        OBU_IAMF_AUDIO_FRAME_ID2 = 8,
+        OBU_IAMF_AUDIO_FRAME_ID3 = 9,
+        OBU_IAMF_AUDIO_FRAME_ID4 = 10,
+        OBU_IAMF_AUDIO_FRAME_ID5 = 11,
+        OBU_IAMF_AUDIO_FRAME_ID6 = 12,
+        OBU_IAMF_AUDIO_FRAME_ID7 = 13,
+        OBU_IAMF_AUDIO_FRAME_ID8 = 14,
+        OBU_IAMF_AUDIO_FRAME_ID9 = 15,
+        OBU_IAMF_AUDIO_FRAME_ID10 = 16,
+        OBU_IAMF_AUDIO_FRAME_ID11 = 17,
+        OBU_IAMF_AUDIO_FRAME_ID12 = 18,
+        OBU_IAMF_AUDIO_FRAME_ID13 = 19,
+        OBU_IAMF_AUDIO_FRAME_ID14 = 20,
+        OBU_IAMF_AUDIO_FRAME_ID15 = 21,
+        OBU_IAMF_AUDIO_FRAME_ID16 = 22,
+        OBU_IAMF_AUDIO_FRAME_ID17 = 23,
+        OBU_IAMF_RESERVED_24 = 24,
+        OBU_IAMF_RESERVED_25 = 25,
+        OBU_IAMF_RESERVED_26 = 26,
+        OBU_IAMF_RESERVED_27 = 27,
+        OBU_IAMF_RESERVED_28 = 28,
+        OBU_IAMF_RESERVED_29 = 29,
+        OBU_IAMF_RESERVED_30 = 30,
+        OBU_IAMF_SEQUENCE_HEADER = 31
 } IamfObuType;
 
 /*! gets the name of a given IAMF OBU type
@@ -932,4 +936,3 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type);
 
 
 #endif	/*_GF_PARSERS_AV_H_*/
-

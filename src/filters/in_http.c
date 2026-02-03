@@ -134,6 +134,13 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
+
+	//for base64 segment embedding
+	if (server && !strncmp(server, "gmem://", 7)) {
+		GF_Err e = gf_filter_pid_raw_gmem(filter, server, &ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return e;
+	}
 	if (server && strncmp(ctx->src, "http://gmcast", 13) && strstr(server, "://")) {
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
@@ -221,6 +228,7 @@ static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_Err e;
+	char *prev_url = NULL;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid)) return GF_FALSE;
@@ -289,7 +297,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Switch from %s to %s\n", gf_file_basename(ctx->src), gf_file_basename(evt->seek.source_switch) ));
-			if (ctx->src) gf_free(ctx->src);
+
+			prev_url = ctx->src;
 			ctx->src = gf_strdup(evt->seek.source_switch);
 		} else {
 			if (!ctx->is_end) {
@@ -314,6 +323,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//handle isobmff:// url
 		if (!strncmp(ctx->src, "isobmff://", 10)) {
 			GF_FilterPacket *pck;
+			if (prev_url) gf_free(prev_url);
+
 			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 			ctx->is_end = GF_TRUE;
 			ctx->prev_was_init_segment = GF_TRUE;
@@ -339,6 +350,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->nb_read = 0;
 			ctx->last_state = GF_OK;
+			if (prev_url) gf_free(prev_url);
 			return GF_TRUE;
 		}
 		ctx->last_state = GF_OK;
@@ -362,18 +374,19 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
-            e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
+			e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
 
-        if (e) {
+		if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Cannot resetup session from URL %s: %s\n", ctx->src, gf_error_to_string(e) ) );
 			httpin_notify_error(filter, ctx, e);
 			ctx->is_end = GF_TRUE;
 			if (ctx->src) gf_free(ctx->src);
-			ctx->src = NULL;
+			ctx->src = prev_url;
 			return GF_TRUE;
 		}
+		if (prev_url) gf_free(prev_url);
 		ctx->nb_read = ctx->file_size = 0;
 		ctx->do_reconfigure = GF_TRUE;
 		ctx->is_end = GF_FALSE;
@@ -412,7 +425,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	if (!ctx->pid) {
 		if (ctx->nb_read)
-            return GF_SERVICE_ERROR;
+			return GF_SERVICE_ERROR;
 	} else {
 		//TODO: go on fetching data to cache even when not consuming, and reread from cache
 		if (gf_filter_pid_would_block(ctx->pid))
@@ -496,7 +509,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				}
 			}
 		}
-        gf_blob_release(cached);
+		gf_blob_release(cached);
 	}
 	//we read from network
 	else {
@@ -533,6 +546,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 			return e;
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
+
+		//special case for no data when first source - be silent after source switch giving 0 bytes
+		if (!ctx->initial_ack_done && (e==GF_EOS) && !nb_read && !ctx->nb_read && !total_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPIn] No data in stream\n"));
+			httpin_notify_error(filter, ctx, GF_EOS);
+			ctx->is_end = GF_TRUE;
+			return GF_EOS;
+		}
 
 		if (!ctx->pid || ctx->do_reconfigure) {
 			u32 idx;
@@ -586,6 +607,17 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 			/*in test mode don't expose http headers (they contain date/version/etc)*/
 			if (! gf_sys_is_test_mode()) {
+				//remove old headers
+				idx=0;
+				while (1) {
+					u32 p4cc;
+					const char *pname;
+					const GF_PropertyValue *p = gf_filter_pid_enum_properties(ctx->pid, &idx, &p4cc, &pname);
+					if (!p) break;
+					if (p4cc) continue;
+					gf_filter_pid_set_property_str(ctx->pid, pname, NULL);
+					idx--;
+				}
 				idx = 0;
 				while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
 					gf_filter_pid_set_property_dyn(ctx->pid, (char *) hname, & PROP_STRING(hval));
@@ -747,7 +779,7 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	char *help = gf_strdup(HTTPInRegister.help);
 	gf_dynstrcat(&help, "\n## libCURL Support\n", NULL);
 	gf_dynstrcat(&help, "This build supports using libcurl for HTTP and other protocol downloads."\
-		" For http(s), the default behaviour is to use GPAC and can be overriden using the option [-curl](core).\n", NULL);
+		" For http(s), the default behaviour is to use GPAC and can be overridden using the option [-curl](core).\n", NULL);
 	gf_dynstrcat(&help, "Session parameters can be set using the `curl` configuration section, eg `-cfg=curl:FTPPORT=222`.\n", NULL);
 	gf_dynstrcat(&help, "The key `curl:trace=yes` can be set to log all CURL activity using logs `http@debug`.\n\n", NULL);
 	gf_dynstrcat(&help, "Libcurl version: ", NULL);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -236,6 +236,11 @@ static void vout_reset_overlay(GF_Filter *filter, GF_VideoOutCtx *ctx)
 		}
 		glDeleteTextures(1, &ctx->overlay_tx);
 		ctx->overlay_tx = 0;
+
+		if (!ctx->pid) {
+			glClear(GL_COLOR_BUFFER_BIT);
+			ctx->video_out->Flush(ctx->video_out, NULL);
+		}
 		if (filter)
 			gf_filter_lock(filter, GF_FALSE);
 	}
@@ -689,6 +694,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_XRGB:
 	case GF_PIXEL_XBGR:
 	case GF_PIXEL_RGBX:
+	case GF_PIXEL_RGB_332:
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
@@ -1375,6 +1381,11 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			}
 		}
 
+		if (!ctx->sar.num || ctx->sar.den) {
+			ctx->sar.num = 1;
+			ctx->sar.den = 1;
+		}
+
 		//if we fill width to display width and height is outside
 		if (ctx->display_width * v_h / v_w > ctx->display_height) {
 			ctx->dw = (Float) (ctx->display_height * v_w / v_h);
@@ -1750,17 +1761,27 @@ static GF_Err vout_process(GF_Filter *filter)
 	}
 
 	if (!ctx->pid) {
+		GF_Err ret = GF_OK;
+		u32 resched = 100000;
 		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 
-		if (gf_filter_has_connect_errors(filter) || (gf_filter_all_sinks_done(filter) && !gf_filter_connections_pending(filter)))
+		if (gf_filter_has_connect_errors(filter)) {
+			//connection error, abort (no reschedule)
 			return GF_EOS;
-		//when we use vout+aout on audio only, we want the filter to still be active to process events
-		gf_filter_post_process_task(filter);
-		gf_filter_ask_rt_reschedule(filter, 10000);
-
-		return ctx->oldata.ptr ? GF_OK : GF_EOS;
+		}
+		if (gf_filter_all_sinks_done(filter) && !gf_filter_connections_pending(filter)) {
+			//all done, abort (no reschedule)
+			return GF_EOS;
+		}
+		else if (ctx->oldata.ptr) {
+			ret = GF_EOS;
+			resched = 40000;
+		}
+		//we always reschedule when no input to avoid having a non-responding window
+		gf_filter_ask_rt_reschedule(filter, resched);
+		return ret;
 	}
 
 	pck = gf_filter_pid_get_packet(ctx->pid);

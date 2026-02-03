@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2025
+#          Copyright (c) Telecom Paris 2020-2026
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -236,8 +236,8 @@ except OSError:
             os._exit(1)
 
 #change this to reflect API we encapsulate. An incompatibility in either of these will throw a warning
-GF_ABI_MAJOR=12
-GF_ABI_MINOR=16
+GF_ABI_MAJOR=16
+GF_ABI_MINOR=2
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -293,6 +293,14 @@ _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
 _libgpac.gf_sys_enable_rmtws.argtypes = [gf_bool]
+_libgpac.gf_sys_get_rmtws.argtypes = []
+_libgpac.gf_sys_get_rmtws.restype = c_void_p
+
+_libgpac.gf_sys_enable_userws.argtypes = [gf_bool]
+_libgpac.gf_sys_get_userws.argtypes = []
+_libgpac.gf_sys_get_userws.restype = c_void_p
+
+
 _libgpac.gf_rmt_get_peer_address.argtypes = [c_void_p]
 _libgpac.gf_rmt_get_peer_address.restype = c_char_p
 _libgpac.gf_rmt_client_send_to_ws.argtypes = [c_void_p, c_void_p, c_uint64, gf_bool]
@@ -406,10 +414,16 @@ def set_args(args):
 
 
 ## enables websocket monitoring server
-# \param value True/False enable or disable server
+# \param enable True/False enable or disable server
 def enable_rmtws(enable=True):
     _libgpac.user_init = True
     _libgpac.gf_sys_enable_rmtws(enable)
+
+## enables the user websocket server
+# \param enable True/False enable or disable server
+def enable_userws(enable=True):
+    _libgpac.user_init = True
+    _libgpac.gf_sys_enable_userws(enable)
 
 
 ##\cond private
@@ -485,21 +499,22 @@ class RMTClient():
 
 ## RMTHandler object handling the callbacks for rmtws events
 #
-# to be passed to \ref set_rmt_handler()
+# to be passed to \ref python.libgpac.libgpac.set_rmt_handler "set_rmt_handler()"
 class RMTHandler():
 
+
     ## called when a new client connects to the websocket
-    # \param client an object of type \ref RMTClient representing the new client
+    # \param client an object of type \ref python.libgpac.libgpac.RMTClient "RMTClient" representing the new client
     def on_new_client(self, client: RMTClient):
         pass
 
     ## called when a client disconnects from the websocket
-    # \param client an object of type \ref RMTClient representing the client
+    # \param client an object of type \ref python.libgpac.libgpac.RMTClient "RMTClient" representing the client
     def on_client_close(self, client: RMTClient):
         pass
 
     ## called when a client receives data on its websocket
-    # \param client an object of type \ref RMTClient representing the client
+    # \param client an object of type \ref python.libgpac.libgpac.RMTClient "RMTClient" representing the client
     # \param data the received data, can be either str or bytes depending on the exchanged data
     def on_client_data(self, client: RMTClient, data):
         pass
@@ -507,7 +522,8 @@ class RMTHandler():
 
 
 ##\cond private
-_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [py_object, c_void_p]
+_libgpac.gf_rmt_set_on_new_client_cbk.argtypes = [c_void_p, py_object, c_void_p]
+
 @CFUNCTYPE(c_int, c_void_p, c_void_p)
 def rmt_fun_on_new_client_cbk(_udta, client):
     obj = cast(_udta, py_object).value
@@ -518,16 +534,28 @@ def rmt_fun_on_new_client_cbk(_udta, client):
 ##\endcond private
 
 ## set the handler for rmt_ws
-# \param callback_obj an object of type \ref RMTHandler implementing the desired callbacks
+# \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
 def set_rmt_handler(callback_obj):
     _libgpac.user_init = True
+    rmt = _libgpac.gf_sys_get_rmtws()
     if hasattr(callback_obj, 'on_new_client'):
-        err = _libgpac.gf_rmt_set_on_new_client_cbk(py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(rmt, py_object(callback_obj), rmt_fun_on_new_client_cbk)
         if err<0:
             return False
 
     return True
 
+## set the handler for the user websocket server
+# \param callback_obj an object of type \ref python.libgpac.libgpac.RMTHandler "RMTHandler" implementing the desired callbacks
+def set_userws_handler(callback_obj):
+    _libgpac.user_init = True
+    rmt = _libgpac.gf_sys_get_userws()
+    if hasattr(callback_obj, 'on_new_client'):
+        err = _libgpac.gf_rmt_set_on_new_client_cbk(rmt, py_object(callback_obj), rmt_fun_on_new_client_cbk)
+        if err<0:
+            return False
+
+    return True
 
 ## sleep for given time in milliseconds
 # \param value time to sleep
@@ -582,6 +610,7 @@ class FilterStats(Structure):
 		("nb_pck_sent", c_ulonglong),
 		("nb_hw_pck_sent", c_ulonglong),
 		("nb_errors", c_uint),
+		("nb_current_errors", c_uint),
 		("nb_bytes_sent", c_ulonglong),
 		("time_process", c_ulonglong),
 		("percent", c_int),
@@ -947,14 +976,16 @@ class FEVT_BufferRequirement(Structure):
     ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FEVT_EncodeHints
-class FEVT_EncodeHints(Structure):
+#Fields have the same types, names and semantics as \ref GF_FEVT_TransportHints
+class FEVT_TransportHints(Structure):
     ## \cond private
     _fields_ =  [
         ("type", c_uint),
         ("on_pid", _gf_filter_pid),
-        ("intra_period", Fraction),
-        ("gen_dsi_only", gf_bool)
+        ("flags", c_uint),
+        ("seg_duration", Fraction),
+        ("gen_dsi_only", gf_bool),
+        ("wait_seg_boundary", gf_bool)
     ]
     ## \endcond
 
@@ -1093,14 +1124,14 @@ class FilterEvent(Union):
         ("play", FEVT_Play),
         ("seek", FEVT_SourceSeek),
         ("attach_scene", FEVT_AttachScene),
-        ("user", FEVT_UserEvent),
+        ("user_event", FEVT_UserEvent),
         ("quality_switch", FEVT_QualitySwitch),
         ("visibility_hint", FEVT_VisibilityHint),
         ("buffer_req", FEVT_BufferRequirement),
         ("seg_size", FEVT_SegmentSize),
         ("frag_size", FEVT_FragmentSize),
         ("file_del", FEVT_FileDelete),
-        ("encode_hints", FEVT_EncodeHints),
+        ("transport_hints", FEVT_TransportHints),
         ("ntp", FEVT_NTPRef)
     ]
     ## \endcond
@@ -1722,7 +1753,7 @@ class FilterTask:
         return -1
 
 
-## filter session object - see \ref GF_FilterSession
+## filter session object - see \ref fs_grp
 class FilterSession:
     ## constructor for filter session - see \ref gf_fs_new
     #\param flags session flags (int)
@@ -2128,34 +2159,34 @@ class HTTPOutRequest:
         ## even values are header names, odd values are header values
         self.headers_out=[]
 
-    ## throttle the connection - if not overriden by subclass, not used
+    ## throttle the connection - if not overridden by subclass, not used
     #\param done amount of bytes of ressource sent
     #\param total total size of ressource
     #\return a timeout in microseconds, or 0 to process immediately
     def throttle(self, done, total):
         return 0
 
-    ## read data for the request - if not overriden by subclass, not used
+    ## read data for the request - if not overridden by subclass, not used
     #\param buf NP array (or c_ubyte pointer if no numpy support) to write data to
     #\param size size of array to fill
     #\return amount of bytes read, negative value means no data available yet, 0 means end of file
     def read(self, buf, size):
         return 0
 
-    ## write data for the request (PUT/POST) - if not overriden by subclass, not used
+    ## write data for the request (PUT/POST) - if not overridden by subclass, not used
     #\param buf NP array (or c_ubyte pointer if no numpy support) containing data from client
     #\param size number of valid bytes in the array
     #\return
     def write(self, buf, size):
         pass
 
-    ## close callback for the request - if not overriden by subclass, not used
+    ## close callback for the request - if not overridden by subclass, not used
     #\param reason GPAC error code of the end of session. If 1 (GF_EOS), the session is ended but underlying network is kept alive, otherwise session is destroyed
     #\return
     def close(self, reason):
         pass
 
-    ## callback for the request - this shoulld be overriden by subclass, default behaviour being to delegate to GPAC
+    ## callback for the request - this shoulld be overridden by subclass, default behaviour being to delegate to GPAC
     #\param method HTTP method used, as string
     #\param url URL of the HTTP request
     #\param auth_code Authentication reply code - requests are pre-identified using GPAC credentials: a value of 401 indicates no identification, 200 indicates identification OK, 403 indicates failure
@@ -2164,7 +2195,7 @@ class HTTPOutRequest:
     def on_request(self, method, url, auth_code, headers):
         self.send()
 
-    ## Send the reply to the client. This can be called aither upon \ref on_request or later (asynchronously)
+    ## Send the reply to the client. This can be called aither upon \ref python.libgpac.libgpac.HTTPOutRequest.on_request "on_request()" or later (asynchronously)
     #\return
     def send(self):
         hdrs = None
@@ -2495,17 +2526,17 @@ class DASHCustomAlgorithm:
         pass
 
     ##Callback (optional) called when a new group (adaptation set) is created
-    #\param group the newly created \ref DASHGroup
+    #\param group the newly created \ref python.libgpac.libgpac.DASHGroup
     #\return
     def on_new_group(self, group):
         pass
 
 
     ##Callback (mandatory) called at the end of the segment download to perform rate adaptation
-    #\param group the \ref DASHGroup on which to perform adaptation
-    #\param base_group the associated base \ref DASHGroup (tiling only), or None if no base group
+    #\param group the \ref python.libgpac.libgpac.DASHGroup "DASHGroup" on which to perform adaptation
+    #\param base_group the associated base \ref python.libgpac.libgpac.DASHGroup "DASHGroup" (tiling only), or None if no base group
     #\param force_low_complexity indicates that the client would like a lower complexity (typically because it is dropping frames)
-    #\param stats the \ref DASHGroupStatistics  for the downloaded segment
+    #\param stats the \ref python.libgpac.libgpac.DASHGroupStatistics  for the downloaded segment
     #\return value can be:
     # - new quality index,
     # - -1 to take no decision
@@ -2515,8 +2546,8 @@ class DASHCustomAlgorithm:
         pass
 
     ##Callback (optional) called on regular basis during a segment download
-    #\param group the \ref DASHGroup associated with the current download
-    #\param stats the \ref DASHGroupDownloadStatistics for the download
+    #\param group the \ref python.libgpac.libgpac.DASHGroup "DASHGroup" associated with the current download
+    #\param stats the \ref python.libgpac.libgpac.DASHGroupDownloadStatistics "DASHGroupDownloadStatistics" for the download
     #\return value can be:
     #   - `-1` to continue download
     #   - `-2` to abort download but without retrying to downloading the same segment at lower quality
@@ -3046,7 +3077,7 @@ class Filter:
     #
     #Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
     #
-    #For DASH, the object must derive from or implement the methods of the \ref DASHCustomAlgorithm class:
+    #For DASH, the object must derive from or implement the methods of the \ref python.libgpac.libgpac.DASHCustomAlgorithm "DASHCustomAlgorithm" class:
     #
     #\param object object to bind
     #\return
@@ -4590,7 +4621,7 @@ class FilterPacket:
     ##creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
     #The resulting packet is read/write mode and may have its own memory allocated.
     #This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
-    #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garbage collected.
+    #the resulting packet can be explicitly discarded using \ref python.libgpac.libgpac.FilterPacket.discard "discard()", otherwise will be garbage collected.
     #\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
     #\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
     def clone(self, cached_pck=None):
@@ -5146,7 +5177,7 @@ def fileio_cbk_eof(_fio):
 #Writes the file
 #- buffer: numpy array to fill if numpy support, ctypes.c_ubyte otherwise
 #- size: number of bytes to write starting from first byte in buffer
-#- return number of bytes writen, at most the size of the array
+#- return number of bytes written, at most the size of the array
 #
 # \code int read(numy buffer, unsigned long size)\endcode
 #Reads the file

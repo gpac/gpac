@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -28,6 +28,7 @@
 #ifdef GPAC_HAS_FFMPEG
 
 #include "ff_common.h"
+#include "gpac/internal/ff_dmx.h"
 
 //for NTP clock
 #include <gpac/network.h>
@@ -73,6 +74,7 @@ typedef struct
 
 	Bool raw_data;
 	//input file
+	Bool src_as_avf;
 	AVFormatContext *demuxer;
 	//demux options
 	AVDictionary *options;
@@ -104,6 +106,10 @@ typedef struct
 	AVIOContext *avio_ctx;
 	FILE *gfio;
 	GF_Fraction fps_forced;
+
+	//for direct ffdmx and AVFormatContext connection
+	void *rt_udta;
+	GF_FFDemuxCallbackFn on_pkt;
 
 	//for ffdmx used as filter on http or file input
 	//we must buffer enough data so that calls to read_packet() does not abort in the middle of a packet
@@ -141,7 +147,7 @@ static void ffdmx_finalize(GF_Filter *filter)
 		av_dict_free(&ctx->options);
 	if (ctx->probe_times)
 		gf_free(ctx->probe_times);
-	if (ctx->demuxer) {
+	if (ctx->demuxer && !ctx->src_as_avf) {
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
 	}
@@ -151,6 +157,12 @@ static void ffdmx_finalize(GF_Filter *filter)
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
 	if (ctx->strbuf) gf_free(ctx->strbuf);
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
+	if (ctx->pkt) {
+		av_packet_free(&ctx->pkt);
+		ctx->pkt = NULL;
+	}
+#endif
 	return;
 }
 
@@ -456,6 +468,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	AVPacket *pkt;
 	PidCtx *pctx;
 	int res;
+	GF_FFDemuxCallbackRet avf_ret = GF_FFDMX_OK;
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->proto) {
@@ -573,19 +586,34 @@ restart:
 
 	sample_time = gf_sys_clock_high_res();
 
-	FF_INIT_PCK(ctx, pkt)
-	pkt->side_data = NULL;
-	pkt->side_data_elems = 0;
+	if (ctx->src_as_avf) {
+		// Request a packet from the callback
+		if (!ctx->on_pkt) {
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] No callback set for packet retrieval\n", ctx->fname));
+			return GF_BAD_PARAM;
+		}
 
-	pkt->stream_index = -1;
+		// Receive a packet (if possible)
+		res = avf_ret = ctx->on_pkt(ctx->rt_udta, &pkt);
+		if (pkt == NULL && avf_ret == GF_FFDMX_OK)
+			return GF_OK;
+	} else {
+		FF_INIT_PCK(ctx, pkt)
+		pkt->side_data = NULL;
+		pkt->side_data_elems = 0;
+
+		pkt->stream_index = -1;
+		res = av_read_frame(ctx->demuxer, pkt);
+	}
 
 	/*EOF*/
-	res = av_read_frame(ctx->demuxer, pkt);
-	if (res < 0) {
+	if (res < 0 || avf_ret == GF_FFDMX_EOS) {
 		if (!ctx->in_eos && (ctx->strbuf_size>ctx->strbuf_offset) && (res == AVERROR(EAGAIN)))
 			return GF_OK;
 
-		FF_FREE_PCK(pkt);
+		if (!ctx->src_as_avf)
+			FF_FREE_PCK(pkt);
+
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->nb_streams; i++) {
 				PidCtx *pctx = &ctx->pids_ctx[i];
@@ -641,7 +669,7 @@ restart:
 	}
     if (ctx->stop_seen && ! gf_filter_pid_is_playing( pctx->pid ) ) {
 		FF_FREE_PCK(pkt);
-        return GF_OK;
+		return GF_OK;
     }
 	if (ctx->raw_data && (ctx->probe_frames<ctx->probes) ) {
 		if (pkt->stream_index==ctx->audio_idx) {
@@ -888,6 +916,12 @@ restart:
 		goto restart;
 	}
 
+	// we might have more packets from the avf source
+	if (ctx->src_as_avf && ctx->on_pkt && ctx->on_pkt(ctx->rt_udta, NULL) == GF_FFDMX_HAS_MORE) {
+		// we got a packet, restart to process it
+		goto restart;
+	}
+
 	//we don't demux an input, only rely on session to schedule the filter
 	return GF_OK;
 }
@@ -915,6 +949,7 @@ static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 	GF_VVCConfig *vvcc;
 	GF_AV1Config *av1c;
 	GF_VPConfig *vpxc;
+	GF_AVS3VConfig *av3c;
 
 	if (!dsi_size) dsi = NULL;
 
@@ -922,7 +957,7 @@ static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 	//force reframer for the following formats if no DSI is found
 	case GF_CODECID_AC3:
 	case GF_CODECID_EAC3:
-		if (dsi && (gf_odf_ac3_config_parse(dsi, dsi_size, (gpac_codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3) == GF_OK))
+		if (dsi && (gf_odf_ac3_cfg_parse(dsi, dsi_size, (gpac_codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3) == GF_OK))
 			return 0;
 		return 1;
 
@@ -970,6 +1005,13 @@ static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 		vpxc = dsi ? gf_odf_vp_cfg_read(dsi, dsi_size) : NULL;
 		if (vpxc) {
 			gf_odf_vp_cfg_del(vpxc);
+			return 0;
+		}
+		return 1;
+	case GF_CODECID_AVS3_AUDIO:
+		av3c = dsi ? gf_odf_avs3v_cfg_read(dsi, dsi_size) : NULL;
+		if (av3c) {
+			gf_odf_avs3v_cfg_del(av3c);
 			return 0;
 		}
 		return 1;
@@ -1350,9 +1392,15 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		}
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MUX_INDEX, &PROP_UINT(i+1));
 
+#if (LIBAVFORMAT_VERSION_MAJOR < 62)
 		for (j=0; j<(u32) stream->nb_side_data; j++) {
 			ffdmx_parse_side_data(&stream->side_data[j], pid);
 		}
+#else
+		for (j=0; j<(u32) stream->codecpar->nb_coded_side_data; j++) {
+			ffdmx_parse_side_data(&stream->codecpar->coded_side_data[j], pid);
+		}
+#endif
 
 		if (ctx->demuxer->nb_chapters) {
 			GF_PropertyValue p;
@@ -1467,9 +1515,23 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 
-
-	ctx->demuxer = avformat_alloc_context();
-	ffmpeg_set_mx_dmx_flags(ctx->options, ctx->demuxer);
+	if (!strncmp(ctx->src, "avf://", 6)) {
+		// We'll use the AVFormatContext* inside ctx->src
+		ctx->demuxer = (AVFormatContext *)(uintptr_t) strtoull(ctx->src + 6, NULL, 16);
+		if (!ctx->demuxer) {
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Invalid AVFormatContext pointer %s\n", ctx->fname, ctx->src));
+			return GF_URL_ERROR;
+		}
+		if (ctx->demuxer->av_class->version != LIBAVUTIL_VERSION_INT) {
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] AVFormatContext pointer %s is not the same version as the current libavutil: compiled %08x, running %08x\n",
+				ctx->fname, ctx->src, LIBAVUTIL_VERSION_INT, ctx->demuxer->av_class->version));
+			return GF_NOT_SUPPORTED;
+		}
+		ctx->src_as_avf = GF_TRUE;
+	} else {
+		ctx->demuxer = avformat_alloc_context();
+		ffmpeg_set_mx_dmx_flags(ctx->options, ctx->demuxer);
+	}
 
 	url = ctx->src;
 	if (!strncmp(ctx->src, "gfio://", 7)) {
@@ -1494,9 +1556,13 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 	AVDictionary *options = NULL;
-	av_dict_copy(&options, ctx->options, 0);
-
-	res = avformat_open_input(&ctx->demuxer, url, FF_IFMT_CAST av_in, &options);
+	if (!ctx->src_as_avf) {
+		av_dict_copy(&options, ctx->options, 0);
+		res = avformat_open_input(&ctx->demuxer, url, FF_IFMT_CAST av_in, &options);
+	} else {
+		// The format is already open
+		goto finish;
+	}
 
 	switch (res) {
 	case 0:
@@ -1578,6 +1644,8 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		if (options) av_dict_free(&options);
 		return e;
 	}
+
+finish:
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
 
 	ffmpeg_report_options(filter, options, ctx->options);
@@ -1780,6 +1848,7 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 	if (!strncmp(url, "audio://", 8)) return GF_FPROBE_NOT_SUPPORTED;
 	if (!strncmp(url, "av://", 5)) return GF_FPROBE_NOT_SUPPORTED;
 	if (!strncmp(url, "pipe://", 7)) return GF_FPROBE_NOT_SUPPORTED;
+	if (!strncmp(url, "avf://", 6)) return GF_FPROBE_SUPPORTED;
 
 	const char *ext = gf_file_ext_start(url);
 	if (ext) {
@@ -1907,6 +1976,23 @@ const int FFDMX_STATIC_ARGS = (sizeof (FFDemuxArgs) / sizeof (GF_FilterArgs)) - 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
 	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, FFDMX_STATIC_ARGS, FF_REG_TYPE_DEMUX);
+}
+
+GF_EXPORT
+GF_Err gf_filter_bind_ffdmx_callbacks(GF_Filter *filter, void *udta, GF_FFDemuxCallbackFn on_pkt)
+{
+	if (!gf_filter_is_instance_of(filter, &FFDemuxRegister))
+		return GF_BAD_PARAM;
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx*) gf_filter_get_udta(filter);
+
+	if (on_pkt) {
+		ctx->on_pkt = on_pkt;
+		ctx->rt_udta = udta;
+	} else {
+		ctx->on_pkt = NULL;
+		ctx->rt_udta = udta;
+	}
+	return GF_OK;
 }
 
 //we define a dedicated registry for demuxing a GPAC pid using ffmpeg, not doing so can create wrong link resolutions

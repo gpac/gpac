@@ -1,0 +1,172 @@
+name: Distribution
+
+on:
+  # Used when nigthly builds needs to be refreshed or
+  # a tag should be added to main components
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "Trigger a rebuild of today's nightly builds"
+        required: false
+        type: boolean
+        default: false
+      tag:
+        description: "Tag to build and add to the main components"
+        required: false
+        type: string
+      force:
+        description: "Build both main and nightly components, ignoring commit checks"
+        required: false
+        type: boolean
+        default: false
+
+  # Used when publishing the release as main components
+  release:
+    types: [published]
+
+  # Used to build nightly releases
+  schedule:
+    - cron: "0 0 * * *" # Every day at midnight
+
+# Only one distribution workflow can run at a time
+concurrency:
+  group: "distribution"
+  cancel-in-progress: false
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      types: ${{ steps.set-types.outputs.types }}
+      main-tag: ${{ steps.decide-main-tag.outputs.tag }}
+    steps:
+      - name: Check workflow inputs
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "false" ] && [ -z "${{ github.event.inputs.tag }}" ] && [ "${{ github.event.inputs.refresh }}" = "false" ]; then
+            echo "Error: 'tag' input must be provided when 'force' and 'refresh' are both false."
+            exit 1
+          fi
+
+      - name: Get cached commit
+        id: get-latest-commit
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/gpac-latest-commit.txt
+          key: gpac-latest-commit-${{ github.sha }}
+          restore-keys: |
+            gpac-latest-commit-
+
+      - name: Get latest gpac commit
+        id: git-status
+        run: |
+          LATEST_COMMIT=$(git ls-remote --refs https://github.com/gpac/gpac.git refs/heads/master | awk '{print $1}')
+          echo $LATEST_COMMIT > ${{ runner.temp }}/gpac-latest-commit.txt
+          echo "has_new_commits=$(if [ "${{ steps.get-latest-commit.outputs.cache-hit }}" = "false" ]; then echo "true"; else echo "false"; fi)" >> $GITHUB_OUTPUT
+
+      - name: Set types
+        id: set-types
+        run: |
+          types=()
+          # Add "main" type if:
+          # - release event
+          # - manual tag input
+          # - force input is true
+          if { 
+            [[ "${{ github.event_name }}" == "release" ]] || 
+            [[ -n "${{ github.event.inputs.tag }}" ]] || 
+            [[ "${{ github.event.inputs.force }}" == "true" ]]; 
+          }; then
+            types+=("\"main\"")
+          fi
+
+          # Add "nightly" type if:
+          # - scheduled run and had new commits since last run
+          # - manual refresh and had new commits since last run
+          # - force input is true
+          has_new_commits="${{ steps.git-status.outputs.has_new_commits }}"
+          if { 
+            [[ "${{ github.event_name }}" == "schedule" && "$has_new_commits" == "true" ]] ||
+            [[ "${{ github.event.inputs.refresh }}" == "true" && "$has_new_commits" == "true" ]] ||
+            [[ "${{ github.event.inputs.force }}" == "true" ]]; 
+          }; then
+            types+=("\"nightly\"")
+          fi
+          echo "types=[$(IFS=,; echo "${types[*]}")]" >> $GITHUB_OUTPUT
+
+      - name: Decide main tag
+        id: decide-main-tag
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            # Get the latest v* tag from gpac/gpac repo
+            LATEST_TAG=$(git ls-remote --tags https://github.com/gpac/gpac.git | awk -F/ '/refs\/tags\/v[0-9]/{print $3}' | sort -V | tail -n1)
+            if [ -z "$LATEST_TAG" ]; then
+              echo "Error: No v* tag found in gpac/gpac repository."
+              exit 1
+            else
+              echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Workflow summary
+        run: |
+          echo "## Distribution Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### Latest GPAC Commit" >> $GITHUB_STEP_SUMMARY
+          echo "$(cat ${{ runner.temp }}/gpac-latest-commit.txt)" >> $GITHUB_STEP_SUMMARY
+          echo "### New Commits Detected" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.git-status.outputs.has_new_commits }}" = "true" ]; then
+            echo "Yes" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "### Inputs" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ github.event.inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Force: ${{ github.event.inputs.force }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Refresh Nightly: ${{ github.event.inputs.refresh }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Types to Build" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.set-types.outputs.types }}" = "[]" ]; then
+            echo "No types to build." >> $GITHUB_STEP_SUMMARY
+          else
+            echo '${{ steps.set-types.outputs.types }}' | jq -r '.[]' | while read -r type; do
+              echo "- $type" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
+          echo "### Main Tag" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.decide-main-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+
+  dist-linux:
+    strategy:
+      matrix:
+        type: ${{ fromJson(needs.prepare.outputs.types) }}
+
+    name: Build Linux (${{ matrix.type || 'unknown' }})
+    needs: prepare
+    if: ${{ needs.prepare.outputs.types != '[]' }}
+
+    uses: ./.github/workflows/dist-linux.yml
+    with:
+      tag: ${{ matrix.type == 'main' && needs.prepare.outputs.main-tag || 'nightly' }}
+    secrets: inherit
+
+  dist-wasm:
+    strategy:
+      matrix:
+        type: ${{ fromJson(needs.prepare.outputs.types) }}
+        exclude:
+          - type: main # We'll build main on v2.5+
+
+    name: Build WASM (${{ matrix.type || 'unknown' }})
+    needs: prepare
+    if: ${{ needs.prepare.outputs.types != '[]' }}
+
+    uses: ./.github/workflows/dist-wasm.yml
+    with:
+      tag: ${{ matrix.type == 'main' && needs.prepare.outputs.main-tag || 'nightly' }}
+    secrets: inherit

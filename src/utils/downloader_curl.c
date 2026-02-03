@@ -313,10 +313,10 @@ void curl_flush(GF_DownloadSession *sess)
 		sess->curl_hnd_registered = GF_TRUE;
 	}
 	int still_running = 0;
-	CURLMcode res = curl_multi_perform(sess->dm->curl_multi, &still_running);
+	CURLMcode mres = curl_multi_perform(sess->dm->curl_multi, &still_running);
 	gf_mx_v(sess->dm->curl_mx);
-	if (res != CURLM_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[CURL] curl_multi_perform() failed: %s\n", curl_multi_strerror(res) ));
+	if (mres != CURLM_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[CURL] curl_multi_perform() failed: %s\n", curl_multi_strerror(mres) ));
 	}
 
 	//if no close detected and session has total size set nothing to do
@@ -331,9 +331,9 @@ void curl_flush(GF_DownloadSession *sess)
 		if (!m) break;
 		if (m->msg != CURLMSG_DONE) continue;
 		GF_DownloadSession *a_sess = NULL;
-		res = curl_easy_getinfo(m->easy_handle, CURLINFO_PRIVATE, &a_sess);
+		CURLcode res = curl_easy_getinfo(m->easy_handle, CURLINFO_PRIVATE, &a_sess);
 		if (!a_sess) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[CURL] failed to retrieve private pointer: %s\n", curl_multi_strerror(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[CURL] failed to retrieve private pointer: %s\n", curl_easy_strerror(res) ));
 			continue;
 		}
 		if (a_sess->curl_hnd_registered) {

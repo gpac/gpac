@@ -532,7 +532,7 @@ enum {
 	SVG_COLOR_INACTIVE_CAPTION, /* Inactive window caption. */
 	SVG_COLOR_INACTIVE_CAPTION_TEXT, /*Color of text in an inactive caption. */
 	SVG_COLOR_INFO_BACKGROUND, /* Background color for tooltip controls. */
-	SVG_COLOR_INFO_TEXT,  /*Text color for tooltip controls. */
+	SVG_COLOR_INFO_TEXT, /*Text color for tooltip controls. */
 	SVG_COLOR_MENU, /*Menu background. */
 	SVG_COLOR_MENU_TEXT, /* Text in menus. */
 	SVG_COLOR_SCROLLBAR, /* Scroll bar gray area. */

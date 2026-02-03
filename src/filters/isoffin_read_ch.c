@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -611,11 +611,15 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->last_state = GF_OK;
 
 	ch->sap_3 = GF_FALSE;
+	ch->switch_frame = GF_FALSE;
 	ch->sap_4_type = 0;
 	ch->roll = 0;
 
 	if (ch->sample) {
 		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
+
+		GF_Err isom_get_sample_switch_frame(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *switch_frame);
+		isom_get_sample_switch_frame(ch->owner->mov, ch->track, ch->sample_num, &ch->switch_frame);
 
 		/*still seeking or not ?
 		 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
@@ -781,7 +785,7 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 {
 	s32 ps_id;
 	u32 i, count, state=0;
-	GF_NALUFFParam *sl;
+	GF_NALUFFParam *sl, *last_sl = NULL;
 	GF_List *list=NULL;
 	if (ch->avcc) {
 		if (nal_type==GF_AVC_NALU_PIC_PARAM) {
@@ -866,8 +870,21 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
 		sl = gf_list_get(list, i);
+		//ID not set yet, assign it and purge all previous PS in list with same ID
 		if (!sl->id) {
 			sl->id = 1 + isor_ps_get_id(nal_type, sl->data, sl->size, ch->avcc ? 1 : 0);
+			u32 j;
+			for (j=0; j<i; j++) {
+				GF_NALUFFParam *prev_sl = gf_list_get(list, j);
+				if (prev_sl->id == sl->id) {
+					gf_list_rem(list, j);
+					gf_free(prev_sl->data);
+					gf_free(prev_sl);
+					j--;
+					i--;
+					count--;
+				}
+			}
 		}
 		if (sl->id != ps_id) {
 			//reset everything whenever we change ID of seq / vps / dci
@@ -895,23 +912,30 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		else if (!ch->xps_mask) {
 			isor_reset_all_ps(ch);
 			break;
+		} else {
+			//in case we have several SPS with same ID in the same AU (...), remember last occurence to avoid reallocating
+			last_sl = sl;
 		}
 	}
 	ch->xps_mask |= state;
 	*needs_reset = 1;
 
 	if (list) {
-		GF_SAFEALLOC(sl, GF_NALUFFParam);
-		if (!sl) return;
-		sl->data = gf_malloc(sizeof(char)*size);
-		memcpy(sl->data, data, size);
-		sl->size = size;
-		sl->id = ps_id;
-		gf_list_add(list, sl);
+		if (!last_sl) {
+			GF_SAFEALLOC(sl, GF_NALUFFParam);
+			if (!sl) return;
+			sl->data = gf_malloc(sizeof(char)*size);
+			memcpy(sl->data, data, size);
+			sl->size = size;
+			sl->id = ps_id;
+			gf_list_add(list, sl);
+		} else {
+			last_sl->data = gf_realloc(last_sl->data, size);
+			memcpy(last_sl->data, data, size);
+			last_sl->size = size;
+		}
 	}
 }
-
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 {
@@ -941,7 +965,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 			idx<<=8;
 			idx |= sai_p[1];
 
-			mk_iv_size = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, idx, NULL, NULL);
+			mk_iv_size = gf_cenc_key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, idx, NULL, NULL);
 			mk_iv_size += 2; //idx
 			if (mk_iv_size > remain) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
@@ -954,7 +978,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 		sub_count_size = 4; //32bit sub count
 
 	} else {
-		offset = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
+		offset = gf_cenc_key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
 		sub_count_size = 2; //16bit sub count
 	}
 	if (sai_size < offset + sub_count_size) return;
@@ -1172,7 +1196,6 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(sai_data, sai_size) );
 	}
 
-
 	while (1) {
 		GF_Err gf_isom_pop_emsg(GF_ISOFile *the_file, u8 **emsg_data, u32 *emsg_size);
 		u8 *data=NULL;
@@ -1182,7 +1205,6 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 
 		gf_filter_pck_set_property_str(pck, "emsg", &PROP_DATA_NO_COPY(data, size));
 	}
-
 }
 
 

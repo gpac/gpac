@@ -100,7 +100,7 @@ GF_Err GetESD(GF_MovieBox *moov, GF_ISOTrackID trackID, u32 StreamDescIndex, GF_
 
 		e = Track_FindRef(trak, ref , &dpnd);
 		if (e) return e;
-		if (dpnd) {
+		if (dpnd && dpnd->trackIDCount) {
 			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
 			if (!k && (dpnd->trackIDCount != 1)) return GF_ISOM_INVALID_MEDIA;
 			//fix the spec: where is the index located ??
@@ -699,7 +699,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			flags = def_flags;
 
 			//CTS - if flag not set (trun or ctrn) defaults to 0 which is the base value after alloc
-			//we just need to overrite its value if inherited
+			//we just need to overwrite its value if inherited
 			cts_offset = ent->CTS_Offset;
 
 #ifdef GF_ENABLE_CTRN
@@ -958,7 +958,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 							count ++;
 							new_entry = GF_FALSE;
 
-							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry);
+							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry, new_sgdesc->is_opaque);
 							break;
 						}
 					}
@@ -1747,6 +1747,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		case GF_ISOM_BOX_TYPE_AV01:
 		case GF_ISOM_BOX_TYPE_DAV1:
 		case GF_ISOM_BOX_TYPE_AV1C:
+		case GF_ISOM_BOX_TYPE_AVS3:
+		case GF_ISOM_BOX_TYPE_AV3C:
 		case GF_ISOM_BOX_TYPE_OPUS:
 		case GF_ISOM_BOX_TYPE_DOPS:
 		case GF_ISOM_BOX_TYPE_STXT:
@@ -1810,6 +1812,13 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				opus->cfg_opus = (GF_OpusSpecificBox *)gf_isom_box_new_parent(&opus->child_boxes, GF_ISOM_BOX_TYPE_DOPS);
 				if (!opus->cfg_opus) return GF_OUT_OF_MEM;
 				entry = (GF_MPEGSampleEntryBox*)opus;
+				gf_odf_desc_del((GF_Descriptor *) esd);
+			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_IAMF) {
+				GF_MPEGAudioSampleEntryBox *iamf = (GF_MPEGAudioSampleEntryBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IAMF);
+				if (!iamf) return GF_OUT_OF_MEM;
+				iamf->cfg_iamf = (GF_IAConfigurationBox *)gf_isom_box_new_parent(&iamf->child_boxes, GF_ISOM_BOX_TYPE_IACB);
+				if (!iamf->cfg_iamf) return GF_OUT_OF_MEM;
+				entry = (GF_MPEGSampleEntryBox*)iamf;
 				gf_odf_desc_del((GF_Descriptor *) esd);
 			} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AC3) {
 				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);

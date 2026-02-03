@@ -739,6 +739,20 @@ ocol.a = col.r;\n\
 return ocol;\n\
 ";
 
+static char *gl_shader_fun_rgb332 = \
+"vec4 col, ocol;\n\
+float res, col_r, col_g, col_b;\n\
+col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
+res = floor( 255.0 * col.r );\n\
+col_r = floor(res / 32.0);\n\
+col_g = floor((res - col_r*32.0)/4.0);\n\
+col_b = floor(res - col_r*128.0 - col_g*4.0);\n\
+ocol.r = col_r / 7.0;\n\
+ocol.g = col_g / 7.0;\n\
+ocol.b = col_b / 3.0;\n\
+ocol.a = 1.0;\n\
+return ocol;\
+";
 
 static char *gl_shader_fun_rgb444 = \
 "vec4 col, ocol;\n\
@@ -897,6 +911,10 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 	case GF_PIXEL_ALPHAGREY:
 		shader_vars = gl_shader_vars_rgb;
 		shader_fun = gl_shader_fun_alphagrey;
+		break;
+	case GF_PIXEL_RGB_332:
+		shader_vars = gl_shader_vars_rgb;
+		shader_fun = gl_shader_fun_rgb332;
 		break;
 	case GF_PIXEL_RGB_444:
 		shader_vars = gl_shader_vars_rgb;
@@ -1148,6 +1166,10 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 	case GF_PIXEL_RGBX:
 		tx->gl_format = GL_RGBA;
 		tx->bytes_per_pix = 4;
+		break;
+	case GF_PIXEL_RGB_332:
+		tx->gl_format = GL_LUMINANCE;
+		tx->bytes_per_pix = 1;
 		break;
 	case GF_PIXEL_RGB_444:
 		tx->gl_format = GL_LUMINANCE_ALPHA;

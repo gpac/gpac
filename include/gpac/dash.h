@@ -329,7 +329,7 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 group_idx, u32 gr
 */
 Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 group_idx);
 
-/*! selects a group for playback. If group selection is enabled,  other groups are alternate to this group (through the group attribute), they are automatically deselected
+/*! selects a group for playback. If group selection is enabled, other groups are alternate to this group (through the group attribute), they are automatically deselected
 
  Seeking is NOT performed, it is the responsability to call \ref gf_dash_group_seek - this can be called before or after selecting
 
@@ -346,13 +346,13 @@ void gf_dash_group_select(GF_DashClient *dash, u32 group_idx, Bool select);
 */
 s32 gf_dash_group_get_id(GF_DashClient *dash, u32 group_idx);
 
-/*! gets cuirrent period ID
+/*! gets current period ID
 \param dash the target dash client
 \return ID of the current period or NULL
 */
 const char*gf_dash_get_period_id(GF_DashClient *dash);
 
-/*! enables group selection  through the group attribute
+/*! enables group selection through the group attribute
 \param dash the target dash client
 \param enable if GF_TRUE, group selection will be done whenever selecting a new group
 */
@@ -398,7 +398,7 @@ const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_i
 */
 const char *gf_dash_group_get_language(GF_DashClient *dash, u32 group_idx);
 
-/*! returns the number of audio channelsof the group
+/*! returns the number of audio channels of the group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
 \return the number of audio channels, or 0 if not audio or unspecified

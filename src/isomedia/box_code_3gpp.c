@@ -428,7 +428,7 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 
 	u32 next_size = gf_bs_peek_bits(bs, 32, 0);
 	if (next_size > ptr->size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box detected, skiping parsing.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box detected, skipping parsing.\n"));
 		ptr->textJustification = 1;
 		return GF_OK;
 	}
@@ -1115,20 +1115,20 @@ GF_Err dimC_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, p->fullRequestHost, 1);
 	gf_bs_write_int(bs, p->streamType, 1);
 	gf_bs_write_int(bs, p->containsRedundant, 2);
-    if (p->textEncoding)
-        gf_bs_write_data(bs, p->textEncoding, (u32) strlen(p->textEncoding));
-    gf_bs_write_u8(bs, 0);
-    if (p->contentEncoding)
-        gf_bs_write_data(bs, p->contentEncoding, (u32) strlen(p->contentEncoding));
-    gf_bs_write_u8(bs, 0);
+	if (p->textEncoding)
+		gf_bs_write_data(bs, p->textEncoding, (u32) strlen(p->textEncoding));
+	gf_bs_write_u8(bs, 0);
+	if (p->contentEncoding)
+		gf_bs_write_data(bs, p->contentEncoding, (u32) strlen(p->contentEncoding));
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 GF_Err dimC_box_size(GF_Box *s)
 {
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
-    s->size += 3 + 2;
-    if (p->textEncoding) s->size += strlen(p->textEncoding);
-    if (p->contentEncoding) s->size += strlen(p->contentEncoding);
+	s->size += 3 + 2;
+	if (p->textEncoding) s->size += strlen(p->textEncoding);
+	if (p->contentEncoding) s->size += strlen(p->contentEncoding);
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

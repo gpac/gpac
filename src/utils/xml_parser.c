@@ -1284,11 +1284,11 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		parser->current_pos = 0;
 
 		e = gf_xml_sax_init(parser, szLine);
-        if (!e) {
-            e = gf_xml_sax_parse(parser, xml_mem_address+4);
-            if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
-        }
-        gf_blob_release(fileName);
+		if (!e) {
+			e = gf_xml_sax_parse(parser, xml_mem_address+4);
+			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
+		}
+		gf_blob_release(fileName);
 
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
@@ -1972,15 +1972,50 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 	u32 i, count, vlen, tot_s;
 	char *name;
 
-#define SET_STRING(v)	\
-	vlen = (u32) strlen(v);	\
-	tot_s = vlen + (*size); \
-	if (tot_s >= (*alloc_size)) {	\
-		(*alloc_size) = MAX(tot_s, 2 * (*alloc_size) ) + 1;	\
-		(*str) = gf_realloc((*str), (*alloc_size));	\
-	}	\
-	memcpy((*str) + (*size), v, vlen+1);	\
-	*size += vlen;	\
+#define SET_STRING(v)                                      \
+	vlen = (u32)strlen(v);                                 \
+	tot_s = vlen + (*size);                                \
+	if (tot_s >= (*alloc_size))                            \
+	{                                                      \
+		(*alloc_size) = MAX(tot_s, 2 * (*alloc_size)) + 1; \
+		(*str) = gf_realloc((*str), (*alloc_size));        \
+	}                                                      \
+	memcpy((*str) + (*size), v, vlen + 1);                 \
+	*size += vlen;
+
+#define SET_STRING_ESCAPED(uv)            \
+	{                                     \
+		u32 tlen;                         \
+		char szChar[2];                   \
+		szChar[1] = 0;                    \
+		tlen = (u32)strlen(uv);           \
+		for (int vi = 0; vi < tlen; vi++) \
+		{                                 \
+			switch (uv[vi])               \
+			{                             \
+			case '&':                     \
+				SET_STRING("&amp;");      \
+				break;                    \
+			case '<':                     \
+				SET_STRING("&lt;");       \
+				break;                    \
+			case '>':                     \
+				SET_STRING("&gt;");       \
+				break;                    \
+			case '\'':                    \
+				SET_STRING("&apos;");     \
+				break;                    \
+			case '\"':                    \
+				SET_STRING("&quot;");     \
+				break;                    \
+                                          \
+			default:                      \
+				szChar[0] = uv[vi];       \
+				SET_STRING(szChar);       \
+				break;                    \
+			}                             \
+		}                                 \
+	}
 
 	switch (node->type) {
 	case GF_XML_CDATA_TYPE:
@@ -1996,34 +2031,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 		if (no_escape) {
 			SET_STRING(name);
 		} else {
-			u32 tlen;
-			char szChar[2];
-			szChar[1] = 0;
-			tlen = (u32) strlen(name);
-			for (i= 0; i<tlen; i++) {
-				switch (name[i]) {
-				case '&':
-					SET_STRING("&amp;");
-					break;
-				case '<':
-					SET_STRING("&lt;");
-					break;
-				case '>':
-					SET_STRING("&gt;");
-					break;
-				case '\'':
-					SET_STRING("&apos;");
-					break;
-				case '\"':
-					SET_STRING("&quot;");
-					break;
-
-				default:
-					szChar[0] = name[i];
-					SET_STRING(szChar);
-					break;
-				}
-			}
+			SET_STRING_ESCAPED(name);
 		}
 		return;
 	}
@@ -2043,7 +2051,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 			GF_XMLAttribute *att = (GF_XMLAttribute*)gf_list_get(node->attributes, i);
 			SET_STRING(att->name);
 			SET_STRING("=\"");
-			SET_STRING(att->value);
+			SET_STRING_ESCAPED(att->value);
 			SET_STRING("\" ");
 		}
 

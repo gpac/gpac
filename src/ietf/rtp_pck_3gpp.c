@@ -147,6 +147,7 @@ GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, u8 *data, u32 data_siz
 	while (data_size>offset) {
 		u8 frame_type = data[offset];
 		u8 size = qes_get_rate_size(frame_type, GF_QCELP_RATE_TO_SIZE, GF_QCELP_RATE_TO_SIZE_NB);
+		if (!size) return GF_NON_COMPLIANT_BITSTREAM;
 		/*reserved, not sent)*/
 		if (frame_type>=5) {
 			offset += size;

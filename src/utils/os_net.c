@@ -131,6 +131,9 @@ static int wsa_init = 0;
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#if defined(__FreeBSD__)
+#include <sys/stat.h>
+#endif
 
 /*not defined on solaris*/
 #if !defined(INADDR_NONE)
@@ -4258,7 +4261,9 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 		return GF_BAD_PARAM;
 
 	if (!(sock->flags & GF_SOCK_IS_TCP)) {
+#if defined(IPV6_MTU_DISCOVER) || defined(IPV6_PMTUDISC_DO) || defined(IPV6_DONTFRAG) || defined(IP_MTU_DISCOVER) || defined(IP_DONTFRAG)
 		int val;
+#endif
 #ifdef GPAC_HAS_IPV6
 		sock->dest_addr_len = sizeof(struct sockaddr_storage);
 #else

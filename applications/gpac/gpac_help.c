@@ -830,7 +830,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("cache-unflat", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("cache-list", NULL, "list entries in cache", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("cache-clean", NULL, "clean cache", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
-	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session (can be set multiple times for multiple scripts)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("wc", NULL, "write all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("we", NULL, "write all file extensions in the config file unless already set (useful to change some default file extensions)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -936,7 +936,7 @@ static const char *gpac_defer =
 "- `@F` indicates the destination filter using a 0-based index `F` starting from the last laoded filter, e.g. `@0` indicates the last loaded filter.\n"
 "- `@@F` indicates the target filter using a 0-based index `F` starting from the first laoded filter, e.g. `@@1` indicates the second loaded filter.\n"
 "- `@SRC`or `@@SRC`: same syntax as link directives\n"
-"Sources MUST be set before relinking outputs using (-rl)[].\n"
+"Sources MUST be set before relinking outputs using [-rl]().\n"
 "EX gpac -dl -i SRC F1 F2 [...] @1@2 @0@2\n"
 "This will set SRC as source to F1 and SRC as source to F2 after loading all filters.\n"
 "\n"
@@ -3806,7 +3806,9 @@ void parse_sep_set(const char *arg, Bool *override_seps)
 	if (len+1>sizeof(separator_set)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Separator set too long (%s): ", arg));
 	}
-	strncpy(separator_set, arg, MIN(len, sizeof(separator_set)-1));
+	u32 copy_len = MIN(len, sizeof(separator_set)-1);
+	memcpy(separator_set, arg, copy_len);
+	separator_set[copy_len] = 0;
 	if (len+1>sizeof(separator_set)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("truncating to (%s)\n", separator_set));
 	}

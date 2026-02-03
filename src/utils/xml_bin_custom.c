@@ -230,9 +230,9 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 				gf_bs_write_u8(bs, segmentsExpected);
 #if 0 //not implemented: seen at the end of TimeSignal
    <SegmentationDescriptor segmentationEventId="1207959603" segmentationEventCancelIndicator="0" segmentationEventIdComplianceIndicator="1"
-    webDeliveryAllowedFlag="1" noRegionalBlackoutFlag="1" archiveAllowedFlag="1" deviceRestrictions="3"
+	webDeliveryAllowedFlag="1" noRegionalBlackoutFlag="1" archiveAllowedFlag="1" deviceRestrictions="3"
 	segmentationTypeId="53" segmentNum="0" segmentsExpected="0">
-    <SegmentationUpid segmentationUpidType="8">000000003484D6D5</SegmentationUpid>
+	<SegmentationUpid segmentationUpidType="8">000000003484D6D5</SegmentationUpid>
    </SegmentationDescriptor>
 #endif
 				} else {
@@ -519,7 +519,7 @@ void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 		u64 end = gf_bs_get_position(bs);
 
 		gf_bs_seek(bs, start);
-		emib->message_data = (u8*)before;          //dumb non-null pointer
+		emib->message_data = (u8*)(uintptr_t)before;          //dumb non-null pointer
 		emib->message_data_size = (u32) (end - before);
 		gf_isom_box_size((GF_Box*)emib);
 		gf_isom_full_box_write((GF_Box*)emib, bs); //rewrite size
@@ -613,10 +613,10 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				nb_bits = 32;
 			} else if (!stricmp(att->name, "ID128")) {
 				e = gf_bin128_parse(att->value, word128);
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Cannot parse ID128\n"));
-                    goto exit;
-                }
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Cannot parse ID128\n"));
+					goto exit;
+				}
 				use_word128 = GF_TRUE;
 			} else if (!stricmp(att->name, "textmode")) {
 				if (!strcmp(att->value, "yes")) use_text = GF_TRUE;
@@ -635,9 +635,9 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				} else if (!stricmp(att->value, "end")) {
 					if (enc_base64==2) enc_base64 = 3;
 				} else {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Invalid base64 attribute \"%s\", expecting yes/no, start or end\n", att->value));
-                    e = GF_NON_COMPLIANT_BITSTREAM;
-                    goto exit;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Invalid base64 attribute \"%s\", expecting yes/no, start or end\n", att->value));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
 				}
 			} else if (!stricmp(att->name, "base64Prefix")) {
 				base64_prefix_bits = atoi(att->value);

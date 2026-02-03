@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -411,7 +411,7 @@ void gpac_em_sig_handler(int type)
 		gf_fs_abort(session, GF_FS_FLUSH_FAST);
 		break;
 	case 3:
-		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stoping loops" : "");
+		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stopping loops" : "");
 		gf_fs_abort(session, GF_FS_FLUSH_NONE);
 		nb_loops=0;
 		break;
@@ -452,7 +452,7 @@ static Bool dump_proto_schemes = GF_FALSE;
 static Bool write_profile=GF_FALSE;
 static Bool write_core_opts=GF_FALSE;
 static Bool write_extensions=GF_FALSE;
-static const char *session_js=NULL;
+static GF_List *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
 #ifdef GPAC_DEFER_MODE
@@ -585,7 +585,6 @@ int gpac_main(int _argc, char **_argv)
 
 	gf_sys_init(mem_track, profile);
 
-
 #ifdef GPAC_CONFIG_ANDROID
 	//prevent destruction of JSRT until we unload the JNI gpac wrapper (see applications/gpac_android/src/main/jni/gpac_jni.cpp)
 	gf_opts_set_key("temp", "static-jsrt", "true");
@@ -658,6 +657,14 @@ int gpac_main(int _argc, char **_argv)
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	use_step_mode = GF_TRUE;
 #endif
+
+	if (gf_opts_get_bool("core", "rmt")) {
+		if (!session_js) session_js = gf_list_new();
+		const char *rmt_path = gf_opts_get_key("core", "rmt-path");
+		if (!rmt_path)
+			rmt_path = "$GSHARE/scripts/rmt/server.js";
+		gf_list_insert(session_js, (char *)rmt_path, 0);
+	}
 
 	for (i=1; i<argc; i++) {
 		char szArgName[1024];
@@ -1001,7 +1008,8 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-qe")) {
 			exit_nocleanup = GF_TRUE;
 		} else if (!strcmp(arg, "-js")) {
-			session_js = arg_val;
+			if (!session_js) session_js = gf_list_new();
+			gf_list_add(session_js, arg_val);
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
 			if (arg_val && !strlen(arg_val)) {
@@ -1210,10 +1218,18 @@ restart:
 	}
 
 	if (session_js) {
-		e = gf_fs_load_script(session, session_js);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-		ERR_EXIT
+		u32 ijs, nb_js=gf_list_count(session_js);
+		for (ijs=0; ijs<nb_js; ijs++) {
+			const char *js_src = gf_list_get(session_js, ijs);
+			e = gf_fs_load_script(session, js_src);
+			if (e) {
+				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt/server.js")) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Monitoring script %s not found, check your installation\n Disabling remote monitoring\n", js_src));
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+					ERR_EXIT
+				}
+			}
 		}
 	}
 
@@ -1665,6 +1681,8 @@ exit:
 		goto restart;
 #endif
 	}
+
+	if (session_js) gf_list_del(session_js);
 
 	gpac_exit(e);
 }
@@ -2389,8 +2407,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
 	if (static_logs) {
-		if (is_final && (!log_write || !static_logs[log_write-1].szMsg))
+		if (is_final && (!log_write || !static_logs[log_write-1].szMsg)) {
+			gf_fs_lock_filters(fsess, GF_FALSE);
 			return;
+		}
 
 		fprintf(stderr, "\nLogs:\n");
 		for (i=0; i<log_write; i++) {
@@ -2772,6 +2792,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	*out_err = GF_OK;
 
 	if (!strcmp(mode, "ref")) {
+		if (!ioctx_ref->nb_refs && (gf_list_find(all_gfio_defined, fileio_ref)<0))
+			gf_list_add(all_gfio_defined, fileio_ref);
 		ioctx_ref->nb_refs++;
 		return fileio_ref;
 	}
@@ -2781,6 +2803,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		if (ioctx_ref->nb_refs)
 			return fileio_ref;
 
+		//fallback to close
 		url = NULL;
 	}
 
@@ -2893,6 +2916,37 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	return gfio;
 }
 
+static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
+{
+	GF_FileIO *gfio;
+	FileIOCtx *ioctx;
+	//delete on a gfio object
+	if (!parent_gfio) {
+		gfio = gf_fileio_from_url(url);
+		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+			return GF_EOS;
+		ioctx = gf_fileio_get_udta(gfio);
+		if (ioctx->filep) return GF_BAD_PARAM;
+		if (ioctx->path) gf_file_delete(ioctx->path);
+		return GF_OK;
+	}
+	//delete by URL relative to a parent gfio
+	gfio = gf_fileio_from_url(parent_gfio);
+	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+		return GF_EOS;
+	ioctx = gf_fileio_get_udta(gfio);
+	if (!ioctx->path) return GF_EOS;
+
+	char *path = gf_url_concatenate(ioctx->path, url);
+	if (path) {
+		gf_file_delete(path);
+		gf_free(path);
+		return GF_OK;
+	}
+	return GF_EOS;
+}
+
+Bool gfiodel_registered=GF_FALSE;
 
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_mode, GF_Err *e)
 {
@@ -2901,6 +2955,11 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
+
+	if (!gfiodel_registered) {
+		gfiodel_registered = GF_TRUE;
+		gf_fileio_register_delete_proc(gpac_gfio_del);
+	}
 
 	GF_SAFEALLOC(ioctx, FileIOCtx);
 	if (!ioctx) return NULL;
@@ -2933,6 +2992,11 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 
 static void cleanup_file_io()
 {
+	if (gfiodel_registered) {
+		gfiodel_registered = GF_FALSE;
+		gf_fileio_unregister_delete_proc(gpac_gfio_del);
+	}
+
 	if (!all_gfio_defined) return;
 	while (gf_list_count(all_gfio_defined)) {
 		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);

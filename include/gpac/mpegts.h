@@ -282,6 +282,11 @@ typedef enum
 	GF_M2TS_HLS_AAC_CRYPT		= 0xcf,
 	GF_M2TS_HLS_AVC_CRYPT		= 0xdb,
 
+	GF_M2TS_VIDEO_AVS2          = 0xD2,
+	GF_M2TS_AUDIO_AVS2          = 0xD3,
+	GF_M2TS_VIDEO_AVS3          = 0xD4,
+	GF_M2TS_AUDIO_AVS3          = 0xD5,
+
 	/*the rest is internal use*/
 
 	GF_M2TS_VIDEO_VC1					= 0xEA,
@@ -320,6 +325,8 @@ enum
 	GF_M2TS_RA_STREAM_DTS3		= GF_4CC('D','T','S','3'),
 	GF_M2TS_RA_STREAM_OPUS		= GF_4CC('O','p','u','s'),
 	GF_M2TS_RA_STREAM_DOVI		= GF_4CC('D','O','V','I'),
+	GF_M2TS_RA_STREAM_AVSA		= GF_4CC('A','V','S','A'), // AVS2-3 Audio
+	GF_M2TS_RA_STREAM_AVSV		= GF_4CC('A','V','S','V'), // AVS2-3 Video
 	GF_M2TS_RA_STREAM_AV1		= GF_4CC('A','V','0','1'),
 	GF_M2TS_RA_STREAM_SCTE35	= GF_4CC('C','U','E','I'),
 
@@ -904,6 +911,8 @@ typedef struct tag_m2ts_pes
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
 	/*! Metadata descriptor (for ID3)*/
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
+	/*! AVS3 Video descriptors*/
+	u8 avs3_video_descriptor[10];
 
 	/*! last received TEMI payload*/
 	u8 *temi_tc_desc;
@@ -1538,7 +1547,7 @@ typedef struct __elementary_stream_ifce
 	u32 gpac_meta_dsi_size;
 	/*! GPAC unmapped meta codec decoder config*/
 	u8 *gpac_meta_dsi;
-	/*! GPAC unmapped meta codec name if knwon*/
+	/*! GPAC unmapped meta codec name if known*/
 	const char *gpac_meta_name;
 } GF_ESInterface;
 
@@ -1671,7 +1680,7 @@ typedef struct __m2ts_mux_stream {
 	is available in PES, don't copy from next*/
 	u32 min_bytes_copy_from_next;
 	/*! process PES or table update/framing
-	returns the priority of the stream,  0 meaning not scheduled, 1->N highest priority sent first*/
+	returns the priority of the stream, 0 meaning not scheduled, 1->N highest priority sent first*/
 	u32 (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
 
 	/*! stream type*/

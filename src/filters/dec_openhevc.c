@@ -43,7 +43,7 @@
 typedef struct
 {
 	GF_FilterPid *ipid;
-	u32 cfg_crc;
+	u32 cfg_crc, enh_cfg_crc;
 	u32 id;
 	u32 dep_id;
 	u32 codec_id;
@@ -318,7 +318,7 @@ Bool gf_filter_on_main_thread(GF_Filter *filter);
 
 static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 i, dep_id=0, id=0, cfg_crc=0, codecid;
+	u32 i, dep_id=0, id=0, cfg_crc=0, enh_cfg_crc=0, codecid;
 	Bool has_scalable = GF_FALSE;
 	Bool is_sublayer = GF_FALSE;
 	u8 *patched_dsi=NULL;
@@ -379,12 +379,16 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 	}
 	dsi_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	if (dsi_enh && dsi_enh->value.data.ptr && dsi_enh->value.data.size) {
+		enh_cfg_crc = gf_crc_32(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
+	}
 
 	stream = NULL;
 	//check if this is an update
 	for (i=0; i<ctx->nb_streams; i++) {
 		if (ctx->streams[i].ipid == pid) {
-			if (ctx->streams[i].cfg_crc == cfg_crc) return GF_OK;
+			if ((ctx->streams[i].cfg_crc == cfg_crc) && (ctx->streams[i].enh_cfg_crc == enh_cfg_crc))
+				return GF_OK;
 			if (ctx->codec && (ctx->streams[i].codec_id != codecid)) {
 				//we are already instantiated, flush all frames and reconfig
 				ctx->reconfig_pending = GF_TRUE;
@@ -392,6 +396,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 			ctx->streams[i].codec_id = codecid;
 			ctx->streams[i].cfg_crc = cfg_crc;
+			ctx->streams[i].enh_cfg_crc = enh_cfg_crc;
 			stream = &ctx->streams[i];
 			break;
 		}

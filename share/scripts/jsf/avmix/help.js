@@ -458,10 +458,10 @@ In addition, the following virtual properties (cannot be read or write) can be w
 
 Only the \`active\` property can be animated or updated in a watcher.
 
-EX {'watch': 's1@rotation', 'target': 's2@rotation'}
+EX {"watch": "s1@rotation", "target": "s2@rotation"}
 This will copy s1.rotation to s2.rotation.
 
-EX {'watch': 's1@rotation', 'target': 'get_scene('s2').set('rotation', -value); }
+EX {"watch": "s1@rotation", "target": "get_scene('s2').set('rotation', -value);" }
 This will copy the -1*s1.rotation to s2.rotation.
 
 ### Watching UI events
@@ -477,7 +477,7 @@ Note: User events are only sent if the output of the filter is consumed by the [
 When event monitoring is used, the \`target\` must be a javascript callback (i.e. it cannot be \`ID@prop\`).
 The javascript function will be called with a single argument \`evt\` containing the GPAC event.
 
-EX {'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );'}
+EX {"watch": "mousemove", "target": "let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );"}
 This will set s1 fill color to white of mouse is over s2 and to black otherwise.
 
 ## Styles

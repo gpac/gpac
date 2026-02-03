@@ -171,6 +171,9 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	if (!parentName || !strlen(parentName)) return gf_strdup(pathName);
 
 	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
+	if (!strcmp(pathName, "stderr")) return gf_strdup(pathName);
+	if (!strcmp(pathName, "stdin")) return gf_strdup(pathName);
+	if (!strcmp(pathName, "stdout")) return gf_strdup(pathName);
 	if (!strncmp(parentName, "gmem://", 7)) return NULL;
 	if (!strncmp(parentName, "gfio://", 7)) {
 		GF_Err e;
@@ -341,7 +344,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 
 	if (pathSepCount)
 		had_sep_count = GF_TRUE;
-	/*remove the last /*/
+	/*remove the last */
 	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
 		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {

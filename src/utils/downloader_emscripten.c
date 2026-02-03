@@ -178,17 +178,17 @@ EM_JS(int, fs_fetch_setup, (), {
 	try {
 		libgpac._fetchers = [];
 		libgpac._get_fetcher = (sess) => {
-          for (let i=0; i<libgpac._fetchers.length; i++) {
-            if (libgpac._fetchers[i].sess==sess) return libgpac._fetchers[i];
-          }
-          return null;
+		  for (let i=0; i<libgpac._fetchers.length; i++) {
+			if (libgpac._fetchers[i].sess==sess) return libgpac._fetchers[i];
+		  }
+		  return null;
 		};
 		libgpac._del_fetcher = (fetcher) => {
-          let i = libgpac._fetchers.indexOf(fetcher);
-          if (i>=0) libgpac._fetchers.splice(i, 1);
+		  let i = libgpac._fetchers.indexOf(fetcher);
+		  if (i>=0) libgpac._fetchers.splice(i, 1);
 		};
-        libgpac._fetcher_set_header = libgpac.cwrap('gf_dm_sess_push_header', null, ['number', 'string', 'string']);
-        libgpac._fetcher_set_reply = libgpac.cwrap('gf_dm_sess_async_reply', null, ['number', 'number', 'string']);
+		libgpac._fetcher_set_header = cwrap('gf_dm_sess_push_header', null, ['number', 'string', 'string']);
+		libgpac._fetcher_set_reply = cwrap('gf_dm_sess_async_reply', null, ['number', 'number', 'string']);
 	} catch (e) {
 		return 0;
 	}
@@ -463,8 +463,8 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 
 
 EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb_headers, int req_body, int req_body_size), {
-  let url = _url ? libgpac.UTF8ToString(_url) : null;
-  ret = libgpac.OK;
+  let url = _url ? UTF8ToString(_url) : null;
+  let ret = 0; // libgpac.OK
 
   let fetcher = libgpac._get_fetcher(sess);
   if (!fetcher) {
@@ -476,17 +476,17 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
   fetcher._controller = new AbortController();
   let options = {
 	signal: fetcher._controller.signal,
-	method: _method ? libgpac.UTF8ToString(_method) : "GET",
+	method: _method ? UTF8ToString(_method) : "GET",
 	mode: libgpac.gpac_fetch_mode || 'cors',
   };
   let mime_type = 'application/octet-stream';
   options.headers = {};
   if (_headers) {
 	for (let i=0; i<nb_headers; i+=2) {
-	  let _s = libgpac.getValue(_headers+i*4, 'i32');
-	  let h_name = _s ? libgpac.UTF8ToString(_s).toLowerCase() : "";
-	  _s = libgpac.getValue(_headers+(i+1)*4, 'i32');
-	  let h_val = _s ? libgpac.UTF8ToString(_s) : "";
+	  let _s = getValue(_headers+i*4, 'i32');
+	  let h_name = _s ? UTF8ToString(_s).toLowerCase() : "";
+	  _s = getValue(_headers+(i+1)*4, 'i32');
+	  let h_val = _s ? UTF8ToString(_s) : "";
 	  if (h_name.length && h_val.length) {
 		  options.headers[h_name] = h_val;
 		  if (h_name=='content-type')
@@ -501,7 +501,7 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
   }
 
   if (req_body) {
-	let body_ab = new Uint8Array(libgpac.HEAPU8.buffer, req_body, req_body_size);
+	let body_ab = new Uint8Array(HEAPU8.buffer, req_body, req_body_size);
 	options.body = new Blob(body_ab, {type: mime_type} );
   }
   fetcher._state = 0;
@@ -518,15 +518,15 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
 	  response.headers.forEach((value, key) => {
 		libgpac._fetcher_set_header(fetcher.sess, key, value);
 	  });
-      libgpac._fetcher_set_header(fetcher.sess, 0, 0);
+	  libgpac._fetcher_set_header(fetcher.sess, 0, 0);
 	} else {
 	  libgpac._fetcher_set_reply(fetcher.sess, response.status, null);
 	  fetcher._state = 3;
 	}
   })
   .catch( (e) => {
-	  libgpac.printErr('fetcher exception ' + e);
-	  ret = libgpac.REMOTE_SERVICE_ERROR;
+	  if (e.name !== 'AbortError') printErr('fetcher exception ' + e);
+	  ret = -14; // libgpac.REMOTE_SERVICE_ERROR
 	  libgpac._del_fetcher(fetcher);
   });
   return ret;
@@ -562,10 +562,10 @@ EM_JS(int, dm_fetch_data, (int sess, int buffer, int buffer_size, int read_size)
 
   //copy array buffer
   let src = f._ab.subarray(f._block_pos, f._block_pos+buffer_size);
-  let dst = new Uint8Array(libgpac.HEAPU8.buffer, buffer, buffer_size);
+  let dst = new Uint8Array(HEAPU8.buffer, buffer, buffer_size);
   dst.set(src);
 
-  libgpac.setValue(read_size, buffer_size, 'i32');
+  setValue(read_size, buffer_size, 'i32');
   f._block_pos += buffer_size;
   if (f._ab.byteLength == f._block_pos) {
 	  f._ab = null;

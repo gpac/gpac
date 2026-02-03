@@ -250,7 +250,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 
 		if (!value && !enum_values) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			//patch for ka option, used as Bool in pin/sockin/... but as enum in flist, triggering this error when piping playlist
+			//fortunately in pipe mode of playlist, flist.ka is not used
+			if (strcmp(name, "ka")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			}
 			p.value.uint = 0;
 			break;
 		}
@@ -913,10 +917,12 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 	}
 	return GF_FALSE;
 }
+GF_EXPORT
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_FALSE);
 }
+GF_EXPORT
 Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_TRUE);
@@ -1707,8 +1713,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- same value as ASID: regular SSR not used for cross-AS switching\n"
 	"- ID of another AdaptationSet: enable cross-AS switching between this AS and the referenced one\n"
 	"- negative value: LL-HLS compatability mode", GF_PROP_SINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AS_QUERY, "ASQuery", "Query string to add to this Adaptation Set when requesting segments", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_MUX_SRC, "MuxSrc", "Name of mux source(s), set by dasher to direct its outputs", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_MODE, "DashMode", "DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_DASH_INIT_BASE64, "InitBase64", "Indicate that multiplexer should send the base64 encoded version of the init segment", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_FORCE_SEG_SYNC, "SegSync", "Indicate segment must be completely flushed before sending segment/fragment size events", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_DUR, "DashDur", "DASH target segment duration in seconds", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_FDUR, "FragDur", "DASH target fragment duration in seconds", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
@@ -1809,10 +1817,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- 3: GHI(X) manifest", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_SPARSE, "Sparse", "PID has potentially empty times between packets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_CHARSET, "CharSet", "Character set for input text PID", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_FORCED_SUB, "ForcedSub", "PID or Packet is forced sub\n"
+	DEC_PROP_F( GF_PROP_PID_FORCED_SUB, "ForcedSub", "PID forced sub\n"
 	"- 0: not forced\n"
-	"- 1: forced frame\n"
-	"- 2: all frames are forced (PID only)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	"- 1: some frames are forced\n"
+	"- 2: all frames are forced", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_CHAP_TIMES, "ChapTimes", "Chapter start times", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_CHAP_NAMES, "ChapNames", "Chapter names", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
@@ -1879,7 +1887,12 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_SEI_LOADED, "SEILoaded", "indicate that packet has SEI/inband data in its properties", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_PTS, "OriginalPTS", "indicate original PTS or PCR when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_DTS, "OriginalDTS", "indicate original DTS when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM)
+	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_DTS, "OriginalDTS", "indicate original DTS when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+
+	DEC_PROP_F( GF_PROP_PID_MABR_URLS, "MABRBaseURLs", "optionnal URLs for MABR - if first is `none`source server is not declared as repair server", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
+
+	DEC_PROP_F( GF_PROP_PCK_FORCED_SUB, "Forced", "indicate packet is a forced subtitle", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

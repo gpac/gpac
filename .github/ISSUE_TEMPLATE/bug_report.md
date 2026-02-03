@@ -1,3 +1,7 @@
+---
+name: Bug
+about: Report a bug
+---
 Thanks for reporting your issue. Please make sure these boxes are checked before submitting your issue - thank you!
 
 - [ ] I looked for a similar issue and couldn't find any.

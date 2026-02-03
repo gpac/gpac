@@ -3,21 +3,38 @@
 ## gpac
 - Added mode for testing defered graph linking apps
 - Introduce unit tests in complement to the testsuite and various buildbot continuous checks
-- main can now return filter session error code using -rv
+- `main()` can return filter session error code using -rv
+
+## Media Formats
+- ISOBMFF external tracks support
+- Event Message Tracks
 
 ## Emscripten
 - Fixes in UI
+- Improved WASM support
 
 ## Filters
-- DVB-I MABR flute aux and demux
+- DVB-I MABR FLUTE mux and demux
+- MABR (ROUTE/FLUTE) repair support
+- mediaserver.js HTTP gateway filter supporting MABR sources
 - avmix playlists now accept ipid:// urls to locate input pics, allowing to specify playlists independently from source URLs
 - SCTE-35, id3, and other markers improved support
+- Timecodes improvements
+- HDR improvements
+- IAMF support
+- MPEG-DASH: SSR support for L3D low latency
+- Motion JPEG2000
+- HTTP/3 client
+- ClosedCaptions improvements (split, encode)
+- TTML merging
 
 ## Misc
 - Added packet reordering rule for netcap replay from file
-- Added libcurl as backend for GPAC downloader - http(s) downloads require -curl option to activate 
+- Added libcurl as backend for GPAC downloader - http(s) downloads require -curl option to activate
+- Integration with GStreamer ([gpac-gst-plugin](https://github.com/gpac/gst-gpac-plugin))
+- More documentation: glossary, developer section, ...
 
-#04/2024: GPAC 2.4
+#17/04/2024: GPAC 2.4
 
 ## Emscripten|WebAssembly(WASM) support
 - Session can run in worker or in main browser loop

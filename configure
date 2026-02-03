@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2024 Telecom ParisTech
+#     (c) 2003-2026 Telecom Paris
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -74,6 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
+sched="free"
 check_stack_size="32768"
 debuginfo="no"
 sdl_path=""
@@ -123,7 +124,9 @@ is_emcfg="no"
 has_rmtws="yes"
 em_type="js"
 em_size="0"
+em_opt="2"
 fatal_assert="no"
+no_stack_prot="no"
 
 #flags not set by generic lib config
 has_x11="no"
@@ -240,7 +243,6 @@ push_feature "vtt" "WebVTT support"
 push_feature "route" "ROUTE (ATSC3) support"
 push_feature "qjs" "QuickJS support"
 push_feature "qjs-libc" "QuickJS libc module support"
-push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multithreaded modes)"
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
@@ -264,7 +266,7 @@ push_feature "gsfdmx" "*GPAC serialized format demuxer"
 push_feature "nhmlr" "*NHML demuxer"
 push_feature "nhntr" "*NHNT demuxer"
 push_feature "cecrypt" "*CENC Encryptor"
-push_feature "flist" "*Playlist concetenator"
+push_feature "flist" "*Playlist concatenator"
 push_feature "hevcmerge" "*HEVC tile merger"
 push_feature "hevcsplit" "*HEVC tile spliter"
 push_feature "fin" "*File input"
@@ -383,6 +385,7 @@ GPAC build options:
   --extra-libs=ELIBS       add ELIBS [$ELIBS]
   --cpu=CPU                force cpu to CPU  [$cpu]
   --check-stack-size=SIZE  maximum stack size [$check_stack_size bytes]
+  --no-stack-protector     disables the default stack canaries
   --enable-debug           produce debug version
   --enable-gprof           enable profiling
   --enable-gcov            enable coverage
@@ -405,6 +408,7 @@ GPAC build options:
   --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
+  --em-opt=OPT             emscripten optimization level, can be 0, 1, 2, 3, s, or z (default: 2) [$em_opt]
 
 GPAC core configuration:
   --static-modules         embed modules in libgpac rather than using dynamic library modules
@@ -634,6 +638,8 @@ for opt do
             ;;
         --check-stack-size=*) check_stack_size=`echo $opt | cut -d '=' -f 2`
             ;;
+        --no-stack-protector) no_stack_prot="yes"
+            ;;
         --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
             ;;
         --disable-opt) no_gcc_opt="yes"
@@ -730,6 +736,12 @@ for opt do
             ;;
         --em-size=*) em_size=`echo $opt | cut -d '=' -f 2`
             ;;
+        --em-opt=*) em_opt=`echo $opt | cut -d '=' -f 2`
+            if test "$em_opt" != "0" -a "$em_opt" != "1" -a "$em_opt" != "2" -a "$em_opt" != "3" -a "$em_opt" != "s" -a "$em_opt" != "z"; then
+                echo "! Unrecognized emscripten optimization level $em_opt, using 2 !"
+                em_opt="2"
+            fi
+            ;;
         *) echo "! Unrecognized option $opt, ignoring !"
             ;;
     esac
@@ -805,11 +817,16 @@ case "$cpu" in
             fi
         fi
         ;;
+    arm64)
+        cpu="arm64"
+        sched=lock
+        ;;
     armv4l|arm)
         cpu="armv4l"
         ;;
     aarch64)
         cpu="aarch64"
+        sched=lock
         if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
             is_64="yes"
             PIC_CFLAGS="-fPIC -DPIC"
@@ -957,7 +974,7 @@ EOF
 
     FreeBSD)
         make="gmake"
-        LDFLAGS="$LDFLAGS -export-dynamic"
+        LDFLAGS="$LDFLAGS -rdynamic"
         PTHREAD_CFLAGS=-pthread
         PTHREAD_LDFLAGS=-pthread
         freebsd="yes"
@@ -1142,10 +1159,21 @@ CFLAGS="$CFLAGS -Wall"
 if docc -fno-strict-aliasing ; then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
+if test "$no_stack_prot" = "yes"; then
+    if docc -fno-stack-protector ; then
+        CFLAGS="$CFLAGS -fno-stack-protector"
+    fi
+else
+    if docc -fstack-protector-strong ; then
+        CFLAGS="$CFLAGS -fstack-protector-strong"
+    fi
+fi
 CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
+
 
 
 #GCC opt
@@ -1725,8 +1753,9 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
-config_package ngtcp2 "libngtcp2" "" "-lngtcp2" "" '#include <stdio.h>
+config_package ngtcp2 "libngtcp2" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
 int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
@@ -2452,10 +2481,6 @@ if test "$disable_depth_compositor" = "no" ; then
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
 fi
 
-if test "$disable_qjs_stack" = "no" ; then
-    echo "#define GPAC_QJS_STACK_CHECK" >> $TMPH
-fi
-
 if test "$disable_doc" = "yes" ; then
     echo "Doc disabled"
     echo "#define GPAC_DISABLE_DOC" >> $TMPH
@@ -2624,7 +2649,7 @@ fi
 else
 
 if test "$enable_sanitizer" = "yes" ; then
-    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -DASAN_ENABLED"
+    CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -fno-stack-protector -U_FORTIFY_SOURCE -DASAN_ENABLED"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
 fi
 
@@ -2775,6 +2800,7 @@ elif test "$sunos" = "yes" ; then
 elif test "$is_em" = "yes" ; then
     echo "CONFIG_EMSCRIPTEN=yes" >> config.mak
     echo "EM_TYPE=$em_type" >> config.mak
+    echo "EM_OPT=$em_opt" >> config.mak
     echo "#define GPAC_CONFIG_EMSCRIPTEN" >> $TMPH
 else
     echo "#define GPAC_CONFIG_GENERIC" >> $TMPH
@@ -2788,6 +2814,9 @@ else
     echo "EXE_SUFFIX=.exe" >> config.mak
     echo "DYN_LIB_SUFFIX=.dll" >> config.mak
 fi
+
+
+echo "#define GPAC_SCHED_DEFAULT \"$sched\"" >> $TMPH
 
 
 echo "INSTFLAGS=$INSTFLAGS" >> config.mak
@@ -3161,6 +3190,7 @@ build_object_files_directory_tree()
 
     mkdir -p modules
     ln -sf "$1/modules/Makefile" modules/Makefile
+    ln -sf "$1/modules/common.mak" modules/common.mak
 
     for moddir in "$1/modules/"* ; do
         if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
@@ -3259,7 +3289,7 @@ generate_pkgconfig () {
 	echo "Name: gpac"
 	echo "Description: GPAC Multimedia Framework"
 	echo "URL: https://gpac.io"
-	echo "Version:$version"
+	echo "Version: $version"
 	echo "Cflags: -I\${prefix}/include"
 	echo "Libs: -L\${libdir} -lgpac"
 }

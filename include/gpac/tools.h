@@ -149,7 +149,7 @@ typedef enum
 	GF_SCRIPT_ERROR							= -8,
 	/*! Buffer is too small to contain decoded data. Decoders shall use this error whenever they need to resize their output memory buffers*/
 	GF_BUFFER_TOO_SMALL						= -9,
-	/*! The bitstream is not compliant to the specfication it refers to*/
+	/*! The bitstream is not compliant to the specification it refers to*/
 	GF_NON_COMPLIANT_BITSTREAM				= -10,
 	/*! No filter could be found to handle the desired media type*/
 	GF_FILTER_NOT_FOUND						= -11,
@@ -509,6 +509,30 @@ Compares two timecodes
  */
 Bool gf_timecode_equal(GF_TimeCode *value1, GF_TimeCode *value2);
 
+
+/*!
+\brief Get CENC IV size
+
+Get CENC IV size from a key info chunk
+\param key_info CENC key info buffer
+\param key_info_size CENC key info buffer size
+\param key_idx index of key for multi-key cases, 0 otherwise
+\param const_iv_size set to const IV size if const IV is used, otherwise set to 0 - can be NULL
+\param const_iv set to const IV start in key_info buffer when constant IV is used, otherwise set to NULL - can be NULL
+\return IV size in bytes if constant IV is not used, otherwise 0
+ */
+u8 gf_cenc_key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 key_idx, u8 *const_iv_size, const u8 **const_iv);
+
+/*!
+\brief validate a CENC key info chunk
+
+Checks whether a CENC key info chunk is valid or not
+\param key_info CENC key info buffer
+\param key_info_size CENC key info buffer size
+\return GF_TRUE if this chunk looks like a CENC key info buffer, GF_FALSE otherwise
+*/
+Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size);
+
 /*! @} */
 
 /*!
@@ -736,6 +760,21 @@ Bool gf_sys_solve_path(const char *tpl_path, char szPath[GF_MAX_PATH]);
 */
 GF_Err gf_sys_enable_rmtws(Bool start);
 
+/*! Enables or disables the rmt websocket user server
+\param start If true starts the webserver, if false stops it
+\return GF_OK if success, GF_BAD_PARAM if error, GF_NOT_SUPPORTED if ws server not supported
+*/
+GF_Err gf_sys_enable_userws(Bool start);
+
+/*! Returns the monitoring websocket server handler
+\return the object to cast to RMT_WS*
+*/
+void* gf_sys_get_rmtws();
+
+/*! Returns the user websocket server handler
+\return the object to cast to RMT_WS*
+*/
+void* gf_sys_get_userws();
 
 /*!
 GPAC Log tools
@@ -1243,8 +1282,9 @@ typedef struct __gf_blob
     u64 last_modification_time;
 	/*! function used to query if a range of a blob in transfer is valid. If NULL, any range is invalid until transfer is done
 	when set this function overrides the blob flags for gf_blob_query_range
+	If check_when_complete is true, range will be checked when blob transfer is over; if false, range will either be valid or corrupted for a transferred blob
 	size is updated to the maximum number of consecutive bytes starting from the goven offset */
-	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, u64 start, u32 *size);
+	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, Bool check_when_complete, u64 start, u32 *size);
 	/*! private data for range_valid function*/
 	void *range_udta;
 } GF_Blob;
@@ -1262,11 +1302,12 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob
 /*!
  * Checks if a given byte range is valid in blob
 \param blob  blob object
+\param check_when_complete when true, range will be checked when blob transfer is over; when false, range will either be valid or corrupted for a transferred blob)
 \param start_offset start offset of data to check in blob
 \param size size of data to check in blob
 \return blob range status
  */
-GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size);
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 size);
 
 /*!
  * Releases blob data
@@ -1454,7 +1495,7 @@ typedef enum {
 	GF_LOCKFILE_FAILED=0,
 	/*! lockfile creation succeeded, creating a new lock file*/
 	GF_LOCKFILE_NEW,
-	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
+	/*! lockfile creation succeeded, lock file was already present and created by this process*/
 	GF_LOCKFILE_REUSE
 } GF_LockStatus;
 
@@ -1632,8 +1673,8 @@ GF_Err gf_dir_cleanup(const char* DirPathName);
 
 
 /**
-Gets a newly allocated string containing the default cache directory.
-It is the responsibility of the caller to free the string.
+Gets a globally allocated string containing the default cache directory.
+The caller shall not free the string.
 \return a fully qualified path to the default cache directory
  */
 const char * gf_get_default_cache_directory();
@@ -1808,12 +1849,13 @@ FILE *gf_fopen(const char *file_name, const char *mode);
 \brief file opening
 
 Opens a file, potentially using file IO if the parent URL is a File IO wrapper
+
+\note If a parent GFIO file is used and file_name was obtained without using \ref gf_url_concatenate on the parent GFIO, make sur to call \ref gf_fileio_open_url in "url" mode to prevent further concatenations by the GFIO handler.
+
 \param file_name same as fopen
 \param parent_url URL of parent file. If not a file io wrapper (gfio://), the function is equivalent to gf_fopen
 \param mode same as fopen - value "mkdir" checks if parent dir(s) need to be created, create them if needed and returns NULL (no file open)
 \param no_warn if GF_TRUE, do not throw log message if failure
-\return stream handle of the file object
-\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 \return stream habdle of the file or file IO object*/
 FILE *gf_fopen_ex(const char *file_name, const char *parent_url, const char *mode, Bool no_warn);
 
@@ -1983,7 +2025,7 @@ typedef struct __gf_file_io GF_FileIO;
 \param mode opening mode of file, same as fopen mode. The following additional modes are defined:
 	- "ref": indicates this FileIO object is used by some part of the code and must not be destroyed upon closing of the file. Associated URL is null
 	- "unref": indicates this FileIO object is not used by some part of the code and may be destroyed if no more references to this object are set. Associated URL is null
-	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case its is never used by the callers
+	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case it is never used by the callers
 	- "probe": checks if the file exists, but no need to open the file. The function should return NULL in this case. If file does not exist, set out_error to GF_URL_ERROR
 	- "close": indicates the fileIO object is being closed (fclose)
 \param out_error must be set to error code if any (never NULL)
@@ -2185,6 +2227,27 @@ Bool gf_fileio_read_mode(GF_FileIO *fileio);
 \return GF_TRUE if write is enabled on this object
 */
 Bool gf_fileio_write_mode(GF_FileIO *fileio);
+
+/*! Function callback for GF_FileIO delete events. The callback is NOT thread-safe in GPAC, applications should take care of ensuring safety
+
+\note Applications must make sure that the underlying gfio objects are defined as GPAC does not track allocated gfio objects.
+
+ \param url a gfio:// url to be deleted or a regular  name if parent_gfio_url is NULL.
+ \param parent_gfio_url the parent GFIO associated with the URL string, or NULL if url is a gfio url
+ \return error code if any, GF_EOS if this callback is not handling this specific gfio
+*/
+typedef GF_Err (*gfio_delete_proc)(const char *url, const char *parent_gfio_url);
+
+/*! Register a GF_FileIO delete callback. This function is NOT threadsafe, applications should take care of ensuring safety
+\param del_proc the calback to register. It MUST be valid until unregistered
+\return error if any
+*/
+GF_Err gf_fileio_register_delete_proc(gfio_delete_proc del_proc);
+
+/*! Unregister a GF_FileIO delete callback. This function is NOT threadsafe, applications should take care of ensuring safety
+\param del_proc the calback to unregister.
+*/
+void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc);
 
 /*!	@} */
 

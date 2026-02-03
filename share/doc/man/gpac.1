@@ -302,7 +302,7 @@ clean cache
 .TP
 .B \-js (string)
 .br
-specify javascript file to use as controller of filter session
+specify javascript file to use as controller of filter session (can be set multiple times for multiple scripts)
 .br
 .TP
 .B \-wc
@@ -388,9 +388,9 @@ disable source filter reassignment in PID graph resolution
 .br
 set scheduler mode
 .br
-* free: lock-free queues except for task list (default)
+* free: lock-free queues except for task list (default on most platforms)
 .br
-* lock: mutexes for queues when several threads
+* lock: mutexes for queues when several threads (default on arm64/aarch64)
 .br
 * freex: lock-free queues including for task lists (experimental)
 .br
@@ -713,7 +713,7 @@ Linking can be done once filters are loaded, using the syntax @F@SRC or @@F@SRC:
 .br
 * `@SRC`or `@@SRC`: same syntax as link directives
 .br
-Sources MUST be set before relinking outputs using (-rl)[].
+Sources MUST be set before relinking outputs using .I rl.
 .br
 Example
 .br
@@ -1331,9 +1331,9 @@ disable source filter reassignment in PID graph resolution
 .br
 set scheduler mode
 .br
-* free: lock-free queues except for task list (default)
+* free: lock-free queues except for task list (default on most platforms)
 .br
-* lock: mutexes for queues when several threads
+* lock: mutexes for queues when several threads (default on arm64/aarch64)
 .br
 * freex: lock-free queues including for task lists (experimental)
 .br
@@ -1475,6 +1475,11 @@ set charset when not recognized from input. Possible values are:
 * other: attempt to parse anyway
 .br
 .TP
+.B \-srt-forced
+.br
+enable SRT with forced subtitles extensions
+.br
+.TP
 .B \-rmt
 .br
 enable remote monitoring webserver
@@ -1505,6 +1510,36 @@ rmt ws: certificate file in PEM format to use for TLS mode
 rmt ws: private key file in PEM format to use for TLS mode
 .br
 .TP
+.B \-userws-port (int, default: 6364)
+.br
+set user ws port
+.br
+.TP
+.B \-userws-localhost
+.br
+make userws ws only accepts localhost connection
+.br
+.TP
+.B \-userws-sleep (int, default: 10)
+.br
+set userws sleep (ms) between server updates
+.br
+.TP
+.B \-userws-cert (string)
+.br
+userws: certificate file in PEM format to use for TLS mode
+.br
+.TP
+.B \-userws-pkey (string)
+.br
+userws: private key file in PEM format to use for TLS mode
+.br
+.TP
+.B \-diso-nosize
+.br
+skip box size info when dumping ISOBMFF
+.br
+.TP
 .B \-m2ts-vvc-old
 .br
 hack for old TS streams using 0x32 for VVC instead of 0x33
@@ -1533,6 +1568,11 @@ use box definitions in the given directory for XML dump
 .B \-no-mabr-patch
 .br
 disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)
+.br
+.TP
+.B \-no-cdrf
+.br
+disable cdrf sample dep
 .br
 .SH libgpac logs options:
 .LP
@@ -3877,6 +3917,11 @@ ID of Adaptation Set:
 * negative value: LL-HLS compatability mode
 .br
 .TP
+.B ASQuery (ASQR,str,D )
+.br
+Query string to add to this Adaptation Set when requesting segments
+.br
+.TP
 .B MuxSrc (MSRC,str,D )
 .br
 Name of mux source(s), set by dasher to direct its outputs
@@ -3885,6 +3930,11 @@ Name of mux source(s), set by dasher to direct its outputs
 .B DashMode (DMOD,uint,D )
 .br
 DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD
+.br
+.TP
+.B InitBase64 (IB64,bool,D )
+.br
+Indicate that multiplexer should send the base64 encoded version of the init segment
 .br
 .TP
 .B SegSync (DFSS,bool,D )
@@ -4307,13 +4357,13 @@ Character set for input text PID
 .TP
 .B ForcedSub (PFCS,uint,D )
 .br
-PID or Packet is forced sub
+PID forced sub
 .br
 * 0: not forced
 .br
-* 1: forced frame
+* 1: some frames are forced
 .br
-* 2: all frames are forced (PID only)
+* 2: all frames are forced
 .br
 .TP
 .B ChapTimes (CHPT,uintl,D )
@@ -4575,6 +4625,16 @@ indicate original PTS or PCR when remapping M2TS PCR
 .br
 indicate original DTS when remapping M2TS PCR
 .br
+.TP
+.B MABRBaseURLs (MABU,strl,D )
+.br
+optionnal URLs for MABR - if first is nonesource server is not declared as repair server
+.br
+.TP
+.B Forced (PCFS,bool,DP)
+.br
+indicate packet is a forced subtitle
+.br
 .SH Pixel formats
 .LP
 .br
@@ -4732,6 +4792,11 @@ Alpha+Grey 8 bit
 .B gral (ext *.gral)
 .br
 Grey+Alpha 8 bit
+.br
+.TP
+.B rgb8 (ext *.rgb8)
+.br
+RGB 332, 8 bits / pixel
 .br
 .TP
 .B rgb4 (ext *.rgb4)
@@ -5365,6 +5430,11 @@ Vorbis Audio
 Opus Audio
 .br
 .TP
+.B iamf
+.br
+AOM IAMF (Immersive Audio Model and Formats)
+.br
+.TP
 .B flac
 .br
 Flac Audio
@@ -5483,6 +5553,16 @@ VP9 Video
 .B vp10|ivf
 .br
 VP10 Video
+.br
+.TP
+.B avsv|avs3
+.br
+AVS3 Video
+.br
+.TP
+.B avsa|avs3
+.br
+AVS3 Audio
 .br
 .TP
 .B mhas

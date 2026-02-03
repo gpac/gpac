@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 Object Descriptor sub-project
@@ -347,7 +347,7 @@ enum
 	IPMP_CP_CM = 3,
 	/*control point in BIFS tree (???)*/
 	IPMP_CP_BIFS = 4
-	               /*the rest is reserved or forbidden(0xFF)*/
+	                     /*the rest is reserved or forbidden(0xFF)*/
 };
 
 /*! IPMPX base classe*/
@@ -1123,6 +1123,14 @@ typedef struct {
 	u8 force_dv;
 } GF_DOVIDecoderConfigurationRecord;
 
+/*! AVS3 Video av3C */
+typedef struct {
+	u8 configurationVersion;
+	u16 sequence_header_length;
+	u8* sequence_header; // 8*sequence_header_length bits
+	u8 library_dependency_idc; // 6 bits reserved at '1' + 2 bits
+} GF_AVS3VConfig;
+
 /*! Media Segment Descriptor used for Media Control Extensions*/
 typedef struct
 {
@@ -1565,6 +1573,38 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 \param cfg the DolbyVision config to destroy*/
 void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg);
 
+/*! creates a AVS3 Video descriptor
+\return a newly allocated descriptor
+*/
+GF_AVS3VConfig *gf_odf_avs3v_cfg_new();
+/*! AVS3 Video config constructor
+\param cfg the AVS3 Video config to destroy*/
+void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg);
+/*! writes AVS3 Video config to bitstream
+\param cfg the AVS3 Video config to write
+\param bs bitstream containing the encoded AVS3 Video decoder specific info
+\return error code if any
+*/
+GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs);
+/*! writes AVS3 Video config to buffer
+\param cfg the AVS3 Video config to write
+\param outData set to an allocated encoded buffer - it is the caller responsibility to free this
+\param outSize set to the encoded buffer size
+\return error if any
+*/
+GF_Err gf_odf_avs3v_cfg_write(GF_AVS3VConfig *cfg, u8 **outData, u32 *outSize);
+/*! gets AVS3 Video config from bitstream
+\param bs bitstream containing the encoded AV1 decoder specific info
+\return the decoded AVS3 Video config
+*/
+GF_AVS3VConfig *gf_odf_avs3v_cfg_read_bs(GF_BitStream *bs);
+/*! gets AVS3 Video config from buffer
+\param dsi encoded AVS3 Video config
+\param dsi_size size of encoded AVS3 Video config
+\return the decoded AVS3 Video config
+*/
+GF_AVS3VConfig *gf_odf_avs3v_cfg_read(u8 *dsi, u32 dsi_size);
+
 
 /*! AC-3 and E-AC3 stream info */
 typedef struct __ec3_stream
@@ -1640,7 +1680,7 @@ GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size);
 \param cfg the AC3/EC3 config to fill
 \return Error if any
 */
-GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg);
+GF_Err gf_odf_ac3_cfg_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *cfg);
 
 /*! parses an AC3/EC3 sample description from bitstream
 \param bs the bitstream object
@@ -1648,7 +1688,7 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 \param cfg the AC3/EC3 config to fill
 \return Error if any
 */
-GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
+GF_Err gf_odf_ac3_cfg_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
 
 typedef struct {
     u8 b_4_back_channels_present;
@@ -1779,6 +1819,8 @@ typedef struct __ac4_config
 	u32 header_size;
 	/*  sync frame CRC size */
 	u32 crc_size;
+	/*  frame toc size */
+	u32 toc_size;
 } GF_AC4Config;
 
 #define GF_AC4_DESCMODE_PARSE 0
@@ -1835,12 +1877,6 @@ u64 gf_odf_ac4_cfg_size(GF_AC4Config *cfg);
 \param src the address of source
 */
 void gf_odf_ac4_cfg_deep_copy(GF_AC4Config *dst, GF_AC4Config *src);
-
-/*! copy the GF_AC4PresentationV1
-\param pres_dst the address of GF_AC4PresentationV1 to fill
-\param pres_src the address of source
-*/
-void gf_odf_ac4_presentation_deep_copy(GF_AC4PresentationV1 *pres_dst, GF_AC4PresentationV1 *pres_src);
 
 /*! clean the GF_List data in GF_AC4Config
 \param hdr the address of AC4 config to clean
@@ -1911,27 +1947,27 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 /*! Used for storing IAMF OBUs */
 typedef struct
 {
-        /* Size of raw_obu_bytes, including the header and payload.
-         * This is different from `obu_size` in the IAMF spec Section 3.2,
-         * which includes only the partial header size and the payload.
-         */
-        u64 obu_length;
-        int obu_type;  /* IamfObuType */
-        u8* raw_obu_bytes;
+	/* Size of raw_obu_bytes, including the header and payload.
+	 * This is different from `obu_size` in the IAMF spec Section 3.2,
+	 * which includes only the partial header size and the payload.
+	 */
+	u64 obu_length;
+	int obu_type;  /* IamfObuType */
+	u8* raw_obu_bytes;
 } GF_IamfObu;
 
 /*! Used for storing the IAMF configuration from the `iacb` box */
 typedef struct
 {
-        u8 configurationVersion;
-        u32 configOBUs_size;
-        GF_List *configOBUs;  /* GF_IamfObu */
+	u8 configurationVersion;
+	u32 configOBUs_size;
+	GF_List *configOBUs;  /* GF_IamfObu */
 } GF_IAConfig;
 
 /*! IAMF config constructor
 \return the created config
 */
-GF_IAConfig *gf_odf_ia_cfg_new();
+GF_IAConfig *gf_odf_iamf_cfg_new();
 
 /*! writes IAMF config to buffer
 \param cfg the IAMF config to write
@@ -1939,45 +1975,45 @@ GF_IAConfig *gf_odf_ia_cfg_new();
 \param outSize set to the encoded dsi buffer size
 \return error if any
 */
-GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize);
+GF_Err gf_odf_iamf_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize);
 
 /*! Writes the IAMF config to bitstream
 \param cfg the IAMF config to write
 \param bs the bitstream object
 \return error code if any
 */
-GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
+GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
 
 /*! IAMF config destructor
 \param cfg the IAMF config to destroy
 */
-void gf_odf_ia_cfg_del(GF_IAConfig *cfg);
+void gf_odf_iamf_cfg_del(GF_IAConfig *cfg);
 
 /*! gets GF_IAConfig from MPEG-4 DSI
-\param dsi encoded IA decoder specific info
-\param dsi_size encoded IA decoder specific info size
+\param dsi encoded IAMF decoder specific info
+\param dsi_size encoded IAMF decoder specific info size
 \return the decoded IAMF config
  */
-GF_IAConfig *gf_odf_ia_cfg_read(u8 *dsi, u32 dsi_size);
+GF_IAConfig *gf_odf_iamf_cfg_read(u8 *dsi, u32 dsi_size);
 
 /*! Reads the IAMF config from the bitstream
  \param bs bitstream containing the encoded IAMF descriptors
  \return the IAMF config
  */
-GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs);
+GF_IAConfig *gf_odf_iamf_cfg_read_bs(GF_BitStream *bs);
 
 /*! Reads the IAMF config from the bitstream
  \param bs bitstream containing the encoded IAMF descriptors
- \param size size of the encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_ia_cfg_read_bs
+ \param size size of the encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_iamf_cfg_read_bs
  \return the IAMF config
  */
-GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size);
+GF_IAConfig *gf_odf_iamf_cfg_read_bs_size(GF_BitStream *bs, u32 size);
 
 /*! Returns the size of the IAMF config
  \param cfg the IAMF config
  \return 0 if error, otherwise the IAMF config size
  */
-u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg);
+u32 gf_odf_iamf_cfg_size(GF_IAConfig *cfg);
 
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy

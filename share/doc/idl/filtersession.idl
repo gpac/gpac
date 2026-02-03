@@ -36,7 +36,7 @@ void print(long log_level, DOMString log_str);
 /*!\brief JSFilterSession API
 
 The JSFilterSession interface has a single instance exposed to the script under the name "session".
-It implements binding to the underlying filter session object, see \ref GF_FilterSession.
+It implements binding to the underlying filter session object, see \ref fs_grp.
 
 */
 interface JSFilterSession {
@@ -57,8 +57,9 @@ JSFilterSession FilterSession(JSFilterSessionConfig config);
 /*! posts a task to the main scheduler - see \ref gf_fs_post_user_task
 \param task_callback the callback function to use. This callback functions has no parameters, and returns false or an exception to abort the task, true to reschedule the task immediately or a reschedule time in milliseconds
 \param task_name optional value giving a label for the task
+\return identifier for callback
 */
-void post_task(function task_callback, optional DOMString task_name=null);
+unsigned int post_task(function task_callback, optional DOMString task_name=null);
 
 /*! aborts the filter session - see \ref gf_fs_abort
 \param flush_type if true, wait for all packets currently pending to be processed before closing the session
@@ -102,17 +103,21 @@ void remove_filter(Object filter, Object src_filter=null);
 
 /*! sets callback function to get notifications upon each new filter creation.
 \param callback callback function - it is passed a single parameter, the filter object
+\return identifier for callback
 */
-void set_new_filter_fun(function callback);
+unsigned int set_new_filter_fun(function callback);
 
 /*! sets callback function to get notifications upon each filter destruction.
 \param callback the callback function - it is passed a single parameter, the filter object
+\return identifier for callback
 */
-void set_del_filter_fun(function callback);
+unsigned int set_del_filter_fun(function callback);
 
 /*! sets callback function to get events being sent back to application (see \ref gf_fs_set_ui_callback).
-\param callback callback function - it is passed a single parameter set, an event instance of FilterEvent interface. The return value of the function should be as indicated for each event type*/
-void set_event_fun(function callback);
+\param callback callback function - it is passed a single parameter set, an event instance of FilterEvent interface. The return value of the function should be as indicated for each event type
+\return identifier for callback
+*/
+unsigned int set_event_fun(function callback);
 
 /*! sets callback function to get authentication requests (see \ref gf_fs_set_ui_callback).
 \param callback callback function - the function takes 5 parameters and no return value type:
@@ -121,9 +126,14 @@ void set_event_fun(function callback);
 	- pass: password if known
 	- secure: boolean indicating if connection is secured (TLS)
 	- auth_obj: object used to acknowledge authentication, with a single function `done()` taking up to 3 parameters: user, passord and boolean indicating if credentials should be stored. If user or password are not set, authentication fails
+\return identifier for callback
 */
-void set_auth_fun(function callback);
+unsigned int set_auth_fun(function callback);
 
+/*! removes callback function by identifier
+\param callback_id the callback identifier
+*/
+void remove_callback(callback_id);
 
 /*! fires a given event on all registered user event if no filter is specified, or on the filter
 \param evt the event to send
@@ -216,7 +226,7 @@ readonly DOMString blacklist;
 /*!\brief JSFSFilter API
 
 The JSFSFilter interface provides tools to query and update filters in a session.
-It implements binding to the underlying filter object, see \ref GF_Filter.
+It implements binding to the underlying filter object, see \ref fs_filter.
 */
 interface JSFSFilter {
 /*! filter name - may be changed at run-time by the filter*/
@@ -257,8 +267,10 @@ attribute readonly unsigned long long pck_ifce_sent;
 attribute readonly unsigned long long bytes_sent;
 /*! number of tasks executed*/
 attribute readonly unsigned long tasks;
-/*! number of errors*/
+/*! number of errors on the filter, never reseted*/
 attribute readonly unsigned long errors;
+/*! number of consecutive errors, reseted at each successfull processing*/
+attribute readonly unsigned long current_errors;
 /*! set to true if report has been updated since last query*/
 attribute readonly boolean report_updated;
 /*! class of filter, can be "rawin", "demuxer", "decoder", "encoder", "muxer", "rawout", "mediasink", "mediasource", "unknown"*/

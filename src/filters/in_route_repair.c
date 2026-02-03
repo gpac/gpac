@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -24,8 +24,13 @@
  */
 
 #include "in_route.h"
+#include <gpac/mpegts.h>
+#include <gpac/isomedia.h>
+#include "../utils/downloader.h"
 
 #ifndef GPAC_DISABLE_ROUTE
+
+static void repair_session_dequeue(ROUTEInCtx *ctx, RepairSegmentInfo *rsi);
 
 static void update_first_frag(GF_ROUTEEventFileInfo *finfo)
 {
@@ -39,41 +44,42 @@ static void update_first_frag(GF_ROUTEEventFileInfo *finfo)
 		finfo->blob->size = finfo->frags[0].size;
 	gf_mx_v(finfo->blob->mx);
 }
+
 //patch TS file, replacing all 188 bytes packets overlaping a gap by padding packets
 static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, Bool repair_start_only)
 {
-    u32 i, pos;
-    Bool drop_if_first = GF_FALSE;
-    u8 *data = finfo->blob->data;
-    u32 patch_first_range_size = 0;
+	u32 i, pos;
+	Bool drop_if_first = GF_FALSE;
+	u8 *data = finfo->blob->data;
+	u32 patch_first_range_size = 0;
 
 
 	if (repair_start_only) {
 		patch_first_range_size = finfo->frags[0].offset;
 	}
 
-    pos = 0;
-    for (i=0; i<finfo->nb_frags; i++) {
-        u32 start_range = finfo->frags[i].offset;
-        u32 end_range = finfo->frags[i].size;
+	pos = 0;
+	for (i=0; i<finfo->nb_frags; i++) {
+		u32 start_range = finfo->frags[i].offset;
+		u32 end_range = finfo->frags[i].size;
 
 		//if we missed first 4 packets, we cannot rely on PAT/PMT being present in the rest of the segment
 		//we could further check this at the demux level, but for now we drop the segment
-        if (!i && (start_range>4*188))
+		if (!i && (start_range>4*188))
 			drop_if_first = GF_TRUE;
 
-        end_range += start_range;
-        //reset all missed byte ranges as padding packets
-        start_range -= pos;
-        while (start_range % 188) start_range++;
-        while (pos<start_range) {
-            data[pos] = 0x47;
-            data[pos+1] = 0x1F;
-            data[pos+2] = 0xFF;
-            data[pos+3] = 0x10;
-            pos += 188;
-        }
-        //end range not aligned with a packet start, rewind position to prev packet start
+		end_range += start_range;
+		//reset all missed byte ranges as padding packets
+		start_range -= pos;
+		while (start_range % 188) start_range++;
+		while (pos<start_range) {
+			data[pos] = 0x47;
+			data[pos+1] = 0x1F;
+			data[pos+2] = 0xFF;
+			data[pos+3] = 0x10;
+			pos += 188;
+		}
+		//end range not aligned with a packet start, rewind position to prev packet start
 		while (end_range % 188) end_range--;
 		pos = end_range;
 
@@ -81,15 +87,15 @@ static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, u32 service_id, GF_
 			update_first_frag(finfo);
 			return GF_FALSE;
 		}
-    }
-    //and patch all end packets
-    while (pos<finfo->blob->size) {
-        data[pos] = 0x47;
-        data[pos+1] = 0x1F;
-        data[pos+2] = 0xFF;
-        data[pos+3] = 0x10;
-        pos += 188;
-    }
+	}
+	//and patch all end packets
+	while (pos<finfo->blob->size) {
+		data[pos] = 0x47;
+		data[pos+1] = 0x1F;
+		data[pos+2] = 0xFF;
+		data[pos+3] = 0x10;
+		pos += 188;
+	}
 	//remove corrupted flag
 	finfo->partial = GF_LCTO_PARTIAL_NONE;
 	gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, finfo->blob->size);
@@ -109,9 +115,9 @@ static const u32 top_codes[] = {
 };
 static u32 nb_top_codes = GF_ARRAY_LENGTH(top_codes);
 
-static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, u32 *cur_pos, u32 *box_size)
+static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, Bool check_start, u32 *cur_pos, u32 *box_size)
 {
-    u32 pos = *cur_pos;
+	u32 pos = *cur_pos;
 	u32 frag_start = 0;
 	u32 frag_end = 0;
 	u32 cur_frag = 0;
@@ -124,6 +130,7 @@ static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, 
 		}
 		//before range, adjust pos
 		if (finfo->frags[cur_frag].offset > pos) {
+			if (check_start) return 0;
 			frag_start = finfo->frags[cur_frag].offset;
 			frag_end = frag_start + finfo->frags[cur_frag].size;
 			pos = frag_start;
@@ -139,44 +146,44 @@ static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, 
 	if (pos < frag_start + 4) pos = frag_start+4;
 
 	//we cannot look outside of fragment
-    while (pos + 8 < frag_end) {
-        u32 i;
+	while (pos + 8 < frag_end) {
+		u32 i;
 		u32 first_box = 0;
 		u32 first_box_size = 0;
 
 		//look for our top-level codes
 		u32 box_code = GF_4CC(data[pos], data[pos+1], data[pos+2], data[pos+3]);
-        for (i=0; i<nb_top_codes; i++) {
+		for (i=0; i<nb_top_codes; i++) {
 			if (box_code == top_codes[i]) {
 				first_box = pos;
 				break;
-            }
-        }
-        //not found
-        if (!first_box) {
-            pos++;
-            continue;
-        }
+			}
+		}
+		//not found
+		if (!first_box) {
+			pos++;
+			continue;
+		}
 		first_box_size = GF_4CC(data[first_box-4], data[first_box-3], data[first_box-2], data[first_box-1]);
 		if (first_box_size<8) {
 			pos++;
 			continue;
 		}
-        *cur_pos = first_box-4;
-        *box_size = first_box_size;
-        return box_code;
-    }
-    return 0;
+		*cur_pos = first_box-4;
+		*box_size = first_box_size;
+		return box_code;
+	}
+	return 0;
 }
 
 #define SAFETY_ERASE_BYTES	32
 //patch ISOBMFF file, replacing all top-level boxes overlaping a gap by free boxes
 static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, Bool repair_start_only)
 {
-    u8 *data = finfo->blob->data;
-    u32 size = finfo->blob->size;
-    u32 partial_status = GF_LCTO_PARTIAL_NONE;
-    u32 pos = 0;
+	u8 *data = finfo->blob->data;
+	u32 size = finfo->blob->size;
+	u32 partial_status = GF_LCTO_PARTIAL_NONE;
+	u32 pos = 0;
 	u32 prev_moof_pos = 0;
 	u32 prev_mdat_pos = 0;
 	u32 last_box_size = 0;
@@ -190,30 +197,30 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 	}
 
 	/* walk through all possible top-level boxes in order
-    - if box completely in a received byte range, keep as is
-    - if incomplete mdat:
+	- if box completely in a received byte range, keep as is
+	- if incomplete mdat:
 		- if strict mode, move to free and move previous moof to free as well
 		- otherwise keep as is
-    - if incomplete moof, move to free
-    - if hole between two known boxes (some box headers where partially or totally lost), inject free box
-    - when injecting a box, if no mdat was detected after the last moof, move the moof to free
+	- if incomplete moof, move to free
+	- if hole between two known boxes (some box headers where partially or totally lost), inject free box
+	- when injecting a box, if no mdat was detected after the last moof, move the moof to free
 
 	Whenever moving a moof to free and no mdat was detected after the moof; we memset to 0 (at most) SAFETY_ERASE_BYTES bytes following the box header
 	This avoids GPAC libisomedia trying to recover a free box into a moof box, which is done by checking for mfhd presence
-    */
-    while ((u64)pos + 8 < size) {
-        u32 i;
+	*/
+	while ((u64)pos + 8 < size) {
+		u32 i;
 		Bool is_mdat = GF_FALSE;
-        Bool box_complete = GF_FALSE;
-        u32 prev_pos = pos;
-        u32 box_size = 0;
+		Bool box_complete = GF_FALSE;
+		u32 prev_pos = pos;
+		u32 box_size = 0;
 
 		if (patch_first_range_size && (pos+8 >= patch_first_range_size)) {
 			update_first_frag(finfo);
 			return;
 		}
 
-        u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
+        u32 type = next_top_level_box(finfo, data, size, GF_FALSE, &pos, &box_size);
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
 			//first top-level not present in first range to repair, wa cannot patch now
@@ -233,15 +240,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			}
 			gf_assert(size > pos);
 
-            u32 remain = size - pos;
-            if (remain<8) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
+			u32 remain = size - pos;
+			if (remain<8) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
 				size -= remain;
 				gf_route_dmx_patch_blob_size(ctx->route_dmx, service_id, finfo, size);
-                if (finfo->blob)
+				if (finfo->blob)
 					finfo->blob->flags |= GF_BLOB_CORRUPTED;
+
+				gf_assert(finfo->total_size);
 				goto exit;
-            }
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s injecting last free box pos %u size %u\n", finfo->filename, pos, remain));
             data[pos] = (remain>>24) & 0xFF;
             data[pos+1] = (remain>>16) & 0xFF;
@@ -251,6 +260,12 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
             data[pos+5] = 'r';
             data[pos+6] = 'e';
             data[pos+7] = 'e';
+            //in case the whole file was lost
+            if (!finfo->total_size) {
+				gf_route_dmx_patch_blob_size(ctx->route_dmx, service_id, finfo, pos+remain);
+				size = prev_pos+last_box_size;
+				data = finfo->blob->data;
+			}
             remain-=8;
             if (remain>SAFETY_ERASE_BYTES) remain = SAFETY_ERASE_BYTES;
             memset(data+pos+8, 0, remain);
@@ -266,13 +281,14 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
 			}
+			gf_assert(finfo->total_size);
 			goto exit;
-        }
+		}
 		last_box_size = box_size;
 
-        //we missed a box header, insert one at previous pos, indicating a free box !!
-        if (pos > prev_pos) {
-            u32 missed_size = pos - prev_pos;
+		//we missed a box header, insert one at previous pos, indicating a free box !!
+		if (pos > prev_pos) {
+			u32 missed_size = pos - prev_pos;
 
 			//we might have detected a wrong box
 			if (missed_size<8) {
@@ -283,17 +299,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			nb_patches++;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s injecting mid-stream free box between pos %u and pos %u size %u\n", finfo->filename, prev_pos, pos, missed_size));
 
-            data[prev_pos] = (missed_size>>24) & 0xFF;
-            data[prev_pos+1] = (missed_size>>16) & 0xFF;
-            data[prev_pos+2] = (missed_size>>8) & 0xFF;
-            data[prev_pos+3] = (missed_size) & 0xFF;
-            data[prev_pos+4] = 'f';
-            data[prev_pos+5] = 'r';
-            data[prev_pos+6] = 'e';
-            data[prev_pos+7] = 'e';
-            missed_size -= 8;
-            if (missed_size>SAFETY_ERASE_BYTES) missed_size = SAFETY_ERASE_BYTES;
-            memset(data+prev_pos+8, 0, missed_size);
+			data[prev_pos] = (missed_size>>24) & 0xFF;
+			data[prev_pos+1] = (missed_size>>16) & 0xFF;
+			data[prev_pos+2] = (missed_size>>8) & 0xFF;
+			data[prev_pos+3] = (missed_size) & 0xFF;
+			data[prev_pos+4] = 'f';
+			data[prev_pos+5] = 'r';
+			data[prev_pos+6] = 'e';
+			data[prev_pos+7] = 'e';
+			missed_size -= 8;
+			if (missed_size>SAFETY_ERASE_BYTES) missed_size = SAFETY_ERASE_BYTES;
+			memset(data+prev_pos+8, 0, missed_size);
 
 			//we have a previous moof but no mdat header anywere, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
@@ -306,12 +322,12 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
 			}
-        }
+		}
 
-        if (type == GF_4CC('f','r','e','e')) {
+		if (type == GF_4CC('f','r','e','e')) {
 			//don't check / patch for free
-            box_complete = GF_TRUE;
-        } else if (type == GF_4CC('m','d','a','t')) {
+			box_complete = GF_TRUE;
+		} else if (type == GF_4CC('m','d','a','t')) {
 			if (ctx->repair != ROUTEIN_REPAIR_STRICT) {
 				box_complete = GF_TRUE;
 			} else {
@@ -324,25 +340,25 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 		//check if we are indeed in a recevied range
 		if (!box_complete) {
-            for (i=0; i<finfo->nb_frags; i++) {
-                if (pos + box_size < finfo->frags[i].offset)
-                    break;
-                if ((pos >= finfo->frags[i].offset) && (pos+box_size<=finfo->frags[i].offset + finfo->frags[i].size)) {
-                    box_complete = GF_TRUE;
-                    break;
-                }
-            }
-        }
-        if (box_complete) {
+			for (i=0; i<finfo->nb_frags; i++) {
+				if (pos + box_size < finfo->frags[i].offset)
+					break;
+				if ((pos >= finfo->frags[i].offset) && (pos+box_size<=finfo->frags[i].offset + finfo->frags[i].size)) {
+					box_complete = GF_TRUE;
+					break;
+				}
+			}
+		}
+		if (box_complete) {
 			//mdat completely received, reset mdat pos and moof (we assume a single mdat per moof)
 			if (is_mdat) {
 				prev_mdat_pos = 0;
 				prev_moof_pos = 0;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s complete box %s pos %u size %u\n", finfo->filename, gf_4cc_to_str(type), pos, box_size));
-            pos += box_size;
-            continue;
-        }
+			pos += box_size;
+			continue;
+		}
 		//incomplete mdat (strict mode), discard previous moof
 		if (is_mdat) {
 			if (prev_moof_pos) {
@@ -383,16 +399,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			if (erase_size>SAFETY_ERASE_BYTES) erase_size = SAFETY_ERASE_BYTES;
 			memset(data+pos+8, 0, MIN(erase_size, size-pos-8));
 		}
-        pos += box_size;
-    }
+		pos += box_size;
+	}
 
 	if (patch_first_range_size) {
 		return;
 	}
 
-    //check if file had no known size and last fragment ends on our last box
-    if (!finfo->total_size && (finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size == pos)) {
+	//check if file had no known size and last fragment ends on our last box
+	if (!finfo->total_size && (finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size == pos)) {
 		if (finfo->nb_frags==1) was_partial = GF_FALSE;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s unknown size, patching to last known box end %u\n", finfo->filename, pos));
 		finfo->total_size = pos;
 	}
 	//file size unknown, truncate blob to our last box end
@@ -451,8 +468,33 @@ exit:
 	//in other modes (dispatch to PID or write to file) we currently reset the info
 	//WARNING: if removing this, asserts in routein_send_file will need to be removed
 	if (!ctx->gcache) {
-		gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
+		gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, finfo->total_size);
+		gf_assert(finfo->nb_frags == 1);
 	}
+}
+
+static RouteRepairRange *queue_repair_range(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, u32 start_range, u32 end_range)
+{
+	RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+	if (!rr) {
+		GF_SAFEALLOC(rr, RouteRepairRange);
+		if (!rr) {
+			rsi->nb_errors++;
+			return NULL;
+		}
+	} else {
+		memset(rr, 0, sizeof(RouteRepairRange));
+	}
+	rr->br_start = start_range;
+	rr->br_end = end_range;
+	if (!end_range)
+		gf_assert(!rsi->finfo.total_size);
+
+	if (end_range) {
+		gf_assert(rr->br_end >= rr->br_start);
+	}
+	gf_list_add(rsi->ranges, rr);
+	return rr;
 }
 
 static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
@@ -473,6 +515,13 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 		}
 	}
 #endif
+
+	//we missed the whole file !
+	if (!finfo->nb_frags) {
+		//rsi->finfo.total_size can be 0 or not (announce received but no fragments received)
+		queue_repair_range(ctx, rsi, 0, rsi->finfo.total_size);
+		return;
+	}
 
 	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
 	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
@@ -502,67 +551,630 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 		if (prev_br && (prev_br->br_end + ctx->range_merge > br_start)) {
 			bytes_overlap += br_start - prev_br->br_end;
 			prev_br->br_end = br_end;
+			if (!br_end)
+				gf_assert(finfo->total_size == 0);
 			continue;
 		}
 
-		RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
-		if (!rr) {
-			GF_SAFEALLOC(rr, RouteRepairRange);
-			if (!rr) {
-				rsi->nb_errors++;
-				continue;
-			}
-		} else {
-			memset(rr, 0, sizeof(RouteRepairRange));
-		}
-		rr->br_start = br_start;
-		rr->br_end = br_end;
+		RouteRepairRange *rr = queue_repair_range(ctx, rsi, br_start, br_end);
+		if (!rr) continue;
 		prev_br = rr;
-
-		gf_list_add(rsi->ranges, rr);
 	}
 	//we missed the end !!
 	if (finfo->total_size==0) {
 		u32 br_start = finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size;
 
 		if (prev_br && (prev_br->br_end + ctx->range_merge > br_start)) {
-			prev_br->br_end = 0;
 			bytes_overlap += br_start - prev_br->br_end;
+			prev_br->br_end = 0;
 		} else {
-
-			RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
-			if (!rr) {
-				GF_SAFEALLOC(rr, RouteRepairRange);
-				if (!rr) {
-					rsi->nb_errors++;
-					return;
-				}
-			} else {
-				memset(rr, 0, sizeof(RouteRepairRange));
-			}
-			rr->br_start = br_start;
-			rr->br_end = 0;
-			gf_list_add(rsi->ranges, rr);
+			RouteRepairRange *rr = queue_repair_range(ctx, rsi, br_start, 0);
+			if (!rr) return;
 		}
 	}
 	//no losses - should not happen, frags should be merged by routedmx
 	if (!gf_list_count(rsi->ranges)) return;
 
-	if (ctx->minrecv && finfo->total_size && (nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv)) {
+	if (!ctx->minrecv || (finfo->total_size && (nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv))) {
 		RouteRepairRange *rr;
 		while (gf_list_count(rsi->ranges)>1) {
 			rr = gf_list_pop_back(rsi->ranges);
 			gf_free(rr);
 		}
 		rr = gf_list_get(rsi->ranges, 0);
-		rr->br_start = 0; //we could keep the start ?
-		rr->br_end = finfo->total_size;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s to many bytes lost (%u %%), redownloading full file\n", rsi->finfo.filename, (u32) (nb_bytes_ok*100/finfo->total_size) ));
+		memset(rr, 0, sizeof(RouteRepairRange));
+		rr->br_start = 0;
+		rr->br_end = 0;
+		rsi->finfo.total_size = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s too many bytes lost (%u %%), redownloading full file\n", rsi->finfo.filename, finfo->total_size ? (u32) (nb_bytes_ok*100/finfo->total_size) : 100 ));
 	}
 	else if (bytes_overlap) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s merging repair ranges, downloading %u bytes already received\n", rsi->finfo.filename, bytes_overlap));
 	}
 }
+
+static u32 get_dependent_samples(GF_List *sample_deps, SampleDepInfo *for_sample, SampleDepInfo *ref_sample, GF_List *done)
+{
+	u32 nb_deps, i, j, count = gf_list_count(sample_deps);
+
+	if (gf_list_find(done, for_sample)>=0) return 0;
+	gf_list_add(done, for_sample);
+	if (ref_sample==for_sample)
+		ref_sample->num_direct_dependencies = 0;
+
+	nb_deps = 0;
+	for (i=0;i<count;i++) {
+		SampleDepInfo *sd = gf_list_get(sample_deps, i);
+		if (sd == for_sample) continue;
+		if (sd->drop) continue;
+		if (sd->gop_id != ref_sample->gop_id) continue;
+		for (j=0; j<sd->nb_refs; j++) {
+			if (sd->refs[j] == for_sample->sample_id) {
+				if (ref_sample==for_sample)
+					ref_sample->num_direct_dependencies ++;
+				if (gf_list_find(done, sd)>=0) continue;
+				nb_deps++;
+				nb_deps += get_dependent_samples(sample_deps, sd, ref_sample, done);
+			}
+		}
+	}
+	return nb_deps;
+}
+
+static void update_num_dependent_samples(GF_List *sample_deps, SampleDepInfo *for_sample)
+{
+	GF_List *done = gf_list_new();
+	for_sample->num_indirect_dependencies = get_dependent_samples(sample_deps, for_sample, for_sample, done);
+	gf_list_del(done);
+}
+
+static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *rsi)
+{
+	GF_ISOFile *file;
+	u64 BytesMissing;
+	u32 i;
+	char szBlobPath[100];
+
+	GF_Err e = gf_isom_open_progressive_ex("isobmff://4cc=none", 0, 0, 0, &file, &BytesMissing, NULL);
+	if (e) return;
+
+	sprintf(szBlobPath, "gmem://%p", rsi->finfo.blob);
+	e = gf_isom_open_segment(file, szBlobPath, 0, 0, 0);
+	if (e) {
+		gf_isom_delete(file);
+		return;
+	}
+	u32 ID, nb_refs, count;
+	const u32 *refs;
+	count = gf_isom_get_sample_count(file, 1);
+	if (gf_isom_get_sample_references(file, 1, 1, &ID, &nb_refs, &refs)!=GF_OK) {
+		gf_isom_delete(file);
+		return;
+	}
+
+	if (!rsi->sample_deps) rsi->sample_deps = gf_list_new();
+
+	GF_ISOSample static_sample;
+	u32 gop_id=0;
+	rsi->max_dep_per_sample = 0;
+
+	for (i=0; i<count; i++) {
+		u64 offset;
+		SampleDepInfo *r = gf_list_pop_back(ctx->sample_deps_reservoir);
+		if (!r) {
+			GF_SAFEALLOC(r, SampleDepInfo);
+			if (!r) continue;
+		} else {
+			u32 *refs = r->refs;
+			u32 alloc_refs = r->nb_refs_alloc;
+			memset(r, 0, sizeof(SampleDepInfo));
+			r->nb_refs_alloc = alloc_refs;
+			r->refs = refs;
+		}
+		gf_list_add(rsi->sample_deps, r);
+
+		memset(&static_sample, 0, sizeof(static_sample));
+		GF_ISOSample *samp = gf_isom_get_sample_info_ex(file, 1, i+1, NULL, &offset, &static_sample);
+		if (!samp) break;
+		r->start_range = offset;
+		r->end_range = offset + samp->dataLength;
+		r->dts = samp->DTS+i;
+
+		gf_isom_get_sample_references(file, 1, i+1, &r->sample_id, (u32 *) &r->nb_refs, &refs);
+		if (!r->nb_refs) gop_id ++;
+		r->gop_id = gop_id;
+		if (r->sample_id==0xFFFFFFFF) {
+			r->nb_refs = -1;
+			continue;
+		}
+		if (refs && (r->nb_refs>0)) {
+			if (r->nb_refs_alloc < r->nb_refs) {
+				r->refs = gf_realloc(r->refs, sizeof(u32)*r->nb_refs);
+				r->nb_refs_alloc = r->nb_refs;
+				if (!r->refs) {
+					r->nb_refs = -1;
+					continue;
+				}
+			}
+			memcpy(r->refs, refs, sizeof(u32)*r->nb_refs);
+		}
+	}
+	gf_isom_delete(file);
+
+	for (i=0; i<count; i++) {
+		SampleDepInfo *r = gf_list_get(rsi->sample_deps, i);
+		update_num_dependent_samples(rsi->sample_deps, r);
+		if (r->num_direct_dependencies > rsi->max_dep_per_sample)
+			rsi->max_dep_per_sample = r->num_direct_dependencies;
+	}
+	//sort by decreasing number of indirect dependencies - the first items will be the most important ones to fix
+	GF_List *res = gf_list_new();
+	for (i=0; i<count; i++) {
+		SampleDepInfo *r = gf_list_get(rsi->sample_deps, i);
+		u32 j, scount = gf_list_count(res);
+		for (j=0; j<scount; j++) {
+			SampleDepInfo *elt = gf_list_get(res, j);
+			//note that we currently don't sort by gops, so if 2 gops in the segment the intra from both GOPs will be patched first
+			//we could further optimize this especially in playback modes
+			if (elt->nb_refs > r->nb_refs) {
+				gf_list_insert(res, r, j);
+				r = NULL;
+				break;
+			}
+			if (elt->num_direct_dependencies < r->num_direct_dependencies) {
+				gf_list_insert(res, r, j);
+				r = NULL;
+				break;
+			}
+		}
+		if (r)
+			gf_list_add(res, r);
+	}
+	gf_list_del(rsi->sample_deps);
+	rsi->sample_deps = res;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Sample dependencies:\n"));
+	for (i=0; i<count; i++) {
+		SampleDepInfo *r = gf_list_get(rsi->sample_deps, i);
+		u32 j;
+		for (j=0; j<rsi->finfo.nb_frags; j++) {
+			GF_LCTFragInfo *frag = &rsi->finfo.frags[j];
+			if ((r->start_range>=frag->offset) && (r->end_range<=frag->offset+frag->size)) {
+				r->valid = 1;
+				break;
+			}
+			if (r->end_range<frag->offset) break;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Sample %d (GID %u) has %u DD %u ID (%u refs) - complete %d\n", r->sample_id, r->gop_id, r->num_direct_dependencies, r->num_indirect_dependencies, r->nb_refs, r->valid ));
+	}
+	return;
+}
+
+static void drop_sample_ref(GF_List *sample_deps, SampleDepInfo *ref, Bool primary)
+{
+	u32 i, j, count;
+	if (ref->drop) return;
+
+	count = gf_list_count(sample_deps);
+	ref->drop |= SAMPLE_DROP;
+	if (!primary) ref->drop |= SAMPLE_DROP_DEP;
+	for (i=0; i<count; i++) {
+		SampleDepInfo *sdi = gf_list_get(sample_deps, i);
+		if (sdi->gop_id != ref->gop_id) continue;
+		for (j=0; j<sdi->nb_refs; j++) {
+			if (sdi->refs[j] == ref->sample_id) {
+				drop_sample_ref(sample_deps, sdi, GF_FALSE);
+				break;
+			}
+		}
+	}
+}
+
+GF_Err gf_route_dmx_add_frag_hole(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_size);
+
+static void route_repair_build_ranges_isobmf(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
+{
+	u32 i, count;
+	Bool use_repair = (ctx->repair==ROUTEIN_REPAIR_FULL) ? GF_TRUE : GF_FALSE;
+
+	if ((finfo->nb_frags==1) && !finfo->frags[0].offset && (finfo->frags[0].size==finfo->total_size)) {
+		rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+		return;
+	}
+	//we failed at repairing something, abort
+	if (rsi->nb_errors) {
+		rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+		return;
+	}
+
+	if (!finfo->nb_frags) {
+		if (use_repair && finfo->total_size) {
+			queue_repair_range(ctx, rsi, 0, finfo->total_size);
+		} else {
+			rsi->nb_errors++;
+		}
+		rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+		return;
+	}
+
+	if ((rsi->isox_state==REPAIR_ISO_STATUS_INIT) && finfo->total_size && use_repair) {
+		u32 nb_bytes_ok=0;
+		for (i=0; i<finfo->nb_frags; i++) {
+			nb_bytes_ok += finfo->frags[i].size;
+		}
+		if (!ctx->minrecv || ((nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv))) {
+			queue_repair_range(ctx, rsi, 0, finfo->total_size);
+			rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+			return;
+		}
+	}
+	if (rsi->isox_state <= REPAIR_ISO_STATUS_PATCH_TOP_LEVEL) {
+		u32 patch_start=0;
+		u32 patch_box_size=0;
+		u32 patch_box_type=0;
+		u32 pos=0;
+		u32 prev_bpos=0;
+		u32 prev_btype=0;
+		u32 prev_bsize=0;
+		u8 *data = finfo->blob->data;
+		u32 size = finfo->blob->size;
+
+		while (pos < size) {
+			u32 bsize, j;
+			u32 btype = next_top_level_box(finfo, data, size, GF_TRUE, &pos, &bsize);
+			//no valid bytes to read box header, need to patch previous box end or iniial range
+			if (!btype) {
+				if (!pos) {
+					gf_assert(finfo->frags[0].offset || (finfo->frags[0].size<8));
+					patch_box_size = finfo->frags[0].offset;
+					if (patch_box_size>500) patch_box_size = 500;
+					break;
+				}
+				gf_assert(prev_btype);
+				gf_assert(prev_bsize);
+				patch_start = prev_bpos;
+				patch_box_size = prev_bsize;
+				patch_box_type = prev_btype;
+				break;
+			}
+			prev_btype = btype;
+			prev_bpos = pos;
+			prev_bsize = bsize;
+			//box is mdat/idat, go to next
+			if ((btype==GF_4CC('m','d','a','t')) || (btype==GF_4CC('i','d','a','t'))) {
+				pos += bsize;
+				continue;
+			}
+			//check we have the full box
+			Bool box_complete = GF_FALSE;
+			for (j=0; j<finfo->nb_frags; j++) {
+				GF_LCTFragInfo *frag = &finfo->frags[j];
+
+/*
+				if (patch_start && (patch_start+patch_box_size>=frag->offset) && (patch_start+patch_box_size+8<=frag->offset+frag->size)) {
+					next_box_valid = GF_TRUE;
+					break;
+				}
+*/
+				//not in a valid range
+				if (pos<frag->offset) continue;
+				//box is in a received range
+				if ((pos >= frag->offset) && (pos + bsize <= frag->offset + frag->size)) {
+					box_complete = GF_TRUE;
+					break;
+				}
+				if (pos>frag->offset+frag->size) continue;
+
+				//remember patch start (end of fragment)
+				if (pos >= frag->offset) {
+					patch_start = pos;
+					patch_box_size = bsize;
+					patch_box_type = btype;
+					//break;
+				}
+			}
+			if (!box_complete) break;
+			pos += bsize;
+			continue;
+		}
+		if (patch_box_size) {
+			u32 patch_end = 0;
+			//mdat, patch end of box only
+			if ((patch_box_type==GF_4CC('m','d','a','t')) || (patch_box_type==GF_4CC('i','d','a','t'))) {
+				patch_start += patch_box_size;
+				patch_end = patch_start + 500;
+			} else {
+				//include header of next box (full size) but skip UUID
+				patch_end = patch_start + patch_box_size + 16;
+			}
+			if (finfo->total_size && (patch_end >= finfo->total_size))
+				patch_end = finfo->total_size;
+
+			//issue a single byte range
+			for (i=0; i<finfo->nb_frags; i++) {
+				GF_LCTFragInfo *frag = &finfo->frags[i];
+				if ((patch_start>=frag->offset) && (patch_start<frag->offset+frag->size))
+					patch_start = frag->offset+frag->size;
+
+				if ((patch_start>=frag->offset+frag->size) && (patch_start<frag->offset+frag->size+1500))
+					patch_start = frag->offset+frag->size;
+
+				if ((patch_end>=frag->offset) && (patch_end<frag->offset+frag->size)) {
+					patch_end = frag->offset;
+					break;
+				}
+				if ((patch_end<frag->offset) && (patch_end+1500>=frag->offset)) {
+					patch_end = frag->offset;
+					break;
+				}
+			}
+			//we missed a top-level box, cannot go any further if no repair
+			if (!use_repair) {
+				rsi->nb_errors++;
+				rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+				return;
+			}
+
+			RouteRepairRange *rr = queue_repair_range(ctx, rsi, patch_start, patch_end);
+			if (!rr) {
+				rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+				return;
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Patching box %s patch start %u end %u\n", gf_4cc_to_str(patch_box_type), patch_start, patch_end ));
+			rsi->isox_state = REPAIR_ISO_STATUS_PATCH_TOP_LEVEL;
+			return;
+		}
+		if (!finfo->total_size) {
+			if (!use_repair) {
+				rsi->nb_errors++;
+				rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+				return;
+			}
+			//we miss the end, patch with open byte-range from blob size until end
+			RouteRepairRange *rr = queue_repair_range(ctx, rsi, size, 0);
+			if (!rr) {
+				rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+				return;
+			}
+			rsi->isox_state = REPAIR_ISO_STATUS_PATCH_TOP_LEVEL;
+			return;
+		}
+		if (rsi->isox_state == REPAIR_ISO_STATUS_PATCH_TOP_LEVEL) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] All top-level boxes patched for %s\n", finfo->filename));
+		}
+		//simple mode, patch mdats in order
+		if (ctx->riso==REPAIR_ISO_SIMPLE) {
+			if (use_repair)
+				route_repair_build_ranges_full(ctx, rsi, finfo);
+			else
+				rsi->nb_errors++;
+
+			rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+			return;
+		}
+		//partial mode, we are done
+		if (ctx->riso==REPAIR_ISO_PARTIAL) {
+			//not done yet, signal a final patch
+			if (!finfo->total_size || (finfo->nb_frags>1))
+				rsi->nb_errors = 1;
+			rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+			return;
+		}
+		rsi->isox_state = REPAIR_ISO_STATUS_PATCH_MDAT;
+		routein_repair_get_isobmf_deps(ctx, rsi);
+		if (!gf_list_count(rsi->sample_deps)) {
+			//no sample deps, repair everything
+			if (use_repair)
+				route_repair_build_ranges_full(ctx, rsi, finfo);
+			else
+				rsi->nb_errors++;
+			rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+			return;
+		}
+		//fallthrough
+	}
+	gf_assert(rsi->sample_deps);
+	//get first sample dep
+	SampleDepInfo *sdi = NULL;
+	count = gf_list_count(rsi->sample_deps);
+	for (i=0; i<count; i++) {
+		sdi = gf_list_get(rsi->sample_deps, i);
+		if (sdi->valid || sdi->drop) {
+			sdi = NULL;
+			continue;
+		}
+		//no repair, drop sample
+		if (!use_repair) {
+			drop_sample_ref(rsi->sample_deps, sdi, GF_TRUE);
+			sdi = NULL;
+			continue;
+		}
+
+		//drop rules, to refine
+		if (
+			//if 0 or 1 indirect deps, drop
+			(sdi->num_indirect_dependencies<=1)
+			//if not "as important" as other refs, drop
+//			|| (sdi->num_direct_dependencies + 1 < rsi->max_dep_per_sample)
+		) {
+			drop_sample_ref(rsi->sample_deps, sdi, GF_TRUE);
+			sdi = NULL;
+			continue;
+		}
+		break;
+	}
+	if (sdi) {
+		Bool has_patch=GF_FALSE;
+		sdi->valid = 2;
+		u32 prev_frag_end=0;
+		//get range(s)
+		for (i=0;i<rsi->finfo.nb_frags; i++) {
+			GF_LCTFragInfo *frag = &rsi->finfo.frags[i];
+			u32 start_patch = sdi->start_range;
+			u32 end_patch = sdi->end_range;
+			//part before a hole
+			if (start_patch<frag->offset) {
+				if (start_patch<prev_frag_end)
+					start_patch = prev_frag_end;
+
+				if (end_patch>frag->offset)
+					end_patch = frag->offset;
+			} else {
+				start_patch = 0;
+				end_patch = 0;
+			}
+			prev_frag_end = frag->offset + frag->size;
+			if (!start_patch && !end_patch) continue;
+
+			RouteRepairRange *rr = queue_repair_range(ctx, rsi, start_patch, end_patch);
+			if (!rr) {
+				rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+				return;
+			}
+			has_patch = GF_TRUE;
+			if (end_patch <= frag->offset+frag->size)
+				break;
+		}
+		//final patch - sample exceeds end of last range
+		if (sdi->end_range>prev_frag_end) {
+			u32 start_patch = sdi->start_range;
+			if (start_patch<prev_frag_end)
+				start_patch = prev_frag_end;
+			else if (sdi->start_range - prev_frag_end < 1500)
+				start_patch = prev_frag_end;
+			u32 end_patch = finfo->total_size ? sdi->end_range : 0;
+
+			RouteRepairRange *rr = queue_repair_range(ctx, rsi, start_patch, end_patch);
+			if (!rr) {
+				rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+				return;
+			}
+			has_patch = GF_TRUE;
+		}
+		if (has_patch) return;
+	}
+	gf_assert(sdi==NULL);
+
+	//we are done patching mdat
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] MDAT patching done:\n"));
+
+	//reset the frag info to complete file and add holes for removed samples
+	gf_assert(rsi->finfo.total_size);
+	gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, 0, rsi->finfo.total_size);
+
+	for (i=0; i<count; i++) {
+		sdi = gf_list_get(rsi->sample_deps, i);
+		u8 drop = sdi->drop;
+		gf_assert(!drop || (rsi->tsio->bytes_sent <= sdi->start_range));
+
+		if (drop) {
+			//reset data
+			u32 s_size = sdi->end_range-sdi->start_range;
+			u8 *s_data = rsi->finfo.blob->data+sdi->start_range;
+			memset(s_data, 0, s_size);
+
+			//add a fake NAL size length on 4 bytes (crude, to refine)
+			s_size-=4;
+			s_data[0] = s_size>>24;
+			s_data[1] = s_size>>16;
+			s_data[2] = s_size>>8;
+			s_data[3] = s_size&0xFF;
+
+			//in depx mode, don't hide moof when patching mdat - usually breaks decoders
+			if (ctx->riso == REPAIR_ISO_DEPS) {
+				//add hole and trigger final local repair to hide moofs
+				gf_route_dmx_add_frag_hole(ctx->route_dmx, rsi->service_id, &rsi->finfo, sdi->start_range, sdi->end_range-sdi->start_range);
+				rsi->nb_errors++;
+			}
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("\tSample %d (GID %u): DTS "LLU": valid %u - dropped: %u\n", sdi->sample_id, sdi->gop_id, sdi->dts, sdi->valid, sdi->drop));
+	}
+	rsi->isox_state = REPAIR_ISO_STATUS_DONE;
+	gf_mx_p(rsi->finfo.blob->mx);
+	rsi->finfo.blob->flags &= ~GF_BLOB_RANGE_IN_TRANSFER;
+	gf_mx_v(rsi->finfo.blob->mx);
+}
+
+
+enum {
+	ROUTE_FTYPE_UNKNOWN=0,
+	ROUTE_FTYPE_M2TS,
+	ROUTE_FTYPE_ISOBMF,
+};
+
+static u32 guess_file_type(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size)
+{
+	const char *ext = gf_file_ext_start(finfo->filename);
+	if (ext) {
+		if (!stricmp(ext, ".ts")) return ROUTE_FTYPE_M2TS;
+		if (!stricmp(ext, ".m2ts")) return ROUTE_FTYPE_M2TS;
+		if (!stricmp(ext, ".mp4")) return ROUTE_FTYPE_ISOBMF;
+		if (!stricmp(ext, ".m4s")) return ROUTE_FTYPE_ISOBMF;
+		if (!stricmp(ext, ".mp4s")) return ROUTE_FTYPE_ISOBMF;
+	}
+	if (gf_m2ts_probe_data(data, size)) return ROUTE_FTYPE_M2TS;
+	u32 pos=0, bsize;
+	u32 btype = next_top_level_box(finfo, data, size, GF_TRUE, &pos, &bsize);
+	if (btype) return ROUTE_FTYPE_ISOBMF;
+	return ROUTE_FTYPE_UNKNOWN;
+}
+
+void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 service_id)
+{
+	finfo->channel_hint = guess_file_type(finfo, finfo->blob->data, finfo->blob->size);
+	if (finfo->channel_hint) {
+		gf_route_dmx_set_object_hint(ctx->route_dmx, service_id, finfo->tsi, finfo->toi, finfo->channel_hint);
+	}
+}
+
+void routein_check_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+{
+	u32 pos = 0;
+	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] CHKISO on file %s\n", finfo->filename ));
+	u8 *data = finfo->blob->data;
+	while (pos < finfo->total_size) {
+		u32 bsize = GF_4CC(data[pos], data[pos+1], data[pos+2], data[pos+3]);
+		u32 btype = GF_4CC(data[pos+4], data[pos+5], data[pos+6], data[pos+7]);
+		switch (btype) {
+		case GF_4CC('f','t','y','p'):
+		case GF_4CC('m','o','o','v'):
+		case GF_4CC('m','e','t','a'):
+		case GF_4CC('s','t','y','p'):
+		case GF_4CC('m','o','o','f'):
+		case GF_4CC('f','r','e','e'):
+		case GF_4CC('m','d','a','t'):
+		case GF_4CC('e','m','s','g'):
+		case GF_4CC('s','i','d','x'):
+		case GF_4CC('s','s','i','x'):
+		case GF_4CC('p','c','r','b'):
+		case GF_4CC('p','r','f','t'):
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Found top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Unknown top-level %s at position %u size %u\n", gf_4cc_to_str(btype), pos, bsize ));
+		}
+		pos += bsize;
+		if (!bsize) {
+			pos = finfo->total_size;
+			break;
+		}
+	}
+	if (!finfo->nb_frags) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: File lost\n"));
+	}
+	else if (pos!=finfo->total_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Invalid top-level box size\n"));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] CHKISO: Recovered file OK: %s size %u\n", finfo->filename, finfo->total_size));
+		if (!ctx->gcache) {
+			gf_assert(finfo->nb_frags == 1);
+			gf_assert(finfo->frags[0].offset == 0);
+			//in iso repair we may skip patching of last frag if mdat is incomplete but full header is present
+			if (!ctx->riso)
+				gf_assert(finfo->frags[0].size == finfo->total_size);
+		}
+	}
+}
+
 
 static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool start_only)
 {
@@ -588,10 +1200,20 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] File %s (TSI=%u, TOI=%u) corrupted, patching\n", finfo->filename, finfo->tsi, finfo->toi));
 	}
 
-	if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
+	if (!finfo->channel_hint) {
+		routein_check_type(ctx, finfo, evt_param);
+	}
+	switch (finfo->channel_hint) {
+	case ROUTE_FTYPE_M2TS:
 		drop_if_first = routein_repair_segment_ts_local(ctx, evt_param, finfo, start_only);
-	} else {
+		break;
+	case ROUTE_FTYPE_ISOBMF:
 		routein_repair_segment_isobmf_local(ctx, evt_param, finfo, start_only);
+		if (ctx->chkiso)
+			routein_check_isobmf(ctx, finfo);
+		break;
+	default:
+		break;
 	}
 
 	if (finfo->blob->mx) {
@@ -603,6 +1225,85 @@ static Bool routein_repair_local(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt
 	return drop_if_first;
 }
 
+u32 routein_get_max_dispatch_len(GF_ROUTEEventFileInfo *finfo)
+{
+	u32 max_len = 0;
+	//figure out largest safest size from start
+	if (finfo->channel_hint==ROUTE_FTYPE_M2TS) {
+		max_len = finfo->frags[0].size / 188;
+		max_len *= 188;
+	} else if (finfo->channel_hint==ROUTE_FTYPE_ISOBMF) {
+		u32 btype, bsize, cur_pos=0;
+		u32 valid_bytes=0;
+		u32 true_size = finfo->frags[0].size;
+		while (1) {
+			btype = next_top_level_box(finfo, finfo->blob->data, true_size, GF_TRUE, &cur_pos, &bsize);
+			if (!btype) break;
+			//never send a box until completed
+			if ((u64) cur_pos + (u64) bsize > (u64) true_size)
+				break;
+
+			cur_pos+=bsize;
+			//always break at moof - if we had a moof+mdat valid, we'll stop at the mdat end
+			if (btype != GF_4CC('m','o','o','f')) {
+				valid_bytes = cur_pos;
+			}
+		}
+		max_len = valid_bytes;
+	}
+	return max_len;
+}
+
+Bool gf_route_dmx_get_object_info(void *lct_obj, GF_ROUTEEventFileInfo *finfo);
+
+static GF_BlobRangeStatus routein_check_blob_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 *io_size)
+{
+	u32 i, size;
+	GF_ROUTEEventFileInfo finfo;
+	assert(io_size);
+	if (!gf_route_dmx_get_object_info(blob->range_udta, &finfo))
+		return GF_BLOB_RANGE_CORRUPTED;
+
+	//blob completed, do not check byte ranges
+	if (!check_when_complete && !(blob->flags & GF_BLOB_IN_TRANSFER)) {
+		if (blob->flags & GF_BLOB_CORRUPTED) return GF_BLOB_RANGE_CORRUPTED;
+		return GF_BLOB_RANGE_VALID;
+	}
+
+	//get maximum number of bytes that will not be modified by file patcher
+	//this works even when we re-download the complete file: we will then overwrite bytes already sent in the blob but will not resend them
+	u32 max_size = routein_get_max_dispatch_len(&finfo);
+
+	size = *io_size;
+	*io_size = 0;
+	gf_mx_p(blob->mx);
+	for (i=0; i<finfo.nb_frags; i++) {
+		GF_LCTFragInfo *frag = &finfo.frags[i];
+		if ((frag->offset<=start_offset) && (start_offset+size <= frag->offset + frag->size)) {
+			if (finfo.channel_hint && (size + start_offset>max_size)) {
+				size = (max_size > start_offset) ? (max_size - start_offset) : 0;
+			}
+			*io_size = size;
+			gf_mx_v(blob->mx);
+			return GF_BLOB_RANGE_VALID;
+		}
+		//start is in fragment but exceeds it
+		if ((frag->offset <= start_offset) && (start_offset <= frag->offset + frag->size)) {
+			size = (u32) (frag->offset + frag->size - start_offset);
+			if (finfo.channel_hint && (size + start_offset>max_size)) {
+				size = (max_size > start_offset) ? (max_size - start_offset) : 0;
+			}
+			*io_size = size;
+			break;
+		}
+	}
+	gf_mx_v(blob->mx);
+	if (blob->flags & GF_BLOB_IN_TRANSFER)
+		return GF_BLOB_RANGE_IN_TRANSFER;
+	return GF_BLOB_RANGE_CORRUPTED;
+}
+
+
 void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 i, count;
@@ -612,6 +1313,11 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	if (evt==GF_ROUTE_EVT_LATE_DATA) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Late data patching not yet implemented !\n"));
 		return;
+	}
+
+	//assign range checker if not done yet for object
+	if (!finfo->blob->range_valid) {
+		finfo->blob->range_valid = routein_check_blob_range;
 	}
 
 	if (ctx->repair==ROUTEIN_REPAIR_NO) {
@@ -672,43 +1378,20 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 			}
 
 			u32 true_size = finfo->frags[0].size;
-			//figureout largest safest size from start
-			if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
-				finfo->frags[0].size /= 188;
-				finfo->frags[0].size *= 188;
-			} else {
-				u32 btype, bsize, cur_pos=0;
-				u32 valid_bytes=0;
-				while (1) {
-					btype = next_top_level_box(finfo, finfo->blob->data, true_size, &cur_pos, &bsize);
-					if (!btype) break;
-					if (cur_pos + bsize>true_size) {
-						//strict repair, never send a box until completed
-						if (ctx->repair==ROUTEIN_REPAIR_STRICT) break;
-						if (btype == GF_4CC('m','d','a','t')) {
-							valid_bytes = true_size;
-						}
-						break;
-					}
-					cur_pos+=bsize;
-					if (ctx->repair==ROUTEIN_REPAIR_STRICT) {
-						//in strict repair break at moof - if we had a moof+mdat valid, we'll stop at the mdat end
-						if (btype != GF_4CC('m','o','o','f')) {
-							valid_bytes = cur_pos;
-						}
-					} else {
-						valid_bytes = cur_pos;
-					}
-				}
-				finfo->frags[0].size = valid_bytes;
-			}
-			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
+			finfo->frags[0].size = routein_get_max_dispatch_len(finfo);
+			if (finfo->frags[0].size > tsio->bytes_sent)
+				routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 			finfo->frags[0].size = true_size;
+
 			//remember we have a file in progress so that we don't dispatch packets from following file
 			tsio->flags_progress |= TSIO_FILE_PROGRESS;
+			gf_assert(tsio->bytes_sent<=finfo->frags[0].size);
 			return;
 		}
-		fast_repair = 1;
+		if (ctx->riso >= REPAIR_ISO_SIMPLE)
+			fast_repair = 0;
+		else
+			fast_repair = 1;
 	}
 
 	//nothing pending
@@ -736,7 +1419,12 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		// push fragment if no pending and data is contiguous with prev
 		//this ensures we push data asap in the output pids
 		else if ((finfo->partial!=GF_LCTO_PARTIAL_ANY) && can_flush_fragment) {
-			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
+			u32 true_size = finfo->frags[0].size;
+			finfo->frags[0].size = routein_get_max_dispatch_len(finfo);
+			if (finfo->frags[0].size > tsio->bytes_sent)
+				routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
+
+			finfo->frags[0].size = true_size;
 		} else {
 			//remember we have a file in progress so that we don't dispatch packets from following file
 			tsio->flags_progress |= TSIO_FILE_PROGRESS;
@@ -751,6 +1439,8 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		if (!rsi->done && (rsi->finfo.tsi==finfo->tsi) && (rsi->finfo.toi==finfo->toi)) {
 			//remember event type (fragment or segment)
 			rsi->evt = evt;
+			if (ctx->riso!=REPAIR_ISO_NO)
+				rsi->isox_state = REPAIR_ISO_STATUS_INIT;
 			return;
 		}
 	}
@@ -785,9 +1475,29 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	rsi->filename = gf_strdup(finfo->filename);
 	rsi->finfo.filename = rsi->filename;
 	rsi->tsio = tsio;
+	rsi->nb_bytes_repaired = 0;
 
-	if (finfo->partial && !fast_repair)
-		route_repair_build_ranges_full(ctx, rsi, finfo);
+	if (finfo->partial) {
+		//HTTP repair, build ranges
+		if (!fast_repair) {
+			if (ctx->riso!=REPAIR_ISO_NO) {
+				rsi->isox_state = REPAIR_ISO_STATUS_INIT;
+				route_repair_build_ranges_isobmf(ctx, rsi, finfo);
+				if (ctx->repair<ROUTEIN_REPAIR_FULL) {
+					gf_list_add(ctx->seg_repair_queue, rsi);
+					if (tsio) gf_list_add(tsio->pending_repairs, rsi);
+					repair_session_dequeue(ctx, rsi);
+					return;
+				}
+			} else {
+				route_repair_build_ranges_full(ctx, rsi, finfo);
+			}
+		}
+		//direct repair, still queue but mark as in error
+		else {
+			rsi->nb_errors = 1;
+		}
+	}
 
 	if (rsi->tsio && (rsi->tsio->current_toi==finfo->toi)) {
 		gf_assert(finfo->frags[0].offset==0 || !rsi->tsio->bytes_sent);
@@ -838,7 +1548,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 }
 
 
-static void repair_session_dequeue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
+static void repair_session_dequeue(ROUTEInCtx *ctx, RepairSegmentInfo *rsi)
 {
 	Bool unprotect;
 	TSI_Output *tsio;
@@ -850,7 +1560,6 @@ restart:
 	//done with this repair, remove force_keep flag from object
 	if (tsio) {
 		gf_assert(gf_list_find(tsio->pending_repairs, rsi) == 0);
-		gf_assert(!tsio->current_toi || (tsio->current_toi == rsi->finfo.toi));
 		unprotect = GF_TRUE;
 	}
 	//remove before calling route_on_event, as it may trigger a delete
@@ -859,17 +1568,30 @@ restart:
 
 	if (!rsi->removed) {
 		//do a local file repair if we still have errors ?
-		if (rsi->nb_errors && (rsi->evt==GF_ROUTE_EVT_DYN_SEG)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s still has error, doing a final local repair\n", rsi->finfo.filename));
-			u32 repair = ctx->repair;
-			ctx->repair = ROUTEIN_REPAIR_STRICT;
-			routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
-			ctx->repair = repair;
-			rsi->nb_errors = 0;
+		if (rsi->nb_errors) {
+			switch (rsi->evt) {
+			case GF_ROUTE_EVT_DYN_SEG:
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s still has error, doing a final local repair\n", rsi->finfo.filename));
+				u32 repair = ctx->repair;
+				ctx->repair = ROUTEIN_REPAIR_STRICT;
+				routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
+				ctx->repair = repair;
+				rsi->nb_errors = 0;
+				break;
+			case GF_ROUTE_EVT_FILE:
+			case GF_ROUTE_EVT_MPD:
+			case GF_ROUTE_EVT_HLS_VARIANT:
+				rsi->finfo.partial = GF_LCTO_PARTIAL_ANY;
+				break;
+			default:
+				break;
+			}
+		} else if (ctx->chkiso) {
+			routein_check_isobmf(ctx, &rsi->finfo);
 		}
 
 		//flush
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repair done for object %s (TSI=%u, TOI=%u)%s\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi, rsi->nb_errors ? " - errors remain" : ""));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repair done for object %s (TSI=%u, TOI=%u) redownloaded %u bytes (file size %u)%s\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi, rsi->nb_bytes_repaired, rsi->finfo.total_size, rsi->nb_errors ? " - errors remain" : ""));
 
 		routein_on_event_file(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_TRUE, GF_FALSE);
 	}
@@ -884,6 +1606,13 @@ restart:
 
 	GF_List *bck = rsi->ranges;
 	if (rsi->filename) gf_free(rsi->filename);
+	if (rsi->sample_deps) {
+		if (!ctx->sample_deps_reservoir) ctx->sample_deps_reservoir = gf_list_new();
+		while (gf_list_count(rsi->sample_deps)) {
+			gf_list_add(ctx->sample_deps_reservoir, gf_list_pop_back(rsi->sample_deps));
+		}
+		gf_list_del(rsi->sample_deps);
+	}
 	memset(rsi, 0, sizeof(RepairSegmentInfo));
 	rsi->ranges = bck;
 	gf_list_add(ctx->seg_repair_reservoir, rsi);
@@ -903,19 +1632,50 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 
 	if (rsess->range) {
 		//notify routedmx we have received a byte range
-		if (!rsi->removed && rsess->range->done) {
-			u64 patch_end = rsess->range->br_start + rsess->range->done;
-			if (patch_end > rsess->range->br_end)
-				patch_end = rsess->range->br_end;
+		if (!rsi->removed && rsess->range->bytes_recv) {
 
+			//we issued the open-range request for br_start-1, so we have one more byte
+			if (rsess->range->is_open) rsess->range->bytes_recv --;
+
+			u64 patch_end = rsess->range->br_start + rsess->range->bytes_recv;
+
+			if (rsess->range->br_end && (patch_end > rsess->range->br_end)) {
+				patch_end = rsess->range->br_end;
+			} else if (patch_end < rsess->range->br_end) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Incomplete byte range in file %s: end offset %u but last byte received %u received byte range end %u\n", rsi->finfo.filename, rsess->range->br_end, patch_end));
+			}
 			gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, (u32) patch_end);
 		}
 
-		rsess->server->nb_bytes += rsess->range->done;
-		rsess->server->nb_req_success += (rsess->range->done==rsess->range->br_end-rsess->range->br_start)?1:0;
+		//figure out total size if indicated by server - otherwise it is 0
+		if ((res_code==GF_EOS) && !rsi->finfo.total_size) {
+			rsi->finfo.total_size = gf_dm_sess_get_resource_size(rsess->dld);
+
+			if (!rsi->finfo.total_size && rsess->range->is_open && rsess->range->br_end) {
+				rsi->finfo.total_size = rsess->range->br_end;
+			}
+			//we have a total size !
+			if (rsi->finfo.total_size) {
+				gf_route_dmx_patch_blob_size(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsi->finfo.total_size);
+			}
+			//if last request, re-issue a new one
+			else if (! gf_list_count(rsi->ranges)) {
+				GF_ROUTEEventFileInfo *finfo = &rsess->current_si->finfo;
+				//we still don't have the file size, do another round of patching
+				u32 start_br = 0;
+				if (finfo->nb_frags) {
+					start_br = finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size;
+				}
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s total size still unknown, re-issuing an open range from %u\n", rsi->finfo.filename, start_br ));
+				queue_repair_range(ctx, rsess->current_si, start_br, 0);
+			}
+		} else if (res_code==GF_EOS) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s total size %u after http patch\n", rsi->finfo.filename, rsi->finfo.total_size));
+		}
 
 		gf_list_add(ctx->seg_range_reservoir, rsess->range);
-		if (!res_code && (rsess->server->accept_ranges == RANGE_SUPPORT_PROBE))
+		if (!res_code && rsess->server && (rsess->server->accept_ranges == RANGE_SUPPORT_PROBE))
 			rsess->server->accept_ranges = RANGE_SUPPORT_YES;
 	}
 
@@ -923,11 +1683,18 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	//always reset even if we have pending byte ranges, so that each repair session fetches the most urgent download
 	rsess->current_si = NULL;
 	rsess->range = NULL;
-	if (res_code<0) rsi->nb_errors++;
+	if (res_code<0) {
+		rsi->nb_errors++;
+	}
 
 	gf_assert(rsi->pending);
 	rsi->pending--;
 	if (rsi->pending) return;
+
+	if (rsi->isox_state>=REPAIR_ISO_STATUS_PATCH_TOP_LEVEL) {
+		route_repair_build_ranges_isobmf(ctx, rsi, &rsi->finfo);
+		return;
+	}
 
 	if (rsi->removed) {
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
@@ -954,6 +1721,7 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	}
 	gf_mx_p(rsi->finfo.blob->mx);
 	if (!rsi->nb_errors) {
+		gf_assert(rsi->finfo.nb_frags == 1);
 		rsi->finfo.partial = GF_LCTO_PARTIAL_NONE;
 		rsi->finfo.blob->flags &= ~GF_BLOB_CORRUPTED;
 	}
@@ -972,7 +1740,7 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 			return;
 		}
 	}
-	repair_session_dequeue(ctx, rsess, rsi);
+	repair_session_dequeue(ctx, rsi);
 }
 
 static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
@@ -1009,6 +1777,7 @@ restart:
 				rsess->current_si = NULL;
 				goto restart;
 			}
+
 			//if TSIO, always dequeue in order
 			if (rsi->tsio) {
 				rr = gf_list_get(rsi->ranges, 0);
@@ -1019,7 +1788,18 @@ restart:
 					if (rr) break;
 				}
 			}
-			if (rr) break;
+
+			if (rr) {
+				//we may have resolved the final resource size in a previous repair, check if we can cancel this range
+				if (!rr->br_end && rr->br_start && (rr->br_start == rsi->finfo.total_size)) {
+					gf_list_del_item(rsi->ranges, rr);
+					gf_list_add(ctx->seg_range_reservoir, rr);
+					i--;
+					rsi=NULL;
+					continue;
+				}
+				break;
+			}
 			rsi = NULL;
 		}
 		if (!rsi) return;
@@ -1030,13 +1810,43 @@ restart:
 		gf_assert(rsi->finfo.filename);
 		gf_assert(rsi->finfo.filename[0]);
 
+		const char *repair_base_uri, *repair_server_url;
+		gf_route_dmx_get_repair_info(ctx->route_dmx, rsi->service_id, &repair_base_uri, &repair_server_url);
+		u32 repair_base_uri_len = repair_base_uri ? (u32) strlen(repair_base_uri) : 0;
+		Bool has_repair_server = GF_FALSE;
+
 		for (i=0; i< gf_list_count(ctx->repair_servers); i++) {
 			repair_server = gf_list_get(ctx->repair_servers, i);
-			if (repair_server->url && repair_server->accept_ranges && repair_server->is_up) {
-				url = gf_url_concatenate(repair_server->url, rsi->finfo.filename);
-				break;
+			if (repair_server->url && repair_server_url && !strcmp(repair_server->url, repair_server_url))
+				has_repair_server = GF_TRUE;
+			if (!repair_server->url || !repair_server->accept_ranges) {
+				repair_server = NULL;
+				continue;
 			}
+			break;
 		}
+		if (!repair_server && !has_repair_server && repair_server_url) {
+			repair_server = routein_push_repair_server(ctx, repair_server_url, rsi->service_id);
+			if (repair_server && !repair_server->accept_ranges) repair_server = NULL;
+		}
+
+		if (repair_server) {
+			const char *filename_start = NULL;
+			if (repair_base_uri && !strncmp(rsi->finfo.filename, repair_base_uri, repair_base_uri_len)) {
+				filename_start = rsi->finfo.filename + repair_base_uri_len+1;
+			}
+			if (!filename_start) {
+				char *sep = strstr(rsi->finfo.filename, "://");
+				if (sep) {
+					filename_start = rsi->finfo.filename;
+				} else {
+					sep = strchr(rsi->finfo.filename, '/');
+					filename_start = sep ? sep : rsi->finfo.filename;
+				}
+			}
+			url = gf_url_concatenate(repair_server->url, filename_start);
+		}
+
 
 		if (!url) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for %s - Repair abort \n", rsi->finfo.filename));
@@ -1048,8 +1858,10 @@ restart:
 		if (!rsess->dld) {
 			GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
 			rsess->dld = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_NOT_CACHED | GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT, NULL, NULL, &e);
-			if (rsess->dld)
+			if (rsess->dld) {
 				gf_dm_sess_set_netcap_id(rsess->dld, "__ignore");
+				gf_dm_sess_set_timeout(rsess->dld, 1);
+			}
 		} else {
 			e = gf_dm_sess_setup_from_url(rsess->dld, url, GF_FALSE);
 		}
@@ -1061,18 +1873,35 @@ restart:
 		}
 		rsess->server = repair_server;
 		if (rsess->range->br_end) {
+			if (rsess->current_si->finfo.total_size)
+				gf_assert(rsess->current_si->finfo.total_size >= rsess->range->br_end);
+
 			gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, rsess->range->br_end-1, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s byte range %u-%u\n", url, rsess->range->br_start, rsess->range->br_end-1));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s byte range %u-%u with local total size %u - nb frags %u - %u queued ranges\n", url, rsess->range->br_start, rsess->range->br_end-1, rsess->current_si->finfo.total_size, rsess->current_si->finfo.nb_frags, gf_list_count(rsess->current_si->ranges) ));
 		} else {
-			gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, 0, GF_TRUE);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s byte range %u-\n", url, rsess->range->br_start));
+			u32 start_r = rr->br_start;
+			if (!rr->br_start) {
+				rr->is_open = 0;
+				rsess->current_si->finfo.total_size = 0;
+			} else {
+				//add one more byte, so that if the resource is complete (we missed last 0-byte chunk) we issue
+				//a request falling into the file range
+				start_r -= 1;
+				rr->is_open = 1;
+			}
+			gf_dm_sess_set_range(rsess->dld, start_r, 0, GF_TRUE);
+			//current_si->finfo.total_size can be 0 or not, as we may have resolved the file size in a previous request
+
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s open byte range %u- with local total size %u - nb frags %u - %u queued ranges\n", url, start_r, rsess->current_si->finfo.total_size, rsess->current_si->finfo.nb_frags, gf_list_count(rsess->current_si->ranges) ));
 		}
 		gf_free(url);
 		ctx->has_data = GF_TRUE;
 	}
 
 refetch:
-	offset = rsess->range->br_start + rsess->range->done;
+	offset = rsess->range->br_start + rsess->range->bytes_recv;
+	//we requested one more byte, adjust offset
+	if (rsess->range->is_open) offset -= 1;
 	nb_read=0;
 	if (rsi->removed) {
 		e = GF_URL_REMOVED;
@@ -1083,9 +1912,9 @@ refetch:
 		if (e==GF_IO_BYTE_RANGE_NOT_SUPPORTED) {
 			u32 now = gf_sys_clock();
 			u32 error_type = 0;
+			u32 filesize = gf_dm_sess_get_resource_size(rsess->dld);
 			//it is quite possible that the server replied 200 on an open end-range request when the segment size is unknown
 			if (!rsess->range->br_end) {
-				u32 filesize = gf_dm_sess_get_resource_size(rsess->dld);
 				//in case we lost a FDT with content-length=0
 				if (filesize==rsess->range->br_start) {
 					error_type = 1;
@@ -1138,29 +1967,80 @@ refetch:
 		}
 	}
 
-	//open end range
-	if (nb_read && (e>=GF_OK) && !rsess->range->br_end) {
-		rsess->range->br_end = gf_dm_sess_get_resource_size(rsess->dld);
-		if (!rsess->range->br_end || (rsess->range->br_end<rsess->current_si->finfo.blob->size)) {
-			e = GF_REMOTE_SERVICE_ERROR;
+	rsi->nb_bytes_repaired += nb_read;
+
+	//open end range - we should always get 1 byte minimum given how we build the open range
+	if (!rsess->range->br_end) {
+		if (e>=GF_OK) {
+			u32 res_size = gf_dm_sess_get_resource_size(rsess->dld);
+			gf_assert(!rsess->current_si->finfo.total_size || !res_size || (res_size == rsess->current_si->finfo.total_size) );
+
+			//we are in progress, just patch the blob size to allow for further dispatch (todo)
+			if (e==GF_OK) {
+				GF_Err patch_e = gf_route_dmx_patch_blob_size(ctx->route_dmx, rsess->current_si->service_id, &rsess->current_si->finfo, res_size);
+				if (patch_e)
+					e = patch_e;
+			}
+			//we are done
+			else {
+				rsess->range->br_end = res_size;
+				//no new bytes (we requested one less), no need to patch
+				if ((rsess->range->bytes_recv==1) || (!rsess->range->bytes_recv && (nb_read==1))) {
+					rsess->range->bytes_recv = 0;
+					nb_read = 0;
+				}
+
+				//we issued an open byte range but the server didn't know the file size at the time of the reply
+				//queue another repair below
+				if (!rsess->range->br_end) {
+				} else {
+					if (rsess->range->br_end < rsess->current_si->finfo.blob->size) {
+						e = GF_REMOTE_SERVICE_ERROR;
+					} else {
+						// !!  keep finfo.total_size untouched until end of download
+						u32 prev_size = rsess->current_si->finfo.total_size;
+						GF_Err patch_e = gf_route_dmx_patch_blob_size(ctx->route_dmx, rsess->current_si->service_id, &rsess->current_si->finfo, rsess->range->br_end);
+						rsess->current_si->finfo.total_size = prev_size;
+						if (patch_e)
+							e = patch_e;
+					}
+				}
+			}
 		} else {
-			e = gf_route_dmx_patch_blob_size(ctx->route_dmx, rsess->current_si->service_id, &rsess->current_si->finfo, rsess->range->br_end);
+			//if we have an error and the content start was the first byte after the known file size, consider we got the final range
+			u64 res_size = gf_dm_sess_get_resource_size(rsess->dld);
+			if (res_size && (res_size == rsess->range->br_start)) {
+				rsess->range->br_end = rsess->range->br_start;
+				e = GF_EOS;
+			}
 		}
 	}
-	if (offset + nb_read > rsess->range->br_end)
+	if (rsess->range->br_end && (offset + nb_read > rsess->range->br_end)) {
 		e = GF_REMOTE_SERVICE_ERROR;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Repair got more bytes (%u) than requested (%u), aborting !\n", nb_read, rsess->range->br_end-offset ));
+	}
 
 	if (nb_read && (e>=GF_OK)) {
 		gf_mx_p(rsi->finfo.blob->mx);
+		if (rsess->current_si->finfo.blob->size < offset + nb_read) {
+			// !!  keep finfo.total_size untouched until end of download
+			u32 prev_size = rsess->current_si->finfo.total_size;
+			gf_route_dmx_patch_blob_size(ctx->route_dmx, rsess->current_si->service_id, &rsess->current_si->finfo, offset + nb_read);
+			rsess->current_si->finfo.total_size = prev_size;
+		}
 		memcpy(rsi->finfo.blob->data + offset, rsess->http_buf, nb_read);
 		gf_mx_v(rsi->finfo.blob->mx);
-		rsess->range->done += nb_read;
+		rsess->range->bytes_recv += nb_read;
 		ctx->has_data = GF_TRUE;
 		//for now, fragment info is updated once the session is done
 		//flush buffer until network empty
 		if (e==GF_OK) goto refetch;
 	}
 	if (e==GF_OK) return;
+
+	//abort session
+	if (e<GF_OK)
+		gf_dm_sess_abort(rsess->dld);
 
 	repair_session_done(ctx, rsess, e);
 	if (e<0) return;

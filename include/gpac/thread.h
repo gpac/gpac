@@ -106,6 +106,8 @@ https://docs.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedexc
 
 #define safe_int_add(__v, inc_val) InterlockedExchangeAdd((int *) (__v), inc_val)
 #define safe_int_sub(__v, dec_val) InterlockedExchangeAdd((int *) (__v), -dec_val)
+/*! atomic add and gets the value *before* the add */
+#define safe_int_fetch_add(__v, inc_val) InterlockedExchangeAdd((int *) (__v), inc_val)
 #ifdef GPAC_64_BITS
 #define safe_int64_add(__v, inc_val) InterlockedExchangeAdd64((LONGLONG *) (__v), inc_val)
 #define safe_int64_sub(__v, dec_val) InterlockedExchangeAdd64((LONGLONG *) (__v), -dec_val)
@@ -129,7 +131,8 @@ https://docs.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedexc
 #define safe_int64_add(__v, inc_val) InterlockedAdd64((LONG64 *) (__v), inc_val)
 /*! atomic large integer subtraction */
 #define safe_int64_sub(__v, dec_val) InterlockedAdd64((LONG64 *) (__v), -dec_val)
-
+/*! atomic add and gets the value *before* the add */
+#define safe_int_fetch_add(__v, inc_val) InterlockedExchangeAdd((int *) (__v), inc_val)
 #endif //winxp
 
 #else //not windows
@@ -148,6 +151,8 @@ https://docs.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedexc
 #define safe_int64_add(__v, inc_val) __atomic_add_fetch((int64_t *) (__v), inc_val, __ATOMIC_SEQ_CST)
 /*! atomic large integer subtraction */
 #define safe_int64_sub(__v, dec_val) __atomic_sub_fetch((int64_t *) (__v), dec_val, __ATOMIC_SEQ_CST)
+/*! atomic add and gets the value *before* the add */
+#define safe_int_fetch_add(__v, inc_val) __atomic_fetch_add((int *) (__v), inc_val, __ATOMIC_SEQ_CST)
 
 #else
 
@@ -163,6 +168,8 @@ https://docs.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedexc
 #define safe_int64_add(__v, inc_val) __sync_add_and_fetch((int64_t *) (__v), inc_val)
 /*! atomic large integer subtraction */
 #define safe_int64_sub(__v, dec_val) __sync_sub_and_fetch((int64_t *) (__v), dec_val)
+/*! atomic add and gets the value *before* the add */
+#define safe_int_fetch_add(__v, inc_val) __sync_fetch_and_add((int *) (__v), inc_val)
 
 #endif //GPAC_NEED_LIBATOMIC
 

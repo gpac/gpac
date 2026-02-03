@@ -82,7 +82,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		size = gf_base64_decode((u8 *)src, size, data, size);
 	} else if (is_string) {
 		data = (u8 *) src;
-		size = (u32) strlen(src)+1;
+		size = (u32) strlen(src);
 		is_box_array = 0;
 	} else {
 		GF_Err e = gf_file_load_data(src, (u8 **) &data, &size);
@@ -242,7 +242,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 	fprintf(stderr, "\n");
 
 	if (!found && track_id->ID_or_num) {
-		M4_LOG(GF_LOG_ERROR, ("Cannot find track %d in file\n", track_id->ID_or_num));
+		M4_LOG(GF_LOG_ERROR, ("Cannot find track %u in file\n", track_id->ID_or_num));
 		return GF_BAD_PARAM;
 	}
 	M4_LOG(GF_LOG_INFO, ("For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName)));
@@ -292,7 +292,7 @@ static GF_Err set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_tra
 		gf_isom_reset_sample_count(NULL);
 		gf_isom_set_traf_mss_timeext(NULL, 0, 0, 0);
 		gf_isom_get_next_moof_number(NULL);
-		gf_isom_set_fragment_reference_time(NULL, 0, 0, 0);
+		gf_isom_set_fragment_reference_time(NULL, 0, 0, 0, 0);
 #endif
 		//this one is not tested in master due to old-arch compat, to remove when we enable tests without old-arch
 		gf_isom_get_audio_layout(file, track, 1, &layout);
@@ -714,7 +714,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool keep_audelim = GF_FALSE;
 	u32 print_stats_graph=fs_dump_flags;
 	char *ext, *final_name=NULL, *handler_name, *rvc_config, *chapter_name;
-	GF_List *kinds;
+	GF_List *kinds = NULL;
 	GF_TextFlagsMode txt_mode = GF_ISOM_TEXT_FLAGS_OVERWRITE;
 	u8 max_layer_id_plus_one, max_temporal_id_plus_one;
 	u32 clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod;
@@ -1251,6 +1251,8 @@ reparse_opts:
 			char *mode = ext+9;
 			if (!stricmp(mode, "v0-bs"))
 				import->asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS;
+			else if (!stricmp(mode, "v0-s"))
+				import->asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT;
 			else if (!stricmp(mode, "v0-2"))
 				import->asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2;
 			else if (!stricmp(mode, "v1"))
@@ -1365,7 +1367,7 @@ reparse_opts:
 		}
 		else if (!strnicmp(ext+1, "tc=", 3)) {
 			char *tc_str = ext+4;
-			
+
 			if (tc_str[0] == 'd') {
 				tc_drop_frame=GF_TRUE;
 				tc_str+=1;
@@ -1729,7 +1731,7 @@ reparse_opts:
 
 			if ((tk_source_magic & 0xFFFFFFFFUL) != source_magic)
 				continue;
-			tk_source_magic>>=32;		
+			tk_source_magic>>=32;
 			keep_handler = (tk_source_magic & 1) ? GF_TRUE : GF_FALSE;
 		} else {
 			keep_handler = GF_TRUE;
@@ -2562,7 +2564,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	if (fs_dump_flags & 2) gf_fs_print_connections(fs);
 
 	gf_fs_del(fs);
-	
+
 	if (e<GF_OK)
 		M4_LOG(GF_LOG_ERROR, ("Split failed: %s\n", gf_error_to_string(e) ));
 	return e;
@@ -2599,32 +2601,36 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 	avc_src = gf_isom_avc_config_get(orig, src_track, 1);
 	avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
 
-	if (!force_cat && (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication)) {
-		dst_tk = 0;
-	} else if (!force_cat && (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication)) {
-		dst_tk = 0;
-	}
-	else {
-		/*rewrite all samples if using different NALU size*/
-		if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
-			gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
-			avc_dst->nal_unit_size = avc_src->nal_unit_size;
-		} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
-			*orig_nal_len = avc_src->nal_unit_size;
-			*dst_nal_len = avc_dst->nal_unit_size;
+	if (avc_src && avc_dst) {
+
+		if (!force_cat && (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication)) {
+			dst_tk = 0;
+		} else if (!force_cat && (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication)) {
+			dst_tk = 0;
+		}
+		else {
+			/*rewrite all samples if using different NALU size*/
+			if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
+				gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
+				avc_dst->nal_unit_size = avc_src->nal_unit_size;
+			} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
+				*orig_nal_len = avc_src->nal_unit_size;
+				*dst_nal_len = avc_dst->nal_unit_size;
+			}
+
+			/*merge PS*/
+			if (!merge_parameter_set(avc_src->sequenceParameterSets, avc_dst->sequenceParameterSets, "SPS"))
+				dst_tk = 0;
+			if (!merge_parameter_set(avc_src->pictureParameterSets, avc_dst->pictureParameterSets, "PPS"))
+				dst_tk = 0;
+
+			gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
 		}
 
-		/*merge PS*/
-		if (!merge_parameter_set(avc_src->sequenceParameterSets, avc_dst->sequenceParameterSets, "SPS"))
-			dst_tk = 0;
-		if (!merge_parameter_set(avc_src->pictureParameterSets, avc_dst->pictureParameterSets, "PPS"))
-			dst_tk = 0;
-
-		gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
 	}
-
 	gf_odf_avc_cfg_del(avc_src);
 	gf_odf_avc_cfg_del(avc_dst);
+
 
 	if (!dst_tk) {
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
@@ -3163,6 +3169,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			if (samp->nb_pack)
 				j+= samp->nb_pack-1;
 
+			if (samp->data && !samp->dataLength) {
+				// force deletetion, see gf_isom_sample_del()
+				samp->dataLength = samp->alloc_size;
+			}
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;
 
@@ -3493,7 +3503,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	load.swf_flatten_limit = (Float) swf_flatten_angle;
 	/*since we're encoding we must get MPEG4 nodes only*/
 	load.flags = GF_SM_LOAD_MPEG4_STRICT;
-	
+
 	e = gf_sm_load_init(&load);
 	if (e<0) {
 		gf_sm_load_done(&load);
@@ -3773,7 +3783,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 \param inputContext initial BT upon which the chunk is based (shall not be NULL)
 \param outputContext: file name to dump the context after applying the new chunk to the input context
                    can be NULL, without .bt
-\param tmpdir can be NULL
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext)
 {
@@ -4345,4 +4354,3 @@ static GF_Err apply_timestamps(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
-

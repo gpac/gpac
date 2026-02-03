@@ -228,7 +228,7 @@ function JSClient(id, client) {
 
 
 
-				return 1000;
+				return 5000;
 			});
 
 
@@ -267,4 +267,22 @@ sys.rmt_on_new_client = function(client) {
 		remove_client(js_client.id);
 		js_client.client = null;
 	}
+}
+
+
+sys.enable_userws();
+
+sys.userws_on_new_client = function(client) {
+    console.log("userws new client", client.peer_address);
+
+    client.on_data = (msg) =>  {
+
+        console.log("Client ", client.peer_address, " got message: ", msg);
+
+        client.send("ACK");
+    }
+
+    client.on_close = function() {
+        console.log("ON_CLOSE on client ", client.peer_address);
+    }
 }

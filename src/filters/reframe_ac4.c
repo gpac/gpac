@@ -105,7 +105,7 @@ GF_Err ac4dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (ctx->in_timescale) {
 		ctx->copy_props = GF_TRUE;
 	}
-	
+
 	return GF_OK;
 }
 
@@ -113,7 +113,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	GF_AC4Config hdr;
+	GF_AC4Config hdr = {0};
 	u64 duration, rate;
 	u32 sample_rate = 0;
 	const GF_PropertyValue *p;
@@ -143,13 +143,13 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 	duration = 0;
 
 	// duration
-	while (gf_ac4_parser_bs(bs, &hdr, GF_FALSE)) {
+	while (gf_ac4_parser_bs(bs, &hdr, GF_FALSE, GF_FALSE)) {
 		duration += ctx->hdr.sample_duration;
 		sample_rate = hdr.sample_rate;
-		
+
 		if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 		else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-		
+
 		ctx->indexes = gf_realloc(ctx->indexes, sizeof(AC4Idx)*ctx->index_alloc_size);
 		ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs) + hdr.header_size;
 		ctx->indexes[ctx->index_size].duration = (Double) duration;
@@ -176,7 +176,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 			ctx->bitrate = (u32) rate;
 		}
 	}
-	
+
 	// set ctx->file_loaded
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -220,7 +220,7 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 	if (!ctx->copy_props && ctx->hdr.channel_count > ctx->nb_ch) {
 		ctx->nb_ch = ctx->hdr.channel_count;
 	}
-	
+
 	if (!ctx->in_timescale) {
 		// we change sample rate, change cts
 		if (ctx->cts && (ctx->out_timescale != ctx->hdr.media_time_scale)) {
@@ -248,7 +248,7 @@ static Bool ac4dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	GF_FilterEvent fevt;
 	GF_AC4DmxCtx *ctx = gf_filter_get_udta(filter);
-	
+
 	if (evt->base.type == GF_FEVT_PLAY) {
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
@@ -385,7 +385,7 @@ restart:
 		Bool res;
 		u32 sync_pos, bytes_to_drop=0;
 
-		res = gf_ac4_parser_bs(ctx->bs, &(ctx->hdr), is_first);
+		res = gf_ac4_parser_bs(ctx->bs, &(ctx->hdr), is_first, GF_FALSE);
 
 		sync_pos = (u32) gf_bs_get_position(ctx->bs);
 		sync_framesize = ctx->hdr.frame_size + ctx->hdr.header_size + ctx->hdr.crc_size;
@@ -455,7 +455,7 @@ restart:
 			if (ctx->src_pck) {
 				gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 			}
-			
+
 			// sync is the position of raw_ac4_frame()
 			sync = start + sync_pos + ctx->hdr.header_size;
 			memcpy(output, sync, ctx->hdr.frame_size);
@@ -476,18 +476,18 @@ restart:
 		ctx->cts += ctx->hdr.sample_duration;
 
 		// calculate memory offset
-		bytes_to_drop = sync_pos + sync_framesize;		
+		bytes_to_drop = sync_pos + sync_framesize;
 		if (bytes_to_drop > remain) {
 			bytes_to_drop = remain; // truncated last frame
 		}
 		if (bytes_to_drop == 0) {
 			bytes_to_drop = 1;
 		}
-		
+
 		start += bytes_to_drop;
 		remain -= bytes_to_drop;
 		gf_bs_reassign_buffer(ctx->bs, start, remain);
-		
+
 		if (prev_pck_size) {
 			if (prev_pck_size > bytes_to_drop) {
 				prev_pck_size -= bytes_to_drop;
@@ -540,14 +540,17 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	u32 nb_broken_frames = GF_FALSE;
 	GF_AC4Config ahdr = {0};
 
+	u32 lt = gf_log_get_tool_level(GF_LOG_CODING);
+	gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
+
 	GF_BitStream *bs = gf_bs_new(_data, _size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs) && nb_frames <= 4) {
 		Bool bytes_lost=GF_FALSE;
-		if (!gf_ac4_parser_bs(bs, &ahdr, GF_FALSE)) {
+		if (!gf_ac4_parser_bs(bs, &ahdr, GF_TRUE, GF_FALSE)) {
 			if (ahdr.sample_rate) nb_frames++;
 			break;
 		}
-		
+
 		if (pos != (u32) gf_bs_get_position(bs)) {
 			bytes_lost=GF_TRUE;
 			nb_broken_frames++;
@@ -559,12 +562,16 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 		if (!pos && !bytes_lost && (nb_frames==1) && !gf_bs_available(bs)) nb_frames++;
 		pos += sync_framesize;
 	}
+
+	gf_log_set_tool_level(GF_LOG_CODING, lt);
 	gf_bs_del(bs);
+
+	gf_odf_ac4_cfg_clean_list(&ahdr);
 
 	if (nb_frames>=2) {
 		*score = nb_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/ac4";
-	}
+	}	
 
 	return NULL;
 }

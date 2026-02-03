@@ -1770,7 +1770,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 	case OBU_METADATA:
 		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
-			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
+			u8 nb_bytes = 0;
+			ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, &nb_bytes);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
 				case OBU_METADATA_TYPE_TIMECODE:
@@ -1784,6 +1785,10 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 					break;
 				case OBU_METADATA_TYPE_HDR_MDCV:
 					dump_mdcv(dump, bs, GF_FALSE);
+					break;
+				case OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE:
+				case OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE_BIS:
+					dump_unregistered_sei(dump, bs, obu_size - hdr_size - nb_bytes);
 					break;
 				default:
 					break;
@@ -2472,26 +2477,26 @@ segmentsExpected="1"
 	}
 }
 
-static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
+static u8 scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 {
 	if (gf_bs_available(bs) < 2)
-		return GF_FALSE;
+		return 0;
 
 	u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 	u8 descriptor_length = gf_bs_read_u8(bs);
 	if (descriptor_length < 4 || descriptor_length > 254) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] SCTE-35 splice descriptor: invalid descriptor_length=%u\n", descriptor_length));
-		return GF_FALSE;
+		return 0;
 	}
 	if (gf_bs_available(bs) < descriptor_length) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] not enough bits to parse SCTE-35 splice descriptor\n"));
-		return GF_FALSE;
+		return 0;
 	}
 
 	u32 identifier = gf_bs_read_u32(bs);
 	if (identifier != 0x43554549/*"CUEI"*/) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] unexpected SCTE-35 splice descriptor identifier \"%s\" instead of \"CUEI\". Skipping.\n", gf_4cc_to_str(identifier)));
-		return GF_FALSE;
+		return 0;
 	}
 
 	//inspect_printf(dump, "   <SpliceDescriptor spliceDescriptorTag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
@@ -2504,7 +2509,7 @@ static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 		//inspect_printf(dump, "/>\n");
 	}
 
-	return GF_TRUE;
+	return descriptor_length+2;
 }
 
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
@@ -2651,8 +2656,13 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	pos += splice_command_length;
 
 	int descriptor_loop_length = gf_bs_read_int(bs, 16);
-	while ( (gf_bs_get_position(bs) < pos + descriptor_loop_length) && scte35_parse_splice_descriptor(dump, bs) )
-	{
+	u32 descriptor_start_pos = (u32) gf_bs_get_position(bs);
+	while ( (descriptor_start_pos < pos + descriptor_loop_length) ) {
+		u8 len = scte35_parse_splice_descriptor(dump, bs);
+		if (len == 0)
+			break;
+		descriptor_start_pos += len;
+		gf_bs_seek(bs, descriptor_start_pos);
 	}
 
 exit:
@@ -3923,6 +3933,10 @@ props_done:
 		}
 			break;
 		case GF_CODECID_TX3G:
+			if (size < 2) {
+				inspect_printf(dump, "<!-- Invalid TX3G -->\n");
+				break;
+			}
 			data += 2;
 			size -= 2;
 		case GF_CODECID_SUBS_TEXT:
@@ -4272,7 +4286,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		HEVCState *hvcs = NULL;
 		GF_HEVCConfig *hvcc=NULL;
 		if (dsi) {
-			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (!dsi_enh && (codec_id==GF_CODECID_LHVC)) ? GF_TRUE : GF_FALSE);
 			if (dsi_enh) {
 				GF_SAFEALLOC(hvcs, HEVCState);
 				for (i=0; i<gf_list_count(hvcc->param_array); i++) {
@@ -4388,6 +4402,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			gf_odf_av1_cfg_del(av1c);
 		}
 	}
+	else if (codec_id==GF_CODECID_AVS3_VIDEO) {
+		inspect_printf(dump, " AVS3");
+	}
 	else if ((codec_id==GF_CODECID_AAC_MPEG4) || (codec_id==GF_CODECID_AAC_MPEG2_MP) || (codec_id==GF_CODECID_AAC_MPEG2_LCP) || (codec_id==GF_CODECID_AAC_MPEG2_SSRP)) {
 		if (dsi) {
 			const char *name, *sep;
@@ -4478,7 +4495,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	if (dsi && (codec_id==GF_CODECID_EAC3)) {
 		GF_AC3Config ac3cfg;
-		gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE, &ac3cfg);
+		gf_odf_ac3_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE, &ac3cfg);
 		if (ac3cfg.atmos_ec3_ext)
 			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
 	}

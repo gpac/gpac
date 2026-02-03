@@ -75,7 +75,7 @@ distclean:
 	@rm -f bin/gcc/gf_*$(DYN_LIB_SUFFIX) 2> /dev/null
 
 doc:
-	@cd $(SRC_PATH)/share/doc && doxygen
+	@cd $(SRC_PATH)/share/doc && doxygen && cp versions.html html-libgpac/
 
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
@@ -215,7 +215,7 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 
 
-ifeq ($(CONFIG_DARWIN),yes)
+ifneq (,$(filter yes,$(CONFIG_DARWIN) $(CONFIG_FREEBSD)))
 	cp $(SRC_PATH)/share/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/"
 	cp -R $(SRC_PATH)/share/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/"
 	cp $(SRC_PATH)/share/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/"
@@ -279,7 +279,7 @@ uninstall:
 
 
 installdylib:
-ifneq ($(STATIC_BINARY),yes)
+ifneq ($(STATIC_BUILD),yes)
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 
