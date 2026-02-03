@@ -2420,18 +2420,31 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	aud_entry->bitspersample = bitsPerSample;
 
 	switch (asemode) {
-	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT:
 		stsd->version = 0;
 		aud_entry->version = 0;
 		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
-		aud_entry->channel_count = 2;
+		aud_entry->channel_count = nbChannels; // Get from bitstream
+
+		// According to ETSI TS 102 366 V1.4.1 (2017-09), the channel_count of AC3, EC3 (based on AudioSampleEntry)
+		// should always be 2, and the sample size should always be 16
+		if (aud_entry->type == GF_ISOM_BOX_TYPE_AC3 || aud_entry->type == GF_ISOM_BOX_TYPE_EC3) {
+			aud_entry->channel_count = 2;
+			aud_entry->bitspersample = 16;
+		}
 		break;
-	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS:
 		stsd->version = 0;
 		aud_entry->version = 0;
 		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		aud_entry->channel_count = nbChannels;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
+		stsd->version = 0;
+		aud_entry->version = 0;
+		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
+		aud_entry->channel_count = 2;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG:
 		stsd->version = 1;
@@ -2940,6 +2953,14 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 
 	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
+
+	if (the_trak && the_trak->Media && the_trak->Media->information) {
+		if (the_trak->Media->information->dataHandler == movie->movieFileMap || the_trak->Media->information->dataHandler == movie->editFileMap)
+			the_trak->Media->information->dataHandler = NULL;
+
+		if (the_trak->Media->information->scalableDataHandler == movie->movieFileMap || the_trak->Media->information->scalableDataHandler == movie->editFileMap)
+			the_trak->Media->information->scalableDataHandler = NULL;
+	}
 
 	if (movie->moov->iods && movie->moov->iods->descriptor) {
 		GF_Descriptor *desc;
@@ -4312,7 +4333,6 @@ GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, u8 *
 	gf_bs_get_content(bs, output, output_size);
 	gf_bs_del(bs);
 	return GF_OK;
-
 }
 
 
@@ -4328,7 +4348,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	GF_Err e;
 	GF_SampleTableBox *stbl=NULL, *stbl_temp=NULL;
 	GF_SampleEncryptionBox *senc=NULL;
-
 
 	e = gf_isom_can_access_movie(dest_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -4522,11 +4541,10 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	if (dest_file->moov->mvhd->nextTrackID <= new_tk->Header->trackID)
 		dest_file->moov->mvhd->nextTrackID = new_tk->Header->trackID+1;
 
-        /*if it contains IAMF, add the iamf brand to ftyp*/
-        if (gf_isom_get_media_subtype(dest_file, new_tk->Header->trackID, 1) == GF_ISOM_SUBTYPE_IAMF) {
-                gf_isom_modify_alternate_brand(dest_file, GF_ISOM_BRAND_IAMF, GF_TRUE);
-
-        }
+	/*if it contains IAMF, add the iamf brand to ftyp*/
+	if (gf_isom_get_media_subtype(dest_file, new_tk->Header->trackID, 1) == GF_ISOM_SUBTYPE_IAMF) {
+		gf_isom_modify_alternate_brand(dest_file, GF_ISOM_BRAND_IAMF, GF_TRUE);
+	}
 
 	return GF_OK;
 }
@@ -7422,7 +7440,7 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 		void *sgde_dst = gf_list_get(sgdesc->group_descriptions, k);
 		if (gf_isom_is_identical_sgpd(entry, sgde_dst, sgdesc->grouping_type)) {
 			if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = k+1;
-			sgpd_del_entry(sgdesc->grouping_type, entry);
+			sgpd_del_entry(sgdesc->grouping_type, entry, sgdesc->is_opaque);
 			if (use_default) {
 				u32 idx = k+1;
 				if (is_traf_sgpd && *is_traf_sgpd) idx |= 0x10000;
@@ -7440,7 +7458,7 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 
 	e = gf_list_add(sgdesc->group_descriptions, entry);
 	if (e) {
-		sgpd_del_entry(sgdesc->grouping_type, entry);
+		sgpd_del_entry(sgdesc->grouping_type, entry, sgdesc->is_opaque);
 		return e;
 	}
 
@@ -7673,6 +7691,7 @@ GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, 
 	return gf_isom_add_sample_group_entry(groupList, sample_number, sgdesc, grouping_type_parameter, sampleGroupDescriptionIndex, trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable);
 }
 
+
 void *sg_rap_create_entry(void *udta)
 {
 	GF_VisualRandomAccessEntry *entry;
@@ -7701,6 +7720,31 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_num
 GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples)
 {
 	return gf_isom_set_sample_group_info_internal(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_RAP, 0, &num_leading_samples, is_rap ? sg_rap_create_entry : NULL, is_rap ? sg_rap_compare_entry : NULL);
+}
+
+
+void *sg_av1s_create_entry(void *udta)
+{
+	GF_AV1SwitchingEntry *entry;
+	GF_SAFEALLOC(entry, GF_AV1SwitchingEntry);
+	if (!entry) return NULL;
+	return entry;
+}
+
+Bool sg_av1s_compare_entry(void *udta, void *entry)
+{
+	return GF_TRUE;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_sample_av1_switch_frame_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool is_switch_Frame)
+{
+	return gf_isom_set_sample_group_info_internal(movie, track, 0, sample_number, GF_ISOM_SAMPLE_GROUP_AV1S, 0, NULL, is_switch_Frame ? sg_av1s_create_entry : NULL, is_switch_Frame ? sg_av1s_compare_entry : NULL);
+}
+
+GF_Err gf_isom_fragment_set_sample_av1_switch_frame_group(GF_ISOFile *movie, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_switch_Frame)
+{
+	return gf_isom_set_sample_group_info_internal(movie, 0, trackID, sample_number_in_frag, GF_ISOM_SAMPLE_GROUP_AV1S, 0, NULL, is_switch_Frame ? sg_av1s_create_entry : NULL, is_switch_Frame ? sg_av1s_compare_entry : NULL);
 }
 
 

@@ -877,11 +877,11 @@ apan=audio pan in percent, 50 is no pan
 apan_crc=485972319
 async=audio resynchronization; if disabled, audio data is never dropped but may get out of sync
 async_crc=3135160244
-buf=playout buffer in ms. Overriden by BufferLenth property of input pid
+buf=playout buffer in ms. Overridden by BufferLenth property of input pid
 buf_crc=2203983687
-rbuf=rebuffer trigger in ms. Overriden by RebufferLenth property of input pid
+rbuf=rebuffer trigger in ms. Overridden by RebufferLenth property of input pid
 rbuf_crc=271064352
-mbuf=max buffer in ms (must be greater than playout buffer). Overriden by BufferMaxOccupancy property of input pid
+mbuf=max buffer in ms (must be greater than playout buffer). Overridden by BufferMaxOccupancy property of input pid
 mbuf_crc=4276787499
 ogl=specifies 2D rendering mode. When on, this will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not look as nice as 2D mode. In hybrid mode, the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).
 ogl_crc=3373719114
@@ -1797,8 +1797,8 @@ desc_crc=869983974
 help=@GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.
 For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.
 Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in program with service ID indicated by sid option
-name option is overriden by input PID property ServiceName
-provider option is overriden by input PID property ServiceProvider
+name option is overridden by input PID property ServiceName
+provider option is overridden by input PID property ServiceProvider
 
 The temi option allows specifying a list of URLs or timeline IDs to insert in the program.
 Only a single TEMI timeline can be specified per PID.
@@ -1831,7 +1831,7 @@ pmt_version=sets version number of the PMT
 pmt_version_crc=4041161259
 disc=sets the discontinuity marker for the first packet of each stream
 disc_crc=2802223434
-repeat_rate=interval in ms between two carousel send for MPEG-4 systems. Is overriden by carousel duration PID property if defined
+repeat_rate=interval in ms between two carousel send for MPEG-4 systems. Is overridden by carousel duration PID property if defined
 repeat_rate_crc=468619753
 repeat_img=interval in ms between resending (as PES) of single-image streams. If 0, image data is sent once only
 repeat_img_crc=2366709629
@@ -1910,7 +1910,7 @@ To assign PIDs into periods and adaptation sets and configure the session, the d
 	Template: overrides dasher template for this PID
 	DashDur: overrides dasher segment duration for this PID
 	StartNumber: sets the start number for the first segment in the PID, default is 1
-	Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).
+	Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 	EX src=test.mp4:#Bitrate=1M dst=test.mpd
 This will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate
 	EX src=muxav.mp4 dst=test.mpd

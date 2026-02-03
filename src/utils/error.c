@@ -31,7 +31,7 @@
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
 static char szTYPE_BUF[NB_4CC_BUF][GF_4CC_MSIZE];
-static u32 buf_4cc_idx = NB_4CC_BUF;
+static u32 buf_4cc_idx = 0;
 
 GF_EXPORT
 const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
@@ -58,7 +58,7 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 			} else {
 				szTmp[0] = 0xc3;
 				if (gf_utf8_is_legal(szTmp, 2)) {
-					name[0] = 0xc2;
+					name[0] = 0xc3;
 					name[1] = ch;
 					name+=2;
 				} else {
@@ -80,10 +80,16 @@ GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	if (!type) return "00000000";
-	if (safe_int_dec(&buf_4cc_idx)==0)
-		buf_4cc_idx=NB_4CC_BUF;
 
-	return gf_4cc_to_str_safe(type, szTYPE_BUF[buf_4cc_idx-1]);
+	// we get the value *before* the increment insuring that other thread get another value
+	u32 old_idx = safe_int_fetch_add(&buf_4cc_idx, 1);
+
+	// keep our specific value between 0 and NB_4CC_BUF-1
+	// we might have an issue when buf_4cc_idx > INT_MAX since our atomics cast to int
+	// when it gets > UINT_MAX it should just wrap around and be ok
+	u32 buffer_index = old_idx % NB_4CC_BUF;
+
+	return gf_4cc_to_str_safe(type, szTYPE_BUF[buffer_index]);
 }
 
 
@@ -790,6 +796,7 @@ Bool gpac_log_utc_time = GF_FALSE;
 Bool gpac_log_dual = GF_FALSE;
 Bool last_log_is_lf = GF_TRUE;
 static u64 gpac_last_log_time=0;
+Bool gpac_use_logx = GF_FALSE;
 
 static void do_log_time(FILE *logs, const char *fmt)
 {
@@ -881,6 +888,105 @@ static Bool log_exit_on_error = GF_FALSE;
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 Bool gpac_log_console = GF_FALSE;
 #endif
+static GF_List *logs_thread_tags = NULL;
+
+typedef struct
+{
+	u32 th_id;
+	Bool tagged;
+	u32 type;
+	void *udta;
+} GF_LogThreadTag;
+
+void gf_logs_init()
+{
+	logs_thread_tags = gf_list_new();
+}
+
+void gf_logs_close()
+{
+	if (gpac_log_file) {
+		gf_fclose(gpac_log_file);
+		gpac_log_file = NULL;
+	}
+	while (gf_list_count(logs_thread_tags)) {
+		GF_LogThreadTag *tag = gf_list_pop_back(logs_thread_tags);
+		gf_free(tag);
+	}
+	gf_list_del(logs_thread_tags);
+}
+
+static void gf_logs_set_thread_tag_internal(void *tag_val, u32 tag_type, Bool is_tag, Bool is_rem)
+{
+	if (!is_rem && !gpac_use_logx && (tag_type>1))
+		return;
+
+	if (!logs_thread_tags)
+		return;
+
+	gf_mx_p(logs_mx);
+	u32 i, count = gf_list_count(logs_thread_tags);
+	GF_LogThreadTag *tag = NULL;
+	for (i=0;i<count;i++) {
+		tag = gf_list_get(logs_thread_tags, i);
+		if (tag->udta == tag_val) {
+			if (is_rem) {
+				gf_list_rem(logs_thread_tags, i);
+				gf_free(tag);
+				gf_mx_v(logs_mx);
+				return;
+			}
+			break;
+		}
+		tag = NULL;
+	}
+	if (is_rem) return;
+
+	if (!tag) {
+		GF_SAFEALLOC(tag, GF_LogThreadTag)
+		tag->udta = tag_val;
+		gf_list_add(logs_thread_tags, tag);
+	}
+	gf_mx_v(logs_mx);
+	tag->tagged = is_tag;
+	tag->type = tag_type;
+	tag->th_id = gf_th_id();
+}
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type)
+{
+	gf_logs_set_thread_tag_internal(tag_val, tag_type, GF_TRUE, GF_FALSE);
+}
+void gf_logs_thread_untag(void *tag_val)
+{
+	gf_logs_set_thread_tag_internal(tag_val, 0, GF_FALSE, GF_FALSE);
+}
+void gf_logs_thread_tag_del(void *tag_val)
+{
+	gf_logs_set_thread_tag_internal(tag_val, 0, GF_FALSE, GF_TRUE);
+}
+
+
+void *gf_logs_get_thread_tag(u32 *tag_type, u32 *o_th_id)
+{
+	u32 th_id = gf_th_id();
+	u32 i, count = gf_list_count(logs_thread_tags);
+	GF_LogThreadTag *highest_tag = NULL;
+	for (i=0; i<count; i++) {
+		GF_LogThreadTag *tag = gf_list_get(logs_thread_tags, i);
+		if (tag->tagged && (tag->th_id == th_id)) {
+			if (!highest_tag || (highest_tag->type < tag->type))
+				highest_tag = tag;
+		}
+	}
+	*o_th_id = th_id;
+	if (highest_tag) {
+		*tag_type = highest_tag->type;
+		return highest_tag->udta;
+	}
+	*tag_type = 0;
+	return NULL;
+}
 
 GF_EXPORT
 Bool gf_log_use_color()
@@ -889,6 +995,7 @@ Bool gf_log_use_color()
 }
 
 static Bool in_log_callback = GF_FALSE;
+
 
 GF_EXPORT
 void gf_log(const char *fmt, ...)
@@ -926,7 +1033,15 @@ void gf_log(const char *fmt, ...)
 GF_EXPORT
 void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vl)
 {
-	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	gf_mx_p(logs_mx);
+	//don't allow GF_LOG to be called from GF_LOG this will likely throw infinite recursion
+	if (!in_log_callback) {
+		in_log_callback = GF_TRUE;
+		log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+		in_log_callback = GF_FALSE;
+	}
+	gf_mx_v(logs_mx);
+
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
 	}
@@ -972,6 +1087,11 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 }
 
 #else
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type){}
+void gf_logs_thread_untag(void *tag_val){}
+void gf_logs_thread_tag_del(void *tag_val){}
+
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {

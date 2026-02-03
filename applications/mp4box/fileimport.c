@@ -82,7 +82,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		size = gf_base64_decode((u8 *)src, size, data, size);
 	} else if (is_string) {
 		data = (u8 *) src;
-		size = (u32) strlen(src)+1;
+		size = (u32) strlen(src);
 		is_box_array = 0;
 	} else {
 		GF_Err e = gf_file_load_data(src, (u8 **) &data, &size);
@@ -242,7 +242,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 	fprintf(stderr, "\n");
 
 	if (!found && track_id->ID_or_num) {
-		M4_LOG(GF_LOG_ERROR, ("Cannot find track %d in file\n", track_id->ID_or_num));
+		M4_LOG(GF_LOG_ERROR, ("Cannot find track %u in file\n", track_id->ID_or_num));
 		return GF_BAD_PARAM;
 	}
 	M4_LOG(GF_LOG_INFO, ("For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName)));
@@ -1251,6 +1251,8 @@ reparse_opts:
 			char *mode = ext+9;
 			if (!stricmp(mode, "v0-bs"))
 				import->asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS;
+			else if (!stricmp(mode, "v0-s"))
+				import->asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT;
 			else if (!stricmp(mode, "v0-2"))
 				import->asemode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2;
 			else if (!stricmp(mode, "v1"))

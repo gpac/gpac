@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -391,6 +391,7 @@ typedef struct _dash_stream
 	//0: not done, 1: eos/abort, 2: subdur exceeded
 	u32 done;
 	Bool seg_done;
+	Bool removed;
 
 	u32 nb_comp, nb_comp_done;
 
@@ -1001,7 +1002,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (ctx->next_period)
 				gf_list_del_item(ctx->next_period->streams, ds);
 			dasher_reset_stream(filter, ds, GF_TRUE);
-			gf_free(ds);
+			//do not free here !
 		}
 		return GF_OK;
 	}
@@ -1259,9 +1260,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #define CHECK_PROP_PROP(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
-	if (p != _mem) period_switch = GF_TRUE;\
+	if (p && _mem && !gf_props_equal(p, _mem)) period_switch = GF_TRUE;\
+	else if (!p && _mem) period_switch = GF_TRUE; \
+	else if (p && !_mem) period_switch = GF_TRUE; \
 	_mem = p; \
-
 
 	prev_stream_type = ds->stream_type;
 	CHECK_PROP(GF_PROP_PID_STREAM_TYPE, ds->stream_type, GF_NOT_SUPPORTED)
@@ -1296,7 +1298,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		if (!ds->timescale) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Dasher] Input PID %s has no timescale, cannot dash\n", gf_filter_pid_get_name(pid) ));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			return GF_FILTER_NOT_SUPPORTED;
 		}
 
 		if (ds->stream_type==GF_STREAM_VISUAL) {
@@ -5961,6 +5963,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 {
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
 	//removing it explicitly will discard the upper chain and any packets not yet processed
+	if (ds->removed) return;
 
 	ds->dst_filter = NULL;
 	if (ds->seg_template) gf_free(ds->seg_template);
@@ -6007,7 +6010,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 #ifndef GPAC_DISABLE_CRYPTO
 		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
 #endif
-
+		ds->removed = GF_TRUE;
 		return;
 	}
 	ds->init_seg = ds->seg_template = ds->idx_template = NULL;
@@ -7011,7 +7014,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->period_not_ready)
 		return GF_OK;
 
-	return dasher_setup_period(filter, ctx, NULL);
+	GF_Err e = dasher_setup_period(filter, ctx, NULL);
+	//update previous period duration and current period start now, otherwise we may have a wrong AST on the first segment(s)
+	//hence warnings and possible remove
+	dasher_update_period_duration(ctx, GF_TRUE);
+	return e;
 }
 
 //set SSR (sub-segment representation) related descriptors
@@ -8167,7 +8174,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		//store max duration in period at end of segment
 		ds->max_period_dur = ds->current_max_period_dur;
 
-		if (ctx->do_m3u8) {
+		if (ctx->do_m3u8 && !(ds->stream_type == GF_STREAM_TEXT && ctx->rawsub)) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
 				s64 diff = gf_timestamp_rescale(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, 1000);
@@ -9394,6 +9401,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
+
 			u64 ts = gf_filter_pck_get_cts(pck);
 			if (ts != GF_FILTER_NO_TS) {
 				//only adjust if delay is negative (skip), otherwise (delay) keep min ts as is.
@@ -9452,6 +9460,19 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (!ds->request_period_switch) {
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
+
+				if (ds->removed) {
+					gf_list_rem(ctx->current_period->streams, i);
+					if (ds->ipid)
+						gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+					if (ds->opid)
+						gf_filter_pid_set_eos(ds->opid);
+					gf_free(ds);
+					i--;
+					count--;
+					break;
+				}
+
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
 					//in closest mode, flush queue
@@ -9608,6 +9629,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 					ds->seg_done = GF_TRUE;
 					force_flush_manifest = GF_TRUE;
 					ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
+					if ((ds->stream_type==GF_STREAM_TEXT) && !ds->muxed_base && (ds->first_cts_in_next_seg == ds->first_cts_in_seg)) {
+						u64 segdur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+						if (segdur) ds->first_cts_in_next_seg = ds->first_cts_in_seg + segdur;
+					}
 					ds->est_first_cts_in_next_seg = 0;
 					if (base_ds->nb_comp_done < base_ds->nb_comp) {
 						base_ds->nb_comp_done ++;
@@ -9824,6 +9849,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
+			if (dur > 600 * ds->timescale) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Packet with suspicious duration %g seconds, clamping to 10 min!\n", ((Double)o_dur)/ds->timescale ));
+				dur = o_dur = ds->timescale;
+			}
 			pcont_cts += dur;
 			if (ds->period_continuity_next_cts < pcont_cts)
 				ds->period_continuity_next_cts = pcont_cts;
@@ -10022,8 +10051,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 
 				if (is_cue_split) {
-					if (!sap_type) {
-						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not RAP !\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
+					Bool switch_frame = gf_filter_pck_get_switch_frame(pck);
+					if (!sap_type && !switch_frame) {
+						GF_LOG(ctx->strict_cues ?  GF_LOG_ERROR : GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] cue found (sn %d - dts "LLD" - cts "LLD") for PID %s but packet %d is not a RAP nor a switch frame!\n", cue->sample_num, cue->dts, cue->cts, gf_filter_pid_get_name(ds->ipid), ds->nb_pck));
 						if (ctx->strict_cues) {
 							gf_filter_pid_drop_packet(ds->ipid);
 							gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
@@ -10053,7 +10083,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 						else
 							ds->set->starts_with_sap = sap_type;
 					}
-
 
 					seg_over = GF_TRUE;
 					if (ds == base_ds) {
@@ -11494,7 +11523,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_preload_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overriden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overridden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
 	"- no: do not use absolute URL\n"

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -4884,6 +4884,23 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *parent_url, u32 *base_
 	return parent_url;
 }
 
+Bool gf_mpd_check_print_format(const char *print_fmt)
+{
+	if (!print_fmt) return GF_FALSE;
+	if (!print_fmt[0]) return GF_FALSE;
+
+	char *fmt = strchr(print_fmt, '%');
+	if (!fmt) return GF_FALSE;
+	fmt++;
+	while (fmt[0] && (fmt[0] >= '0') && (fmt[0] <= '9'))
+		fmt++;
+	if (strchr("duioxX", fmt[0]) == NULL)
+		return GF_FALSE;
+	if (fmt[1])
+		return GF_FALSE;
+	return GF_TRUE;
+}
+
 GF_EXPORT
 GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv, u32 *out_start_number, s32 subseg_index)
 {
@@ -5182,10 +5199,15 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		format_tag = strchr(first_sep+1, '%');
 
 		if (format_tag) {
+			if (!gf_mpd_check_print_format(format_tag)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Invalid format %s on representation - cannot solve template\n\n", format_tag));
+				gf_free(url);
+				gf_free(solved_template);
+				second_sep[0] = '$';
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			strcpy(szPrintFormat, format_tag);
 			format_tag[0] = 0;
-			if (!strchr(szPrintFormat, 'd') && !strchr(szPrintFormat, 'i')  && !strchr(szPrintFormat, 'u'))
-				strcat(szPrintFormat, "d");
 		} else {
 			strcpy(szPrintFormat, "%d");
 		}
@@ -5945,7 +5967,9 @@ GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default
 				char *sep = strchr(seg_rad_name+char_template, '$');	\
 				if (sep) {	\
 					sep[0] = 0;	\
-					strcpy(szFmt, seg_rad_name+char_template);	\
+					if (gf_mpd_check_print_format(seg_rad_name+char_template)) {\
+						strcpy(szFmt, seg_rad_name+char_template);	\
+					}\
 					char_template += (u32) strlen(seg_rad_name+char_template);	\
 					sep[0] = '$';	\
 				}	\
@@ -6429,7 +6453,8 @@ char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32
 	if (sep_fmt) {
 		char *final = strchr(sep_fmt, '$');
 		if (final) final[0] = 0;
-		sprintf(szTmp, sep_fmt, part_idx);
+		if (gf_mpd_check_print_format(sep_fmt))
+			sprintf(szTmp, sep_fmt, part_idx);
 		if (final) final[0] = '$';
 	}
 	gf_dynstrcat(&res, szTmp, NULL);

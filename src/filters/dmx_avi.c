@@ -606,7 +606,7 @@ restart:
 				pc = (u32) ( file_offset * 100  / ctx->file_size);
 			}
 
-			if (st->audio_bps) {
+			if (st->audio_bps && st->nb_channels && (size < GF_INT_MAX/8)) {
 				u32 nb_samples = (8*size) / (st->audio_bps * st->nb_channels);
 				gf_filter_pck_set_cts(dst_pck, st->audio_ts);
 				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);

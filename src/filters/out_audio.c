@@ -179,6 +179,8 @@ u32 aout_th_proc(void *p)
 {
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) p;
 
+	gf_filter_log_tag(ctx->filter, GF_FALSE);
+
 	ctx->audio_th_state = 1;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOut] Entering audio thread ID %d\n", gf_th_id() ));
@@ -195,6 +197,7 @@ u32 aout_th_proc(void *p)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[AudioOut] Exiting audio thread\n"));
 	ctx->audio_out->Shutdown(ctx->audio_out);
 	ctx->audio_th_state = 3;
+	gf_filter_log_tag(ctx->filter, GF_TRUE);
 	return 0;
 }
 #endif
@@ -215,6 +218,8 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 	if (!ctx->pid || ctx->aborted) return 0;
 	if (!ctx->speed) return 0;
 
+	gf_filter_log_tag(ctx->filter, GF_FALSE);
+
 	if (ctx->do_seek) {
 		GF_FilterEvent evt;
 
@@ -231,7 +236,8 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		ctx->do_seek = GF_FALSE;
 		ctx->pck_offset = 0;
 		ctx->last_cts = 0;
-		return 0;
+
+		goto err_empty;
 	}
 
 
@@ -251,20 +257,22 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			//pid may be set to NULL if removed
 			if (!ctx->pid || gf_filter_pid_is_eos(ctx->pid))
 				ctx->is_eos = GF_TRUE;
-			return 0;
+
+			goto err_empty;
 		}
 
 		if (! gf_filter_pck_is_blocking_ref(pck) && !gf_filter_pid_has_seen_eos(ctx->pid) ) {
-			if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
-				return 0;
+			if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid)) {
+				goto err_empty;
+			}
 			gf_filter_pck_get_data(pck, &size);
 			if (!size) {
-				gf_filter_pid_drop_packet(ctx->pid);
-				return 0;
+				goto err_empty;
 			}
 			//check the decoder output is full (avoids initial underrun)
-			if (gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE)==0)
-				return 0;
+			if (gf_filter_pid_query_buffer_duration(ctx->pid, GF_TRUE)==0) {
+				goto err_empty;
+			}
 		}
 		ctx->buffer_done = GF_TRUE;
 		if (ctx->rebuffer) {
@@ -279,7 +287,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
 			ctx->rebuffer = gf_sys_clock_high_res();
 			ctx->buffer_done = GF_FALSE;
-			return GF_OK;
+			goto err_empty;
 		}
 #ifndef GPAC_DISABLE_LOG
 	} else if (gf_log_tool_level_on(GF_LOG_MMIO, GF_LOG_DEBUG)) {
@@ -305,10 +313,12 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			} else if (!is_first_pck) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer underflow\n"));
 			}
+			gf_filter_log_tag(ctx->filter, GF_TRUE);
 			return done;
 		}
 		ctx->is_eos = GF_FALSE;
 		if (ctx->needs_recfg) {
+			gf_filter_log_tag(ctx->filter, GF_TRUE);
 			return done;
 		}
 
@@ -342,7 +352,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				diff = gf_timestamp_rescale(diff, ctx->timescale, 1000000);
 				if (now < ctx->last_clock + diff) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Frame too early by "LLU" us\n", ctx->last_clock + diff - now));
-					return 0;
+					goto err_empty;
 				}
 			}
 		}
@@ -360,6 +370,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 
 					ctx->aborted = GF_TRUE;
 				}
+				gf_filter_log_tag(ctx->filter, GF_TRUE);
 				return done;
 			}
 		}
@@ -406,14 +417,20 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			is_first_pck = GF_FALSE;
 			if (nb_copy + ctx->pck_offset < size) {
 				ctx->pck_offset += nb_copy;
+				gf_filter_log_tag(ctx->filter, GF_TRUE);
 				return done;
 			}
-			ctx->last_cts += (size / ctx->bytes_per_sample) * ctx->sr;
+			ctx->last_cts += gf_timestamp_rescale(size / ctx->bytes_per_sample, ctx->sr, ctx->timescale);
 			ctx->pck_offset = 0;
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
 	}
+	gf_filter_log_tag(ctx->filter, GF_TRUE);
 	return done;
+
+err_empty:
+	gf_filter_log_tag(ctx->filter, GF_TRUE);
+	return 0;
 }
 
 void aout_set_priority(GF_AudioOutCtx *ctx, u32 prio)

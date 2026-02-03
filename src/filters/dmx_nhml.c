@@ -1582,13 +1582,24 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						append = GF_TRUE;
 				} else {
 					u32 read;
-					if (ctx->samp_buffer_alloc < ctx->samp_buffer_size + 1) {
-						ctx->samp_buffer_alloc = ctx->samp_buffer_size + 1;
-						ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
+					if (ctx->samp_buffer_size >= GF_UINT_MAX-1) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to read sample %d: invalid size %u\n", ctx->sample_num, ctx->samp_buffer_size));
+						e = GF_NON_COMPLIANT_BITSTREAM;
 					}
-					read = (u32) gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, f);
-					if (ctx->samp_buffer_size != read) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
+					else {
+						if (ctx->samp_buffer_alloc < ctx->samp_buffer_size + 1) {
+							ctx->samp_buffer_alloc = ctx->samp_buffer_size + 1;
+							ctx->samp_buffer = (char*)gf_realloc(ctx->samp_buffer, sizeof(char)*ctx->samp_buffer_alloc);
+						}
+						if (ctx->samp_buffer) {
+							read = (u32) gf_fread(ctx->samp_buffer, ctx->samp_buffer_size, f);
+							if (ctx->samp_buffer_size != read) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
+							}
+						}
+						else {
+							e = GF_NON_COMPLIANT_BITSTREAM;
+						}
 					}
 				}
 			} else {
@@ -1767,7 +1778,10 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 
 	if (ctx->parsing_state == 0) {
 		e = nhmldmx_init_parsing(filter, ctx);
-		if (e) goto eos;
+		if (e) {
+			gf_filter_abort(filter);
+			goto eos;
+		}
 		ctx->parsing_state = 1;
 	}
 

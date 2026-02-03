@@ -515,6 +515,7 @@ struct __tag_mutex
 	u32 HolderCount;
 #ifndef GPAC_DISABLE_LOG
 	char *log_name;
+	Bool nolog;
 #endif
 };
 
@@ -609,6 +610,14 @@ retry:
 	gf_free(mx);
 }
 
+void gf_mx_toggle_log(GF_Mutex *mx, Bool nolog)
+{
+#ifndef GPAC_DISABLE_LOG
+	if (mx)
+		mx->nolog = nolog;
+#endif
+}
+
 GF_EXPORT
 void gf_mx_v(GF_Mutex *mx)
 {
@@ -625,35 +634,38 @@ void gf_mx_v(GF_Mutex *mx)
 	mx->HolderCount -= 1;
 
 	if (mx->HolderCount == 0) {
-#ifndef GPAC_DISABLE_LOG
-		if (mx->log_name) {
-			char szName[100];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Released by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder, szName) ));
-		}
-#endif
 		mx->Holder = 0;
+		gf_fatal_assert(mx->HolderCount == 0);
 #ifdef WIN32
 		{
 			BOOL ret = ReleaseMutex(mx->hMutex);
 			if (!ret) {
 #ifndef GPAC_DISABLE_LOG
-				if (mx->log_name) {
+				if (mx->log_name && !mx->nolog) {
 					char szName[100];
 					DWORD err = GetLastError();
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s, error %d)\n", log_th_name(mx->Holder, szName), err));
 				}
 #endif
-
+				return;
 			}
 		}
 #else
 		if (pthread_mutex_unlock(&mx->hMutex)) {
 #ifndef GPAC_DISABLE_LOG
-			if (mx->log_name) {
+			if (mx->log_name && !mx->nolog) {
 				char szName[100];
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s)\n", log_th_name(mx->Holder, szName)));
 			}
 #endif
+			return;
+		}
+#endif
+
+#ifndef GPAC_DISABLE_LOG
+		if (mx->log_name && !mx->nolog) {
+			char szName[100];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Released by thread %s (hcount %u)\n", mx->log_name, log_th_name(mx->Holder, szName), mx->HolderCount ));
 		}
 #endif
 	}
@@ -673,15 +685,17 @@ u32 gf_mx_p(GF_Mutex *mx)
 	if (!mx) return 1;
 	caller = gf_th_id();
 	if (caller == mx->Holder) {
+		gf_fatal_assert(mx->HolderCount > 0);
+		gf_fatal_assert(mx->Holder);
 		mx->HolderCount += 1;
 		return 1;
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (mx->Holder && mx->log_name) {
+	if (mx->Holder && mx->log_name && !mx->nolog) {
 		char szName[100];
 		mx_holder_name = mx->Holder ? log_th_name(mx->Holder, szName) : "none";
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Thread %s waiting a release from thread %s (hcount %d)\n", mx->log_name, gf_sys_clock(), log_th_name(caller, szName), mx_holder_name, mx->HolderCount ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Thread %s waiting a release from thread %s (hcount %d)\n", mx->log_name, log_th_name(caller, szName), mx_holder_name, mx->HolderCount ));
 	}
 #endif
 
@@ -712,12 +726,15 @@ u32 gf_mx_p(GF_Mutex *mx)
 		return 0;
 	}
 #endif /* NOT WIN32 */
-	mx->Holder = caller;
+	gf_assert(mx->Holder == 0);
+	gf_assert(mx->HolderCount == 0);
 	mx->HolderCount = 1;
+	mx->Holder = caller;
+	gf_fatal_assert(mx->Holder);
 #ifndef GPAC_DISABLE_LOG
-	if (mx->log_name) {
+	if (mx->log_name && !mx->nolog) {
 		char szName[100];
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder, szName) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Grabbed by thread %s\n", mx->log_name, log_th_name(mx->Holder, szName) ));
 	}
 #endif
 	return 1;
@@ -740,12 +757,18 @@ GF_EXPORT
 Bool gf_mx_try_lock(GF_Mutex *mx)
 {
 	u32 caller;
-	if (!mx) return GF_TRUE;
+	if (!mx) {
+		return GF_TRUE;
+	}
 	caller = gf_th_id();
 	if (caller == mx->Holder) {
+		gf_fatal_assert(mx->HolderCount > 0);
+		gf_fatal_assert(mx->Holder);
 		mx->HolderCount += 1;
 		return GF_TRUE;
 	}
+
+	//DO NOT LOG ANYTHING BEFORE RELEASING, this will break logging with mutex@debug in JS where we use try_lock
 
 #ifdef WIN32
 	/*is the object signaled?*/
@@ -765,9 +788,9 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 #ifndef GPAC_DISABLE_LOG
 		if (mx->log_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] At %d WaitForSingleObject failed\n", mx->log_name, gf_sys_clock()));
-			return GF_FALSE;
 		}
 #endif
+		return GF_FALSE;
 	default:
 		gf_assert(0);
 		return GF_FALSE;
@@ -777,18 +800,22 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 #ifndef GPAC_DISABLE_LOG
 		if (mx->log_name) {
 			char szName1[100], szName2[100];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller, szName1), log_th_name(mx->Holder, szName2) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, log_th_name(caller, szName1), log_th_name(mx->Holder, szName2) ));
 		}
 #endif
 		return GF_FALSE;
 	}
 #endif
-	mx->Holder = caller;
+	gf_assert(mx->Holder == 0);
+	gf_assert(mx->HolderCount == 0);
 	mx->HolderCount = 1;
+	mx->Holder = caller;
+	gf_assert(mx->Holder);
+	gf_assert(mx->HolderCount);
 #ifndef GPAC_DISABLE_LOG
 	if (mx->log_name) {
 		char szName[100];
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder, szName) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] Grabbed by thread %s\n", mx->log_name, log_th_name(mx->Holder, szName) ));
 	}
 #endif
 	return GF_TRUE;

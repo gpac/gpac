@@ -250,7 +250,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 
 		if (!value && !enum_values) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			//patch for ka option, used as Bool in pin/sockin/... but as enum in flist, triggering this error when piping playlist
+			//fortunately in pipe mode of playlist, flist.ka is not used
+			if (strcmp(name, "ka")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			}
 			p.value.uint = 0;
 			break;
 		}
@@ -913,10 +917,12 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 	}
 	return GF_FALSE;
 }
+GF_EXPORT
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_FALSE);
 }
+GF_EXPORT
 Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_TRUE);

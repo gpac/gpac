@@ -242,6 +242,9 @@ static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st, Bool do_fre
 	st->split_pck = NULL;
 	if (st->reinsert_single_pck) gf_filter_pck_unref(st->reinsert_single_pck);
 	st->reinsert_single_pck = NULL;
+	if (ctx->clock == st)
+		ctx->clock = NULL;
+
 	if (do_free)
 		gf_free(st);
 }
@@ -830,12 +833,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				do_send = GF_TRUE;
 			}
 			//ahead of clock, signal first time we see this
-			else if (st->cts_us_at_init != cts_us+1) {
+			else if (ctx->nb_align_pending && st->cts_us_at_init != cts_us+1) {
 				//remember last cts
 				st->cts_us_at_init = cts_us+1;
-				gf_assert(ctx->nb_align_pending);
 				ctx->nb_align_pending--;
-				//elect as clock for next regulation period if less than next align time
+				//select as clock for next regulation period if less than next align time
 				if (!ctx->next_cts_align || (cts_us < ctx->next_cts_align-1))
 					ctx->next_cts_align = cts_us+1;
 			}
@@ -2901,6 +2903,17 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	if (ctx->speed != 0)
 		ctx->rt_speed = ctx->speed;
 
+	if ((ctx->xs.nb_items==0) && (ctx->xe.nb_items)) {
+		if (ctx->xe.nb_items==1) {
+			ctx->xs.nb_items = 1;
+			ctx->xs.vals = gf_malloc(sizeof(char *));
+			ctx->xs.vals[0] = gf_strdup("0");
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] Multiple `xe` set but no `xs`, cannot extract range\n"));
+			return GF_BAD_PARAM;
+		}
+	}
+
 	reframer_load_range(ctx);
 
 	if (ctx->utc_ref==UTCREF_TC) {
@@ -3051,7 +3064,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(frames), "drop all except listed frames (first being 1). A negative value `-V` keeps only first frame every `V` frames", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(xs), "extraction start time(s)", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(xs), "extraction start time(s). If not set and an extraction end time is set, 0 is used", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xround), "adjust start time of extraction range to I-frame\n"
 	"- before: use first I-frame preceding or matching range start\n"

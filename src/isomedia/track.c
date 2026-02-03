@@ -699,7 +699,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			flags = def_flags;
 
 			//CTS - if flag not set (trun or ctrn) defaults to 0 which is the base value after alloc
-			//we just need to overrite its value if inherited
+			//we just need to overwrite its value if inherited
 			cts_offset = ent->CTS_Offset;
 
 #ifdef GF_ENABLE_CTRN
@@ -958,7 +958,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 							count ++;
 							new_entry = GF_FALSE;
 
-							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry);
+							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry, new_sgdesc->is_opaque);
 							break;
 						}
 					}
@@ -1747,6 +1747,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		case GF_ISOM_BOX_TYPE_AV01:
 		case GF_ISOM_BOX_TYPE_DAV1:
 		case GF_ISOM_BOX_TYPE_AV1C:
+		case GF_ISOM_BOX_TYPE_AVS3:
+		case GF_ISOM_BOX_TYPE_AV3C:
 		case GF_ISOM_BOX_TYPE_OPUS:
 		case GF_ISOM_BOX_TYPE_DOPS:
 		case GF_ISOM_BOX_TYPE_STXT:

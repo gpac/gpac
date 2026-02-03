@@ -372,6 +372,22 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_OPUS;
 			break;
+		case GF_M2TS_VIDEO_AVS2:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_AVS2_VIDEO;
+			break;
+		case GF_M2TS_AUDIO_AVS2:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AVS2_AUDIO;
+			break;
+		case GF_M2TS_VIDEO_AVS3:
+			stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_AVS3_VIDEO;
+			break;
+		case GF_M2TS_AUDIO_AVS3:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AVS3_AUDIO;
+			break;
 		case GF_M2TS_AUDIO_AC4:
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_AC4;
@@ -639,6 +655,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		dsi[3] = stream->sub.ancillary_page_id & 0xFF;
 		dsi[4] = stream->sub.type;
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(dsi, 5));
+	}
+	if (codecid == GF_CODECID_AVS3_VIDEO) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->avs3_video_descriptor, 10));
 	}
 
 	if (ctx->duration.num>1) {
@@ -911,6 +930,9 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 #endif
 	}
 
+	if (ptr-pck->data >= pck->data_len || len > (pck->data_len-(ptr-pck->data))) {
+		return;
+	}
 
 	dst_pck = gf_filter_pck_new_alloc(opid, len, &data);
 	if (!dst_pck) return;

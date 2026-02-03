@@ -520,6 +520,13 @@ refill:
 
 					//signal flush
 					if (ctx->sigflush && ctx->pid) {
+						//sigflush is ignored if not a packet reassembly is in process, we force closing the packet
+						u8 *output;
+						GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->pid, 0, &output);
+						if (pck) {
+							gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
+							gf_filter_pck_send(pck);
+						}
 						gf_filter_pid_send_flush(ctx->pid);
 					}
 					//reset for longer reschedule time

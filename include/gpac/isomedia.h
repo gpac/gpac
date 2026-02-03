@@ -247,6 +247,9 @@ enum
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/*AVS3 Video media type*/
+	GF_ISOM_SUBTYPE_AVS3 = GF_4CC('a', 'v', 's', '3'),
+
 	/*Opus media type*/
 	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
 	GF_ISOM_SUBTYPE_FLAC = GF_4CC( 'f', 'L', 'a', 'C' ),
@@ -488,6 +491,8 @@ enum
 
 
 	GF_ISOM_BRAND_AV01 = GF_4CC( 'a', 'v', '0', '1'),
+
+	GF_ISOM_BRAND_CAV3 = GF_4CC( 'c', 'a', 'v', '3'), // AVS 3 Video
 
 	GF_ISOM_BRAND_OPUS = GF_4CC( 'O', 'p', 'u', 's'),
 
@@ -2142,7 +2147,7 @@ If both dur_num and dur_den are both zero, forces last sample duration to be the
 */
 GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 dur_num, u32 dur_den);
 
-/*! patches last stts entry to make sure the cumulated duration equals the given next_dts value - this will overrite timing of all previous samples using an average dur
+/*! patches last stts entry to make sure the cumulated duration equals the given next_dts value - this will overwrite timing of all previous samples using an average dur
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param next_dts target decode time of next sample
@@ -2694,10 +2699,12 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32
 GF_OPT_ENUM (GF_AudioSampleEntryImportMode,
 	/*! use ISOBMF sample entry v0*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET = 0,
-	/*! use ISOBMF sample entry v0*/
-	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
+	/*! use ISOBMF sample entry v0 for best backward-compatibility*/
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT,
 	/*! use ISOBMF sample entry v0 and forces channel count to 2*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2,
+	/*! use ISOBMF sample entry v0 and forces values from bitstream*/
+	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS,
 	/*! use ISOBMF sample entry v1*/
 	GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG,
 	/*! use QTFF sample entry v1*/
@@ -3580,6 +3587,14 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 */
 GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
+/*! gets AVS3 Video config for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\return the AVS3 Video config - user is responsible for deleting it
+*/
+GF_AVS3VConfig *gf_isom_avs3v_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
 /*! gets DOVI config for a sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -3850,7 +3865,6 @@ GF_Err gf_isom_vvc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 */
 GF_Err gf_isom_vp_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VPConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u32 vpx_type);
 
-
 /*! creates new AV1 config
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -3861,6 +3875,18 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VPConfig
 \return error if any
 */
 GF_Err gf_isom_av1_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AV1Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! creates new AVS 3 Video config
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the AVS3 Video config for this sample description
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_avs3v_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AVS3VConfig *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
 
 /*! creates new IAMF config
 \param isom_file the target ISO file
@@ -5070,6 +5096,16 @@ GF_Err gf_isom_fragment_set_sample_roll_group(GF_ISOFile *isom_file, GF_ISOTrack
 \return error if any
 */
 GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_rap, u32 num_leading_samples);
+
+/*! sets AV1 Switching Frame information for a sample in a track fragment
+\param isom_file the target ISO file
+\param trackID the ID of the target track
+\param sample_number_in_frag the sample number of the sample in the traf
+\param is_rap set to GF_TRUE to indicate the sample is a RAP sample (open-GOP), GF_FALSE otherwise
+\param num_leading_samples set to the number of leading pictures for a RAP sample
+\return error if any
+*/
+GF_Err gf_isom_fragment_set_sample_av1_switch_frame_group(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 sample_number_in_frag, Bool is_switch_Frame);
 
 /*! sets sample dependency flags in a track fragment - see ISO/IEC 14496-12 and \ref gf_filter_pck_set_dependency_flags
 \param isom_file the target ISO file
@@ -7253,6 +7289,7 @@ enum {
 	GF_ISOM_SAMPLE_GROUP_VIPR = GF_4CC( 'v', 'i', 'p', 'r'), //p15
 	GF_ISOM_SAMPLE_GROUP_LBLI = GF_4CC( 'l', 'b', 'l', 'i'), //p15
 	GF_ISOM_SAMPLE_GROUP_3GAG = GF_4CC( '3', 'g', 'a', 'g'), //3gpp
+	GF_ISOM_SAMPLE_GROUP_AV1S = GF_4CC( 'a', 'v', '1', 's'), //av1-isobmff
 	GF_ISOM_SAMPLE_GROUP_AVCB = GF_4CC( 'a', 'v', 'c', 'b'), //avif
 	GF_ISOM_SAMPLE_GROUP_SPOR = GF_4CC( 's', 'p', 'o', 'r'), //p15
 	GF_ISOM_SAMPLE_GROUP_SULM = GF_4CC( 's', 'u', 'l', 'm'), //p15
@@ -7286,7 +7323,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \param trackNumber the target track
 \param sample_number sample number to query
 \param grouping_type four character code of grouping type of sample group description to query
-\param grouping_type_parameter  grouping type parameter of sample group description to query
+\param grouping_type_parameter grouping type parameter of sample group description to query
 \param sampleGroupDescIndex set to the 1-based sample group description index, or 0 if no sample group of this type is associated
 \return error if any
 */
@@ -7356,6 +7393,18 @@ GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \return error if any
 */
 GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool is_rap, u32 num_leading_samples);
+
+/*! sets AV1 Switching Frame info for sample_number
+\warning Sample group info MUST be added in order (no insertion in the tables)
+
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleNumber the target sample number
+\param is_rap indicates if the sample is a RAP (open gop) sample
+\param num_leading_samples indicates the number of leading samples (samples after this RAP that have dependences on samples before this RAP and hence should be discarded when tuning in)
+\return error if any
+*/
+GF_Err gf_isom_set_sample_av1_switch_frame_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool is_switch_Frame);
 
 /*! sets roll_distance info for sample_number (number of frames before (<0) or after (>0) this sample to have a complete refresh of the decoded data (used by GDR in AVC)
 

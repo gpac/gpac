@@ -71,7 +71,7 @@ void gf_isom_datamap_close(GF_MediaInformationBox *minf)
 	}
 
 	//if ent NULL, the data entry was not used (smooth)
-	if (ent == NULL) return;
+	if (ent==NULL) return;
 
 	//self contained, do nothing
 	switch (ent->type) {
@@ -532,7 +532,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 
 	if (ptr->blob) {
 		gf_mx_p(ptr->blob->mx);
-		GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, bufferLength);
+		GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, GF_TRUE, fileOffset, bufferLength);
 		if (is_corrupted) *is_corrupted = rs;
 		if (rs==GF_BLOB_RANGE_IN_TRANSFER) {
 			gf_mx_v(ptr->blob->mx);
@@ -599,7 +599,7 @@ static Bool gf_isom_fdm_check_top_level(GF_FileDataMap *ptr)
 		size = 8;
 	}
 
-	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, size);
+	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, GF_TRUE, fileOffset, size);
 	gf_mx_v(ptr->blob->mx);
 	if (rs==GF_BLOB_RANGE_IN_TRANSFER)
 		return GF_FALSE;

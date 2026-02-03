@@ -905,8 +905,9 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("ps", NULL, "same as [-ps]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("psx", NULL, "same as [-psx]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("asemode", NULL, "`XS` set the mode to create the AudioSampleEntry. Value can be:\n"
-		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
+		"  - v0-s: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2, except for Dolby (e)AC3) - default\n"
 		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
+		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream\n"
 		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("audio_roll", NULL, "`S` add a roll sample group with roll_distance `N` for audio tracks", NULL, NULL, GF_ARG_INT, 0),
@@ -929,7 +930,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("subsamples", NULL, "add SubSample information for AVC+SVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("deps", NULL, "import sample dependency information for AVC and HEVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("ccst", NULL, "`S` add default HEIF ccst box to visual sample entry", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points\n"
+	GF_DEF_ARG("forcesync", NULL, "`SE` force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("xps_inband", NULL, "`XC` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("xps_inbandx", NULL, "`XC` same as xps_inband and also keep first xPS in sample description", NULL, NULL, GF_ARG_BOOL, 0),
@@ -2185,7 +2186,8 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
 			CHECK_IMGPROP
-			strcpy(meta->image_props->iccPath, szSlot+9);
+			strncpy(meta->image_props->iccPath, szSlot+9, GF_ARRAY_LENGTH(meta->image_props->iccPath)-1);
+			meta->image_props->iccPath[GF_ARRAY_LENGTH(meta->image_props->iccPath)-1] = 0;
 		}
 		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
 			CHECK_IMGPROP
@@ -4150,13 +4152,21 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName)
 	orig_box_overhead = 0;
 	final_box_overhead = 0;
 	while (gf_bs_available(bs_in)) {
+
 		u32 size = gf_bs_read_u32(bs_in);
+
+		if (size < 8) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+
 		u32 type = gf_bs_read_u32(bs_in);
 		const char *b4cc = gf_4cc_to_str(type);
 		const u8 *replace = (const u8 *) strstr(compress_top_boxes, b4cc);
 		if (!strcmp(b4cc, "moov")) has_mov = GF_TRUE;
 
 		if (!replace && !replace_all) {
+
 			gf_bs_write_u32(bs_out, size);
 			gf_bs_write_u32(bs_out, type);
 

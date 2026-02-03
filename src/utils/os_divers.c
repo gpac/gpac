@@ -171,6 +171,7 @@ u64 gf_sys_clock_high_res()
 #endif
 
 GF_Err gf_sys_enable_rmtws(Bool start);
+GF_Err gf_sys_enable_userws(Bool start);
 
 static Bool gpac_disable_rti = GF_FALSE;
 
@@ -859,6 +860,8 @@ static Bool gpac_discard_config = GF_FALSE;
 extern FILE *gpac_log_file;
 extern Bool gpac_log_time_start;
 extern Bool gpac_log_utc_time;
+void gf_logs_init();
+void gf_logs_close();
 #endif
 
 GF_EXPORT
@@ -1163,20 +1166,33 @@ const char *gf_sys_find_global_arg(const char *arg)
 
 
 #ifndef GPAC_DISABLE_RMTWS
-RMT_WS *rmtws_handle=NULL;
+RMT_WS* rmtws_handle=NULL;
+RMT_WS* userws_handle=NULL;
 #endif
+
+GF_EXPORT
+void* gf_sys_get_rmtws() {
+#ifndef GPAC_DISABLE_RMTWS
+	return (void*)rmtws_handle;
+#else
+	return NULL;
+#endif
+}
+
+GF_EXPORT
+void* gf_sys_get_userws() {
+#ifndef GPAC_DISABLE_RMTWS
+	return (void*)userws_handle;
+#else
+	return NULL;
+#endif
+}
+
 
 GF_EXPORT
 GF_Err gf_sys_enable_rmtws(Bool start) {
 #ifndef GPAC_DISABLE_RMTWS
 	if (start && !rmtws_handle) {
-		RMT_Settings *rmcfg = gf_rmt_get_settings();
-
-		rmcfg->port = gf_opts_get_int("core", "rmt-port");
-		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "rmt-localhost");
-		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("core", "rmt-sleep");
-		rmcfg->cert = gf_opts_get_key("core", "rmt-cert");
-		rmcfg->pkey = gf_opts_get_key("core", "rmt-pkey");
 
 		rmtws_handle = rmt_ws_new();
 		if (!rmtws_handle) {
@@ -1184,11 +1200,55 @@ GF_Err gf_sys_enable_rmtws(Bool start) {
 			return GF_OUT_OF_MEM;
 		}
 
+		RMT_Settings *rmcfg = gf_rmt_get_settings(rmtws_handle);
+
+		rmcfg->port = gf_opts_get_int("core", "rmt-port");
+		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "rmt-localhost");
+		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("core", "rmt-sleep");
+		rmcfg->cert = gf_opts_get_key("core", "rmt-cert");
+		rmcfg->pkey = gf_opts_get_key("core", "rmt-pkey");
+
+		rmt_ws_run(rmtws_handle);
+
 
 	} else if (!start && rmtws_handle) {
 
 		rmt_ws_del(rmtws_handle);
 		rmtws_handle=NULL;
+
+	}
+	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_sys_enable_userws(Bool start) {
+#ifndef GPAC_DISABLE_RMTWS
+	if (start && !userws_handle) {
+
+		userws_handle = rmt_ws_new();
+		if (!userws_handle) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize RMT websocket server\n"));
+			return GF_OUT_OF_MEM;
+		}
+
+		RMT_Settings *rmcfg = gf_rmt_get_settings(userws_handle);
+
+		rmcfg->port = gf_opts_get_int("core", "userws-port");
+		rmcfg->limit_connections_to_localhost = gf_opts_get_bool("core", "userws-localhost");
+		rmcfg->msSleepBetweenServerUpdates = gf_opts_get_int("core", "userws-sleep");
+		rmcfg->cert = gf_opts_get_key("core", "userws-cert");
+		rmcfg->pkey = gf_opts_get_key("core", "userws-pkey");
+
+		rmt_ws_run(userws_handle);
+
+
+	} else if (!start && userws_handle) {
+
+		rmt_ws_del(userws_handle);
+		userws_handle=NULL;
 
 	}
 	return GF_OK;
@@ -1280,10 +1340,10 @@ GF_Blob *gf_blob_from_url(const char *blob_url)
 
 
 GF_EXPORT
-GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size)
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 size)
 {
 	if (!blob) return GF_BLOB_RANGE_CORRUPTED;
-	if (blob->range_valid) return blob->range_valid(blob, start_offset, &size);
+	if (blob->range_valid) return blob->range_valid(blob, check_when_complete, start_offset, &size);
 
 	if (blob->flags & GF_BLOB_IN_TRANSFER) return GF_BLOB_RANGE_IN_TRANSFER;
 	return GF_BLOB_RANGE_VALID;
@@ -1391,6 +1451,7 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #endif
 
 #ifndef GPAC_DISABLE_LOG
+		gf_logs_init();
 		/*by default log subsystem is initialized to error on all tools, and info on console to debug scripts*/
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 		gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
@@ -1537,6 +1598,7 @@ void gf_sys_close()
 #endif
 
 		gf_sys_enable_rmtws(GF_FALSE);
+		gf_sys_enable_userws(GF_FALSE);
 
 #ifdef GPAC_HAS_QJS
 		void gf_js_delete_runtime();
@@ -1546,10 +1608,7 @@ void gf_sys_close()
 		gf_uninit_global_config(gpac_discard_config);
 
 #ifndef GPAC_DISABLE_LOG
-		if (gpac_log_file) {
-			gf_fclose(gpac_log_file);
-			gpac_log_file = NULL;
-		}
+		gf_logs_close();
 #endif
 		if (gpac_lang_file) gf_cfg_del(gpac_lang_file);
 		gpac_lang_file = NULL;
@@ -2210,6 +2269,9 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.physical_memory = EM_ASM_INT(return HEAP8.length);
 	s_mallinfo mi = mallinfo();
 	the_rti.physical_memory_avail = the_rti.physical_memory - (unsigned int)sbrk(0) + mi.fordblks;
+#elif defined(GPAC_CONFIG_FREEBSD)
+	/* FreeBSD doesn't have /proc/meminfo, would need sysctl to get memory info */
+	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 #else
 	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 	f = gf_fopen("/proc/meminfo", "r");
@@ -3088,6 +3150,9 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
 	FILE *file = gf_fopen(file_name, "rb");
 
 	if (!file) {
+		if (!gf_file_exists(file_name))
+			return GF_URL_ERROR;
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot open file %s\n", file_name));
 		return GF_IO_ERR;
 	}

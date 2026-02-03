@@ -3515,6 +3515,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		if (frame_state->is_first_frame) {
 			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
 		}
+		if (frame_state->frame_type == AV1_SWITCH_FRAME) {
+			frame_state->switch_frame = GF_TRUE;
+		}
 		if (frame_state->show_frame && state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 			gf_bs_read_int_log(bs, state->frame_presentation_time_length, "frame_presentation_time");
 		}
@@ -8473,14 +8476,22 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	}
 	if (rps->modif_flag_l0 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l0_active; i++) {
-			u32 idx = (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0)) ? rps->modif_idx_l0[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0))
+				idx = rps->modif_idx_l0[i];
+			else if (num_poc_total)
+				idx =  i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l0))
 				gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
 		}
 	}
 	if (rps->modif_flag_l1 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l1_active; i++) {
-			u32 idx = (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1)) ? rps->modif_idx_l1[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1))
+				idx = rps->modif_idx_l1[i];
+			else if (num_poc_total)
+				idx = i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l1))
 				gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
 		}
@@ -12365,6 +12376,10 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		for (i=0; i<numQpTables; i++) {
 			gf_bs_read_se_log_idx(bs, "sps_qp_table_start_minus26", i);
 			u32 j, sps_num_points_in_qp_table = 1 + gf_bs_read_ue_log_idx(bs, "sps_num_points_in_qp_table_minus1", i);
+			if (sps_num_points_in_qp_table>36) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_points_in_qp_table too high %u\n", sps_num_points_in_qp_table));
+				VVC_SPS_BROKEN
+			}
 			for (j=0; j<sps_num_points_in_qp_table; j++) {
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_in_val_minus1", i, j);
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_diff_val", i, j);
@@ -15524,6 +15539,10 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 
 	for(i = 0; i < stream->n_presentations; i++) {
 		p = gf_list_get(stream->presentations, i);
+		if (!p) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] presentation %u/%u is NULL: ignoring\n", i, stream->n_presentations));
+			continue;
+		}
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {
@@ -15952,6 +15971,11 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 										frame_rate_index,
 										&max_group_index);
 			gf_list_add(hdr_p_list, pinfo);
+
+			if (gf_bs_is_overflow(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 		}
 
 		// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
@@ -15983,12 +16007,18 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			if (channel_count < local_channel_count) {
 				channel_count = local_channel_count;
 			}
+			if (gf_bs_is_overflow(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 		}
 
 		// write into header
 		for (i = 0; i < n_presentations; i++) {
 			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
-
+			if (p == NULL) {
+				break;
+			}
 
 			// calloc the space for GF_LIST<GF_AC4SubStreamGroupV1>
 			p->substream_groups = gf_list_new();
@@ -16046,6 +16076,9 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		// remove from temp groups that have been added elsewhere to avoid double frees
 		for (i = 0; i < n_presentations; i++) {
 			GF_AC4PresentationV1 *p = (GF_AC4PresentationV1*)gf_list_get(hdr_p_list, i);
+			if (p == NULL) {
+				break;
+			}
 			for (j=0; j < gf_list_count(p->substream_groups); j++) {
 				group = (GF_AC4SubStreamGroupV1*)gf_list_get(p->substream_groups, j);
 				if (group) {

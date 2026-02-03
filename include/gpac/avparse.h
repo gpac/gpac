@@ -154,7 +154,7 @@ void gf_m4v_parser_del(GF_M4VParser *m4v);
 void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v);
 /*! parses the decoder specific info (if found)
 \param m4v the mpeg video parser
-\param dsi the decoder spcific info structure to fill
+\param dsi the decoder specific info structure to fill
 \return GF_OK if found, GF_EOS if not enough data, error otherwise
 */
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi);
@@ -184,14 +184,14 @@ u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*! decodes DSI/VOSHeader for MPEG4
 \param rawdsi encoded MPEG-4 decoder config
 \param rawdsi_size size of encoded MPEG-4 decoder config
-\param dsi the decoder spcific info structure to fill
+\param dsi the decoder specific info structure to fill
 \return error if any
 */
 GF_Err gf_m4v_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*! decodes DSI/VOSHeader for MPEG12
 \param rawdsi encoded MPEG-1/2 decoder config
 \param rawdsi_size size of encoded MPEG-1/2 decoder config
-\param dsi the decoder spcific info structure to fill
+\param dsi the decoder specific info structure to fill
 \return error if any
 */
 GF_Err gf_mpegv12_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
@@ -875,7 +875,9 @@ typedef enum {
 	OBU_METADATA_TYPE_HDR_MDCV = 2,
 	OBU_METADATA_TYPE_SCALABILITY = 3,
 	OBU_METADATA_TYPE_ITUT_T35 = 4,
-	OBU_METADATA_TYPE_TIMECODE = 5
+	OBU_METADATA_TYPE_TIMECODE = 5,
+	OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE = 7,
+	OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE_BIS = 32, //same as 7
 } ObuMetadataType;
 
 /*! gets the name of a given OBU type

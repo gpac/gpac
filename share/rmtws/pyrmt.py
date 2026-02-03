@@ -81,6 +81,7 @@ class MyRMTHandler(gpac.RMTHandler):
                 fs.post(UpdateTask(client, full=True))
 
 
+
 filter_props_lite = ['name', 'status', 'bytes_done', 'type', 'ID', 'nb_ipid', 'nb_opid', 'idx', 'itag']
 
 def filter_to_dict(f, full=False):
@@ -171,8 +172,38 @@ class UpdateTask(gpac.FilterTask):
 
 
 rmt_handler = MyRMTHandler()
-
 gpac.set_rmt_handler(rmt_handler)
+
+##############
+
+##### USER WS #####
+
+class MyWSHandler(gpac.RMTHandler):
+
+    def __init__(self):
+        self.clients = []
+
+    def on_new_client(self, client):
+        print(f"WS new client {client} {client.peer_address()}")
+        self.clients.append(client)
+        pprint.pprint(self.clients)
+
+    def on_client_close(self, client):
+        print(f"WS del client {client} {client.peer_address()}")
+        self.clients.remove(client)
+        pprint.pprint(self.clients)
+
+    def on_client_data(self, client, data):
+        print(f"WS client {client.peer_address()} got data: {data}")
+        pprint.pprint(self.clients)
+
+        client.send("ACK")
+
+
+gpac.enable_userws()
+ws_handler = MyWSHandler()
+gpac.set_userws_handler(ws_handler)
+
 ##############
 
 

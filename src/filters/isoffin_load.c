@@ -1082,6 +1082,17 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_isom_get_tile_info(read->mov, track, stsd_idx, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
 			break;
 
+		case GF_ISOM_SUBTYPE_AVS3:
+		{
+			GF_AVS3VConfig *avs3cfg = gf_isom_avs3v_config_get(read->mov, track, stsd_idx);
+			if (avs3cfg) {
+				gf_odf_avs3v_cfg_write(avs3cfg, &dsi, &dsi_size);
+				gf_odf_avs3v_cfg_del(avs3cfg);
+			}
+			codec_id = GF_CODECID_AVS3_VIDEO;
+		}
+			break;
+
 		case GF_ISOM_SUBTYPE_AC3:
 		case GF_ISOM_SUBTYPE_EC3:
 		{

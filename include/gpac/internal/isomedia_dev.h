@@ -208,6 +208,10 @@ enum
 	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
 	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
 
+	/*AVS3 Video*/
+	GF_ISOM_BOX_TYPE_AV3C = GF_4CC('a', 'v', '3', 'c'),
+	GF_ISOM_BOX_TYPE_AVS3 = GF_4CC('a', 'v', 's', '3'),
+
 	/*WebM*/
 	GF_ISOM_BOX_TYPE_VPCC = GF_4CC('v', 'p', 'c', 'C'),
 	GF_ISOM_BOX_TYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
@@ -1561,6 +1565,14 @@ typedef struct
 	GF_VPConfig *config;
 } GF_VPConfigurationBox;
 
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_AVS3VConfig *config;
+} GF_AVS3VConfigurationBox;
+
+
 typedef struct
 {
 	GF_ISOM_FULL_BOX
@@ -1667,6 +1679,8 @@ typedef struct __full_video_sample_entry
 	GF_AV1ConfigurationBox *av1_config;
 	/*vp8-9 extension*/
 	GF_VPConfigurationBox *vp_config;
+	/*avs3 video extension*/
+	GF_AVS3VConfigurationBox *avs3v_config;
 	/*jp2k extension*/
 	GF_J2KHeaderBox *jp2h;
 	/*dolbyvision extension*/
@@ -3588,6 +3602,12 @@ typedef struct
 	u8 *data;
 } GF_DefaultSampleGroupDescriptionEntry;
 
+/*AV1 Switching Entry - Switching Frames*/
+typedef struct
+{
+	int unused; // C requires that a struct or union has at least one member
+} GF_AV1SwitchingEntry;
+
 /*VisualRandomAccessEntry - 'rap ' type*/
 typedef struct
 {
@@ -4605,7 +4625,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
-void sgpd_del_entry(u32 grouping_type, void *entry);
+void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque);
 
 /*return type is either GF_DefaultSampleGroupDescriptionEntry if opaque sample group, or the structure associated with the grouping type*/
 void *gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp);

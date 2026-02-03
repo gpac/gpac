@@ -1768,10 +1768,12 @@ static GF_Err vout_process(GF_Filter *filter)
 			return vout_draw_frame(ctx);
 
 		if (gf_filter_has_connect_errors(filter)) {
+			//connection error, abort (no reschedule)
 			return GF_EOS;
 		}
 		if (gf_filter_all_sinks_done(filter) && !gf_filter_connections_pending(filter)) {
-			ret = GF_EOS;
+			//all done, abort (no reschedule)
+			return GF_EOS;
 		}
 		else if (ctx->oldata.ptr) {
 			ret = GF_EOS;

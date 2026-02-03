@@ -122,6 +122,7 @@ typedef struct
 	u32 inband_hdr_size, inband_hdr_non_rap_size;
 	u32 is_nalu;
 	Bool is_av1, is_vpx;
+	Bool is_avs3v;
 	Bool is_ac4;
 	Bool fragment_done;
 	s32 ts_delay, negctts_shift;
@@ -983,6 +984,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_vvc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
 	Bool use_av1 = GF_FALSE;
+	Bool use_avs3v = GF_FALSE;
 	Bool use_iamf = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
 	Bool use_mj2 = GF_FALSE;
@@ -2211,6 +2213,12 @@ sample_entry_setup:
 		use_av1 = GF_TRUE;
 		comp_name = "AOM AV1 Video";
 		break;
+	case GF_CODECID_AVS3_VIDEO:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_AVS3;
+		use_avs3v = GF_TRUE;
+		comp_name = "AVS 3 Video";
+		break;
 	case GF_CODECID_IAMF:
 		use_gen_sample_entry = GF_FALSE;
 		m_subtype = GF_ISOM_SUBTYPE_IAMF;
@@ -2881,6 +2889,33 @@ sample_entry_setup:
 		}
 
 		gf_odf_av1_cfg_del(av1c);
+	} else if (use_avs3v) {
+		GF_AVS3VConfig *avs3v;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for AVS 3 Video\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		avs3v = gf_odf_avs3v_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!avs3v) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to parser AVS 3 Video decoder specific info\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		e = gf_isom_avs3v_config_new(ctx->file, tkw->track_num, avs3v, (char *) src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AVS 3 Video sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->is_avs3v = GF_TRUE;
+
+		if (!tkw->has_brands) {
+			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_ISO4, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISOM, GF_FALSE);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_CAV3, GF_TRUE);
+		}
+
+		gf_odf_avs3v_cfg_del(avs3v);
 	} else if (use_iamf) {
 		GF_IAConfig *iacb;
 
@@ -3227,7 +3262,7 @@ sample_entry_setup:
 		udesc.lpcm_flags = afmt_flags | (1<<3); //add packed flag
 		//for raw audio, select qt vs isom and set version
 		if (sr && (codec_id==GF_CODECID_RAW)) {
-			if (ctx->make_qt && (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS)) {
+			if (ctx->make_qt && (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT)) {
 				udesc.is_qtff = GF_TRUE;
 				//if extensions or not 'raw ' or 'twos', use v1
 				if (dsi ||
@@ -5207,15 +5242,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	}
 
 	//compat with old arch: write sample to group info for all samples
-	if ((sap_type==3) || tkw->has_open_gop)  {
+	if ((sap_type==GF_FILTER_SAP_3) || tkw->has_open_gop)  {
 		if (!ctx->norap) {
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==GF_FILTER_SAP_3) ? GF_TRUE : GF_FALSE, 0);
 #else
 				e = GF_NOT_SUPPORTED;
 #endif
-			} else if (sap_type==3) {
+			} else if (sap_type==GF_FILTER_SAP_3) {
 				e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
 			}
 			if (e) {
@@ -5224,6 +5259,22 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 		tkw->has_open_gop = GF_TRUE;
 	}
+
+	if (gf_filter_pck_get_switch_frame(pck)) {
+		if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			e = gf_isom_fragment_set_sample_av1_switch_frame_group(ctx->file, tkw->track_id, tkw->samples_in_frag, GF_TRUE);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
+		} else {
+			e = gf_isom_set_sample_av1_switch_frame_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE);
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+		}
+	}
+
 	if (!ctx->noroll) {
 		if ((sap_type==GF_FILTER_SAP_4) || (sap_type==GF_FILTER_SAP_4_PROL) || tkw->gdr_type) {
 			GF_ISOSampleRollType roll_type = 0;
@@ -8661,12 +8712,13 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(lmsg), "set `lmsg` brand for the last segment or fragment", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from PID, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"
-			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"
+			"- v0: use v0 signaling with channel count from stream (except for (e)AC3), recommended for backward compatibility\n"
 			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"
+			"- v0bs: use v0 signaling from bitstream only\n"
 			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"
 			"- v1qt: use v1 signaling, QTFF style\n"
 			"- v2qt: use v2 signaling, QTFF style (lpcm entry type)"
-		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt|v2qt", 0},
+		, GF_PROP_UINT, "v0", "|v0|v0s|v0bs|v1|v1qt|v2qt", 0},
 	{ OFFS(ssix), "create `ssix` box when `sidx` box is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -8813,7 +8865,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"- if `Sparse` is true, empty packet is inserted for all stream types\n"
 	"- if `Sparse` is false, empty packet is never injected\n"
 	"  \n"
-	"The default media type used for a PID can be overriden using property `StreamSubtype`. \n"
+	"The default media type used for a PID can be overridden using property `StreamSubtype`. \n"
 	"EX -i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4 \n"
 	"This will force the text stream to use `sbtl` handler type instead of default `text` one."
 	"\n"

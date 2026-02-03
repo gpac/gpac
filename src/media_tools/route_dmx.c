@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools ROUTE (ATSC3, DVB-MABR) and DVB-MABR Flute demux sub-project
@@ -123,7 +123,7 @@ typedef struct {
 } GF_FLUTELLMapEntry;
 
 
-typedef struct
+typedef struct __gf_lct_object
 {
 	u32 toi, tsi;
 	u32 total_length;
@@ -704,34 +704,6 @@ GF_Err gf_route_set_dispatch_mode(GF_ROUTEDmx *routedmx, GF_RouteProgressiveDisp
 	return GF_OK;
 }
 
-static GF_BlobRangeStatus routedmx_check_blob_range(GF_Blob *blob, u64 start_offset, u32 *io_size)
-{
-	GF_LCTObject *obj = blob->range_udta;
-	if (!obj) return GF_BLOB_RANGE_CORRUPTED;
-	if (obj->status==GF_LCT_OBJ_INIT)
-		return GF_BLOB_RANGE_CORRUPTED;
-	u32 i, size = *io_size;
-	*io_size = 0;
-	gf_mx_p(blob->mx);
-	for (i=0; i<obj->nb_frags; i++) {
-		GF_LCTFragInfo *frag = &obj->frags[i];
-		if ((frag->offset<=start_offset) && (start_offset+size <= frag->offset + frag->size)) {
-			gf_mx_v(blob->mx);
-			*io_size = size;
-			return GF_BLOB_RANGE_VALID;
-		}
-		//start is in fragment but exceeds it
-		if ((frag->offset <= start_offset) && (start_offset <= frag->offset + frag->size)) {
-			*io_size = (u32) (frag->offset + frag->size - start_offset);
-			break;
-		}
-	}
-	gf_mx_v(blob->mx);
-	if (blob->flags & GF_BLOB_IN_TRANSFER)
-		return GF_BLOB_RANGE_IN_TRANSFER;
-	return GF_BLOB_RANGE_CORRUPTED;
-}
-
 
 static GF_Err gf_route_dmx_process_slt(GF_ROUTEDmx *routedmx, GF_XMLNode *root)
 {
@@ -1290,7 +1262,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		obj->toi = toi;
 		obj->tsi = tsi;
 		obj->blob.flags = 0;
-		obj->blob.range_valid = routedmx_check_blob_range;
+		obj->blob.range_valid = NULL;
 		obj->blob.range_udta = obj;
 		obj->last_active_time = gf_sys_clock_high_res();
 
@@ -1409,7 +1381,7 @@ static const char *_xml_get_child_text(const GF_XMLNode *n, const char *child_na
 	if (!n) return NULL;
 	while ((c = gf_list_enum(n->content, &i))) {
 		if (c->type==GF_XML_TEXT_TYPE && !child_name) return c->name;
-		if (!c->type && !strcmp(c->name, child_name)) {
+		if (!c->type && child_name && !strcmp(c->name, child_name)) {
 			c = gf_list_get(c->content, 0);
 			return c->name;
 		}
@@ -2073,7 +2045,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 		obj->toi = toi;
 		obj->tsi = tsi;
-		obj->blob.range_valid = routedmx_check_blob_range;
+		obj->blob.range_valid = NULL;
 		obj->blob.range_udta = obj;
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
@@ -2435,6 +2407,8 @@ static GF_Err gf_route_service_parse_mbms_enveloppe(GF_ROUTEDmx *routedmx, GF_RO
 	return GF_OK;
 }
 
+Bool gf_mpd_check_print_format(const char *print_fmt);
+
 static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, char *content, char *content_location)
 {
 	GF_Err e;
@@ -2794,12 +2768,17 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				sep[0] = '$';
 
 				if (sep[4]=='$') {
-					gf_dynstrcat(&rlct->toi_template, "%d", NULL);
+					gf_dynstrcat(&rlct->toi_template, "%u", NULL);
 					sep += 5;
 				} else {
 					char *sep_end = strchr(sep+3, '$');
 					sep_end[0] = 0;
-					gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
+					if (gf_mpd_check_print_format(sep+4)) {
+						gf_dynstrcat(&rlct->toi_template, sep+4, NULL);
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Corrupted TOI template %s, patching\n", s->log_name, file_template));
+						gf_dynstrcat(&rlct->toi_template, "%u", NULL);
+					}
 					sep_end[0] = '$';
 					sep = sep_end + 1;
 				}
@@ -4341,5 +4320,18 @@ void gf_route_dmx_get_repair_info(GF_ROUTEDmx *routedmx, u32 service_id, const c
 	return;
 }
 
+Bool gf_route_dmx_get_object_info(struct __gf_lct_object *lct_obj, GF_ROUTEEventFileInfo *finfo)
+{
+	if (!lct_obj || !finfo) return GF_FALSE;
+	if (lct_obj->status==GF_LCT_OBJ_INIT) return GF_FALSE;
+
+
+	memset(finfo, 0, sizeof(GF_ROUTEEventFileInfo));
+	finfo->blob = &lct_obj->blob;
+	finfo->frags = lct_obj->frags;
+	finfo->nb_frags = lct_obj->nb_frags;
+	finfo->channel_hint = lct_obj->rlct ? lct_obj->rlct->channel_hint : (lct_obj->rlct_file ? lct_obj->rlct_file->channel_hint : 0);
+	return GF_TRUE;
+}
 
 #endif /* !GPAC_DISABLE_ROUTE */

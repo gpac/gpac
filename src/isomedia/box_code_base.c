@@ -3313,6 +3313,10 @@ void mdia_box_del(GF_Box *s)
 	if (ptr->extracted_samp) gf_isom_sample_del(&ptr->extracted_samp);
 	if (ptr->in_sample_buffer) gf_free(ptr->in_sample_buffer);
 	if (ptr->tmp_nal_copy_buffer) gf_free(ptr->tmp_nal_copy_buffer);
+	if (ptr->information && ptr->information->dataHandler) {
+		gf_isom_datamap_del(ptr->information->dataHandler);
+		ptr->information->dataHandler = NULL;
+	}
 	gf_free(ptr);
 }
 
@@ -4411,7 +4415,7 @@ GF_Err gen_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *gen_sample_entry_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_SampleEntryBox, GF_QT_SUBTYPE_C608);//type will be overriten
+	ISOM_DECL_BOX_ALLOC(GF_SampleEntryBox, GF_QT_SUBTYPE_C608);//type will be overwritten
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
 	return (GF_Box *)tmp;
 }
@@ -4559,6 +4563,9 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		break;
 	case GF_ISOM_BOX_TYPE_VPCC:
 		BOX_FIELD_ASSIGN(vp_config, GF_VPConfigurationBox)
+		break;
+	case GF_ISOM_BOX_TYPE_AV3C:
+		BOX_FIELD_ASSIGN(avs3v_config, GF_AVS3VConfigurationBox)
 		break;
 	case GF_ISOM_BOX_TYPE_DVCC:
 	case GF_ISOM_BOX_TYPE_DVVC:
@@ -6196,7 +6203,7 @@ void stts_box_del(GF_Box *s)
 GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
-	Bool logged=GF_FALSE;
+	u32 nb_patches=0, needs_patch = 0;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -6217,25 +6224,18 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->nb_entries; i++) {
 		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
 		ptr->entries[i].sampleDelta = gf_bs_read_u32(bs);
-#ifndef GPAC_DISABLE_ISOM_WRITE
-		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
-		ptr->w_LastDTS += (u64)ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
-#endif
-		if (ptr->max_ts_delta<ptr->entries[i].sampleDelta)
-			ptr->max_ts_delta = ptr->entries[i].sampleDelta;
 
-		if (!ptr->entries[i].sampleDelta) {
-			if ((i+1<ptr->nb_entries) ) {
-				if (!logged) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stts entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
-					logged=GF_TRUE;
-				}
-				ptr->entries[i].sampleDelta = 1;
-			} else if (ptr->entries[i].sampleCount>1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] more than one stts entry at the end of the track with sample_delta=0 - forbidden ! Fixing to 1\n" ));
-				ptr->entries[i].sampleDelta = 1;
-			}
+		//check for 0-duration
+		if (!ptr->entries[i].sampleDelta
+			//forbiden if not last sample
+			&& ((i+1 < ptr->nb_entries) || (ptr->entries[i].sampleCount>1))
+		) {
+			needs_patch += ptr->entries[i].sampleCount;
+			if (i + 1 == ptr->nb_entries) needs_patch --;
+			ptr->entries[i].sampleDelta = 1;
+			nb_patches++;
 		}
+
 		//cf issue 1644: some media streams may have sample duration > 2^31 (ttml mostly), we cannot patch this
 		//for now we disable the check, one opt could be to have the check only for some media types, or only for the first entry
 #if 0
@@ -6245,8 +6245,55 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 #endif
 
+		//we patch exitsing sample_delta=0 to sample_delta=1 but we want to avoid breaking the timing of following samples
+		//accumulate the ticks added due to patching and remove them from previous entries - cf #3319
+		if (needs_patch) {
+			s64 k;
+			//walk down the previous samples and try to shorten the duration
+			for (k=i; k>=0; k--) {
+				if (ptr->entries[k].sampleDelta == 1) continue;
+				//we only try to locate entries with a delta larger than the accumulated number of patches
+				if (ptr->entries[k].sampleDelta <= needs_patch) continue;
+
+				if (ptr->entries[k].sampleCount == 1) {
+					ptr->entries[k].sampleDelta -= needs_patch;
+					needs_patch = 0;
+					break;
+				}
+				//split entry in two
+				if (ptr->nb_entries>=ptr->alloc_size) {
+					ptr->alloc_size += 1;
+					ptr->entries = gf_realloc(ptr->entries, sizeof(GF_SttsEntry) * ptr->alloc_size);
+				}
+				memmove(&ptr->entries[k+2], &ptr->entries[k+1], sizeof(GF_SttsEntry) * (ptr->nb_entries - k - 1) );
+				ptr->entries[k].sampleCount -= 1;
+				ptr->entries[k+1].sampleCount = 1;
+				ptr->entries[k+1].sampleDelta = ptr->entries[k].sampleDelta - needs_patch;
+				i++;
+				ptr->nb_entries++;
+				needs_patch = 0;
+				break;
+			}
+		}
+		//needs_patch may still be non-0 if we couldn't find an entry, we'll adjust ts of next entries
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
+		ptr->w_LastDTS += (u64)ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
+#endif
+		if (ptr->max_ts_delta<ptr->entries[i].sampleDelta)
+			ptr->max_ts_delta = ptr->entries[i].sampleDelta;
+
 	}
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries*8);
+
+	if (nb_patches) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found %u stts entries with forbidden sample_delta=0 - patching to 1\n", nb_patches));
+		if (needs_patch) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] %u stts patches failed\n", needs_patch));
+		}
+	}
 
 	//remove the last sample delta.
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -7017,6 +7064,8 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_VP09:
 		case GF_ISOM_BOX_TYPE_VP10:
 		case GF_ISOM_BOX_TYPE_AV1C:
+		case GF_ISOM_BOX_TYPE_AV3C:
+		case GF_ISOM_BOX_TYPE_AVS3:
 		case GF_ISOM_BOX_TYPE_JPEG:
 		case GF_ISOM_BOX_TYPE_PNG:
 		case GF_ISOM_BOX_TYPE_JP2K:
@@ -10372,6 +10421,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		}
 		break;
 
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 	case GF_ISOM_SAMPLE_GROUP_TSAS:
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		null_size_ok = GF_TRUE;
@@ -10510,8 +10560,15 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 	return def_ptr;
 }
 
-void sgpd_del_entry(u32 grouping_type, void *entry)
+void sgpd_del_entry(u32 grouping_type, void *entry, Bool is_opaque)
 {
+	if (is_opaque) {
+		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
+		if (ptr && ptr->data) gf_free(ptr->data);
+		gf_free(entry);
+		return;
+	}
+
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_SYNC:
 	case GF_ISOM_SAMPLE_GROUP_ROLL:
@@ -10519,6 +10576,7 @@ void sgpd_del_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_RAP:
 	case GF_ISOM_SAMPLE_GROUP_TELE:
 	case GF_ISOM_SAMPLE_GROUP_SAP:
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 		gf_free(entry);
 		return;
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
@@ -10708,6 +10766,7 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return 20;
 	case GF_ISOM_SAMPLE_GROUP_LBLI:
 		return 2;
+	case GF_ISOM_SAMPLE_GROUP_AV1S:
 	case GF_ISOM_SAMPLE_GROUP_TSAS:
 	case GF_ISOM_SAMPLE_GROUP_STSA:
 		return 0;
@@ -10771,7 +10830,7 @@ void sgpd_box_del(GF_Box *a)
 	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)a;
 	while (gf_list_count(p->group_descriptions)) {
 		void *ptr = gf_list_last(p->group_descriptions);
-		sgpd_del_entry(p->grouping_type, ptr);
+		sgpd_del_entry(p->grouping_type, ptr, p->is_opaque);
 		gf_list_rem_last(p->group_descriptions);
 	}
 	gf_list_del(p->group_descriptions);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2024
+ *			Copyright (c) Telecom ParisTech 2007-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript libgpac Core bindings
@@ -45,6 +45,7 @@ static void qjs_init_runtime_libc(JSRuntime *rt);
 static void qjs_uninit_runtime_libc(JSRuntime *rt);
 
 extern void *user_log_cbk;
+extern Bool gpac_use_logx;
 
 typedef struct
 {
@@ -119,13 +120,26 @@ void gf_js_delete_context(JSContext *ctx)
 	js_reset_logs(ctx);
 	gf_js_call_gc(ctx);
 
+	RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
+	if (rmt) {
+		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+		if (task && task->type == RMT_CALLBACK_JS) {
+			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+			JS_FreeValue(ctx, task->fun);
+			JS_FreeValue(ctx, task->_obj);
+			gf_free(task);
+		}
+	}
 
-	JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
-	if (task && task->type == RMT_CALLBACK_JS) {
-		gf_rmt_set_on_new_client_cbk(NULL, NULL);
-		JS_FreeValue(ctx, task->fun);
-		JS_FreeValue(ctx, task->_obj);
-		gf_free(task);
+	rmt = (RMT_WS*) gf_sys_get_userws();
+	if (rmt) {
+		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+		if (task && task->type == RMT_CALLBACK_JS) {
+			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+			JS_FreeValue(ctx, task->fun);
+			JS_FreeValue(ctx, task->_obj);
+			gf_free(task);
+		}
 	}
 
 	gf_mx_p(js_rt->mx);
@@ -183,6 +197,11 @@ void gf_js_lock(struct JSContext *cx, Bool LockIt)
 
 	if (LockIt) {
 		gf_mx_p(js_rt->mx);
+		//if this is the first time the thread grabs the mutex, update stack top
+		//do not do it if not first otherwise we would keep extending the current stack size
+		if (gf_mx_get_num_locks(js_rt->mx)==1) {
+			JS_UpdateStackTop(js_rt->js_runtime);
+		}
 	} else {
 		gf_mx_v(js_rt->mx);
 	}
@@ -966,6 +985,12 @@ static JSValue js_sys_enable_rmtws(JSContext *ctx, JSValueConst this_val, int ar
 	gf_sys_enable_rmtws(enable);
 	return JS_UNDEFINED;
 }
+static JSValue js_sys_enable_userws(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	Bool enable = GF_TRUE;
+	if (argc > 0 && JS_IsBool(argv[0])) enable = JS_ToBool(ctx, argv[0]);
+	gf_sys_enable_userws(enable);
+	return JS_UNDEFINED;
+}
 
 static void js_sys_rmt_client_finalizer(JSRuntime *rt, JSValue val) {
 
@@ -1274,7 +1299,9 @@ enum
 	JS_SYS_V_MAJOR,
 	JS_SYS_V_MINOR,
 	JS_SYS_V_MICRO,
+	JS_SYS_LOGX,
 	JS_SYS_RMT_ON_NEW_CLIENT,
+	JS_SYS_USERWS_ON_NEW_CLIENT,
 	JS_SYS_ON_LOG,
 };
 
@@ -1427,6 +1454,8 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, GPAC_VERSION_MINOR );
 	case JS_SYS_V_MICRO:
 		return JS_NewInt32(ctx, GPAC_VERSION_MICRO );
+	case JS_SYS_LOGX:
+		return gpac_use_logx ? JS_TRUE : JS_FALSE;
 	}
 
 	return JS_UNDEFINED;
@@ -1461,15 +1490,27 @@ static void js_reset_logs(JSContext *ctx)
 	gf_js_lock(ctx, GF_FALSE);
 }
 
+void *gf_logs_get_thread_tag(u32 *tag_type, u32 *o_th_id);
+JSValue gf_fs_get_script_data(JSContext *ctx, void *udta, u32 tag_type);
+
 extern GF_Mutex *logs_mx;
 static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
 {
 	JSContext *ctx = js_rt->log_ctx;
-	JSValue args[3];
+	JSValue args[5];
+	u32 nb_args = 3;
 	//in case mutex@debug is set, unlock logs mutex before locking JS runtime
 	//not doing so could create a deadlock while unlocking logs_mx or the JS runtime
 	gf_mx_v(logs_mx);
-	gf_js_lock(ctx, GF_TRUE);
+
+	//if context is locked by another thread and we cannot grab it, drop the log
+	//this typically happens when audio thread releases a packet (lock tasks_mx) and the main thread
+	//is querying through JS the filter stats which requires tasks_mx access
+	//usually only happens if mutex logs are on but we do the check for all tools
+	if (!gf_js_try_lock(ctx)) {
+		gf_mx_p(logs_mx);
+		return;
+	}
 
 	args[0] = JS_NewString(ctx, gf_log_tool_name(log_tool) );
 	args[1] = JS_NewInt32(ctx, log_level);
@@ -1486,10 +1527,28 @@ static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool,
 	vsprintf(js_rt->js_log_buf, fmt, vlist);
 	args[2] = JS_NewString(ctx, js_rt->js_log_buf);
 
-	JSValue res = JS_Call(ctx, js_rt->log_fun, js_rt->log_obj, 3, args);
+	if (gpac_use_logx) {
+		u32 tag_type=0, th_id=0;
+		void *udta = gf_logs_get_thread_tag(&tag_type, &th_id);
+		args[3] = JS_NewInt32(ctx, th_id);
+		nb_args = 4;
+		if (udta) {
+			args[4] = gf_fs_get_script_data(ctx, udta, tag_type);
+			if (! JS_IsNull( args[4] )) {
+				nb_args = 5;
+			}
+		}
+	}
+
+	JSValue res = JS_Call(ctx, js_rt->log_fun, js_rt->log_obj, nb_args, args);
 	JS_FreeValue(ctx, args[0]);
 	JS_FreeValue(ctx, args[1]);
 	JS_FreeValue(ctx, args[2]);
+	if (nb_args>=4) {
+		JS_FreeValue(ctx, args[3]);
+		if (nb_args==5)
+			JS_FreeValue(ctx, args[4]);
+	}
 	JS_FreeValue(ctx, res);
 
 	gf_js_lock(ctx, GF_FALSE);
@@ -1507,23 +1566,47 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 		gf_opts_set_key("core", "last-dir", prop_val);
 		JS_FreeCString(ctx, prop_val);
 		break;
+
+	case JS_SYS_LOGX:
+		gpac_use_logx = JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE;
+		break;
 	case JS_SYS_RMT_ON_NEW_CLIENT:
+	case JS_SYS_USERWS_ON_NEW_CLIENT:;
+
+		RMT_WS* rmt = NULL;
+		if (magic == JS_SYS_RMT_ON_NEW_CLIENT) 		rmt = (RMT_WS*) gf_sys_get_rmtws();
+		if (magic == JS_SYS_USERWS_ON_NEW_CLIENT) 	rmt = (RMT_WS*) gf_sys_get_userws();
+		if (!rmt)
+			break;
 
 		if (JS_IsUndefined(value) || JS_IsNull(value)) {
 
-			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task();
+			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
 			if (task && task->type == RMT_CALLBACK_JS) {
-				gf_rmt_set_on_new_client_cbk(NULL, NULL);
+				gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
 				JS_FreeValue(ctx, task->fun);
 				JS_FreeValue(ctx, task->_obj);
 				gf_free(task);
 			}
-
+			return JS_UNDEFINED;
 		}
 
 		if (JS_IsFunction(ctx, value)) {
+			JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
 
-			JS_Sys_Task *task;
+			if (task && task->type == RMT_CALLBACK_JS) {
+				//not allowed
+				if (magic == JS_SYS_RMT_ON_NEW_CLIENT) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RMTWS, ("Attempting to redefine rmt_on_new_client ignored. Set it to null first to reset.\n", __FILE__, __LINE__));
+					return JS_UNDEFINED;
+				} else {
+					gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+					JS_FreeValue(ctx, task->fun);
+					JS_FreeValue(ctx, task->_obj);
+					gf_free(task);
+				}
+			}
+
 			GF_SAFEALLOC(task, JS_Sys_Task);
 			if (!task) return GF_JS_EXCEPTION(ctx);
 
@@ -1532,11 +1615,18 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 			task->fun = JS_DupValue(ctx, value);
 			task->_obj = JS_DupValue(ctx, this_val);
 
-			gf_rmt_set_on_new_client_cbk(task, js_sys_rmt_on_new_client);
+			gf_rmt_set_on_new_client_cbk(rmt, task, js_sys_rmt_on_new_client);
 		}
 		break;
 
 	case JS_SYS_ON_LOG:
+		//do not allow override of log call, only assign if non-null
+		if (!JS_IsUndefined(js_rt->log_fun) && !JS_IsNull(js_rt->log_fun)) {
+			if (JS_IsUndefined(value) || JS_IsNull(value)) {
+				return JS_UNDEFINED;
+			}
+		}
+
 		JS_FreeValue(ctx, js_rt->log_fun);
 		js_rt->log_fun = JS_UNDEFINED;
 		JS_FreeValue(ctx, js_rt->log_obj);
@@ -3335,8 +3425,10 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("version_major", js_sys_prop_get, NULL, JS_SYS_V_MAJOR),
 	JS_CGETSET_MAGIC_DEF_ENUM("version_minor", js_sys_prop_get, NULL, JS_SYS_V_MINOR),
 	JS_CGETSET_MAGIC_DEF_ENUM("version_micro", js_sys_prop_get, NULL, JS_SYS_V_MICRO),
+	JS_CGETSET_MAGIC_DEF_ENUM("use_logx", js_sys_prop_get, js_sys_prop_set, JS_SYS_LOGX),
 
 	JS_CGETSET_MAGIC_DEF_ENUM("rmt_on_new_client", NULL, js_sys_prop_set, JS_SYS_RMT_ON_NEW_CLIENT),
+	JS_CGETSET_MAGIC_DEF_ENUM("userws_on_new_client", NULL, js_sys_prop_set, JS_SYS_USERWS_ON_NEW_CLIENT),
 	JS_CGETSET_MAGIC_DEF_ENUM("on_log", NULL, js_sys_prop_set, JS_SYS_ON_LOG),
 
 	JS_CFUNC_DEF("set_arg_used", 0, js_sys_set_arg_used),
@@ -3410,6 +3502,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
 
 	JS_CFUNC_DEF("enable_rmtws", 0, js_sys_enable_rmtws),
+	JS_CFUNC_DEF("enable_userws", 0, js_sys_enable_userws),
 	JS_CFUNC_DEF("set_logs", 0, js_sys_set_logs),
 	JS_CFUNC_DEF("get_logs", 0, js_sys_get_logs),
 };
@@ -4511,8 +4604,11 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		const char *par_url = jsf_get_script_filename(ctx);
 		url = gf_url_concatenate(par_url, module_name);
 
+		//depending on caller context, module_name may already be resolved against parent
 		if (gf_file_exists(url ? url : module_name)) {
 			e = gf_file_load_data(url ? url : module_name, &buf, &buf_len);
+		} else if (url && gf_file_exists(module_name)) {
+			e = gf_file_load_data(module_name, &buf, &buf_len);
 		} else {
 			e = GF_URL_ERROR;
 		}
