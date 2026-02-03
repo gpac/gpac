@@ -154,8 +154,6 @@ def search_structs(node, structs=[]):
             type = node.get("type", {}).get("qualType", "")
             if type.startswith("struct "):
                 internal_name = type.split(" ")[1]
-                if internal_name in Config.ignore_structs:
-                    return structs
                 name = node.get("name", "")
                 structs.append(Struct(internal_name=internal_name, name=name))
         for key, value in node.items():

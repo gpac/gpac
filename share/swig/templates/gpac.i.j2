@@ -107,13 +107,21 @@ struct {{ new_name }} {};
 {% endfor %}
 
 {% for struct, info in struct_functions %}
+{% if not is_ignored_struct(struct) %}
 // Extend {{ struct }}
+{% else %}
+// Ignore {{ struct }}
+{% endif %}
 {% for fn in struct_ignored_functions(struct) %}
 %ignore {{ fn }};
 {% endfor %}
 
 %nodefaultctor {{ info.iname }};
 %nodefaultdtor {{ info.iname }};
+
+{% if is_ignored_struct(struct) %}
+{% continue %}
+{% endif %}
 
 {% macro wrap_gf_err(fn, returns) %}
 {% with public, internal = get_args(fn, lang) %}

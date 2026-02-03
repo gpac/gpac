@@ -17,6 +17,7 @@ class SWIGGenerator:
             "struct_functions": self.get_struct_functions(),
             "function_pointers": self.get_function_pointers(),
             "struct_ignored_functions": self.get_struct_ignored_functions,
+            "is_ignored_struct": self.is_ignored_struct,
             "csn": self.csn,
             "get_args": self.get_args,
         }
@@ -26,6 +27,7 @@ class SWIGGenerator:
         yield from (
             struct_info["iname"]
             for _, struct_info in sorted(self.struct_functions.items())
+            if struct_info["iname"] not in Config.ignore_structs
         )
 
     def get_non_compliant_structs(self, log=True):
@@ -125,6 +127,12 @@ class SWIGGenerator:
                 ignored.add(fn.name)
             return sorted(ignored)
         return []
+
+    def is_ignored_struct(self, struct_name):
+        for struct in self.structs:
+            if struct.name == struct_name:
+                return struct.internal_name in Config.ignore_structs
+        return False
 
     def csn(self, name, is_ctor=False):
         """Convert the struct name to the internal name."""
