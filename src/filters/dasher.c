@@ -7817,14 +7817,15 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 		pto = gf_timestamp_rescale(pto, ds->timescale, ds->mpd_timescale);
 	}
+	if (ctx->do_index) {
+		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
+		surl->duration = duration;
+	}
+
 	seg_align = (ds->set->segment_alignment || ds->set->subsegment_alignment) ? GF_TRUE : GF_FALSE;
 	//not first and segment alignment, ignore
 	if (!is_first && seg_align && !is_ll_anouncement) {
 		return;
-	}
-	if (ctx->do_index) {
-		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
-		surl->duration = duration;
 	}
 
 	if (!ds->stl) return;
