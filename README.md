@@ -25,9 +25,9 @@
 
 # GPAC Introduction
 
-Current version: 2.5-DEV
+Current version: 26.02
 
-Latest Release: 2.4
+Latest Release: 26.02
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
