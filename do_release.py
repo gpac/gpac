@@ -3,6 +3,12 @@
 import argparse
 import re
 import subprocess
+import sys
+
+SED="sed"
+
+if sys.platform == "darwin":
+    SED="gsed"
 
 
 def cmd(command, log=False, check=True, printcmd=False):
@@ -106,8 +112,8 @@ def main(args):
     #################################################
     step+=1; print(f"\n{step}. Patching {LIBGPACPY_PATH}...")
 
-    cmd(f"sed -Ei 's/GF_ABI_MAJOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MAJOR={args.abi1}/' {LIBGPACPY_PATH}")
-    cmd(f"sed -Ei 's/GF_ABI_MINOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MINOR={args.abi2}/' {LIBGPACPY_PATH}")
+    cmd(f"{SED} -Ei 's/GF_ABI_MAJOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MAJOR={args.abi1}/' {LIBGPACPY_PATH}")
+    cmd(f"{SED} -Ei 's/GF_ABI_MINOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MINOR={args.abi2}/' {LIBGPACPY_PATH}")
 
 
     #################################################
