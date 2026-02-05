@@ -74,7 +74,7 @@ def main(args):
         exit(1)
 
     args.oldtag = oldtag.strip()
-    args.nextver = f"{args.v1}.{int(args.v2)+1}-DEV"
+    args.nextver = f"{args.v1}.{int(args.v2)+1:0{len(args.v2)}}-DEV"
 
     print(f"Current tag: {args.oldtag}")
     print(f"Next tag: {args.tag}")
@@ -107,7 +107,7 @@ def main(args):
     step+=1; print(f"\n{step}. Patching {LIBGPACPY_PATH}...")
 
     cmd(f"sed -Ei 's/GF_ABI_MAJOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MAJOR={args.abi1}/' {LIBGPACPY_PATH}")
-    cmd(f"sed -Ei 's/GF_ABI_MINOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MAJOR={args.abi2}/' {LIBGPACPY_PATH}")
+    cmd(f"sed -Ei 's/GF_ABI_MINOR[[:space:]]*=[[:space:]]*[[:digit:]]+/GF_ABI_MINOR={args.abi2}/' {LIBGPACPY_PATH}")
 
 
     #################################################
