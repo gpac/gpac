@@ -25,9 +25,9 @@
 
 # GPAC Introduction
 
-Current version: 26.02
+Current version: 26.03-DEV
 
-Latest Release: 26.02
+Latest Release: 26.03-DEV
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
@@ -114,11 +114,10 @@ GPAC has a peculiar story: started as a startup in NYC, GPAC gained traction fro
 # Roadmap
 Users are encouraged to use the latest tag or the master branch.
 
-## V2.X
 Targets:
-- [ ] DASH event support
 - [ ] Web GUI
-- [ ] QUIC support
-- [ ] ROUTE file repair support
-- [ ] FLUTE support
-- [ ] Rust Bindings
+- [ ] Rust and SWIG Bindings
+- [ ] Live JiT packaging
+- [ ] Custom filters in WASM
+- [ ] GnuTLS support
+- [ ] FFMPEG hardware acceleration
