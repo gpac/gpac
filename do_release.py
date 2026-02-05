@@ -74,7 +74,7 @@ def main(args):
         print(f"You have uncommited changes:\n{log}\nStash or commit before running the script.")
         exit(1)
 
-    rc, oldtag = cmd("git describe --tags --abbrev=0 --match 'v*'", log=True)
+    rc, oldtag = cmd("git describe --tags --abbrev=0 --match 'v*.*.*'", log=True)
     if rc or oldtag=="":
         print(f"Couldn't get current tag.")
         exit(1)
