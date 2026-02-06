@@ -1552,11 +1552,11 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			} else {
 				e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
 			}
+			if (e) return e;
 			found = GF_TRUE;
 		}
-		if (e) return e;
 		if (!found) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannnot import any image\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannot import any image\n"));
 			return GF_URL_ERROR;
 		}
 		return GF_OK;
