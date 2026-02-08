@@ -1212,10 +1212,11 @@ void gpac_suggest_arg(char *aname)
 			i++;
 			if (gf_sys_word_match(aname, arg->name)) {
 				if (!found) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", did you mean:\n", aname));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", did you mean: %s? (see gpac -hx%s)", aname, arg->name, k ? " core" : ""));
 					found = GF_TRUE;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\t-%s (see gpac -hx%s)\n", arg->name, k ? " core" : ""));
 				}
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\t-%s (see gpac -hx%s)\n", arg->name, k ? " core" : ""));
 			}
 		}
 	}
@@ -1225,10 +1226,11 @@ void gpac_suggest_arg(char *aname)
 		const char *key = gf_opts_get_key_name("gpac.alias", k);
 		if (gf_sys_word_match(aname, key)) {
 			if (!found) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", did you mean:\n", aname));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", did you mean: %s? (see gpac -h)", aname, key));
 				found = GF_TRUE;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\t%s (see gpac -h)\n", key));
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\t%s (see gpac -h)\n", key));
 		}
 	}
 
