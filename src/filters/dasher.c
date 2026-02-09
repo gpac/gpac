@@ -2732,10 +2732,20 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 			if (gf_url_is_relative(p->value.string) && (p->value.string[0]!='.'))
 				gf_dynstrcat(&opath, "./", NULL);
 			gf_dynstrcat(&opath, p->value.string, NULL);
-			if (gf_url_is_relative(dst) && (dst[0]!='.'))
-				gf_dynstrcat(&ipath, "./", NULL);
-			gf_dynstrcat(&ipath, dst, NULL);
 
+			//if dst is gfio, use resource url for concatenation otherwise we would create a non-existing source gfio
+			if (!strncmp(dst, "gfio://", 7)) {
+				const char *path = gf_fileio_resource_url(gf_fileio_from_url(dst));
+				if (path) {
+					if (ipath) gf_free(ipath);
+					ipath = gf_strdup(path);
+				}
+			}
+			if (!ipath) {
+				if (gf_url_is_relative(dst) && (dst[0]!='.'))
+					gf_dynstrcat(&ipath, "./", NULL);
+				gf_dynstrcat(&ipath, dst, NULL);
+			}
 			ds->rep->res_url = gf_url_concatenate_parent(ipath, opath);
 			gf_free(ipath);
 			gf_free(opath);
