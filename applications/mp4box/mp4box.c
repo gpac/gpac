@@ -6119,10 +6119,11 @@ static u32 mp4box_cleanup(u32 ret_code) {
 		for (i=1; i<count;i++) {
 			if (gf_sys_is_arg_used(i)) continue;
 			if (!found) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used:\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used: %s\n", gf_sys_get_arg(i)));
 				found = 1;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", gf_sys_get_arg(i)));
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", gf_sys_get_arg(i)));
 		}
 	}
 

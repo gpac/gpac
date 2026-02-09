@@ -3375,10 +3375,11 @@ void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 		if (found) continue;
 
 		if (first) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used:\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used: %s\n", argname));
 			first=GF_FALSE;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", argname));
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", argname));
 	}
 }
 
