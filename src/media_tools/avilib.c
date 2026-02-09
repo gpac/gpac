@@ -1967,6 +1967,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			   break if this is not the case */
 
 			AVI->n_idx = AVI->max_idx = (u32) (n/16);
+			if (AVI->idx) gf_free(AVI->idx);
 			AVI->idx = (unsigned  char((*)[16]) ) gf_malloc((u32)n);
 			if(AVI->idx==0) {
 				ERR_EXIT(AVI_ERR_NO_MEM)
