@@ -55,21 +55,16 @@ var FILTER_SUBSCRIPTION_FIELDS = [
 var UPDATE_INTERVALS = {
   SESSION_STATS: 1e3,
   FILTER_STATS: 1e3,
-  CPU_STATS: 250
+  CPU_STATS: 500
 };
 var LOG_RETENTION = {
   maxHistorySize: 500,
   maxHistorySizeVerbose: 2e3,
-  // Retention ratio by level (percentage to keep when cleaning)
   keepRatio: {
     error: 1,
-    // Keep 100%
     warning: 0.8,
-    // 80% 
     info: 0.2,
-    //  20% 
     debug: 0.05
-    // 5% 
   }
 };
 
@@ -125,12 +120,6 @@ var cacheManager = new CacheManager();
 function MessageHandler(client) {
   this.client = client;
   this.handleMessage = function(msg, all_clients2) {
-    console.log("All clients:");
-    for (let jc of all_clients2) {
-      console.log("Client ", jc.id, jc.client.peer_address);
-    }
-    console.log("on_client_data on client id ", this.client.id, " len ", msg.length, msg);
-    console.log("this has peer:", this.client.client.peer_address);
     let text = msg;
     if (text.startsWith("json:")) {
       try {
@@ -138,29 +127,23 @@ function MessageHandler(client) {
         if (!("message" in jtext)) return;
         const handlers = {
           "get_all_filters": () => {
-            print("Sending all filters when ready");
             this.client.filterManager.sendAllFilters();
           },
           "filter_args_details": () => {
             let idx = jtext["idx"];
-            print("Details requested for idx " + idx);
             this.client.filterManager.requestDetails(idx);
           },
           "stop_filter_args": () => {
             let idx = jtext["idx"];
-            console.log("STOP MESSAGE****", jtext["message"]);
-            print("Details stopped for idx " + idx);
             this.client.filterManager.stopDetails(idx);
           },
           "subscribe_session": () => {
             const interval = jtext["interval"] || UPDATE_INTERVALS.SESSION_STATS;
             const fields = jtext["fields"] || DEFAULT_FILTER_FIELDS;
-            print(`[MessageHandler] Subscribing to session (interval: ${interval}ms)`);
             this.client.sessionStatsManager.subscribe(interval, fields);
             this.client.sessionManager.startMonitoringLoop();
           },
           "unsubscribe_session": () => {
-            print("Unsubscribing to session");
             this.client.sessionStatsManager.unsubscribe();
           },
           "subscribe_filter": () => {
@@ -170,7 +153,6 @@ function MessageHandler(client) {
             if (!pidScope) {
               pidScope = "both";
             }
-            print(`[MessageHandler] Subscribing to filter ${idx} (interval: ${interval}ms), pidScope: ${pidScope}`);
             this.client.filterManager.subscribeToFilter(idx, interval, pidScope);
             this.client.sessionManager.startMonitoringLoop();
           },
@@ -179,38 +161,33 @@ function MessageHandler(client) {
             this.client.filterManager.unsubscribeFromFilter(idx);
           },
           "update_arg": () => {
-            print("Update arguments of ");
-            print(JSON.stringify(jtext));
             this.client.filterManager.updateArgument(jtext["idx"], jtext["name"], jtext["argName"], jtext["newValue"]);
+          },
+          "get_png": () => {
+            this.client.filterManager.addPngProbe(jtext["idx"], jtext["name"]);
           },
           "subscribe_cpu_stats": () => {
             const interval = jtext["interval"] || UPDATE_INTERVALS.CPU_STATS;
             const fields = jtext["fields"] || [];
-            print(`[MessageHandler] Subscribing to CPU stats (interval: ${interval}ms)`);
             this.client.cpuStatsManager.subscribe(interval, fields);
             this.client.sessionManager.startMonitoringLoop();
           },
           "unsubscribe_cpu_stats": () => {
-            print("Unsubscribing to CPU stats");
             this.client.cpuStatsManager.unsubscribe();
           },
           "subscribe_logs": () => {
-            print("Subscribing to GPAC logs");
             const logLevel = jtext["logLevel"] || "all@warning";
             this.client.logManager.subscribe(logLevel);
             this.client.sessionManager.startMonitoringLoop();
           },
           "unsubscribe_logs": () => {
-            print("Unsubscribing from GPAC logs");
             this.client.logManager.unsubscribe();
           },
           "update_log_level": () => {
-            print("Updating log level");
             const logLevel = jtext["logLevel"] || "all@warning";
             this.client.logManager.updateLogLevel(logLevel);
           },
           "get_log_status": () => {
-            print("Getting log status");
             const status = this.client.logManager.getStatus();
             this.client.client.send(JSON.stringify({
               message: "log_status",
@@ -218,7 +195,6 @@ function MessageHandler(client) {
             }));
           },
           "get_ipid_props": () => {
-            print("Getting IPID properties for filter " + jtext["filterIdx"] + " PID " + jtext["ipidIdx"]);
             const props = this.client.pidPropsCollector.collectIpidProps(
               jtext["filterIdx"],
               jtext["ipidIdx"]
@@ -231,11 +207,9 @@ function MessageHandler(client) {
             }));
           },
           "get_command_line": () => {
-            print("Getting GPAC command line");
             this.client.commandLineManager.sendCommandLine();
           },
           "get_cache_stats": () => {
-            print("Getting cache statistics");
             const stats = cacheManager.stats();
             this.client.client.send(JSON.stringify({
               message: "cache_stats",
@@ -248,7 +222,7 @@ function MessageHandler(client) {
           handler();
         }
       } catch (e) {
-        console.log(e);
+        console.error("MessageHandler: Error handling message:", e);
       }
     }
   };
@@ -335,12 +309,6 @@ function SessionManager(client) {
   this.startMonitoringLoop = function() {
     if (this.isMonitoringLoopRunning) return;
     this.isMonitoringLoopRunning = true;
-    const processError = session.last_process_error;
-    if (processError) {
-      print("[SessionManager] Process error detected on session:", processError);
-      this.isMonitoringLoopRunning = false;
-      return;
-    }
     session.post_task(() => {
       const now = sys.clock_us();
       if (session.last_task) {
@@ -354,9 +322,8 @@ function SessionManager(client) {
             reason: "completed",
             timestamp: now
           }));
-          print("[SessionManager] Session end message sent");
         } catch (e) {
-          print("[SessionManager] Failed to send session_end message:", e);
+          print("[SessionManager] Error sending session_end message:", e);
         }
         this.client.cpuStatsManager.handleSessionEnd();
         this.client.logManager.handleSessionEnd();
@@ -599,13 +566,8 @@ function ArgumentHandler(client) {
       print("Error: Filter with idx " + idx + " not found");
       return;
     }
-    if (filter.name != name) {
-      print("Warning: Discrepancy in filter names for idx " + idx + ". Expected '" + name + "', found '" + filter.name + "'. Proceeding with update.");
-    }
     try {
-      print("Updating filter " + idx + " (" + filter.name + "), argument '" + argName + "' to '" + newValue + "'");
       filter.update(argName, newValue);
-      print("Successfully updated argument '" + argName + "' for filter " + filter.name + " (idx=" + idx + ")");
     } catch (e) {
       print("Error: Failed to update argument: " + e.toString());
     }
@@ -623,13 +585,10 @@ function FilterManager(client, draned_once_ref) {
   this.argumentHandler = new ArgumentHandler(client);
   this.sendAllFilters = function() {
     on_all_connected((all_js_filters) => {
-      print("----- all connected -----");
       const serialized = cacheManager.getOrSet("all_filters", 100, () => {
         const minimalFiltersList = all_js_filters.map((f) => {
           return gpac_filter_to_minimal_object(f);
         });
-        print("-------------------------");
-        print(JSON.stringify(minimalFiltersList, null, 1));
         return JSON.stringify({
           "message": "filters",
           "filters": minimalFiltersList
@@ -862,7 +821,6 @@ function LogManager(client) {
       this.logs = [];
       this.pendingLogs = [];
       this.batchTimer = null;
-      console.log(`LogManager: Client ${this.client.id} unsubscribed from logs`);
     } catch (error) {
       console.error("LogManager: Failed to stop log capturing:", error);
     }
@@ -959,11 +917,9 @@ function LogManager(client) {
   this.sendToClient = function(data) {
     if (this.client.client && typeof this.client.client.send === "function") {
       this.client.client.send(JSON.stringify(data));
-    } else {
     }
   };
   this.forceUnsubscribe = function() {
-    console.log(`LogManager: Force cleanup for client ${this.client.id}`);
     try {
       this.flushPendingLogs();
       sys3.on_log = void 0;
@@ -975,7 +931,6 @@ function LogManager(client) {
       this.pendingLogs = [];
       this.incomingBuffer = [];
       this.batchTimer = null;
-      console.log(`LogManager: Client ${this.client.id} force cleanup completed`);
     } catch (error) {
       console.error("LogManager: Error during force cleanup:", error);
     }
@@ -1040,7 +995,6 @@ function CommandLineManager(client) {
         commandLine,
         timestamp: Date.now()
       }));
-      print("[CommandLineManager] Sent command line to client: " + commandLine);
     } else {
       this.client.client.send(JSON.stringify({
         message: "command_line_response",
@@ -1048,7 +1002,6 @@ function CommandLineManager(client) {
         error: "Could not retrieve command line",
         timestamp: Date.now()
       }));
-      print("[CommandLineManager] Could not retrieve command line");
     }
   };
 }
@@ -1069,7 +1022,6 @@ function JSClient(id, client, all_clients2, draned_once_ref) {
     this.messageHandler.handleMessage(msg, all_clients2);
   };
   this.cleanup = function() {
-    console.log(`JSClient ${this.id}: Starting cleanup`);
     try {
       if (this.logManager) {
         this.logManager.forceUnsubscribe();
@@ -1080,7 +1032,6 @@ function JSClient(id, client, all_clients2, draned_once_ref) {
       if (this.cpuStatsManager && typeof this.cpuStatsManager.cleanup === "function") {
         this.cpuStatsManager.cleanup();
       }
-      console.log(`JSClient ${this.id}: Cleanup completed`);
     } catch (error) {
       console.error(`JSClient ${this.id}: Error during cleanup:`, error);
     }
@@ -1103,11 +1054,9 @@ var remove_client = function(client_id) {
   }
 };
 session.set_new_filter_fun((f) => {
-  print("new filter " + f.name);
   f.idx = filter_uid++;
   f.iname = "" + f.idx;
   all_filters.push(f);
-  console.log("NEW FILTER ITAG " + f.itag);
   if (f.itag == "NODISPLAY")
     return;
   if (draned_once) {
@@ -1115,11 +1064,9 @@ session.set_new_filter_fun((f) => {
   }
 });
 session.set_del_filter_fun((f) => {
-  print("delete filter " + f.iname + " " + f.name);
   let idx = all_filters.indexOf(f);
   if (idx >= 0)
     all_filters.splice(idx, 1);
-  console.log("RM FILTER ITAG " + f.itag);
   if (f.itag == "NODISPLAY")
     return;
   if (draned_once) {
@@ -1127,22 +1074,14 @@ session.set_del_filter_fun((f) => {
   }
 });
 sys5.rmt_on_new_client = function(client) {
-  console.log("rmt on client");
-  print(typeof client);
   let draned_once_ref = { value: draned_once };
   let js_client = new JSClient(++cid, client, all_clients, draned_once_ref);
   all_clients.push(js_client);
-  console.log("New ws client ", js_client.id, " gpac peer ", js_client.client.peer_address);
   js_client.client.on_data = (msg) => {
     if (typeof msg == "string")
       js_client.on_client_data(msg);
-    else {
-      let buf = new Uint8Array(msg);
-      console.log("Got binary message of type", typeof msg, "len ", buf.length, "with data:", buf);
-    }
   };
   js_client.client.on_close = function() {
-    console.log("ON_CLOSE on client ", js_client.id, " ", client.peer_address);
     js_client.cleanup();
     remove_client(js_client.id);
     js_client.client = null;
