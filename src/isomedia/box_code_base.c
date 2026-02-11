@@ -7186,7 +7186,11 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			genv->size = a->size-8;
 			e = gnrv_box_read((GF_Box *) genv, bs);
-			if (e) return e;
+			if (e) {
+				gf_bs_del(bs);
+				gnrv_box_del((GF_Box *)genv);
+				return e;
+			}
 
 			stsd_switch_box(bs, (GF_Box *) genv, a, &genv->data, &genv->data_size, &genv->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
@@ -7197,7 +7201,11 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gena->size = a->size-8;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			e = gnra_box_read((GF_Box *) gena, bs);
-			if (e) return e;
+			if (e) {
+				gf_bs_del(bs);
+				gnra_box_del((GF_Box *)gena);
+				return e;
+			}
 
 			stsd_switch_box(bs, (GF_Box *) gena, a, &gena->data, &gena->data_size, &gena->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
@@ -7210,7 +7218,11 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 
 			e = gnrm_box_read((GF_Box *)genm, bs);
-			if (e) return e;
+			if (e) {
+				gf_bs_del(bs);
+				gnrm_box_del((GF_Box *)genm);
+				return e;
+			}
 
 			stsd_switch_box(bs, (GF_Box *) genm, a, &genm->data, &genm->data_size, &genm->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
