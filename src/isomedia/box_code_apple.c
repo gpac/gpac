@@ -247,6 +247,163 @@ GF_Err ilst_item_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *vexu_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_VideoExtendedUsageBox, GF_ISOM_BOX_TYPE_VEXU);
+	tmp->child_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+
+void vexu_box_del(GF_Box *s)
+{
+	GF_VideoExtendedUsageBox *ptr = (GF_VideoExtendedUsageBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err vexu_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_array_read(s, bs);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err vexu_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_write_header(s, bs);
+}
+
+GF_Err vexu_box_size(GF_Box *s)
+{
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *eyes_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_StereoViewBox, GF_ISOM_BOX_TYPE_EYES);
+	tmp->child_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+
+void eyes_box_del(GF_Box *s)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err eyes_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
+	GF_Err e;
+	u32 size = 0, type = 0;
+
+	// mandatory Stereo view information 'stri' box
+	size = gf_bs_read_int(bs, 32);
+	type = gf_bs_read_int(bs, 32);
+	if (size != 13 || type != 0x73747269) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Only support 'eyes' box with one 'stri' box at the begining.\n"));
+		return GF_OK;
+	}
+	ptr->stri.version = gf_bs_read_int(bs, 8);
+	ptr->stri.flags = gf_bs_read_int(bs, 24);
+	ptr->stri.reserved = gf_bs_read_int(bs, 4);
+	ptr->stri.eye_views_reversed = gf_bs_read_int(bs, 1);
+	ptr->stri.has_additional_views = gf_bs_read_int(bs, 1);
+	ptr->stri.has_right_eye_view = gf_bs_read_int(bs, 1);
+	ptr->stri.has_left_eye_view = gf_bs_read_int(bs, 1);
+
+	ptr->size -= 13;
+
+	// if there are more child-boxes in 'eyes' box
+	return gf_isom_box_array_read(s, bs);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err eyes_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	gf_isom_box_write_header(s, bs);
+
+	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
+
+	// mandatory Stereo view information 'stri' box
+	gf_bs_write_int(bs, 13, 32); // size
+	gf_bs_write_int(bs, 's', 8);
+	gf_bs_write_int(bs, 't', 8);
+	gf_bs_write_int(bs, 'r', 8);
+	gf_bs_write_int(bs, 'i', 8); // box type
+	gf_bs_write_int(bs, 0, 8); // version
+	gf_bs_write_int(bs, 0, 24); // flag
+	gf_bs_write_int(bs, ptr->stri.reserved, 4);
+	gf_bs_write_int(bs, ptr->stri.eye_views_reversed, 1);
+	gf_bs_write_int(bs, ptr->stri.has_additional_views, 1);
+	gf_bs_write_int(bs, ptr->stri.has_right_eye_view, 1);
+	gf_bs_write_int(bs, ptr->stri.has_left_eye_view, 1);
+
+	return GF_OK;
+}
+
+GF_Err eyes_box_size(GF_Box *s)
+{
+	s->size += 13;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *hero_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_HeroStereoEyeDescriptionBox, GF_ISOM_BOX_TYPE_HERO);
+	return (GF_Box *)tmp;
+}
+
+void hero_box_del(GF_Box *s)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err hero_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox*)s;
+	ptr->version = gf_bs_read_int(bs, 8);
+	ptr->flags = gf_bs_read_int(bs, 24);
+	ptr->hero_eye_indicator = gf_bs_read_int(bs, 8);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err hero_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox *)s;
+	GF_Err e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_int(bs, ptr->hero_eye_indicator, 8);
+	return GF_OK;
+}
+
+GF_Err hero_box_size(GF_Box *s)
+{
+	s->size += 5;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void databox_box_del(GF_Box *s)
 {
 	GF_DataBox *ptr = (GF_DataBox *) s;

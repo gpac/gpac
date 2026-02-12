@@ -1312,6 +1312,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_movie_duration))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_track_from_template))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_stsd_templates))
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_vexu))
 
 
 

@@ -825,6 +825,13 @@ ISOM_BOX_IMPL_DECL(gmin)
 ISOM_BOX_IMPL_DECL(alis)
 ISOM_BOX_IMPL_DECL(clef)
 
+ISOM_BOX_IMPL_DECL(vexu)
+ISOM_BOX_IMPL_DECL(eyes)
+ISOM_BOX_IMPL_DECL(hero)
+
+/*HDR video metadata */
+ISOM_BOX_IMPL_DECL(amve)
+
 /*OMA extensions*/
 ISOM_BOX_IMPL_DECL(ohdr)
 ISOM_BOX_IMPL_DECL(grpi)
@@ -1398,7 +1405,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_SVCC, avcc, "avc1 avc2 avc3 avc4 svc1 svc2 encv resv", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MVCC, avcc, "avc1 avc2 avc3 avc4 mvc1 mvc2 encv resv", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HVCC, hvcc, "hvc1 hev1 hvc2 hev2 encv resv ipco dvh1 dvhe", "p15"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LHVC, hvcc, "hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv ipco", "p15"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LHVC, hvcc, "hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv ipco dvh1", "p15"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_VVCC, vvcc, "vvc1 vvi1 encv resv ipco dvhe", 0, "p15"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_VVNC, vvnc, "vvs1 encv resv ipco dvhe", 0, "p15"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AVC1, video_sample_entry, "stsd", "p15"),
@@ -1581,6 +1588,13 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_WIDE, wide, "*", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ILST, ilst, "meta", "apple"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_DATA, databox, "ilst *", 0, "apple"),
+
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VEXU, vexu, "hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv ipco dvh1", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EYES, eyes, "vexu", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HERO, hero, "eyes", "apple"),
+
+	//HDR video metadata
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AMVE, amve, "hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv ipco dvh1", "ISO"),
 
 	ITUNES_TAG(GF_ISOM_ITUNE_NAME),
 	ITUNES_TAG(GF_ISOM_ITUNE_ARTIST),
