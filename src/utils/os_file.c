@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2025
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2026
  *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
@@ -1138,7 +1138,8 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 		return NULL;
 	}
 	blob->nb_ref++;
-	if (blob->nb_ref>2) {
+	if (blob->nb_ref>3) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Max concurrent open %u on same blob reached, cannot open\n\tplease contact GPAC devs for further details\n", blob->nb_ref));
 		*out_error = GF_BAD_PARAM;
 		return NULL;
 	}
@@ -1149,10 +1150,21 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
-	if (whence==SEEK_END) blob->pos = blob->size;
-	else if (whence==SEEK_SET) blob->pos = (u32) offset;
-	else {
-		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
+	if (whence==SEEK_END)
+		blob->pos = blob->size;
+	else if (whence==SEEK_SET) {
+		if ((s64)offset<0)
+			return GF_BAD_PARAM;
+		if ((u32)offset >= blob->size)
+			return GF_BAD_PARAM;
+		blob->pos = (u32) offset;
+	} else {
+		if (!offset)
+			return GF_OK;
+		if ((s64)offset<0)
+			return GF_BAD_PARAM;
+		if (blob->pos + offset > blob->size)
+			return GF_BAD_PARAM;
 		blob->pos += (u32) offset;
 	}
 	return GF_OK;
@@ -1165,6 +1177,7 @@ static u32 gfio_blob_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 	if (bytes) {
 		memcpy(buffer, blob->data+blob->pos, bytes);
 		blob->pos += bytes;
+		assert(blob->pos<=blob->size);
 	}
 	return bytes;
 }
@@ -1809,6 +1822,7 @@ size_t gf_fread(void *ptr, size_t nbytes, FILE *stream)
 	if (gf_fileio_check(stream)) {
 		return (size_t) gf_fileio_read((GF_FileIO *)stream, ptr, (u32) nbytes);
 	}
+	if (!stream) return 0;
 	result = fread(ptr, 1, nbytes, stream);
 	return result;
 }
