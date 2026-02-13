@@ -1104,6 +1104,8 @@ typedef struct
 	u32 pos;
 	u32 url_crc;
 	u32 nb_ref;
+	char *URL;
+	Bool sub_open;
 } GF_FileIOBlob;
 
 static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_error)
@@ -1115,6 +1117,9 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 		if (blob->nb_ref)
 			return NULL;
 
+		if (blob->sub_open)
+			gf_unregister_file_handle((FILE *)fileio_ref);
+		if (blob->URL) gf_free(blob->URL);
 		gf_free(blob);
 		gf_fileio_del(fileio_ref);
 		return NULL;
@@ -1137,13 +1142,18 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 		*out_error = GF_BAD_PARAM;
 		return NULL;
 	}
-	blob->nb_ref++;
-	if (blob->nb_ref>3) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Max concurrent open %u on same blob reached, cannot open\n\tplease contact GPAC devs for further details\n", blob->nb_ref));
-		*out_error = GF_BAD_PARAM;
-		return NULL;
+	//no user, we can use this object directly
+	if (!blob->nb_ref) {
+		blob->nb_ref = 1;
+		*out_error = GF_OK;
+		return fileio_ref;
 	}
-	*out_error = GF_OK;
+	//if already in use, we must allocate a new gfio otherwise read position would get shared across FILE streams !
+	fileio_ref = gf_fileio_from_mem(blob->URL, blob->data, blob->size);
+	blob = gf_fileio_get_udta(fileio_ref);
+	//remember we forced a new gfio, it will have to be unregistered upon close
+	blob->sub_open = GF_TRUE;
+	*out_error = fileio_ref ? GF_OK : GF_IO_ERR;
 	return fileio_ref;
 }
 
@@ -1569,6 +1579,7 @@ GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
 	if (!gfio_blob) return NULL;
 	gfio_blob->data = (u8 *) data;
 	gfio_blob->size = size;
+	gfio_blob->URL = gf_strdup(URL);
 	GF_FileIO *res = gf_fileio_new((char *) URL, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
 	if (!res)  {
 		gf_free(gfio_blob);
