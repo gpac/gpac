@@ -144,10 +144,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 					ar_num = dsi.par_num;
 					ar_den = dsi.par_den;
 				}
-				gf_odf_desc_del((GF_Descriptor *) esd);
-				if (e) return e;
 			}
 #endif
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			if (e) return e;
 		} else {
 			u32 mtype = gf_isom_get_media_type(file, track);
 			if (gf_isom_is_video_handler_type(mtype)) {
