@@ -4,6 +4,7 @@ import { Sys as sys5 } from "gpaccore";
 // server/JSClient/config.js
 var DEFAULT_FILTER_FIELDS = [
   "idx",
+  "status",
   "bytes_done",
   "bytes_sent",
   "pck_sent",
@@ -422,28 +423,23 @@ function gpac_filter_to_minimal_object(f) {
   }
   return minimalFilters;
 }
-function on_all_connected(cb, draned_once_ref) {
+function on_all_connected(cb) {
   session.post_task(() => {
-    let local_connected = true;
     let all_filters_instances = [];
     session.lock_filters(true);
     for (let i = 0; i < session.nb_filters; i++) {
       const f = session.get_filter(i);
-      if (f.is_destroyed()) continue;
-      all_filters_instances.push(f);
+      if (!f.is_destroyed()) all_filters_instances.push(f);
     }
     session.lock_filters(false);
-    if (local_connected) {
-      cb(all_filters_instances);
-      if (draned_once_ref) draned_once_ref.value = true;
-      return false;
-    }
-    return 2e3;
+    cb(all_filters_instances);
+    return false;
   });
 }
 
 // server/JSClient/Filters/PID/PidDataCollector.js
 function PidDataCollector() {
+  this._lastProps = {};
   this.collectInputPids = function(filter) {
     const ipids = {};
     for (let i = 0; i < filter.nb_ipid; i++) {
@@ -479,6 +475,16 @@ function PidDataCollector() {
         pid.stats.nb_processed = stats.nb_processed;
         pid.stats.max_process_time = stats.max_process_time;
         pid.stats.total_process_time = stats.total_process_time;
+      }
+      const allProps = {};
+      filter.ipid_props(i, function(pname, ptype, pval) {
+        allProps[pname] = { name: pname, type: ptype, value: pval };
+      });
+      const propsKey = `${filter.idx}_${i}`;
+      const propsJson = JSON.stringify(allProps);
+      if (propsJson !== this._lastProps[propsKey]) {
+        pid.properties = allProps;
+        this._lastProps[propsKey] = propsJson;
       }
       const key = pid.name || `ipid_${i}`;
       ipids[key] = pid;
@@ -575,9 +581,8 @@ function ArgumentHandler(client) {
 }
 
 // server/JSClient/Filters/FilterManager.js
-function FilterManager(client, draned_once_ref) {
+function FilterManager(client) {
   this.client = client;
-  this.draned_once_ref = draned_once_ref;
   this.details_needed = {};
   this.filterSubscriptions = {};
   this.lastSentByFilter = {};
@@ -597,17 +602,7 @@ function FilterManager(client, draned_once_ref) {
       if (this.client.client) {
         this.client.client.send(serialized);
       }
-      session.post_task(() => {
-        let js_filters = [];
-        session.lock_filters(true);
-        for (let i = 0; i < session.nb_filters; i++) {
-          let f = session.get_filter(i);
-          js_filters.push(gpac_filter_to_object(f));
-        }
-        session.lock_filters(false);
-        return false;
-      });
-    }, this.draned_once_ref);
+    });
   };
   this.requestDetails = function(idx) {
     this.details_needed[idx] = true;
@@ -940,36 +935,6 @@ function LogManager(client) {
   };
 }
 
-// server/JSClient/Filters/PID/PidPropsCollector.js
-function PidPropsCollector(client) {
-  this.client = client;
-  this.collectIpidProps = function(filterIdx, ipidIdx) {
-    session.lock_filters(true);
-    try {
-      let collectProperty2 = function(prop_name, prop_type, prop_val) {
-        properties[prop_name] = {
-          name: prop_name,
-          type: prop_type,
-          value: prop_val
-        };
-      };
-      var collectProperty = collectProperty2;
-      const filter = session.get_filter(filterIdx);
-      if (!filter) {
-        session.lock_filters(false);
-        return { error: `Filter ${filterIdx} not found` };
-      }
-      const properties = {};
-      filter.ipid_props(ipidIdx, collectProperty2);
-      session.lock_filters(false);
-      return properties;
-    } catch (e) {
-      session.lock_filters(false);
-      return { error: `Failed to enumerate IPID ${ipidIdx}: ${e.message}` };
-    }
-  };
-}
-
 // server/JSClient/CommandLineManager.js
 import { Sys as sys4 } from "gpaccore";
 function CommandLineManager(client) {
@@ -1007,16 +972,15 @@ function CommandLineManager(client) {
 }
 
 // server/JSClient/index.js
-function JSClient(id, client, all_clients2, draned_once_ref) {
+function JSClient(id, client, all_clients2) {
   this.id = id;
   this.client = client;
   this.messageHandler = new MessageHandler(this);
   this.sessionStatsManager = new SessionStatsManager(this);
   this.sessionManager = new SessionManager(this);
-  this.filterManager = new FilterManager(this, draned_once_ref);
+  this.filterManager = new FilterManager(this);
   this.cpuStatsManager = new CpuStatsManager(this);
   this.logManager = new LogManager(this);
-  this.pidPropsCollector = new PidPropsCollector(this);
   this.commandLineManager = new CommandLineManager(this);
   this.on_client_data = function(msg) {
     this.messageHandler.handleMessage(msg, all_clients2);
@@ -1042,8 +1006,61 @@ function JSClient(id, client, all_clients2, draned_once_ref) {
 var all_clients = [];
 var cid = 0;
 var filter_uid = 0;
-var draned_once = false;
 var all_filters = [];
+var GRAPH_DEBOUNCE_US = 500 * 1e3;
+var GRAPH_MAX_WAIT_US = 3e3 * 1e3;
+var graphDirty = false;
+var graphVersion = 0;
+var lastGraphEventTime = 0;
+var firstGraphEventTime = 0;
+var debounceRunning = false;
+function onGraphEvent() {
+  if (!all_clients.length) return;
+  const now = sys5.clock_us();
+  graphDirty = true;
+  lastGraphEventTime = now;
+  if (!firstGraphEventTime) firstGraphEventTime = now;
+  if (!debounceRunning) {
+    debounceRunning = true;
+    session.post_task(() => {
+      const now2 = sys5.clock_us();
+      const sinceLast = now2 - lastGraphEventTime;
+      const sinceFirst = now2 - firstGraphEventTime;
+      if (sinceLast >= GRAPH_DEBOUNCE_US || sinceFirst >= GRAPH_MAX_WAIT_US) {
+        stabilizeGraph();
+        debounceRunning = false;
+        firstGraphEventTime = 0;
+        return false;
+      }
+      return 100;
+    });
+  }
+}
+function stabilizeGraph() {
+  graphDirty = false;
+  graphVersion++;
+  session.lock_filters(true);
+  const filters = [];
+  for (let i = 0; i < session.nb_filters; i++) {
+    const f = session.get_filter(i);
+    if (!f.is_destroyed()) {
+      filters.push(gpac_filter_to_minimal_object(f));
+    }
+  }
+  session.lock_filters(false);
+  const filtersMsg = JSON.stringify({ message: "filters", filters });
+  const notifMsg = JSON.stringify({
+    message: "notification",
+    type: "graph_changed",
+    graphVersion
+  });
+  for (const client of all_clients) {
+    if (client.client) {
+      client.client.send(filtersMsg);
+      client.client.send(notifMsg);
+    }
+  }
+}
 session.reporting(true);
 var remove_client = function(client_id) {
   for (let i = 0; i < all_clients.length; i++) {
@@ -1057,25 +1074,17 @@ session.set_new_filter_fun((f) => {
   f.idx = filter_uid++;
   f.iname = "" + f.idx;
   all_filters.push(f);
-  if (f.itag == "NODISPLAY")
-    return;
-  if (draned_once) {
-    sys5.sleep(100);
-  }
+  if (f.itag == "NODISPLAY") return;
+  onGraphEvent();
 });
 session.set_del_filter_fun((f) => {
   let idx = all_filters.indexOf(f);
-  if (idx >= 0)
-    all_filters.splice(idx, 1);
-  if (f.itag == "NODISPLAY")
-    return;
-  if (draned_once) {
-    sys5.sleep(100);
-  }
+  if (idx >= 0) all_filters.splice(idx, 1);
+  if (f.itag == "NODISPLAY") return;
+  onGraphEvent();
 });
 sys5.rmt_on_new_client = function(client) {
-  let draned_once_ref = { value: draned_once };
-  let js_client = new JSClient(++cid, client, all_clients, draned_once_ref);
+  let js_client = new JSClient(++cid, client, all_clients);
   all_clients.push(js_client);
   js_client.client.on_data = (msg) => {
     if (typeof msg == "string")
@@ -1086,5 +1095,4 @@ sys5.rmt_on_new_client = function(client) {
     remove_client(js_client.id);
     js_client.client = null;
   };
-  draned_once = draned_once_ref.value;
 };
