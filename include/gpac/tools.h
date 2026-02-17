@@ -2118,7 +2118,7 @@ void *gf_fileio_get_udta(GF_FileIO *fileio);
 */
 const char * gf_fileio_url(GF_FileIO *fileio);
 
-/*! Gets a fileIO object from memory - the resulting fileIO can only be opened once at any time but can be closed/reopen.
+/*! Gets a fileIO object from memory - the resulting fileIO can be reopen multiple times but cannot be re-open once closed. Any URL concatenation against this object will fail (no dynamic creation of fileio from mem).
 \param URL of source data, may be null
 \param data memory, must be valid until next close
 \param size memory size
