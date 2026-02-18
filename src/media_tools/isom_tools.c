@@ -4287,7 +4287,7 @@ GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 	IAMFState state;
 	gf_iamf_init_state(&state);
 
-	u32 obu_count = gf_list_count(cfg->configOBUs);
+	u32 obu_count = cfg ? gf_list_count(cfg->configOBUs) : 0;
 	for (u32 i=0; i<obu_count; ++i) {
 		GF_IamfObu *obu = gf_list_get(cfg->configOBUs, i);
 		GF_BitStream *bs = gf_bs_new(obu->raw_obu_bytes, obu->obu_length, GF_BITSTREAM_READ);
