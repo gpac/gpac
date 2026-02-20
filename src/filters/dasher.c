@@ -5258,7 +5258,7 @@ static Bool dasher_merge_rep(GF_DashStream *ds, GF_MPD_Representation *rep)
 
 	if (transcode_detected && !ds->transcode_detected) {
 		ds->transcode_detected = GF_TRUE;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Transcoded detected in forward mode, not fully tested !\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Transcode detected in forward mode, not fully tested !\n"));
 	}
 #undef CHECK_VAL
 #undef CHECK_STR
