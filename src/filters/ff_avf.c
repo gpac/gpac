@@ -516,7 +516,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			return GF_OK;
 		return ffavf_setup_filter(filter, ctx);
 	}
-	if (!ctx->nb_playing)
+	if (!ctx->nb_playing && gf_list_count(ctx->ipids))
 		return GF_OK;
 
 	//push input
