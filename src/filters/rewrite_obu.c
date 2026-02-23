@@ -120,7 +120,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 				ctx->mode = FRAMING_AV1TS;
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
 		}
 		break;
 	case GF_CODECID_VP8:
