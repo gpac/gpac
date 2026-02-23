@@ -104,7 +104,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 {
 	Bool start, end;
 	const u8 *data;
-	u32 size;
+	u32 size, pck_size;
 	GF_Err e = GF_OK;
 	GF_FilterPacket *pck;
 	SVGIn *svgin = (SVGIn *) gf_filter_get_udta(filter);
@@ -187,12 +187,12 @@ static GF_Err svgin_process(GF_Filter *filter)
 			}
 			return GF_OK;
 		}
-		data = gf_filter_pck_get_data(pck, &size);
+		data = gf_filter_pck_get_data(pck, &pck_size);
 
-		buf2 = gf_malloc(size+1);
-		bs = gf_bs_new((u8 *)data, size, GF_BITSTREAM_READ);
-		memcpy(buf2, data, size);
-		buf2[size] = 0;
+		buf2 = gf_malloc(pck_size+1);
+		bs = gf_bs_new((u8 *)data, pck_size, GF_BITSTREAM_READ);
+		memcpy(buf2, data, pck_size);
+		buf2[pck_size] = 0;
 
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		e = GF_OK;
@@ -205,7 +205,10 @@ static GF_Err svgin_process(GF_Filter *filter)
 				size = gf_bs_read_u32(bs);
 				nb_bytes = 6;
 			}
-
+			if (pos+nb_bytes+size >= pck_size) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 			dims_hdr = gf_bs_read_u8(bs);
 			prev = buf2[pos + nb_bytes + size];
 
@@ -222,7 +225,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 		}
 		gf_bs_del(bs);
 		gf_free(buf2);
-		
+
 		if (e) goto exit;
 	}
 	break;
@@ -439,7 +442,7 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				svgin->loader.is = svgin->scene;
 				svgin->loader.scene_graph = svgin->scene->graph;
 				svgin->loader.localPath = gf_get_default_cache_directory();
-				
+
 				/*Warning: svgin->loader.type may be overridden in attach stream */
 				svgin->loader.type = GF_SM_LOAD_SVG;
 				svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
