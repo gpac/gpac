@@ -3838,6 +3838,11 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 							if (!strcmp(style->name, "style")) break;
 						}
 						if (style) {
+							if (nb_styles >= GF_ARRAY_LENGTH(styles)) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTLoad] Too many style blocks, will ignore.\n"));
+								nb_styles = GF_ARRAY_LENGTH(styles)-1;
+								continue;
+							}
 							char *cur;
 							s32 start=0;
 							char css_style[1024], css_val[1024];
@@ -3959,6 +3964,11 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 						while ((text=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							if (!text->type) {
 								if (!strcmp(text->name, "marker")) {
+									if (nb_marks >= GF_ARRAY_LENGTH(marks)) {
+										GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTLoad] Too many marker blocks, will ignore.\n"));
+										nb_marks = GF_ARRAY_LENGTH(marks)-1;
+										continue;
+									}
 									u32 z;
 									memset(&marks[nb_marks], 0, sizeof(Marker));
 									marks[nb_marks].pos = nb_chars+txt_len;
