@@ -465,23 +465,27 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	memset(&breaker, 0, sizeof(XMLBreaker));
 	breaker.id_stack = gf_list_new();
 
-	if (strstr(xmlFrom, ".start")) breaker.from_is_start = GF_TRUE;
-	else breaker.from_is_end = GF_TRUE;
-	tmp = strchr(xmlFrom, '.');
-	*tmp = 0;
-	if (stricmp(xmlFrom, "doc")) breaker.from_id = gf_strdup(xmlFrom);
-	/*doc start pos is 0, no need to look for it*/
-	else if (breaker.from_is_start) breaker.from_is_start = GF_FALSE;
-	*tmp = '.';
+	if (strstr(xmlFrom, ".")) {
+		if (strstr(xmlFrom, ".start")) breaker.from_is_start = GF_TRUE;
+		else breaker.from_is_end = GF_TRUE;
+		tmp = strchr(xmlFrom, '.');
+		*tmp = 0;
+		if (stricmp(xmlFrom, "doc")) breaker.from_id = gf_strdup(xmlFrom);
+		/*doc start pos is 0, no need to look for it*/
+		else if (breaker.from_is_start) breaker.from_is_start = GF_FALSE;
+		*tmp = '.';
+	}
 
-	if (strstr(xmlTo, ".start")) breaker.to_is_start = GF_TRUE;
-	else breaker.to_is_end = GF_TRUE;
-	tmp = strchr(xmlTo, '.');
-	*tmp = 0;
-	if (stricmp(xmlTo, "doc")) breaker.to_id = gf_strdup(xmlTo);
-	/*doc end pos is file size, no need to look for it*/
-	else if (breaker.to_is_end) breaker.to_is_end = GF_FALSE;
-	*tmp = '.';
+	if (strstr(xmlTo, ".")) {
+		if (strstr(xmlTo, ".start")) breaker.to_is_start = GF_TRUE;
+		else breaker.to_is_end = GF_TRUE;
+		tmp = strchr(xmlTo, '.');
+		*tmp = 0;
+		if (stricmp(xmlTo, "doc")) breaker.to_id = gf_strdup(xmlTo);
+		/*doc end pos is file size, no need to look for it*/
+		else if (breaker.to_is_end) breaker.to_is_end = GF_FALSE;
+		*tmp = '.';
+	}
 
 	breaker.sax = gf_xml_sax_new(nhml_node_start, nhml_node_end, NULL, &breaker);
 	e = gf_xml_sax_parse_file(breaker.sax, xml_file, NULL);
@@ -801,7 +805,8 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		} else if (!stricmp(att->name, "xml_schema_location")) {
 			xml_schema_loc = att->value;
 		} else if (!stricmp(att->name, "xmlHeaderEnd")) {
-			strcpy(szXmlHeaderEnd, att->value);
+			strncpy(szXmlHeaderEnd, att->value, GF_ARRAY_LENGTH(szXmlHeaderEnd)-1);
+			szXmlHeaderEnd[GF_ARRAY_LENGTH(szXmlHeaderEnd)-1]=0;
 		}
 	}
 	if (sample_rate && !ctx->timescale) {
