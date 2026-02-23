@@ -58,16 +58,6 @@ var UPDATE_INTERVALS = {
   FILTER_STATS: 1e3,
   CPU_STATS: 500
 };
-var LOG_RETENTION = {
-  maxHistorySize: 500,
-  maxHistorySizeVerbose: 2e3,
-  keepRatio: {
-    error: 1,
-    warning: 0.8,
-    info: 0.2,
-    debug: 0.05
-  }
-};
 
 // server/JSClient/Cache/CacheManager.js
 function CacheManager() {
@@ -317,6 +307,10 @@ function SessionManager(client) {
         this.client.logManager.tick(now);
         this.client.filterManager.tick(now);
         this.client.sessionStatsManager.tick(now);
+        this.client.cpuStatsManager.handleSessionEnd();
+        this.client.logManager.handleSessionEnd();
+        this.client.filterManager.handleSessionEnd();
+        this.client.sessionStatsManager.handleSessionEnd();
         try {
           this.client.client.send(JSON.stringify({
             message: "session_end",
@@ -326,10 +320,6 @@ function SessionManager(client) {
         } catch (e) {
           print("[SessionManager] Error sending session_end message:", e);
         }
-        this.client.cpuStatsManager.handleSessionEnd();
-        this.client.logManager.handleSessionEnd();
-        this.client.filterManager.handleSessionEnd();
-        this.client.sessionStatsManager.handleSessionEnd();
         this.isMonitoringLoopRunning = false;
         return false;
       }
@@ -744,45 +734,12 @@ function CpuStatsManager(client) {
 
 // server/JSClient/Sys/LogManager.js
 import { Sys as sys3 } from "gpaccore";
-
-// server/JSClient/Sys/Utils/logs.js
-function cleanupLogs(logs, maxSize) {
-  if (logs.length <= maxSize) return logs;
-  const byLevel = {
-    error: logs.filter((log) => log.level === "error"),
-    warning: logs.filter((log) => log.level === "warning"),
-    info: logs.filter((log) => log.level === "info"),
-    debug: logs.filter((log) => log.level === "debug")
-  };
-  const toKeep = {
-    error: Math.ceil(byLevel.error.length * LOG_RETENTION.keepRatio.error),
-    warning: Math.ceil(byLevel.warning.length * LOG_RETENTION.keepRatio.warning),
-    info: Math.ceil(byLevel.info.length * LOG_RETENTION.keepRatio.info),
-    debug: Math.ceil(byLevel.debug.length * LOG_RETENTION.keepRatio.debug)
-  };
-  const kept = [
-    ...byLevel.error.slice(-toKeep.error),
-    ...byLevel.warning.slice(-toKeep.warning),
-    ...byLevel.info.slice(-toKeep.info),
-    ...byLevel.debug.slice(-toKeep.debug)
-  ];
-  kept.sort((a, b) => a.timestamp - b.timestamp);
-  if (kept.length > maxSize) {
-    return kept.slice(-maxSize);
-  }
-  return kept;
-}
-
-// server/JSClient/Sys/LogManager.js
 function LogManager(client) {
   this.client = client;
   this.isSubscribed = false;
   this.logLevel = "all@quiet";
-  this.logs = [];
-  this.maxHistorySize = LOG_RETENTION.maxHistorySize;
   this.originalLogConfig = null;
   this.pendingLogs = [];
-  this.incomingBuffer = [];
   this.batchTimer = null;
   this.subscribe = function(logLevel) {
     if (this.isSubscribed) {
@@ -809,11 +766,8 @@ function LogManager(client) {
     try {
       this.flushPendingLogs();
       sys3.on_log = void 0;
-      if (this.originalLogConfig) {
-        sys3.set_logs(this.originalLogConfig);
-      }
+      if (this.originalLogConfig) sys3.set_logs(this.originalLogConfig);
       this.isSubscribed = false;
-      this.logs = [];
       this.pendingLogs = [];
       this.batchTimer = null;
     } catch (error) {
@@ -821,70 +775,33 @@ function LogManager(client) {
     }
   };
   this.handleLog = function(tool, level, message, thread_id, caller) {
-    const log = {
+    this.pendingLogs.push({
       timestamp: sys3.clock_us(),
       timestampMs: Date.now(),
       tool,
       level,
       message: message?.length > 500 ? message.substring(0, 500) + "..." : message,
       thread_id,
-      caller: this.serializeCaller(caller)
-    };
-    this.incomingBuffer.push(log);
-  };
-  this.serializeCaller = function(caller) {
-    if (!caller || typeof caller !== "object") {
-      return null;
-    }
-    return caller.idx !== void 0 ? caller.idx : caller.name || null;
-  };
-  this.tick = function(now) {
-    if (!this.isSubscribed) return;
-    if (this.incomingBuffer.length > 0) {
-      this.processIncomingLogs();
-    }
-  };
-  this.processIncomingLogs = function() {
-    if (!this.isSubscribed || this.incomingBuffer.length === 0) {
-      return;
-    }
-    const logsToProcess = this.incomingBuffer.splice(0);
-    for (const log of logsToProcess) {
-      if (this.logs.length >= this.maxHistorySize) {
-        this.logs = cleanupLogs(this.logs, this.maxHistorySize);
-      }
-      this.logs.push(log);
-      this.pendingLogs.push(log);
-    }
-    const hasDebugLogs = logsToProcess.some((log) => log.level === "debug" || log.level === "info");
-    const maxPending = hasDebugLogs ? 20 : 50;
-    const delay = hasDebugLogs ? 100 : 250;
-    if (this.pendingLogs.length >= maxPending) {
-      this.flushPendingLogs();
-      return;
-    }
+      caller: caller?.idx !== void 0 ? caller.idx : caller?.name || null
+    });
     if (!this.batchTimer) {
       this.batchTimer = true;
       session.post_task(() => {
         if (!this.isSubscribed) return false;
         this.flushPendingLogs();
         return false;
-      }, delay);
+      }, 50);
     }
+  };
+  this.tick = function(now) {
   };
   this.updateLogLevel = function(logLevel) {
     if (!this.isSubscribed) return;
-    const isVerbose = logLevel.includes("debug") || logLevel.includes("info");
-    this.maxHistorySize = isVerbose ? LOG_RETENTION.maxHistorySizeVerbose : LOG_RETENTION.maxHistorySize;
     try {
-      this.logs = [];
       this.pendingLogs = [];
       this.logLevel = logLevel;
       sys3.set_logs(logLevel);
-      this.sendToClient({
-        message: "log_config_changed",
-        logLevel
-      });
+      this.sendToClient({ message: "log_config_changed", logLevel });
     } catch (error) {
       console.error("LogManager: Failed to update log level:", error);
     }
@@ -893,7 +810,6 @@ function LogManager(client) {
     return {
       isSubscribed: this.isSubscribed,
       logLevel: this.logLevel,
-      logCount: this.logs.length,
       currentLogConfig: sys3.get_logs()
     };
   };
@@ -902,10 +818,7 @@ function LogManager(client) {
       this.batchTimer = null;
       return;
     }
-    this.sendToClient({
-      message: "log_batch",
-      logs: this.pendingLogs
-    });
+    this.sendToClient({ message: "log_batch", logs: this.pendingLogs });
     this.pendingLogs = [];
     this.batchTimer = null;
   };
@@ -918,13 +831,9 @@ function LogManager(client) {
     try {
       this.flushPendingLogs();
       sys3.on_log = void 0;
-      if (this.originalLogConfig) {
-        sys3.set_logs(this.originalLogConfig);
-      }
+      if (this.originalLogConfig) sys3.set_logs(this.originalLogConfig);
       this.isSubscribed = false;
-      this.logs = [];
       this.pendingLogs = [];
-      this.incomingBuffer = [];
       this.batchTimer = null;
     } catch (error) {
       console.error("LogManager: Error during force cleanup:", error);
