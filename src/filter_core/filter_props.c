@@ -1889,6 +1889,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_FORCED_SUB, "Forced", "indicate packet is a forced subtitle", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
+	DEC_PROP_F( GF_PROP_PID_AMVE_ILLUMINANCE, "AmbientIlluminance", "indicate the ambient illuminance extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_X, "AmbientLightX", "indicate the ambient light x extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_Y, "AmbientLightY", "indicate the ambient light y extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

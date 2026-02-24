@@ -1313,6 +1313,15 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
 	MPD_FREE_EXTENSION_NODE(ptr);
+	if (ptr->m3u8_x_attributes) {
+		while (gf_list_count(ptr->m3u8_x_attributes)) {
+			GF_XMLAttribute *att = gf_list_pop_back(ptr->m3u8_x_attributes);
+			if (att->name) gf_free(att->name);
+			if (att->value) gf_free(att->value);
+			gf_free(att);
+		}
+		gf_list_del(ptr->m3u8_x_attributes);
+	}
 
 	if (ptr->dasher_ctx) {
 		gf_free(ptr->dasher_ctx->init_seg);
