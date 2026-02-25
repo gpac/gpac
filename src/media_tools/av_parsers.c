@@ -2687,8 +2687,9 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 			gf_bs_seek(bs, cur_pos);
 
 			// TODO: filter out any metadata which values change
-			if (metadata_type == OBU_METADATA_TYPE_TIMECODE)
+			if (metadata_type == OBU_METADATA_TYPE_TIMECODE) {
 				return;
+			}
 		}
 
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
@@ -8728,6 +8729,14 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		// time_code
 		case 136:
 			hevc_parse_pic_timing_sei(bs, hevc);
+			break;
+		case 148:
+			if (hevc) {
+				hevc->sei.ambient_view.amve_valid = GF_TRUE;
+				hevc->sei.ambient_view.ambient_illuminance = gf_bs_read_u32(bs);
+				hevc->sei.ambient_view.ambient_light_x = gf_bs_read_u16(bs);
+				hevc->sei.ambient_view.ambient_light_y = gf_bs_read_u16(bs);
+			}
 			break;
 		default:
 			break;

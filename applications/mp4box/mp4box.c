@@ -233,6 +233,7 @@ u32 program_number, time_shift_depth, initial_moof_sn, dump_std, import_subtitle
 u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type, do_flat, print_info;
 u32 size_top_box, fs_dump_flags, dump_chap, dump_udta_type, moov_pading, sdtp_in_traf, segment_marker, timescale, dash_scale;
 u32 MTUSize, run_for, dash_cumulated_time, dash_prev_time, dash_now_time, adjust_split_end, nb_mpd_base_urls, nb_dash_inputs;
+u32 set_vexu, hero_eye;
 
 u64 initial_tfdt;
 
@@ -302,6 +303,7 @@ static void init_global_vars()
 	track_dump_type = dump_isom = dump_timestamps = dump_nal_type = do_flat = print_info = 0;
 	size_top_box = fs_dump_flags = dump_chap = dump_udta_type = moov_pading = sdtp_in_traf = 0;
 	segment_marker = timescale = adjust_split_end = run_for = dash_cumulated_time = dash_prev_time = dash_now_time = 0;
+	set_vexu = hero_eye = 0;
 	dash_scale = 1000;
 	MTUSize = 1450;
 
@@ -533,6 +535,8 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("enable", "enable given track", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_ENABLE, ARG_IS_FUN),
  	MP4BOX_ARG("disable", "disable given track", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_DISABLE, ARG_IS_FUN),
  	{"timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0, &timescale, 0, ARG_OPEN_EDIT},
+	MP4BOX_ARG("set-vexu", "add vexu box into MV-HEVC MP4 file", GF_ARG_BOOL, 0, &set_vexu, 0, 0),
+	{"hero-eye", NULL, "set the hero_eye_indicator in HeroStereoEyeDescriptionBox (0 = none, 1 = left, 2 = right)", "0", NULL, GF_ARG_INT, 0, &hero_eye, 0, ARG_OPEN_EDIT},
  	MP4BOX_ARG_S("lang", "[tkID=]LAN", "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", 0, parse_track_action, TRACK_ACTION_SET_LANGUAGE, ARG_IS_FUN),
  	MP4BOX_ARG_S("delay", "tkID=TIME", "set track start delay (>0) or initial skip (<0) in ms or in fractional seconds (`N/D`)", 0, parse_track_action, TRACK_ACTION_SET_DELAY, ARG_IS_FUN),
  	MP4BOX_ARG_S("par", "tkID=PAR", "set visual track pixel aspect ratio. PAR is:\n"
@@ -994,6 +998,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	"- Profile can be suffixed with compatibility ID, e.g. `5.hdr10`\n"
 	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`, or integer value as per DV spec\n"
 	"- Profile can be prefixed with 'f' to force DV codec type signaling, e.g. `f8.2`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("dvmdc", NULL, "`S` set the Dolby Vision metadata compression (valid value: 0, 1, 3. default = 0)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("videofmt", NULL, "`S` force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
@@ -6809,6 +6814,10 @@ int mp4box_main(int argc, char **argv)
 	if (timescale && (timescale != gf_isom_get_timescale(file))) {
 		gf_isom_set_timescale(file, timescale);
 		do_save = GF_TRUE;
+	}
+
+	if (set_vexu | hero_eye) {
+		gf_isom_set_vexu(file, hero_eye);
 	}
 
 	if (!encode) {

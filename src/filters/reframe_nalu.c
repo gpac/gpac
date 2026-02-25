@@ -253,6 +253,8 @@ typedef struct
 	GF_FilterPacket *prev_sap;
 
 	GF_SEILoader *sei_loader;
+
+	Bool has_colr_info;
 } GF_NALUDmxCtx;
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
@@ -1816,7 +1818,6 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	u32 crc_cfg, crc_cfg_enh;
 	GF_Fraction sar;
 	Bool has_hevc_base = GF_TRUE;
-	Bool has_colr_info = GF_FALSE;
 	Bool res;
 	Bool is_reconfig_only;
 	Bool dsi_is_superset = (!ctx->crc_cfg || ctx->ps_changed) ? GF_FALSE : GF_TRUE;
@@ -1974,7 +1975,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 			if (ctx->hevc_state->sei.alternative_transfer_characteristics){
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->sei.alternative_transfer_characteristics) );
 			}
-			has_colr_info = GF_TRUE;
+			ctx->has_colr_info = GF_TRUE;
 		}
 	} else if (ctx->codecid==GF_CODECID_VVC) {
 	} else {
@@ -1987,11 +1988,11 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(vui->transfer_characteristics) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(vui->matrix_coefficients) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(vui->video_full_range_flag) );
-			has_colr_info = GF_TRUE;
+			ctx->has_colr_info = GF_TRUE;
 		}
 	}
 
-	if (!has_colr_info) {
+	if (!ctx->has_colr_info) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, NULL);
@@ -2568,6 +2569,12 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 			naludmx_push_prefix(ctx, data, size, GF_FALSE);
 		} else {
 			ctx->nb_nalus--;
+		}
+		// set ambinet viewing environment information
+		if (ctx->hevc_state->sei.ambient_view.amve_valid == GF_TRUE) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMVE_ILLUMINANCE, & PROP_UINT(ctx->hevc_state->sei.ambient_view.ambient_illuminance));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMVE_LIGNT_X, & PROP_UINT(ctx->hevc_state->sei.ambient_view.ambient_light_x));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMVE_LIGNT_Y, & PROP_UINT(ctx->hevc_state->sei.ambient_view.ambient_light_y));
 		}
 		*skip_nal = GF_TRUE;
 		break;
