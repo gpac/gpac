@@ -644,7 +644,9 @@ JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 
 	default:
 		if (gf_props_type_is_enum(new_val->type)) {
-			return JS_NewString(ctx, gf_props_enum_name(new_val->type, new_val->value.uint));
+			const char* enum_name = gf_props_enum_name(new_val->type, new_val->value.uint);
+			if (enum_name)
+				return JS_NewString(ctx, enum_name);
 		}
 		return JS_NULL;
 	}

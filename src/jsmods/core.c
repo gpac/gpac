@@ -131,11 +131,11 @@ void gf_js_delete_context(JSContext *ctx)
 		}
 	}
 
-	rmt = (RMT_WS*) gf_sys_get_userws();
-	if (rmt) {
-		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+	RMT_WS* urmt = (RMT_WS*) gf_sys_get_userws();
+	if (urmt) {
+		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(urmt);
 		if (task && task->type == RMT_CALLBACK_JS) {
-			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+			gf_rmt_set_on_new_client_cbk(urmt, NULL, NULL);
 			JS_FreeValue(ctx, task->fun);
 			JS_FreeValue(ctx, task->_obj);
 			gf_free(task);
@@ -1025,17 +1025,17 @@ static void js_sys_rmt_client_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFu
 	RMT_ClientCtx* client = JS_GetOpaque(val, js_sys_rmt_client_class_id);
 	if (!client) return;
 
-	JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_MarkValue(rt, task->fun, mark_func);
-		JS_MarkValue(rt, task->_obj, mark_func);
-	}
+	// JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
+	// if (task && task->type == RMT_CALLBACK_JS) {
+	// 	JS_MarkValue(rt, task->fun, mark_func);
+	// 	JS_MarkValue(rt, task->_obj, mark_func);
+	// }
 
-	task = gf_rmt_client_get_on_del_task(client);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_MarkValue(rt, task->fun, mark_func);
-		JS_MarkValue(rt, task->_obj, mark_func);
-	}
+	// task = gf_rmt_client_get_on_del_task(client);
+	// if (task && task->type == RMT_CALLBACK_JS) {
+	// 	JS_MarkValue(rt, task->fun, mark_func);
+	// 	JS_MarkValue(rt, task->_obj, mark_func);
+	// }
 
 }
 
