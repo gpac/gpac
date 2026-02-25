@@ -205,7 +205,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 				size = gf_bs_read_u32(bs);
 				nb_bytes = 6;
 			}
-			if (pos+nb_bytes+size >= pck_size) {
+			if (pos+nb_bytes+size > pck_size) {
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				break;
 			}
