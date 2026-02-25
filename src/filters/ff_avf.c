@@ -201,6 +201,7 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, NULL);
 			}
 			gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+			gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
 			gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FILE_EXT, NULL);
 			gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_MIME, NULL);
 		}

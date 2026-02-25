@@ -2539,18 +2539,31 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	aud_entry->bitspersample = bitsPerSample;
 
 	switch (asemode) {
-	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT:
 		stsd->version = 0;
 		aud_entry->version = 0;
 		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
-		aud_entry->channel_count = 2;
+		aud_entry->channel_count = nbChannels; // Get from bitstream
+
+		// According to ETSI TS 102 366 V1.4.1 (2017-09), the channel_count of AC3, EC3 (based on AudioSampleEntry)
+		// should always be 2, and the sample size should always be 16
+		if (aud_entry->type == GF_ISOM_BOX_TYPE_AC3 || aud_entry->type == GF_ISOM_BOX_TYPE_EC3) {
+			aud_entry->channel_count = 2;
+			aud_entry->bitspersample = 16;
+		}
 		break;
-	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_NOT_SET:
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS:
 		stsd->version = 0;
 		aud_entry->version = 0;
 		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
 		aud_entry->channel_count = nbChannels;
+		break;
+	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2:
+		stsd->version = 0;
+		aud_entry->version = 0;
+		aud_entry->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
+		aud_entry->channel_count = 2;
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG:
 		stsd->version = 1;
@@ -3059,6 +3072,14 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 
 	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
+
+	if (the_trak && the_trak->Media && the_trak->Media->information) {
+		if (the_trak->Media->information->dataHandler == movie->movieFileMap || the_trak->Media->information->dataHandler == movie->editFileMap)
+			the_trak->Media->information->dataHandler = NULL;
+
+		if (the_trak->Media->information->scalableDataHandler == movie->movieFileMap || the_trak->Media->information->scalableDataHandler == movie->editFileMap)
+			the_trak->Media->information->scalableDataHandler = NULL;
+	}
 
 	if (movie->moov->iods && movie->moov->iods->descriptor) {
 		GF_Descriptor *desc;

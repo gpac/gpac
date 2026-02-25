@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / AVGenerator filter
@@ -681,6 +681,8 @@ function process_video()
 
 	video_cts += filter.fps.d;
 	video_frame++;
+
+	filter.update_status(`Frame ${video_frame} CTS ${video_cts} / ${filter.fps.n}`);
 
 	if (filter.dur.d && (video_cts * filter.dur.d >= filter.fps.n * filter.dur.n)) {
 		print("done playing, cts " + video_cts);

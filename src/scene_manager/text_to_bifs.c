@@ -445,10 +445,16 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			break;
 		}
 		while (szLine[i+1] && szLine[i+1]!='}') {
+			if (i>=GF_ARRAY_LENGTH(szTime)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expected \"}\" before %d chars after \"{\"\n", line, GF_ARRAY_LENGTH(szTime)));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				szTime[0] = 0;
+				goto exit;
+			}
 			szTime[i] = szLine[i+1];
 			i++;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		start = atoi(szTime);
 		if (start<end) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[sub->bifs] corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, start, end));
@@ -462,10 +468,16 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			break;
 		}
 		while (szLine[i+1+j] && szLine[i+1+j]!='}') {
+			if (i>=GF_ARRAY_LENGTH(szTime)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expected \"}\" before %d chars after \"{\"\n", line, GF_ARRAY_LENGTH(szTime)));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				szTime[0] = 0;
+				goto exit;
+			}
 			szTime[i] = szLine[i+1+j];
 			i++;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		end = atoi(szTime);
 		j+=i+2;
 
@@ -525,6 +537,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			sfstr->buffer = gf_strdup(szText);
 		}
 	}
+exit:
 	gf_fclose(sub_in);
 	return e;
 }

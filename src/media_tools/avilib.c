@@ -1967,6 +1967,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			   break if this is not the case */
 
 			AVI->n_idx = AVI->max_idx = (u32) (n/16);
+			if (AVI->idx) gf_free(AVI->idx);
 			AVI->idx = (unsigned  char((*)[16]) ) gf_malloc((u32)n);
 			if(AVI->idx==0) {
 				ERR_EXIT(AVI_ERR_NO_MEM)
@@ -2055,8 +2056,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						AVI->track[AVI->aptr].a_vbr = !str2ulong(hdrl_data+i+44);
 
 						AVI->track[AVI->aptr].padrate = str2ulong(hdrl_data+i+24);
-						memcpy(&AVI->stream_headers[AVI->aptr], hdrl_data + i,
-						       sizeof(alAVISTREAMHEADER));
+						if (i + sizeof(alAVISTREAMHEADER) > hdrl_len) {
+							ERR_EXIT(AVI_ERR_READ);
+						}
+
+						memcpy(&AVI->stream_headers[AVI->aptr], hdrl_data + i, sizeof(alAVISTREAMHEADER));
 
 						//	   auds_strh_seen = 1;
 						lasttag = 2; /* auds */
@@ -2075,7 +2079,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				}
 				else if(strnicmp((char*)hdrl_data+i,"dmlh",4) == 0) {
 
-					if (i+12>hdrl_len) ERR_EXIT(AVI_ERR_READ)
+					if (i+8+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 					AVI->total_frames = str2ulong(hdrl_data+i+8);
 #ifdef DEBUG_ODML
@@ -2088,9 +2092,12 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					i += 8;
 					if(lasttag == 1)
 					{
+						if (i+sizeof(alBITMAPINFOHEADER)>hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
 						alBITMAPINFOHEADER bih;
 
 						memcpy(&bih, hdrl_data + i, sizeof(alBITMAPINFOHEADER));
+						if (bih.bi_size < 4) ERR_EXIT(AVI_ERR_READ)
 						bih.bi_size = str2ulong((unsigned char *)&bih.bi_size);
 
 						if (i + bih.bi_size > hdrl_len) ERR_EXIT(AVI_ERR_READ)
@@ -2098,6 +2105,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						AVI->bitmap_info_header = (alBITMAPINFOHEADER *) gf_malloc(bih.bi_size);
 						if (AVI->bitmap_info_header != NULL)
 							memcpy(AVI->bitmap_info_header, hdrl_data + i, bih.bi_size);
+
+						if (i+16+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->width  = str2ulong(hdrl_data+i+4);
 						AVI->height = str2ulong(hdrl_data+i+8);
@@ -2119,6 +2128,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					}
 					else if(lasttag == 2)
 					{
+						if (i>=hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
 						alWAVEFORMATEX *wfe;
 						char *nwfe;
 						int wfes;
@@ -2148,6 +2159,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 							}
 							AVI->wave_format_ex[AVI->aptr] = wfe;
 						}
+						if (i+14+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->track[AVI->aptr].a_fmt   = str2ushort(hdrl_data+i  );
 
@@ -2280,9 +2292,20 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 								ERR_EXIT(AVI_ERR_READ)
 						}
 
-						AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
+						if (AVI->track[AVI->aptr].audio_superindex->nEntriesInUse) {
+
+							// must be 4 so that wLongsPerEntry*sizeof(u32) == sizeof(avisuperindex_entry)
+							if (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry != 4) {
+								ERR_EXIT(AVI_ERR_READ)
+							}
+
+							AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
 						        gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *
 						                   AVI->track[AVI->aptr].audio_superindex->nEntriesInUse * sizeof (u32));
+						}
+						else {
+							AVI->track[AVI->aptr].audio_superindex->aIndex = NULL;
+						}
 
 						// position of ix## chunks
 						for (j=0; j<AVI->track[AVI->aptr].audio_superindex->nEntriesInUse; ++j) {
@@ -2487,10 +2510,19 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			// skip header
 			en += hdrl_len;
 			nvi += nrEntries;
+
+			if (nvi <= 0 || nvi >= GF_INT_MAX/sizeof(video_index_entry)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] invalid nvi value %d\n", nvi));
+				gf_free(chunk_start);
+				ERR_EXIT(AVI_ERR_READ);
+			}
+
 			AVI->video_index = (video_index_entry *) gf_realloc (AVI->video_index, nvi * sizeof (video_index_entry));
+
 			if (!AVI->video_index) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] out of mem (size = %ld)\n", nvi * sizeof (video_index_entry)));
-				exit(1);
+				gf_free(chunk_start);
+				ERR_EXIT(AVI_ERR_NO_MEM);
 			}
 
 			while (k < nvi) {

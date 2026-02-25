@@ -12385,6 +12385,10 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		for (i=0; i<numQpTables; i++) {
 			gf_bs_read_se_log_idx(bs, "sps_qp_table_start_minus26", i);
 			u32 j, sps_num_points_in_qp_table = 1 + gf_bs_read_ue_log_idx(bs, "sps_num_points_in_qp_table_minus1", i);
+			if (sps_num_points_in_qp_table>36) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_points_in_qp_table too high %u\n", sps_num_points_in_qp_table));
+				VVC_SPS_BROKEN
+			}
 			for (j=0; j<sps_num_points_in_qp_table; j++) {
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_in_val_minus1", i, j);
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_diff_val", i, j);

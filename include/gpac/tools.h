@@ -149,7 +149,7 @@ typedef enum
 	GF_SCRIPT_ERROR							= -8,
 	/*! Buffer is too small to contain decoded data. Decoders shall use this error whenever they need to resize their output memory buffers*/
 	GF_BUFFER_TOO_SMALL						= -9,
-	/*! The bitstream is not compliant to the specfication it refers to*/
+	/*! The bitstream is not compliant to the specification it refers to*/
 	GF_NON_COMPLIANT_BITSTREAM				= -10,
 	/*! No filter could be found to handle the desired media type*/
 	GF_FILTER_NOT_FOUND						= -11,
@@ -2118,7 +2118,7 @@ void *gf_fileio_get_udta(GF_FileIO *fileio);
 */
 const char * gf_fileio_url(GF_FileIO *fileio);
 
-/*! Gets a fileIO object from memory - the resulting fileIO can only be opened once at any time but can be closed/reopen.
+/*! Gets a fileIO object from memory - the resulting fileIO can be reopen multiple times but cannot be re-open once closed. Any URL concatenation against this object will fail (no dynamic creation of fileio from mem).
 \param URL of source data, may be null
 \param data memory, must be valid until next close
 \param size memory size

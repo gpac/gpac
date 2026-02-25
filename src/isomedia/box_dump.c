@@ -910,7 +910,7 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 			gf_isom_box_del(a);
 		}
 	} else {
-		dump_data_attribute(trace, "data", data, data_size);
+		dump_data_attribute(trace, " data", data, data_size);
 		gf_fprintf(trace, ">\n");
 	}
 	if (list)

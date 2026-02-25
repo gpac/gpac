@@ -242,6 +242,9 @@ static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st, Bool do_fre
 	st->split_pck = NULL;
 	if (st->reinsert_single_pck) gf_filter_pck_unref(st->reinsert_single_pck);
 	st->reinsert_single_pck = NULL;
+	if (ctx->clock == st)
+		ctx->clock = NULL;
+
 	if (do_free)
 		gf_free(st);
 }
@@ -1629,6 +1632,8 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			RTStream *st = gf_list_get(ctx->streams, i);
 			if (st->range_start_computed==2) continue;
 			if (st->reinsert_single_pck) continue;
+			//do not check for timestamp if in EOS, implicitly flush the range
+			if (st->in_eos) continue;
 			pck = gf_list_last(st->pck_queue);
 			if (!pck) continue;
 			ts = gf_filter_pck_get_dts(pck);

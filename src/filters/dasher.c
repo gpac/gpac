@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -341,6 +341,8 @@ typedef struct
 	Bool move_to_static;
 	Bool explicit_mode;
 	Bool inband_event;
+
+	Bool has_pid_removed;
 } GF_DasherCtx;
 
 typedef struct _dash_stream
@@ -1002,6 +1004,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_list_del_item(ctx->next_period->streams, ds);
 			dasher_reset_stream(filter, ds, GF_TRUE);
 			gf_free(ds);
+			ctx->has_pid_removed = GF_TRUE;
 		}
 		return GF_OK;
 	}
@@ -1297,7 +1300,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		if (!ds->timescale) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Dasher] Input PID %s has no timescale, cannot dash\n", gf_filter_pid_get_name(pid) ));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			return GF_FILTER_NOT_SUPPORTED;
 		}
 
 		if (ds->stream_type==GF_STREAM_VISUAL) {
@@ -2835,10 +2838,20 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 			if (gf_url_is_relative(p->value.string) && (p->value.string[0]!='.'))
 				gf_dynstrcat(&opath, "./", NULL);
 			gf_dynstrcat(&opath, p->value.string, NULL);
-			if (gf_url_is_relative(dst) && (dst[0]!='.'))
-				gf_dynstrcat(&ipath, "./", NULL);
-			gf_dynstrcat(&ipath, dst, NULL);
 
+			//if dst is gfio, use resource url for concatenation otherwise we would create a non-existing source gfio
+			if (!strncmp(dst, "gfio://", 7)) {
+				const char *path = gf_fileio_resource_url(gf_fileio_from_url(dst));
+				if (path) {
+					if (ipath) gf_free(ipath);
+					ipath = gf_strdup(path);
+				}
+			}
+			if (!ipath) {
+				if (gf_url_is_relative(dst) && (dst[0]!='.'))
+					gf_dynstrcat(&ipath, "./", NULL);
+				gf_dynstrcat(&ipath, dst, NULL);
+			}
 			ds->rep->res_url = gf_url_concatenate_parent(ipath, opath);
 			gf_free(ipath);
 			gf_free(opath);
@@ -5351,7 +5364,7 @@ static Bool dasher_merge_rep(GF_DashStream *ds, GF_MPD_Representation *rep)
 
 	if (transcode_detected && !ds->transcode_detected) {
 		ds->transcode_detected = GF_TRUE;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Transcoded detected in forward mode, not fully tested !\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Transcode detected in forward mode, not fully tested !\n"));
 	}
 #undef CHECK_VAL
 #undef CHECK_STR
@@ -6068,7 +6081,6 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 {
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
 	//removing it explicitly will discard the upper chain and any packets not yet processed
-
 	ds->dst_filter = NULL;
 	if (ds->seg_template) gf_free(ds->seg_template);
 	if (ds->idx_template) gf_free(ds->idx_template);
@@ -6114,7 +6126,6 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 #ifndef GPAC_DISABLE_CRYPTO
 		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
 #endif
-
 		return;
 	}
 	ds->init_seg = ds->seg_template = ds->idx_template = NULL;
@@ -7118,7 +7129,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->period_not_ready)
 		return GF_OK;
 
-	return dasher_setup_period(filter, ctx, NULL);
+	GF_Err e = dasher_setup_period(filter, ctx, NULL);
+	//update previous period duration and current period start now, otherwise we may have a wrong AST on the first segment(s)
+	//hence warnings and possible remove
+	dasher_update_period_duration(ctx, GF_TRUE);
+	return e;
 }
 
 //set SSR (sub-segment representation) related descriptors
@@ -7918,14 +7933,15 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 		pto = gf_timestamp_rescale(pto, ds->timescale, ds->mpd_timescale);
 	}
+	if (ctx->do_index) {
+		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
+		surl->duration = duration;
+	}
+
 	seg_align = (ds->set->segment_alignment || ds->set->subsegment_alignment) ? GF_TRUE : GF_FALSE;
 	//not first and segment alignment, ignore
 	if (!is_first && seg_align && !is_ll_anouncement) {
 		return;
-	}
-	if (ctx->do_index) {
-		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
-		surl->duration = duration;
 	}
 
 	if (!ds->stl) return;
@@ -9444,6 +9460,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	u32 nb_seg_waiting = 0;
 	u32 nb_seg_active = 0;
 
+	ctx->has_pid_removed = GF_FALSE;
 	if (ctx->in_error) {
 		gf_filter_abort(filter);
 		return GF_SERVICE_ERROR;
@@ -9501,6 +9518,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
+			if (ctx->has_pid_removed) return GF_OK;
 
 			u64 ts = gf_filter_pck_get_cts(pck);
 			if (ts != GF_FILTER_NO_TS) {
@@ -9560,6 +9578,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (!ds->request_period_switch) {
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
+
+				//pid removal while fetching, abort current process
+				if (ctx->has_pid_removed) return GF_OK;
 
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
@@ -9937,6 +9958,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
+			if (dur > 600 * ds->timescale) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Packet with suspicious duration %g seconds, clamping to 10 min!\n", ((Double)o_dur)/ds->timescale ));
+				dur = o_dur = ds->timescale;
+			}
 			pcont_cts += dur;
 			if (ds->period_continuity_next_cts < pcont_cts)
 				ds->period_continuity_next_cts = pcont_cts;

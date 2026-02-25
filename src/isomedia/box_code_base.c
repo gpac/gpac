@@ -1583,9 +1583,18 @@ GF_Box *gnrm_box_new()
 	return (GF_Box *)tmp;
 }
 
-//dummy
 GF_Err gnrm_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_GenericSampleEntryBox *ptr = (GF_GenericSampleEntryBox *)s;
+	GF_Err e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)s, bs);
+	if (e) return e;
+	ISOM_DECREASE_SIZE(ptr, 8)
+	if (ptr->size) {
+		ptr->data_size = (u32) ptr->size;
+		ptr->data = (char*)gf_malloc(ptr->data_size * sizeof(char));
+		if (!ptr->data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->data, ptr->data_size);
+	}
 	return GF_OK;
 }
 
@@ -1633,9 +1642,18 @@ GF_Box *gnrv_box_new()
 	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox*) tmp);
 	return (GF_Box *)tmp;
 }
-//dummy
+
 GF_Err gnrv_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_GenericVisualSampleEntryBox *ptr = (GF_GenericVisualSampleEntryBox *)s;
+	GF_Err e = gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)ptr, bs);
+	if (e) return e;
+	if (ptr->size) {
+		ptr->data_size = (u32) ptr->size;
+		ptr->data = (char*)gf_malloc(ptr->data_size * sizeof(char));
+		if (!ptr->data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->data, ptr->data_size);
+	}
 	return GF_OK;
 }
 
@@ -1686,9 +1704,18 @@ GF_Box *gnra_box_new()
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*) tmp);
 	return (GF_Box *)tmp;
 }
-//dummy
+
 GF_Err gnra_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_GenericAudioSampleEntryBox *ptr = (GF_GenericAudioSampleEntryBox *)s;
+	GF_Err e = gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox *)ptr, bs);
+	if (e) return e;
+	if (ptr->size) {
+		ptr->data_size = (u32) ptr->size;
+		ptr->data = (char*)gf_malloc(ptr->data_size * sizeof(char));
+		if (!ptr->data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->data, ptr->data_size);
+	}
 	return GF_OK;
 }
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -3313,6 +3340,10 @@ void mdia_box_del(GF_Box *s)
 	if (ptr->extracted_samp) gf_isom_sample_del(&ptr->extracted_samp);
 	if (ptr->in_sample_buffer) gf_free(ptr->in_sample_buffer);
 	if (ptr->tmp_nal_copy_buffer) gf_free(ptr->tmp_nal_copy_buffer);
+	if (ptr->information && ptr->information->dataHandler) {
+		gf_isom_datamap_del(ptr->information->dataHandler);
+		ptr->information->dataHandler = NULL;
+	}
 	gf_free(ptr);
 }
 
@@ -7155,7 +7186,12 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			GF_GenericVisualSampleEntryBox *genv = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			genv->size = a->size-8;
-			gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *) genv, bs);
+			e = gnrv_box_read((GF_Box *) genv, bs);
+			if (e) {
+				gf_bs_del(bs);
+				gnrv_box_del((GF_Box *)genv);
+				return e;
+			}
 
 			stsd_switch_box(bs, (GF_Box *) genv, a, &genv->data, &genv->data_size, &genv->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
@@ -7165,7 +7201,12 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			GF_GenericAudioSampleEntryBox *gena = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
 			gena->size = a->size-8;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
-			gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox *) gena, bs);
+			e = gnra_box_read((GF_Box *) gena, bs);
+			if (e) {
+				gf_bs_del(bs);
+				gnra_box_del((GF_Box *)gena);
+				return e;
+			}
 
 			stsd_switch_box(bs, (GF_Box *) gena, a, &gena->data, &gena->data_size, &gena->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
@@ -7177,8 +7218,12 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genm->size = a->size-8;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 
-			e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)genm, bs);
-			if (e) return e;
+			e = gnrm_box_read((GF_Box *)genm, bs);
+			if (e) {
+				gf_bs_del(bs);
+				gnrm_box_del((GF_Box *)genm);
+				return e;
+			}
 
 			stsd_switch_box(bs, (GF_Box *) genm, a, &genm->data, &genm->data_size, &genm->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}

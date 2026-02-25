@@ -420,7 +420,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				gf_filter_log_tag(ctx->filter, GF_TRUE);
 				return done;
 			}
-			ctx->last_cts += (size / ctx->bytes_per_sample) * ctx->sr;
+			ctx->last_cts += gf_timestamp_rescale(size / ctx->bytes_per_sample, ctx->sr, ctx->timescale);
 			ctx->pck_offset = 0;
 		}
 		gf_filter_pid_drop_packet(ctx->pid);

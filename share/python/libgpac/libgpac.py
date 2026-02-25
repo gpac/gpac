@@ -237,7 +237,7 @@ except OSError:
 
 #change this to reflect API we encapsulate. An incompatibility in either of these will throw a warning
 GF_ABI_MAJOR=16
-GF_ABI_MINOR=2
+GF_ABI_MINOR=5
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()

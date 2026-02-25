@@ -1,0 +1,38 @@
+{
+  "name": "@gpac/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for analyzing and processing multimedia content with GPAC",
+  "license": "LGPL-2.1-or-later",
+  "author": {
+    "name": "Team GPAC",
+    "url": "https://gpac.io"
+  },
+  "homepage": "https://gpac.io",
+  "bugs": "https://github.com/gpac/gpac/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gpac/gpac.git",
+    "directory": "share/mcp"
+  },
+  "type": "module",
+  "bin": {
+    "mcp-server-gpac": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "@types/node": "^25",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "shx": "^0.4.0",
+    "typescript": "^5.9.3"
+  }
+}

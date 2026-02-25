@@ -1240,7 +1240,7 @@ u32 routein_get_max_dispatch_len(GF_ROUTEEventFileInfo *finfo)
 			btype = next_top_level_box(finfo, finfo->blob->data, true_size, GF_TRUE, &cur_pos, &bsize);
 			if (!btype) break;
 			//never send a box until completed
-			if (cur_pos + bsize>true_size)
+			if ((u64) cur_pos + (u64) bsize > (u64) true_size)
 				break;
 
 			cur_pos+=bsize;

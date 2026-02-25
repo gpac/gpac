@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2025
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2026
  *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
@@ -1104,6 +1104,8 @@ typedef struct
 	u32 pos;
 	u32 url_crc;
 	u32 nb_ref;
+	char *URL;
+	Bool sub_open;
 } GF_FileIOBlob;
 
 static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_error)
@@ -1115,6 +1117,9 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 		if (blob->nb_ref)
 			return NULL;
 
+		if (blob->sub_open)
+			gf_unregister_file_handle((FILE *)fileio_ref);
+		if (blob->URL) gf_free(blob->URL);
 		gf_free(blob);
 		gf_fileio_del(fileio_ref);
 		return NULL;
@@ -1137,22 +1142,39 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 		*out_error = GF_BAD_PARAM;
 		return NULL;
 	}
-	blob->nb_ref++;
-	if (blob->nb_ref>2) {
-		*out_error = GF_BAD_PARAM;
-		return NULL;
+	//no user, we can use this object directly
+	if (!blob->nb_ref) {
+		blob->nb_ref = 1;
+		*out_error = GF_OK;
+		return fileio_ref;
 	}
-	*out_error = GF_OK;
+	//if already in use, we must allocate a new gfio otherwise read position would get shared across FILE streams !
+	fileio_ref = gf_fileio_from_mem(blob->URL, blob->data, blob->size);
+	blob = gf_fileio_get_udta(fileio_ref);
+	//remember we forced a new gfio, it will have to be unregistered upon close
+	blob->sub_open = GF_TRUE;
+	*out_error = fileio_ref ? GF_OK : GF_IO_ERR;
 	return fileio_ref;
 }
 
 static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
-	if (whence==SEEK_END) blob->pos = blob->size;
-	else if (whence==SEEK_SET) blob->pos = (u32) offset;
-	else {
-		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
+	if (whence==SEEK_END)
+		blob->pos = blob->size;
+	else if (whence==SEEK_SET) {
+		if ((s64)offset<0)
+			return GF_BAD_PARAM;
+		if ((u32)offset >= blob->size)
+			return GF_BAD_PARAM;
+		blob->pos = (u32) offset;
+	} else {
+		if (!offset)
+			return GF_OK;
+		if ((s64)offset<0)
+			return GF_BAD_PARAM;
+		if (blob->pos + offset > blob->size)
+			return GF_BAD_PARAM;
 		blob->pos += (u32) offset;
 	}
 	return GF_OK;
@@ -1165,6 +1187,7 @@ static u32 gfio_blob_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 	if (bytes) {
 		memcpy(buffer, blob->data+blob->pos, bytes);
 		blob->pos += bytes;
+		assert(blob->pos<=blob->size);
 	}
 	return bytes;
 }
@@ -1556,6 +1579,7 @@ GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
 	if (!gfio_blob) return NULL;
 	gfio_blob->data = (u8 *) data;
 	gfio_blob->size = size;
+	gfio_blob->URL = gf_strdup(URL);
 	GF_FileIO *res = gf_fileio_new((char *) URL, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
 	if (!res)  {
 		gf_free(gfio_blob);
@@ -1809,6 +1833,7 @@ size_t gf_fread(void *ptr, size_t nbytes, FILE *stream)
 	if (gf_fileio_check(stream)) {
 		return (size_t) gf_fileio_read((GF_FileIO *)stream, ptr, (u32) nbytes);
 	}
+	if (!stream) return 0;
 	result = fread(ptr, 1, nbytes, stream);
 	return result;
 }
@@ -1822,7 +1847,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 			return fio->gets(fio, ptr, (u32) size);
 
 		u32 i, read, nb_read=0;
-		for (i=0; i<size; i++) {
+		for (i=0; i<size-1; i++) {
 			u8 buf[1];
 			read = (u32) gf_fileio_read(fio, buf, 1);
 			if (!read) break;
@@ -1831,6 +1856,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 			nb_read++;
 			if (buf[0]=='\n') break;
 		}
+		ptr[nb_read]=0;
 		if (!nb_read) return NULL;
 		return ptr;
 	}

@@ -689,12 +689,13 @@ restart:
 				}
 				if (last) break;
 			}
-			if (!dsi_end) {
+			if (!dsi_end || !hdr.sample_rate || ! hdr.block_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FLACDmx] invalid FLAC header\n"));
 				ctx->in_error = GF_TRUE;
 				ctx->flac_buffer_size = 0;
 				if (pck)
 					gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			ctx->ch_layout = hdr.channels;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1477,75 +1477,89 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 
 	if (!imported_track) {
 		GF_ImageItemProperties src_props;
-		u32 item_idx, ref_id;
+		u32 item_idx, ref_id, nb_items, for_ref_idx;
 		u32 scheme_type=0, scheme_version=0;
+		Bool found=GF_FALSE;
 		const char *orig_item_name, *orig_item_mime_type, *orig_item_encoding;
-		if (!image_props->item_ref_id) return GF_BAD_PARAM;
+		nb_items = gf_isom_get_meta_item_count(fsrc, GF_TRUE, 0);
 
-		if (gf_isom_meta_get_item_ref_count(fsrc, GF_TRUE, 0, image_props->item_ref_id, GF_4CC('d','i','m','g')) > 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannnot import derived image, only native image import is supported\n"));
-			return GF_NOT_SUPPORTED;
-		}
-
-		item_idx = gf_isom_get_meta_item_by_id(fsrc, GF_TRUE, 0, image_props->item_ref_id);
-		if (!item_idx) {
+		for_ref_idx = image_props->item_ref_id ? gf_isom_get_meta_item_by_id(fsrc, GF_TRUE, 0, image_props->item_ref_id) : 0;
+		if (image_props->item_ref_id && !for_ref_idx) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d, cannnot import\n", image_props->item_ref_id));
 			return GF_BAD_PARAM;
 		}
-		orig_item_name = orig_item_mime_type = orig_item_encoding = NULL;
-		gf_isom_get_meta_item_info(fsrc, GF_TRUE, 0, item_idx, &ref_id, &item_type, &scheme_type, &scheme_version, NULL, NULL, NULL, &orig_item_name, &orig_item_mime_type, &orig_item_encoding);
 
-		if (!ref_id) return GF_BAD_PARAM;
-		if (ref_id != image_props->item_ref_id) return GF_ISOM_INVALID_FILE;
+		for (item_idx=1; item_idx<=nb_items; item_idx++) {
+			if (for_ref_idx && (for_ref_idx != item_idx)) continue;
 
-		gf_isom_get_meta_image_props(fsrc, GF_TRUE, 0, ref_id, &src_props, NULL);
 
-		image_props->config = src_props.config;
-		image_props->width = src_props.width;
-		image_props->height = src_props.height;
-		image_props->num_channels = src_props.num_channels;
-		memcpy(image_props->av1_layer_size, src_props.av1_layer_size, sizeof(u32)*3);
-		memcpy(image_props->bits_per_channel, src_props.bits_per_channel, sizeof(u32)*3);
-		if (!image_props->hSpacing && !image_props->vSpacing) {
-			image_props->hSpacing = src_props.hSpacing;
-			image_props->vSpacing = src_props.vSpacing;
-		}
-		if (image_props->copy_props) {
-			if (!image_props->hOffset && !image_props->vOffset) {
-				image_props->hOffset = src_props.hOffset;
-				image_props->vOffset = src_props.vOffset;
+			if (gf_isom_meta_get_item_ref_count(fsrc, GF_TRUE, 0, image_props->item_ref_id, GF_4CC('d','i','m','g')) > 0) {
+				if (!for_ref_idx) continue;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannnot import derived image, only native image import is supported\n"));
+				return GF_NOT_SUPPORTED;
 			}
-			if (!image_props->clap_wden) {
-				image_props->clap_wnum = src_props.clap_wnum;
-				image_props->clap_wden = src_props.clap_wden;
-				image_props->clap_hnum = src_props.clap_hnum;
-				image_props->clap_hden = src_props.clap_hden;
-				image_props->clap_honum = src_props.clap_honum;
-				image_props->clap_hoden = src_props.clap_hoden;
-				image_props->clap_vonum = src_props.clap_vonum;
-				image_props->clap_voden = src_props.clap_voden;
+
+			orig_item_name = orig_item_mime_type = orig_item_encoding = NULL;
+			gf_isom_get_meta_item_info(fsrc, GF_TRUE, 0, item_idx, &ref_id, &item_type, &scheme_type, &scheme_version, NULL, NULL, NULL, &orig_item_name, &orig_item_mime_type, &orig_item_encoding);
+
+			if (!ref_id) return GF_BAD_PARAM;
+			if (image_props->item_ref_id && (ref_id != image_props->item_ref_id)) return GF_ISOM_INVALID_FILE;
+
+			gf_isom_get_meta_image_props(fsrc, GF_TRUE, 0, ref_id, &src_props, NULL);
+
+			image_props->config = src_props.config;
+			image_props->width = src_props.width;
+			image_props->height = src_props.height;
+			image_props->num_channels = src_props.num_channels;
+			memcpy(image_props->av1_layer_size, src_props.av1_layer_size, sizeof(u32)*3);
+			memcpy(image_props->bits_per_channel, src_props.bits_per_channel, sizeof(u32)*3);
+			if (!image_props->hSpacing && !image_props->vSpacing) {
+				image_props->hSpacing = src_props.hSpacing;
+				image_props->vSpacing = src_props.vSpacing;
 			}
-			if (!image_props->alpha) image_props->alpha = src_props.alpha;
-			if (!image_props->depth) image_props->depth = src_props.depth;
-			if (!image_props->hidden) image_props->hidden = src_props.hidden;
-			if (!image_props->angle) image_props->angle = src_props.angle;
-			if (!image_props->mirror) image_props->mirror = src_props.mirror;
-			if (!image_props->av1_op_index) image_props->av1_op_index = src_props.av1_op_index;
-		}
-		if (!item_name) item_name = orig_item_name;
+			if (image_props->copy_props) {
+				if (!image_props->hOffset && !image_props->vOffset) {
+					image_props->hOffset = src_props.hOffset;
+					image_props->vOffset = src_props.vOffset;
+				}
+				if (!image_props->clap_wden) {
+					image_props->clap_wnum = src_props.clap_wnum;
+					image_props->clap_wden = src_props.clap_wden;
+					image_props->clap_hnum = src_props.clap_hnum;
+					image_props->clap_hden = src_props.clap_hden;
+					image_props->clap_honum = src_props.clap_honum;
+					image_props->clap_hoden = src_props.clap_hoden;
+					image_props->clap_vonum = src_props.clap_vonum;
+					image_props->clap_voden = src_props.clap_voden;
+				}
+				if (!image_props->alpha) image_props->alpha = src_props.alpha;
+				if (!image_props->depth) image_props->depth = src_props.depth;
+				if (!image_props->hidden) image_props->hidden = src_props.hidden;
+				if (!image_props->angle) image_props->angle = src_props.angle;
+				if (!image_props->mirror) image_props->mirror = src_props.mirror;
+				if (!image_props->av1_op_index) image_props->av1_op_index = src_props.av1_op_index;
+			}
+			if (!item_name) item_name = orig_item_name;
 
-		if (!image_props->use_reference || (fsrc == image_props->src_file)) {
-			u8 *data = NULL;
-			u32 size=0;
-			e = gf_isom_extract_meta_item_mem(fsrc, GF_TRUE, 0, ref_id, &data, &size, &size, NULL, GF_FALSE);
-			if (e) return GF_BAD_PARAM;
+			if (!image_props->use_reference || (fsrc == image_props->src_file)) {
+				u8 *data = NULL;
+				u32 size=0;
+				e = gf_isom_extract_meta_item_mem(fsrc, GF_TRUE, 0, ref_id, &data, &size, &size, NULL, GF_FALSE);
+				if (e) return GF_BAD_PARAM;
 
-			e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, data, size, NULL);
-			if (data) gf_free(data);
-		} else {
-			e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
+				e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, data, size, NULL);
+				if (data) gf_free(data);
+			} else {
+				e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
+			}
+			if (e) return e;
+			found = GF_TRUE;
 		}
-		return e;
+		if (!found) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannot import any image\n"));
+			return GF_URL_ERROR;
+		}
+		return GF_OK;
 	}
 
 import_next_sample:

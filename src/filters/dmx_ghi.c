@@ -259,7 +259,10 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 				continue;
 			}
 			//make sure this comes from the same source, otherwise we could match tracks with same IDs in different files - cf #2840
-			if (!st->check_res_url || strcmp(st->check_res_url, url->value.string)) continue;
+			if (st->check_res_url && !strcmp(st->check_res_url, url->value.string)) {}
+			else if (st->res_url && !strcmp(st->res_url, url->value.string)) {}
+			else continue;
+
 			if (!st->track_id) break;
 			if (st->track_id == p_id->value.uint) break;
 			st = NULL;
@@ -1059,7 +1062,11 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 			continue;
 		}
 
-		char *args = gf_strdup(st->check_res_url);
+		char *args = NULL;
+		if (st->check_res_url) args = gf_strdup(st->check_res_url);
+		//if no check_res_url, use res_url directly - this happens when source idx is a gf_fileio_from_mem
+		//in which case we don't mem-wrap the inputs
+		else if (st->res_url) args = gf_strdup(st->res_url);
 
 		if (st->first_frag_start_offset) {
 			char szRange[100];

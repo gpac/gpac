@@ -322,7 +322,7 @@ GF_Err img_process(GF_Filter *filter)
 	while (in_stride % 4) in_stride++;
 
 	u32 h_offset = (h-1)*in_stride + out_stride;
-	if ((h-1) >= GF_UINT_MAX/in_stride || (fh.bfOffBits >= GF_UINT_MAX - h_offset)) {
+	if ((in_stride && ((h-1) >= GF_UINT_MAX/in_stride)) || (fh.bfOffBits >= GF_UINT_MAX - h_offset)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Invalid parameters fh.bfOffBits=%u h=%u in_stride=%u out_stride=%u\n", fh.bfOffBits, h, in_stride, out_stride));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}

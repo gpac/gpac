@@ -144,10 +144,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 					ar_num = dsi.par_num;
 					ar_den = dsi.par_den;
 				}
-				gf_odf_desc_del((GF_Descriptor *) esd);
-				if (e) return e;
 			}
 #endif
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			if (e) return e;
 		} else {
 			u32 mtype = gf_isom_get_media_type(file, track);
 			if (gf_isom_is_video_handler_type(mtype)) {
@@ -4288,7 +4288,7 @@ GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 	IAMFState state;
 	gf_iamf_init_state(&state);
 
-	u32 obu_count = gf_list_count(cfg->configOBUs);
+	u32 obu_count = cfg ? gf_list_count(cfg->configOBUs) : 0;
 	for (u32 i=0; i<obu_count; ++i) {
 		GF_IamfObu *obu = gf_list_get(cfg->configOBUs, i);
 		GF_BitStream *bs = gf_bs_new(obu->raw_obu_bytes, obu->obu_length, GF_BITSTREAM_READ);
