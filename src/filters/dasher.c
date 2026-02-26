@@ -4446,6 +4446,26 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			seg_ext = NULL;
 		}
 
+		//DASH-IF Ingest prefers CMAF extensions
+		if (ctx->profile == GF_DASH_PROFILE_DASHIF_INGEST) {
+			def_ext = NULL;
+			if (ds->rep->mime_type) gf_free(ds->rep->mime_type);
+			switch (ds->stream_type) {
+				case GF_STREAM_VISUAL:
+					init_ext = seg_ext = "cmfv";
+					ds->rep->mime_type = gf_strdup("video/mp4");
+					break;
+				case GF_STREAM_AUDIO:
+					init_ext = seg_ext = "cmfa";
+					ds->rep->mime_type = gf_strdup("audio/mp4");
+					break;
+				default:
+					init_ext = seg_ext = "cmft";
+					ds->rep->mime_type = gf_strdup("application/mp4");
+					break;
+			}
+		}
+
 		is_bs_switch = set->bitstream_switching;
 		//only used to force _init in default templates
 		if (ds->tile_base) is_bs_switch = GF_FALSE;
@@ -5768,6 +5788,9 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		return GF_OK;
 
 	if (ctx->from_index>=IDXMODE_INIT)
+		return GF_OK;
+
+	if (ctx->profile == GF_DASH_PROFILE_DASHIF_INGEST)
 		return GF_OK;
 
 	if (ctx->dyn_rate)
@@ -11146,6 +11169,12 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 			ctx->utcs = gf_strdup(default_utc_timing_server);
 		}
 		break;
+	case GF_DASH_PROFILE_DASHIF_INGEST:
+		ctx->sseg = ctx->sfile = GF_FALSE;
+		ctx->cmaf = DASHER_CMAF_CMF2;
+		ctx->no_fragments_defaults = ctx->align = ctx->tpl = ctx->sap = ctx->segcts = GF_TRUE;
+		ctx->template = gf_strdup("Streams($RepresentationID$)/$Init=init$$Segment=sequence$$Number$");
+		break;
 	default:
 		break;
 	}
@@ -11439,7 +11468,8 @@ static const GF_FilterArgs DasherArgs[] =
 		"- dashavc264.live: DASH-IF live profile\n"
 		"- dashavc264.onDemand: DASH-IF onDemand profile\n"
 		"- dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)"
-		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll", 0 },
+		"- dashif.ingest: DASH-IF CMAF ingest profile (inherits dashif.ll and enforces CMAF, template, and segcts)"
+		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll|dashif.ingest", 0 },
 	{ OFFS(profX), "list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used. If starting with `+`, the profile string by default is erased and `+` is skipped", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(query), "query parameters to append for segment requests (Annex I)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(cp), "content protection element location\n"

@@ -1893,6 +1893,24 @@ GF_Err reframer_process(GF_Filter *filter)
 				fps.den = 1;
 			}
 
+			//signal the epoch time
+			if (!ctx->cur_start.den) {
+				u64 epoch_time;
+				if (ctx->cur_start_tc) {
+					time_t utc_now = (time_t) (gf_net_get_utc() / 1000);
+					struct tm *tm = gf_gmtime(&utc_now);
+					epoch_time = gf_net_get_utc_ts(tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, ctx->cur_start_tc->hours, ctx->cur_start_tc->minutes, ctx->cur_start_tc->seconds);
+				} else {
+					// ctx->cur_start.num already has milliseconds since 1970
+					epoch_time = ctx->cur_start.num;
+				}
+				//convert base to 1904
+				epoch_time /= 1000;
+				epoch_time += (66*365 + 17) * 24 * 3600;
+				gf_filter_pid_set_property_str(st->opid, "isom:creation_date", &PROP_LONGUINT(epoch_time));
+				gf_filter_pid_set_property_str(st->opid, "isom:modification_date", &PROP_LONGUINT(epoch_time));
+			}
+
 			//calculate the correct cts for packet
 			u64 ts = pck_cts + st->tk_delay;
 			if (ts > st->ts_sub) ts -= st->ts_sub;
