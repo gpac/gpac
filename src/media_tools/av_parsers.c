@@ -5542,112 +5542,6 @@ void gf_bs_write_se(GF_BitStream *bs, s32 num)
 	gf_bs_write_ue(bs, v);
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-
-GF_EXPORT
-u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
-{
-	u32 avail = data_len;
-	const u8 *cur = data;
-
-	while (cur) {
-		u32 v, bpos;
-		u8 *next_zero = memchr(cur, 0, avail);
-		if (!next_zero) return data_len;
-
-		v = 0xffffff00;
-		bpos = (u32)(next_zero - data) + 1;
-		while (1) {
-			u8 cval;
-			if (bpos == (u32)data_len)
-				return data_len;
-
-			cval = data[bpos];
-			v = ((v << 8) & 0xFFFFFF00) | ((u32)cval);
-			bpos++;
-			if (v == 0x00000001) {
-				*sc_size = 4;
-				return bpos - 4;
-			}
-			else if ((v & 0x00FFFFFF) == 0x00000001) {
-				*sc_size = 3;
-				return bpos - 3;
-			}
-			if (cval)
-				break;
-		}
-		if (bpos >= data_len)
-			break;
-		cur = data + bpos;
-		avail = data_len - bpos;
-	}
-	return data_len;
-}
-
-Bool gf_avc_slice_is_intra(AVCState *avc)
-{
-	switch (avc->s_info.slice_type) {
-	case GF_AVC_TYPE_I:
-	case GF_AVC_TYPE2_I:
-	case GF_AVC_TYPE_SI:
-	case GF_AVC_TYPE2_SI:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-#if 0 //unused
-Bool gf_avc_slice_is_IDR(AVCState *avc)
-{
-	if (avc->sei.recovery_point.valid)
-	{
-		avc->sei.recovery_point.valid = 0;
-		return 1;
-	}
-	if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE)
-		return 0;
-	return gf_avc_slice_is_intra(avc);
-}
-#endif
-
-static const struct  {
-	u32 w, h;
-} avc_hevc_sar[] = {
-	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
-	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
-	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
-	{ 64, 33 }, { 160,99 }, {  4,  3 }, {  3,  2 },
-	{  2,  1 }
-};
-
-
-/*ISO 14496-10 (N11084) E.1.2*/
-static s32 avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
-{
-	int i, cpb_cnt_minus1;
-
-	cpb_cnt_minus1 = gf_bs_read_ue_log(bs, "cpb_cnt_minus1");
-	if (cpb_cnt_minus1 > 31) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] invalid cpb_cnt_minus1 value: %d (expected in [0;31])\n", cpb_cnt_minus1));
-		return -1;
-	}
-	gf_bs_read_int_log(bs, 4, "bit_rate_scale");
-	gf_bs_read_int_log(bs, 4, "cpb_size_scale");
-
-	/*for( SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++ ) {*/
-	for (i = 0; i <= cpb_cnt_minus1; i++) {
-		gf_bs_read_ue_log_idx(bs, "bit_rate_value_minus1", i);
-		gf_bs_read_ue_log_idx(bs, "cpb_size_value_minus1", i);
-		gf_bs_read_int_log_idx(bs, 1, "cbr_flag", i);
-	}
-	gf_bs_read_int_log(bs, 5, "initial_cpb_removal_delay_length_minus1");
-	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "cpb_removal_delay_length_minus1");
-	hrd->dpb_output_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "dpb_output_delay_length_minus1");
-	hrd->time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
-	return 0;
-}
-
 /*returns the nal_size without emulation prevention bytes*/
 u32 gf_media_nalu_emulation_bytes_add_count(u8 *buffer, u32 nal_size)
 {
@@ -5751,6 +5645,9 @@ u32 gf_media_nalu_emulation_bytes_remove_count(const u8 *buffer, u32 nal_size)
 	return emulation_bytes_count;
 }
 
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 /*nal_size is updated to allow better error detection*/
 GF_EXPORT
 u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u32 nal_size)
@@ -5789,6 +5686,110 @@ u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u
 	}
 
 	return nal_size - emulation_bytes_count;
+}
+
+GF_EXPORT
+u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
+{
+	u32 avail = data_len;
+	const u8 *cur = data;
+
+	while (cur) {
+		u32 v, bpos;
+		u8 *next_zero = memchr(cur, 0, avail);
+		if (!next_zero) return data_len;
+
+		v = 0xffffff00;
+		bpos = (u32)(next_zero - data) + 1;
+		while (1) {
+			u8 cval;
+			if (bpos == (u32)data_len)
+				return data_len;
+
+			cval = data[bpos];
+			v = ((v << 8) & 0xFFFFFF00) | ((u32)cval);
+			bpos++;
+			if (v == 0x00000001) {
+				*sc_size = 4;
+				return bpos - 4;
+			}
+			else if ((v & 0x00FFFFFF) == 0x00000001) {
+				*sc_size = 3;
+				return bpos - 3;
+			}
+			if (cval)
+				break;
+		}
+		if (bpos >= data_len)
+			break;
+		cur = data + bpos;
+		avail = data_len - bpos;
+	}
+	return data_len;
+}
+
+Bool gf_avc_slice_is_intra(AVCState *avc)
+{
+	switch (avc->s_info.slice_type) {
+	case GF_AVC_TYPE_I:
+	case GF_AVC_TYPE2_I:
+	case GF_AVC_TYPE_SI:
+	case GF_AVC_TYPE2_SI:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+#if 0 //unused
+Bool gf_avc_slice_is_IDR(AVCState *avc)
+{
+	if (avc->sei.recovery_point.valid)
+	{
+		avc->sei.recovery_point.valid = 0;
+		return 1;
+	}
+	if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE)
+		return 0;
+	return gf_avc_slice_is_intra(avc);
+}
+#endif
+
+static const struct  {
+	u32 w, h;
+} avc_hevc_sar[] = {
+	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
+	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
+	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
+	{ 64, 33 }, { 160,99 }, {  4,  3 }, {  3,  2 },
+	{  2,  1 }
+};
+
+
+/*ISO 14496-10 (N11084) E.1.2*/
+static s32 avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
+{
+	int i, cpb_cnt_minus1;
+
+	cpb_cnt_minus1 = gf_bs_read_ue_log(bs, "cpb_cnt_minus1");
+	if (cpb_cnt_minus1 > 31) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] invalid cpb_cnt_minus1 value: %d (expected in [0;31])\n", cpb_cnt_minus1));
+		return -1;
+	}
+	gf_bs_read_int_log(bs, 4, "bit_rate_scale");
+	gf_bs_read_int_log(bs, 4, "cpb_size_scale");
+
+	/*for( SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++ ) {*/
+	for (i = 0; i <= cpb_cnt_minus1; i++) {
+		gf_bs_read_ue_log_idx(bs, "bit_rate_value_minus1", i);
+		gf_bs_read_ue_log_idx(bs, "cpb_size_value_minus1", i);
+		gf_bs_read_int_log_idx(bs, 1, "cbr_flag", i);
+	}
+	gf_bs_read_int_log(bs, 5, "initial_cpb_removal_delay_length_minus1");
+	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "cpb_removal_delay_length_minus1");
+	hrd->dpb_output_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "dpb_output_delay_length_minus1");
+	hrd->time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
+	return 0;
 }
 
 #define AVC_SPS_BROKEN {\

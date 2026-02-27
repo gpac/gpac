@@ -451,18 +451,21 @@ void xml_scte35_parse(GF_XMLNode *root, GF_BitStream *bs)
 }
 
 // SCTE-35 encapsulated in an EMEB box
-void xml_emeb_parse(GF_XMLNode *root, GF_BitStream *bs)
+static void xml_emeb_parse(GF_XMLNode *root, GF_BitStream *bs)
 {
+#ifndef GPAC_DISABLE_ISOM
 	GF_EventMessageBox *emeb = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
 	gf_isom_box_size((GF_Box*)emeb);
 	if (gf_isom_box_write((GF_Box*)emeb, bs) != GF_OK)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] EventMessageEmptyBox serialization failed\n"));
 	gf_isom_box_del((GF_Box*)emeb);
+#endif
 }
 
 // SCTE-35 encapsulated in an EMIB box
-void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
+static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 {
+#ifndef GPAC_DISABLE_ISOM
 	int i = 0;
 	GF_XMLAttribute *att = NULL;
 	GF_EventMessageBox *emib = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
@@ -530,6 +533,7 @@ void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 	}
 
 	gf_isom_box_del((GF_Box*)emib);
+#endif
 }
 
 

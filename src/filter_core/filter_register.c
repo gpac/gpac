@@ -195,9 +195,12 @@ REG_DEC(ghidmx)
 REG_DEC(evgs)
 REG_DEC(ccdec)
 REG_DEC(ccenc)
-REG_DEC(scte35dec)
 REG_DEC(mpeghdec)
 REG_DEC(seiload)
+
+#ifndef GPAC_DISABLE_ISOM
+REG_DEC(scte35dec)
+#endif
 
 typedef const GF_FilterRegister *(*filter_reg_fun)(GF_FilterSession *session);
 
@@ -360,7 +363,9 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(evgs),
 	REG_IT(ccdec),
 	REG_IT(ccenc),
+#ifndef GPAC_DISABLE_ISOM
 	REG_IT(scte35dec),
+#endif
 	REG_IT(seiload),
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)

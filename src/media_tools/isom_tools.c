@@ -4284,6 +4284,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 
 GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	IAMFState state;
 	gf_iamf_init_state(&state);
 
@@ -4322,6 +4323,9 @@ GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 	}
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "iamf.%03u.%03u.%s", state.primary_profile, state.additional_profile, codec);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size);
