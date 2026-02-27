@@ -719,6 +719,8 @@ GF_OPT_ENUM (GF_DashProfile,
 	GF_DASH_PROFILE_AVC264_ONDEMAND,
 	/*! industry profile DASH-IF ISOBMFF low latency */
 	GF_DASH_PROFILE_DASHIF_LL,
+	/*! industry profile DASH-IF CMAF Ingest */
+	GF_DASH_PROFILE_DASHIF_INGEST,
  );
 
 
