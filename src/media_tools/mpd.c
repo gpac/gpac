@@ -4192,6 +4192,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					gf_fclose(out);
 				return GF_OK;
 			}
+
+			if (!sctx->dur) continue;
+
 			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
 			gf_fprintf(out,"#EXTINF:%g,\n", dur);
@@ -4250,6 +4253,8 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			sctx = gf_list_get(rep->state_seg_list, i);
 			gf_assert(!sctx->filename);
 			gf_assert(sctx->file_size);
+
+			if (!sctx->dur) continue;
 
 			hls_insert_crypt_info(out, rep, sctx, &last_kms);
 
