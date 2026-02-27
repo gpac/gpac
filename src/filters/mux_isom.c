@@ -325,7 +325,7 @@ typedef struct
 	GF_MP4MuxTagInjectionMode itags;
 	Double start;
 	GF_MP4MuxChapterMode chapm;
-
+	u32 sfrag_tolerance;
 
 	//internal
 	GF_Filter *filter;
@@ -6971,14 +6971,33 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			} else if (ctx->fragdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
 				Bool frag_done = GF_FALSE;
 				u32 dur = gf_filter_pck_get_duration(pck);
+				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				if (tkw->dur_in_frag && gf_timestamp_greater_or_equal(tkw->dur_in_frag, tkw->src_timescale, ctx->cdur.num, ctx->cdur.den)) {
-					frag_done = GF_TRUE;
-				} else if ((ctx->store==MP4MX_MODE_SFRAG)
-					&& gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
-				) {
-					GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
-					if ((sap && sap<GF_FILTER_SAP_3)) {
+
+					if (ctx->sfrag_tolerance) {
+						//if sfrag+tolerance, do NOT use the accumulated dur, only use target stop time
+						//so that we maintain the desired amount if fragments
+						if (gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)) {
+							frag_done = GF_TRUE;
+						}
+					} else {
 						frag_done = GF_TRUE;
+					}
+				} else if ((ctx->store==MP4MX_MODE_SFRAG) && sap && (sap<GF_FILTER_SAP_3)) {
+					if (ctx->sfrag_tolerance) {
+						//get diff in source timescale to avoid rounding at low res
+						s32 diff = gf_timestamp_rescale(ctx->adjusted_next_frag_start, ctx->cdur.den, tkw->src_timescale);
+						diff -= check_ts;
+						if (diff<0) diff = -1;
+						//check tolerance in cdur timescale
+						diff = gf_timestamp_rescale(diff, tkw->src_timescale, ctx->cdur.den);
+						if (diff * 100 < ctx->sfrag_tolerance * ctx->cdur.num) {
+							frag_done = GF_TRUE;
+						}
+					} else {
+						if (gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)) {
+							frag_done = GF_TRUE;
+						}
 					}
 				}
 				if (frag_done) {
@@ -8064,6 +8083,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	gf_filter_set_max_extra_input_pids(filter, -1);
 	ctx->filter = filter;
 	time_t current_time =time(NULL);
+	if (ctx->sfrag_tolerance)
+		ctx->store = MP4MX_MODE_SFRAG;
+
 	ctx->id3_id_sequence=(long)current_time;
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ctx->store>=MP4MX_MODE_FRAG) {
@@ -8783,6 +8805,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- tiny: enabled and write reduced version if profile known and compatible", GF_PROP_UINT, "prof", "off|gen|prof|tiny", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sfrag_tolerance), "start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -8801,7 +8824,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"EX gpac -i source.jpg:#ItemID=1 -o file.mp4\n"
 	"  \n"
 	"# Storage\n"
-	"The [-store]() option allows controlling if the file is fragmented or not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
+	"The [-store]() option allows controlling if the file is fragmented (`frag`) or not, and when not fragmented, how interleaving (`inter`) is done.\n"
+	"For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` (fast-start) modes.\n"
+	"`sfrag` mode is similar `frag` mode but aligns fragments on SAP samples. It is implied when using `sfrag_tolerance`.\n"
+	"`sfrag_tolerance` is expressed as a percentage of the fragment duration (`cdur`). It allows to modulate the fragment durations while keeping the same number of fragments per segment. This is useful to align fragments on randomly placed SAP samples (typically scene-cuts or events).\n"
 	"  \n"
 	"The [-vodcache]() option allows controlling how DASH onDemand segments are generated:\n"
 	"- If set to `on`, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
