@@ -919,5 +919,50 @@ GF_Err ireftype_box_size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *amve_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AmbientViewingEnvBox, GF_ISOM_BOX_TYPE_AMVE);
+	return (GF_Box *)tmp;
+}
+
+
+void amve_box_del(GF_Box *s)
+{
+	GF_AmbientViewingEnvBox *ptr = (GF_AmbientViewingEnvBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err amve_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AmbientViewingEnvBox *ptr = (GF_AmbientViewingEnvBox*)s;
+	ptr->ambient_illuminance = gf_bs_read_int(bs, 32);
+	ptr->ambient_light_x = gf_bs_read_int(bs, 16);
+	ptr->ambient_light_y = gf_bs_read_int(bs, 16);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err amve_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AmbientViewingEnvBox *ptr = (GF_AmbientViewingEnvBox *)s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_int(bs, ptr->ambient_illuminance, 32);
+	gf_bs_write_int(bs, ptr->ambient_light_x, 16);
+	gf_bs_write_int(bs, ptr->ambient_light_y, 16);
+	return GF_OK;
+}
+
+GF_Err amve_box_size(GF_Box *s)
+{
+	s->size += 8;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 #endif /*GPAC_DISABLE_ISOM*/
 
