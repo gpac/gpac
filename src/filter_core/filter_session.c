@@ -834,8 +834,9 @@ void gf_fs_del(GF_FilterSession *fsess)
 #endif
 	if (fsess->prop_maps_entry_reservoir)
 		gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
-	if (fsess->prop_maps_entry_data_alloc_reservoir)
+	if (fsess->prop_maps_entry_data_alloc_reservoir) {
 		gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
+	}
 	if (fsess->pcks_refprops_reservoir)
 		gf_fq_del(fsess->pcks_refprops_reservoir, gf_void_del);
 
