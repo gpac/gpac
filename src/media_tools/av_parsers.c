@@ -13953,10 +13953,11 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		idx = gf_vvc_read_sps_bs_internal(orig, vvc, layer_id, &bit_offset);
 
 		if (idx < 0) {
-			if (orig)
+			if (orig) {
 				gf_bs_del(orig);
+				orig = NULL;
+			}
 			gf_free(no_emulation_buf);
-			gf_bs_del(orig);
 			continue;
 		}
 
