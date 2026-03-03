@@ -228,7 +228,7 @@ function JSClient(id, client) {
 
 
 
-				return 5000;
+				return 1000;
 			});
 
 

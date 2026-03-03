@@ -131,11 +131,11 @@ void gf_js_delete_context(JSContext *ctx)
 		}
 	}
 
-	rmt = (RMT_WS*) gf_sys_get_userws();
-	if (rmt) {
-		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(rmt);
+	RMT_WS* urmt = (RMT_WS*) gf_sys_get_userws();
+	if (urmt) {
+		JS_Sys_Task* task = (JS_Sys_Task*) gf_rmt_get_on_new_client_task(urmt);
 		if (task && task->type == RMT_CALLBACK_JS) {
-			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+			gf_rmt_set_on_new_client_cbk(urmt, NULL, NULL);
 			JS_FreeValue(ctx, task->fun);
 			JS_FreeValue(ctx, task->_obj);
 			gf_free(task);
@@ -166,6 +166,8 @@ void gf_js_delete_runtime()
 		qjs_uninit_runtime_libc(js_rt->js_runtime);
 		JS_FreeRuntime(js_rt->js_runtime);
 		gf_list_del(js_rt->allocated_contexts);
+		if (js_rt->js_orig_logs) gf_free(js_rt->js_orig_logs);
+		if (js_rt->js_log_buf) gf_free(js_rt->js_log_buf);
 		gf_mx_del(js_rt->mx);
 		gf_free(js_rt);
 		js_rt = NULL;
@@ -1025,17 +1027,17 @@ static void js_sys_rmt_client_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFu
 	RMT_ClientCtx* client = JS_GetOpaque(val, js_sys_rmt_client_class_id);
 	if (!client) return;
 
-	JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_MarkValue(rt, task->fun, mark_func);
-		JS_MarkValue(rt, task->_obj, mark_func);
-	}
+	// JS_Sys_Task* task = gf_rmt_client_get_on_data_task(client);
+	// if (task && task->type == RMT_CALLBACK_JS) {
+	// 	JS_MarkValue(rt, task->fun, mark_func);
+	// 	JS_MarkValue(rt, task->_obj, mark_func);
+	// }
 
-	task = gf_rmt_client_get_on_del_task(client);
-	if (task && task->type == RMT_CALLBACK_JS) {
-		JS_MarkValue(rt, task->fun, mark_func);
-		JS_MarkValue(rt, task->_obj, mark_func);
-	}
+	// task = gf_rmt_client_get_on_del_task(client);
+	// if (task && task->type == RMT_CALLBACK_JS) {
+	// 	JS_MarkValue(rt, task->fun, mark_func);
+	// 	JS_MarkValue(rt, task->_obj, mark_func);
+	// }
 
 }
 
@@ -1497,6 +1499,7 @@ extern GF_Mutex *logs_mx;
 static void js_log_cbk(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist)
 {
 	JSContext *ctx = js_rt->log_ctx;
+	if (!ctx) return;
 	JSValue args[5];
 	u32 nb_args = 3;
 	//in case mutex@debug is set, unlock logs mutex before locking JS runtime
@@ -2922,8 +2925,9 @@ static JSValue js_sys_set_logs(JSContext *ctx, JSValueConst this_val, int argc, 
 	if (argc>1)
 		reset = JS_ToBool(ctx, argv[1]);
 
-	if (!js_rt->js_orig_logs)
+	if (!js_rt->js_orig_logs) {
 		js_rt->js_orig_logs = gf_log_get_tools_levels();
+	}
 
 	logs = JS_ToCString(ctx, argv[0]);
 	if (!logs) {
@@ -4327,8 +4331,8 @@ static JSValue fileio_constructor(JSContext *ctx, JSValueConst new_target, int a
 static void js_core_gc_mark(JSRuntime *rt, JSValueConst this_val, JS_MarkFunc *mark_func)
 {
 	if (js_rt->log_ctx) {
-		JS_MarkValue(rt, js_rt->log_fun, mark_func);
-		JS_MarkValue(rt, js_rt->log_obj, mark_func);
+		// JS_MarkValue(rt, js_rt->log_fun, mark_func);
+		// JS_MarkValue(rt, js_rt->log_obj, mark_func);
 	}
 }
 JSClassDef coreClass = {

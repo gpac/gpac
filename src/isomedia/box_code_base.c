@@ -14344,7 +14344,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 prop_size = gf_bs_read_u32(bs);
 		tag_size-=8;
 
-		if (prop_size>4) {
+		if (prop_size>6 ) {
 			tag_size-=2;
 			prop_type = gf_bs_read_u16(bs);
 			prop_size -= 6;

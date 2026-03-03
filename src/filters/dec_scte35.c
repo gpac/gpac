@@ -26,6 +26,10 @@
 #include <gpac/filters.h>
 #include <gpac/internal/isomedia_dev.h>
 
+
+#ifndef GPAC_DISABLE_ISOM
+
+
 #define IS_SEGMENTED (ctx->sampdur.den && ctx->sampdur.num>0)
 #define IS_PASSTHRU  (ctx->mode == 1)
 
@@ -937,3 +941,6 @@ const GF_FilterRegister *scte35dec_register(GF_FilterSession *session)
 {
 	return &SCTE35DecRegister;
 }
+
+
+#endif /* GPAC_DISABLE_ISOM */

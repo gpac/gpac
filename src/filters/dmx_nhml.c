@@ -340,6 +340,9 @@ restart:
 		} else {
 			prop_type = GF_PROP_STRING;
 		}
+		if (prop_type == GF_PROP_STRING_LIST) {
+			reset = GF_FALSE;
+		}
 		GF_PropertyValue prop_val;
 		if (has_bs) {
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -357,16 +360,18 @@ restart:
 		if (p4cc) {
 			if (pck)
 				gf_filter_pck_set_property(pck, p4cc, &prop_val );
-			else
+			else {
 				gf_filter_pid_set_property(ctx->opid, p4cc, &prop_val );
+			}
 		} else {
 			if (pck)
 				gf_filter_pck_set_property_dyn(pck, pname, &prop_val );
 			else
 				gf_filter_pid_set_property_dyn(ctx->opid, pname, &prop_val );
 		}
-		if (reset)
+		if (reset) {
 			gf_props_reset_single(&prop_val);
+		}
 	}
 }
 
@@ -842,7 +847,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 			if (init_name) gf_free(init_name);
 			return e;
 		}
-	} else if (ctx->header_end) {
+	} else if (ctx->header_end && ctx->header_end < GF_UINT_MAX) {
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = ctx->header_end;
 		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
@@ -859,11 +864,12 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 			if (init_name) gf_free(init_name);
 			return e;
 		}
-
-		specInfo = (char*)gf_malloc(sizeof(char) * (ctx->samp_buffer_size +1));
-		memcpy(specInfo, ctx->samp_buffer, ctx->samp_buffer_size);
-		specInfoSize = ctx->samp_buffer_size;
-		specInfo[specInfoSize] = 0;
+		if (ctx->samp_buffer && ctx->samp_buffer_size < GF_UINT_MAX) {
+			specInfo = (char*)gf_malloc(sizeof(char) * (ctx->samp_buffer_size +1));
+			memcpy(specInfo, ctx->samp_buffer, ctx->samp_buffer_size);
+			specInfoSize = ctx->samp_buffer_size;
+			specInfo[specInfoSize] = 0;
+		}
 	}
 
 	i = 0;
@@ -873,6 +879,11 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		if (!stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) break;
 		if (stricmp(node->name, "DecoderSpecificInfo") ) continue;
 
+		if (specInfo) {
+			gf_free(specInfo);
+			specInfo = NULL;
+			specInfoSize = 0;
+		}
 		e = gf_xml_parse_bit_sequence(node, ctx->src_url, &specInfo, &specInfoSize);
 		if (e) {
 			if (specInfo) gf_free(specInfo);
@@ -1510,6 +1521,11 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (ctx->is_dims && !strlen(szMediaTemp)) {
 
 			char *content = gf_xml_dom_serialize(node, GF_TRUE, GF_FALSE);
+
+			if (!content) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure in sample %d: unable to serialize node\n", ctx->sample_num));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 
 			ctx->samp_buffer_size = 3 + (u32) strlen(content);
 			if (ctx->samp_buffer_alloc < ctx->samp_buffer_size+1) {

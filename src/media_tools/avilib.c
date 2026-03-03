@@ -2020,7 +2020,10 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 #endif
 					if(strnicmp((char *)hdrl_data+i,"vids",4) == 0 && !vids_strh_seen)
 					{
+						if ( (i+32+4>hdrl_len) || (i+sizeof(alAVISTREAMHEADER))>hdrl_len ) ERR_EXIT(AVI_ERR_READ)
+
 						memcpy(AVI->compressor,hdrl_data+i+4,4);
+
 						AVI->compressor[4] = 0;
 
 						// ThOe
@@ -2049,6 +2052,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 							return(-1);
 						}
 
+						if ( (i+44+4>hdrl_len) || (i+sizeof(alAVISTREAMHEADER))>hdrl_len ) ERR_EXIT(AVI_ERR_READ)
+
 						AVI->track[AVI->aptr].audio_bytes = str2ulong(hdrl_data+i+32)*avi_sampsize(AVI, 0);
 						AVI->track[AVI->aptr].audio_strn = num_stream;
 
@@ -2056,9 +2061,6 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						AVI->track[AVI->aptr].a_vbr = !str2ulong(hdrl_data+i+44);
 
 						AVI->track[AVI->aptr].padrate = str2ulong(hdrl_data+i+24);
-						if (i + sizeof(alAVISTREAMHEADER) > hdrl_len) {
-							ERR_EXIT(AVI_ERR_READ);
-						}
 
 						memcpy(&AVI->stream_headers[AVI->aptr], hdrl_data + i, sizeof(alAVISTREAMHEADER));
 

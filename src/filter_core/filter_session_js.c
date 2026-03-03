@@ -959,8 +959,9 @@ static void get_filter_args(JSContext *ctx, GF_FilterSession *fs,  const GF_Filt
 						JS_SetPropertyStr(ctx, aval, "value", jsf_NewProp(ctx, &p) );
 					} else {
 						if (arg->arg_default_val) {
-							gf_props_parse_value(arg->arg_type, arg->arg_name, arg->arg_default_val, arg->min_max_enum, f_inst->session->sep_list);
+							p = gf_props_parse_value(arg->arg_type, arg->arg_name, arg->arg_default_val, arg->min_max_enum, f_inst->session->sep_list);
 							JS_SetPropertyStr(ctx, aval, "value", jsf_NewProp(ctx, &p) );
+							gf_props_reset_single(&p);
 						} else {
 							JS_SetPropertyStr(ctx, aval, "value", JS_NULL);
 						}
