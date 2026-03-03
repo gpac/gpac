@@ -2219,6 +2219,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 								ERR_EXIT(AVI_ERR_READ)
 						}
 
+						// must be 4 so that wLongsPerEntry*sizeof(u32) == sizeof(avisuperindex_entry)
+						if (AVI->video_superindex->wLongsPerEntry != 4) {
+							ERR_EXIT(AVI_ERR_READ)
+						}
+
 						AVI->video_superindex->aIndex = (avisuperindex_entry*)
 						                                gf_malloc (AVI->video_superindex->wLongsPerEntry * AVI->video_superindex->nEntriesInUse * sizeof (u32));
 

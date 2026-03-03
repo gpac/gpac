@@ -267,12 +267,13 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 	if (uni_type>1) {
 		const u16 *sptr;
 		char szUTF[1024];
-		u32 read = (u32) gf_fread(szUTF, 1023, test);
+		u32 read = (u32) gf_fread(szUTF, 1022, test);
 		if ((s32) read < 0) {
 			gf_fclose(test);
 			return GF_IO_ERR;
 		}
 		szUTF[read]=0;
+		szUTF[read+1]=0;
 		sptr = (u16*)szUTF;
 		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
