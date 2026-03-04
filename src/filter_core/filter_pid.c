@@ -9876,21 +9876,25 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			return GF_BAD_PARAM;
 		}
 
-		switch (codec_id) {
-		case GF_CODECID_HEVC:
-			e = rfc_6381_get_codec_dolby_vision(szCodec, force_inband ? GF_ISOM_SUBTYPE_DVHE : GF_ISOM_SUBTYPE_DVH1, dvcc);
-			break;
-		case GF_CODECID_AVC:
-			e = rfc_6381_get_codec_dolby_vision(szCodec, force_inband ? GF_ISOM_SUBTYPE_DVAV : GF_ISOM_SUBTYPE_DVA1, dvcc);
-			break;
-		case GF_CODECID_AV1:
-			e = rfc_6381_get_codec_dolby_vision(szCodec, GF_ISOM_SUBTYPE_DAV1, dvcc);
-			break;
-		default:
-			e = GF_NOT_SUPPORTED;
+		// Dolby Vision streams within the MPEG-DASH format version 3.0 section 3.1.3
+		// The codecs attribute value of the element must reference the base layer stream’s standard HEVC or AV1 fourCC (for example, hvc1)
+		if (dvcc->dv_bl_signal_compatibility_id != 1 && dvcc->dv_bl_signal_compatibility_id != 4) {
+			switch (codec_id) {
+			case GF_CODECID_HEVC:
+				e = rfc_6381_get_codec_dolby_vision(szCodec, force_inband ? GF_ISOM_SUBTYPE_DVHE : GF_ISOM_SUBTYPE_DVH1, dvcc);
+				break;
+			case GF_CODECID_AVC:
+				e = rfc_6381_get_codec_dolby_vision(szCodec, force_inband ? GF_ISOM_SUBTYPE_DVAV : GF_ISOM_SUBTYPE_DVA1, dvcc);
+				break;
+			case GF_CODECID_AV1:
+				e = rfc_6381_get_codec_dolby_vision(szCodec, GF_ISOM_SUBTYPE_DAV1, dvcc);
+				break;
+			default:
+				e = GF_NOT_SUPPORTED;
+			}
+			gf_odf_dovi_cfg_del(dvcc);
+			return e;
 		}
-		gf_odf_dovi_cfg_del(dvcc);
-		return e;
 	}
 
 	switch (codec_id) {

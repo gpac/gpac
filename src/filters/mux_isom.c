@@ -3654,6 +3654,8 @@ sample_entry_done:
 			u32 colour_type=0;
 			u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
 			Bool full_range_flag=GF_FALSE;
+			u32 ambient_illuminance=0;
+			u16 ambient_light_x=0, ambient_light_y=0;
 
 			gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
 			if (sar.den && (sar.num>0)) {
@@ -3800,6 +3802,10 @@ sample_entry_done:
 
 					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
 
+					// Set the value of the compatible_brands field to dby1
+					// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.6
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
+
 					if (!dvcc->bl_present_flag) {
 						u32 ref_id = 0;
 
@@ -3825,6 +3831,16 @@ sample_entry_done:
 					}
 					gf_odf_dovi_cfg_del(dvcc);
 				}
+			}
+
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMVE_ILLUMINANCE);
+			if (p) ambient_illuminance = p->value.uint;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMVE_LIGNT_X);
+			if (p) ambient_light_x = p->value.uint;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMVE_LIGNT_X);
+			if (p) ambient_light_y = p->value.uint;
+			if (ambient_illuminance != 0) {
+				gf_isom_set_ambient_viewing_environment(ctx->file, tkw->track_num, tkw->stsd_idx, ambient_illuminance, ambient_light_x, ambient_light_y);
 			}
 
 			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split") : NULL;

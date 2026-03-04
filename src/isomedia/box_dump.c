@@ -4875,6 +4875,52 @@ GF_Err databox_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err vexu_box_dump(GF_Box *a, FILE * trace)
+{
+	gf_isom_box_dump_start(a, "VexuBox", trace);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("VexuBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err eyes_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox *)a;
+
+	gf_isom_box_dump_start(a, "EyesBox", trace);
+	gf_fprintf(trace, ">\n");
+
+	// mandatory Stereo view information 'stri' box
+	gf_isom_box_dump_start(a, "StriBox", trace);
+	gf_fprintf(trace, "eye_views_reversed=\"%u\" has_additional_views=\"%u\" has_right_eye_view=\"%u\" has_left_eye_view=\"%u\">\n", ptr->stri.eye_views_reversed, ptr->stri.has_additional_views, ptr->stri.has_right_eye_view, ptr->stri.has_left_eye_view);
+	gf_isom_box_dump_done("StriBox", a, trace);
+
+	gf_isom_box_dump_done("EyesBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err hero_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox *)a;
+
+	gf_isom_box_dump_start(a, "HeroBox", trace);
+	gf_fprintf(trace, "hero_eye_indicator=\"%u\">\n", ptr->hero_eye_indicator);
+	gf_isom_box_dump_done("HeroBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err amve_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AmbientViewingEnvBox *ptr = (GF_AmbientViewingEnvBox *)a;
+
+	gf_isom_box_dump_start(a, "AmveBox", trace);
+	gf_fprintf(trace, "ambient_illuminance=\"%u\">\n", ptr->ambient_illuminance);
+	gf_fprintf(trace, "ambient_light_x=\"%u\">\n", ptr->ambient_light_x);
+	gf_fprintf(trace, "ambient_light_y=\"%u\">\n", ptr->ambient_light_y);
+	gf_isom_box_dump_done("AmveBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ohdr_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox *)a;
@@ -5178,9 +5224,9 @@ GF_Err dvcC_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
 	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
-	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\">\n",
+	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\" md_compression=\"%u\">\n",
 		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
-		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id);
+		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id, p->DOVIConfig.dv_md_compression);
 	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
 	return GF_OK;
 }
