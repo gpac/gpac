@@ -2159,6 +2159,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 									gf_fseek(AVI->fdes, lpos, SEEK_SET);
 								}
 							}
+							if (AVI->wave_format_ex[AVI->aptr])
+								gf_free(AVI->wave_format_ex[AVI->aptr]);
+
 							AVI->wave_format_ex[AVI->aptr] = wfe;
 						}
 						if (i+14+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
