@@ -372,10 +372,12 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 				gf_vvc_parse_nalu(data+pos, nal_size, ctx->vvc_state, &nut, &tid, &lid);
 				u32 flags=0;
 
-				switch (ctx->vvc_state->s_info.slice_type) {
-				case GF_VVC_SLICE_TYPE_P: flags|=1; break;
-				case GF_VVC_SLICE_TYPE_B: flags|=2; break;
-				case GF_VVC_SLICE_TYPE_I: break;
+				if (ctx->vvc_state) {
+					switch (ctx->vvc_state->s_info.slice_type) {
+					case GF_VVC_SLICE_TYPE_P: flags|=1; break;
+					case GF_VVC_SLICE_TYPE_B: flags|=2; break;
+					case GF_VVC_SLICE_TYPE_I: break;
+					}
 				}
 				*delim_flags |= flags;
 			}
@@ -504,7 +506,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
-		skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, &delim_flags, &is_sap);
+		if (pos+1 < pck_size)
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, &delim_flags, &is_sap);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}
@@ -621,7 +624,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		if (!nal_size) continue;
 
-		skip_nal = nalumx_is_nal_skip(ctx, data, pos, 0, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, NULL, &has_sap);
+		if (pos+1 < pck_size)
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, 0, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, NULL, &has_sap);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}
