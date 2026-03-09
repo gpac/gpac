@@ -2227,7 +2227,7 @@ static GF_Err dasher_add_dolby_vision_attribute(GF_DasherCtx *ctx, GF_DashStream
 	char supplementalCodecs[RFC6381_CODEC_NAME_SIZE_MAX] = {0};
 	char supplementalProfiles[RFC6381_CODEC_NAME_SIZE_MAX] = {0};
 	char supplementalForHls[RFC6381_CODEC_NAME_SIZE_MAX + RFC6381_CODEC_NAME_SIZE_MAX] = {0};
-	u32 subtype=0, codec_id;
+	u32 /*subtype=0, */codec_id;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_BAD_PARAM;
