@@ -9895,6 +9895,8 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			gf_odf_dovi_cfg_del(dvcc);
 			return e;
 		}
+		gf_odf_dovi_cfg_del(dvcc);
+		dvcc = NULL;
 	}
 
 	switch (codec_id) {
