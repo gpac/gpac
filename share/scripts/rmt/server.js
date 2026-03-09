@@ -132,7 +132,7 @@ function MessageHandler(client) {
             const interval = jtext["interval"] || UPDATE_INTERVALS.SESSION_STATS;
             const fields = jtext["fields"] || DEFAULT_FILTER_FIELDS;
             this.client.sessionStatsManager.subscribe(interval, fields);
-            this.client.sessionManager.startMonitoringLoop();
+            this.client.ensureMonitoringLoop();
           },
           "unsubscribe_session": () => {
             this.client.sessionStatsManager.unsubscribe();
@@ -145,7 +145,7 @@ function MessageHandler(client) {
               pidScope = "both";
             }
             this.client.filterManager.subscribeToFilter(idx, interval, pidScope);
-            this.client.sessionManager.startMonitoringLoop();
+            this.client.ensureMonitoringLoop();
           },
           "unsubscribe_filter": () => {
             const idx = jtext.idx;
@@ -161,7 +161,7 @@ function MessageHandler(client) {
             const interval = jtext["interval"] || UPDATE_INTERVALS.CPU_STATS;
             const fields = jtext["fields"] || [];
             this.client.cpuStatsManager.subscribe(interval, fields);
-            this.client.sessionManager.startMonitoringLoop();
+            this.client.ensureMonitoringLoop();
           },
           "unsubscribe_cpu_stats": () => {
             this.client.cpuStatsManager.unsubscribe();
@@ -169,7 +169,7 @@ function MessageHandler(client) {
           "subscribe_logs": () => {
             const logLevel = jtext["logLevel"] || "all@warning";
             this.client.logManager.subscribe(logLevel);
-            this.client.sessionManager.startMonitoringLoop();
+            this.client.ensureMonitoringLoop();
           },
           "unsubscribe_logs": () => {
             this.client.logManager.unsubscribe();
@@ -290,54 +290,42 @@ function SessionStatsManager(client) {
 }
 
 // server/JSClient/Session/SessionManager.js
-import { Sys as sys } from "gpaccore";
 function SessionManager(client) {
   this.client = client;
-  this.isMonitoringLoopRunning = false;
   this.hasActiveSubscriptions = function() {
     return this.client.sessionStatsManager.isSubscribed || this.client.cpuStatsManager.isSubscribed || this.client.logManager.isSubscribed || Object.keys(this.client.filterManager.filterSubscriptions).length > 0;
   };
-  this.startMonitoringLoop = function() {
-    if (this.isMonitoringLoopRunning) return;
-    this.isMonitoringLoopRunning = true;
-    session.post_task(() => {
-      const now = sys.clock_us();
-      if (session.last_task) {
-        this.client.cpuStatsManager.tick(now);
-        this.client.logManager.tick(now);
-        this.client.filterManager.tick(now);
-        this.client.sessionStatsManager.tick(now);
-        this.client.cpuStatsManager.handleSessionEnd();
-        this.client.logManager.handleSessionEnd();
-        this.client.filterManager.handleSessionEnd();
-        this.client.sessionStatsManager.handleSessionEnd();
-        try {
-          this.client.client.send(JSON.stringify({
-            message: "session_end",
-            reason: "completed",
-            timestamp: now
-          }));
-        } catch (e) {
-          print("[SessionManager] Error sending session_end message:", e);
-        }
-        this.isMonitoringLoopRunning = false;
-        return false;
-      }
-      this.client.cpuStatsManager.tick(now);
-      this.client.logManager.tick(now);
-      this.client.filterManager.tick(now);
-      this.client.sessionStatsManager.tick(now);
-      const shouldContinue = this.hasActiveSubscriptions();
-      if (!shouldContinue) this.isMonitoringLoopRunning = false;
-      let interval = 1e3;
-      if (this.client.sessionStatsManager.isSubscribed) {
-        interval = Math.min(interval, this.client.sessionStatsManager.interval);
-      }
-      if (this.client.cpuStatsManager.isSubscribed) {
-        interval = Math.min(interval, this.client.cpuStatsManager.interval);
-      }
-      return shouldContinue ? interval : false;
-    });
+  this.getMinInterval = function() {
+    let interval = 1e3;
+    if (this.client.sessionStatsManager.isSubscribed) {
+      interval = Math.min(interval, this.client.sessionStatsManager.interval);
+    }
+    if (this.client.cpuStatsManager.isSubscribed) {
+      interval = Math.min(interval, this.client.cpuStatsManager.interval);
+    }
+    return interval;
+  };
+  this.tick = function(now) {
+    this.client.cpuStatsManager.tick(now);
+    this.client.logManager.tick(now);
+    this.client.filterManager.tick(now);
+    this.client.sessionStatsManager.tick(now);
+  };
+  this.handleSessionEnd = function(now) {
+    this.tick(now);
+    this.client.cpuStatsManager.handleSessionEnd();
+    this.client.logManager.handleSessionEnd();
+    this.client.filterManager.handleSessionEnd();
+    this.client.sessionStatsManager.handleSessionEnd();
+    try {
+      this.client.client.send(JSON.stringify({
+        message: "session_end",
+        reason: "completed",
+        timestamp: now
+      }));
+    } catch (e) {
+      print("[SessionManager] Error sending session_end:", e);
+    }
   };
 }
 
@@ -608,7 +596,7 @@ function FilterManager(client) {
       pidScope: pidScope || "both"
     };
     this.lastSentByFilter[idx] = 0;
-    this.client.sessionManager.startMonitoringLoop();
+    this.client.ensureMonitoringLoop();
   };
   this.unsubscribeFromFilter = function(idx) {
     delete this.filterSubscriptions[idx];
@@ -673,7 +661,7 @@ function FilterManager(client) {
 }
 
 // server/JSClient/Sys/CpuStatsManager.js
-import { Sys as sys2 } from "gpaccore";
+import { Sys as sys } from "gpaccore";
 function CpuStatsManager(client) {
   this.client = client;
   this.isSubscribed = false;
@@ -685,7 +673,7 @@ function CpuStatsManager(client) {
     this.interval = interval || UPDATE_INTERVALS.CPU_STATS;
     this.fields = fields || CPU_STATS_FIELDS;
     this.lastSent = 0;
-    this.client.sessionManager.startMonitoringLoop();
+    this.client.ensureMonitoringLoop();
   };
   this.unsubscribe = function() {
     this.isSubscribed = false;
@@ -696,26 +684,26 @@ function CpuStatsManager(client) {
     const serialized = cacheManager.getOrSet("cpu_stats", 50, () => {
       const cpuStats = {
         timestamp: now,
-        total_cpu_usage: sys2.total_cpu_usage,
-        process_cpu_usage: sys2.process_cpu_usage,
-        process_memory: sys2.process_memory,
-        physical_memory: sys2.physical_memory,
-        physical_memory_avail: sys2.physical_memory_avail,
-        gpac_memory: sys2.gpac_memory,
-        nb_cores: sys2.nb_cores,
-        thread_count: sys2.thread_count,
+        total_cpu_usage: sys.total_cpu_usage,
+        process_cpu_usage: sys.process_cpu_usage,
+        process_memory: sys.process_memory,
+        physical_memory: sys.physical_memory,
+        physical_memory_avail: sys.physical_memory_avail,
+        gpac_memory: sys.gpac_memory,
+        nb_cores: sys.nb_cores,
+        thread_count: sys.thread_count,
         memory_usage_percent: 0,
         process_memory_percent: 0,
         gpac_memory_percent: 0,
         cpu_efficiency: 0
       };
-      if (sys2.physical_memory > 0) {
-        cpuStats.memory_usage_percent = (sys2.physical_memory - sys2.physical_memory_avail) / sys2.physical_memory * 100;
-        cpuStats.process_memory_percent = sys2.process_memory / sys2.physical_memory * 100;
-        cpuStats.gpac_memory_percent = sys2.gpac_memory / sys2.physical_memory * 100;
+      if (sys.physical_memory > 0) {
+        cpuStats.memory_usage_percent = (sys.physical_memory - sys.physical_memory_avail) / sys.physical_memory * 100;
+        cpuStats.process_memory_percent = sys.process_memory / sys.physical_memory * 100;
+        cpuStats.gpac_memory_percent = sys.gpac_memory / sys.physical_memory * 100;
       }
-      if (sys2.total_cpu_usage > 0) {
-        cpuStats.cpu_efficiency = sys2.process_cpu_usage / sys2.total_cpu_usage * 100;
+      if (sys.total_cpu_usage > 0) {
+        cpuStats.cpu_efficiency = sys.process_cpu_usage / sys.total_cpu_usage * 100;
       }
       return JSON.stringify({
         message: "cpu_stats",
@@ -734,11 +722,54 @@ function CpuStatsManager(client) {
 
 // server/JSClient/Sys/LogManager.js
 import { Sys as sys3 } from "gpaccore";
+
+// server/JSClient/Sys/Utils/LogHub.js
+import { Sys as sys2 } from "gpaccore";
+var logHub = {
+  subscribers: /* @__PURE__ */ new Map(),
+  originalLogConfig: null,
+  activeLogLevel: null,
+  add(id, manager) {
+    const wasEmpty = this.subscribers.size === 0;
+    this.subscribers.set(id, manager);
+    if (wasEmpty) {
+      this.originalLogConfig = sys2.get_logs(true);
+      sys2.use_logx = true;
+      sys2.on_log = (tool, level, msg, tid, caller) => {
+        for (const manager2 of this.subscribers.values()) manager2.handleLog(tool, level, msg, tid, caller);
+      };
+    }
+  },
+  remove(id) {
+    this.subscribers.delete(id);
+    if (this.subscribers.size === 0) this._teardown();
+  },
+  /** Force-clear everything (session end) — stops all log capture immediately */
+  shutdown() {
+    this.subscribers.clear();
+    this._teardown();
+  },
+  setLogLevel(logLevel) {
+    this.activeLogLevel = logLevel;
+    sys2.set_logs(logLevel);
+    for (const manager of this.subscribers.values()) {
+      manager.logLevel = logLevel;
+      manager.sendToClient({ message: "log_config_changed", logLevel });
+    }
+  },
+  _teardown() {
+    sys2.on_log = void 0;
+    if (this.originalLogConfig) sys2.set_logs(this.originalLogConfig);
+    this.originalLogConfig = null;
+    this.activeLogLevel = null;
+  }
+};
+
+// server/JSClient/Sys/LogManager.js
 function LogManager(client) {
   this.client = client;
   this.isSubscribed = false;
   this.logLevel = "all@quiet";
-  this.originalLogConfig = null;
   this.pendingLogs = [];
   this.batchTimer = null;
   this.subscribe = function(logLevel) {
@@ -749,13 +780,14 @@ function LogManager(client) {
     this.logLevel = logLevel;
     this.isSubscribed = true;
     try {
-      this.originalLogConfig = sys3.get_logs(true);
-      sys3.use_logx = true;
-      sys3.on_log = (tool, level, message, thread_id, caller) => {
-        this.handleLog(tool, level, message, thread_id, caller);
-      };
-      sys3.set_logs(this.logLevel);
-      this.client.sessionManager.startMonitoringLoop();
+      logHub.add(this.client.id, this);
+      if (logHub.activeLogLevel) {
+        this.logLevel = logHub.activeLogLevel;
+        this.sendToClient({ message: "log_config_changed", logLevel: this.logLevel });
+      } else {
+        logHub.setLogLevel(this.logLevel);
+      }
+      this.client.ensureMonitoringLoop();
     } catch (error) {
       console.error("LogManager: Failed to start log capturing:", error);
       this.isSubscribed = false;
@@ -765,9 +797,8 @@ function LogManager(client) {
     if (!this.isSubscribed) return;
     try {
       this.flushPendingLogs();
-      sys3.on_log = void 0;
-      if (this.originalLogConfig) sys3.set_logs(this.originalLogConfig);
       this.isSubscribed = false;
+      logHub.remove(this.client.id);
       this.pendingLogs = [];
       this.batchTimer = null;
     } catch (error) {
@@ -799,9 +830,7 @@ function LogManager(client) {
     if (!this.isSubscribed) return;
     try {
       this.pendingLogs = [];
-      this.logLevel = logLevel;
-      sys3.set_logs(logLevel);
-      this.sendToClient({ message: "log_config_changed", logLevel });
+      logHub.setLogLevel(logLevel);
     } catch (error) {
       console.error("LogManager: Failed to update log level:", error);
     }
@@ -830,9 +859,8 @@ function LogManager(client) {
   this.forceUnsubscribe = function() {
     try {
       this.flushPendingLogs();
-      sys3.on_log = void 0;
-      if (this.originalLogConfig) sys3.set_logs(this.originalLogConfig);
       this.isSubscribed = false;
+      logHub.remove(this.client.id);
       this.pendingLogs = [];
       this.batchTimer = null;
     } catch (error) {
@@ -840,7 +868,10 @@ function LogManager(client) {
     }
   };
   this.handleSessionEnd = function() {
-    this.forceUnsubscribe();
+    logHub.shutdown();
+    this.isSubscribed = false;
+    this.pendingLogs = [];
+    this.batchTimer = null;
   };
 }
 
@@ -881,9 +912,10 @@ function CommandLineManager(client) {
 }
 
 // server/JSClient/index.js
-function JSClient(id, client, all_clients2) {
+function JSClient(id, client, all_clients2, ensureMonitoringLoop2) {
   this.id = id;
   this.client = client;
+  this.ensureMonitoringLoop = ensureMonitoringLoop2;
   this.messageHandler = new MessageHandler(this);
   this.sessionStatsManager = new SessionStatsManager(this);
   this.sessionManager = new SessionManager(this);
@@ -970,6 +1002,30 @@ function stabilizeGraph() {
     }
   }
 }
+var monitoringRunning = false;
+function ensureMonitoringLoop() {
+  if (monitoringRunning) return;
+  monitoringRunning = true;
+  session.post_task(() => {
+    const now = sys5.clock_us();
+    if (session.last_task) {
+      for (const client of all_clients) client.sessionManager.handleSessionEnd(now);
+      monitoringRunning = false;
+      return false;
+    }
+    let active = false;
+    let interval = 1e3;
+    for (const client of all_clients) {
+      client.sessionManager.tick(now);
+      if (client.sessionManager.hasActiveSubscriptions()) {
+        active = true;
+        interval = Math.min(interval, client.sessionManager.getMinInterval());
+      }
+    }
+    if (!active) monitoringRunning = false;
+    return active ? interval : false;
+  });
+}
 session.reporting(true);
 var remove_client = function(client_id) {
   for (let i = 0; i < all_clients.length; i++) {
@@ -993,7 +1049,7 @@ session.set_del_filter_fun((f) => {
   onGraphEvent();
 });
 sys5.rmt_on_new_client = function(client) {
-  let js_client = new JSClient(++cid, client, all_clients);
+  let js_client = new JSClient(++cid, client, all_clients, ensureMonitoringLoop);
   all_clients.push(js_client);
   js_client.client.on_data = (msg) => {
     if (typeof msg == "string")
