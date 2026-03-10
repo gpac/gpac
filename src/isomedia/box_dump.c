@@ -3417,7 +3417,26 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
+GF_Err TLV_Dump(GF_List *tlv, FILE * trace)
+{
+	u32 i, count;
+	if (gf_sys_is_test_mode())
+		return GF_OK;
 
+	count = gf_list_count(tlv);
+	for (i=0; i<count; i++) {
+		GF_Box *p = (GF_Box *)gf_list_get(tlv, i);
+		switch (p->type) {
+		case GF_4CC('r', 't', 'p', 'o'):
+			gf_fprintf(trace, "<RTPOffset timeOffset=\"%d\"/>\n", ((GF_RTPOBox *)p)->timeOffset);
+			break;
+		default:
+			gf_fprintf(trace, "<UnknownTLVEntry/>\n");
+			break;
+		}
+	}
+	return GF_OK;
+}
 GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 {
 	u32 i, count;
@@ -3545,6 +3564,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 			count2 = gf_list_count(pck->TLV);
 			if (count2) {
 				gf_fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
+				TLV_Dump(pck->TLV, trace);
 				gf_fprintf(trace, "</PrivateExtensionTable>\n");
 			}
 			//DTE is made of NON boxes
