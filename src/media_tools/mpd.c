@@ -4193,6 +4193,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 				return GF_OK;
 			}
 
+			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
 
 			dur = (Double) sctx->dur;
@@ -4254,6 +4255,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			gf_assert(!sctx->filename);
 			gf_assert(sctx->file_size);
 
+			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
 
 			hls_insert_crypt_info(out, rep, sctx, &last_kms);
