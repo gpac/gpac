@@ -1,0 +1,65 @@
+{
+  "name": "gpac-js",
+  "version": "0.0.0-dev",
+  "license": "LGPL-2.1-or-later",
+  "keywords": [
+    "media",
+    "packaging",
+    "video",
+    "audio",
+    "streaming",
+    "gpac",
+    "nodejs",
+    "bindings"
+  ],
+  "gypfile": true,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "index.d.ts",
+  "files": [
+    "dist/",
+    "binding.gyp",
+    "gpac_wrap.cpp",
+    "index.d.ts"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gpac/gpac.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gpac/gpac/issues"
+  },
+  "homepage": "https://gpac.io",
+  "description": "Node.js bindings for GPAC",
+  "author": "Team GPAC",
+  "scripts": {
+    "prepublishOnly": "cp ../../../README.md .",
+    "install": "node-pre-gyp install --fallback-to-build",
+    "test": "npm run build && node test.js",
+    "build": "npm run install && npm run build:esm && npm run build:cjs",
+    "build:esm": "esbuild --platform=node --format=esm --outfile=dist/index.mjs index.js",
+    "build:cjs": "esbuild --platform=node --format=cjs --outfile=dist/index.cjs index.js"
+  },
+  "dependencies": {
+    "@mapbox/node-pre-gyp": "^2.0.0",
+    "node-addon-api": "^8.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.4"
+  },
+  "binary": {
+    "module_name": "gpac-js",
+    "module_path": "./lib/binding/{node_abi}-{platform}-{arch}/",
+    "remote_path": "./node/v{major}.{minor}/{patch}/",
+    "host": "https://dist.gpac.io/gpac/",
+    "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{arch}.tar.gz"
+  }
+}
