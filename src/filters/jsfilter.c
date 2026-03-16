@@ -4912,12 +4912,13 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 //		GF_FilterSession *fs = sjs->compositor->filter->session;
 
 		e = gf_fs_load_js_api(jsf->ctx, filter->session);
-		if (e) {
+		if (e<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading session API: %s\n", gf_error_to_string(e) ));
 			gf_free(buf);
 			return e;
 		}
-		jsf->unload_session_api = GF_TRUE;
+		if (!e)
+			jsf->unload_session_api = GF_TRUE;
 	}
 
  	for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {
