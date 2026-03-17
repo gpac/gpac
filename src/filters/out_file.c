@@ -178,9 +178,13 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		url = gf_fileio_translate_url(filename);
 		is_gfio=GF_TRUE;
 	}
+	if (url && (strlen(url) >= GF_MAX_PATH)) return GF_IO_ERR;
+	if (ctx->dst && (strlen(ctx->dst) >= GF_MAX_PATH)) return GF_IO_ERR;
 
 	if (ctx->dynext) {
 		const char *has_ext = gf_file_ext_start(url);
+
+		if (!has_ext && ext && (strlen(url) + strlen(ext) + 1 >= GF_MAX_PATH)) return GF_IO_ERR;
 
 		strcpy(szFinalName, url);
 		if (!has_ext && ext) {
@@ -243,6 +247,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	}
 	strcpy(szName, szFinalName);
 	if (ctx->use_move) {
+		if (strlen(szName) + strlen(ATOMIC_SUFFIX) >= GF_MAX_PATH) return GF_IO_ERR;
 		strcat(szName, ATOMIC_SUFFIX);
 	}
 
