@@ -2571,7 +2571,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 			ctx->nb_nalus--;
 		}
 		// set ambinet viewing environment information
-		if (ctx->hevc_state->sei.ambient_view.amve_valid == GF_TRUE) {
+		if (ctx->hevc_state->sei.ambient_view.amve_valid == GF_TRUE && ctx->opid) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMVE_ILLUMINANCE, & PROP_UINT(ctx->hevc_state->sei.ambient_view.ambient_illuminance));
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMVE_LIGNT_X, & PROP_UINT(ctx->hevc_state->sei.ambient_view.ambient_light_x));
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMVE_LIGNT_Y, & PROP_UINT(ctx->hevc_state->sei.ambient_view.ambient_light_y));
