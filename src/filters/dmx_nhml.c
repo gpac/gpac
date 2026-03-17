@@ -1641,7 +1641,11 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				gf_bs_write_data(bs_tmp, ctx->samp_buffer, ctx->samp_buffer_size);
 			}
 			if (!base_media_file) base_media_file = ctx->media_file;
-			gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, base_media_file, bs_tmp);
+			e = gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, base_media_file, bs_tmp);
+			if (e) {
+				gf_bs_del(bs_tmp);
+				return e;
+			}
 			gf_bs_get_content(bs_tmp, &output, &ctx->samp_buffer_size);
 			gf_bs_del(bs_tmp);
 

@@ -664,6 +664,12 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		if (use_file && !szFile)
 			szFile = base_media_file;
 
+		if (nb_bits && nb_bits > 64) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error encoding value on too many bits (max: 64, got: %u)\n", nb_bits));
+			e = GF_BAD_PARAM;
+			goto exit;
+		}
+
 		if (szString) {
 			u32 len = (u32) strlen(szString);
 			if (nb_bits)
@@ -692,6 +698,11 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			gf_free(data);
 		} else if (szData) {
 			u32 len = (u32) strlen(szData);
+			if (len%2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error decoding hexadecimal data argument: length needs to be even\n"));
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
 			char *data = (char *) gf_malloc(sizeof(char)*len/2);
 			if (!data) {
 				e = GF_OUT_OF_MEM;
