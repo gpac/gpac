@@ -1583,7 +1583,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			args += this.corrupted ? ':repair=simple' : ':repair=strict'; // simple: forward corrupted files if parsable (valid container syntax, broken media)
 		} else {
 			args += ':repair=full';
-			if (this.repair == 2 && this.url) {
+			if (this.repair == 1 && this.url) {
 				args += '::repair_urls='+this.url;
 			}
 		}
