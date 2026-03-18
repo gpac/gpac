@@ -3933,6 +3933,7 @@ static int gpac_do_creds(char *creds_args)
 				fprintf(stdout, "Users in group: %s\n", g);
 			} else {
 				fprintf(stdout, "No such group %s\n", creds_args);
+				//trash creds in test mode
 				if (gf_sys_is_test_mode()) {
 					if (creds) gf_cfg_del(creds);
 					return 0;
@@ -3946,6 +3947,7 @@ static int gpac_do_creds(char *creds_args)
 	u32 keys = gf_cfg_get_key_count(creds, creds_args);
 	if (!keys && !is_add) {
 		fprintf(stderr, "No such user %s\n", creds_args);
+		//trash creds in test mode
 		if (gf_sys_is_test_mode()) {
 			if (creds) gf_cfg_del(creds);
 			return 0;

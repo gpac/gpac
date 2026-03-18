@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1026,6 +1026,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			} else if (!stricmp(arg, "-for-test")) {
 				gpac_test_mode = bool_value;
 			} else if (!stricmp(arg, "-old-arch")) {
+				if (bool_value) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("[core] -old-arch will be deprecated in next release - please update your scripts\n"));
+				}
 				gpac_old_arch = bool_value;
 			} else if (!stricmp(arg, "-no-save")) {
 				gpac_discard_config = bool_value;

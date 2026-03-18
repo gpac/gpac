@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / rtsp output filter
@@ -459,6 +459,7 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	sess->response = gf_rtsp_response_new();
 	sess->streams = gf_list_new();
 	sess->filter_srcs = gf_list_new();
+	//test mode, use a static control name
 	if (gf_sys_is_test_mode()) {
 		strcpy(sess->ctrl_name, "/trackID");
 	} else {

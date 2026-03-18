@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1854,8 +1854,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					}
 
 					chunk_prev_dur = tmp->chunkDur;
-					//FIXME we do not apply patch in test mode for now since this breaks all our hashes, remove this
-					//once we move to filters permanently
+
 					if (!gf_sys_old_arch_compat()) {
 						tmp->chunkDur += sample_dur;
 					} else {

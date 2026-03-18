@@ -1671,8 +1671,8 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 	GF_SAFEALLOC(info, GF_MPD_ProgramInfo);
 	if (!info) return GF_OUT_OF_MEM;
-	if (gf_sys_is_test_mode()) info->more_info_url = gf_strdup("http://gpac.io");
-	else info->more_info_url = gf_strdup("https://gpac.io");
+
+	info->more_info_url = gf_strdup("https://gpac.io");
 	info->title = gf_strdup(title);
 	sprintf(str, "Generated from URL %s", gf_file_basename(src_base_url));
 	info->source = gf_strdup(str);
@@ -3173,14 +3173,12 @@ static void mpd_print_lang(FILE *out, const char *attVal, const char *attName)
 {
 	if (!attVal) return;
 
-	if (!gf_sys_is_test_mode()) {
-		if (!strcmp(attVal, "und")) return;
-		if (strlen(attVal)==3) {
-			s32 res = gf_lang_find(attVal);
-			if (res>0) {
-				const char *lang = gf_lang_get_2cc(res);
-				if (lang) attVal = lang;
-			}
+	if (!strcmp(attVal, "und")) return;
+	if (strlen(attVal)==3) {
+		s32 res = gf_lang_find(attVal);
+		if (res>0) {
+			const char *lang = gf_lang_get_2cc(res);
+			if (lang) attVal = lang;
 		}
 	}
 	gf_fprintf(out, " %s=\"%s\"", attName ? attName : "lang", attVal);
@@ -3499,7 +3497,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 
 	//check if all reps have the same mime, if so only write it at AS level
 	char *mime_type = NULL;
-	if (!as->mime_type && !gf_sys_is_test_mode()) {
+	if (!as->mime_type) {
 		for (i=0; i<gf_list_count(as->representations); i++) {
 			GF_MPD_Representation *rep = gf_list_get(as->representations, i);
 			if (!i)
@@ -3710,7 +3708,7 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 		if (strstr(rep->hls_master_tags[i], "CLOSED-CAPTIONS"))
 			has_cc = GF_TRUE;
 	}
-	if (!has_cc && !gf_sys_is_test_mode() && (hls_version>=6)) {
+	if (!has_cc && (hls_version>=6)) {
 		gf_fprintf(out, ",CLOSED-CAPTIONS=NONE");
 	}
 	if (prim_group_id) {
@@ -3923,8 +3921,7 @@ re_dump:
 	}
 
 	g_m_bandwidth += g_m_bandwidth_subs;
-	if (gf_sys_is_test_mode() && !g_m_width)
-		g_m_bandwidth = 0;
+	//if (gf_sys_is_test_mode() && !g_m_width) g_m_bandwidth = 0;
 
 	gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, grp_codecs, g_type, g_id, g_type_subs, g_id_subs, as, g_m_bandwidth, g_m_width, g_m_height, g_m_fps, hls_version, prim_group_id);
 	if (grp_codecs) gf_free(grp_codecs);
@@ -4109,8 +4106,6 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 					if (!write_br) {
 						u32 frag_idx = k;
-						//we'll need to redo all LLHLS tests
-						if (gf_sys_is_test_mode()) frag_idx++;
 
 						char *res = gf_mpd_resolve_subnumber(sctx->llhas_template, force_url ? force_url : sctx->filename, frag_idx);
 						if (force_url ) gf_free(force_url);

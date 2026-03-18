@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / AC4 reframer filter
@@ -170,7 +170,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 		// bitrate
-		if (duration && !gf_sys_is_test_mode() ) {
+		if (duration) {
 			rate *= 8 * ctx->duration.den;
 			rate /= ctx->duration.num;
 			ctx->bitrate = (u32) rate;
@@ -213,7 +213,7 @@ static void ac4dmx_check_pid(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 	}
 
-	if (!ctx->in_timescale && !gf_sys_is_test_mode()) {
+	if (!ctx->in_timescale) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE));
 	}
 

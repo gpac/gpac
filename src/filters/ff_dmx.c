@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -1267,7 +1267,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (force_reframer) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 		}
-		else if (!gf_sys_is_test_mode() ){
+		else {
 			//force reparse of nalu-base codecs if no dovi support
 			switch (gpac_codec_id) {
 			case GF_CODECID_AVC:
@@ -1387,7 +1387,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (codec_blockalign)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_OPAQUE, &PROP_UINT(codec_blockalign));
 
-		if ((stream->disposition & AV_DISPOSITION_DEFAULT) && !gf_sys_is_test_mode()) {
+		if (stream->disposition & AV_DISPOSITION_DEFAULT) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_IS_DEFAULT, &PROP_BOOL(GF_TRUE));
 		}
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MUX_INDEX, &PROP_UINT(i+1));

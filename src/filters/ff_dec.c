@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -1044,9 +1044,6 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gpac_codecid = prop->value.uint;
 	if (gpac_codecid==GF_CODECID_RAW)
 		return GF_NOT_SUPPORTED;
-
-	if (gf_sys_is_test_mode() && (gpac_codecid == GF_CODECID_MPEG_AUDIO))
-		gpac_codecid = GF_CODECID_MPEG2_PART3;
 
 	//initial config or update
 	if (!ctx->in_pid || (ctx->in_pid==pid)) {

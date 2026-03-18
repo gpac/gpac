@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU (AVC, HEVC, VVC)  reframer filter
@@ -537,9 +537,8 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 20000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[%s] Source file larger than 20M, skipping indexing\n", ctx->log_name));
-				if (!gf_sys_is_test_mode())
-					probe_size = 20000000;
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[%s] Large source file - estimating dur/rate on first 20 MB\n", ctx->log_name));
+				probe_size = 20000000;
 			} else {
 				ctx->index = -ctx->index;
 			}
@@ -734,7 +733,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		if (probe_size)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 
-		if (duration && ctx->duration.num && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
+		if (duration && ctx->duration.num) {
 			filesize *= 8 * ctx->duration.den;
 			filesize /= ctx->duration.num;
 			ctx->bitrate = (u32) filesize;

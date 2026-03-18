@@ -3504,11 +3504,13 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include,
+					/usr/local/include,
 					/opt/local/include,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					../../extra_lib/lib/gcc,
+					/usr/local/lib,
 					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
@@ -3553,11 +3555,13 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include,
+					/usr/local/include,
 					/opt/local/include,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					../../extra_lib/lib/gcc,
+					/usr/local/lib,
 					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;

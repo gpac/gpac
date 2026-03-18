@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -7015,7 +7015,7 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 	}
 	if (!alternateGroupID) {
 		/*there is a function for this ....*/
-		if (trak->Header->alternate_group) {
+		if (trak->Header->alternate_group && !is_switch_group) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Track %d has already an alternate group - skipping\n", trak->Header->trackID));
 			return GF_BAD_PARAM;
 		}
@@ -7053,8 +7053,8 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 		if (! *switchGroupID) *switchGroupID = next_switch_group_id+1;
 	}
 
-
-	trak->Header->alternate_group = alternateGroupID;
+	if (!trak->Header->alternate_group)
+		trak->Header->alternate_group = alternateGroupID;
 
 	tsel = NULL;
 	if (*switchGroupID) {

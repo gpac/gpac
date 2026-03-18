@@ -170,6 +170,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 			return GF_TRUE;
 #endif
 
+		//no auth callback setup in test mode, simply fail
 		if (gf_sys_is_test_mode()) {
 			return GF_FALSE;
 		}
