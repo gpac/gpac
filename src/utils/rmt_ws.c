@@ -377,7 +377,7 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
 			return GF_IO_ERR;
 		}
 		if (gf_ssl_init_lib()) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] Failed to initialize OpenSSL library\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RMTWS, ("[RMT] Failed to initialize SSL library\n"));
 			return GF_IO_ERR;
 		}
 

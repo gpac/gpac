@@ -43,6 +43,7 @@ void dm_sess_sk_del(GF_DownloadSession *sess)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] closing socket\n"));
 		if (sess->sock_group) gf_sk_group_unregister(sess->sock_group, sock);
 		gf_sk_del(sock);
+		sess->sock = NULL;
 #ifdef GPAC_HAS_HTTP2
 		sess->h2_upgrade_state = 0;
 #endif
@@ -328,8 +329,10 @@ void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 
 #ifdef GPAC_HAS_SSL
 			if (sess->ssl) {
-				SSL_shutdown(sess->ssl);
-				SSL_free(sess->ssl);
+				// SSL_shutdown(sess->ssl);
+				// SSL_free(sess->ssl);
+				gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+				gnutls_deinit(sess->ssl);
 				sess->ssl = NULL;
 			}
 #endif
@@ -420,8 +423,10 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	//in server mode SSL context is managed by caller
 	if (sess->ssl) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] shut down SSL context\n"));
-		SSL_shutdown(sess->ssl);
-		SSL_free(sess->ssl);
+		// SSL_shutdown(sess->ssl);
+		// SSL_free(sess->ssl);
+		gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+		gnutls_deinit(sess->ssl);
 		sess->ssl = NULL;
 	}
 #endif
@@ -883,8 +888,10 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		sess->start_time = 0;
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			SSL_shutdown(sess->ssl);
-			SSL_free(sess->ssl);
+			// SSL_shutdown(sess->ssl);
+			// SSL_free(sess->ssl);
+			gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+			gnutls_deinit(sess->ssl);
 			sess->ssl = NULL;
 		}
 #endif
@@ -2085,7 +2092,8 @@ void gf_dm_del(GF_DownloadManager *dm)
 #endif
 
 #ifdef GPAC_HAS_SSL
-	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
+	// if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
+	if (dm->ssl_ctx) gnutls_certificate_free_credentials(dm->ssl_ctx);
 #endif
 	/* Stored elsewhere, no need to free */
 	gf_mx_v( dm->cache_mx );
@@ -2712,6 +2720,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 #endif
 			if (sess->sock)
 				e = gf_sk_probe(sess->sock);
+
+			// fprintf(stderr, "%s:%d gf_dm_sess_fetch_data returned %s\n", __FILE__, __LINE__, gf_error_to_string(e));
 
 			if ((e==GF_IP_CONNECTION_CLOSED)
 				|| (sess->request_timeout && (gf_sys_clock_high_res() - sess->last_fetch_time > 1000 * sess->request_timeout))
@@ -4218,6 +4228,7 @@ process_reply:
 		gf_dm_sess_user_io(sess, &par);
 		sess->status = GF_NETIO_DATA_EXCHANGE;
 		e = GF_EOS;
+		//e = GF_OK;
 		break;
 	}
 	case 401:

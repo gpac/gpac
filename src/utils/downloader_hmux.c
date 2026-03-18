@@ -44,8 +44,10 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] shut down SSL context\n"));
-			SSL_shutdown(sess->ssl);
-			SSL_free(sess->ssl);
+			// SSL_shutdown(sess->ssl);
+			// SSL_free(sess->ssl);
+			gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+			gnutls_deinit(sess->ssl);
 			sess->ssl = NULL;
 		}
 #endif
@@ -278,4 +280,3 @@ GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stre
 
 
 #endif //GPAC_DISABLE_NETWORK
-

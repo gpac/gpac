@@ -348,7 +348,7 @@ static u32 httpio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	if (!buffer || !bytes) return 0;
 	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
-	if (!ioctx || ioctx->parent) return 0;
+	if (!ioctx || ioctx->parent || !buffer) return 0;
 
 	ioctx->data = gf_realloc(ioctx->data, sizeof(u8)*((size_t)ioctx->size+bytes));
 	if (!ioctx->data) return 0;

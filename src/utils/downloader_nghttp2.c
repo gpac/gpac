@@ -578,14 +578,18 @@ static GF_Err h2_async_flush(GF_DownloadSession *sess, Bool for_close)
 	h2_flush_send_ex(sess, GF_TRUE);
 	gf_mx_v(sess->mx);
 
+	// fprintf(stderr, "%s:%d h2_async_flush sess->hmux_send_data_len %d\n",__FILE__, __LINE__, sess->hmux_send_data_len);
+
 	if (sess->hmux_send_data_len) {
 		//we will return empty to avoid pushing data too fast, but we also need to flush the async buffer
 		ret = GF_IP_NETWORK_EMPTY;
 		if (sess->hmux_send_data_len<sess->local_buf_len) {
 			memmove(sess->local_buf, sess->hmux_send_data, sess->hmux_send_data_len);
 			sess->local_buf_len = sess->hmux_send_data_len;
+			// fprintf(stderr, "%s:%d h2_async_flush case 1 sess->hmux_send_data_len %d < sess->hmux_send_data_len %d\n",__FILE__, __LINE__, sess->hmux_send_data_len, sess->hmux_send_data_len);
 		} else {
 			//nothing sent, check socket
+			// fprintf(stderr, "%s:%d h2_async_flush case 1 sess->hmux_send_data_len %d >= sess->hmux_send_data_len %d => select\n",__FILE__, __LINE__, sess->hmux_send_data_len, sess->hmux_send_data_len);
 			ret = gf_sk_probe(sess->sock);
 		}
 		sess->hmux_send_data = NULL;
@@ -911,4 +915,3 @@ GF_Err http2_check_upgrade(GF_DownloadSession *sess)
 }
 
 #endif //!defined(GPAC_DISABLE_NETWORK) && defined(GPAC_HAS_HTTP2)
-

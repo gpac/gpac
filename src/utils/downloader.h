@@ -48,6 +48,10 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+
 #endif
 
 #ifdef GPAC_HAS_CURL
@@ -275,7 +279,8 @@ struct __gf_download_session
 	Bool force_data_write_callback;
 	u32 connect_pending;
 #ifdef GPAC_HAS_SSL
-	SSL *ssl;
+	// SSL *ssl;
+	gnutls_session_t ssl;
 #endif
 
 	void (*do_requests)(struct __gf_download_session *);
@@ -393,7 +398,8 @@ struct __gf_download_manager
 	/* FIXME : should be placed in DownloadedCacheEntry maybe... */
 	GF_List *partial_downloads;
 #ifdef GPAC_HAS_SSL
-	SSL_CTX *ssl_ctx;
+	//SSL_CTX *ssl_ctx;
+	gnutls_certificate_credentials_t ssl_ctx;
 #endif
 
 	GF_FilterSession *filter_session;
@@ -549,7 +555,7 @@ GF_Err curl_process_reply(GF_DownloadSession *sess, u32 *ContentLength);
 
 #ifdef GPAC_HAS_SSL
 void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
-Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
+Bool gf_ssl_check_cert(gnutls_session_t ssl, const char *server_name);
 void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess);
 GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
 
