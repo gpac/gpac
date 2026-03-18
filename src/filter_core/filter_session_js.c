@@ -2053,7 +2053,7 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	JSFS_FilterSession *fsjs;
 	GF_SAFEALLOC(fsjs, JSFS_FilterSession)
 	if (!fsjs) return GF_OUT_OF_MEM;
-	//remmeber if this is the object owning the API (for GC)
+	//remember if this is the object owning the API (for GC)
 	fsjs->owns_api = (fs->js_ctx && (fs->js_ctx != c)) ? GF_FALSE : GF_TRUE;
 
 	//initialize filter class and create a single filter object in global scope

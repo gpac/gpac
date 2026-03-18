@@ -497,7 +497,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (sIDX) (*sIDX) = sdesc_idx;
 
 	if (out_offset) *out_offset = offset;
-	if (!samp ) return GF_OK;
+	if (!samp) return GF_OK;
 
 	(*samp)->corrupted = 0;
 	if (mdia->information->sampleTable->TimeToSample) {
