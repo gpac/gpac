@@ -1651,7 +1651,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_ALT_GROUP);
 		if (p && p->value.uint) {
 			gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, p->value.uint);
-		} else if (!p) {
+		} else if (!p && !gf_sys_old_arch_compat()) {
 			//we by default set groups for audio and subs if group is not present
 			if (mtype==GF_ISOM_SUBTYPE_SUBTITLE) {
 				gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, 2);
