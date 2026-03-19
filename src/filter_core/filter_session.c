@@ -445,6 +445,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 	return fsess;
 }
 
+extern Bool module_args_used;
+
 void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter, const char *sub_opt_name)
 {
 	u32 meta_len = meta_filter ? (u32) strlen(meta_filter->freg->name) : 0;
@@ -457,6 +459,19 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 	//if meta and found, remember the option was valid as it could get pushed by an inheritance chain
 	if (!sub_opt_name && (type==GF_ARGTYPE_META_REPORTING) && !was_found) {
 		create_if_not_found = GF_FALSE;
+		//modules also use --OPT=VAL syntax - if arg is marked as used, consider this is a module option and not a meta option
+		if (module_args_used) {
+			u32 i, nb_args = gf_sys_get_argc();
+			u32 alen = (u32) strlen(szArg);
+			for (i=1; i<nb_args; i++) {
+				if (!gf_sys_is_arg_used(i)) continue;
+				const char *arg = gf_sys_get_arg(i);
+				if (!strncmp(arg, "--", 2) && !strncmp(arg+2, szArg, alen)) {
+					was_found = GF_TRUE;
+					break;
+				}
+			}
+		}
 	}
 	if (!session->parsed_args) session->parsed_args = gf_list_new();
 
