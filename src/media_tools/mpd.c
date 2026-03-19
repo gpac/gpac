@@ -3173,12 +3173,14 @@ static void mpd_print_lang(FILE *out, const char *attVal, const char *attName)
 {
 	if (!attVal) return;
 
-	if (!strcmp(attVal, "und")) return;
-	if (strlen(attVal)==3) {
-		s32 res = gf_lang_find(attVal);
-		if (res>0) {
-			const char *lang = gf_lang_get_2cc(res);
-			if (lang) attVal = lang;
+	if (!gf_sys_old_arch_compat()) {
+		if (!strcmp(attVal, "und")) return;
+		if (strlen(attVal)==3) {
+			s32 res = gf_lang_find(attVal);
+			if (res>0) {
+				const char *lang = gf_lang_get_2cc(res);
+				if (lang) attVal = lang;
+			}
 		}
 	}
 	gf_fprintf(out, " %s=\"%s\"", attName ? attName : "lang", attVal);
@@ -3497,7 +3499,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 
 	//check if all reps have the same mime, if so only write it at AS level
 	char *mime_type = NULL;
-	if (!as->mime_type) {
+	if (!as->mime_type && !gf_sys_old_arch_compat()) {
 		for (i=0; i<gf_list_count(as->representations); i++) {
 			GF_MPD_Representation *rep = gf_list_get(as->representations, i);
 			if (!i)
