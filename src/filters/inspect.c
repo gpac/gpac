@@ -2752,6 +2752,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
 		return;
+	//set by ffmpeg demux but not available on all platforms, skip in test mode
+	case GF_PROP_PID_IS_DEFAULT:
 	//these properties can vary based on run time or cpu arch, skip in test mode
 	case GF_PROP_PCK_SENDER_NTP:
 	case GF_PROP_PCK_RECEIVER_NTP:
@@ -2869,7 +2871,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				return;
 			break;
 		case GF_PROP_PID_BITRATE:
-			if (ctx->test==INSPECT_TEST_NOBR)
+			if ((ctx->test==INSPECT_TEST_NOBR) || (ctx->test==INSPECT_TEST_ENCX))
 				return;
 			break;
 		case GF_PROP_PID_MEDIA_DATA_SIZE:
