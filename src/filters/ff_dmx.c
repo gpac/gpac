@@ -1277,7 +1277,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			case GF_CODECID_AV1:
 				if (ctx->reparse
 #ifdef FFMPEG_NO_DOVI
-				 || 1
+				//if no DOVI support, we need to reparse - do it only in non-test mode otherwise we would get
+				//different results on our test platforms depending on DOVI support
+				|| !gf_sys_is_test_mode()
 #endif
 				) {
 					gf_filter_pid_set_property(pid, GF_PROP_PID_FORCE_UNFRAME, &PROP_BOOL(GF_TRUE) );
