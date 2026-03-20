@@ -1034,7 +1034,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_discard_config = bool_value;
 			} else if (!stricmp(arg, "-no-poll")) {
 #ifndef GPAC_DISABLE_NETWORK
-				gpac_use_poll = bool_value;
+				gpac_use_poll = bool_value ? GF_FALSE : GF_TRUE;
 #endif
 			}
 #if !defined(GPAC_DISABLE_NETCAP)

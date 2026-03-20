@@ -989,7 +989,9 @@ static GF_Err ffdec_process(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 	if (!ctx->decoder) {
-		gf_filter_pid_get_packet(ctx->in_pid);
+		while (gf_filter_pid_get_packet(ctx->in_pid) != NULL) {
+			gf_filter_pid_drop_packet(ctx->in_pid);
+		}
 		return GF_OK;
 	}
 	return ctx->process(filter, ctx);

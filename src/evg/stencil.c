@@ -948,7 +948,8 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 	/*get texture coords in FIXED - offset*/
-	x = _this->smat.m[0]*_x + _this->smat.m[2];
+	x = _this->smat.m[0]*_x;
+	x += _this->smat.m[2];
 	y = _this->smat.m[4]*_y + _this->smat.m[5];
 
 	/*we may have a numerical stability issues, try to figure out whether we are close from 0 or width/height*/
