@@ -2104,6 +2104,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 						if (i + bih.bi_size > hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
+						if (AVI->bitmap_info_header)
+							gf_free(AVI->bitmap_info_header);
 						AVI->bitmap_info_header = (alBITMAPINFOHEADER *) gf_malloc(bih.bi_size);
 						if (AVI->bitmap_info_header != NULL)
 							memcpy(AVI->bitmap_info_header, hdrl_data + i, bih.bi_size);
