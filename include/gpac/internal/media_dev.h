@@ -1054,6 +1054,9 @@ typedef struct
 	//set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
 	u8 has_temporal_delim;
 	u8 has_frame_data;
+
+	// detected rpu data in current access unit
+	Bool dolby_rpu_detected;
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);

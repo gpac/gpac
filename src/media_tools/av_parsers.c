@@ -2673,7 +2673,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
-	if (av1_is_obu_header(obu_type)) {
+	if (av1_is_obu_header(obu_type) && !(obu_type == OBU_METADATA && state->dolby_rpu_detected)) {
 		if (obu_type == OBU_METADATA) {
 			u64 cur_pos = gf_bs_get_position(bs);
 			gf_bs_seek(bs, pos);
@@ -4376,12 +4376,43 @@ static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
 	}
 }
 
+static void av1_parse_itu_t_t35_metadata(GF_BitStream *bs,  AV1State *state)
+{
+	u8 country_code;
+	u16 terminal_provider_code;
+	u32 terminal_provider_oriented_code;
+
+	country_code = gf_bs_read_int(bs, 8);
+	terminal_provider_code = gf_bs_read_int(bs, 16);
+	terminal_provider_oriented_code = gf_bs_read_int(bs, 32);
+
+	// Dolby Vision Video Elementary Stream Multiplexing Spec version 2.0 Section 3
+	if (country_code == 0xB5 && terminal_provider_code == 0x003B & terminal_provider_oriented_code == 0x00000800) {
+		const u8 dovi_emdf_hdr[] = {0x37, 0xCD, 0x08};
+		if (gf_bs_read_u8(bs) == dovi_emdf_hdr[0] &&
+			gf_bs_read_u8(bs) == dovi_emdf_hdr[1] &&
+			gf_bs_read_u8(bs) == dovi_emdf_hdr[2]) {
+
+			if (state->frame_state.show_frame == 1 || state->frame_state.show_existing_frame == 1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Warning: Dolby Vision metadata OBU must appear before the first shown frame OBU. This content may be non-compliant with the Dolby Vision specification.\n"));
+			}
+			if (state->dolby_rpu_detected) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Warning: Each AV1 Temporal Unit must contain exactly one Dolby Vision metadata OBU. This content may be non-compliant with the Dolby Vision specification.\n"));
+			}
+
+			state->dolby_rpu_detected = GF_TRUE;
+		}
+	}
+	return;
+}
+
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
 	ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 
 	switch (metadata_type) {
 	case OBU_METADATA_TYPE_ITUT_T35:
+		av1_parse_itu_t_t35_metadata(bs, state);
 		break;
 	case OBU_METADATA_TYPE_HDR_CLL:
 		gf_bs_read_data(bs, state->sei.clli_data, 4);
@@ -4527,6 +4558,23 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] unknown OBU type %u (size "LLU"). Skipping.\n", *obu_type, *obu_size));
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
+	}
+	// Dolby Vision Video Elementary Stream Multiplexing Spec version 2.0 Section 3
+	if (state->dolby_rpu_detected) {
+		switch(*obu_type) {
+			case OBU_TEMPORAL_DELIMITER:
+				state->dolby_rpu_detected = GF_FALSE;
+				break;
+			case OBU_FRAME_HEADER:
+			case OBU_REDUNDANT_FRAME_HEADER:
+			case OBU_FRAME:
+				if (state->frame_state.show_frame == 0 && state->frame_state.show_existing_frame == 0) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Warning: Dolby Vision metadata OBU must appear after all non-shown frames. This content may be non-compliant with the Dolby Vision specification.\n"));
+				}
+				break;
+			default:
+				break;
+		}
 	}
 	return e;
 }
