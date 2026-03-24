@@ -1769,8 +1769,7 @@ int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return
 config_package libcaca "caca" "" "-lcaca" "" '#include <caca.h>
 int main( void ) { caca_canvas_t *canvas = caca_create_canvas(20, 20); return 0; }'
 
-
-config_package mpeghdec "mpeghdec" "" "-lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFormatConverter -lgVBAPRenderer -lDRCdec -lUIManager -lSYS -lFDK -lm" "" '
+config_package mpeghdec "mpeghdec" "" "-lmpeghdec  -lm" "" '
 #ifndef bool
 typedef int bool;
 #endif
