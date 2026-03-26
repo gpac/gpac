@@ -10716,7 +10716,7 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 			gf_bs_write_int(bs, seig->skip_byte_block, 4);
 		}
 		gf_bs_write_u8(bs, seig->IsProtected);
-		if (nb_keys>1) {
+		if (use_mkey) {
 			gf_bs_write_data(bs, seig->key_info+1, seig->key_info_size-1);
 		} else {
 			gf_bs_write_data(bs, seig->key_info+3, seig->key_info_size - 3);
