@@ -34,17 +34,8 @@
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE) || defined (WIN32)
-#  pragma comment(lib, "SYS")
-#  pragma comment(lib, "FDK")
-#  pragma comment(lib, "DRCdec")
-#  pragma comment(lib, "PCMutils")
-#  pragma comment(lib, "MpeghDec")
-#  pragma comment(lib, "IGFdec")
-#  pragma comment(lib, "ArithCoding")
-#  pragma comment(lib, "FormatConverter")
-#  pragma comment(lib, "UIManager")
-#  pragma comment(lib, "gVBAPRenderer")
-#  pragma comment(lib, "MpegTPDec")
+#  pragma comment(lib, "mpeghdec")
+#define MPEGHDEC_STATIC
 # endif
 #endif
 
