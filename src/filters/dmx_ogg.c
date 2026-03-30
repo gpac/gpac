@@ -589,7 +589,7 @@ static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, u8 *data_b
 	u32 osize = (u32) strlen(data_b64);
 	u8 *output = gf_malloc(sizeof(u8) * osize);
 	osize = gf_base64_decode(data_b64, (u32) strlen(data_b64), output, osize);
-	if ((s32) osize == -1) goto exit;
+	if ((s32) osize == -1 || osize < 8) goto exit;
 
 	u32 type = GF_4CC(output[0], output[1], output[2], output[3]);
 	u32 mlen = GF_4CC(output[4], output[5], output[6], output[7]);
