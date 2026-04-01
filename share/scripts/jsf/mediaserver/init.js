@@ -1579,19 +1579,13 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		//		only do this if HTTP mirror - otherwise, activate everything to make sure we fetch the manifests and init segments
 		if (this.url && this.mabr_min_active>0) args += ':tunein=-3';
 		//add repair option last
-		if (! this.url) {
-			if (!this.repair) {
-				args += ':repair=strict';
-				this.repair = 1;
-			} else {
-				args += ':repair=full';
+		if (!this.repair) { // false (default) - disable unicast repair
+			args += this.corrupted ? ':repair=simple' : ':repair=strict'; // simple: forward corrupted files if parsable (valid container syntax, broken media)
+		} else {
+			args += ':repair=full';
+			if (this.repair == 1 && this.url) {
+				args += '::repair_urls='+this.url;
 			}
-		}
-		else if (this.repair) {
-			//escape URL option
-			args += '::repair_urls='+this.url;
-		} else if (s.corrupted) {
-			args += ':repair=strict';
 		}
 
 		this.source = session.add_filter(args);
@@ -2133,7 +2127,7 @@ filter.initialize = function() {
 				else if (sd.timeshift < 0) throw "Invalid timeshift property, expecting positive number";
 				if (typeof sd.mcache != 'boolean') sd.mcache = DEFAULT_MCACHE;
 
-				if (typeof sd.repair != 'boolean') {
+				if (typeof sd.repair == 'boolean') {
 					sd.repair = sd.repair ? 1 : 0;
 				} else {
 					if (typeof sd.repair != 'string') sd.repair = DEFAULT_REPAIR;
