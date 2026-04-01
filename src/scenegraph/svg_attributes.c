@@ -2917,7 +2917,7 @@ static void svg_parse_strings(GF_List *values, char *value_string, u32 string_ty
 
 	while (1) {
 		while (sep && sep[0]==' ') sep++;
-		if (!sep) break;
+		if (!sep || !sep[0]) break;
 		next = sep+1;
 		while (next[0]) {
 			if (strchr(" ;,", next[0])) break;
@@ -2931,7 +2931,7 @@ static void svg_parse_strings(GF_List *values, char *value_string, u32 string_ty
 		svg_string_list_add(values, sep, string_type);
 		next[0]=';';
 		sep = next+1;
-		while (strchr(" ,;", sep[0])) sep++;
+		while (sep && sep[0] && strchr(" ,;", sep[0])) sep++;
 	}
 }
 
