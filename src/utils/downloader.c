@@ -4343,7 +4343,7 @@ process_reply:
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (e) {
+	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[%s] Error processing rely from %s: %s\n", sess->log_name, sess->server_name, gf_error_to_string(e) ) );
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] Reply processed from %s\n", sess->log_name, sess->server_name ) );
@@ -4435,9 +4435,11 @@ exit:
 		} else {
 			e = GF_OK;
 		}
-		gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
-		gf_cache_remove_entry_from_session(sess);
-		sess->cache_entry = NULL;
+		if (e) {
+			gf_cache_entry_set_delete_files_when_deleted(sess->cache_entry);
+			gf_cache_remove_entry_from_session(sess);
+			sess->cache_entry = NULL;
+		}
 		gf_dm_disconnect(sess, HTTP_NO_CLOSE);
 		if ((e<0) && connection_closed)
 			sess->status = GF_NETIO_STATE_ERROR;
