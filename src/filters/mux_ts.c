@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -172,7 +172,7 @@ typedef struct
 	u32 frag_offset, frag_size, frag_duration;
 	Bool frag_has_intra;
 
-	Bool force_seg_sync;
+	Bool force_seg_sync, seg_close_sent;
 	u32 pending_packets;
 
 	u32 sync_init_time;
@@ -1863,14 +1863,24 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 	if (ctx->update_mux) {
 		gf_m2ts_mux_update_config(ctx->mux, GF_FALSE);
+		ctx->update_mux = GF_FALSE;
 	}
 
 
 	if (ctx->wait_dash_flush || ctx->wait_llhas_flush) {
 		//we are waiting for all packets to be flushed
-		if (ctx->pending_packets)
+		if (ctx->pending_packets) {
+			if (!ctx->seg_close_sent) {
+				pck = gf_filter_pck_new_alloc(ctx->opid, 0, NULL);
+				if (pck) {
+					gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
+					gf_filter_pck_send(pck);
+					ctx->seg_close_sent = GF_TRUE;
+				}
+			}
+			gf_filter_ask_rt_reschedule(filter, 1000);
 			return GF_OK;
-
+		}
 		Bool is_llhas_flush = GF_FALSE;
 		Bool is_eods_flush = GF_FALSE;
 		u32 i, done=0, count = gf_list_count(ctx->pids);
@@ -1894,6 +1904,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			ctx->mux->force_pat = GF_TRUE;
 
 			if (is_llhas_flush) {
+				ctx->seg_close_sent = GF_FALSE;
 				ctx->wait_llhas_flush = GF_FALSE;
 				ctx->next_is_llhas_start = GF_TRUE;
 
@@ -1921,6 +1932,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				ctx->pck_start_idx = ctx->nb_pck;
 				if (ctx->next_is_start) ctx->nb_pck_in_file = 0;
 				ctx->nb_pck_first_sidx = ctx->nb_pck_in_file;
+				ctx->seg_close_sent = GF_FALSE;
 			}
 		}
 	}
@@ -1984,9 +1996,6 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
 				ctx->frag_num=0;
 				u32 fnum = ctx->frag_num;
-				//we'll need to redo all LLHLS tests
-				if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
-					fnum++;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 			}
 		}
@@ -1994,9 +2003,6 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
 				u32 fnum = ctx->frag_num;
 				ctx->frag_num++;
-				//we'll need to redo all LLHLS tests
-				if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
-					fnum++;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 			}
 			ctx->next_is_llhas_start = GF_FALSE;
@@ -2129,6 +2135,7 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->realtime);
 	ctx->mux->flush_pes_at_rap = ctx->flush_rap;
 
+	//test mode, don't use a random PCR init
 	if (gf_sys_is_test_mode() && (ctx->pcr_init==-1))
 		ctx->pcr_init = 1000000;
 

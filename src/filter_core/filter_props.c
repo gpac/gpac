@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -2231,13 +2231,12 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		return dump;
 
 	case GF_PROP_PID_CHANNEL_LAYOUT:
-		if (!gf_sys_is_test_mode()) {
-			u32 cicp = gf_audio_fmt_get_cicp_from_layout(att->value.longuint);
-			const char *name = gf_audio_fmt_get_cicp_name(cicp);
-			if (name) return name;
-		}
+	{
+		const char *name = gf_audio_fmt_get_cicp_name( gf_audio_fmt_get_cicp_from_layout(att->value.longuint) );
+		if (name) return name;
 		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
-
+	}
+	
 	case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		//for tx3d SDP config only
 		if (gf_utf8_is_legal(att->value.data.ptr, att->value.data.size))

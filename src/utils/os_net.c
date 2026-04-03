@@ -2816,7 +2816,13 @@ static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Boo
 		struct pollfd pfd;
 		pfd.fd = sock->socket;
 		pfd.revents = 0;
-		if (mode == GF_SK_SELECT_WRITE) pfd.events = POLLOUT;
+		if (mode == GF_SK_SELECT_WRITE) {
+			//ugly patch, poll(timeout=0) sometimes crash on arm64 linux... (M4, ubuntu24 vm)
+#if defined(GPAC_CONFIG_ARM) && defined(GPAC_CONFIG_LINUX)
+			if (usec<1000) usec = 1000;
+#endif
+			pfd.events = POLLOUT;
+		}
 		else if (mode == GF_SK_SELECT_READ) pfd.events = POLLIN;
 		else pfd.events = POLLIN|POLLOUT;
 

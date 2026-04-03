@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -1633,8 +1633,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		s32 asid;
 		char as_name[100];
 		asid = gf_dash_group_get_as_id(ctx->dash, group_idx);
-		//TODO: remove and regenerate hashes
-		if (gf_sys_is_test_mode() && (asid<=0)) {
+
+		if (asid<=0) {
 			sprintf(as_name, "AS%d", group_idx+1);
 		} else if (asid<0) {
 			sprintf(as_name, "AS_%d", group_idx+1);
@@ -1652,12 +1652,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
 
 		//in case the sar indicated in the mpd is not the same as the one in the stream, overwrite
-		if (!gf_sys_is_test_mode()) {
-			GF_Fraction sar;
-			gf_dash_group_get_sar(ctx->dash, group_idx, &sar);
-			if (sar.num && sar.den) {
-				gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC(sar));
-			}
+		GF_Fraction sar;
+		gf_dash_group_get_sar(ctx->dash, group_idx, &sar);
+		if (sar.num && sar.den) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC(sar));
 		}
 	}
 
@@ -1677,8 +1675,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(max));
 	}
 	//check if low latency is on, if not notify max segment duration as target min buffer
-	//we don't do this in test mode, it breaks all inspect hashes
-	else if ((ctx->use_bmin==BMIN_AUTO) && !gf_sys_is_test_mode()) {
+	else if (ctx->use_bmin==BMIN_AUTO) {
 		Bool do_set = GF_FALSE;
 		u32 min_buf = gf_dash_get_max_segment_duration(ctx->dash);
 		//low latency not enabled or not active
@@ -1847,6 +1844,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	if (title)
 		gf_filter_pid_set_property_str(opid, "rating", &PROP_STRING(title) );
 
+	//do not set NTP diff in test mode, variable
 	if (!gf_sys_is_test_mode()) {
 		gf_filter_pid_set_info_str(opid, "ntpdiff", &PROP_SINT(gf_dash_get_utc_drift_estimate(ctx->dash) ) );
 	}
@@ -1891,9 +1889,9 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		}
 	}
 
-	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
+	//setup initial quality
 	//in forward mode, always send the event to setup dash templates
-	if (!gf_sys_is_test_mode() || ctx->forward) {
+	if (ctx->forward) {
 		group->notify_quality_change = GF_TRUE;
 		dashdmx_notify_group_quality(ctx, group);
 	}
@@ -1960,20 +1958,18 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(pstart) );
 	}
 
-	if (!gf_sys_old_arch_compat()) {
-		const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
-		gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
+	const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
+	gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
 
-		s32 gf_dash_get_base_group_index(GF_DashClient *dash, u32 idx);
-		s32 dep_group = 1 + gf_dash_get_base_group_index(ctx->dash, group->idx);
-		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DEP_GROUP, (dep_group > 0) ? &PROP_UINT(dep_group) : NULL );
+	s32 gf_dash_get_base_group_index(GF_DashClient *dash, u32 idx);
+	s32 dep_group = 1 + gf_dash_get_base_group_index(ctx->dash, group->idx);
+	gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DEP_GROUP, (dep_group > 0) ? &PROP_UINT(dep_group) : NULL );
 
-		str = gf_dash_get_period_id(ctx->dash);
-		gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, str ? &PROP_STRING(str) : NULL );
+	str = gf_dash_get_period_id(ctx->dash);
+	gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, str ? &PROP_STRING(str) : NULL );
 
-		s32 asid = gf_dash_group_get_as_id(ctx->dash, group->idx);
-		gf_filter_pid_set_property(opid, GF_PROP_PID_AS_ID, (asid>=0) ? &PROP_UINT(asid) : NULL );
-	}
+	s32 asid = gf_dash_group_get_as_id(ctx->dash, group->idx);
+	gf_filter_pid_set_property(opid, GF_PROP_PID_AS_ID, (asid>=0) ? &PROP_UINT(asid) : NULL );
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -2510,8 +2506,8 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_auto_switch(ctx->dash, ctx->auto_switch, ctx->asloop);
 	gf_dash_enable_cross_as_switch(ctx->dash, ctx->xas);
 
-	//in test mode, we disable seeking inside the segment: this initial seek range is dependent from tune-in time and would lead to different start range
-	//at each run, possibly breaking all tests
+	//in test mode, we disable seeking inside the segment:
+	//this initial seek range is dependent on tune-in time and would lead to different start range at each run, possibly breaking all tests
 	if (gf_sys_is_test_mode())
 		ctx->noseek = GF_TRUE;
 
@@ -2859,30 +2855,28 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 		if (gf_filter_pid_get_udta(opid) != group) continue;
 
 		sel = gf_dash_group_get_active_quality(ctx->dash, group->idx);
-		if (!gf_sys_is_test_mode() || (ctx->forward==DFWD_FILE)) {
-			if (sel>=0) {
-				gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
+		if (sel>=0) {
+			gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
+		}
+		gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
+		gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
+
+		if (group->nb_group_deps) {
+			u32 k;
+			GF_PropertyValue deps_sel;
+
+			memset(&deps_sel, 0, sizeof(GF_PropertyValue));
+			deps_sel.type = GF_PROP_SINT_LIST;
+			deps_sel.value.sint_list.nb_items = group->nb_group_deps;
+			deps_sel.value.sint_list.vals = gf_malloc(sizeof(char *) * group->nb_group_deps);
+
+			for (k=0; k<group->nb_group_deps; k++) {
+				u32 g_idx = gf_dash_get_dependent_group_index(ctx->dash, group->idx, k);
+				sel = gf_dash_group_get_active_quality(ctx->dash, g_idx);
+				deps_sel.value.sint_list.vals[k] = sel;
 			}
-			gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
-			gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
-
-			if (group->nb_group_deps) {
-				u32 k;
-				GF_PropertyValue deps_sel;
-
-				memset(&deps_sel, 0, sizeof(GF_PropertyValue));
-				deps_sel.type = GF_PROP_SINT_LIST;
-				deps_sel.value.sint_list.nb_items = group->nb_group_deps;
-				deps_sel.value.sint_list.vals = gf_malloc(sizeof(char *) * group->nb_group_deps);
-
-				for (k=0; k<group->nb_group_deps; k++) {
-					u32 g_idx = gf_dash_get_dependent_group_index(ctx->dash, group->idx, k);
-					sel = gf_dash_group_get_active_quality(ctx->dash, g_idx);
-					deps_sel.value.sint_list.vals[k] = sel;
-				}
-				gf_filter_pid_set_property_str(opid, "has:deps_selected", &deps_sel);
-				gf_free(deps_sel.value.sint_list.vals);
-			}
+			gf_filter_pid_set_property_str(opid, "has:deps_selected", &deps_sel);
+			gf_free(deps_sel.value.sint_list.vals);
 		}
 
 		//setup some info for consuming filters
@@ -2930,10 +2924,8 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
 			}
 		}
-		if (!gf_sys_old_arch_compat()) {
-			const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
-			gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
-		}
+		const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
 	}
 }
 

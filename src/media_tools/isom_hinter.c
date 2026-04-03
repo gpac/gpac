@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1199,7 +1199,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	}
     //xtended attribute for copyright
     if (gf_sys_is_test_mode()) {
-        snprintf(tmp_buf, 200, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)");
+        snprintf(tmp_buf, 200, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom Paris (https://gpac.io)");
     } else {
         snprintf(tmp_buf, 200, "a=x-copyright: MP4/3GP File hinted with GPAC %s - %s", gf_gpac_version(), gf_gpac_copyright() );
     }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -47,7 +47,7 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 		if ( ch >= 0x20 && ch <= 0x7E ) {
 			*name = ch;
 			name++;
-		} else if (!gf_sys_is_test_mode() ) {
+		} else {
 			char szTmp[2];
 			szTmp[0] = 0xc2;
 			szTmp[1] = ch;
@@ -66,9 +66,6 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 					name += 2;
 				}
 			}
-		} else {
-			sprintf(name, "%02X", ch);
-			name += 2;
 		}
 	}
 	*name = 0;

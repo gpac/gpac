@@ -4983,6 +4983,7 @@ static GF_Err do_dash()
 
 	gf_dasher_del(dasher);
 
+	//do not store final name in test mode
 	if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file) && !gf_sys_is_test_mode() ) {
 		char szName[1024];
 		M4_LOG(GF_LOG_INFO, ("Enter file name to save dash context:\n"));

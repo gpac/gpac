@@ -629,6 +629,8 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 	return ifce;
 }
 
+Bool module_args_used = GF_FALSE;
+
 GF_EXPORT
 const char *gf_module_get_key(GF_BaseInterface *dr, char *key_name)
 {
@@ -661,9 +663,11 @@ const char *gf_module_get_key(GF_BaseInterface *dr, char *key_name)
 		if (strncmp(a, key_name, klen)) continue;
 		if (a[klen] == '=') {
 			gf_sys_mark_arg_used(i, GF_TRUE);
+			module_args_used=GF_TRUE;
 			return a+klen+1;
 		}
 		if (!a[klen]) {
+			module_args_used=GF_TRUE;
 			gf_sys_mark_arg_used(i, GF_TRUE);
 			return "1";
 		}

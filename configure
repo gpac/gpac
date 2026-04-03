@@ -96,6 +96,7 @@ static_bin="no"
 unit_tests="no"
 static_modules="no"
 lm_lib=""
+is_arm="no"
 has_directx="no"
 win32="no"
 mingw32="no"
@@ -820,11 +821,15 @@ case "$cpu" in
     arm64)
         cpu="arm64"
         sched=lock
+        is_64="yes"
+        is_arm="yes"
         ;;
     armv4l|arm)
         cpu="armv4l"
+        is_arm="yes"
         ;;
     aarch64)
+        is_arm="yes"
         cpu="aarch64"
         sched=lock
         if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
@@ -2730,6 +2735,9 @@ fi
 if test "$bigendian" = "yes" ; then
     echo "IS_BIGENDIAN=yes" >> config.mak
     echo "#define GPAC_BIG_ENDIAN" >> $TMPH
+fi
+if test "$is_arm" = "yes" ; then
+    echo "#define GPAC_CONFIG_ARM" >> $TMPH
 fi
 echo "EXTRALIBS=$extralibs" >> config.mak
 echo "LIBGPAC_CFLAGS=$libgpac_cflags" >> config.mak

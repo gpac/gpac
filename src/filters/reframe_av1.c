@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Romain Bouqueau, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 IVF/OBU/annexB reframer filter
@@ -375,15 +375,14 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 20000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AV1/VP9/IAMF] Source file larger than 20M, skipping indexing\n"));
-				if (!gf_sys_is_test_mode())
-					probe_size = 20000000;
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AV1/VP9/IAMF] Large source file - estimating dur/rate on first 20 MB\n"));
+				probe_size = 20000000;
 			} else {
 				ctx->index = -ctx->index;
 			}
 		}
 	}
-	if ((ctx->index<=0 )&& !probe_size)
+	if ((ctx->index<=0) && !probe_size)
 		return;
 
 	stream = gf_fopen_ex(filepath, NULL, "rb", GF_TRUE);
@@ -535,7 +534,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		if (probe_size)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 
-		if (ctx->duration.num && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
+		if (ctx->duration.num) {
 			file_size *= 8 * ctx->duration.den;
 			file_size /= ctx->duration.num;
 			ctx->bitrate = (u32) file_size;
