@@ -26,6 +26,10 @@
 #include "filter_session.h"
 #include <gpac/network.h>
 
+#ifdef GPAC_HAS_QJS
+void jsfs_on_filter_arg_update(GF_Filter *filter);
+#endif
+
 //helper functions
 void gf_void_del(void *p)
 {
@@ -1258,6 +1262,10 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 			if (e==GF_OK) {
 				if (!is_meta)
 					gf_filter_set_arg(filter, a, &argv);
+
+#ifdef GPAC_HAS_QJS
+				jsfs_on_filter_arg_update(filter);
+#endif
 			} else if (e!=GF_NOT_FOUND) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", filter->name, arg_name, arg_value, gf_error_to_string(e) ));
 			}

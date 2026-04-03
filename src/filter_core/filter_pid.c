@@ -27,6 +27,9 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+#ifdef GPAC_HAS_QJS
+void jsfs_on_filter_pid_reconfig(GF_Filter *new_filter);
+#endif
 static void free_evt(GF_FilterEvent *evt);
 
 static void pcki_del(GF_FilterPacketInstance *pcki)
@@ -1213,6 +1216,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		gf_filter_check_pending_pids(filter);
 	}
+
+
+#ifdef GPAC_HAS_QJS
+	if (e==GF_OK)
+		jsfs_on_filter_pid_reconfig(filter);
+#endif
 
 	if (ctype==GF_PID_CONF_REMOVE) {
 		gf_mx_p(filter->tasks_mx);
