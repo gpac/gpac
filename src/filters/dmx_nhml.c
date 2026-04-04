@@ -549,6 +549,10 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 
 	if (!ctx) return GF_OK;
 
+	if (ctx->samp_buffer_size > GF_UINT_MAX / ZLIB_COMPRESS_SAFE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] sample buffer size %u too large for zlib allocation\n", ctx->samp_buffer_size));
+		return GF_OUT_OF_MEM;
+	}
 	size = ctx->samp_buffer_size*ZLIB_COMPRESS_SAFE;
 	if (ctx->zlib_buffer_alloc < size) {
 		ctx->zlib_buffer_alloc = size;
