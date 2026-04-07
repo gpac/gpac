@@ -14836,8 +14836,12 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 		Bool is_ref = gf_bs_read_int(bs, 1);
 		if (!is_ref) {
 			GF_SampleRefDiffEntry *ent;
-			u32 nb_refs = gf_bs_read_int(bs, bits-1);;
-			ISOM_DECREASE_SIZE_GOTO_EXIT(s, (1+nb_refs)*bits/8)
+			u32 nb_refs = gf_bs_read_int(bs, bits-1);
+			if ( nb_refs >= GF_UINT_MAX || bits < 8 || (1+nb_refs) > GF_UINT_MAX / (bits/8) ) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
+			ISOM_DECREASE_SIZE_GOTO_EXIT(s, (1+nb_refs)*(bits/8))
 			GF_SAFEALLOC(ent, GF_SampleRefDiffEntry);
 			if (!ent) {
 				e = GF_OUT_OF_MEM;
