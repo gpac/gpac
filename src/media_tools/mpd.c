@@ -5914,7 +5914,7 @@ static GF_Err smooth_parse_stream_index(GF_MPD *mpd, GF_List *container, GF_XMLN
 		if (!strcmp(child->name, "QualityLevel")) {
 			smooth_parse_quality_level(mpd, set->representations, child, timescale);
 		}
-		if (!strcmp(child->name, "c")) {
+		if (!strcmp(child->name, "c") && child && set && set->segment_template && set->segment_template->segment_timeline && set->segment_template->segment_timeline->entries) {
 			smooth_parse_chunk(mpd, set->segment_template->segment_timeline->entries, child);
 		}
 	}
