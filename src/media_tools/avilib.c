@@ -2499,7 +2499,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			// read from file
 			u32 chunk_size = (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
-			if (!chunk_size)
+			if (!chunk_size || chunk_size < 24)
 				continue;
 			chunk_start = en = (char*) gf_malloc(chunk_size);
 
