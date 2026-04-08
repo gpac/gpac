@@ -3680,6 +3680,9 @@ GF_Err elng_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
 
+	if (ptr && ptr->size > GF_UINT_MAX)
+		return GF_ISOM_INVALID_FILE;
+
 	if (ptr->size) {
 		ptr->extended_language = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->extended_language == NULL) return GF_OUT_OF_MEM;
