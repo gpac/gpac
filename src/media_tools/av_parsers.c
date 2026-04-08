@@ -9406,12 +9406,20 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 	}
 	if (gf_bs_read_int_log(bs, 1, "vps_timing_info_present_flag")) {
 		u32 vps_num_hrd_parameters;
+
 		gf_bs_read_int_log(bs, 32, "vps_num_units_in_tick");
 		gf_bs_read_int_log(bs, 32, "vps_time_scale");
 		if (gf_bs_read_int_log(bs, 1, "vps_poc_proportional_to_timing_flag")) {
 			gf_bs_read_ue_log(bs, "vps_num_ticks_poc_diff_one_minus1");
 		}
+
 		vps_num_hrd_parameters = gf_bs_read_ue_log(bs, "vps_num_hrd_parameters");
+
+		if (vps_num_hrd_parameters > vps->num_layer_sets) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] vps_num_hrd_parameters should be in the range 0-num_layer_sets (%d here)\n", vps->num_layer_sets));
+			HEVC_VPS_BROKEN
+		}
+
 		for (i = 0; i < vps_num_hrd_parameters; i++) {
 			Bool cprms_present_flag = GF_TRUE;
 			gf_bs_read_ue_log_idx(bs, "hrd_layer_set_idx", i);
