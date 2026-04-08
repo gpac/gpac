@@ -102,7 +102,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 		movie->NextMoofNumber = 1;
 	}
 	movie->moov->mvex_after_traks = mvex_after_tracks;
-	
+
 	//this is only allowed in write mode
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
@@ -1398,7 +1398,7 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 			movie->root_ssix->subsegments[i].ranges[1].range_size = 0;
 		}
 	}
-	
+
 	/*remember start of sidx*/
 	movie->root_sidx_offset = gf_bs_get_position(movie->editFileMap->bs);
 
@@ -1705,7 +1705,7 @@ static u64 estimate_next_moof_earliest_presentation_time(u64 ref_track_decode_ti
 			/*
 
  			if (movie->sidx_pts_next_store[i] == movie->sidx_pts_store[j]) {
- 			
+
 			take care of misaligned timescale eg 24fps but 10000 timescale), we may not find exactly
 			the same sample - if diff below N ms consider it a match
 			not doing so would accumulate PTSs in the list, slowing down the muxing
@@ -2411,12 +2411,12 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 	if (!movie->block_buffer_size) movie->block_buffer_size = movie->on_block_out_block_size;
 	bs = gf_bs_new_cbk_buffer(isom_on_block_out, movie, movie->block_buffer, movie->block_buffer_size);
 	gf_bs_prevent_dispatch(bs, GF_TRUE);
-	
+
 	gf_assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
 	if (force_v1)
 		movie->root_sidx->version = 1;
-		
+
 	e = gf_isom_box_size((GF_Box*)movie->root_sidx);
 	size = (u32) movie->root_sidx->size;
 	if (movie->root_ssix) {
@@ -3071,6 +3071,8 @@ GF_Err gf_isom_fragment_append_data_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID,
 	GF_TrackFragmentBox *traf;
 	GF_TrackFragmentRunBox *trun;
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+
+	if (!data || !data_size) return GF_OK;
 
 	traf = gf_isom_get_traf(movie, TrackID);
 	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;

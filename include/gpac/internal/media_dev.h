@@ -566,7 +566,7 @@ typedef struct
 {
 	u8 nal_unit_type, layer_id, temporal_id;
 	u32 frame_num, poc_lsb, slice_type, header_size_with_emulation;
-	
+
 	s32 redundant_pic_cnt;
 
 	s32 poc;
@@ -579,7 +579,7 @@ typedef struct
 	u8 prev_layer_id_plus1;
 
 	//bit offset of the num_entry_point (if present) field
-	s32 entry_point_start_bits; 
+	s32 entry_point_start_bits;
 	u64 header_size_bits;
 	//byte offset of the payload start (after byte alignment)
 	s32 payload_start_offset;
@@ -698,6 +698,7 @@ typedef struct
 	u16 num_slices;
 } VVC_SubpicInfo;
 
+#define MAX_SPS_VIRTUAL_BOUNDARIES 3
 typedef struct
 {
 	s32 id;
@@ -1341,4 +1342,3 @@ void gf_av1_format_mdcv_to_mpeg(u8 mdcv_in[24], u8 mdcv_out[24]);
 
 
 #endif		/*_GF_MEDIA_DEV_H_*/
-

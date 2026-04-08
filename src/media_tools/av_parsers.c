@@ -4387,7 +4387,7 @@ static void av1_parse_itu_t_t35_metadata(GF_BitStream *bs,  AV1State *state)
 	terminal_provider_oriented_code = gf_bs_read_int(bs, 32);
 
 	// Dolby Vision Video Elementary Stream Multiplexing Spec version 2.0 Section 3
-	if (country_code == 0xB5 && terminal_provider_code == 0x003B & terminal_provider_oriented_code == 0x00000800) {
+	if (country_code == 0xB5 && terminal_provider_code == 0x003B && terminal_provider_oriented_code == 0x00000800) {
 		const u8 dovi_emdf_hdr[] = {0x37, 0xCD, 0x08};
 		if (gf_bs_read_u8(bs) == dovi_emdf_hdr[0] &&
 			gf_bs_read_u8(bs) == dovi_emdf_hdr[1] &&
@@ -8413,6 +8413,10 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 	if (pps->slice_segment_header_extension_present_flag) {
 		u32 size_ext = gf_bs_read_ue_log(bs, "size_ext");
+		if (size_ext > gf_bs_available(bs)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Error parsing slice header: size_ext (%u) is bigger than available data (%lu)\n", size_ext, gf_bs_available(bs)));
+			return -1;
+		}
 		while (size_ext) {
 			gf_bs_read_int(bs, 8);
 			size_ext--;
@@ -12305,6 +12309,11 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		} else {
 			SubWidthC = SubHeightC = 1;
 		}
+		if ( ((u64)sps->cw_left + (u64)sps->cw_right) > GF_UINT_MAX/SubWidthC || (SubWidthC * (sps->cw_left + sps->cw_right) > sps->width)
+		  || ((u64)sps->cw_top + (u64)sps->cw_bottom) > GF_UINT_MAX/SubHeightC || (SubHeightC * (sps->cw_top + sps->cw_bottom) > sps->height) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Invalid conformance window parameters\n"));
+			VVC_SPS_BROKEN
+		}
 		sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
 		sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 	}
@@ -12566,10 +12575,18 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		sps->virtual_boundaries_present_flag = gf_bs_read_int_log(bs, 1, "sps_virtual_boundaries_present_flag");
 		if (sps->virtual_boundaries_present_flag) {
 			u32 num_virtual_boundaries = gf_bs_read_ue_log(bs, "sps_num_ver_virtual_boundaries");
+			if (num_virtual_boundaries > MAX_SPS_VIRTUAL_BOUNDARIES) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_ver_virtual_boundaries value %u is above max (%u)\n", num_virtual_boundaries, MAX_SPS_VIRTUAL_BOUNDARIES));
+				VVC_SPS_BROKEN
+			}
 			for (i=0; i<num_virtual_boundaries; i++) {
 				gf_bs_read_ue_log_idx(bs, "sps_virtual_boundary_pos_x_minus1", i);
 			}
 			num_virtual_boundaries = gf_bs_read_ue_log(bs, "sps_num_hor_virtual_boundaries");
+			if (num_virtual_boundaries > MAX_SPS_VIRTUAL_BOUNDARIES) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_hor_virtual_boundaries value %u is above max (%u)\n", num_virtual_boundaries, MAX_SPS_VIRTUAL_BOUNDARIES));
+				VVC_SPS_BROKEN
+			}
 			for (i=0; i<num_virtual_boundaries; i++) {
 				gf_bs_read_ue_log_idx(bs, "sps_virtual_boundary_pos_y_minus1", i);
 			}
