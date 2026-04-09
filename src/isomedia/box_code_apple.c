@@ -302,7 +302,7 @@ void eyes_box_del(GF_Box *s)
 GF_Err eyes_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
-	GF_Err e;
+	//GF_Err e;
 	u32 size = 0, type = 0;
 
 	// mandatory Stereo view information 'stri' box

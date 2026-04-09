@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -557,6 +557,13 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
 		ctx->needs_recfg = GF_FALSE;
 		ctx->wait_recfg = GF_FALSE;
+		//audio not configured yet, send a play event - this happens with filters such as ffavf which declare PIDs
+		//before any config is known
+		if (!sr && !afmt) {
+			GF_FilterEvent evt;
+			gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
+			gf_filter_pid_send_event(pid, &evt);
+		}
 		return GF_OK;
 	}
 

@@ -996,7 +996,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					ds2->muxed_base = NULL;
 				}
 				//we also may need to swap the set ds
-				if (ds2->set->udta==ds)
+				if (ds2 && ds2->set && ds2->set->udta==ds)
 					ds2->set->udta = ds2;
 			}
 
@@ -1168,7 +1168,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_filter_pid_set_name(opid, "manifest_mpd" );
 				manifest_type = 1;
 			}
-			if (!gf_sys_is_test_mode() && (ctx->dmode>=GF_DASH_DYNAMIC))
+			if (ctx->dmode>=GF_DASH_DYNAMIC)
 				manifest_type |= (1<<8);
 
 			gf_filter_pid_set_property(opid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
@@ -2155,8 +2155,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 		}
 		if (ctx->cprt) info->copyright = gf_strdup(ctx->cprt);
 		if (ctx->info) info->more_info_url = gf_strdup(ctx->info);
-		else if (gf_sys_is_test_mode()) info->more_info_url = gf_strdup("http://gpac.io");
-		else info->more_info_url = gf_strdup("https://gpac.io");
+		else info->more_info_url = gf_sys_old_arch_compat() ? gf_strdup("http://gpac.io") : gf_strdup("https://gpac.io");
 		if (ctx->source) info->source = gf_strdup(ctx->source);
 		if (ctx->lang) info->lang = gf_strdup(ctx->lang);
 	}
@@ -2227,7 +2226,7 @@ static GF_Err dasher_add_dolby_vision_attribute(GF_DasherCtx *ctx, GF_DashStream
 	char supplementalCodecs[RFC6381_CODEC_NAME_SIZE_MAX] = {0};
 	char supplementalProfiles[RFC6381_CODEC_NAME_SIZE_MAX] = {0};
 	char supplementalForHls[RFC6381_CODEC_NAME_SIZE_MAX + RFC6381_CODEC_NAME_SIZE_MAX] = {0};
-	u32 subtype=0, codec_id;
+	u32 /*subtype=0, */codec_id;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_BAD_PARAM;
@@ -3543,7 +3542,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szKey, "%cpsshs", sep_args);
 		if (strstr(dst_args, szKey)) has_psshs = GF_TRUE;
 	}
-	if ((ctx->from_index==IDXMODE_SEG) && !gf_sys_is_test_mode())
+	if (ctx->from_index==IDXMODE_SEG)
 		trash_init = DASH_INITSEG_SKIP;
 
 	if (trash_init) {
@@ -3860,8 +3859,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC(ds->dash_dur) );
 	switch (ctx->seg_sync) {
 	case DASHER_SEGSYNC_AUTO:
-		//if not HLS or test mode, don't wait for seg sync
-		if (!ctx->do_m3u8 || gf_sys_is_test_mode()) break;
+		//if not HLS, don't wait for seg sync
+		if (!ctx->do_m3u8) break;
 		//fallthrough
 	case DASHER_SEGSYNC_YES:
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FORCE_SEG_SYNC, &PROP_BOOL(GF_TRUE) );
@@ -4552,6 +4551,26 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			seg_ext = NULL;
 		}
 
+		//DASH-IF Ingest prefers CMAF extensions
+		if (ctx->profile == GF_DASH_PROFILE_DASHIF_INGEST) {
+			def_ext = NULL;
+			if (ds->rep->mime_type) gf_free(ds->rep->mime_type);
+			switch (ds->stream_type) {
+				case GF_STREAM_VISUAL:
+					init_ext = seg_ext = "cmfv";
+					ds->rep->mime_type = gf_strdup("video/mp4");
+					break;
+				case GF_STREAM_AUDIO:
+					init_ext = seg_ext = "cmfa";
+					ds->rep->mime_type = gf_strdup("audio/mp4");
+					break;
+				default:
+					init_ext = seg_ext = "cmft";
+					ds->rep->mime_type = gf_strdup("application/mp4");
+					break;
+			}
+		}
+
 		is_bs_switch = set->bitstream_switching;
 		//only used to force _init in default templates
 		if (ds->tile_base) is_bs_switch = GF_FALSE;
@@ -5067,12 +5086,11 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 				send_file_delete(ctx, ds, sctx->filename, sctx->filepath, -1);
 
-				//purge LLHLS frags
+				//purge LLHLS frags - index is always 0-based
 				if (sctx->frags && (sctx->llhls_mode==GF_DASH_LL_HLS_SF || ds->set->ssr_mode)) {
 					u32 k;
 					for (k=0; k<sctx->nb_frags; k++) {
-						s32 part_idx = k + ((ds->set->ssr_mode || !gf_sys_is_test_mode()) ? 0 : 1);
-						send_file_delete(ctx, ds, sctx->filename, sctx->filepath, part_idx);
+						send_file_delete(ctx, ds, sctx->filename, sctx->filepath, k);
 					}
 				}
 				gf_free(sctx->filepath);
@@ -5876,16 +5894,11 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	if (ctx->from_index>=IDXMODE_INIT)
 		return GF_OK;
 
+	if (ctx->profile == GF_DASH_PROFILE_DASHIF_INGEST)
+		return GF_OK;
+
 	if (ctx->dyn_rate)
 		dasher_update_dyn_bitrates(ctx);
-
-	//UGLY PATCH, to remove - we don't have the same algos in old arch and new arch, which result in slightly different max segment duration
-	//on audio for our test suite - patch it manually to avoid hash failures :(
-	//TODO, remove as soon as we switch archs
-	if (gf_sys_old_arch_compat() && (ctx->mpd->max_segment_duration==1022) && (ctx->mpd->media_presentation_duration==10160) ) {
-		ctx->mpd->max_segment_duration = 1080;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] patch for old regression tests hit, changing max seg dur from 1022 to 1080\nPlease notify GPAC devs to remove this, and do not use fot_test modes in dash filter\n"));
-	}
 
 	ctx->mpd->publishTime = dasher_get_utc(ctx);
 	if (ctx->utc_timing_type==DASHER_UTCREF_INBAND) {
@@ -11048,12 +11061,11 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					if (!prev_sctx->llhls_mode)
 						break;
 
-					//send file delete events
+					//send parts file delete events - index is always 0-based
 					if (prev_sctx->llhls_mode==GF_DASH_LL_HLS_SF) {
 						u32 k;
 						for (k=0; k<prev_sctx->nb_frags; k++) {
-							s32 part_idx = k + (ds->set->ssr_mode || !gf_sys_is_test_mode() ? 0 : 1);
-							send_file_delete(ctx, ds, prev_sctx->filename, prev_sctx->filepath, part_idx);
+							send_file_delete(ctx, ds, prev_sctx->filename, prev_sctx->filepath, k);
 						}
 					}
 					prev_sctx->llhls_mode = GF_DASH_LL_HLS_OFF;
@@ -11251,6 +11263,12 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH-IF LL requires UTCTiming but none specified, using %s \n", default_utc_timing_server));
 			ctx->utcs = gf_strdup(default_utc_timing_server);
 		}
+		break;
+	case GF_DASH_PROFILE_DASHIF_INGEST:
+		ctx->sseg = ctx->sfile = GF_FALSE;
+		ctx->cmaf = DASHER_CMAF_CMF2;
+		ctx->no_fragments_defaults = ctx->align = ctx->tpl = ctx->sap = ctx->segcts = GF_TRUE;
+		ctx->template = gf_strdup("Streams($RepresentationID$)/$Init=init$$Segment=sequence$$Number$");
 		break;
 	default:
 		break;
@@ -11545,7 +11563,8 @@ static const GF_FilterArgs DasherArgs[] =
 		"- dashavc264.live: DASH-IF live profile\n"
 		"- dashavc264.onDemand: DASH-IF onDemand profile\n"
 		"- dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)"
-		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll", 0 },
+		"- dashif.ingest: DASH-IF CMAF ingest profile (inherits dashif.ll and enforces CMAF, template, and segcts)"
+		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll|dashif.ingest", 0 },
 	{ OFFS(profX), "list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used. If starting with `+`, the profile string by default is erased and `+` is skipped", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(query), "query parameters to append for segment requests (Annex I)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(cp), "content protection element location\n"

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -40,7 +40,7 @@
 
 #define GF_IMPORT_AUDIO_SAMPLE_ENTRY_v2_QTFF (GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF+1)
 
-#define ISOM_FILE_EXT "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|ismv|m4s|heif|heic|iff|avci|avif|mj2|mov|qt"
+#define ISOM_FILE_EXT "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|ismv|m4s|heif|heic|iff|avci|avif|mj2|mov|qt|cmfv|cmfa|cmft"
 #define ISOM_FILE_MIME "video/mp4|audio/mp4|application/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic|image/avci|video/jp2|video/quicktime"
 
 enum{
@@ -734,6 +734,7 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
 	u32 idx=0;
 
+	//do not inject tool tag in test mode
 	if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat() ) {
 		const char *tool = "GPAC-"GPAC_VERSION"-rev"GPAC_GIT_REVISION;
 		u32 len = (u32) strlen(tool);
@@ -1572,6 +1573,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			//this should be removed and hashes regenerated
 			gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 0, 0, 0, 0, 0);
 
+			//only patch handler if not test mode
 			if (!gf_sys_is_test_mode() && !gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_HANDLER)) {
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_URL);
 				if (tkw->track_num && p && p->value.string) {
@@ -1597,8 +1599,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_ENABLED|GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 		}
 		else {
-			//unless in test mode or old arch compat, set track to be enabled, in movie and in preview
-			if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat()) {
+			//unless in old arch compat, set track to be enabled, in movie and in preview
+			if (!gf_sys_old_arch_compat()) {
 				gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 			}
 
@@ -1649,7 +1651,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_ALT_GROUP);
 		if (p && p->value.uint) {
 			gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, p->value.uint);
-		} else if (!p && !gf_sys_is_test_mode()) {
+		} else if (!p && !gf_sys_old_arch_compat()) {
 			//we by default set groups for audio and subs if group is not present
 			if (mtype==GF_ISOM_SUBTYPE_SUBTITLE) {
 				gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, 2);
@@ -8068,9 +8070,6 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 
 	if ((ctx->llhas_mode>GF_LLHAS_BYTERANGES) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
 		u32 fnum = ctx->frag_num;
-		//we'll need to redo all LLHLS tests
-		if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
-			fnum++;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 		ctx->frag_num++;
 	}

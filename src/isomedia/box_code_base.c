@@ -3680,6 +3680,9 @@ GF_Err elng_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
 
+	if (ptr && ptr->size > GF_UINT_MAX)
+		return GF_ISOM_INVALID_FILE;
+
 	if (ptr->size) {
 		ptr->extended_language = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->extended_language == NULL) return GF_OUT_OF_MEM;
@@ -10716,7 +10719,7 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 			gf_bs_write_int(bs, seig->skip_byte_block, 4);
 		}
 		gf_bs_write_u8(bs, seig->IsProtected);
-		if (nb_keys>1) {
+		if (use_mkey) {
 			gf_bs_write_data(bs, seig->key_info+1, seig->key_info_size-1);
 		} else {
 			gf_bs_write_data(bs, seig->key_info+3, seig->key_info_size - 3);
@@ -14836,8 +14839,12 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 		Bool is_ref = gf_bs_read_int(bs, 1);
 		if (!is_ref) {
 			GF_SampleRefDiffEntry *ent;
-			u32 nb_refs = gf_bs_read_int(bs, bits-1);;
-			ISOM_DECREASE_SIZE_GOTO_EXIT(s, (1+nb_refs)*bits/8)
+			u32 nb_refs = gf_bs_read_int(bs, bits-1);
+			if ( nb_refs >= GF_UINT_MAX || bits < 8 || (1+nb_refs) > GF_UINT_MAX / (bits/8) ) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
+			ISOM_DECREASE_SIZE_GOTO_EXIT(s, (1+nb_refs)*(bits/8))
 			GF_SAFEALLOC(ent, GF_SampleRefDiffEntry);
 			if (!ent) {
 				e = GF_OUT_OF_MEM;

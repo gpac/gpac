@@ -332,7 +332,7 @@ static inline JSValue __JS_NewShortBigInt(JSContext *ctx, int64_t d)
 #define JS_PROP_NO_EXOTIC        (1 << 16) /* internal use */
 
 #ifndef JS_DEFAULT_STACK_SIZE
-#define JS_DEFAULT_STACK_SIZE (1024 * 1024)
+#define JS_DEFAULT_STACK_SIZE (2*1024 * 1024)
 #endif
 
 /* JS_Eval() flags */

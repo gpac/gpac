@@ -2104,6 +2104,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 						if (i + bih.bi_size > hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
+						if (AVI->bitmap_info_header)
+							gf_free(AVI->bitmap_info_header);
 						AVI->bitmap_info_header = (alBITMAPINFOHEADER *) gf_malloc(bih.bi_size);
 						if (AVI->bitmap_info_header != NULL)
 							memcpy(AVI->bitmap_info_header, hdrl_data + i, bih.bi_size);
@@ -2159,6 +2161,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 									gf_fseek(AVI->fdes, lpos, SEEK_SET);
 								}
 							}
+							if (AVI->wave_format_ex[AVI->aptr])
+								gf_free(AVI->wave_format_ex[AVI->aptr]);
+
 							AVI->wave_format_ex[AVI->aptr] = wfe;
 						}
 						if (i+14+4>hdrl_len) ERR_EXIT(AVI_ERR_READ)
@@ -2494,7 +2499,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			// read from file
 			u32 chunk_size = (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
-			if (!chunk_size)
+			if (!chunk_size || chunk_size < 24)
 				continue;
 			chunk_start = en = (char*) gf_malloc(chunk_size);
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / rtp output filter
@@ -93,6 +93,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	count = gf_list_count(streams);
 
 	gf_fprintf(sdp_out, "v=0\n");
+	//test mode, use static session IDs and version
 	if (gf_sys_is_test_mode()) {
 		*session_id = 0;
 		session_version = 0;
@@ -115,7 +116,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		if (src)
 			gf_fprintf(sdp_out, "i=%s\n", src);
 	}
-	gf_fprintf(sdp_out, "u=%s\n", url ? url : (gf_sys_is_test_mode() ? "http://gpac.io" : "https://gpac.io") );
+	gf_fprintf(sdp_out, "u=%s\n", url ? url : "https://gpac.io");
 	if (email) {
 		gf_fprintf(sdp_out, "e=%s\n", email);
 	}
@@ -131,7 +132,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	}
 
 	if (gf_sys_is_test_mode()) {
-		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC - http://gpac.io\n");
+		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC - https://gpac.io\n");
 	} else {
 		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC %s - %s\n", gf_gpac_version(), gf_gpac_copyright() );
 	}

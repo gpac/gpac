@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -98,7 +98,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		}
 #ifndef GPAC_DISABLE_X3D
 		if (stack->is_x3d && !TS->loop) {
-			if (!stack->start_time && !gf_sys_old_arch_compat() ) return;
+			if (!stack->start_time) return;
 			if (currentTime >= TS->startTime+stack->cycle_interval) return;
 		}
 #endif

@@ -182,13 +182,16 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (ctx->dynext) {
 		const char *has_ext = gf_file_ext_start(url);
 
-		strcpy(szFinalName, url);
-		if (!has_ext && ext) {
+		strncpy(szFinalName, url, GF_ARRAY_LENGTH(szFinalName)-1);
+		szFinalName[GF_ARRAY_LENGTH(szFinalName)-1] = 0;
+
+		if (!has_ext && ext && (GF_ARRAY_LENGTH(szFinalName) > (strlen(szFinalName)+1+strlen(ext)))) {
 			strcat(szFinalName, ".");
 			strcat(szFinalName, ext);
 		}
 	} else {
-		strcpy(szFinalName, url);
+		strncpy(szFinalName, url, GF_ARRAY_LENGTH(szFinalName)-1);
+		szFinalName[GF_ARRAY_LENGTH(szFinalName)-1] = 0;
 	}
 
 	if (ctx->use_templates) {
@@ -242,7 +245,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		ctx->use_move = GF_TRUE;
 	}
 	strcpy(szName, szFinalName);
-	if (ctx->use_move) {
+	if (ctx->use_move && (GF_ARRAY_LENGTH(szName) > (strlen(szName)+strlen(ATOMIC_SUFFIX)))) {
 		strcat(szName, ATOMIC_SUFFIX);
 	}
 

@@ -26,6 +26,10 @@
 #include "filter_session.h"
 #include <gpac/network.h>
 
+#ifdef GPAC_HAS_QJS
+void jsfs_on_filter_arg_update(GF_Filter *filter);
+#endif
+
 //helper functions
 void gf_void_del(void *p)
 {
@@ -1104,7 +1108,7 @@ void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **val
 		inc_sep[0] = 0;
 		inc_end[0] = 0;
 		inc_end+=1;
-		strncpy(szInt, inc_sep+6, GF_ARRAY_LENGTH(szInt));
+		strncpy(szInt, inc_sep+6, GF_ARRAY_LENGTH(szInt)-1);
 		szInt[ GF_ARRAY_LENGTH(szInt) - 1 ] = 0;
 		ainc_crc = (u32) gf_crc_32(szInt, (u32) strlen(szInt) );
 		step_sep = strchr(szInt, ',');
@@ -1258,6 +1262,10 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 			if (e==GF_OK) {
 				if (!is_meta)
 					gf_filter_set_arg(filter, a, &argv);
+
+#ifdef GPAC_HAS_QJS
+				jsfs_on_filter_arg_update(filter);
+#endif
 			} else if (e!=GF_NOT_FOUND) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept update of arg %s to value %s: %s\n", filter->name, arg_name, arg_value, gf_error_to_string(e) ));
 			}
@@ -2196,16 +2204,19 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 				if (!filter->dynamic_filter) {
+
+					if (filter->skip_cids.vals) {
+						GF_PropertyValue prop;
+						prop.value.string_list = filter->skip_cids;
+						prop.type = GF_PROP_STRING_LIST;
+						gf_props_reset_single(&prop);
+						filter->skip_cids.vals = NULL;
+					}
+
 					if (value) {
 						GF_PropertyValue res = gf_filter_parse_prop_solve_env_var(filter->session, filter, GF_PROP_STRING_LIST, "ccp", value, NULL);
 						filter->skip_cids = res.value.string_list;
 					} else {
-						if (filter->skip_cids.vals) {
-							GF_PropertyValue prop;
-							prop.value.string_list = filter->skip_cids;
-							prop.type = GF_PROP_STRING_LIST;
-							gf_props_reset_single(&prop);
-						}
 						filter->skip_cids.nb_items = 1;
 						filter->skip_cids.vals = gf_malloc(sizeof(char*));
 						filter->skip_cids.vals[0] = gf_strdup("AUTO");
@@ -3910,7 +3921,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 
 	//we no longer watch setup error
 	filter->on_setup_error = NULL;
-	
+
 	if (until_filter) {
 		//check if filter has not been removed
 		s32 res = gf_list_find(until_filter->session->filters, filter);
@@ -6034,4 +6045,3 @@ void gf_filter_log_tag(GF_Filter *filter, Bool is_untag)
 	else
 		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
 }
-

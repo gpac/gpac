@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -1774,7 +1774,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (!ch->item_id) {
 					isor_set_sample_groups_and_aux_data(read, ch, pck);
 				}
-				if (ch->sample_data_offset && !gf_sys_is_test_mode())
+				if (ch->sample_data_offset)
 					gf_filter_pck_set_byte_offset(pck, ch->sample_data_offset);
 
 				if (ch->set_disc) {

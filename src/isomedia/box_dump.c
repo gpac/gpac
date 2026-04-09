@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -712,11 +712,7 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	dpiv = (Float) (p->vert_res&0xFFFF);
 	dpiv /= 0xFFFF;
 	dpiv += (p->vert_res>>16);
-	if (gf_sys_is_test_mode()) {
-		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
-	} else {
-		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
-	}
+	gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
 
 	if (strlen((const char*)p->compressor_name) ) {
 		if (isalnum(p->compressor_name[0])) {
@@ -3417,7 +3413,24 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
+GF_Err TLV_Dump(GF_List *tlv, FILE * trace)
+{
+	u32 i, count;
 
+	count = gf_list_count(tlv);
+	for (i=0; i<count; i++) {
+		GF_Box *p = (GF_Box *)gf_list_get(tlv, i);
+		switch (p->type) {
+		case GF_4CC('r', 't', 'p', 'o'):
+			gf_fprintf(trace, "<RTPOffset timeOffset=\"%d\"/>\n", ((GF_RTPOBox *)p)->timeOffset);
+			break;
+		default:
+			gf_fprintf(trace, "<UnknownTLVEntry/>\n");
+			break;
+		}
+	}
+	return GF_OK;
+}
 GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 {
 	u32 i, count;
@@ -3545,6 +3558,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 			count2 = gf_list_count(pck->TLV);
 			if (count2) {
 				gf_fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
+				TLV_Dump(pck->TLV, trace);
 				gf_fprintf(trace, "</PrivateExtensionTable>\n");
 			}
 			//DTE is made of NON boxes
@@ -6208,8 +6222,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, nb_crypt);
 				total_bytes+=clear+nb_crypt;
 			}
-			if (!gf_sys_is_test_mode())
-				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
+			gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
 		} else {
 			gf_fprintf(trace, ">\n");
 		}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -62,6 +62,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 	u64 ntp;
 	u64 timestamp;
 
+	//test mode, do not check NTP
 	if (gf_sys_is_test_mode()) {
 		return;
 	}

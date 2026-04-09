@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -27,6 +27,9 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+#ifdef GPAC_HAS_QJS
+void jsfs_on_filter_pid_reconfig(GF_Filter *new_filter);
+#endif
 static void free_evt(GF_FilterEvent *evt);
 
 static void pcki_del(GF_FilterPacketInstance *pcki)
@@ -1213,6 +1216,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		gf_filter_check_pending_pids(filter);
 	}
+
+
+#ifdef GPAC_HAS_QJS
+	if (e==GF_OK)
+		jsfs_on_filter_pid_reconfig(filter);
+#endif
 
 	if (ctype==GF_PID_CONF_REMOVE) {
 		gf_mx_p(filter->tasks_mx);
@@ -6191,6 +6200,17 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 			else if (value->type==GF_PROP_STRING_LIST) gf_props_reset_single((GF_PropertyValue *) value);
 			return GF_OK;
 		}
+		//in test mode ignore any change in duration/duration_avg set by reframers updating duration in progressive loading
+		//and directly copy over - this avoids reconfig being triggered in inspect, which wuld be triggered at times depending
+		//on execution time and network speed
+		if (((prop_4cc == GF_PROP_PID_DURATION) || (prop_4cc == GF_PROP_PID_DURATION_AVG)) && gf_sys_is_test_mode() ) {
+			const GF_PropertyValue *chk_prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_MBRAND);
+			if (!chk_prop) {
+				chk_prop = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
+				if (chk_prop && chk_prop->value.string && strnicmp(chk_prop->value.string, "file://", 7) && strstr(chk_prop->value.string, "://"))
+					return GF_OK;
+			}
+		}
 	}
 
 	//info property, do not request a new property map
@@ -6205,7 +6225,7 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 		map = check_new_pid_props(pid, GF_TRUE);
 	}
 	if (!map) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", pid->filter->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring\n", pid->filter->name));
 		return GF_OUT_OF_MEM;
 	}
 	if (value && (prop_4cc==GF_PROP_PID_TIMESCALE))
@@ -7474,6 +7494,12 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 	if (PID_IS_INPUT(pid)) {
 		GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 		gf_mx_p(pid->filter->tasks_mx);
+		//first time we access the props, use the first entry in the property list
+		if (!pidi->props) {
+			//see \ref gf_filter_pid_merge_properties_internal for mutex
+			pidi->props = gf_list_get(pid->pid->properties, 0);
+			safe_int_inc(&pidi->props->reference_count);
+		}
 		props = pidi->props;
 		gf_mx_v(pid->filter->tasks_mx);
 	} else {
@@ -9895,6 +9921,8 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			gf_odf_dovi_cfg_del(dvcc);
 			return e;
 		}
+		gf_odf_dovi_cfg_del(dvcc);
+		dvcc = NULL;
 	}
 
 	switch (codec_id) {

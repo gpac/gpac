@@ -531,7 +531,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	if (!url || !cache_directory) return NULL;
 
 	sz = (u32) strlen ( url );
-	if ( sz > GF_MAX_PATH ) {
+	if ( sz >= GF_MAX_PATH ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE,
 		       ("[CACHE] ERROR, URL is too long (%d chars), more than %d chars.\n", sz, GF_MAX_PATH ));
 		return NULL;
@@ -631,7 +631,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	gf_dynstrcat(&entry->cfg_filename, cache_file_info_suffix, NULL);
 
 	char szLOCK[GF_MAX_PATH];
-	sprintf(szLOCK, "%s.lock", entry->cfg_filename);
+	snprintf(szLOCK, sizeof(szLOCK), "%s.lock", entry->cfg_filename);
 	GF_LockStatus lock_type = cache_entry_lock(szLOCK);
 	if (!lock_type) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CACHE, ("[CACHE] Failed to grab cache lock for entry %s, request will not be cached\n", url));

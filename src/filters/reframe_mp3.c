@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MP3 reframer filter
@@ -415,9 +415,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(gf_mp3_window_size(ctx->hdr) ) );
 
-	if (!gf_sys_is_test_mode() ) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(gf_mp3_bit_rate(ctx->hdr) ) );
-	}
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(gf_mp3_bit_rate(ctx->hdr) ) );
 
 	if (ctx->id3_buffer_size)
 		mp3_dmx_flush_id3(filter, ctx);
@@ -762,9 +760,7 @@ drop_byte:
 
 static GF_Err mp3_dmx_initialize(GF_Filter *filter)
 {
-	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
-	//in test mode we keep strict signaling, eg MPEG-2 layer 3 is still mpeg2 audio
-	if (gf_sys_is_test_mode()) ctx->forcemp3 = GF_FALSE;
+	//GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
 	return GF_OK;
 }
 

@@ -37,6 +37,8 @@ enum {
 	GF_JSFS_TASK_USER = 0,
 	GF_JSFS_TASK_FILTER_NEW,
 	GF_JSFS_TASK_FILTER_DEL,
+	GF_JSFS_TASK_FILTER_PID_MODIFIED,
+	GF_JSFS_TASK_FILTER_ARG_UPDATED,
 	GF_JSFS_TASK_EVENT,
 	GF_JSFS_TASK_AUTHENTICATION,
 	GF_JSFS_TASK_REMOVE,
@@ -157,6 +159,12 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 		gf_assert(for_filter);
 		arg = jsfs_new_filter_obj(task->ctx, for_filter);
 	} else if (task->type==GF_JSFS_TASK_FILTER_DEL) {
+		gf_assert(for_filter);
+		arg = JS_DupValue(task->ctx, for_filter->jsval);
+	} else if (task->type==GF_JSFS_TASK_FILTER_PID_MODIFIED) {
+		gf_assert(for_filter);
+		arg = JS_DupValue(task->ctx, for_filter->jsval);
+	} else if (task->type==GF_JSFS_TASK_FILTER_ARG_UPDATED) {
 		gf_assert(for_filter);
 		arg = JS_DupValue(task->ctx, for_filter->jsval);
 	}
@@ -346,6 +354,18 @@ void jsfs_on_filter_created(GF_Filter *new_filter)
 {
 	if (!new_filter->session->jstasks) return;
 	jsfs_exec_tasks_custom(new_filter->session, GF_JSFS_TASK_FILTER_NEW, NULL, new_filter);
+}
+
+void jsfs_on_filter_pid_reconfig(GF_Filter *filter)
+{
+	if (!filter->session->jstasks) return;
+	jsfs_exec_tasks_custom(filter->session, GF_JSFS_TASK_FILTER_PID_MODIFIED, NULL, filter);
+}
+
+void jsfs_on_filter_arg_update(GF_Filter *filter)
+{
+	if (!filter->session->jstasks) return;
+	jsfs_exec_tasks_custom(filter->session, GF_JSFS_TASK_FILTER_ARG_UPDATED, NULL, filter);
 }
 
 void jsfs_on_filter_destroyed(GF_Filter *del_filter)
@@ -573,6 +593,14 @@ static JSValue jsfs_set_new_filter_fun(JSContext *ctx, JSValueConst this_val, in
 static JSValue jsfs_set_del_filter_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_FILTER_DEL);
+}
+static JSValue jsfs_set_filter_pid_modif_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_FILTER_PID_MODIFIED);
+}
+static JSValue jsfs_set_filter_arg_update_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, GF_JSFS_TASK_FILTER_ARG_UPDATED);
 }
 static JSValue jsfs_set_event_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1938,6 +1966,8 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CFUNC_DEF("lock_filters", 0, jsfs_lock_filters),
 	JS_CFUNC_DEF("set_new_filter_fun", 0, jsfs_set_new_filter_fun),
 	JS_CFUNC_DEF("set_del_filter_fun", 0, jsfs_set_del_filter_fun),
+	JS_CFUNC_DEF("set_filter_pid_modified_fun", 0, jsfs_set_filter_pid_modif_fun),
+	JS_CFUNC_DEF("set_filter_arg_updated_fun", 0, jsfs_set_filter_arg_update_fun),
 	JS_CFUNC_DEF("set_event_fun", 0, jsfs_set_event_fun),
 	JS_CFUNC_DEF("add_filter", 0, jsfs_add_filter),
 	JS_CFUNC_DEF("fire_event", 0, jsfs_fire_event),
@@ -2053,7 +2083,7 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	JSFS_FilterSession *fsjs;
 	GF_SAFEALLOC(fsjs, JSFS_FilterSession)
 	if (!fsjs) return GF_OUT_OF_MEM;
-	//remmeber if this is the object owning the API (for GC)
+	//remember if this is the object owning the API (for GC)
 	fsjs->owns_api = (fs->js_ctx && (fs->js_ctx != c)) ? GF_FALSE : GF_TRUE;
 
 	//initialize filter class and create a single filter object in global scope
