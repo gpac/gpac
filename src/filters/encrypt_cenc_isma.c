@@ -1914,8 +1914,15 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				switch (obut) {
 				//we only encrypt frame and tile group
 				case OBU_FRAME:
-				case OBU_TILE_GROUP:
-					if (!cstr->av1_state->frame_state.nb_tiles_in_obu) {
+				case OBU_TILE_GROUP: {
+					Bool encrypt = cstr->av1_state->frame_state.nb_tiles_in_obu;
+
+					//scalable ID filtering
+					GF_CryptKeyInfo *ki = &cstr->tci->keys[cstr->kidx];
+					encrypt &= (!ki->spatial_id_plus_one  || ki->spatial_id_plus_one -1 == cstr->av1_state->spatial_id )
+					        && (!ki->temporal_id_plus_one || ki->temporal_id_plus_one-1 == cstr->av1_state->temporal_id);
+
+					if (!encrypt) {
 						clear_bytes = (u32) obu_size;
 					} else {
 						nb_ranges = cstr->av1_state->frame_state.nb_tiles_in_obu;
@@ -1949,6 +1956,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						}
 					}
 					break;
+				}
 				default:
 					clear_bytes = (u32) obu_size;
 					break;

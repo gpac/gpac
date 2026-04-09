@@ -501,7 +501,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "as")) {
 				tkc->keys[tkc->nb_keys].ASID = atoi(att->value);
-			} else {
+			}
+			else if (!stricmp(att->name, "spatialId")) {
+				tkc->keys[tkc->nb_keys].spatial_id_plus_one  = (u32)(atoi(att->value)+1);
+			}
+			else if (!stricmp(att->name, "temporalId")) {
+				tkc->keys[tkc->nb_keys].temporal_id_plus_one = (u32)(atoi(att->value)+1);
+			}
+			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] unrecognized attribute %s for `key`, ignoring\n", att->name));
 			}
 		}

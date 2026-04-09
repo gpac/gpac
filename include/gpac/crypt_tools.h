@@ -121,6 +121,10 @@ typedef struct
 	char *periodID;
 	/*! DASH adaptationSet ID or NULL */
 	u32 ASID;
+
+	/*! scalable codec, optional: specifies which layers this applies to, or 0 for all (default) */
+	u32 spatial_id_plus_one;
+	u32 temporal_id_plus_one;
 } GF_CryptKeyInfo;
 
 /*! key roll modes*/
