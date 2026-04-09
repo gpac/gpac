@@ -30,7 +30,6 @@ const DEFAULT_KEEPALIVE_SEC = 4;
 const DEFAULT_ACTIVATE_CLIENTS = 1;
 const DEFAULT_MCACHE = false;
 const DEFAULT_REPAIR = 'false'; // 'false', 'true' or 'auto'
-const DEFAULT_CORRUPTED = false;
 const DEFAULT_TIMESHIFT = 10;
 const DEFAULT_GCACHE = false;
 const DEFAULT_CHECKIP = false;
@@ -75,7 +74,6 @@ Each service is a JSON object with one or more of the following properties:
   - false: disable repair
   - true: enable repair using source URL or repair servers indicated in MABR
   - auto: enable repair only from repair servers indicated in MABR
-- corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
 - check_ip: (boolean, , default ${DEFAULT_CHECKIP}) monitor IP address and port rather than connection when tracking active clients
 - noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
 - sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
@@ -142,7 +140,7 @@ The \`local\` service configuration option can be set to:
 # Multicast ABR Gateway
 The server can be configured to use a multicast ABR source for an HTTP streaming service, without any HTTP source.
 
-__Service configuration parameters used :__ \`mabr\` (mandatory), \`local\` (mandatory), \`corrupted\`, \`timeshift\` and \`keepalive\`.
+__Service configuration parameters used :__ \`mabr\` (mandatory), \`local\` (mandatory), \`timeshift\` and \`keepalive\`.
 
 The multicast source can be DVB-MABR (e.g. \`mabr://235.0.0.1:1234/\`), ATSC3.0 (e.g. \`atsc://\`) or ROUTE (e.g. \`route://235.0.0.1:1234/\`).
 - If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. \`:NCID=N\`).
@@ -157,7 +155,7 @@ EX { "mabr": "mabr://234.0.0.1:1234", "local": "/service1", "timeshift": 30 }
 # Multicast ABR Gateway with HTTP cache
 The server can be configured to use a multicast source as an alternate data source of a given HTTP streaming service.
 
-__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`corrupted\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`activate\`, \`keepalive\` and \`js\`.
+__Service configuration parameters used :__ \`http\` (mandatory), \`mabr\` (mandatory), \`local\`, \`timeshift\`, \`repair\`, \`gcache\`, \`mcache\`, \`unload\`, \`activate\`, \`keepalive\` and \`js\`.
 
 The multicast service can be dynamically loaded at run-time using the \`unload\` service configuration option:
 - if 0, the multicast is started when loading the server and never ended,
@@ -170,10 +168,6 @@ The qualities in the multicast service can be dynamically activated or deactivat
 The multicast service can use repair options of the MABR stack using \`repair\` service configuration option:
 - if false, the file will not be sent until completely received (this increases latency),
 - otherwise, file data will be pushed as soon as available in order (after reception or repair).
-
-If the \`corrupted\` option is set together with \`repair\`, HTTP-based repair is disabled and corrupted files are patched using the \`repair=strict\` mode of the \`routein\` filter.
-If files are completely lost, they will be fetched from \`http\`source.
-Warning: This may likely result in decoding/buffering pipeline errors and could fail with some players expecting no timeline holes (such as browsers). GPAC supports this.
 
 The number of active clients on a given quality is computed using the client connection state: any disconnect/reconnect from a client for the same quality will trigger a deactivate+activate sequence.
 If \`check_ip\` is set to true, the remote IP address+port are used instead of the connection. This however assumes that each client has a unique IP/port which may not always be true (NATs).
@@ -1364,7 +1358,6 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		s.purge_delay = 1000 * serv_cfg.timeshift;
 		s.mani_cache = serv_cfg.mcache;
 		s.repair = serv_cfg.repair;
-		s.corrupted = serv_cfg.corrupted;
 		s.local = serv_cfg.local;
 		s.keepalive = serv_cfg.keepalive;
 		s.gcache = serv_cfg.gcache;
@@ -1580,7 +1573,7 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 		if (this.url && this.mabr_min_active>0) args += ':tunein=-3';
 		//add repair option last
 		if (!this.repair) { // false (default) - disable unicast repair
-			args += this.corrupted ? ':repair=simple' : ':repair=strict'; // simple: forward corrupted files if parsable (valid container syntax, broken media)
+			args += ':repair=strict';
 		} else {
 			args += ':repair=full';
 			if (this.repair == 1 && this.url) {
@@ -1682,10 +1675,10 @@ function create_service(http_url, force_mcast_activate, forced_sdesc)
 			let file = this.mem_cache.find(f => f.url===pid.url);
 			let corrupted = pck.corrupted ? 1 : 0;
 			if (corrupted && pck.get_prop('PartialRepair')) {
-				corrupted = s.corrupted ? 0 : 2;
+				corrupted = 2;
 			}
 			//file corrupted and no repair, move to HTTP
-			if (!s.repair && corrupted) {
+			if (!s.repair && pck.corrupted) {
 				let log_done = false;
 				//cache file shall never be created at this point since we only aggregate full files when no repair
 				if (file) {
@@ -2136,7 +2129,6 @@ filter.initialize = function() {
 					else sd.repair = 0;
 				}
 
-				if (typeof sd.corrupted != 'boolean') sd.corrupted = DEFAULT_CORRUPTED;
 				if (typeof sd.gcache != 'boolean') sd.gcache = DEFAULT_GCACHE;
 				if (typeof sd.keepalive != 'number') sd.keepalive = DEFAULT_KEEPALIVE_SEC;
 				else if (sd.keepalive < 0) throw "Invalid keepalive property, expecting positive number";
