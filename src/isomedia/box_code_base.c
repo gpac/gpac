@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -10701,12 +10701,14 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	{
 		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
 		Bool use_mkey = seig->key_info[0];
+		/*
 		u32 nb_keys = 1;
 		if (use_mkey) {
 			nb_keys = seig->key_info[1];
 			nb_keys<<=8;
 			nb_keys |= seig->key_info[2];
 		}
+		*/
 		gf_bs_write_int(bs, use_mkey ? 1 : 0, 1);
 		if ((seig->crypt_byte_block>15) || (seig->skip_byte_block>15)) {
 			gf_bs_write_int(bs, 1, 1);
@@ -15340,7 +15342,7 @@ static u32 cdrf_get_cost(GF_List *refs, u32 mode, s32 max_id, u32 *cost_full, u3
 				max_id = prev_len;
 			}
 			if (prev_len) {
-				gf_assert(nb_samples);
+				gf_fatal_assert(nb_samples);
 				nb_pattern_entries += 1;
 #ifdef DUMP_REFS
 				pattern_end=GF_TRUE;
