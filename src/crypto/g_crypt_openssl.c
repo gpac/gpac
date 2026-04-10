@@ -126,15 +126,17 @@ GF_Err gf_crypt_crypt_openssl_cbc(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_
 			return GF_IO_ERR;
 
 		if (full_len) {
-			u8 last_ct_in[AES_BLOCK_SIZE];
-			if (aes_crypt_type == AES_DECRYPT)
-				memcpy(last_ct_in, plaintext + full_len - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-			if (!EVP_CipherUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
-				return GF_IO_ERR;
-			if (aes_crypt_type == AES_ENCRYPT)
+			if (aes_crypt_type == AES_DECRYPT) {
+				u8 last_cblock_in[AES_BLOCK_SIZE];
+				memcpy(last_cblock_in, plaintext + full_len - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+				if (!EVP_CipherUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
+					return GF_IO_ERR;
+				memcpy(ctx->previous_ciphertext, last_cblock_in, AES_BLOCK_SIZE);
+			} else {
+				if (!EVP_CipherUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
+					return GF_IO_ERR;
 				memcpy(ctx->previous_ciphertext, plaintext + full_len - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-			else
-				memcpy(ctx->previous_ciphertext, last_ct_in, AES_BLOCK_SIZE);
+			}
 		}
 
 		if (rem_len) {
