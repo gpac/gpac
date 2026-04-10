@@ -4657,6 +4657,57 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	return GF_OK;
 }
 
+static Bool period_is_empty_stl(GF_MPD_Period *period, Bool *use_stl)
+{
+	GF_MPD_SegmentTimeline *segment_timeline;
+	GF_MPD_MultipleSegmentBase *mbase_rep, *mbase_set, *mbase_period;
+	u32 i=0, j=0;
+	GF_MPD_AdaptationSet *set;
+	gf_fatal_assert(period);
+
+	//single media segment
+	if (period->segment_base)
+		return GF_FALSE;
+
+	mbase_period = period->segment_list ? (GF_MPD_MultipleSegmentBase *)period->segment_list : (GF_MPD_MultipleSegmentBase *)period->segment_template;
+	while ( (set = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		//single media segment
+		if (set->segment_base)
+			return GF_FALSE;
+
+		mbase_set = set->segment_list ? (GF_MPD_MultipleSegmentBase *)set->segment_list : (GF_MPD_MultipleSegmentBase *)set->segment_template;
+		GF_MPD_Representation *rep;
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(set->representations, &j))) {
+			//single media segment
+			if (rep->segment_base)
+				return GF_FALSE;
+
+			//we have a segment template list or template
+			mbase_rep = rep->segment_list ? (GF_MPD_MultipleSegmentBase *) rep->segment_list : (GF_MPD_MultipleSegmentBase *) rep->segment_template;
+
+			segment_timeline = NULL;
+			if (mbase_period) segment_timeline = mbase_period->segment_timeline;
+			if (mbase_set && mbase_set->segment_timeline) segment_timeline = mbase_set->segment_timeline;
+			if (mbase_rep && mbase_rep->segment_timeline) segment_timeline = mbase_rep->segment_timeline;
+
+			if (segment_timeline) {
+				if (use_stl)
+					*use_stl = GF_TRUE;
+
+				if (!gf_list_count(segment_timeline->entries))
+					return GF_TRUE;
+			}
+			else if (use_stl && *use_stl) {
+				//previous serialized periods had stl but this one doesn't
+				return GF_TRUE;
+			}
+
+			// continue parsing
+		}
+	}
+
+	return GF_FALSE;
+}
 
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
@@ -4665,6 +4716,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	s32 indent = compact ? GF_INT_MIN : 0;
 	GF_MPD_ProgramInfo *info;
 	char *text;
+	Bool use_stl = GF_FALSE;
 
 	if (!mpd->xml_namespace) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Setting to default.\n"));
@@ -4823,6 +4875,13 @@ print_periods:
 	for (i=0; i<count; i++) {
 		Bool is_dynamic;
 		GF_MPD_Period *period = (GF_MPD_Period *)gf_list_get(mpd->periods, i);
+
+		//hack: don't print empty periods with stl to avoid player wrong queries
+		// (resolving $Time$ with value 0 while pto!=0 is set)
+		if (period_is_empty_stl(period, &use_stl) && i>0) {
+			continue;
+		}
+
 		is_dynamic = (mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_TRUE : GF_FALSE;
 		//hack for backward compat with old arch, forces print period@start if 0
 		if (!i && count>1 && mpd->was_dynamic) is_dynamic = GF_TRUE;
@@ -5446,9 +5505,9 @@ void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 	mbase_period = period->segment_list ? (GF_MPD_MultipleSegmentBase *)period->segment_list : (GF_MPD_MultipleSegmentBase *)period->segment_template;
 
 	segment_timeline = NULL;
-	if (mbase_period) segment_timeline =  mbase_period->segment_timeline;
-	if (mbase_set && mbase_set->segment_timeline) segment_timeline =  mbase_set->segment_timeline;
-	if (mbase_rep && mbase_rep->segment_timeline) segment_timeline =  mbase_rep->segment_timeline;
+	if (mbase_period) segment_timeline = mbase_period->segment_timeline;
+	if (mbase_set && mbase_set->segment_timeline) segment_timeline = mbase_set->segment_timeline;
+	if (mbase_rep && mbase_rep->segment_timeline) segment_timeline = mbase_rep->segment_timeline;
 
 	timescale = mbase_rep ? mbase_rep->timescale : 0;
 	if (!timescale && mbase_set && mbase_set->timescale) timescale = mbase_set->timescale;
