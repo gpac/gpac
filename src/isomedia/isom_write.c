@@ -2548,7 +2548,7 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 
 		// According to ETSI TS 102 366 V1.4.1 (2017-09), the channel_count of AC3, EC3 (based on AudioSampleEntry)
 		// should always be 2, and the sample size should always be 16
-		if (aud_entry->type == GF_ISOM_BOX_TYPE_AC3 || aud_entry->type == GF_ISOM_BOX_TYPE_EC3) {
+		if (aud_entry->type == GF_ISOM_BOX_TYPE_AC3 || aud_entry->type == GF_ISOM_BOX_TYPE_EC3 || aud_entry->type == GF_ISOM_BOX_TYPE_AC4) {
 			aud_entry->channel_count = 2;
 			aud_entry->bitspersample = 16;
 		}
