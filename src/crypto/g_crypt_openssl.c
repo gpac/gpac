@@ -269,10 +269,27 @@ void gf_crypt_deinit_openssl_ctr(GF_Crypt* td)
 	}
 }
 
+#ifdef GPAC_CONFIG_IOS
+#define EVP_CTR_NO_BULK
+#endif
+
+#ifdef EVP_CTR_NO_BULK
+static void gf_crypt_ctr128_inc(u8 *counter)
+{
+	s32 i;
+	for (i = AES_BLOCK_SIZE - 1; i >= 0; i--) {
+		counter[i]++;
+		if (counter[i])
+			break;
+	}
+}
+#endif
+
 GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 {
 	Openssl_ctx_ctr* ctx = (Openssl_ctx_ctr*)td->context;
 	if (ctx->use_evp) {
+#ifndef EVP_CTR_NO_BULK
 		int out_len = 0;
 		if (!ctx->ossl_evp) return GF_IO_ERR;
 
@@ -285,7 +302,6 @@ GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 
 			ctx->evp_initialized = GF_TRUE;
 		}
-
 		if (len && !EVP_EncryptUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int) len))
 			return GF_IO_ERR;
 		if (out_len != (int) len)
@@ -297,6 +313,35 @@ GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 			return GF_IO_ERR;
 #else
 		memcpy(ctx->iv, EVP_CIPHER_CTX_iv_noconst(ctx->ossl_evp), AES_BLOCK_SIZE);
+#endif
+
+#else
+		u8 *p = plaintext;
+		int out_len = 0;
+		if (!ctx->ossl_evp) return GF_IO_ERR;
+
+		// Initialize context
+		if (!ctx->evp_initialized) {
+			if (!EVP_EncryptInit_ex(ctx->ossl_evp, EVP_aes_128_ecb(), NULL, ctx->raw_key, NULL))
+				return GF_IO_ERR;
+			if (!EVP_CIPHER_CTX_set_padding(ctx->ossl_evp, 0))
+				return GF_IO_ERR;
+			ctx->evp_initialized = GF_TRUE;
+		}
+
+		while (len) {
+			if (!ctx->c_counter_pos) {
+				if (!EVP_EncryptUpdate(ctx->ossl_evp, ctx->cyphered_iv, &out_len, ctx->iv, AES_BLOCK_SIZE))
+					return GF_IO_ERR;
+				if (out_len != AES_BLOCK_SIZE)
+					return GF_IO_ERR;
+				gf_crypt_ctr128_inc(ctx->iv);
+			}
+			*p ^= ctx->cyphered_iv[ctx->c_counter_pos];
+			p++;
+			len--;
+			ctx->c_counter_pos = (ctx->c_counter_pos + 1) & (AES_BLOCK_SIZE - 1);
+		}
 #endif
 		return GF_OK;
 	}
