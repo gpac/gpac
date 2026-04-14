@@ -280,8 +280,9 @@ GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 		if (!ctx->evp_initialized) {
 			if (!EVP_EncryptInit_ex(ctx->ossl_evp, EVP_aes_128_ctr(), NULL, ctx->raw_key, ctx->iv))
 				return GF_IO_ERR;
-			if (ctx->c_counter_pos && !EVP_CIPHER_CTX_set_num(ctx->ossl_evp, (int) ctx->c_counter_pos))
-				return GF_IO_ERR;
+			if (ctx->c_counter_pos)
+				EVP_CIPHER_CTX_set_num(ctx->ossl_evp, (int) ctx->c_counter_pos);
+
 			ctx->evp_initialized = GF_TRUE;
 		}
 
