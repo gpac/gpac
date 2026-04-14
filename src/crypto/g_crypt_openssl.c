@@ -46,6 +46,8 @@ static void gf_crypt_ctr128_inc(u8 *counter)
 typedef struct {
 	AES_KEY ossl_key;
 	Bool use_evp, push_key;
+	Bool evp_initialized;
+	u32 last_crypt_type;
 	u8 key[16];
 	EVP_CIPHER_CTX *ossl_evp;
 
@@ -87,6 +89,7 @@ void gf_set_key_openssl_cbc(GF_Crypt* td, void *key)
 	Openssl_ctx_cbc* ctx = (Openssl_ctx_cbc*)td->context;
 	memcpy(ctx->key, key, 16);
 	ctx->push_key = GF_TRUE;
+	ctx->evp_initialized = GF_FALSE;
 	if (ctx->use_evp && !ctx->ossl_evp)
 		ctx->ossl_evp = EVP_CIPHER_CTX_new();
 }
@@ -98,6 +101,7 @@ GF_Err gf_crypt_set_IV_openssl_cbc(GF_Crypt* td, const u8 *iv, u32 iv_size)
 	memcpy(ctx->previous_ciphertext, iv, iv_size);
 	if (iv_size < AES_BLOCK_SIZE)
 		memset(ctx->previous_ciphertext + iv_size, 0, AES_BLOCK_SIZE - iv_size);
+	ctx->evp_initialized = GF_FALSE;
 	return GF_OK;
 }
 
@@ -119,11 +123,15 @@ GF_Err gf_crypt_crypt_openssl_cbc(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_
 		if (!ctx->ossl_evp) return GF_IO_ERR;
 		if (!len) return GF_OK;
 
-		if (!EVP_CipherInit_ex(ctx->ossl_evp, EVP_aes_128_cbc(), NULL, ctx->key, ctx->previous_ciphertext, (aes_crypt_type == AES_ENCRYPT) ? 1 : 0))
-			return GF_IO_ERR;
-
-		if (!EVP_CIPHER_CTX_set_padding(ctx->ossl_evp, 0))
-			return GF_IO_ERR;
+		// Initialize context only if not already initialized or if operation type changed or IV changed
+		if (!ctx->evp_initialized || ctx->last_crypt_type != aes_crypt_type) {
+			if (!EVP_CipherInit_ex(ctx->ossl_evp, EVP_aes_128_cbc(), NULL, ctx->key, ctx->previous_ciphertext, (aes_crypt_type == AES_ENCRYPT) ? 1 : 0))
+				return GF_IO_ERR;
+			if (!EVP_CIPHER_CTX_set_padding(ctx->ossl_evp, 0))
+				return GF_IO_ERR;
+			ctx->evp_initialized = GF_TRUE;
+			ctx->last_crypt_type = aes_crypt_type;
+		}
 
 		if (full_len) {
 			if (aes_crypt_type == AES_DECRYPT) {
@@ -189,6 +197,7 @@ GF_Err gf_crypt_decrypt_openssl_cbc(GF_Crypt* td, u8 *ciphertext, u32 len)
 typedef struct {
 	AES_KEY ossl_key;
 	Bool use_evp;
+	Bool evp_initialized;
 	u8 raw_key[16];
 	EVP_CIPHER_CTX *ossl_evp;
 
@@ -205,6 +214,7 @@ void gf_set_key_openssl_ctr(GF_Crypt* td, void *key)
 	Openssl_ctx_ctr* ctx = (Openssl_ctx_ctr*)td->context;
 	memcpy(ctx->raw_key, key, 16);
 	AES_set_encrypt_key(key, 128, &ctx->ossl_key);
+	ctx->evp_initialized = GF_FALSE;
 	if (ctx->use_evp && !ctx->ossl_evp)
 		ctx->ossl_evp = EVP_CIPHER_CTX_new();
 }
@@ -270,10 +280,14 @@ GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 		int out_len = 0;
 		if (!ctx->ossl_evp) return GF_IO_ERR;
 
-		if (!EVP_EncryptInit_ex(ctx->ossl_evp, EVP_aes_128_ecb(), NULL, ctx->raw_key, NULL))
-			return GF_IO_ERR;
-		if (!EVP_CIPHER_CTX_set_padding(ctx->ossl_evp, 0))
-			return GF_IO_ERR;
+		// Initialize context
+		if (!ctx->evp_initialized) {
+			if (!EVP_EncryptInit_ex(ctx->ossl_evp, EVP_aes_128_ecb(), NULL, ctx->raw_key, NULL))
+				return GF_IO_ERR;
+			if (!EVP_CIPHER_CTX_set_padding(ctx->ossl_evp, 0))
+				return GF_IO_ERR;
+			ctx->evp_initialized = GF_TRUE;
+		}
 
 		while (len) {
 			if (!ctx->c_counter_pos) {
@@ -311,6 +325,8 @@ typedef struct {
 	AES_KEY ossl_key;
 	Bool use_evp;
 	Bool push_key;
+	Bool evp_initialized;
+	u32 last_crypt_type;
 	u8 key[16];
 	EVP_CIPHER_CTX *ossl_evp;
 } Openssl_ctx_ecb;
@@ -342,6 +358,7 @@ void gf_set_key_openssl_ecb(GF_Crypt* td, void *key)
 	Openssl_ctx_ecb* ctx = (Openssl_ctx_ecb*)td->context;
 	memcpy(ctx->key, key, 16);
 	ctx->push_key = GF_TRUE;
+	ctx->evp_initialized = GF_FALSE;
 	if (ctx->use_evp && !ctx->ossl_evp)
 		ctx->ossl_evp = EVP_CIPHER_CTX_new();
 }
@@ -367,10 +384,15 @@ GF_Err gf_crypt_crypt_openssl_ecb(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_
 		if (!evp_ctx) return GF_IO_ERR;
 		if (len % AES_BLOCK_SIZE)
 			return GF_BAD_PARAM;
-		if (!EVP_CipherInit_ex(evp_ctx, EVP_aes_128_ecb(), NULL, ctx->key, NULL, (aes_crypt_type == AES_ENCRYPT) ? 1 : 0))
-			return GF_IO_ERR;
-		if (!EVP_CIPHER_CTX_set_padding(evp_ctx, 0))
-			return GF_IO_ERR;
+		// Initialize context only if not already initialized or if operation type changed
+		if (!ctx->evp_initialized || ctx->last_crypt_type != aes_crypt_type) {
+			if (!EVP_CipherInit_ex(evp_ctx, EVP_aes_128_ecb(), NULL, ctx->key, NULL, (aes_crypt_type == AES_ENCRYPT) ? 1 : 0))
+				return GF_IO_ERR;
+			if (!EVP_CIPHER_CTX_set_padding(evp_ctx, 0))
+				return GF_IO_ERR;
+			ctx->evp_initialized = GF_TRUE;
+			ctx->last_crypt_type = aes_crypt_type;
+		}
 		if (len && !EVP_CipherUpdate(evp_ctx, plaintext, &out_len, plaintext, (int)len))
 			return GF_IO_ERR;
 		return GF_OK;
