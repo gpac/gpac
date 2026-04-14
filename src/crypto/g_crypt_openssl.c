@@ -33,16 +33,6 @@
 
 #include <math.h>
 
-static void gf_crypt_ctr128_inc(u8 *counter)
-{
-	s32 i;
-	for (i = AES_BLOCK_SIZE - 1; i >= 0; i--) {
-		counter[i]++;
-		if (counter[i])
-			break;
-	}
-}
-
 typedef struct {
 	AES_KEY ossl_key;
 	Bool use_evp, push_key;
@@ -137,11 +127,11 @@ GF_Err gf_crypt_crypt_openssl_cbc(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_
 			if (aes_crypt_type == AES_DECRYPT) {
 				u8 last_cblock_in[AES_BLOCK_SIZE];
 				memcpy(last_cblock_in, plaintext + full_len - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-				if (!EVP_CipherUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
+				if (!EVP_DecryptUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
 					return GF_IO_ERR;
 				memcpy(ctx->previous_ciphertext, last_cblock_in, AES_BLOCK_SIZE);
 			} else {
-				if (!EVP_CipherUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
+				if (!EVP_EncryptUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int)full_len))
 					return GF_IO_ERR;
 				memcpy(ctx->previous_ciphertext, plaintext + full_len - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
 			}
@@ -151,8 +141,13 @@ GF_Err gf_crypt_crypt_openssl_cbc(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_
 			u8 tmp_out[AES_BLOCK_SIZE];
 			memset(ctx->padded_input, 0, AES_BLOCK_SIZE);
 			memcpy(ctx->padded_input, plaintext + full_len, rem_len);
-			if (!EVP_CipherUpdate(ctx->ossl_evp, tmp_out, &out_len, ctx->padded_input, AES_BLOCK_SIZE))
-				return GF_IO_ERR;
+			if (aes_crypt_type == AES_ENCRYPT) {
+				if (!EVP_EncryptUpdate(ctx->ossl_evp, tmp_out, &out_len, ctx->padded_input, AES_BLOCK_SIZE))
+					return GF_IO_ERR;
+			} else {
+				if (!EVP_DecryptUpdate(ctx->ossl_evp, tmp_out, &out_len, ctx->padded_input, AES_BLOCK_SIZE))
+					return GF_IO_ERR;
+			}
 			memcpy(plaintext + full_len, tmp_out, rem_len);
 			if (aes_crypt_type == AES_ENCRYPT)
 				memcpy(ctx->previous_ciphertext, tmp_out, AES_BLOCK_SIZE);
@@ -231,6 +226,7 @@ GF_Err gf_crypt_set_IV_openssl_ctr(GF_Crypt* td, const u8 *iv, u32 iv_size)
 	if (iv_size < AES_BLOCK_SIZE + 1)
 		memset(ctx->iv + iv_size - 1, 0, AES_BLOCK_SIZE + 1 - iv_size);
 	memset(ctx->cyphered_iv, 0, 16);
+	ctx->evp_initialized = GF_FALSE;
 	return GF_OK;
 }
 
@@ -258,6 +254,7 @@ GF_Err gf_crypt_init_openssl_ctr(GF_Crypt* td, void *key, const void *iv)
 	if (iv != NULL) {
 		memcpy(ctx->iv, &((u8*)iv)[0], AES_BLOCK_SIZE);
 	}
+	ctx->evp_initialized = GF_FALSE;
 
 	return GF_OK;
 }
@@ -276,32 +273,30 @@ GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 {
 	Openssl_ctx_ctr* ctx = (Openssl_ctx_ctr*)td->context;
 	if (ctx->use_evp) {
-		u8 *p = plaintext;
 		int out_len = 0;
 		if (!ctx->ossl_evp) return GF_IO_ERR;
 
-		// Initialize context
+		/* Use OpenSSL CTR directly so the whole buffer is processed in one call. */
 		if (!ctx->evp_initialized) {
-			if (!EVP_EncryptInit_ex(ctx->ossl_evp, EVP_aes_128_ecb(), NULL, ctx->raw_key, NULL))
+			if (!EVP_EncryptInit_ex(ctx->ossl_evp, EVP_aes_128_ctr(), NULL, ctx->raw_key, ctx->iv))
 				return GF_IO_ERR;
-			if (!EVP_CIPHER_CTX_set_padding(ctx->ossl_evp, 0))
+			if (ctx->c_counter_pos && !EVP_CIPHER_CTX_set_num(ctx->ossl_evp, (int) ctx->c_counter_pos))
 				return GF_IO_ERR;
 			ctx->evp_initialized = GF_TRUE;
 		}
 
-		while (len) {
-			if (!ctx->c_counter_pos) {
-				if (!EVP_EncryptUpdate(ctx->ossl_evp, ctx->cyphered_iv, &out_len, ctx->iv, AES_BLOCK_SIZE))
-					return GF_IO_ERR;
-				if (out_len != AES_BLOCK_SIZE)
-					return GF_IO_ERR;
-				gf_crypt_ctr128_inc(ctx->iv);
-			}
-			*p ^= ctx->cyphered_iv[ctx->c_counter_pos];
-			p++;
-			len--;
-			ctx->c_counter_pos = (ctx->c_counter_pos + 1) & (AES_BLOCK_SIZE - 1);
-		}
+		if (len && !EVP_EncryptUpdate(ctx->ossl_evp, plaintext, &out_len, plaintext, (int) len))
+			return GF_IO_ERR;
+		if (out_len != (int) len)
+			return GF_IO_ERR;
+
+		ctx->c_counter_pos = (unsigned int) EVP_CIPHER_CTX_num(ctx->ossl_evp);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+		if (!EVP_CIPHER_CTX_get_updated_iv(ctx->ossl_evp, ctx->iv, AES_BLOCK_SIZE))
+			return GF_IO_ERR;
+#else
+		memcpy(ctx->iv, EVP_CIPHER_CTX_iv_noconst(ctx->ossl_evp), AES_BLOCK_SIZE);
+#endif
 		return GF_OK;
 	}
 
