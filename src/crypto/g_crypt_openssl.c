@@ -189,6 +189,10 @@ GF_Err gf_crypt_decrypt_openssl_cbc(GF_Crypt* td, u8 *ciphertext, u32 len)
 	return gf_crypt_crypt_openssl_cbc(td, ciphertext, len, AES_DECRYPT);
 }
 
+#ifdef GPAC_CONFIG_IOS
+#define EVP_CTR_NO_BULK
+#endif
+
 typedef struct {
 	AES_KEY ossl_key;
 	Bool use_evp;
@@ -199,6 +203,9 @@ typedef struct {
 	u8 cyphered_iv[16];
 	u8 iv[16];
 	unsigned int c_counter_pos;
+#ifndef EVP_CTR_NO_BULK
+	Bool delayed_iv_fetch;
+#endif
 } Openssl_ctx_ctr;
 
 
@@ -236,6 +243,19 @@ GF_Err gf_crypt_get_IV_openssl_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
 
 	*iv_size = AES_BLOCK_SIZE + 1;
 
+#ifndef EVP_CTR_NO_BULK
+	if (ctx->delayed_iv_fetch) {
+		ctx->c_counter_pos = (unsigned int) EVP_CIPHER_CTX_num(ctx->ossl_evp);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+		if (!EVP_CIPHER_CTX_get_updated_iv(ctx->ossl_evp, ctx->iv, AES_BLOCK_SIZE))
+			return GF_IO_ERR;
+#else
+		memcpy(ctx->iv, EVP_CIPHER_CTX_iv_noconst(ctx->ossl_evp), AES_BLOCK_SIZE);
+#endif
+		ctx->delayed_iv_fetch = GF_FALSE;
+	}
+#endif
+
 	((u8 *)iv)[0] = ctx->c_counter_pos;
 	memcpy(&((u8 *)iv)[1], ctx->iv, AES_BLOCK_SIZE);
 	return GF_OK;
@@ -268,10 +288,6 @@ void gf_crypt_deinit_openssl_ctr(GF_Crypt* td)
 		ctx->ossl_evp = NULL;
 	}
 }
-
-#ifdef GPAC_CONFIG_IOS
-#define EVP_CTR_NO_BULK
-#endif
 
 #ifdef EVP_CTR_NO_BULK
 static void gf_crypt_ctr128_inc(u8 *counter)
@@ -307,13 +323,8 @@ GF_Err gf_crypt_crypt_openssl_ctr(GF_Crypt* td, u8 *plaintext, u32 len)
 		if (out_len != (int) len)
 			return GF_IO_ERR;
 
-		ctx->c_counter_pos = (unsigned int) EVP_CIPHER_CTX_num(ctx->ossl_evp);
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-		if (!EVP_CIPHER_CTX_get_updated_iv(ctx->ossl_evp, ctx->iv, AES_BLOCK_SIZE))
-			return GF_IO_ERR;
-#else
-		memcpy(ctx->iv, EVP_CIPHER_CTX_iv_noconst(ctx->ossl_evp), AES_BLOCK_SIZE);
-#endif
+		ctx->delayed_iv_fetch = GF_TRUE;
+		return GF_OK;
 
 #else
 		u8 *p = plaintext;
