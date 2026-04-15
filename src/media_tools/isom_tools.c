@@ -4469,7 +4469,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_avc_cfg_del(avcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find AVC configuration box"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find AVC configuration box\n"));
 		return GF_ISOM_INVALID_FILE;
 
 	case GF_ISOM_SUBTYPE_SVC_H264:
