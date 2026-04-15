@@ -3188,6 +3188,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					/usr/local/include,
+					/opt/homebrew/include,
 					/opt/local/include,
 					"/opt/local/include/openjpeg-2.5",
 					"/usr/local/include/openjpeg-2.5",
@@ -3338,6 +3339,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					/usr/local/include,
+					/opt/homebrew/include,
 					/opt/local/include,
 					"/opt/local/include/openjpeg-2.5",
 					"/usr/local/include/openjpeg-2.5",
@@ -3484,11 +3486,13 @@
 					../../extra_lib/include,
 					/usr/local/include,
 					/opt/local/include,
+					/opt/homebrew/include,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					../../extra_lib/lib/gcc,
 					/usr/local/lib,
+					/opt/homebrew/lib,
 					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
@@ -3535,11 +3539,13 @@
 					../../extra_lib/include,
 					/usr/local/include,
 					/opt/local/include,
+					/opt/homebrew/include,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					../../extra_lib/lib/gcc,
 					/usr/local/lib,
+					/opt/homebrew/lib,
 					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
