@@ -6739,9 +6739,11 @@ GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
 	GF_SampleRefEntry *ent = gf_list_get(trak->Media->information->sampleTable->SampleRefs->entries, sampleNumber-1);
-	*ID = ent->sampleID;
-	*nb_refs = ent->nb_refs;
-	*refs = ent->sample_refs;
+	if (ent) {
+		*ID = ent->sampleID;
+		*nb_refs = ent->nb_refs;
+		*refs = ent->sample_refs;
+	}
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM*/
