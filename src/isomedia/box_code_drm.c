@@ -1440,7 +1440,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			sai->cenc_data_size += nb_subs * nb_bytes_subsample;
 			gf_bs_seek(bs, sai_start);
 
-			if ((s32) senc_size < sai->cenc_data_size) {
+			if (!sai->cenc_data_size || (s32) senc_size < sai->cenc_data_size) {
 				parse_failed = GF_TRUE;
 				gf_isom_cenc_samp_aux_info_del(sai);
 				break;
