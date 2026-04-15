@@ -4823,6 +4823,9 @@ print_periods:
 	for (i=0; i<count; i++) {
 		Bool is_dynamic;
 		GF_MPD_Period *period = (GF_MPD_Period *)gf_list_get(mpd->periods, i);
+		//do not serialize this period and following ones as we are missing segment timeline entry
+		if (period->skip_serialize) break;
+
 		is_dynamic = (mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_TRUE : GF_FALSE;
 		//hack for backward compat with old arch, forces print period@start if 0
 		if (!i && count>1 && mpd->was_dynamic) is_dynamic = GF_TRUE;
