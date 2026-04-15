@@ -190,7 +190,7 @@ GF_Err gf_crypt_decrypt_openssl_cbc(GF_Crypt* td, u8 *ciphertext, u32 len)
 }
 
 #ifdef GPAC_CONFIG_IOS
-#define EVP_CTR_NO_BULK
+//#define EVP_CTR_NO_BULK
 #endif
 
 typedef struct {
