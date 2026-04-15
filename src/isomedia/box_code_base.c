@@ -9517,6 +9517,11 @@ GF_Err sidx_box_read(GF_Box *s,GF_BitStream *bs)
 	gf_bs_read_u16(bs); /* reserved */
 	ptr->nb_refs = gf_bs_read_u16(bs);
 
+	if ((u64)ptr->nb_refs > ptr->size / 12 || (u64)ptr->nb_refs > (u64)SIZE_MAX / sizeof(GF_SIDXReference)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of references %u in sidx\n", ptr->nb_refs));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	ptr->refs = gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
 	if (!ptr->refs) return GF_OUT_OF_MEM;
 	for (i=0; i<ptr->nb_refs; i++) {

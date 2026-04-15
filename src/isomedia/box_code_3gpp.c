@@ -412,7 +412,7 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 	}
 	if (pSize) {
-		ptr->textName = (char*) gf_malloc(pSize+1 * sizeof(char));
+		ptr->textName = (char*) gf_malloc((pSize+1) * sizeof(char));
 		if (!ptr->textName) return GF_OUT_OF_MEM;
 
 		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize) {
