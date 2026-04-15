@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / QuickJS bindings for GF_Filter
@@ -644,7 +644,9 @@ JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
 
 	default:
 		if (gf_props_type_is_enum(new_val->type)) {
-			return JS_NewString(ctx, gf_props_enum_name(new_val->type, new_val->value.uint));
+			const char* enum_name = gf_props_enum_name(new_val->type, new_val->value.uint);
+			if (enum_name)
+				return JS_NewString(ctx, enum_name);
 		}
 		return JS_NULL;
 	}
@@ -772,8 +774,10 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 				const char *str = JS_ToCString(ctx, v);
 				prop->value.string_list.vals[i] = gf_strdup(str);
 				JS_FreeCString(ctx, str);
+				prop->type = GF_PROP_STRING_LIST;
 			} else {
 				JS_ToInt32(ctx, &prop->value.uint_list.vals[i], v);
+				prop->type = GF_PROP_UINT_LIST;
 			}
 			JS_FreeValue(ctx, v);
 		}
@@ -2348,7 +2352,7 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPckCtx *pckctx;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
 	if (!pctx) return GF_JS_EXCEPTION(ctx);
-	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process)
+	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process_callback)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to query packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
 	pck = gf_filter_pid_get_packet(pctx->pid);
@@ -2382,7 +2386,7 @@ static JSValue jsf_pid_drop_packet(JSContext *ctx, JSValueConst this_val, int ar
 	GF_JSPckCtx *pckctx;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
 	if (!pctx) return GF_JS_EXCEPTION(ctx);
-	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process)
+	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process_callback)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to drop packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
 	if (!pctx->pck_head) {
@@ -2684,7 +2688,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
 
 	if (!pctx) return GF_JS_EXCEPTION(ctx);
-	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process)
+	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process_callback)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to create a new packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
 
@@ -2887,7 +2891,12 @@ static JSValue jsf_pid_set_property_ex(JSContext *ctx, JSValueConst this_val, in
 	name = JS_ToCString(ctx, argv[0]);
 	if (!name) return GF_JS_EXCEPTION(ctx);
 
-	if ((argc>2) && JS_ToBool(ctx, argv[2])) {
+	u32 p4cc = gf_props_get_id(name);
+	Bool is_str = ((argc>2) && JS_ToBool(ctx, argv[2]) ) ? GF_TRUE : GF_FALSE;
+	if (!p4cc && (argc>1))
+		is_str = GF_TRUE;
+
+	if (is_str) {
 		if (!JS_IsNull(argv[1])) {
 			e = jsf_ToProp(pctx->jsf->filter, ctx, argv[1], 0, &prop);
 			JS_FreeCString(ctx, name);
@@ -2903,7 +2912,6 @@ static JSValue jsf_pid_set_property_ex(JSContext *ctx, JSValueConst this_val, in
 			e = gf_filter_pid_set_property_dyn(pctx->pid, (char *) name, &prop);
 		}
 	} else {
-		u32 p4cc = gf_props_get_id(name);
 		JS_FreeCString(ctx, name);
 		if (!p4cc) return GF_JS_EXCEPTION(ctx);
 		if (!JS_IsNull(argv[1])) {
@@ -2922,8 +2930,9 @@ static JSValue jsf_pid_set_property_ex(JSContext *ctx, JSValueConst this_val, in
 		}
 	}
 
-	if (the_prop)
+	if (the_prop && (prop.type != GF_PROP_STRING_LIST))
 		gf_props_reset_single(&prop);
+
 	if (e) return js_throw_err(ctx, e);
 	return JS_UNDEFINED;
 }
@@ -4229,7 +4238,7 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	GF_FilterPacket *pck;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
 	if (!pckctx || !pckctx->pck) return GF_JS_EXCEPTION(ctx);
-	if (!pckctx->jspid->jsf->is_custom && ! pckctx->jspid->jsf->filter->in_process)
+	if (!pckctx->jspid->jsf->is_custom && ! pckctx->jspid->jsf->filter->in_process_callback)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to send packet outside process callback not allowed!\n", pckctx->jspid->jsf->filter->name);
 
 	pck = pckctx->pck;
@@ -4903,12 +4912,13 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 //		GF_FilterSession *fs = sjs->compositor->filter->session;
 
 		e = gf_fs_load_js_api(jsf->ctx, filter->session);
-		if (e) {
+		if (e<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading session API: %s\n", gf_error_to_string(e) ));
 			gf_free(buf);
 			return e;
 		}
-		jsf->unload_session_api = GF_TRUE;
+		if (!e)
+			jsf->unload_session_api = GF_TRUE;
 	}
 
  	for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {

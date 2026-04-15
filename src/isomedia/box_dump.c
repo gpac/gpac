@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -712,11 +712,7 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	dpiv = (Float) (p->vert_res&0xFFFF);
 	dpiv /= 0xFFFF;
 	dpiv += (p->vert_res>>16);
-	if (gf_sys_is_test_mode()) {
-		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
-	} else {
-		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
-	}
+	gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
 
 	if (strlen((const char*)p->compressor_name) ) {
 		if (isalnum(p->compressor_name[0])) {
@@ -910,7 +906,7 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 			gf_isom_box_del(a);
 		}
 	} else {
-		dump_data_attribute(trace, "data", data, data_size);
+		dump_data_attribute(trace, " data", data, data_size);
 		gf_fprintf(trace, ">\n");
 	}
 	if (list)
@@ -3417,7 +3413,24 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
+GF_Err TLV_Dump(GF_List *tlv, FILE * trace)
+{
+	u32 i, count;
 
+	count = gf_list_count(tlv);
+	for (i=0; i<count; i++) {
+		GF_Box *p = (GF_Box *)gf_list_get(tlv, i);
+		switch (p->type) {
+		case GF_4CC('r', 't', 'p', 'o'):
+			gf_fprintf(trace, "<RTPOffset timeOffset=\"%d\"/>\n", ((GF_RTPOBox *)p)->timeOffset);
+			break;
+		default:
+			gf_fprintf(trace, "<UnknownTLVEntry/>\n");
+			break;
+		}
+	}
+	return GF_OK;
+}
 GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 {
 	u32 i, count;
@@ -3545,6 +3558,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 			count2 = gf_list_count(pck->TLV);
 			if (count2) {
 				gf_fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
+				TLV_Dump(pck->TLV, trace);
 				gf_fprintf(trace, "</PrivateExtensionTable>\n");
 			}
 			//DTE is made of NON boxes
@@ -4875,6 +4889,52 @@ GF_Err databox_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err vexu_box_dump(GF_Box *a, FILE * trace)
+{
+	gf_isom_box_dump_start(a, "VexuBox", trace);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("VexuBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err eyes_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox *)a;
+
+	gf_isom_box_dump_start(a, "EyesBox", trace);
+	gf_fprintf(trace, ">\n");
+
+	// mandatory Stereo view information 'stri' box
+	gf_isom_box_dump_start(a, "StriBox", trace);
+	gf_fprintf(trace, "eye_views_reversed=\"%u\" has_additional_views=\"%u\" has_right_eye_view=\"%u\" has_left_eye_view=\"%u\">\n", ptr->stri.eye_views_reversed, ptr->stri.has_additional_views, ptr->stri.has_right_eye_view, ptr->stri.has_left_eye_view);
+	gf_isom_box_dump_done("StriBox", a, trace);
+
+	gf_isom_box_dump_done("EyesBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err hero_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox *)a;
+
+	gf_isom_box_dump_start(a, "HeroBox", trace);
+	gf_fprintf(trace, "hero_eye_indicator=\"%u\">\n", ptr->hero_eye_indicator);
+	gf_isom_box_dump_done("HeroBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err amve_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AmbientViewingEnvBox *ptr = (GF_AmbientViewingEnvBox *)a;
+
+	gf_isom_box_dump_start(a, "AmveBox", trace);
+	gf_fprintf(trace, "ambient_illuminance=\"%u\">\n", ptr->ambient_illuminance);
+	gf_fprintf(trace, "ambient_light_x=\"%u\">\n", ptr->ambient_light_x);
+	gf_fprintf(trace, "ambient_light_y=\"%u\">\n", ptr->ambient_light_y);
+	gf_isom_box_dump_done("AmveBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ohdr_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox *)a;
@@ -5178,9 +5238,9 @@ GF_Err dvcC_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
 	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
-	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\">\n",
+	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\" md_compression=\"%u\">\n",
 		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
-		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id);
+		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id, p->DOVIConfig.dv_md_compression);
 	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
 	return GF_OK;
 }
@@ -6162,8 +6222,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, nb_crypt);
 				total_bytes+=clear+nb_crypt;
 			}
-			if (!gf_sys_is_test_mode())
-				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
+			gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
 		} else {
 			gf_fprintf(trace, ">\n");
 		}

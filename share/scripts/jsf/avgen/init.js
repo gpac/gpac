@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / AVGenerator filter
@@ -134,7 +134,7 @@ filter.frame_pending = 0;
 filter.initialize = function() {
 
 	if (filter.type != 1) {
-		this.set_cap({id: "StreamType", value: "Audio", output: true} );	
+		this.set_cap({id: "StreamType", value: "Audio", output: true} );
 	}
 	if (filter.type != 0) {
 		this.set_cap({id: "StreamType", value: "Video", output: true} );
@@ -322,7 +322,7 @@ function put_image(vsrc, tx, is_testcard, is_first)
 	let scale;
 	if (is_testcard) {
 		scale = disp_w/2 / tx.width;
-	} else {		
+	} else {
 		scale = disp_w/6 / tx.width;
 	}
 	let rw = scale * tx.width;
@@ -400,6 +400,9 @@ function put_image(vsrc, tx, is_testcard, is_first)
 	try {
 		text.set_text(['GPAC AV Generator', 'v'+sys.version_full, ' ',  'UTC Locked: ' + (filter.lock ? 'yes' : 'no'), ' ', vprop]);
 	} catch (e) {
+		print(GF_LOG_INFO, "----")
+		print(GF_LOG_INFO, e)
+		print(GF_LOG_INFO, "----")
 		print(GF_LOG_WARNING, "Fonts disabled");
 	}
 
@@ -423,13 +426,13 @@ filter.process_event = function(pid, evt)
 		if (pid === audio_pid) audio_playing = false;
 		else if (pid === evte_pid) evte_playing = false;
 		else video_playing = false;
-	} 
+	}
 	else if (evt.type == GF_FEVT_PLAY) {
 		if (pid === audio_pid) audio_playing = true;
 		else if (pid === evte_pid) evte_playing = true;
 		else video_playing = true;
 		filter.reschedule();
-	} 
+	}
 }
 
 filter.process = function()
@@ -440,7 +443,7 @@ filter.process = function()
 	if (evte_playing)
 		process_eventmsg();
 
-	if (video_playing) 
+	if (video_playing)
 		process_video();
 
 	if (audio_playing)
@@ -512,7 +515,7 @@ function process_audio()
 	for (let i=0; i<filter.flen; i++) {
 		let idx;
 		let samp = 0;
-		let cur_pos = audio_pos - nb_secs*filter.sr; 
+		let cur_pos = audio_pos - nb_secs*filter.sr;
 		if (cur_pos < 0) {}
 		else if (cur_pos > audio_beep_len) {
 			if (audio_in_beep) {
@@ -562,7 +565,7 @@ function process_audio()
 	pck.dur = filter.flen;
 	pck.sap = GF_FILTER_SAP_1;
 
-	//when prop value is set to true for 'SenderNTP', automatically set 
+	//when prop value is set to true for 'SenderNTP', automatically set
 	if (!videos.length && filter.ntp)
 		pck.set_prop('SenderNTP', true);
 	pck.send();
@@ -589,14 +592,14 @@ function process_video()
 	let utc, ntp;
 	//remember start date for lock, and compute initial offset in cycles so that we reach tull cycle at each second
 	if (!start_date) {
-		start_date = date.getTime(); 
+		start_date = date.getTime();
 		let ms_init = date.getMilliseconds();
 		if (filter.adjust) {
 			frame_offset = filter.fps.n * ms_init / 1000;
 
 			//in audio samples
 			audio_pos = Math.floor(ms_init * filter.sr / 1000);
-	
+
 			//move to nb frames
 			nb_frame_init = Math.floor(frame_offset / filter.fps.d);
 			frame_offset = filter.fps.d * nb_frame_init;
@@ -651,7 +654,7 @@ function process_video()
 			if (!vsrc.init_banner_done) {
 				vsrc.init_banner_done = true;
 			}
-		
+
 			let forward_idx = 0;
 			let a_src = vsrc;
 			while (a_src) {
@@ -692,6 +695,8 @@ function process_video()
 
 	video_cts += filter.fps.d;
 	video_frame++;
+
+	filter.update_status(`Frame ${video_frame} CTS ${video_cts} / ${filter.fps.n}`);
 
 	if (filter.dur.d && (video_cts * filter.dur.d >= filter.fps.n * filter.dur.n)) {
 		print("done playing, cts " + video_cts);
@@ -781,24 +786,24 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 
 	if (col_idx) {
 		brush.set_color('white');
-	} else {		
+	} else {
 		brush.set_color('grey');
 	}
 	path.ellipse(0, 0, 2*r, 2*r);
 	vsrc.canvas.path = path;
 	vsrc.canvas.fill(brush);
-	
+
 	if (cycle_time) {
 		path.reset();
 		let start = Math.PI/2 - cycle_time * 2 * Math.PI;
 		path.arc(r/2, start, Math.PI/2, 2);
 	} else {
-		col_idx = !col_idx;		
+		col_idx = !col_idx;
 	}
 
 	if (col_idx) {
 		brush.set_color('grey');
-	} else {		
+	} else {
 		brush.set_color('white');
 	}
 	vsrc.canvas.path = path;
@@ -810,7 +815,7 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 	let t = 'Time: ';
 	if (h<10) t = t+'0'+h;
 	else t = t+''+h;
-	
+
 	if (m<10) t = t+':0'+m;
 	else t = t + ':' + m;
 
@@ -858,7 +863,7 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 	brush.set_color('white');
 	vsrc.canvas.fill(brush);
 
-	if (!filter.dyn && vsrc.init_banner_done) 
+	if (!filter.dyn && vsrc.init_banner_done)
 		return;
 
 	if (filter.pack==1)

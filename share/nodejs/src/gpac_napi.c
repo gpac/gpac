@@ -603,7 +603,8 @@ Bool fs_flush_rmt(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 
 		void* client = gf_list_pop_front(gpac->rmt_new_clients);
 
-		NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+		RMT_WS* rmt = gf_rmt_client_get_rmt((RMT_ClientCtx*) client);
+		NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task(rmt);
 		if (task && gpac->rmt_ctx) {
 
 			napi_value res, _this, fun;
@@ -668,6 +669,15 @@ napi_value gpac_enable_rmtws(napi_env env, napi_callback_info info)
 	gf_sys_enable_rmtws(enable);
 	return NULL;
 }
+napi_value gpac_enable_userws(napi_env env, napi_callback_info info)
+{
+	NARG_ARGS(1, 1)
+	NARG_BOOL(enable, 0, GF_TRUE);
+	NAPI_GPAC
+	gpac->is_init = GF_TRUE;
+	gf_sys_enable_userws(enable);
+	return NULL;
+}
 
 
 napi_value gpac_set_args(napi_env env, napi_callback_info info)
@@ -725,8 +735,14 @@ static void gpac_napi_finalize(napi_env env, void* finalize_data, void* finalize
 
 	if (inst->str_buf) gf_free(inst->str_buf);
 
-	NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
-	gf_rmt_set_on_new_client_cbk(NULL, NULL);
+	RMT_WS* rmt = (RMT_WS*) gf_sys_get_rmtws();
+	NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task(rmt);
+	gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
+	napi_rmt_task_del(env, task);
+
+	rmt = (RMT_WS*) gf_sys_get_userws();
+	task = gf_rmt_get_on_new_client_task(rmt);
+	gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
 	napi_rmt_task_del(env, task);
 
 	if (inst->rmt_new_clients) {
@@ -2614,6 +2630,7 @@ napi_value filter_get_statistics(napi_env env, napi_callback_info info)
 	SET_U64(nb_pck_sent)
 	SET_U64(nb_hw_pck_sent)
 	SET_U32(nb_errors)
+	SET_U32(nb_current_errors)
 	SET_U64(nb_bytes_sent)
 	SET_U64(time_process)
 	SET_S32(percent)
@@ -5176,6 +5193,8 @@ napi_status init_fio_class(napi_env env, napi_value exports, GPAC_NAPI *inst);
 
 
 static u32 NODEGPAC_PROP_RMT_ON_NEW_CLIENT = 0;
+static u32 NODEGPAC_PROP_USERWS_ON_NEW_CLIENT = 1;
+
 
 
 void gpac_rmt_on_new_client(void *udta, void* new_client) {
@@ -5214,10 +5233,17 @@ napi_value nodegpac_setter(napi_env env, napi_callback_info info)
 
 	gpac->is_init = GF_TRUE;
 
-	if (magic == &NODEGPAC_PROP_RMT_ON_NEW_CLIENT) {
+	if (magic == &NODEGPAC_PROP_RMT_ON_NEW_CLIENT || magic == &NODEGPAC_PROP_USERWS_ON_NEW_CLIENT) {
 
 		napi_valuetype rtype;
 		napi_typeof(env, argv[0], &rtype);
+
+		RMT_WS* rmt = NULL;
+		if (magic == &NODEGPAC_PROP_RMT_ON_NEW_CLIENT) 		rmt = (RMT_WS*) gf_sys_get_rmtws();
+		if (magic == &NODEGPAC_PROP_USERWS_ON_NEW_CLIENT) 	rmt = (RMT_WS*) gf_sys_get_userws();
+
+		if (!rmt)
+			return NULL;
 
 		if (rtype == napi_null || rtype == napi_undefined ) {
 
@@ -5225,10 +5251,10 @@ napi_value nodegpac_setter(napi_env env, napi_callback_info info)
 				napi_async_destroy(env, gpac->rmt_ctx);
 				gpac->rmt_ctx = NULL;
 			}
-			NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task();
+			NAPI_RMT_Task* task = gf_rmt_get_on_new_client_task(rmt);
 			napi_rmt_task_del(env, task);
 
-			gf_rmt_set_on_new_client_cbk(NULL, NULL);
+			gf_rmt_set_on_new_client_cbk(rmt, NULL, NULL);
 
 
 		} else if (rtype == napi_function) {
@@ -5248,7 +5274,7 @@ napi_value nodegpac_setter(napi_env env, napi_callback_info info)
 			napi_create_reference(env, argv[0], 1, &task->fun);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("setting on new client cb %p\n", gpac_rmt_on_new_client));
-			gf_rmt_set_on_new_client_cbk(task, gpac_rmt_on_new_client);
+			gf_rmt_set_on_new_client_cbk(rmt, task, gpac_rmt_on_new_client);
 
 		}
 
@@ -5293,6 +5319,12 @@ napi_value Init(napi_env env, napi_value exports)
 		{ "rmt_on_new_client", NULL, NULL, NULL, nodegpac_setter, NULL, napi_enumerable, &NODEGPAC_PROP_RMT_ON_NEW_CLIENT},
 	};
 	NAPI_CALL( napi_define_properties(env, exports, sizeof(rmtws_properties)/sizeof(napi_property_descriptor), rmtws_properties) );
+
+	DEF_FUN("enable_userws", gpac_enable_userws);
+	napi_property_descriptor userws_properties[] = {
+		{ "userws_on_new_client", NULL, NULL, NULL, nodegpac_setter, NULL, napi_enumerable, &NODEGPAC_PROP_USERWS_ON_NEW_CLIENT},
+	};
+	NAPI_CALL( napi_define_properties(env, exports, sizeof(userws_properties)/sizeof(napi_property_descriptor), userws_properties) );
 
 	status = init_fs_class(env, exports, inst);
 	if (status != napi_ok) return NULL;

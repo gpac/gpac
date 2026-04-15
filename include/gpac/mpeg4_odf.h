@@ -1116,7 +1116,8 @@ typedef struct {
 	Bool el_present_flag;
 	Bool bl_present_flag;
 	u8 dv_bl_signal_compatibility_id; //4 bits
-	//const unsigned int (28) reserved = 0;
+	u8 dv_md_compression; //2 bits
+	//const unsigned int (26) reserved = 0;
 	//const unsigned int (32)[4] reserved = 0;
 
 	//internal, force dvhe or dvh1 signaling
@@ -1583,7 +1584,6 @@ void gf_odf_avs3v_cfg_del(GF_AVS3VConfig *cfg);
 /*! writes AVS3 Video config to bitstream
 \param cfg the AVS3 Video config to write
 \param bs bitstream containing the encoded AVS3 Video decoder specific info
-\param is_v0 if GF_TRUE, this is a version 0 config
 \return error code if any
 */
 GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs);
@@ -1591,7 +1591,6 @@ GF_Err gf_odf_avs3v_cfg_write_bs(GF_AVS3VConfig *cfg, GF_BitStream *bs);
 \param cfg the AVS3 Video config to write
 \param outData set to an allocated encoded buffer - it is the caller responsibility to free this
 \param outSize set to the encoded buffer size
-\param is_v0 if GF_TRUE, this is a version 0 config
 \return error if any
 */
 GF_Err gf_odf_avs3v_cfg_write(GF_AVS3VConfig *cfg, u8 **outData, u32 *outSize);

@@ -38,7 +38,7 @@ typedef struct
 
 static void example_filter_finalize(GF_Filter *filter)
 {
-	//peform any finalyze routine needed, including potential free in the filter context
+	//perform any finalize routine needed, including potential free in the filter context
 	//if not needed, set the filter_finalize to NULL
 }
 static GF_Err example_filter_process(GF_Filter *filter)

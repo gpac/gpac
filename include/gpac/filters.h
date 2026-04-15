@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -410,7 +410,7 @@ void gf_fs_register_test_filters(GF_FilterSession *session);
 /*! Loads a source filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typically using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -420,7 +420,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *session, const char *url, const c
 /*! Loads a destination filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typically using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -652,6 +652,8 @@ typedef struct
 	u64 nb_hw_pck_sent;
 	/*!number of processing errors in the lifetime of the filter*/
 	u32 nb_errors;
+	/*!number of errors since last process without errors*/
+	u32 nb_current_errors;
 
 	/*!number of bytes sent by this filter*/
 	u64 nb_bytes_sent;
@@ -1461,6 +1463,10 @@ enum
 
 	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
 	GF_PROP_PID_FAKE = GF_4CC('P','F','A','K'),
+
+	GF_PROP_PID_AMVE_ILLUMINANCE = GF_4CC('A', 'M', 'I', 'L'),
+	GF_PROP_PID_AMVE_LIGNT_X = GF_4CC('A', 'M', 'L', 'X'),
+	GF_PROP_PID_AMVE_LIGNT_Y = GF_4CC('A', 'M', 'L', 'Y'),
 
 	GF_PROP_PID_SEI_LOADED = GF_4CC('P','S','E','I'),
 	GF_PROP_PCK_SEI_LOADED = GF_4CC('S','E','I','P'),
@@ -3663,6 +3669,19 @@ const char *gf_filter_meta_get_instances(GF_Filter *filter);
 */
 const char *gf_filter_path_escape_colon(GF_Filter *filter, const char *path);
 
+
+/*! Tags a filter for logging
+
+ All logs generated on a thread with a tagged filter will be marked as issued by the associated filter.
+
+ Tagging is handled internally for most filters. The function should only be used for filters using external threads calling back into libgpac (e.g. audio thread).
+ Tagging (resp. untagging) should be done before (resp. after) calling libgpac
+
+\param filter target filter
+\param is_untag  if true, untags the filter otherwise tags it
+*/
+void gf_filter_log_tag(GF_Filter *filter, Bool is_untag);
+
 /*! @} */
 
 
@@ -5192,7 +5211,7 @@ GF_Filter *gf_fs_new_filter(GF_FilterSession *session, const char *name, u32 fla
 /*! Push a new capability for a custom filter
 \param filter the target filter
 \param code the capability code - cf \ref GF_FilterCapability
-\param value the capability value - cf \ref GF_FilterCapability
+\param value the capability value - cf \ref GF_FilterCapability - must not be NULL unless cap is a bundle start (i.e. flags is 0)
 \param name the capability name - cf \ref GF_FilterCapability
 \param flags the capability flags - cf \ref GF_FilterCapability
 \param priority the capability priority - cf \ref GF_FilterCapability

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2025
+ *			Copyright (c) Telecom ParisTech 2023-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / EVG rescaler filter
@@ -453,7 +453,11 @@ static GF_Err evgs_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (p) ctx->osize.y = p->value.uint;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_PIXFMT);
-	if (p) ctx->ofmt = p->value.uint;
+	if (p && (ctx->ofmt != p->value.uint)) {
+		//reset input stride to force reconfig of output
+		ctx->i_stride = ctx->i_stride_uv = 0;
+		ctx->ofmt = p->value.uint;
+	}
 	return evgs_configure_pid(filter, ctx->ipid, GF_FALSE);
 }
 

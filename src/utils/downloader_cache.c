@@ -531,7 +531,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	if (!url || !cache_directory) return NULL;
 
 	sz = (u32) strlen ( url );
-	if ( sz > GF_MAX_PATH ) {
+	if ( sz >= GF_MAX_PATH ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE,
 		       ("[CACHE] ERROR, URL is too long (%d chars), more than %d chars.\n", sz, GF_MAX_PATH ));
 		return NULL;
@@ -539,7 +539,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	tmp[0] = '\0';
 	/*generate hash of the full url*/
 	if (start_range && end_range) {
-		sprintf(tmp, "%s_"LLD"-"LLD, url, start_range, end_range );
+		snprintf(tmp, GF_MAX_PATH, "%s_"LLD"-"LLD, url, start_range, end_range );
 	} else {
 		strcpy ( tmp, url );
 	}
@@ -631,7 +631,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	gf_dynstrcat(&entry->cfg_filename, cache_file_info_suffix, NULL);
 
 	char szLOCK[GF_MAX_PATH];
-	sprintf(szLOCK, "%s.lock", entry->cfg_filename);
+	snprintf(szLOCK, sizeof(szLOCK), "%s.lock", entry->cfg_filename);
 	GF_LockStatus lock_type = cache_entry_lock(szLOCK);
 	if (!lock_type) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CACHE, ("[CACHE] Failed to grab cache lock for entry %s, request will not be cached\n", url));
@@ -1135,7 +1135,7 @@ const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 
 		*max_valid_size = *size;
 		if (entry->external_blob->range_valid) {
 			gf_mx_p(entry->external_blob->mx);
-			entry->external_blob->range_valid(entry->external_blob, 0, max_valid_size);
+			entry->external_blob->range_valid(entry->external_blob, GF_FALSE, 0, max_valid_size);
 			gf_mx_v(entry->external_blob->mx);
 		}
 		if (entry->external_blob->last_modification_time != entry->cache_blob.last_modification_time) {

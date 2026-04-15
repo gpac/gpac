@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -233,6 +233,7 @@ u32 program_number, time_shift_depth, initial_moof_sn, dump_std, import_subtitle
 u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type, do_flat, print_info;
 u32 size_top_box, fs_dump_flags, dump_chap, dump_udta_type, moov_pading, sdtp_in_traf, segment_marker, timescale, dash_scale;
 u32 MTUSize, run_for, dash_cumulated_time, dash_prev_time, dash_now_time, adjust_split_end, nb_mpd_base_urls, nb_dash_inputs;
+u32 set_vexu, hero_eye;
 
 u64 initial_tfdt;
 
@@ -302,6 +303,7 @@ static void init_global_vars()
 	track_dump_type = dump_isom = dump_timestamps = dump_nal_type = do_flat = print_info = 0;
 	size_top_box = fs_dump_flags = dump_chap = dump_udta_type = moov_pading = sdtp_in_traf = 0;
 	segment_marker = timescale = adjust_split_end = run_for = dash_cumulated_time = dash_prev_time = dash_now_time = 0;
+	set_vexu = hero_eye = 0;
 	dash_scale = 1000;
 	MTUSize = 1450;
 
@@ -533,6 +535,8 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("enable", "enable given track", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_ENABLE, ARG_IS_FUN),
  	MP4BOX_ARG("disable", "disable given track", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_DISABLE, ARG_IS_FUN),
  	{"timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0, &timescale, 0, ARG_OPEN_EDIT},
+	MP4BOX_ARG("set-vexu", "add vexu box into MV-HEVC MP4 file", GF_ARG_BOOL, 0, &set_vexu, 0, 0),
+	{"hero-eye", NULL, "set the hero_eye_indicator in HeroStereoEyeDescriptionBox (0 = none, 1 = left, 2 = right)", "0", NULL, GF_ARG_INT, 0, &hero_eye, 0, ARG_OPEN_EDIT},
  	MP4BOX_ARG_S("lang", "[tkID=]LAN", "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", 0, parse_track_action, TRACK_ACTION_SET_LANGUAGE, ARG_IS_FUN),
  	MP4BOX_ARG_S("delay", "tkID=TIME", "set track start delay (>0) or initial skip (<0) in ms or in fractional seconds (`N/D`)", 0, parse_track_action, TRACK_ACTION_SET_DELAY, ARG_IS_FUN),
  	MP4BOX_ARG_S("par", "tkID=PAR", "set visual track pixel aspect ratio. PAR is:\n"
@@ -905,8 +909,9 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("ps", NULL, "same as [-ps]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("psx", NULL, "same as [-psx]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("asemode", NULL, "`XS` set the mode to create the AudioSampleEntry. Value can be:\n"
-		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2) - default\n"
+		"  - v0-s: use MPEG AudioSampleEntry v0 and the channel count from the bitstream (even if greater than 2, except for Dolby (e)AC3/4) - default\n"
 		"  - v0-2: use MPEG AudioSampleEntry v0 and the channel count is forced to 2\n"
+		"  - v0-bs: use MPEG AudioSampleEntry v0 and the channel count from the bitstream\n"
 		"  - v1: use MPEG AudioSampleEntry v1 and the channel count from the bitstream\n"
 		"  - v1-qt: use QuickTime Sound Sample Description Version 1 and the channel count from the bitstream (even if greater than 2). This will also trigger using alis data references instead of url, even for non-audio tracks", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("audio_roll", NULL, "`S` add a roll sample group with roll_distance `N` for audio tracks", NULL, NULL, GF_ARG_INT, 0),
@@ -929,7 +934,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("subsamples", NULL, "add SubSample information for AVC+SVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("deps", NULL, "import sample dependency information for AVC and HEVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("ccst", NULL, "`S` add default HEIF ccst box to visual sample entry", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points\n"
+	GF_DEF_ARG("forcesync", NULL, "`SE` force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("xps_inband", NULL, "`XC` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("xps_inbandx", NULL, "`XC` same as xps_inband and also keep first xPS in sample description", NULL, NULL, GF_ARG_BOOL, 0),
@@ -993,6 +998,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	"- Profile can be suffixed with compatibility ID, e.g. `5.hdr10`\n"
 	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`, or integer value as per DV spec\n"
 	"- Profile can be prefixed with 'f' to force DV codec type signaling, e.g. `f8.2`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("dvmdc", NULL, "`S` set the Dolby Vision metadata compression (valid value: 0, 1, 3. default = 0)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("videofmt", NULL, "`S` force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
@@ -1411,7 +1417,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
 		"- depth: indicate that the image is a depth image (should use ref=auxl also)\n"
-		"- it=ID: indicate the item ID of the source item to import\n"
+		"- it=ID: indicate the item ID of the source item to import. If unspecified and source has no tracks, all items are imported\n"
 		"- itp=ID: same as `it=` but copy over all properties of the source item\n"
 		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
 		"- samp=N: indicate the sample number of the source sample\n"
@@ -2185,7 +2191,8 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
 			CHECK_IMGPROP
-			strcpy(meta->image_props->iccPath, szSlot+9);
+			strncpy(meta->image_props->iccPath, szSlot+9, GF_ARRAY_LENGTH(meta->image_props->iccPath)-1);
+			meta->image_props->iccPath[GF_ARRAY_LENGTH(meta->image_props->iccPath)-1] = 0;
 		}
 		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
 			CHECK_IMGPROP
@@ -4150,13 +4157,21 @@ static GF_Err do_compress_top_boxes(char *inName, char *outName)
 	orig_box_overhead = 0;
 	final_box_overhead = 0;
 	while (gf_bs_available(bs_in)) {
+
 		u32 size = gf_bs_read_u32(bs_in);
+
+		if (size < 8) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+
 		u32 type = gf_bs_read_u32(bs_in);
 		const char *b4cc = gf_4cc_to_str(type);
 		const u8 *replace = (const u8 *) strstr(compress_top_boxes, b4cc);
 		if (!strcmp(b4cc, "moov")) has_mov = GF_TRUE;
 
 		if (!replace && !replace_all) {
+
 			gf_bs_write_u32(bs_out, size);
 			gf_bs_write_u32(bs_out, type);
 
@@ -4968,6 +4983,7 @@ static GF_Err do_dash()
 
 	gf_dasher_del(dasher);
 
+	//do not store final name in test mode
 	if (!run_for && dash_ctx_file && (do_abort==3) && (dyn_state_file) && !gf_sys_is_test_mode() ) {
 		char szName[1024];
 		M4_LOG(GF_LOG_INFO, ("Enter file name to save dash context:\n"));
@@ -5225,6 +5241,7 @@ static GF_Err do_meta_act()
 			u32 src_tk_id = 1;
 			GF_Fraction _frac = {0,0};
 			GF_ISOFile *fsrc = file;
+			Bool add_all_src_items = GF_FALSE;
 			self_ref = GF_FALSE;
 
 			tk = 0;
@@ -5236,9 +5253,28 @@ static GF_Err do_meta_act()
 				self_ref = GF_TRUE;
 				src_tk_id = tk_id;
 			} else if (meta->szPath) {
-				if (meta->image_props && gf_isom_probe_file(meta->szPath) && !meta->image_props->tile_mode) {
-					meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
-					e = gf_isom_last_error(meta->image_props->src_file);
+				e = GF_OK;
+				if (src_tk_id && !meta->image_props && gf_isom_probe_file(meta->szPath)) {
+					GF_ISOFile *src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
+					if (src_file && !gf_isom_get_track_count(src_file)) {
+						GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+						if (!meta->image_props) {
+							e = GF_OUT_OF_MEM;
+							gf_isom_delete(src_file);
+						} else {
+							meta->image_props->src_file = src_file;
+							src_tk_id = 0;
+							add_all_src_items = GF_TRUE;
+						}
+					} else if (src_file) {
+						gf_isom_delete(src_file);
+					}
+				}
+				if ((e==GF_OK) && meta->image_props && gf_isom_probe_file(meta->szPath) && !meta->image_props->tile_mode) {
+					if (!meta->image_props->src_file) {
+						meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
+						e = gf_isom_last_error(meta->image_props->src_file);
+					}
 					fsrc = meta->image_props->src_file;
 					if (meta->image_props->item_ref_id)
 						src_tk_id = 0;
@@ -5266,7 +5302,7 @@ static GF_Err do_meta_act()
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						if (!src_tk_id && (!meta->image_props || !meta->image_props->item_ref_id) ) {
+						if (!src_tk_id && (!meta->image_props || (!add_all_src_items && !meta->image_props->item_ref_id)) ) {
 							u32 j;
 							for (j=0; j<gf_isom_get_track_count(fsrc); j++) {
 								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, j+1))) {
@@ -6089,10 +6125,11 @@ static u32 mp4box_cleanup(u32 ret_code) {
 		for (i=1; i<count;i++) {
 			if (gf_sys_is_arg_used(i)) continue;
 			if (!found) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used:\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used: %s\n", gf_sys_get_arg(i)));
 				found = 1;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", gf_sys_get_arg(i)));
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", gf_sys_get_arg(i)));
 		}
 	}
 
@@ -6778,6 +6815,10 @@ int mp4box_main(int argc, char **argv)
 	if (timescale && (timescale != gf_isom_get_timescale(file))) {
 		gf_isom_set_timescale(file, timescale);
 		do_save = GF_TRUE;
+	}
+
+	if (set_vexu | hero_eye) {
+		gf_isom_set_vexu(file, hero_eye);
 	}
 
 	if (!encode) {

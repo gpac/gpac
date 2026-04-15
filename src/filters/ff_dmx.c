@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -1267,7 +1267,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (force_reframer) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 		}
-		else if (!gf_sys_is_test_mode() ){
+		else {
 			//force reparse of nalu-base codecs if no dovi support
 			switch (gpac_codec_id) {
 			case GF_CODECID_AVC:
@@ -1277,7 +1277,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			case GF_CODECID_AV1:
 				if (ctx->reparse
 #ifdef FFMPEG_NO_DOVI
-				 || 1
+				//if no DOVI support, we need to reparse - do it only in non-test mode otherwise we would get
+				//different results on our test platforms depending on DOVI support
+				|| !gf_sys_is_test_mode()
 #endif
 				) {
 					gf_filter_pid_set_property(pid, GF_PROP_PID_FORCE_UNFRAME, &PROP_BOOL(GF_TRUE) );
@@ -1387,7 +1389,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (codec_blockalign)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_OPAQUE, &PROP_UINT(codec_blockalign));
 
-		if ((stream->disposition & AV_DISPOSITION_DEFAULT) && !gf_sys_is_test_mode()) {
+		if (stream->disposition & AV_DISPOSITION_DEFAULT) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_IS_DEFAULT, &PROP_BOOL(GF_TRUE));
 		}
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MUX_INDEX, &PROP_UINT(i+1));
@@ -1517,7 +1519,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 	if (!strncmp(ctx->src, "avf://", 6)) {
 		// We'll use the AVFormatContext* inside ctx->src
-		ctx->demuxer = (AVFormatContext *) strtoull(ctx->src + 6, NULL, 16);
+		ctx->demuxer = (AVFormatContext *)(uintptr_t) strtoull(ctx->src + 6, NULL, 16);
 		if (!ctx->demuxer) {
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Invalid AVFormatContext pointer %s\n", ctx->fname, ctx->src));
 			return GF_URL_ERROR;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -40,7 +40,7 @@
 
 #define GF_IMPORT_AUDIO_SAMPLE_ENTRY_v2_QTFF (GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF+1)
 
-#define ISOM_FILE_EXT "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|ismv|m4s|heif|heic|iff|avci|avif|mj2|mov|qt"
+#define ISOM_FILE_EXT "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|ismv|m4s|heif|heic|iff|avci|avif|mj2|mov|qt|cmfv|cmfa|cmft"
 #define ISOM_FILE_MIME "video/mp4|audio/mp4|application/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic|image/avci|video/jp2|video/quicktime"
 
 enum{
@@ -325,7 +325,7 @@ typedef struct
 	GF_MP4MuxTagInjectionMode itags;
 	Double start;
 	GF_MP4MuxChapterMode chapm;
-
+	u32 sfrag_tolerance;
 
 	//internal
 	GF_Filter *filter;
@@ -734,6 +734,7 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
 	u32 idx=0;
 
+	//do not inject tool tag in test mode
 	if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat() ) {
 		const char *tool = "GPAC-"GPAC_VERSION"-rev"GPAC_GIT_REVISION;
 		u32 len = (u32) strlen(tool);
@@ -1572,6 +1573,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			//this should be removed and hashes regenerated
 			gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 0, 0, 0, 0, 0);
 
+			//only patch handler if not test mode
 			if (!gf_sys_is_test_mode() && !gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_HANDLER)) {
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_URL);
 				if (tkw->track_num && p && p->value.string) {
@@ -1597,8 +1599,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_ENABLED|GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 		}
 		else {
-			//unless in test mode or old arch compat, set track to be enabled, in movie and in preview
-			if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat()) {
+			//unless in old arch compat, set track to be enabled, in movie and in preview
+			if (!gf_sys_old_arch_compat()) {
 				gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 			}
 
@@ -1649,7 +1651,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_ALT_GROUP);
 		if (p && p->value.uint) {
 			gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, p->value.uint);
-		} else if (!p && !gf_sys_is_test_mode()) {
+		} else if (!p && !gf_sys_old_arch_compat()) {
 			//we by default set groups for audio and subs if group is not present
 			if (mtype==GF_ISOM_SUBTYPE_SUBTITLE) {
 				gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, 2);
@@ -3262,7 +3264,7 @@ sample_entry_setup:
 		udesc.lpcm_flags = afmt_flags | (1<<3); //add packed flag
 		//for raw audio, select qt vs isom and set version
 		if (sr && (codec_id==GF_CODECID_RAW)) {
-			if (ctx->make_qt && (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS)) {
+			if (ctx->make_qt && (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_DEFAULT)) {
 				udesc.is_qtff = GF_TRUE;
 				//if extensions or not 'raw ' or 'twos', use v1
 				if (dsi ||
@@ -3654,6 +3656,8 @@ sample_entry_done:
 			u32 colour_type=0;
 			u16 colour_primaries=0, transfer_characteristics=0, matrix_coefficients=0;
 			Bool full_range_flag=GF_FALSE;
+			u32 ambient_illuminance=0;
+			u16 ambient_light_x=0, ambient_light_y=0;
 
 			gf_isom_set_visual_info(ctx->file, tkw->track_num, tkw->stsd_idx, width, height);
 			if (sar.den && (sar.num>0)) {
@@ -3800,6 +3804,10 @@ sample_entry_done:
 
 					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
 
+					// Set the value of the compatible_brands field to dby1
+					// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.6
+					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
+
 					if (!dvcc->bl_present_flag) {
 						u32 ref_id = 0;
 
@@ -3825,6 +3833,16 @@ sample_entry_done:
 					}
 					gf_odf_dovi_cfg_del(dvcc);
 				}
+			}
+
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMVE_ILLUMINANCE);
+			if (p) ambient_illuminance = p->value.uint;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMVE_LIGNT_X);
+			if (p) ambient_light_x = p->value.uint;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMVE_LIGNT_X);
+			if (p) ambient_light_y = p->value.uint;
+			if (ambient_illuminance != 0) {
+				gf_isom_set_ambient_viewing_environment(ctx->file, tkw->track_num, tkw->stsd_idx, ambient_illuminance, ambient_light_x, ambient_light_y);
 			}
 
 			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split") : NULL;
@@ -6971,14 +6989,33 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			} else if (ctx->fragdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
 				Bool frag_done = GF_FALSE;
 				u32 dur = gf_filter_pck_get_duration(pck);
+				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				if (tkw->dur_in_frag && gf_timestamp_greater_or_equal(tkw->dur_in_frag, tkw->src_timescale, ctx->cdur.num, ctx->cdur.den)) {
-					frag_done = GF_TRUE;
-				} else if ((ctx->store==MP4MX_MODE_SFRAG)
-					&& gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
-				) {
-					GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
-					if ((sap && sap<GF_FILTER_SAP_3)) {
+
+					if (ctx->sfrag_tolerance) {
+						//if sfrag+tolerance, do NOT use the accumulated dur, only use target stop time
+						//so that we maintain the desired amount if fragments
+						if (gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)) {
+							frag_done = GF_TRUE;
+						}
+					} else {
 						frag_done = GF_TRUE;
+					}
+				} else if ((ctx->store==MP4MX_MODE_SFRAG) && sap && (sap<GF_FILTER_SAP_3)) {
+					if (ctx->sfrag_tolerance) {
+						//get diff in source timescale to avoid rounding at low res
+						s32 diff = gf_timestamp_rescale(ctx->adjusted_next_frag_start, ctx->cdur.den, tkw->src_timescale);
+						diff -= check_ts;
+						if (diff<0) diff = -1;
+						//check tolerance in cdur timescale
+						diff = gf_timestamp_rescale(diff, tkw->src_timescale, ctx->cdur.den);
+						if (diff * 100 < ctx->sfrag_tolerance * ctx->cdur.num) {
+							frag_done = GF_TRUE;
+						}
+					} else {
+						if (gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)) {
+							frag_done = GF_TRUE;
+						}
 					}
 				}
 				if (frag_done) {
@@ -8033,9 +8070,6 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 
 	if ((ctx->llhas_mode>GF_LLHAS_BYTERANGES) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
 		u32 fnum = ctx->frag_num;
-		//we'll need to redo all LLHLS tests
-		if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
-			fnum++;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 		ctx->frag_num++;
 	}
@@ -8064,6 +8098,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	gf_filter_set_max_extra_input_pids(filter, -1);
 	ctx->filter = filter;
 	time_t current_time =time(NULL);
+	if (ctx->sfrag_tolerance)
+		ctx->store = MP4MX_MODE_SFRAG;
+
 	ctx->id3_id_sequence=(long)current_time;
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ctx->store>=MP4MX_MODE_FRAG) {
@@ -8712,12 +8749,13 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(lmsg), "set `lmsg` brand for the last segment or fragment", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from PID, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"
-			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"
+			"- v0: use v0 signaling with channel count from stream (except for (e)AC3/4), recommended for backward compatibility\n"
 			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"
+			"- v0bs: use v0 signaling from bitstream only\n"
 			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"
 			"- v1qt: use v1 signaling, QTFF style\n"
 			"- v2qt: use v2 signaling, QTFF style (lpcm entry type)"
-		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt|v2qt", 0},
+		, GF_PROP_UINT, "v0", "|v0|v0s|v0bs|v1|v1qt|v2qt", 0},
 	{ OFFS(ssix), "create `ssix` box when `sidx` box is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -8782,6 +8820,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- tiny: enabled and write reduced version if profile known and compatible", GF_PROP_UINT, "prof", "off|gen|prof|tiny", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sfrag_tolerance), "start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -8800,7 +8839,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"EX gpac -i source.jpg:#ItemID=1 -o file.mp4\n"
 	"  \n"
 	"# Storage\n"
-	"The [-store]() option allows controlling if the file is fragmented or not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
+	"The [-store]() option allows controlling if the file is fragmented (`frag`) or not, and when not fragmented, how interleaving (`inter`) is done.\n"
+	"For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` (fast-start) modes.\n"
+	"`sfrag` mode is similar `frag` mode but aligns fragments on SAP samples. It is implied when using `sfrag_tolerance`.\n"
+	"`sfrag_tolerance` is expressed as a percentage of the fragment duration (`cdur`). It allows to modulate the fragment durations while keeping the same number of fragments per segment. This is useful to align fragments on randomly placed SAP samples (typically scene-cuts or events).\n"
 	"  \n"
 	"The [-vodcache]() option allows controlling how DASH onDemand segments are generated:\n"
 	"- If set to `on`, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
@@ -8864,7 +8906,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"- if `Sparse` is true, empty packet is inserted for all stream types\n"
 	"- if `Sparse` is false, empty packet is never injected\n"
 	"  \n"
-	"The default media type used for a PID can be overriden using property `StreamSubtype`. \n"
+	"The default media type used for a PID can be overridden using property `StreamSubtype`. \n"
 	"EX -i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4 \n"
 	"This will force the text stream to use `sbtl` handler type instead of default `text` one."
 	"\n"

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -176,6 +176,12 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 	if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
 		gf_filter_setup_failure(filter, e);
 		e = GF_FILTER_NOT_SUPPORTED;
+	}
+	//we loaded an init segment and no associated PID yet (we use initseg opt), prepare for fragment pushing
+	if (read->frag_type && !read->pid && read->mov) {
+		//reset offset since the first byte we will received will be at offset 0 in our internal buffer (we don't copy init segment)
+		gf_isom_reset_data_offset(read->mov, NULL);
+		read->mem_load_mode = 2;
 	}
 	return e;
 }
@@ -1191,8 +1197,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		//activate first channel - if input is loaded and we canceled the event, remember we may no longer receive eos signals from source
 		//this happens because the last playing track may have send a STOP to the source but we here no longer send play
+		//do not enter EOS if input PID is not yet assigned (may happen with initseg option)
 		if (!read->nb_playing) {
-			read->in_is_eos = (read->input_loaded && cancel_event) ? GF_TRUE : GF_FALSE;
+			read->in_is_eos = (read->input_loaded && cancel_event && read->pid) ? GF_TRUE : GF_FALSE;
 		}
 
 		read->nb_playing++;
@@ -1564,6 +1571,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		isor_check_producer_ref_time(read);
 	}
 
+	u32 all_pck_sent=0;
 	for (i=0; i<count; i++) {
 		u8 *data;
 		u32 nb_pck=50;
@@ -1766,7 +1774,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (!ch->item_id) {
 					isor_set_sample_groups_and_aux_data(read, ch, pck);
 				}
-				if (ch->sample_data_offset && !gf_sys_is_test_mode())
+				if (ch->sample_data_offset)
 					gf_filter_pck_set_byte_offset(pck, ch->sample_data_offset);
 
 				if (ch->set_disc) {
@@ -1775,7 +1783,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
-
+				all_pck_sent++;
 				ch->last_valid_sample_data_offset = ch->sample_data_offset;
 				if (!in_is_flush)
 					nb_pck--;
@@ -1848,8 +1856,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);
 		gf_filter_pid_send_event(read->pid, &evt);
 	}
-
-	if (!is_active) {
+	//if no packet sent and no input pid, return EOS (avoids being resceduled as a source)
+	if (!is_active || (!all_pck_sent && !read->pid)) {
 		return GF_EOS;
 	}
 

@@ -78,11 +78,8 @@
 #define CONFIG_ATOMICS
 #endif
 
-//no stack limit in GPAC doesn't work with multithreaded context switch
-#if defined(GPAC_QJS_STACK_CHECK)
 /* enable stack limitation */
 #define CONFIG_STACK_CHECK
-#endif
 
 
 /* dump object free */
@@ -16817,7 +16814,7 @@ static int js_op_define_class(JSContext *ctx, JSValue *sp,
             goto fail;
     }
 
-    /* the constructor property must be first. It can be overriden by
+    /* the constructor property must be first. It can be overridden by
        computed property names */
     if (JS_DefinePropertyValue(ctx, proto, JS_ATOM_constructor,
                                JS_DupValue(ctx, ctor),

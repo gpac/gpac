@@ -171,6 +171,9 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	if (!parentName || !strlen(parentName)) return gf_strdup(pathName);
 
 	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
+	if (!strcmp(pathName, "stderr")) return gf_strdup(pathName);
+	if (!strcmp(pathName, "stdin")) return gf_strdup(pathName);
+	if (!strcmp(pathName, "stdout")) return gf_strdup(pathName);
 	if (!strncmp(parentName, "gmem://", 7)) return NULL;
 	if (!strncmp(parentName, "gfio://", 7)) {
 		GF_Err e;

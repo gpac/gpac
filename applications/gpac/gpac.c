@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -116,6 +116,7 @@ static void cleanup_logs(void);
 static Bool gpac_handle_prompt(GF_FilterSession *fsess, char char_code);
 static void gpac_fsess_task_help(void);
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 mode, GF_Err *e);
+static const char *make_blob(const char *inargs, const char **out_arg, Bool use_mem, GF_Err *e);
 static void cleanup_file_io(void);
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
@@ -452,7 +453,7 @@ static Bool dump_proto_schemes = GF_FALSE;
 static Bool write_profile=GF_FALSE;
 static Bool write_core_opts=GF_FALSE;
 static Bool write_extensions=GF_FALSE;
-static const char *session_js=NULL;
+static GF_List *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
 #ifdef GPAC_DEFER_MODE
@@ -585,7 +586,6 @@ int gpac_main(int _argc, char **_argv)
 
 	gf_sys_init(mem_track, profile);
 
-
 #ifdef GPAC_CONFIG_ANDROID
 	//prevent destruction of JSRT until we unload the JNI gpac wrapper (see applications/gpac_android/src/main/jni/gpac_jni.cpp)
 	gf_opts_set_key("temp", "static-jsrt", "true");
@@ -658,6 +658,14 @@ int gpac_main(int _argc, char **_argv)
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	use_step_mode = GF_TRUE;
 #endif
+
+	if (gf_opts_get_bool("core", "rmt")) {
+		if (!session_js) session_js = gf_list_new();
+		const char *rmt_path = gf_opts_get_key("core", "rmt-path");
+		if (!rmt_path)
+			rmt_path = "$GSHARE/scripts/rmt/server.js";
+		gf_list_insert(session_js, (char *)rmt_path, 0);
+	}
 
 	for (i=1; i<argc; i++) {
 		char szArgName[1024];
@@ -1001,7 +1009,8 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-qe")) {
 			exit_nocleanup = GF_TRUE;
 		} else if (!strcmp(arg, "-js")) {
-			session_js = arg_val;
+			if (!session_js) session_js = gf_list_new();
+			gf_list_add(session_js, arg_val);
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
 			if (arg_val && !strlen(arg_val)) {
@@ -1063,7 +1072,7 @@ int gpac_main(int _argc, char **_argv)
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
 				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
-				|| !strcmp(arg, "-ibx")
+				|| !strcmp(arg, "-ibx") || !strcmp(arg, "-ibb") || !strcmp(arg, "-ibm")
 			) {
 				//skip next arg: input or output, could start with '-'
 				i++;
@@ -1210,10 +1219,18 @@ restart:
 	}
 
 	if (session_js) {
-		e = gf_fs_load_script(session, session_js);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-		ERR_EXIT
+		u32 ijs, nb_js=gf_list_count(session_js);
+		for (ijs=0; ijs<nb_js; ijs++) {
+			const char *js_src = gf_list_get(session_js, ijs);
+			e = gf_fs_load_script(session, js_src);
+			if (e) {
+				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt/server.js")) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Monitoring script %s not found, check your installation\n Disabling remote monitoring\n", js_src));
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+					ERR_EXIT
+				}
+			}
 		}
 	}
 
@@ -1317,11 +1334,19 @@ restart:
 		}
 #endif
 
-		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")  || !strcmp(arg, "-ibx") ) {
+		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")
+			|| !strcmp(arg, "-ibx") || !strcmp(arg, "-ibb") || !strcmp(arg, "-ibm")
+		) {
 			if (!strcmp(arg, "-ib") || !strcmp(arg, "-ibx")) {
 				const char *fargs=NULL;
 				Bool test_nocache = !strcmp(arg, "-ibx") ? GF_TRUE : GF_FALSE;
 				const char *fio_url = make_fileio(argv[i+1], &fargs, test_nocache ? 2 : 1, &e);
+				if (fio_url)
+					filter = gf_fs_load_source(session, fio_url, fargs, NULL, &e);
+			} else if (!strcmp(arg, "-ibb") || !strcmp(arg, "-ibm")) {
+				const char *fargs=NULL;
+				Bool test_mem = !strcmp(arg, "-ibm") ? GF_TRUE : GF_FALSE;
+				const char *fio_url = make_blob(argv[i+1], &fargs, test_mem, &e);
 				if (fio_url)
 					filter = gf_fs_load_source(session, fio_url, fargs, NULL, &e);
 			} else {
@@ -1665,6 +1690,8 @@ exit:
 		goto restart;
 #endif
 	}
+
+	if (session_js) gf_list_del(session_js);
 
 	gpac_exit(e);
 }
@@ -2972,6 +2999,66 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	return gf_fileio_url(fio);
 }
 
+typedef struct
+{
+	GF_Blob blob;
+	char *path;
+	char *url;
+	GF_FileIO *fio;
+	Bool use_gfio;
+} BlobCtx;
+
+static GF_List *all_blobs_defined = NULL;
+
+static const char *make_blob(const char *inargs, const char **out_arg, Bool use_mem, GF_Err *e)
+{
+	BlobCtx *bctx;
+	if (!all_blobs_defined) {
+		all_blobs_defined = gf_list_new();
+		if (!all_blobs_defined) return NULL;
+	}
+
+	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
+	*out_arg = NULL;
+	if (sep) sep[0] = 0;
+
+	GF_SAFEALLOC(bctx, BlobCtx);
+	if (!bctx) return NULL;
+	*e = gf_file_load_data(inargs, &bctx->blob.data, &bctx->blob.size);
+	if (*e) {
+		gf_free(bctx);
+		return NULL;
+	}
+
+	bctx->path = gf_strdup(inargs);
+	if (!bctx->path) {
+		gf_free(bctx->blob.data);
+		gf_free(bctx);
+		*e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	if (sep) {
+		sep[0] = ':';
+		*out_arg = sep+1;
+	}
+	*e = gf_list_add(all_blobs_defined, bctx);
+
+	if (use_mem) {
+		bctx->use_gfio = GF_TRUE;
+		bctx->fio = gf_fileio_from_mem(bctx->path, bctx->blob.data, bctx->blob.size);
+		return gf_fileio_url(bctx->fio);
+	}
+
+	bctx->url = gf_blob_register(&bctx->blob);
+	if (!bctx->url) {
+		gf_free(bctx->path);
+		gf_free(bctx->blob.data);
+		gf_free(bctx);
+		*e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	return bctx->url;
+}
 static void cleanup_file_io()
 {
 	if (gfiodel_registered) {
@@ -2979,7 +3066,6 @@ static void cleanup_file_io()
 		gf_fileio_unregister_delete_proc(gpac_gfio_del);
 	}
 
-	if (!all_gfio_defined) return;
 	while (gf_list_count(all_gfio_defined)) {
 		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);
 		FileIOCtx *ioctx = gf_fileio_get_udta(gfio);
@@ -2994,6 +3080,25 @@ static void cleanup_file_io()
 	}
 	gf_list_del(all_gfio_defined);
 	all_gfio_defined = NULL;
+
+	while (gf_list_count(all_blobs_defined)) {
+		BlobCtx *bctx = gf_list_pop_back(all_blobs_defined);
+		if (bctx->fio) {
+			gf_fclose((FILE*)bctx->fio);
+			gf_fileio_del(bctx->fio);
+		}
+
+		if (bctx->blob.data) {
+			if (!bctx->use_gfio)
+				gf_blob_unregister(&bctx->blob);
+			gf_free(bctx->blob.data);
+		}
+		if (bctx->path) gf_free(bctx->path);
+		if (bctx->url) gf_free(bctx->url);
+		gf_free(bctx);
+	}
+	gf_list_del(all_blobs_defined);
+	all_blobs_defined = NULL;
 }
 
 static GF_Err cust_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -3828,6 +3933,7 @@ static int gpac_do_creds(char *creds_args)
 				fprintf(stdout, "Users in group: %s\n", g);
 			} else {
 				fprintf(stdout, "No such group %s\n", creds_args);
+				//trash creds in test mode
 				if (gf_sys_is_test_mode()) {
 					if (creds) gf_cfg_del(creds);
 					return 0;
@@ -3841,6 +3947,7 @@ static int gpac_do_creds(char *creds_args)
 	u32 keys = gf_cfg_get_key_count(creds, creds_args);
 	if (!keys && !is_add) {
 		fprintf(stderr, "No such user %s\n", creds_args);
+		//trash creds in test mode
 		if (gf_sys_is_test_mode()) {
 			if (creds) gf_cfg_del(creds);
 			return 0;

@@ -2673,7 +2673,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 
 static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, AV1State *state)
 {
-	if (av1_is_obu_header(obu_type)) {
+	if (av1_is_obu_header(obu_type) && !(obu_type == OBU_METADATA && state->dolby_rpu_detected)) {
 		if (obu_type == OBU_METADATA) {
 			u64 cur_pos = gf_bs_get_position(bs);
 			gf_bs_seek(bs, pos);
@@ -2687,8 +2687,9 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 			gf_bs_seek(bs, cur_pos);
 
 			// TODO: filter out any metadata which values change
-			if (metadata_type == OBU_METADATA_TYPE_TIMECODE)
+			if (metadata_type == OBU_METADATA_TYPE_TIMECODE) {
 				return;
+			}
 		}
 
 		av1_add_obu_internal(bs, pos, obu_length, obu_type, &state->frame_state.header_obus, NULL);
@@ -4375,12 +4376,43 @@ static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
 	}
 }
 
+static void av1_parse_itu_t_t35_metadata(GF_BitStream *bs,  AV1State *state)
+{
+	u8 country_code;
+	u16 terminal_provider_code;
+	u32 terminal_provider_oriented_code;
+
+	country_code = gf_bs_read_int(bs, 8);
+	terminal_provider_code = gf_bs_read_int(bs, 16);
+	terminal_provider_oriented_code = gf_bs_read_int(bs, 32);
+
+	// Dolby Vision Video Elementary Stream Multiplexing Spec version 2.0 Section 3
+	if (country_code == 0xB5 && terminal_provider_code == 0x003B && terminal_provider_oriented_code == 0x00000800) {
+		const u8 dovi_emdf_hdr[] = {0x37, 0xCD, 0x08};
+		if (gf_bs_read_u8(bs) == dovi_emdf_hdr[0] &&
+			gf_bs_read_u8(bs) == dovi_emdf_hdr[1] &&
+			gf_bs_read_u8(bs) == dovi_emdf_hdr[2]) {
+
+			if (state->frame_state.show_frame == 1 || state->frame_state.show_existing_frame == 1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Warning: Dolby Vision metadata OBU must appear before the first shown frame OBU. This content may be non-compliant with the Dolby Vision specification.\n"));
+			}
+			if (state->dolby_rpu_detected) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Warning: Each AV1 Temporal Unit must contain exactly one Dolby Vision metadata OBU. This content may be non-compliant with the Dolby Vision specification.\n"));
+			}
+
+			state->dolby_rpu_detected = GF_TRUE;
+		}
+	}
+	return;
+}
+
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
 	ObuMetadataType metadata_type = (ObuMetadataType)gf_av1_leb128_read(bs, NULL);
 
 	switch (metadata_type) {
 	case OBU_METADATA_TYPE_ITUT_T35:
+		av1_parse_itu_t_t35_metadata(bs, state);
 		break;
 	case OBU_METADATA_TYPE_HDR_CLL:
 		gf_bs_read_data(bs, state->sei.clli_data, 4);
@@ -4526,6 +4558,23 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] unknown OBU type %u (size "LLU"). Skipping.\n", *obu_type, *obu_size));
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
+	}
+	// Dolby Vision Video Elementary Stream Multiplexing Spec version 2.0 Section 3
+	if (state->dolby_rpu_detected) {
+		switch(*obu_type) {
+			case OBU_TEMPORAL_DELIMITER:
+				state->dolby_rpu_detected = GF_FALSE;
+				break;
+			case OBU_FRAME_HEADER:
+			case OBU_REDUNDANT_FRAME_HEADER:
+			case OBU_FRAME:
+				if (state->frame_state.show_frame == 0 && state->frame_state.show_existing_frame == 0) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Warning: Dolby Vision metadata OBU must appear after all non-shown frames. This content may be non-compliant with the Dolby Vision specification.\n"));
+				}
+				break;
+			default:
+				break;
+		}
 	}
 	return e;
 }
@@ -5542,112 +5591,6 @@ void gf_bs_write_se(GF_BitStream *bs, s32 num)
 	gf_bs_write_ue(bs, v);
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-
-GF_EXPORT
-u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
-{
-	u32 avail = data_len;
-	const u8 *cur = data;
-
-	while (cur) {
-		u32 v, bpos;
-		u8 *next_zero = memchr(cur, 0, avail);
-		if (!next_zero) return data_len;
-
-		v = 0xffffff00;
-		bpos = (u32)(next_zero - data) + 1;
-		while (1) {
-			u8 cval;
-			if (bpos == (u32)data_len)
-				return data_len;
-
-			cval = data[bpos];
-			v = ((v << 8) & 0xFFFFFF00) | ((u32)cval);
-			bpos++;
-			if (v == 0x00000001) {
-				*sc_size = 4;
-				return bpos - 4;
-			}
-			else if ((v & 0x00FFFFFF) == 0x00000001) {
-				*sc_size = 3;
-				return bpos - 3;
-			}
-			if (cval)
-				break;
-		}
-		if (bpos >= data_len)
-			break;
-		cur = data + bpos;
-		avail = data_len - bpos;
-	}
-	return data_len;
-}
-
-Bool gf_avc_slice_is_intra(AVCState *avc)
-{
-	switch (avc->s_info.slice_type) {
-	case GF_AVC_TYPE_I:
-	case GF_AVC_TYPE2_I:
-	case GF_AVC_TYPE_SI:
-	case GF_AVC_TYPE2_SI:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-#if 0 //unused
-Bool gf_avc_slice_is_IDR(AVCState *avc)
-{
-	if (avc->sei.recovery_point.valid)
-	{
-		avc->sei.recovery_point.valid = 0;
-		return 1;
-	}
-	if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE)
-		return 0;
-	return gf_avc_slice_is_intra(avc);
-}
-#endif
-
-static const struct  {
-	u32 w, h;
-} avc_hevc_sar[] = {
-	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
-	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
-	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
-	{ 64, 33 }, { 160,99 }, {  4,  3 }, {  3,  2 },
-	{  2,  1 }
-};
-
-
-/*ISO 14496-10 (N11084) E.1.2*/
-static s32 avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
-{
-	int i, cpb_cnt_minus1;
-
-	cpb_cnt_minus1 = gf_bs_read_ue_log(bs, "cpb_cnt_minus1");
-	if (cpb_cnt_minus1 > 31) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] invalid cpb_cnt_minus1 value: %d (expected in [0;31])\n", cpb_cnt_minus1));
-		return -1;
-	}
-	gf_bs_read_int_log(bs, 4, "bit_rate_scale");
-	gf_bs_read_int_log(bs, 4, "cpb_size_scale");
-
-	/*for( SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++ ) {*/
-	for (i = 0; i <= cpb_cnt_minus1; i++) {
-		gf_bs_read_ue_log_idx(bs, "bit_rate_value_minus1", i);
-		gf_bs_read_ue_log_idx(bs, "cpb_size_value_minus1", i);
-		gf_bs_read_int_log_idx(bs, 1, "cbr_flag", i);
-	}
-	gf_bs_read_int_log(bs, 5, "initial_cpb_removal_delay_length_minus1");
-	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "cpb_removal_delay_length_minus1");
-	hrd->dpb_output_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "dpb_output_delay_length_minus1");
-	hrd->time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
-	return 0;
-}
-
 /*returns the nal_size without emulation prevention bytes*/
 u32 gf_media_nalu_emulation_bytes_add_count(u8 *buffer, u32 nal_size)
 {
@@ -5751,6 +5694,9 @@ u32 gf_media_nalu_emulation_bytes_remove_count(const u8 *buffer, u32 nal_size)
 	return emulation_bytes_count;
 }
 
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 /*nal_size is updated to allow better error detection*/
 GF_EXPORT
 u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u32 nal_size)
@@ -5789,6 +5735,110 @@ u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u
 	}
 
 	return nal_size - emulation_bytes_count;
+}
+
+GF_EXPORT
+u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
+{
+	u32 avail = data_len;
+	const u8 *cur = data;
+
+	while (cur) {
+		u32 v, bpos;
+		u8 *next_zero = memchr(cur, 0, avail);
+		if (!next_zero) return data_len;
+
+		v = 0xffffff00;
+		bpos = (u32)(next_zero - data) + 1;
+		while (1) {
+			u8 cval;
+			if (bpos == (u32)data_len)
+				return data_len;
+
+			cval = data[bpos];
+			v = ((v << 8) & 0xFFFFFF00) | ((u32)cval);
+			bpos++;
+			if (v == 0x00000001) {
+				*sc_size = 4;
+				return bpos - 4;
+			}
+			else if ((v & 0x00FFFFFF) == 0x00000001) {
+				*sc_size = 3;
+				return bpos - 3;
+			}
+			if (cval)
+				break;
+		}
+		if (bpos >= data_len)
+			break;
+		cur = data + bpos;
+		avail = data_len - bpos;
+	}
+	return data_len;
+}
+
+Bool gf_avc_slice_is_intra(AVCState *avc)
+{
+	switch (avc->s_info.slice_type) {
+	case GF_AVC_TYPE_I:
+	case GF_AVC_TYPE2_I:
+	case GF_AVC_TYPE_SI:
+	case GF_AVC_TYPE2_SI:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+#if 0 //unused
+Bool gf_avc_slice_is_IDR(AVCState *avc)
+{
+	if (avc->sei.recovery_point.valid)
+	{
+		avc->sei.recovery_point.valid = 0;
+		return 1;
+	}
+	if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE)
+		return 0;
+	return gf_avc_slice_is_intra(avc);
+}
+#endif
+
+static const struct  {
+	u32 w, h;
+} avc_hevc_sar[] = {
+	{ 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
+	{ 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
+	{ 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
+	{ 64, 33 }, { 160,99 }, {  4,  3 }, {  3,  2 },
+	{  2,  1 }
+};
+
+
+/*ISO 14496-10 (N11084) E.1.2*/
+static s32 avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
+{
+	int i, cpb_cnt_minus1;
+
+	cpb_cnt_minus1 = gf_bs_read_ue_log(bs, "cpb_cnt_minus1");
+	if (cpb_cnt_minus1 > 31) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] invalid cpb_cnt_minus1 value: %d (expected in [0;31])\n", cpb_cnt_minus1));
+		return -1;
+	}
+	gf_bs_read_int_log(bs, 4, "bit_rate_scale");
+	gf_bs_read_int_log(bs, 4, "cpb_size_scale");
+
+	/*for( SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++ ) {*/
+	for (i = 0; i <= cpb_cnt_minus1; i++) {
+		gf_bs_read_ue_log_idx(bs, "bit_rate_value_minus1", i);
+		gf_bs_read_ue_log_idx(bs, "cpb_size_value_minus1", i);
+		gf_bs_read_int_log_idx(bs, 1, "cbr_flag", i);
+	}
+	gf_bs_read_int_log(bs, 5, "initial_cpb_removal_delay_length_minus1");
+	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "cpb_removal_delay_length_minus1");
+	hrd->dpb_output_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "dpb_output_delay_length_minus1");
+	hrd->time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
+	return 0;
 }
 
 #define AVC_SPS_BROKEN {\
@@ -8363,6 +8413,10 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 	if (pps->slice_segment_header_extension_present_flag) {
 		u32 size_ext = gf_bs_read_ue_log(bs, "size_ext");
+		if (size_ext > gf_bs_available(bs)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Error parsing slice header: size_ext (%u) is bigger than available data (%lu)\n", size_ext, gf_bs_available(bs)));
+			return -1;
+		}
 		while (size_ext) {
 			gf_bs_read_int(bs, 8);
 			size_ext--;
@@ -8476,14 +8530,22 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	}
 	if (rps->modif_flag_l0 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l0_active; i++) {
-			u32 idx = (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0)) ? rps->modif_idx_l0[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0))
+				idx = rps->modif_idx_l0[i];
+			else if (num_poc_total)
+				idx =  i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l0))
 				gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
 		}
 	}
 	if (rps->modif_flag_l1 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l1_active; i++) {
-			u32 idx = (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1)) ? rps->modif_idx_l1[i] : (i%num_poc_total);
+			u32 idx = (u32)-1;
+			if (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1))
+				idx = rps->modif_idx_l1[i];
+			else if (num_poc_total)
+				idx = i%num_poc_total;
 			if (idx < GF_ARRAY_LENGTH(ref_pocs_l1))
 				gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
 		}
@@ -8720,6 +8782,14 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		// time_code
 		case 136:
 			hevc_parse_pic_timing_sei(bs, hevc);
+			break;
+		case 148:
+			if (hevc) {
+				hevc->sei.ambient_view.amve_valid = GF_TRUE;
+				hevc->sei.ambient_view.ambient_illuminance = gf_bs_read_u32(bs);
+				hevc->sei.ambient_view.ambient_light_x = gf_bs_read_u16(bs);
+				hevc->sei.ambient_view.ambient_light_y = gf_bs_read_u16(bs);
+			}
 			break;
 		default:
 			break;
@@ -9340,12 +9410,20 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 	}
 	if (gf_bs_read_int_log(bs, 1, "vps_timing_info_present_flag")) {
 		u32 vps_num_hrd_parameters;
+
 		gf_bs_read_int_log(bs, 32, "vps_num_units_in_tick");
 		gf_bs_read_int_log(bs, 32, "vps_time_scale");
 		if (gf_bs_read_int_log(bs, 1, "vps_poc_proportional_to_timing_flag")) {
 			gf_bs_read_ue_log(bs, "vps_num_ticks_poc_diff_one_minus1");
 		}
+
 		vps_num_hrd_parameters = gf_bs_read_ue_log(bs, "vps_num_hrd_parameters");
+
+		if (vps_num_hrd_parameters > vps->num_layer_sets) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] vps_num_hrd_parameters should be in the range 0-num_layer_sets (%d here)\n", vps->num_layer_sets));
+			HEVC_VPS_BROKEN
+		}
+
 		for (i = 0; i < vps_num_hrd_parameters; i++) {
 			Bool cprms_present_flag = GF_TRUE;
 			gf_bs_read_ue_log_idx(bs, "hrd_layer_set_idx", i);
@@ -12231,6 +12309,11 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		} else {
 			SubWidthC = SubHeightC = 1;
 		}
+		if ( ((u64)sps->cw_left + (u64)sps->cw_right) > GF_UINT_MAX/SubWidthC || (SubWidthC * (sps->cw_left + sps->cw_right) > sps->width)
+		  || ((u64)sps->cw_top + (u64)sps->cw_bottom) > GF_UINT_MAX/SubHeightC || (SubHeightC * (sps->cw_top + sps->cw_bottom) > sps->height) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Invalid conformance window parameters\n"));
+			VVC_SPS_BROKEN
+		}
 		sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
 		sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 	}
@@ -12368,6 +12451,10 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		for (i=0; i<numQpTables; i++) {
 			gf_bs_read_se_log_idx(bs, "sps_qp_table_start_minus26", i);
 			u32 j, sps_num_points_in_qp_table = 1 + gf_bs_read_ue_log_idx(bs, "sps_num_points_in_qp_table_minus1", i);
+			if (sps_num_points_in_qp_table>36) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_points_in_qp_table too high %u\n", sps_num_points_in_qp_table));
+				VVC_SPS_BROKEN
+			}
 			for (j=0; j<sps_num_points_in_qp_table; j++) {
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_in_val_minus1", i, j);
 				gf_bs_read_ue_log_idx2(bs, "sps_delta_qp_diff_val", i, j);
@@ -12488,10 +12575,18 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		sps->virtual_boundaries_present_flag = gf_bs_read_int_log(bs, 1, "sps_virtual_boundaries_present_flag");
 		if (sps->virtual_boundaries_present_flag) {
 			u32 num_virtual_boundaries = gf_bs_read_ue_log(bs, "sps_num_ver_virtual_boundaries");
+			if (num_virtual_boundaries > MAX_SPS_VIRTUAL_BOUNDARIES) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_ver_virtual_boundaries value %u is above max (%u)\n", num_virtual_boundaries, MAX_SPS_VIRTUAL_BOUNDARIES));
+				VVC_SPS_BROKEN
+			}
 			for (i=0; i<num_virtual_boundaries; i++) {
 				gf_bs_read_ue_log_idx(bs, "sps_virtual_boundary_pos_x_minus1", i);
 			}
 			num_virtual_boundaries = gf_bs_read_ue_log(bs, "sps_num_hor_virtual_boundaries");
+			if (num_virtual_boundaries > MAX_SPS_VIRTUAL_BOUNDARIES) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sps_num_hor_virtual_boundaries value %u is above max (%u)\n", num_virtual_boundaries, MAX_SPS_VIRTUAL_BOUNDARIES));
+				VVC_SPS_BROKEN
+			}
 			for (i=0; i<num_virtual_boundaries; i++) {
 				gf_bs_read_ue_log_idx(bs, "sps_virtual_boundary_pos_y_minus1", i);
 			}
@@ -13940,10 +14035,11 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		idx = gf_vvc_read_sps_bs_internal(orig, vvc, layer_id, &bit_offset);
 
 		if (idx < 0) {
-			if (orig)
+			if (orig) {
 				gf_bs_del(orig);
+				orig = NULL;
+			}
 			gf_free(no_emulation_buf);
-			gf_bs_del(orig);
 			continue;
 		}
 
@@ -15527,6 +15623,10 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 
 	for(i = 0; i < stream->n_presentations; i++) {
 		p = gf_list_get(stream->presentations, i);
+		if (!p) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] presentation %u/%u is NULL: ignoring\n", i, stream->n_presentations));
+			continue;
+		}
 		for (j = 0; j < p->n_substream_groups; j++) {
 			x = gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {

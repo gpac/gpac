@@ -2396,7 +2396,7 @@ Such packets are only injected when a whole in the timeline is detected.
 .br
   
 .br
-The default media type used for a PID can be overriden using property StreamSubtype. 
+The default media type used for a PID can be overridden using property StreamSubtype. 
 .br
 Example
 .br
@@ -4718,7 +4718,7 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .br
 
 .br
-When .I ka is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.
+When .I plka is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.
 .br
 Playlist refreshing will abort:
 .br
@@ -4762,11 +4762,21 @@ Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO o
 .br
 * chap=NAME: assigns chapter name at the start of next URL (filter always removes source chapter names).
 .br
+* base_url=PATH: overrides base URL for all following entries in the playlist. To reset, use an empty string.
+.br
+
+.br
+When the playlist is transmitted as packets (pipes, sockets, ...), the following directives also apply:
+.br
+* replace: replaces the entire playlist content with new packet payload, otherwise concatenate (payload must start with #replace).
+.br
+* purge: avoids having the playlist continuously growing by removing all inactive content before previous #purge directive, evaluated at each new packet only (payload must start with #purge).
+.br
 
 .br
 The following global options (applying to the filter, not the sources) may also be set in the playlist:
 .br
-* ka=N: force .I ka option to N millisecond refresh.
+* ka=N: force .I plka option to N millisecond refresh.
 .br
 * floop=N: set .I floop option from within playlist.
 .br
@@ -4971,7 +4981,7 @@ revert (bool, default: false): revert list of files (.I srcs, not playlist)
 .br
 timescale (uint, default: 0):  force output timescale on all PIDs (0 uses the timescale of the first PID found)
 .br
-ka (uint, default: 0):         keep playlist alive (disable loop), waiting for a new input to be added or #end directive to end playlist. The value specifies the refresh rate in ms
+plka (uint, default: 0):       keep playlist alive (disable loop), waiting for a new input to be added or #end directive to end playlist. The value specifies the refresh rate in ms
 .br
 timeout (luint, default: -1):  timeout in ms after which the playlist is considered dead (-1 means indefinitely)
 .br
@@ -4990,6 +5000,8 @@ fsort (enum, default: no):     sort list of files
 
 .br
 sigcues (bool, default: false): inject CueStart property at each source begin (new or repeated) for DASHing
+.br
+sigperiods (bool, default: false): ask for a new DASH Period at each source begin ; useful when media timing needs to be reset at loops (TTML, ...)
 .br
 fdel (bool, default: false):   delete source files after processing in playlist mode (does not delete the playlist)
 .br
@@ -6285,7 +6297,7 @@ ll_rend_rep (bool, default: true): inject rendition reports for LL-HLS
 .br
 ll_part_hb (dbl, default: -1): user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session
 .br
-ckurl (str):                   set the ClearKey URL common to all encrypted streams (overriden by CKUrl pid property)
+ckurl (str):                   set the ClearKey URL common to all encrypted streams (overridden by CKUrl pid property)
 .br
 hls_absu (enum, default: no):  use absolute url in HLS generation using first URL in base
 .br
@@ -7092,7 +7104,7 @@ Note: The .I nbcached option is ignored in this mode.
 .SH File Repair
 .LP
 .br
-In case of losses or incomplete segment reception (during tune-in), the files are patched as follows:
+In case of losses or incomplete segment reception (during tune-in or HTTP partial repair), the files are patched as follows:
 .br
 * MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.
 .br
@@ -7194,7 +7206,7 @@ repair (enum, default: strict): repair mode for corrupted files
 .br
 
 .br
-repair_urls (strl):            repair servers urls
+repair_urls (strl):            repair servers urls - if set, repair is set to full
 .br
 max_sess (uint, default: 1):   max number of concurrent HTTP repair sessions
 .br
@@ -7208,7 +7220,7 @@ minrecv (uint, default: 20):   redownload full file in HTTP repair if received b
 .br
 riso (enum, default: none):    advanced options for ISOBMFF HTTP repair
 .br
-* none: use regular http repair
+* none: use regular http repair (sequential repair)
 .br
 * simple: first repair all non-mdat boxes then repair mdat in order
 .br
@@ -11357,6 +11369,10 @@ For such services, the custom HTTP header X-From-MABR is defined:
 .br
 
 .br
+The dedicated root endpoint /stats returns, the response content type's count (yes, no, off-edge) served by the gateway.
+.br
+
+.br
 The js option can be set to a JS module exporting the following functions:
 .br
 * init : (mandatory) The function is called once at the start of the server. Parameters:
@@ -13539,7 +13555,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.5-DEV
+build: 26.03-DEV
 .br
 Copyright: (c) 2000-2024 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
 .br

@@ -144,10 +144,10 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 					ar_num = dsi.par_num;
 					ar_den = dsi.par_den;
 				}
-				gf_odf_desc_del((GF_Descriptor *) esd);
-				if (e) return e;
 			}
 #endif
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			if (e) return e;
 		} else {
 			u32 mtype = gf_isom_get_media_type(file, track);
 			if (gf_isom_is_video_handler_type(mtype)) {
@@ -1317,6 +1317,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	case GF_ISOM_SUBTYPE_LHV1:
 	case GF_ISOM_SUBTYPE_LHE1:
 	case GF_ISOM_SUBTYPE_AV01:
+	case GF_ISOM_SUBTYPE_DAV1:
 	case GF_ISOM_SUBTYPE_VP09:
 	case GF_ISOM_SUBTYPE_VP08:
 	case GF_ISOM_SUBTYPE_VVC1:
@@ -4192,7 +4193,8 @@ GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COL
 GF_Err rfc_6381_get_codec_avs3v(char *szCodec, u32 subtype, GF_AVS3VConfig *av3c, COLR colr)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	gf_fatal_assert(av3c && av3c->sequence_header && av3c->sequence_header_length >= 6);
+	if (!av3c || !av3c->sequence_header || av3c->sequence_header_length < 6)
+		return GF_BAD_PARAM;
 	u8 profile = av3c->sequence_header[4];
 	u8 level = av3c->sequence_header[5];
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%2x.%2x", gf_4cc_to_str(subtype), profile, level);
@@ -4283,10 +4285,11 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 
 GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	IAMFState state;
 	gf_iamf_init_state(&state);
 
-	u32 obu_count = gf_list_count(cfg->configOBUs);
+	u32 obu_count = cfg ? gf_list_count(cfg->configOBUs) : 0;
 	for (u32 i=0; i<obu_count; ++i) {
 		GF_IamfObu *obu = gf_list_get(cfg->configOBUs, i);
 		GF_BitStream *bs = gf_bs_new(obu->raw_obu_bytes, obu->obu_length, GF_BITSTREAM_READ);
@@ -4321,6 +4324,9 @@ GF_Err rfc_6381_get_codec_iamf(char *szCodec, GF_IAConfig *cfg)
 	}
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "iamf.%03u.%03u.%s", state.primary_profile, state.additional_profile, codec);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size);

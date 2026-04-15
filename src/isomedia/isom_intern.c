@@ -1147,10 +1147,10 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 			GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(mov->moov->trackList, i);
 
 			if (trak && trak->Media && trak->Media->information) {
-				if (trak->Media->information->dataHandler == mov->movieFileMap)
+				if (trak->Media->information->dataHandler == mov->movieFileMap || trak->Media->information->dataHandler == mov->editFileMap)
 					trak->Media->information->dataHandler = NULL;
 
-				if (trak->Media->information->scalableDataHandler == mov->movieFileMap)
+				if (trak->Media->information->scalableDataHandler == mov->movieFileMap || trak->Media->information->scalableDataHandler == mov->editFileMap)
 					trak->Media->information->scalableDataHandler = NULL;
 			}
 		}
@@ -1342,7 +1342,10 @@ ent_found:
 	}
 
 	/*WARNING: this can be "-1" when doing searchForward mode (to prevent jumping to next entry)*/
-	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
+	s64 mediaTime_increment = movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
+	if (ent->mediaTime > GF_INT64_MAX - mediaTime_increment)
+		return GF_ISOM_INVALID_FILE;
+	mtime = ent->mediaTime + mediaTime_increment;
 	if (mtime<0) mtime = 0;
 	*MediaTime = (u64) mtime;
 	*MediaOffset = ent->mediaTime;

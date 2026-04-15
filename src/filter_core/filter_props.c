@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -250,7 +250,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 
 		if (!value && !enum_values) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			//patch for ka option, used as Bool in pin/sockin/... but as enum in flist, triggering this error when piping playlist
+			//fortunately in pipe mode of playlist, flist.ka is not used
+			if (strcmp(name, "ka")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			}
 			p.value.uint = 0;
 			break;
 		}
@@ -913,10 +917,12 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 	}
 	return GF_FALSE;
 }
+GF_EXPORT
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_FALSE);
 }
+GF_EXPORT
 Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_TRUE);
@@ -1889,6 +1895,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_TIME_DISCONTINUITY, "Discontinuity", "indicate a time discontinuity in PID (value changes at each new discontinuity)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_TIME_DISCONTINUITY, "PacketDiscontinuity", "similar to Discontinuity but only used to reconfigure the encoder", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
+	DEC_PROP_F( GF_PROP_PID_AMVE_ILLUMINANCE, "AmbientIlluminance", "indicate the ambient illuminance extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_X, "AmbientLightX", "indicate the ambient light x extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_Y, "AmbientLightY", "indicate the ambient light y extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
@@ -2224,13 +2233,12 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		return dump;
 
 	case GF_PROP_PID_CHANNEL_LAYOUT:
-		if (!gf_sys_is_test_mode()) {
-			u32 cicp = gf_audio_fmt_get_cicp_from_layout(att->value.longuint);
-			const char *name = gf_audio_fmt_get_cicp_name(cicp);
-			if (name) return name;
-		}
+	{
+		const char *name = gf_audio_fmt_get_cicp_name( gf_audio_fmt_get_cicp_from_layout(att->value.longuint) );
+		if (name) return name;
 		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
-
+	}
+	
 	case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		//for tx3d SDP config only
 		if (gf_utf8_is_legal(att->value.data.ptr, att->value.data.size))

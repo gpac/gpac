@@ -1,38 +1,72 @@
-# Ongoing: GPAC 2.5-DEV
+# On-going - GPAC 26.03-dev
+
+# 05/02/2026 - GPAC 26.02
+
+GPAC release naming is now changed to year.month scheme. ABI version of this release is 16.5.
 
 ## gpac
 - Added mode for testing defered graph linking apps
-- Introduce unit tests in complement to the testsuite and various buildbot continuous checks
 - `main()` can return filter session error code using -rv
+
+## MP4Box
+- Better support for HEIF/AVIF import
+- new option 'times' to rewrite timestamps
+
+## Core tools
+- Network Capture and Replay using pcap or pcapng, including looping, loss and reordering simulation
+- HTTP/3 support for client and server
+- Added libcurl as backend for GPAC downloader
+- QuickJS 2025, FFMPEG 8
+- Improbed GFIO (including file deletion)
 
 ## Media Formats
 - ISOBMFF external tracks support
-- Event Message Tracks
+- Event Message Tracks support
+- Improved support SCTE-35, id3, CC, timecodes and other markers
+- Improved HDR signaling support
+- IAMF support
+- Motion JPEG2000
+- AC-4 support
+- AVS3 support
 
-## Emscripten
-- Fixes in UI
-- Improved WASM support
+## MPEG-DASH & HLS
+- SSR support for L3D low latency, base64 encoding of init segments
+- HLS groups, IV injection
+- DASH/HLS: new `segcts` option to derive startNumber from first packet cts
+- mux time prft injection
+
+## Remote monitoring
+- A new WebSocket based remote monitoring UI is available for GPAC
+- WebSocket server for JS scripts
 
 ## Filters
 - DVB-I MABR FLUTE mux and demux
-- MABR (ROUTE/FLUTE) repair support
+- MABR (ROUTE/FLUTE) HTTP repair support with full or partial modes
+- MABR (ROUTE/FLUTE) on unicast
 - mediaserver.js HTTP gateway filter supporting MABR sources
-- avmix playlists now accept ipid:// urls to locate input pics, allowing to specify playlists independently from source URLs
-- SCTE-35, id3, and other markers improved support
-- Timecodes improvements
-- HDR improvements
-- IAMF support
-- MPEG-DASH: SSR support for L3D low latency
-- Motion JPEG2000
-- HTTP/3 client
-- ClosedCaptions improvements (split, encode)
-- TTML merging
+- avmix playlists now accept ipid:// urls to locate input pids, allowing to specify playlists independently from source URLs
+- ClosedCaptions encoder
+- TTML merger
+- flist: Playlist piping, DASH perdiod auto-switch signaling
+- pin: flush signaling upon broken pipe
+- M2TS: USAC support, non real-time NTP injection for TEMI, real-time regulation option for tssplit and tsgendts
+- dvb4linux is back (Terrestrial and Satelite including dibseqc)
+- reframer: time-aligned mode, time discontinuities handling
+- nhml: ability to process fragmented streams
+- bsrw: timecodes injection and rewriting
+- seiloader filter for SEI and AV1 OBUs
+- FFMPEG raw protocol support (use gpac for demux and mux)
 
-## Misc
-- Added packet reordering rule for netcap replay from file
-- Added libcurl as backend for GPAC downloader - http(s) downloads require -curl option to activate
+## Emscripten
+- Improved WASM support
+- Fixes in UI
+
+## Other
+- Improved Wiki: glossary, developer section, ...
 - Integration with GStreamer ([gpac-gst-plugin](https://github.com/gpac/gst-gpac-plugin))
-- More documentation: glossary, developer section, ...
+- Introduce unit tests in complement to the testsuite and various buildbot continuous checks
+- Many bug fixes and security patches
+
 
 #17/04/2024: GPAC 2.4
 

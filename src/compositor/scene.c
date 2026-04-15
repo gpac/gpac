@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -3188,6 +3188,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	//notify we found a new addon
 
 	if (! scene->root_od->parentscene) {
+		//auto-enable in test mode
 		if (gf_sys_is_test_mode()) {
 			addon->enabled = GF_TRUE;
 		} else {

@@ -907,9 +907,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	ctx->nb_playing = 1;
 	ctx->initial_play_forced = GF_TRUE;
 	if (ctx->repair_urls.nb_items > 0) {
-		u8 i;
-		if (ctx->repair<ROUTEIN_REPAIR_FULL)
-			ctx->repair = ROUTEIN_REPAIR_FULL;
+		u32 i;
+		ctx->repair = ROUTEIN_REPAIR_FULL;
 		for (i=0; i<ctx->repair_urls.nb_items; i++) {
 			routein_push_repair_server(ctx, ctx->repair_urls.vals[i], 0);
 		}
@@ -985,14 +984,14 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- strict: incomplete mdat boxes will be lost as well as preceding `moof` boxes\n"
 		"- full: HTTP-based repair of all lost packets"
 		, GF_PROP_UINT, "strict", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(repair_urls), "repair servers urls", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(repair_urls), "repair servers urls - if set, `repair` is set to `full`", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(max_sess), "max number of concurrent HTTP repair sessions", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(llmode), "enable low-latency access", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(dynsel), "dynamically enable and disable multicast groups based on their selection state", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(range_merge), "merge ranges in HTTP repair if distant from less than given amount of bytes", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(minrecv), "redownload full file in HTTP repair if received bytes is less than given percentage of file size, 0 means complete file redownload if any error", GF_PROP_UINT, "20", NULL, 0},
 	{ OFFS(riso), "advanced options for ISOBMFF HTTP repair\n"
-		"- none: use regular http repair\n"
+		"- none: use regular http repair (sequential repair)\n"
 		"- simple: first repair all non-mdat boxes then repair mdat in order\n"
 		"- partial: only repair all non-mdat moxes, leaving holes in mdat\n"
 		"- deps: same as simple and repair only samples depended upon by other samples\n"
@@ -1057,7 +1056,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"Note: The [-nbcached]() option is ignored in this mode.\n"
 	"\n"
 	"# File Repair\n"
-	"In case of losses or incomplete segment reception (during tune-in), the files are patched as follows:\n"
+	"In case of losses or incomplete segment reception (during tune-in or HTTP partial repair), the files are patched as follows:\n"
 	"- MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.\n"
 	"- ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in `free` boxes, except `mdat`:\n"
 	" - if `repair=simple`, `mdat` is kept if incomplete (broken file),\n"

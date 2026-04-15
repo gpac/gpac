@@ -895,7 +895,8 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 		fprintf(dump, "<RTPHintTrack trackID=\"%d\">\n", gf_isom_get_track_id(file, i+1));
 		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
-		fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
+		if (sdp && size)
+			fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		for (j=0; j<gf_isom_get_sample_count(file, i+1); j++) {
@@ -2148,6 +2149,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			dumper.file = the_file;
 			dumper.trackID = trackID;
 			dumper.dump_file = dump;
+
+			if (msubtype == GF_ISOM_SUBTYPE_MPEG4_CRYP)
+				gf_isom_get_original_format_type(the_file, i+1, 1, &msubtype);
 
 			e = GF_OK;
 			if (mtype == GF_ISOM_MEDIA_HINT) {
@@ -4186,7 +4190,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 				GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 				GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 				if (txt) {
-					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text);
+					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text ? txt->text  : "");
 					gf_isom_delete_text_sample(txt);
 				}
 				gf_bs_del(bs);

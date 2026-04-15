@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / FLAC reframer filter
@@ -150,7 +150,7 @@ static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 
 	rate = gf_ftell(stream);
 	gf_fclose(stream);
-	if (ctx->duration.num && !gf_sys_is_test_mode() ) {
+	if (ctx->duration.num) {
 		rate *= 8 * ctx->duration.den;
 		rate /= ctx->duration.num;
 		ctx->bitrate = (u32) rate;
@@ -689,12 +689,13 @@ restart:
 				}
 				if (last) break;
 			}
-			if (!dsi_end) {
+			if (!dsi_end || !hdr.sample_rate || ! hdr.block_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FLACDmx] invalid FLAC header\n"));
 				ctx->in_error = GF_TRUE;
 				ctx->flac_buffer_size = 0;
 				if (pck)
 					gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			ctx->ch_layout = hdr.channels;

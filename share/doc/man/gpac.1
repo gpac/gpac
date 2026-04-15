@@ -302,7 +302,7 @@ clean cache
 .TP
 .B \-js (string)
 .br
-specify javascript file to use as controller of filter session
+specify javascript file to use as controller of filter session (can be set multiple times for multiple scripts)
 .br
 .TP
 .B \-wc
@@ -388,9 +388,9 @@ disable source filter reassignment in PID graph resolution
 .br
 set scheduler mode
 .br
-* free: lock-free queues except for task list (default)
+* free: lock-free queues except for task list (default on most platforms)
 .br
-* lock: mutexes for queues when several threads
+* lock: mutexes for queues when several threads (default on arm64/aarch64)
 .br
 * freex: lock-free queues including for task lists (experimental)
 .br
@@ -1331,9 +1331,9 @@ disable source filter reassignment in PID graph resolution
 .br
 set scheduler mode
 .br
-* free: lock-free queues except for task list (default)
+* free: lock-free queues except for task list (default on most platforms)
 .br
-* lock: mutexes for queues when several threads
+* lock: mutexes for queues when several threads (default on arm64/aarch64)
 .br
 * freex: lock-free queues including for task lists (experimental)
 .br
@@ -1508,6 +1508,31 @@ rmt ws: certificate file in PEM format to use for TLS mode
 .B \-rmt-pkey (string)
 .br
 rmt ws: private key file in PEM format to use for TLS mode
+.br
+.TP
+.B \-userws-port (int, default: 6364)
+.br
+set user ws port
+.br
+.TP
+.B \-userws-localhost
+.br
+make userws ws only accepts localhost connection
+.br
+.TP
+.B \-userws-sleep (int, default: 10)
+.br
+set userws sleep (ms) between server updates
+.br
+.TP
+.B \-userws-cert (string)
+.br
+userws: certificate file in PEM format to use for TLS mode
+.br
+.TP
+.B \-userws-pkey (string)
+.br
+userws: private key file in PEM format to use for TLS mode
 .br
 .TP
 .B \-diso-nosize
@@ -5530,6 +5555,16 @@ VP9 Video
 VP10 Video
 .br
 .TP
+.B avsv|avs3
+.br
+AVS3 Video
+.br
+.TP
+.B avsa|avs3
+.br
+AVS3 Audio
+.br
+.TP
 .B mhas
 .br
 MPEG-H Audio
@@ -5746,7 +5781,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.5-DEV
+build: 26.03-DEV
 .br
 Copyright: (c) 2000-2024 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
 .br

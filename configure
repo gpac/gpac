@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2024 Telecom ParisTech
+#     (c) 2003-2026 Telecom Paris
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -74,6 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
+sched="free"
 check_stack_size="32768"
 debuginfo="no"
 sdl_path=""
@@ -95,6 +96,7 @@ static_bin="no"
 unit_tests="no"
 static_modules="no"
 lm_lib=""
+is_arm="no"
 has_directx="no"
 win32="no"
 mingw32="no"
@@ -242,7 +244,6 @@ push_feature "vtt" "WebVTT support"
 push_feature "route" "ROUTE (ATSC3) support"
 push_feature "qjs" "QuickJS support"
 push_feature "qjs-libc" "QuickJS libc module support"
-push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multithreaded modes)"
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
@@ -817,11 +818,20 @@ case "$cpu" in
             fi
         fi
         ;;
+    arm64)
+        cpu="arm64"
+        sched=lock
+        is_64="yes"
+        is_arm="yes"
+        ;;
     armv4l|arm)
         cpu="armv4l"
+        is_arm="yes"
         ;;
     aarch64)
+        is_arm="yes"
         cpu="aarch64"
+        sched=lock
         if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
             is_64="yes"
             PIC_CFLAGS="-fPIC -DPIC"
@@ -969,7 +979,7 @@ EOF
 
     FreeBSD)
         make="gmake"
-        LDFLAGS="$LDFLAGS -export-dynamic"
+        LDFLAGS="$LDFLAGS -rdynamic"
         PTHREAD_CFLAGS=-pthread
         PTHREAD_LDFLAGS=-pthread
         freebsd="yes"
@@ -1764,8 +1774,7 @@ int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return
 config_package libcaca "caca" "" "-lcaca" "" '#include <caca.h>
 int main( void ) { caca_canvas_t *canvas = caca_create_canvas(20, 20); return 0; }'
 
-
-config_package mpeghdec "mpeghdec" "" "-lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFormatConverter -lgVBAPRenderer -lDRCdec -lUIManager -lSYS -lFDK -lm" "" '
+config_package mpeghdec "mpeghdec" "" "-lmpeghdec  -lm" "" '
 #ifndef bool
 typedef int bool;
 #endif
@@ -2476,10 +2485,6 @@ if test "$disable_depth_compositor" = "no" ; then
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
 fi
 
-if test "$disable_qjs_stack" = "no" ; then
-    echo "#define GPAC_QJS_STACK_CHECK" >> $TMPH
-fi
-
 if test "$disable_doc" = "yes" ; then
     echo "Doc disabled"
     echo "#define GPAC_DISABLE_DOC" >> $TMPH
@@ -2731,6 +2736,9 @@ if test "$bigendian" = "yes" ; then
     echo "IS_BIGENDIAN=yes" >> config.mak
     echo "#define GPAC_BIG_ENDIAN" >> $TMPH
 fi
+if test "$is_arm" = "yes" ; then
+    echo "#define GPAC_CONFIG_ARM" >> $TMPH
+fi
 echo "EXTRALIBS=$extralibs" >> config.mak
 echo "LIBGPAC_CFLAGS=$libgpac_cflags" >> config.mak
 echo "LIBGPAC_LDFLAGS=$libgpac_extralibs" >> config.mak
@@ -2813,6 +2821,9 @@ else
     echo "EXE_SUFFIX=.exe" >> config.mak
     echo "DYN_LIB_SUFFIX=.dll" >> config.mak
 fi
+
+
+echo "#define GPAC_SCHED_DEFAULT \"$sched\"" >> $TMPH
 
 
 echo "INSTFLAGS=$INSTFLAGS" >> config.mak

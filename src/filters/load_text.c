@@ -267,12 +267,13 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 	if (uni_type>1) {
 		const u16 *sptr;
 		char szUTF[1024];
-		u32 read = (u32) gf_fread(szUTF, 1023, test);
+		u32 read = (u32) gf_fread(szUTF, 1022, test);
 		if ((s32) read < 0) {
 			gf_fclose(test);
 			return GF_IO_ERR;
 		}
 		szUTF[read]=0;
+		szUTF[read+1]=0;
 		sptr = (u16*)szUTF;
 		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
@@ -2757,11 +2758,15 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			continue;
 		}
 		while (szLine[i+1] && szLine[i+1]!='}') {
+			if (i>=GF_ARRAY_LENGTH(szTime)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expected \"}\" before %d chars after \"{\"\n", line, GF_ARRAY_LENGTH(szTime)));
+				szTime[0] = 0;
+				goto exit;
+			}
 			szTime[i] = szLine[i+1];
 			i++;
-			if (i>=40) break;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		ctx->start = atoi(szTime);
 		if (ctx->start < ctx->end) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, ctx->start, ctx->end));
@@ -2774,11 +2779,15 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			continue;
 		}
 		while (szLine[i+1+j] && szLine[i+1+j]!='}') {
+			if (i>=GF_ARRAY_LENGTH(szTime)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expected \"}\" before %d chars after \"{\"\n", line, GF_ARRAY_LENGTH(szTime)));
+				szTime[0] = 0;
+				goto exit;
+			}
 			szTime[i] = szLine[i+1+j];
 			i++;
-			if (i>=40) break;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		ctx->end = atoi(szTime);
 		j+=i+2;
 
@@ -2823,6 +2832,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			return GF_OK;
 		}
 	}
+exit:
 	/*final flush*/
 	if (ctx->end && !ctx->noflush) {
 		samp = gf_isom_new_text_sample();
@@ -2965,7 +2975,10 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 
 		memset(szText, 0, 2048);
 		i=j=0;
+		u32 start_p_len = strlen(start_p);
 		while (1) {
+			if (i>=start_p_len)
+				break;
 			char c = start_p[i];
 			if (c == 0) {
 				if (j >= MAX_LINE_SIZE) {
@@ -3829,6 +3842,11 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 							if (!strcmp(style->name, "style")) break;
 						}
 						if (style) {
+							if (nb_styles >= GF_ARRAY_LENGTH(styles)) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTLoad] Too many style blocks, will ignore.\n"));
+								nb_styles = GF_ARRAY_LENGTH(styles)-1;
+								continue;
+							}
 							char *cur;
 							s32 start=0;
 							char css_style[1024], css_val[1024];
@@ -3950,6 +3968,11 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 						while ((text=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							if (!text->type) {
 								if (!strcmp(text->name, "marker")) {
+									if (nb_marks >= GF_ARRAY_LENGTH(marks)) {
+										GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTLoad] Too many marker blocks, will ignore.\n"));
+										nb_marks = GF_ARRAY_LENGTH(marks)-1;
+										continue;
+									}
 									u32 z;
 									memset(&marks[nb_marks], 0, sizeof(Marker));
 									marks[nb_marks].pos = nb_chars+txt_len;

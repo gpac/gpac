@@ -930,6 +930,9 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 #endif
 	}
 
+	if (ptr-pck->data >= pck->data_len || len > (pck->data_len-(ptr-pck->data))) {
+		return;
+	}
 
 	dst_pck = gf_filter_pck_new_alloc(opid, len, &data);
 	if (!dst_pck) return;

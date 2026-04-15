@@ -29,7 +29,7 @@ LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdev
 LOCAL_LDLIBS    += -llog -lOpenMAXAL -lmediandk -landroid
 
 #mpegh
-LOCAL_LDLIBS    += -lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFormatConverter -lgVBAPRenderer -lDRCdec -lUIManager -lSYS -lFDK -lm
+LOCAL_LDLIBS    += -lmpeghdec -lm
 
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO

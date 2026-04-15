@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -946,7 +946,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	const char *nal_name;
 
 	if (full_bs_dump<INSPECT_ANALYZE_BS) {
-		if (!gf_sys_is_test_mode() && full_bs_dump)
+		if (full_bs_dump)
 			full_parse = GF_TRUE;
 		full_bs_dump = 0;
 	} else {
@@ -1219,15 +1219,12 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			inspect_printf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_SLICE_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
 			inspect_printf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
 			inspect_printf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
-
-			if (!gf_sys_is_test_mode()) {
-				inspect_printf(dump, " redundant_pic_cnt=\"%d\"", hevc->s_info.redundant_pic_cnt);
-				inspect_printf(dump, " slice_qp_delta=\"%d\"", hevc->s_info.slice_qp_delta);
-				inspect_printf(dump, " slice_segment_address=\"%d\"", hevc->s_info.slice_segment_address);
-				inspect_printf(dump, " slice_type=\"%d\"", hevc->s_info.slice_type);
-			}
+			inspect_printf(dump, " redundant_pic_cnt=\"%d\"", hevc->s_info.redundant_pic_cnt);
+			inspect_printf(dump, " slice_qp_delta=\"%d\"", hevc->s_info.slice_qp_delta);
+			inspect_printf(dump, " slice_segment_address=\"%d\"", hevc->s_info.slice_segment_address);
+			inspect_printf(dump, " slice_type=\"%d\"", hevc->s_info.slice_type);
 		}
-		if (!gf_sys_is_test_mode() && (type < GF_HEVC_NALU_VID_PARAM) && hevc->s_info.nb_reference_pocs) {
+		if ((type < GF_HEVC_NALU_VID_PARAM) && hevc->s_info.nb_reference_pocs) {
 			u32 i;
 			inspect_printf(dump, " POC=\"%d\" referencePOCs=\"", hevc->s_info.poc);
 			for (i=0; i<hevc->s_info.nb_reference_pocs; i++) {
@@ -1405,7 +1402,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				gf_bs_set_logger(bs, NULL, NULL);
 		}
 
-		if (!gf_sys_is_test_mode() && (type <= GF_VVC_NALU_SLICE_GDR) && vvc->s_info.nb_reference_pocs) {
+		if ((type <= GF_VVC_NALU_SLICE_GDR) && vvc->s_info.nb_reference_pocs) {
 			u32 i;
 			inspect_printf(dump, " POC=\"%d\" referencePOCs=\"", vvc->s_info.poc);
 			for (i=0; i<vvc->s_info.nb_reference_pocs; i++) {
@@ -2755,16 +2752,33 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
 		return;
+	//set by ffmpeg demux but not available on all platforms, skip in test mode
+	case GF_PROP_PID_IS_DEFAULT:
+	//these properties can vary based on run time or cpu arch, skip in test mode
 	case GF_PROP_PCK_SENDER_NTP:
 	case GF_PROP_PCK_RECEIVER_NTP:
 	case GF_PROP_PCK_UTC_TIME:
 	case GF_PROP_PCK_MEDIA_TIME:
-	case GF_PROP_PID_CENC_HAS_ROLL:
-	case GF_PROP_PID_DSI_SUPERSET:
-	case GF_PROP_PID_PREMUX_STREAM_TYPE:
-	case GF_PROP_PID_DURATION_AVG:
+	//these properties contain file system specific info, skip in test mode
+	case GF_PROP_PID_FILEPATH:
+	case GF_PROP_PID_URL:
+	case GF_PROP_PID_MUX_SRC:
 		if (gf_sys_is_test_mode())
 			return;
+		break;
+
+	//special case for duration and bitrate: if source is not local AND not isobmf, these properties are likely estimated based
+	//on the amount of received data which can vary between each execution - in this case, do not dump property
+	case GF_PROP_PID_DURATION:
+	case GF_PROP_PID_BITRATE:
+	case GF_PROP_PID_DURATION_AVG:
+		if (gf_sys_is_test_mode()) {
+			const GF_PropertyValue *prop = gf_filter_pid_get_property(pctx->src_pid, GF_PROP_PID_ISOM_MBRAND);
+			if (prop) break;
+			prop = gf_filter_pid_get_property(pctx->src_pid, GF_PROP_PID_URL);
+			if (prop && prop->value.string && strnicmp(prop->value.string, "file://", 7) && strstr(prop->value.string, "://"))
+				return;
+		}
 		break;
 	}
 
@@ -2843,12 +2857,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		return;
 	}
 
-	if (gf_sys_is_test_mode() || ctx->test) {
+	if (ctx->test) {
 		switch (p4cc) {
-		case GF_PROP_PID_FILEPATH:
-		case GF_PROP_PID_URL:
-		case GF_PROP_PID_MUX_SRC:
-			return;
 		case GF_PROP_PID_FILE_CACHED:
 		case GF_PROP_PID_DURATION:
 			if ((ctx->test==INSPECT_TEST_NETWORK) || (ctx->test==INSPECT_TEST_NETX))
@@ -2861,13 +2871,15 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				return;
 			break;
 		case GF_PROP_PID_BITRATE:
-			if (ctx->test==INSPECT_TEST_NOBR)
+			if ((ctx->test==INSPECT_TEST_NOBR) || (ctx->test==INSPECT_TEST_ENCX))
 				return;
+			break;
 		case GF_PROP_PID_MEDIA_DATA_SIZE:
 		case GF_PROP_PID_MAXRATE:
 		case GF_PROP_PID_AVG_FRAME_SIZE:
 		case GF_PROP_PID_MAX_FRAME_SIZE:
 		case GF_PROP_PID_DBSIZE:
+		case GF_PROP_PID_ISOM_STSD_TEMPLATE:
 			if (ctx->test==INSPECT_TEST_ENCX)
 				return;
 			break;
@@ -2878,15 +2890,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				return;
 			break;
 
-		case GF_PROP_PID_ISOM_TREX_TEMPLATE:
-		case GF_PROP_PID_ISOM_STSD_TEMPLATE:
-		case GF_PROP_PID_ISOM_STSD_TEMPLATE_IDX:
-		case GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES:
-			//TODO once all OK: remove this test and regenerate all hashes
-			if (gf_sys_is_test_mode())
-				return;
 		default:
-			if (gf_sys_is_test_mode() && (att->type==GF_PROP_POINTER) )
+			if ((att->type==GF_PROP_POINTER) && gf_sys_is_test_mode())
 				return;
 			break;
 		}
@@ -2907,7 +2912,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			if ((att->type==GF_PROP_UINT_LIST) || (att->type==GF_PROP_4CC_LIST)) {
 				for (k=0; k < att->value.uint_list.nb_items; k++) {
 					if (k) inspect_printf(dump, ", ");
-					if ((att->type==GF_PROP_4CC_LIST) && ! gf_sys_is_test_mode()) {
+					if ((att->type==GF_PROP_4CC_LIST)) {
 						inspect_printf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
 					} else {
 						inspect_printf(dump, "%d", att->value.uint_list.vals[k]);
@@ -2955,7 +2960,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			u32 k;
 			for (k=0; k < att->value.uint_list.nb_items; k++) {
 				if (k) inspect_printf(dump, ", ");
-				if ((att->type==GF_PROP_4CC_LIST) && ! gf_sys_is_test_mode()) {
+				if ((att->type==GF_PROP_4CC_LIST)) {
 					inspect_printf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
 				} else {
 					inspect_printf(dump, "%d", att->value.uint_list.vals[k]);
@@ -2970,7 +2975,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		} else {
 			inspect_printf(dump, "%s", gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data) );
 		}
-		if ((p4cc==GF_PROP_PID_DURATION) && !gf_sys_is_test_mode()) {
+		if (p4cc==GF_PROP_PID_DURATION) {
 			format_duration(att->value.lfrac.num, att->value.lfrac.den, dump, GF_TRUE);
 		}
 		inspect_printf(dump, "\n");
@@ -4124,10 +4129,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 	if (p) {
-		if (!gf_sys_is_test_mode())
-			inspect_printf(dump, " %u ID %d", pid_idx, p->value.uint);
-		else
-			inspect_printf(dump, " %d", p->value.uint);
+		inspect_printf(dump, " %u ID %d", pid_idx, p->value.uint);
 	}
 
 	if (is_remove) {
@@ -4286,7 +4288,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		HEVCState *hvcs = NULL;
 		GF_HEVCConfig *hvcc=NULL;
 		if (dsi) {
-			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (!dsi_enh && (codec_id==GF_CODECID_LHVC)) ? GF_TRUE : GF_FALSE);
 			if (dsi_enh) {
 				GF_SAFEALLOC(hvcs, HEVCState);
 				for (i=0; i<gf_list_count(hvcc->param_array); i++) {
@@ -4585,7 +4587,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODEC);
-		if (!p &&!gf_sys_is_test_mode()) {
+		if (!p) {
 			char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 			szCodec[0] = 0;
 			if (gf_filter_pid_get_rfc_6381_codec_string(pid, szCodec, GF_FALSE, GF_FALSE, NULL, NULL)==GF_OK) {
@@ -5477,8 +5479,6 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	pctx->codec_id = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
 	pctx->service_id = p ? p->value.uint : 0;
-	if (gf_sys_is_test_mode())
-		pctx->service_id = 0;
 
 	if (!ctx->buffer) {
 		pctx->buffer_done = GF_TRUE;
@@ -5502,7 +5502,7 @@ static GF_Err inspect_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//- tmcd dump
 	//- props with no analyze
 	if ((ctx->fmt && strstr(ctx->fmt, "$tmcd$"))
-		|| (!ctx->analyze && ctx->props && !gf_sys_is_test_mode() )
+		|| (!ctx->analyze && ctx->props)
 	) {
 		switch (pctx->codec_id) {
 		case GF_CODECID_AVC:
@@ -5707,8 +5707,8 @@ GF_Err inspect_initialize(GF_Filter *filter)
 		ctx->mode = INSPECT_MODE_REFRAME;
 	}
 
-
-	if (ctx->xml || ctx->analyze || gf_sys_is_test_mode() || ctx->fmt) {
+	//in test mode use full dump to filter properties which could vary across runs/machines/...
+	if (ctx->xml || ctx->analyze || ctx->fmt || gf_sys_is_test_mode() ) {
 		ctx->full = GF_TRUE;
 	}
 	if (!ctx->full && (ctx->mode!=INSPECT_MODE_RAW)) {

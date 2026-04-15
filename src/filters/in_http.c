@@ -228,6 +228,7 @@ static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_Err e;
+	char *prev_url = NULL;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid)) return GF_FALSE;
@@ -296,7 +297,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Switch from %s to %s\n", gf_file_basename(ctx->src), gf_file_basename(evt->seek.source_switch) ));
-			if (ctx->src) gf_free(ctx->src);
+
+			prev_url = ctx->src;
 			ctx->src = gf_strdup(evt->seek.source_switch);
 		} else {
 			if (!ctx->is_end) {
@@ -321,6 +323,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//handle isobmff:// url
 		if (!strncmp(ctx->src, "isobmff://", 10)) {
 			GF_FilterPacket *pck;
+			if (prev_url) gf_free(prev_url);
+
 			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 			ctx->is_end = GF_TRUE;
 			ctx->prev_was_init_segment = GF_TRUE;
@@ -346,6 +350,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->nb_read = 0;
 			ctx->last_state = GF_OK;
+			if (prev_url) gf_free(prev_url);
 			return GF_TRUE;
 		}
 		ctx->last_state = GF_OK;
@@ -378,9 +383,10 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			httpin_notify_error(filter, ctx, e);
 			ctx->is_end = GF_TRUE;
 			if (ctx->src) gf_free(ctx->src);
-			ctx->src = NULL;
+			ctx->src = prev_url;
 			return GF_TRUE;
 		}
+		if (prev_url) gf_free(prev_url);
 		ctx->nb_read = ctx->file_size = 0;
 		ctx->do_reconfigure = GF_TRUE;
 		ctx->is_end = GF_FALSE;
@@ -773,7 +779,7 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	char *help = gf_strdup(HTTPInRegister.help);
 	gf_dynstrcat(&help, "\n## libCURL Support\n", NULL);
 	gf_dynstrcat(&help, "This build supports using libcurl for HTTP and other protocol downloads."\
-		" For http(s), the default behaviour is to use GPAC and can be overriden using the option [-curl](core).\n", NULL);
+		" For http(s), the default behaviour is to use GPAC and can be overridden using the option [-curl](core).\n", NULL);
 	gf_dynstrcat(&help, "Session parameters can be set using the `curl` configuration section, eg `-cfg=curl:FTPPORT=222`.\n", NULL);
 	gf_dynstrcat(&help, "The key `curl:trace=yes` can be set to log all CURL activity using logs `http@debug`.\n\n", NULL);
 	gf_dynstrcat(&help, "Libcurl version: ", NULL);
