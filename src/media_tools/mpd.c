@@ -5089,7 +5089,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 
 			if (segment->key_url && out_key_url) {
 				//if ':', key URL is absolute or urn:
-				if (strchr(segment->key_url+2, ':'))
+				if (strlen(segment->key_url) > 2 && strchr(segment->key_url+2, ':'))
 					*out_key_url = gf_strdup(segment->key_url);
 				//otherwise key url is relative to url (base url)
 				else
