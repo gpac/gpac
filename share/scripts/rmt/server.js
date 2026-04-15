@@ -284,6 +284,9 @@ function SessionStatsManager(client) {
       this.client.client.send(serialized);
     }
   };
+  this.cleanup = function() {
+    this.isSubscribed = false;
+  };
   this.handleSessionEnd = function() {
     this.unsubscribe();
   };
@@ -417,8 +420,7 @@ function on_all_connected(cb) {
 
 // server/JSClient/Filters/PID/PidDataCollector.js
 function PidDataCollector() {
-  this._lastProps = {};
-  this.collectInputPids = function(filter) {
+  this.collectInputPids = function(filter, withPidProperties) {
     const ipids = {};
     for (let i = 0; i < filter.nb_ipid; i++) {
       const pid = {};
@@ -454,15 +456,12 @@ function PidDataCollector() {
         pid.stats.max_process_time = stats.max_process_time;
         pid.stats.total_process_time = stats.total_process_time;
       }
-      const allProps = {};
-      filter.ipid_props(i, function(pname, ptype, pval) {
-        allProps[pname] = { name: pname, type: ptype, value: pval };
-      });
-      const propsKey = `${filter.idx}_${i}`;
-      const propsJson = JSON.stringify(allProps);
-      if (propsJson !== this._lastProps[propsKey]) {
+      if (withPidProperties) {
+        const allProps = {};
+        filter.ipid_props(i, function(pname, ptype, pval) {
+          allProps[pname] = { name: pname, type: ptype, value: pval };
+        });
         pid.properties = allProps;
-        this._lastProps[propsKey] = propsJson;
       }
       const key = pid.name || `ipid_${i}`;
       ipids[key] = pid;
@@ -628,28 +627,29 @@ function FilterManager(client) {
         }
         switch (sub.pidScope) {
           case "ipid":
-            payload.ipids = this.pidDataCollector.collectInputPids(fObj);
+            payload.ipids = this.pidDataCollector.collectInputPids(fObj, true);
             break;
           case "opid":
             payload.opids = this.pidDataCollector.collectOutputPids(fObj);
             break;
           case "both":
-            payload.ipids = this.pidDataCollector.collectInputPids(fObj);
+            payload.ipids = this.pidDataCollector.collectInputPids(fObj, true);
             payload.opids = this.pidDataCollector.collectOutputPids(fObj);
             break;
           default:
             break;
         }
-        return JSON.stringify({
-          message: "filter_stats",
-          ...payload
-        });
+        return JSON.stringify({ message: "filter_stats", ...payload });
       });
       if (serialized && this.client.client) {
         this.client.client.send(serialized);
         this.lastSentByFilter[idxStr] = now;
       }
     }
+  };
+  this.cleanup = function() {
+    this.filterSubscriptions = {};
+    this.lastSentByFilter = {};
   };
   this.handleSessionEnd = function() {
     this.filterSubscriptions = {};
@@ -714,6 +714,9 @@ function CpuStatsManager(client) {
       this.client.client.send(serialized);
     }
     this.lastSent = now;
+  };
+  this.cleanup = function() {
+    this.isSubscribed = false;
   };
   this.handleSessionEnd = function() {
     this.unsubscribe();
@@ -928,15 +931,10 @@ function JSClient(id, client, all_clients2, ensureMonitoringLoop2) {
   };
   this.cleanup = function() {
     try {
-      if (this.logManager) {
-        this.logManager.forceUnsubscribe();
-      }
-      if (this.sessionManager && typeof this.sessionManager.cleanup === "function") {
-        this.sessionManager.cleanup();
-      }
-      if (this.cpuStatsManager && typeof this.cpuStatsManager.cleanup === "function") {
-        this.cpuStatsManager.cleanup();
-      }
+      this.logManager.forceUnsubscribe();
+      this.sessionStatsManager.cleanup();
+      this.cpuStatsManager.cleanup();
+      this.filterManager.cleanup();
     } catch (error) {
       console.error(`JSClient ${this.id}: Error during cleanup:`, error);
     }
@@ -1047,6 +1045,28 @@ session.set_del_filter_fun((f) => {
   if (idx >= 0) all_filters.splice(idx, 1);
   if (f.itag == "NODISPLAY") return;
   onGraphEvent();
+});
+var pidReconfigured = /* @__PURE__ */ new Set();
+session.set_filter_pid_modified_fun((f) => {
+  pidReconfigured.add(f.idx);
+  if (pidReconfigured.size > 1) return;
+  session.post_task(() => {
+    const msg = JSON.stringify({ message: "filter_pid_reconfigured", indexes: [...pidReconfigured] });
+    pidReconfigured.clear();
+    for (const c of all_clients) if (c.client) c.client.send(msg);
+    return false;
+  });
+});
+var argUpdated = /* @__PURE__ */ new Set();
+session.set_filter_arg_updated_fun((f) => {
+  argUpdated.add(f.idx);
+  if (argUpdated.size > 1) return;
+  session.post_task(() => {
+    const msg = JSON.stringify({ message: "filter_arg_updated", indexes: [...argUpdated] });
+    argUpdated.clear();
+    for (const c of all_clients) if (c.client) c.client.send(msg);
+    return false;
+  });
 });
 sys5.rmt_on_new_client = function(client) {
   let js_client = new JSClient(++cid, client, all_clients, ensureMonitoringLoop);
