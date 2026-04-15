@@ -145,11 +145,13 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMC
 	reserved_test = gf_bs_read_int(bs,2);
 	if (reserved_test != 3) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] test reserved flag is not at 3. Corrupted section, abording processing\n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	dsmcc->dsmcc_section_length = gf_bs_read_int(bs,12);
 	if (dsmcc->dsmcc_section_length > DSMCC_SECTION_LENGTH_MAX) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] section length should not exceed 4096. Wrong section, abording processing \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	dsmcc->table_id_extension = gf_bs_read_int(bs,16);
@@ -160,12 +162,14 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMC
 	dsmcc->version_number = gf_bs_read_int(bs,5);
 	if(dsmcc->version_number != 0 &&(dsmcc->table_id == GF_M2TS_TABLE_ID_DSM_CC_ENCAPSULATED_DATA || dsmcc->table_id == GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] Version number should be 0 for Encapsulated Data or UN Message, abording processing \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 
 	dsmcc->current_next_indicator = gf_bs_read_int(bs,1);
 	if (!dsmcc->current_next_indicator) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process DSMCC] current next indicator should be at 1 \n"));
+		gf_bs_del(bs);
 		return GF_CORRUPTED_DATA;
 	}
 	dsmcc->section_number = gf_bs_read_int(bs,8);
@@ -216,6 +220,7 @@ GF_Err gf_m2ts_process_dsmcc(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2TS_DSMC
 
 	//gf_m2ts_dsmcc_extract_info(ts,dsmcc);
 	gf_m2ts_dsmcc_section_delete(dsmcc);
+	gf_bs_del(bs);
 
 	return GF_OK;
 }
@@ -481,7 +486,7 @@ static GF_Err gf_m2ts_dsmcc_process_message_header(GF_M2TS_DSMCC_MESSAGE_DATA_HE
 		MessageHeader->DsmccAdaptationHeader = (GF_M2TS_DSMCC_ADAPTATION_HEADER*)gf_calloc(1, sizeof(GF_M2TS_DSMCC_ADAPTATION_HEADER));
 		MessageHeader->DsmccAdaptationHeader->adaptationType = gf_bs_read_int(bs,8);
 
-		MessageHeader->DsmccAdaptationHeader->adaptationDataByte = (char*)gf_calloc(MessageHeader->adaptationLength-1,sizeof(char));
+		MessageHeader->DsmccAdaptationHeader->adaptationDataByte = (char*)gf_calloc(MessageHeader->adaptationLength,sizeof(char));
 		gf_bs_read_data(bs,MessageHeader->DsmccAdaptationHeader->adaptationDataByte,(u32)(MessageHeader->adaptationLength));
 
 	}
@@ -1665,6 +1670,9 @@ static void dmscc_delete_dir(GF_M2TS_DSMCC_DIR* Dir) {
 
 static void dmscc_delete_servicegateway(GF_M2TS_DSMCC_SERVICE_GATEWAY* Servicegateway) {
 
+	if (!Servicegateway)
+		return;
+
 	u32 nb_file, nb_dir,i;
 
 	if(Servicegateway->name) {
@@ -1696,13 +1704,15 @@ void gf_m2ts_delete_dsmcc_overlord(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord)
 		dsmcc_delete_module(module);
 	}
 	gf_list_del(dsmcc_overlord->dsmcc_modules);
+	dsmcc_overlord->dsmcc_modules = NULL;
 
 	nb_module = gf_list_count(dsmcc_overlord->Unprocessed_module);
 	for(i=0; i<nb_module; i++) {
 		GF_M2TS_DSMCC_MODULE* module = (GF_M2TS_DSMCC_MODULE*)gf_list_get(dsmcc_overlord->Unprocessed_module,i);
 		dsmcc_delete_module(module);
 	}
-	gf_list_del(dsmcc_overlord->dsmcc_modules);
+	gf_list_del(dsmcc_overlord->Unprocessed_module);
+	dsmcc_overlord->Unprocessed_module = NULL;
 	dmscc_delete_servicegateway(dsmcc_overlord->ServiceGateway);
 
 	if(dsmcc_overlord->root_dir) {
