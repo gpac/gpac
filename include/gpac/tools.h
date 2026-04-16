@@ -2586,10 +2586,6 @@ Bool gf_creds_check_membership(const char *username, const char *users, const ch
 
 //! @cond Doxygen_Suppress
 
-#ifdef GPAC_DISABLE_RMTWS
-#define RMT_ENABLED 0
-#endif
-
 #include <gpac/rmt_ws.h>
 
 //! @endcond
