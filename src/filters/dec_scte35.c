@@ -420,7 +420,7 @@ static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
 	}
 }
 
-static Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr)
+Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr)
 {
 	Bool ret = GF_FALSE;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);

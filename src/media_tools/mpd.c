@@ -3592,22 +3592,28 @@ static void gf_mpd_print_event_stream(FILE *out, GF_MPD_EventStream *event_strea
 
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<EventStream schemeIdUri=\"%s\" timescale=\"%u\">", event_stream->scheme_id_uri, event_stream->timescale);
+	gf_mpd_lf(out, indent);
 
 	while ( (evt = (GF_MPD_EventStreamEntry*) gf_list_enum(event_stream->entries, &i)) ) {
 		gf_mpd_nl(out, indent+1);
 		gf_fprintf(out, "<Event presentationTime=\"%llu\" duration=\"%llu\" id=\"%d\">", evt->presentation_time, evt->duration, evt->id);
+		gf_mpd_lf(out, indent+1);
 
 		gf_mpd_nl(out, indent+2);
 		gf_fprintf(out, "<Signal xmlns=\"%s\">", evt->xmlns);
+		gf_mpd_lf(out, indent+2);
 
 		gf_mpd_nl(out, indent+3);
 		gf_fprintf(out, "<Binary>%s</Binary>", evt->message);
+		gf_mpd_lf(out, indent+3);
 
 		gf_mpd_nl(out, indent+2);
 		gf_fprintf(out, "</Signal>");
+		gf_mpd_lf(out, indent+2);
 
 		gf_mpd_nl(out, indent+1);
 		gf_fprintf(out, "</Event>");
+		gf_mpd_lf(out, indent+1);
 	}
 
 	gf_mpd_nl(out, indent);

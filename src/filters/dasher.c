@@ -151,6 +151,14 @@ GF_OPT_ENUM (DasherWaitLastPktCtrl,
 	DASHER_SEGSYNC_AUTO,
 );
 
+// DASH SCTE-35 (out-of-band)
+GF_OPT_ENUM (DasherDashScte35Mode,
+	//not implemented: DASHER_SCTE35_DASH_XML,
+	DASHER_SCTE35_DASH_XML_BIN,
+	DASHER_SCTE35_DASH_EVTE,
+	DASHER_SCTE35_DASH_NONE,
+);
+
 // Index mode as used from a GHI (GPAC HTTP Streaming index) demuxer
 enum
 {
@@ -246,6 +254,7 @@ typedef struct
 	GF_DashAbsoluteURLMode hls_absu;
 	DasherWaitLastPktCtrl seg_sync;
 	Bool hls_ap;
+	DasherDashScte35Mode scte35;
 
 	//internal
 	Bool in_error;
@@ -4004,9 +4013,19 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_set_source(ds->dst_filter, ttml_agg, szSRC);
 	}
 
-	//inject scte35dec filter
-	if (ctx->evte_agg && (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE))
-		dasher_inject_scte35_processor(filter, ds, szSRC);
+	// SCTE-35
+	if (ctx->evte_agg && (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE)) {
+		// DASH SCTE-35
+		if (ctx->do_m3u8)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option used with HLS is likely not supported by your player\n"));
+
+		if (ctx->scte35 == DASHER_SCTE35_DASH_EVTE) {
+			//inject scte35dec filter
+			dasher_inject_scte35_processor(filter, ds, szSRC);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option requires the use of event tracks (:scte35=evte): ignoring\n"));
+		}
+	}
 }
 
 static void dasher_set_content_components(GF_DashStream *ds)
@@ -9659,6 +9678,66 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 	}
 }
 
+static GF_Err dasher_handle_scte35(GF_FilterPacket *pck, GF_List *event_streams)
+{
+	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+	if (!emsg) return GF_OK;
+
+	//check if we already have an event stream
+	GF_MPD_EventStream *es = NULL;
+	u32 esi = 0;
+	while ( (es = (GF_MPD_EventStream*) gf_list_enum(event_streams, &esi)) ) {
+		if (!strcmp(es->scheme_id_uri, "urn:scte:scte35:2014:xml+bin"))
+			break;
+		else
+			es = NULL;
+	}
+
+	if (!es) {
+		GF_SAFEALLOC(es, GF_MPD_EventStream);
+		es->scheme_id_uri = gf_strdup("urn:scte:scte35:2014:xml+bin");
+		if (!es->scheme_id_uri) goto fail;
+		es->entries = gf_list_new();
+		if (!es->entries) goto fail;
+		gf_list_add(event_streams, es);
+	}
+
+	GF_MPD_EventStreamEntry *evt;
+	GF_SAFEALLOC(evt, GF_MPD_EventStreamEntry);
+	if (!evt) goto fail;
+	evt->xmlns = gf_strdup("http://www.scte.org/schemas/35/2016");
+	if (!evt->xmlns) goto fail;
+	gf_list_add(es->entries, evt);
+
+	Bool needs_idr = GF_FALSE;
+	u64 dur = 0;
+	Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr);
+	if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+		evt->duration = (u32)dur;
+		es->timescale = gf_filter_pck_get_timescale(pck);
+
+		size_t sz = 2*emsg->value.data.size + 3;
+		evt->message = gf_malloc(sizeof(char) * sz);
+		if (evt->message) {
+			sz = gf_base64_encode(emsg->value.data.ptr, emsg->value.data.size, evt->message, sz);
+			evt->message[sz] = 0;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Allocation failure for base64 SCTE35 event"));
+		}
+
+		return GF_OK;
+	}
+
+fail:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Failed allocation in SCTE35 event, skipping\n"));
+	gf_free(es->entries);
+	gf_free(es->scheme_id_uri);
+	gf_free(es);
+	return GF_OUT_OF_MEM;
+}
+
+
+
 static GF_Err dasher_process(GF_Filter *filter)
 {
 	u32 i, count, nb_init, has_init, nb_reg_done;
@@ -10055,6 +10134,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 				sap_type = 0;
 
 			pcont_cts = cts;
+
+			//out-of-band events
+			if (ctx->scte35 != DASHER_SCTE35_DASH_NONE) {
+				GF_Err e = dasher_handle_scte35(pck, ds->period->period->event_streams);
+				if (e) return e;
+			}
 
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
@@ -11982,6 +12067,8 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(scte35), "control SCTE-35 signalling in MPD\n", GF_PROP_UINT, "xml+bin", "xml+bin|evte|none", GF_FS_ARG_HINT_EXPERT},
+	//{ OFFS(hls_scte35), "control SCTE-35 signalling in M3U8", GF_PROP_UINT, "cues", "cues|daterange|oatcls|splicepoint", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -12220,6 +12307,7 @@ GF_FilterRegister DasherRegister = {
 "Inband events syntax is a list of triplets {scheme_id_uri,value,stream_type} separated by '@'.\n"
 "EX gpac -i SRC -o dash.mpd::inband_event=https://aomedia.org/emsg/ID3@https://aomedia.org/emsg/ID3@audio,https://aomedia.org/emsg/ID3@www.nielsen.com:id3:v1@audio\n"
 "The doubled colon (::) is used to avoid escaping the colons in the nielsen.com value.\n"
+"\n"
 "## Batch Operations\n"
 "The segmentation can be performed in multiple calls using a DASH context set with [-state]().\n"
 "Between calls, the PIDs are reassigned by checking that the PID ID match between the calls and:\n"
