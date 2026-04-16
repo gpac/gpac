@@ -35,7 +35,7 @@ unittest(mpd_event_streams)
 	assert_equal(gf_list_count(es->entries), 2, "%u");
 
     GF_MPD_EventStreamEntry *entry = gf_list_get(es->entries, 1);
-    assert_equal(entry->presentation_time, 1765533732480ULL, LLU);
+    assert_equal(entry->presentation_time, 1765533732480LL, LLD);
     assert_equal(entry->duration, 38400, "%u");
     assert_equal(entry->id, 14596013, "%u");
     assert_equal_str(entry->message, "/DAgAAAAAAAAAP/wDwUA3retf//+ADS8AMAAAAAAAORhJCQ=");
