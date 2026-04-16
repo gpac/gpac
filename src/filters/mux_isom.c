@@ -5412,7 +5412,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (!strncmp(pname, "sai_", 4)) {
 
 		} else if (!strncmp(pname, "grp_", 4)) {
-			//discard emsg if fragmented, otherwise add as internal sample group - TODO, support for EventMessage tracks
+			//discard emsg if fragmented, otherwise add as internal sample group
+			//note: support for EventMessage tracks is done in the "scte35dec" filter
 			if (!strcmp(pname, "grp_EMSG") && (ctx->store>=MP4MX_MODE_FRAG)) continue;
 			is_sample_group = GF_TRUE;
 		} else {
