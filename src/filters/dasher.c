@@ -3990,12 +3990,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		if (ctx->do_m3u8)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option used with HLS is likely not supported by your player\n"));
 
-		if (ctx->scte35 == DASHER_SCTE35_DASH_EVTE) {
-			//inject scte35dec filter
-			dasher_inject_scte35_processor(filter, ds, szSRC);
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option requires the use of event tracks (:scte35=evte): ignoring\n"));
-		}
+		//inject scte35dec filter
+		dasher_inject_scte35_processor(filter, ds, szSRC);
 	}
 }
 
@@ -9941,7 +9937,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			pcont_cts = cts;
 
 			//out-of-band events
-			if (ctx->scte35 != DASHER_SCTE35_DASH_NONE) {
+			if (ctx->scte35 != DASHER_SCTE35_DASH_NONE && ctx->scte35 != DASHER_SCTE35_DASH_EVTE) {
 				GF_Err e = dasher_handle_scte35(pck, ds->period->period->event_streams);
 				if (e) return e;
 			}
@@ -11792,7 +11788,6 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(scte35), "control SCTE-35 signalling in MPD\n", GF_PROP_UINT, "xml+bin", "xml+bin|evte|none", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(hls_scte35), "control SCTE-35 signalling in M3U8", GF_PROP_UINT, "cues", "cues|daterange|oatcls|splicepoint", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
