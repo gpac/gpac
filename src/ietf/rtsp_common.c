@@ -290,6 +290,7 @@ GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCo
 
 	//then parse the full header
 	LinePos = 0;
+	ValBuf[0] = 0;
 	strcpy(HeaderBuf, "");
 	while (1) {
 		LinePos = gf_token_get_line(buffer, LinePos, BufferSize, LineBuffer, 1024);
@@ -311,6 +312,8 @@ GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCo
 			if (Pos <= 0) {
 				HeaderLine = 2;
 			} else {
+				if (sizeof(ValBuf)-strlen(ValBuf) < strlen(temp)+2)
+					return GF_REMOTE_SERVICE_ERROR;
 				//n-line value - append
 				strcat(ValBuf, "\r\n");
 				strcat(ValBuf, temp);
@@ -330,7 +333,8 @@ GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCo
 		if ( (HeaderLine == 2) || ((u32) LinePos >= BodyStart) ) return GF_OK;
 
 		//process current line
-		strcpy(HeaderBuf, temp);
+		strncpy(HeaderBuf, temp, sizeof(HeaderBuf));
+		HeaderBuf[sizeof(HeaderBuf)-1] = 0;
 
 		//skip ':'
 		Pos += 1;

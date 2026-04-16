@@ -317,7 +317,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	GF_ISOTrackCloneFlags clone_flags;
 	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
-		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
+		u32 track_count = gf_isom_get_track_count(import->orig);
+		if (track_count > GF_IMPORT_MAX_TRACKS) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Track count (%u) exceeds maximum (%u), will ignore extra tracks.\n", track_count, GF_IMPORT_MAX_TRACKS));
+			track_count = GF_IMPORT_MAX_TRACKS;
+		}
+		for (i=0; i<track_count; i++) {
 			import->tk_info[i].track_num = gf_isom_get_track_id(import->orig, i+1);
 			mtype = gf_isom_get_media_type(import->orig, i+1);
 			switch (mtype) {
@@ -488,12 +493,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			clone_flags = 0;
 	}
 	clone_flags |= GF_ISOM_CLONE_RESET_DURATION;
-	
+
 	if (import->flags & GF_IMPORT_USE_DATAREF)
 		clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
 	if (import->target_trackID && (import->target_trackID==(u32)-1))
 		clone_flags |= GF_ISOM_CLONE_TRACK_DROP_ID;
-		
+
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
 
@@ -854,7 +859,7 @@ GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 		GF_BitStream *newbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		u32 prev_size = 8*gf_isom_get_nalu_length_field(file, track, di);
 		if (!prev_size) return GF_NON_COMPLIANT_BITSTREAM;
-		
+
 		remain = samp->dataLength;
 		while (remain) {
 			u32 size = gf_bs_read_int(oldbs, prev_size);

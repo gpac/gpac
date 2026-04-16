@@ -113,7 +113,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	char *buffer;
 
 	*out_buffer = NULL;
-	
+
 	size = RTSP_WRITE_STEPALLOC;
 	buffer = (char *) gf_malloc(size);
 	cur_pos = 0;
@@ -327,17 +327,17 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	}
 
 	if (!strcmp(com->method, GF_RTSP_OPTIONS)) {
-		sprintf(buffer, "OPTIONS %s %s\r\n", sCtrl, GF_RTSP_VERSION);
+		snprintf(buffer, 1024, "OPTIONS %s %s\r\n", sCtrl, GF_RTSP_VERSION);
 	} else {
 		rad = (sess->ConnectionType == GF_SOCK_TYPE_TCP) ? "rtsp" : "rtspu";
 		if (sCtrl) {
 			char szServURL[1024];
 			sprintf(szServURL, "%s://%s:%d/%s", rad, sess->Server, sess->Port, sess->Service);
 			char *ctrl_url = gf_url_concatenate(szServURL, sCtrl);
-			sprintf(buffer, "%s %s %s\r\n", com->method, ctrl_url, GF_RTSP_VERSION);
+			snprintf(buffer, 1024, "%s %s %s\r\n", com->method, ctrl_url, GF_RTSP_VERSION);
 			gf_free(ctrl_url);
 		} else {
-			sprintf(buffer, "%s %s://%s:%d/%s %s\r\n", com->method, rad, sess->Server, sess->Port, sess->Service, GF_RTSP_VERSION);
+			snprintf(buffer, 1024, "%s %s://%s:%d/%s %s\r\n", com->method, rad, sess->Server, sess->Port, sess->Service, GF_RTSP_VERSION);
 		}
 	}
 
