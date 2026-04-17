@@ -5169,6 +5169,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 	u64 p_start=0;
 	Bool all_done=GF_TRUE;
 	GF_MPD_Period *prev_p = NULL;
+	ctx->current_period->period->skip_serialize = GF_FALSE;
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -5199,6 +5200,14 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 
 			if (!min_dur || (min_dur > ds_dur)) min_dur = ds->max_period_dur;
 			if (pdur < ds_dur) pdur = ds_dur;
+
+			if (!ds->set || !ds->rep) continue;
+			if (!ds->tpl_use_time || !ctx->stl) continue;
+			GF_MPD_SegmentTimeline *stl = ds->set->segment_template ? ds->set->segment_template->segment_timeline : NULL;
+			if (!stl) stl = ds->rep->segment_template ? ds->rep->segment_template->segment_timeline : NULL;
+			if (!stl || !gf_list_count(stl->entries)) {
+				ctx->current_period->period->skip_serialize = GF_TRUE;
+			}
 		}
 	}
 
