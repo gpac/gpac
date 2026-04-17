@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -49,7 +49,7 @@ typedef struct _gf_ffenc_ctx
 	u32 pfmt;
 	s32 round;
 	GF_Fraction fintra;
-	Bool rc;
+	Bool rc, rtd;
 
 	//internal data
 	Bool gen_dsi;
@@ -137,8 +137,10 @@ typedef struct _gf_ffenc_ctx
 	//we don't forward media delay, we directly offset CTS/DTS
 	s64 in_tk_delay;
 
-	Bool discontunity;
-	GF_FilterPacket *disc_pck_ref;
+	//discontinuity at last fetch packet:
+	//0: none , 1: any, 2: time only
+	u32 discontunity;
+	u32 last_time_disc;
 
 #if (LIBAVCODEC_VERSION_MAJOR < 59)
 	AVPacket pkt;
@@ -523,8 +525,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		force_intra = 2;
 	}
 	//if discontinuity is set on input, force IDR sync
-	p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_TIME_DISCONTINUITY) : NULL;
-	if (p && p->value.boolean) {
+	if (ctx->rtd && (ctx->discontunity==2)) {
 		force_intra = 2;
 		ctx->prev_dts = 0;
 	}
@@ -734,11 +735,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 		//keep ref to source properties
 		gf_filter_pck_ref_props(&pck);
-		if (pck)
+		if (pck) {
+			if (ctx->discontunity) {
+				gf_filter_pck_set_mark(pck, GF_TRUE);
+				ctx->discontunity = 0;
+			}
 			gf_list_add(ctx->src_packets, pck);
-		if (ctx->discontunity) {
-			ctx->discontunity = GF_FALSE;
-			ctx->disc_pck_ref = pck;
 		}
 
 		if (pck)
@@ -923,8 +925,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	memcpy(output, pkt->data + offset, to_copy);
 
 	if (src_pck) {
-		if (ctx->disc_pck_ref == src_pck) {
-			ctx->disc_pck_ref = NULL;
+		if (gf_filter_pck_get_mark(src_pck)) {
 			//use PID properties of source packet, not current ones as they could already no longer be valid
 			//due to long buffering/flushing of the encoder
 			ffenc_copy_pid_props(ctx, src_pck);
@@ -1125,10 +1126,12 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 		src_pck = pck;
 		gf_filter_pck_ref_props(&src_pck);
-		gf_list_add(ctx->src_packets, src_pck);
-		if (ctx->discontunity) {
-			ctx->disc_pck_ref = src_pck;
-			ctx->discontunity = GF_FALSE;
+		if (src_pck) {
+			if (ctx->discontunity) {
+				gf_filter_pck_set_mark(src_pck, GF_TRUE);
+				ctx->discontunity = 0;
+			}
+			gf_list_add(ctx->src_packets, src_pck);
 		}
 
 		nb_samples = size / ctx->bytes_per_sample;
@@ -1383,11 +1386,9 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		src_pck = NULL;
 	}
 	if (src_pck) {
-		if (src_pck==ctx->disc_pck_ref) {
-			ctx->disc_pck_ref = NULL;
-			ffenc_copy_pid_props(ctx, NULL);
+		if (gf_filter_pck_get_mark(src_pck)) {
+			ffenc_copy_pid_props(ctx, src_pck);
 		}
-
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		gf_list_del_item(ctx->src_packets, src_pck);
 		gf_filter_pck_unref(src_pck);
@@ -1563,12 +1564,19 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		av_dict_set(&ctx->options, "b", szRate, 0);
 	}
 
+	Bool is_time_disc = GF_FALSE;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
+	if (prop && (prop->value.uint != ctx->last_time_disc)) {
+		ctx->last_time_disc = prop->value.uint;
+		is_time_disc = GF_TRUE;
+	}
+
 	if (!is_force_reconf) {
 		//not yet setup or no delay, copy directly props, otherwise signal discontinuity
 		if (!ctx->encoder || !gf_list_count(ctx->src_packets)) {
 			ffenc_copy_pid_props(ctx, NULL);
 		} else {
-			ctx->discontunity = GF_TRUE;
+			ctx->discontunity = is_time_disc ? 2 : 1;
 		}
 	}
 	//macro to check if prop exists and has non-0 value
@@ -2386,6 +2394,7 @@ GF_FilterRegister FFEncodeRegister = {
 		"\n"
 		"The filter will force a closed gop boundary:\n"
 		"- at each packet with a `FileNumber` property set or a `CueStart` property set to true.\n"
+		"- at time discontinuities if [-rtd]() is set.\n"
 		"- if [-fintra]() and [-rc]() is set.\n"
 		"\n"
 		"When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.\n"
@@ -2423,6 +2432,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(ls), "log stats", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rc), "reset encoder when forcing intra frame (some encoders might not support intra frame forcing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rld), "force reloading of encoder when arguments are updated", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(rtd), "inject IDR at each time discontinuity", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(round), "round video up or down\n"
 	"- 0: no rounding\n"
 	"- 1: round up to match codec YUF format requirements\n"

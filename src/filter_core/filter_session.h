@@ -136,6 +136,7 @@ typedef struct __gf_filter_pck_inst
 	GF_FilterPidInst *pid;
 	u8 pid_props_change_done;
 	u8 pid_info_change_done;
+	u8 is_marked;
 
 	//DO NOT EXTEND UNLESS UPDATING CODE IN gf_filter_pck_send()
 } GF_FilterPacketInstance;
@@ -197,7 +198,9 @@ enum
 	//only valid when GF_PCK_CMD_PID_EOS is set
 	GF_PCKF_IS_FLUSH = 1<<11,
 	GF_PCKF_IS_SWITCH_FRAME = 1<<10,
-	//RESERVED bits [8,9]
+	//only valid when GF_PCKF_PROPS_REFERENCE is set
+	GF_PCKF_IS_MARKED = 1<<9,
+	//RESERVED bits [8]
 
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,

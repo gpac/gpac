@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay, Jean Le Feuvre, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2025
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -607,13 +607,12 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		}
 		return ret;
 	}
-	ret = extract_attributes("#EXT-X-DISCONTINUITY", line, 0);
-	if (ret) {
-		attributes->discontinuity = 1;
+	if (!strcmp(line, "#EXT-X-DISCONTINUITY") ) {
+		attributes->discontinuity += 1;
 		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
-	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE", line, 1);
+	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE:", line, 1);
 	if (ret) {
 		if (ret[0]) {
 			int_value = (s32)strtol(ret[0], &end_ptr, 10);

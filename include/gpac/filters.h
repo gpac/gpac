@@ -1479,7 +1479,6 @@ enum
 	GF_PROP_PCK_FORCED_SUB = GF_4CC('P','C','F','S'),
 
 	GF_PROP_PID_TIME_DISCONTINUITY = GF_4CC('P','D','I','S'),
-	GF_PROP_PCK_TIME_DISCONTINUITY = GF_4CC('P','C','D','I'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -5107,6 +5106,22 @@ GF_Err gf_filter_pck_set_seq_num(GF_FilterPacket *pck, u32 seq_num);
 \return sequence number associated with this packet
 */
 u32 gf_filter_pck_get_seq_num(GF_FilterPacket *pck);
+
+/*! Sets packet as marked - this can only be used on input packet or property reference packets (\ref gf_filter_pck_ref_props)
+
+ This allows flagging an input packet without impacting filters using the same packet, typically used when handling discontinuities
+
+ \param pck target packet
+ \param is_marked the marked status
+ \return error if any
+*/
+GF_Err gf_filter_pck_set_mark(GF_FilterPacket *pck, Bool is_marked);
+
+/*! Gets packet  marked status
+ \param pck target packet
+ \return GF_TRUE if packet was marked, GF_FALSE otherwise
+*/
+Bool gf_filter_pck_get_mark(GF_FilterPacket *pck);
 
 /*! Redefinition of GF_Matrix but without the maths.h include which breaks VideoToolBox on OSX/iOS */
 typedef struct __matrix GF_Matrix_unexposed;

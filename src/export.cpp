@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -2737,6 +2737,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_seq_num ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_clock_type ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_clock_type ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_mark ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_mark ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_frame_interface ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_expand ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_truncate ) )

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -183,6 +183,7 @@ typedef struct
 	GF_VideoFlipMode pid_vflip;
 	u32 pid_vrot;
 	Bool too_slow;
+	u32 time_disc;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -509,6 +510,13 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
+	if (p && (p->value.uint != ctx->time_disc)) {
+		ctx->time_disc = p->value.uint;
+		ctx->first_cts_plus_one = 0;
+		ctx->clock_at_first_cts = ctx->last_frame_clock = ctx->clock_at_first_frame = 0;
+	}
 
 	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt)
 		&& (full_range==ctx->full_range) && (cmx==ctx->cmx)

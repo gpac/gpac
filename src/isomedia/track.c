@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -550,13 +550,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	num_first_sample_in_traf = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
 	if (traf->tfdt)
-		tfdt = traf->tfdt->baseMediaDecodeTime;
+		tfdt = 1+traf->tfdt->baseMediaDecodeTime;
 	else if (traf->tfxd)
-		tfdt = traf->tfxd->absolute_time_in_track_timescale;
+		tfdt = 1+traf->tfxd->absolute_time_in_track_timescale;
 	else
 		tfdt = 0;
 
 	if (tfdt) {
+		tfdt -= 1;
 		//do this test for each fragment merged as soon as we have a tfdt, so that we detect samples with extended duration
 		//if trak->moov->mov->NextMoofNumber is 0 we initialize or seek so skip test
 		if (trak->moov->mov->NextMoofNumber && trak->dts_at_next_frag_start) {

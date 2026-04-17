@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / VideoToolBox decoder filter
@@ -150,6 +150,7 @@ typedef struct
 
 	HEVCState hevc;
 	Bool is_hevc;
+	Bool is_discontinuity;
 
 	Bool profile_supported, can_reconfig;
 	u32 nb_consecutive_errors;
@@ -234,7 +235,10 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	frame->frame = CVPixelBufferRetain(image);
 	frame->pck_src = ctx->cur_pck;
 	gf_filter_pck_ref_props(&frame->pck_src);
-
+	if (ctx->is_discontinuity) {
+		gf_filter_pck_set_mark(frame->pck_src, GF_TRUE);
+		ctx->is_discontinuity = GF_FALSE;
+	}
 	frame->ctx = ctx;
 	cts = gf_filter_pck_get_cts(frame->pck_src);
 	dts = gf_filter_pck_get_dts(frame->pck_src);
@@ -957,6 +961,27 @@ static void vtbdec_del_param_list(GF_List *list)
 	gf_list_del(list);
 }
 
+static void vtbdec_copy_props(GF_VTBDecCtx *ctx, GF_FilterPid *pid, GF_FilterPacket *from_packet)
+{
+	if (from_packet)
+		gf_filter_pid_copy_properties_from_packet(ctx->opid, from_packet);
+	else
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->pixel_ar) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+
+	if (ctx->full_range)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(ctx->full_range));
+	if (ctx->cmx>=0)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) ctx->cmx));
+}
+
 static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p, *dsi;
@@ -1023,20 +1048,11 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
 	if (ctx->opid && (codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc) && ctx->width && ctx->height) {
-		gf_filter_pid_copy_properties(ctx->opid, pid);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->pixel_ar) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
-
-		if (ctx->full_range)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(ctx->full_range));
-		if (ctx->cmx>=0)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) ctx->cmx));
+		if (!gf_list_count(ctx->frames)) {
+			vtbdec_copy_props(ctx, pid, NULL);
+		} else {
+			ctx->is_discontinuity = GF_TRUE;
+		}
 		return GF_OK;
 	}
 	//need a reset !
@@ -1485,6 +1501,9 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(vtbframe->frame);
 		u8 *dst;
 		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, 0);
+
+		if (gf_filter_pck_get_mark(vtbframe->pck_src))
+			vtbdec_copy_props(ctx, NULL, vtbframe->pck_src);
 
 		GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &dst);
 		if (!dst_pck) return GF_OUT_OF_MEM;
@@ -1953,6 +1972,9 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		vtb_frame->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 
 	safe_int_inc(&ctx->decoded_frames_pending);
+
+	if (gf_filter_pck_get_mark(vtb_frame->pck_src))
+		vtbdec_copy_props(ctx, NULL, vtb_frame->pck_src);
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vtb_frame->frame_ifce, vtbframe_release);
 	if (!dst_pck) return GF_OUT_OF_MEM;

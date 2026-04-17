@@ -1,5 +1,14 @@
 # On-going - GPAC 26.03-dev
 
+## Core tools
+- EVP support in encryption for hardware AES
+
+## MPEG-DASH & HLS
+- Improved support of discontinuities in packager and client
+
+## Filters
+- Discontinuity detection in reframer
+
 # 05/02/2026 - GPAC 26.02
 
 GPAC release naming is now changed to year.month scheme. ABI version of this release is 16.5.

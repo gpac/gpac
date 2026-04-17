@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2024
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenHEVC decoder filter
@@ -281,11 +281,14 @@ static u32 ohevcdec_get_pixel_format(GF_OHEVCDecCtx *ctx)
 	return 0;
 }
 
-static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx)
+static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx, GF_FilterPacket *src_pck)
 {
 	u32 pixfmt;
-
-	gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
+	if (src_pck) {
+		gf_filter_pid_copy_properties_from_packet(ctx->opid, src_pck);
+	} else {
+		gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL );
@@ -707,7 +710,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//copy properties at init or reconfig
 	if (ctx->signal_reconfig) {
-		ohevc_set_out_props(ctx);
+		ohevc_set_out_props(ctx, NULL);
 		ctx->signal_reconfig = GF_FALSE;
 	} else {
 		ctx->signal_reconfig = GF_TRUE;
@@ -816,15 +819,12 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	for (i=0;i<count; i++) {
 		src_pck = gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == ctx->frame_ptr.frame_par.pts) {
-			u8 car_v = gf_filter_pck_get_carousel_version(src_pck);
-			gf_filter_pck_set_carousel_version(src_pck, 0);
+			if (gf_filter_pck_get_mark(src_pck))
+				ohevc_set_out_props(ctx, src_pck);
 
 			gf_filter_pck_merge_properties(src_pck, dst_pck);
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);
-
-			if (car_v)
-				ohevc_set_out_props(ctx);
 
 			break;
 		}
@@ -914,7 +914,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		ctx->sar.den = openHevcFrame_FL.frame_par.sample_aspect_ratio.den;
 		if (!ctx->sar.num) ctx->sar.num = ctx->sar.den = 1;
 
-		ohevc_set_out_props(ctx);
+		ohevc_set_out_props(ctx, NULL);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending output frame CTS "LLU"\n", openHevcFrame_FL.frame_par.pts ));
@@ -1063,15 +1063,12 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 		if (res) {
 			if (src_pck) {
-				u8 car_v = gf_filter_pck_get_carousel_version(src_pck);
-				gf_filter_pck_set_carousel_version(src_pck, 0);
+				if (gf_filter_pck_get_mark(src_pck))
+					ohevc_set_out_props(ctx, src_pck);
 
 				gf_filter_pck_merge_properties(src_pck, pck);
 				gf_list_del_item(ctx->src_packets, src_pck);
 				gf_filter_pck_unref(src_pck);
-
-				if (car_v)
-					ohevc_set_out_props(ctx);
 			} else {
 				gf_filter_pck_set_cts(pck, cts);
 			}
@@ -1261,9 +1258,10 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	//queue reference to source packet props
 	gf_filter_pck_ref_props(&pck_ref);
 	gf_list_add(ctx->src_packets, pck_ref);
-	gf_filter_pck_set_carousel_version(pck_ref, ctx->signal_reconfig ? 1 : 0);
-	ctx->signal_reconfig = GF_FALSE;
-
+	if (ctx->signal_reconfig) {
+		gf_filter_pck_set_mark(pck_ref, GF_TRUE);
+		ctx->signal_reconfig = GF_FALSE;
+	}
 	ctx->dec_frames++;
 	got_pic = 0;
 	ctx->reaggregation_size = 0;

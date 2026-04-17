@@ -3994,28 +3994,28 @@ static JSValue jsf_pck_set_prop(JSContext *ctx, JSValueConst this_val, JSValueCo
 		flags = gf_filter_pck_get_dependency_flags(pck);
 		flags &= 0x3F;
 		flags |= (ival & 0x3)<<6;
-		gf_filter_pck_set_seq_num(pck, flags);
+		gf_filter_pck_set_dependency_flags(pck, flags);
 		break;
 	case JSF_PCK_DEPENDS_ON:
 		if (JS_ToInt32(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);
 		flags = gf_filter_pck_get_dependency_flags(pck);
 		flags &= 0xCF;
 		flags |= (ival & 0x3)<<4;
-		gf_filter_pck_set_seq_num(pck, flags);
+		gf_filter_pck_set_dependency_flags(pck, flags);
 		break;
 	case JSF_PCK_DEPENDED_ON:
 		if (JS_ToInt32(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);
 		flags = gf_filter_pck_get_dependency_flags(pck);
 		flags &= 0xF3;
 		flags |= (ival & 0x3)<<2;
-		gf_filter_pck_set_seq_num(pck, flags);
+		gf_filter_pck_set_dependency_flags(pck, flags);
 		break;
 	case JSF_PCK_HAS_REDUNDANT:
 		if (JS_ToInt32(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);
 		flags = gf_filter_pck_get_dependency_flags(pck);
 		flags &= 0xFC;
 		flags |= (ival & 0x3);
-		gf_filter_pck_set_seq_num(pck, flags);
+		gf_filter_pck_set_dependency_flags(pck, flags);
 		break;
 	}
 	if (str)

@@ -237,6 +237,7 @@ typedef struct
 	GF_PropStringList hlsx;
 	GF_DashHLSLowLatencyType llhls;
 	Bool hlsiv;
+	u32 td_limit, td_detect;
 	//inherited from mp4mx
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
@@ -270,7 +271,6 @@ typedef struct
 	Bool no_fragments_defaults;
 
 	Bool is_eos;
-	u32 pending_discontinuity_idx;
 	u32 nb_seg_url_pending;
 	u64 last_evt_check_time;
 	Bool on_demand_done;
@@ -344,6 +344,7 @@ typedef struct
 	Bool inband_event;
 
 	Bool has_pid_removed;
+	u32 next_discontinuity_id;
 } GF_DasherCtx;
 
 typedef struct _dash_stream
@@ -544,6 +545,7 @@ typedef struct _dash_stream
 
 	u64 last_min_segment_start_time;
 	Bool stl;
+	u32 init_skip_dur;
 
 	Bool set_period_switch;
 	u32 all_stsd_crc;
@@ -551,6 +553,9 @@ typedef struct _dash_stream
 	u64 frag_start_offset, frag_first_ftdt;
 	u32 tpl_use_time;
 	Bool last_stl_is_ll;
+
+	u32 discontinuity_id;
+	Bool is_discontinuity;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
@@ -1192,6 +1197,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_udta(pid, ds);
 		ds->sbound = ctx->sbound;
 		ds->startNumber = 1;
+		ds->discontinuity_id = ++ctx->next_discontinuity_id;
 		if (ctx->sbound!=DASHER_BOUNDS_OUT)
 			ds->packet_queue = gf_list_new();
 
@@ -1788,10 +1794,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//check if we have an explicit time discontinuity, in which case we switch periods
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
 	if (p && (p->value.uint != ds->ts_disc_idx)) {
-		ctx->pending_discontinuity_idx = gf_list_count(ctx->mpd->periods) + 1;
 		period_switch = GF_TRUE;
+		ds->ts_disc_idx = p->value.uint;
 	}
-	ds->ts_disc_idx = p ? p->value.uint : 0;
 
 	if (ctx->do_index || ctx->from_index) {
 		if (!ds->template && ctx->def_template) {
@@ -1851,6 +1856,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (period_switch) {
 		new_period_request = GF_TRUE;
+		//skip segment number continuity
+		ds->seg_number = 0;
 	} else {
 		period_switch = old_period_switch;
 	}
@@ -1954,6 +1961,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_OK;
 	}
 	//period switch !
+
+	//if stream is scheduled in period, mark discontinuity
+	if (gf_list_find(ctx->current_period->streams, ds)>=0)
+		ds->is_discontinuity = GF_TRUE;
 
 	//we have queued packets (sbound modes), we cannot switch period for this stream now, force queue flush
 	if (gf_list_count(ds->packet_queue)) {
@@ -2771,6 +2782,7 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	gf_assert(ds->rep==NULL);
 	ds->rep = gf_mpd_representation_new();
 	ds->rep->playback.udta = ds;
+	ds->rep->discontinuity_id = ds->discontinuity_id;
 	if (ds->tci)
 		ds->rep->crypto_type = 1;
 	else {
@@ -4598,7 +4610,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			//we however don't want to change templates if they are indeed reused but resolve to something different due to representationID
 			//we therefore resolve the segment template with startNumber 0 time 0, use this resolved name as base check.
 
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, is_source_template ? NULL : "mp4", 0, ds->bitrate, 0, ds->stl, ctx->tpl_force);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, is_source_template ? NULL : "mp4", 0, ds->bitrate, ds->startNumber, ds->stl, ctx->tpl_force);
 
 			reused_template_idx = dasher_check_template_reuse(ctx, ds, szInitSegmentFilename);
 			if (reused_template_idx) {
@@ -4960,7 +4972,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	}
 }
 
-static void dasher_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimeline *stl, GF_DASH_SegmentContext *sctx)
+static void dasher_purge_segment_timeline(GF_MPD_SegmentTimeline *stl, GF_DASH_SegmentContext *sctx, Bool is_active)
 {
 	GF_MPD_SegmentTimelineEntry *stl_e = gf_list_get(stl->entries, 0);
 	if (!stl_e) return;
@@ -4975,7 +4987,9 @@ static void dasher_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimel
 
 		stl_e = gf_list_get(stl->entries, 0);
 		if (!stl_e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] No timeline entry after currently removed segment, cannot update start time\n" ));
+			if (is_active) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] No timeline entry after currently removed segment, cannot update start time\n" ));
+			}
 			return;
 		}
 
@@ -5023,9 +5037,116 @@ static void send_file_delete(GF_DasherCtx *ctx, GF_DashStream *ds, const char *f
 	gf_filter_pid_send_event(ds->opid, &anevt);
 }
 
+static void dasher_purge_rep(GF_DasherCtx *ctx, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *owned_set, u32 mpd_timescale, Double max_ptime, GF_DashStream *active_ds)
+{
+	//get a target for file delete events
+	GF_DashStream *target_ds = active_ds;
+	if (!target_ds)
+		target_ds = gf_list_get(ctx->current_period->streams, 0);
+
+	rep->tsb_first_entry = 0;
+	u32 state_idx=0;
+	while (1) {
+		Double time, dur;
+		Bool seg_url_found = GF_FALSE;
+		Bool has_seg_list = GF_FALSE;
+		GF_DASH_SegmentContext *sctx = gf_list_get(rep->state_seg_list, state_idx);
+		if (!sctx) break;
+		/*not yet flushed*/
+		if (active_ds && gf_list_find(active_ds->pending_segment_states, sctx)>=0) break;
+		time = (Double) sctx->time;
+		time /= mpd_timescale;
+		dur = (Double) sctx->dur;
+		dur /= mpd_timescale;
+		if (time + dur >= max_ptime) {
+			if (ctx->keep_segs) {
+				rep->tsb_first_entry = state_idx;
+
+				if (rep->segment_template) rep->segment_template->tsb_first_entry = state_idx;
+				if (rep->segment_list) rep->segment_list->tsb_first_entry = state_idx;
+
+				if (owned_set) {
+					if (owned_set->segment_template) owned_set->segment_template->tsb_first_entry = state_idx;
+					if (owned_set->segment_list) owned_set->segment_list->tsb_first_entry = state_idx;
+				}
+			}
+			break;
+		}
+		//we found our first segment
+
+		if (ctx->keep_segs) {
+			state_idx++;
+			continue;
+		}
+		if (sctx->filepath) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath));
+
+			send_file_delete(ctx, target_ds, sctx->filename, sctx->filepath, -1);
+
+			//purge LLHLS frags - index is always 0-based
+			if (sctx->frags && (sctx->llhls_mode==GF_DASH_LL_HLS_SF || (owned_set && owned_set->ssr_mode))) {
+				u32 k;
+				for (k=0; k<sctx->nb_frags; k++) {
+					send_file_delete(ctx, target_ds, sctx->filename, sctx->filepath, k);
+				}
+			}
+			gf_free(sctx->filepath);
+		}
+
+		if (rep->segment_list) {
+			GF_MPD_SegmentURL *surl = gf_list_pop_front(rep->segment_list->segment_URLs);
+			has_seg_list = GF_TRUE;
+			//can be NULL if we mutualize everything at AdaptationSet level
+			if (surl) {
+				gf_mpd_segment_url_free(surl);
+				seg_url_found = GF_TRUE;
+			}
+		}
+		//not an else due to inheritance
+		if (owned_set && owned_set->segment_list) {
+			GF_MPD_SegmentURL *surl = gf_list_pop_front(owned_set->segment_list->segment_URLs);
+			has_seg_list = GF_TRUE;
+			//can be NULL if we don't mutualize at AdaptationSet level
+			if (surl) {
+				gf_mpd_segment_url_free(surl);
+				seg_url_found = GF_TRUE;
+			}
+		}
+		//but we must have at least one segment URL entry
+		if (has_seg_list && !seg_url_found) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] purging segment %s for AS %d rep %s but segment list is empty!\n",
+												 sctx->filename ? sctx->filename : "", owned_set ? owned_set->id : 0, rep->id));
+		}
+
+		if (rep->segment_template) {
+			if (rep->segment_template->segment_timeline) {
+				dasher_purge_segment_timeline(rep->segment_template->segment_timeline, sctx, active_ds ? GF_TRUE : GF_FALSE);
+			}
+		}
+		//not an else due to inheritance
+		if (owned_set && owned_set->segment_template) {
+			if (owned_set->segment_template->segment_timeline) {
+				dasher_purge_segment_timeline(owned_set->segment_template->segment_timeline, sctx, active_ds ? GF_TRUE : GF_FALSE);
+			}
+		}
+		if (active_ds) {
+			active_ds->nb_segments_purged ++;
+			active_ds->dur_purged += dur;
+		}
+		ctx->mpd->nb_past_discont += sctx->is_discontinuity ? 1 : 0;
+
+		if (sctx->filename) gf_free(sctx->filename);
+		if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
+		if (sctx->frags) gf_free(sctx->frags);
+		if (sctx->llhas_template) gf_free(sctx->llhas_template);
+		gf_free(sctx);
+		gf_list_rem(rep->state_seg_list, 0);
+	}
+}
+
 static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 {
-	Double min_valid_mpd_time;
+	Double min_valid_mpd_time_current, current_period_start_sec=0;
 	u64 max_rem_dur = 0;
 	u32 i, count;
 
@@ -5033,15 +5154,82 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 	if (ctx->dmode == GF_MPD_TYPE_STATIC) return;
 	if (ctx->tsb<0) return;
 
-
-	min_valid_mpd_time = (Double) *period_dur;
-	min_valid_mpd_time /= 1000;
-	min_valid_mpd_time -= ctx->tsb;
+	//compute mn valid MPD time in current period
+	min_valid_mpd_time_current = (Double) *period_dur;
+	min_valid_mpd_time_current /= 1000;
+	min_valid_mpd_time_current -= ctx->tsb;
 	//negative asto, we produce segments earlier but we don't want to delete them before the asto
 	if (ctx->asto<0) {
-		min_valid_mpd_time += ctx->asto;
+		min_valid_mpd_time_current += ctx->asto;
 	}
-	if (min_valid_mpd_time<=0) return;
+
+	count = gf_list_count(ctx->mpd->periods);
+	if (count==1) {
+		count = 0;
+	}
+	//we're in the period switch, don't purge
+	else if ((count>1) && !ctx->current_period->period->start) {
+		count = 0;
+	} else {
+		current_period_start_sec = ((Double) ctx->current_period->period->start)/1000;
+	}
+	for (i=0; i<count; i++) {
+		GF_MPD_Period *p = gf_list_get(ctx->mpd->periods, i);
+		if (p == ctx->current_period->period) break;
+		Bool period_empty = GF_TRUE;
+		Double max_ptime = (Double) p->duration;
+		if (!p->duration) {
+			GF_MPD_Period *p_next = gf_list_get(ctx->mpd->periods, i+1);
+			gf_assert(p_next);
+			max_ptime = p_next->start - p->start;
+		}
+		//get min valid MPD time in this period
+		Double min_valid_mpd_time_prev = min_valid_mpd_time_current;
+		min_valid_mpd_time_prev += current_period_start_sec;
+		min_valid_mpd_time_prev -= ((Double) p->start)/1000;
+
+		if (min_valid_mpd_time_prev<=0) break;
+
+		max_ptime /= 1000;
+		//we add half a bit to force purging last seg
+		max_ptime += 0.2;
+		if (min_valid_mpd_time_prev < max_ptime)
+			max_ptime = min_valid_mpd_time_prev;
+
+		u32 j=0;
+		GF_MPD_AdaptationSet *set;
+		while ( (set = gf_list_enum(p->adaptation_sets, &j))) {
+			u32 k=0;
+			GF_MPD_Representation *rep;
+			while ( (rep = gf_list_enum(set->representations, &k))) {
+				u32 mpd_timescale = 0;
+				if (set->segment_template) mpd_timescale = set->segment_template->timescale;
+				else if (set->segment_list) mpd_timescale = set->segment_list->timescale;
+				if (!mpd_timescale) {
+					if (rep->segment_template) mpd_timescale = rep->segment_template->timescale;
+					else if (rep->segment_list) mpd_timescale = rep->segment_list->timescale;
+				}
+				if (!mpd_timescale) mpd_timescale = 1;
+
+				dasher_purge_rep(ctx, rep, set, mpd_timescale, max_ptime, NULL);
+
+				if (gf_list_count(rep->state_seg_list))
+					period_empty = GF_FALSE;
+			}
+		}
+		if (period_empty) {
+			if (ctx->keep_segs) {
+				p->skip_serialize = GF_TRUE;
+			} else {
+				gf_list_rem(ctx->mpd->periods, i);
+				gf_mpd_period_free(p);
+				i--;
+				count--;
+			}
+		}
+	}
+	if (min_valid_mpd_time_current<=0)
+		return;
 
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
@@ -5053,106 +5241,11 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 		Double max_ptime = (Double) ds->max_period_dur;
 		max_ptime /= 1000;
 		//don't try to suppress last segment
-		if (min_valid_mpd_time < max_ptime)
-			max_ptime = min_valid_mpd_time;
+		if (min_valid_mpd_time_current < max_ptime)
+			max_ptime = min_valid_mpd_time_current;
 
-		ds->rep->tsb_first_entry = 0;
-		u32 state_idx=0;
-		while (1) {
-			Double time, dur;
-			Bool seg_url_found = GF_FALSE;
-			Bool has_seg_list = GF_FALSE;
-			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, state_idx);
-			if (!sctx) break;
-			/*not yet flushed*/
-			if (gf_list_find(ds->pending_segment_states, sctx)>=0) break;
-			time = (Double) sctx->time;
-			time /= ds->mpd_timescale;
-			dur = (Double) sctx->dur;
-			dur /= ds->timescale;
-			if (time + dur >= max_ptime) {
-				if (ctx->keep_segs) {
-					ds->rep->tsb_first_entry = state_idx;
+		dasher_purge_rep(ctx, ds->rep, ds->owns_set ? ds->set : NULL, ds->mpd_timescale, max_ptime, ds);
 
-					if (ds->rep->segment_template) ds->rep->segment_template->tsb_first_entry = state_idx;
-					if (ds->rep->segment_list) ds->rep->segment_list->tsb_first_entry = state_idx;
-
-					if (ds->owns_set) {
-						if (ds->set->segment_template) ds->set->segment_template->tsb_first_entry = state_idx;
-						if (ds->set->segment_list) ds->set->segment_list->tsb_first_entry = state_idx;
-					}
-				}
-				break;
-			}
-			//we found our first segment
-
-			if (ctx->keep_segs) {
-				state_idx++;
-				continue;
-			}
-			if (sctx->filepath) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath));
-
-				send_file_delete(ctx, ds, sctx->filename, sctx->filepath, -1);
-
-				//purge LLHLS frags - index is always 0-based
-				if (sctx->frags && (sctx->llhls_mode==GF_DASH_LL_HLS_SF || ds->set->ssr_mode)) {
-					u32 k;
-					for (k=0; k<sctx->nb_frags; k++) {
-						send_file_delete(ctx, ds, sctx->filename, sctx->filepath, k);
-					}
-				}
-				gf_free(sctx->filepath);
-			}
-
-			if (ds->rep->segment_list) {
-				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->rep->segment_list->segment_URLs);
-				has_seg_list = GF_TRUE;
-				//can be NULL if we mutualize everything at AdaptationSet level
-				if (surl) {
-					gf_mpd_segment_url_free(surl);
-					seg_url_found = GF_TRUE;
-				}
-			}
-			//not an else due to inheritance
-			if (ds->owns_set && ds->set->segment_list) {
-				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->set->segment_list->segment_URLs);
-				has_seg_list = GF_TRUE;
-				//can be NULL if we don't mutualize at AdaptationSet level
-				if (surl) {
-					gf_mpd_segment_url_free(surl);
-					seg_url_found = GF_TRUE;
-				}
-			}
-			//but we must have at least one segment URL entry
-			if (has_seg_list && !seg_url_found) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] purging segment %s for AS %d rep %s but segment list is empty!\n",
-						sctx->filename ? sctx->filename : "", ds->set->id, ds->rep->id));
-			}
-
-			if (ds->rep->segment_template) {
-				if (ds->rep->segment_template->segment_timeline) {
-					dasher_purge_segment_timeline(ds, ds->rep->segment_template->segment_timeline, sctx);
-				}
-			}
-			//not an else due to inheritance
-			if (ds->owns_set && ds->set->segment_template) {
-				if (ds->set->segment_template->segment_timeline) {
-					dasher_purge_segment_timeline(ds, ds->set->segment_template->segment_timeline, sctx);
-				}
-			}
-
-			ds->nb_segments_purged ++;
-			ds->dur_purged += dur;
-			ctx->mpd->nb_past_discont += sctx->is_discontinuity ? 1 : 0;
-			gf_fatal_assert(gf_list_find(ds->pending_segment_states, sctx)<0);
-			if (sctx->filename) gf_free(sctx->filename);
-			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
-			if (sctx->frags) gf_free(sctx->frags);
-			if (sctx->llhas_template) gf_free(sctx->llhas_template);
-			gf_free(sctx);
-			gf_list_rem(ds->rep->state_seg_list, 0);
-		}
 		if (max_rem_dur < ds->dur_purged*1000) max_rem_dur = (u64) (ds->dur_purged * 1000);
 		//final flush to static of live session: update start number
 		if (ctx->dmode!=GF_MPD_TYPE_DYNAMIC) {
@@ -5190,7 +5283,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 		if (ds->xlink && (ds->stream_type==GF_STREAM_FILE) ) {
 			pdur = (u32) (1000*(s64)ds->period_dur.num / ds->period_dur.den);
 		} else {
-			u64 ds_dur = ds->max_period_dur;
+			u64 ds_dur = ds->max_period_dur + gf_timestamp_rescale(ds->init_skip_dur, ds->mpd_timescale, 1000);
 
 			//we had to generate one extra segment to unlock looping, but we don't want to advertise it in the manifest duration
 			//because other sets may not be ready for this time interval
@@ -6166,6 +6259,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->nb_sap_4 = 0;
 	ds->pid_id = 0;
 	ds->force_timescale = 0;
+	ds->init_skip_dur = 0;
 	ds->set = NULL;
 	ds->owns_set = GF_FALSE;
 	ds->rep = NULL;
@@ -6174,12 +6268,21 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	gf_list_reset(ds->complementary_streams);
 	ds->inband_params = 0;
 	ds->seg_start_time = 0;
+	u32 seg_number_at_disc = ds->seg_number;
 	ds->seg_number = ds->startNumber;
+	//if mid-stream discontinuity, try to use a continuous segment numbering
+	if (seg_number_at_disc && !ds->done) {
+		GF_DasherCtx *ctx = gf_filter_get_udta(filter);
+		//in sigfrag (manifest regeneration), do not use this option
+		if (!ctx->sigfrag)
+			ds->startNumber = ds->seg_number = seg_number_at_disc;
+	}
 	ds->nb_segments_purged = 0;
 	ds->dur_purged = 0;
 	ds->moof_sn_inc = 0;
 	ds->moof_sn = 0;
 	ds->seg_done = 0;
+	ds->last_dts = 0;
 	ds->subdur_done = 0;
 	if (ds->packet_queue) {
 		while (gf_list_count(ds->packet_queue)) {
@@ -6616,6 +6719,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			if (ds->rep) gf_mpd_representation_free(ds->rep);
 			ds->rep = rep;
+			ds->discontinuity_id = rep->discontinuity_id;
 
 			if (ds->rep_id) gf_free(ds->rep_id);
 			ds->rep_id = gf_strdup(rep->id);
@@ -7070,11 +7174,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ctx->current_period->period = gf_mpd_period_new();
 		if (!ctx->mpd) dasher_setup_mpd(ctx);
 		gf_list_add(ctx->mpd->periods, ctx->current_period->period);
-	}
-
-	if (gf_list_count(ctx->mpd->periods) == ctx->pending_discontinuity_idx) {
-		ctx->current_period->period->is_discontinuity = GF_TRUE;
-		ctx->pending_discontinuity_idx = 0;
 	}
 
 	if (remote_xlink) {
@@ -7917,8 +8016,6 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	if (ctx->state)
 		dasher_context_update_period_start(ctx);
 
-	dasher_update_period_duration(ctx, GF_FALSE);
-
 	return GF_OK;
 }
 
@@ -8742,9 +8839,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					if (ds->rawmux)
 						break;
 					if (ds->set->bitstream_switching && ds->set->segment_template)
-						ds->rep->hls_single_file_name = gf_strdup(ds->set->segment_template->hls_init_name);
+						ds->rep->hls_single_file_name = ds->set->segment_template->hls_init_name ? gf_strdup(ds->set->segment_template->hls_init_name) : NULL;
 					else
-						ds->rep->hls_single_file_name = gf_strdup(ds->init_seg);
+						ds->rep->hls_single_file_name = ds->init_seg ? gf_strdup(ds->init_seg) : NULL;
 				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
@@ -8867,10 +8964,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			}
 		}
 
-		const GF_PropertyValue *disc_p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_TIME_DISCONTINUITY);
-		if (disc_p && disc_p->value.boolean) {
-			gf_assert(seg_state->seg_num == 1);
-			gf_assert(gf_list_count(ctx->mpd->periods)-1 == ds->ts_disc_idx);
+		if (gf_filter_pck_get_mark(in_pck)) {
+			gf_assert(seg_state->seg_num == ds->startNumber);
 			seg_state->is_discontinuity = GF_TRUE;
 		}
 
@@ -9494,7 +9589,21 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	ds->est_first_cts_in_next_seg = ds->first_cts_in_next_seg;
 }
 
-
+static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
+{
+	if (ds->rep->segment_list)
+		ds->rep->segment_list->presentation_time_offset = pto_adj;
+	else if (ds->rep->segment_template)
+		ds->rep->segment_template->presentation_time_offset = pto_adj;
+	else if (ds->set->segment_template)
+		ds->set->segment_template->presentation_time_offset = pto_adj;
+	else if (ds->set->segment_list)
+		ds->set->segment_list->presentation_time_offset = pto_adj;
+	else if (ds->rep->segment_base) {
+		ds->rep->segment_base->presentation_time_offset = pto_adj;
+		ds->rep->segment_base->timescale = ds->mpd_timescale;
+	}
+}
 
 static GF_Err dasher_process(GF_Filter *filter)
 {
@@ -9623,6 +9732,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			if (!ds->request_period_switch) {
 				gf_assert(ds->period == ctx->current_period);
 				pck = gf_filter_pid_get_packet(ds->ipid);
+				if (pck && ds->is_discontinuity) {
+					gf_filter_pck_set_mark(pck, GF_TRUE);
+					ds->is_discontinuity = GF_FALSE;
+				}
 
 				//pid removal while fetching, abort current process
 				if (ctx->has_pid_removed) return GF_OK;
@@ -9894,8 +10007,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Representation not initialized, dropping non-SAP1/2 packet CTS "LLU"/%u\n", cts, ds->timescale));
 
 					dasher_drop_input(ctx, ds, GF_FALSE);
-					//reset ast until we get SAP
-					ctx->mpd->availabilityStartTime = 0;
+					//reset ast until we get SAP if first period
+					if (gf_list_count(ctx->mpd->periods)==1)
+						ctx->mpd->availabilityStartTime = 0;
 					break;
 				}
 				//ast was reset, resetup
@@ -9938,44 +10052,44 @@ static GF_Err dasher_process(GF_Filter *filter)
 					if (ds->presentation_time_offset)
 						check_ts = ds->presentation_time_offset - 1;
 					ds->presentation_time_offset = 0;
-					//The code below assumes that the first frame in the stream has a presentation time of 0
+
 					if ((s64) check_ts + ds->pts_minus_cts > 0) {
+						s32 missed_time = 0;
+
 						u64 pto = check_ts + ds->pts_minus_cts;
+						//pto_adj is the min PTS detected in period
 						u64 pto_adj = pto;
 						if (ds->timescale != ds->mpd_timescale) {
 							pto_adj = gf_timestamp_rescale(pto_adj, ds->timescale, ds->mpd_timescale);
 						}
+						//use min cts in period if set
 						if (ctx->min_cts_period.den) {
 							u64 diff = gf_timestamp_rescale(ctx->min_cts_period.num, ctx->min_cts_period.den, ds->mpd_timescale);
+							//how much did we miss (in case of frames dropped)
+							missed_time = cts + ds->pts_minus_cts - diff;
+							if (missed_time<0) missed_time = 0;
 							pto_adj = diff;
 						}
-						//check against period continuity - if we're close to previous period end, consider we are contiguous
-						//and resume from there
+						//check against period continuity
 						if (ctx->period_switch_cts.den) {
 							s64 last_pts = ctx->period_switch_cts.num;
 							if (ds->prev_pts_minus_cts<0) last_pts += ds->prev_pts_minus_cts;
 
-							u64 diff = gf_timestamp_rescale(last_pts, ctx->period_switch_cts.den, ds->mpd_timescale);
-							s64 pts_diff = diff;
-							pts_diff -= pto_adj;
-							if (ABS(pts_diff) < 2 * ds->mpd_timescale) {
-								pto_adj = diff;
+							u64 pts_at_switch = gf_timestamp_rescale(last_pts, ctx->period_switch_cts.den, ds->mpd_timescale);
+							s64 pts_diff = (s64) pto_adj - (s64) pts_at_switch;
+							//if time discontinuity of less than threshold, compensate
+							//if disc is negative (timestamps looping or disc), we cannot recompute exact timeline
+							//if too high, we cannot risk considering this is the same timeline
+							if (ctx->td_limit && (pts_diff>0) && (pts_diff < ctx->td_limit * ds->mpd_timescale)) {
+								pto_adj = pts_at_switch;
+								pto += missed_time;
+								pts_diff = pto - pto_adj;
+								ds->init_skip_dur = (s32) gf_timestamp_rescale_signed( pts_diff, ds->mpd_timescale, ctx->period_switch_cts.den);
+							} else if (ctx->td_limit && missed_time) {
+								ds->init_skip_dur = (s32) gf_timestamp_rescale_signed( missed_time , ds->mpd_timescale, ctx->period_switch_cts.den);
 							}
 						}
-
-						if (ds->rep->segment_list)
-							ds->rep->segment_list->presentation_time_offset = pto_adj;
-						else if (ds->rep->segment_template)
-							ds->rep->segment_template->presentation_time_offset = pto_adj;
-						else if (ds->set->segment_template)
-							ds->set->segment_template->presentation_time_offset = pto_adj;
-						else if (ds->set->segment_list)
-							ds->set->segment_list->presentation_time_offset = pto_adj;
-						else if (ds->rep->segment_base) {
-							ds->rep->segment_base->presentation_time_offset = pto_adj;
-							ds->rep->segment_base->timescale = ds->mpd_timescale;
-						}
-
+						dasher_set_pto(ds, pto_adj);
 						ds->presentation_time_offset = pto;
 					}
 					//period continuity, skip priming in new periods
@@ -9988,11 +10102,25 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (ctx->do_index) {
 					ds->rep->segment_list->first_cts_offset = (s32) ((s64) ds->first_cts - (s64) ds->first_dts);
 				}
-				ds->rep_init++;
+				ds->rep_init = GF_TRUE;
 				has_init++;
 			}
 
 			nb_init++;
+
+			//special case for SAP2: for the first segment, keep probing min CTS as the first frame in decode order (sap2) is not
+			//the first frame in presentation order, we need to adjust the PTO
+			if ((ds->startNumber == ds->seg_number)
+				&& (ds->set->starts_with_sap == GF_FILTER_SAP_2)
+				&& gf_timestamp_less(cts, ds->timescale, ctx->min_cts_period.num, ctx->min_cts_period.den)
+			) {
+				ctx->min_cts_period.num = cts;
+				ctx->min_cts_period.den = ds->timescale;
+				u64 pto = gf_timestamp_rescale(ctx->min_cts_period.num, ctx->min_cts_period.den, ds->mpd_timescale);
+				if ((ds->pts_minus_cts<0) && (pto>=-ds->pts_minus_cts))
+					pto -= -ds->pts_minus_cts;
+				dasher_set_pto(ds, pto);
+			}
 
 			if (ds->ts_offset) {
 				cts += ds->ts_offset;
@@ -10007,6 +10135,52 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			cts = dasher_translate_cts(ds, cts);
 			dts -= ds->first_dts;
+			//check time discontinuities not explicitely signaled
+			if (ds->last_dts && ctx->td_detect) {
+				Bool is_disc = GF_FALSE;
+				s64 diff = gf_timestamp_rescale_signed((s64) dts - (s64) ds->last_dts, ds->timescale, 1000);
+				if (diff<0) {
+					//some sources could have unreliable DTS assigned from CTS, checking for neg is not enough
+					if (-diff > 1000*ctx->td_detect)
+						is_disc = GF_TRUE;
+				} else if (ctx->td_detect) {
+					if  (diff > 1000*ctx->td_detect) {
+						//stream is AV, introduce a time discontinuity
+						if ((ds->stream_type==GF_STREAM_VISUAL) || (ds->stream_type==GF_STREAM_AUDIO)) {
+							is_disc = GF_TRUE;
+						} else {
+							u32 s_i;
+							//for text and non AV streams, we need to analyze other AV streams
+							//browse all scheduled streams - if no AV, ignore discontinuity otherwise trigger if all set
+							u32 nb_av_in_period_switch_pending = 0;
+							u32 nb_av = 0;
+							for (s_i=0; s_i<count; s_i++) {
+								GF_DashStream *ads = gf_list_get(ctx->current_period->streams, s_i);
+								if (ads==ds) continue;
+								if (ads->done) continue;
+								if ((ds->stream_type==GF_STREAM_VISUAL) || (ds->stream_type==GF_STREAM_AUDIO)) {
+									nb_av++;
+									if (ds->request_period_switch) nb_av_in_period_switch_pending++;
+								}
+							}
+							//disable continuity if no av only
+							if (!nb_av) diff = 0;
+							else {
+								if (nb_av_in_period_switch_pending==nb_av) is_disc = GF_TRUE;
+								//at least one av stream is in discontinuity, wait until all are done
+								else break;
+							}
+						}
+					}
+				}
+
+				if (is_disc) {
+					ds->request_period_switch = 1;
+					gf_filter_pck_set_mark(pck, GF_TRUE);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Discontinuous timing detected (DTS "LLU" vs last DTS "LLU"), requesting period switch\n", dts, ds->last_dts));
+					break;
+				}
+			}
 
 			if (ctx->sreg && ctx->mpd->gpac_mpd_time && gf_timestamp_greater(dts, ds->timescale, ctx->mpd->gpac_mpd_time, 1000)) {
 				if (!gf_filter_pid_has_seen_eos(ds->ipid)) {
@@ -11739,7 +11913,8 @@ static const GF_FilterArgs DasherArgs[] =
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-
+	{ OFFS(td_limit), "number of seconds below which a time discontinuity is considered normal (eg loss) - 0 disables checking", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(td_detect), "number of seconds between DTS above which a discontinuity is triggered - 0 disables checking", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

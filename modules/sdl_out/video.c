@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre - Romain Bouqueau
-*			Copyright (c) Telecom ParisTech 2000-2023
+*			Copyright (c) Telecom ParisTech 2000-2026
 *					All rights reserved
 *
 *  This file is part of GPAC / SDL audio and video module
@@ -434,7 +434,7 @@ void SDLVid_SetIcon(SDLVidCtx *ctx)
 #if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS) && !defined(GPAC_DISABLE_AV_PARSERS)
 	u8 *buffer, *dec_buf;
 	u32 size, w, h, pf, Bpp, dst_size=0;
-	const char cfg[GF_MAX_PATH];
+	char cfg[GF_MAX_PATH];
 	if (!gf_opts_default_shared_directory((char *) cfg))
 		return;
 

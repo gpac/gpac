@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -308,7 +308,17 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		st->pck_queue = gf_list_new();
 		st->all_saps = GF_TRUE;
 	} else if (ctx->chkdisc.num<0) {
-		return GF_OK;
+		//check if we had no dsi previsously and got one - if so, do not consider this a discontinuity
+		Bool has_dsi=GF_FALSE, had_dsi=GF_FALSE;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+		if (p) has_dsi = GF_TRUE;
+
+		p = gf_filter_pid_get_property(st->opid, GF_PROP_PID_DECODER_CONFIG);
+		if (!p) p = gf_filter_pid_get_property(st->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+		if (p) had_dsi = GF_TRUE;
+		if (has_dsi == had_dsi)
+			return GF_OK;
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
@@ -953,6 +963,10 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				st->ts_disc_idx++;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Detected time discontinuity on pid %s (timestamps: old "LLU", new "LLU")\n", gf_filter_pid_get_name(st->ipid), st->last_ts_sent, ts));
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIME_DISCONTINUITY, &PROP_UINT(st->ts_disc_idx));
+
+				//reset real-time regulation
+				st->cts_us_at_init = 0;
+				st->sys_clock_at_init = 0;
 			}
 			st->last_ts_sent = ts;
 		}
@@ -1126,9 +1140,6 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			}
 		}
 
-		//signal discontinuity
-		if (is_ts_disc) gf_filter_pck_set_property(new_pck, GF_PROP_PCK_TIME_DISCONTINUITY, &PROP_BOOL(GF_TRUE));
-
 		//rewrite timestamps
 		ts = gf_filter_pck_get_cts(pck) + cts_offset;
 
@@ -1263,9 +1274,6 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_merge_properties(pck, dst);
 			if (ctx->rmseek)
 				gf_filter_pck_set_seek_flag(dst, GF_FALSE);
-
-			//signal discontinuity
-			if (is_ts_disc) gf_filter_pck_set_property(dst, GF_PROP_PCK_TIME_DISCONTINUITY, &PROP_BOOL(GF_TRUE));
 
 			// forward SAPs as cue points
 			u32 sap = gf_filter_pck_get_sap(dst);
@@ -3146,7 +3154,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(sapcue), "treat SAPs smaller than or equal to this value as cue points", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(rmseek), "remove seek flag of all sent packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
-	{ OFFS(chkdisc), "discontinuity detection in milliseconds - see filter help", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(chkdisc), "discontinuity detection in milliseconds - see filter help", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -3261,6 +3269,8 @@ GF_FilterRegister ReframerRegister = {
 		"Warning: Make sure you know what you are doing as using this option could make the stream not playable (ignoring a codec config change).\n"
 		"EX gpac -i SOMEURL reframer:chkdisc=-1 -o DASH_ORIGIN\n"
 		"In this example, the dasher filter will never trigger a period switch due to input stream discontinuity.\n"
+		"\n"
+		"A value of 0 for [-chkdisc]() option does not change the behaviour of the filter.\n"
 		"\n"
 		"A positive value for [-chkdisc]() option will check timestamp continuity in input stream.\n"
 		"A Discontinuity is triggered when:\n"

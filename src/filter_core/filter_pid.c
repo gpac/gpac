@@ -7376,8 +7376,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 #endif
 
 	//destroy pcki
-	pcki->pck = NULL;
-	pcki->pid = NULL;
+	memset(pcki, 0, sizeof(GF_FilterPacketInstance));
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (pid->filter && pid->filter->session->check_allocs) {

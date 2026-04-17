@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2025
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -295,7 +295,9 @@ typedef struct
 	u8 can_merge;
 	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
 	u8 is_first_part;
-
+	/*! set to discontinuity sequence index for segment following a discontinuity, 0 otherwise */
+	u32 discontinuity_seq;
+	char *hls_switch_uri;
 
 	u64 first_tfdt, first_pck_seq, frag_start_offset, frag_tfdt;
 	u32 split_first_dur, split_last_dur;
@@ -600,7 +602,7 @@ typedef struct
 	u32 nb_frags;
 	/*! number of fragment infos */
 	GF_DASH_FragmentContext *frags;
-	/*! indicates if the period starts with a discontinuity*/
+	/*! indicates if the segment is a start of a discontinuity*/
 	Bool is_discontinuity;
 	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
 	GF_DashHLSLowLatencyType llhls_mode;
@@ -725,6 +727,7 @@ typedef struct {
 	const char *hls_forced;
 
 	const char *init_base64;
+	u32 discontinuity_id;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -850,8 +853,6 @@ typedef struct
 	u64 duration;
 	/*! set to GF_TRUE if adaptation sets in the period don't need reinit when switching quality*/
 	Bool bitstream_switching;
-	/*! set to GF_TRUE if the period was created due to a discontinuity */
-	Bool is_discontinuity;
 
 	/*! base URL (alternate location) list if any*/
 	GF_List *base_URLs;
