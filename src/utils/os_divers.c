@@ -1168,14 +1168,14 @@ const char *gf_sys_find_global_arg(const char *arg)
 }
 
 
-#ifndef GPAC_DISABLE_RMTWS
+#if !defined(GPAC_DISABLE_RMTWS) && !defined(GPAC_DISABLE_NETWORK)
 RMT_WS* rmtws_handle=NULL;
 RMT_WS* userws_handle=NULL;
 #endif
 
 GF_EXPORT
 void* gf_sys_get_rmtws() {
-#ifndef GPAC_DISABLE_RMTWS
+#if !defined(GPAC_DISABLE_RMTWS) && !defined(GPAC_DISABLE_NETWORK)
 	return (void*)rmtws_handle;
 #else
 	return NULL;
@@ -1184,7 +1184,7 @@ void* gf_sys_get_rmtws() {
 
 GF_EXPORT
 void* gf_sys_get_userws() {
-#ifndef GPAC_DISABLE_RMTWS
+#if !defined(GPAC_DISABLE_RMTWS) && !defined(GPAC_DISABLE_NETWORK)
 	return (void*)userws_handle;
 #else
 	return NULL;
@@ -1194,7 +1194,7 @@ void* gf_sys_get_userws() {
 
 GF_EXPORT
 GF_Err gf_sys_enable_rmtws(Bool start) {
-#ifndef GPAC_DISABLE_RMTWS
+#if !defined(GPAC_DISABLE_RMTWS) && !defined(GPAC_DISABLE_NETWORK)
 	if (start && !rmtws_handle) {
 
 		rmtws_handle = rmt_ws_new();
@@ -1228,7 +1228,7 @@ GF_Err gf_sys_enable_rmtws(Bool start) {
 
 GF_EXPORT
 GF_Err gf_sys_enable_userws(Bool start) {
-#ifndef GPAC_DISABLE_RMTWS
+#if !defined(GPAC_DISABLE_RMTWS) && !defined(GPAC_DISABLE_NETWORK)
 	if (start && !userws_handle) {
 
 		userws_handle = rmt_ws_new();
