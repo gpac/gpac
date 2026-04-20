@@ -4657,6 +4657,20 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	return GF_OK;
 }
 
+static Bool mpd_skip_serialization(GF_MPD const * const mpd)
+{
+	u32 i = 0;
+	GF_MPD_Period *p;
+	while (( p = (GF_MPD_Period *) gf_list_enum(mpd->periods, &i))) {
+		if (!p->skip_serialize)
+			return GF_FALSE;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD] No serialized period in MPD. Don't serialize.\n"));
+
+	return GF_TRUE;
+}
+
 
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
@@ -4665,6 +4679,9 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	s32 indent = compact ? GF_INT_MIN : 0;
 	GF_MPD_ProgramInfo *info;
 	char *text;
+
+	if (mpd_skip_serialization(mpd))
+		return GF_OK;
 
 	if (!mpd->xml_namespace) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Setting to default.\n"));
@@ -4861,6 +4878,10 @@ GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name)
 {
 	GF_Err e;
 	FILE *out;
+
+	if (mpd_skip_serialization(mpd))
+		return GF_OK;
+
 	if (!strcmp(file_name, "std")) out = stdout;
 	else {
 		out = gf_fopen(file_name, "wb");

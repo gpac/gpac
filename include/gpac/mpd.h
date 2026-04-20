@@ -878,7 +878,7 @@ typedef struct
 
 	/*! period is preroll - test only, GPAC internal*/
 	Bool is_preroll;
-	/*! intternal for dasher, indicate this period should not be written yet */
+	/*! internal for dasher, indicate this period should not be written yet */
 	Bool skip_serialize;
 } GF_MPD_Period;
 
