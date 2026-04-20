@@ -1744,6 +1744,7 @@ GF_Err aeib_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->enc_algo = (char *)gf_malloc(len*sizeof(char));
 		if (!ptr->enc_algo) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->enc_algo, len);
+		ptr->enc_algo[len-1] = 0;
 	}
 	ptr->key_length = gf_bs_read_u8(bs);
 	ptr->size = 0;
@@ -1846,6 +1847,7 @@ GF_Err flxs_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->metadata = (char *)gf_malloc(len*sizeof(char));
 		if (!ptr->metadata) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->metadata, len);
+		ptr->metadata[len-1] = 0;
 	}
 	return GF_OK;
 }
