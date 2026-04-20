@@ -14876,7 +14876,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 			}
 
 		} else {
-			ISOM_DECREASE_SIZE_GOTO_EXIT(s, 2*bits/8)
+			ISOM_DECREASE_SIZE_GOTO_EXIT(s, 3*bits/8)
 			u32 offset = gf_bs_read_int(bs, bits-1);
 			u32 pattern_len = gf_bs_read_int(bs, bits);
 			u32 nb_samples = gf_bs_read_int(bs, bits);
