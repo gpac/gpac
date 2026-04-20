@@ -828,7 +828,11 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		path[ GF_ARRAY_LENGTH(path) - 1] = 0;
 	}
 	size_t path_len = strlen(path);
-	if (path_len && path[path_len-1] != '/') strcat(path, "/");
+	if (path_len && path[path_len-1] != '/') {
+		if (path_len + 1 >= GF_ARRAY_LENGTH(path))
+			return GF_BAD_PARAM;
+		strcat(path, "/");
+	}
 #endif
 
 #ifdef WIN32

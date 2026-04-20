@@ -763,9 +763,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 		/*create config file from disk*/
 		if (profile) {
-			sprintf(szPath, "%s%cprofiles%c%s%c%s", file_path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, profile, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+			snprintf(szPath, sizeof(szPath), "%s%cprofiles%c%s%c%s", file_path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, profile, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 		} else {
-			sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+			snprintf(szPath, sizeof(szPath), "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to create config file: %s\n", szPath ));
 

@@ -110,6 +110,15 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		}
 	}
 
+	size_t out_size = strlen(file_name);
+	if (filePath)
+		out_size += strlen(filePath) + 1;
+
+	if (out_size >= sizeof(fileName)) {
+		return GF_BAD_PARAM;
+	}
+
+
 	if (filePath && strlen(filePath) && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
 		strcpy(fileName, filePath);
 		strcat(fileName, file_name);
@@ -359,6 +368,9 @@ const char *gf_cfg_get_key_internal(GF_Config *iniFile, const char *secName, con
 	u32 i;
 	IniSection *sec;
 	IniKey *key;
+
+	if (!iniFile || !iniFile->sections)
+		return NULL;
 
 	i=0;
 	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {

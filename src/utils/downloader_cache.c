@@ -246,7 +246,7 @@ static Bool gather_cache_files(void *cbck, char *item_name, char *item_path, GF_
 u64 gf_cache_cleanup(const char * directory, u64 max_size)
 {
 	char szLOCK[GF_MAX_PATH];
-	sprintf(szLOCK, "%s/.lock", directory);
+	snprintf(szLOCK, sizeof(szLOCK), "%s/.lock", directory);
 	if (!gf_sys_create_lockfile(szLOCK))
 		return max_size;
 
@@ -642,7 +642,8 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	Bool in_cache = gf_file_exists(entry->cfg_filename);
 
 	GF_Config *cfg = gf_cfg_force_new ( NULL, entry->cfg_filename);
-	if ( !cfg ) {
+	if ( !cfg || !gf_cfg_get_filename(cfg) ) {
+		if (cfg) gf_cfg_del(cfg);
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE, ("[CACHE] Failed to create cache entry for %s, request will not be cached\n", url));
 		gf_cache_delete_entry ( entry );
 		if (lock_type==GF_LOCKFILE_NEW) gf_file_delete(szLOCK);
@@ -827,7 +828,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		gf_fseek(entry->writeFilePtr, 0, SEEK_END);
 
 	char szLOCK[GF_MAX_PATH];
-	sprintf(szLOCK, "%s.lock", entry->cfg_filename);
+	snprintf(szLOCK, sizeof(szLOCK), "%s.lock", entry->cfg_filename);
 	GF_LockStatus lock_type = cache_entry_lock(szLOCK);
 	GF_Config *cfg = gf_cfg_new(NULL, entry->cfg_filename);
 	char szUTC[20];
@@ -913,7 +914,7 @@ void gf_cache_delete_entry( const DownloadedCacheEntry entry )
 
 	if (!entry->mem_storage ) {
 		char szLOCK[GF_MAX_PATH];
-		sprintf(szLOCK, "%s.lock", entry->cfg_filename);
+		snprintf(szLOCK, sizeof(szLOCK), "%s.lock", entry->cfg_filename);
 		GF_LockStatus lock_type = cache_entry_lock(szLOCK);
 
 		GF_Config *cfg = gf_cfg_new(NULL, entry->cfg_filename);
@@ -997,7 +998,7 @@ void gf_cache_set_max_age(const DownloadedCacheEntry entry, u32 max_age, Bool mu
 	if (!entry || entry->mem_storage) return;
 
 	char szLOCK[GF_MAX_PATH];
-	sprintf(szLOCK, "%s.lock", entry->cfg_filename);
+	snprintf(szLOCK, sizeof(szLOCK), "%s.lock", entry->cfg_filename);
 	GF_LockStatus lock_type = cache_entry_lock(szLOCK);
 	GF_Config *cfg = gf_cfg_new(NULL, entry->cfg_filename);
 
@@ -1392,7 +1393,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 		Bool use_mem = (sess->flags & (GF_NETIO_SESSION_MEMORY_CACHE | GF_NETIO_SESSION_NO_STORE)) ? GF_TRUE : GF_FALSE;
 		entry = gf_cache_create_entry(sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, use_mem, sess->dm->cache_mx);
 		if (!entry) {
-			SET_LAST_ERR(GF_OUT_OF_MEM)
+			SET_LAST_ERR(GF_IO_ERR)
 			return;
 		}
 		gf_mx_p( sess->dm->cache_mx );

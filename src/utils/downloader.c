@@ -1945,6 +1945,13 @@ retry_cache:
 	if (!default_cache_dir) {
 		FILE *test;
 		char szTemp[GF_MAX_PATH];
+		if (strlen(dm->cache_directory) + strlen("gpaccache.test") >= GF_ARRAY_LENGTH(szTemp)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[Cache] Invalid cache directory (path too long): %s\n", dm->cache_directory ));
+			gf_free(dm->cache_directory);
+			dm->cache_directory = NULL;
+			opt = NULL;
+			goto retry_cache;
+		}
 		strcpy(szTemp, dm->cache_directory);
 		strcat(szTemp, "gpaccache.test");
 		test = gf_fopen(szTemp, "wb");
