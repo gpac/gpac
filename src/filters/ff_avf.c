@@ -407,6 +407,7 @@ static GF_Err ffavf_initialize(GF_Filter *filter)
 	}
 	gf_filter_override_caps(filter, ctx->filter_caps, i);
 
+	//if any output, configure them asap for link resolution
 	if (!ctx->nb_inputs) {
 		ctx->configure_state = 1;
 		gf_filter_post_process_task(filter);
@@ -518,7 +519,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 		return ffavf_setup_filter(filter, ctx);
 	}
 	if (!ctx->nb_playing)
-		return GF_OK;
+		return GF_EOS;
 
 	//push input
 	nb_eos = 0;
@@ -922,16 +923,20 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u32 width, height, pix_fmt, gf_pfmt;
 		GF_Fraction sar={1,1}, fps={0, 1};
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-		if (!p) return GF_OK; //not ready yet
-		width = p->value.uint;
+		width = p ? p->value.uint : 0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-		if (!p) return GF_OK; //not ready yet
-		height = p->value.uint;
+		height = p ? p->value.uint : 0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
-		if (!p) return GF_OK; //not ready yet
-		gf_pfmt = p->value.uint;
+		gf_pfmt = p ? p->value.uint : 0;
+		//not ready yet, we must setup outputs for linking
+		if (!width || !height || !gf_pfmt) {
+			if (ctx->outputs) return GF_OK;
+			ctx->configure_state = 1;
+			return ffavf_setup_outputs(filter, ctx);
+		}
+
 		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt, GF_FALSE);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
@@ -971,24 +976,32 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (p) ch_layout = ffmpeg_channel_layout_from_gpac(p->value.longuint);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-		if (!p) return GF_OK; //not ready yet
-		nb_ch = p->value.uint;
+		nb_ch = p ? p->value.uint : 0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+		sr = p ? p->value.uint : 0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+		afmt = p ? p->value.uint : 0;
+
+		//not ready yet, we must setup outputs for linking
+		if (!nb_ch || !sr || !afmt) {
+			if (ctx->outputs) return GF_OK;
+			ctx->configure_state = 1;
+			return ffavf_setup_outputs(filter, ctx);
+		}
+
 		if (!ch_layout) {
 #ifdef FFMPEG_OLD_CHLAYOUT
-			ch_layout = av_get_default_channel_layout(p->value.uint);
+			ch_layout = av_get_default_channel_layout(nb_ch);
 #else
 			AVChannelLayout ff_ch_layout;
-			av_channel_layout_default(&ff_ch_layout, p->value.uint);
+			av_channel_layout_default(&ff_ch_layout, nb_ch);
 			ch_layout = ff_ch_layout.u.mask;
 #endif
 		}
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
-		if (!p) return GF_OK; //not ready yet
-		sr = p->value.uint;
 
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
-		if (!p) return GF_OK; //not ready yet
-		afmt = ffmpeg_audio_fmt_from_gpac(p->value.uint);
+		afmt = ffmpeg_audio_fmt_from_gpac(afmt);
 		pid_ctx->bps = gf_audio_fmt_bit_depth(p->value.uint) / 8;
 		pid_ctx->planar = gf_audio_fmt_is_planar(p->value.uint);
 
