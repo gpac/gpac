@@ -1617,7 +1617,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 }
 
 
-	// After ngtcp2_settings_default(&settings) and initial fields
+       // After ngtcp2_settings_default(&settings) and initial fields
 settings.initial_ts = ngtcp2_timestamp();
 settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
 settings.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT;
@@ -1630,20 +1630,34 @@ settings.ack_thresh = 2;
 settings.initial_pkt_num = 1;
 
 /* NEW: read tunables once, apply to BOTH sides */
-int wnd_kb    = gf_opts_get_int("temp", "h3-maxwnd");
-int ack_thr   = gf_opts_get_int("temp", "h3-ack-thresh");
+int wnd_kb = gf_opts_get_int("temp", "h3-maxwnd");
+int ack_thr = gf_opts_get_int("temp", "h3-ack-thresh");
 const char *algo = gf_opts_get_key("temp", "h3-algo");
 
-/* Fallbacks if no CLI override */
-if (wnd_kb   <= 0) wnd_kb   = 16000;   // 16 MB
-if (ack_thr  <= 0) ack_thr  = 2;
-if (!algo)         algo     = "cubic";
+/* Detect explicit user overrides */
+int user_set_wnd  = (wnd_kb > 0);
+int user_set_ack  = (ack_thr > 0);
+int user_set_algo = (algo && algo[0]);
 
 
-/* apply on both client & server (receive windows matter on receiver) */
-settings.max_window        = 1000 * wnd_kb;
-settings.max_stream_window = 1000 * wnd_kb;
-settings.ack_thresh        = ack_thr;
+/* Apply only the options that were explicitly provided */
+if (user_set_wnd) {
+    /* you were using KB * 1000 previously; keep same semantics */
+    settings.max_window = (uint64_t)1000 * (uint64_t)wnd_kb;
+	settings.max_stream_window = (uint64_t)1000 * (uint64_t)wnd_kb;
+}
+
+if (user_set_ack) {
+    settings.ack_thresh = (uint32_t)ack_thr;
+}
+
+if (user_set_algo) {
+    if (!strcmp(algo, "bbr")) {
+        settings.cc_algo = NGTCP2_CC_ALGO_BBR;
+    } else if (!strcmp(algo, "cubic")) {
+        settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
+    }
+}
 
 /* keep server-only extras + logging */
 if (sess->server_mode) {
@@ -1651,17 +1665,15 @@ if (sess->server_mode) {
     settings.tokenlen   = srv_hd ? srv_hd->tokenlen : 0;
     settings.token_type = token_type;
 
-    if (!strcmp(algo, "bbr"))
-        settings.cc_algo = NGTCP2_CC_ALGO_BBR;
-
-    static int tuning_logged = 0;
-    if (!tuning_logged) {
-        fprintf(stderr, "[H3-TUNING] Server config: max_window=%d, ack_thresh=%d, cc_algo=%s\n",
-                1000*wnd_kb, ack_thr, algo);
-        tuning_logged = 1;
+    if (user_set_wnd || user_set_ack || user_set_algo) {
+        fprintf(stderr,
+        "[H3-TUNING] Server override: max_window=%" PRIu64
+        ", ack_thresh=%u, cc_algo=%s\n",
+        (uint64_t)settings.max_window,
+        (unsigned)settings.ack_thresh,
+        user_set_algo ? algo : "(default)");
     }
 }
-
 
 
 
@@ -1764,7 +1776,7 @@ if (sess->server_mode) {
 		sess->hmux_sess->mx = sess->mx;
 	}
 	sess->chunked = GF_FALSE;
-	//don't flush packets now in server mode
+	//not flush packets now in server mode
 	if (qsc) return GF_OK;
 
 	return h3_session_write(sess);
