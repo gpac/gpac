@@ -1275,9 +1275,10 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		if (e) return e;
 
 		parser->file_size = size;
+		u32 bom_max = MIN(size, 4);
 		//copy possible BOM
-		memcpy(szLine, xml_mem_address, 4);
-		szLine[4] = szLine[5] = 0;
+		memcpy(szLine, xml_mem_address, bom_max);
+		szLine[bom_max] = szLine[bom_max+1] = 0;
 
 		parser->file_pos = 0;
 		parser->elt_start_pos = 0;
@@ -1285,7 +1286,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 
 		e = gf_xml_sax_init(parser, szLine);
 		if (!e) {
-			e = gf_xml_sax_parse(parser, xml_mem_address+4);
+			e = gf_xml_sax_parse(parser, xml_mem_address+bom_max);
 			if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 		}
 		gf_blob_release(fileName);
