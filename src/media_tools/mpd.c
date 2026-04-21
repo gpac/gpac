@@ -4768,7 +4768,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	char *text;
 
 	if (mpd_skip_serialization(mpd))
-		return GF_OK;
+		return GF_NOT_READY;
 
 	if (!mpd->xml_namespace) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Setting to default.\n"));

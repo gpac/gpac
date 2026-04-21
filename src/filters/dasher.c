@@ -5952,7 +5952,11 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 	ctx->mpd->segment_template = NULL;
 
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write %s file: %s\n", do_m3u8 ? "M3U8" : "MPD", gf_error_to_string(e) ));
+		if (e!=GF_NOT_READY) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write %s file: %s\n", do_m3u8 ? "M3U8" : "MPD", gf_error_to_string(e) ));
+		} else {
+			e = GF_OK;
+		}
 		gf_fclose(tmp);
 		if (ctx->current_period->period)
 			ctx->current_period->period->duration = last_period_dur;
