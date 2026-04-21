@@ -151,6 +151,14 @@ GF_OPT_ENUM (DasherWaitLastPktCtrl,
 	DASHER_SEGSYNC_AUTO,
 );
 
+// DASH SCTE-35 (out-of-band)
+GF_OPT_ENUM (DasherDashScte35Mode,
+	//not implemented: DASHER_SCTE35_DASH_XML,
+	DASHER_SCTE35_DASH_XML_BIN,
+	DASHER_SCTE35_DASH_EVTE,
+	DASHER_SCTE35_DASH_NONE,
+);
+
 // Index mode as used from a GHI (GPAC HTTP Streaming index) demuxer
 enum
 {
@@ -245,6 +253,7 @@ typedef struct
 	GF_DashAbsoluteURLMode hls_absu;
 	DasherWaitLastPktCtrl seg_sync;
 	Bool hls_ap;
+	DasherDashScte35Mode scte35;
 
 	//internal
 	Bool in_error;
@@ -340,7 +349,7 @@ typedef struct
 
 	Bool move_to_static;
 	Bool explicit_mode;
-	Bool inband_event;
+	GF_PropStringList inband_event; //{GF_MPD_Inband_Event}
 
 	Bool has_pid_removed;
 } GF_DasherCtx;
@@ -3151,23 +3160,41 @@ static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue 
 	}
 }
 
-static void dasher_add_inband_event(GF_DashStream *ds)
+static void dasher_add_inband_event(GF_DashStream *ds, GF_PropStringList *event_list)
 {
-	GF_MPD_Inband_Event *nielsen_event;
-	GF_MPD_Inband_Event *custom_event;
-	if(ds->stream_type == GF_STREAM_AUDIO) {
-		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
-		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-		custom_event->value = gf_strdup("https://aomedia.org/emsg/ID3");
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", custom_event->scheme_id_uri, custom_event->value))
+	//inband events syntax: expecting triplets {scheme_id_uri,value,stream_type} separated by '@'
+	for (u32 i=0; i<event_list->nb_items; ++i) {
+		char *sep1 = strchr(event_list->vals[i], '@');
+		if (!sep1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Invalid inband events syntax: missing first '@' separator in \"%s\" - ignoring\n", event_list->vals[i]));
+			continue;
+		}
+		char *sep2 = strchr(sep1+1, '@');
+		if (!sep2) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Invalid inband events syntax: missing second '@' separator in \"%s\"\n", event_list->vals[i]));
+			continue;
+		}
+		sep1[0] = 0;
+		sep2[0] = 0;
 
-		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
-		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-		nielsen_event->value = gf_strdup("www.nielsen.com:id3:v1");
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", nielsen_event->scheme_id_uri, nielsen_event->value))
+		u32 stream_type = 0;
+		if (!strcmp(sep2+1, "audio")) stream_type = GF_STREAM_AUDIO;
+		else if (!strcmp(sep2+1, "video")) stream_type = GF_STREAM_VISUAL;
+		else if (!strcmp(sep2+1, "text")) stream_type = GF_STREAM_TEXT;
+		else if (!strcmp(sep2+1, "0")) stream_type = 0;
+		else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid inband events syntax: unrecognized stream type \"%s\", use \"audio\", \"video\", \"text\", or \"all\". Inferring \"all\"\n", sep2+1));
+			stream_type = 0; //all streams
+		}
 
-		gf_list_add(ds->set->inband_event, nielsen_event);
-		gf_list_add(ds->set->inband_event, custom_event);
+		if (!stream_type || ds->stream_type == stream_type) {
+			GF_MPD_Inband_Event *event;
+			GF_SAFEALLOC(event, GF_MPD_Inband_Event);
+			event->scheme_id_uri = gf_strdup(event_list->vals[i]);
+			event->value = gf_strdup(sep1+1);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", event->scheme_id_uri, event->value))
+			gf_list_add(ds->set->inband_event, event);
+		}
 	}
 }
 
@@ -3296,9 +3323,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		}
 
 		//add custom inband event in manifest
-		if (ctx->inband_event) {
-			dasher_add_inband_event(ds);
-		}
+		dasher_add_inband_event(ds, &ctx->inband_event);
 	}
 	if (ctx->check_main_role && !main_role_set) {
 		GF_MPD_Descriptor *desc;
@@ -3959,9 +3984,15 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_set_source(ds->dst_filter, ttml_agg, szSRC);
 	}
 
-	//inject scte35dec filter
-	if (ctx->evte_agg && (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE))
+	// SCTE-35
+	if (ctx->evte_agg && (ds->codec_id==GF_CODECID_SCTE35 || ds->codec_id==GF_CODECID_EVTE)) {
+		// DASH SCTE-35
+		if (ctx->do_m3u8)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option used with HLS is likely not supported by your player\n"));
+
+		//inject scte35dec filter
 		dasher_inject_scte35_processor(filter, ds, szSRC);
+	}
 }
 
 static void dasher_set_content_components(GF_DashStream *ds)
@@ -9471,6 +9502,64 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	ds->est_first_cts_in_next_seg = ds->first_cts_in_next_seg;
 }
 
+static GF_Err dasher_handle_scte35(GF_FilterPacket *pck, GF_List *event_streams)
+{
+	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+	if (!emsg) return GF_OK;
+
+	//check if we already have an event stream
+	GF_MPD_EventStream *es = NULL;
+	u32 esi = 0;
+	while ( (es = (GF_MPD_EventStream*) gf_list_enum(event_streams, &esi)) ) {
+		if (!strcmp(es->scheme_id_uri, "urn:scte:scte35:2014:xml+bin"))
+			break;
+		else
+			es = NULL;
+	}
+
+	if (!es) {
+		GF_SAFEALLOC(es, GF_MPD_EventStream);
+		es->scheme_id_uri = gf_strdup("urn:scte:scte35:2014:xml+bin");
+		if (!es->scheme_id_uri) goto fail;
+		es->entries = gf_list_new();
+		if (!es->entries) goto fail;
+		gf_list_add(event_streams, es);
+	}
+
+	GF_MPD_EventStreamEntry *evt;
+	GF_SAFEALLOC(evt, GF_MPD_EventStreamEntry);
+	if (!evt) goto fail;
+	evt->xmlns = gf_strdup("http://www.scte.org/schemas/35/2016");
+	if (!evt->xmlns) goto fail;
+	gf_list_add(es->entries, evt);
+
+	Bool needs_idr = GF_FALSE;
+	u64 dur = 0;
+	Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr);
+	if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+		evt->duration = (u32)dur;
+		es->timescale = gf_filter_pck_get_timescale(pck);
+
+		size_t sz = 2*emsg->value.data.size + 3;
+		evt->message = gf_malloc(sizeof(char) * sz);
+		if (evt->message) {
+			sz = gf_base64_encode(emsg->value.data.ptr, emsg->value.data.size, evt->message, sz);
+			evt->message[sz] = 0;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Allocation failure for base64 SCTE35 event"));
+		}
+
+		return GF_OK;
+	}
+
+fail:
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Failed allocation in SCTE35 event, skipping\n"));
+	gf_free(es->entries);
+	gf_free(es->scheme_id_uri);
+	gf_free(es);
+	return GF_OUT_OF_MEM;
+}
+
 
 
 static GF_Err dasher_process(GF_Filter *filter)
@@ -9855,6 +9944,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 				sap_type = 0;
 
 			pcont_cts = cts;
+
+			//out-of-band events
+			if (ctx->scte35 != DASHER_SCTE35_DASH_NONE && ctx->scte35 != DASHER_SCTE35_DASH_EVTE) {
+				GF_Err e = dasher_handle_scte35(pck, ds->period->period->event_streams);
+				if (e) return e;
+			}
 
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
@@ -11696,9 +11791,12 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(inband_event), "insert a default inband event stream in the DASH manifest", GF_PROP_BOOL, "false", NULL, 0 },
+	{ OFFS(inband_event), "insert inband event in the DASH manifest described as triplets {schemeIdUri,value,streamType}\n"
+		"with streamType being \"audio\", \"video\", \"text\", or \"all\"\n"
+		, GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(scte35), "control SCTE-35 signalling in MPD\n", GF_PROP_UINT, "xml+bin", "xml+bin|evte|none", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -11929,6 +12027,11 @@ GF_FilterRegister DasherRegister = {
 "EX gpac -i SRC -o null:ext=mpd:tpl_force --template=pipe://mypipe\n"
 "This will trash the manifest and open `mypipe` as destination for the muxer result.\n"
 "Warning: Options for segment destination cannot be set through the [-template](), global options must be used.\n"
+"\n"
+"## Inband and outband events\n"
+"Inband events syntax is a list of triplets {scheme_id_uri,value,stream_type} separated by '@'.\n"
+"EX gpac -i SRC -o dash.mpd::inband_event=https://aomedia.org/emsg/ID3@https://aomedia.org/emsg/ID3@audio,https://aomedia.org/emsg/ID3@www.nielsen.com:id3:v1@audio\n"
+"The doubled colon (::) is used to avoid escaping the colons in the nielsen.com value.\n"
 "\n"
 "## Batch Operations\n"
 "The segmentation can be performed in multiple calls using a DASH context set with [-state]().\n"

@@ -360,7 +360,6 @@ typedef enum
 /*! Macro for common attributes and elements (representation, AdaptationSet, Preselection, ...)
 
 not yet implemented;
-	GF_List *inband_event_stream;	\
 	GF_List *switching;	\
 	GF_List *random_access;	\
 	GF_List *group_labels;	\
@@ -781,7 +780,7 @@ typedef struct
 	/*! content component descriptor list if any*/
 	GF_List *content_component;
 	/*! inband streams events */
-	GF_List *inband_event;
+	GF_List *inband_event; // GF_MPD_Inband_Event
 
 	/*! base URL (alternate location) list if any*/
 	GF_List *base_URLs;
@@ -822,7 +821,32 @@ typedef struct {
 	char *scheme_id_uri;
 	/*! Value of the inband event */
 	char *value;
+
+	/*! Stream Type to write to */
+	u32 stream_type;
 } GF_MPD_Inband_Event;
+
+/*! event streams entry - derived from emsg structure */
+typedef struct {
+	char *xmlns;
+	s64 presentation_time;
+	u32 duration;
+	u32 id;
+	char *message; // base64-encoded
+} GF_MPD_EventStreamEntry;
+
+/*! structure used to signal event streams */
+typedef struct {
+	/*! Scheme ID Uri of the inband event */
+	char *scheme_id_uri;
+
+	/*! Timescale */
+	u32 timescale;
+
+	/*! List of event stream entries */
+	GF_List *entries; // GF_MPD_EventStreamEntry
+} GF_MPD_EventStream;
+
 
 /*! MPD offering type*/
 typedef enum {
@@ -857,6 +881,8 @@ typedef struct
 	GF_MPD_SegmentList *segment_list;
 	/*! segment template of representation, or NULL if base or list is used*/
 	GF_MPD_SegmentTemplate *segment_template;
+	/*! list of event streams (out of band)*/
+	GF_List *event_streams; // GF_MPD_EventStream
 	/*! list of adaptation sets*/
 	GF_List *adaptation_sets;
 	/*! list of subsets (not yet implemented)*/

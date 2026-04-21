@@ -1856,7 +1856,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);
 		gf_filter_pid_send_event(read->pid, &evt);
 	}
-	//if no packet sent and no input pid, return EOS (avoids being resceduled as a source)
+	//if no packet sent and no input pid, return EOS (avoids being rescheduled as a source)
 	if (!is_active || (!all_pck_sent && !read->pid)) {
 		return GF_EOS;
 	}
