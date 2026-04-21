@@ -88,9 +88,7 @@ static void h2_metrics_capture_rusage(H2Metrics *m)
 static void h2_metrics_emit(const GF_DownloadSession *sess, const H2Metrics *m, const char *phase)
 {
 	if (!m) return;
-
 	double dur_s  = (m->t_end_us > m->t_submit_us) ? (m->t_end_us - m->t_submit_us)/1e6 : 0.0;
-	double ttfb_s = (m->t_first_us && (m->t_first_us >= m->t_submit_us)) ? (m->t_first_us - m->t_submit_us)/1e6 : 0.0;
 	double mbps   = (dur_s>0) ? ((double)m->bytes * 8.0 / dur_s / 1e6) : 0.0;
 
 	const char *csv = getenv("GPAC_METRICS");

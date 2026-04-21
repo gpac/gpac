@@ -2355,8 +2355,8 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 		u64 run_time;
 
 #ifdef GPAC_HTTPMUX
-        if (sess->hmux_sess && !sess->server_mode)
-            sess->hmux_stream_id = -1;
+if (sess->hmux_sess && !sess->server_mode)
+    sess->hmux_stream_id = -1;
 #endif
 
         if (sess->use_cache_file) {

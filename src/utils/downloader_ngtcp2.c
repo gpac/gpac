@@ -60,7 +60,7 @@
 //amount of bytes we store internally
 #define SOCK_BUF_SIZE	200000
 
-// METRCIS TEST
+/* Metrics collection for HTTP/3 */
 typedef struct {
 	u64 t_submit_us;    /* request submit time */
 	u64 t_first_us;     /* first byte time (0 until set) */
@@ -1622,7 +1622,6 @@ settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
 settings.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT;
 settings.max_window = 0;
 settings.max_stream_window = 0;
-settings.handshake_timeout = sess->conn_timeout*1000000;
 settings.handshake_timeout = UINT64_MAX;
 settings.no_pmtud = 0;
 settings.ack_thresh = 2;
@@ -1641,8 +1640,8 @@ int user_set_algo = (algo && algo[0]);
 
 /* Apply only the options that were explicitly provided */
 if (user_set_wnd) {
-    /* you were using KB * 1000 previously; keep same semantics */
-    settings.max_window = (uint64_t)1000 * (uint64_t)wnd_kb;
+    /*using KB * 1000 previously; keep same semantics */
+    settings.max_window = (uint64_t)wnd_kb * 1000;
 	settings.max_stream_window = (uint64_t)1000 * (uint64_t)wnd_kb;
 }
 
