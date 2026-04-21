@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -550,13 +550,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	num_first_sample_in_traf = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
 	if (traf->tfdt)
-		tfdt = traf->tfdt->baseMediaDecodeTime;
+		tfdt = 1+traf->tfdt->baseMediaDecodeTime;
 	else if (traf->tfxd)
-		tfdt = traf->tfxd->absolute_time_in_track_timescale;
+		tfdt = 1+traf->tfxd->absolute_time_in_track_timescale;
 	else
 		tfdt = 0;
 
 	if (tfdt) {
+		tfdt -= 1;
 		//do this test for each fragment merged as soon as we have a tfdt, so that we detect samples with extended duration
 		//if trak->moov->mov->NextMoofNumber is 0 we initialize or seek so skip test
 		if (trak->moov->mov->NextMoofNumber && trak->dts_at_next_frag_start) {
@@ -568,6 +569,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			else if (diff > 0) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] TFDT timing "LLD" higher than cumulated timing "LLD" (last sample got extended in duration)\n", tfdt, trak->dts_at_next_frag_start ));
 				traf_duration += diff;
+
+				if (!is_first_merge) {
+					u64 last_DTS;
+					u32 last_duration;
+					stbl_GetSampleDTS_and_Duration(trak->Media->information->sampleTable->TimeToSample, trak->Media->information->sampleTable->SampleSize->sampleCount, &last_DTS, &last_duration);
+					stbl_RemoveDTS(trak->Media->information->sampleTable, trak->Media->information->sampleTable->SampleSize->sampleCount, 1, 0);
+					stbl_AppendTime(trak->Media->information->sampleTable, last_duration+diff, 1);
+				}
 			}
 		}
 		//remember dts if this is the first fragment we merge (either after a table reset or at first segment start)
@@ -883,7 +892,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			max_end = data_offset_end;
 	}
 
-	//remember target next dts - last_dts is the duration in media timescale, dos not include tfdt
+	//remember target next dts - last_dts is the duration in media timescale, does not include tfdt
 	trak->dts_at_next_frag_start += last_dts;
 
 	if (traf_duration && trak->editBox && trak->editBox->editList) {

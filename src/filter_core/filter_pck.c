@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -800,9 +800,7 @@ Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 		//destroy pcki
 		if ((i+1<count) || !final) {
-			pcki->pck = NULL;
-			pcki->pid = NULL;
-
+			memset(pcki, 0, sizeof(GF_FilterPacketInstance));
 			if (gf_fq_res_add(pck->pid->filter->pcks_inst_reservoir, pcki)) {
 				gf_free(pcki);
 			}
@@ -1192,8 +1190,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 		inst->pck = pck;
 		inst->pid = dst;
-		inst->pid_props_change_done = 0;
-		inst->pid_info_change_done = 0;
 
 		//if packet is forcing main thread processing increase destination filter main_thread
 		if (force_main_thread) {
@@ -1459,6 +1455,11 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	gf_filter_pck_reset_props(npck, pid);
 	npck->info = srcpck->info;
 	npck->info.flags |= GF_PCKF_PROPS_REFERENCE;
+	if (PCK_IS_INPUT( (*pck) )) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) (*pck);
+		if (pcki->is_marked)
+			npck->info.flags |= GF_PCKF_IS_MARKED;
+	}
 	//keep data size
 	npck->data_length = srcpck->data_length;
 
@@ -2037,4 +2038,33 @@ void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size)
 	} else {
 		pck->data_length = size;
 	}
+}
+
+GF_EXPORT
+GF_Err gf_filter_pck_set_mark(GF_FilterPacket *pck, Bool is_marked)
+{
+	if (PCK_IS_INPUT(pck)) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck;
+		pcki->is_marked = is_marked ? 1 : 0;
+		return GF_OK;
+	}
+	pck = pck->pck;
+	if (pck->info.flags & GF_PCKF_PROPS_REFERENCE) {
+		if (is_marked)
+			pck->info.flags |= GF_PCKF_IS_MARKED;
+		else
+			pck->info.flags &= ~GF_PCKF_IS_MARKED;
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+}
+
+GF_EXPORT
+Bool gf_filter_pck_get_mark(GF_FilterPacket *pck)
+{
+	if (PCK_IS_INPUT(pck)) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck;
+		return pcki->is_marked ? GF_TRUE : GF_FALSE;
+	}
+	return (pck->info.flags & GF_PCKF_IS_MARKED) ? GF_TRUE : GF_FALSE;
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2025
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -295,7 +295,9 @@ typedef struct
 	u8 can_merge;
 	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
 	u8 is_first_part;
-
+	/*! set to discontinuity sequence index for segment following a discontinuity, 0 otherwise */
+	u32 discontinuity_seq;
+	char *hls_switch_uri;
 
 	u64 first_tfdt, first_pck_seq, frag_start_offset, frag_tfdt;
 	u32 split_first_dur, split_last_dur;
@@ -600,6 +602,8 @@ typedef struct
 	u32 nb_frags;
 	/*! number of fragment infos */
 	GF_DASH_FragmentContext *frags;
+	/*! indicates if the segment is a start of a discontinuity*/
+	Bool is_discontinuity;
 	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
 	GF_DashHLSLowLatencyType llhls_mode;
 	/*! HLS LL segment done */
@@ -675,7 +679,7 @@ typedef struct {
 	/*! dash duration*/
 	GF_Fraction dash_dur;
 	/*! init segment name for HLS single file*/
-	const char *hls_single_file_name;
+	char *hls_single_file_name;
 	/*! number of audio channels - HLS only*/
 	u32 nb_chan;
 	/*! CHANNELS attribute in string for special content - HLS only*/
@@ -723,6 +727,7 @@ typedef struct {
 	const char *hls_forced;
 
 	const char *init_base64;
+	u32 discontinuity_id;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -993,6 +998,9 @@ typedef struct {
 	Bool m3u8_use_repid;
 	Bool hls_audio_primary;
 
+	/*! number of past discontinuities */
+	u32 nb_past_discont;
+
 	/*! requested segment duration for index mode */
 	u32 segment_duration;
 	char *segment_template;
@@ -1079,12 +1087,11 @@ typedef enum
 \param mpd the target MPD to write
 \param out the target file object
 \param m3u8_name the base m3u8 name to use (needed when generating variant playlist file names)
-\param period the MPD period for that m3u8
+\param periods the MPD periods for that m3u8
 \param mode the write operation desired
 \return error if any
 */
-GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode);
-
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_List *periods, GF_M3U8WriteMode mode);
 
 /*! parses an MPD Period and appends it to the MPD period list
 \param mpd the target MPD to write

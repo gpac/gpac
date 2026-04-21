@@ -451,6 +451,7 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		return NULL;
 	}
 	//create static bs
+	e=GF_OK;
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
 	routedmx->reorder_timeout_us = 100000;

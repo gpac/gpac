@@ -165,6 +165,7 @@ typedef struct
 	Bool eos_detected;
 	u32 next_dependent_rep_idx, current_dependent_rep_idx;
 	u64 utc_map;
+	u32 hls_disc_idx, prev_hls_disc_idx;
 
 #ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
@@ -335,6 +336,10 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 	}
 
 	if (!ctx->is_dash) {
+		if (group->hls_disc_idx != group->prev_hls_disc_idx) {
+			gf_filter_pid_set_property(out_pid, GF_PROP_PID_TIME_DISCONTINUITY, &PROP_UINT(group->hls_disc_idx));
+			group->prev_hls_disc_idx = group->hls_disc_idx;
+		}
 		dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
 		if (!dst_pck) return;
 		gf_filter_pck_merge_properties(in_pck, dst_pck);
@@ -351,7 +356,6 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			}
 			flags |= FLAG_FIRST_IN_SEG;
 			gf_filter_pid_set_udta_flags(out_pid, flags);
-
 		}
 		gf_filter_pck_send(dst_pck);
 
@@ -3090,7 +3094,7 @@ fetch_next:
 
 	e = gf_dash_group_get_next_segment_location(ctx->dash, group_idx, dependent_representation_index, &next_url, &start_range, &end_range,
 		        NULL, &next_url_init_or_switch_segment, &switch_start_range , &switch_end_range,
-		        &src_url, &has_scalable_next, &key_url, &key_IV, &group->utc_map);
+		        &src_url, &has_scalable_next, &key_url, &key_IV, &group->utc_map, &group->hls_disc_idx);
 
 	if (e == GF_EOS) {
 		group->eos_detected = GF_TRUE;

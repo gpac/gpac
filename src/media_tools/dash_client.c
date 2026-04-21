@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2025
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -274,6 +274,8 @@ typedef struct
 	const char *seg_name_start;
 	GF_Fraction64 time;
 
+	char *hls_switch_url;
+	u32 seq_disc_cnt;
 	u32 flags;
 } segment_cache_entry;
 
@@ -5425,6 +5427,7 @@ static void gf_dash_group_reset_cache_entry(segment_cache_entry *cached)
 {
 	if (cached->url) gf_free(cached->url);
 	if (cached->key_url) gf_free(cached->key_url);
+	if (cached->hls_switch_url) gf_free(cached->hls_switch_url);
 	memset(cached, 0, sizeof(segment_cache_entry));
 }
 
@@ -7660,10 +7663,14 @@ llhls_rety:
 	/* At this stage, there are some segments left to be downloaded */
 	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL, &start_number);
 
-	if (dash->is_m3u8 && rep->segment_list && (dyn_type==GF_MPD_TYPE_DYNAMIC)) {
+	u32 seq_disc_cnt = 0;
+	const char *hls_switch_uri = 0;
+	if (dash->is_m3u8 && rep->segment_list) {
 		GF_MPD_SegmentURL *seg = gf_list_get(rep->segment_list->segment_URLs, group->download_segment_index);
 		if (seg) {
 			seg_utc = seg->hls_utc_time;
+			seq_disc_cnt = seg->discontinuity_seq;
+			hls_switch_uri = seg->hls_switch_uri;
 		}
 	}
 
@@ -7802,6 +7809,10 @@ llhls_rety:
 		//a group can only be disabled for the current segment, not doing so would trigger EOS if all groups are deactivated
 		group->disabled = GF_FALSE;
 	}
+	cache_entry->seq_disc_cnt = seq_disc_cnt;
+	if (hls_switch_uri)
+		cache_entry->hls_switch_url = gf_url_concatenate(base_url, hls_switch_uri);
+
 	if (key_url) {
 		cache_entry->key_url = key_url;
 		memcpy(cache_entry->key_IV, key_iv, sizeof(bin128));
@@ -10259,7 +10270,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV, u64 *utc)
+GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV, u64 *utc, u32 *hls_disc_idx)
 {
 	GF_DASH_Group *group;
 	u32 index;
@@ -10274,6 +10285,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	if (switching_index) *switching_index = -1;
 	if (has_next_segment) *has_next_segment = GF_FALSE;
 	if (utc) *utc = 0;
+	if (hls_disc_idx) *hls_disc_idx = 0;
 
 	group = gf_dash_get_active_group(dash, idx);
 	if (!group) return GF_BAD_PARAM;
@@ -10339,6 +10351,12 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 			*switching_url = rep->playback.cached_init_segment_url;
 	}
 	group->force_segment_switch = 0;
+
+	if (hls_disc_idx)
+		*hls_disc_idx = group->cached[index].seq_disc_cnt;
+
+	if (switching_url && group->cached[index].hls_switch_url)
+		*switching_url = group->cached[index].hls_switch_url;
 
 	if (has_next_segment) {
 		if (group->cached[index].flags & SEG_FLAG_DEP_FOLLOWING) {

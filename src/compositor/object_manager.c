@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -751,6 +751,12 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 		odm->flags |= GF_ODM_HAS_TEMI;
 	else
 		odm->flags &= ~GF_ODM_HAS_TEMI;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIME_DISCONTINUITY);
+	if (prop && (prop->value.uint != odm->last_ckdisc)) {
+		odm->last_ckdisc = prop->value.uint;
+		gf_clock_reset(odm->ck);
+	}
 
 }
 

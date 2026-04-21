@@ -1892,6 +1892,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_MABR_URLS, "MABRBaseURLs", "optionnal URLs for MABR - if first is `none`source server is not declared as repair server", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PCK_FORCED_SUB, "Forced", "indicate packet is a forced subtitle", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_TIME_DISCONTINUITY, "TimeDiscontinuity", "indicate a time discontinuity in PID - the value increases by one between each discontinuity", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_AMVE_ILLUMINANCE, "AmbientIlluminance", "indicate the ambient illuminance extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_X, "AmbientLightX", "indicate the ambient light x extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
