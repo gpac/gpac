@@ -349,7 +349,7 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 {
     if (is_destroy) {
-        // destroy path 
+        // destroy path
         if (sess->metrics_priv) {
             gf_free(sess->metrics_priv);
             sess->metrics_priv = NULL;
@@ -365,7 +365,7 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
         return GF_OK;
     }
 
-    // init path 
+    // init path
     if (!sess->metrics_priv) {
         sess->metrics_priv = gf_malloc(sizeof(H3Metrics));
         if (!sess->metrics_priv) return GF_OUT_OF_MEM;
@@ -418,7 +418,7 @@ static int ngh3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *
 		m->bytes += datalen;
 	}
 
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLD" received %d bytes (%d/%d total)\n", sess->hmux_stream_id, (u32) datalen, sess->hmux_buf.size, sess->total_size));
 	return 0;
 }
@@ -671,8 +671,7 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	if (m) {
 		if (!m->t_end_us) m->t_end_us = h3_now_us();
 		h3_metrics_capture_rusage(m);
-		
-		// If download completed (bytes_done matches expected), treat as close
+		// If download completed, treat as close
 		const char *phase = "error";
 		if (app_error_code == NGHTTP3_H3_NO_ERROR || sess->bytes_done == m->bytes) {
 			phase = "close";
@@ -1629,7 +1628,7 @@ settings.no_pmtud = 0;
 settings.ack_thresh = 2;
 settings.initial_pkt_num = 1;
 
-/* NEW: read tunables once, apply to BOTH sides */
+/* Read user-provided QUIC tuning parameters and apply overrides */
 int wnd_kb = gf_opts_get_int("temp", "h3-maxwnd");
 int ack_thr = gf_opts_get_int("temp", "h3-ack-thresh");
 const char *algo = gf_opts_get_key("temp", "h3-algo");
@@ -1682,13 +1681,13 @@ if (sess->server_mode) {
 
 	ngtcp2_transport_params_default(&params);
 
-	/* NEW: larger flow-control budgets */
-	const uint32_t imd  = 64u * 1024u * 1024u;  // 64 MB connection window
-	const uint32_t imsd = 32u * 1024u * 1024u;  // 32 MB per-stream window
+	/* larger flow-control budgets */
+	const uint32_t imd  = 64u * 1024u * 1024u;  // 64 MB connection
+	const uint32_t imsd = 32u * 1024u * 1024u;  // 32 MB per-stream
 	params.initial_max_data = imd;
 	/* HTTP/3 uses client-initiated bidi streams for response data:
-   - client must set bidi_local high (lets the *peer* send on our locally-initiated streams)
-   - server must set bidi_remote high (lets the *peer* send on its remotely-initiated streams) */
+   - client must set bidi_local high
+   - server must set bidi_remote high*/
    params.initial_max_stream_data_bidi_local  = sess->server_mode ? 0 : imsd;
    params.initial_max_stream_data_bidi_remote = sess->server_mode ? imsd : 0;
    params.initial_max_stream_data_uni = imsd;
@@ -1697,8 +1696,6 @@ if (sess->server_mode) {
    params.max_idle_timeout = 30 * NGTCP2_SECONDS;
    params.active_connection_id_limit = 7;
    params.grease_quic_bit = 1;
-	
-		
 	if (sess->server_mode) {
 		params.stateless_reset_token_present = 1;
 		if (srv_ocid) {

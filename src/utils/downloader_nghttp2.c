@@ -36,7 +36,7 @@
 #pragma comment(lib, "nghttp2")
 #endif
 
-/* 
+/*
  * Inline metrics collection
  *
  * Emits one CSV line per transfer if GPAC_METRICS is set, otherwise emits a single log line.
@@ -122,7 +122,7 @@ static void h2_metrics_emit(const GF_DownloadSession *sess, const H2Metrics *m, 
 	}
 }
 
-/* Accessor: pack metrics right after nghttp2_data_provider in hmux_priv */
+/* Pack metrics right after nghttp2_data_provider in hmux_priv */
 static inline H2Metrics *h2_metrics_ptr(GF_DownloadSession *sess)
 {
     if (!sess || !sess->hmux_priv) return NULL;
@@ -132,8 +132,8 @@ static inline H2Metrics *h2_metrics_ptr(GF_DownloadSession *sess)
 
 static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf);
 
-/* 
- * Original code follows,
+/*
+ * Original code,
  * with small hooks for metrics + restored h2c gate
  */
 
@@ -548,7 +548,7 @@ static GF_Err h2_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_
 	}
 	/* send pending frames - hmux_sess may be NULL at this point if the connection was reset during processing of the above
 		this typically happens if we have a refused stream
-	*/
+		*/
 	h2_session_write(sess);
 	return GF_OK;
 }
@@ -903,10 +903,10 @@ void h2_initialize_session(GF_DownloadSession *sess)
 {
     nghttp2_session *h2 = (nghttp2_session*)sess->hmux_sess->hmux_udta;
 
-    /* Big windows to avoid stop-and-go (tune as you like) */
+    /* Big windows to avoid stop-and-go */
     const uint32_t H2_STREAM_WIN = 32u * 1024u * 1024u;  /* 32 MB per stream */
     const uint32_t H2_CONN_WIN   = 64u * 1024u * 1024u;  /* 64 MB per connection */
-    const uint32_t H2_MAX_FRAME  = 1u  * 1024u * 1024u;  /* 1 MB frame size (optional, <= 16,777,215) */
+    const uint32_t H2_MAX_FRAME  = 1u  * 1024u * 1024u;  /* 1 MB frame size */
 
     /*  peer  use a large INITIAL_WINDOW_SIZE (fixing the bootleneck that we had earlier) */
     nghttp2_settings_entry iv[] = {
@@ -930,7 +930,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
          nghttp2_session_set_local_window_size(h2, NGHTTP2_FLAG_NONE, stream_id, (int32_t)H2_STREAM_WIN);
        right after you accept/see its HEADERS. */
 }
-	
+
 nghttp2_session_callbacks_del(callbacks);
 
 sess->hmux_sess->net_sess = sess;
@@ -1003,8 +1003,7 @@ void http2_set_upgrade_headers(GF_DownloadSession *sess)
 	};
 
 	/* Restore original gate:
-	   If GPAC_NO_H2=1, do NOT attempt clear-text HTTP/2 upgrade here.
-	   (Your boss noted the feature is already enabled elsewhere.) */
+	   If GPAC_NO_H2=1, do NOT attempt clear-text HTTP/2 upgrade here.*/
 	{
 		const char *env = getenv("GPAC_NO_H2");
 		if (env && !strcmp(env, "1")) {
