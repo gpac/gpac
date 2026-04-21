@@ -1991,7 +1991,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			safety = DEF_VIDEO_AUDIO_ADVANCE_MS * ctx->timescale / 1000;
 			if (!ctx->step && !ctx->raw_grab && (cts > ref_ts + safety)) {
 				u32 resched_time = (u32) gf_timestamp_rescale(cts-ref_ts - safety, ctx->timescale, 1000000);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
 				if (resched_time>100000)
@@ -2036,13 +2036,16 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (check_clock) {
 			s64 diff;
 			if (ctx->speed>=0) {
-				if (cts < ctx->first_cts_plus_one) cts = ctx->first_cts_plus_one;
+				s64 test_ts = cts;
+				if (test_ts < ctx->first_cts_plus_one)
+					test_ts = ctx->first_cts_plus_one;
+
 				diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
 
 				if (ctx->timescale != 1000000)
-					diff -= (s64) gf_timestamp_rescale(cts - ctx->first_cts_plus_one + 1, ctx->timescale, 1000000);
+					diff -= (s64) gf_timestamp_rescale(test_ts - ctx->first_cts_plus_one + 1, ctx->timescale, 1000000);
 				else
-					diff -= (s64) (cts - ctx->first_cts_plus_one + 1);
+					diff -= (s64) (test_ts - ctx->first_cts_plus_one + 1);
 
 			} else {
 				diff = (s64) ((now - ctx->clock_at_first_cts) * -ctx->speed);
