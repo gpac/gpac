@@ -1,13 +1,23 @@
 # On-going - GPAC 26.03-dev
 
-## Core tools
-- EVP support in encryption for hardware AES
+## General
+- Clean up of remaining 'test mode' and 'old arch'
 
 ## MPEG-DASH & HLS
 - Improved support of discontinuities in packager and client
+- Add `sfrag` tolerance to generate segments with a fixed number of fragments but variable-duration fragments
+- Add `dashif.ingest` profile for DASH-IF Live Ingest
+
+## Encryption
+- EVP support in encryption for hardware AES
+- AV1 scalable ID (temporal a/o spatial) filtering
 
 ## Filters
-- Discontinuity detection in reframer
+- Discontinuity detection in `reframer`
+- Improve `mediaserver` MABR repair option
+
+## Utilities (in share/)
+- MCP implementation
 
 # 05/02/2026 - GPAC 26.02
 
