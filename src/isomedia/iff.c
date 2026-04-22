@@ -1485,7 +1485,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 
 		for_ref_idx = image_props->item_ref_id ? gf_isom_get_meta_item_by_id(fsrc, GF_TRUE, 0, image_props->item_ref_id) : 0;
 		if (image_props->item_ref_id && !for_ref_idx) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d, cannnot import\n", image_props->item_ref_id));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d, cannot import\n", image_props->item_ref_id));
 			return GF_BAD_PARAM;
 		}
 
@@ -1495,7 +1495,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 
 			if (gf_isom_meta_get_item_ref_count(fsrc, GF_TRUE, 0, image_props->item_ref_id, GF_4CC('d','i','m','g')) > 0) {
 				if (!for_ref_idx) continue;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannnot import derived image, only native image import is supported\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannot import derived image, only native image import is supported\n"));
 				return GF_NOT_SUPPORTED;
 			}
 

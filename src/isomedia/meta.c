@@ -1886,7 +1886,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 
 	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
 	if (!item_num) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d in file, cannnot remove\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d in file, cannot remove\n"));
 		return GF_NOT_FOUND;
 	}
 	iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);

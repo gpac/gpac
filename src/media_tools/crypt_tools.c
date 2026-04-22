@@ -87,7 +87,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		Bool has_common_key = GF_TRUE;
 		GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 		if (!tkc) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannnot allocate crypt track, skipping\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannot allocate crypt track, skipping\n"));
 			info->last_parse_error = GF_OUT_OF_MEM;
 			return;
 		}
@@ -99,7 +99,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		//allocate a key to store the default values in single-key mode
 		tkc->keys = gf_malloc(sizeof(GF_CryptKeyInfo));
 		if (!tkc->keys) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannnot allocate key IDs\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannot allocate key IDs\n"));
 			gf_free(tkc);
 			info->last_parse_error = GF_OUT_OF_MEM;
 			return;
@@ -127,7 +127,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				has_key = GF_TRUE;
 				e = gf_bin128_parse(att->value, tkc->keys[0].key );
 				if (e != GF_OK) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse key value in CrypTrack\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannot parse key value in CrypTrack\n"));
 					info->last_parse_error = GF_BAD_PARAM;
 					return;
 				}
@@ -450,7 +450,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			if (!stricmp(att->name, "KID")) {
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].KID);
 				if (e != GF_OK) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse KID\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannot parse KID\n"));
 					info->last_parse_error = GF_BAD_PARAM;
 					return;
 				}
@@ -458,7 +458,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "value")) {
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].key);
 				if (e != GF_OK) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse key value\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannot parse key value\n"));
 					info->last_parse_error = GF_BAD_PARAM;
 					return;
 				}
