@@ -524,6 +524,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	read->filter = filter;
 	read->channels = gf_list_new();
+	if (read->sigfo) read->sigfrag = GF_TRUE;
 
 	if (read->xps_check==MP4DMX_XPS_AUTO) {
 		read->xps_check = (read->smode==MP4DMX_SPLIT_EXTRACTORS) ? MP4DMX_XPS_KEEP : MP4DMX_XPS_REMOVE;
@@ -954,7 +955,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		for (i = 0; i < count; i++) {
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
-				/*ch->next_track = */ //old code, see not in isoffin_reconfigure
 				isoffin_channel_switch_quality(ch, read->mov, evt->quality_switch.up);
 			}
 		}
@@ -1927,6 +1927,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- set to `-2` to use the minimum cts offset present in the track (`cslg` ignored)", GF_PROP_SINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(norw), "skip reformatting of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepc), "keep corrupted samples (for multicast sources only)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sigfo), "signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

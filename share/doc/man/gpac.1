@@ -160,6 +160,16 @@ specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)
 specify an input file to wrap as GF_FileIO object without caching (testing of GF_FileIO)
 .br
 .TP
+.B \-ibb (string)
+.br
+specify an input file to wrap as blob object (testing of GF_Blob)
+.br
+.TP
+.B \-ibm (string)
+.br
+specify an input file to wrap as GF_FileIO object from mem (testing of GF_Blob + GF_FileIO)
+.br
+.TP
 .B \-ob (string)
 .br
 specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)
@@ -384,7 +394,7 @@ disable regulation (no sleep) in session
 disable source filter reassignment in PID graph resolution
 .br
 .TP
-.B \-sched (Enum, default: free)
+.B \-sched (Enum, default: lock)
 .br
 set scheduler mode
 .br
@@ -1327,7 +1337,7 @@ disable regulation (no sleep) in session
 disable source filter reassignment in PID graph resolution
 .br
 .TP
-.B \-sched (Enum, default: free)
+.B \-sched (Enum, default: lock)
 .br
 set scheduler mode
 .br
@@ -1510,6 +1520,11 @@ rmt ws: certificate file in PEM format to use for TLS mode
 rmt ws: private key file in PEM format to use for TLS mode
 .br
 .TP
+.B \-rmt-path (string, default: $GSHARE/scripts/rmt/server.js)
+.br
+rmt ws: path to JS backend
+.br
+.TP
 .B \-userws-port (int, default: 6364)
 .br
 set user ws port
@@ -1573,6 +1588,11 @@ disable GPAC parsing of patched isom boxes from mabr (will behave like most brow
 .B \-no-cdrf
 .br
 disable cdrf sample dep
+.br
+.TP
+.B \-no-evp
+.br
+disable all OpenSSL hardware acceleration
 .br
 .SH libgpac logs options:
 .LP
@@ -4634,6 +4654,26 @@ optionnal URLs for MABR - if first is nonesource server is not declared as repai
 .B Forced (PCFS,bool,DP)
 .br
 indicate packet is a forced subtitle
+.br
+.TP
+.B TimeDiscontinuity (PDIS,uint,D )
+.br
+indicate a time discontinuity in PID - the value increases by one between each discontinuity
+.br
+.TP
+.B AmbientIlluminance (AMIL,uint,D )
+.br
+indicate the ambient illuminance extracted from the stream
+.br
+.TP
+.B AmbientLightX (AMLX,uint,D )
+.br
+indicate the ambient light x extracted from the stream
+.br
+.TP
+.B AmbientLightY (AMLY,uint,D )
+.br
+indicate the ambient light y extracted from the stream
 .br
 .SH Pixel formats
 .LP

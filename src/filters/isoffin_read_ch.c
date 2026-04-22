@@ -1014,6 +1014,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 {
 	u32 nalu_len, pos;
 	Bool needs_reset;
+	if (ch->owner->nodata) return;
 	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample || !ch->sample->data) return;

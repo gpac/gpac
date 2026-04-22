@@ -950,6 +950,8 @@ norw (bool, default: false):   skip reformatting of samples - should only be use
 .br
 keepc (bool, default: true):   keep corrupted samples (for multicast sources only)
 .br
+sigfo (bool, default: false):  signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)
+.br
 
 .br
 .SH bifsdec
@@ -1308,32 +1310,6 @@ No options
 .br
 
 .br
-.SH xviddec
-.LP
-.br
-Description: XVid decoder
-.br
-
-.br
-This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-deblock_y (bool, default: false): enable Y deblocking
-.br
-deblock_uv (bool, default: false): enable UV deblocking
-.br
-film_effect (bool, default: false): enable film effect
-.br
-dering_y (bool, default: false): enable Y deblocking
-.br
-dering_uv (bool, default: false): enable UV deblocking
-.br
-
-.br
 .SH j2kdec
 .LP
 .br
@@ -1399,21 +1375,6 @@ This filter converts MPEG-H Audio streams into AC4 encapsulated data.
 .LP
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
-.br
-
-.br
-.SH a52dec
-.LP
-.br
-Description: A52 decoder
-.br
-
-.br
-This filter decodes AC3 streams through a52dec library.
-.br
-
-.br
-No options
 .br
 
 .br
@@ -1520,6 +1481,8 @@ upes (enum, default: no):      keep unknown PES streams
 
 .br
 mappcr (bool, default: true):  remap PCR and timestamps into continuous timeline
+.br
+sigfo (bool, default: false):  signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)
 .br
 
 .br
@@ -2247,7 +2210,13 @@ gpac -i source.jpg:#ItemID=1 -o file.mp4
 .SH Storage
 .LP
 .br
-The .I store option allows controlling if the file is fragmented or not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart modes.
+The .I store option allows controlling if the file is fragmented (frag) or not, and when not fragmented, how interleaving (inter) is done.
+.br
+For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart (fast-start) modes.
+.br
+sfrag mode is similar frag mode but aligns fragments on SAP samples. It is implied when using sfrag_tolerance.
+.br
+sfrag_tolerance is expressed as a percentage of the fragment duration (cdur). It allows to modulate the fragment durations while keeping the same number of fragments per segment. This is useful to align fragments on randomly placed SAP samples (typically scene-cuts or events).
 .br
   
 .br
@@ -2605,9 +2574,11 @@ mediats (sint, default: 0):    set media timescale. A value of 0 means inherit f
 .br
 ase (enum, default: v0):       set audio sample entry mode for more than stereo layouts
 .br
-* v0: use v0 signaling but channel count from stream, recommended for backward compatibility
+* v0: use v0 signaling with channel count from stream (except for (e)AC3/4), recommended for backward compatibility
 .br
 * v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels
+.br
+* v0bs: use v0 signaling from bitstream only
 .br
 * v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)
 .br
@@ -2730,6 +2701,8 @@ uncv (enum, default: prof):    use uncv (ISO 23001-17) for raw video
 trunv1 (bool, default: false): force using version 1 of trun regardless of media type or CMAF brand
 .br
 rsot (bool, default: false):   inject redundant sample timing information when present
+.br
+sfrag_tolerance (uint, default: 0): start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur
 .br
 
 .br
@@ -3828,24 +3801,42 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 
 .br
-.SH Absorbing stream discontinuities
+.SH Handling stream discontinuities
 .LP
 .br
 Discontinuities may happen quite often in streaming sessions due to resolution switching, codec change, etc ...
 .br
 While GPAC handles these discontinuities internally, it may be desired to ignore them, for example when a source is known to have no discontinuity but GPAC detects some due to network errors or other changing properties that should be ignored.
 .br
-The .I nodisc option allows removing all discontinuities once a stream is setup.
+A negative value for .I chkdisc option allows removing all discontinuities once a stream is setup.
 .br
 Warning: Make sure you know what you are doing as using this option could make the stream not playable (ignoring a codec config change).
 .br
 Example
 .br
-gpac -i SOMEURL reframer:nodisc -o DASH_ORIGIN
+gpac -i SOMEURL reframer:chkdisc=-1 -o DASH_ORIGIN
 .br
 
 .br
 In this example, the dasher filter will never trigger a period switch due to input stream discontinuity.
+.br
+
+.br
+A value of 0 for .I chkdisc option does not change the behaviour of the filter.
+.br
+
+.br
+A positive value for .I chkdisc option will check timestamp continuity in input stream.
+.br
+A Discontinuity is triggered when:
+.br
+- current packet decoding is strictly less than previous packet deocding time
+.br
+- current packet decoding is strictly more than previous packet deocding time plus .I chkdisc
+.br
+
+.br
+When triggered, the PID property Discontinuity is updated, allowing next filters to decide what to do.
 .br
 
 .br
@@ -3954,7 +3945,7 @@ sapcue (uint, default: 0):     treat SAPs smaller than or equal to this value as
 .br
 rmseek (bool, default: false, updatable): remove seek flag of all sent packets
 .br
-nodisc (bool, default: false, updatable): ignore all discontinuities from input - see filter help
+chkdisc (frac, default: 0/1, updatable): discontinuity detection in milliseconds - see filter help
 .br
 
 .br
@@ -4718,13 +4709,19 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .br
 
 .br
-When .I plka is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.
+When .I ka is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.
 .br
 Playlist refreshing will abort:
 .br
 - if the input playlist has a line not ending with a LF (\n) character, in order to avoid asynchronous issues when reading the playlist.
 .br
 - if the input playlist has not been modified for the .I timeout option value (infinite by default).
+.br
+
+.br
+Note: When the source playlist is a GFIO object, URLs inside the playlist are NOT translated into GFIO objects.
+.br
+
 .br
 .SS Playlist directives
 .br
@@ -4776,7 +4773,7 @@ When the playlist is transmitted as packets (pipes, sockets, ...), the following
 .br
 The following global options (applying to the filter, not the sources) may also be set in the playlist:
 .br
-* ka=N: force .I plka option to N millisecond refresh.
+* ka=N: force .I ka option to N millisecond refresh.
 .br
 * floop=N: set .I floop option from within playlist.
 .br
@@ -4981,7 +4978,7 @@ revert (bool, default: false): revert list of files (.I srcs, not playlist)
 .br
 timescale (uint, default: 0):  force output timescale on all PIDs (0 uses the timescale of the first PID found)
 .br
-plka (uint, default: 0):       keep playlist alive (disable loop), waiting for a new input to be added or #end directive to end playlist. The value specifies the refresh rate in ms
+ka (uint, default: 0):         keep playlist alive (disable loop), waiting for a new input to be added or #end directive to end playlist. The value specifies the refresh rate in ms
 .br
 timeout (luint, default: -1):  timeout in ms after which the playlist is considered dead (-1 means indefinitely)
 .br
@@ -5442,6 +5439,8 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 * `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as ,foo,bar=val
 .br
 * `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as #foo \n #bar=val
+.br
+* `Discontinuity`: indicate a time discontinuity in source, triggering a new period
 .br
 * Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
@@ -6119,7 +6118,7 @@ profile (enum, default: auto): target DASH profile. This will set default option
 .br
 * dashavc264.onDemand: DASH-IF onDemand profile
 .br
-* dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)
+* dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)- dashif.ingest: DASH-IF CMAF ingest profile (inherits dashif.ll and enforces CMAF, template, and segcts)
 .br
 
 .br
@@ -6374,6 +6373,12 @@ ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH seg
 evte_agg (bool, default: false): force aggregation of Event Track samples of a DASH segment into a single sample
 .br
 base64 (bool, default: false): embed init segments in manifests as base64
+.br
+td_limit (uint, default: 5):   number of seconds below which a time discontinuity is considered normal (eg loss) - 0 disables checking
+.br
+td_detect (uint, default: 5):  number of seconds between DTS above which a discontinuity is triggered - 0 disables checking
+.br
+sigfo (bool):                  use fragment offsets if available when generating index (implicit if sigfrag is used)
 .br
 
 .br
@@ -6926,7 +6931,7 @@ Description: IVF/OBU/annexB rewriter
 .br
 This filter rewrites VPx or AV1 bitstreams into a IVF, annexB or OBU sequence.
 .br
-The temporal delimiter OBU is re-inserted in annexB (.av1 and .av1bfiles, with obu_size set) and OBU sequences (.obufiles, without obu_size)
+The temporal delimiter OBU is re-inserted in annexB (.av1 and .av1b files, with obu_size set) and OBU sequences (.obu files, without obu_size)
 .br
 Timecode metadata optionally inserted
 .br
@@ -6938,62 +6943,6 @@ Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf o
 .LP
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
-.br
-
-.br
-.SH nvdec
-.LP
-.br
-Description: NVidia decoder
-.br
-
-.br
-This filter decodes MPEG-2, MPEG-4 Part 2, AVC|H264 and HEVC streams through NVidia decoder. It allows GPU frame dispatch or direct frame copy.
-.br
-If the SDK is not available, the configuration key nvdec@disabled will be written in configuration file to avoid future load attempts.
-.br
-
-.br
-The absolute path to cuda lib can be set using the cuda_lib option in core or temp section of the config file, e.g. -cfg=temp:cuda_lib=PATH_TO_CUDA
-.br
-The absolute path to cuvid lib can be set using the cuvid_lib option in core or temp section of the config file, e.g. -cfg=temp:cuvid_lib=PATH_TO_CUDA
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-num_surfaces (uint, default: 20): number of hardware surfaces to allocate
-.br
-unload (enum, default: no):    decoder unload mode
-.br
-* no: keep inactive decoder alive
-.br
-* destroy: destroy inactive decoder
-.br
-* reuse: detach decoder from inactive PIDs and reattach to active ones
-.br
-
-.br
-vmode (enum, default: cuvid):  video decoder backend
-.br
-* cuvid: use dedicated video engines directly
-.br
-* cuda: use a CUDA-based decoder if faster than dedicated engines
-.br
-* dxva: go through DXVA internally if possible (requires D3D9)
-.br
-
-.br
-fmode (enum, default: gl):     frame output mode
-.br
-* copy: each frame is copied and dispatched
-.br
-* single: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consumers)
-.br
-* gl: frame data is mapped to an OpenGL texture
-.br
-
 .br
 
 .br
@@ -8724,7 +8673,7 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .br
 Description: FFmpeg demultiplexer
 .br
-Version: Lavf62.4.102
+Version: Lavf62.13.100
 .br
 
 .br
@@ -8787,7 +8736,7 @@ mime (str):                    indicate mime type of data in raw protocol mode
 .br
 Description: FFmpeg decoder
 .br
-Version: Lavc62.15.100
+Version: Lavc62.29.100
 .br
 
 .br
@@ -8848,7 +8797,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFmpeg AV capture
 .br
-Version: Lavd62.2.100
+Version: Lavd62.4.100
 .br
 
 .br
@@ -8940,7 +8889,7 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .br
 Description: FFmpeg video rescaler
 .br
-Version: SwS9.3.100
+Version: SwS9.6.100
 .br
 
 .br
@@ -9060,7 +9009,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFmpeg encoder
 .br
-Version: Lavc62.15.100
+Version: Lavc62.29.100
 .br
 
 .br
@@ -9097,6 +9046,8 @@ The filter will look for property TargetRate on input PID to set the desired bit
 The filter will force a closed gop boundary:
 .br
 - at each packet with a FileNumber property set or a CueStart property set to true.
+.br
+- at time discontinuities if .I rtd is set.
 .br
 - if .I fintra and .I rc is set.
 .br
@@ -9137,6 +9088,8 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 rld (bool, default: false, updatable): force reloading of encoder when arguments are updated
 .br
+rtd (bool, default: true):     inject IDR at each time discontinuity
+.br
 round (sint, default: 1, updatable): round video up or down
 .br
 * 0: no rounding
@@ -9158,7 +9111,7 @@ round (sint, default: 1, updatable): round video up or down
 .br
 Description: FFmpeg multiplexer
 .br
-Version: Lavf62.4.102
+Version: Lavf62.13.100
 .br
 
 .br
@@ -9236,7 +9189,7 @@ psleep (uint, default: 1000):  in protocol only mode, sleep for given amount of 
 .br
 Description: FFmpeg AV Filter
 .br
-Version: Lavfi11.8.100
+Version: Lavfi11.15.100
 .br
 
 .br
@@ -9377,7 +9330,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFmpeg bitstream filter
 .br
-Version: Lavu60.12.100
+Version: Lavu60.27.100
 .br
 
 .br
@@ -11107,8 +11060,6 @@ Each service is a JSON object with one or more of the following properties:
 .br
   * auto: enable repair only from repair servers indicated in MABR
 .br
-* corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
-.br
 * check_ip: (boolean, , default false) monitor IP address and port rather than connection when tracking active clients
 .br
 * noproxy: (boolean) disable proxy for service when local mount point is set. Default is true if both local and http are set, false otherwise
@@ -11268,7 +11219,7 @@ The server can be configured to use a multicast ABR source for an HTTP streaming
 .br
 
 .br
-Service configuration parameters used : mabr (mandatory), local (mandatory), corrupted, timeshift and keepalive.
+Service configuration parameters used : mabr (mandatory), local (mandatory), timeshift and keepalive.
 .br
 
 .br
@@ -11302,7 +11253,7 @@ The server can be configured to use a multicast source as an alternate data sour
 .br
 
 .br
-Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, activate, keepalive and js.
+Service configuration parameters used : http (mandatory), mabr (mandatory), local, timeshift, repair, gcache, mcache, unload, activate, keepalive and js.
 .br
 
 .br
@@ -11327,14 +11278,6 @@ The multicast service can use repair options of the MABR stack using repair serv
 - if false, the file will not be sent until completely received (this increases latency),
 .br
 - otherwise, file data will be pushed as soon as available in order (after reception or repair).
-.br
-
-.br
-If the corrupted option is set together with repair, HTTP-based repair is disabled and corrupted files are patched using the repair=strict mode of the routein filter.
-.br
-If files are completely lost, they will be fetched from httpsource.
-.br
-Warning: This may likely result in decoding/buffering pipeline errors and could fail with some players expecting no timeline holes (such as browsers). GPAC supports this.
 .br
 
 .br
@@ -13469,6 +13412,11 @@ If multiple video PIDs are produced, they are assigned the names videoN and ID N
 .br
 If multiple .I views are generated, they are assigned the names videoN_vK and ID N*views+K-1, N in [1, sizes], K in [1, views].
 .br
+.SH Discontinuity simulation
+.LP
+.br
+Using .I disc, discontinuities can be simulated at given interval. The timestamp will be reset to 0 at each discontinuity.
+.br
 
 .br
 .SH Options (expert):
@@ -13509,6 +13457,8 @@ blen (uint, default: 50):      length of beep in milliseconds
 fps (frac, default: 25):       video frame rate
 .br
 sizes (v2il, default: 1280x720): video size in pixels
+.br
+disc (frac, default: -1/1):    discontinuity interval - see filter help
 .br
 pfmt (pfmt, default: yuv):     output pixel format
 .br

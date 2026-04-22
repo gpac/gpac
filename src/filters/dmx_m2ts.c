@@ -81,7 +81,7 @@ typedef struct
 {
 	//opts
 	const char *temi_url;
-	Bool dsmcc, seeksrc, sigfrag, dvbtxt, mappcr;
+	Bool dsmcc, seeksrc, sigfrag, dvbtxt, mappcr, sigfo;
 	UnknownPesMode upes;
 	Double index;
 	u32 analyze;
@@ -1772,6 +1772,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 static GF_Err m2tsdmx_initialize(GF_Filter *filter)
 {
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->sigfo) ctx->sigfrag = GF_TRUE;
 
 	ctx->ts = gf_m2ts_demux_new();
 	if (!ctx->ts) return GF_OUT_OF_MEM;
@@ -1929,6 +1930,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(analyze), "skip PCR remapping - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
+	{ OFFS(sigfo), "signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

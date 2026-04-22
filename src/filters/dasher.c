@@ -227,7 +227,7 @@ typedef struct
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool cmpd, dual, segcts, sreg, ttml_agg, evte_agg;
 	char *styp;
-	Bool sigfrag;
+	Bool sigfrag, sigfo;
 	DasherTSSHandlingMode sbound;
 	DasherPeriodSwitchMode pswitch;
 	char *utcs;
@@ -1157,7 +1157,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				manifest_type = 2;
 			} else if (!strcmp(segext, "ghix") || !strcmp(segext, "ghi")) {
 				ctx->do_index = !strcmp(segext, "ghix") ? 2 : 1;
-				ctx->sigfrag = GF_FALSE;
+				//we allow sigfrag in this mode, we'll just need to estimate segment duration
 				ctx->align = ctx->sap = GF_TRUE;
 				ctx->sseg = ctx->sfile = ctx->tpl = GF_FALSE;
 				if (ctx->state) {
@@ -2129,7 +2129,10 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	GF_MPD_ProgramInfo *info;
 	ctx->mpd = gf_mpd_new();
 	ctx->mpd->index_mode = ctx->do_index;
-	ctx->mpd->segment_duration = (u32) gf_timestamp_rescale(ctx->segdur.num, ctx->segdur.den, 1000);
+	if (ctx->do_index && ctx->sigfrag)
+		ctx->mpd->segment_duration = 0;
+	else
+		ctx->mpd->segment_duration = (u32) gf_timestamp_rescale(ctx->segdur.num, ctx->segdur.den, 1000);
 	ctx->mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
 	ctx->mpd->base_URLs = gf_list_new();
 	ctx->mpd->locations = gf_list_new();
@@ -8391,6 +8394,15 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		seg_duration /= base_ds->timescale;
 
 		if (ctx->sigfrag) {
+			if (ctx->do_index) {
+				//if indexing in sigfrag mode, override the target segment duration with first segment done
+				if (!ctx->mpd->segment_duration) {
+					ctx->mpd->segment_duration = seg_duration*1000;
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Index mode with sigfrag - estimated source segmentation duration %u ms\n", ctx->mpd->segment_duration));
+				}
+				ds->dash_dur.num = ctx->mpd->segment_duration;
+				ds->dash_dur.den = 1000;
+			}
 			if (ds->no_seg_dur) {
 				ds->gm_duration_total += seg_duration;
 				ds->gm_nb_segments++;
@@ -10688,6 +10700,22 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->min_cts_in_seg_plus_one = cts+1;
 
 
+			//check indexing mode before sigfrag which could be used together with ghi
+			if (ctx->do_index && (ctx->sigfo || ctx->sigfrag)) {
+				//frag range may be set for TS and other sources
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_RANGE);
+				if (p) {
+					ds->frag_start_offset = p->value.lfrac.num;
+					//frag start only for fmp4
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_START);
+					if (p && p->value.boolean) {
+						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_TFDT);
+						if (p)
+							ds->frag_first_ftdt = p->value.longuint;
+					}
+				}
+			}
+
 			if (ctx->sigfrag) {
 				if (!ds->segment_started) {
 					ds->first_cts_in_seg = cts;
@@ -10709,20 +10737,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 				continue;
 			}
 
-			if (ctx->do_index) {
-				//frag range may be set for TS and other sources
-				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_RANGE);
-				if (p) {
-					ds->frag_start_offset = p->value.lfrac.num;
-					//frag start only for fmp4
-					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_START);
-					if (p && p->value.boolean) {
-						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_TFDT);
-						if (p)
-							ds->frag_first_ftdt = p->value.longuint;
-					}
-				}
-			}
 			//create new ref to input
 			dst = NULL;
 			if (!ctx->do_index && !ctx->index_media_duration) {
@@ -11919,6 +11933,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(td_limit), "number of seconds below which a time discontinuity is considered normal (eg loss) - 0 disables checking", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(td_detect), "number of seconds between DTS above which a discontinuity is triggered - 0 disables checking", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sigfo), "use fragment offsets if available when generating index (implicit if sigfrag is used)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
