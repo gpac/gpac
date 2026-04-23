@@ -716,6 +716,18 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
 			safe_int_inc(&src->pid->filter->detach_pid_tasks_pending);
 			safe_int_inc(&filter->detach_pid_tasks_pending);
+
+			//mark pidinst being swapped and original source pid with a unique id
+			u64 tid_l = (u64) dst->pid;
+			u32 tid = tid_l>>32;
+			tid |= (u32) (tid_l & 0xFFFFFFFFUL);
+			src->swap_id = tid;
+			src->pid->swap_id = tid;
+			//also tag the first input
+			if (gf_list_count(src->pid->filter->input_pids)==1) {
+				GF_FilterPidInst *prev_pid_inst = gf_list_get(src->pid->filter->input_pids, 0);
+				if (prev_pid_inst) prev_pid_inst->pid->swap_id = tid;
+			}
 			gf_fs_post_task(filter->session, gf_filter_pid_detach_task_no_flush, src->filter, src->pid, "pidinst_detach", filter);
 		} else {
 			GF_Filter *src_filter = src->filter;
@@ -848,32 +860,44 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 
 	if (filter->detached_pid_inst) {
+		GF_FilterPid *orig_pid = NULL;
+		u32 swap_id = pid->swap_id;
+		if (gf_list_count(pid->filter->input_pids)==1) {
+			GF_FilterPidInst *orig_pid_inst = gf_list_get(pid->filter->input_pids, 0);
+			orig_pid = orig_pid_inst ? orig_pid_inst->pid : NULL;
+			if (orig_pid) swap_id = orig_pid->swap_id;
+		}
 		count = gf_list_count(filter->detached_pid_inst);
 		for (i=0; i<count; i++) {
 			pidinst = gf_list_get(filter->detached_pid_inst, i);
-			if (pidinst->filter==filter) {
-				gf_list_rem(filter->detached_pid_inst, i);
-				//reattach new filter and pid
-				pidinst->filter = filter;
-				pidinst->pid = pid;
-				pidinst->in_swap = GF_FALSE;
-
-				gf_assert(!pidinst->props);
-
-				//and treat as new pid inst
-				if (ctype == GF_PID_CONF_CONNECT) {
-					new_pid_inst=GF_TRUE;
-					if (!pid->filter->nb_pids_playing && (pidinst->is_playing || pidinst->is_paused))
-						refire_events = GF_TRUE;
-				}
-				gf_assert(pidinst->detach_pending);
-				safe_int_dec(&pidinst->detach_pending);
-				//revert temp sticky flag
-				if (filter->sticky == 2)
-					filter->sticky = 0;
-				break;
+			if ((pidinst->filter!=filter) || (pidinst->swap_id != swap_id)) {
+				pidinst = NULL;
+				continue;
 			}
-			pidinst=NULL;
+			pidinst->swap_id = 0;
+			pid->swap_id = 0;
+			if (orig_pid) orig_pid->swap_id = 0;
+
+			gf_list_rem(filter->detached_pid_inst, i);
+			//reattach new filter and pid
+			pidinst->filter = filter;
+			pidinst->pid = pid;
+			pidinst->in_swap = GF_FALSE;
+
+			gf_assert(!pidinst->props);
+
+			//and treat as new pid inst
+			if (ctype == GF_PID_CONF_CONNECT) {
+				new_pid_inst=GF_TRUE;
+				if (!pid->filter->nb_pids_playing && (pidinst->is_playing || pidinst->is_paused))
+					refire_events = GF_TRUE;
+			}
+			gf_assert(pidinst->detach_pending);
+			safe_int_dec(&pidinst->detach_pending);
+			//revert temp sticky flag
+			if (filter->sticky == 2)
+				filter->sticky = 0;
+			break;
 		}
 		if (! gf_list_count(filter->detached_pid_inst)) {
 			gf_list_del(filter->detached_pid_inst);

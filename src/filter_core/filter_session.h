@@ -1041,6 +1041,8 @@ struct __gf_filter_pid_inst
 #ifndef GPAC_DISABLE_DEBUG
 	GF_List *prop_dump;
 #endif
+	//identifier of pidinst during a swap
+	u32 swap_id;
 };
 
 typedef struct
@@ -1131,6 +1133,8 @@ struct __gf_filter_pid
 	volatile u32 num_pidinst_del_pending;
 
 	u32 link_flags;
+	//identifier of pidinst the pid was detached from during a swap
+	u32 swap_id;
 };
 
 
