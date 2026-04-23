@@ -243,6 +243,10 @@ GF_Err vttmx_process(GF_Filter *filter)
 				gf_filter_pck_send(dst);
 				ctx->first = GF_FALSE;
 			}
+			//we may have a pending segment, flush it
+			else if (ctx->seg_pck_in && !ctx->seg_pck_out) {
+				vttmx_flush_segment(ctx);
+			}
 			gf_filter_pid_set_eos(ctx->opid);
 			if (ctx->parser) {
 				vttmx_parser_flush(ctx);
