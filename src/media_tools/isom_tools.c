@@ -1263,6 +1263,8 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	else if (ifps>= 4990 && ifps<=5010) target_ts = 5000; //50
 	else if (ifps>= 5993 && ifps<=5995) target_ts = 60000; //59.94
 	else if (ifps>= 5996 && ifps<=6004) target_ts = 6000; //60
+	else if (ifps>= 4794 && ifps<=4796) target_ts = 48000; //47.952
+	else if (ifps>= 4799 && ifps<=4801) target_ts = 4800; //48
 
 	if (!target_ts) {
 		if (prores_type) {
