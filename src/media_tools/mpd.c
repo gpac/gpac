@@ -3931,8 +3931,13 @@ re_dump:
 		if (grp_codecs) gf_free(grp_codecs);
 		if (groups_subs_done) gf_free(groups_subs_done);
 		groups_subs_done = NULL;
-		if (g_id) gf_dynstrcat(&groups_done, g_id, ",");
-		goto re_dump;
+		if (g_id) {
+			gf_dynstrcat(&groups_done, g_id, ",");
+			goto re_dump;
+		}
+		//if no g_id we are done
+		if (groups_done) gf_free(groups_done);
+		return;
 	}
 
 	g_m_bandwidth += g_m_bandwidth_subs;
