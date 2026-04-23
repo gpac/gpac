@@ -8038,6 +8038,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 	u64 duration, pto, prev_patch_dur=0;
 	Bool is_first = GF_FALSE;
 	Bool seg_align = GF_FALSE;
+	Bool stl_in_as = GF_FALSE;
 	GF_MPD_SegmentTimeline *tl=NULL;
 
 	//we only store segment timeline for the main component in the representation
@@ -8150,7 +8151,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 			p_tl = &ds->set->segment_list->segment_timeline;
 			ds->set->segment_list->duration = 0;
 		}
-
+		stl_in_as = GF_TRUE;
 		if (! (*p_tl) ) {
 			(*p_tl)  = gf_mpd_segmentimeline_new();
 		}
@@ -8167,24 +8168,38 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 	//live edge, always inject an entry and remember we just did
 	if (is_ll_anouncement) {
+		//is timeline is at set level, only inject entry for LL edge on the rep owning the set
+		if (stl_in_as && !ds->owns_set)
+			return;
 		GF_SAFEALLOC(s, GF_MPD_SegmentTimelineEntry);
 		if (!s) return;
 
 		s->start_time = ds->seg_start_time + pto;
 		s->duration = (u32) duration;
+		s->is_ll_edge = GF_TRUE;
 		gf_list_add(tl->entries, s);
 		ds->last_stl_is_ll = GF_TRUE;
 		return;
 	}
-	//purge live edge entry
+	//purge live edge entry - might not be the last one if multiple reps and different encoding speed!
 	else if (ds->last_stl_is_ll) {
-		s = gf_list_pop_back(tl->entries);
-		if (s) gf_free(s);
+		u32 i, nb_ent = gf_list_count(tl->entries);
+		for (i=nb_ent; i>0; i--) {
+			s = gf_list_get(tl->entries, i-1);
+			if (!s->is_ll_edge) continue;
+			gf_list_rem(tl->entries, i-1);
+			gf_free(s);
+			break;
+		}
 		ds->last_stl_is_ll = GF_FALSE;
 	}
 
 	//append to previous entry if possible
 	s = gf_list_last(tl->entries);
+	if (s && s->is_ll_edge) {
+		u32 nb_ent = gf_list_count(tl->entries);
+		s = nb_ent ? gf_list_get(tl->entries, nb_ent-1) : NULL;
+	}
 
 	if (s && prev_patch_dur) {
 		u32 nb_ent = gf_list_count(tl->entries);
@@ -9733,7 +9748,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 		if (ds->subdur_done) {
 			continue;
 		}
-		if (ds->seg_done) continue;
+		if (ds->seg_done) {
+			//if seg is done, consider we are done regulating this source for the time being
+			if (ctx->sreg)
+				nb_reg_done++;
+			continue;
+		}
 
 		if (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST) {
 			if (!ds->done && ds->opid) gf_filter_pid_set_eos(ds->opid);

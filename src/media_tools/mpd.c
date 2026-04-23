@@ -2950,8 +2950,9 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 
 	for (i = tsb_first_entry+1; i<count && prev; i++) {
 		se = gf_list_get(tl->entries, i);
-		//close entry
-		if ((se->start_time != start_time) || (prev->duration!=se->duration)) {
+		//close entry if not contiguous
+		//if ll edge entry, stop so that we can announce subparts in already published entries
+		if ((se->start_time != start_time) || (prev->duration!=se->duration) || se->is_ll_edge) {
 			if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
 			if (prev->nb_parts) gf_fprintf(out, " k=\"%d\"", prev->nb_parts);
 			gf_fprintf(out, "/>");

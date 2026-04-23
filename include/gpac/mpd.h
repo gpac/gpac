@@ -162,6 +162,7 @@ typedef struct
 	u32 repeat_count;
 	/*! for DASH SSR*/
 	u32 nb_parts;
+	Bool is_ll_edge;
 } GF_MPD_SegmentTimelineEntry;
 
 /*! Segment Timeline*/
