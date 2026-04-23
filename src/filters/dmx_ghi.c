@@ -939,9 +939,13 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 
 			//locate segment
 			if (ctx->sn > gf_list_count(st->segs_xml)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Invalid segment index %d - only %d segments available\n", ctx->sn, gf_list_count(st->segs_xml)));
-				gf_mpd_del(mpd);
-				return GF_BAD_PARAM;
+				if (!st->inactive) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Invalid segment index %d - only %d segments available\n", ctx->sn, gf_list_count(st->segs_xml)));
+					gf_mpd_del(mpd);
+					return GF_BAD_PARAM;
+				}
+				//not active, use last entry for init below
+				st->seg_num = gf_list_count(st->segs_xml);
 			//todo: locate by other criteria ? (time)
 			} else {
 				st->seg_num = ctx->sn;
