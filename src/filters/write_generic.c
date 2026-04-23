@@ -1296,6 +1296,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck = NULL;
 	char *data;
 	u32 pck_size;
+	Bool seg_start = GF_FALSE;
 	Bool do_abort = GF_FALSE;
 	Bool split = ctx->split;
 	if (!ctx->ipid) return GF_EOS;
@@ -1343,6 +1344,8 @@ GF_Err writegen_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
+		const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+		if (p) seg_start = GF_TRUE;
 	}
 
 	if (ctx->sstart) {
@@ -1556,7 +1559,8 @@ GF_Err writegen_process(GF_Filter *filter)
 
 		if (!data || !pck_size) {
 			if (ctx->dash_mode) {
-				if ((ctx->vtth<VTTH_ALL) || gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS)) {
+				//do not forward empty packet if seg_start, we will need a WEBVTT header
+				if (!seg_start && ((ctx->vtth<VTTH_ALL) || gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS))) {
 					gf_filter_pck_forward(pck, ctx->opid);
 					goto no_output;
 				}
