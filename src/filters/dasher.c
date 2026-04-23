@@ -345,6 +345,9 @@ typedef struct
 
 	Bool has_pid_removed;
 	u32 next_discontinuity_id;
+
+	Bool has_pending_discontinuity;
+
 } GF_DasherCtx;
 
 typedef struct _dash_stream
@@ -564,6 +567,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_switch);
 static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *for_ds);
 static GF_Err dasher_setup_profile(GF_DasherCtx *ctx);
+static void dasher_inject_eods(GF_DasherCtx *ctx, GF_DashStream *ds, Bool forced);
 
 static GF_DasherPeriod *dasher_new_period()
 {
@@ -794,6 +798,7 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 		base_ds->nb_comp_done++;
 		ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
 
+		dasher_inject_eods(ctx, ds, GF_FALSE);
 		if (base_ds->nb_comp_done == base_ds->nb_comp) {
 			dasher_flush_segment(ctx, base_ds, GF_TRUE);
 		}
@@ -7021,6 +7026,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->subdur_done || (ctx->current_period->period && (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST)) )
 		return GF_EOS;
 
+	ctx->has_pending_discontinuity = GF_FALSE;
 	if (ctx->current_period->period) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] End of Period %s\n", ctx->current_period->period->ID ? ctx->current_period->period->ID : ""));
 	}
@@ -8040,8 +8046,9 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, B
 
 	if (ds->rep && ds->rep->state_seg_list && !is_ll_anouncement) {
 		GF_DASH_SegmentContext *sctx = gf_list_last(ds->rep->state_seg_list);
-		if (sctx)
+		if (sctx) {
 			sctx->dur = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+		}
 	}
 	//we only use segment timeline with templates
 	if (!ds->stl && !ctx->do_index) return;
@@ -8980,7 +8987,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			}
 		}
 
-		if (gf_filter_pck_get_mark(in_pck)) {
+		if (in_pck && gf_filter_pck_get_mark(in_pck)) {
 			gf_assert(seg_state->seg_num == ds->startNumber);
 			seg_state->is_discontinuity = GF_TRUE;
 		}
@@ -9842,6 +9849,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 					count = gf_list_count(ctx->current_period->streams);
 					i--;
 					break;
+				} else if (ctx->has_pending_discontinuity) {
+					//if we have pending discontinuity and no input packets, force a period switch for this stream
+					//otherwise we could loop indefinitely if the input is waiting for the other streams to be released
+					ds->request_period_switch = GF_TRUE;
+					break;
 				}
 
 				if (ds->clamp_done) {
@@ -10193,7 +10205,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (is_disc) {
 					ds->request_period_switch = 1;
 					gf_filter_pck_set_mark(pck, GF_TRUE);
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Discontinuous timing detected (DTS "LLU" vs last DTS "LLU"), requesting period switch\n", dts, ds->last_dts));
+					//remember we have pending discontinuity
+					if (!ctx->has_pending_discontinuity) {
+						ctx->has_pending_discontinuity = GF_TRUE;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Discontinuous timing detected (DTS "LLU" vs last DTS "LLU"), requesting period switch\n", dts, ds->last_dts));
+					}
 					break;
 				}
 			}
