@@ -53,6 +53,7 @@ typedef struct
 	GF_TextConfig *cfg;
 	u32 dsi_crc;
 	Bool is_tx3g;
+	Bool dash_mode;
 
 	u32 dump_type;
 	u32 cur_frame;
@@ -149,6 +150,9 @@ GF_Err tx3gmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+	ctx->dash_mode = (p && p->value.uint) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->dump_type)
 		tx3gmx_write_config(ctx);
@@ -441,11 +445,16 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	if (pck_size<=1) {
+		//0-size packet can be EODS in dash mode, send it
+		if (!pck_size && ctx->dash_mode) {
+			gf_filter_pck_forward(pck, ctx->opid);
+		}
 		gf_filter_pid_drop_packet(ctx->ipid);
-		//we consider a 0 packet size not an error
+		//we consider a 0 packet size not an error, 1 is wrong
 		return pck_size ? GF_NON_COMPLIANT_BITSTREAM : GF_OK;
 	}
-	if (ctx->dump_type && (pck_size<=2)) {
+	//empty packet, trash except in dash mode where we will need to forward segment info from the packet
+	if (ctx->dump_type && (pck_size==2) && !ctx->dash_mode) {
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
