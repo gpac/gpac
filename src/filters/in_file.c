@@ -657,8 +657,11 @@ static GF_Err filein_process(GF_Filter *filter)
 #endif
 			is_eof = gf_feof(ctx->file);
 
-		if (is_eof)
+		if (is_eof) {
+			//force EOF if filesize is 0
+			if (!ctx->file_size) ctx->is_end = GF_TRUE;
 			ctx->file_size = ctx->file_pos;
+		}
 	}
 
 	if (ctx->file_size && (ctx->file_pos + nb_read == ctx->file_size)) {
