@@ -478,7 +478,7 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 
 				if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
 					splice_time = scte35dec_parse_splice_time(bs);
-					*pts = splice_time + pts_adjustment;
+					*pts = (splice_time + pts_adjustment) & 0x1FFFFFFFFULL;
 				}
 
 				if (program_splice_flag == 0) {
@@ -489,7 +489,7 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 						if (splice_immediate_flag == 0) {
 							gf_assert(*pts == 0); // we've never encounter multi component streams
 							splice_time = scte35dec_parse_splice_time(bs);
-							*pts = splice_time + pts_adjustment;
+							*pts = (splice_time + pts_adjustment) & 0x1FFFFFFFFULL;
 						}
 					}
 				}
@@ -504,15 +504,18 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 				// truncated parsing: we make the assumption that there is only one command (which is the case from M2TS section sources)
 			}
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur=%u, splice_time="LLU")\n",
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur="LLU", splice_time="LLU")\n",
 				*splice_event_id, pts_adjustment, *dur, splice_time));
 		}
 		ret = GF_TRUE;
+		/*skip descriptor loop for splice_insert: needs_idr is already set unconditionally
+		  above, and descriptor data (segmentation_type_id, etc.) is not yet propagated to
+		  callers. time_signal and splice_null paths fall through to the descriptor loop.*/
 		goto exit;
 	case 0x06: //time_signal()
 		{
 			u64 splice_time = scte35dec_parse_splice_time(bs);
-			*pts = splice_time + pts_adjustment;
+			*pts = (splice_time + pts_adjustment) & 0x1FFFFFFFFULL;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found time_signal() for PTS="LLU" (splice_time="LLU", pts_adjustment="LLU")\n",
 				*pts, splice_time, pts_adjustment));
 		}
@@ -567,7 +570,7 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 					if (program_segmentation_flag == 0) { //deprecated
 						u8 component_count = gf_bs_read_u8(bs);
 						for (u8 i=0; i<component_count; i++)
-							gf_bs_skip_bytes(bs, 48);
+							gf_bs_skip_bytes(bs, 6); /*component_tag(8) + reserved(7) + pts_offset(33) = 48 bits = 6 bytes*/
 					}
 
 					if (segmentation_duration_flag == 1) {

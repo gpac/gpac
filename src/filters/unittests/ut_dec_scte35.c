@@ -443,3 +443,107 @@ unittest(scte35dec_short_segmentation_end)
 }
 
 /*************************************/
+
+/*
+ * Direct scte35dec_get_timing tests for time_signal and 33-bit PTS wraparound.
+ *
+ * time_signal section layout (21 bytes):
+ *   [0]     table_id = 0xFC
+ *   [1-2]   section_syntax_indicator=0, private=0, sap=00, section_length=18
+ *   [3]     protocol_version = 0
+ *   [4-8]   encrypted=0, encryption_algo=0, pts_adjustment (33 bits)
+ *   [9]     cw_index = 0
+ *   [10-12] tier=0xFFF, splice_command_length=5
+ *   [13]    splice_command_type = 0x06 (time_signal)
+ *   [14-18] splice_time: time_specified=1, reserved=111111, pts_time (33 bits)
+ *   [19-20] descriptor_loop_length = 0
+ */
+
+unittest(scte35dec_time_signal_basic)
+{
+	static u8 payload[] = {
+		0xFC, 0x00, 0x12,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00,
+		0xFF, 0xF0, 0x05,
+		0x06,
+		0xFE, 0x00, 0x00, 0xE8, 0xBF,
+		0x00, 0x00
+	};
+
+	u64 pts = 0, dur = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &pts, &dur, &splice_event_id, &needs_idr);
+	assert_true(ret);
+	assert_equal(pts, 59583ULL, LLU);
+	assert_equal(dur, 0ULL, LLU);
+	assert_equal(needs_idr, (Bool)GF_FALSE, "%d");
+}
+
+/*************************************/
+
+unittest(scte35dec_time_signal_pts_wrap)
+{
+	/*pts_adjustment=5, splice_time=0x1FFFFFFFD (2^33 - 3)
+	  sum = 0x200000002, masked to 33 bits = 2*/
+	static u8 payload[] = {
+		0xFC, 0x00, 0x12,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x05,
+		0x00,
+		0xFF, 0xF0, 0x05,
+		0x06,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFD,
+		0x00, 0x00
+	};
+
+	u64 pts = 0, dur = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &pts, &dur, &splice_event_id, &needs_idr);
+	assert_true(ret);
+	assert_equal(pts, 2ULL, LLU);
+	assert_equal(dur, 0ULL, LLU);
+}
+
+/*************************************/
+
+unittest(scte35dec_splice_insert_pts_wrap)
+{
+	/*splice_insert with pts_adjustment=5, splice_time=0x1FFFFFFFD
+	  expected PTS = (0x1FFFFFFFD + 5) & 0x1FFFFFFFF = 2
+	  splice_event_id = 100, needs_idr = TRUE, no duration*/
+	static u8 payload[] = {
+		0xFC, 0x00, 0x1C,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x05,
+		0x00,
+		0xFF, 0xF0, 0x0F,
+		0x05,
+		0x00, 0x00, 0x00, 0x64,
+		0x7F,
+		0xCF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFD,
+		0x00, 0x01,
+		0x00,
+		0x00,
+		0x00, 0x00
+	};
+
+	u64 pts = 0, dur = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &pts, &dur, &splice_event_id, &needs_idr);
+	assert_true(ret);
+	assert_equal(pts, 2ULL, LLU);
+	assert_equal(dur, 0ULL, LLU);
+	assert_equal(splice_event_id, 100U, "%u");
+	assert_equal(needs_idr, (Bool)GF_TRUE, "%d");
+}
+
+/*************************************/
