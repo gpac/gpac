@@ -1460,7 +1460,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				f = gf_filter_load_filter(filter, url, &e);
 				if (f) gf_filter_require_source_id(f);
 			} else {
-				Bool is_src_filter = gf_filter_is_supported_source(filter, url, NULL);
+				Bool is_src_filter = gf_filter_url_is_source(filter, url);
 				if (is_src_filter) {
 					fsrc = gf_filter_load_filter(filter, url, &e);
 				} else {

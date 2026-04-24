@@ -2959,6 +2959,14 @@ The resulting filter will not be clonable unless the `:clone` argument is passed
 */
 Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const char *parent_url);
 
+/*! Checks if name represents a source filter. The source filter is not loaded.
+
+\param filter the caller filter
+\param name the filter name to look for
+\return GF_TRUE if name is a source filter
+*/
+Bool gf_filter_url_is_source(GF_Filter *filter, const char *name);
+
 /*! Checks if a URL describes a filter
 
 \param filter the target filter

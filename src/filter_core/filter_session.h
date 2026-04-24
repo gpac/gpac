@@ -911,7 +911,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg);
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg, char **probe_fname);
 
 void gf_fs_post_pid_instance_delete_task(GF_FilterSession *session, GF_Filter *filter, GF_FilterPid *pid, GF_FilterPidInst *pidinst);
 

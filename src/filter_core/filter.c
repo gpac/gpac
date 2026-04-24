@@ -4185,7 +4185,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 		filter->orig_args = NULL;
 	}
 
-	gf_fs_load_source_dest_internal(filter->session, src_url, src_args, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL, NULL);
+	gf_fs_load_source_dest_internal(filter->session, src_url, src_args, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL, NULL, NULL);
 	if (src_args) gf_free(src_args);
 
 	//we manage to reassign an input registry
@@ -4275,15 +4275,35 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 {
 	GF_Err e;
 	Bool is_supported = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported, NULL);
+	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported, NULL, NULL);
 	return is_supported;
+}
+
+GF_EXPORT
+Bool gf_filter_url_is_source(GF_Filter *filter, const char *name)
+{
+	GF_Err e;
+	Bool is_supported = GF_FALSE;
+	char *candidate = NULL;
+	gf_fs_load_source_dest_internal(filter->session, name, NULL, NULL, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported, NULL, &candidate);
+	if (is_supported && candidate) {
+		const char *sep = strchr(name, filter->session->sep_args);
+		u32 len = (u32) (sep ? (sep - name) : strlen(name));
+		Bool match = GF_FALSE;
+		if ((strlen(candidate)==len) && !strncmp(candidate, name, len)) {
+			match = GF_TRUE;
+		}
+		gf_free(candidate);
+		return match;
+	}
+	return GF_FALSE;
 }
 
 GF_EXPORT
 Bool gf_filter_url_is_filter(GF_Filter *filter, const char *url, Bool *act_as_source)
 {
 	char *sep = strchr(url, filter->session->sep_args);
-	u32 len = (u32) ( sep ? (sep - url - 1) : strlen(url) );
+	u32 len = (u32) ( sep ? (sep - url) : strlen(url) );
 	u32 i, count = gf_list_count(filter->session->registry);
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
@@ -4383,7 +4403,7 @@ GF_Filter *gf_filter_connect_source_internal(GF_Filter *filter, const char *url,
 	if (gf_filter_url_is_filter(filter, url, NULL)) {
 		filter_src = gf_fs_load_filter(filter->session, url, err);
 	} else {
-		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, is_src_add ? NULL : filter, GF_TRUE, is_src_add ? GF_FALSE : GF_TRUE, NULL, NULL);
+		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, is_src_add ? NULL : filter, GF_TRUE, is_src_add ? GF_FALSE : GF_TRUE, NULL, NULL, NULL);
 	}
 	if (full_args) gf_free(full_args);
 
@@ -4421,7 +4441,7 @@ GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
 	if (!filter) return NULL;
-	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL, NULL);
+	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL, NULL, NULL);
 }
 
 

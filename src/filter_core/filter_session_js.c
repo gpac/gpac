@@ -1069,9 +1069,9 @@ static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_Filter
 		GF_Err e;
 		Bool probe;
 		if (!strncmp(regname, "src=", 4)) {
-			gf_fs_load_source_dest_internal(fs, regname+4, NULL, NULL, &e, NULL, NULL, GF_TRUE, GF_FALSE, &probe, &freg);
+			gf_fs_load_source_dest_internal(fs, regname+4, NULL, NULL, &e, NULL, NULL, GF_TRUE, GF_FALSE, &probe, &freg, NULL);
 		} else if (!strncmp(regname, "dst=", 4)) {
-			gf_fs_load_source_dest_internal(fs, regname+4, NULL, NULL, &e, NULL, NULL, GF_FALSE, GF_FALSE, &probe, &freg);
+			gf_fs_load_source_dest_internal(fs, regname+4, NULL, NULL, &e, NULL, NULL, GF_FALSE, GF_FALSE, &probe, &freg, NULL);
 		}
 	}
 
