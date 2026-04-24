@@ -28,6 +28,7 @@
 #include <gpac/iso639.h>
 #include <gpac/mpd.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/scte35.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
@@ -9502,7 +9503,7 @@ static GF_Err dasher_handle_scte35(GF_FilterPacket *pck, GF_List *event_streams)
 	GF_MPD_EventStream *es = NULL;
 	u32 esi = 0;
 	while ( (es = (GF_MPD_EventStream*) gf_list_enum(event_streams, &esi)) ) {
-		if (!strcmp(es->scheme_id_uri, "urn:scte:scte35:2014:xml+bin"))
+		if (!strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND))
 			break;
 		else
 			es = NULL;
@@ -9510,7 +9511,7 @@ static GF_Err dasher_handle_scte35(GF_FilterPacket *pck, GF_List *event_streams)
 
 	if (!es) {
 		GF_SAFEALLOC(es, GF_MPD_EventStream);
-		es->scheme_id_uri = gf_strdup("urn:scte:scte35:2014:xml+bin");
+		es->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_OUTBAND);
 		if (!es->scheme_id_uri) goto fail;
 		es->entries = gf_list_new();
 		if (!es->entries) goto fail;
