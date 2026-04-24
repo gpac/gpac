@@ -25,6 +25,7 @@
 
 #include <gpac/filters.h>
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/scte35.h>
 
 
 #ifndef GPAC_DISABLE_ISOM
@@ -672,7 +673,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 	emib->event_duration = (u32) dur;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
 	emib->event_id = ctx->last_event_id++;
-	emib->scheme_id_uri = gf_strdup("urn:scte:scte35:2013:bin");
+	emib->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_INBAND);
 	emib->value = gf_strdup("1001");
 	emib->message_data_size = size;
 	emib->message_data = gf_malloc(emib->message_data_size);
@@ -793,7 +794,7 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					*size = emib->message_data_size;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
 
-					if (ctx->mode == 0 && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
+					if (ctx->mode == 0 && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode.\n", emib->scheme_id_uri));
 						ctx->mode = 1;
 						gf_isom_box_del(a);
