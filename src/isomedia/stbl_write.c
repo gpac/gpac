@@ -1118,6 +1118,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 	}
 	//we're removing the last sample
 	if ((nb_samples==1) && (sampleNumber == stbl->SampleSize->sampleCount)) {
+		if (!stts->nb_entries)
+			return GF_BAD_PARAM;
 		ent = &stts->entries[stts->nb_entries-1];
 		ent->sampleCount--;
 		if (!ent->sampleCount) stts->nb_entries--;
