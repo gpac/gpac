@@ -3630,7 +3630,7 @@ static GF_Filter *locate_alias_sink(GF_Filter *filter, const char *url, const ch
 	return NULL;
 }
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg)
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg, char **probe_fname)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
@@ -3745,7 +3745,22 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 				if (try_js) {
 					if (!strncmp(url, "gpac://", 7)) url += 7;
 					filter = gf_fs_load_filter_internal(fsess, url, err, probe_only);
-					if (probe_only) return NULL;
+					if (probe_only) {
+						if (probe_fname && *probe_only) {
+							char *sname = strchr(url, fsess->sep_args);
+							if (sname) {
+								u32 len = (u32) (sname - url);
+								*probe_fname = (char *) gf_malloc(len + 1);
+								memcpy(*probe_fname, url, len);
+								(*probe_fname)[len] = 0;
+							}
+						} else if (probe_fname) {
+							*probe_fname = gf_strdup(url);
+							char *sep = strchr(*probe_fname, fsess->sep_args);
+							if (sep) sep[0] = 0;
+						}
+						return NULL;
+					}
 
 					if (filter) {
 						//for link resolution
@@ -3840,6 +3855,9 @@ restart:
 	if (probe_only) {
 		*probe_only = candidate_freg ? GF_TRUE : GF_FALSE;
 		if (probe_reg) *probe_reg = candidate_freg;
+		if (probe_fname && candidate_freg) {
+			*probe_fname = gf_strdup(candidate_freg->name);
+		}
 
 		if (free_url)
 			gf_free(sURL);
@@ -3956,13 +3974,13 @@ restart:
 GF_EXPORT
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE, NULL, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE, NULL, NULL, NULL);
 }
 
 GF_EXPORT
 GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE, NULL, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE, NULL, NULL, NULL);
 }
 
 
@@ -4939,7 +4957,7 @@ Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const
 {
 	GF_Err e;
 	Bool is_supported = GF_FALSE;
-	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported, NULL);
+	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported, NULL, NULL);
 	return is_supported;
 }
 
