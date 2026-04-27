@@ -640,6 +640,8 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u)\n", timescale, ctx->sampdur.num, ctx->sampdur.den));
 
 			ctx->last_dispatched_dts = dts - dur;
+		} else {
+			ctx->last_dispatched_dts = dts;
 		}
 	} else if (!IS_SEGMENTED) {
 		if (dts + dur > ctx->last_dispatched_dts)
