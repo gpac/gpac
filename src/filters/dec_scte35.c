@@ -334,7 +334,7 @@ exit:
 static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt, u64 timestamp, u64 dur)
 {
 	if (dur == GF_UINT_MAX) dur = first_evt->dts - timestamp;
-	gf_assert(timestamp + dur >= first_evt->dts);
+	gf_assert(timestamp + dur >= first_evt->dts || gf_filter_pid_is_eos(ctx->ipid));
 	GF_Err e = scte35dec_flush_emeb(ctx, timestamp, (u32) dur);
 	ctx->clock = timestamp + dur;
 	return e;
