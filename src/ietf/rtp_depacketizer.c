@@ -1304,7 +1304,8 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	else if (!stricmp(param_name, "StreamType"))
 		rtp->sl_map.StreamType = atoi(param_val);
 	else if (!stricmp(param_name, "mode")) {
-		strcpy(rtp->sl_map.mode, param_val);
+		strncpy(rtp->sl_map.mode, param_val, sizeof(rtp->sl_map.mode)-1);
+		rtp->sl_map.mode[sizeof(rtp->sl_map.mode)-1] = 0;
 		/*in case no IOD and no streamType/OTI in the file*/
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
