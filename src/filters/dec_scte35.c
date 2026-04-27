@@ -216,7 +216,7 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 			gf_filter_pck_unref(ctx->dash_pck);
 			ctx->dash_pck = NULL;
 		} else if (ctx->is_dash) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU".\n", dts));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unaligned segment at dts="LLU"\n", dts));
 		}
 	}
 
@@ -633,15 +633,17 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 		ctx->last_pck_dur = dur;
 		ctx->last_dispatched_dts_init = GF_TRUE;
 		ctx->clock = dts;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Initialize session at dts="LLU" timescale=%u\n", dts, timescale));
 
 		if (IS_SEGMENTED) {
 			if (ctx->sampdur.num * ctx->timescale % ctx->sampdur.den)
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u).\n", timescale, ctx->sampdur.num, ctx->sampdur.den));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u)\n", timescale, ctx->sampdur.num, ctx->sampdur.den));
 
 			ctx->last_dispatched_dts = dts - dur;
 		}
 	} else if (!IS_SEGMENTED) {
-		ctx->last_pck_dur = dts + dur - ctx->last_dispatched_dts;
+		if (dts + dur > ctx->last_dispatched_dts)
+			ctx->last_pck_dur = dts + dur - ctx->last_dispatched_dts;
 	}
 
 	if (IS_SEGMENTED) {
@@ -671,7 +673,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 
 	// set values according to SCTE 214-3 2015
 	emib->presentation_time_delta = pts - dts;
-	if (pts < ctx->clock && !IS_SEGMENTED)
+	if (!IS_SEGMENTED && pts < ctx->last_dispatched_dts)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
 	emib->event_duration = (u32) dur;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
@@ -785,7 +787,7 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 				}
 				if (a->type == GF_ISOM_BOX_TYPE_EMIB) {
 					if (data && *size) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' boxes: switching filter to passthru mode.\n"));
+						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' boxes: switching filter to passthru mode\n"));
 						ctx->mode = 1;
 						gf_isom_box_del(a);
 						data = NULL;
@@ -798,7 +800,7 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
 
 					if (ctx->mode == 0 && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode.\n", emib->scheme_id_uri));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode\n", emib->scheme_id_uri));
 						ctx->mode = 1;
 						gf_isom_box_del(a);
 						data = NULL;
@@ -863,6 +865,8 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	Bool own = GF_FALSE;
 	const u8 *data = scte35dec_pck_get_data(ctx, pck, &size, &own);
 	if (data && size && !IS_PASSTHRU) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected SCTE-35 at dts="LLU" dur=%u\n", dts, dur));
+
 		GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
 		if (own)
 			gf_free((void*)data);
