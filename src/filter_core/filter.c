@@ -5759,7 +5759,15 @@ void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)
 GF_EXPORT
 void gf_filter_require_source_id(GF_Filter *filter)
 {
-	if (filter) filter->require_source_id = GF_TRUE;
+	if (filter) {
+		u32 i;
+		filter->require_source_id = GF_TRUE;
+		//force all already defined PIDs to require source ID as well
+		for (i=0; i<filter->num_output_pids; i++) {
+			GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+			pid->require_source_id = GF_TRUE;
+		}
+	}
 }
 
 void gf_filter_set_blocking(GF_Filter *filter, Bool is_blocking)
