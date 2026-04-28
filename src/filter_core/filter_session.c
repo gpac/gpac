@@ -3630,6 +3630,36 @@ static GF_Filter *locate_alias_sink(GF_Filter *filter, const char *url, const ch
 	return NULL;
 }
 
+static Bool fs_check_filter_is_source(GF_FilterSession *fsess, const char *fname)
+{
+	const GF_FilterRegister *f_reg = NULL;
+	u32 i, count = gf_list_count(fsess->registry);
+	/*regular filter loading*/
+	for (i=0;i<count;i++) {
+		f_reg = gf_list_get(fsess->registry, i);
+		if (!strcmp(f_reg->name, fname)) break;
+		f_reg = NULL;
+	}
+	if (!f_reg) return GF_FALSE;
+	i=0;
+	u32 nb_in=0, nb_out=0;
+	while (1) {
+		const GF_FilterCapability *cap = &f_reg->caps[i];
+		if (!cap->code) break;
+		if (!cap->flags) {
+			if (!nb_in && nb_out) return GF_TRUE;
+			nb_in = nb_out = 0;
+			i++;
+			continue;
+		}
+		if (cap->flags & GF_CAPFLAG_INPUT) nb_in++;
+		if (cap->flags & GF_CAPFLAG_OUTPUT) nb_out++;
+		i++;
+	}
+	if (!nb_in && nb_out) return GF_TRUE;
+	return GF_FALSE;
+}
+
 GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
@@ -3737,12 +3767,17 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 			if (strcmp(sURL, "null") && strncmp(sURL, "rand", 4) && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
 				char szPath[GF_MAX_PATH];
-				Bool try_js = gf_fs_solve_js_script(szPath, sURL, NULL);
+				//check if this is a JSF filter
+				Bool try_direct_load = gf_fs_solve_js_script(szPath, sURL, NULL);
+				//check if we have a register filter class acting as source
+				if (!try_direct_load)
+					try_direct_load = fs_check_filter_is_source(fsess, sURL);
+
 				if (sep) sep[0] = fsess->sep_args;
 				if (frag_par) frag_par[0] = f_c;
 				gf_free(sURL);
 
-				if (try_js) {
+				if (try_direct_load) {
 					if (!strncmp(url, "gpac://", 7)) url += 7;
 					filter = gf_fs_load_filter_internal(fsess, url, err, probe_only);
 					if (probe_only) return NULL;
