@@ -3104,6 +3104,8 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		else
 			line_size = size-1;
 
+		if (!line_size) break;
+
 		//line is comment
 		if (data[0] != '#') {
 			Bool line_empty = GF_TRUE;
@@ -3119,8 +3121,13 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 				//not a valid URL
 				return NULL;
 			}
-			if (!line_empty)
+			if (!line_empty) {
 				nb_lines++;
+				break;
+			}
+		} else if ((line_size>7) && !strncmp((char *) data, "##GPACPL", 8)) {
+			nb_lines++;
+			break;
 		}
 		if (!nl) break;
 		size -= (u32) (nl+1 - (char *) data);
@@ -3217,6 +3224,8 @@ GF_FilterRegister FileListRegister = {
 		"Playlist refreshing will abort:\n"
 		"- if the input playlist has a line not ending with a LF `(\\n)` character, in order to avoid asynchronous issues when reading the playlist.\n"
 		"- if the input playlist has not been modified for the [-timeout]() option value (infinite by default).\n"
+		"\n"
+		"The special line `##GPACPL` can be used to identify the file as a GPAC playlist, usefull when playlist has no initial content in keep-alive mode.\n"
 		"\n"
 		"Note: When the source playlist is a GFIO object, URLs inside the playlist are NOT translated into GFIO objects.\n"
 		"\n"

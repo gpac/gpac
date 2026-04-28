@@ -904,7 +904,7 @@ stsd (uint, default: 0):       only extract sample mapped to the given sample de
 .br
 nocrypt (bool):                signal encrypted tracks as non encrypted (mostly used for export)
 .br
-mstore_size (uint, default: 1000000): target buffer size in bytes when reading from memory stream (pipe etc...)
+mstore_size (uint, default: 10000000): target buffer size in bytes when reading from memory stream (pipe etc...)
 .br
 mstore_purge (uint, default: 50000): minimum size in bytes between memory purges when reading from memory stream, 0 means purge as soon as possible
 .br
@@ -4716,6 +4716,10 @@ Playlist refreshing will abort:
 - if the input playlist has a line not ending with a LF (\n) character, in order to avoid asynchronous issues when reading the playlist.
 .br
 - if the input playlist has not been modified for the .I timeout option value (infinite by default).
+.br
+
+.br
+The special line ##GPACPL can be used to identify the file as a GPAC playlist, usefull when playlist has no initial content in keep-alive mode.
 .br
 
 .br
