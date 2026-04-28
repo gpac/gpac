@@ -2403,6 +2403,7 @@ GF_Err gf_odf_ac4_cfg_parse_bs(GF_BitStream *bs, GF_AC4Config *cfg)
 	dsi->ac4_dsi_version = gf_bs_read_int(bs, 3);
 	if (dsi->ac4_dsi_version == 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[AC4] Don't support ac4_dsi_version 0.\n"));
+		gf_bs_seek(bs, pos);
 		return GF_OK;
 	}
 	gf_bs_seek(bs, pos);
