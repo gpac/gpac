@@ -1824,7 +1824,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 		//check if all sinks are done - if not keep requesting a process to pump window event loop
 		if (!gf_filter_all_sinks_done(filter)) {
-			gf_filter_ask_rt_reschedule(filter, 100000);
+			gf_filter_ask_rt_reschedule(filter, ctx->aborted ? 100000 : 10000);
 			if (ctx->display_changed)
 				goto draw_frame;
 
