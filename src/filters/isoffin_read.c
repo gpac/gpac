@@ -1423,6 +1423,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 		if (read->mem_load_mode==2) {
 			if (!read->force_fetch && (read->mem_blob.size > read->mstore_size)) {
+				gf_filter_ask_rt_reschedule(filter, 1);
 				fetch_input = GF_FALSE;
 			}
 			read->force_fetch = GF_FALSE;
@@ -1904,7 +1905,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nocrypt), "signal encrypted tracks as non encrypted (mostly used for export)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mstore_size), "target buffer size in bytes when reading from memory stream (pipe etc...)", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mstore_size), "target buffer size in bytes when reading from memory stream (pipe etc...)", GF_PROP_UINT, "10000000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream, 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
