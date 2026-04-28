@@ -506,8 +506,8 @@ unittest(scte35dec_time_signal_pts_wrap)
 
 	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &dts, &dur, &splice_event_id, &needs_idr);
 	assert_true(ret);
-	assert_equal(dts, 2ULL, LLU);
-	assert_equal(dur, 0ULL, LLU);
+	assert_equal(dts, (u64)2, LLU);
+	assert_equal(dur, (u64)0, LLU);
 }
 
 /*************************************/
