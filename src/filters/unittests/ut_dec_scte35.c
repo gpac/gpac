@@ -478,8 +478,8 @@ unittest(scte35dec_time_signal_basic)
 
 	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &dts, &dur, &splice_event_id, &needs_idr);
 	assert_true(ret);
-	assert_equal(dts, 59583ULL, LLU);
-	assert_equal(dur, 0ULL, LLU);
+	assert_equal(dts, (u64)59583, LLU);
+	assert_equal(dur, (u64)0, LLU);
 	assert_equal(needs_idr, (Bool)GF_FALSE, "%d");
 }
 
@@ -540,9 +540,9 @@ unittest(scte35dec_splice_insert_pts_wrap)
 
 	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &dts, &dur, &splice_event_id, &needs_idr);
 	assert_true(ret);
-	assert_equal(dts, 2ULL, LLU);
-	assert_equal(dur, 0ULL, LLU);
-	assert_equal(splice_event_id, 100U, "%u");
+	assert_equal(dts, (u64)2, LLU);
+	assert_equal(dur, (u64)0, LLU);
+	assert_equal(splice_event_id, (u32)100, "%u");
 	assert_equal(needs_idr, (Bool)GF_TRUE, "%d");
 }
 
