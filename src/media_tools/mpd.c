@@ -3303,7 +3303,10 @@ static void gf_mpd_print_inband_event(FILE *out, GF_List *inband_event, s32 inde
 	GF_MPD_Inband_Event *ibe;
 	while ((ibe = gf_list_enum(inband_event, &i))) {
 		gf_mpd_nl(out, indent);
-		gf_fprintf(out, "<InbandEventStream schemeIdUri=\"%s\" value=\"%s\"/>", ibe->scheme_id_uri, ibe->value);
+		gf_fprintf(out, "<InbandEventStream schemeIdUri=\"%s\"", ibe->scheme_id_uri);
+		if (ibe->value)
+			gf_fprintf(out, " value=\"%s\"", ibe->value);
+		gf_fprintf(out, "/>");
 		gf_mpd_lf(out, indent);
 	}
 }

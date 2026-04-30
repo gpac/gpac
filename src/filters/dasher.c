@@ -9708,7 +9708,6 @@ static GF_Err dasher_handle_scte35(GF_FilterPacket *pck, GF_List *event_streams)
 
 	Bool needs_idr = GF_FALSE;
 	u64 dur = 0;
-	Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *splice_event_id, Bool *needs_idr);
 	if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
 		evt->duration = (u32)dur;
 		es->timescale = gf_filter_pck_get_timescale(pck);
