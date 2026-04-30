@@ -181,6 +181,14 @@ enum
 	AC4_OBJECT_BASED_AJOC_CONTENT,
 };
 
+// SCTE-35 HLS signalling
+GF_OPT_ENUM (Scte35ModeHLS,
+    SCTE35_DATERANGE,
+    SCTE35_HLS_OAT_CLS,
+    SCTE35_SPLICEPOINT,
+    SCTE35_CUE,
+);
+
 //these are not exported for now
 //get destination name by index
 char *gf_filter_pid_get_destination_ex(GF_FilterPid *pid, u32 dst_idx);
@@ -248,6 +256,7 @@ typedef struct
 	DasherWaitLastPktCtrl seg_sync;
 	Bool hls_ap;
 	Scte35Mode scte35;
+	//Scte35ModeHLS scte35_hls;
 
 	//internal
 	Bool in_error;
@@ -12087,6 +12096,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	SCTE35_ARG,
+	//{ OFFS(scte35_hls), "HLS SCTE-35 signalling", GF_PROP_UINT, "cue", "daterange|oatcls|splicepoint|cue", GF_FS_ARG_HINT_EXPERT },
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -59,6 +59,6 @@ GF_OPT_ENUM (Scte35Mode,
     "- xml+bin: out-of-band (MPD) EventStream with xml+bin (recommended default)\n" \
     "- inband: in-band `emsg` boxes\n" \
     "- all: signal everywhere detected\n" \
-    "- none: no EventStream", GF_PROP_UINT, "xml+bin", "xml+bin|inband|all|none", GF_FS_ARG_HINT_EXPERT}
+    "- none: no EventStream", GF_PROP_UINT, "xml+bin", "xml+bin|inband|all|none", GF_FS_ARG_HINT_EXPERT }
 
 #endif /*_GF_SCTE35_DEV_H_*/
