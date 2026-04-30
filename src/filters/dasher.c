@@ -152,14 +152,6 @@ GF_OPT_ENUM (DasherWaitLastPktCtrl,
 	DASHER_SEGSYNC_AUTO,
 );
 
-// DASH SCTE-35 (out-of-band)
-GF_OPT_ENUM (DasherDashScte35Mode,
-	//not implemented: DASHER_SCTE35_DASH_XML,
-	DASHER_SCTE35_DASH_XML_BIN,
-	DASHER_SCTE35_DASH_EVTE,
-	DASHER_SCTE35_DASH_NONE,
-);
-
 // Index mode as used from a GHI (GPAC HTTP Streaming index) demuxer
 enum
 {
@@ -255,7 +247,7 @@ typedef struct
 	GF_DashAbsoluteURLMode hls_absu;
 	DasherWaitLastPktCtrl seg_sync;
 	Bool hls_ap;
-	DasherDashScte35Mode scte35;
+	Scte35Mode scte35;
 
 	//internal
 	Bool in_error;
@@ -3220,6 +3212,10 @@ static void dasher_add_inband_event(GF_DashStream *ds, GF_PropStringList *event_
 		if (!stream_type || ds->stream_type == stream_type) {
 			GF_MPD_Inband_Event *event;
 			GF_SAFEALLOC(event, GF_MPD_Inband_Event);
+			if (!event) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Can't allocate inband event\n"));
+				return;
+			}
 			event->scheme_id_uri = gf_strdup(event_list->vals[i]);
 			event->value = gf_strdup(sep1+1);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", event->scheme_id_uri, event->value))
@@ -9675,61 +9671,90 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 	}
 }
 
-static GF_Err dasher_handle_scte35(GF_FilterPacket *pck, GF_List *event_streams)
+static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
+	if (ctx->scte35 == SCTE35_NONE)
+		return GF_OK;
+
 	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
 	if (!emsg) return GF_OK;
 
-	//check if we already have an event stream
-	GF_MPD_EventStream *es = NULL;
-	u32 esi = 0;
-	while ( (es = (GF_MPD_EventStream*) gf_list_enum(event_streams, &esi)) ) {
-		if (!strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND))
-			break;
-		else
-			es = NULL;
+	if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
+		//check if we already have a SCTE-35 inband event
+		GF_MPD_Inband_Event *event;
+		u32 ibe = 0;
+		Bool found = GF_FALSE;
+		while ( (event = (GF_MPD_Inband_Event*) gf_list_enum(ds->set->inband_event, &ibe)) ) {
+			if (!strcmp(event->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+
+		if (!found) {
+			GF_SAFEALLOC(event, GF_MPD_Inband_Event);
+			if (!event) return GF_OUT_OF_MEM;
+			event->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_INBAND);
+			gf_list_add(ds->set->inband_event, event);
+		}
 	}
 
-	if (!es) {
-		GF_SAFEALLOC(es, GF_MPD_EventStream);
-		es->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_OUTBAND);
-		if (!es->scheme_id_uri) goto fail;
-		es->entries = gf_list_new();
-		if (!es->entries) goto fail;
-		gf_list_add(event_streams, es);
-	}
+	if (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
+		//check if we already have an event stream
+		GF_MPD_EventStream *es = NULL;
+		GF_List *event_streams = ds->period->period->event_streams;
+		u32 esi = 0;
+		while ( (es = (GF_MPD_EventStream*) gf_list_enum(event_streams, &esi)) ) {
+			if (!strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND))
+				break;
+			else
+				es = NULL;
+		}
 
-	GF_MPD_EventStreamEntry *evt;
-	GF_SAFEALLOC(evt, GF_MPD_EventStreamEntry);
-	if (!evt) goto fail;
-	evt->xmlns = gf_strdup("http://www.scte.org/schemas/35/2016");
-	if (!evt->xmlns) goto fail;
-	gf_list_add(es->entries, evt);
+		if (!es) {
+			GF_SAFEALLOC(es, GF_MPD_EventStream);
+			es->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_OUTBAND);
+			if (!es->scheme_id_uri) goto fail;
+			es->entries = gf_list_new();
+			if (!es->entries) goto fail;
+			gf_list_add(event_streams, es);
+		}
 
-	Bool needs_idr = GF_FALSE;
-	u64 dur = 0;
-	if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
-		evt->duration = (u32)dur;
-		es->timescale = gf_filter_pck_get_timescale(pck);
+		GF_MPD_EventStreamEntry *evt;
+		GF_SAFEALLOC(evt, GF_MPD_EventStreamEntry);
+		if (!evt) goto fail;
+		evt->xmlns = gf_strdup("http://www.scte.org/schemas/35/2016");
+		if (!evt->xmlns) goto fail;
+		gf_list_add(es->entries, evt);
 
-		size_t sz = 2*emsg->value.data.size + 3;
-		evt->message = gf_malloc(sizeof(char) * sz);
-		if (evt->message) {
-			sz = gf_base64_encode(emsg->value.data.ptr, emsg->value.data.size, evt->message, sz);
-			evt->message[sz] = 0;
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Allocation failure for base64 SCTE35 event"));
+		Bool needs_idr = GF_FALSE;
+		u64 dur = 0;
+		if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+			evt->duration = (u32)dur;
+			es->timescale = gf_filter_pck_get_timescale(pck);
+
+			size_t sz = 2*emsg->value.data.size + 3;
+			evt->message = gf_malloc(sizeof(char) * sz);
+			if (evt->message) {
+				sz = gf_base64_encode(emsg->value.data.ptr, emsg->value.data.size, evt->message, sz);
+				evt->message[sz] = 0;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Allocation failure for base64 SCTE35 event"));
+			}
+
 		}
 
 		return GF_OK;
-	}
 
 fail:
-	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Failed allocation in SCTE35 event, skipping\n"));
-	gf_free(es->entries);
-	gf_free(es->scheme_id_uri);
-	gf_free(es);
-	return GF_OUT_OF_MEM;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Failed allocation in SCTE35 event, skipping\n"));
+		gf_free(es->entries);
+		gf_free(es->scheme_id_uri);
+		gf_free(es);
+		return GF_OUT_OF_MEM;
+	}
+
+	return GF_OK;
 }
 
 
@@ -10132,10 +10157,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			pcont_cts = cts;
 
 			//out-of-band events
-			if (ctx->scte35 != DASHER_SCTE35_DASH_NONE && ctx->scte35 != DASHER_SCTE35_DASH_EVTE) {
-				GF_Err e = dasher_handle_scte35(pck, ds->period->period->event_streams);
-				if (e) return e;
-			}
+			GF_Err e = dasher_handle_scte35(ctx, pck, ds);
+			if (e) return e;
 
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
@@ -12063,7 +12086,7 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(scte35), "control SCTE-35 signalling in MPD\n", GF_PROP_UINT, "xml+bin", "xml+bin|evte|none", GF_FS_ARG_HINT_EXPERT},
+	SCTE35_ARG,
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(base64), "embed init segments in manifests as base64", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -327,6 +327,7 @@ typedef struct
 	Double start;
 	GF_MP4MuxChapterMode chapm;
 	u32 sfrag_tolerance;
+	Scte35Mode scte35;
 
 	//internal
 	GF_Filter *filter;
@@ -6976,11 +6977,12 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				ctx->last_id3_processed = id3;
 			}
 
-			//Romain: should be next to mp4_mux_flush_seg_events() ?
-			//"scte35" packet properties to be pushed at top-level 'emsg' box
-			const GF_PropertyValue *sc35 = gf_filter_pck_get_property_str(pck, "scte35");
-			if (sc35 && (sc35->type == GF_PROP_DATA) && sc35->value.ptr)
-				mp4_process_scte35(sc35, dts, gf_isom_get_timescale(ctx->file), ctx->scte35_pending_events);
+			if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
+				//"scte35" packet properties to be pushed at top-level 'emsg' box
+				const GF_PropertyValue *sc35 = gf_filter_pck_get_property_str(pck, "scte35");
+				if (sc35 && (sc35->type == GF_PROP_DATA) && sc35->value.ptr)
+					mp4_process_scte35(sc35, dts, gf_isom_get_timescale(ctx->file), ctx->scte35_pending_events);
+			}
 
 			if (ctx->dash_mode) {
 				if (p) {
@@ -8910,6 +8912,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sfrag_tolerance), "start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	SCTE35_ARG,
+
 	{0}
 };
 
