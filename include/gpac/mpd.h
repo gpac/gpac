@@ -838,7 +838,10 @@ typedef struct {
 	s64 presentation_time;
 	u32 duration;
 	u32 id;
-	char *message; // base64-encoded
+	u8 *message;
+	u32 message_size;
+
+	int state; // HLS only: 0: not started, 1: active, 2: expired
 } GF_MPD_EventStreamEntry;
 
 /*! structure used to signal event streams */

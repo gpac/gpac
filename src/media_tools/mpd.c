@@ -24,6 +24,7 @@
  */
 
 #include <gpac/mpd.h>
+#include <gpac/base_coding.h>
 #include <gpac/download.h>
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
@@ -643,7 +644,12 @@ static GF_Err gf_mpd_parse_event_streams(GF_List *comps, GF_XMLNode *root) {
 								u32 m = 0;
 								while ( (b64 = gf_list_enum(binary->content, &m)) ) {
 								if (b64->type != GF_XML_TEXT_TYPE) continue;
-									if(!event->message) event->message = gf_strdup(b64->name);
+									if(!event->message) {
+										event->message_size = strlen(b64->name)+1;
+										event->message = gf_malloc(event->message_size);
+										if (!event->message) return GF_OUT_OF_MEM;
+										event->message_size = gf_base64_decode((u8*)b64->name, event->message_size, event->message, event->message_size);
+									}
 								}
 							}
 						}
@@ -3607,7 +3613,18 @@ static void gf_mpd_print_event_stream(FILE *out, GF_MPD_EventStream *event_strea
 		gf_mpd_lf(out, indent+2);
 
 		gf_mpd_nl(out, indent+3);
-		gf_fprintf(out, "<Binary>%s</Binary>", evt->message);
+		{
+			size_t sz = 2*evt->message_size + 3;
+			char *b64 = gf_malloc(sizeof(char) * sz);
+			if (b64) {
+				sz = gf_base64_encode(evt->message, evt->message_size, b64, sz);
+				b64[sz] = 0;
+				gf_fprintf(out, "<Binary>%s</Binary>", b64);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Allocation failure for base64 SCTE35 event"));
+			}
+			gf_free(b64);
+		}
 		gf_mpd_lf(out, indent+3);
 
 		gf_mpd_nl(out, indent+2);
@@ -4152,6 +4169,37 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
+static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *period, GF_DASH_SegmentContext *sctx)
+{
+	GF_MPD_EventStream *es = NULL;
+	u32 i = 0;
+	while ( (es = gf_list_enum(period->event_streams, &i)) ) {
+		GF_MPD_EventStreamEntry *ese = NULL;
+		u32 j = 0;
+		while ( (ese = gf_list_enum(es->entries, &j)) ) {
+			if (ese->state == 0 && ese->presentation_time <= sctx->time) {
+				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, ese->state);
+				gf_mpd_print_date(out, "START-DATE", ast + (ese->presentation_time * 1000) / es->timescale);
+				gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
+				if (ese->message) {
+					gf_fprintf(out, ",SCTE35-OUT=0x");
+					for (u32 k=0; k<ese->message_size; ++k)
+						gf_fprintf(out, "%02X", ese->message[k]);
+				}
+				gf_fprintf(out, "\n");
+
+				gf_fprintf(out, "#EXT-X-CUE-OUT:%g\n", ese->duration/(Double)es->timescale);
+				ese->state = 1;
+			}
+
+			if (ese->state == 1 && sctx->time+sctx->dur >= ese->presentation_time+ese->duration) {
+				gf_fprintf(out, "#EXT-X-CUE-IN\n");
+				ese->state = 0;
+			}
+		}
+	}
+}
+
 static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url, Bool delta_update, Bool is_last, FILE* out_file)
 {
 	u32 i, count;
@@ -4370,6 +4418,8 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
+
+			hls_insert_scte35_info(out, mpd->availabilityStartTime, period, sctx);
 
 			//signal discontinuity if needed
 			if (sctx && sctx->is_discontinuity)

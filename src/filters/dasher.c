@@ -9682,6 +9682,8 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
+	GF_Err ret = GF_OK;
+
 	if (ctx->scte35 == SCTE35_NONE)
 		return GF_OK;
 
@@ -9710,8 +9712,9 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 	if (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have an event stream
-		GF_MPD_EventStream *es = NULL;
 		GF_List *event_streams = ds->period->period->event_streams;
+		GF_MPD_EventStream *es = NULL;
+		GF_MPD_EventStreamEntry *evt = NULL;
 		u32 esi = 0;
 		while ( (es = (GF_MPD_EventStream*) gf_list_enum(event_streams, &esi)) ) {
 			if (!strcmp(es->scheme_id_uri, GF_SCTE35_SCHEME_URI_OUTBAND))
@@ -9729,41 +9732,56 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 			gf_list_add(event_streams, es);
 		}
 
-		GF_MPD_EventStreamEntry *evt;
 		GF_SAFEALLOC(evt, GF_MPD_EventStreamEntry);
 		if (!evt) goto fail;
 		evt->xmlns = gf_strdup("http://www.scte.org/schemas/35/2016");
 		if (!evt->xmlns) goto fail;
-		gf_list_add(es->entries, evt);
 
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
 		if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
-			evt->duration = (u32)dur;
-			es->timescale = gf_filter_pck_get_timescale(pck);
-
-			size_t sz = 2*emsg->value.data.size + 3;
-			evt->message = gf_malloc(sizeof(char) * sz);
-			if (evt->message) {
-				sz = gf_base64_encode(emsg->value.data.ptr, emsg->value.data.size, evt->message, sz);
-				evt->message[sz] = 0;
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Allocation failure for base64 SCTE35 event"));
+			Bool found = GF_FALSE;
+			GF_MPD_EventStreamEntry *ese = NULL;
+			u32 i = 0;
+			while ( (ese = (GF_MPD_EventStreamEntry*) gf_list_enum(es->entries, &i)) ) {
+				//remove duplicate IDs as they should convey redundant information
+				if (ese != evt && ese->id == evt->id) {
+					found = GF_TRUE;
+					goto exit;
+				}
 			}
 
+			if (!found) {
+				evt->duration = (u32)dur;
+				es->timescale = gf_filter_pck_get_timescale(pck);
+				evt->message = gf_malloc(emsg->value.data.size);
+				if (!evt->message) goto fail;
+				memcpy(evt->message, emsg->value.data.ptr, emsg->value.data.size);
+				evt->message_size = emsg->value.data.size;
+				gf_list_add(es->entries, evt);
+				return GF_OK;
+			}
 		}
 
-		return GF_OK;
+		goto exit;
 
 fail:
+		ret = GF_OUT_OF_MEM;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Failed allocation in SCTE35 event, skipping\n"));
-		gf_free(es->entries);
-		gf_free(es->scheme_id_uri);
-		gf_free(es);
-		return GF_OUT_OF_MEM;
+		if (es) {
+			gf_free(es->entries);
+			gf_free(es->scheme_id_uri);
+			gf_free(es);
+		}
+exit:
+		if (evt) {
+			gf_free(evt->xmlns);
+			gf_free(evt->message);
+			gf_free(evt);
+		}
 	}
 
-	return GF_OK;
+	return ret;
 }
 
 
@@ -12091,7 +12109,7 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(inband_event), "insert inband event in the DASH manifest described as triplets {schemeIdUri,value,streamType}\n"
-		"with streamType being \"audio\", \"video\", \"text\", or \"all\"\n"
+		"with streamType being \"audio\", \"video\", \"text\", or \"all\""
 		, GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(evte_agg), "force aggregation of Event Track samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
