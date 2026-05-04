@@ -238,18 +238,23 @@ next_line:
 				return;
 			}
 		} else {
-			if ((gf_gzgets(parser->gz_in, parser->line_buffer, BT_LINE_SIZE) == NULL)
-			        || (!strlen(parser->line_buffer) && gf_gzeof(parser->gz_in))) {
+			if (gf_gzgets(parser->gz_in, parser->line_buffer, BT_LINE_SIZE) == NULL) {
+				parser->done = 1;
+				return;
+
+			}
+			u32 line_len = strlen(parser->line_buffer);
+			if (!line_len && gf_gzeof(parser->gz_in)) {
 				parser->done = 1;
 				return;
 			}
 			/*watchout for long lines*/
-			if (1 + strlen(parser->line_buffer) == BT_LINE_SIZE) {
+			if (1 + line_len == BT_LINE_SIZE) {
 				u32 rew, pos, go;
 				rew = 0;
 				go = 1;
-				while (go) {
-					switch (parser->line_buffer[strlen(parser->line_buffer)-1]) {
+				while (line_len && go) {
+					switch (parser->line_buffer[line_len-1]) {
 					case ' ':
 					case ',':
 					case '[':
@@ -257,12 +262,18 @@ next_line:
 						go = 0;
 						break;
 					default:
-						parser->line_buffer[strlen(parser->line_buffer)-1] = 0;
+						parser->line_buffer[line_len-1] = 0;
+						line_len--;
 						rew++;
 						break;
 					}
 				}
 				pos = (u32) gf_gztell(parser->gz_in);
+				if (pos == rew) {
+					parser->done = 1;
+					parser->last_error = GF_NON_COMPLIANT_BITSTREAM;
+					return;
+				}
 				gf_gzseek(parser->gz_in, pos-rew, SEEK_SET);
 			}
 		}
