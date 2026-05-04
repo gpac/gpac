@@ -831,7 +831,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 						}
 					}
 
-					if (e_sep) {
+					if (e_sep && e_sep[0]) {
 						char c_sep = e_sep[0];
 						e_sep[0] = 0;
 						font_style = gf_color_parse(a_sep);
