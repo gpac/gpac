@@ -4177,7 +4177,7 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *peri
 		GF_MPD_EventStreamEntry *ese = NULL;
 		u32 j = 0;
 		while ( (ese = gf_list_enum(es->entries, &j)) ) {
-			if (ese->state == 0 && ese->presentation_time <= sctx->time && sctx->time < ese->presentation_time+ese->duration) {
+			if (ese->state == 0 && sctx->time <= ese->presentation_time && ese->presentation_time < sctx->time+sctx->dur) {
 				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, ese->state);
 				gf_mpd_print_date(out, "START-DATE", ast + (ese->presentation_time * 1000) / es->timescale);
 				gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
@@ -4192,7 +4192,7 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *peri
 				ese->state = 1;
 			}
 
-			if (ese->state == 1 && sctx->time+sctx->dur >= ese->presentation_time+ese->duration) {
+			if (ese->state == 1 && ese->presentation_time+ese->duration <= sctx->time+sctx->dur) {
 				gf_fprintf(out, "#EXT-X-CUE-IN\n");
 				ese->state = 0;
 			}
