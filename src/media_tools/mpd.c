@@ -3605,7 +3605,7 @@ static void gf_mpd_print_event_stream(FILE *out, GF_MPD_EventStream *event_strea
 
 	while ( (evt = (GF_MPD_EventStreamEntry*) gf_list_enum(event_stream->entries, &i)) ) {
 		gf_mpd_nl(out, indent+1);
-		gf_fprintf(out, "<Event presentationTime=\"%llu\" duration=\"%llu\" id=\"%d\">", evt->presentation_time, evt->duration, evt->id);
+		gf_fprintf(out, "<Event presentationTime=\"" LLD "\" duration=\"%u\" id=\"%d\">", evt->presentation_time, evt->duration, evt->id);
 		gf_mpd_lf(out, indent+1);
 
 		gf_mpd_nl(out, indent+2);
@@ -4177,7 +4177,7 @@ static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *peri
 		GF_MPD_EventStreamEntry *ese = NULL;
 		u32 j = 0;
 		while ( (ese = gf_list_enum(es->entries, &j)) ) {
-			if (ese->state == 0 && ese->presentation_time <= sctx->time) {
+			if (ese->state == 0 && ese->presentation_time <= sctx->time && sctx->time < ese->presentation_time+ese->duration) {
 				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, ese->state);
 				gf_mpd_print_date(out, "START-DATE", ast + (ese->presentation_time * 1000) / es->timescale);
 				gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
