@@ -3620,10 +3620,10 @@ static void gf_mpd_print_event_stream(FILE *out, GF_MPD_EventStream *event_strea
 				sz = gf_base64_encode(evt->message, evt->message_size, b64, sz);
 				b64[sz] = 0;
 				gf_fprintf(out, "<Binary>%s</Binary>", b64);
+				gf_free(b64);
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Allocation failure for base64 SCTE35 event"));
 			}
-			gf_free(b64);
 		}
 		gf_mpd_lf(out, indent+3);
 
