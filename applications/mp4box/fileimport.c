@@ -2168,7 +2168,7 @@ reparse_opts:
 		}
 	}
 
-	if (tc_fps_num) {
+	if (tc_fps_num && !mux_args_if_first_pass) {
 		u32 desc_index=0;
 		u32 tmcd_tk, tmcd_id;
 		u32 video_ref = 0;

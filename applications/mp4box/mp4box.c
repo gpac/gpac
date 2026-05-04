@@ -4579,7 +4579,9 @@ static u32 do_add_cat(int argc, char **argv)
 		gf_dynstrcat(&mux_args, szSubArg, ":");
 	}
 
+	u32 add_arg_idx = 0;
 	for (ipass=0; ipass<nb_pass; ipass++) {
+		add_arg_idx = 0;
 		for (i=0; i<(u32) argc; i++) {
 			char *margs=NULL;
 			char *msid = NULL;
@@ -4619,6 +4621,11 @@ static u32 do_add_cat(int argc, char **argv)
 					u32 tk_idx = gf_isom_get_track_count(file);
 					//if existing tracks in file, set default index to next track
 					if (tk_idx) tk_idx++;
+					//on first pass of -newfs, file has no tracks yet so use incrementing counter to preserve -add argument ordering
+					if (fs && (ipass==0) && !tk_idx) {
+						add_arg_idx++;
+						tk_idx = add_arg_idx;
+					}
 
 					if (fs && (ipass==0)) {
 						e = import_file(file, src, import_flags, import_fps, agg_samples, fs, &margs, &msid, tk_idx);
