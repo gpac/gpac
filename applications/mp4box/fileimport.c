@@ -2219,6 +2219,12 @@ reparse_opts:
 
 		if (video_ref) {
 			u64 video_ref_dur = gf_isom_get_media_duration(dest, video_ref);
+			s64 ts_offset;
+			//see #3551, tmcd is not in composition time but in presentation time, remove any skip time included in gf_isom_get_media_duration
+			Bool has_edit_list = gf_isom_get_edit_list_type(dest, video_ref, &ts_offset) ? 1 : 0;
+			if (!has_edit_list && (ts_offset<0)) {
+				video_ref_dur -= -ts_offset;
+			}
 			video_ref_dur *= tc_fps_num;
 			video_ref_dur /= gf_isom_get_media_timescale(dest, video_ref);
 			e = gf_isom_set_last_sample_duration(dest, tmcd_tk, (u32) video_ref_dur);
