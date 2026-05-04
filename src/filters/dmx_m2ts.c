@@ -1390,7 +1390,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			// attach ID3 markers to audio
 			GF_FilterPid *opid = (GF_FilterPid *)es->user;
 			const GF_PropertyValue *p = gf_filter_pid_get_property(opid, GF_PROP_PID_STREAM_TYPE);
-			if (!p) return;
+			if (!p) continue;
 			if (p->value.uint != GF_STREAM_AUDIO)
 				continue;
 
