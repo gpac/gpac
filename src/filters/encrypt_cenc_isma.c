@@ -1915,7 +1915,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				//we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP: {
-					Bool encrypt = cstr->av1_state->frame_state.nb_tiles_in_obu;
+					Bool encrypt = cstr->av1_state->frame_state.nb_tiles_in_obu ? GF_TRUE : GF_FALSE;
 
 					//scalable ID filtering
 					GF_CryptKeyInfo *ki = &cstr->tci->keys[cstr->kidx];
