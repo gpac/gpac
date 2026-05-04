@@ -790,6 +790,8 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s config changed during active period, forcing period switch\n", gf_filter_pid_get_name(ds->ipid) ));
 		}
 		ds->seg_done = GF_TRUE;
+		//for HLS remember we have a discontinuity, this will be used to mark next packet as discontinuity start
+		ds->is_discontinuity = GF_TRUE;
 		if(base_ds->nb_comp_done >= base_ds->nb_comp) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid new period: %u components processed (max %u expected)\n", base_ds->nb_comp_done, base_ds->nb_comp));
 			e = GF_BAD_PARAM;
