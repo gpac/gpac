@@ -39,7 +39,7 @@ static u8 scte35_payload[] = {
     0x0a, 0x00, 0x08, 0x43, 0x55, 0x45, 0x49, 0x00,
 };
 
-#define SCTE35_PTS 59583ULL
+#define SCTE35_DTS 59583ULL
 #define SCTE35_DUR 36637U
 #define SCTE35_LAST_EVENT_ID 1342177266U
 
@@ -52,18 +52,18 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 
 #define SEND_VIDEO(num_frames) { \
         for (int i=0; i<num_frames; ++i) { \
-            scte35dec_process_timing(&ctx, pts, TIMESCALE, TIMESCALE/FPS); \
-            scte35dec_process_dispatch(&ctx, pts, TIMESCALE/FPS); \
-            pts += TIMESCALE/FPS; \
+            scte35dec_process_timing(&ctx, dts, TIMESCALE, TIMESCALE/FPS); \
+            scte35dec_process_dispatch(&ctx, dts, TIMESCALE/FPS); \
+            dts += TIMESCALE/FPS; \
         } \
     }
 
 #define SEND_EVENT() { \
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
-        scte35dec_process_timing(&ctx, pts, TIMESCALE, SCTE35_DUR); \
-        scte35dec_process_emsg(&ctx, emsg.value.data.ptr, emsg.value.data.size, pts); \
-        if (ctx.mode != 1) scte35dec_process_dispatch(&ctx, pts, SCTE35_DUR); \
-        pts = SCTE35_PTS + SCTE35_DUR; \
+        scte35dec_process_timing(&ctx, dts, TIMESCALE, SCTE35_DUR); \
+        scte35dec_process_emsg(&ctx, emsg.value.data.ptr, emsg.value.data.size, dts); \
+        if (ctx.mode != 1) scte35dec_process_dispatch(&ctx, dts, SCTE35_DUR); \
+        dts = SCTE35_DTS + SCTE35_DUR; \
     }
 
 #define UT_SCTE35_INIT(pck_send_fct) \
@@ -121,7 +121,7 @@ static GF_Err pck_send_no_event(GF_FilterPacket *pck)
 unittest(scte35dec_no_event)
 {
 	UT_SCTE35_INIT(pck_send_no_event);
-	u64 pts = 0;
+	u64 dts = 0;
 
 	SEND_VIDEO(FPS*2); // send 2 seconds of heartbeat
 
@@ -165,7 +165,7 @@ unittest(scte35dec_segmentation_no_event)
 {
 	UT_SCTE35_INIT(pck_send_segmentation_no_event);
 	ctx.sampdur = (GF_Fraction){1, 1};
-	u64 pts = 0;
+	u64 dts = 0;
 
 	SEND_VIDEO(FPS*3); // send 3 seconds of heartbeat
 
@@ -181,10 +181,10 @@ unittest(scte35dec_splice_point_with_idr)
 	SCTE35DecCtx ctx = {0};
 	assert_equal(scte35dec_initialize_internal(&ctx), GF_OK, "%d");
 	ctx.mode = 1; // passthru
-	u64 pts = 0;
+	u64 dts = 0;
 
 	SEND_EVENT();
-	assert_true(scte35dec_is_splice_point(&ctx, SCTE35_PTS));
+	assert_true(scte35dec_is_splice_point(&ctx, SCTE35_DTS));
 
 	scte35dec_flush(&ctx);
 	scte35dec_finalize_internal(&ctx);
@@ -196,8 +196,8 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
 {
 	#define expected_calls 3
 	static int calls = 0;
-	static u64 expected_dts [expected_calls] = {             0,    SCTE35_PTS, SCTE35_PTS+SCTE35_DUR };
-	static u32 expected_dur [expected_calls] = {    SCTE35_PTS,    SCTE35_DUR, TIMESCALE };
+	static u64 expected_dts [expected_calls] = {             0,    SCTE35_DTS, SCTE35_DTS+SCTE35_DUR };
+	static u32 expected_dur [expected_calls] = {    SCTE35_DTS,    SCTE35_DUR, TIMESCALE };
 	static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMIB_BOX_SIZE, EMEB_BOX_SIZE };
 	static s64 expected_event_pts_delta[expected_calls] = { 0, 0, 0 };
 	static u32 expected_event_duration [expected_calls] = { 0, SCTE35_DUR, 0 };
@@ -245,10 +245,10 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
 unittest(scte35dec_simple)
 {
 	UT_SCTE35_INIT(pck_send_simple);
-	u64 pts = 0;
+	u64 dts = 0;
 
 	SEND_VIDEO(1);
-	pts = SCTE35_PTS;
+	dts = SCTE35_DTS;
 	SEND_EVENT();
 	SEND_VIDEO(FPS);
 
@@ -261,14 +261,14 @@ unittest(scte35dec_simple)
 
 static GF_Err pck_send_initial_delay(GF_FilterPacket *pck)
 {
-	#define expected_calls 7
+	#define expected_calls 5
 	static int calls = 0;
-	static u64 expected_dts [expected_calls] = {             0, TIMESCALE/FPS,            TIMESCALE/FPS*3/2, SCTE35_PTS,
-                                               TIMESCALE/FPS*2, TIMESCALE/FPS*3, SCTE35_PTS+SCTE35_DUR };
-	static u32 expected_dur [expected_calls] = { TIMESCALE/FPS, TIMESCALE/FPS/2, SCTE35_PTS-TIMESCALE/FPS*3/2, TIMESCALE/FPS*2-SCTE35_PTS,
-                                                 TIMESCALE/FPS, SCTE35_PTS+SCTE35_DUR-TIMESCALE/FPS*3, TIMESCALE/FPS*4-(SCTE35_PTS+SCTE35_DUR) };
-	static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMEB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE,
-                                                 EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMEB_BOX_SIZE };
+	static u64 expected_dts [expected_calls] = { 0, TIMESCALE/FPS, TIMESCALE/FPS*3/2,
+	                                             TIMESCALE/FPS*2, TIMESCALE/FPS*2+SCTE35_DUR-TIMESCALE/FPS/2 };
+	static u32 expected_dur [expected_calls] = { TIMESCALE/FPS, TIMESCALE/FPS/2, TIMESCALE/FPS/2, SCTE35_DUR-TIMESCALE/FPS/2,
+                                                 TIMESCALE/FPS*2-TIMESCALE/FPS/2-SCTE35_DUR };
+	static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMEB_BOX_SIZE, EMIB_BOX_SIZE,
+	                                             EMIB_BOX_SIZE, EMEB_BOX_SIZE };
 
 	if (pck == NULL) {
 		// checks at termination
@@ -277,6 +277,8 @@ static GF_Err pck_send_initial_delay(GF_FilterPacket *pck)
 	}
 
 	// dynamic checks
+	//printf("Debug: call %d, dts="LLU"/"LLU", dur=%u/%u\n", calls,
+	//  gf_filter_pck_get_dts(pck), expected_dts[calls], gf_filter_pck_get_duration(pck), expected_dur[calls]);
 	assert_less(calls, expected_calls, "%d");
 	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
 	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
@@ -293,13 +295,11 @@ unittest(scte35dec_initial_delay)
 {
 	UT_SCTE35_INIT(pck_send_initial_delay);
 	ctx.sampdur = (GF_Fraction){1, FPS};
-	u64 pts = 0;
-
+	u64 dts = 0;
 	SEND_VIDEO(1);         // video (1 frame)
-	pts=TIMESCALE/FPS*3/2; // introduce a delay before the first scte35 event
-	SEND_EVENT();          // scte35 event scheduled at pts=59583 w/ dur=36637
+	dts=TIMESCALE/FPS*3/2; // introduce a delay before the first scte35 event
+	SEND_EVENT();          // scte35 event scheduled at dts=59583 w/ dur=36637
 
-	scte35dec_flush(&ctx);
 	scte35dec_flush(&ctx);
 	scte35dec_finalize_internal(&ctx);
 	ctx.pck_send(NULL); // trigger final checks
@@ -309,14 +309,14 @@ unittest(scte35dec_initial_delay)
 
 static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
 {
-    #define expected_calls 4
+    #define expected_calls 3
 	static int calls = 0;
-	static u64 expected_dts [expected_calls] = {             0,           SCTE35_PTS,                       TIMESCALE, SCTE35_PTS+SCTE35_DUR};
-	static u32 expected_dur [expected_calls] = {    SCTE35_PTS, TIMESCALE-SCTE35_PTS, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 2*TIMESCALE-(SCTE35_PTS+SCTE35_DUR) };
-	static u32 expected_size[expected_calls] = { EMIB_BOX_SIZE,        EMIB_BOX_SIZE,                   EMIB_BOX_SIZE, EMEB_BOX_SIZE };
-	static s64 expected_event_pts_delta[expected_calls] = { SCTE35_PTS, 0, 0, 0 };
-	static u32 expected_event_duration [expected_calls] = { SCTE35_DUR, SCTE35_DUR, SCTE35_PTS+SCTE35_DUR-TIMESCALE, 0 };
-	static u32 expected_event_id       [expected_calls] = { SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, 0 };
+	static u64 expected_dts [expected_calls] = {             0, SCTE35_DUR, TIMESCALE };
+	static u32 expected_dur [expected_calls] = {    SCTE35_DUR, TIMESCALE-SCTE35_DUR, TIMESCALE };
+	static u32 expected_size[expected_calls] = { EMIB_BOX_SIZE, EMEB_BOX_SIZE, EMEB_BOX_SIZE };
+	static s64 expected_event_pts_delta[expected_calls] = { SCTE35_DTS, 0, 0 };
+	static u32 expected_event_duration [expected_calls] = { SCTE35_DUR, 0, 0 };
+	static u32 expected_event_id       [expected_calls] = { SCTE35_LAST_EVENT_ID, 0, 0 };
 
 	if (pck == NULL) {
 		// checks at termination
@@ -361,9 +361,9 @@ unittest(scte35dec_segmentation_beginning)
 {
 	UT_SCTE35_INIT(pck_send_segmentation_beginning);
 	ctx.sampdur = (GF_Fraction){1, 1};
-	u64 pts = 0;
+	u64 dts = 0;
 
-	SEND_EVENT();  // scte35 event scheduled for pts=59583 with dur=36637
+	SEND_EVENT();  // scte35 event scheduled for dts=59583 with dur=36637
 	SEND_VIDEO(1); // video (1 frame)
 
 	scte35dec_flush(&ctx);
@@ -375,18 +375,16 @@ unittest(scte35dec_segmentation_beginning)
 
 static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
 {
-	#define expected_calls 6
+	#define expected_calls 4
 	static int calls = 0;
-	//scte35 event at pts=30000 scheduled for pts=59583 with dur=36637, segment_dur=30000
-	//v[0:30000] emeb[30000:59583] emib[59583:60000] emib[60000:90000] emib[90000:96220] emeb[96220:120000]
-	static u64 expected_dts [expected_calls] = {             0,            TIMESCALE/FPS,                 SCTE35_PTS,
-                                                 2*TIMESCALE/FPS,                       3*TIMESCALE/FPS, SCTE35_PTS+SCTE35_DUR };
-	static u32 expected_dur [expected_calls] = { TIMESCALE/FPS, SCTE35_PTS-TIMESCALE/FPS, 2*TIMESCALE/FPS-SCTE35_PTS,
-                                                   TIMESCALE/FPS, SCTE35_PTS+SCTE35_DUR-3*TIMESCALE/FPS, 4*TIMESCALE/FPS-SCTE35_PTS-SCTE35_DUR };
-	static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMEB_BOX_SIZE };
-	static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_PTS-TIMESCALE/FPS, 0, 0, 0, 0 };
-	static u32 expected_event_duration [expected_calls] = { 0, SCTE35_DUR, SCTE35_DUR, SCTE35_DUR-(2*TIMESCALE/FPS-SCTE35_PTS), SCTE35_DUR-(3*TIMESCALE/FPS-SCTE35_PTS), 0 };
-	static u32 expected_event_id       [expected_calls] = { SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID };
+	//scte35 event at dts=30000 scheduled for dts=59583 with dur=36637, segment_dur=30000
+	//emeb[0:30000] emib[30000:60000] emib[60000:66637] emeb[66637:90000]
+	static u64 expected_dts [expected_calls] = {             0, TIMESCALE/FPS,          2*TIMESCALE/FPS, TIMESCALE/FPS+SCTE35_DUR };
+	static u32 expected_dur [expected_calls] = { TIMESCALE/FPS, TIMESCALE/FPS, SCTE35_DUR-TIMESCALE/FPS, 2*TIMESCALE/FPS-SCTE35_DUR };
+	static u32 expected_size[expected_calls] = { EMEB_BOX_SIZE, EMIB_BOX_SIZE, EMIB_BOX_SIZE, EMEB_BOX_SIZE };
+	static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_DTS-TIMESCALE/FPS, 0, 0 };
+	static u32 expected_event_duration [expected_calls] = { 0, SCTE35_DUR, SCTE35_DUR-TIMESCALE/FPS, 0 };
+	static u32 expected_event_id       [expected_calls] = { 0, SCTE35_LAST_EVENT_ID, SCTE35_LAST_EVENT_ID, 0 };
 
 	if (pck == NULL) {
 		// checks at termination
@@ -395,6 +393,8 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
 	}
 
 	// dynamic checks
+	//printf("Debug: call %d, dts="LLU"/"LLU", dur=%u/%u\n", calls,
+	//  gf_filter_pck_get_dts(pck), expected_dts[calls], gf_filter_pck_get_duration(pck), expected_dur[calls]);
 	assert_less(calls, expected_calls, "%d");
 	assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls], LLU);
 	assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls], "%u");
@@ -431,15 +431,119 @@ unittest(scte35dec_short_segmentation_end)
 {
 	UT_SCTE35_INIT(pck_send_segmentation_end);
 	ctx.sampdur = (GF_Fraction){1, FPS};
-	u64 pts = 0;
+	u64 dts = 0;
 
 	SEND_VIDEO(1); // video (1 frame) 
-	SEND_EVENT();  // scte35 event at "pts=1 frame" scheduled for pts=59583 with dur=36637
+	SEND_EVENT();  // scte35 event at "dts=1 frame" scheduled for dts=59583 with dur=36637
 
 	scte35dec_flush(&ctx);
 	scte35dec_flush(&ctx); // this test requires an additional segment
 	scte35dec_finalize_internal(&ctx);
 	ctx.pck_send(NULL); // trigger final checks
+}
+
+/*************************************/
+
+/*
+ * Direct scte35dec_get_timing tests for time_signal and 33-bit PTS wraparound.
+ *
+ * time_signal section layout (21 bytes):
+ *   [0]     table_id = 0xFC
+ *   [1-2]   section_syntax_indicator=0, private=0, sap=00, section_length=18
+ *   [3]     protocol_version = 0
+ *   [4-8]   encrypted=0, encryption_algo=0, pts_adjustment (33 bits)
+ *   [9]     cw_index = 0
+ *   [10-12] tier=0xFFF, splice_command_length=5
+ *   [13]    splice_command_type = 0x06 (time_signal)
+ *   [14-18] splice_time: time_specified=1, reserved=111111, pts_time (33 bits)
+ *   [19-20] descriptor_loop_length = 0
+ */
+
+unittest(scte35dec_time_signal_basic)
+{
+	static u8 payload[] = {
+		0xFC, 0x00, 0x12,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00,
+		0xFF, 0xF0, 0x05,
+		0x06,
+		0xFE, 0x00, 0x00, 0xE8, 0xBF,
+		0x00, 0x00
+	};
+
+	u64 dts = 0, dur = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &dts, &dur, &splice_event_id, &needs_idr);
+	assert_true(ret);
+	assert_equal(dts, (u64)59583, LLU);
+	assert_equal(dur, (u64)0, LLU);
+	assert_equal(needs_idr, (Bool)GF_FALSE, "%d");
+}
+
+/*************************************/
+
+unittest(scte35dec_time_signal_pts_wrap)
+{
+	/*pts_adjustment=5, splice_time=0x1FFFFFFFD (2^33 - 3)
+	  sum = 0x200000002, masked to 33 bits = 2*/
+	static u8 payload[] = {
+		0xFC, 0x00, 0x12,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x05,
+		0x00,
+		0xFF, 0xF0, 0x05,
+		0x06,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFD,
+		0x00, 0x00
+	};
+
+	u64 dts = 0, dur = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &dts, &dur, &splice_event_id, &needs_idr);
+	assert_true(ret);
+	assert_equal(dts, (u64)2, LLU);
+	assert_equal(dur, (u64)0, LLU);
+}
+
+/*************************************/
+
+unittest(scte35dec_splice_insert_pts_wrap)
+{
+	/*splice_insert with pts_adjustment=5, splice_time=0x1FFFFFFFD
+	  expected PTS = (0x1FFFFFFFD + 5) & 0x1FFFFFFFF = 2
+	  splice_event_id = 100, needs_idr = TRUE, no duration*/
+	static u8 payload[] = {
+		0xFC, 0x00, 0x1C,
+		0x00,
+		0x00, 0x00, 0x00, 0x00, 0x05,
+		0x00,
+		0xFF, 0xF0, 0x0F,
+		0x05,
+		0x00, 0x00, 0x00, 0x64,
+		0x7F,
+		0xCF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFD,
+		0x00, 0x01,
+		0x00,
+		0x00,
+		0x00, 0x00
+	};
+
+	u64 dts = 0, dur = 0;
+	u32 splice_event_id = 0;
+	Bool needs_idr = GF_FALSE;
+
+	Bool ret = scte35dec_get_timing(payload, sizeof(payload), &dts, &dur, &splice_event_id, &needs_idr);
+	assert_true(ret);
+	assert_equal(dts, (u64)2, LLU);
+	assert_equal(dur, (u64)0, LLU);
+	assert_equal(splice_event_id, (u32)100, "%u");
+	assert_equal(needs_idr, (Bool)GF_TRUE, "%d");
 }
 
 /*************************************/
