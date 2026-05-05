@@ -985,7 +985,7 @@ static void ttml_rewrite_timestamp(u64 offset, GF_List *p_attributes)
 	while ( (p_att = (GF_XMLAttribute*)gf_list_enum(p_attributes, &p_idx))) {
 		if (!strcmp(p_att->name, "begin")) {
 			s64 unused = 0;
-			writegen_rewrite_timestamp_ttml(offset, p_att, &unused); //Romain: we don't need &being, &end, &drop
+			writegen_rewrite_timestamp_ttml(offset, p_att, &unused);
 		}
 		if (!strcmp(p_att->name, "end")) {
 			s64 unused = 0;

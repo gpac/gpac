@@ -74,16 +74,16 @@ int run_tests(int argc, char *argv[])
     int prev_checks_failed = checks_failed;
     tests[i].test_function();
     if(checks_failed > prev_checks_failed) {
-      printf("Failed\n");
+      printf("\nFailed.\n");
       ret = EXIT_FAILURE;
       tests_failed++;
       if (checks_failed & 0x8000000) {
         checks_failed &= ~0x8000000;
-        printf("Failure is fatal. Aborting test execution.\n");
+        printf("\nFailure is fatal. Aborting test execution.\n");
         break;
       }
     } else {
-      printf("Success\n");
+      printf("Success.\n");
       tests_passed++;
     }
   }

@@ -982,7 +982,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 	case GF_PROP_STRING:
 		if (a->offset_in_private + sizeof(char *) <= filter->freg->private_size) {
 			if (*(char **)ptr) gf_free( * (char **)ptr);
-			//we don't strdup since we don't free the string at the caller site
+			//we don't strdup since we don't free the string at the caller side
 			*(char **)ptr = argv->value.string;
 			res = GF_TRUE;
 		}
@@ -998,7 +998,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 		if (a->offset_in_private + sizeof(GF_PropData) <= filter->freg->private_size) {
 			GF_PropData *pd = (GF_PropData *) ptr;
 			if ((argv->type!=GF_PROP_CONST_DATA) && pd->ptr) gf_free(pd->ptr);
-			//we don't free/alloc  since we don't free the string at the caller site
+			//we don't free/alloc since we don't free the string at the caller side
 			pd->size = argv->value.data.size;
 			pd->ptr = argv->value.data.ptr;
 			res = GF_TRUE;
@@ -1018,7 +1018,7 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 				gf_free(l->vals[k]);
 			}
 			if (l->vals) gf_free(l->vals);
-			//we don't clone since we don't free the string at the caller site
+			//we don't clone since we don't free the string at the caller side
 			*l = argv->value.string_list;
 			res = GF_TRUE;
 		}

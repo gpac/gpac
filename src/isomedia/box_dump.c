@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/scte35.h>
 #include <gpac/utf.h>
 #include <gpac/network.h>
 #include <gpac/color.h>
@@ -7327,7 +7328,7 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, ">\n");
 
 #ifndef GPAC_DISABLE_INSPECT
-		if (p->scheme_id_uri && !strcmp(p->scheme_id_uri, "urn:scte:scte35:2013:bin")) {
+		if (p->scheme_id_uri && !strcmp(p->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
 			GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
 			scte35_dump_xml(trace, bs);
 			gf_bs_del(bs);

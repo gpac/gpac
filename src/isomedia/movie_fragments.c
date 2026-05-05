@@ -1794,10 +1794,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 		/*append segment marker box*/
 		if (segment_marker_4cc) {
 			if (movie->append_segment) {
-				gf_bs_write_u32(movie->movieFileMap->bs, 8);	//write size field
+				gf_bs_write_u32(movie->movieFileMap->bs, 8); //write size field
 				gf_bs_write_u32(movie->movieFileMap->bs, segment_marker_4cc); //write box type field
 			} else {
-				gf_bs_write_u32(movie->editFileMap->bs, 8);	//write size field
+				gf_bs_write_u32(movie->editFileMap->bs, 8); //write size field
 				gf_bs_write_u32(movie->editFileMap->bs, segment_marker_4cc); //write box type field
 			}
 		}

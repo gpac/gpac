@@ -4012,7 +4012,7 @@ resend:
 
 	if (to_read) {
 		u64 remain = to_read;
-		//rescedule asap while we send
+		//reschedule asap while we send
 		ctx->next_wake_us = 1;
 
 		if (to_read > (u64) sess->ctx->block_size)

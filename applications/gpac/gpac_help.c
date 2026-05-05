@@ -1575,7 +1575,7 @@ static void dump_caps(u32 nb_caps, const GF_FilterCapability *caps)
 		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) && i+1==nb_caps) break;
 		if (cap->flags & GF_CAPFLAG_RECONFIG) break;
 
-		if (!i) gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
+		if (!i) gf_sys_format_help(helpout, help_flags, "\nCapabilities Bundle:\n");
 		else if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			gf_sys_format_help(helpout, help_flags, "Capabilities Bundle:\n");
 			continue;

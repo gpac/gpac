@@ -24,6 +24,7 @@
  */
 
 #include <gpac/mpd.h>
+#include <gpac/base_coding.h>
 #include <gpac/download.h>
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
@@ -592,6 +593,76 @@ static GF_Err gf_mpd_parse_inband_event(GF_List *comps, GF_XMLNode *root) {
 	return GF_OK;
 }
 
+static GF_Err gf_mpd_parse_event_streams(GF_List *comps, GF_XMLNode *root) {
+	u32 i;
+	GF_XMLAttribute *att;
+	GF_XMLNode *child;
+
+	GF_MPD_EventStream *es;
+	GF_SAFEALLOC(es, GF_MPD_EventStream);
+	if (!es) return GF_OUT_OF_MEM;
+	es->entries = gf_list_new();
+	if (!es->entries) {
+		gf_free(es);
+		return GF_OUT_OF_MEM;
+	}
+
+	i = 0;
+	while ( (att = gf_list_enum(root->attributes, &i)) ) {
+		if (!strcmp(att->name, "schemeIdUri")) es->scheme_id_uri = gf_strdup(att->value);
+		else if (!strcmp(att->name, "timescale")) es->timescale = gf_mpd_parse_int(att->value);
+	}
+
+	i = 0;
+	while ( (child = gf_list_enum(root->content, &i))) {
+		if (child->type != GF_XML_NODE_TYPE) continue;
+
+		if (!strcmp(child->name, "Event")) {
+			GF_MPD_EventStreamEntry *event;
+			GF_SAFEALLOC(event, GF_MPD_EventStreamEntry);
+			if (!event) return GF_OUT_OF_MEM;;
+			gf_list_add(es->entries, event);
+
+			u32 j = 0;
+			GF_XMLAttribute *event_att;
+			while ( (event_att = gf_list_enum(child->attributes, &j)) ) {
+				if (!strcmp(event_att->name, "presentationTime")) event->presentation_time = gf_mpd_parse_long_int(event_att->value);
+				else if (!strcmp(event_att->name, "duration")) event->duration = gf_mpd_parse_int(event_att->value);
+				else if (!strcmp(event_att->name, "id")) event->id = gf_mpd_parse_int(event_att->value);
+
+				GF_XMLNode *signal;
+				u32 k = 0;
+				while ( (signal = gf_list_enum(child->content, &k)) ) {
+					if (signal->type != GF_XML_NODE_TYPE) continue;
+					if (!strcmp(signal->name, "Signal")) {
+						GF_XMLNode *binary;
+						u32 l = 0;
+						while ( (binary = gf_list_enum(signal->content, &l)) ) {
+							if (binary->type != GF_XML_NODE_TYPE) continue;
+							if (!strcmp(binary->name, "Binary")) {
+								GF_XMLNode *b64;
+								u32 m = 0;
+								while ( (b64 = gf_list_enum(binary->content, &m)) ) {
+								if (b64->type != GF_XML_TEXT_TYPE) continue;
+									if(!event->message) {
+										event->message_size = strlen(b64->name)+1;
+										event->message = gf_malloc(event->message_size);
+										if (!event->message) return GF_OUT_OF_MEM;
+										event->message_size = gf_base64_decode((u8*)b64->name, event->message_size, event->message, event->message_size);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	gf_list_add(comps, es);
+	return GF_OK;
+}
+
 static GF_Err gf_mpd_parse_descriptor_ex(GF_List *container, GF_MPD_Descriptor **out_ptr, GF_XMLNode *root)
 {
 	GF_XMLAttribute *att;
@@ -1023,6 +1094,7 @@ GF_MPD_Period *gf_mpd_period_new() {
 	GF_SAFEALLOC(period, GF_MPD_Period);
 	if (!period) return NULL;
 	period->adaptation_sets = gf_list_new();
+	period->event_streams = gf_list_new();
 	period->base_URLs = gf_list_new();
 	period->subsets = gf_list_new();
 	return period;
@@ -1079,6 +1151,9 @@ GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 			continue;
 		if (!strcmp(child->name, "BaseURL")) {
 			e = gf_mpd_parse_base_url(period->base_URLs, child);
+			if (e) return e;
+		} else if(!strcmp(child->name, "EventStream")) {
+			e = gf_mpd_parse_event_streams(period->event_streams, child);
 			if (e) return e;
 		}
 		else if (!strcmp(child->name, "SegmentBase")) {
@@ -1378,6 +1453,22 @@ void gf_mpd_adaptation_set_free(void *_item)
 	gf_free(ptr);
 }
 
+static void gf_mpd_event_stream_entry_free(void *_item)
+{
+	GF_MPD_EventStreamEntry *ptr = (GF_MPD_EventStreamEntry *)_item;
+	if (ptr->xmlns) gf_free(ptr->xmlns);
+	if (ptr->message) gf_free(ptr->message);
+	gf_free(ptr);
+}
+
+static void gf_mpd_event_stream_free(void *_item)
+{
+	GF_MPD_EventStream *ptr = (GF_MPD_EventStream *)_item;
+	if (ptr->scheme_id_uri) gf_free(ptr->scheme_id_uri);
+	gf_mpd_del_list(ptr->entries, gf_mpd_event_stream_entry_free, 0);
+	gf_free(ptr);
+}
+
 void gf_mpd_period_free(void *_item)
 {
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
@@ -1391,6 +1482,7 @@ void gf_mpd_period_free(void *_item)
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->adaptation_sets, gf_mpd_adaptation_set_free, 0);
+	gf_mpd_del_list(ptr->event_streams, gf_mpd_event_stream_free, 0);
 	MPD_FREE_EXTENSION_NODE(ptr);
 	gf_mpd_del_list(ptr->subsets, NULL/*TODO*/, 0);
 	gf_free(ptr);
@@ -1689,6 +1781,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 	GF_SAFEALLOC(period, GF_MPD_Period);
 	if (!period) return GF_OUT_OF_MEM;
 	period->adaptation_sets = gf_list_new();
+	period->event_streams = gf_list_new();
 	period->base_URLs = gf_list_new();
 	period->subsets = gf_list_new();
 	e = gf_list_add(mpd->periods, period);
@@ -3217,7 +3310,10 @@ static void gf_mpd_print_inband_event(FILE *out, GF_List *inband_event, s32 inde
 	GF_MPD_Inband_Event *ibe;
 	while ((ibe = gf_list_enum(inband_event, &i))) {
 		gf_mpd_nl(out, indent);
-		gf_fprintf(out, "<InbandEventStream schemeIdUri=\"%s\" value=\"%s\"/>", ibe->scheme_id_uri, ibe->value);
+		gf_fprintf(out, "<InbandEventStream schemeIdUri=\"%s\"", ibe->scheme_id_uri);
+		if (ibe->value)
+			gf_fprintf(out, " value=\"%s\"", ibe->value);
+		gf_fprintf(out, "/>");
 		gf_mpd_lf(out, indent);
 	}
 }
@@ -3499,6 +3595,53 @@ static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, B
 	gf_mpd_lf(out, indent);
 }
 
+static void gf_mpd_print_event_stream(FILE *out, GF_MPD_EventStream *event_stream, s32 indent)
+{
+	GF_MPD_EventStreamEntry *evt;
+	u32 i=0;
+
+	gf_mpd_nl(out, indent);
+	gf_fprintf(out, "<EventStream schemeIdUri=\"%s\" timescale=\"%u\">", event_stream->scheme_id_uri, event_stream->timescale);
+	gf_mpd_lf(out, indent);
+
+	while ( (evt = (GF_MPD_EventStreamEntry*) gf_list_enum(event_stream->entries, &i)) ) {
+		gf_mpd_nl(out, indent+1);
+		gf_fprintf(out, "<Event presentationTime=\"" LLD "\" duration=\"%u\" id=\"%d\">", evt->presentation_time, evt->duration, evt->id);
+		gf_mpd_lf(out, indent+1);
+
+		gf_mpd_nl(out, indent+2);
+		gf_fprintf(out, "<Signal xmlns=\"%s\">", evt->xmlns);
+		gf_mpd_lf(out, indent+2);
+
+		gf_mpd_nl(out, indent+3);
+		{
+			size_t sz = 2*evt->message_size + 3;
+			char *b64 = gf_malloc(sizeof(char) * sz);
+			if (b64) {
+				sz = gf_base64_encode(evt->message, evt->message_size, b64, sz);
+				b64[sz] = 0;
+				gf_fprintf(out, "<Binary>%s</Binary>", b64);
+				gf_free(b64);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Allocation failure for base64 SCTE35 event"));
+			}
+		}
+		gf_mpd_lf(out, indent+3);
+
+		gf_mpd_nl(out, indent+2);
+		gf_fprintf(out, "</Signal>");
+		gf_mpd_lf(out, indent+2);
+
+		gf_mpd_nl(out, indent+1);
+		gf_fprintf(out, "</Event>");
+		gf_mpd_lf(out, indent+1);
+	}
+
+	gf_mpd_nl(out, indent);
+	gf_fprintf(out, "</EventStream>");
+	gf_mpd_lf(out, indent);
+}
+
 static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Bool write_context, s32 indent, u32 alt_mha_profile)
 {
 	u32 i, child_idx=0;
@@ -3614,6 +3757,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out, Bool write_context, s32 indent)
 {
 	GF_MPD_AdaptationSet *as;
+	GF_MPD_EventStream *evte;
 	u32 i, child_idx=0;
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<Period");
@@ -3635,6 +3779,10 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 	gf_mpd_lf(out, indent);
 
 	gf_mpd_print_base_urls(out, period->base_URLs, indent+1);
+
+	i=0;
+	while ( (evte = (GF_MPD_EventStream *) gf_list_enum(period->event_streams, &i)))
+		gf_mpd_print_event_stream(out, evte, indent+1);
 
 	if (period->segment_base) {
 		gf_mpd_extensible_print_nodes(out, period->x_children, indent, &child_idx, GF_FALSE);
@@ -4022,6 +4170,37 @@ static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH
 	}
 }
 
+static void hls_insert_scte35_info(FILE *out, u64 ast, const GF_MPD_Period *period, GF_DASH_SegmentContext *sctx)
+{
+	GF_MPD_EventStream *es = NULL;
+	u32 i = 0;
+	while ( (es = gf_list_enum(period->event_streams, &i)) ) {
+		GF_MPD_EventStreamEntry *ese = NULL;
+		u32 j = 0;
+		while ( (ese = gf_list_enum(es->entries, &j)) ) {
+			if (ese->state == 0 && sctx->time <= ese->presentation_time && ese->presentation_time < sctx->time+sctx->dur) {
+				gf_fprintf(out, "#EXT-X-DATERANGE:ID=\"%d-%04d\",", ese->id, ese->state);
+				gf_mpd_print_date(out, "START-DATE", ast + (ese->presentation_time * 1000) / es->timescale);
+				gf_fprintf(out, ",PLANNED-DURATION=%g", ese->duration/(Double)es->timescale);
+				if (ese->message) {
+					gf_fprintf(out, ",SCTE35-OUT=0x");
+					for (u32 k=0; k<ese->message_size; ++k)
+						gf_fprintf(out, "%02X", ese->message[k]);
+				}
+				gf_fprintf(out, "\n");
+
+				gf_fprintf(out, "#EXT-X-CUE-OUT:%g\n", ese->duration/(Double)es->timescale);
+				ese->state = 1;
+			}
+
+			if (ese->state == 1 && ese->presentation_time+ese->duration <= sctx->time+sctx->dur) {
+				gf_fprintf(out, "#EXT-X-CUE-IN\n");
+				ese->state = 0;
+			}
+		}
+	}
+}
+
 static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url, Bool delta_update, Bool is_last, FILE* out_file)
 {
 	u32 i, count;
@@ -4240,6 +4419,8 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 			// 0-duration may be encountered in non-LL modes when the duration is not known yet, but players may not like (cf issue 3462)
 			if (!sctx->dur) continue;
+
+			hls_insert_scte35_info(out, mpd->availabilityStartTime, period, sctx);
 
 			//signal discontinuity if needed
 			if (sctx && sctx->is_discontinuity)
@@ -6083,6 +6264,8 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 	gf_list_add(mpd->periods, period);
 	period->adaptation_sets = gf_list_new();
 	if (!period->adaptation_sets) return GF_OUT_OF_MEM;
+	period->event_streams = gf_list_new();
+	if (!period->event_streams) return GF_OUT_OF_MEM;
 
 	i = 0;
 	while ( ( child = gf_list_enum(root->content, &i )) ) {

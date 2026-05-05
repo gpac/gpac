@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/scte35.h>
 #include <gpac/id3.h>
 #include <gpac/base_coding.h>
 
@@ -326,6 +327,7 @@ typedef struct
 	Double start;
 	GF_MP4MuxChapterMode chapm;
 	u32 sfrag_tolerance;
+	Scte35Mode scte35;
 
 	//internal
 	GF_Filter *filter;
@@ -426,9 +428,12 @@ typedef struct
 
 	GF_List *ref_pcks;
 
-	//create id3 sequence
+	//id3 sequence
 	u32 id3_id_sequence;
 	const GF_PropertyValue *last_id3_processed;
+
+	//SCTE-35 events, ordered by presentation time
+	GF_List *scte35_pending_events;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
@@ -5413,7 +5418,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (!strncmp(pname, "sai_", 4)) {
 
 		} else if (!strncmp(pname, "grp_", 4)) {
-			//discard emsg if fragmented, otherwise add as internal sample group - TODO, support for EventMessage tracks
+			//discard emsg if fragmented, otherwise add as internal sample group
+			//note: support for EventMessage tracks is done in the "scte35dec" filter
 			if (!strcmp(pname, "grp_EMSG") && (ctx->store>=MP4MX_MODE_FRAG)) continue;
 			is_sample_group = GF_TRUE;
 		} else {
@@ -6663,11 +6669,15 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop, u32 id_sequence)
+static GF_Err mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop, u32 id_sequence)
 {
 	GF_Err err = GF_OK;
 	GF_ID3_TAG id3_tag;
 	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
+	if (!bs) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error allocating bitstream for ID3 tag"));
+		return GF_OUT_OF_MEM;
+	}
 
 	// first, read the number of tags serialized in the bitstream
 	u32 tag_count = gf_bs_read_u32(bs);
@@ -6678,7 +6688,7 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error deserializing ID3 tag: %s", gf_error_to_string(err)));
 			gf_id3_tag_free(&id3_tag);
 			gf_bs_del(bs);
-			return;
+			return err;
 		}
 
 		GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
@@ -6696,13 +6706,10 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 
 		// insert only if its presentation time is not already present
 		u32 i, insert_emsg = GF_TRUE;
-		for (i = 0; i < gf_list_count(moof->emsgs); ++i)
-		{
+		for (i=0; i<gf_list_count(moof->emsgs); ++i) {
 			GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
-			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta)
-			{
-				if (!strcmp(existing_emsg->scheme_id_uri, id3_tag.scheme_uri) && !strcmp(existing_emsg->value, id3_tag.value_uri))
-				{
+			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta) {
+				if (!strcmp(existing_emsg->scheme_id_uri, id3_tag.scheme_uri) && !strcmp(existing_emsg->value, id3_tag.value_uri)) {
 					if (existing_emsg->message_data_size == emsg->message_data_size && !memcmp(existing_emsg->message_data, emsg->message_data, emsg->message_data_size))
 						insert_emsg = GF_FALSE;
 					break;
@@ -6722,8 +6729,63 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	}
 
 	gf_bs_del(bs);
+	return GF_OK;
 }
 #endif
+
+static GF_Err mp4_process_scte35(const GF_PropertyValue *emsg_prop, u64 dts, u32 timescale, GF_List *scte35_pending_events)
+{
+	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
+	if (!emsg) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error allocating EventMessageBox for SCTE-35 data"));
+		return GF_OUT_OF_MEM;
+	}
+
+	Bool need_idr = GF_FALSE;
+	u64 dur = 0;
+	if (!scte35dec_get_timing(emsg_prop->value.data.ptr, emsg_prop->value.data.size, &emsg->presentation_time_delta, &dur, &emsg->event_id, &need_idr)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Unknown SCTE-35 data: ignoring"));
+		gf_isom_box_del((GF_Box*)emsg);
+		return GF_NOT_SUPPORTED;
+	}
+
+	emsg->version = 1;
+	emsg->timescale = timescale; //timescale field in the MediaHeaderBox of the CMAF track
+	emsg->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_INBAND);
+	emsg->presentation_time_delta = gf_timestamp_rescale(emsg->presentation_time_delta, 90000, timescale) + dts; // in version 1, this is called 'presentation_time'
+	emsg->event_duration = gf_timestamp_rescale(dur, 90000, timescale);
+	emsg->message_data_size = emsg_prop->value.data.size;
+	emsg->message_data = (u8 *)gf_malloc(emsg_prop->value.data.size);
+	memcpy(emsg->message_data, emsg_prop->value.data.ptr, emsg_prop->value.data.size);
+
+	u32 i;
+#if 0 //don't ignore duplicate event ids as they can be cue-out/cue-in
+	for (i=0; i<gf_list_count(scte35_pending_events); ++i) {
+		GF_EventMessageBox *evt_i = gf_list_get(scte35_pending_events, i);
+		if (evt_i->event_id == emsg->event_id) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Duplicate SCTE-35 event ID %u: ignoring", emsg->event_id));
+			gf_isom_box_del((GF_Box*)emsg);
+			return GF_OK;
+		}
+	}
+#endif
+
+	//insert sorted by pts
+	if (!gf_list_count(scte35_pending_events)) {
+		gf_list_add(scte35_pending_events, emsg);
+		return GF_OK;
+	}
+	for (i=0; i<gf_list_count(scte35_pending_events); ++i) {
+		GF_EventMessageBox *evt_i = gf_list_get(scte35_pending_events, i);
+		if (emsg->presentation_time_delta < evt_i->presentation_time_delta) {
+			gf_list_insert(scte35_pending_events, emsg, i);
+			return GF_OK;
+		}
+	}
+	gf_list_insert(scte35_pending_events, emsg, i);
+
+	return GF_OK;
+}
 
 static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 {
@@ -6745,7 +6807,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		if (!ctx->init_movie_done)
 			return GF_OK;
 	}
-	/*get count after init, some tracks may have been remove*/
+	//get count after init, some tracks may have been remove
 	count = gf_list_count(ctx->tracks);
 
 	//process pid by pid
@@ -6900,15 +6962,26 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					ctx->nb_frags_in_seg++;
 			}
 
-			//push ID3 packet properties as emsg
-			const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "id3");
-			if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.ptr) {
-				if (emsg != ctx->last_id3_processed) {
-					mp4_process_id3(ctx->file->moof, emsg, ctx->id3_id_sequence);
+			dts = gf_filter_pck_get_dts(pck);
+			if (dts==GF_FILTER_NO_TS) dts = cts;
+
+			//"id3" packet properties to be pushed at fragment-level 'emsg' box
+			const GF_PropertyValue *id3 = gf_filter_pck_get_property_str(pck, "id3");
+			if (id3 && (id3->type == GF_PROP_DATA) && id3->value.ptr) {
+				if (id3 != ctx->last_id3_processed) {
+					e = mp4_process_id3(ctx->file->moof, id3, ctx->id3_id_sequence);
+					if (e) return e;
 					ctx->id3_id_sequence = ctx->id3_id_sequence + 1;
 				}
 
-				ctx->last_id3_processed = emsg;
+				ctx->last_id3_processed = id3;
+			}
+
+			if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
+				//"scte35" packet properties to be pushed at top-level 'emsg' box
+				const GF_PropertyValue *sc35 = gf_filter_pck_get_property_str(pck, "scte35");
+				if (sc35 && (sc35->type == GF_PROP_DATA) && sc35->value.ptr)
+					mp4_process_scte35(sc35, dts, gf_isom_get_timescale(ctx->file), ctx->scte35_pending_events);
 			}
 
 			if (ctx->dash_mode) {
@@ -6952,8 +7025,6 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					}
 				}
 
-				dts = gf_filter_pck_get_dts(pck);
-				if (dts==GF_FILTER_NO_TS) dts = cts;
 				if (tkw->first_dts_in_seg_plus_one && (tkw->first_dts_in_seg_plus_one - 1 > dts))
 					tkw->first_dts_in_seg_plus_one = 1 + dts;
 			}
@@ -7199,6 +7270,17 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				track_ref_id = ctx->cloned_sidx->reference_ID;
 				gf_isom_box_del((GF_Box *)ctx->cloned_sidx);
 				ctx->cloned_sidx = NULL;
+			}
+			for (u32 i=0; i<gf_list_count(ctx->scte35_pending_events); ++i) {
+				GF_EventMessageBox *evt_i = gf_list_get(ctx->scte35_pending_events, i);
+				if (evt_i->presentation_time_delta < next_ref_ts) {
+					if (!ctx->file->emsgs) ctx->file->emsgs = gf_list_new();
+					gf_list_add(ctx->file->emsgs, evt_i);
+					gf_list_rem(ctx->scte35_pending_events, i);
+					i--;
+				} else {
+					break;
+				}
 			}
 
 			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg_plus_one ? ctx->ref_tkw->first_dts_in_seg_plus_one-1 : 0,
@@ -8178,6 +8260,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	if (!ctx->ref_pcks)
 		ctx->ref_pcks = gf_list_new();
 
+	if (!ctx->scte35_pending_events)
+		ctx->scte35_pending_events = gf_list_new();
+
 #ifdef GF_ENABLE_CTRN
 	if (ctx->ctrni)
 		ctx->ctrn = GF_TRUE;
@@ -8303,7 +8388,7 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		return;
 	}
 	//set linf
-	for (i=0; i < gf_isom_get_track_count(ctx->file); i++) {
+	for (i=0; i<gf_isom_get_track_count(ctx->file); i++) {
 		u32 subtype = gf_isom_get_media_subtype(ctx->file, i+1, 1);
 		if ( gf_isom_is_media_encrypted(ctx->file, i+1, 1))
 			gf_isom_get_original_format_type(ctx->file, i+1, i+1, &subtype);
@@ -8634,6 +8719,11 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		gf_filter_pck_unref(pckr);
 	}
 	gf_list_del(ctx->ref_pcks);
+	while (gf_list_count(ctx->scte35_pending_events)) {
+		GF_EventMessageBox *evtb = gf_list_pop_back(ctx->scte35_pending_events);
+		gf_isom_box_del((GF_Box*)evtb);
+	}
+	gf_list_del(ctx->scte35_pending_events);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->seg_name) gf_free(ctx->seg_name);
 	if (ctx->llhas_template) gf_free(ctx->llhas_template);
@@ -8822,6 +8912,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sfrag_tolerance), "start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	SCTE35_ARG,
+
 	{0}
 };
 
