@@ -2738,6 +2738,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		segment_url->hls_seq_num = seq_num;
 		segment_url->discontinuity_seq = elt->discontinuity;
 		if (elt->init_segment_url
+			&& rep && rep->segment_list && rep->segment_list->initialization_segment
 			&& rep->segment_list->initialization_segment->sourceURL
 			&& strcmp(rep->segment_list->initialization_segment->sourceURL, elt->init_segment_url)
 		) {
