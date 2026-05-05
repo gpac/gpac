@@ -623,14 +623,19 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (! (*samp)->data)
 			(*samp)->alloc_size = 0;
 
+
+		size_t size_to_alloc = data_size + mdia->mediaTrack->padding_bytes;
+		if (!size_to_alloc)
+			return GF_IO_ERR;
+
 		/*and finally get the data, include padding if needed*/
 		if (ext_realloc) {
-			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(data_size + mdia->mediaTrack->padding_bytes, mdia->mediaTrack->sample_alloc_udta);
+			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(size_to_alloc, mdia->mediaTrack->sample_alloc_udta);
 		} else if ((*samp)->alloc_size) {
-			(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
+			(*samp)->data = (char *) gf_realloc((*samp)->data, size_to_alloc );
 			if ((*samp)->data) (*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
 		} else {
-			(*samp)->data = (u8 *) gf_malloc(data_size + mdia->mediaTrack->padding_bytes);
+			(*samp)->data = (u8 *) gf_malloc(size_to_alloc);
 		}
 		if (! (*samp)->data) return GF_OUT_OF_MEM;
 
