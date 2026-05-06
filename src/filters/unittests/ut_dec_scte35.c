@@ -52,7 +52,7 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 
 #define SEND_VIDEO(num_frames) { \
         for (int i=0; i<num_frames; ++i) { \
-            scte35dec_process_timing(&ctx, dts, TIMESCALE, TIMESCALE/FPS); \
+            scte35dec_process_internal_timing(&ctx, dts, TIMESCALE, TIMESCALE/FPS); \
             scte35dec_process_dispatch(&ctx, dts, TIMESCALE/FPS); \
             dts += TIMESCALE/FPS; \
         } \
@@ -60,9 +60,9 @@ static u8 emeb_box[EMEB_BOX_SIZE] = {
 
 #define SEND_EVENT() { \
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
-        scte35dec_process_timing(&ctx, dts, TIMESCALE, SCTE35_DUR); \
+        scte35dec_process_internal_timing(&ctx, dts, TIMESCALE, SCTE35_DUR); \
         scte35dec_process_emsg(&ctx, emsg.value.data.ptr, emsg.value.data.size, dts); \
-        if (ctx.mode != 1) scte35dec_process_dispatch(&ctx, dts, SCTE35_DUR); \
+        if (ctx.mode != PASSTHRU) scte35dec_process_dispatch(&ctx, dts, SCTE35_DUR); \
         dts = SCTE35_DTS + SCTE35_DUR; \
     }
 
@@ -180,7 +180,7 @@ unittest(scte35dec_splice_point_with_idr)
 {
 	SCTE35DecCtx ctx = {0};
 	assert_equal(scte35dec_initialize_internal(&ctx), GF_OK, "%d");
-	ctx.mode = 1; // passthru
+	ctx.mode = PASSTHRU;
 	u64 dts = 0;
 
 	SEND_EVENT();
