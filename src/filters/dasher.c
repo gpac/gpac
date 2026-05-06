@@ -9685,12 +9685,24 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
+	const u8 *data = NULL;
+	u32 size = 0;
 
 	if (ctx->scte35 == SCTE35_NONE)
 		return GF_OK;
 
-	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
-	if (!emsg) return GF_OK;
+	if (ds->codec_id == GF_CODECID_SCTE35) {
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!data || !size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] skipping SCTE-35 packet with no data: check your filter chain\n"));
+			return GF_OK;
+		}
+	} else {
+		const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+		if (!emsg) return GF_OK;
+		data = emsg->value.data.ptr;
+		size = emsg->value.data.size;
+	}
 
 	if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have a SCTE-35 inband event
@@ -9741,7 +9753,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
-		if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -9756,10 +9768,10 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 			if (!found) {
 				evt->duration = (u32)dur;
 				es->timescale = gf_filter_pck_get_timescale(pck);
-				evt->message = gf_malloc(emsg->value.data.size);
+				evt->message = gf_malloc(size);
 				if (!evt->message) goto fail;
-				memcpy(evt->message, emsg->value.data.ptr, emsg->value.data.size);
-				evt->message_size = emsg->value.data.size;
+				memcpy(evt->message, data, size);
+				evt->message_size = size;
 				gf_list_add(es->entries, evt);
 				return GF_OK;
 			}

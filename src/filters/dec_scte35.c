@@ -179,7 +179,11 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID,     &PROP_UINT(GF_CODECID_EVTE) );
+	if (ctx->mode == M2TS_SEC) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SCTE35) );
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_EVTE) );
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED,  &PROP_BOOL(GF_FALSE) );
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
@@ -392,7 +396,7 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, const u64 dts, const u32 dur
 
 static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
-	if (ctx->mode == PASSTHRU)
+	if (ctx->mode != EVTE)
 		return;
 
 	if (IS_SEGMENTED) {
@@ -767,6 +771,16 @@ static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
 	return is_splice;
 }
 
+static GF_Err scte35dec_process_m2tssec(SCTE35DecCtx *ctx, const u8 *data, u32 size, u64 dts, u32 dur)
+{
+	u8 *output = NULL;
+	GF_FilterPacket *dst_pck = ctx->pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	memcpy(output, data, size);
+	scte35dec_send_pck(ctx, dst_pck, dts, dur);
+	return GF_OK;
+}
+
 static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *pck)
 {
 	GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(ctx->opid, pck, NULL);
@@ -807,7 +821,7 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 				if (a->type == GF_ISOM_BOX_TYPE_EMIB) {
 					if (data && *size) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' boxes: switching filter to passthru mode\n"));
-						ctx->mode = 1;
+						ctx->mode = PASSTHRU;
 						gf_isom_box_del(a);
 						data = NULL;
 						break;
@@ -818,9 +832,9 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					*size = emib->message_data_size;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
 
-					if (ctx->mode == 0 && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
+					if (ctx->mode == EVTE && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode\n", emib->scheme_id_uri));
-						ctx->mode = 1;
+						ctx->mode = PASSTHRU;
 						gf_isom_box_del(a);
 						data = NULL;
 						break;
@@ -886,19 +900,15 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	if (data && size) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected SCTE-35 at dts="LLU" dur=%u\n", dts, dur));
 
-		if (ctx->mode != PASSTHRU) {
+		if (ctx->mode == EVTE) {
 			GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
-			if (own)
-				gf_free((void*)data);
 			if (e)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Detected error while processing 'emsg' at dts="LLU"\n", dts));
 		}
 	}
 
 	GF_Err e;
-	if (ctx->mode == PASSTHRU) {
-		e = scte35dec_process_passthrough(ctx, pck);
-	} else {
+	if (ctx->mode == EVTE) {
 		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
 			//DASH: remember first pck of segment
 			if (ctx->dash_pck)
@@ -909,7 +919,16 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		}
 
 		e = scte35dec_process_dispatch(ctx, dts, dur);
+	} else if (ctx-> mode == M2TS_SEC) {
+		e = scte35dec_process_m2tssec(ctx, data, size, dts, dur);
+	} else if (ctx->mode == PASSTHRU) {
+		e = scte35dec_process_passthrough(ctx, pck);
+	} else {
+		gf_assert(0);
 	}
+
+	if (own)
+		gf_free((void*)data);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 
@@ -944,7 +963,7 @@ static const GF_FilterArgs SCTE35DecArgs[] =
 {
 	{ OFFS(mode), "mode to operate in\n"
 		"- 23001-18: outputs emib/emeb boxes for Event Tracks\n"
-		"- m2ts: outputs entire MPEG-2 TS splice_info_section as per ANSI/SCTE 67 2017 (13.1.1.3)\n"
+		"- m2ts: immediate dispatch of entire MPEG-2 TS splice_info_section as per ANSI/SCTE 67 2017 (13.1.1.3)\n"
 		"- passthrough: pass-through mode adding cue start property on splice points", GF_PROP_UINT, "23001-18", "23001-18|m2ts|passthrough", 0},
 	{ OFFS(sampdur), "segmentation duration in seconds. Default value 0 only flushes when content changes", GF_PROP_FRACTION, "0/1", NULL, 0},
 	{0}
