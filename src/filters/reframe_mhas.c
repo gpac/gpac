@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2024
+ *			Copyright (c) Telecom ParisTech 2020-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS reframer filter
@@ -251,7 +251,7 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		ctx->duration = duration;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
-		if (duration.num && !gf_sys_is_test_mode() ) {
+		if (duration.num) {
 			rate *= 8 * ctx->duration.den;
 			rate /= ctx->duration.num;
 			ctx->bitrate = (u32) rate;
@@ -407,15 +407,15 @@ static Bool mhas_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
-static GFINLINE void mhas_dmx_update_cts(GF_MHASDmxCtx *ctx)
+static GFINLINE void mhas_dmx_update_cts(GF_MHASDmxCtx *ctx, u32 pck_dur)
 {
 	if (ctx->timescale) {
-		u64 inc = ctx->frame_len;
+		u64 inc = pck_dur;
 		inc *= ctx->timescale;
 		inc /= ctx->sample_rate;
 		ctx->cts += inc;
 	} else {
-		ctx->cts += ctx->frame_len;
+		ctx->cts += pck_dur;
 	}
 }
 
@@ -707,8 +707,10 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 							offset /= ctx->sample_rate;
 						}
 						gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY , &PROP_LONGSINT( -offset));
+					} else if (pck_dur >= nb_trunc_samples) {
+						pck_dur -= nb_trunc_samples;
 					}
-				} else {
+				} else if (pck_dur >= nb_trunc_samples) {
 					pck_dur -= nb_trunc_samples;
 				}
 				nb_trunc_samples = 0;
@@ -744,7 +746,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			consumed = au_start;
 			ctx->nb_frames ++;
 
-			mhas_dmx_update_cts(ctx);
+			mhas_dmx_update_cts(ctx,(u32)  pck_dur);
 			has_cfg = 0;
 
 			if (prev_pck_size) {

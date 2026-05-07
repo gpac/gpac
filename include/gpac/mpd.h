@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2024
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -162,6 +162,7 @@ typedef struct
 	u32 repeat_count;
 	/*! for DASH SSR*/
 	u32 nb_parts;
+	Bool is_ll_edge;
 } GF_MPD_SegmentTimelineEntry;
 
 /*! Segment Timeline*/
@@ -295,7 +296,9 @@ typedef struct
 	u8 can_merge;
 	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
 	u8 is_first_part;
-
+	/*! set to discontinuity sequence index for segment following a discontinuity, 0 otherwise */
+	u32 discontinuity_seq;
+	char *hls_switch_uri;
 
 	u64 first_tfdt, first_pck_seq, frag_start_offset, frag_tfdt;
 	u32 split_first_dur, split_last_dur;
@@ -360,7 +363,6 @@ typedef enum
 /*! Macro for common attributes and elements (representation, AdaptationSet, Preselection, ...)
 
 not yet implemented;
-	GF_List *inband_event_stream;	\
 	GF_List *switching;	\
 	GF_List *random_access;	\
 	GF_List *group_labels;	\
@@ -600,6 +602,8 @@ typedef struct
 	u32 nb_frags;
 	/*! number of fragment infos */
 	GF_DASH_FragmentContext *frags;
+	/*! indicates if the segment is a start of a discontinuity*/
+	Bool is_discontinuity;
 	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
 	GF_DashHLSLowLatencyType llhls_mode;
 	/*! HLS LL segment done */
@@ -658,6 +662,8 @@ typedef struct {
 	u32 m3u8_low_latency;
 	/*! internal, HLS:  sequence number of last indeendent  segment or PART in playlist*/
 	u32 m3u8_media_seq_indep_last;
+	/*! user defined attributes for m3u8*/
+	GF_List* m3u8_x_attributes;
 
 	/*! GPAC dasher context*/
 	GF_DASH_SegmenterContext *dasher_ctx;
@@ -673,13 +679,18 @@ typedef struct {
 	/*! dash duration*/
 	GF_Fraction dash_dur;
 	/*! init segment name for HLS single file*/
-	const char *hls_single_file_name;
+	char *hls_single_file_name;
 	/*! number of audio channels - HLS only*/
 	u32 nb_chan;
+	/*! CHANNELS attribute in string for special content - HLS only*/
+	char str_chan[20];
 	/*! video FPS - HLS only*/
 	Double fps;
 	/*! groupID (for HLS)*/
 	const char *groupID;
+	/*! groupIDs allowed in rendition (for HLS)*/
+	const char **group_ids_rend;
+	u32 nb_group_ids_rend;
 
 	/*! user assigned m3u8 name for this representation*/
 	char *m3u8_name;
@@ -688,7 +699,7 @@ typedef struct {
 	/*! temp file for m3u8 generation*/
 	FILE *m3u8_var_file;
 
-	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC*/
+	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC CBC, 2: CENC CTR*/
 	u8 crypto_type;
 	u8 def_kms_used;
 
@@ -714,6 +725,9 @@ typedef struct {
 
 	Bool sub_forced;
 	const char *hls_forced;
+
+	const char *init_base64;
+	u32 discontinuity_id;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -772,7 +786,7 @@ typedef struct
 	/*! content component descriptor list if any*/
 	GF_List *content_component;
 	/*! inband streams events */
-	GF_List *inband_event;
+	GF_List *inband_event; // GF_MPD_Inband_Event
 
 	/*! base URL (alternate location) list if any*/
 	GF_List *base_URLs;
@@ -813,7 +827,35 @@ typedef struct {
 	char *scheme_id_uri;
 	/*! Value of the inband event */
 	char *value;
+
+	/*! Stream Type to write to */
+	u32 stream_type;
 } GF_MPD_Inband_Event;
+
+/*! event streams entry - derived from emsg structure */
+typedef struct {
+	char *xmlns;
+	s64 presentation_time;
+	u32 duration;
+	u32 id;
+	u8 *message;
+	u32 message_size;
+
+	int state; // HLS only: 0: not started, 1: active, 2: expired
+} GF_MPD_EventStreamEntry;
+
+/*! structure used to signal event streams */
+typedef struct {
+	/*! Scheme ID Uri of the inband event */
+	char *scheme_id_uri;
+
+	/*! Timescale */
+	u32 timescale;
+
+	/*! List of event stream entries */
+	GF_List *entries; // GF_MPD_EventStreamEntry
+} GF_MPD_EventStream;
+
 
 /*! MPD offering type*/
 typedef enum {
@@ -848,6 +890,8 @@ typedef struct
 	GF_MPD_SegmentList *segment_list;
 	/*! segment template of representation, or NULL if base or list is used*/
 	GF_MPD_SegmentTemplate *segment_template;
+	/*! list of event streams (out of band)*/
+	GF_List *event_streams; // GF_MPD_EventStream
 	/*! list of adaptation sets*/
 	GF_List *adaptation_sets;
 	/*! list of subsets (not yet implemented)*/
@@ -869,6 +913,8 @@ typedef struct
 
 	/*! period is preroll - test only, GPAC internal*/
 	Bool is_preroll;
+	/*! internal for dasher, indicate this period should not be written yet */
+	Bool skip_serialize;
 } GF_MPD_Period;
 
 /*! Program info*/
@@ -899,9 +945,9 @@ typedef struct {
 	char *profiles;
 	/*! offering type*/
 	GF_MPD_Type type;
-	/*! UTC of availability start anchor,  expressed in milliseconds, MANDATORY if type=dynamic*/
+	/*! UTC of availability start anchor, expressed in milliseconds, MANDATORY if type=dynamic*/
 	u64 availabilityStartTime;
-	/*! UTC of availability end anchor,  expressed in milliseconds*/
+	/*! UTC of availability end anchor, expressed in milliseconds*/
 	u64 availabilityEndTime;
 	/*! UTC of last publishing of the manifest*/
 	u64 publishTime;
@@ -981,6 +1027,9 @@ typedef struct {
 	GF_DashAbsoluteURLMode hls_abs_url;
 	Bool m3u8_use_repid;
 	Bool hls_audio_primary;
+
+	/*! number of past discontinuities */
+	u32 nb_past_discont;
 
 	/*! requested segment duration for index mode */
 	u32 segment_duration;
@@ -1068,12 +1117,11 @@ typedef enum
 \param mpd the target MPD to write
 \param out the target file object
 \param m3u8_name the base m3u8 name to use (needed when generating variant playlist file names)
-\param period the MPD period for that m3u8
+\param periods the MPD periods for that m3u8
 \param mode the write operation desired
 \return error if any
 */
-GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode);
-
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_List *periods, GF_M3U8WriteMode mode);
 
 /*! parses an MPD Period and appends it to the MPD period list
 \param mpd the target MPD to write

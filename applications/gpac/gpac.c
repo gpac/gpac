@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -67,6 +67,7 @@ static Bool dump_graph = GF_FALSE;
 static Bool print_meta_filters = GF_FALSE;
 static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
+static Bool loop_if_error = GF_FALSE;
 static s32 runfor = 0;
 static Bool runfor_exit = GF_FALSE;
 static Bool runfor_fast = GF_FALSE;
@@ -115,6 +116,7 @@ static void cleanup_logs(void);
 static Bool gpac_handle_prompt(GF_FilterSession *fsess, char char_code);
 static void gpac_fsess_task_help(void);
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 mode, GF_Err *e);
+static const char *make_blob(const char *inargs, const char **out_arg, Bool use_mem, GF_Err *e);
 static void cleanup_file_io(void);
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
@@ -410,7 +412,7 @@ void gpac_em_sig_handler(int type)
 		gf_fs_abort(session, GF_FS_FLUSH_FAST);
 		break;
 	case 3:
-		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stoping loops" : "");
+		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stopping loops" : "");
 		gf_fs_abort(session, GF_FS_FLUSH_NONE);
 		nb_loops=0;
 		break;
@@ -451,7 +453,7 @@ static Bool dump_proto_schemes = GF_FALSE;
 static Bool write_profile=GF_FALSE;
 static Bool write_core_opts=GF_FALSE;
 static Bool write_extensions=GF_FALSE;
-static const char *session_js=NULL;
+static GF_List *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
 #ifdef GPAC_DEFER_MODE
@@ -494,65 +496,6 @@ static void run_sess(void)
 }
 #endif
 
-static GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
-{
-	char *link_prev_filter_ext = NULL;
-	GF_Filter *link_from;
-	Bool reverse_order = GF_FALSE;
-	s32 link_filter_idx = -1;
-
-	if (!filter) {
-		u32 idx=0, count = gf_list_count(loaded_filters);
-		if (!ext_link || !count) return GF_BAD_PARAM;
-		ext_link[0] = 0;
-		if (link[1] == separator_set[SEP_LINK]) {
-			idx = atoi(link+2);
-		} else {
-			idx = atoi(link+1);
-			if (count - 1 < idx) return GF_BAD_PARAM;
-			idx = count-1-idx;
-		}
-		ext_link[0] = separator_set[SEP_LINK];
-		filter = gf_list_get(loaded_filters, idx);
-		link = ext_link;
-	}
-
-	char *ext = strchr(link, separator_set[SEP_FRAG]);
-	if (ext) {
-		ext[0] = 0;
-		link_prev_filter_ext = ext+1;
-	}
-	if (strlen(link)>1) {
-		if (link[1] == separator_set[SEP_LINK] ) {
-			reverse_order = GF_TRUE;
-			link++;
-		}
-		link_filter_idx = 0;
-		if (strlen(link)>1) {
-			link_filter_idx = get_u32(link+1, "Link filter index");
-			if (link_filter_idx < 0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
-				return GF_BAD_PARAM;
-			}
-		}
-	} else {
-		link_filter_idx = 0;
-	}
-	if (ext) ext[0] = separator_set[SEP_FRAG];
-
-	if (reverse_order)
-		link_from = gf_list_get(loaded_filters, link_filter_idx);
-	else
-		link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
-
-	if (!link_from) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
-		return GF_BAD_PARAM;
-	}
-	gf_filter_set_source(filter, link_from, link_prev_filter_ext);
-	return GF_OK;
-}
-
 #ifndef GPAC_CONFIG_ANDROID
 static
 #endif
@@ -575,6 +518,7 @@ int gpac_main(int _argc, char **_argv)
 	//bools
 	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
 	runfor_exit = runfor_fast = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
+	loop_if_error = GF_FALSE;
 	//s32
 	nb_loops = runfor = 0;
 	//u32
@@ -641,7 +585,6 @@ int gpac_main(int _argc, char **_argv)
 	}
 
 	gf_sys_init(mem_track, profile);
-
 
 #ifdef GPAC_CONFIG_ANDROID
 	//prevent destruction of JSRT until we unload the JNI gpac wrapper (see applications/gpac_android/src/main/jni/gpac_jni.cpp)
@@ -715,6 +658,14 @@ int gpac_main(int _argc, char **_argv)
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	use_step_mode = GF_TRUE;
 #endif
+
+	if (gf_opts_get_bool("core", "rmt")) {
+		if (!session_js) session_js = gf_list_new();
+		const char *rmt_path = gf_opts_get_key("core", "rmt-path");
+		if (!rmt_path)
+			rmt_path = "$GSHARE/scripts/rmt/server.js";
+		gf_list_insert(session_js, (char *)rmt_path, 0);
+	}
 
 	for (i=1; i<argc; i++) {
 		char szArgName[1024];
@@ -986,8 +937,9 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-wfx")) {
 			write_profile = GF_TRUE;
 			sflags |= GF_FS_FLAG_LOAD_META;
-		} else if (!strcmp(arg, "-sloop")) {
+		} else if (!strcmp(arg, "-sloop") || !strcmp(arg, "-eloop")) {
 			nb_loops = -1;
+			if (!strcmp(arg, "-eloop")) loop_if_error = GF_TRUE;
 			if (arg_val) nb_loops = get_s32(arg_val, "sloop");
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*get_u32(arg_val, "runfor");
@@ -1045,7 +997,7 @@ int gpac_main(int _argc, char **_argv)
 			if (alias_val) alias_val[0] = ' ';
 			alias_set = GF_TRUE;
 		}
-		else if (!strncmp(arg, "-seps", 5)) {
+		else if (!strncmp(arg, "-seps", 6)) {
 			parse_sep_set(arg_val, &override_seps);
 		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 
@@ -1057,7 +1009,8 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-qe")) {
 			exit_nocleanup = GF_TRUE;
 		} else if (!strcmp(arg, "-js")) {
-			session_js = arg_val;
+			if (!session_js) session_js = gf_list_new();
+			gf_list_add(session_js, arg_val);
 		} else if (!strcmp(arg, "-r")) {
 			enable_reports = 2;
 			if (arg_val && !strlen(arg_val)) {
@@ -1119,7 +1072,7 @@ int gpac_main(int _argc, char **_argv)
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
 				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
-				|| !strcmp(arg, "-ibx")
+				|| !strcmp(arg, "-ibx") || !strcmp(arg, "-ibb") || !strcmp(arg, "-ibm")
 			) {
 				//skip next arg: input or output, could start with '-'
 				i++;
@@ -1266,10 +1219,18 @@ restart:
 	}
 
 	if (session_js) {
-		e = gf_fs_load_script(session, session_js);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-		ERR_EXIT
+		u32 ijs, nb_js=gf_list_count(session_js);
+		for (ijs=0; ijs<nb_js; ijs++) {
+			const char *js_src = gf_list_get(session_js, ijs);
+			e = gf_fs_load_script(session, js_src);
+			if (e) {
+				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt/server.js")) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Monitoring script %s not found, check your installation\n Disabling remote monitoring\n", js_src));
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
+					ERR_EXIT
+				}
+			}
 		}
 	}
 
@@ -1373,11 +1334,19 @@ restart:
 		}
 #endif
 
-		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")  || !strcmp(arg, "-ibx") ) {
+		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")
+			|| !strcmp(arg, "-ibx") || !strcmp(arg, "-ibb") || !strcmp(arg, "-ibm")
+		) {
 			if (!strcmp(arg, "-ib") || !strcmp(arg, "-ibx")) {
 				const char *fargs=NULL;
 				Bool test_nocache = !strcmp(arg, "-ibx") ? GF_TRUE : GF_FALSE;
 				const char *fio_url = make_fileio(argv[i+1], &fargs, test_nocache ? 2 : 1, &e);
+				if (fio_url)
+					filter = gf_fs_load_source(session, fio_url, fargs, NULL, &e);
+			} else if (!strcmp(arg, "-ibb") || !strcmp(arg, "-ibm")) {
+				const char *fargs=NULL;
+				Bool test_mem = !strcmp(arg, "-ibm") ? GF_TRUE : GF_FALSE;
+				const char *fio_url = make_blob(argv[i+1], &fargs, test_mem, &e);
 				if (fio_url)
 					filter = gf_fs_load_source(session, fio_url, fargs, NULL, &e);
 			} else {
@@ -1417,7 +1386,7 @@ restart:
 					next_sep = strchr(arg+1, separator_set[SEP_LINK]);
 				}
 				if (next_sep) {
-					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					e = gf_fs_process_link_directive(arg, NULL, loaded_filters, next_sep);
 					if (e) {
 						ERR_EXIT
 					}
@@ -1489,7 +1458,7 @@ restart:
 
 		while (gf_list_count(links_directive)) {
 			char *link = gf_list_pop_front(links_directive);
-			e = process_link_directive(link, filter, loaded_filters, NULL);
+			e = gf_fs_process_link_directive(link, filter, loaded_filters, NULL);
 			if (e) {
 				ERR_EXIT
 			}
@@ -1699,11 +1668,15 @@ exit:
 	loaded_filters=NULL;
 
 	cleanup_file_io();
+	if (loop_if_error && nb_loops && e)
+		e = GF_OK;
 
 	if (!e && nb_loops) {
 		if (nb_loops>0) nb_loops--;
 		loops_done++;
 		fprintf(stderr, "session done, restarting (loop %d)\n", loops_done);
+		gf_net_reload_netcap();
+
 
 #ifndef GPAC_CONFIG_ANDROID
 		fflush(stderr);
@@ -1717,6 +1690,8 @@ exit:
 		goto restart;
 #endif
 	}
+
+	if (session_js) gf_list_del(session_js);
 
 	gpac_exit(e);
 }
@@ -2441,8 +2416,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fprintf(stderr, "Active filters: %d\n", nb_active);
 
 	if (static_logs) {
-		if (is_final && (!log_write || !static_logs[log_write-1].szMsg))
+		if (is_final && (!log_write || !static_logs[log_write-1].szMsg)) {
+			gf_fs_lock_filters(fsess, GF_FALSE);
 			return;
+		}
 
 		fprintf(stderr, "\nLogs:\n");
 		for (i=0; i<log_write; i++) {
@@ -2824,6 +2801,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	*out_err = GF_OK;
 
 	if (!strcmp(mode, "ref")) {
+		if (!ioctx_ref->nb_refs && (gf_list_find(all_gfio_defined, fileio_ref)<0))
+			gf_list_add(all_gfio_defined, fileio_ref);
 		ioctx_ref->nb_refs++;
 		return fileio_ref;
 	}
@@ -2833,6 +2812,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		if (ioctx_ref->nb_refs)
 			return fileio_ref;
 
+		//fallback to close
 		url = NULL;
 	}
 
@@ -2945,6 +2925,37 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	return gfio;
 }
 
+static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
+{
+	GF_FileIO *gfio;
+	FileIOCtx *ioctx;
+	//delete on a gfio object
+	if (!parent_gfio) {
+		gfio = gf_fileio_from_url(url);
+		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+			return GF_EOS;
+		ioctx = gf_fileio_get_udta(gfio);
+		if (ioctx->filep) return GF_BAD_PARAM;
+		if (ioctx->path) gf_file_delete(ioctx->path);
+		return GF_OK;
+	}
+	//delete by URL relative to a parent gfio
+	gfio = gf_fileio_from_url(parent_gfio);
+	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
+		return GF_EOS;
+	ioctx = gf_fileio_get_udta(gfio);
+	if (!ioctx->path) return GF_EOS;
+
+	char *path = gf_url_concatenate(ioctx->path, url);
+	if (path) {
+		gf_file_delete(path);
+		gf_free(path);
+		return GF_OK;
+	}
+	return GF_EOS;
+}
+
+Bool gfiodel_registered=GF_FALSE;
 
 static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_mode, GF_Err *e)
 {
@@ -2953,6 +2964,11 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
+
+	if (!gfiodel_registered) {
+		gfiodel_registered = GF_TRUE;
+		gf_fileio_register_delete_proc(gpac_gfio_del);
+	}
 
 	GF_SAFEALLOC(ioctx, FileIOCtx);
 	if (!ioctx) return NULL;
@@ -2983,9 +2999,73 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_
 	return gf_fileio_url(fio);
 }
 
+typedef struct
+{
+	GF_Blob blob;
+	char *path;
+	char *url;
+	GF_FileIO *fio;
+	Bool use_gfio;
+} BlobCtx;
+
+static GF_List *all_blobs_defined = NULL;
+
+static const char *make_blob(const char *inargs, const char **out_arg, Bool use_mem, GF_Err *e)
+{
+	BlobCtx *bctx;
+	if (!all_blobs_defined) {
+		all_blobs_defined = gf_list_new();
+		if (!all_blobs_defined) return NULL;
+	}
+
+	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
+	*out_arg = NULL;
+	if (sep) sep[0] = 0;
+
+	GF_SAFEALLOC(bctx, BlobCtx);
+	if (!bctx) return NULL;
+	*e = gf_file_load_data(inargs, &bctx->blob.data, &bctx->blob.size);
+	if (*e) {
+		gf_free(bctx);
+		return NULL;
+	}
+
+	bctx->path = gf_strdup(inargs);
+	if (!bctx->path) {
+		gf_free(bctx->blob.data);
+		gf_free(bctx);
+		*e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	if (sep) {
+		sep[0] = ':';
+		*out_arg = sep+1;
+	}
+	*e = gf_list_add(all_blobs_defined, bctx);
+
+	if (use_mem) {
+		bctx->use_gfio = GF_TRUE;
+		bctx->fio = gf_fileio_from_mem(bctx->path, bctx->blob.data, bctx->blob.size);
+		return gf_fileio_url(bctx->fio);
+	}
+
+	bctx->url = gf_blob_register(&bctx->blob);
+	if (!bctx->url) {
+		gf_free(bctx->path);
+		gf_free(bctx->blob.data);
+		gf_free(bctx);
+		*e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	return bctx->url;
+}
 static void cleanup_file_io()
 {
-	if (!all_gfio_defined) return;
+	if (gfiodel_registered) {
+		gfiodel_registered = GF_FALSE;
+		gf_fileio_unregister_delete_proc(gpac_gfio_del);
+	}
+
 	while (gf_list_count(all_gfio_defined)) {
 		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);
 		FileIOCtx *ioctx = gf_fileio_get_udta(gfio);
@@ -3000,6 +3080,25 @@ static void cleanup_file_io()
 	}
 	gf_list_del(all_gfio_defined);
 	all_gfio_defined = NULL;
+
+	while (gf_list_count(all_blobs_defined)) {
+		BlobCtx *bctx = gf_list_pop_back(all_blobs_defined);
+		if (bctx->fio) {
+			gf_fclose((FILE*)bctx->fio);
+			gf_fileio_del(bctx->fio);
+		}
+
+		if (bctx->blob.data) {
+			if (!bctx->use_gfio)
+				gf_blob_unregister(&bctx->blob);
+			gf_free(bctx->blob.data);
+		}
+		if (bctx->path) gf_free(bctx->path);
+		if (bctx->url) gf_free(bctx->url);
+		gf_free(bctx);
+	}
+	gf_list_del(all_blobs_defined);
+	all_blobs_defined = NULL;
 }
 
 static GF_Err cust_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -3374,7 +3473,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	u32 size;
 
 	burl = gf_blob_register(&b);
-	gf_sys_profiler_set_callback(NULL, NULL);
 
 	gf_blob_get(burl, &data, &size, NULL);
 	gf_blob_unregister(&b);
@@ -3631,7 +3729,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_audio_fmt_to_isobmf(0);
 	gf_pixel_fmt_probe(0, NULL);
 	gf_net_ntp_to_utc(0);
-	gf_sys_profiler_sampling_enabled();
 
 
 #endif
@@ -3836,6 +3933,7 @@ static int gpac_do_creds(char *creds_args)
 				fprintf(stdout, "Users in group: %s\n", g);
 			} else {
 				fprintf(stdout, "No such group %s\n", creds_args);
+				//trash creds in test mode
 				if (gf_sys_is_test_mode()) {
 					if (creds) gf_cfg_del(creds);
 					return 0;
@@ -3849,6 +3947,7 @@ static int gpac_do_creds(char *creds_args)
 	u32 keys = gf_cfg_get_key_count(creds, creds_args);
 	if (!keys && !is_add) {
 		fprintf(stderr, "No such user %s\n", creds_args);
+		//trash creds in test mode
 		if (gf_sys_is_test_mode()) {
 			if (creds) gf_cfg_del(creds);
 			return 0;

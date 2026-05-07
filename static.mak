@@ -65,7 +65,8 @@ ifeq ($(STATIC_MODULES),yes)
 
 CFLAGS+= -DGPAC_STATIC_MODULES
 
-ifeq ($(CONFIG_ALSA),yes)
+ifeq ($(CONFIG_ALSA),no)
+else
 OBJS+=../modules/alsa/alsa.o
 CFLAGS+=-DGPAC_HAS_ALSA
 EXTRALIBS+= -lasound
@@ -128,13 +129,15 @@ endif
 endif
 
 
-ifeq ($(CONFIG_JACK),yes)
+ifeq ($(CONFIG_JACK),no)
+else
 OBJS+= ../modules/jack/jack.o
 CFLAGS+=-DGPAC_HAS_JACK
 EXTRALIBS+=-ljack
 endif
 
-ifeq ($(CONFIG_PULSEAUDIO),yes)
+ifeq ($(CONFIG_PULSEAUDIO),no)
+else
 OBJS+= ../modules/pulseaudio/pulseaudio.o
 CFLAGS+=-DGPAC_HAS_PULSEAUDIO
 EXTRALIBS+=-lpulse -lpulse-simple

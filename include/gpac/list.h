@@ -149,7 +149,7 @@ void gf_list_reset(GF_List *ptr);
 /*!
 \brief gets last item
 
-Gets last item o fthe list
+Gets last item of the list
 \param ptr target list object
 \return the last item
  */

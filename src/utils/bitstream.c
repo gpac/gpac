@@ -86,7 +86,7 @@ struct __tag_bitstream
 #endif
 };
 
-GF_NOT_EXPORTED
+GF_EXPORT
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 {
 	if (!bs) return GF_BAD_PARAM;
@@ -1947,6 +1947,8 @@ void gf_bs_mark_overflow(GF_BitStream *bs, Bool reset)
 {
 	bs->overflow_state = reset ? 0 : 2;
 }
+
+GF_EXPORT
 u32 gf_bs_is_overflow(GF_BitStream *bs)
 {
 	return bs->overflow_state;

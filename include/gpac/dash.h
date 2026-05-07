@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2012-2024
+ *			Copyright (c) Telecom ParisTech 2012-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming sub-project
@@ -329,7 +329,7 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 group_idx, u32 gr
 */
 Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 group_idx);
 
-/*! selects a group for playback. If group selection is enabled,  other groups are alternate to this group (through the group attribute), they are automatically deselected
+/*! selects a group for playback. If group selection is enabled, other groups are alternate to this group (through the group attribute), they are automatically deselected
 
  Seeking is NOT performed, it is the responsability to call \ref gf_dash_group_seek - this can be called before or after selecting
 
@@ -346,13 +346,13 @@ void gf_dash_group_select(GF_DashClient *dash, u32 group_idx, Bool select);
 */
 s32 gf_dash_group_get_id(GF_DashClient *dash, u32 group_idx);
 
-/*! gets cuirrent period ID
+/*! gets current period ID
 \param dash the target dash client
 \return ID of the current period or NULL
 */
 const char*gf_dash_get_period_id(GF_DashClient *dash);
 
-/*! enables group selection  through the group attribute
+/*! enables group selection through the group attribute
 \param dash the target dash client
 \param enable if GF_TRUE, group selection will be done whenever selecting a new group
 */
@@ -398,7 +398,7 @@ const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_i
 */
 const char *gf_dash_group_get_language(GF_DashClient *dash, u32 group_idx);
 
-/*! returns the number of audio channelsof the group
+/*! returns the number of audio channels of the group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
 \return the number of audio channels, or 0 if not audio or unspecified
@@ -500,11 +500,12 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 \param key_url set to the key URL of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL). The URL is either a URN or a resolved URL
 \param key_IV set to the key initialization vector of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL)
 \param utc set to UTC mapping for first sample of segment, 0 if none defined
+\param hls_disc_idx set to HLS discontinuity sequence index, 0 otherwise
 \return GF_BUFFER_TOO_SMALL if no segment found, GF_EOS if end of session, GF_URL_REMOVED if segment is disabled (but all output info is OK, this can be ignored and considered as GF_OK by the user) or error if any
 */
 GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range,
         s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range,
-        const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV, u64 *utc);
+        const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV, u64 *utc, u32 *hls_disc_idx);
 
 /*! gets some info on the segment
 \param dash the target dash client

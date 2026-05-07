@@ -469,7 +469,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
     case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YUV444:		
+	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV21_10:
@@ -530,7 +530,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			p = gf_filter_pid_get_property(txh->stream->odm->pid, GF_PROP_PID_COLR_MX);
 			if (p) cmx = p->value.uint;
 		}
-		
+
 		txh->tx_io->tx.pbo_state = (txh->compositor->gl_caps.pbo && txh->compositor->pbo) ? GF_GL_PBO_BOTH : GF_GL_PBO_NONE;
 		if (txh->tx_io->conv_format) {
 			stride = txh->tx_io->conv_stride;
@@ -616,7 +616,7 @@ common:
 	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YUV444:		
+	case GF_PIXEL_YUV444:
     case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV12_10:
@@ -677,7 +677,7 @@ common:
 	case GF_PIXEL_YUV_10:
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
-	case GF_PIXEL_YUV444:		
+	case GF_PIXEL_YUV444:
     case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_NV12:
@@ -871,7 +871,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	GL_CHECK_ERR()
 	gf_gl_txw_upload(&txh->tx_io->tx, data, txh->frame_ifce);
 	GL_CHECK_ERR()
-	
+
 #endif
 
 	push_time = gf_sys_clock() - push_time;
@@ -1227,17 +1227,14 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		return 0;
 
 	if (!txh->stream || txh->data || txh->frame_ifce) {
-		gf_rmt_begin_gl(gf_sc_texture_push_image);
 		glGetError();
 		res = gf_sc_texture_push_image(txh, 0, 0);
-		gf_rmt_end_gl();
 		glGetError();
 		if (!res) return 0;
 	}
 
 skip_push:
 
-	gf_rmt_begin_gl(gf_sc_texture_enable);
 	glGetError();
 
 	if (bounds && txh->compute_gradient_matrix) {
@@ -1269,7 +1266,6 @@ skip_push:
 		tx_bind(txh);
 	}
 
-	gf_rmt_end_gl();
 	glGetError();
 	return 1;
 

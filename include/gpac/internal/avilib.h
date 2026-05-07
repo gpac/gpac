@@ -1,8 +1,8 @@
 /*
  *  avilib.h
  *
- *  Copyright (C) Thomas Östreich - June 2001
- *  multiple audio track support Copyright (C) 2002 Thomas Östreich
+ *  Copyright (C) Thomas ï¿½streich - June 2001
+ *  multiple audio track support Copyright (C) 2002 Thomas ï¿½streich
  *
  *  Original code:
  *  Copyright (C) 1999 Rainer Johanni <Rainer@Johanni.de>
@@ -95,7 +95,7 @@ typedef struct _avistdindex_chunk {
 typedef struct _avisuperindex_chunk {
 	char           fcc[4];
 	u32  dwSize;                 // size of this chunk
-	u16 wLongsPerEntry;         // size of each entry in aIndex array (must be 8 for us)
+	u16 wLongsPerEntry;         // size of each entry in aIndex array (must be 4 for us)
 	u8  bIndexSubType;          // future use. must be 0
 	u8 bIndexType;             // one of AVI_INDEX_* codes
 	u32 nEntriesInUse;          // index of first unused member in aIndex array
@@ -424,4 +424,3 @@ struct AVIStreamHeader {
 #endif /*GPAC_DISABLE_AVILIB*/
 
 #endif	/*_GF_AVILIB_H_*/
-

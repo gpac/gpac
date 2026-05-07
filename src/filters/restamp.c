@@ -208,7 +208,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if ((ctx->fps.num) && prop->value.lfrac.den) {
+	if (prop && (ctx->fps.num) && prop->value.lfrac.den) {
 		GF_Fraction64 ndur = prop->value.lfrac;
 		if (ctx->fps.num>0) {
 			if (fps_scaler.num) {

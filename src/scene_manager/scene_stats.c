@@ -176,7 +176,7 @@ static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 
 static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 {
-	if (!stat) return;
+	if (!stat || !val) return;
 	if (stat->max_2d.x < val->x) stat->max_2d.x = val->x;
 	if (stat->max_2d.y < val->y) stat->max_2d.y = val->y;
 	if (stat->min_2d.x > val->x) stat->min_2d.x = val->x;
@@ -188,7 +188,7 @@ static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 
 static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
 {
-	if (!stat) return;
+	if (!stat || !val) return;
 	if (stat->max_2d.x < val->x) stat->max_2d.x = val->x;
 	if (stat->max_2d.y < val->y) stat->max_2d.y = val->y;
 	if (stat->min_2d.x > val->x) stat->min_2d.x = val->x;
@@ -197,7 +197,7 @@ static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
 
 static void StatSFVec3f(GF_SceneStatistics *stat, SFVec3f *val)
 {
-	if (!stat) return;
+	if (!stat || !val) return;
 	if (stat->max_3d.x < val->x) stat->max_3d.x = val->x;
 	if (stat->max_3d.y < val->y) stat->max_3d.y = val->y;
 	if (stat->max_3d.z < val->z) stat->max_3d.z = val->y;
@@ -695,4 +695,3 @@ void gf_sm_stats_reset(GF_StatManager *stat)
 }
 
 #endif /*GPAC_DISABLE_SCENE_STATS*/
-

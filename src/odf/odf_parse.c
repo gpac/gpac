@@ -491,7 +491,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				OD_ParseBinData(val, &uic->ui_data, &uic->ui_data_length);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
-				if (gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length)==GF_OK) 
+				if (gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length)==GF_OK)
 					ret = 1;
 			} else {
 #ifndef GPAC_MINIMAL_ODF
@@ -559,7 +559,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "style_text_color")) GET_U32(sd->default_style.text_color)
 		else if (!stricmp(fieldName, "style_flags")) {
 			char szStyles[1024];
-			strcpy(szStyles, val);
+			strncpy(szStyles, val, sizeof(szStyles)-1);
+			szStyles[sizeof(szStyles)-1] = 0;
 			strlwr(szStyles);
 			if (strstr(szStyles, "bold")) sd->default_style.style_flags |= GF_TXT_STYLE_BOLD;
 			if (strstr(szStyles, "italic")) sd->default_style.style_flags |= GF_TXT_STYLE_ITALIC;

@@ -845,8 +845,8 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 
 	ctx->stride = ctx->bpp * ctx->width;
 	ctx->output_size = ctx->stride * ctx->height;
-	ctx->tile_width = ctx->width / config->num_tile_cols;
-	ctx->tile_height = ctx->height / config->num_tile_rows;
+	ctx->tile_width = config->num_tile_cols ? ctx->width / config->num_tile_cols : 0;
+	ctx->tile_height = config->num_tile_rows ? ctx->height / config->num_tile_rows : 0;
 	ctx->blocksize_bits = config->block_size * 8;
 
 	if (config->interleave==INTERLEAVE_COMPONENT) {

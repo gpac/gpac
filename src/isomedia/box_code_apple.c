@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2021
+ *			Copyright (c) Telecom ParisTech 2006-2025
  *				All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -38,7 +38,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 sub_type;
-	GF_Box *a;
+	GF_Box *a = NULL;
 	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
 	while (ptr->size) {
 		/*if no ilst type coded, break*/
@@ -47,7 +47,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_parse_ex(&a, bs, s->type, GF_FALSE, s->size);
 
 			/* the macro will return in this case before we can free */
-			if (!e && ptr->size < a->size) {
+			if (!e && a && ptr->size < a->size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(ptr->type), ptr->size, a->size, __FILE__, __LINE__ )); \
 				e = GF_ISOM_INVALID_FILE;
 			}
@@ -55,6 +55,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 				if (a) gf_isom_box_del(a);
 				return e;
 			}
+			if (!a) return GF_NON_COMPLIANT_BITSTREAM;
 
 			ISOM_DECREASE_SIZE(ptr, a->size);
 			gf_list_add(ptr->child_boxes, a);
@@ -175,6 +176,25 @@ GF_Box *ilst_item_box_new()
 	return (GF_Box *)tmp;
 }
 
+GF_Err ilst_item_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
+{
+	GF_ListItemBox *ptr = (GF_ListItemBox*)s;
+	switch (a->type) {
+	case GF_QT_BOX_TYPE_NAME:
+		BOX_FIELD_ASSIGN(name, GF_NameBox)
+		break;
+	case GF_QT_BOX_TYPE_MEAN:
+		BOX_FIELD_ASSIGN(mean, GF_NameBox)
+		break;
+	case GF_ISOM_BOX_TYPE_DATA:
+		BOX_FIELD_ASSIGN(data, GF_DataBox)
+		break;
+	default:
+		return GF_OK;
+	}
+	return GF_OK;
+}
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ilst_item_box_write(GF_Box *s, GF_BitStream *bs)
@@ -214,12 +234,171 @@ GF_Err ilst_item_box_size(GF_Box *s)
 	/*iTune way: data-box-encapsulated box list*/
 	else if (ptr->data && !ptr->data->qt_style) {
 		u32 pos=0;
+		gf_isom_check_position(s, (GF_Box* ) ptr->mean, &pos);
+		gf_isom_check_position(s, (GF_Box* ) ptr->name, &pos);
 		gf_isom_check_position(s, (GF_Box* ) ptr->data, &pos);
 	}
 	/*QT way: raw data*/
 	else if (ptr->data) {
 		ptr->size += ptr->data->dataSize + 4;
 	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *vexu_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_VideoExtendedUsageBox, GF_ISOM_BOX_TYPE_VEXU);
+	tmp->child_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+
+void vexu_box_del(GF_Box *s)
+{
+	GF_VideoExtendedUsageBox *ptr = (GF_VideoExtendedUsageBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err vexu_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_array_read(s, bs);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err vexu_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_write_header(s, bs);
+}
+
+GF_Err vexu_box_size(GF_Box *s)
+{
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *eyes_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_StereoViewBox, GF_ISOM_BOX_TYPE_EYES);
+	tmp->child_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+
+void eyes_box_del(GF_Box *s)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err eyes_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
+	//GF_Err e;
+	u32 size = 0, type = 0;
+
+	// mandatory Stereo view information 'stri' box
+	size = gf_bs_read_int(bs, 32);
+	type = gf_bs_read_int(bs, 32);
+	if (size != 13 || type != 0x73747269) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Only support 'eyes' box with one 'stri' box at the begining.\n"));
+		return GF_OK;
+	}
+	ptr->stri.version = gf_bs_read_int(bs, 8);
+	ptr->stri.flags = gf_bs_read_int(bs, 24);
+	ptr->stri.reserved = gf_bs_read_int(bs, 4);
+	ptr->stri.eye_views_reversed = gf_bs_read_int(bs, 1);
+	ptr->stri.has_additional_views = gf_bs_read_int(bs, 1);
+	ptr->stri.has_right_eye_view = gf_bs_read_int(bs, 1);
+	ptr->stri.has_left_eye_view = gf_bs_read_int(bs, 1);
+
+	ptr->size -= 13;
+
+	// if there are more child-boxes in 'eyes' box
+	return gf_isom_box_array_read(s, bs);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err eyes_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	gf_isom_box_write_header(s, bs);
+
+	GF_StereoViewBox *ptr = (GF_StereoViewBox*)s;
+
+	// mandatory Stereo view information 'stri' box
+	gf_bs_write_int(bs, 13, 32); // size
+	gf_bs_write_int(bs, 's', 8);
+	gf_bs_write_int(bs, 't', 8);
+	gf_bs_write_int(bs, 'r', 8);
+	gf_bs_write_int(bs, 'i', 8); // box type
+	gf_bs_write_int(bs, 0, 8); // version
+	gf_bs_write_int(bs, 0, 24); // flag
+	gf_bs_write_int(bs, ptr->stri.reserved, 4);
+	gf_bs_write_int(bs, ptr->stri.eye_views_reversed, 1);
+	gf_bs_write_int(bs, ptr->stri.has_additional_views, 1);
+	gf_bs_write_int(bs, ptr->stri.has_right_eye_view, 1);
+	gf_bs_write_int(bs, ptr->stri.has_left_eye_view, 1);
+
+	return GF_OK;
+}
+
+GF_Err eyes_box_size(GF_Box *s)
+{
+	s->size += 13;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *hero_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_HeroStereoEyeDescriptionBox, GF_ISOM_BOX_TYPE_HERO);
+	return (GF_Box *)tmp;
+}
+
+void hero_box_del(GF_Box *s)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox*)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err hero_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox*)s;
+	ptr->version = gf_bs_read_int(bs, 8);
+	ptr->flags = gf_bs_read_int(bs, 24);
+	ptr->hero_eye_indicator = gf_bs_read_int(bs, 8);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err hero_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox *)s;
+	GF_Err e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_int(bs, ptr->hero_eye_indicator, 8);
+	return GF_OK;
+}
+
+GF_Err hero_box_size(GF_Box *s)
+{
+	s->size += 5;
 	return GF_OK;
 }
 
@@ -240,7 +419,7 @@ GF_Err databox_box_read(GF_Box *s,GF_BitStream *bs)
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
 	ISOM_DECREASE_SIZE(ptr, 4);
-	ptr->reserved = gf_bs_read_u32(bs);
+	ptr->locale = gf_bs_read_u32(bs);
 
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
@@ -269,7 +448,7 @@ GF_Err databox_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_int(bs, ptr->reserved, 32);
+	gf_bs_write_int(bs, ptr->locale, 32);
 	if(ptr->data != NULL && ptr->dataSize > 0) {
 		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
@@ -422,7 +601,7 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, u32 meta_type)
 	meta = (GF_MetaBox *)gf_isom_box_new(udta_subtype);
 
 	if (meta) {
-		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE);
+		udta_on_child_box_ex((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE, GF_TRUE);
 		if (meta_type!=1) {
 			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 			if(meta->handler == NULL) {
@@ -857,7 +1036,7 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
 	if (!ptr->audio_descs) return GF_OUT_OF_MEM;
-	
+
 	for (i=0; i<ptr->num_audio_description; i++) {
 		GF_AudioChannelDescription *adesc = &ptr->audio_descs[i];
 		ISOM_DECREASE_SIZE(s, 20);

@@ -312,13 +312,18 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 			if (!strncmp(p->value.string, "gfio://", 7)) {
 				use_gfio = GF_TRUE;
-				strcpy(szMedia, gf_fileio_translate_url(p->value.string) );
+				strncpy(szMedia, gf_fileio_translate_url(p->value.string), GF_ARRAY_LENGTH(szMedia)-1 );
 			} else {
-				strcpy(szMedia, p->value.string);
+				strncpy(szMedia, p->value.string, GF_ARRAY_LENGTH(szMedia)-1);
 			}
+			szMedia[ GF_ARRAY_LENGTH(szMedia)-1 ] = 0;
 
 			ext = strrchr(szMedia, '.');
 			if (ext) ext[0] = 0;
+			if (GF_ARRAY_LENGTH(szMedia)-strlen(szMedia) <= 6) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Invalid path for MEDIA file %s\n", szMedia));
+				return GF_URL_ERROR;
+			}
 			strcat(szMedia, ".media");
 			ctx->mdia = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
 

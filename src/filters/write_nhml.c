@@ -68,7 +68,7 @@ typedef struct
 	GF_Fraction64 duration;
 	Bool first;
 	s64 delay;
-	Bool uncompress, is_dims, is_stpp, is_scte35;
+	Bool uncompress, is_dims, is_stpp, is_evte;
 
 	GF_BitStream *bs_w, *bs_r;
 	u8 *nhml_buffer;
@@ -149,7 +149,8 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 		name = gf_file_ext_start(fileName);
 		if (name) name[0] = 0;
-		strcat(fileName, ".media");
+		if (strcmp(fileName, "null") && strcmp(fileName, "/dev/null"))
+			strcat(fileName, ".media");
 		if (gfio) {
 			res_name = (char *) gf_fileio_factory(gfio, nhmldump_get_resolved_basename(ctx->ipid, fileName, szTempName) );
 		} else {
@@ -177,7 +178,8 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 		name = gf_file_ext_start(fileName);
 		if (name) name[0] = 0;
-		strcat(fileName, ".info");
+		if (strcmp(fileName, "null") && strcmp(fileName, "/dev/null"))
+			strcat(fileName, ".info");
 		if (gfio) {
 			res_name = (char *) gf_fileio_factory(gfio, nhmldump_get_resolved_basename(ctx->ipid, fileName, szTempName) );
 		} else {
@@ -312,7 +314,8 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				name[0] = 0;
 				gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(ctx->name) );
 			} else {
-				strcat(fileName, ".nhml");
+				if (strcmp(fileName, "null") && strcmp(fileName, "/dev/null"))
+					strcat(fileName, ".nhml");
 				gf_filter_pid_set_property(ctx->opid_nhml, GF_PROP_PID_OUTPATH, &PROP_STRING(fileName) );
 			}
 		}
@@ -325,7 +328,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	ctx->first = GF_TRUE;
 	ctx->is_stpp = (cid==GF_CODECID_SUBS_XML) ? GF_TRUE : GF_FALSE;
-	ctx->is_scte35 = (cid==GF_CODECID_EVTE) ? GF_TRUE : GF_FALSE;
+	ctx->is_evte = (cid==GF_CODECID_EVTE) ? GF_TRUE : GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
@@ -888,7 +891,7 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 	}
 
 	if (ctx->payload) {
-		if (ctx->is_scte35) {
+		if (ctx->is_evte) {
 			FILE *f = ctx->filep ? ctx->filep : gf_file_temp(NULL);
 			Bool owns = !ctx->filep;
 			GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -250,7 +250,11 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 
 		if (!value && !enum_values) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			//patch for ka option, used as Bool in pin/sockin/... but as enum in flist, triggering this error when piping playlist
+			//fortunately in pipe mode of playlist, flist.ka is not used
+			if (strcmp(name, "ka")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
+			}
 			p.value.uint = 0;
 			break;
 		}
@@ -633,6 +637,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			u32 len=0;
 			char *nv;
 			char *sep = strchr(v, list_sep_char);
+			while (sep && sep[1] == list_sep_char) {
+				// skip doubled separator
+				size_t len = strlen(sep+1);
+				memmove(sep, sep+1, len);
+				sep[len] = 0;
+				sep = strchr(sep+1, list_sep_char);
+			}
+
 			if (sep && is_xml) {
 				char *xml_end = strchr(v, '>');
 				len = (u32) (sep - v);
@@ -905,10 +917,12 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 	}
 	return GF_FALSE;
 }
+GF_EXPORT
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_FALSE);
 }
+GF_EXPORT
 Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
 	return gf_props_equal_internal(p1, p2, GF_TRUE);
@@ -1357,6 +1371,9 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 
+					//remove existing property if any
+					gf_props_remove_property(dst_props, gf_props_hash_djb2(prop->p4cc, prop->pname), prop->p4cc, prop->pname);
+
 #if GF_PROPS_HASHTABLE_SIZE
 					if (!dst_props->hash_table[idx]) {
 						dst_props->hash_table[idx] = gf_props_get_list(dst_props);
@@ -1532,8 +1549,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_TILE_BASE, "TileBase", "Tile base stream", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_TILE_ID, "TileID", "ID of the tile for hvt1/hvt2 PIDs", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_LANGUAGE, "Language", "Language code: ISO639 2/3 character code or RFC 4646", GF_PROP_NAME),
-	DEC_PROP_F( GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service, signled as PID info", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service, signled as PID info", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_STREAM_TYPE, "StreamType", "Media stream type", GF_PROP_UINT),
 	DEC_PROP_F( GF_PROP_PID_SUBTYPE, "StreamSubtype", "Media subtype 4CC (auxiliary, pic sequence, etc ..), matches ISOM handler type", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_ISOM_SUBTYPE, "ISOMSubtype", "ISOM media subtype 4CC (avc1 avc2...)", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM),
@@ -1543,6 +1560,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_UNFRAMED, "Unframed", "The media data is not framed, i.e. each packet is not a complete AU/frame or is not in internal format (e.g. annexB for avc/hevc, adts for aac)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_UNFRAMED_FULL_AU, "UnframedAU", "The unframed media still has correct AU boundaries: one packet is one full AU, but the packet format might not be the internal one (e.g. annexB for avc/hevc, adts for aac)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_UNFRAMED_LATM, "LATM", "Media is unframed AAC in LATM format", GF_PROP_BOOL),
+	DEC_PROP( GF_PROP_PID_UNFRAMED_SRT, "USRT", "Media is unframed SRT, header is in payload with 0 start time", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_DURATION, "Duration", "Media duration", GF_PROP_FRACTION64),
 	DEC_PROP( GF_PROP_PID_DURATION_AVG, "EstimatedDuration", "Media duration is an estimated duration based on rate", GF_PROP_BOOL),
 	DEC_PROP_F( GF_PROP_PID_NB_FRAMES, "NumFrames", "Number of frames in the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
@@ -1695,8 +1713,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- same value as ASID: regular SSR not used for cross-AS switching\n"
 	"- ID of another AdaptationSet: enable cross-AS switching between this AS and the referenced one\n"
 	"- negative value: LL-HLS compatability mode", GF_PROP_SINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AS_QUERY, "ASQuery", "Query string to add to this Adaptation Set when requesting segments", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_MUX_SRC, "MuxSrc", "Name of mux source(s), set by dasher to direct its outputs", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_MODE, "DashMode", "DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_DASH_INIT_BASE64, "InitBase64", "Indicate that multiplexer should send the base64 encoded version of the init segment", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_FORCE_SEG_SYNC, "SegSync", "Indicate segment must be completely flushed before sending segment/fragment size events", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_DUR, "DashDur", "DASH target segment duration in seconds", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_FDUR, "FragDur", "DASH target fragment duration in seconds", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
@@ -1715,6 +1735,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_CLAMP_DUR, "ClampDur", "Max media duration to process from PID in DASH mode", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_GROUPID, "HLSGroup", "Name of HLS Group of a stream", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_HLS_GROUP_REND, "HLSRend", "List of HLS group allowed in group rendition - when not set, all groups are allowed", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_FORCE_INF, "HLSForce", "Force writing EXT-X-STREAM-INF if stream is in a rendition group, value is the name of associated groups (can be empty)", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_EXT_MASTER, "HLSMExt", "List of extensions to add to the master playlist for this PID", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_EXT_VARIANT, "HLSVExt", "List of extensions to add to the variant playlist for this PID", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
@@ -1738,6 +1759,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Color primaries", GF_PROP_CICP_COL_PRIM, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Color transfer characteristics", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_COLR_TRANSFER_ALT, "ColorTransferAlternative", "Alternative Color transfer characteristics", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_MX, "ColorMatrix", "Color matrix coefficient", GF_PROP_CICP_COL_MX, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_RANGE, "FullRange", "Color full range flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_COLR_CHROMAFMT, "Chroma", "Chroma format (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
@@ -1753,7 +1775,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_FRAG_START, "FragStart", "Packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_FRAG_RANGE, "FragRange", "Start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PCK_FRAG_TFDT, "FragTFDT", "Decode time of first packet in fragmentt", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_FRAG_TFDT, "FragTFDT", "Decode time of first packet in fragment", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_SIDX_RANGE, "SIDXRange", "Start and end position in bytes of sidx in segment if any", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_VOD_SIDX_RANGE, "VODSIDXRange", "Start and end position in bytes of root sidx", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM),
@@ -1795,10 +1817,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- 3: GHI(X) manifest", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_SPARSE, "Sparse", "PID has potentially empty times between packets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_CHARSET, "CharSet", "Character set for input text PID", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_FORCED_SUB, "ForcedSub", "PID or Packet is forced sub\n"
+	DEC_PROP_F( GF_PROP_PID_FORCED_SUB, "ForcedSub", "PID forced sub\n"
 	"- 0: not forced\n"
-	"- 1: forced frame\n"
-	"- 2: all frames are forced (PID only)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	"- 1: some frames are forced\n"
+	"- 2: all frames are forced", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_CHAP_TIMES, "ChapTimes", "Chapter start times", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_CHAP_NAMES, "ChapNames", "Chapter names", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
@@ -1825,7 +1847,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_ID, "RefID", "packet identifier for dependency (usually POC for video)", GF_PROP_SINT, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_REFS, "Refs", "list of packet identifier this packet depends on", GF_PROP_SINT_LIST, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_UDTA, "UDTA", "User data for the packet", GF_PROP_POINTER, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PCK_TIMECODES, "Timecodes", "list of timecodes as extracted from SEI (if present)", GF_PROP_DATA_NO_COPY, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_TIMECODE, "Timecode", "First timecode extracted from SEI (if present)", GF_PROP_DATA, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PID_DOLBY_VISION, "DOVI", "DolbyVision configuration", GF_PROP_DATA, 0),
 	DEC_PROP_F( GF_PROP_PID_OUTPATH, "OutPath", "Output file name of PID used by some filters creating additional raw PIDs", GF_PROP_STRING, 0),
@@ -1858,6 +1880,23 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_LLHAS_TEMPLATE, "LLHASTemplate", "Template for DASH-SSR and LLHLS sub-segments", GF_PROP_STRING, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_PARTIAL_REPAIR, "PartialRepair", "indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PID_SEI_LOADED, "SEILoaded", "indicate that PID is extracting SEI/inband data from packets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_FAKE, "Fake", "Indicate a stream present in the source but not delivered as a PID", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_CONTENT_LIGHT_LEVEL, "ContentLightLevel", "Content light level, payload of clli box (see ISO/IEC 14496-12), can be set as a list of 2 integers in fragment declaration (e.g. \"=max_cll,max_pic_avg_ll\")", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_MASTER_DISPLAY_COLOUR, "MasterDisplayColour", "Master display colour info, payload of mdcv box (see ISO/IEC 14496-12), can be set as a list of 10 integers in fragment declaration (e.g. \"=dpx0,dpy0,dpx1,dpy1,dpx2,dpy2,wpx,wpy,max,min\")", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_SEI_LOADED, "SEILoaded", "indicate that packet has SEI/inband data in its properties", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+
+	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_PTS, "OriginalPTS", "indicate original PTS or PCR when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_ORIGINAL_DTS, "OriginalDTS", "indicate original DTS when remapping M2TS PCR", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+
+	DEC_PROP_F( GF_PROP_PID_MABR_URLS, "MABRBaseURLs", "optionnal URLs for MABR - if first is `none`source server is not declared as repair server", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
+
+	DEC_PROP_F( GF_PROP_PCK_FORCED_SUB, "Forced", "indicate packet is a forced subtitle", GF_PROP_BOOL, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_TIME_DISCONTINUITY, "TimeDiscontinuity", "indicate a time discontinuity in PID - the value increases by one between each discontinuity", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+
+	DEC_PROP_F( GF_PROP_PID_AMVE_ILLUMINANCE, "AmbientIlluminance", "indicate the ambient illuminance extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_X, "AmbientLightX", "indicate the ambient light x extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_AMVE_LIGNT_Y, "AmbientLightY", "indicate the ambient light y extracted from the stream", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
@@ -1953,6 +1992,11 @@ Bool gf_props_sanity_check()
 				res = GF_FALSE;
 			}
 			if (GF_BuiltInProps[i].name && GF_BuiltInProps[j].name && !strcmp(GF_BuiltInProps[i].name, GF_BuiltInProps[j].name)) {
+				//we allow same name for properties assigned to PIDs or Packets
+				u32 f1 = GF_BuiltInProps[i].flags & GF_PROP_FLAG_PCK;
+				u32 f2 = GF_BuiltInProps[j].flags & GF_PROP_FLAG_PCK;
+				if (f1 != f2) continue;
+
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s and %s have the same name %s\n", gf_4cc_to_str(GF_BuiltInProps[i].type), gf_4cc_to_str(GF_BuiltInProps[j].type), GF_BuiltInProps[i].name));
 				res = GF_FALSE;
 			}
@@ -2188,13 +2232,12 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		return dump;
 
 	case GF_PROP_PID_CHANNEL_LAYOUT:
-		if (!gf_sys_is_test_mode()) {
-			u32 cicp = gf_audio_fmt_get_cicp_from_layout(att->value.longuint);
-			const char *name = gf_audio_fmt_get_cicp_name(cicp);
-			if (name) return name;
-		}
+	{
+		const char *name = gf_audio_fmt_get_cicp_name( gf_audio_fmt_get_cicp_from_layout(att->value.longuint) );
+		if (name) return name;
 		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
-
+	}
+	
 	case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		//for tx3d SDP config only
 		if (gf_utf8_is_legal(att->value.data.ptr, att->value.data.size))

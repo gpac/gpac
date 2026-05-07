@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -927,11 +927,21 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		gf_bifs_dec_qp14_enter(codec, GF_TRUE);
 	}
 
-	if (gf_bs_read_int(bs, 1)) {
+	codec->tree_depth++;
+	//don't allow too deep trees, will likely result in stack overflow
+#define MAX_TREE_DEPTH	1500
+	if (codec->tree_depth > MAX_TREE_DEPTH) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Maximum tree depth (%u) exceeded, cannot decode\n", MAX_TREE_DEPTH));
+		e = GF_NON_COMPLIANT_BITSTREAM;
+	}
+	else if (gf_bs_read_int(bs, 1)) {
 		e = gf_bifs_dec_node_mask(codec, bs, new_node, proto ? GF_TRUE : GF_FALSE);
 	} else {
 		e = gf_bifs_dec_node_list(codec, bs, new_node, proto ? GF_TRUE : GF_FALSE);
 	}
+	codec->tree_depth--;
+#undef MAX_TREE_DEPTH
+
 	if (codec->coord_stored && reset_qp14)
 		gf_bifs_dec_qp14_reset(codec);
 

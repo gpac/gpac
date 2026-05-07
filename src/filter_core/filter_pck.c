@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -351,7 +351,7 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 			ref = ref->reference;
 		}
 	}
-	
+
 	if (max_ref>1) {
 		u8 *data_new;
 		if (dangling_packet) {
@@ -800,9 +800,7 @@ Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 		//destroy pcki
 		if ((i+1<count) || !final) {
-			pcki->pck = NULL;
-			pcki->pid = NULL;
-
+			memset(pcki, 0, sizeof(GF_FilterPacketInstance));
 			if (gf_fq_res_add(pck->pid->filter->pcks_inst_reservoir, pcki)) {
 				gf_free(pcki);
 			}
@@ -888,6 +886,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		gf_filter_pck_discard(pck);
 		return GF_BAD_PARAM;
 	}
+	if (pid->not_connected) {
+		gf_filter_pck_discard(pck);
+		return GF_OK;
+	}
 
 	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 
@@ -902,8 +904,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		pid->filter->eos_probe_state = 2;
 
 	pid->filter->nb_pck_io++;
-
-	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
 	cktype = ( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
 
@@ -982,7 +982,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			pck->pid->filter->session->nb_realloc_pck += (nb_reallocs - prev_nb_reallocs);
 		}
 #endif
-		gf_rmt_end();
 		return GF_PENDING_PACKET;
 	}
 	//now dispatched
@@ -1143,9 +1142,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
-		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process) continue;
+		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process || dst->in_swap) continue;
 
-		if (dst->discard_inputs==1) {
+		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
 				//unassign old property list and set the new one
@@ -1167,7 +1166,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				//in which a previously blacklisted filter (failing (re)configure for previous state) could
 				//now work, eg moving from formatA to formatB then back to formatA
 				gf_list_reset(dst->filter->blacklisted);
-				dst->discard_inputs = 2;
+				dst->discard_inputs = GF_PIDI_DISCARD_RCFG;
 				//and post a reconfigure task
 				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task_discard, dst->filter, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
 				//keep packets, they will be trashed if we are still in discard when executing gf_filter_pid_reconfigure_task_discard
@@ -1191,8 +1190,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 		inst->pck = pck;
 		inst->pid = dst;
-		inst->pid_props_change_done = 0;
-		inst->pid_info_change_done = 0;
 
 		//if packet is forcing main thread processing increase destination filter main_thread
 		if (force_main_thread) {
@@ -1300,7 +1297,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 					if (inst->pck->pid_props) {
 						safe_int_inc(&inst->pck->pid_props->reference_count);
 					}
-					
+
 					gf_assert(pck->reference_count);
 					safe_int_dec(&pck->reference_count);
 					safe_int_inc(&inst->pck->reference_count);
@@ -1358,7 +1355,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			//otherwise we would have max_buffer_time=1ms (default) and a single AU dispatched would block unless speed is AU_DUR_ms/1ms ...
 			if (us_duration && pid->max_buffer_time && (pid->max_buffer_time<us_duration))
 				pid->max_buffer_time = us_duration;
-				
+
 			gf_mx_v(pid->filter->tasks_mx);
 
 			//post process task
@@ -1388,7 +1385,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 		gf_filter_packet_destroy(pck);
 	}
-	gf_rmt_end();
 	return GF_OK;
 }
 
@@ -1459,6 +1455,11 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	gf_filter_pck_reset_props(npck, pid);
 	npck->info = srcpck->info;
 	npck->info.flags |= GF_PCKF_PROPS_REFERENCE;
+	if (PCK_IS_INPUT( (*pck) )) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) (*pck);
+		if (pcki->is_marked)
+			npck->info.flags |= GF_PCKF_IS_MARKED;
+	}
 	//keep data size
 	npck->data_length = srcpck->data_length;
 
@@ -1552,7 +1553,7 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 		gf_props_remove_property(pck->props, hash, prop_4cc, prop_name ? prop_name : dyn_name);
 	}
 	if (!value) return GF_OK;
-	
+
 	return gf_props_insert_property(pck->props, hash, prop_4cc, prop_name, dyn_name, value);
 }
 
@@ -1746,6 +1747,25 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 	gf_assert(pck);
 	//get true packet pointer
 	return (GF_FilterSAPType) ( (pck->pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pck_set_switch_frame(GF_FilterPacket *pck, Bool is_switch_frame)
+{
+	PCK_SETTER_CHECK("switch_frame")
+	pck->info.flags &= ~GF_PCKF_IS_SWITCH_FRAME;
+	if (is_switch_frame) {
+		pck->info.flags |= GF_PCKF_IS_SWITCH_FRAME;
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_pck_get_switch_frame(GF_FilterPacket *pck)
+{
+	gf_assert(pck);
+	//get true packet pointer
+	return (Bool) (pck->pck->info.flags & GF_PCKF_IS_SWITCH_FRAME) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
@@ -2018,4 +2038,33 @@ void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size)
 	} else {
 		pck->data_length = size;
 	}
+}
+
+GF_EXPORT
+GF_Err gf_filter_pck_set_mark(GF_FilterPacket *pck, Bool is_marked)
+{
+	if (PCK_IS_INPUT(pck)) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck;
+		pcki->is_marked = is_marked ? 1 : 0;
+		return GF_OK;
+	}
+	pck = pck->pck;
+	if (pck->info.flags & GF_PCKF_PROPS_REFERENCE) {
+		if (is_marked)
+			pck->info.flags |= GF_PCKF_IS_MARKED;
+		else
+			pck->info.flags &= ~GF_PCKF_IS_MARKED;
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+}
+
+GF_EXPORT
+Bool gf_filter_pck_get_mark(GF_FilterPacket *pck)
+{
+	if (PCK_IS_INPUT(pck)) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck;
+		return pcki->is_marked ? GF_TRUE : GF_FALSE;
+	}
+	return (pck->info.flags & GF_PCKF_IS_MARKED) ? GF_TRUE : GF_FALSE;
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -603,7 +603,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	if (dasher->dash_mode) {
 		e |= gf_dynstrcat(&args, (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) ? "dynlast" : "dynamic", ":");
 		//make dasher reschedule by default for MP4Box
-		e |= gf_dynstrcat(&args, "reschedule", ":");
+		if (dasher->dash_state || dasher->sub_duration)
+			e |= gf_dynstrcat(&args, "reschedule", ":");
 	}
 	if (dasher->disable_segment_alignment) e |= gf_dynstrcat(&args, "!align", ":");
 	if (dasher->enable_mix_codecs) e |= gf_dynstrcat(&args, "mix_codecs", ":");

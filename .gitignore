@@ -54,7 +54,9 @@ bld/
 [Oo]bj/
 __pycache__/
 *.py[cod]
-
+share/python/build/
+*egg-info
+ 
 
 .DS_Store .AppleDouble .LSOverride
 

@@ -545,8 +545,8 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 			return GF_BAD_PARAM;
 
 		char *pname = gf_malloc(sizeof(char)*(len+1));
-		gf_bs_read_data(bs, pname, len);
-		pname[len]=0;
+		u32 read = gf_bs_read_data(bs, pname, len);
+		pname[read]=0;
 
 		memset(&p, 0, sizeof(GF_PropertyValue));
 		p.type = gf_bs_read_u8(bs);
@@ -919,10 +919,12 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			char *pname=NULL;
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			u32 len = gsfdmx_read_vlen(bs);
+			u32 read=0;
 			if (len<=0x1000000) {
 				pname = gf_malloc(sizeof(char)*(len+1) );
-				if (pname)
-					gf_bs_read_data(bs, pname, len);
+				if (pname) {
+					read = gf_bs_read_data(bs, pname, len);
+				}
 			}
 			if (!pname) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Invalid property size %d\n", len ));
@@ -930,7 +932,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 				gpck->pck = NULL;
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			pname[len] = 0;
+			pname[read] = 0;
 			p.type = gf_bs_read_u8(bs);
 			if (p.type==GF_PROP_FORBIDDEN) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property %s\n", pname ));

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom ParisTech 2007-2025
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript Compositor extensions
@@ -64,6 +64,7 @@ typedef struct
 	GF_List *event_queue;
 	GF_Mutex *event_mx;
 
+	Bool owns_fs_api;
 } GF_SCENEJSExt;
 
 enum {
@@ -176,21 +177,21 @@ static void scenejs_finalize(JSRuntime *rt, JSValue obj);
 static void scenejs_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
 	GF_SCENEJSExt *ext = JS_GetOpaque(val, scene_class_id);
-    if (ext) {
+	if (ext) {
 		JS_MarkValue(rt, ext->evt_fun, mark_func);
-    }
+	}
 }
 
 JSClassDef sceneClass = {
-    "JSSCENE",
-    .finalizer = scenejs_finalize,
-    .gc_mark = scenejs_gc_mark
+	"JSSCENE",
+	.finalizer = scenejs_finalize,
+	.gc_mark = scenejs_gc_mark
 };
 JSClassDef gpacEvtClass = {
-    "GPACEVT"
+	"GPACEVT"
 };
 JSClassDef odmClass = {
-    "MediaObject"
+	"MediaObject"
 };
 JSClassDef anyClass = {
 	"GPACOBJECT"
@@ -767,7 +768,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, odi.max_bitrate);
 	case GJS_OM_PROP_SERVICE_HANDLER:
 		gf_odm_get_object_info(odm, &odi);
-            return JS_NewString(ctx, odi.service_handler ? odi.service_handler : "unloaded");
+		return JS_NewString(ctx, odi.service_handler ? odi.service_handler : "unloaded");
 	case GJS_OM_PROP_CODEC:
 		gf_odm_get_object_info(odm, &odi);
 		return JS_NewString(ctx, odi.codec_name ? odi.codec_name : "unloaded");
@@ -825,15 +826,15 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx,  (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
 		break;
 	case GJS_OM_PROP_BANDWIDTH_DOWN:
-        if (odm->scene_ns->source_filter) {
+		if (odm->scene_ns->source_filter) {
 			JSValue ret;
-            GF_PropertyEntry *pe=NULL;
-            const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
-            ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
-            gf_filter_release_property(pe);
-            return ret;
-        }
-        return JS_NewInt32(ctx, 0);
+			GF_PropertyEntry *pe=NULL;
+			const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE, &pe);
+			ret = JS_NewInt32(ctx, prop ? prop->value.uint/1000 : 0);
+			gf_filter_release_property(pe);
+			return ret;
+		}
+		return JS_NewInt32(ctx, 0);
 
 	case GJS_OM_PROP_NB_HTTP:
 		if (odm->scene_ns->source_filter) {
@@ -917,9 +918,13 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 
 	case GJS_OM_PROP_SERVICE_NAME:
 		if (odm->pid) {
-			const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_SERVICE_NAME);
+			GF_PropertyEntry *pe=NULL;
+			JSValue ret = JS_NULL;
+			const GF_PropertyValue *p = gf_filter_pid_get_info(odm->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 			if (p && p->value.string)
-				return JS_NewString(ctx, p->value.string);
+				ret = JS_NewString(ctx, p->value.string);
+			gf_filter_release_property(pe);
+			return ret;
 		}
 		return JS_NULL;
 
@@ -1870,13 +1875,13 @@ static void scenejs_finalize(JSRuntime *rt, JSValue obj)
 	gf_list_del(sjs->event_queue);
 	gf_mx_del(sjs->event_mx);
 
-	if (sjs->compositor && sjs->compositor->filter) {
+	if (sjs->owns_fs_api && sjs->compositor && sjs->compositor->filter) {
 		gf_fs_unload_script(sjs->compositor->filter->session, NULL);
 	}
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 	JS_FreeValueRT(rt, sjs->evt_fun);
 	if (sjs->evt_filter.udta) {
-		if (sjs->compositor)
+		if (sjs->owns_fs_api && sjs->compositor)
 			gf_filter_remove_event_listener(sjs->compositor->filter, &sjs->evt_filter);
 		sjs->evt_filter.udta = NULL;
 	}
@@ -1943,6 +1948,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 		//don't check error code, this may fail if global JS has been set but the script may still run
 		if (gf_fs_load_js_api(c, fs) == GF_OK) {
 			scene->attached_session = fs;
+			sjs->owns_fs_api = GF_TRUE;
 		}
 	}
 
@@ -1993,7 +1999,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 
 	JS_FreeValue(c, global);
 
-    JS_SetModuleExport(c, m, "scene", sjs->scene_obj);
+	JS_SetModuleExport(c, m, "scene", sjs->scene_obj);
 	return 0;
 }
 

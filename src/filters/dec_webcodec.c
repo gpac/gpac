@@ -68,7 +68,7 @@ void wcdec_on_error(GF_WCDecCtx *ctx, int state, char *msg)
 }
 
 EM_JS(int, wcdec_init, (int wc_ctx, int _codec_str, int width, int height, int sample_rate, int num_channels, int dsi, int dsi_size), {
-	let codec_str = _codec_str ? libgpac.UTF8ToString(_codec_str) : null;
+	let codec_str = _codec_str ? UTF8ToString(_codec_str) : null;
 	let config = {};
 	config.codec = codec_str;
 	let dec_class = null;
@@ -82,7 +82,7 @@ EM_JS(int, wcdec_init, (int wc_ctx, int _codec_str, int width, int height, int s
 		dec_class = AudioDecoder;
 	}
 	if (dsi_size) {
-		config.description = new Uint8Array(libgpac.HEAPU8.buffer, dsi, dsi_size);
+		config.description = new Uint8Array(HEAPU8.buffer, dsi, dsi_size);
 	}
 
 	if (typeof libgpac._to_webdec != 'function') {
@@ -93,11 +93,11 @@ EM_JS(int, wcdec_init, (int wc_ctx, int _codec_str, int width, int height, int s
           }
           return null;
 		};
-		libgpac._on_wcdec_error = libgpac.cwrap('wcdec_on_error', null, ['number', 'number', 'string']);
-		libgpac._on_wcdec_frame = libgpac.cwrap('wcdec_on_video', null, ['number', 'bigint', 'string', 'number', 'number']);
-		libgpac._on_wcdec_audio = libgpac.cwrap('wcdec_on_audio', null, ['number', 'bigint', 'string', 'number', 'number', 'number']);
-		libgpac._on_wcdec_flush = libgpac.cwrap('wcdec_on_flush', null, ['number']);
-		libgpac._on_wcdec_frame_copy = libgpac.cwrap('wcdec_on_frame_copy', null, ['number', 'number', 'number']);
+		libgpac._on_wcdec_error = cwrap('wcdec_on_error', null, ['number', 'number', 'string']);
+		libgpac._on_wcdec_frame = cwrap('wcdec_on_video', null, ['number', 'bigint', 'string', 'number', 'number']);
+		libgpac._on_wcdec_audio = cwrap('wcdec_on_audio', null, ['number', 'bigint', 'string', 'number', 'number', 'number']);
+		libgpac._on_wcdec_flush = cwrap('wcdec_on_flush', null, ['number']);
+		libgpac._on_wcdec_frame_copy = cwrap('wcdec_on_frame_copy', null, ['number', 'number', 'number']);
 	}
 	let c = libgpac._to_webdec(wc_ctx);
 	if (!c) {
@@ -258,7 +258,7 @@ EM_JS(int, wcdec_push_frame, (int wc_ctx, int buf, int buf_size, int key, u64 ts
 	const chunk = new EncodedVideoChunk({
 		timestamp: Number(ts),
 		type: key ? "key" : "delta",
-		data: new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size)
+		data: new Uint8Array(HEAPU8.buffer, buf, buf_size)
   });
   c.dec.decode(chunk);
 })
@@ -269,7 +269,7 @@ EM_JS(int, wcdec_push_audio, (int wc_ctx, int buf, int buf_size, int key, u64 ts
 	const chunk = new EncodedAudioChunk({
 		timestamp: Number(ts),
 		type: key ? "key" : "delta",
-		data: new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size)
+		data: new Uint8Array(HEAPU8.buffer, buf, buf_size)
   });
   c.dec.decode(chunk);
 })
@@ -279,7 +279,7 @@ EM_JS(int, wcdec_copy_frame, (int wc_ctx, int dst_pck, int buf, int buf_size), {
 	if (!c || !c._frame || !dst_pck) return;
 
 	//setup dst
-	let ab = new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size);
+	let ab = new Uint8Array(HEAPU8.buffer, buf, buf_size);
 	let frame = c._frame;
 	c._frame = null;
 	frame.copyTo(ab).then( layout => {
@@ -383,7 +383,7 @@ EM_JS(int, wcdec_copy_audio, (int wc_ctx, int buf, int buf_size, int plane_index
 	if (!c || !c._frame) return;
 
 	//setup dst
-	let ab = new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size);
+	let ab = new Uint8Array(HEAPU8.buffer, buf, buf_size);
 	c._frame.copyTo(ab, { planeIndex: plane_index });
 })
 

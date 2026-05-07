@@ -687,7 +687,7 @@ restart:
 		}
 		ctx->is_sync = GF_TRUE;
 
-		if (!ctx->in_seek) {
+		if (!ctx->in_seek && remain >= hdr.frame_size) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, hdr.frame_size, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 			gf_filter_pck_merge_properties(ctx->src_pck ? ctx->src_pck : ctx->src_current, dst_pck);

@@ -51,6 +51,8 @@ void mp4c_help(u32 argmode);
 
 #endif
 
+GF_Err gf_fs_process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link);
+
 
 //if uncommented, check argument description matches our conventions - see filter.h
 #define CHECK_DOC
@@ -103,4 +105,3 @@ void gpac_open_urls(const char *urls);
 #ifdef GPAC_DEFER_MODE
 void gpac_defer_help(void);
 #endif // GPAC_DEFER_MODE
-

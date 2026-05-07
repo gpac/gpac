@@ -165,12 +165,12 @@ u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 c
 		else if (level_check <= 3840*2160*30) dv_level = 7;
 		else if (level_check <= 3840*2160*48) dv_level = 8;
 		else if (level_check <= 3840*2160*60) dv_level = 9;
-        else if (level_check <= 3840*2160*120) {
-            if (width == 7680) dv_level = 11;
-            else dv_level = 10;
-        }
-        else if (level_check <= 7680*4320*60) dv_level = 12;
-        else dv_level = 13;
+		else if (level_check <= 3840*2160*120) {
+			if (width == 7680) dv_level = 11;
+			else dv_level = 10;
+		}
+		else if (level_check <= 7680*4320*60) dv_level = 12;
+		else dv_level = 13;
 	}
 	return dv_level;
 }
@@ -300,6 +300,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	GF_Err e;
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video=GF_FALSE;
+	u32 inject_rap_sample_group = 0;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
 	u64 mtimescale;
 	s32 trans_x, trans_y;
@@ -316,7 +317,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	GF_ISOTrackCloneFlags clone_flags;
 	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
-		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
+		u32 track_count = gf_isom_get_track_count(import->orig);
+		if (track_count > GF_IMPORT_MAX_TRACKS) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Track count (%u) exceeds maximum (%u), will ignore extra tracks.\n", track_count, GF_IMPORT_MAX_TRACKS));
+			track_count = GF_IMPORT_MAX_TRACKS;
+		}
+		for (i=0; i<track_count; i++) {
 			import->tk_info[i].track_num = gf_isom_get_track_id(import->orig, i+1);
 			mtype = gf_isom_get_media_type(import->orig, i+1);
 			switch (mtype) {
@@ -487,12 +493,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			clone_flags = 0;
 	}
 	clone_flags |= GF_ISOM_CLONE_RESET_DURATION;
-	
+
 	if (import->flags & GF_IMPORT_USE_DATAREF)
 		clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
 	if (import->target_trackID && (import->target_trackID==(u32)-1))
 		clone_flags |= GF_ISOM_CLONE_TRACK_DROP_ID;
-		
+
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
 
@@ -531,12 +537,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_VISUAL:
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Video (size %d x %d)", orig_name, trackID, w, h);
 		break;
-    case GF_ISOM_MEDIA_AUXV:
-        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
-        break;
-    case GF_ISOM_MEDIA_PICT:
-        gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Picture sequence (size %d x %d)", orig_name, trackID, w, h);
-        break;
+	case GF_ISOM_MEDIA_AUXV:
+		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Auxiliary Video (size %d x %d)", orig_name, trackID, w, h);
+		break;
+	case GF_ISOM_MEDIA_PICT:
+		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Picture sequence (size %d x %d)", orig_name, trackID, w, h);
+		break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		if (ps) {
@@ -630,6 +636,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	}
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
 
+
 	if (is_cenc) {
 		u32 container_type;
 		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, 1, &container_type, NULL, NULL);
@@ -657,6 +664,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				gf_isom_sample_del(&samp);
 				break;
 			}
+
+			if ((import->flags & GF_IMPORT_FORCE_SYNC) && ((samp->IsRAP==SAP_TYPE_3) || (samp->IsRAP==SAP_TYPE_4))) {
+				samp->IsRAP = SAP_TYPE_1;
+			}
+
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
@@ -697,11 +709,28 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				break;
 			}
 
+			if ((import->flags & GF_IMPORT_FORCE_SYNC) && ((samp->IsRAP==SAP_TYPE_3) || (samp->IsRAP==SAP_TYPE_4))) {
+				samp->IsRAP = SAP_TYPE_1;
+			}
+
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
 		if (samp->nb_pack)
 			i+= samp->nb_pack-1;
+
+		//when importing files indicating SAP3 as sync points, we will drop all SAP3 points - check if we need to add 'rap '
+		//sample to group info, ie if it was not present in source track - cf #2992
+		if (!(import->flags & GF_IMPORT_FORCE_SYNC) && (samp->IsRAP == SAP_TYPE_3)) {
+			if (!inject_rap_sample_group) {
+				u32 sgdi=0;
+				gf_isom_get_sample_to_group_info(import->orig, track_in, i+1, GF_ISOM_SAMPLE_GROUP_RAP, 0, &sgdi);
+				inject_rap_sample_group = sgdi ? 1 : 2;
+			}
+			if (inject_rap_sample_group == 2) {
+				e = gf_isom_set_sample_rap_group(import->dest, track, i+1, GF_TRUE, 0);
+			}
+		}
 		gf_isom_sample_del(&samp);
 
 		//this will also copy all sample to group mapping, including seig for CENC
@@ -830,7 +859,7 @@ GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 		GF_BitStream *newbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		u32 prev_size = 8*gf_isom_get_nalu_length_field(file, track, di);
 		if (!prev_size) return GF_NON_COMPLIANT_BITSTREAM;
-		
+
 		remain = samp->dataLength;
 		while (remain) {
 			u32 size = gf_bs_read_int(oldbs, prev_size);
@@ -941,7 +970,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		for (i=0; i<gf_isom_get_track_count(import->dest); i++) {
 			GF_ISOSample *samp;
 			u32 timescale, inc;
-            u32 mtype = gf_isom_get_media_type(import->dest, i+1);
+			u32 mtype = gf_isom_get_media_type(import->dest, i+1);
 			if (!gf_isom_is_video_handler_type(mtype)) continue;
 			if (gf_isom_get_sample_count(import->dest, i+1) < 20) continue;
 			samp = gf_isom_get_sample_info(import->dest, 1, 2, NULL, NULL);
@@ -990,7 +1019,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		if (!strnicmp(sL, "AddChapter(", 11)) {
 			u32 nb_fr;
 			sscanf(sL, "AddChapter(%u,%1023s)", &nb_fr, szTitle);
-			ts = gf_timestamp_rescale(nb_fr, 1000 * import->video_fps.den, import->video_fps.num);
+			ts = gf_timestamp_rescale(nb_fr, import->video_fps.num, 1000 * import->video_fps.den);
 			sL = strchr(sL, ',');
 			strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
@@ -1294,7 +1323,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 			tki->codecid = p ? p->value.uint : GF_CODECID_NONE;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
-			if (p && p->value.string) tki->lang = GF_4CC(p->value.string[0], p->value.string[1], p->value.string[2], ' ');
+			if (p && p->value.string && (strlen(p->value.string)>=3))
+				tki->lang = GF_4CC(p->value.string[0], p->value.string[1], p->value.string[2], ' ');
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 			tki->track_num = p ? p->value.uint : 1;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
@@ -1411,6 +1441,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_2) { e |= gf_dynstrcat(&args, "ase=v0s", ":"); }
+	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS) { e |= gf_dynstrcat(&args, "ase=v0bs", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { e |= gf_dynstrcat(&args, "ase=v1", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { e |= gf_dynstrcat(&args, "ase=v1qt", ":"); }
 

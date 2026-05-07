@@ -266,11 +266,11 @@ writeonly boolean write_depth;
 Float32Buffer depth_buffer;
 
 /*! sets current projection matrix to use
-\param projection_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+\param projection_matrix the 16 float coefficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
 */
 void projection(Float32Buffer projection_matrix);
 /*! sets current modelview matrix to use
-\param modelview_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+\param modelview_matrix the 16 float coefficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
 */
 void modelview(Float32Buffer modelview_matrix);
 
@@ -600,7 +600,7 @@ interface Matrix2D {
 	\param from the color matrix to use*/
 	Matrix2D(Matrix2D from);
 	/*! constructor
-	\param coefs the matrix coeficients
+	\param coefs the matrix coefficients
 	*/
 	Matrix2D(double coefs...);
 
@@ -707,7 +707,7 @@ interface ColorMatrix {
 	\param from the color matrix to use */
 	ColorMatrix(ColorMatrix from);
 	/*! constructor
-	\param coefs the matrix coeficients
+	\param coefs the matrix coefficients
 	 */
 	ColorMatrix(double coefs...);
 	
@@ -1138,7 +1138,7 @@ interface ConvolutionKernel
 	attribute unsigned long h;
 	/*! kernel normalization. If 0 or undefined, no normalization is applied*/
 	attribute unsigned long norm;
-	/*! kernel coeficients. The coeficients are unsigned integers, and there shall be at least w * h coefficients*/
+	/*! kernel coefficients. The coefficients are unsigned integers, and there shall be at least w * h coefficients*/
 	attribute Array k;
 };
 
@@ -1264,7 +1264,7 @@ attribute boolean identity;
 /*! indicates matrix is a 3D matrix*/
 attribute const boolean is3D = true;
 
-/*! float buffer of coeficients (typically use matrix.m to pass matrices uniforms)*/
+/*! float buffer of coefficients (typically use matrix.m to pass matrices uniforms)*/
 attribute Array<float> m;
 /*! yaw value of matrix*/
 attribute readonly float yaw;
@@ -1283,7 +1283,7 @@ attribute readonly Vec4f dec_rotate;
 attribute readonly Vec3f dec_shear;
 
 /*! copies matrix
-\param from matrix to copy coeficient from
+\param from matrix to copy coefficient from
 \return the matrix object
 */
 Matrix copy(Matrix from);

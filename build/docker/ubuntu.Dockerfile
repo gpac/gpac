@@ -26,5 +26,8 @@ RUN mv -v *.deb /gpac/binaries/
 #install
 RUN dpkg -i /gpac/binaries/*.deb
 
+#cleanup GH temp token
+RUN sed -i -e 's/.*extraheader = AUTHORIZATION.*//' .git/config
+
 
 CMD ["gpac"]

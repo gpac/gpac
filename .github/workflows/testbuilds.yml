@@ -1,0 +1,39 @@
+name: test builds
+run-name: test builds
+
+on:
+  push:
+  pull_request:
+    # We include 'synchronize' so that if you push new code
+    # to a labeled PR, the tests run again automatically.
+    types: [labeled, synchronize]
+
+jobs:
+  freebsd-build:
+    if: |
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'test with buildbot')
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          copyback: false
+          prepare: |
+            pkg install -y \
+            gcc gmake pkgconf git \
+            freetype2 jpeg-turbo png libmad faad2 libogg libvorbis libtheora liba52 ffmpeg \
+            libnghttp2 openjpeg xvid openssl sdl2 curl
+          run: |
+            set -e
+            gmake distclean
+            ./configure
+            gmake
+            gmake install
+            uname -a
+            which gpac
+            gpac -h
+            gpac -hx filters

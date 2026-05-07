@@ -368,8 +368,8 @@ u16 MPEG12_PictHdrTempRef(unsigned char *pbuffer)
 
 static u64 read_pts (u8 *pak)
 {
-	u64 pts;
-	u16 temp;
+	u64 pts=0;
+	u16 temp=0;
 
 	pts = ((pak[0] >> 1) & 0x7);
 	pts <<= 15;
@@ -421,8 +421,8 @@ static void adv_past_pack_hdr (FILE *fd,
                                u8 *pak,
                                u32 read_from_start)
 {
-	u8 stuffed;
-	u8 readbyte;
+	u8 stuffed=0;
+	u8 readbyte=0;
 	u8 val;
 	if (read_from_start < 5) {
 		file_skip_bytes(fd, 5 - read_from_start);
@@ -441,7 +441,8 @@ static void adv_past_pack_hdr (FILE *fd,
 	file_skip_bytes(fd, 13 - read_from_start);
 	file_read_bytes(fd, &readbyte, 1);
 	stuffed = readbyte & 0x7;
-	file_skip_bytes(fd, stuffed);
+	if (stuffed)
+		file_skip_bytes(fd, stuffed);
 }
 
 /*
@@ -587,7 +588,7 @@ static Bool read_pes_header_data (FILE *fd,
                                   mpeg2ps_ts_t *ts)
 {
 	u16 pes_len = orig_pes_len;
-	u8 local[10];
+	u8 local[10] = {0};
 	u32 hdr_len;
 
 	ts->have_pts = 0;
@@ -1250,6 +1251,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 	u8 stream_id, stream_ix, substream, av_ix, max_cnt;
 	u16 pes_len, pes_left;
 	mpeg2ps_ts_t ts;
+	memset(&ts, 0, sizeof(mpeg2ps_ts_t));
 	s64 loc, first_video_loc = 0, first_audio_loc = 0;
 	s64 check, orig_check;
 	mpeg2ps_stream_t *sptr;

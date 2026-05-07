@@ -26,6 +26,9 @@
 #include "downloader.h"
 #ifndef GPAC_DISABLE_NETWORK
 
+#ifdef GPAC_HAS_HTTP2
+#include <nghttp2/nghttp2.h>
+#endif
 
 #ifdef GPAC_HAS_NGTCP2
 #include <ngtcp2/ngtcp2_crypto.h>
@@ -400,10 +403,10 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned ch
 #endif
 
 
-#ifdef GPAC_HAS_NGHTTP2
+#ifdef GPAC_HAS_HTTP2
 	int rv = nghttp2_select_next_protocol((unsigned char **)out, outlen, in, inlen);
 	if (rv == 1)
-		return SSL_TLSEXT_ERR_OK
+		return SSL_TLSEXT_ERR_OK;
 #endif
 	return SSL_TLSEXT_ERR_NOACK;
 }
@@ -541,16 +544,17 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 /*	if (!for_quic)
 		SSL_CTX_set_quic_method(ctx, NULL);
 */
+#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 	if (next_proto_list_len) {
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
 	}
-
+#endif
 
 	SSL_CTX_set_default_verify_paths(ctx);
-    SSL_CTX_set_ecdh_auto(ctx, 1);
+	SSL_CTX_set_ecdh_auto(ctx, 1);
 
 //	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
 	if (SSL_CTX_use_certificate_chain_file(ctx, cert) != 1) {
@@ -793,6 +797,7 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
 			sess->status = GF_NETIO_SETUP;
 			sess->connect_pending = 2;
+			sess->last_error = GF_IP_NETWORK_EMPTY;
 			return SSL_CONNECT_WAIT;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
@@ -841,6 +846,8 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
  * \brief Saves the digest for authentication of password and username
 \param dm The download manager
 \param creds The credentials to fill
+\param password the password
+\param store_info write to cred file or not
 \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
 static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserCredentials * creds, const char * password, Bool store_info) {
@@ -979,6 +986,7 @@ static void on_user_pass(void *udta, const char *user, const char *pass, Bool st
  * \brief Asks the user for credentials for given site
 \param dm The download manager
 \param creds The credentials to fill
+\param secure is auth required?
 \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
 static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, GF_UserCredentials * creds, Bool secure)

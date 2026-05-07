@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2024
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / FLAC reframer filter
@@ -150,7 +150,7 @@ static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 
 	rate = gf_ftell(stream);
 	gf_fclose(stream);
-	if (ctx->duration.num && !gf_sys_is_test_mode() ) {
+	if (ctx->duration.num) {
 		rate *= 8 * ctx->duration.den;
 		rate /= ctx->duration.num;
 		ctx->bitrate = (u32) rate;
@@ -387,7 +387,7 @@ static u32 flac_dmx_crc16(const u8 *data, u32 len)
 {
 	u32 crc = 0;
 	const u8 *end = data+len;
-    while (data < end) {
+	while (data < end) {
 		crc = flac_dmx_crc16_table[((u8) crc) ^ *data++] ^ (crc >> 8);
 	}
 	return crc;
@@ -426,16 +426,16 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 		return GF_FALSE;
 
 	ch_lay = gf_bs_read_int(ctx->bs, 4);
-    if (ch_lay < FLAC_CHANNELS) {
-    } else if (ch_lay < FLAC_CHANNELS + FLAC_MID_SIDE) {
-        ch_lay = 1;
-    } else {
+	if (ch_lay < FLAC_CHANNELS) {
+	} else if (ch_lay < FLAC_CHANNELS + FLAC_MID_SIDE) {
+		ch_lay = 1;
+	} else {
 		return GF_FALSE;
-    }
+	}
 
 
 	u32 bps = gf_bs_read_int(ctx->bs, 3);
-    if (bps == 3)
+	if (bps == 3)
 		return GF_FALSE;
 	//reserved=0
 	if (gf_bs_read_int(ctx->bs, 1))
@@ -487,18 +487,18 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 	if (crc != crc_hdr) {
 		return GF_FALSE;
 	}
-    // subframe reserved zero bit
-    if (gf_bs_read_int(ctx->bs, 1) != 0)
-        return GF_FALSE;
-    // subframe type
-    crc = gf_bs_read_int(ctx->bs, 6);
-    if ((crc == 0) || (crc == 1)
+	// subframe reserved zero bit
+	if (gf_bs_read_int(ctx->bs, 1) != 0)
+		return GF_FALSE;
+	// subframe type
+	crc = gf_bs_read_int(ctx->bs, 6);
+	if ((crc == 0) || (crc == 1)
 		|| ((crc >= 8) && (crc <= 12))
 		|| (crc >= 32)
 	) {
 	} else {
-        return GF_FALSE;
-    }
+		return GF_FALSE;
+	}
 
 	if (gf_bs_is_overflow(ctx->bs))
 		return GF_FALSE;
@@ -689,12 +689,13 @@ restart:
 				}
 				if (last) break;
 			}
-			if (!dsi_end) {
+			if (!dsi_end || !hdr.sample_rate || ! hdr.block_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FLACDmx] invalid FLAC header\n"));
 				ctx->in_error = GF_TRUE;
 				ctx->flac_buffer_size = 0;
 				if (pck)
 					gf_filter_pid_drop_packet(ctx->ipid);
+				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			ctx->ch_layout = hdr.channels;
@@ -744,7 +745,7 @@ restart:
 			cts = GF_FILTER_NO_TS;
 		}
 
-		if (!ctx->in_seek) {
+		if (!ctx->in_seek && remain >= next_frame) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, next_frame, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, start, next_frame);

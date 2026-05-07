@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -1458,8 +1458,8 @@ static JSValue svg_connection_create(JSContext *c, JSValueConst obj, int argc, J
 
 static void baseCI_finalize(JSRuntime *rt, JSValue obj)
 {
-	/*avoids GCC warning*/
-	void *data = JS_GetOpaque_Nocheck(obj);
+	JSClassID _classID;
+	void *data = JS_GetAnyOpaque(obj, &_classID);
 	if (data) gf_free(data);
 }
 

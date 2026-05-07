@@ -402,7 +402,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 		pctx->op.packetno ++;
 
 		if (pctx->theora_kgs) {
-            Bool is_sap = (data[0] & 0x40) ? 0 : 1;
+			Bool is_sap = (data[0] & 0x40) ? 0 : 1;
 			if (is_sap) {
 				pctx->nb_i += pctx->nb_p;
 				pctx->nb_p = 0;

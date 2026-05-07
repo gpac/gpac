@@ -4,11 +4,32 @@ on:
   push:
     branches:
       - master
+    tags:
+      - v*
 
 jobs:
+
+    gettag:
+        runs-on: ubuntu-latest
+        outputs:
+          version_tag: ${{ steps.set_version.outputs.VERSION }}
+        steps:
+        - name: 'Set Version Tag'
+          id: set_version
+          run: |
+              if [ "${{ github.ref_type }}" == "tag" ]; then
+                VERSION=${{ github.ref_name }}
+              else
+                VERSION="latest"
+              fi
+              echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        - name: 'Use Version Tag'
+          run: |
+            echo "The determined version tag is: ${{ steps.set_version.outputs.VERSION }}"
+
     linux-image-deploy:
         runs-on: ubuntu-latest
-        #if:  ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+        needs: gettag
         steps:
             - name: Check out code
               uses: actions/checkout@v3
@@ -23,14 +44,14 @@ jobs:
             - name: login docker hub
               run: docker login --username gpac  --password ${{secrets.DOCKER_HUB_TOKEN}}
             - name: tag docker image
-              run: docker tag gpac-ubuntu gpac/ubuntu:latest
+              run: docker tag gpac-ubuntu gpac/ubuntu:${{ needs.gettag.outputs.version_tag }}
             - name: push docker image
-              run: docker push gpac/ubuntu:latest
+              run: docker push gpac/ubuntu:${{ needs.gettag.outputs.version_tag }}
 
 
     wasm-image-deploy:
         runs-on: ubuntu-latest
-        #if:  ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+        needs: gettag
         steps:
             - name: Check out code
               uses: actions/checkout@v3
@@ -45,6 +66,6 @@ jobs:
             - name: login docker hub
               run: docker login --username gpac  --password ${{secrets.DOCKER_HUB_TOKEN}}
             - name: tag docker image
-              run: docker tag gpac-wasm gpac/wasm:latest
+              run: docker tag gpac-wasm gpac/wasm:${{ needs.gettag.outputs.version_tag }}
             - name: push docker image
-              run: docker push gpac/wasm:latest
+              run: docker push gpac/wasm:${{ needs.gettag.outputs.version_tag }}

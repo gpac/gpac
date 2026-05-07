@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -31,7 +31,7 @@
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
 static char szTYPE_BUF[NB_4CC_BUF][GF_4CC_MSIZE];
-static u32 buf_4cc_idx = NB_4CC_BUF;
+static u32 buf_4cc_idx = 0;
 
 GF_EXPORT
 const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
@@ -47,7 +47,7 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 		if ( ch >= 0x20 && ch <= 0x7E ) {
 			*name = ch;
 			name++;
-		} else if (!gf_sys_is_test_mode() ) {
+		} else {
 			char szTmp[2];
 			szTmp[0] = 0xc2;
 			szTmp[1] = ch;
@@ -58,7 +58,7 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 			} else {
 				szTmp[0] = 0xc3;
 				if (gf_utf8_is_legal(szTmp, 2)) {
-					name[0] = 0xc2;
+					name[0] = 0xc3;
 					name[1] = ch;
 					name+=2;
 				} else {
@@ -66,9 +66,6 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 					name += 2;
 				}
 			}
-		} else {
-			sprintf(name, "%02X", ch);
-			name += 2;
 		}
 	}
 	*name = 0;
@@ -80,10 +77,16 @@ GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	if (!type) return "00000000";
-	if (safe_int_dec(&buf_4cc_idx)==0)
-		buf_4cc_idx=NB_4CC_BUF;
 
-	return gf_4cc_to_str_safe(type, szTYPE_BUF[buf_4cc_idx-1]);
+	// we get the value *before* the increment insuring that other thread get another value
+	u32 old_idx = safe_int_fetch_add(&buf_4cc_idx, 1);
+
+	// keep our specific value between 0 and NB_4CC_BUF-1
+	// we might have an issue when buf_4cc_idx > INT_MAX since our atomics cast to int
+	// when it gets > UINT_MAX it should just wrap around and be ok
+	u32 buffer_index = old_idx % NB_4CC_BUF;
+
+	return gf_4cc_to_str_safe(type, szTYPE_BUF[buffer_index]);
 }
 
 
@@ -235,6 +238,7 @@ static struct log_tool_info {
 	{ GF_LOG_ROUTE, "route", GF_LOG_WARNING, .alt = "flute" },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
+	{ GF_LOG_RMTWS, "rmtws", GF_LOG_WARNING },
 };
 
 #define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)
@@ -789,6 +793,7 @@ Bool gpac_log_utc_time = GF_FALSE;
 Bool gpac_log_dual = GF_FALSE;
 Bool last_log_is_lf = GF_TRUE;
 static u64 gpac_last_log_time=0;
+Bool gpac_use_logx = GF_FALSE;
 
 static void do_log_time(FILE *logs, const char *fmt)
 {
@@ -874,18 +879,120 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 
 
 
-static void *user_log_cbk = NULL;
+void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 Bool gpac_log_console = GF_FALSE;
 #endif
+static GF_List *logs_thread_tags = NULL;
+
+typedef struct
+{
+	u32 th_id;
+	Bool tagged;
+	u32 type;
+	void *udta;
+} GF_LogThreadTag;
+
+void gf_logs_init()
+{
+	logs_thread_tags = gf_list_new();
+}
+
+void gf_logs_close()
+{
+	if (gpac_log_file) {
+		gf_fclose(gpac_log_file);
+		gpac_log_file = NULL;
+	}
+	while (gf_list_count(logs_thread_tags)) {
+		GF_LogThreadTag *tag = gf_list_pop_back(logs_thread_tags);
+		gf_free(tag);
+	}
+	gf_list_del(logs_thread_tags);
+}
+
+static void gf_logs_set_thread_tag_internal(void *tag_val, u32 tag_type, Bool is_tag, Bool is_rem)
+{
+	if (!is_rem && !gpac_use_logx && (tag_type>1))
+		return;
+
+	if (!logs_thread_tags)
+		return;
+
+	gf_mx_p(logs_mx);
+	u32 i, count = gf_list_count(logs_thread_tags);
+	GF_LogThreadTag *tag = NULL;
+	for (i=0;i<count;i++) {
+		tag = gf_list_get(logs_thread_tags, i);
+		if (tag->udta == tag_val) {
+			if (is_rem) {
+				gf_list_rem(logs_thread_tags, i);
+				gf_free(tag);
+				gf_mx_v(logs_mx);
+				return;
+			}
+			break;
+		}
+		tag = NULL;
+	}
+	if (is_rem) return;
+
+	if (!tag) {
+		GF_SAFEALLOC(tag, GF_LogThreadTag)
+		tag->udta = tag_val;
+		gf_list_add(logs_thread_tags, tag);
+	}
+	gf_mx_v(logs_mx);
+	tag->tagged = is_tag;
+	tag->type = tag_type;
+	tag->th_id = gf_th_id();
+}
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type)
+{
+	gf_logs_set_thread_tag_internal(tag_val, tag_type, GF_TRUE, GF_FALSE);
+}
+void gf_logs_thread_untag(void *tag_val)
+{
+	gf_logs_set_thread_tag_internal(tag_val, 0, GF_FALSE, GF_FALSE);
+}
+void gf_logs_thread_tag_del(void *tag_val)
+{
+	gf_logs_set_thread_tag_internal(tag_val, 0, GF_FALSE, GF_TRUE);
+}
+
+
+void *gf_logs_get_thread_tag(u32 *tag_type, u32 *o_th_id)
+{
+	u32 th_id = gf_th_id();
+	u32 i, count = gf_list_count(logs_thread_tags);
+	GF_LogThreadTag *highest_tag = NULL;
+	for (i=0; i<count; i++) {
+		GF_LogThreadTag *tag = gf_list_get(logs_thread_tags, i);
+		if (tag->tagged && (tag->th_id == th_id)) {
+			if (!highest_tag || (highest_tag->type < tag->type))
+				highest_tag = tag;
+		}
+	}
+	*o_th_id = th_id;
+	if (highest_tag) {
+		*tag_type = highest_tag->type;
+		return highest_tag->udta;
+	}
+	*tag_type = 0;
+	return NULL;
+}
 
 GF_EXPORT
 Bool gf_log_use_color()
 {
 	return (log_cbk == default_log_callback_color) ? GF_TRUE : GF_FALSE;
 }
+
+static Bool in_log_callback = GF_FALSE;
+
 
 GF_EXPORT
 void gf_log(const char *fmt, ...)
@@ -897,12 +1004,17 @@ void gf_log(const char *fmt, ...)
 		});
 	}
 #endif
-	va_list vl;
-	va_start(vl, fmt);
 	gf_mx_p(logs_mx);
-	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	//don't allow GF_LOG to be called from GF_LOG this will likely throw infinite recursion
+	if (!in_log_callback) {
+		va_list vl;
+		va_start(vl, fmt);
+		in_log_callback = GF_TRUE;
+		log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+		in_log_callback = GF_FALSE;
+		va_end(vl);
+	}
 	gf_mx_v(logs_mx);
-	va_end(vl);
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
 		EM_ASM({
@@ -918,7 +1030,15 @@ void gf_log(const char *fmt, ...)
 GF_EXPORT
 void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vl)
 {
-	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+	gf_mx_p(logs_mx);
+	//don't allow GF_LOG to be called from GF_LOG this will likely throw infinite recursion
+	if (!in_log_callback) {
+		in_log_callback = GF_TRUE;
+		log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
+		in_log_callback = GF_FALSE;
+	}
+	gf_mx_v(logs_mx);
+
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
 	}
@@ -964,6 +1084,11 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 }
 
 #else
+
+void gf_logs_thread_tag(void *tag_val, u32 tag_type){}
+void gf_logs_thread_untag(void *tag_val){}
+void gf_logs_thread_tag_del(void *tag_val){}
+
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
@@ -1522,6 +1647,9 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_RFAC3
 	                       "GPAC_DISABLE_RFAC3 "
 #endif
+#ifdef GPAC_DISABLE_RFAC4
+	                       "GPAC_DISABLE_RFAC4 "
+#endif
 #ifdef GPAC_DISABLE_RFADTS
 	                       "GPAC_DISABLE_RFADTS "
 #endif
@@ -1587,6 +1715,9 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_UFMHAS
 	                       "GPAC_DISABLE_UFMHAS "
+#endif
+#ifdef GPAC_DISABLE_UFAC4
+	                       "GPAC_DISABLE_UFAC4 "
 #endif
 #ifdef GPAC_DISABLE_UFM4V
 	                       "GPAC_DISABLE_UFM4V "
@@ -2275,6 +2406,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		frac->den = 1;
 		while (i<len) {
 			i++;
+			if (frac->den > GF_UINT64_MAX / 10)
+				return GF_FALSE;
 			frac->den *= 10;
 		}
 		//trash trailing zero
@@ -2283,6 +2416,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 			if (sep[i] != '0') {
 				break;
 			}
+			if (div_trail_zero > GF_UINT_MAX / 10)
+				return GF_FALSE;
 			div_trail_zero *= 10;
 			i--;
 		}
@@ -2350,4 +2485,42 @@ const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)
                data = next+1;
        }
        return NULL;
+}
+
+GF_EXPORT
+Bool gf_sys_solve_path(const char *url, char szPath[GF_MAX_PATH])
+{
+	char *path;
+	u32 radlen=6;
+	Bool rem_name=GF_FALSE;
+	if (!strncmp(url, "$GCFG", 5)) {
+		path = (char *)gf_opts_get_filename();
+		rem_name = GF_TRUE;
+		radlen=5;
+	} else {
+#ifdef WIN32
+		path = getenv("HOMEPATH");
+#elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
+		path = (char *) gf_opts_get_key("core", "docs-dir");
+#else
+		path = getenv("HOME");
+#endif
+	}
+
+	if (path && path[0]) {
+		strncpy(szPath, path, GF_MAX_PATH-1);
+		szPath[GF_MAX_PATH-1] = 0;
+		if (rem_name) {
+			char *sep = strrchr(szPath, '/');
+			if (!sep) sep = strrchr(szPath, '\\');
+			if (sep) sep[0] = 0;
+		}
+		u32 len = (u32) strlen(szPath);
+		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
+			szPath[len-1]=0;
+
+		strncat(szPath, url+radlen, GF_MAX_PATH-strlen(szPath)-1);
+		return GF_TRUE;
+	}
+	return GF_FALSE;
 }

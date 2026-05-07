@@ -267,6 +267,8 @@ static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (!ifs2D->coord) return;
+	if ((gf_node_get_tag(ifs2D->coord) != TAG_MPEG4_Coordinate) && (gf_node_get_tag(ifs2D->coord) != TAG_MPEG4_Coordinate2D))
+		return;
 
 	ifs2d_check_changes(node, stack, tr_state);
 

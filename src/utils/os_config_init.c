@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -335,7 +335,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #else
 
 //dlinfo
-#if defined(__DARWIN__) || defined(__APPLE__)
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(__FreeBSD__)
 #include <dlfcn.h>
 
 typedef Dl_info _Dl_info;
@@ -357,7 +357,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	char app_path[GF_MAX_PATH];
 	char *sep;
-#if (defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX))
+#if (defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX) || defined(__FreeBSD__))
 	u32 size;
 #endif
 
@@ -419,7 +419,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			return 1;
 		}
 
-#elif defined(GPAC_CONFIG_LINUX)
+#elif defined(GPAC_CONFIG_LINUX) || defined(__FreeBSD__)
 		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH-1);
 		if (size>0) {
 			file_path[size] = 0;
@@ -456,7 +456,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 
 	if (path_type==GF_PATH_LIB) {
-#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX)
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX) || defined(__FreeBSD__)
 		_Dl_info dl_info;
 		dl_info.dli_fname = NULL;
 		if (dladdr((void *)get_default_install_path, &dl_info)
@@ -763,9 +763,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 
 		/*create config file from disk*/
 		if (profile) {
-			sprintf(szPath, "%s%cprofiles%c%s%c%s", file_path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, profile, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+			snprintf(szPath, sizeof(szPath), "%s%cprofiles%c%s%c%s", file_path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, profile, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 		} else {
-			sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
+			snprintf(szPath, sizeof(szPath), "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to create config file: %s\n", szPath ));
 
@@ -1521,8 +1521,10 @@ GF_GPACArg GPAC_Args[] = {
  "- f=K: drop first `n` packets every `K`\n"
  "- d=K: reorder `n` packets after the next `K` packets, can be used with `f` or `r` rules\n"
  "- p=K: filter packets on port `K` only, if not set the rule applies to all packets\n"
- "- o=K: patch packet instead of droping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
+ "- o=K: patch packet instead of dropping (always true for TCP), replacing byte at offset `K` (0 is first byte, <0 for random)\n"
  "- v=K: set patch byte value to `K` (hexa) or negative value for random (default)\n"
+ "- S=K: same as `s` but adds number of capture file reload/loop\n"
+ "- E=K: same as `e` but adds number of capture file reload/loop\n"
  "\nEX -netcap=dst=dump.gpc\n"
  "This will record packets to dump.gpc\n"
  "\nEX -netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp\n"
@@ -1588,11 +1590,11 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in PID graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("sched", NULL, "set scheduler mode\n"
-		"- free: lock-free queues except for task list (default)\n"
-		"- lock: mutexes for queues when several threads\n"
+		"- free: lock-free queues except for task list (default on most platforms)\n"
+		"- lock: mutexes for queues when several threads (default on arm64/aarch64)\n"
 		"- freex: lock-free queues including for task lists (experimental)\n"
 		"- flock: mutexes for queues even when no thread (debug mode)\n"
-		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", GPAC_SCHED_DEFAULT, "free|lock|flock|freex|direct", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links. Default value covers for __[ in -> ] dmx -> reframe -> decode -> encode -> reframe -> mx [ -> out]__. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-sleep", NULL, "set maximum sleep time slot in milliseconds when regulation is enabled", "50", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("step-link", NULL, "load filters one by one when solvink a link instead of loading all filters for the solved path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
@@ -1629,16 +1631,23 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
 "- utf16: force UTF-16 little endian\n"
 "- utf16be: force UTF-16 big endian\n"
 "- other: attempt to parse anyway", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
+ GF_DEF_ARG("srt-forced", NULL, "enable SRT with forced subtitles extensions", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
 
- GF_DEF_ARG("rmt", NULL, "enable profiling through [Remotery](https://github.com/Celtoys/Remotery). A copy of Remotery visualizer is in gpac/share/vis, usually installed in __/usr/share/gpac/vis__ or __Program Files/GPAC/vis__", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-port", NULL, "set remotery port", "17815", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-reuse", NULL, "allow remotery to reuse port", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-localhost", NULL, "make remotery only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-sleep", NULL, "set remotery sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-nmsg", NULL, "set remotery number of messages per update", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-qsize", NULL, "set remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-log", NULL, "redirect logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
- GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt", NULL, "enable remote monitoring webserver", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-port", NULL, "set rmt ws port", "6363", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-localhost", NULL, "make rmt ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-sleep", NULL, "set rmt ws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-cert", NULL, "rmt ws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-pkey", NULL, "rmt ws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("rmt-path", NULL, "rmt ws: path to JS backend", "$GSHARE/scripts/rmt/server.js", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-port", NULL, "set user ws port", "6364", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-localhost", NULL, "make userws ws only accepts localhost connection", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-sleep", NULL, "set userws sleep (ms) between server updates", "10", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-cert", NULL, "userws: certificate file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+ GF_DEF_ARG("userws-pkey", NULL, "userws: private key file in PEM format to use for TLS mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+
+
+ GF_DEF_ARG("diso-nosize", NULL, "skip box size info when dumping ISOBMFF", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 
  GF_DEF_ARG("m2ts-vvc-old", NULL, "hack for old TS streams using 0x32 for VVC instead of 0x33", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("piff-force-subsamples", NULL, "hack for PIFF PSEC files generated by 0.9.0 and 1.0 MP4Box with wrong subsample_count inserted for audio", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
@@ -1646,6 +1655,8 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
  GF_DEF_ARG("heif-hevc-urn", NULL, "use HEVC URN for alpha and depth in HEIF instead of MPEG-B URN (HEIF first edition)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("boxdir", NULL, "use box definitions in the given directory for XML dump", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("no-mabr-patch", NULL, "disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+ GF_DEF_ARG("no-cdrf", NULL, "disable cdrf sample dep", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+ GF_DEF_ARG("no-evp", NULL, "disable all OpenSSL hardware acceleration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
 
 
  {0}

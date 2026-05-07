@@ -172,7 +172,7 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*reset global QP*/
-	if (codec->scenegraph->global_qp) {
+	if (codec->scenegraph->global_qp && codec->scenegraph->global_qp != node) {
 		gf_node_unregister(codec->scenegraph->global_qp, NULL);
 	}
 	codec->ActiveQP = NULL;
@@ -1074,4 +1074,3 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, u8 *data, u3
 }
 
 #endif /*GPAC_DISABLE_BIFS*/
-

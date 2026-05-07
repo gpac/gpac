@@ -243,7 +243,8 @@ static void ALSA_WriteAudio(GF_AudioOutput*dr)
 		return;
 	}
 
-	//assert(nb_frames*ctx->block_align<=ctx->buf_size);
+	if (nb_frames*ctx->block_align > ctx->buf_size)
+		nb_frames = ctx->buf_size / ctx->block_align;
 	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, (u32) (ctx->block_align*nb_frames) );
 	if (!written) return;
 	written /= ctx->block_align;

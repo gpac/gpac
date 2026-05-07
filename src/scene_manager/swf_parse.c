@@ -108,6 +108,13 @@ static void swf_init_decompress(SWFReader *read)
 	if (dst_size < 8) {
 		return;
 	}
+	//we use 500MB as max size
+	if (dst_size > 0x1FFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SWF Parsing] Decompressed size too big %u, max 500M\n", dst_size));
+		gf_bs_del(read->bs);
+		read->bs = NULL;
+		return;
+	}
 	src = gf_malloc(sizeof(char)*size);
 	dst = gf_malloc(sizeof(char)*dst_size);
 	memset(dst, 0, sizeof(char)*8);
@@ -1828,11 +1835,12 @@ static GF_Err swf_def_sound(SWFReader *read)
 		char *frame;
 		GF_Err e=GF_OK;
 
-		sprintf(szName, "swf_sound_%d.mp3", snd->ID);
+		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_sound_%d.mp3", snd->ID);
 		if (read->localPath) {
 			snd->szFileName = (char*)gf_malloc(sizeof(char)*GF_MAX_PATH);
-			strcpy(snd->szFileName, read->localPath);
-			strcat(snd->szFileName, szName);
+			strncpy(snd->szFileName, read->localPath, GF_MAX_PATH-1);
+			snd->szFileName[GF_MAX_PATH-1] = 0;
+			strncat(snd->szFileName, szName, GF_MAX_PATH-1);
 		} else {
 			snd->szFileName = gf_strdup(szName);
 		}
@@ -1848,14 +1856,18 @@ static GF_Err swf_def_sound(SWFReader *read)
 		while (tot_size<read->size) {
 			u32 toread = read->size - tot_size;
 			if (toread>alloc_size) toread = alloc_size;
-			swf_read_data(read, frame, toread);
-			if (gf_fwrite(frame, sizeof(char)*toread, snd->output) != toread)
+			if (swf_read_data(read, frame, toread) != toread) {
 				e = GF_IO_ERR;
+			} else {
+				if (gf_fwrite(frame, sizeof(char)*toread, snd->output) != toread)
+					e = GF_IO_ERR;
+			}
 			tot_size += toread;
 		}
 
 		gf_free(frame);
 		if (e) {
+			if (snd->szFileName) gf_free(snd->szFileName);
 			gf_free(snd);
 			return e;
 		}
@@ -1976,9 +1988,9 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 	case 2:
 		read->sound_stream = snd;
 		if (read->localPath) {
-			sprintf(szName, "%s/swf_soundstream_%d.mp3", read->localPath, read->current_sprite_id);
+			snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_soundstream_%d.mp3", read->localPath, read->current_sprite_id);
 		} else {
-			sprintf(szName, "swf_soundstream_%d.mp3", read->current_sprite_id);
+			snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_soundstream_%d.mp3", read->current_sprite_id);
 		}
 		read->sound_stream->szFileName = gf_strdup(szName);
 		read->setup_sound(read, read->sound_stream, 0);
@@ -2106,9 +2118,9 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 	/*dump file*/
 	if (read->localPath) {
-		sprintf(szName, "%s/swf_jpeg_%d.jpg", read->localPath, ID);
+		snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_jpeg_%d.jpg", read->localPath, ID);
 	} else {
-		sprintf(szName, "swf_jpeg_%d.jpg", ID);
+		snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_jpeg_%d.jpg", ID);
 	}
 
 	if (version!=3) {
@@ -2204,9 +2216,9 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 			/*write png*/
 			if (read->localPath) {
-				sprintf(szName, "%s/swf_png_%d.png", read->localPath, ID);
+				snprintf(szName, GF_ARRAY_LENGTH(szName), "%s/swf_png_%d.png", read->localPath, ID);
 			} else {
-				sprintf(szName, "swf_png_%d.png", ID);
+				snprintf(szName, GF_ARRAY_LENGTH(szName), "swf_png_%d.png", ID);
 			}
 
 			osize = w*h*4;
@@ -2733,9 +2745,9 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 		if (load->svgOutFile) {
 			char svgFileName[GF_MAX_PATH];
 			if (load->localPath) {
-				sprintf(svgFileName, "%s%c%s.svg", load->localPath, GF_PATH_SEPARATOR, load->svgOutFile);
+				snprintf(svgFileName, GF_ARRAY_LENGTH(svgFileName), "%s%c%s.svg", load->localPath, GF_PATH_SEPARATOR, load->svgOutFile);
 			} else {
-				sprintf(svgFileName, "%s.svg", load->svgOutFile);
+				snprintf(svgFileName, GF_ARRAY_LENGTH(svgFileName), "%s.svg", load->svgOutFile);
 			}
 			svgFile = gf_fopen(svgFileName, "wt");
 			if (!svgFile) return GF_BAD_PARAM;

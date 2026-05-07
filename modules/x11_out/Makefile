@@ -4,15 +4,7 @@ vpath %.c $(SRC_PATH)/modules/x11_out
 
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) -Wno-deprecated-declarations
 
-ifeq ($(DEBUGBUILD),yes)
-CFLAGS+=-g
-LDFLAGS+=-g
-endif
-
-ifeq ($(GPROFBUILD),yes)
-CFLAGS+=-pg
-LDFLAGS+=-pg
-endif
+include ../common.mak
 
 CFLAGS+=-I"$(SRC_PATH)/include"
 
@@ -56,11 +48,11 @@ endif
 #common obj
 OBJS=x11_out.o
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_x11_out$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols  
+#LDFLAGS+=-export-symbols
 endif
 
 
@@ -74,13 +66,13 @@ ifeq ($(STATIC_BUILD),yes)
 endif
 
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

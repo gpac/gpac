@@ -101,12 +101,12 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 			case 0xCD:
 			case 0xCE:
 			case 0xCF:
-                length = gf_bs_read_u16(bs);
-                /*prec = */gf_bs_read_u8(bs);
+				length = gf_bs_read_u16(bs);
+				/*prec = */gf_bs_read_u8(bs);
 				h = gf_bs_read_int(bs, 16);
 				w = gf_bs_read_int(bs, 16);
-                nb_comp = gf_bs_read_int(bs, 8);
-                if (length != 8 + 3*nb_comp) continue;  //This is not the right marker
+				nb_comp = gf_bs_read_int(bs, 8);
+				if (length != 8 + 3*nb_comp) continue;  //This is not the right marker
 				if ((w > *width) || (h > *height)) {
 					*width = w;
 					*height = h;

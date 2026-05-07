@@ -605,7 +605,7 @@ s.text.skin = true;
 s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
 s.font.skin = true;
 
-//overrite style for button to have its own text color
+//overwrite style for button to have its own text color
 s = { name: 'button' };
 gwskin.styles.push(s);
 s.text = gw_new_appearance(1, 1, 1);

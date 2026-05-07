@@ -29,12 +29,12 @@ LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdev
 LOCAL_LDLIBS    += -llog -lOpenMAXAL -lmediandk -landroid
 
 #mpegh
-LOCAL_LDLIBS    += -lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFormatConverter -lgVBAPRenderer -lDRCdec -lUIManager -lSYS -lFDK -lm
+LOCAL_LDLIBS    += -lmpeghdec -lm
 
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO
 LOCAL_CFLAGS += -DGPAC_CONFIG_ANDROID
-LOCAL_CFLAGS += -DGPAC_DISABLE_REMOTERY
+LOCAL_CFLAGS += -DGPAC_DISABLE_RMTWS
 #for now QJS libc is disabled on android
 LOCAL_CFLAGS += -DGPAC_DISABLE_QJS_LIBC
 
@@ -187,6 +187,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dmx_ogg.c \
 	../../../../src/filters/dmx_saf.c \
 	../../../../src/filters/dmx_vobsub.c \
+	../../../../src/filters/enc_cc.c \
 	../../../../src/filters/enc_jpg.c \
 	../../../../src/filters/enc_png.c \
 	../../../../src/filters/encrypt_cenc_isma.c \
@@ -235,6 +236,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/out_rtsp.c \
 	../../../../src/filters/out_sock.c \
 	../../../../src/filters/reframe_ac3.c \
+	../../../../src/filters/reframe_ac4.c \
 	../../../../src/filters/reframe_adts.c \
 	../../../../src/filters/reframe_amr.c \
 	../../../../src/filters/reframe_av1.c \
@@ -255,11 +257,13 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/resample_audio.c \
 	../../../../src/filters/restamp.c \
 	../../../../src/filters/rewind.c \
+	../../../../src/filters/rewrite_ac4.c \
 	../../../../src/filters/rewrite_adts.c \
 	../../../../src/filters/rewrite_mhas.c \
 	../../../../src/filters/rewrite_mp4v.c \
 	../../../../src/filters/rewrite_nalu.c \
 	../../../../src/filters/rewrite_obu.c \
+	../../../../src/filters/sei_load.c \
 	../../../../src/filters/tileagg.c \
 	../../../../src/filters/tilesplit.c \
 	../../../../src/filters/tssplit.c \
@@ -362,7 +366,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/odf/qos.c \
 	../../../../src/odf/slc.c \
 	../../../../src/quickjs/cutils.c \
-	../../../../src/quickjs/libbf.c \
+	../../../../src/quickjs/dtoa.c \
 	../../../../src/quickjs/libregexp.c \
 	../../../../src/quickjs/libunicode.c \
 	../../../../src/quickjs/quickjs.c \
@@ -429,6 +433,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/path2d.c \
 	../../../../src/utils/path2d_stroker.c \
+	../../../../src/utils/rmt_ws.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/sha256.c \
 	../../../../src/utils/md5.c \

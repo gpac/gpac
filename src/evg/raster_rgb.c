@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -107,7 +107,7 @@ void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, 
 	col_no_a = col & 0x00FFFFFF;
 	for (i=0; i<count; i++) {
 		u32 a, fin, len;
-		char *p;
+		u8 *p;
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
 
@@ -228,10 +228,10 @@ GF_Err evg_surface_clear_rgb(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 			grey part
 */
 
-static void overmask_grey(u32 src, char *dst, u32 alpha, u32 grey_type)
+static void overmask_grey(u32 src, u8 *dst, u32 alpha, u32 grey_type)
 {
 	s32 srca = (src >> 24) & 0xff;
-	u32 srcc;
+	s32 srcc;
 	s32 dstc = *dst;
 
 	if (grey_type==0) srcc = (src >> 16) & 0xff;
@@ -243,7 +243,7 @@ static void overmask_grey(u32 src, char *dst, u32 alpha, u32 grey_type)
 	*dst = mul255(srca, srcc - dstc) + dstc;
 }
 
-static void overmask_grey_const_run(u8 srca, u8 srcc, char *dst, s32 dst_pitch_x, u32 count)
+static void overmask_grey_const_run(u8 srca, u8 srcc, u8 *dst, s32 dst_pitch_x, u32 count)
 {
 	while (count) {
 		u8 dstc = *(dst);
@@ -283,7 +283,7 @@ void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf,
 
 	for (i=0; i<count; i++) {
 		u32 a, len;
-		char *p;
+		u8 *p;
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
 
@@ -382,7 +382,7 @@ GF_Err evg_surface_clear_grey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 	else r = GF_COL_B(col);
 
 	for (y = 0; y < h; y++) {
-		char *data = surf ->pixels + (y + sy) * st + surf->pitch_x*sx;
+		u8 *data = surf ->pixels + (y + sy) * st + surf->pitch_x*sx;
 		memset(data, r, w*surf->pitch_x);
 	}
 	return GF_OK;

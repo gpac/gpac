@@ -120,7 +120,7 @@ The pid of a PidLink shall not be modified. The following variables can be check
 - pck: current pck if any
 - frame_ts: current frame timestamp in output video timescale
 - rotate: video Rotation property
-- Mirror: video Mirror property 
+- Mirror: video Mirror property
 
 Each scene must implement:
 - update(): check value of this.update_flag to see if scene has to be rebuild
@@ -158,7 +158,7 @@ globalThis.canvas_draw = canvas_draw;
 */
 globalThis.canvas_blit = canvas_blit;
 /*texture path on canvas - function shall only be used inside scene.draw()
-The input textures are fteched from the sequences associated with the scene 
+The input textures are fteched from the sequences associated with the scene
 \param path path (type Path) to draw
 \param op_type (=0) multitexture operand type
 \param op_param (=0) multitexture operand param
@@ -396,7 +396,7 @@ function build_help_mod(obj, name, mod_type, index)
 		filter._help += ' - ' + name + ': ' + obj.description + '\n';
 		filter.set_help(filter._help);
 		return;
-	} 
+	}
 
 	filter._help += (single_mod_help ? '# ' : '## ') + rad + ' `' + name + '`';
 	if (mod_type==1) {
@@ -405,10 +405,10 @@ function build_help_mod(obj, name, mod_type, index)
   		if (typeof inst.setup != 'function') {
 				filter._help += ' - GPU only';
   		} else {
-				filter._help += ' - software/GPU';  			
+				filter._help += ' - software/GPU';
   		}
 		} else {
-				filter._help += ' - software only';  						
+				filter._help += ' - software only';
 		}
 	}
 	filter._help += '\n' + obj.help + '\n';
@@ -466,12 +466,12 @@ function build_help(obj, playlist_only)
 		filter._help += obj.help_playlist + '\n';
 	}
 
-	let	scripts = sys.enum_directory(path+'scenes/', "*.js");
+	let	scripts = sys.enum_directory(path+'scenes/', "*.js").sort((a, b) => a.name.localeCompare(b.name));
 	for (let i=0; i<scripts.length; i++) {
 		let name = scripts[i].name;
 		import('./scenes/' + name).then(obj => { build_help_mod(obj, name, 0, i); }).catch(err => {});
 	}
-	scripts = sys.enum_directory(path+'transitions/', "*.js");
+	scripts = sys.enum_directory(path+'transitions/', "*.js").sort((a, b) => a.name.localeCompare(b.name));
 	for (let i=0; i<scripts.length; i++) {
 		let name = scripts[i].name;
 		import('./transitions/' + name).then(obj => { build_help_mod(obj, name, 1, i); }).catch(err => {});
@@ -479,7 +479,7 @@ function build_help(obj, playlist_only)
 	filter.set_help(filter._help);
 }
 
-filter.initialize = function() 
+filter.initialize = function()
 {
 	let gpac_help = sys.get_opt("temp", "gpac-help");
 	let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
@@ -514,7 +514,7 @@ filter.initialize = function()
 				name = help_mod + '.js';
 				import('./scenes/' + name).then(obj => { build_help_mod(obj, name, 0, 1); }).catch(err => {});
 				return GF_OK;
-			} 
+			}
 			script = path+'transitions/'+help_mod+'.js';
 			if (sys.file_exists(script)) {
 				name = help_mod + '.js';
@@ -587,7 +587,7 @@ filter.initialize = function()
 
 	if (!filter.ltimeout)
 			filter.ltimeout = 1000;
-	
+
 	if (filter.lwait > filter.ltimeout)
 		filter.lwait = filter.ltimeout;
 }
@@ -640,7 +640,7 @@ function configure_vout()
 {
 	if (!filter.vsize.x || !filter.vsize.y) {
 		if (vout) vout.remove();
-		vout = null;	
+		vout = null;
 		return;
 	}
 	if (filter.gpu) {
@@ -707,7 +707,7 @@ function configure_aout()
 {
 	if (!filter.sr || !filter.ch) {
 		if (aout) aout.remove();
-		aout = null;	
+		aout = null;
 		return;
 	}
 	print(GF_LOG_INFO, (filter.live ? 'Live ' : '' ) + 'Audio output ' + filter.sr + ' Hz ' + filter.ch + ' Channels');
@@ -752,7 +752,7 @@ function configure_aout()
 	audio_max_resched_dur_us = audio_frame_dur_us/3;
 }
 
-filter.configure_pid = function(pid) 
+filter.configure_pid = function(pid)
 {
 	if (pids.indexOf(pid)<0) {
 		pids.push(pid);
@@ -797,7 +797,7 @@ filter.configure_pid = function(pid)
 		pid.mirror = pid.get_prop('Mirror');
 		pid.rotate = pid.get_prop('Rotate');
 		pid.pfmt_check = 0;
-	}	
+	}
 	else if (p == 'Audio') {
 		//silently ignore
 		if (!aout) return GF_EOS;
@@ -854,12 +854,12 @@ filter.configure_pid = function(pid)
 
 			seq.sources.forEach(src => {
 				if (pid.source === src) scene.resetup_pids = true;
-			}); 
-		}); 
+			});
+		});
 	});
 }
 
-filter.remove_pid = function(pid) 
+filter.remove_pid = function(pid)
 {
 	let index = pids.indexOf(pid);
 	if (pid.pck) {
@@ -890,7 +890,7 @@ filter.remove_pid = function(pid)
 				scene.resetup_pids = true;
 				break;
 			}
-		} 
+		}
 	});
 }
 
@@ -918,7 +918,7 @@ filter.process_event = function(pid, evt)
 		return;
 	}
 
-	if (evt.type == GF_FEVT_STOP) { 
+	if (evt.type == GF_FEVT_STOP) {
 		if (pid==aout) {
 			audio_playing = false;
 			if (!wait_pid_play) aout.eos = true;
@@ -935,8 +935,8 @@ filter.process_event = function(pid, evt)
 			if (!wait_pid_play) return false;
 		}
 		return true;
-	} 
-	if (evt.type == GF_FEVT_PLAY) { 
+	}
+	if (evt.type == GF_FEVT_PLAY) {
 		if (pid==aout) {
 			audio_playing = true;
 		} else if (pid==vout) {
@@ -947,7 +947,7 @@ filter.process_event = function(pid, evt)
 			wait_pid_play--;
 		return true;
 	}
-	//cancel all other events	
+	//cancel all other events
 	return true;
 }
 
@@ -1009,7 +1009,7 @@ function do_terminate()
 			pid.pck.unref();
 			pid.pck = null;
 		}
-		pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
+		pid.send_event( new FilterEvent(GF_FEVT_STOP) );
 		pid.discard = true;
 	});
 	root_scene.scenes.length = 0;
@@ -1048,7 +1048,7 @@ filter.process = function()
 				do_video = true;
 			}
 		}
-		//audio ahead of next video frame, don't do audio - if not generating video, do nothing 
+		//audio ahead of next video frame, don't do audio - if not generating video, do nothing
 		if (!do_video && (!audio_playing || (audio_time * video_timescale > (video_time+video_time_inc) * audio_timescale))) {
 			//notify we are still alive
 			filter.reschedule(0);
@@ -1202,7 +1202,7 @@ function scene_resetup_pids(scene)
 
 		seq.sources.forEach(src => {
 			if (src.in_prefetch) return;
-			src.pids.forEach(pid => {	
+			src.pids.forEach(pid => {
 
 				//check audio pids
 		    if (pid.type == TYPE_AUDIO) {
@@ -1224,7 +1224,7 @@ function scene_resetup_pids(scene)
 				else
 					scene.mod.pids.push(pid_link);
 			});
-		}); 
+		});
 	});
 
 	prefetching.forEach(pid_link => {
@@ -1255,7 +1255,7 @@ function scene_update_visual_pids(scene)
 
 		if (!pidlink.pid.pck) {
 			if (pidlink.pid.source.in_prefetch) {
-				return;			
+				return;
 			}
 			if (pidlink.pid.source.no_signal) {
 				if (pidlink.texture) return;
@@ -1268,7 +1268,7 @@ function scene_update_visual_pids(scene)
 		if (!pidlink.pid.texture) {
 			if (!pidlink.pid.pck) {
 				ready = false;
-				return;				
+				return;
 			}
 			create_pid_texture(pidlink.pid);
 		}
@@ -1304,7 +1304,7 @@ function update_scene_matrix(scene)
 	let axis = scene.axis;
 	let orientation = scene.orientation;
 
-	if (scene.untransform)	
+	if (scene.untransform)
 		scene.mx_untransform = true;
 	else if (scene.mx_untransform)
 		scene.mx_untransform = false;
@@ -1801,7 +1801,7 @@ function update_scene(scene)
 	if (!scene_update_visual_pids(scene)) return;
 
 	scene.no_signal_time = 0;
-	//sequences defined, check for no sequence active if autoshow / nosig are set 
+	//sequences defined, check for no sequence active if autoshow / nosig are set
 	if (scene.sequences.length && scene.check_active) {
 		let disabled=true;
 		let min_nosig = 0;
@@ -1836,7 +1836,7 @@ function update_scene(scene)
 
 	if (scene.mod.update_flag)
 		scene.gl_uniforms_reload = true;
-	else if (scene.gl_uniforms_reload) 
+	else if (scene.gl_uniforms_reload)
 		scene.gl_uniforms_reload = false;
 
 
@@ -2273,7 +2273,7 @@ function process_video()
 		vout.set_prop('StrideUV', null);
 		last_forward_pixfmt = 0;
 		canvas_reconfig = true;
-	}			
+	}
 
 	clip_stack.length = 0;
 	global_branch_depth = 0;
@@ -2366,7 +2366,7 @@ function process_video()
 				canvas.pix_fmt = pfmt;
 				set_canvas_yuv(pfmt);
 			} else if (canvas_reconfig) {
-				canvas_reconfig = false;	
+				canvas_reconfig = false;
 				try {
 					canvas.reassign(video_width, video_height, pfmt, frame.data);
 				} catch (e) {
@@ -2377,7 +2377,7 @@ function process_video()
 
 				canvas.pix_fmt = pfmt;
 				set_canvas_yuv(pfmt);
-			} else {		
+			} else {
 				canvas.reassign(frame.data);
 			}
 
@@ -2419,7 +2419,7 @@ function process_video()
 		}
 		next_video_gen_time = vtime + video_frame_dur_us;
 	} else {
-			print(GF_LOG_DEBUG, 'sent video frame TS ' + (video_time) + '/' + video_timescale);		
+			print(GF_LOG_DEBUG, 'sent video frame TS ' + (video_time) + '/' + video_timescale);
 	}
 
 	video_time += video_time_inc;
@@ -2441,8 +2441,8 @@ function process_audio()
 	let mix_pids = [];
 
 	//if video is playing and not blocking, process audio event if blocking - this avoids cases where output frames are consumed by burst
-	//and the video burst happens befor the audio burst: we need to send video to fill the burst then unblock audio, but video won't be procesed
-	//if audio is blocking... 
+	//and the video burst happens befor the audio burst: we need to send video to fill the burst then unblock audio, but video won't be processed
+	//if audio is blocking...
 	if (aout.would_block && (!video_playing || vout.would_block)) {
 		return;
 	}
@@ -2752,7 +2752,7 @@ function sequence_over(s, force_seq_reload)
 				print(GF_LOG_DEBUG, 'source ' + next_src.logname + ' will end before sequence start offset ' + s.sequence.start_offset + ' - skipping');
 				s = next_src;
 				force_load_source = true;
-				continue;	
+				continue;
 			}
 
 			if (!is_same_source) {
@@ -2832,7 +2832,7 @@ function fetch_source(s)
 			});
 		} else {
 			inactive_sources++;
-			return;		
+			return;
 		}
 	}
 
@@ -2879,7 +2879,7 @@ function fetch_source(s)
 				nb_over++;
 				return;
 			}
-			
+
 			let tdiff = current_utc_clock - pid.last_pck_time;
 			if (tdiff > filter.lwait) {
 				force_wait_pid = false;
@@ -2902,14 +2902,14 @@ function fetch_source(s)
 					}
 				}
 				return;
-			} 
+			}
 
 			if (force_wait_pid || !pid.pck) {
 				if (pid.type==TYPE_VIDEO)
 					wait_video = true;
 				else
 					wait_audio = true;
-			} 
+			}
 			return;
 		}
 		if (pid.type==TYPE_UNHANDLED) {
@@ -3119,7 +3119,7 @@ function fetch_source(s)
 					relaunch = s.keep_alive ? 1 : 0;
 				}
 			}
-			//process is still alive but we are done 
+			//process is still alive but we are done
 			else if (!source_restart) {
 				print(GF_LOG_INFO, 'Child process for src ' + s.logname + ' still alive but eos notified');
 			}
@@ -3178,7 +3178,7 @@ function fetch_source(s)
 	  } else {
 	  	nb_over = 0;
 	  }
-	} else {		
+	} else {
 		nb_over = 0;
 	}
 
@@ -3229,7 +3229,7 @@ function fetch_source(s)
 		});
 		s.timeline_init = true;
 
-		if (s.seek && !s.video_time_at_init) 
+		if (s.seek && !s.video_time_at_init)
 			s.video_time_at_init = video_time+1;
 
 		fetch_source(s);
@@ -3243,7 +3243,7 @@ function fetch_source(s)
 		//active sources and waiting for inputs
 		else if (s.pids.length) {
 			if (wait_video) video_inputs_ready = false;
-			if (wait_audio) audio_inputs_ready = false;			
+			if (wait_audio) audio_inputs_ready = false;
 		}
 		return;
 	}
@@ -3268,7 +3268,7 @@ function get_source(id, src, par_seq)
 		if (par_seq && (elem.sequence != par_seq)) continue;
 		//same id, this is our source
 		if (id && (elem.id == id)) return elem;
-		
+
 		//if source ID is given and differs from source ID, not our source. This allows having 2 sources with the same URLs in the same sequence
 		if (id && (elem.id != id)) continue;
 
@@ -3290,7 +3290,7 @@ function get_source_by_pid(pid)
 {
 	let type = pid.get_prop("StreamType");
 	let res = null;
-	sources.forEach( elem => { 
+	sources.forEach( elem => {
 		elem.fsrc.forEach( (f, index) => {
 			if (typeof f.__dummy_tmp != 'undefined') {
 				if (pid.match_source(f._tmp_arg)) {
@@ -3301,10 +3301,10 @@ function get_source_by_pid(pid)
 			}
 			if (!pid.is_filter_in_parents(f)) return;
 
-			if ((f.media_type=="all") 
+			if ((f.media_type=="all")
 				|| ((type=='Visual') && (f.media_type.indexOf('v')>=0))
 				|| ((type=='Audio') && (f.media_type.indexOf('a')>=0))
-				|| ((type=='Text') && (f.media_type.indexOf('t')>=0)) 
+				|| ((type=='Text') && (f.media_type.indexOf('t')>=0))
 			) {
 				pid.skipped = false;
 				res = elem;
@@ -3312,7 +3312,7 @@ function get_source_by_pid(pid)
 				pid.skipped = true;
 			}
 
-		} );		
+		} );
 	} );
 	return res;
 }
@@ -3323,7 +3323,7 @@ function play_pid(pid, source) {
 	evt.start_range = source.media_start + source.sequence.start_offset;
 	if (source.video_time_at_init) {
 		evt.start_range += (video_time - (source.video_time_at_init-1)) / video_timescale;
-	} 
+	}
 
 	pid.done = false;
 	print(GF_LOG_DEBUG, 'Playing PID ' + source.logname + '.' + pid.name + ' @start=' + evt.start_range);
@@ -3379,7 +3379,7 @@ function stop_source(s, is_remove)
 					pid.pck.unref();
 					pid.pck = null;
 			}
-			pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
+			pid.send_event( new FilterEvent(GF_FEVT_STOP) );
 		});
 	}
 
@@ -3428,7 +3428,7 @@ function apply_links(links, target, fchain)
 
 	let sep = link.indexOf('#');
 	if (sep<0) {
-		if (link.length) 
+		if (link.length)
 			link_idx = parseInt(link);
 	} else {
 		let vals = arg.slice(sep);
@@ -3441,7 +3441,7 @@ function apply_links(links, target, fchain)
 		print(GF_LOG_ERROR, 'Wrong filter index ' + link_idx + ' in link directive ' + link);
 		broken_links = true;
 		return;
-	} 
+	}
 	let f_src = fchain[link_idx];
 	if (target) {
 		target.set_source(f_src, link_arg);
@@ -3484,7 +3484,7 @@ function open_source(s)
 		let do_cat_url = true;
 		let src_url = "";
 		let rfopts = "reframer";
-		if (use_raw) {			
+		if (use_raw) {
 			rfopts += ":raw=av";
 		}
 		//use real-time regulation
@@ -3504,7 +3504,7 @@ function open_source(s)
 			src_url += "gpac src=";
 		}
 		else if ((port==='tcp') || (port==='tcpu'))  {
-			local_filter = port+"://127.0.0.1:" + current_port + "/:listen";				
+			local_filter = port+"://127.0.0.1:" + current_port + "/:listen";
 			if (s.keep_alive) {
 				local_filter += ':ka';
 			  s.has_ka_process = true;
@@ -3531,13 +3531,13 @@ function open_source(s)
 			}
 			let cat_url;
 			if (idx>=0) {
-				cat_url = src.in.slice(0, idx); 
+				cat_url = src.in.slice(0, idx);
 			} else {
-				cat_url = src.in; 			
+				cat_url = src.in;
 			}
 			cat_url = sys.url_cat(filter.pl, cat_url);
 			if (idx>=0) {
-				cat_url += src.in.slice(idx); 
+				cat_url += src.in.slice(idx);
 			}
 			src_url += cat_url;
 		} else {
@@ -3558,13 +3558,13 @@ function open_source(s)
 		}
 
 		filter.lock_all(true);
-		try { 
+		try {
 			f = filter.add_source(local_filter);
 		} catch (e) {
 			print(GF_LOG_ERROR, 'Add source ' + local_filter + ' failed: ' + e);
 			disable_source(s);
 			filter.lock_all(false);
-			return;		
+			return;
 		}
 		filter.set_source(f);
 		filter.lock_all(false);
@@ -3582,13 +3582,13 @@ function open_source(s)
 		}
 		print(GF_LOG_INFO, 'Launch process for ' + args + ' OK');
 		return;
-	} 
+	}
 
 	//local load
 	filter.lock_all(true);
 	//parse command line
 	args = src.in.split(' ');
-	args = args.filter(function(item){return item;}); 
+	args = args.filter(function(item){return item;});
 	let links = [];
 	let fchain = [];
 	let prev_f = null;
@@ -3602,11 +3602,11 @@ function open_source(s)
 			continue;
 		}
 
-		try { 
+		try {
 			if (prev_f) {
 				f = filter.add_filter(arg);
 			}
-			//ipid load 
+			//ipid load
 			else if (arg.startsWith('ipid://')) {
 				f = {};
 				f.__dummy_tmp = true;
@@ -3627,14 +3627,14 @@ function open_source(s)
 			print(GF_LOG_ERROR, 'Add ' + (prev_f ? 'filter' : 'source') + ' ' + arg + ' failed: ' + e);
 			disable_source(s);
 			filter.lock_all(false);
-			return;		
+			return;
 		}
 
 		//setup links
 		if (apply_links(links, f, fchain)) {
 			disable_source(s);
 			filter.lock_all(false);
-			return;					
+			return;
 		}
 
 		//add to chain
@@ -3654,9 +3654,9 @@ function open_source(s)
 		if (apply_links(links, null, fchain)) {
 			disable_source(s);
 			filter.lock_all(false);
-			return;					
+			return;
 		}
-		prev_f = null;	
+		prev_f = null;
 	}
 	if (prev_f && (typeof f.__dummy_tmp == 'undefined')) {
 		filter.set_source_restricted(prev_f);
@@ -3744,9 +3744,9 @@ function push_source(el, id, seq)
 
 	sources.push(s);
 	if (s.id==="") {
-		s.logname = el.src[0].in.split('\\').pop().split('/').pop(); 
+		s.logname = el.src[0].in.split('\\').pop().split('/').pop();
 	} else {
-		s.logname = s.id; 
+		s.logname = s.id;
 	}
 	let parent_seq = get_sequence_by_json(seq);
 
@@ -3770,7 +3770,7 @@ function push_source(el, id, seq)
 		open_source(s);
 		play_source(s);
 	} else {
-		print(GF_LOG_DEBUG, 'queue source in seq');		
+		print(GF_LOG_DEBUG, 'queue source in seq');
 	}
 }
 
@@ -3925,7 +3925,7 @@ function parse_seq(pl)
 	}
 
 	seq.stop_time = parse_date_time(pl.stop, true);
-	if ((seq.stop_time<0) || (seq.stop_time<=seq.start_time)) 
+	if ((seq.stop_time<0) || (seq.stop_time<=seq.start_time))
 		seq.stop_time = -1;
 
 	seq.transition_effect = pl.transition || null;
@@ -3964,7 +3964,7 @@ function validate_scene(pl)
 	}
 	if (Array.isArray(pl.sources)) {
 		for (let i=0; i<pl.sources.length; i++) {
-			let s_id = pl.sources[i];			
+			let s_id = pl.sources[i];
 			if (typeof s_id != 'string') {
 				print(GF_LOG_WARNING, 'Invalid scene.sources element ' + s_id + ', expecting string - ignoring element ' + JSON.stringify(pl) );
 				return false;
@@ -4103,7 +4103,7 @@ function parse_config(pl)
 			if (s.length==2) {
 				filter.vsize.x = parseInt(s[0]);
 				filter.vsize.y = parseInt(s[1]);
-			}	
+			}
 			else print(GF_LOG_WARNING, "Wrong syntax for option \`vsize\` in playlist config, ignoring");
 		}
 		else if (propertyName == 'fps') {
@@ -4114,7 +4114,7 @@ function parse_config(pl)
 			} else if (typeof pl.fps == 'number') {
 				filter.fps.n = pl.fps;
 				filter.fps.d = 1;
-			}	
+			}
 			else print(GF_LOG_WARNING, "Wrong syntax for option \`fps\` in playlist config, ignoring");
 		}
 		else if (propertyName == 'dynpfmt') {
@@ -4330,7 +4330,7 @@ function parse_group(pl, parent)
 		}
 		group.set = function(prop, val) {
 			let update_type = group_get_update_type(prop, false);
-			//no modifications allowed or not defined 
+			//no modifications allowed or not defined
 			if (update_type<0) {
 				return;
 			}
@@ -4414,7 +4414,7 @@ function fn_from_script(args, jscode)
 	if (sys.file_exists(url)) {
 		return new Function(args, sys.load_file(url, true) );
 	} else {
-		return new Function(args, jscode);		
+		return new Function(args, jscode);
 	}
 }
 
@@ -4424,7 +4424,7 @@ function parse_script(pl)
 		print(GF_LOG_WARNING, 'Unrecognized script ' + JSON.stringify(pl) );
 		return;
 	}
-	if (pl.skip || false) 
+	if (pl.skip || false)
 		return;
 
 	let id = pl.id || null;
@@ -4438,7 +4438,7 @@ function parse_script(pl)
 		print(GF_LOG_WARNING, "Multiple scripts with id `" + id + "` defined, ignoring subsequent declarations");
 		return null;
 	}
-	
+
 	script_obj.pl_update = true;
 	script_obj.next_time = 0;
 
@@ -4482,7 +4482,7 @@ function update_scripts()
 		if (script.next_time) {
 			if (video_playing && (script.next_time>video_time)) continue;
 			if (audio_playing && (script.next_time>audio_time)) continue;
-		} 
+		}
 
 		try {
 			let res = script.run_script.apply(script, []) || 0;
@@ -4863,7 +4863,7 @@ function parse_playlist_element(pl)
 	} else if (type==='config') {
 		if (!playlist_loaded) {
 			parse_config(pl);
-		}	
+		}
 	} else if (type==='style') {
 		parse_style(pl);
 	} else {
@@ -5038,7 +5038,7 @@ function parse_val(params, name, scene_obj, def_val, update_type)
 			return;
 	} else if (!Array.isArray(params[name]) && (typeof params[name] == 'object')) {
 		return;
-	} else {		
+	} else {
 		new_val = params[name];
 	}
 
@@ -5239,7 +5239,7 @@ function setup_scene(scene, seq_ids, params)
 			}
 			if (s)
 				scene.sequences.push(s);
-		}); 
+		});
 	}
 
 	scene.mod.update_flag = UPDATE_PID;
@@ -5321,8 +5321,8 @@ function create_scene(seq_ids, params, parent)
 				}
 			}
 		}
-		
-		//no modifications allowed or not defined 
+
+		//no modifications allowed or not defined
 		if (update_type<0) {
 			return;
 		}
@@ -5415,7 +5415,7 @@ function validate_timer(pl)
 	}
 
 	let last_val = -1;
-	pl.keys.forEach (v => { 
+	pl.keys.forEach (v => {
 			if (typeof v != 'number') valid=false;
 			if (last_val<0) {
 				if (v) valid = false;
@@ -5494,7 +5494,7 @@ function validate_timer(pl)
 	});
 
 	return true;
-}	
+}
 
 function parse_date_time(d, for_seq)
 {
@@ -5539,7 +5539,7 @@ function parse_date_time(d, for_seq)
 
 function parse_timer(pl)
 {
-	if (!validate_timer(pl)) 
+	if (!validate_timer(pl))
 		return;
 
 	let eval_start_time = false;
@@ -5563,16 +5563,16 @@ function parse_timer(pl)
 
 	let crc = sys.crc32(JSON.stringify(pl));
 	if (crc != timer.crc) {
-		//we don't track changes of the timer, we blindly replace it 
+		//we don't track changes of the timer, we blindly replace it
 		if (timer.crc)
 				timer_restore(timer);
-		
+
 		timer.crc = crc;
 	} else {
 		return;
 	}
 
-	timer.keys = pl.keys;	
+	timer.keys = pl.keys;
 	timer.anims = [];
 	pl.anims.forEach(anim =>{
 		let a = {};
@@ -5587,8 +5587,8 @@ function parse_timer(pl)
 				a.mode = 2;
 				a.fun = fn_from_script(['interp'], anim.mode);
 			}
-		} 
-		
+		}
+
 		a.postfun = (typeof anim.postfun == 'string') ? fn_from_script(['res', 'interp'], anim.postfun) : null;
 
 		let mod = anim.end || "freeze";
@@ -5694,7 +5694,7 @@ function parse_timer(pl)
 			a.targets.push(tar);
 		});
 		timer.anims.push(a);
-	}); 
+	});
 
 	timer.loop = pl.loop || false;
 	timer.pause = pl.pause || false;
@@ -5781,7 +5781,7 @@ function update_timer(timer)
 	}
 
 	let frac = (video_time - timer.activation_time) * video_time_inc / video_timescale;
-	
+
 	if (frac > timer.duration) {
 		if (!timer.loop && (timer.stop_time<0) ) {
 			timer.active_state = 2;
@@ -6211,7 +6211,7 @@ function draw_scene_no_signal()
 	}
 	let s1 = null;
 	if (active_scene && active_scene.mod.pids.length) {
-		if (sys.test_mode) 
+		if (sys.test_mode)
 			s1 = 'Signal lost';
 		else if (active_scene.mod.pids[0].pid.source.no_signal_state)
 			s1 = 'No signal (next scheduled in ' + Math.floor(active_scene.mod.pids[0].pid.source.no_signal_state) + ' s)';
@@ -6316,7 +6316,7 @@ function canvas_set_matrix(cnv, mx, prog_info)
   let zNear = (active_camera && active_camera.znear) ? active_camera.znear : 0.1;
   let zFar = (active_camera && active_camera.zfar) ? active_camera.zfar : (10 * (video_width>video_height ? video_width : video_height));
 
-  //pick view distance so that with no transformation, a rectangular scene with size 100%x100% is exactly fullscreen 
+  //pick view distance so that with no transformation, a rectangular scene with size 100%x100% is exactly fullscreen
 	let final_z = video_height/2 / Math.tan(fieldOfView/2);
 	let pos = {x:0, y:0, z: final_z};
 	let center = {x:0, y:0, z: 0};
@@ -6412,7 +6412,7 @@ function canvas_draw(path, stencil)
 		}
 		if (active_scene.mod.pids.length && active_scene.mod.pids[0].pid && active_scene.mod.pids[0].pid.source.no_signal) {
 			draw_scene_no_signal();
-			return;		
+			return;
 		}
 		uniform_reload = active_scene.gl_uniforms_reload;
 	} else {
@@ -6790,7 +6790,7 @@ function canvas_draw_sources(path)
 		if (!tx) return;
 
 		canvas_draw(path, tx);
-	  return;  
+	  return;
 	}
 
 	if (op_type) {
@@ -8264,4 +8264,3 @@ function mouse_over_mod()
 	}
 	return null;
 }
-

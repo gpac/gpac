@@ -190,7 +190,7 @@ public:
 class GPAC_Service : public PLT_Service
 {
 public:
-	GPAC_Service(PLT_DeviceData* device, const char*     type = NULL,  const char*     id = NULL, const char*     name = NULL, const char*     last_change_namespace = NULL);
+	GPAC_Service(PLT_DeviceData* device, const char*     type = NULL, const char*     id = NULL, const char*     name = NULL, const char*     last_change_namespace = NULL);
 	~GPAC_Service();
 
 #ifdef GPAC_HAS_SPIDERMONKEY

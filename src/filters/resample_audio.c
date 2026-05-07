@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / audio resample filter
@@ -55,6 +55,7 @@ typedef struct
 	Fixed speed;
 	GF_FilterPacket *in_pck;
 	Bool cfg_changed;
+	u32 diff_max;
 } GF_ResampleCtx;
 
 
@@ -155,7 +156,24 @@ static void resample_finalize(GF_Filter *filter)
 	if (ctx->in_pck && ctx->ipid) gf_filter_pid_drop_packet(ctx->ipid);
 }
 
+static void resampler_set_ts_tolerance(GF_ResampleCtx *ctx)
+{
+	if (ctx->speed != FIX_ONE) {
+		ctx->diff_max = ctx->freq * 20 / 1000;
+		return;
+	}
 
+	//if not resampling to a multiple, tolerate 20ms unsync with input, otherwise we want an exact match
+	u32 sr_min = MIN(ctx->freq, ctx->input_ai.samplerate);
+	u32 sr_max = MAX(ctx->freq, ctx->input_ai.samplerate);
+	u32 n = sr_max / sr_min;
+	if (sr_min * n != sr_max) {
+		ctx->diff_max = ctx->freq * 20 / 1000;
+	} else {
+		ctx->diff_max = 0;
+	}
+
+}
 static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
@@ -246,6 +264,8 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->cfg_changed = GF_TRUE;
 	}
 
+	resampler_set_ts_tolerance(ctx);
+
 	ctx->passthrough = GF_FALSE;
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
@@ -294,13 +314,10 @@ static GF_Err resample_process(GF_Filter *filter)
 				u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(ctx->in_pck), FIX2INT(ctx->speed * ctx->timescale), ctx->freq);
 				if (!ctx->out_cts_plus_one) {
 					ctx->out_cts_plus_one = cts + 1;
-				}
-				//if we drift by more than 200ms, resync to input cts
-				else {
+				} else {
 					s64 diff = cts;
 					diff -= ctx->out_cts_plus_one-1;
-					//200ms max
-					if (ABS(diff) * 1000 > ctx->freq * 200) {
+					if (ABS(diff) > ctx->diff_max) {
 						ctx->out_cts_plus_one = cts + 1;
 					}
 				}
@@ -414,6 +431,8 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==afmt) && (ctx->speed == FIX_ONE))
 		ctx->passthrough = GF_TRUE;
 
+	resampler_set_ts_tolerance(ctx);
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
@@ -448,6 +467,7 @@ static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		//reset output ts
 		ctx->out_cts_plus_one = 0;
+		resampler_set_ts_tolerance(ctx);
 	}
 	return GF_FALSE;
 }
@@ -458,6 +478,12 @@ static const GF_FilterCapability ResamplerCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_SAMPLE_RATE, 0),
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_NUM_CHANNELS, 0),
+	CAP_UINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_AUDIO_FORMAT, 0),
+	CAP_LUINT(GF_CAPFLAG_RECONFIG, GF_PROP_PID_CHANNEL_LAYOUT, 0),
+	CAP_DOUBLE(GF_CAPFLAG_RECONFIG, GF_PROP_PID_AUDIO_SPEED, 0),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_ResampleCtx, _n)

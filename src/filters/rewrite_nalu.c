@@ -310,8 +310,9 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 }
 
 
-static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_size, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr, u32 *delim_flags)
+static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_size, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr, u32 *delim_flags, Bool *is_sap)
 {
+	*is_sap = GF_FALSE;
 	Bool is_layer = GF_FALSE;
 	if (ctx->vtype==UFNAL_HEVC) {
 		u8 nal_type = (data[pos] & 0x7E) >> 1;
@@ -345,6 +346,9 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 				*delim_flags |= flags;
 			}
 #endif
+			if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA))
+				*is_sap = GF_TRUE;
+
 			break;
 		}
 	} else if (ctx->vtype==UFNAL_VVC) {
@@ -368,14 +372,19 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 				gf_vvc_parse_nalu(data+pos, nal_size, ctx->vvc_state, &nut, &tid, &lid);
 				u32 flags=0;
 
-				switch (ctx->vvc_state->s_info.slice_type) {
-				case GF_VVC_SLICE_TYPE_P: flags|=1; break;
-				case GF_VVC_SLICE_TYPE_B: flags|=2; break;
-				case GF_VVC_SLICE_TYPE_I: break;
+				if (ctx->vvc_state) {
+					switch (ctx->vvc_state->s_info.slice_type) {
+					case GF_VVC_SLICE_TYPE_P: flags|=1; break;
+					case GF_VVC_SLICE_TYPE_B: flags|=2; break;
+					case GF_VVC_SLICE_TYPE_I: break;
+					}
 				}
 				*delim_flags |= flags;
 			}
 #endif
+			if ((nal_type>=GF_VVC_NALU_SLICE_IDR_W_RADL) && (nal_type<GF_VVC_NALU_SLICE_GDR))
+				*is_sap = GF_TRUE;
+
 			break;
 		}
 	} else {
@@ -393,6 +402,9 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 		case GF_AVC_NALU_ACCESS_UNIT:
 			*has_nal_delim = GF_TRUE;
 			break;
+		case GF_AVC_NALU_IDR_SLICE:
+			*is_sap = GF_TRUE;
+			//fallthrough
 		default:
 			if (! (*avc_hdr))
 				(*avc_hdr) = data[pos];
@@ -469,10 +481,12 @@ GF_Err nalumx_process(GF_Filter *filter)
 #endif
 
 	u32 nb_nalsize_zero=0;
+	Bool has_sap = GF_FALSE;
 
 	while (gf_bs_available((ctx->bs_r))) {
 		Bool skip_nal = GF_FALSE;
 		Bool is_nalu_delim = GF_FALSE;
+		Bool is_sap = GF_FALSE;
 		u32 pos;
 		u32 nal_size = gf_bs_read_int(ctx->bs_r, 8*ctx->nal_hdr_size);
 		if (nal_size > gf_bs_available(ctx->bs_r) ) {
@@ -492,7 +506,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
-		skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, &delim_flags);
+		if (pos+1 < pck_size)
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, nal_size, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, &delim_flags, &is_sap);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}
@@ -505,6 +520,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 			size += nal_size + 4;
 		}
 		gf_bs_skip_bytes(ctx->bs_r, nal_size);
+		if (is_sap) has_sap = GF_TRUE;
 	}
 	gf_bs_seek(ctx->bs_r, 0);
 
@@ -529,7 +545,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 		if (sap && (sap <= GF_FILTER_SAP_3) ) {
 			insert_dsi = GF_TRUE;
 		}
-		if (!insert_dsi) {
+		//have only limited trust in dependency flags , some streams always use dependsOn=2 which would inject SPS/PPS at each frame
+		if (!insert_dsi && has_sap) {
 			u8 flags = gf_filter_pck_get_dependency_flags(pck);
 			//get dependsOn
 			if (flags) {
@@ -607,7 +624,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		if (!nal_size) continue;
 
-		skip_nal = nalumx_is_nal_skip(ctx, data, pos, 0, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, NULL);
+		if (pos+1 < pck_size)
+			skip_nal = nalumx_is_nal_skip(ctx, data, pos, 0, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr, NULL, &has_sap);
 		if (!ctx->extract) {
 			skip_nal = GF_FALSE;
 		}

@@ -1,5 +1,5 @@
 #!/bin/bash
-readonly scriptDir=$(dirname $(readlink -f $0))
+readonly scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 echo '#include <stdio.h>
 #include <stdlib.h> // EXIT_FAILURE

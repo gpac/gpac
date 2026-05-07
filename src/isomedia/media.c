@@ -241,6 +241,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	case GF_ISOM_BOX_TYPE_VP08:
 	case GF_ISOM_BOX_TYPE_VP09:
+	case GF_ISOM_BOX_TYPE_VP10:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
 		VP9_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
@@ -249,12 +250,12 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_MP4A:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
 			return GF_ISOM_INVALID_MEDIA;
-        {
-            GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
-            ESDa = ase->esd;
-            if (ESDa) {
+		{
+			GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
+			ESDa = ase->esd;
+			if (ESDa) {
 				esd = (GF_ESD *) ESDa->desc;
-            } else if (!true_desc_only) {
+			} else if (!true_desc_only) {
 				Bool make_mp4a = GF_FALSE;
 				sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SINF);
 
@@ -281,8 +282,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 					return GF_NOT_SUPPORTED;
 #endif
 				}
-            }
-        }
+			}
+		}
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
 		if (entry->internal_type==GF_ISOM_SAMPLE_ENTRY_MP4S) {
@@ -309,19 +310,21 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_GENERIC)
 			return GF_ISOM_INVALID_MEDIA;
 
-		if (true_desc_only) return GF_ISOM_INVALID_MEDIA;
+		if (true_desc_only)
+			return GF_ISOM_INVALID_MEDIA;
+
 		{
-		GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
-		esd =  gf_odf_desc_esd_new(2);
-		*out_esd = esd;
-		esd->decoderConfig->streamType = GF_STREAM_TEXT;
-		esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
-		if (vtte->config) {
-			esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
-			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
-			memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
+			esd =  gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = GF_STREAM_TEXT;
+			esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
+			if (vtte->config) {
+				esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
+				esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			}
 		}
-	}
 		break;
 	case GF_ISOM_BOX_TYPE_STPP:
 	case GF_ISOM_BOX_TYPE_SBTT:
@@ -361,6 +364,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		gf_odf_opus_cfg_write(&opus_c->opcfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		break;
 	}
+
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
@@ -493,7 +497,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (sIDX) (*sIDX) = sdesc_idx;
 
 	if (out_offset) *out_offset = offset;
-	if (!samp ) return GF_OK;
+	if (!samp) return GF_OK;
 
 	(*samp)->corrupted = 0;
 	if (mdia->information->sampleTable->TimeToSample) {
@@ -619,14 +623,19 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (! (*samp)->data)
 			(*samp)->alloc_size = 0;
 
+
+		size_t size_to_alloc = data_size + mdia->mediaTrack->padding_bytes;
+		if (!size_to_alloc)
+			return GF_IO_ERR;
+
 		/*and finally get the data, include padding if needed*/
 		if (ext_realloc) {
-			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(data_size + mdia->mediaTrack->padding_bytes, mdia->mediaTrack->sample_alloc_udta);
+			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(size_to_alloc, mdia->mediaTrack->sample_alloc_udta);
 		} else if ((*samp)->alloc_size) {
-			(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
+			(*samp)->data = (char *) gf_realloc((*samp)->data, size_to_alloc );
 			if ((*samp)->data) (*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
 		} else {
-			(*samp)->data = (u8 *) gf_malloc(data_size + mdia->mediaTrack->padding_bytes);
+			(*samp)->data = (u8 *) gf_malloc(size_to_alloc);
 		}
 		if (! (*samp)->data) return GF_OUT_OF_MEM;
 
@@ -1094,8 +1103,10 @@ static GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, s32 CT
 	GF_SampleTableBox *stbl = mdia->information->sampleTable;
 
 	//set size, offset, RAP, CTS ...
-	stbl_SetSampleSize(stbl->SampleSize, sampleNumber, size);
-	stbl_SetChunkOffset(mdia, sampleNumber, offset);
+	if (size) {
+		stbl_SetSampleSize(stbl->SampleSize, sampleNumber, size);
+		stbl_SetChunkOffset(mdia, sampleNumber, offset);
+	}
 
 	//do we have a CTS?
 	if (stbl->CompositionOffset) {
@@ -1142,6 +1153,30 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 	stbl = mdia->information->sampleTable;
 
 	if (!data_only) {
+		if (!sample->data) {
+			u32 osample_num;
+			if (sampleNumber==1) {
+				gf_free(stbl->TimeToSample->entries);
+				stbl->TimeToSample->entries = NULL;
+				stbl->TimeToSample->nb_entries = 0;
+				stbl->TimeToSample->alloc_size = 0;
+				stbl->TimeToSample->w_LastDTS = 0;
+				stbl->TimeToSample->w_currentSampleNum = 0;
+
+				if (stbl->CompositionOffset) {
+					gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *)stbl->CompositionOffset);
+					stbl->CompositionOffset = NULL;
+				}
+			}
+			stbl_unpackCTS(stbl);
+			stbl_AddDTS(stbl, sample->DTS, &osample_num, 0, 0);
+			if (osample_num != sampleNumber) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] DTS patching must be done incrementally but input changes sample number for source sample %u to new number %u\n", sampleNumber, osample_num));
+				return GF_BAD_PARAM;
+			}
+			return UpdateSample(mdia, sampleNumber, 0, sample->CTS_Offset, 0, sample->IsRAP);
+
+		}
 		//check we have the sampe dts
 		e = stbl_GetSampleDTS(stbl->TimeToSample, sampleNumber, &DTS);
 		if (e) return e;

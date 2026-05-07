@@ -117,6 +117,10 @@ static Bool cryptfile_on_filter_setup_error(GF_Filter *failed_filter, void *udta
 	//forward failure, but do not send a setup failure (gf_filter_setup_failure) which would remove this filter
 	//we let the final user (dashdmx) decide what to do
 	gf_filter_notification_failure(f, err, GF_FALSE);
+	//we however abort the filter
+	GF_CryptFileCtx *ctx = (GF_CryptFileCtx *) gf_filter_get_udta(f);
+	ctx->in_error = err;
+	gf_filter_abort(f);
 	return GF_FALSE;
 }
 

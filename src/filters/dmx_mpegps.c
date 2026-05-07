@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Program Stream demuxer filter
@@ -465,7 +465,7 @@ static const GF_FilterCapability M2PSDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpg|mpeg|vob"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|audio/mpeg|video/mpegps"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|video/mpegps"),
 	//we need a file for this demuxer
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILEPATH, "*"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),

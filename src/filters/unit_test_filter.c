@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / unit test filters
@@ -432,10 +432,9 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 	data = gf_filter_pck_get_data(pck, &size);
 
 	if (stack->cov && !pidctx->nb_packets) {
-		GF_PropertyValue p;
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 		gf_filter_pck_send(pck);
-		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','t'), &p);
+		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','t'), &PROP_BOOL(GF_TRUE));
 		gf_filter_pck_merge_properties(pck, pck);
 		gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
 		gf_log_set_strict_error(old_strict);

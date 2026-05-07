@@ -103,6 +103,8 @@ static const UTF32 halfMask = 0x3FFUL;
 #define UNI_SUR_HIGH_END    (UTF32)0xDBFF
 #define UNI_SUR_LOW_START   (UTF32)0xDC00
 #define UNI_SUR_LOW_END     (UTF32)0xDFFF
+#undef false
+#undef true
 #define false	   0
 #define true	    1
 
@@ -457,6 +459,7 @@ u32 gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 
 		ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 		if (res != conversionOK) return GF_UTF8_FAIL;
+		if (targetStart >= targetEnd) return GF_UTF8_FAIL;
 		*targetStart = 0;
 		*srcp=NULL;
 		return (u32) strlen(dest);
@@ -476,6 +479,7 @@ u32 gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 		ConversionFlags flags = strictConversion;
 		ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
 		if (res != conversionOK) return GF_UTF8_FAIL;
+		if (targetStart >= targetEnd) return GF_UTF8_FAIL;
 		*targetStart = 0;
 		*srcp=NULL;
 		return gf_utf8_wcslen(dest);
@@ -738,8 +742,8 @@ wchar_t* gf_utf8_to_wcs(const char* str)
 	size_t source_len;
 	wchar_t* result;
 	if (str == 0) return 0;
-	source_len = strlen(str);
-	result = gf_calloc(source_len + 1, sizeof(wchar_t));
+	source_len = 1+strlen(str);
+	result = gf_calloc(source_len, sizeof(wchar_t));
 	if (!result)
 		return 0;
 	if (gf_utf8_mbstowcs(result, source_len, &str) == GF_UTF8_FAIL) {
@@ -755,8 +759,8 @@ char* gf_wcs_to_utf8(const wchar_t* str)
 	size_t source_len;
 	char* result;
 	if (str == 0) return 0;
-	source_len = wcslen(str);
-	result = gf_calloc(source_len + 1, UTF8_MAX_BYTES_PER_CHAR);
+	source_len = 1+wcslen(str);
+	result = gf_calloc(source_len, UTF8_MAX_BYTES_PER_CHAR);
 	if (!result)
 		return 0;
 	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) == GF_UTF8_FAIL) {
@@ -766,4 +770,3 @@ char* gf_wcs_to_utf8(const wchar_t* str)
 	return result;
 }
 #endif
-

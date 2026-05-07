@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/scte35.h>
 #include <gpac/utf.h>
 #include <gpac/network.h>
 #include <gpac/color.h>
@@ -94,14 +95,20 @@ static void dump_data_string(FILE *trace, char *data, u32 dataLength)
 }
 
 
-GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
+GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace, u16 parent_internal_flags)
 {
 	u32 i;
 	GF_Box *a;
 	if (!list) return GF_OK;
 	i=0;
 	while ((a = (GF_Box *)gf_list_enum(list, &i))) {
-		gf_isom_box_dump(a, trace);
+		if (parent_internal_flags & GF_ISOM_DUMP_SKIP_SIZE) {
+			a->internal_flags |= GF_ISOM_DUMP_SKIP_SIZE;
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
+			a->internal_flags &= ~GF_ISOM_DUMP_SKIP_SIZE;
+		} else {
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
+		}
 	}
 	return GF_OK;
 }
@@ -148,7 +155,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 		} else if (!gf_isom_box_is_file_level(box)) {
 			gf_fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
 		}
-		gf_isom_box_dump(box, trace);
+		gf_isom_box_dump_ex(box, trace, GF_TRUE);
 	}
 	gf_fprintf(trace, "</IsoMediaFile>\n");
 
@@ -695,22 +702,19 @@ GF_Err video_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, " DataReferenceIndex=\"%d\" Width=\"%d\" Height=\"%d\"", p->dataReferenceIndex, p->Width, p->Height);
 
 	if (full_dump) {
-		Float dpih, dpiv;
 		gf_fprintf(trace, " Version=\"%d\" Revision=\"%d\" Vendor=\"%s\" TemporalQuality=\"%d\" SpatialQuality=\"%d\" FramesPerSample=\"%d\" ColorTableIndex=\"%d\"",
 			p->version, p->revision, gf_4cc_to_str(p->vendor), p->temporal_quality, p->spatial_quality, p->frames_per_sample, p->color_table_index);
-
-		dpih = (Float) (p->horiz_res&0xFFFF);
-		dpih /= 0xFFFF;
-		dpih += (p->vert_res>>16);
-		dpiv = (Float) (p->vert_res&0xFFFF);
-		dpiv /= 0xFFFF;
-		dpiv += (p->vert_res>>16);
-
-		gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
-	} else {
-		//dump reserved info
-		gf_fprintf(trace, " XDPI=\"%d\" YDPI=\"%d\" BitDepth=\"%d\"", p->horiz_res, p->vert_res, p->bit_depth);
 	}
+
+	Float dpih, dpiv;
+	dpih = (Float) (p->horiz_res&0xFFFF);
+	dpih /= 0xFFFF;
+	dpih += (p->vert_res>>16);
+	dpiv = (Float) (p->vert_res&0xFFFF);
+	dpiv /= 0xFFFF;
+	dpiv += (p->vert_res>>16);
+	gf_fprintf(trace, " XDPI=\"%g\" YDPI=\"%g\" BitDepth=\"%d\"", dpih, dpiv, p->bit_depth);
+
 	if (strlen((const char*)p->compressor_name) ) {
 		if (isalnum(p->compressor_name[0])) {
 			gf_fprintf(trace, " CompressorName=\"%s\"\n", p->compressor_name);
@@ -821,6 +825,11 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 		if (!p->cfg_ac3)
 		 	error = "<!--INVALID EC3 Entry: AC3Config not present in Audio Sample Description -->";
 		break;
+	case GF_ISOM_BOX_TYPE_AC4:
+		szName = "AC4SampleEntryBox";
+		if (!p->cfg_ac4)
+			error = "<!--INVALID AC4 Entry: AC4Config not present in Audio Sample Description -->";
+		break;
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
 		if (!p->cfg_mha)
@@ -894,11 +903,11 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 		gf_fprintf(trace, ">\n");
 		while (gf_list_count(list)) {
 			GF_Box *a = gf_list_pop_front(list);
-			gf_isom_box_dump(a, trace);
+			gf_isom_box_dump_ex(a, trace, GF_FALSE);
 			gf_isom_box_del(a);
 		}
 	} else {
-		dump_data_attribute(trace, "data", data, data_size);
+		dump_data_attribute(trace, " data", data, data_size);
 		gf_fprintf(trace, ">\n");
 	}
 	if (list)
@@ -983,7 +992,7 @@ GF_Err udta_box_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
-		gf_isom_box_array_dump(map->boxes, trace);
+		gf_isom_box_array_dump(map->boxes, trace, a->internal_flags);
 	}
 	gf_isom_box_dump_done("UserDataBox", a, trace);
 	return GF_OK;
@@ -2460,6 +2469,20 @@ GF_Err vpcc_box_dump(GF_Box *a, FILE *trace) {
 	return GF_OK;
 }
 
+
+GF_Err av3c_box_dump(GF_Box *a, FILE *trace) {
+	GF_AVS3VConfigurationBox *ptr = (GF_AVS3VConfigurationBox*)a;
+	gf_fprintf(trace, "<AVS3ConfigurationBox>\n");
+	if (ptr->config) {
+		gf_fprintf(trace, "<AVS3Config version=\"%u\" library_dependency_idc=\"%u\" sequence_header_length=\"%u\" sequence_header=\"", (u32)ptr->config->configurationVersion, (u32)ptr->config->library_dependency_idc, (u32)ptr->config->sequence_header_length);
+		dump_data(trace, (char *)ptr->config->sequence_header, (u32)ptr->config->sequence_header_length);
+		gf_fprintf(trace, "\"/>\n");
+	}
+	gf_fprintf(trace, "</AVS3ConfigurationBox>\n");
+	return GF_OK;
+}
+
+
 GF_Err SmDm_box_dump(GF_Box *a, FILE *trace) {
 	GF_SMPTE2086MasteringDisplayMetadataBox * ptr = (GF_SMPTE2086MasteringDisplayMetadataBox *)a;
 	if (!a) return GF_BAD_PARAM;
@@ -3186,11 +3209,11 @@ static void frag_dump_sample_flags(FILE * trace, u32 flags, u32 field_idx)
 		gf_fprintf(trace, " IsLeading=\"%d\" DependsOn=\"%d\"", GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags));
 	} else if (field_idx==2) {
 		gf_fprintf(trace, " IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\" SamplePadding=\"%d\" Sync=\"%d\"",
-	        GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags), GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags));
+		GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags), GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags));
 	} else {
 		gf_fprintf(trace, " SamplePadding=\"%d\" Sync=\"%d\" DegradationPriority=\"%d\" IsLeading=\"%d\" DependsOn=\"%d\" IsDependedOn=\"%d\" HasRedundancy=\"%d\"",
-	        GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags), GF_ISOM_GET_FRAG_DEG(flags),
-	        GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+		GF_ISOM_GET_FRAG_PAD(flags), GF_ISOM_GET_FRAG_SYNC(flags), GF_ISOM_GET_FRAG_DEG(flags),
+		GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 	}
 }
 
@@ -3391,7 +3414,24 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
+GF_Err TLV_Dump(GF_List *tlv, FILE * trace)
+{
+	u32 i, count;
 
+	count = gf_list_count(tlv);
+	for (i=0; i<count; i++) {
+		GF_Box *p = (GF_Box *)gf_list_get(tlv, i);
+		switch (p->type) {
+		case GF_4CC('r', 't', 'p', 'o'):
+			gf_fprintf(trace, "<RTPOffset timeOffset=\"%d\"/>\n", ((GF_RTPOBox *)p)->timeOffset);
+			break;
+		default:
+			gf_fprintf(trace, "<UnknownTLVEntry/>\n");
+			break;
+		}
+	}
+	return GF_OK;
+}
 GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 {
 	u32 i, count;
@@ -3443,7 +3483,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	GF_RTPPacket *pck;
 	char *szName;
 
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
 
 	tmp = gf_isom_get_sample(the_file, trackNumber, SampleNum, &descIndex);
@@ -3519,6 +3559,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 			count2 = gf_list_count(pck->TLV);
 			if (count2) {
 				gf_fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
+				TLV_Dump(pck->TLV, trace);
 				gf_fprintf(trace, "</PrivateExtensionTable>\n");
 			}
 			//DTE is made of NON boxes
@@ -3851,7 +3892,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	Bool box_dump = (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE;
 	Bool skip_empty = (dump_type==GF_TEXTDUMPTYPE_TTXT_CHAP) ? GF_TRUE : GF_FALSE;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4160,7 +4201,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	GF_Tx3gSampleEntryBox *txtd;
 	char szDur[100];
 	Bool is_wvtt = GF_FALSE;
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	Bool srt_forced_subs = gf_opts_get_bool("core", "srt-forced");
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	u32 subtype = gf_isom_get_media_subtype(the_file, track, 1);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
@@ -4280,8 +4322,10 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
 
-		if (txt->is_forced) gf_fprintf(dump, " !!!");
-		else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		if (srt_forced_subs) {
+			if (txt->is_forced) gf_fprintf(dump, " !!!");
+			else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+		}
 
 		gf_fprintf(dump, "\n");
 
@@ -4305,7 +4349,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	u64 start, end;
 	GF_BitStream *bs;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4388,7 +4432,7 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 	u64 start;
 	GF_BitStream *bs;
 
-	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
+	GF_TrackBox *trak = gf_isom_get_track_box(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -4538,7 +4582,7 @@ GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, F
 	GF_Err e;
 	GF_TrackBox *trak;
 
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	trak = gf_isom_get_track_box(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
 
@@ -4846,6 +4890,52 @@ GF_Err databox_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err vexu_box_dump(GF_Box *a, FILE * trace)
+{
+	gf_isom_box_dump_start(a, "VexuBox", trace);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("VexuBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err eyes_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_StereoViewBox *ptr = (GF_StereoViewBox *)a;
+
+	gf_isom_box_dump_start(a, "EyesBox", trace);
+	gf_fprintf(trace, ">\n");
+
+	// mandatory Stereo view information 'stri' box
+	gf_isom_box_dump_start(a, "StriBox", trace);
+	gf_fprintf(trace, "eye_views_reversed=\"%u\" has_additional_views=\"%u\" has_right_eye_view=\"%u\" has_left_eye_view=\"%u\">\n", ptr->stri.eye_views_reversed, ptr->stri.has_additional_views, ptr->stri.has_right_eye_view, ptr->stri.has_left_eye_view);
+	gf_isom_box_dump_done("StriBox", a, trace);
+
+	gf_isom_box_dump_done("EyesBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err hero_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_HeroStereoEyeDescriptionBox *ptr = (GF_HeroStereoEyeDescriptionBox *)a;
+
+	gf_isom_box_dump_start(a, "HeroBox", trace);
+	gf_fprintf(trace, "hero_eye_indicator=\"%u\">\n", ptr->hero_eye_indicator);
+	gf_isom_box_dump_done("HeroBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err amve_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AmbientViewingEnvBox *ptr = (GF_AmbientViewingEnvBox *)a;
+
+	gf_isom_box_dump_start(a, "AmveBox", trace);
+	gf_fprintf(trace, "ambient_illuminance=\"%u\">\n", ptr->ambient_illuminance);
+	gf_fprintf(trace, "ambient_light_x=\"%u\">\n", ptr->ambient_light_x);
+	gf_fprintf(trace, "ambient_light_y=\"%u\">\n", ptr->ambient_light_y);
+	gf_isom_box_dump_done("AmveBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ohdr_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox *)a;
@@ -5124,6 +5214,16 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dac4_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_AC4ConfigBox *p = (GF_AC4ConfigBox *)a;
+	gf_isom_box_dump_start(a, "AC4SpecificBox", trace);
+	gf_fprintf(trace, "ac4_dsi_version=\"%d\" bitstream_version=\"%d\" fs_index=\"%d\" frame_rate_index=\"%d\" n_presentations=\"%d\">\n",
+		        p->cfg.stream.ac4_dsi_version, p->cfg.stream.bitstream_version, p->cfg.stream.fs_index, p->cfg.stream.frame_rate_index, p->cfg.stream.n_presentations);
+	gf_isom_box_dump_done("AC4SpecificBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err dmlp_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrueHDConfigBox *p = (GF_TrueHDConfigBox *)a;
@@ -5139,9 +5239,9 @@ GF_Err dvcC_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
 	gf_isom_box_dump_start(a, "DOVIConfigurationBox", trace);
-	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\">\n",
+	gf_fprintf(trace, "dv_version_major=\"%u\" dv_version_minor=\"%u\" dv_profile=\"%u\" dv_level=\"%u\" rpu_present_flag=\"%u\" el_present_flag=\"%u\" bl_present_flag=\"%u\" compatibility_id=\"%u\" md_compression=\"%u\">\n",
 		p->DOVIConfig.dv_version_major, p->DOVIConfig.dv_version_minor, p->DOVIConfig.dv_profile, p->DOVIConfig.dv_level,
-		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id);
+		p->DOVIConfig.rpu_present_flag, p->DOVIConfig.el_present_flag, p->DOVIConfig.bl_present_flag, p->DOVIConfig.dv_bl_signal_compatibility_id, p->DOVIConfig.dv_md_compression);
 	gf_isom_box_dump_done("DOVIConfigurationBox", a, trace);
 	return GF_OK;
 }
@@ -6000,8 +6100,6 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv);
-
 GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, sample_count;
@@ -6092,7 +6190,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
 				u32 idx = gf_bs_read_u16(bs);
-				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
+				u8 mk_iv_size = gf_cenc_key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
 				pos = (u32) gf_bs_get_position(bs);
 				if (mk_iv_size + pos <= sai->cenc_data_size) {
 					gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);
@@ -6125,8 +6223,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, nb_crypt);
 				total_bytes+=clear+nb_crypt;
 			}
-			if (!gf_sys_is_test_mode())
-				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
+			gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
 		} else {
 			gf_fprintf(trace, ">\n");
 		}
@@ -6253,7 +6350,7 @@ GF_Err ispe_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
 {
-    GF_AV1LayeredImageIndexingPropertyBox *ptr = (GF_AV1LayeredImageIndexingPropertyBox*)a;
+	GF_AV1LayeredImageIndexingPropertyBox *ptr = (GF_AV1LayeredImageIndexingPropertyBox*)a;
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "AV1LayeredImageIndexingPropertyBox", trace);
 	gf_fprintf(trace, "large_size=\"%d\" layer_size0=\"%d\" layer_size1=\"%d\" layer_size2=\"%d\">\n", ptr->large_size, ptr->layer_size[0], ptr->layer_size[1], ptr->layer_size[2]);
@@ -6263,7 +6360,7 @@ GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err a1op_box_dump(GF_Box *a, FILE * trace)
 {
-    GF_AV1OperatingPointSelectorPropertyBox *ptr = (GF_AV1OperatingPointSelectorPropertyBox*)a;
+	GF_AV1OperatingPointSelectorPropertyBox *ptr = (GF_AV1OperatingPointSelectorPropertyBox*)a;
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "AV1OperatingPointSelectorPropertyBox", trace);
 	gf_fprintf(trace, "op_index=\"%d\">\n", ptr->op_index);
@@ -6375,6 +6472,30 @@ GF_Err imir_box_dump(GF_Box *a, FILE * trace)
 		);
 		gf_isom_box_dump_done("FieldInterlaceTypeBox", a, trace);
 	}
+	return GF_OK;
+}
+
+GF_Err txlo_box_dump(GF_Box *a, FILE *trace)
+{
+	GF_TextLayoutPropertyBox *ptr = (GF_TextLayoutPropertyBox *)a;
+	if (!a)
+		return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "TextLayoutPropertyBox", trace);
+	gf_fprintf(trace, "reference_width=\"%d\" reference_height=\"%d\" x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" font_size=\"%d\" direction=\"%s\" writing_mode=\"%s\">\n",
+               ptr->reference_width, ptr->reference_height, ptr->x, ptr->y, ptr->width, ptr->height, ptr->font_size, ptr->direction, ptr->writing_mode);
+	gf_isom_box_dump_done("TextLayoutPropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err fnch_box_dump(GF_Box *a, FILE *trace)
+{
+	GF_FontCharacteristicsPropertyBox *ptr = (GF_FontCharacteristicsPropertyBox *)a;
+	if (!a)
+		return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "FontCharacteristicsPropertyBox", trace);
+	gf_fprintf(trace, "font_family=\"%s\" font_style=\"%s\" font_weight=\"%s\">\n",
+               ptr->font_family, ptr->font_style, ptr->font_weight);
+	gf_isom_box_dump_done("FontCharacteristicsPropertyBox", a, trace);
 	return GF_OK;
 }
 
@@ -6775,7 +6896,7 @@ GF_Err fdsa_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "FDSampleBox", trace);
 	gf_fprintf(trace, ">\n");
 
-	e = gf_isom_box_array_dump(ptr->packetTable, trace);
+	e = gf_isom_box_array_dump(ptr->packetTable, trace, a->internal_flags);
 	if (e) return e;
 	gf_isom_box_dump_done("FDSampleBox", a, trace);
 	return GF_OK;
@@ -7207,9 +7328,11 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, ">\n");
 
 #ifndef GPAC_DISABLE_INSPECT
-		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
-		scte35_dump_xml(trace, bs);
-		gf_bs_del(bs);
+		if (p->scheme_id_uri && !strcmp(p->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
+			GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
+			scte35_dump_xml(trace, bs);
+			gf_bs_del(bs);
+		}
 #endif
 	} else {
 		gf_fprintf(trace, ">\n");
@@ -7233,6 +7356,25 @@ GF_Err evte_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "EventMessageSampleEntryBox", trace);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("EventMessageSampleEntryBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err silb_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SchemeIdListBox *p = (GF_SchemeIdListBox *) a;
+	gf_isom_box_dump_start(a, "SchemeIdListBox", trace);
+
+	fprintf(trace, "number_of_schemes=\"%u\" other_schemes_flag=\"%u\"",
+		p->number_of_schemes, p->other_schemes_flag);
+	gf_fprintf(trace, ">\n");
+
+	for (u32 i=0; i<p->number_of_schemes; ++i) {
+		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry*)gf_list_get(p->schemes, i);
+		fprintf(trace, "<SchemeIdListBoxEntry scheme_id_uri=\"%s\" value=\"%s\" value=\"%u\"/>\n",
+			ent->scheme_id_uri, ent->value, ent->atleast_once_flag);
+	}
+
+	gf_isom_box_dump_done("SchemeIdListBox", a, trace);
 	return GF_OK;
 }
 
@@ -7344,14 +7486,15 @@ GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
 			if (res_len != GF_UTF8_FAIL) {
 				utf8str[res_len] = 0;
 
-				gf_fprintf(trace, " value=\"%s\">\n", utf8str);
+				gf_fprintf(trace, " value=\"%s\"", utf8str);
 			}
 			gf_free(utf8str);
 		} else {
 			gf_fprintf(trace, " value=\"");
 			dump_data_hex(trace, tag->prop_value, tag->prop_size);
-			gf_fprintf(trace, "\">\n");
+			gf_fprintf(trace, "\"");
 		}
+		gf_fprintf(trace, " />\n");
 	}
 	gf_isom_box_dump_done("XtraBox", a, trace);
 	return GF_OK;
@@ -7646,13 +7789,13 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FIL
 	gf_dynstrcat(&buf, js_suf, NULL);
 	blen = (u32) strlen(buf);
 
-    JSValue ret = JS_Eval(ctx, (char *)buf, blen, szPath, JS_EVAL_TYPE_MODULE);
+	JSValue ret = JS_Eval(ctx, (char *)buf, blen, szPath, JS_EVAL_TYPE_MODULE);
 	if (JS_IsException(ret)) {
 		e = GF_BAD_PARAM;
 		js_dump_error(ctx);
 	}
 	JS_FreeValue(ctx, ret);
-    gf_free(buf);
+	gf_free(buf);
 
 	if (!e) {
 		JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);

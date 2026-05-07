@@ -72,7 +72,6 @@ typedef SSIZE_T ssize_t;
 #define NGHTTP2_STATICLIB
 #endif
 #endif
-#include <nghttp2/nghttp2.h>
 #endif
 
 #ifdef __USE_POSIX
@@ -191,7 +190,9 @@ typedef struct __partialDownloadStruct {
 
 typedef struct
 {
+	//if null, task is detached and object must be discarded
 	struct __gf_download_session *sess;
+	Bool in_task;
 } GF_SessTask;
 
 struct __gf_download_session
@@ -450,7 +451,7 @@ u32 gf_cache_get_cache_filesize(const DownloadedCacheEntry entry);
 GF_Err gf_cache_set_content_length(const DownloadedCacheEntry entry, u32 length );
 u32 gf_cache_get_content_length(const DownloadedCacheEntry entry);
 GF_Err gf_cache_get_http_headers(const DownloadedCacheEntry entry, const char **etag, const char **last_modif);
-u64 gf_cache_cleanup(const char * directory, u32 max_size);
+u64 gf_cache_cleanup(const char * directory, u64 max_size);
 void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry);
 u64 gf_cache_get_start_range( const DownloadedCacheEntry entry );
 u64 gf_cache_get_end_range( const DownloadedCacheEntry entry );

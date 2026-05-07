@@ -87,7 +87,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		Bool has_common_key = GF_TRUE;
 		GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 		if (!tkc) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannnot allocate crypt track, skipping\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannot allocate crypt track, skipping\n"));
 			info->last_parse_error = GF_OUT_OF_MEM;
 			return;
 		}
@@ -99,7 +99,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		//allocate a key to store the default values in single-key mode
 		tkc->keys = gf_malloc(sizeof(GF_CryptKeyInfo));
 		if (!tkc->keys) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannnot allocate key IDs\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannot allocate key IDs\n"));
 			gf_free(tkc);
 			info->last_parse_error = GF_OUT_OF_MEM;
 			return;
@@ -126,11 +126,11 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				GF_Err e;
 				has_key = GF_TRUE;
 				e = gf_bin128_parse(att->value, tkc->keys[0].key );
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse key value in CrypTrack\n"));
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannot parse key value in CrypTrack\n"));
 					info->last_parse_error = GF_BAD_PARAM;
-                    return;
-                }
+					return;
+				}
 			}
 			else if (!stricmp(att->name, "salt")) {
 				u32 len, j;
@@ -307,6 +307,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				tkc->keys[0].constant_IV_size = atoi(att->value);
 				if ((tkc->keys[0].constant_IV_size != 8) && (tkc->keys[0].constant_IV_size != 16)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Constant IV size %d is not 8 or 16\n", att->value));
+					info->last_parse_error = GF_BAD_PARAM;
 				}
 			}
 			else if (!stricmp(att->name, "constant_IV")
@@ -328,6 +329,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "encryptSliceHeader")) {
 				tkc->allow_encrypted_slice_header = !strcmp(att->value, "yes") ? GF_TRUE : GF_FALSE;
+			}
+			else if (!stricmp(att->name, "encryptNonVCLs")) {
+				if (!strcmp(att->value, "yes"))
+					tkc->allow_encrypted_nonVCLs = GF_CRYPT_NONVCL_CLEAR_NONE;
+				else if (!strcmp(att->value, "no"))
+					tkc->allow_encrypted_nonVCLs = GF_CRYPT_NONVCL_CLEAR_ALL;
+				else
+					tkc->allow_encrypted_nonVCLs = GF_CRYPT_NONVCL_CLEAR_SEI_AUD;
 			}
 			else if (!stricmp(att->name, "blockAlign")) {
 				if (!strcmp(att->value, "disable")) tkc->block_align = 1;
@@ -440,22 +449,25 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 
 			if (!stricmp(att->name, "KID")) {
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].KID);
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse KID\n"));
-                    return;
-                }
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannot parse KID\n"));
+					info->last_parse_error = GF_BAD_PARAM;
+					return;
+				}
 			}
 			else if (!stricmp(att->name, "value")) {
 				GF_Err e = gf_bin128_parse(att->value, tkc->keys[tkc->nb_keys].key);
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannnot parse key value\n"));
-                    return;
-                }
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Cannot parse key value\n"));
+					info->last_parse_error = GF_BAD_PARAM;
+					return;
+				}
 			}
 			else if (!stricmp(att->name, "hlsInfo")) {
 				if (!strstr(att->value, "URI=\"")) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Missing URI in HLS info %s\n", att->value));
-                    return;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Missing URI in HLS info %s\n", att->value));
+					info->last_parse_error = GF_BAD_PARAM;
+					return;
 				}
 				if (tkc->keys[tkc->nb_keys].hls_info) gf_free(tkc->keys[tkc->nb_keys].hls_info);
 				tkc->keys[tkc->nb_keys].hls_info = gf_strdup(att->value);
@@ -489,7 +501,14 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "as")) {
 				tkc->keys[tkc->nb_keys].ASID = atoi(att->value);
-			} else {
+			}
+			else if (!stricmp(att->name, "spatialId")) {
+				tkc->keys[tkc->nb_keys].spatial_id_plus_one  = (u32)(atoi(att->value)+1);
+			}
+			else if (!stricmp(att->name, "temporalId")) {
+				tkc->keys[tkc->nb_keys].temporal_id_plus_one = (u32)(atoi(att->value)+1);
+			}
+			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] unrecognized attribute %s for `key`, ignoring\n", att->name));
 			}
 		}

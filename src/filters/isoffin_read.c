@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -177,6 +177,12 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 		gf_filter_setup_failure(filter, e);
 		e = GF_FILTER_NOT_SUPPORTED;
 	}
+	//we loaded an init segment and no associated PID yet (we use initseg opt), prepare for fragment pushing
+	if (read->frag_type && !read->pid && read->mov) {
+		//reset offset since the first byte we will received will be at offset 0 in our internal buffer (we don't copy init segment)
+		gf_isom_reset_data_offset(read->mov, NULL);
+		read->mem_load_mode = 2;
+	}
 	return e;
 }
 
@@ -246,6 +252,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	if (prop && prop->value.boolean)
 		read->input_loaded = GF_TRUE;
 
+	read->in_is_eos = GF_FALSE;
 	read->refresh_fragmented = GF_FALSE;
 	read->full_segment_flush = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
@@ -346,10 +353,10 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		return GF_OK;
 	default:
 		if (!read->mov) {
-            return GF_NOT_SUPPORTED;
+			return GF_NOT_SUPPORTED;
 		}
-        e = GF_ISOM_INVALID_FILE;
-        break;
+		e = GF_ISOM_INVALID_FILE;
+		break;
 	}
 
 	gf_filter_post_process_task(filter);
@@ -358,7 +365,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 	if (e<0) {
 		count = gf_list_count(read->channels);
-        read->invalid_segment = GF_TRUE;
+		read->invalid_segment = GF_TRUE;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		gf_isom_release_segment(read->mov, 1);
 		//error opening the segment, reset everything ...
@@ -366,12 +373,12 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 #endif
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
-            if (ch) {
-                ch->sample_num = 0;
-                ch->eos_sent = 0;
-            }
+			if (ch) {
+				ch->sample_num = 0;
+				ch->eos_sent = 0;
+			}
 		}
-        GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error opening current segment %s: %s\n", next_url, gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error opening current segment %s: %s\n", next_url, gf_error_to_string(e) ));
 		return GF_OK;
 	}
 	//segment is the first in our cache, we may need a refresh
@@ -382,11 +389,15 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	}
 
 	isor_check_producer_ref_time(read);
+	prop = gf_filter_pid_get_property_str(read->pid, "X-From-MABR");
+
 
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
 		ch->eos_sent = 0;
+		if (ch->pid)
+			gf_filter_pid_set_property_str(ch->pid, "X-From-MABR", prop);
 
 		//old code from master, currently no longer used
 		//in filters we don't use extractors for the time being, we only do implicit reconstruction at the decoder side
@@ -457,9 +468,15 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (!prop || !prop->value.string) {
 		if (!read->mem_load_mode)
 			read->mem_load_mode = 1;
+
 		if (!read->pid) read->pid = pid;
 		read->input_loaded = GF_FALSE;
 		return GF_OK;
+	}
+	//we started with a base64 embedding of init segment, but now have an associated file, leave mem-load mode
+	else if (read->mem_load_mode) {
+		read->mem_load_mode = 0;
+		gf_isom_reset_data_offset(read->mov, NULL);
 	}
 
 	if (read->pid && prop->value.string) {
@@ -507,6 +524,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	read->filter = filter;
 	read->channels = gf_list_new();
+	if (read->sigfo) read->sigfrag = GF_TRUE;
 
 	if (read->xps_check==MP4DMX_XPS_AUTO) {
 		read->xps_check = (read->smode==MP4DMX_SPLIT_EXTRACTORS) ? MP4DMX_XPS_KEEP : MP4DMX_XPS_REMOVE;
@@ -872,6 +890,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						//try to locate sync after current time in base
 						resume_at = base->static_sample ? gf_timestamp_rescale(base->static_sample->DTS, base->timescale, ch->timescale) : 0;
 						e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+
 						//found, rewind so that next fetch is the sync
 						if (e==GF_OK) {
 							ch->sample = NULL;
@@ -879,6 +898,12 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						//no further sync found, realign with base timescale
 						else if (e==GF_EOS) {
 							e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
+						}
+						//trash sample - do not free data, it was dispatched as a filter packet
+						if (ch->static_sample && ch->static_sample->data) {
+							ch->static_sample->data = NULL;
+							ch->static_sample->dataLength = 0;
+							ch->static_sample->alloc_size = 0;
 						}
 						//unknown state, realign sample num with base
 						if (e<0) {
@@ -930,7 +955,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		for (i = 0; i < count; i++) {
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
-				/*ch->next_track = */ //old code, see not in isoffin_reconfigure
 				isoffin_channel_switch_quality(ch, read->mov, evt->quality_switch.up);
 			}
 		}
@@ -1039,7 +1063,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					GF_ISOSample s={0};
 					gf_isom_get_sample_info_ex(read->mov, ch->track, sample_num, NULL, NULL, &s);
 					ch->start = s.DTS+s.CTS_Offset;
-					start_range = ch->start;
+					start_range = (Double) ch->start;
 					start_range /= ch->timescale;
 					ch->sample_num = sample_num;
 				}
@@ -1171,7 +1195,12 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				}
 			}
 		}
-
+		//activate first channel - if input is loaded and we canceled the event, remember we may no longer receive eos signals from source
+		//this happens because the last playing track may have send a STOP to the source but we here no longer send play
+		//do not enter EOS if input PID is not yet assigned (may happen with initseg option)
+		if (!read->nb_playing) {
+			read->in_is_eos = (read->input_loaded && cancel_event && read->pid) ? GF_TRUE : GF_FALSE;
+		}
 
 		read->nb_playing++;
 		//trigger play on all "disconnected" channels
@@ -1394,6 +1423,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 		if (read->mem_load_mode==2) {
 			if (!read->force_fetch && (read->mem_blob.size > read->mstore_size)) {
+				gf_filter_ask_rt_reschedule(filter, 1);
 				fetch_input = GF_FALSE;
 			}
 			read->force_fetch = GF_FALSE;
@@ -1411,6 +1441,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			}
+#if !defined(GPAC_DISABLE_NETWORK) || defined(GPAC_CONFIG_EMSCRIPTEN)
 			if (read->is_partial_download && read->wait_for_source && !read->mem_load_mode) {
 				const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_DOWNLOAD_SESSION);
 				if (prop && prop->type==GF_PROP_POINTER) {
@@ -1419,6 +1450,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						gf_isom_switch_source(read->mov, new_url);
 				}
 			}
+#endif
 			read->wait_for_source = GF_FALSE;
 
 			if (read->mem_load_mode) {
@@ -1458,24 +1490,24 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
 		}
-        //segment is invalid, wait for eos on input an send eos on all channels
-        if (read->invalid_segment) {
-            if (!in_is_eos) return GF_OK;
-            read->invalid_segment = GF_FALSE;
+		//segment is invalid, wait for eos on input an send eos on all channels
+		if (read->invalid_segment) {
+			if (!in_is_eos) return GF_OK;
+			read->invalid_segment = GF_FALSE;
 
-            for (i=0; i<count; i++) {
-                ISOMChannel *ch = gf_list_get(read->channels, i);
-                if (!ch->playing) {
-                    continue;
-                }
-                if (!ch->eos_sent) {
-                    ch->eos_sent = 1;
-                    gf_filter_pid_set_eos(ch->pid);
-                }
-            }
-            read->eos_signaled = GF_TRUE;
-            return GF_EOS;
-        }
+			for (i=0; i<count; i++) {
+				ISOMChannel *ch = gf_list_get(read->channels, i);
+				if (!ch->playing) {
+					continue;
+				}
+				if (!ch->eos_sent) {
+					ch->eos_sent = 1;
+					gf_filter_pid_set_eos(ch->pid);
+				}
+			}
+			read->eos_signaled = GF_TRUE;
+			return GF_EOS;
+		}
 	} else if (read->extern_mov) {
 		in_is_eos = GF_TRUE;
 		read->input_loaded = GF_TRUE;
@@ -1486,6 +1518,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		read->moov_not_loaded = GF_FALSE;
 		return isoffin_setup(filter, read, in_is_eos);
 	}
+	if (read->in_is_eos)
+		in_is_eos = GF_TRUE;
 
 	if (read->refresh_fragmented) {
 		const GF_PropertyValue *prop;
@@ -1534,8 +1568,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (!read->frag_type)
 				read->refresh_fragmented = GF_FALSE;
 		}
+	} else {
+		isor_check_producer_ref_time(read);
 	}
 
+	u32 all_pck_sent=0;
 	for (i=0; i<count; i++) {
 		u8 *data;
 		u32 nb_pck=50;
@@ -1624,7 +1661,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				gf_filter_pck_set_dts(pck, ch->dts);
 				gf_filter_pck_set_cts(pck, ch->cts + ch->cts_offset);
-				if (ch->sample->IsRAP==-1) {
+				if (ch->sample->IsRAP==RAP_REDUNDANT) {
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 					ch->redundant = 1;
 				} else {
@@ -1636,6 +1673,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				else if (ch->sap_4_type) {
 					gf_filter_pck_set_sap(pck, (ch->sap_4_type==GF_ISOM_SAMPLE_PREROLL) ? GF_FILTER_SAP_4_PROL : GF_FILTER_SAP_4);
 					gf_filter_pck_set_roll_info(pck, ch->roll);
+				}
+
+				if (ch->switch_frame) {
+					gf_filter_pck_set_switch_frame(pck, GF_TRUE);
 				}
 
 				sample_dur = ch->sample->duration;
@@ -1734,7 +1775,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (!ch->item_id) {
 					isor_set_sample_groups_and_aux_data(read, ch, pck);
 				}
-				if (ch->sample_data_offset && !gf_sys_is_test_mode())
+				if (ch->sample_data_offset)
 					gf_filter_pck_set_byte_offset(pck, ch->sample_data_offset);
 
 				if (ch->set_disc) {
@@ -1743,7 +1784,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
-
+				all_pck_sent++;
 				ch->last_valid_sample_data_offset = ch->sample_data_offset;
 				if (!in_is_flush)
 					nb_pck--;
@@ -1816,8 +1857,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);
 		gf_filter_pid_send_event(read->pid, &evt);
 	}
-
-	if (!is_active) {
+	//if no packet sent and no input pid, return EOS (avoids being rescheduled as a source)
+	if (!is_active || (!all_pck_sent && !read->pid)) {
 		return GF_EOS;
 	}
 
@@ -1864,7 +1905,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nocrypt), "signal encrypted tracks as non encrypted (mostly used for export)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mstore_size), "target buffer size in bytes when reading from memory stream (pipe etc...)", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mstore_size), "target buffer size in bytes when reading from memory stream (pipe etc...)", GF_PROP_UINT, "10000000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream, 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -1885,8 +1926,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(ctso), "value to add to CTS offset for tracks using negative ctts\n"
 	"- set to `-1` to use the `cslg` box info or the minimum cts offset present in the track\n"
 	"- set to `-2` to use the minimum cts offset present in the track (`cslg` ignored)", GF_PROP_SINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(norw), "skip reformating of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(keepc), "keep corrupted samples - should only be used in multicast modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(norw), "skip reformatting of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keepc), "keep corrupted samples (for multicast sources only)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sigfo), "signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

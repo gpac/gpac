@@ -5,20 +5,12 @@ vpath %.c $(SRC_PATH)/modules/alsa
 CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(oss_cflags)
 LDFLAGS+=$(oss_ldflags)
 
-ifeq ($(DEBUGBUILD),yes)
-CFLAGS+=-g
-LDFLAGS+=-g
-endif
-
-ifeq ($(GPROFBUILD),yes)
-CFLAGS+=-pg
-LDFLAGS+=-pg
-endif
+include ../common.mak
 
 #common obj
 OBJS= alsa.o
 
-SRCS := $(OBJS:.o=.c) 
+SRCS := $(OBJS:.o=.c)
 
 LIB=gm_alsa$(DYN_LIB_SUFFIX)
 
@@ -29,13 +21,13 @@ $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) $(LDFLAGS) -lasound -L../../bin/gcc -lgpac
 
 
-clean: 
+clean:
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)
 
 dep: depend
 
 depend:
-	rm -f .depend	
+	rm -f .depend
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 distclean: clean

@@ -156,7 +156,7 @@ typedef struct
 	Any reallocation of the fragment info SHALL be done using  \ref gf_route_dmx_patch_frag_info
 	*/
 	GF_LCTFragInfo *frags;
-	
+
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
 
@@ -177,6 +177,9 @@ typedef struct
 	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
 	 */
 	void *udta;
+
+	/*! channel hint set by application; 0 if unknown*/
+	u32 channel_hint;
 } GF_ROUTEEventFileInfo;
 
 /*! Creates a new ROUTE ATSC3.0 demultiplexer
@@ -256,7 +259,6 @@ Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
 
 /*! Checks for object being timeouts - this should only be called when \ref gf_route_dmx_process returns GF_IP_NETWORK_EMPTY for the first time in a batch
 \param routedmx the ROUTE demultiplexer
-\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
  */
 void gf_route_dmx_check_timeouts(GF_ROUTEDmx *routedmx);
 
@@ -280,9 +282,9 @@ typedef enum
 } GF_RouteProgressiveDispatch;
 
 /*! Allow segments to be sent while being downloaded.
- 
+
 \note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the beginning of the file in that case.
- 
+
 \param routedmx the ROUTE demultiplexer
 \param dispatch_mode set dispatch mode
 \return error code if any
@@ -418,6 +420,17 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
  */
 GF_Err gf_route_dmx_patch_blob_size(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 new_size);
 
+/*! Set hint to the identified object - if object has an associated channel (eg HAS representation), set the hint on this channel. The hint is passed back in the \ref GF_ROUTEEventFileInfo and is typically used to store mime type of the object
+
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param tsi tsi of channel
+\param toi toi of object
+\param hint the new size to set
+\return error if any
+ */
+GF_Err gf_route_dmx_set_object_hint(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, u32 hint);
+
 /*! Set active status of a representation
 \param routedmx the ROUTE demultiplexer
 \param service_id the target service
@@ -434,6 +447,13 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
  */
 void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
 
+/*! Gets repair info for MABR
+\param routedmx the ROUTE demultiplexer
+\param service_id the service identifier
+\param base_uri set to base URI used in MABR filenames if present or to NULL otherwise - may be NULL
+\param repair_server set to repair server address if present or to NULL otherwise - may be NULL
+ */
+void gf_route_dmx_get_repair_info(GF_ROUTEDmx *routedmx, u32 service_id, const char **base_uri, const char **repair_server);;
 
 /*! @} */
 #ifdef __cplusplus
@@ -443,4 +463,3 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
 #endif /* GPAC_DISABLE_ROUTE */
 
 #endif	//_GF_ROUTE_H_
-

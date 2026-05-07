@@ -71,7 +71,7 @@ void gf_isom_datamap_close(GF_MediaInformationBox *minf)
 	}
 
 	//if ent NULL, the data entry was not used (smooth)
-	if (ent == NULL) return;
+	if (ent==NULL) return;
 
 	//self contained, do nothing
 	switch (ent->type) {
@@ -413,7 +413,9 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!strncmp(sPath, "gmem://", 7)) {
 		if (sscanf(sPath, "gmem://%p", &tmp->blob) != 1)
 			return NULL;
+		gf_mx_p(tmp->blob->mx);
 		tmp->bs = gf_bs_new(tmp->blob->data, tmp->blob->size, GF_BITSTREAM_READ);
+		gf_mx_v(tmp->blob->mx);
 		if (!tmp->bs) {
 			gf_free(tmp);
 			return NULL;
@@ -530,7 +532,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 
 	if (ptr->blob) {
 		gf_mx_p(ptr->blob->mx);
-		GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, bufferLength);
+		GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, GF_TRUE, fileOffset, bufferLength);
 		if (is_corrupted) *is_corrupted = rs;
 		if (rs==GF_BLOB_RANGE_IN_TRANSFER) {
 			gf_mx_v(ptr->blob->mx);
@@ -588,7 +590,16 @@ static Bool gf_isom_fdm_check_top_level(GF_FileDataMap *ptr)
 	}
 	gf_bs_seek(ptr->bs, fileOffset);
 	u32 size = gf_bs_peek_bits(ptr->bs, 32, 0);
-	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, size);
+	u32 type = gf_bs_peek_bits(ptr->bs, 32, 4);
+	//no size: either range is invalid or the box extends till end of blob
+	if (!size)
+		size = ptr->blob->size - (u32) fileOffset;
+
+	if ((type==GF_ISOM_BOX_TYPE_MDAT) || (type==GF_ISOM_BOX_TYPE_IDAT)) {
+		size = 8;
+	}
+
+	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, GF_TRUE, fileOffset, size);
 	gf_mx_v(ptr->blob->mx);
 	if (rs==GF_BLOB_RANGE_IN_TRANSFER)
 		return GF_FALSE;

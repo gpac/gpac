@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -54,7 +54,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	GF_TextSampleEntryBox *qt_txt = NULL;
 	if (!descriptionIndex || !out_desc) return GF_BAD_PARAM;
 
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	trak = gf_isom_get_track_box(movie, trackNumber);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
 	switch (trak->Media->handler->handlerType) {
@@ -135,10 +135,10 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	GF_Tx3gSampleEntryBox *txt;
 
 	if (!descriptionIndex || !desc) return GF_BAD_PARAM;
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	trak = gf_isom_get_track_box(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
 	switch (trak->Media->handler->handlerType) {
@@ -201,10 +201,10 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	u32 dataRefIndex, i;
 	GF_Tx3gSampleEntryBox *txt;
 
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	trak = gf_isom_get_track_box(movie, trackNumber);
 	if (!trak || !trak->Media || !desc) return GF_BAD_PARAM;
 
 	switch (trak->Media->handler->handlerType) {
@@ -522,6 +522,9 @@ u32 gf_isom_text_sample_size(GF_TextSample *samp)
 		gf_isom_box_size((GF_Box *)samp->wrap);
 		size += (u32) samp->wrap->size;
 	}
+	if (samp->is_forced) {
+		size += 8;
+	}
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(samp->others, &i))) {
 		gf_isom_box_size((GF_Box *)a);
@@ -550,10 +553,10 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	*outDescIdx = 0;
 
 	if (!desc) return GF_BAD_PARAM;
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return GF_BAD_PARAM;
 
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	trak = gf_isom_get_track_box(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
 	switch (trak->Media->handler->handlerType) {
@@ -952,7 +955,7 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 
 	*tx3g = NULL;
 	*tx3g_size = 0;
-	trak = gf_isom_get_track_from_file(file, track);
+	trak = gf_isom_get_track_box(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
 	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sidx-1);
@@ -966,12 +969,13 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_forced_text(GF_ISOFile *file, u32 track, u32 stsd_idx, u32 flags)
 {
 	GF_TrackBox *trak;
 	GF_Tx3gSampleEntryBox *a;
 
-	trak = gf_isom_get_track_from_file(file, track);
+	trak = gf_isom_get_track_box(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
 	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, stsd_idx-1);

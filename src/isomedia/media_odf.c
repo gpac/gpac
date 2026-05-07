@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -512,7 +512,7 @@ u32 gf_isom_find_od_id_for_track(GF_ISOFile *file, u32 track)
 {
 	u32 i, j, di, the_od_id;
 	GF_TrackBox *od_tk;
-	GF_TrackBox *tk = gf_isom_get_track_from_file(file, track);
+	GF_TrackBox *tk = gf_isom_get_track_box(file, track);
 	if (!tk) return 0;
 
 	i=0;

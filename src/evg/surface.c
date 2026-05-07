@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -370,6 +370,9 @@ static GF_Err gf_evg_surface_attach_to_buffer_internal(GF_EVGSurface *surf, u8 *
 		if (!probe_only)
 			surf->is_transparent = GF_TRUE;
 		break;
+	case GF_PIXEL_RGB_332:
+		BPP = 1;
+		break;
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
@@ -603,6 +606,8 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 		return evg_surface_clear_555(surf, clear, color);
 	case GF_PIXEL_RGB_565:
 		return evg_surface_clear_565(surf, clear, color);
+	case GF_PIXEL_RGB_332:
+		return evg_surface_clear_332(surf, clear, color);
 
 	/*YUV formats*/
 	case GF_PIXEL_YUV:
@@ -925,6 +930,21 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 		if (surf->ext3d) {
 			surf->fill_single = evg_555_fill_single;
 			surf->fill_single_a = evg_555_fill_single_a;
+		}
+		break;
+	case GF_PIXEL_RGB_332:
+		if (use_const) {
+			if (a!=0xFF) {
+				surf->fill_spans = (EVG_SpanFunc) evg_332_fill_const_a;
+			} else {
+				surf->fill_spans = (EVG_SpanFunc) evg_332_fill_const;
+			}
+		} else {
+			surf->fill_spans = (EVG_SpanFunc) evg_332_fill_var;
+		}
+		if (surf->ext3d) {
+			surf->fill_single = evg_332_fill_single;
+			surf->fill_single_a = evg_332_fill_single_a;
 		}
 		break;
 	case GF_PIXEL_YVU:
@@ -1387,7 +1407,7 @@ GF_Err gf_evg_surface_multi_fill(GF_EVGSurface *surf, GF_EVGMultiTextureMode ope
 	surf->sten = sten1;
 	surf->update_run = NULL;
 
-	/*setup ft raster calllbacks*/
+	/*setup ft raster callbacks*/
 	if (!setup_grey_callback(surf, GF_FALSE, sten2 ? GF_TRUE : GF_FALSE)) return GF_OK;
 
 	get_surface_world_matrix(surf, &mat);
@@ -1520,7 +1540,7 @@ GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, 
 	u32 max_gray;
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
-	/*setup ft raster calllbacks*/
+	/*setup ft raster callbacks*/
 	if (!setup_grey_callback(surf, GF_TRUE, GF_FALSE)) return GF_OK;
 
 	if (surf->useClipper) {
@@ -1555,7 +1575,7 @@ GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 	u32 max_gray;
 	if (!surf || !surf->ext3d) return GF_BAD_PARAM;
 
-	/*setup ft raster calllbacks*/
+	/*setup ft raster callbacks*/
 	if (!setup_grey_callback(surf, GF_TRUE, GF_FALSE)) return GF_OK;
 
 	if (surf->useClipper) {

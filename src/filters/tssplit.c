@@ -39,7 +39,7 @@ typedef struct
 	u32 pmt_pid;
 	u8 pat_pck[192];
 	u32 pat_pck_size;
-	u64 last_pcr_plus_one;
+	u64 last_pcr_plus_one, init_clock, init_pcr;
 	u32 pcr_id;
 	Bool start_sent;
 
@@ -60,6 +60,7 @@ typedef struct
 	u32 nb_pack;
 	Bool gendts;
 	Bool kpad;
+	Bool rt;
 
 	//internal
 	GF_Filter *filter;
@@ -74,12 +75,14 @@ typedef struct
 	GF_M2TSSplit_SPTS *out;
 
 	u64 filesize;
+	u64 process_clock;
+	u32 resched_next;
+	u32 ts_pck_size;
 	GF_Fraction64 duration;
 	Bool initial_play_done;
 } GF_M2TSSplitCtx;
 
 static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
-
 
 void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *data, u32 size, u64 pcr_plus_one)
 {
@@ -98,7 +101,22 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 				memcpy(buffer, data, size);
 			return;
 		}
-		if (pcr_plus_one) stream->last_pcr_plus_one = pcr_plus_one;
+		if (pcr_plus_one) {
+			if (!stream->last_pcr_plus_one && ctx->rt) {
+				stream->init_clock = gf_sys_clock_high_res();
+				stream->init_pcr = pcr_plus_one;
+			}
+			stream->last_pcr_plus_one = pcr_plus_one;
+			if (ctx->rt) {
+				u64 pck_time = gf_timestamp_rescale(pcr_plus_one - stream->init_pcr, 27000000, 1000000);
+				pck_time += stream->init_clock;
+				u32 next_time = 0;
+				if (pck_time > ctx->process_clock)
+					next_time = (u32)(pck_time - ctx->process_clock);
+				if (!ctx->resched_next || (ctx->resched_next > next_time))
+					ctx->resched_next = next_time;
+			}
+		}
 		if (stream->init_pck) {
 			gf_filter_pck_set_framing(stream->init_pck, !stream->start_sent, GF_FALSE);
 			stream->start_sent = GF_TRUE;
@@ -120,10 +138,15 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 				return;
 			}
 		}
-		u32 osize = size*stream->nb_pck;
+		if (size)
+			ctx->ts_pck_size = size;
+		else
+			size = ctx->ts_pck_size;
+
+		u32 osize = size * stream->nb_pck;
 		pck = gf_filter_pck_new_alloc(stream->opid, osize, &buffer);
 		if (pck) {
-			gf_filter_pck_set_framing(pck, stream->start_sent, GF_FALSE);
+			gf_filter_pck_set_framing(pck, !stream->start_sent, GF_FALSE);
 			stream->start_sent = GF_TRUE;
 			memcpy(buffer, stream->pck_buffer, osize);
 
@@ -169,6 +192,7 @@ typedef struct
 	GF_M2TSSplitCtx *ctx;
 	u64 first_pcr;
 	u32 first_pcr_pid;
+	u32 first_pcr_pck_num;
 	u64 last_pcr;
 	u32 pck_num;
 	Bool abort;
@@ -180,13 +204,18 @@ static void m2tssplit_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type,
 
 	if (evt_type != GF_M2TS_EVT_PCK) return;
 	GF_M2TS_TSPCK *tspck = param;
-	if (!tspck->pcr_plus_one) return;
+	if (!tspck->pcr_plus_one || prober->abort) return;
+	if (prober->first_pcr_pid && (prober->first_pcr_pid != tspck->pid)) return;
+
+	if (tspck->pcr_plus_one && (tspck->pcr_plus_one < prober->first_pcr)) {
+		prober->first_pcr_pid = 0;
+	}
 	if (!prober->first_pcr_pid) {
 		prober->first_pcr_pid = tspck->pid;
 		prober->first_pcr = tspck->pcr_plus_one;
+		prober->first_pcr_pck_num = ts->pck_number;
 		return;
 	}
-	if (prober->first_pcr_pid != tspck->pid) return;
 	prober->last_pcr = tspck->pcr_plus_one;
 	prober->pck_num = ts->pck_number;
 	if ((tspck->pcr_plus_one < prober->first_pcr) || (tspck->pcr_plus_one - prober->first_pcr > 5*27000000)) {
@@ -220,12 +249,16 @@ void m2ts_split_estimate_duration(GF_M2TSSplitCtx *ctx, GF_FilterPid *pid)
 		gf_m2ts_process_data(ctx->dmx, buf, nb_read);
 		if (prober.abort) break;
 	}
-	u64 dur = prober.last_pcr - prober.first_pcr;
-	u32 size = prober.pck_num * (ctx->dmx->prefix_present ? 192 : 188);
 	ctx->filesize = gf_fsize(stream);
-	gf_fclose(stream);
-	ctx->duration.num = gf_timestamp_rescale(dur, size, ctx->filesize);
+	if (prober.last_pcr > prober.first_pcr) {
+		u64 dur = prober.last_pcr - prober.first_pcr;
+		u32 size = (prober.pck_num - prober.first_pcr_pck_num) * (ctx->dmx->prefix_present ? 192 : 188);
+		ctx->duration.num = gf_timestamp_rescale(dur, size, ctx->filesize);
+	} else {
+		ctx->duration.num = -1;
+	}
 	ctx->duration.den = 27000000;
+	gf_fclose(stream);
 
 	GF_M2TSRawMode mode = ctx->dmx->raw_mode;
 	gf_m2ts_demux_del(ctx->dmx);
@@ -371,9 +404,16 @@ GF_Err m2tssplit_process(GF_Filter *filter)
 	}
 	data = gf_filter_pck_get_data(pck, &data_size);
 	if (data) {
+		if (ctx->rt) {
+			ctx->process_clock = gf_sys_clock_high_res();
+		}
 		gf_m2ts_process_data(ctx->dmx, (u8 *)data, data_size);
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
+	if (ctx->resched_next) {
+		gf_filter_ask_rt_reschedule(filter, ctx->resched_next);
+		ctx->resched_next = 0;
+	}
 	return GF_OK;
 }
 
@@ -652,6 +692,9 @@ GF_Err m2tssplit_initialize(GF_Filter *filter)
 	ctx->bsw = gf_bs_new(ctx->tsbuf, 192, GF_BITSTREAM_WRITE);
 	if (ctx->nb_pack<=1)
 		ctx->nb_pack = 0;
+
+	if (ctx->rt)
+		ctx->gendts = GF_TRUE;
 	return GF_OK;
 }
 
@@ -685,6 +728,7 @@ static const GF_FilterArgs M2TSSplitArgs[] =
 	{ OFFS(nb_pack), "pack N packets before sending", GF_PROP_UINT, "10", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gendts), "generate timestamps on output packets based on PCR", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kpad), "keep padding (null) TS packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rt), "enable real-time regulation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -727,6 +771,7 @@ static const GF_FilterArgs M2TSGenDTSArgs[] =
 {
 	{ OFFS(nb_pack), "pack N packets before sending", GF_PROP_UINT, "10", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kpad), "keep padding (null) TS packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rt), "enable real-time regulation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

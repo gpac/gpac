@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -63,6 +63,8 @@ REG_DEC(maddec)
 REG_DEC(xviddec)
 REG_DEC(j2kdec)
 REG_DEC(rfac3)
+REG_DEC(rfac4)
+REG_DEC(ufac4)
 REG_DEC(a52dec)
 REG_DEC(rfamr)
 REG_DEC(oggdmx)
@@ -192,8 +194,13 @@ REG_DEC(ttmlmerge)
 REG_DEC(ghidmx)
 REG_DEC(evgs)
 REG_DEC(ccdec)
-REG_DEC(scte35dec)
+REG_DEC(ccenc)
 REG_DEC(mpeghdec)
+REG_DEC(seiload)
+
+#ifndef GPAC_DISABLE_ISOM
+REG_DEC(scte35dec)
+#endif
 
 typedef const GF_FilterRegister *(*filter_reg_fun)(GF_FilterSession *session);
 
@@ -226,6 +233,8 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(xviddec),
 	REG_IT(j2kdec),
 	REG_IT(rfac3),
+	REG_IT(rfac4),
+	REG_IT(ufac4),
 	REG_IT(a52dec),
 	REG_IT(rfamr),
 	REG_IT(oggdmx),
@@ -353,7 +362,11 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ghidmx),
 	REG_IT(evgs),
 	REG_IT(ccdec),
+	REG_IT(ccenc),
+#ifndef GPAC_DISABLE_ISOM
 	REG_IT(scte35dec),
+#endif
+	REG_IT(seiload),
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 	REG_IT(wcdec),

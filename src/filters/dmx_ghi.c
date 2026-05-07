@@ -259,7 +259,10 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 				continue;
 			}
 			//make sure this comes from the same source, otherwise we could match tracks with same IDs in different files - cf #2840
-			if (!st->check_res_url || strcmp(st->check_res_url, url->value.string)) continue;
+			if (st->check_res_url && !strcmp(st->check_res_url, url->value.string)) {}
+			else if (st->res_url && !strcmp(st->res_url, url->value.string)) {}
+			else continue;
+
 			if (!st->track_id) break;
 			if (st->track_id == p_id->value.uint) break;
 			st = NULL;
@@ -936,9 +939,13 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 
 			//locate segment
 			if (ctx->sn > gf_list_count(st->segs_xml)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Invalid segment index %d - only %d segments available\n", ctx->sn, gf_list_count(st->segs_xml)));
-				gf_mpd_del(mpd);
-				return GF_BAD_PARAM;
+				if (!st->inactive) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Invalid segment index %d - only %d segments available\n", ctx->sn, gf_list_count(st->segs_xml)));
+					gf_mpd_del(mpd);
+					return GF_BAD_PARAM;
+				}
+				//not active, use last entry for init below
+				st->seg_num = gf_list_count(st->segs_xml);
 			//todo: locate by other criteria ? (time)
 			} else {
 				st->seg_num = ctx->sn;
@@ -1059,7 +1066,11 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 			continue;
 		}
 
-		char *args = gf_strdup(st->check_res_url);
+		char *args = NULL;
+		if (st->check_res_url) args = gf_strdup(st->check_res_url);
+		//if no check_res_url, use res_url directly - this happens when source idx is a gf_fileio_from_mem
+		//in which case we don't mem-wrap the inputs
+		else if (st->res_url) args = gf_strdup(st->res_url);
 
 		if (st->first_frag_start_offset) {
 			char szRange[100];
@@ -1350,7 +1361,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	"Indexing supports fragmented and non-fragmented MP4, MPEG-2 TS and seekable inputs.\n"
 	"- It is recommended to use fragmented MP4 as input format since this greatly reduces file loading times.\n"
 	"- If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.\n"
-	"- MPEG-2 TS sources will be slower since they require PES reframing and AU reformating, resulting in more IOs than with mp4.\n"
+	"- MPEG-2 TS sources will be slower since they require PES reframing and AU reformatting, resulting in more IOs than with mp4.\n"
 	"- other seekable sources will likely be slower (seeking, reframing) and are not recommended.\n"
 	"\n"
 	)

@@ -458,7 +458,7 @@ static void wrap_func(FILE *ifce_c, char *fname, char *fun_def)
 		Bool is_array;
 		const char *nat_type = get_arg_type(arg_type[0], &is_array);
 		fprintf(ifce_c, "\t{\n\tGF_WebGLObject *glo = JS_GetOpaque(argv[0], %s_class_id);\n\tif (glo) {\n\tglo->gl_id=0;\n", nat_type);
-		fprintf(ifce_c, "\tJS_FreeValue(ctx, glo->obj);\n\tglo->obj = JS_UNDEFINED;\n\tgf_list_del_item(glo->par_ctx->all_objects, glo);\n");
+		fprintf(ifce_c, "\tJS_FreeValue(ctx, glo->obj);\n\tglo->obj = JS_UNDEFINED;\n\tgf_list_del_item(glo->par_ctx->all_objects, glo);\n\tgf_free(glo);\n\tJS_SetOpaque(argv[0], NULL);\n");
 		fprintf(ifce_c, "\t}\n\t}\n");
 	}
 

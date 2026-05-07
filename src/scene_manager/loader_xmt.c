@@ -1311,17 +1311,18 @@ static void xmt_update_timenode(GF_XMTParser *parser, GF_Node *node)
 	}
 }
 
-static void xmt_strip_name(const char *in, char *out)
+static void xmt_strip_name(const char *in, char *out, size_t out_size)
 {
 	while (in[0]==' ') in++;
-	strcpy(out, in);
+	strncpy(out, in, out_size-1);
+	out[out_size-1] = 0;
 	while (out[strlen(out)-1] == ' ') out[strlen(out)-1] = 0;
 }
 
 static u32 xmt_get_ft_by_name(const char *_name)
 {
 	char name[1024];
-	xmt_strip_name(_name, name);
+	xmt_strip_name(_name, name, GF_ARRAY_LENGTH(name));
 
 	if (!strcmp(name, "Boolean") || !strcmp(name, "SFBool")) return GF_SG_VRML_SFBOOL;
 	else if (!strcmp(name, "Integer") || !strcmp(name, "SFInt32")) return GF_SG_VRML_SFINT32;
@@ -1359,7 +1360,7 @@ static u32 xmt_get_ft_by_name(const char *_name)
 static u32 xmt_get_script_et_by_name(const char *_name)
 {
 	char name[1024];
-	xmt_strip_name((char *)_name, name);
+	xmt_strip_name((char *)_name, name, GF_ARRAY_LENGTH(name));
 
 	if (!strcmp(name, "eventIn") || !strcmp(name, "inputOnly") ) return GF_SG_SCRIPT_TYPE_EVENT_IN;
 	else if (!strcmp(name, "eventOut") || !strcmp(name, "outputOnly")) return GF_SG_SCRIPT_TYPE_EVENT_OUT;
@@ -1369,7 +1370,7 @@ static u32 xmt_get_script_et_by_name(const char *_name)
 static u32 xmt_get_et_by_name(const char *_name)
 {
 	char name[1024];
-	xmt_strip_name((char *)_name, name);
+	xmt_strip_name((char *)_name, name, GF_ARRAY_LENGTH(name));
 
 	if (!strcmp(name, "eventIn") || !strcmp(name, "inputOnly") ) return GF_SG_EVENT_IN;
 	else if (!strcmp(name, "eventOut") || !strcmp(name, "outputOnly")) return GF_SG_EVENT_OUT;

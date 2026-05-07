@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2024
+ *			Copyright (c) Telecom ParisTech 2022-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / TX3G to SRT/VTT/TTML convert filter
@@ -53,6 +53,7 @@ typedef struct
 	GF_TextConfig *cfg;
 	u32 dsi_crc;
 	Bool is_tx3g;
+	Bool dash_mode;
 
 	u32 dump_type;
 	u32 cur_frame;
@@ -149,6 +150,9 @@ GF_Err tx3gmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+	ctx->dash_mode = (p && p->value.uint) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->dump_type)
 		tx3gmx_write_config(ctx);
@@ -257,7 +261,7 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 	if (txtd->font_table && txtd->font_table->entry_count && txtd->font_table->fonts[0].fontName)
 		gf_fprintf(dump, " tts:fontFamily=\"%s\"", txtd->font_table->fonts[0].fontName);
 
-	gf_fprintf(dump, "/>\n  </layout>\n </head>\n <body>\n  <div>\n");
+	gf_fprintf(dump, "/>\n  </layout>\n </head>\n <body region=\"Default\">\n  <div>\n");
 
 	tx3g_format_time(start_ts, 1000, szTime, GF_FALSE);
 	gf_fprintf(dump, "  <p begin=\"%s\"", szTime);
@@ -315,7 +319,15 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 	//end of <p>
 	gf_fprintf(dump, ">");
 
+	Bool needs_new_line = GF_FALSE;
 	for (j=0; j<len; j++) {
+		if (needs_new_line) {
+			//safety check for weird files using CR but no LF
+			if (utf16Line[j]=='\r') continue;
+			if (utf16Line[j]!='\n')
+				gf_fprintf(dump, "<br/>");
+			needs_new_line = GF_FALSE;
+		}
 		if (!single_style) {
 			if (txt->styles) {
 				new_styles = txtd->default_style.style_flags;
@@ -382,7 +394,7 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 		}
 
 		if (utf16Line[j]=='\r') {
-
+			needs_new_line = GF_TRUE;
 		} else if (utf16Line[j]=='\n') {
 			gf_fprintf(dump, "<br/>");
 		} else {
@@ -419,6 +431,8 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 	u8 *data, *output;
 	u64 start_ts, end_ts, o_start_ts;
 	u32 pck_size, timescale;
+	Bool forced = GF_FALSE;
+	const GF_PropertyValue *p;
 	FILE *dump=NULL;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -431,11 +445,16 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	if (pck_size<=1) {
+		//0-size packet can be EODS in dash mode, send it
+		if (!pck_size && ctx->dash_mode) {
+			gf_filter_pck_forward(pck, ctx->opid);
+		}
 		gf_filter_pid_drop_packet(ctx->ipid);
-		//we consider a 0 packet size not an error
+		//we consider a 0 packet size not an error, 1 is wrong
 		return pck_size ? GF_NON_COMPLIANT_BITSTREAM : GF_OK;
 	}
-	if (ctx->dump_type && (pck_size<=2)) {
+	//empty packet, trash except in dash mode where we will need to forward segment info from the packet
+	if (ctx->dump_type && (pck_size==2) && !ctx->dash_mode) {
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
@@ -451,6 +470,13 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 	o_start_ts = start_ts;
 	if ((s64) end_ts > -ctx->delay) end_ts += ctx->delay;
 	else end_ts = 0;
+
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FORCED_SUB);
+	if (p && p->value.boolean) forced = GF_TRUE;
+	if (!forced) {
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FORCED_SUB);
+		if (p && (p->value.uint==2)) forced = GF_TRUE;
+	}
 
 	start_ts = gf_timestamp_rescale(start_ts, timescale, 1000);
 	end_ts = gf_timestamp_rescale(end_ts, timescale, 1000);
@@ -496,6 +522,10 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 				GF_FontTableBox font_ent;
 
 				tx3gmx_get_stsd(ent, &txtd, &font_ent);
+
+				if (txt->is_forced || (txtd.displayFlags & GF_TXT_ALL_SAMPLES_FORCED))
+					forced = GF_TRUE;
+
 				if (ctx->dump_type<3) {
 					dump_ttxt_sample_srt(dump, txt, &txtd, (ctx->dump_type==2) ? GF_TRUE : GF_FALSE);
 				} else {
@@ -529,6 +559,9 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 		gf_filter_pck_set_cts(dst_pck, o_start_ts);
 		gf_filter_pck_set_dts(dst_pck, o_start_ts);
+		if (forced) {
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FORCED_SUB, &PROP_BOOL(GF_TRUE));
+		}
 
 		gf_filter_pck_send(dst_pck);
 	}

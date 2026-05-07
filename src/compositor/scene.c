@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -3188,6 +3188,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	//notify we found a new addon
 
 	if (! scene->root_od->parentscene) {
+		//auto-enable in test mode
 		if (gf_sys_is_test_mode()) {
 			addon->enabled = GF_TRUE;
 		} else {
@@ -3229,7 +3230,7 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		GF_AddonMedia *prev_addon = gf_list_get(scene->declared_addons, i);
 		//we are adding a non splicing point: discard all previously declared addons
 		if (!addon->is_splicing
-		        //this is a splicing point, discard all previsously declared splicing addons
+		        //this is a splicing point, discard all previously declared splicing addons
 		        || prev_addon->is_splicing
 		   ) {
 			gf_scene_reset_addon(prev_addon, GF_TRUE);

@@ -303,7 +303,7 @@ u32 gf_xml_dom_get_root_nodes_count(GF_DOMParser *parser);
 */
 GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx);
 
-/*! Gets the root node of the document and assign the parser root to NULL.
+/*! Gets the root node of the document and assigns the parser root to NULL.
 \param parser the DOM parser to use
 \return the root element at the given index, or NULL if error. The element must be freed by the caller
 */

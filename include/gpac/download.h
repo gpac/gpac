@@ -520,7 +520,7 @@ u32 gf_dm_sess_get_max_rate(GF_DownloadSession *sess);
 /*!
 \brief Checks  session regulation state
 
-Checks if last session fetch has been skiped due to rate limitation
+Checks if last session fetch has been skipped due to rate limitation
 \param sess the download session object
 \return GF_TRUE if last call to \ref gf_dm_sess_fetch_data was skipped because of rate regulation
  */
@@ -615,7 +615,7 @@ Adds a local entry in the cache
 \param download_time_ms indicates the download time of the associated resource, if known, 0 otherwise.
 \return a cache entry structure
  */
-DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
+DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range, const char *mime, Bool clone_memory, u32 download_time_ms);
 
 /*!
 Forces HTTP headers for a given cache entry

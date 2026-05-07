@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -100,8 +100,10 @@ struct __txtin_ctx
 	GF_BitStream *bs_w;
 	Bool first_samp;
 	Bool hdr_parsed;
-	//if source is framed (but in "unframe" format), used in text conversion
-	Bool pid_framed;
+	//0: PID is unframed (file source)
+	//1: source is framed (but in "unframe" format), used in text conversion
+	//2: source is framed SRT with inband headers
+	u32 pid_framed;
 	Bool single_text_chunk;
 
 	//state vars for srt
@@ -265,12 +267,13 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 	if (uni_type>1) {
 		const u16 *sptr;
 		char szUTF[1024];
-		u32 read = (u32) gf_fread(szUTF, 1023, test);
+		u32 read = (u32) gf_fread(szUTF, 1022, test);
 		if ((s32) read < 0) {
 			gf_fclose(test);
 			return GF_IO_ERR;
 		}
 		szUTF[read]=0;
+		szUTF[read+1]=0;
 		sptr = (u16*)szUTF;
 		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
@@ -726,7 +729,7 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 
 	if (!txt_samp)
 		return;
-	if ((!txt_samp->text || !txt_samp->len) && ctx->no_empty)
+	if ((!txt_samp->text || !txt_samp->len) && (ctx->no_empty || (ctx->pid_framed==2)))
 		return;
 
 	if (ctx->seek_state==2) {
@@ -739,7 +742,9 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	if (!ctx->pid_framed && (ctx->stxtmod <=STXT_MODE_SBTT)) {
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
 		if (!dst_pck) return;
-		memcpy(pck_data, txt_samp->text, txt_samp->len);
+		if (txt_samp->text) {
+			memcpy(pck_data, txt_samp->text, txt_samp->len);
+		}
 	} else {
 		u32 size = gf_isom_text_sample_size(txt_samp);
 
@@ -826,7 +831,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 						}
 					}
 
-					if (e_sep) {
+					if (e_sep && e_sep[0]) {
 						char c_sep = e_sep[0];
 						e_sep[0] = 0;
 						font_style = gf_color_parse(a_sep);
@@ -1006,6 +1011,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len;
+	u64 timestamp;
 	Bool set_start_char, set_end_char;
 	u32 line;
 	char szLine[2048];
@@ -1133,15 +1139,22 @@ force_line:
 					}
 				}
 			}
-			ctx->start = (3600*sh + 60*sm + ss)*1000 + sms;
+			timestamp = (3600*sh + 60*sm + ss)*1000 + sms;
+			if (ctx->pid_framed!=2) {
+				ctx->start = timestamp;
+			}
 			if (ctx->start < ctx->end) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps\n", ctx->curLine, ctx->start, ctx->end));
 				ctx->start = ctx->end;
 			}
-
-			ctx->end = (3600*eh + 60*em + es)*1000 + ems;
+			timestamp = (3600*eh + 60*em + es)*1000 + ems;
+			if (ctx->pid_framed == 2) {
+				ctx->end = ctx->start + timestamp;
+			} else {
+				ctx->end = timestamp;
+			}
 			/*make stream start at 0 by inserting a fake AU*/
-			if (ctx->first_samp && (ctx->start > 0)) {
+			if (ctx->first_samp && (ctx->start > 0) && (ctx->pid_framed!=2)) {
 				txtin_process_send_text_sample(ctx, ctx->samp, 0, (u32) ctx->start, GF_TRUE);
 			}
 			ctx->style.style_flags = 0;
@@ -1165,8 +1178,13 @@ force_line:
 				gf_isom_text_add_text(ctx->samp, "\n", 1);
 				char_len += 1;
 			}
-
-			parse_srt_line(ctx, szLine, &char_len, &set_start_char, &set_end_char);
+			if (ctx->stxtmod == STXT_MODE_SBTT) {
+				u32 tlen = (u32) strlen(szLine);
+				gf_isom_text_add_text(ctx->samp, szLine, tlen);
+				char_len += tlen;
+			} else {
+				parse_srt_line(ctx, szLine, &char_len, &set_start_char, &set_end_char);
+			}
 			txt_line ++;
 			break;
 		}
@@ -1323,7 +1341,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	ctx->vttparser = gf_webvtt_parser_new();
 
-	e = gf_webvtt_parser_init(ctx->vttparser, ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
+	e = gf_webvtt_parser_init(ctx->vttparser, &ctx->src, ctx->unicode_type, is_srt, ctx, gf_webvtt_import_report, gf_webvtt_flush_sample, gf_webvtt_import_header);
 	if (e != GF_OK) {
 		gf_webvtt_parser_del(ctx->vttparser);
 		ctx->vttparser = NULL;
@@ -1470,7 +1488,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 	u64 ts = GF_FILTER_NO_TS;
 	u32 len = (u32) strlen(value);
 
-	//tick metrick - cannot be fractional
+	//tick metric - cannot be fractional
 	if (len && (value[len-1]=='t')) {
 		value[len-1] = 0;
 		ts = (s64) (atoi(value) * 1000);
@@ -1530,7 +1548,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 	else {
 		u32 nb_val=0;
 		Bool has_dot=GF_FALSE;
-		u32 vals[6];
+		u32 vals[6] = {0};
 		char *cur = value;
 		while (cur) {
 			char sep;
@@ -1546,7 +1564,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 			has_dot = (sep=='.') ? GF_TRUE : GF_FALSE;
 			next_col[0] = sep;
 			cur = next_col+1;
-			if (nb_val>6) break;
+			if (nb_val>=6) break;
 		}
 		h = vals[0];
 		m = vals[1];
@@ -1834,6 +1852,7 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 	return GF_OK;
 }
 
+// modifications in this function should be mirrored in writegen_rewrite_timestamp_ttml()
 static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, s64 ttml_zero, GF_XMLAttribute *att, s64 *value, Bool *drop)
 {
 	u64 v;
@@ -1851,11 +1870,11 @@ static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, s64 ttml_zero, GF_XMLAttribu
 	*value -= ttml_zero;
 	v = (u64) (*value / 1000);
 	h = (u32) (v / 3600);
-	m = (u32) (v - h*60) / 60;
+	m = (u32) (v - h*3600) / 60;
 	s = (u32) (v - h*3600 - m*60);
 	ms = (*value) % 1000;
 
-	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	snprintf(szTS, 20, "%02u:%02u:%02u.%03u", h, m, s, ms);
 	szTS[20] = 0;
 	gf_free(att->value);
 	att->value = gf_strdup(szTS);
@@ -2739,11 +2758,15 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			continue;
 		}
 		while (szLine[i+1] && szLine[i+1]!='}') {
+			if (i>=GF_ARRAY_LENGTH(szTime)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expected \"}\" before %d chars after \"{\"\n", line, GF_ARRAY_LENGTH(szTime)));
+				szTime[0] = 0;
+				goto exit;
+			}
 			szTime[i] = szLine[i+1];
 			i++;
-			if (i>=40) break;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		ctx->start = atoi(szTime);
 		if (ctx->start < ctx->end) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, ctx->start, ctx->end));
@@ -2756,11 +2779,15 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			continue;
 		}
 		while (szLine[i+1+j] && szLine[i+1+j]!='}') {
+			if (i>=GF_ARRAY_LENGTH(szTime)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expected \"}\" before %d chars after \"{\"\n", line, GF_ARRAY_LENGTH(szTime)));
+				szTime[0] = 0;
+				goto exit;
+			}
 			szTime[i] = szLine[i+1+j];
 			i++;
-			if (i>=40) break;
 		}
-		szTime[i] = 0;
+		szTime[MIN(i, GF_ARRAY_LENGTH(szTime)-1)] = 0;
 		ctx->end = atoi(szTime);
 		j+=i+2;
 
@@ -2805,6 +2832,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			return GF_OK;
 		}
 	}
+exit:
 	/*final flush*/
 	if (ctx->end && !ctx->noflush) {
 		samp = gf_isom_new_text_sample();
@@ -2817,11 +2845,16 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	return GF_EOS;
 }
 
+#define MAX_LINE_SIZE 2048
+
+#define LINE_CAT(line, str) (strncat((line), (str), ((size_t)(MAX(0, (int)(MAX_LINE_SIZE-j-1-strlen(str)))))))
+
 static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 i, j, len, line;
+	u32 state = 0;
 	GF_TextSample *samp;
-	char szLine[2048], szText[2048];
+	char szLine[MAX_LINE_SIZE], szText[MAX_LINE_SIZE];
 
 	//same setup as for srt
 	if (!ctx->is_setup) {
@@ -2898,13 +2931,26 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 			nb_c=8;
 		}
 
+		if (nb_c>=6)
+			state=0;
+		if (strstr(szLine, ",Default,")
+			|| strncmp(szLine, "Default", 7)
+			|| strstr(szLine, ",Dialogue,")
+			|| strncmp(szLine, "Dialogue", 8)
+			) {
+			state=1;
+		} else if (state!=1) {
+			state = 2;
+		}
+		if (state==2) continue;
+
 		while (nb_c) {
 			end_p = strchr(start_p, ',');
 			if (!end_p) break;
 			start_p = end_p+1;
 			nb_c--;
 		}
-		if (nb_c) continue;
+		if (nb_c || !start_p[0]) continue;
 
 		if (ctx->start > ctx->end) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SSA frame (line %d) - ends (at %u ms) before start of current frame (%u ms) - skipping\n", line, ctx->end, ctx->start));
@@ -2929,14 +2975,25 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 
 		memset(szText, 0, 2048);
 		i=j=0;
+		u32 start_p_len = strlen(start_p);
 		while (1) {
+			if (i>=start_p_len)
+				break;
 			char c = start_p[i];
 			if (c == 0) {
+				if (j >= MAX_LINE_SIZE) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Line too long\n"));
+					return GF_BAD_PARAM;
+				}
 				szText[j] = 0;
 				break;
 			}
 			if (c=='\\') {
 				if ((start_p[i+1] == 'N') || (start_p[i+1] == 'n')) {
+					if (j >= MAX_LINE_SIZE) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Line too long\n"));
+						return GF_BAD_PARAM;
+					}
 					szText[j] = 0;
 					parse_srt_line(ctx, szText, &char_len, &set_start_char, &set_end_char);
 
@@ -2985,28 +3042,32 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 					i++;
 
 					if (style==1) {
-						if (is_end) {strcat(szText, "</i>"); j+=4;}
-						else {strcat(szText, "<i>"); j+=3;}
+						if (is_end) {LINE_CAT(szText, "</i>"); j+=4;}
+						else {LINE_CAT(szText, "<i>"); j+=3;}
 					} else if (style==2) {
-						if (is_end) {strcat(szText, "</b>"); j+=4;}
-						else {strcat(szText, "<b>"); j+=3;}
+						if (is_end) {LINE_CAT(szText, "</b>"); j+=4;}
+						else {LINE_CAT(szText, "<b>"); j+=3;}
 					} else if (style==3) {
-						if (is_end) {strcat(szText, "</u>"); j+=4;}
-						else {strcat(szText, "<u>"); j+=3;}
+						if (is_end) {LINE_CAT(szText, "</u>"); j+=4;}
+						else {LINE_CAT(szText, "<u>"); j+=3;}
 					} else if (style==4) {
-						if (is_end) {strcat(szText, "</font>"); j+=7;}
+						if (is_end) {LINE_CAT(szText, "</font>"); j+=7;}
 						else {
 							char szFont[100];
 							sprintf(szFont, "<font color=\"0x%X\">", color);
-							strcat(szText, szFont);
+							LINE_CAT(szText, szFont);
 							j+=(u32) strlen(szFont);
 						}
 					} else if (style==5) {
-						if (is_end) {strcat(szText, "</strike>"); j+=9;}
-						else {strcat(szText, "<strike>"); j+=8;}
+						if (is_end) {LINE_CAT(szText, "</strike>"); j+=9;}
+						else {LINE_CAT(szText, "<strike>"); j+=8;}
 					}
 					continue;
 				}
+			}
+			if (j >= MAX_LINE_SIZE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Line too long\n"));
+				return GF_BAD_PARAM;
 			}
 			szText[j] = c;
 			j++;
@@ -3026,7 +3087,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 		}
 	}
 	/*final flush*/
-	if (ctx->end && !ctx->noflush) {
+	if (ctx->end && !ctx->noflush && !ctx->pid_framed) {
 		samp = gf_isom_new_text_sample();
 		txtin_process_send_text_sample(ctx, samp, ctx->end, 0, GF_TRUE);
 		gf_isom_delete_text_sample(samp);
@@ -3037,7 +3098,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	return GF_EOS;
 }
 
-
+#undef LINE_CAT
 
 static u32 ttxt_get_color(char *val)
 {
@@ -3781,6 +3842,11 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 							if (!strcmp(style->name, "style")) break;
 						}
 						if (style) {
+							if (nb_styles >= GF_ARRAY_LENGTH(styles)) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTLoad] Too many style blocks, will ignore.\n"));
+								nb_styles = GF_ARRAY_LENGTH(styles)-1;
+								continue;
+							}
 							char *cur;
 							s32 start=0;
 							char css_style[1024], css_val[1024];
@@ -3902,6 +3968,11 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 						while ((text=(GF_XMLNode*)gf_list_enum(sub->content, &m))) {
 							if (!text->type) {
 								if (!strcmp(text->name, "marker")) {
+									if (nb_marks >= GF_ARRAY_LENGTH(marks)) {
+										GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTLoad] Too many marker blocks, will ignore.\n"));
+										nb_marks = GF_ARRAY_LENGTH(marks)-1;
+										continue;
+									}
 									u32 z;
 									memset(&marks[nb_marks], 0, sizeof(Marker));
 									marks[nb_marks].pos = nb_chars+txt_len;
@@ -4175,10 +4246,14 @@ static GF_Err txtin_process(GF_Filter *filter)
 		gf_fseek(ctx->src, 0, SEEK_SET);
 		//init state as parsing SRT payload
 		if (ctx->pid_framed) {
-			ctx->state = 2;
 			ctx->start = gf_filter_pck_get_cts(pck);
 			ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
-			ctx->curLine = 0;
+			if (ctx->pid_framed==2) {
+				ctx->state = 0;
+			} else {
+				ctx->state = 2;
+				ctx->curLine = 0;
+			}
 		}
 
 		if (!e)
@@ -4272,7 +4347,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		goto force_format;
 	}
 
-	ctx->pid_framed = GF_FALSE;
+	ctx->pid_framed = 0;
 	ctx->single_text_chunk = GF_FALSE;
 
 	if (! gf_filter_pid_check_caps(pid))
@@ -4280,12 +4355,12 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (ctx->srt_to_tx3g) {
-		ctx->pid_framed = GF_TRUE;
+		ctx->pid_framed = 1;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->timescale = prop ? prop->value.uint : 1000;
 	}
 	else if (ctx->vtt_to_tx3g) {
-		ctx->pid_framed = GF_TRUE;
+		ctx->pid_framed = 1;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->timescale = prop ? prop->value.uint : 1000;
 	}
@@ -4294,7 +4369,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		|| (prop->value.uint==GF_CODECID_SUBS_SSA)
 	)) {
 		codec_id = prop->value.uint;
-		ctx->pid_framed = GF_TRUE;
+		ctx->pid_framed = 1;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->timescale = prop ? prop->value.uint : 1000;
 	} else if (prop && (
@@ -4302,7 +4377,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		|| (prop->value.uint==GF_CODECID_SUBS_TEXT)
 	)) {
 		codec_id = prop->value.uint;
-		ctx->pid_framed = GF_TRUE;
+		ctx->pid_framed = 1;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->timescale = prop ? prop->value.uint : 1000;
 		//no timescale, this is a single chunk of text to transform into stxt/vtt/tx3g
@@ -4310,6 +4385,8 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->single_text_chunk = GF_TRUE;
 		}
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED_SRT);
+		if (prop && prop->value.boolean) ctx->pid_framed = 2;
 	} else {
 		//otherwise check we have a file path
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
@@ -4499,7 +4576,6 @@ force_format:
 static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	return txtin_configure_pid_ex(filter, pid, is_remove, 0);
-
 }
 static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
@@ -4709,8 +4785,8 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(no_empty), "do not send empty samples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stxtdur), "duration for simple text", GF_PROP_FRACTION, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stxtmod), "text stream mode for simple text streams and SRT inputs\n"
-	"- stxt: output PID formatted as simple text stream\n"
-	"- sbtt: output PID formatted as subtitle text stream\n"
+	"- stxt: output PID formatted as simple text stream (remove markup in VTT/SRT payload)\n"
+	"- sbtt: output PID formatted as subtitle text stream (keep markup in VTT/SRT payload)\n"
 	"- tx3g: output PID formatted as TX3G/Apple stream\n"
 	"- vtt: output PID formatted as WebVTT stream\n"
 	"- webvtt: same as vtt (for backward compatiblity", GF_PROP_UINT, "tx3g", "stxt|sbtt|tx3g|vtt|webvtt", GF_FS_ARG_HINT_EXPERT},

@@ -1,0 +1,50 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+
+        <pre id="precontent">
+
+        </pre>
+        <script>
+
+let Socket = new WebSocket("ws://localhost:6363");
+Socket.binaryType = "arraybuffer";
+
+Socket.onopen = function (evt) {
+    console.log("ws connected", evt);
+
+    Socket.send("json:" + JSON.stringify({'message': 'get_all_filters'}));
+};
+
+function handleWSmessage(text) {
+    jtext = JSON.parse(text);
+
+    if ("message" in jtext) {
+
+        if ( (jtext['message'] == "filters" || jtext['message'] == "update") && "filters" in jtext ) {
+
+            ppfilters = JSON.stringify(jtext['filters'], null, 2);
+            document.getElementById("precontent").innerText = ppfilters;
+
+        }
+    }
+}
+
+Socket.onmessage = function (msg) {
+
+    if (typeof(msg.data)=="string") {
+        decoded = msg.data;
+        handleWSmessage(decoded);
+    } else {
+        decoded = new Uint8Array(msg.data);
+        // do something with binary messages?
+    }
+
+};
+
+        </script>
+
+    </body>
+</html>

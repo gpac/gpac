@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE input filter
@@ -79,6 +79,12 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 	const char *prev_url=NULL;
 
 	if (!ctx || (!ctx->src && !ctx->pck.size) ) return GF_BAD_PARAM;
+
+	if (!strncmp(ctx->src, "gmem://", 7)) {
+		GF_Err e = gf_filter_pid_raw_gmem(filter, ctx->src, &ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return e;
+	}
 
 	if (ctx->pck.size) {
 		GF_FilterPacket *opck;
@@ -293,8 +299,11 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
 	}
-	if (strstr(src, "://"))
+	if (strstr(src, "://")) {
+		if (!strnicmp(url, "gmem://", 7) )
+			return GF_FPROBE_SUPPORTED;
 		return GF_FPROBE_NOT_SUPPORTED;
+	}
 
 
 	//strip any fragment identifier
@@ -645,11 +654,14 @@ static GF_Err filein_process(GF_Filter *filter)
 		if (ctx->fd>=0) {
 			is_eof = (ctx->file_pos==ctx->file_size);
 		} else
-#else
-		is_eof = gf_feof(ctx->file);
 #endif
-		if (is_eof)
+			is_eof = gf_feof(ctx->file);
+
+		if (is_eof) {
+			//force EOF if filesize is 0
+			if (!ctx->file_size) ctx->is_end = GF_TRUE;
 			ctx->file_size = ctx->file_pos;
+		}
 	}
 
 	if (ctx->file_size && (ctx->file_pos + nb_read == ctx->file_size)) {
@@ -743,8 +755,8 @@ GF_FilterRegister FileInRegister = {
 	"The filter handles both files and GF_FileIO objects as input URL.\n"
 	"\n"
 	"## Packet Injecting\n"
-	"The filter can be used to inject a single packet instead of a file using (-pck)[] option.\n"
-	"No specific properties are attached, except a timescale if (-ptime)[] is set.\n"
+	"The filter can be used to inject a single packet instead of a file using [-pck]() option.\n"
+	"No specific properties are attached, except a timescale if [-ptime]() is set.\n"
 	"EX gpac fin:pck=str@\"My Sample Text\":ptime=2500/100:#CodecID=stxt:#StreamType=text\n"
 	"This will declare the PID as WebVTT and send a single packet with payload `My Sample Text` and a timestamp value of 25 second.\n"
 	)

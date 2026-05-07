@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-1/2/4(Part2) video reframer filter
@@ -109,19 +109,24 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
-	ctx->cur_fps = ctx->fps;
-	if (!ctx->fps.num || !ctx->fps.den) {
-		ctx->cur_fps.num = 25000;
-		ctx->cur_fps.den = 1000;
+	if (!ctx->cur_fps.num) {
+		ctx->cur_fps = ctx->fps;
+		if (!ctx->fps.num || !ctx->fps.den) {
+			ctx->cur_fps.num = 25000;
+			ctx->cur_fps.den = 1000;
+		}
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
-		ctx->timescale = ctx->cur_fps.num = p->value.uint;
-		ctx->cur_fps.den = 0;
+		u32 old_timescale = ctx->timescale;
+		ctx->timescale = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) {
 			ctx->cur_fps = p->value.frac;
+		} else if (!old_timescale || (old_timescale != ctx->timescale)) {
+			ctx->cur_fps.den = 0;
+			ctx->cur_fps.num = ctx->timescale;
 		}
 		p = gf_filter_pid_get_property_str(pid, "nocts");
 		if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
@@ -189,9 +194,8 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 20000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MPGVids] Source file larger than 20M, skipping indexing\n"));
-				if (!gf_sys_is_test_mode())
-					probe_size = 20000000;
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MPGVid] Large source file - estimating dur/rate on first 20 MB\n"));
+				probe_size = 20000000;
 			} else {
 				ctx->index = -ctx->index;
 			}
@@ -274,8 +278,10 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+		if (probe_size)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 
-		if (duration && !gf_sys_is_test_mode() ) {
+		if (duration) {
 			rate *= 8 * ctx->duration.den;
 			rate /= ctx->duration.num;
 			ctx->bitrate = (u32) rate;
@@ -445,13 +451,10 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 
-	if (!gf_sys_is_test_mode()) {
-		if (ctx->dsi.chroma_fmt)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_CHROMAFMT, & PROP_UINT(ctx->dsi.chroma_fmt) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_CHROMAFMT, & PROP_UINT(ctx->dsi.chroma_fmt) );
 
-		if (ctx->is_mpg12)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, !ctx->dsi.progresive ? & PROP_BOOL(GF_TRUE) : NULL );
-	}
+	if (ctx->is_mpg12)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, !ctx->dsi.progresive ? & PROP_BOOL(GF_TRUE) : NULL );
 
 	if (flush_after)
 		mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);

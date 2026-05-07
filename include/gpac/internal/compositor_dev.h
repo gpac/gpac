@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Rendering sub-project
@@ -2174,6 +2174,7 @@ struct _od_manager
 	
 	Fixed set_speed;
 	Bool disable_buffer_at_next_play;
+	u32 last_ckdisc;
 
 //	u32 raw_media_frame_pending;
 	GF_Semaphore *raw_frame_sema;

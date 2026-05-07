@@ -223,9 +223,9 @@ static int find_last_separator(const char *input)
 	if (!space && !newline)
 		return -1;
 	if (!space || space < newline)
-		return newline-input+1/*include the '\n'*/;
+		return (int) (newline-input+1)/*include the '\n'*/;
 	else
-		return space-input;
+		return (int) (space-input);
 }
 
 static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
@@ -404,7 +404,7 @@ static void ccdec_flush(CCDecCtx *ctx)
 		return;
 
 	if (strlen(ctx->txtdata))
-		ccdec_post(ctx, strlen(ctx->txtdata), ctx->last_ts_plus_one);
+		ccdec_post(ctx, (u32) strlen(ctx->txtdata), ctx->last_ts_plus_one);
 }
 
 GF_Err ccdec_process(GF_Filter *filter)

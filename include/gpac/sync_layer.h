@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / SL header file
@@ -133,7 +133,7 @@ typedef struct
 	bin128 constant_IV;
 	/*version_number are pushed from m2ts sections to the mpeg4sl layer so as to handle mpeg4 stream dependencies*/
 	u8 m2ts_version_number_plus_one;
-	//0: not mpeg-2 TS PCR, 1: MEPG-2 TS PCR, 2: MPEG-2 TS PCR with discontinuity
+	//0: not mpeg-2 TS PCR, 1: MPEG-2 TS PCR, 2: MPEG-2 TS PCR with discontinuity
 	u8 m2ts_pcr;
 	/* HTML5 MSE Packet info */
 	s64 timeStampOffset;
@@ -169,7 +169,7 @@ u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header);
 \param PDULength the size of the SL packet
 \param HeaderLen set to size of the SL header - payload will start at PDU + *HeaderLen
 */
-void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen);
+void gf_odf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const u8 *PDU, u32 PDULength, u32 *HeaderLen);
 
 /*! @} */
 
