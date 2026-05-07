@@ -5945,7 +5945,7 @@ GF_Err saiz_box_dump(GF_Box *a, FILE * trace)
 
 	gf_isom_box_dump_start(a, "SampleAuxiliaryInfoSizeBox", trace);
 
-	gf_fprintf(trace, "default_sample_info_size=\"%d\" sample_count=\"%d\"", ptr->default_sample_info_size, ptr->sample_count);
+	gf_fprintf(trace, "default_sample_info_size=\"%u\" sample_count=\"%d\"", ptr->default_sample_info_size, ptr->sample_count);
 	if (ptr->flags & 1) {
 		if (isalnum(ptr->aux_info_type>>24)) {
 			gf_fprintf(trace, " aux_info_type=\"%s\" aux_info_type_parameter=\"%d\"", gf_4cc_to_str(ptr->aux_info_type), ptr->aux_info_type_parameter);
@@ -5956,11 +5956,11 @@ GF_Err saiz_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, ">\n");
 	if (ptr->default_sample_info_size==0) {
 		for (i=0; i<ptr->sample_count; i++) {
-			gf_fprintf(trace, "<SAISize size=\"%d\" />\n", ptr->sample_info_size[i]);
+			gf_fprintf(trace, "<SAISize size=\"%u\" />\n", saiz_get_sample_info_size(ptr, i));
 		}
 	}
 	if (!ptr->size) {
-			gf_fprintf(trace, "<SAISize size=\"\" />\n");
+		gf_fprintf(trace, "<SAISize size=\"\" />\n");
 	}
 	gf_isom_box_dump_done("SampleAuxiliaryInfoSizeBox", a, trace);
 	return GF_OK;
