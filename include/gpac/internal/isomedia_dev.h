@@ -3851,6 +3851,15 @@ typedef struct __cenc_tenc_box
 {
 	GF_ISOM_FULL_BOX
 
+	Bool use_subsample_encryption;
+	Bool use_multi_key;
+	Bool use_senc;
+	Bool use_sai;
+	Bool use_seig;
+	Bool use_encrypted_slice_header;
+
+	Bool isAES256;
+
 	u32 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
 
