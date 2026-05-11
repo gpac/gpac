@@ -3767,11 +3767,21 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 			if (strcmp(sURL, "null") && strncmp(sURL, "rand", 4) && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
 				char szPath[GF_MAX_PATH];
-				//check if this is a JSF filter
+				char *loc_sep = (char *) gf_fs_path_escape_colon(fsess, url);
+				if (loc_sep) loc_sep[0] = 0;
+				//1- check if this is a JSF filter
 				Bool try_direct_load = gf_fs_solve_js_script(szPath, sURL, NULL);
-				//check if we have a register filter class acting as source
+				//2- check JSF but without resolved path
+				if (!try_direct_load)
+					try_direct_load = gf_fs_solve_js_script(szPath, url, NULL);
+				//3- check if we have a register filter class acting as source
 				if (!try_direct_load)
 					try_direct_load = fs_check_filter_is_source(fsess, sURL);
+				//4- same as 3 but without resolved path
+				if (!try_direct_load)
+					try_direct_load = fs_check_filter_is_source(fsess, url);
+
+				if (loc_sep) loc_sep[0] = ':';
 
 				if (sep) sep[0] = fsess->sep_args;
 				if (frag_par) frag_par[0] = f_c;
