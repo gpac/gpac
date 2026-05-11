@@ -212,11 +212,11 @@ Bool gf_rtp_is_disc(GF_RTPChannel *ch);
 #define RTSP_WRITE_STEPALLOC	250
 
 #define RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str)		\
-	if (strlen((const char *) str)+pos >= buf_size) {	\
-		buf_size += (u32) strlen((const char *) str);	\
+	if (strlen((const char *) str)+pos+1 > buf_size) {	\
+		buf_size += (u32) strlen((const char *) str) + 1;	\
 		buf = (char *) gf_realloc(buf, buf_size);		\
 	}	\
-	strcpy(buf+pos, (const char *) str);		\
+	memcpy(buf+pos, (const char *) str, strlen((const char *) str) + 1);		\
 	pos += (u32) strlen((const char *) str); \
  
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
