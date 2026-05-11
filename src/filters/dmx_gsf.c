@@ -634,9 +634,9 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 			ctx->tune_error = GF_TRUE;
 			return GF_NOT_SUPPORTED;
 		}
-		char *magic = gf_malloc(sizeof(char)*len);
+		char *magic = gf_malloc(sizeof(char)*(len+1));
 		gf_bs_read_data(bs, magic, len);
-		magic[len-1]=0;
+		magic[len]=0;
 
 		if (ctx->magic && !memcmp(ctx->magic, magic, len)) wrongm = GF_TRUE;
 		if (!wrongm) {
