@@ -3797,14 +3797,14 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 	}
 }
 
-static void dasher_inject_scte35_processor(GF_Filter *filter, GF_DashStream *ds, char *szSRC) {
+static void dasher_inject_interposer(GF_Filter *filter, const char *name, GF_DashStream *ds, char *szSRC) {
 		GF_Err e;
-		GF_Filter *scte35dec = gf_filter_load_filter(filter, "scte35dec", &e);
-		gf_filter_set_source(scte35dec, filter, NULL);
+		GF_Filter *interposer = gf_filter_load_filter(filter, name, &e);
+		gf_filter_set_source(interposer, filter, NULL);
 
 		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
 		gf_filter_reset_source(ds->dst_filter);
-		gf_filter_set_source(ds->dst_filter, scte35dec, szSRC);
+		gf_filter_set_source(ds->dst_filter, interposer, szSRC);
 }
 
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
@@ -4027,8 +4027,14 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		if (ctx->do_m3u8)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option used with HLS is likely not supported by your player\n"));
 
-		//inject scte35dec filter
-		dasher_inject_scte35_processor(filter, ds, szSRC);
+		dasher_inject_interposer(filter, "scte35dec", ds, szSRC);
+	}
+	else if ( ds->codec_id==GF_CODECID_EVTE && (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) ) {
+		// inject scte35dec filter
+		if (ctx->scte35==SCTE35_DASH_XML_BIN)
+			dasher_inject_interposer(filter, "scte35dec:mode=m2ts", ds, szSRC);
+		else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] incompatible set of scte35 options\n"));
 	}
 }
 

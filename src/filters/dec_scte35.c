@@ -60,6 +60,7 @@ typedef struct {
 	// options
 	SCTE35DecOpMode mode;
 	GF_Fraction sampdur;
+	Bool prop;
 
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_shared)(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
@@ -304,6 +305,9 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			e = gf_isom_box_write((GF_Box*)evt->emib, bs);
 			gf_bs_del(bs);
 			if (e) goto exit;
+
+			if (ctx->prop)
+				gf_filter_pck_set_property_dyn(pck_dst, "scte35", &PROP_CONST_DATA(output, evt->emib->size));
 
 			u32 emib_dur = compute_emib_duration(dts, evt->dts, max_dur, evt_dur);
 			u64 emib_dts = IS_SEGMENTED ? evt->dts : dts;
@@ -651,7 +655,7 @@ static void scte35dec_process_internal_timing(SCTE35DecCtx *ctx, u64 dts, u32 ti
 
 		if (IS_SEGMENTED) {
 			if (ctx->sampdur.num * ctx->timescale % ctx->sampdur.den)
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] timescale(%u) can't express segment duration(%u/%u)\n", timescale, ctx->sampdur.num, ctx->sampdur.den));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Timescale(%u) can't express segment duration(%u/%u)\n", timescale, ctx->sampdur.num, ctx->sampdur.den));
 
 			ctx->last_dispatched_dts = dts - dur;
 		} else {
@@ -695,9 +699,9 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size
 	// set values according to SCTE 214-3 2015
 	emib->presentation_time_delta = pts - dts;
 	if (!IS_SEGMENTED && pts < ctx->last_dispatched_dts)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Event overlap detected in immediate dispatch mode (not segmented)\n"));
 	emib->event_duration = (u32) dur;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
 	emib->event_id = ctx->last_event_id++;
 	emib->scheme_id_uri = gf_strdup(GF_SCTE35_SCHEME_URI_INBAND);
 	emib->value = gf_strdup("1001");
@@ -745,7 +749,7 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts, u32 dur)
 
 		// segmented: we can only flush at the end of the segment
 		if (ctx->clock < ctx->orig_dts) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] timestamps not increasing monotonously, resetting segmentation state !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Timestamps not increasing monotonously, resetting segmentation state !\n"));
 			ctx->orig_dts = ctx->clock;
 			ctx->segnum = 0;
 		} else {
@@ -777,6 +781,8 @@ static GF_Err scte35dec_process_m2tssec(SCTE35DecCtx *ctx, const u8 *data, u32 s
 	GF_FilterPacket *dst_pck = ctx->pck_new_alloc(ctx->opid, size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 	memcpy(output, data, size);
+	if (ctx->prop)
+		gf_filter_pck_set_property_dyn(dst_pck, "scte35", &PROP_CONST_DATA((u8*)data, size));
 	scte35dec_send_pck(ctx, dst_pck, dts, dur);
 	return GF_OK;
 }
@@ -815,12 +821,12 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 				GF_Box *a = NULL;
 				GF_Err e = gf_isom_box_parse(&a, bs);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] parsing data boxes failed\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Parsing data boxes failed\n"));
 					break; //don't parse any further
 				}
 				if (a->type == GF_ISOM_BOX_TYPE_EMIB) {
 					if (data && *size) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] detected two 'emib' boxes: switching filter to passthru mode\n"));
+						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Detected two 'emib' boxes: switching filter to passthru mode\n"));
 						ctx->mode = PASSTHRU;
 						gf_isom_box_del(a);
 						data = NULL;
@@ -830,10 +836,10 @@ static const u8 *scte35dec_pck_get_data(SCTE35DecCtx *ctx, GF_FilterPacket *pck,
 					GF_EventMessageBox *emib = (GF_EventMessageBox*)a;
 					data = emib->message_data;
 					*size = emib->message_data_size;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box (size=%u))\n", *size));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected 'emib' box (size=%u)\n", *size));
 
 					if (ctx->mode == EVTE && emib->scheme_id_uri && strcmp(emib->scheme_id_uri, GF_SCTE35_SCHEME_URI_INBAND)) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode\n", emib->scheme_id_uri));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected 'emib' box with unsupported scheme_id_uri \"%s\": switching filter to passthru mode\n", emib->scheme_id_uri));
 						ctx->mode = PASSTHRU;
 						gf_isom_box_del(a);
 						data = NULL;
@@ -966,6 +972,7 @@ static const GF_FilterArgs SCTE35DecArgs[] =
 		"- m2ts: immediate dispatch of entire MPEG-2 TS splice_info_section as per ANSI/SCTE 67 2017 (13.1.1.3)\n"
 		"- passthrough: pass-through mode adding cue start property on splice points", GF_PROP_UINT, "23001-18", "23001-18|m2ts|passthrough", 0},
 	{ OFFS(sampdur), "segmentation duration in seconds. Default value 0 only flushes when content changes", GF_PROP_FRACTION, "0/1", NULL, 0},
+	{ OFFS(prop), "also attach data as property in case dasher needs it for dual in+out band", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
