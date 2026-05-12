@@ -9730,7 +9730,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		}
 	}
 
-	if (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
+	if (ctx->scte35 == SCTE35_DASH_AUTO || ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have an event stream
 		GF_List *event_streams = ds->period->period->event_streams;
 		GF_MPD_EventStream *es = NULL;
