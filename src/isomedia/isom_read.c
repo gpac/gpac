@@ -3232,7 +3232,9 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 			saiz->sample_count = 0;
 		} else {
 			if (!saiz->default_sample_info_size) {
-				memmove(saiz->sample_info_size, &saiz->sample_info_size[nb_samples], sizeof(u8)*(saiz->sample_count-nb_samples));
+				const u8 num_bytes = 1 << saiz->version;
+				const void *ptr = ((u8*)saiz->sample_info_size) + nb_samples * num_bytes;
+				memmove(saiz->sample_info_size, ptr, num_bytes * (saiz->sample_count - nb_samples));
 			}
 			saiz->sample_count-=nb_samples;
 		}
@@ -6580,14 +6582,14 @@ GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *the_file, u32 trackNumber, u32 s
 
 		if (nb_saio == 1) {
 			for (j=0; j < sample_number-1; j++) {
-				u32 size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+				u32 size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, j);
 				offset += size;
 			}
 		} else {
 			offset = saio->offsets[sample_number-1];
 		}
 
-		*sai_size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+		*sai_size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, j);
 		if (*sai_size) {
 			*sai_data = gf_malloc( *sai_size);
 			if (! *sai_data) return GF_OUT_OF_MEM;
