@@ -1983,6 +1983,8 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CFUNC_DEF("print_stats", 0, jsfs_print_stats)
 };
 
+void scenejs_unload(JSContext *c, JSValue global_obj);
+
 void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
 {
 	u32 i, count;
@@ -1999,6 +2001,18 @@ void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
 		}
 	}
 	gf_mx_v(fs->filters_mx);
+
+	JSValue global_obj = JS_GetGlobalObject(c);
+	JSValue js_sess = JS_GetPropertyStr(c, global_obj, "session");
+	JSFS_FilterSession *fsjs = JS_GetOpaque(js_sess, fs_class_id);
+	if (fsjs && fsjs->owns_api) {
+		fsjs->fs = NULL;
+	}
+	JS_FreeValue(c, js_sess);
+	//check if we need to unload the scenejs module as well
+	scenejs_unload(c,global_obj);
+	JS_FreeValue(c, global_obj);
+
 }
 
 
