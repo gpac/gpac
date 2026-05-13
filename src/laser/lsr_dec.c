@@ -425,10 +425,13 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *na
 	if (!n) {
 		char NodeID[1024];
 		sprintf(NodeID, "N%d", nID-1);
+		if (href->string) gf_free(href->string);
 		href->string = gf_strdup(NodeID);
-		if (href->type!=0xFF)
+		if (href->type!=0xFF) {
 			gf_list_add(lsr->deferred_hrefs, href);
+		}
 		href->type = XMLRI_ELEMENTID;
+		gf_node_register_iri(lsr->sg, href);
 		return;
 	}
 	href->target = (SVG_Element *)n;
@@ -1872,7 +1875,7 @@ static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u3
 	case 11: //SVG_FontFamily *
 	{
 		SVG_FontFamily *ft = (SVG_FontFamily *) val->value;
-		if (ft->value) gf_free(ft->value);
+		if (ft && ft->value) gf_free(ft->value);
 		gf_free(ft);
 	}
 		break;
@@ -2489,7 +2492,9 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 				*v = lsr_read_vluimsbf5(lsr, "val");
 				gf_list_add(l, v);
 			}
-			if (lsr->last_error) break;
+			if (lsr->last_error) {
+				break;
+			}
 		}
 		return l;
 	}
@@ -2597,6 +2602,7 @@ static void lsr_translate_anim_trans_value(GF_LASeRCodec *lsr, SMIL_AnimateValue
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LSR Parsing] unknown datatype for animate transform.\n"));
+		lsr_delete_anim_value(lsr, val, coded_type);
 		return;
 	}
 	if (!val->value) return;
@@ -2827,6 +2833,9 @@ static void lsr_read_anim_value_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, cons
 
 		if (tr_type) {
 			lsr_translate_anim_trans_value(lsr, info.far_ptr, *tr_type);
+		}
+		else {
+			lsr_delete_anim_value(lsr, info.far_ptr, coded_type);
 		}
 	}
 }
@@ -5944,6 +5953,11 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				com->node = n;
 				gf_list_add(com_list, com);
 			} else {
+				u32 count = gf_list_count(lsr->sg->xlink_hrefs);
+				for (i=0; i<count; i++) {
+					void* href = gf_list_get(lsr->sg->xlink_hrefs, i);
+					gf_list_del_item(lsr->deferred_hrefs, href);
+				}
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
@@ -6137,7 +6151,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 		count = lsr_read_vluimsbf5(lsr, "nbTags");
 		for (i=0; i<count; i++) {
 			lsr->privateTag_index++;
-			if (i) {
+			if (i && privateDataIdentifierIndexBits) {
 				/* uint(privateDataIdentifierIndexBits) = */
 				GF_LSR_READ_INT(lsr, flag, privateDataIdentifierIndexBits, "privateDataIdentifierIndex");
 				lsr_read_byte_align_string(lsr, NULL, "tag");
@@ -6146,7 +6160,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 			if (flag) {
 				u32 k, c2 = lsr_read_vluimsbf5(lsr, "nbAttrNames");
 				for (k=0; k<c2; k++) {
-					if (!i) {
+					if (!i && privateDataIdentifierIndexBits) {
 						/* uint(privateDataIdentifierIndexBits) = */
 						GF_LSR_READ_INT(lsr, flag, privateDataIdentifierIndexBits, "privateDataIdentifierIndex");
 					}

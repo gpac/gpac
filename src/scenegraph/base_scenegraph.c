@@ -2371,6 +2371,9 @@ GF_EXPORT
 GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
 	GF_ChildNodeItem *child, *prev;
+
+	if (!container || !*container) return GF_BAD_PARAM;
+
 #ifndef GPAC_DISABLE_VRML
 	u32 tag;
 #endif

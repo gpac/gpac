@@ -770,7 +770,7 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	u32 NodeID;
 	GF_Node *node, *new_node;
-	GF_Err e;
+	GF_Err e = GF_OK;
 
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	/*this is delete / new on a DEF node: replace ALL instances*/
@@ -781,7 +781,9 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	new_node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 	if (!new_node && codec->LastError) return codec->LastError;
 
-	e = gf_node_replace(node, new_node, GF_FALSE);
+	if (node != new_node)
+		e = gf_node_replace(node, new_node, GF_FALSE);
+
 	return e;
 }
 
@@ -1128,7 +1130,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			//a falty one
 			GF_List *old_cb = codec->command_buffers;
 			codec->command_buffers = gf_list_new();
-			
+
 			/*parse sub-proto list - subprotos are ALWAYS registered with parent proto graph*/
 			e = gf_bifs_dec_proto_list(codec, bs, NULL);
 			if (e) {
@@ -1241,9 +1243,9 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				/*and store*/
 				if (QP_Type) {
 					e = gf_bifs_proto_field_set_aq_info(proto_field, QP_Type, hasMinMax, qpsftype, qp_min_value, qp_max_value, NumBits);
-					gf_sg_vrml_field_pointer_del(qp_min_value, qpsftype);
-					gf_sg_vrml_field_pointer_del(qp_max_value, qpsftype);
 				}
+				if (qp_min_value) gf_sg_vrml_field_pointer_del(qp_min_value, qpsftype);
+				if (qp_max_value) gf_sg_vrml_field_pointer_del(qp_max_value, qpsftype);
 			}
 
 			/*anim - not supported yet*/

@@ -759,7 +759,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	if (gf_bs_read_int(bs, 1)) {
 		nodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 		/*NULL node is encoded as USE with ID = all bits to 1*/
-		if (nodeID == (u32) (1<<codec->info->config.NodeIDBits))
+		if (nodeID == (u32) ((u32)1<<codec->info->config.NodeIDBits))
 			return NULL;
 		//find node
 		new_node = gf_sg_find_node(codec->current_graph, nodeID);
