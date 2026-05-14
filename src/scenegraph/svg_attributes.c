@@ -6109,8 +6109,8 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		char *res;
 		SVG_String *s_a = (SVG_String *)a->far_ptr;
 		SVG_String *s_b = (SVG_String *)b->far_ptr;
-		u32 len_a = (u32) strlen(*s_a);
-		u32 len_b = (u32) strlen(*s_b);
+		u32 len_a = *s_a ? (u32) strlen(*s_a) : 0;
+		u32 len_b = *s_b ? (u32) strlen(*s_b) : 0;
 		len_a = FIX2INT(alpha * len_a);
 		len_b = FIX2INT(beta * len_b);
 		len = len_a + len_b + 1;

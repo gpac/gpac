@@ -429,9 +429,9 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *na
 		href->string = gf_strdup(NodeID);
 		if (href->type!=0xFF) {
 			gf_list_add(lsr->deferred_hrefs, href);
+			gf_node_register_iri(lsr->sg, href);
 		}
 		href->type = XMLRI_ELEMENTID;
-		gf_node_register_iri(lsr->sg, href);
 		return;
 	}
 	href->target = (SVG_Element *)n;
@@ -972,6 +972,7 @@ static void lsr_read_focus(GF_LASeRCodec *lsr, SVG_Focus *foc, const char *name)
 	}
 	if (foc->target.target) foc->target.target = NULL;
 	gf_node_unregister_iri(lsr->sg, &foc->target);
+	gf_list_del_item(lsr->deferred_hrefs, &foc->target);
 
 	GF_LSR_READ_INT(lsr, flag, 1, "isEnum");
 	if (flag) {
@@ -1324,6 +1325,7 @@ static SMIL_Time *lsr_read_smil_time(GF_LASeRCodec *lsr, GF_Node *n)
 			iri.string = NULL;
 			lsr_read_codec_IDREF(lsr, &iri, "idref");
 			gf_node_unregister_iri(lsr->sg, &iri);
+			gf_list_del_item(lsr->deferred_hrefs, &iri);
 			if (iri.string) {
 				t->element_id = iri.string;
 			} else {
@@ -2861,7 +2863,18 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 	for (i=0; i<count; i++) {
 		void *att = lsr_read_an_anim_value(lsr, coded_type, "a_value");
 		if (att) gf_list_add(values->values, att);
-		if (lsr->last_error) return;
+
+		if (lsr->last_error) {
+
+			while (gf_list_count(values->values)) {
+				SMIL_AnimateValue a_val;
+				a_val.type = 0;
+				a_val.value = gf_list_pop_back(values->values);
+				lsr_delete_anim_value(lsr, &a_val, coded_type);
+			}
+			return;
+		}
+
 	}
 	if (tr_type) {
 		lsr_translate_anim_trans_values(lsr, info.far_ptr, *tr_type);
@@ -5958,6 +5971,17 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 					void* href = gf_list_get(lsr->sg->xlink_hrefs, i);
 					gf_list_del_item(lsr->deferred_hrefs, href);
 				}
+				count = gf_list_count(lsr->deferred_anims);
+				for (i=0; i<count; i++) {
+					GF_Node* node = (GF_Node*) gf_list_get(lsr->deferred_anims, i);
+					if (!node) continue;
+					GF_Node* sgnode = gf_sg_find_node(lsr->sg, gf_node_get_id(node));
+					if (sgnode) {
+						gf_list_rem(lsr->deferred_anims, i);
+						i--;
+					}
+				}
+
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
