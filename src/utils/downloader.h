@@ -40,6 +40,16 @@
 #include <gpac/crypt.h>
 
 #ifdef GPAC_HAS_SSL
+
+#ifdef GPAC_HAS_GNUTLS
+
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+
+typedef gnutls_session_t gf_ssl_sess_t;
+typedef gnutls_certificate_credentials_t gf_ssl_ctx_t;
+
+#else // openssl
 #ifdef GPAC_HAS_NGTCP2
 #include <openssl/types.h>
 #endif
@@ -49,10 +59,12 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
+typedef SSL* gf_ssl_sess_t;
+typedef SSL_CTX* gf_ssl_ctx_t;
 
-#endif
+#endif // end gnutls-openssl
+
+#endif // end ssl
 
 #ifdef GPAC_HAS_CURL
 #include <curl/curl.h>
@@ -280,7 +292,8 @@ struct __gf_download_session
 	u32 connect_pending;
 #ifdef GPAC_HAS_SSL
 	// SSL *ssl;
-	gnutls_session_t ssl;
+	//gnutls_session_t ssl;
+	gf_ssl_sess_t ssl;
 #endif
 
 	void (*do_requests)(struct __gf_download_session *);
@@ -399,7 +412,9 @@ struct __gf_download_manager
 	GF_List *partial_downloads;
 #ifdef GPAC_HAS_SSL
 	//SSL_CTX *ssl_ctx;
-	gnutls_certificate_credentials_t ssl_ctx;
+	//gnutls_certificate_credentials_t ssl_ctx;
+
+	gf_ssl_ctx_t ssl_ctx;
 #endif
 
 	GF_FilterSession *filter_session;
@@ -555,9 +570,10 @@ GF_Err curl_process_reply(GF_DownloadSession *sess, u32 *ContentLength);
 
 #ifdef GPAC_HAS_SSL
 void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
-Bool gf_ssl_check_cert(gnutls_session_t ssl, const char *server_name);
+Bool gf_ssl_check_cert(gf_ssl_sess_t ssl, const char *server_name);
 void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess);
 GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
+void gf_ssl_shutdown(gf_ssl_sess_t ssl);
 
 typedef enum
 {

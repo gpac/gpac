@@ -36,7 +36,8 @@
 #endif
 
 #ifdef GPAC_HAS_SSL
-/*
+
+#ifndef GPAC_HAS_GNUTLS
 static void init_prng (void)
 {
 	char namebuf[256];
@@ -52,12 +53,10 @@ static void init_prng (void)
 
 	if (RAND_status ()) return;
 }
-*/
 
 /* NPN TLS extension client callback. We check that server advertised
    the HTTP/2 protocol the nghttp2 library supports. If not, exit
    the program. */
-/*
 static int ssl_select_next_proto_cb(SSL *ssl , unsigned char **out,
                                 unsigned char *outlen, const unsigned char *in,
                                 unsigned int inlen, void *arg)
@@ -70,7 +69,8 @@ static int ssl_select_next_proto_cb(SSL *ssl , unsigned char **out,
 	return SSL_TLSEXT_ERR_OK;
 }
 
-*/
+#endif
+
 static Bool _ssl_is_initialized = GF_FALSE;
 
 /*!
@@ -82,27 +82,32 @@ Bool gf_ssl_init_lib()
 	if (_ssl_is_initialized)
 		return GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPS] Initializing SSL library...\n"));
-// 	init_prng();
-// 	if (RAND_status() != 1) {
-// 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPS] Error while initializing Random Number generator, failed to init SSL !\n"));
-// 		return GF_TRUE;
-// 	}
+#ifndef GPAC_HAS_GNUTLS //openssl
+	init_prng();
+	if (RAND_status() != 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPS] Error while initializing Random Number generator, failed to init SSL !\n"));
+		return GF_TRUE;
+	}
 
-// 	/* per https://www.openssl.org/docs/man1.1.0/ssl/OPENSSL_init_ssl.html
-// 	** As of version 1.1.0 OpenSSL will automatically allocate all resources that it needs so no explicit initialisation is required.
-// 	** Similarly it will also automatically deinitialise as required.
-// 	*/
-// #if OPENSSL_VERSION_NUMBER < 0x10100000L
-// 	SSL_library_init();
-// 	SSL_load_error_strings();
-// 	SSLeay_add_all_algorithms();
-// 	SSLeay_add_ssl_algorithms();
-// #endif
+	/* per https://www.openssl.org/docs/man1.1.0/ssl/OPENSSL_init_ssl.html
+	** As of version 1.1.0 OpenSSL will automatically allocate all resources that it needs so no explicit initialisation is required.
+	** Similarly it will also automatically deinitialise as required.
+	*/
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+	SSL_library_init();
+	SSL_load_error_strings();
+	SSLeay_add_all_algorithms();
+	SSLeay_add_ssl_algorithms();
+#endif
+
+#else //gnutls
 
 	if (gnutls_global_init() != GNUTLS_E_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPS] Failed to init GnuTLS!\n"));
 		return GF_TRUE;
 	}
+
+#endif
 
 	_ssl_is_initialized = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPS] Initialization of SSL library complete.\n"));
@@ -110,6 +115,8 @@ Bool gf_ssl_init_lib()
 }
 
 #ifndef GPAC_DISABLE_LOG
+
+#ifndef GPAC_HAS_GNUTLS
 static const char *tls_rt_get_name(int type)
 {
 	switch(type) {
@@ -184,7 +191,7 @@ static const char *ssl_msg_get_name(int version, int msg)
 #endif
 	return "Unknown";
 }
-/*
+
 static void ssl_on_log(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *udat)
 {
 	const char *msg_name, *tls_rt_name;
@@ -238,23 +245,36 @@ static void ssl_on_log(int write_p, int version, int content_type, const void *b
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[%s] %s %s (%d)\n", szVersion, tls_rt_name, msg_name, msg_type));
 }
-*/
+
+#else // end openssl
+
 static void gnutls_log_callback(int level, const char* str) {
     // Map GnuTLS levels to GPAC levels
     // GnuTLS levels 0-9 (0 is least verbose, 9 is most)
     GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[GnuTLS] %d: %s", level, str));
 }
 
+#endif // gnutls
+
 #endif //GPAC_DISABLE_LOG
 
+#ifndef GPAC_HAS_GNUTLS
 static char ALPN_PROTOS[20];
+#else
 static const gnutls_datum_t alpn_h2 = { (unsigned char *)"h2", 2 };
 static const gnutls_datum_t alpn_h3 = { (unsigned char *)"h3", 2 };
 static gnutls_datum_t alpn_protos[2];
 static u32 alpn_count = 0;
+#endif
 
-void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic)
-{
+void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
+
+#ifndef GPAC_HAS_GNUTLS
+#if OPENSSL_VERSION_NUMBER > 0x00909000
+	const
+#endif
+	SSL_METHOD *meth;
+#endif
 
 	if (!dm) return NULL;
 
@@ -270,31 +290,67 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic)
 		goto error;
 	}
 
-	gnutls_certificate_credentials_t xcred;
-	gnutls_certificate_allocate_credentials(&xcred);
 
-	// dm->ssl_ctx = SSL_CTX_new(meth);
-	// if (!dm->ssl_ctx) goto error;
-	// SSL_CTX_set_options(dm->ssl_ctx, SSL_OP_ALL);
-	// SSL_CTX_set_default_verify_paths(dm->ssl_ctx);
-	// SSL_CTX_load_verify_locations (dm->ssl_ctx, NULL, NULL);
-	// /* SSL_VERIFY_NONE instructs OpenSSL not to abort SSL_connect if the
-	//  certificate is invalid.  We verify the certificate separately in
-	//  ssl_check_certificate, which provides much better diagnostics
-	//  than examining the error stack after a failed SSL_connect.  */
-	// SSL_CTX_set_verify(dm->ssl_ctx, SSL_VERIFY_NONE, NULL);
+#ifndef GPAC_HAS_GNUTLS // openssl
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+	meth = SSLv23_client_method();
+#else
+	meth = TLS_client_method();
+#endif
+
+	dm->ssl_ctx = SSL_CTX_new(meth);
+	if (!dm->ssl_ctx) goto error;
+	SSL_CTX_set_options(dm->ssl_ctx, SSL_OP_ALL);
+	SSL_CTX_set_default_verify_paths(dm->ssl_ctx);
+	SSL_CTX_load_verify_locations (dm->ssl_ctx, NULL, NULL);
+	/* SSL_VERIFY_NONE instructs OpenSSL not to abort SSL_connect if the
+	 certificate is invalid.  We verify the certificate separately in
+	 ssl_check_certificate, which provides much better diagnostics
+	 than examining the error stack after a failed SSL_connect.  */
+	SSL_CTX_set_verify(dm->ssl_ctx, SSL_VERIFY_NONE, NULL);
+
+#else
+
+	gnutls_certificate_allocate_credentials(&dm->ssl_ctx);
+
+#endif
 
 	if (!gf_opts_get_bool("core", "broken-cert")) {
 
 		const char* ca_bundle = gf_opts_get_key("core", "ca-bundle");
 
 		if (ca_bundle && gf_file_exists(ca_bundle)) {
-			// SSL_CTX_load_verify_locations(dm->ssl_ctx, ca_bundle, NULL);
-			gnutls_certificate_set_x509_trust_file(xcred, ca_bundle, GNUTLS_X509_FMT_PEM);
+#ifndef GPAC_HAS_GNUTLS // openssl
+			SSL_CTX_load_verify_locations(dm->ssl_ctx, ca_bundle, NULL);
+#else
+			gnutls_certificate_set_x509_trust_file(dm->ssl_ctx, ca_bundle, GNUTLS_X509_FMT_PEM);
+#endif
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using CA bundle at %s\n", ca_bundle));
 		}
 		else {
-			int certnb = gnutls_certificate_set_x509_system_trust(xcred);
+
+#ifndef GPAC_HAS_GNUTLS // openssl
+
+			const char* ossl_bundle = X509_get_default_cert_file_env();
+			ossl_bundle = getenv(ossl_bundle);
+			if (!ossl_bundle)
+				ossl_bundle = X509_get_default_cert_file();
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] OpenSSL CA bundle location: %s\n", ossl_bundle));
+
+			if (!ossl_bundle || !gf_file_exists(ossl_bundle)) {
+
+				const char* ca_bundle_default = gf_opts_get_key("core", "ca-bundle-default");
+
+				if (ca_bundle_default) {
+					SSL_CTX_load_verify_locations(dm->ssl_ctx, ca_bundle_default, NULL);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using default CA bundle at %s\n", ca_bundle_default));
+				}
+			}
+
+#else // gnutls
+
+			int certnb = gnutls_certificate_set_x509_system_trust(dm->ssl_ctx);
 			if (certnb > 0) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using system default CA bundle, loaded %d certs\n", certnb));
 			}
@@ -303,49 +359,40 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic)
 				const char* ca_bundle_default = gf_opts_get_key("core", "ca-bundle-default");
 
 				if (ca_bundle_default) {
-					gnutls_certificate_set_x509_trust_file(xcred, ca_bundle_default, GNUTLS_X509_FMT_PEM);
+					gnutls_certificate_set_x509_trust_file(dm->ssl_ctx, ca_bundle_default, GNUTLS_X509_FMT_PEM);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using default CA bundle at %s\n", ca_bundle_default));
 				}
 
 
 			}
-			// const char* ossl_bundle = X509_get_default_cert_file_env();
-			// ossl_bundle = getenv(ossl_bundle);
-			// if (!ossl_bundle)
-			// 	ossl_bundle = X509_get_default_cert_file();
+#endif // gnutls
 
-			// GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] OpenSSL CA bundle location: %s\n", ossl_bundle));
-
-			// if (!ossl_bundle || !gf_file_exists(ossl_bundle)) {
-
-			// 	const char* ca_bundle_default = gf_opts_get_key("core", "ca-bundle-default");
-
-			// 	if (ca_bundle_default) {
-			// 		SSL_CTX_load_verify_locations(dm->ssl_ctx, ca_bundle_default, NULL);
-			// 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using default CA bundle at %s\n", ca_bundle_default));
-			// 	}
-			// }
 		}
 	}
 
 
-	dm->ssl_ctx = xcred;
-
-
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG) ) {
-		gnutls_global_set_log_function(gnutls_log_callback);
-		gnutls_global_set_log_level(2);
-		//SSL_CTX_set_msg_callback(dm->ssl_ctx, ssl_on_log);
+#ifndef GPAC_HAS_GNUTLS // openssl
+		SSL_CTX_set_msg_callback(dm->ssl_ctx, ssl_on_log);
+#else
+        gnutls_global_set_log_function(gnutls_log_callback);
+        gnutls_global_set_log_level(2);
+#endif
 	}
 #endif
 
-
+#ifndef GPAC_HAS_GNUTLS // openssl
 	ALPN_PROTOS[0] = 0;
+#endif
+
 #ifdef GPAC_HAS_HTTP2
 	if (!dm->disable_http2) {
-		//strcat(ALPN_PROTOS, "\x02h2");
-		alpn_protos[alpn_count++] = alpn_h2;
+#ifndef GPAC_HAS_GNUTLS // openssl
+		strcat(ALPN_PROTOS, "\x02h2");
+#else
+        alpn_protos[alpn_count++] = alpn_h2;
+#endif
 	}
 #endif
 
@@ -356,26 +403,32 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
 			dm->h3_mode = H3_MODE_NO;
 		} else {
-			// strcat(ALPN_PROTOS, "\x02h3");
+#ifndef GPAC_HAS_GNUTLS // openssl
+			strcat(ALPN_PROTOS, "\x02h3");
+#else
 			alpn_protos[alpn_count++] = alpn_h3;
+#endif
 		}
 #endif
 	}
 
-// 	if (ALPN_PROTOS[0]) {
-// 		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, ssl_select_next_proto_cb, NULL);
-// #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-// 		SSL_CTX_set_alpn_protos(dm->ssl_ctx, ALPN_PROTOS, (u32) strlen(ALPN_PROTOS));
-// #endif
-// 	}
+#ifndef GPAC_HAS_GNUTLS // openssl
+	if (ALPN_PROTOS[0]) {
+		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, ssl_select_next_proto_cb, NULL);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+		SSL_CTX_set_alpn_protos(dm->ssl_ctx, ALPN_PROTOS, (u32) strlen(ALPN_PROTOS));
+#endif
+	}
 
-// 	/* Since fd_write unconditionally assumes partial writes (and handles them correctly),
-// 	allow them in OpenSSL.  */
-// 	SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
+	/* Since fd_write unconditionally assumes partial writes (and handles them correctly),
+	allow them in OpenSSL.  */
+	SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
+#endif // openssl
+
 	gf_mx_v(dm->cache_mx);
 	return dm->ssl_ctx;
 error:
-	if (dm->ssl_ctx) gnutls_certificate_free_credentials(dm->ssl_ctx);
+	gf_ssl_server_context_del(dm->ssl_ctx);
 	dm->ssl_ctx = NULL;
 	gf_mx_v(dm->cache_mx);
 	return NULL;
@@ -385,10 +438,13 @@ error:
 void h2_initialize_session(GF_DownloadSession *sess);
 #endif
 
+
 #if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 
 static unsigned char next_proto_list[256];
 static size_t next_proto_list_len;
+
+#ifndef GPAC_HAS_GNUTLS // openssl
 
 #ifndef OPENSSL_NO_NEXTPROTONEG
 static int next_proto_cb(SSL *ssl, const unsigned char **data, unsigned int *len, void *arg)
@@ -447,6 +503,8 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned ch
 }
 
 #endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L */
+
+#endif // openssl
 
 #endif //GPAC_HAS_HTTP2
 
@@ -508,13 +566,15 @@ SSL_TICKET_RETURN ngq_decrypt_ticket_cb(SSL *ssl, SSL_SESSION *session, const un
 #endif // !definedLIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2)
 
 
+
 void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic)
 {
-    // const SSL_METHOD *method;
-    // SSL_CTX *ctx;
-	gnutls_certificate_credentials_t ctx;
+    gf_ssl_ctx_t ctx;
 
-    // method = SSLv23_server_method();
+#ifndef GPAC_HAS_GNUTLS
+    const SSL_METHOD *method;
+    method = SSLv23_server_method();
+#endif
 
 #ifdef GPAC_HAS_NGTCP2
 	if (for_quic) {
@@ -524,24 +584,30 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 	if (for_quic) return NULL;
 #endif
 
-    // ctx = SSL_CTX_new(method);
-    // if (!ctx) {
-	// 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to create SSL context\n"));
-	// 	ERR_print_errors_fp(stderr);
-	// 	return NULL;
-    // }
-	int ret = gnutls_certificate_allocate_credentials(&ctx);
+#ifndef GPAC_HAS_GNUTLS // openssl
+    ctx = SSL_CTX_new(method);
+    if (!ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to create SSL context\n"));
+		ERR_print_errors_fp(stderr);
+		return NULL;
+    }
+#else //gnutls
+    int ret = gnutls_certificate_allocate_credentials(&ctx);
     if (ret < 0) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[SSL] Unable to create GnuTLS credentials: %s\n", gnutls_strerror(ret)));
         return NULL;
     }
+#endif //gnutls
 
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG) ) {
-		// SSL_CTX_set_msg_callback(ctx, ssl_on_log);
+#ifndef GPAC_HAS_GNUTLS // openssl
+		 SSL_CTX_set_msg_callback(ctx, ssl_on_log);
+#else
 		gnutls_global_set_log_function(gnutls_log_callback);
 		gnutls_global_set_log_level(2);
+#endif
 	}
 #endif
 
@@ -585,44 +651,50 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 	}
 #endif
 
+
+#ifndef GPAC_HAS_GNUTLS // openssl
 /*	if (!for_quic)
 		SSL_CTX_set_quic_method(ctx, NULL);
 */
-// #if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
-// 	if (next_proto_list_len) {
-// 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
-// #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-// 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
-// #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
-// 	}
-// #endif
+#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
+	if (next_proto_list_len) {
+		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
+	}
+#endif
 
-// 	SSL_CTX_set_default_verify_paths(ctx);
-// 	SSL_CTX_set_ecdh_auto(ctx, 1);
+	SSL_CTX_set_default_verify_paths(ctx);
+	SSL_CTX_set_ecdh_auto(ctx, 1);
 
-// //	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
-// 	if (SSL_CTX_use_certificate_chain_file(ctx, cert) != 1) {
-// 		ERR_print_errors_fp(stderr);
-// 		SSL_CTX_free(ctx);
-// 		return NULL;
-// 	}
-// 	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) <= 0 ) {
-// 		ERR_print_errors_fp(stderr);
-// 		SSL_CTX_free(ctx);
-// 		return NULL;
-// 	}
-// 	if (SSL_CTX_check_private_key(ctx) != 1) {
-// 		ERR_print_errors_fp(stderr);
-// 		SSL_CTX_free(ctx);
-// 		return NULL;
-// 	}
+//	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) <= 0) {
+	if (SSL_CTX_use_certificate_chain_file(ctx, cert) != 1) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) <= 0 ) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
+	if (SSL_CTX_check_private_key(ctx) != 1) {
+		ERR_print_errors_fp(stderr);
+		SSL_CTX_free(ctx);
+		return NULL;
+	}
 
-	ret = gnutls_certificate_set_x509_key_file(ctx, cert, key, GNUTLS_X509_FMT_PEM);
+#else //gnutls
+
+    ret = gnutls_certificate_set_x509_key_file(ctx, cert, key, GNUTLS_X509_FMT_PEM);
     if (ret < 0) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[SSL] Error loading certificate/key (%s/%s): %s\n", cert, key, gnutls_strerror(ret)));
         gnutls_certificate_free_credentials(ctx);
         return NULL;
     }
+
+#endif
 
 
     return (void*)ctx;
@@ -630,68 +702,78 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
 void gf_ssl_server_context_del(void *ssl_ctx)
 {
-	// SSL_CTX_free(ssl_ctx);
-	if (ssl_ctx) gnutls_certificate_free_credentials((gnutls_certificate_credentials_t)ssl_ctx);
+	if (ssl_ctx) {
+#ifdef GPAC_HAS_GNUTLS
+		gnutls_certificate_free_credentials((gf_ssl_ctx_t)ssl_ctx);
+#else
+		SSL_CTX_free((gf_ssl_ctx_t)ssl_ctx);
+#endif
+	}
 }
 
 void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 {
-	// SSL *ssl;
-	// ssl = SSL_new(ssl_ctx);
-	// if (!ssl) {
-	// 	*e = GF_IO_ERR;
-	// 	return NULL;
-	// }
 
-	gnutls_session_t ssl;
+#ifndef GPAC_HAS_GNUTLS //openssl
+
+	SSL *ssl;
+	ssl = SSL_new(ssl_ctx);
+	if (!ssl) {
+		*e = GF_IO_ERR;
+		return NULL;
+	}
+
+	SSL_set_fd(ssl, gf_sk_get_handle(client_sock) );
+	if (SSL_accept(ssl) <= 0) {
+		if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG)) {
+			//this one crashes /exits on windows, only use if debug level
+			ERR_print_errors_fp(stderr);
+		} else {
+			ERR_print_errors_fp(stderr);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SSL] Accept failure\n"));
+		}
+		SSL_shutdown(ssl);
+        SSL_free(ssl);
+		*e = GF_AUTHENTICATION_FAILURE;
+		return NULL;
+	}
+
+#else // gnutls
+
+    gnutls_session_t ssl;
     int ret;
 
     // Initialize session as a SERVER
     ret = gnutls_init(&ssl, GNUTLS_SERVER);
 
-    if (ret < 0) {
+	if (ret < 0) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[SSL] Error initializing server session: %s\n", gnutls_strerror(ret)));
 		*e = GF_IO_ERR;
         return NULL;
     }
 
     gnutls_priority_set_direct(ssl, "NORMAL", NULL);
-	gnutls_credentials_set(ssl, GNUTLS_CRD_CERTIFICATE, (gnutls_certificate_credentials_t)ssl_ctx);
+    gnutls_credentials_set(ssl, GNUTLS_CRD_CERTIFICATE, (gnutls_certificate_credentials_t)ssl_ctx);
 
-	gnutls_datum_t _alpn_protos[2];
-	u32 _alpn_count = 0;
+    gnutls_datum_t _alpn_protos[2];
+    u32 _alpn_count = 0;
 
 #ifdef GPAC_HAS_HTTP2
-	if (!gf_opts_get_bool("core", "no-h2")) {
-		_alpn_protos[_alpn_count++] = alpn_h2;
-	}
+    if (!gf_opts_get_bool("core", "no-h2")) {
+        _alpn_protos[_alpn_count++] = alpn_h2;
+    }
 #endif
 #ifdef GPAC_HAS_NGTCP2
-	if (!gf_opts_get_bool("core", "no-h3")) {
-		_alpn_protos[_alpn_count++] = alpn_h3;
-	}
+    if (!gf_opts_get_bool("core", "no-h3")) {
+        _alpn_protos[_alpn_count++] = alpn_h3;
+    }
 #endif
 
-	ret = gnutls_alpn_set_protocols(ssl, _alpn_protos, _alpn_count, 0);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SSL] server set %d alpn protocols retuned: %s\n", _alpn_count, gnutls_strerror(ret)));
+    ret = gnutls_alpn_set_protocols(ssl, _alpn_protos, _alpn_count, 0);
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SSL] server set %d alpn protocols retuned: %s\n", _alpn_count, gnutls_strerror(ret)));
 
-	// SSL_set_fd(ssl, gf_sk_get_handle(client_sock) );
-	// if (SSL_accept(ssl) <= 0) {
-	// 	if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG)) {
-	// 		//this one crashes /exits on windows, only use if debug level
-	// 		ERR_print_errors_fp(stderr);
-	// 	} else {
-	// 		ERR_print_errors_fp(stderr);
-	// 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SSL] Accept failure\n"));
-	// 	}
-	// 	SSL_shutdown(ssl);
-    //     SSL_free(ssl);
-	// 	*e = GF_AUTHENTICATION_FAILURE;
-	// 	return NULL;
-	// }
-
-	gnutls_transport_set_int(ssl, gf_sk_get_handle(client_sock));
-	do {
+    gnutls_transport_set_int(ssl, gf_sk_get_handle(client_sock));
+    do {
         ret = gnutls_handshake(ssl);
     } while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
 
@@ -702,19 +784,43 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
         return NULL;
     }
 
+#endif //gnutls
+
 	*e = GF_OK;
 	return (void*)ssl;
 }
-void gf_ssl_del(void *ssl)
-{
-	if (ssl) gnutls_deinit((gnutls_session_t)ssl);
+
+void gf_ssl_shutdown(gf_ssl_sess_t ssl) {
+    if (ssl) {
+#ifdef GPAC_HAS_GNUTLS
+        gnutls_bye(ssl, GNUTLS_SHUT_WR);
+        gnutls_deinit(ssl);
+        #else
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
+#endif
+    }
 }
 
-Bool gf_ssl_check_cert(gnutls_session_t ssl, const char *server_name)
+void gf_ssl_free_ctx(gf_ssl_ctx_t ssl_ctx) {
+    if (ssl_ctx) {
+#ifdef GPAC_HAS_GNUTLS
+        gnutls_certificate_free_credentials(ssl_ctx);
+#else
+        SSL_CTX_free(ssl_ctx);
+#endif
+    }
+}
+
+Bool gf_ssl_check_cert(gf_ssl_sess_t ssl, const char *server_name)
 {
-	//long vresult = SSL_get_verify_result(ssl);
+#ifndef GPAC_HAS_GNUTLS //openssl
+	long vresult = SSL_get_verify_result(ssl);
+#else
 	u32 vresult;
 	gnutls_certificate_verify_peers2(ssl, &vresult);
+#endif
+
 	Bool success = (vresult == 0);
 
 	if (!success) {
@@ -724,12 +830,16 @@ Bool gf_ssl_check_cert(gnutls_session_t ssl, const char *server_name)
 			level = GF_LOG_WARNING;
 		}
 
+#ifndef GPAC_HAS_GNUTLS //openssl
+		GF_LOG(level, GF_LOG_HTTP, ("[SSL] Certificate verification failed for domain %s: %s. %s\n", server_name, ERR_error_string(vresult, NULL), (level == GF_LOG_ERROR ? "Use -broken-cert to bypass." : "")));
+#else
 		gnutls_datum_t out;
 		gnutls_certificate_verification_status_print(vresult, GNUTLS_CRT_X509, &out, 0);
 
 		GF_LOG(level, GF_LOG_HTTP, ("[SSL] Certificate verification failed for %s: %s. %s\n", server_name, out.data, (level == GF_LOG_ERROR ? "Use -broken-cert to bypass." : "")));
 
 		gnutls_free(out.data);
+#endif
 
 	}
 
@@ -738,6 +848,41 @@ Bool gf_ssl_check_cert(gnutls_session_t ssl, const char *server_name)
 
 GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *written)
 {
+#ifndef GPAC_HAS_GNUTLS //openssl
+
+	u32 idx=0;
+	s32 nb_tls_blocks = size/16000;
+	*written = 0;
+	while (nb_tls_blocks>=0) {
+		s32 len, to_write = 16000;
+		if (nb_tls_blocks==0)
+			to_write = size - idx*16000;
+
+		len = SSL_write(sess->ssl, buffer + idx*16000, to_write);
+		nb_tls_blocks--;
+		idx++;
+
+		if (len != to_write) {
+			if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
+				int err = SSL_get_error(sess->ssl, len);
+				if ((err==SSL_ERROR_WANT_READ) || (err==SSL_ERROR_WANT_WRITE)) {
+					return GF_IP_NETWORK_EMPTY;
+				}
+				if (err==SSL_ERROR_SSL) {
+					char msg[1024];
+					SSL_load_error_strings();
+					ERR_error_string_n(ERR_get_error(), msg, 1023);
+					msg[1023]=0;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", msg));
+				}
+			}
+			return GF_IP_NETWORK_FAILURE;
+		}
+		*written += to_write;
+	}
+
+#else
+
 	*written = 0;
 	ssize_t ret = gnutls_record_send(sess->ssl, buffer, size);
 
@@ -757,70 +902,9 @@ GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *w
 		return GF_IP_NETWORK_EMPTY;
 	}
 
-	return GF_OK;
-
-
-    // while (*written < size) {
-    //     ssize_t ret = gnutls_record_send(sess->ssl, buffer + *written, size - *written);
-
-    //     if (ret > 0) {
-    //         *written += (u32)ret;
-	// 		fprintf(stderr, "ssl wrote %d / %d bytes\n", *written, size);
-    //     }
-    //     else if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
-    //         return (*written > 0) ? GF_OK : GF_IP_NETWORK_EMPTY;
-    //     }
-    //     else {
-    //         GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Send error: %s\n", gnutls_strerror((int)ret)));
-    //         return GF_IP_NETWORK_FAILURE;
-    //     }
-    // }
-    // return GF_OK;
-
-#if 0
-	u32 idx=0;
-	s32 nb_tls_blocks = size/16000;
-	*written = 0;
-	while (nb_tls_blocks>=0) {
-		s32 len, to_write = 16000;
-		if (nb_tls_blocks==0)
-			to_write = size - idx*16000;
-
-		// len = SSL_write(sess->ssl, buffer + idx*16000, to_write);
-		len = gnutls_record_send(sess->ssl, buffer + idx*16000, to_write);
-		nb_tls_blocks--;
-		idx++;
-
-		if (len < 0) {
-			if (len == GNUTLS_E_AGAIN || len == GNUTLS_E_INTERRUPTED) {
-				return GF_IP_NETWORK_EMPTY;
-			}
-
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", gnutls_strerror((int)len)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-
-		if (len != to_write) {
-			// if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
-			// 	int err = SSL_get_error(sess->ssl, len);
-			// 	if ((err==SSL_ERROR_WANT_READ) || (err==SSL_ERROR_WANT_WRITE)) {
-			// 		return GF_IP_NETWORK_EMPTY;
-			// 	}
-			// 	if (err==SSL_ERROR_SSL) {
-			// 		char msg[1024];
-			// 		SSL_load_error_strings();
-			// 		ERR_error_string_n(ERR_get_error(), msg, 1023);
-			// 		msg[1023]=0;
-			// 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", msg));
-			// 	}
-			// }
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error len=%d to_write=%d\n", len, to_write));
-			return GF_IP_NETWORK_FAILURE;
-		}
-		*written += to_write;
-	}
-	return GF_OK;
 #endif
+
+	return GF_OK;
 }
 
 GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
@@ -830,24 +914,45 @@ GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32
 
 	//receive on null buffer (select only, check if data available)
 	e = gf_sk_receive(sess->sock, NULL, 0, NULL);
+
 	//empty and no pending bytes in SSL, network empty
+#ifndef GPAC_HAS_GNUTLS
+
+	if ((e==GF_IP_NETWORK_EMPTY) &&
+#if 1
+		!SSL_pending(sess->ssl)
+#else
+		//no support for SSL_has_pending in old libSSL and same result can be achieved with SSL_pending
+		!SSL_has_pending(sess->ssl)
+#endif
+	) {
+		return GF_NOT_READY;
+	}
+
+	size = SSL_read(sess->ssl, data, data_size);
+
+	if (size < 0) {
+		int err = SSL_get_error(sess->ssl, size);
+		if (err==SSL_ERROR_SSL) {
+			char msg[1024];
+			SSL_load_error_strings();
+			ERR_error_string_n(ERR_get_error(), msg, 1023);
+			msg[1023]=0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot read, error %s\n", msg));
+			e = GF_IO_ERR;
+		} else {
+			e = gf_sk_probe(sess->sock);
+		}
+	}
+
+#else
+
 	if ( (e==GF_IP_NETWORK_EMPTY) && !gnutls_record_check_pending(sess->ssl) ) {
 		return GF_NOT_READY;
 	}
-	// size = SSL_read(sess->ssl, data, data_size);
+
 	size = gnutls_record_recv(sess->ssl, data, data_size);
 	if (size < 0) {
-		// int err = SSL_get_error(sess->ssl, size);
-		// if (err==SSL_ERROR_SSL) {
-		// 	char msg[1024];
-		// 	SSL_load_error_strings();
-		// 	ERR_error_string_n(ERR_get_error(), msg, 1023);
-		// 	msg[1023]=0;
-		// 	GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot read, error %s\n", msg));
-		// 	e = GF_IO_ERR;
-		// } else {
-		// 	e = gf_sk_probe(sess->sock);
-		// }
 
 		if (size == GNUTLS_E_AGAIN || size == GNUTLS_E_INTERRUPTED) {
 			return GF_IP_NETWORK_EMPTY;
@@ -855,9 +960,11 @@ GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32
 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot read, error %s\n", gnutls_strerror((int)size)));
 		return GF_IO_ERR;
+	}
 
+#endif
 
-	} else if (!size)
+	else if (!size)
 		e = GF_IP_NETWORK_EMPTY;
 	else {
 		e = GF_OK;
@@ -869,24 +976,30 @@ GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32
 void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess)
 {
 	gf_assert(sess->ssl);
-	// if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
-	// 	SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
+
+#ifndef GPAC_HAS_GNUTLS //openssl
+	if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
+		SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
 
 #ifdef GPAC_HAS_HTTP2
-// 	const unsigned char *alpn = NULL;
-// 	unsigned int alpnlen = 0;
-// 	SSL_get0_next_proto_negotiated(sess->ssl, &alpn, &alpnlen);
-// #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-// 	if (alpn == NULL) {
-// 		SSL_get0_alpn_selected(sess->ssl, &alpn, &alpnlen);
-// 	}
-// #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
+	const unsigned char *alpn = NULL;
+	unsigned int alpnlen = 0;
+	SSL_get0_next_proto_negotiated(sess->ssl, &alpn, &alpnlen);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+	if (alpn == NULL) {
+		SSL_get0_alpn_selected(sess->ssl, &alpn, &alpnlen);
+	}
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
 
-// 	if (alpn && (alpnlen == 2) && !memcmp("h2", alpn, 2)) {
-// 		h2_initialize_session(sess);
-// 	}
+	if (alpn && (alpnlen == 2) && !memcmp("h2", alpn, 2)) {
+		h2_initialize_session(sess);
+	}
+#endif //GPAC_HAS_HTTP2
 
-	gnutls_datum_t alpn = { 0, 0};
+#else //gnutls
+
+#ifdef GPAC_HAS_HTTP2
+	gnutls_datum_t alpn = {0, 0};
     int ret = gnutls_alpn_get_selected_protocol(sess->ssl, &alpn);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] server alpn selection retured: %s\n", gnutls_strerror((int)ret)));
@@ -896,6 +1009,8 @@ void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess)
     }
 
 #endif //GPAC_HAS_HTTP2
+
+#endif //gnutls
 
 }
 
@@ -912,17 +1027,22 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 	Bool success;
 
 	if (!sess->ssl) {
-		//sess->ssl = SSL_new(sess->dm->ssl_ctx);
+
+#ifndef GPAC_HAS_GNUTLS //openssl
+
+		sess->ssl = SSL_new(sess->dm->ssl_ctx);
+
+		SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
+		SSL_ctrl(sess->ssl, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, (void*) proxy);
+		SSL_set_connect_state(sess->ssl);
+
+		if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
+			SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
+
+#else
 		gnutls_session_t session;
 		gnutls_init(&session, GNUTLS_CLIENT);
 		sess->ssl = session;
-
-		// SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
-		// SSL_ctrl(sess->ssl, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, (void*) proxy);
-		// SSL_set_connect_state(sess->ssl);
-
-		// if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
-		// 	SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
 
 		// Set default priorities (Ciphers/Protocols)
 		gnutls_priority_set_direct(sess->ssl, "NORMAL", NULL);
@@ -932,38 +1052,40 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 		// Set SNI (Server Name Indication)
 		gnutls_server_name_set(sess->ssl, GNUTLS_NAME_DNS, proxy, strlen(proxy));
-
+#endif
 
 #ifdef GPAC_HAS_HTTP2
         if (sess->dm && !sess->dm->disable_http2) {
 
 			if (sess->h2_upgrade_state==3) {
+#ifndef GPAC_HAS_GNUTLS
+				SSL_set_alpn_protos(sess->ssl, NULL, 0);
+#else
 				gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
+#endif
 				sess->h2_upgrade_state = 0;
 			}
 			//h2 disabled, don't use alpn
 			else if (sess->h2_upgrade_state==4) {
+#ifndef GPAC_HAS_GNUTLS
+				SSL_set_alpn_protos(sess->ssl, NULL, 0);
+			}
+#else
 				gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
 			}
 			else {
-            	gnutls_alpn_set_protocols(sess->ssl, alpn_protos, alpn_count, 0);
+                gnutls_alpn_set_protocols(sess->ssl, alpn_protos, alpn_count, 0);
 			}
+#endif // gnutls
         }
-#endif
+#endif // http2
 
+#ifdef GPAC_HAS_GNUTLS
 		// Connect session to the socket
 		gnutls_transport_set_int(sess->ssl, gf_sk_get_handle(sess->sock));
+#endif
 
-// #ifdef GPAC_HAS_HTTP2
-// 		if (sess->h2_upgrade_state==3) {
-// 			SSL_set_alpn_protos(sess->ssl, NULL, 0);
-// 			sess->h2_upgrade_state = 0;
-// 		}
-// 		//h1 disabled, don't use alpn
-// 		else if (sess->h2_upgrade_state==4) {
-// 			SSL_set_alpn_protos(sess->ssl, NULL, 0);
-// 		}
-// #endif
+
 
 #ifdef GPAC_HAS_NGTCP2
 		//if not using quic, reset quic methods in ssl
@@ -976,10 +1098,72 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		return SSL_CONNECT_RETRY;
 
 	sess->connect_pending = 0;
-	// ret = SSL_connect(sess->ssl);
-	ret = gnutls_handshake(sess->ssl);
 
-	// GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] gnutls_handshake returned %d\n", ret));
+#ifndef GPAC_HAS_GNUTLS //openssl
+	ret = SSL_connect(sess->ssl);
+	if (ret<=0) {
+		ret = SSL_get_error(sess->ssl, ret);
+		if (ret==SSL_ERROR_SSL) {
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L) && defined(GPAC_HAS_HTTP2)
+			//error and we tried with alpn for h2, retry without (kill/reconnect)
+			if (!sess->h2_upgrade_state && !sess->dm->disable_http2) {
+				SSL_free(sess->ssl);
+				sess->ssl = NULL;
+				dm_sess_sk_del(sess);
+				sess->status = GF_NETIO_SETUP;
+				sess->h2_upgrade_state = 3;
+				return SSL_CONNECT_RETRY;
+			}
+#endif
+
+			char msg[1024];
+			SSL_load_error_strings();
+			ERR_error_string_n(ERR_get_error(), msg, 1023);
+			msg[1023]=0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
+			if (!sess->dm->disable_http2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("\tYou may want to retry with HTTP/2 support disabled (-no-h2)\n"));
+			}
+			SET_LAST_ERR(GF_SERVICE_ERROR)
+		} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
+			sess->status = GF_NETIO_SETUP;
+			sess->connect_pending = 2;
+			sess->last_error = GF_IP_NETWORK_EMPTY;
+			return SSL_CONNECT_WAIT;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
+			SET_LAST_ERR(GF_REMOTE_SERVICE_ERROR)
+		}
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
+
+
+#ifdef GPAC_HAS_HTTP2
+		if (!sess->dm->disable_http2) {
+			const u8 *alpn = NULL;
+			u32 alpnlen = 0;
+			SSL_get0_next_proto_negotiated(sess->ssl, &alpn, &alpnlen);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+			if (alpn == NULL) {
+				SSL_get0_alpn_selected(sess->ssl, &alpn, &alpnlen);
+			}
+#endif
+			if (alpn == NULL || alpnlen != 2 || memcmp("h2", alpn, 2) != 0) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 is not negotiated\n"));
+				//disable h2 for the session
+				sess->h2_upgrade_state = 4;
+			} else {
+				h2_initialize_session(sess);
+			}
+		}
+#endif
+	}
+
+
+#else // gnutls
+
+	ret = gnutls_handshake(sess->ssl);
 
 	if (ret<0) {
 
@@ -1012,61 +1196,12 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 		}
 
-
-		//ret = SSL_get_error(sess->ssl, ret);
-// 		if (ret==SSL_ERROR_SSL) {
-
-// #if (OPENSSL_VERSION_NUMBER >= 0x10002000L) && defined(GPAC_HAS_HTTP2)
-// 			//error and we tried with alpn for h2, retry without (kill/reconnect)
-// 			if (!sess->h2_upgrade_state && !sess->dm->disable_http2) {
-// 				SSL_free(sess->ssl);
-// 				sess->ssl = NULL;
-// 				dm_sess_sk_del(sess);
-// 				sess->status = GF_NETIO_SETUP;
-// 				sess->h2_upgrade_state = 3;
-// 				return SSL_CONNECT_RETRY;
-// 			}
-// #endif
-
-// 			char msg[1024];
-// 			SSL_load_error_strings();
-// 			ERR_error_string_n(ERR_get_error(), msg, 1023);
-// 			msg[1023]=0;
-// 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
-// 			if (!sess->dm->disable_http2) {
-// 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("\tYou may want to retry with HTTP/2 support disabled (-no-h2)\n"));
-// 			}
-// 			SET_LAST_ERR(GF_SERVICE_ERROR)
-// 		} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
-// 			sess->status = GF_NETIO_SETUP;
-// 			sess->connect_pending = 2;
-// 			sess->last_error = GF_IP_NETWORK_EMPTY;
-// 			return SSL_CONNECT_WAIT;
-// 		} else {
-// 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
-// 			SET_LAST_ERR(GF_REMOTE_SERVICE_ERROR)
-// 		}
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
 
 
 #ifdef GPAC_HAS_HTTP2
 		if (!sess->dm->disable_http2) {
-// 			const u8 *alpn = NULL;
-// 			u32 alpnlen = 0;
-// 			SSL_get0_next_proto_negotiated(sess->ssl, &alpn, &alpnlen);
-// #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-// 			if (alpn == NULL) {
-// 				SSL_get0_alpn_selected(sess->ssl, &alpn, &alpnlen);
-// 			}
-// #endif
-// 			if (alpn == NULL || alpnlen != 2 || memcmp("h2", alpn, 2) != 0) {
-// 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 is not negotiated\n"));
-// 				//disable h2 for the session
-// 				sess->h2_upgrade_state = 4;
-// 			} else {
-// 				h2_initialize_session(sess);
-// 			}
 
 			gnutls_datum_t selected;
             // Check what the server picked
@@ -1083,6 +1218,8 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		}
 #endif
 	}
+
+#endif //gnutls
 
 	success = gf_ssl_check_cert(sess->ssl, sess->server_name);
 	if (!success) {
