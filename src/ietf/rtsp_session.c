@@ -41,7 +41,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess);
 #include <openssl/rand.h>
 
 void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void gf_ssl_del(void *ssl);
+void gf_ssl_shutdown(void *ssl);
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
 
 #endif
@@ -269,11 +269,11 @@ u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 		sess->tunnel_state = 0;
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			gf_ssl_del(sess->ssl);
+			gf_ssl_shutdown(sess->ssl);
 			sess->ssl = NULL;
 		}
 		if (sess->ssl_http) {
-			gf_ssl_del(sess->ssl_http);
+			gf_ssl_shutdown(sess->ssl_http);
 			sess->ssl_http = NULL;
 		}
 #endif
@@ -334,8 +334,8 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 	if (sess->async_buf) gf_free(sess->async_buf);
 
 #ifdef GPAC_HAS_SSL
-	if (sess->ssl) gf_ssl_del(sess->ssl);
-	if (sess->ssl_http) gf_ssl_del(sess->ssl_http);
+	if (sess->ssl) gf_ssl_shutdown(sess->ssl);
+	if (sess->ssl_http) gf_ssl_shutdown(sess->ssl_http);
 #endif
 
 	gf_free(sess);

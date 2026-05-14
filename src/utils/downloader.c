@@ -331,8 +331,9 @@ void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 			if (sess->ssl) {
 				// SSL_shutdown(sess->ssl);
 				// SSL_free(sess->ssl);
-				gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
-				gnutls_deinit(sess->ssl);
+				// gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+				// gnutls_deinit(sess->ssl);
+				gf_ssl_shutdown(sess->ssl);
 				sess->ssl = NULL;
 			}
 #endif
@@ -425,8 +426,9 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] shut down SSL context\n"));
 		// SSL_shutdown(sess->ssl);
 		// SSL_free(sess->ssl);
-		gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
-		gnutls_deinit(sess->ssl);
+		// gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+		// gnutls_deinit(sess->ssl);
+		gf_ssl_shutdown(sess->ssl);
 		sess->ssl = NULL;
 	}
 #endif
@@ -890,8 +892,9 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		if (sess->ssl) {
 			// SSL_shutdown(sess->ssl);
 			// SSL_free(sess->ssl);
-			gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
-			gnutls_deinit(sess->ssl);
+			// gnutls_bye(sess->ssl, GNUTLS_SHUT_WR);
+			// gnutls_deinit(sess->ssl);
+			gf_ssl_shutdown(sess->ssl);
 			sess->ssl = NULL;
 		}
 #endif
@@ -2093,7 +2096,8 @@ void gf_dm_del(GF_DownloadManager *dm)
 
 #ifdef GPAC_HAS_SSL
 	// if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
-	if (dm->ssl_ctx) gnutls_certificate_free_credentials(dm->ssl_ctx);
+	//if (dm->ssl_ctx) gnutls_certificate_free_credentials(dm->ssl_ctx);
+	gf_ssl_server_context_del(dm->ssl_ctx);
 #endif
 	/* Stored elsewhere, no need to free */
 	gf_mx_v( dm->cache_mx );
