@@ -1402,6 +1402,32 @@ GF_Err writegen_process(GF_Filter *filter)
 			dsi_out[2] = 'a';
 			dsi_out[3] = 'C';
 			memcpy(dsi_out+4, ctx->dcfg, ctx->dcfg_size);
+		} else if (ctx->is_iamf) {
+			GF_IAConfig *iacb = gf_odf_iamf_cfg_read((u8 *)ctx->dcfg, ctx->dcfg_size);
+			if (iacb) {
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				gf_odf_iamf_cfg_write_obus(iacb, bs);
+				u8 *obus_data = NULL;
+				u32 obus_size = 0;
+				gf_bs_get_content(bs, &obus_data, &obus_size);
+				gf_bs_del(bs);
+				gf_odf_iamf_cfg_del(iacb);
+				if (obus_data && obus_size) {
+					u8 *pck_data;
+					dst_pck = gf_filter_pck_new_alloc(ctx->opid, obus_size, &pck_data);
+					if (!dst_pck) {
+						gf_free(obus_data);
+						return GF_OUT_OF_MEM;
+					}
+					memcpy(pck_data, obus_data, obus_size);
+					gf_free(obus_data);
+				}
+			}
+			if (!dst_pck) {
+				dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+				gf_filter_pck_set_readonly(dst_pck);
+			}
 		} else {
 			dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
 			if (!dst_pck) return GF_OUT_OF_MEM;

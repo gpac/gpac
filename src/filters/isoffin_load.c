@@ -968,10 +968,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_IAMF;
 			GF_IAConfig *iamf = gf_isom_iamf_config_get(read->mov, track, stsd_idx);
 			if (iamf) {
-				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-				gf_odf_iamf_cfg_write_obus(iamf, bs);
-				gf_bs_get_content(bs, &dsi, &dsi_size);
-				gf_bs_del(bs);
+				gf_odf_iamf_cfg_write(iamf, &dsi, &dsi_size);
 				gf_odf_iamf_cfg_del(iamf);
 			}
 		}

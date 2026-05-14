@@ -381,10 +381,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_IAMF;
 		
-		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_odf_iamf_cfg_write_obus(iamf_c->cfg, bs);
-		gf_bs_get_content(bs, &(*out_esd)->decoderConfig->decoderSpecificInfo->data, &(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(bs);
+		gf_odf_iamf_cfg_write(iamf_c->cfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		break;
 	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
