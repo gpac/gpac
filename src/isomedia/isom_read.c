@@ -5010,6 +5010,7 @@ void gf_isom_reset_sample_count(GF_ISOFile *movie)
 	if (!movie) return;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
+		if (!trak->Media->information->sampleTable->SampleSize) continue;
 		trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
 		trak->sample_count_at_seg_start = 0;
 	}
