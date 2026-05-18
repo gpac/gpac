@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Telecom ParisTech 2023-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / uncv pixel format translator filter
@@ -397,7 +397,7 @@ uncc_done:
 			for (i=0; i<uncv->fa_height; i++) {
 				u32 j;
 				for (j=0; j<uncv->fa_width; j++) {
-					uncv->fa_map[j + i*uncv->fa_height] = gf_bs_read_u32(bs);
+					uncv->fa_map[j + i*uncv->fa_width] = gf_bs_read_u32(bs);
 					gf_bs_read_float(bs);
 				}
 			}
@@ -481,7 +481,7 @@ uncc_done:
 		for (i=0; i<nb_maps; i++) {
 			if (uncv->fa_map[i] >= uncv->nb_comp_defs) {
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid component index %d in palette\n", uncv->comps[i].idx))
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid component index %d in pattern\n", uncv->fa_map[i]))
 			}
 		}
 	}
