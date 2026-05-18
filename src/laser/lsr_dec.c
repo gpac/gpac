@@ -427,7 +427,7 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *na
 		sprintf(NodeID, "N%d", nID-1);
 		if (href->string) gf_free(href->string);
 		href->string = gf_strdup(NodeID);
-		if (href->type!=0xFF) {
+		if (href->type!=0xFF && gf_list_find(lsr->deferred_hrefs, href)<0) {
 			gf_list_add(lsr->deferred_hrefs, href);
 			gf_node_register_iri(lsr->sg, href);
 		}
@@ -562,9 +562,14 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		return;
 	}
 	while (gf_list_count(l)) {
-		char *str = (char *)gf_list_last(l);
+		void* item = gf_list_last(l);
 		gf_list_rem_last(l);
-		gf_free(str);
+		if (item) {
+			if (is_iri) {
+				gf_free(((XMLRI*)item)->string);
+			}
+			gf_free(item);
+		}
 	}
 	text = NULL;
 	lsr_read_byte_align_string(lsr, &text, name);
@@ -1489,6 +1494,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 		if (!info.far_ptr) lsr->last_error = GF_NOT_SUPPORTED;
 		if (lsr->last_error) return;
 
+
 		switch (field_tag) {
 		case TAG_SVG_ATT__class:
 			lsr_read_byte_align_string(lsr, info.far_ptr, "class");
@@ -1689,7 +1695,10 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 				((SVG_FontFamily*)info.far_ptr)->type = SVG_FONTFAMILY_VALUE;
 				GF_LSR_READ_INT(lsr, flag, lsr->fontIndexBits, "fontIndex");
 				ft = (char*)gf_list_get(lsr->font_table, flag);
-				if (ft) ((SVG_FontFamily*)info.far_ptr)->value = gf_strdup(ft);
+				if (ft) {
+					if (((SVG_FontFamily*)info.far_ptr)->value) gf_free(((SVG_FontFamily*)info.far_ptr)->value);
+					((SVG_FontFamily*)info.far_ptr)->value = gf_strdup(ft);
+				}
 			}
 		}
 		break;
@@ -2862,7 +2871,9 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 	count = lsr_read_vluimsbf5(lsr, "count");
 	for (i=0; i<count; i++) {
 		void *att = lsr_read_an_anim_value(lsr, coded_type, "a_value");
-		if (att) gf_list_add(values->values, att);
+		if (att) {
+			gf_list_add(values->values, att);
+		}
 
 		if (lsr->last_error) {
 
@@ -2878,7 +2889,20 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 	}
 	if (tr_type) {
 		lsr_translate_anim_trans_values(lsr, info.far_ptr, *tr_type);
+	} else {
+		switch (coded_type) {
+			case 2:
+				values->type = SVG_PathData_datatype;
+				break;
+			case 3:
+				values->type = SVG_Points_datatype;
+				break;
+			default:
+				break;
+		}
+
 	}
+
 }
 #define lsr_read_anim_value(_a, _b, _c, _d) lsr_read_anim_value_ex(_a, _b, _c, _d, NULL)
 #define lsr_read_anim_values(_a, _b) lsr_read_anim_values_ex(_a, _b, NULL)
@@ -3007,6 +3031,10 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 			gf_list_add(pts, pt);
 
 			GF_LSR_READ_INT(lsr, nb_dx, 5, "bits");
+			if (!nb_dx) {
+				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+				return;
+			}
 			GF_LSR_READ_INT(lsr, k, nb_dx, "x");
 			x = pt->x = lsr_translate_coords(lsr, k, nb_dx);
 			GF_LSR_READ_INT(lsr, k, nb_dx, "y");
@@ -3014,6 +3042,10 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 
 			GF_LSR_READ_INT(lsr, nb_dx, 5, "bitsx");
 			GF_LSR_READ_INT(lsr, nb_dy, 5, "bitsy");
+			if (!nb_dx || !nb_dy) {
+				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+				return;
+			}
 			for (i=1; i<count; i++) {
 				pt = (SVG_Point *)gf_malloc(sizeof(SVG_Point));
 				if (!pt) {
@@ -5971,17 +6003,9 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 					void* href = gf_list_get(lsr->sg->xlink_hrefs, i);
 					gf_list_del_item(lsr->deferred_hrefs, href);
 				}
-				count = gf_list_count(lsr->deferred_anims);
-				for (i=0; i<count; i++) {
-					GF_Node* node = (GF_Node*) gf_list_get(lsr->deferred_anims, i);
-					if (!node) continue;
-					GF_Node* sgnode = gf_sg_find_node(lsr->sg, gf_node_get_id(node));
-					if (sgnode) {
-						gf_list_rem(lsr->deferred_anims, i);
-						i--;
-					}
+				while (gf_list_count(lsr->deferred_anims)) {
+					gf_list_rem_last(lsr->deferred_anims);
 				}
-
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);

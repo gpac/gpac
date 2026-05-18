@@ -385,7 +385,10 @@ static GF_Err BD_DecGlobalQuantizer(GF_BifsDecoder * codec, GF_BitStream *bs)
 	codec->ActiveQP = NULL;
 
 	if (!node || (gf_node_get_tag(node) != TAG_MPEG4_QuantizationParameter)) {
-		if (node) gf_node_del(node);
+		if (node) {
+			gf_node_register(node, NULL);
+			gf_node_unregister(node, NULL);
+		}
 		return codec->LastError;
 	}
 

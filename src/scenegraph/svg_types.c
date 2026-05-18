@@ -388,6 +388,7 @@ void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
 
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
+	if (!value) return;
 	GF_List *l;
 	switch (type) {
 	case SVG_Paint_datatype:
