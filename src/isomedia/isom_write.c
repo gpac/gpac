@@ -6392,6 +6392,10 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
 		list = trak->child_boxes;
 	} else {
 		if (!movie) return GF_BAD_PARAM;
+		if (!movie->moov) {
+			GF_Err e = gf_isom_insert_moov(movie);
+			if (e) return e;
+		}
 		if (!movie->moov->child_boxes) movie->moov->child_boxes = gf_list_new();
 		list = movie->moov->child_boxes;
 	}
@@ -6401,7 +6405,8 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const u
     if (!box) return GF_OUT_OF_MEM;
 	uuidb = (GF_UnknownUUIDBox*)box;
 	uuidb->internal_4cc = gf_isom_solve_uuid_box((char *) UUID);
-	memcpy(uuidb->uuid, UUID, sizeof(bin128));
+	if ((char *) UUID)
+		memcpy(uuidb->uuid, UUID, sizeof(bin128));
 	uuidb->dataSize = data_size;
 	if (data_size) {
 		uuidb->data = (char*)gf_malloc(sizeof(char)*data_size);
