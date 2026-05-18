@@ -602,7 +602,7 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 		numBitsALL = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL)-1);
 	}
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF)-1);
-	if (!gf_bs_available(bs)) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!gf_bs_available(bs)) return codec->LastError;
 
 	flag = gf_bs_read_int(bs, 1);
 	while (!flag && (codec->LastError>=0)) {
@@ -623,7 +623,7 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 			}
 		}
 
-		if (!gf_bs_available(bs)) return GF_NON_COMPLIANT_BITSTREAM;
+		if (!gf_bs_available(bs)) return codec->LastError;
 
 		//fields are coded in DEF mode
 		field_ref = gf_bs_read_int(bs, numBitsDEF);
