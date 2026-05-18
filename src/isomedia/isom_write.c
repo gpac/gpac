@@ -8697,6 +8697,8 @@ GF_Err gf_isom_update_video_sample_entry_fields(GF_ISOFile *file, u32 track, u32
 	vid_ent = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, stsd_idx-1);
 	if (!vid_ent)
 		return GF_BAD_PARAM;
+	if (vid_ent->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+		return GF_ISOM_INVALID_FILE;
 
 	vid_ent->revision = revision;
 	vid_ent->vendor = vendor;
