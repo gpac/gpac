@@ -1839,6 +1839,9 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+
+	if (!gf_sys_old_arch_compat())
+		gf_isom_enable_auto_track_reorder(the_file, GF_TRUE);
 	return e;
 }
 

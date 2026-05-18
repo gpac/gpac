@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1475,9 +1475,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return gf_import_message(importer, e, "[Importer] Cannot load ISOBMFF muxer");
 		}
 	} else {
-		if (args)
+		if (args) {
 			gf_dynstrcat(&importer->update_mux_args, args, ":");
-		args = NULL;
+			gf_free(args);
+			args = NULL;
+		}
 		isobmff_mux = NULL;
 	}
 
