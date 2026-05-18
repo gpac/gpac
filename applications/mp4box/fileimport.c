@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -2081,7 +2081,7 @@ reparse_opts:
 	if (reorder_tk_ids_count) {
 		for (i=0; i<reorder_tk_ids_count; i++) {
 			u32 tk = gf_isom_get_track_by_id(dest, reorder_tk_ids[i]);
-			gf_isom_set_track_index(dest, tk, set_tk_idx, NULL, NULL);
+			gf_isom_set_track_index(dest, tk, set_tk_idx);
 			set_tk_idx++;
 		}
 	}

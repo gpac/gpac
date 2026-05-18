@@ -1291,7 +1291,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_piff_allocate_storage))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_allocate_storage))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_track_cenc_add_sample_info))
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ctts_v1))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_forced_text))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_group_in_traf))
@@ -1305,6 +1304,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_oma_protection))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_adobe_protection))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_generic_protection))
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_enable_auto_track_reorder))
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_cenc_senc_box))
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_cenc_seig_sample_group))

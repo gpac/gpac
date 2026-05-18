@@ -527,15 +527,15 @@ GF_Err gf_isom_set_vexu(GF_ISOFile *movie, u32 hero_eye)
 		box = hvc1 ? hvc1 : dvh1;
 
 		if(!box) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("No additional VEXU box is needed for Track %d: lack of dvh1/hvc1 boxes.\n", trak->index));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("No additional VEXU box is needed for Track %u: lack of dvh1/hvc1 boxes.\n", i));
 			continue;
 		}
 		if (!gf_isom_box_find_child(box->child_boxes, GF_ISOM_BOX_TYPE_LHVC)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("No additional VEXU box is needed for Track %d: the video is monoscopic.\n", trak->index));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("No additional VEXU box is needed for Track %u: the video is monoscopic.\n", i));
 			continue;
 		}
 		if (gf_isom_box_find_child(box->child_boxes, GF_ISOM_BOX_TYPE_VEXU)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Track %d already has VEXU box.\n", trak->index));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Track %u already has VEXU box.\n", i));
 			continue;
 		}
 
@@ -552,7 +552,7 @@ GF_Err gf_isom_set_vexu(GF_ISOFile *movie, u32 hero_eye)
 		if (!hero) return GF_OUT_OF_MEM;
 		hero->hero_eye_indicator = hero_eye;
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("VEXU box is added to Track %d.\n", trak->index));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("VEXU box is added to Track %u\n", i));
 	}
 	return GF_OK;
 }
@@ -9061,52 +9061,15 @@ GF_Err gf_isom_set_track_magic(GF_ISOFile *movie, u32 trackNumber, u64 magic)
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta)
+GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index)
 {
-	u32 i, j, count;
-	GF_List *tracks;
 	GF_TrackBox *trak = gf_isom_get_track_box(movie, trackNumber);
-	if (!trak || !index) return GF_BAD_PARAM;
-	trak->index = index;
-	tracks = gf_list_new();
-	count = gf_list_count(movie->moov->trackList);
-	//sort tracks in new list
-	for (i=0; i<count; i++) {
-		GF_TrackBox *a_tk = gf_list_get(movie->moov->trackList, i);
-		if (!a_tk->index) {
-			gf_list_insert(tracks, a_tk, 0);
-		} else {
-			for (j=0; j<gf_list_count(tracks); j++) {
-				GF_TrackBox *a_tki = gf_list_get(tracks, j);
-				if (a_tki->index<a_tk->index) continue;
-				gf_list_insert(tracks, a_tk, j);
-				a_tk = NULL;
-				break;
-			}
-			if (a_tk)
-				gf_list_add(tracks, a_tk);
-		}
-	}
-	if (gf_list_count(tracks) != count) {
-		gf_list_del(tracks);
-		return GF_OUT_OF_MEM;
-	}
-	if (track_num_changed) {
-		for (i=0; i<count; i++) {
-			GF_TrackBox *a_tk = gf_list_get(tracks, i);
-			s32 old_pos = gf_list_find(movie->moov->trackList, a_tk);
-			gf_assert(old_pos>=0);
-			if (old_pos != i)
-				track_num_changed(udta, old_pos+1, i+1);
-		}
-	}
-	gf_list_del(movie->moov->trackList);
-	movie->moov->trackList = tracks;
-	for (j=0; j<gf_list_count(tracks); j++) {
-		GF_TrackBox *tki = gf_list_get(tracks, j);
-		if (tki->index != 0xFFFE) // special value meaning always last
-			tki->index = j + 1;
-	}
+	if (!trak) return GF_BAD_PARAM;
+	trak->mux_index = index;
+	if (index)
+		movie->tracks_use_mux_index ++;
+	else if (movie->tracks_use_mux_index)
+		movie->tracks_use_mux_index --;
 	return GF_OK;
 }
 
@@ -9646,8 +9609,14 @@ GF_Err gf_isom_set_sample_references(GF_ISOFile *file, u32 track, u32 sampleNumb
 		if (!stbl->SampleRefs) return GF_OUT_OF_MEM;
 	}
 	return isom_sample_refs_push(stbl->SampleRefs, refID, nb_refs, refs);
-
 }
 
+GF_EXPORT
+GF_Err gf_isom_enable_auto_track_reorder(GF_ISOFile *file, Bool enabled)
+{
+	if (!file) return GF_BAD_PARAM;
+	file->auto_reorder_tracks = enabled;
+	return GF_OK;
+}
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/

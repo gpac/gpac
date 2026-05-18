@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1024,7 +1024,7 @@ typedef struct
 	u32 pack_num_samples;
 
 	u64 magic;
-	u32 index;
+	u32 mux_index;
 	u32 nb_base_refs;
 
 	u8 *(*sample_alloc_cbk)(u32 size, void *cbk);
@@ -4400,6 +4400,9 @@ struct __tag_isom {
 
 	s64 read_byte_offset;
 	u64 bytes_removed;
+
+	u32 tracks_use_mux_index;
+	Bool auto_reorder_tracks;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_ISOCompressMode compress_mode;
