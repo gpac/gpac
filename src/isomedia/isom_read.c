@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3163,6 +3163,7 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 	for (i=0; i<count; i++) {
 		GF_TrackBox *tk = gf_list_get(movie->moov->trackList, i);
 		tk->first_traf_merged = GF_FALSE;
+		if (!tk->Media->information->sampleTable->TimeToSample) continue;
 		tk->Media->information->sampleTable->TimeToSample->cumulated_start_dts = 0;
 	}
 #endif
