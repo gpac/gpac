@@ -1174,6 +1174,11 @@ else
         CFLAGS="$CFLAGS -fstack-protector-strong"
     fi
 fi
+
+if docc -fwrapv ; then
+    CFLAGS="$CFLAGS -fwrapv"
+fi
+
 CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"

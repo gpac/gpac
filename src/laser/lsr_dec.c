@@ -902,7 +902,7 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 
 static Fixed lsr_translate_scale(GF_LASeRCodec *lsr, u32 val)
 {
-	if (lsr && lsr->coord_bits && val >> (lsr->coord_bits-1) ) {
+	if (lsr && lsr->coord_bits && ((lsr->coord_bits-1) < 8*sizeof(val)) && val >> (lsr->coord_bits-1) ) {
 		s32 neg;
 		if (lsr->coord_bits >= 31)
 			neg = (s32)val - 0x80000000;
