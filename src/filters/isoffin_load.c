@@ -963,6 +963,16 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_OPUS;
 			gf_isom_opus_config_get(read->mov, track, stsd_idx, &dsi, &dsi_size);
 			break;
+		case GF_ISOM_SUBTYPE_IAMF:
+		{
+			codec_id = GF_CODECID_IAMF;
+			GF_IAConfig *iamf = gf_isom_iamf_config_get(read->mov, track, stsd_idx);
+			if (iamf) {
+				gf_odf_iamf_cfg_write(iamf, &dsi, &dsi_size);
+				gf_odf_iamf_cfg_del(iamf);
+			}
+		}
+			break;
 
 		case GF_QT_SUBTYPE_FL32:
 		case GF_QT_SUBTYPE_FL64:

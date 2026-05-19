@@ -364,7 +364,26 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		gf_odf_opus_cfg_write(&opus_c->opcfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		break;
 	}
+	case GF_ISOM_SUBTYPE_IAMF:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
+			return GF_ISOM_INVALID_MEDIA;
+	{
+		GF_IAConfigurationBox *iamf_c;
+		if (true_desc_only)
+			return GF_ISOM_INVALID_MEDIA;
 
+		iamf_c = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_iamf;
+		if (!iamf_c || !iamf_c->cfg) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ESD not found for IAMF\n"));
+			break;
+		}
+		*out_esd = gf_odf_desc_esd_new(2);
+		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
+		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_IAMF;
+		
+		gf_odf_iamf_cfg_write(iamf_c->cfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+		break;
+	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
