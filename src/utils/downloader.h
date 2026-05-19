@@ -40,14 +40,14 @@
 #include <gpac/crypt.h>
 
 #ifdef GPAC_HAS_SSL
-#ifdef GPAC_HAS_NGTCP2
-#include <openssl/types.h>
-#endif
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#ifdef GPAC_HAS_NGTCP2
+//#include <openssl/types.h>
+#endif
 #endif
 
 #ifdef GPAC_HAS_CURL
@@ -360,6 +360,9 @@ struct __gf_download_session
 	u8 *local_buf;
 	u32 local_buf_len, local_buf_alloc;
 #endif
+    /* Custom metrics storage for H3 (and H2) */
+    void *metrics_priv;
+
 
 };
 

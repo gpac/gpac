@@ -22,9 +22,9 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
+#include <inttypes.h>
 #include "downloader.h"
-
+#include <gpac/tools.h>
 #ifndef GPAC_DISABLE_NETWORK
 
 static void gf_dm_connect(GF_DownloadSession *sess);
@@ -2387,7 +2387,38 @@ void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", sess->log_name, gf_file_basename(gf_cache_get_url(sess->cache_entry)), sess->bytes_done,
 		                                     run_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time));
+/*  H1-METRICS (only for true H1)  */
+{
+    Bool is_h1 = GF_TRUE;
+    /* If HTTP/2 mux is present 1 */
+#if defined(GPAC_HTTPMUX)
+    if (sess->hmux_sess) is_h1 = GF_FALSE;
+#endif
+    /* If QUIC/H3 flag is set */
+    if (sess->flags & GF_NETIO_SESSION_USE_QUIC) is_h1 = GF_FALSE;
 
+    if (is_h1) {
+        GF_SystemRTInfo rti;
+		gf_sys_get_rti(0, &rti, 0);
+
+        double dur_s = (double)sess->total_time_since_req / 1e6;
+        double thr   = (dur_s > 0) ? (8.0 * (double)sess->bytes_done / dur_s / 1e6) : 0.0;
+
+        GF_LOG(GF_LOG_INFO, GF_LOG_HTTP,
+           ("[H1-METRICS] mode=%s url=%s bytes=%" PRIu64 " ttfb_us=%u dur_us=%u thr=%.3fMb/s "
+            "cpu_total_ms=%llu mem_kb=%llu phase=%s\n",
+            sess->server_mode ? "server" : "client",
+            sess->orig_url ? sess->orig_url : "",
+            sess->bytes_done,
+            sess->reply_time,
+            sess->total_time_since_req,
+            thr,
+            (unsigned long long) rti.process_cpu_time,
+			(unsigned long long)(rti.physical_memory / 1024),
+            sess->last_error ? "error" : "close"));
+    }
+}
+/* end H1-METRICS  */
 		if (sess->chunked && (payload_size==2))
 			payload_size=0;
 		sess->last_error = GF_OK;
