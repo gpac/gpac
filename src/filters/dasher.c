@@ -3797,14 +3797,14 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 	}
 }
 
-static void dasher_inject_scte35_processor(GF_Filter *filter, GF_DashStream *ds, char *szSRC) {
+static void dasher_inject_interposer(GF_Filter *filter, const char *name, GF_DashStream *ds, char *szSRC) {
 		GF_Err e;
-		GF_Filter *scte35dec = gf_filter_load_filter(filter, "scte35dec", &e);
-		gf_filter_set_source(scte35dec, filter, NULL);
+		GF_Filter *interposer = gf_filter_load_filter(filter, name, &e);
+		gf_filter_set_source(interposer, filter, NULL);
 
 		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
 		gf_filter_reset_source(ds->dst_filter);
-		gf_filter_set_source(ds->dst_filter, scte35dec, szSRC);
+		gf_filter_set_source(ds->dst_filter, interposer, szSRC);
 }
 
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
@@ -4027,8 +4027,14 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		if (ctx->do_m3u8)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option used with HLS is likely not supported by your player\n"));
 
-		//inject scte35dec filter
-		dasher_inject_scte35_processor(filter, ds, szSRC);
+		dasher_inject_interposer(filter, "scte35dec", ds, szSRC);
+	}
+	else if ( ds->codec_id==GF_CODECID_EVTE && (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) ) {
+		// inject scte35dec filter
+		if (ctx->scte35==SCTE35_DASH_XML_BIN)
+			dasher_inject_interposer(filter, "scte35dec:mode=m2ts", ds, szSRC);
+		else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] incompatible set of scte35 options\n"));
 	}
 }
 
@@ -9685,12 +9691,24 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
+	const u8 *data = NULL;
+	u32 size = 0;
 
 	if (ctx->scte35 == SCTE35_NONE)
 		return GF_OK;
 
-	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
-	if (!emsg) return GF_OK;
+	if (ds->codec_id == GF_CODECID_SCTE35) {
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!data || !size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] skipping SCTE-35 packet with no data: check your filter chain\n"));
+			return GF_OK;
+		}
+	} else {
+		const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+		if (!emsg) return GF_OK;
+		data = emsg->value.data.ptr;
+		size = emsg->value.data.size;
+	}
 
 	if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have a SCTE-35 inband event
@@ -9712,7 +9730,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		}
 	}
 
-	if (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
+	if (ctx->scte35 == SCTE35_DASH_AUTO || ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have an event stream
 		GF_List *event_streams = ds->period->period->event_streams;
 		GF_MPD_EventStream *es = NULL;
@@ -9741,7 +9759,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
-		if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -9756,10 +9774,10 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 			if (!found) {
 				evt->duration = (u32)dur;
 				es->timescale = gf_filter_pck_get_timescale(pck);
-				evt->message = gf_malloc(emsg->value.data.size);
+				evt->message = gf_malloc(size);
 				if (!evt->message) goto fail;
-				memcpy(evt->message, emsg->value.data.ptr, emsg->value.data.size);
-				evt->message_size = emsg->value.data.size;
+				memcpy(evt->message, data, size);
+				evt->message_size = size;
 				gf_list_add(es->entries, evt);
 				return GF_OK;
 			}
