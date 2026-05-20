@@ -179,6 +179,7 @@ static void uncv_del(UNCVConfig *cfg)
 		if (cfg->palette->values) gf_free(cfg->palette->values);
 		gf_free(cfg->palette);
 	}
+	if (cfg->fa_map) gf_free(cfg->fa_map);
 	gf_free(cfg);
 }
 
@@ -1416,7 +1417,7 @@ static void uncv_set_pix_val(UNCVDecCtx *ctx, UNCVComponentInfo *comp, u8 val, u
 	} else if (comp->type==11) {
 		x = x % ctx->cfg->fa_width;
 		y = y % ctx->cfg->fa_height;
-		UNCVComponentDefinition *cdef = &ctx->cfg->comp_defs[ctx->cfg->fa_map[x + y*ctx->cfg->fa_height]];
+		UNCVComponentDefinition *cdef = &ctx->cfg->comp_defs[ctx->cfg->fa_map[x + y*ctx->cfg->fa_width]];
 		//only write if R, G or B
 		if ((cdef->type>=4) && (cdef->type<=6)) {
 			u32 c_idx = cdef->type-4;

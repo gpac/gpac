@@ -226,6 +226,7 @@ Bool Q_IsTypeOn(M_QuantizationParameter *qp, u32 q_type, u32 *NbBits, SFVec3f *b
 Fixed Q_InverseQuantize(Fixed Min, Fixed Max, u32 NbBits, u32 value)
 {
 	if (!value) return Min;
+	if (NbBits>=sizeof(value)*8) return Max;
 	if (value == (u32) ((1 << NbBits) - 1) ) return Max;
 	return Min + gf_muldiv(Max - Min, INT2FIX(value), INT2FIX( (1 << NbBits) - 1) );
 }
