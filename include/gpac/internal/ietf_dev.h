@@ -218,12 +218,12 @@ Bool gf_rtp_is_disc(GF_RTPChannel *ch);
 	}	\
 	strcpy(buf+pos, (const char *) str);		\
 	pos += (u32) strlen((const char *) str); \
- 
+
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
 	if (str){	\
 		RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str);	\
 	}	\
-	
+
 #define RTSP_WRITE_HEADER(buf, buf_size, pos, type, str)		\
 	if( str ) {	\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, type);		\
@@ -231,7 +231,7 @@ Bool gf_rtp_is_disc(GF_RTPChannel *ch);
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str);		\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");	\
 	}	\
- 
+
 #define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)	{	\
 	char temp[50]; \
 	if (sig < 0) { \
@@ -277,8 +277,21 @@ typedef enum
 } RTSP_HTTP_Tunnel;
 
 #ifdef GPAC_HAS_SSL
+
+#ifdef GPAC_HAS_GNUTLS
+
+#include <gnutls/gnutls.h>
+typedef gnutls_session_t gf_ssl_sess_t;
+typedef gnutls_certificate_credentials_t gf_ssl_ctx_t;
+
+#else //openssl
+
 #include <openssl/ssl.h>
-#endif
+typedef SSL* gf_ssl_sess_t;
+typedef SSL_CTX* gf_ssl_ctx_t;
+
+#endif //openssl
+#endif //ssl
 
 /**************************************
 		RTSP Session
@@ -345,8 +358,8 @@ struct _tag_rtsp_session
 
 #ifdef GPAC_HAS_SSL
 	Bool use_ssl, ssl_connect_pending;
-	SSL_CTX *ssl_ctx;
-	SSL *ssl, *ssl_http;
+	gf_ssl_ctx_t ssl_ctx;
+	gf_ssl_sess_t ssl, ssl_http;
 #endif
 
 };
@@ -566,4 +579,3 @@ struct __tag_rtp_depacketizer
 #endif /*GPAC_DISABLE_STREAMING*/
 
 #endif	/*_GF_IETF_DEV_H_*/
-

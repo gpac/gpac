@@ -795,7 +795,7 @@ void gf_ssl_shutdown(gf_ssl_sess_t ssl) {
 #ifdef GPAC_HAS_GNUTLS
         gnutls_bye(ssl, GNUTLS_SHUT_WR);
         gnutls_deinit(ssl);
-        #else
+#else
         SSL_shutdown(ssl);
         SSL_free(ssl);
 #endif

@@ -112,10 +112,13 @@ GF_Err gf_rstp_do_read_sock(GF_RTSPSession *sess, GF_Socket *sock, u8 *data, u32
 {
 	GF_Err e;
 #ifdef GPAC_HAS_SSL
-	SSL *ssl_sock = (sock == sess->http) ? sess->ssl_http : sess->ssl;
+	gf_ssl_sess_t ssl_sock = (sock == sess->http) ? sess->ssl_http : sess->ssl;
 	if (ssl_sock) {
 		//receive on null buffer (select only, check if data available)
 		e = gf_sk_receive(sock, NULL, 0, NULL);
+
+#ifndef GPAC_HAS_GNUTLS //openssl
+
 		//empty and no pending bytes in SSL, network empty
 		if ((e==GF_IP_NETWORK_EMPTY) && !SSL_pending(sess->ssl))
 			return GF_IP_NETWORK_EMPTY;
@@ -141,6 +144,30 @@ GF_Err gf_rstp_do_read_sock(GF_RTSPSession *sess, GF_Socket *sock, u8 *data, u32
 			data[size] = 0;
 			*out_read = size;
 		}
+
+#else //gnutls
+
+		//empty and no pending bytes in SSL, network empty
+		if ((e==GF_IP_NETWORK_EMPTY) && (gnutls_record_check_pending(ssl_sock) <= 0))
+			return GF_IP_NETWORK_EMPTY;
+
+		ssize_t size = gnutls_record_recv(ssl_sock, data, data_size);
+        if (size < 0) {
+            if (size == GNUTLS_E_AGAIN || size == GNUTLS_E_INTERRUPTED) {
+                e = GF_IP_NETWORK_EMPTY;
+            } else {
+                e = GF_IP_NETWORK_FAILURE;
+            }
+            *out_read = 0;
+        } else if (size == 0) {
+            e = GF_IP_NETWORK_EMPTY;
+            *out_read = 0;
+        } else {
+            e = GF_OK;
+            *out_read = (u32)size;
+        }
+
+#endif
 	} else
 #endif
 	{

@@ -34,15 +34,26 @@ static GF_Err gf_rstp_flush_buffer(GF_RTSPSession *sess);
 static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess);
 
 #ifdef GPAC_HAS_SSL
+
+#ifdef GPAC_HAS_GNUTLS
+
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+
+
+#else // openssl
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/rand.h>
 
+#endif
+
 void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
 void gf_ssl_shutdown(void *ssl);
-Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
+Bool gf_ssl_check_cert(gf_ssl_sess_t ssl, const char *server_name);
 
 #endif
 
@@ -412,6 +423,84 @@ Bool gf_rtsp_use_tls(GF_RTSPSession *sess)
 	return GF_FALSE;
 }
 
+GF_Err init_ssl_sess(GF_RTSPSession *sess, void** ssl_, void* ssl_ctx_, GF_Socket *connection, char* server) {
+
+#ifdef GPAC_HAS_SSL
+
+    if (!sess || !ssl_)
+        return GF_BAD_PARAM;
+
+    gf_ssl_sess_t* ssl = (gf_ssl_sess_t*)ssl_;
+    gf_ssl_ctx_t ssl_ctx = (gf_ssl_ctx_t)ssl_ctx_;
+
+    if (!*ssl) {
+
+#ifndef GPAC_HAS_GNUTLS //openssl
+
+        *ssl = SSL_new(ssl_ctx);
+        SSL_set_fd(*ssl, gf_sk_get_handle(connection));
+        SSL_ctrl(*ssl, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, (void*) server);
+        SSL_set_connect_state(*ssl);
+        SSL_set_mode(*ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
+        SSL_set_alpn_protos(*ssl, NULL, 0);
+
+    }
+
+    sess->ssl_connect_pending = 0;
+    int ret = SSL_connect(*ssl);
+    if (ret<=0) {
+        ret = SSL_get_error(*ssl, ret);
+        if (ret==SSL_ERROR_SSL) {
+            char msg[1024];
+            SSL_load_error_strings();
+            ERR_error_string_n(ERR_get_error(), msg, 1023);
+            msg[1023]=0;
+            GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
+            return GF_IP_CONNECTION_FAILURE;
+        } else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
+            sess->ssl_connect_pending = 1;
+            return GF_IP_NETWORK_EMPTY;
+        } else {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
+            return GF_REMOTE_SERVICE_ERROR;
+        }
+
+#else //gnutls
+
+        gnutls_session_t session;
+        gnutls_init(&session, GNUTLS_CLIENT);
+        *ssl = session;
+
+        gnutls_priority_set_direct(*ssl, "NORMAL", NULL);
+        gnutls_credentials_set(*ssl, GNUTLS_CRD_CERTIFICATE, ssl_ctx);
+        gnutls_server_name_set(*ssl, GNUTLS_NAME_DNS, server, strlen(server));
+        gnutls_alpn_set_protocols(*ssl, NULL, 0, 0);
+        gnutls_transport_set_int(*ssl, gf_sk_get_handle(connection));
+
+    }
+
+    sess->ssl_connect_pending = 0;
+    int ret = gnutls_handshake((gnutls_session_t)*ssl);
+    if (ret < 0) {
+        if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
+            sess->ssl_connect_pending = 1;
+            return GF_IP_NETWORK_EMPTY;
+        }
+        GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", gnutls_strerror(ret)));
+        return GF_IP_NETWORK_FAILURE;
+
+#endif //gnutls
+
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
+    }
+
+#endif //HAS_SSL
+
+    return GF_OK;
+
+}
+
 GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 {
 	GF_Err e;
@@ -455,36 +544,11 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 		if (!sess->ssl_ctx)
 			return GF_IP_CONNECTION_FAILURE;
 
-		if (!sess->ssl) {
-			sess->ssl = SSL_new(sess->ssl_ctx);
-			SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->connection));
-			SSL_ctrl(sess->ssl, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, (void*) sess->Server);
-			SSL_set_connect_state(sess->ssl);
-			SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
-			SSL_set_alpn_protos(sess->ssl, NULL, 0);
-		}
 
-		sess->ssl_connect_pending = 0;
-		int ret = SSL_connect(sess->ssl);
-		if (ret<=0) {
-			ret = SSL_get_error(sess->ssl, ret);
-			if (ret==SSL_ERROR_SSL) {
-				char msg[1024];
-				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, 1023);
-				msg[1023]=0;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
-				return GF_IP_CONNECTION_FAILURE;
-			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
-				sess->ssl_connect_pending = 1;
-				return GF_IP_NETWORK_EMPTY;
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
-				return GF_REMOTE_SERVICE_ERROR;
-			}
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
-		}
+        e = init_ssl_sess(sess, (void**)(&(sess->ssl)), (void*)sess->ssl_ctx, sess->connection, sess->Server);
+        if (e)
+            return e;
+
 
 		Bool success = gf_ssl_check_cert(sess->ssl, sess->Server);
 		if (!success) {
@@ -717,12 +781,18 @@ GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 static GF_Err rstp_do_write_sock(GF_RTSPSession *sess, GF_Socket *sock, const u8 *buffer, u32 size, u32 *written)
 {
 #ifdef GPAC_HAS_SSL
-	SSL *ssl_sock = (sock==sess->http) ? sess->ssl_http : sess->ssl;
+
+	gf_ssl_sess_t ssl_sock = (sock==sess->http) ? sess->ssl_http : sess->ssl;
 	if (ssl_sock) {
-		u32 idx=0;
-		s32 nb_tls_blocks = size/16000;
+
 		if (written)
 			*written = 0;
+
+#ifndef GPAC_HAS_GNUTLS //openssl
+
+		u32 idx=0;
+		s32 nb_tls_blocks = size/16000;
+
 		while (nb_tls_blocks>=0) {
 			u32 len, to_write = 16000;
 			if (nb_tls_blocks==0)
@@ -750,6 +820,26 @@ static GF_Err rstp_do_write_sock(GF_RTSPSession *sess, GF_Socket *sock, const u8
 				*written += to_write;
 		}
 		return GF_OK;
+
+#else //gnutls
+
+        ssize_t ret = gnutls_record_send(ssl_sock, buffer, size);
+
+        if (ret < 0) {
+            if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED)
+                return GF_IP_NETWORK_EMPTY;
+
+            GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", gnutls_strerror((int)ret)));
+            return GF_IP_NETWORK_FAILURE;
+        }
+
+        if (written)
+            *written = (u32)ret;
+
+        return (ret == (ssize_t)size) ? GF_OK : GF_IP_NETWORK_EMPTY;
+
+#endif
+
 	}
 #endif
 	return gf_sk_send_ex(sock, buffer, size, written);
@@ -849,36 +939,11 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 
 #ifdef GPAC_HAS_SSL
 	if (sess->use_ssl) {
-		if (!sess->ssl_http) {
-			sess->ssl_http = SSL_new(sess->ssl_ctx);
-			SSL_set_fd(sess->ssl_http, gf_sk_get_handle(sess->http));
-			SSL_ctrl(sess->ssl_http, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, (void*) sess->Server);
-			SSL_set_connect_state(sess->ssl_http);
-			SSL_set_mode(sess->ssl_http, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
-			SSL_set_alpn_protos(sess->ssl_http, NULL, 0);
-		}
 
-		sess->ssl_connect_pending = 0;
-		int ret = SSL_connect(sess->ssl_http);
-		if (ret<=0) {
-			ret = SSL_get_error(sess->ssl_http, ret);
-			if (ret==SSL_ERROR_SSL) {
-				char msg[1024];
-				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, 1023);
-				msg[1023]=0;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
-				return GF_IP_CONNECTION_FAILURE;
-			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
-				sess->ssl_connect_pending = 1;
-				return GF_IP_NETWORK_EMPTY;
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
-				return GF_REMOTE_SERVICE_ERROR;
-			}
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
-		}
+        e = init_ssl_sess(sess, (void**)(&(sess->ssl_http)), (void*)sess->ssl_ctx, sess->http, sess->Server);
+        if (e)
+            return e;
+
 	}
 #endif
 
@@ -918,7 +983,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 	u32 fam;
 	u16 port;
 #ifdef GPAC_HAS_SSL
-	SSL *ssl = NULL;
+	gf_ssl_sess_t ssl = NULL;
 #endif
 
 	if (!rtsp_listener) return NULL;
@@ -929,6 +994,9 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 
 #ifdef GPAC_HAS_SSL
 	if (ssl_ctx) {
+
+#ifndef GPAC_HAS_GNUTLS //openssl
+
 		ssl = gf_ssl_new(ssl_ctx, new_conn, &e);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[SSL] Failed to create TLS session: %s\n", gf_error_to_string(e) ));
@@ -936,6 +1004,29 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 			return NULL;
 		}
 		SSL_set_mode(ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
+
+#else //gnutls
+
+        gnutls_session_t session;
+        gnutls_init(&session, GNUTLS_SERVER);
+        gnutls_priority_set_direct(session, "NORMAL", NULL);
+        gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, (gnutls_certificate_credentials_t)ssl_ctx);
+        gnutls_transport_set_int(session, gf_sk_get_handle(new_conn));
+
+        // Handshake
+        int ret;
+        do {
+            ret = gnutls_handshake(session);
+        } while (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN);
+
+        if (ret < 0) {
+            gnutls_deinit(session);
+            gf_sk_del(new_conn);
+            return NULL;
+        }
+        ssl = (void *)session;
+
+#endif
 	}
 #endif
 
