@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / audio resample filter
@@ -455,6 +455,7 @@ static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		&& evt->play.speed
 	) {
 		GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+		if (!ctx->ipid) return GF_TRUE;
 		ctx->speed = FLT2FIX(evt->play.speed);
 		if (ctx->speed<0) ctx->speed = -ctx->speed;
 

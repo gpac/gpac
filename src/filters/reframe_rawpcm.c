@@ -142,6 +142,7 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 	u32 nb_frames;
 	GF_FilterEvent fevt;
 	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:

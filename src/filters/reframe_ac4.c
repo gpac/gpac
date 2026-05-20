@@ -248,6 +248,7 @@ static Bool ac4dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	GF_FilterEvent fevt;
 	GF_AC4DmxCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 
 	if (evt->base.type == GF_FEVT_PLAY) {
 		if (!ctx->is_playing) {
