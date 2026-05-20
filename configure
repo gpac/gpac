@@ -3041,6 +3041,12 @@ if test "$has_curl" != "no" ; then
     echo "#define GPAC_HAS_CURL" >> $TMPH
 fi
 
+if test "$has_ssl" = "no" ; then
+if test "$has_gnutls" != "no" ; then
+    has_ssl="yes"
+fi
+fi
+
 #dump all cflags
 for pcklib in $all_packages ; do
     eval "has_pck=\$has_$pcklib"
