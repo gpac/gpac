@@ -57,10 +57,10 @@ GF_OPT_ENUM (Scte35Mode,
 );
 
 #define SCTE35_ARG { OFFS(scte35), "SCTE-35 signalling\n" \
-    "- auto: xml+bin or evte depending on the input\n" \
-    "- xml+bin: out-of-band (MPD) EventStream with xml+bin (recommended)\n" \
+    "- auto: 'xmlbin' or 'evte' depending on the input\n" \
+    "- xmlbin: out-of-band (MPD) EventStream with xml+bin (recommended)\n" \
     "- inband: in-band `emsg` boxes\n" \
     "- all: signal everywhere detected\n" \
-    "- none: no EventStream nor `emsg` boxes", GF_PROP_UINT, "auto", "auto|xml+bin|inband|all|none", GF_FS_ARG_HINT_EXPERT }
+    "- none: no EventStream nor `emsg` boxes", GF_PROP_UINT, "auto", "auto|xmlbin|inband|all|none", GF_FS_ARG_HINT_EXPERT }
 
 #endif /*_GF_SCTE35_DEV_H_*/

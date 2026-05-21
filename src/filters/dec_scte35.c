@@ -968,9 +968,9 @@ static const GF_FilterCapability SCTE35DecCaps[] =
 static const GF_FilterArgs SCTE35DecArgs[] =
 {
 	{ OFFS(mode), "mode to operate in\n"
-		"- 23001-18: outputs emib/emeb boxes for Event Tracks\n"
+		"- evte: outputs emib/emeb boxes for Event Tracks\n"
 		"- m2ts: immediate dispatch of entire MPEG-2 TS splice_info_section as per ANSI/SCTE 67 2017 (13.1.1.3)\n"
-		"- passthrough: pass-through mode adding cue start property on splice points", GF_PROP_UINT, "23001-18", "23001-18|m2ts|passthrough", 0},
+		"- passthrough: pass-through mode adding cue start property on splice points", GF_PROP_UINT, "evte", "evte|m2ts|passthrough", 0},
 	{ OFFS(sampdur), "segmentation duration in seconds. Default value 0 only flushes when content changes", GF_PROP_FRACTION, "0/1", NULL, 0},
 	{ OFFS(prop), "also attach data as property in case dasher needs it for dual in+out band", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
@@ -979,9 +979,9 @@ static const GF_FilterArgs SCTE35DecArgs[] =
 GF_FilterRegister SCTE35DecRegister = {
 	.name = "scte35dec",
 	GF_FS_SET_DESCRIPTION("SCTE35 decoder")
-	GF_FS_SET_HELP("This filter writes the SCTE-35 markers attached as properties to audio and video\n"
-	               "packets or inside a dedicated stream, as 23001-18 'emib' boxes. It also creates\n"
-				   "empty 'emeb' box in between following segmentation as hinted by the graph.")
+	GF_FS_SET_HELP("This filter transforms SCTE-35 markers attached as properties to audio and video\n"
+	               "packets or inside a dedicated stream, into the request format. It also creates\n"
+	               "empty 'emeb' box in between following segmentation as hinted by the graph.")
 	.private_size = sizeof(SCTE35DecCtx),
 	.args = SCTE35DecArgs,
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
