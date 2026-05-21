@@ -871,7 +871,6 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-
 	/*if MFNode remove the child and parse new node*/
 	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		/*get the new node*/
@@ -887,6 +886,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		/*replace prev node*/
 		e = gf_node_replace_child(node, (GF_ChildNodeItem**) field.far_ptr, pos, new_node);
 		if (!e) gf_bifs_check_field_change(node, &field);
+		else gf_node_unregister(new_node, node);
 	}
 	/*erase the field item*/
 	else {

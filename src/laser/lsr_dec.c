@@ -83,14 +83,13 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec)
 		gf_list_rem_last(codec->font_table);
 	}
 	gf_list_del(codec->font_table);
-#if 0
+
 	while (gf_list_count(codec->deferred_hrefs)) {
 		XMLRI *iri = (XMLRI *)gf_list_last(codec->deferred_hrefs);
 		gf_list_rem_last(codec->deferred_hrefs);
 		if (iri->string) gf_free(iri->string);
 		iri->string = NULL;
 	}
-#endif
 	gf_list_del(codec->deferred_hrefs);
 	gf_list_del(codec->deferred_anims);
 	gf_list_del(codec->deferred_listeners);
@@ -2016,6 +2015,10 @@ static void lsr_translate_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val,
 		if (coded_type==9) {
 			GF_Matrix2D *mat;
 			SVG_Point *pt = (SVG_Point *)val->value;
+			if (!pt) {
+				lsr->last_error = GF_BAD_PARAM;
+				return;
+			}
 			GF_SAFEALLOC(mat, GF_Matrix2D);
 			if (mat) {
 				gf_mx2d_init(*mat);
