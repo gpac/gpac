@@ -3643,20 +3643,17 @@ static Bool fs_check_filter_is_source(GF_FilterSession *fsess, const char *fname
 		f_reg = NULL;
 	}
 	if (!f_reg) return GF_FALSE;
-	i=0;
+
 	u32 nb_in=0, nb_out=0;
-	while (1) {
+	for (i=0; i<f_reg->nb_caps; i++) {
 		const GF_FilterCapability *cap = &f_reg->caps[i];
-		if (!cap->code) break;
 		if (!cap->flags) {
 			if (!nb_in && nb_out) return GF_TRUE;
 			nb_in = nb_out = 0;
-			i++;
 			continue;
 		}
 		if (cap->flags & GF_CAPFLAG_INPUT) nb_in++;
 		if (cap->flags & GF_CAPFLAG_OUTPUT) nb_out++;
-		i++;
 	}
 	if (!nb_in && nb_out) return GF_TRUE;
 	return GF_FALSE;
