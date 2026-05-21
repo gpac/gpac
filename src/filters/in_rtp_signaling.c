@@ -63,10 +63,11 @@ static void rtpin_rtsp_queue_command(GF_RTPInRTSP *sess, GF_RTPInStream *stream,
 			com->user_flags = 1;
 		}
 	}
-	if (stream && (stream->flags & RTP_AUTH_RESETUP))
+	if (stream && (stream->flags & RTP_AUTH_RESETUP)) {
 		gf_list_insert(sess->rtsp_commands, com, 0);
-	else
+	} else {
 		gf_list_add(sess->rtsp_commands, com);
+	}
 }
 
 
@@ -450,7 +451,7 @@ void rtpin_rtsp_describe_send(GF_RTPInRTSP *sess, char *esd_url, GF_FilterPid *o
 			trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
 			gf_list_add(com->Transports, trans);
 		}
-		
+
 		/*hardcoded channel*/
 		stream = rtpin_stream_new_standalone(sess->rtpin, sess->satip_server, 0, GF_TRUE);
 		if (!stream) {

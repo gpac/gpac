@@ -1182,7 +1182,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 	if (value[0]=='$') {
 		if (!strnicmp(value, "$GSHARE", 7)) {
 			if (gf_opts_default_shared_directory(szPath)) {
-				strcat(szPath, value+7);
+				strncat(szPath, value+7, sizeof(szPath)-strlen(szPath)-1);
 				value = szPath;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));

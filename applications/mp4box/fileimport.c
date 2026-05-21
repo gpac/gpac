@@ -2051,6 +2051,8 @@ reparse_opts:
 						ac3c->atmos_ec3_ext = 1;
 						ac3c->complexity_index_type = dlb_mode;
 					}
+
+					gf_isom_sample_del(&samp);
 #endif
 				}
 				gf_isom_ac3_config_update(dest, track, 1, ac3c);

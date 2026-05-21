@@ -6215,6 +6215,10 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 						/* uint(privateDataIdentifierIndexBits) = */
 						GF_LSR_READ_INT(lsr, flag, privateDataIdentifierIndexBits, "privateDataIdentifierIndex");
 					}
+					if (!gf_bs_available(lsr->bs)) {
+						lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+						break;
+					}
 					lsr_read_byte_align_string(lsr, NULL, "tag");
 				}
 			}

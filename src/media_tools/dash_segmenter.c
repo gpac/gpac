@@ -91,7 +91,7 @@ struct __gf_dash_segmenter
 
 	Bool mvex_after_traks;
 	u32 sdtp_in_traf;
-	
+
 	//some HLS options
 	Bool hls_clock;
 
@@ -1134,7 +1134,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		if (!di->filter_chain) {
-			//assign this source 
+			//assign this source
 			gf_filter_set_source(dasher->output, src, source_id);
 			continue;
 		}
@@ -1292,4 +1292,3 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	}
 	return GF_OK;
 }
-

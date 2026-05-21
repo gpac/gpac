@@ -1321,7 +1321,7 @@ int main( void ) {
 }
 EOF
 has_strlcpy="no"
-if docc $LDFLAGS ; then
+if docc  -fno-builtin $LDFLAGS ; then
     has_strlcpy="yes"
 fi
 
