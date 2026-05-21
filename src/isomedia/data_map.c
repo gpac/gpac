@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -261,11 +261,17 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 		}
 		//else this is a URL (read mode only)
 	} else {
+		const char *location = ent->location;
+		const char *parent_path = mdia->mediaTrack->moov->mov->fileName;
 #ifndef GPAC_DISABLE_ISOM_WRITE
-		e = gf_isom_datamap_new(ent->location, mdia->mediaTrack->moov->mov->fileName ? mdia->mediaTrack->moov->mov->fileName : mdia->mediaTrack->moov->mov->finalName, GF_ISOM_DATA_MAP_READ, & mdia->information->dataHandler);
-#else
-		e = gf_isom_datamap_new(ent->location, mdia->mediaTrack->moov->mov->fileName, GF_ISOM_DATA_MAP_READ, & mdia->information->dataHandler);
+		if (!parent_path) parent_path = mdia->mediaTrack->moov->mov->finalName;
 #endif
+		if (mdia->mediaTrack->moov->mov->override_dref_url) {
+			location = mdia->mediaTrack->moov->mov->override_dref_url;
+			parent_path = NULL;
+		}
+		
+		e = gf_isom_datamap_new(location, parent_path, GF_ISOM_DATA_MAP_READ, & mdia->information->dataHandler);
 		if (e) return (e==GF_URL_ERROR) ? GF_ISOM_UNKNOWN_DATA_REF : e;
 	}
 	//OK, set the data entry index

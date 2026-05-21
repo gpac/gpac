@@ -4413,6 +4413,8 @@ struct __tag_isom {
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;
 
+	char *override_dref_url;
+	
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;

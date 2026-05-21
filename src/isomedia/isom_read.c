@@ -6748,4 +6748,14 @@ GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_isom_override_dref_url(GF_ISOFile *the_file, const char *dref_url)
+{
+	if (!the_file) return GF_BAD_PARAM;
+	if (the_file->override_dref_url) gf_free(the_file->override_dref_url);
+	the_file->override_dref_url = dref_url ? gf_strdup(dref_url) : NULL;
+	if (dref_url && !the_file->override_dref_url) return GF_OUT_OF_MEM;
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM*/

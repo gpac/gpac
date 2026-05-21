@@ -874,6 +874,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_highest_track_in_scalable_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_refresh_fragmented) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_override_dref_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timescale) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_duration) )
