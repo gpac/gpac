@@ -295,6 +295,8 @@ attribute readonly DOMString codec;
 attribute DOMString iname;
 /*! set to true if filter accepts user events*/
 attribute boolean event_target;
+/*! time in microseconds spent executing the last task*/
+attribute readonly unsigned long last_task_time;
 
 /*! set to max timestamp of last packet sent by the filter, or null if not available*/
 attribute Fraction last_ts_sent;

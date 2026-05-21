@@ -969,7 +969,8 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		task_fun(&atask);
 		filter = atask.filter;
 		if (filter) {
-			filter->time_process += gf_sys_clock_high_res() - task_time;
+			filter->last_task_time = (u32) (gf_sys_clock_high_res() - task_time);
+			filter->time_process += filter->last_task_time;
 			if (filter->scheduled_for_next_task == GF_FILTER_DIRECT_SCHEDULED)
 				filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 			filter->nb_tasks_done++;
@@ -2432,6 +2433,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (current_filter) {
 			Bool last_task = GF_FALSE;
 			current_filter->nb_tasks_done++;
+			current_filter->last_task_time = task_time;
 			current_filter->time_process += task_time;
 			consecutive_filter_tasks++;
 

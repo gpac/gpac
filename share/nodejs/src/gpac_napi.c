@@ -2662,6 +2662,7 @@ napi_value filter_get_statistics(napi_env env, napi_callback_info info)
 
 	NAPI_CALL(napi_set_named_property(env, res, "last_ts_sent", frac64_to_napi(env, &stats.last_ts_sent)) );
 	NAPI_CALL(napi_set_named_property(env, res, "last_ts_drop", frac64_to_napi(env, &stats.last_ts_drop)) );
+	SET_U32(last_task_time)
 	return res;
 }
 
