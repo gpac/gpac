@@ -283,7 +283,8 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 					nPos += 1;
 					/*nPos = */gf_token_get(buf, nPos, "", param_val, 1000);
 				} else {
-					strcpy(param_name, buf);
+					strncpy(param_name, buf, sizeof(param_name)-1);
+					param_name[sizeof(param_name)-1]=0;
 				}
 				if (!stricmp(param_name, "url")) info->url = gf_strdup(param_val);
 				else if (!stricmp(param_name, "seq")) sscanf(param_val, "%u", &info->seq);

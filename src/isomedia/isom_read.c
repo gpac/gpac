@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3163,6 +3163,7 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 	for (i=0; i<count; i++) {
 		GF_TrackBox *tk = gf_list_get(movie->moov->trackList, i);
 		tk->first_traf_merged = GF_FALSE;
+		if (!tk->Media->information->sampleTable->TimeToSample) continue;
 		tk->Media->information->sampleTable->TimeToSample->cumulated_start_dts = 0;
 	}
 #endif
@@ -5009,6 +5010,7 @@ void gf_isom_reset_sample_count(GF_ISOFile *movie)
 	if (!movie) return;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
+		if (!trak->Media->information->sampleTable->SampleSize) continue;
 		trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
 		trak->sample_count_at_seg_start = 0;
 	}
@@ -6744,6 +6746,16 @@ GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 
 		*nb_refs = ent->nb_refs;
 		*refs = ent->sample_refs;
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_override_dref_url(GF_ISOFile *the_file, const char *dref_url)
+{
+	if (!the_file) return GF_BAD_PARAM;
+	if (the_file->override_dref_url) gf_free(the_file->override_dref_url);
+	the_file->override_dref_url = dref_url ? gf_strdup(dref_url) : NULL;
+	if (dref_url && !the_file->override_dref_url) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM*/

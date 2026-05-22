@@ -4962,58 +4962,59 @@ static void jsfilter_finalize(GF_Filter *filter)
 {
 	u32 i, count;
 	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
-	if (!jsf->ctx) return;
+	if (jsf->ctx) {
 
-	gf_js_lock(jsf->ctx, GF_TRUE);
+		gf_js_lock(jsf->ctx, GF_TRUE);
 
-	//reset references but do not destroy PIDs yet
-	count = gf_list_count(jsf->pids);
-	for (i=0; i<count; i++) {
-		GF_JSPidCtx *pctx = gf_list_get(jsf->pids, i);
-		JS_FreeValue(jsf->ctx, pctx->jsobj);
-		if (pctx->shared_pck) {
-			while (gf_list_count(pctx->shared_pck)) {
-				GF_JSPckCtx *pckc = gf_list_pop_back(pctx->shared_pck);
-				JS_FreeValue(jsf->ctx, pckc->ref_val);
-				pckc->ref_val = JS_UNDEFINED;
-				jsf_pck_detach_ab(jsf->ctx, pckc);
+		//reset references but do not destroy PIDs yet
+		count = gf_list_count(jsf->pids);
+		for (i=0; i<count; i++) {
+			GF_JSPidCtx *pctx = gf_list_get(jsf->pids, i);
+			JS_FreeValue(jsf->ctx, pctx->jsobj);
+			if (pctx->shared_pck) {
+				while (gf_list_count(pctx->shared_pck)) {
+					GF_JSPckCtx *pckc = gf_list_pop_back(pctx->shared_pck);
+					JS_FreeValue(jsf->ctx, pckc->ref_val);
+					pckc->ref_val = JS_UNDEFINED;
+					jsf_pck_detach_ab(jsf->ctx, pckc);
 
-				//do not free here since pck->jsobj may already have been GCed/destroyed
+					//do not free here since pck->jsobj may already have been GCed/destroyed
+				}
 			}
 		}
-	}
 
-	for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {
-		JS_FreeValue(jsf->ctx, jsf->funcs[i]);
-	}
-
-	JS_SetOpaque(jsf->filter_obj, NULL);
-
-	if (jsf->is_custom)
-		JS_FreeValue(jsf->ctx, jsf->filter_obj);
-
-	gf_js_lock(jsf->ctx, GF_FALSE);
-
-	if (jsf->unload_session_api)
-		gf_fs_unload_script(filter->session, jsf->ctx);
-
-	if (!jsf->is_custom) {
-		//we created the context, detach all other filters jsvals
-		gf_mx_p(jsf->filter->session->filters_mx);
-		count = gf_list_count(jsf->filter->session->filters);
-		for (i=0; i<count; i++) {
-			GF_Filter *a_f = gf_list_get(jsf->filter->session->filters, i);
-			if (a_f == jsf->filter) continue;
-			jsfs_on_filter_destroyed(a_f);
+		for (i=0; i<JSF_EVT_LAST_DEFINED; i++) {
+			JS_FreeValue(jsf->ctx, jsf->funcs[i]);
 		}
-		if (!JS_IsUndefined(jsf->filter->jsval)) {
-			JS_FreeValue(jsf->ctx, jsf->filter->jsval);
-			jsf->filter->jsval = JS_UNDEFINED;
+
+		JS_SetOpaque(jsf->filter_obj, NULL);
+
+		if (jsf->is_custom)
+			JS_FreeValue(jsf->ctx, jsf->filter_obj);
+
+		gf_js_lock(jsf->ctx, GF_FALSE);
+
+		if (jsf->unload_session_api)
+			gf_fs_unload_script(filter->session, jsf->ctx);
+
+		if (!jsf->is_custom) {
+			//we created the context, detach all other filters jsvals
+			gf_mx_p(jsf->filter->session->filters_mx);
+			count = gf_list_count(jsf->filter->session->filters);
+			for (i=0; i<count; i++) {
+				GF_Filter *a_f = gf_list_get(jsf->filter->session->filters, i);
+				if (a_f == jsf->filter) continue;
+				jsfs_on_filter_destroyed(a_f);
+			}
+			if (!JS_IsUndefined(jsf->filter->jsval)) {
+				JS_FreeValue(jsf->ctx, jsf->filter->jsval);
+				jsf->filter->jsval = JS_UNDEFINED;
+			}
+			gf_mx_v(jsf->filter->session->filters_mx);
+			gf_js_delete_context(jsf->ctx);
+		} else {
+			gf_js_call_gc(jsf->ctx);
 		}
-		gf_mx_v(jsf->filter->session->filters_mx);
-		gf_js_delete_context(jsf->ctx);
-	} else {
-		gf_js_call_gc(jsf->ctx);
 	}
 
 	while (gf_list_count(jsf->pids)) {

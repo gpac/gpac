@@ -385,7 +385,10 @@ static GF_Err BD_DecGlobalQuantizer(GF_BifsDecoder * codec, GF_BitStream *bs)
 	codec->ActiveQP = NULL;
 
 	if (!node || (gf_node_get_tag(node) != TAG_MPEG4_QuantizationParameter)) {
-		if (node) gf_node_unregister(node, NULL);
+		if (node) {
+			gf_node_register(node, NULL);
+			gf_node_unregister(node, NULL);
+		}
 		return codec->LastError;
 	}
 
@@ -770,7 +773,7 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	u32 NodeID;
 	GF_Node *node, *new_node;
-	GF_Err e;
+	GF_Err e = GF_OK;
 
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	/*this is delete / new on a DEF node: replace ALL instances*/
@@ -781,7 +784,9 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	new_node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 	if (!new_node && codec->LastError) return codec->LastError;
 
-	e = gf_node_replace(node, new_node, GF_FALSE);
+	if (node != new_node)
+		e = gf_node_replace(node, new_node, GF_FALSE);
+
 	return e;
 }
 
@@ -866,7 +871,6 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-
 	/*if MFNode remove the child and parse new node*/
 	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		/*get the new node*/
@@ -882,6 +886,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		/*replace prev node*/
 		e = gf_node_replace_child(node, (GF_ChildNodeItem**) field.far_ptr, pos, new_node);
 		if (!e) gf_bifs_check_field_change(node, &field);
+		else gf_node_unregister(new_node, node);
 	}
 	/*erase the field item*/
 	else {
@@ -1128,7 +1133,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			//a falty one
 			GF_List *old_cb = codec->command_buffers;
 			codec->command_buffers = gf_list_new();
-			
+
 			/*parse sub-proto list - subprotos are ALWAYS registered with parent proto graph*/
 			e = gf_bifs_dec_proto_list(codec, bs, NULL);
 			if (e) {
@@ -1241,9 +1246,9 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				/*and store*/
 				if (QP_Type) {
 					e = gf_bifs_proto_field_set_aq_info(proto_field, QP_Type, hasMinMax, qpsftype, qp_min_value, qp_max_value, NumBits);
-					gf_sg_vrml_field_pointer_del(qp_min_value, qpsftype);
-					gf_sg_vrml_field_pointer_del(qp_max_value, qpsftype);
 				}
+				if (qp_min_value) gf_sg_vrml_field_pointer_del(qp_min_value, qpsftype);
+				if (qp_max_value) gf_sg_vrml_field_pointer_del(qp_max_value, qpsftype);
 			}
 
 			/*anim - not supported yet*/

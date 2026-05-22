@@ -1117,6 +1117,8 @@ void gf_log_pop_extra(const GF_LogExtra *log);
 */
 void gf_log_reset_extras();
 
+#define GF_DBG(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+
 /*!	@} */
 
 /*!

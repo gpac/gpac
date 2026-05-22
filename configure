@@ -1174,6 +1174,11 @@ else
         CFLAGS="$CFLAGS -fstack-protector-strong"
     fi
 fi
+
+if docc -fwrapv ; then
+    CFLAGS="$CFLAGS -fwrapv"
+fi
+
 CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
@@ -1316,7 +1321,7 @@ int main( void ) {
 }
 EOF
 has_strlcpy="no"
-if docc $LDFLAGS ; then
+if docc  -fno-builtin $LDFLAGS ; then
     has_strlcpy="yes"
 fi
 

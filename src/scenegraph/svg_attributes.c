@@ -6109,14 +6109,16 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		char *res;
 		SVG_String *s_a = (SVG_String *)a->far_ptr;
 		SVG_String *s_b = (SVG_String *)b->far_ptr;
-		u32 len_a = (u32) strlen(*s_a);
-		u32 len_b = (u32) strlen(*s_b);
+		u32 len_a = *s_a ? (u32) strlen(*s_a) : 0;
+		u32 len_b = *s_b ? (u32) strlen(*s_b) : 0;
 		len_a = FIX2INT(alpha * len_a);
 		len_b = FIX2INT(beta * len_b);
 		len = len_a + len_b + 1;
 		res = (char*)gf_malloc(sizeof(char) * len);
-		memcpy(res, *s_a, len_a);
-		memcpy(res+len_a, *s_b, len_b);
+		if (len_a)
+			memcpy(res, *s_a, len_a);
+		if (len_b)
+			memcpy(res+len_a, *s_b, len_b);
 		res[len-1] = 0;
 		s_a = (SVG_String*)c->far_ptr;
 		if (*s_a) gf_free(*s_a);

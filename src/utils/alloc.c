@@ -985,6 +985,9 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 GF_EXPORT
 size_t gf_strlcpy(char * dst, const char * src, size_t dsize)
 {
+#ifdef GPAC_HAS_STRLCPY
+	return strlcpy(dst, src, dsize);
+#else
 	const char *osrc = src;
 	size_t nleft = dsize;
 
@@ -1005,4 +1008,5 @@ size_t gf_strlcpy(char * dst, const char * src, size_t dsize)
 	}
 
 	return(src - osrc - 1);	/* count does not include NUL */
+#endif
 }

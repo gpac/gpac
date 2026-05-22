@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -65,6 +65,7 @@ u32 gf_isom_solve_uuid_box(u8 *UUID)
 {
 	u32 i;
 	char strUUID[33], strChar[3];
+	if (!UUID) return 0;
 	strUUID[0] = 0;
 	strUUID[32] = 0;
 	for (i=0; i<16; i++) {

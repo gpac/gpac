@@ -942,17 +942,21 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		replace_proto = 1;
 	}
 #endif
-
+	if (!node->sgprivate->parents && replace_root) {
+		gf_node_register(new_node, NULL);
+	}
 	while (node->sgprivate->parents) {
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
 		GF_Node *par = node->sgprivate->parents->node;
 
 #ifndef GPAC_DISABLE_SVG
-		if (type)
+		if (type) {
 			ReplaceIRINode(par, node, new_node);
-		else
+		}
+		else {
 #endif
 			ReplaceDEFNode(par, node, new_node, updateOrderedGroup);
+		}
 
 		if (new_node) gf_node_register(new_node, par);
 		gf_node_unregister(node, par);
@@ -2371,6 +2375,9 @@ GF_EXPORT
 GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
 	GF_ChildNodeItem *child, *prev;
+
+	if (!container || !*container) return GF_BAD_PARAM;
+
 #ifndef GPAC_DISABLE_VRML
 	u32 tag;
 #endif

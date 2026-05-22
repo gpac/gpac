@@ -276,7 +276,7 @@ typedef struct
 	GF_Fraction dur;
 	u32 pack3gp;
 	GF_MP4MuxCompositionOffsetMode ctmode;
-	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband, rsot;
+	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband, rsot, auto_reorder;
 	GF_MP4MuxInbandParamSetMode xps_inband;
 	u32 moovpad;
 	u32 block_size;
@@ -661,55 +661,6 @@ static void mp4_mux_write_track_refs(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_REM);
 		}
 	}
-}
-
-static void mp4mux_track_reorder(void *udta, u32 old_track_num, u32 new_track_num)
-{
-	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) udta;
-	u32 i, count;
-
-	if (ctx->chap_track_num==old_track_num) {
-		ctx->chap_track_num = new_track_num;
-		return;
-	}
-	count = gf_list_count(ctx->tracks);
-	for (i=0; i<count; i++) {
-		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-		if (!tkw->track_id) continue;
-		if (tkw->track_num==old_track_num) {
-			tkw->track_num = new_track_num;
-			//prevent any further changes, trackID is restored in mp4mux_reorder_tracks
-			tkw->track_id = 0;
-			return;
-		}
-	}
-}
-
-static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
-{
-	u32 i, count, prev_num, prev_pos;
-	GF_List *new_tracks = gf_list_new();
-	prev_num = prev_pos = 0;
-	count = gf_list_count(ctx->tracks);
-	for (i=0; i<count; i++) {
-		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-		if (!tkw->track_id)
-			tkw->track_id = gf_isom_get_track_id(ctx->file, tkw->track_num);
-
-		if (tkw->track_num<prev_num) {
-			gf_list_insert(new_tracks, tkw, prev_pos);
-		} else {
-			gf_list_add(new_tracks, tkw);
-		}
-		prev_pos = gf_list_count(new_tracks) - 1;
-		prev_num = tkw->track_num;
-	}
-	if (gf_list_count(new_tracks)!=count) {
-		gf_list_del(new_tracks);
-		return;
-	}
-	gf_list_del(ctx->tracks);
-	ctx->tracks = new_tracks;
 }
 
 static void mp4mx_set_track_group(GF_MP4MuxCtx *ctx, TrackWriter *tkw, char *name, const GF_PropertyValue *p)
@@ -1720,8 +1671,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			gf_isom_set_track_magic(ctx->file, tkw->track_num, magic);
 		}
 		if (tk_idx) {
-			gf_isom_set_track_index(ctx->file, tkw->track_num, tk_idx, mp4mux_track_reorder, ctx);
-			mp4mux_reorder_tracks(ctx);
+			gf_isom_set_track_index(ctx->file, tkw->track_num, tk_idx);
 		}
 
 		//by default use cttsv1 (negative ctts)
@@ -3812,7 +3762,9 @@ sample_entry_done:
 
 					// Set the value of the compatible_brands field to dby1
 					// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.6
-					gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
+					if (!gf_sys_old_arch_compat()) {
+						gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_DBY1, GF_TRUE);
+					}
 
 					if (!dvcc->bl_present_flag) {
 						u32 ref_id = 0;
@@ -3947,7 +3899,7 @@ sample_entry_done:
 				ctx->chap_track_num = gf_isom_new_track(ctx->file, 0xFFFE, GF_ISOM_MEDIA_TEXT, 1000);
 				gf_isom_set_track_flags (ctx->file, ctx->chap_track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 				//move chapter track last
-				gf_isom_set_track_index(ctx->file, ctx->chap_track_num, 0xFFFE, mp4mux_track_reorder, ctx);
+				gf_isom_set_track_index(ctx->file, ctx->chap_track_num, 0xFFFE);
 				memset(&txtdesc, 0, sizeof(GF_TextSampleDescriptor));
 				txtdesc.font_count = 1;
 				txtdesc.fonts = &frec;
@@ -8229,6 +8181,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_FASTSTART);
 		}
 	}
+	if (ctx->auto_reorder)
+		gf_isom_enable_auto_track_reorder(ctx->file, GF_TRUE);
 
 	if (!ctx->moovts)
 		ctx->moovts=600;
@@ -8913,7 +8867,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sfrag_tolerance), "start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	SCTE35_ARG,
-
+	{ OFFS(auto_reorder), "reorder tracks in moov (first video, then audio, then text then other)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

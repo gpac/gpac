@@ -207,6 +207,7 @@ static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		}
 
 		SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
+		if (!ctx->ipid) return GF_TRUE;
 		if (evt->transport_hints.seg_duration.den && evt->transport_hints.seg_duration.num) {
 			ctx->sampdur = evt->transport_hints.seg_duration;
 		}

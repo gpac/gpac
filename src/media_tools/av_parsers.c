@@ -11074,7 +11074,7 @@ Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_
 	(*pos) = AC3_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	bs = gf_bs_new((const char*)(buf + *pos), buflen-*pos, GF_BITSTREAM_READ);
 	ret = gf_eac3_parser_internal(bs, hdr, full_parse);
 	gf_bs_del(bs);
 	return ret;

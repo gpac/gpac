@@ -676,6 +676,7 @@ static const GF_FilterArgs PipeInArgs[] =
 static const GF_FilterCapability PipeInCaps[] =
 {
 	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	{0}
 };
 
 GF_FilterRegister PipeInRegister = {
@@ -750,4 +751,3 @@ const GF_FilterRegister *pin_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_PIN
-

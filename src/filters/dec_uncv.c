@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Telecom ParisTech 2023-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / uncv pixel format translator filter
@@ -179,6 +179,7 @@ static void uncv_del(UNCVConfig *cfg)
 		if (cfg->palette->values) gf_free(cfg->palette->values);
 		gf_free(cfg->palette);
 	}
+	if (cfg->fa_map) gf_free(cfg->fa_map);
 	gf_free(cfg);
 }
 
@@ -397,7 +398,7 @@ uncc_done:
 			for (i=0; i<uncv->fa_height; i++) {
 				u32 j;
 				for (j=0; j<uncv->fa_width; j++) {
-					uncv->fa_map[j + i*uncv->fa_height] = gf_bs_read_u32(bs);
+					uncv->fa_map[j + i*uncv->fa_width] = gf_bs_read_u32(bs);
 					gf_bs_read_float(bs);
 				}
 			}
@@ -481,7 +482,7 @@ uncc_done:
 		for (i=0; i<nb_maps; i++) {
 			if (uncv->fa_map[i] >= uncv->nb_comp_defs) {
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid component index %d in palette\n", uncv->comps[i].idx))
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid component index %d in pattern\n", uncv->fa_map[i]))
 			}
 		}
 	}
@@ -604,14 +605,17 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 	if (has_fa) return 0;
 	if (cfg->row_align_size) return 0;
 	if (cfg->tile_align_size) return 0;
-	if (cfg->pixel_size) return 0;
 	if (cfg->num_tile_cols>1) return 0;
 	if (cfg->num_tile_rows>1) return 0;
 	if (cfg->components_little_endian) return 0;
 
 	if (has_mono) {
-		if ((cfg->nb_comps==1) && (c[0].bits==7)) return GF_PIXEL_GREYSCALE;
-		if (has_alpha && (cfg->nb_comps==2) && (c[0].bits==7) && (c[1].bits==7)) {
+		if ((cfg->nb_comps==1) && (c[0].bits==8)) {
+			if (cfg->pixel_size && cfg->pixel_size!=1) return 0;
+			return GF_PIXEL_GREYSCALE;
+		}
+		if (has_alpha && (cfg->nb_comps==2) && (c[0].bits==8) && (c[1].bits==8)) {
+			if (cfg->pixel_size && cfg->pixel_size!=2) return 0;
 			if (c[0].type==0) return GF_PIXEL_GREYALPHA;
 			return GF_PIXEL_ALPHAGREY;
 		}
@@ -623,6 +627,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (!cfg->block_size || (cfg->block_size==3))
 			&& (cfg->interleave==INTERLEAVE_PIXEL) && !cfg->block_little_endian && !cfg->block_reversed
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=3) return 0;
 			return GF_PIXEL_RGB;
 		}
 		if ((c[0].type==6) && (c[0].bits==8) && (c[1].type==5) && (c[1].bits==8) && (c[2].type==4) && (c[2].bits==8)
@@ -630,6 +635,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (cfg->interleave==INTERLEAVE_PIXEL) && !cfg->block_little_endian
 			&& !cfg->block_reversed && !cfg->sampling
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=3) return 0;
 			return GF_PIXEL_BGR;
 		}
 		if ((c[0].type==4) && (c[0].bits==5) && (c[1].type==5) && (c[1].bits==6) && (c[2].type==6) && (c[2].bits==5)
@@ -637,6 +643,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (cfg->interleave==INTERLEAVE_PIXEL) && !cfg->block_little_endian
 			&& !cfg->block_reversed && !cfg->sampling
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=2) return 0;
 			return GF_PIXEL_RGB_565;
 		}
 		if ((c[0].type==4) && (c[0].bits==5) && (c[1].type==5) && (c[1].bits==5) && (c[2].type==6) && (c[2].bits==5)
@@ -644,12 +651,14 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& !cfg->block_little_endian && !cfg->block_pad_lsb
 			&& !cfg->block_reversed && !cfg->sampling
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=2) return 0;
 			return GF_PIXEL_RGB_555;
 		}
 
 		if ((c[0].type==1) && (c[0].bits==8) && (c[1].type==2) && (c[1].bits==8) && (c[2].type==3) && (c[2].bits==8)
 			&& !cfg->block_size
 		) {
+			if (cfg->pixel_size) return 0;
 			if (cfg->interleave==INTERLEAVE_COMPONENT) {
 				if (cfg->sampling==SAMPLING_NONE) return GF_PIXEL_YUV444;
 				if (cfg->sampling==SAMPLING_422) return GF_PIXEL_YUV422;
@@ -662,6 +671,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 		if ((c[0].type==1) && (c[0].bits==8) && (c[1].type==3) && (c[1].bits==8) && (c[2].type==2) && (c[2].bits==8)
 			&& !cfg->block_size
 		) {
+			if (cfg->pixel_size) return 0;
 			if (cfg->interleave==INTERLEAVE_COMPONENT) {
 				if (cfg->sampling==SAMPLING_420) return GF_PIXEL_YVU;
 			}
@@ -679,6 +689,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& !cfg->block_size
 			&& (cfg->interleave==INTERLEAVE_PIXEL)
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=2) return 0;
 			return GF_PIXEL_RGB_565;
 		}
 
@@ -687,6 +698,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (c[0].type==1) && (c[0].bits==8) && (c[1].type==2) && (c[1].bits==8)
 			&& (c[2].type==1) && (c[2].bits==8) && (c[3].type==3) && (c[3].bits==8)
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=4) return 0;
 			return GF_PIXEL_YUYV;
 		}
 		if ((cfg->sampling==SAMPLING_422) && (cfg->interleave==INTERLEAVE_MULTIY)
@@ -694,6 +706,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (c[0].type==2) && (c[0].bits==8) && (c[1].type==1) && (c[1].bits==8)
 			&& (c[2].type==3) && (c[2].bits==8) && (c[3].type==1) && (c[3].bits==8)
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=4) return 0;
 			return GF_PIXEL_UYVY;
 		}
 
@@ -702,6 +715,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (c[0].type==1) && (c[0].bits==8) && (c[1].type==3) && (c[1].bits==8)
 			&& (c[2].type==1) && (c[2].bits==8) && (c[3].type==2) && (c[3].bits==8)
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=4) return 0;
 			return GF_PIXEL_YVYU;
 		}
 		if ((cfg->sampling==SAMPLING_422) && (cfg->interleave==INTERLEAVE_MULTIY)
@@ -709,6 +723,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 			&& (c[0].type==3) && (c[0].bits==8) && (c[1].type==1) && (c[1].bits==8)
 			&& (c[2].type==2) && (c[2].bits==8) && (c[3].type==1) && (c[3].bits==8)
 		) {
+			if (cfg->pixel_size && cfg->pixel_size!=4) return 0;
 			return GF_PIXEL_VYUY;
 		}
 	}
@@ -1416,7 +1431,7 @@ static void uncv_set_pix_val(UNCVDecCtx *ctx, UNCVComponentInfo *comp, u8 val, u
 	} else if (comp->type==11) {
 		x = x % ctx->cfg->fa_width;
 		y = y % ctx->cfg->fa_height;
-		UNCVComponentDefinition *cdef = &ctx->cfg->comp_defs[ctx->cfg->fa_map[x + y*ctx->cfg->fa_height]];
+		UNCVComponentDefinition *cdef = &ctx->cfg->comp_defs[ctx->cfg->fa_map[x + y*ctx->cfg->fa_width]];
 		//only write if R, G or B
 		if ((cdef->type>=4) && (cdef->type<=6)) {
 			u32 c_idx = cdef->type-4;
@@ -1492,17 +1507,17 @@ static void read_pixel_interleave_multiy(UNCVDecCtx *ctx, UNCVConfig *config, u3
 			uncv_pull_val(ctx, config, bsr, &config->comps[i], GF_TRUE, x, y);
 		}
 		load_uv=GF_TRUE;
-	}
 
-	if (config->pixel_size) {
-		gf_bs_align(bsr->bs);
-		psize = (u32) (gf_bs_get_position(bsr->bs) - psize);
-		if (psize > config->pixel_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid pixel_size %d, less than total size of components %d\n", config->pixel_size, psize));
-		}
-		while (psize < config->pixel_size) {
-			gf_bs_read_u8(bsr->bs);
-			psize++;
+		if (config->pixel_size) {
+			gf_bs_align(bsr->bs);
+			psize = (u32) (gf_bs_get_position(bsr->bs) - psize);
+			if (psize > config->pixel_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid pixel_size %d, less than total size of components %d\n", config->pixel_size, psize));
+			}
+			while (psize < config->pixel_size) {
+				gf_bs_read_u8(bsr->bs);
+				psize++;
+			}
 		}
 	}
 

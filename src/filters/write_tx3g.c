@@ -770,5 +770,3 @@ const GF_FilterRegister *tx3g2ttml_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#if !defined(GPAC_DISABLE_ISOM_DUMP) && !defined(GPAC_DISABLE_ISOM)
-
-

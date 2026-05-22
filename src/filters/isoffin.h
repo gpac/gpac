@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -75,6 +75,7 @@ typedef struct
 	Bool norw;
 	ISOMReaderParamSetsExtractMode xps_check;
 	char *catseg;
+	char *drefu;
 	Bool sigfrag, sigfo;
 	Bool nocrypt, strtxt, lightp;
 	u32 nodata;

@@ -2306,6 +2306,7 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 	if (evt->base.type==GF_FEVT_TRANSPORT_HINTS) {
+		if (!ctx->in_pid) return GF_FALSE;
 		if (evt->transport_hints.flags & GF_TRANSPORT_HINTS_SAW_ENCODER) {
 			// this is a pass-through event, ignore it
 			return GF_FALSE;

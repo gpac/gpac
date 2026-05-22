@@ -629,7 +629,8 @@ class FilterStats(Structure):
 		("stream_type", c_int),
 		("codecid", c_int),
 		("last_ts_sent", Fraction64),
-		("last_ts_drop", Fraction64)
+		("last_ts_drop", Fraction64),
+		("last_task_time", c_uint)
 	]
     ## \endcond
 

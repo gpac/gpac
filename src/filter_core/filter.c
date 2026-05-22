@@ -1182,7 +1182,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 	if (value[0]=='$') {
 		if (!strnicmp(value, "$GSHARE", 7)) {
 			if (gf_opts_default_shared_directory(szPath)) {
-				strcat(szPath, value+7);
+				strncat(szPath, value+7, sizeof(szPath)-strlen(szPath)-1);
 				value = szPath;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
@@ -2047,7 +2047,7 @@ skip_date:
 			}
 			//little optim here: if no value provided, check if argument name is exactly one of the possible enums
 			//only do this for explicit filters, not for inheritance
-			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
+			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg) && !value) {
 				const char *enums = a->min_max_enum;
 				while (enums) {
 					if (!strncmp(enums, szArg, len)) {
