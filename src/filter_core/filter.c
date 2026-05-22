@@ -2047,7 +2047,7 @@ skip_date:
 			}
 			//little optim here: if no value provided, check if argument name is exactly one of the possible enums
 			//only do this for explicit filters, not for inheritance
-			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
+			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg) && !value) {
 				const char *enums = a->min_max_enum;
 				while (enums) {
 					if (!strncmp(enums, szArg, len)) {
