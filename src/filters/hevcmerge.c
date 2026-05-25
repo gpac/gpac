@@ -1442,6 +1442,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 	u32 pos, nal_length, data_size, i;
 	s32 current_poc=0;
 	u8 temporal_id, layer_id, nal_unit_type;
+	u8 au_vcl_nal_type;
 	u32 nb_eos, nb_ipid;
 	Bool found_sei_prefix=GF_FALSE, found_sei_suffix=GF_FALSE;
 	u64 min_dts = GF_FILTER_NO_TS;
@@ -1483,6 +1484,48 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_EOS;
 	}
+
+	// Pre-scan: determine the unified VCL NAL type for this AU across all inputs.
+	// HEVC spec requires all VCL NAL units in an AU to have the same nal_unit_type.
+	// When merging TRAIL_N (0) and TRAIL_R (1) slices from different sources, use
+	// TRAIL_R if any source has it — never downgrade a reference frame to non-reference.
+	au_vcl_nal_type = 0xFF; // unset sentinel
+	for (i = 0; i < nb_ipid; i++) {
+		u64 dts;
+		u32 scan_size, scan_pos, k;
+		const char *scan_data;
+		GF_FilterPacket *pck_src;
+		HEVCTilePidCtx *tile_pid = gf_list_get(ctx->ordered_pids, i);
+		if (!tile_pid || tile_pid->in_error) continue;
+		pck_src = gf_filter_pid_get_packet(tile_pid->pid);
+		if (!pck_src) continue;
+		dts = gf_filter_pck_get_dts(pck_src);
+		if (dts * min_dts_timescale != min_dts * tile_pid->timescale) continue;
+		scan_data = (const char *)gf_filter_pck_get_data(pck_src, &scan_size);
+		if (!scan_data) continue;
+		scan_pos = 0;
+		while (scan_pos + tile_pid->nalu_size_length <= scan_size) {
+			u32 nlen = 0;
+			u8 ntype;
+			for (k = 0; k < tile_pid->nalu_size_length; k++)
+				nlen = (nlen << 8) | ((u8)scan_data[scan_pos + k]);
+			scan_pos += tile_pid->nalu_size_length;
+			if (scan_pos >= scan_size) break;
+			ntype = ((u8)scan_data[scan_pos] >> 1) & 0x3F;
+			if (ntype <= GF_HEVC_NALU_SLICE_TRAIL_R) {
+				// first TRAIL VCL NAL found in this pid: OR with accumulated type
+				if (au_vcl_nal_type == 0xFF) au_vcl_nal_type = ntype;
+				else au_vcl_nal_type |= ntype; // OR: TRAIL_R(1) wins over TRAIL_N(0)
+				break;
+			} else if (ntype < 32) {
+				// non-TRAIL VCL (IDR, CRA, etc.) — can't normalize, just record first seen
+				if (au_vcl_nal_type == 0xFF) au_vcl_nal_type = ntype;
+				break;
+			}
+			scan_pos += nlen;
+		}
+	}
+	if (au_vcl_nal_type == 0xFF) au_vcl_nal_type = 0;
 
 	//reassemble based on the ordered list of pids
 	for (i = 0; i < nb_ipid; i++) {
@@ -1538,6 +1581,14 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 
 				nal_pck_size = hevcmerge_rewrite_slice(ctx, tile_pid, data + pos, nal_length);
 				nal_pck = ctx->buffer_nal;
+				// Normalize TRAIL_N/TRAIL_R: all VCL NALs in the merged AU must share
+				// the same nal_unit_type. Patch byte 0 of the rewritten NAL if needed.
+				// NAL header byte 0: [forbidden(1)|nal_unit_type(6)|layer_id_msb(1)]
+				if (nal_unit_type <= GF_HEVC_NALU_SLICE_TRAIL_R
+				    && au_vcl_nal_type <= GF_HEVC_NALU_SLICE_TRAIL_R
+				    && nal_unit_type != au_vcl_nal_type) {
+					ctx->buffer_nal[0] = (ctx->buffer_nal[0] & 0x81) | (au_vcl_nal_type << 1);
+				}
 			}
 			//NON-vcl, copy for SEI or drop (we should not have any SPS/PPS/VPS in the bitstream, they are in the decoder config prop)
 			else {
