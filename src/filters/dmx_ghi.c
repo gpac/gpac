@@ -579,6 +579,8 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		case GF_PROP_CONST_DATA:
 			p.value.data.size = gf_bs_read_u32(bs);
 			if (p.value.data.size > gf_bs_available(bs)) {
+				p.value.data.size = 0;
+				p.value.data.ptr = NULL;
 				gf_bs_mark_overflow(bs, GF_FALSE);
 				break;
 			}
@@ -591,6 +593,12 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		//string list: memory is ALWAYS duplicated
 		case GF_PROP_STRING_LIST:
 			p.value.string_list.nb_items = gf_bs_read_u32(bs);
+			if (p.value.string_list.nb_items > gf_bs_available(bs)) {
+				p.value.string_list.nb_items = 0;
+				p.value.string_list.vals = NULL;
+				gf_bs_mark_overflow(bs, GF_FALSE);
+				break;
+			}
 			p.value.string_list.vals = gf_malloc(sizeof(char*) * p.value.string_list.nb_items);
 			for (pidx=0; pidx<p.value.string_list.nb_items; pidx++) {
 				p.value.string_list.vals[pidx] = gf_bs_read_utf8(bs);
@@ -602,6 +610,12 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		case GF_PROP_SINT_LIST:
 		case GF_PROP_4CC_LIST:
 			p.value.uint_list.nb_items = gf_bs_read_u32(bs);
+			if (sizeof(u32) * p.value.string_list.nb_items > gf_bs_available(bs)) {
+				p.value.uint_list.nb_items = 0;
+				p.value.uint_list.vals = NULL;
+				gf_bs_mark_overflow(bs, GF_FALSE);
+				break;
+			}
 			p.value.uint_list.vals = gf_malloc(sizeof(u32) * p.value.string_list.nb_items);
 			for (pidx=0; pidx<p.value.uint_list.nb_items; pidx++) {
 				p.value.uint_list.vals[pidx] = gf_bs_read_u32(bs);
@@ -609,7 +623,13 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 			break;
 		case GF_PROP_VEC2I_LIST:
 			p.value.v2i_list.nb_items = gf_bs_read_u32(bs);
-			p.value.v2i_list.vals = gf_malloc(sizeof(u32) * p.value.string_list.nb_items);
+			if (sizeof(GF_PropVec2i) * p.value.v2i_list.nb_items > gf_bs_available(bs)) {
+				p.value.v2i_list.nb_items = 0;
+				p.value.v2i_list.vals = NULL;
+				gf_bs_mark_overflow(bs, GF_FALSE);
+				break;
+			}
+			p.value.v2i_list.vals = gf_malloc(sizeof(GF_PropVec2i) * p.value.v2i_list.nb_items);
 			for (pidx=0; pidx<p.value.v2i_list.nb_items; pidx++) {
 				p.value.v2i_list.vals[pidx].x = gf_bs_read_u32(bs);
 				p.value.v2i_list.vals[pidx].y = gf_bs_read_u32(bs);
@@ -1390,4 +1410,3 @@ const GF_FilterRegister *ghidmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_GHIDMX
-

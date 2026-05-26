@@ -4354,7 +4354,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 		//look for conditional statements: "(PROP=VAL)VALUE"
 		while (value && (value[0]=='(')) {
-			Bool pid_excluded, needs_resolve, prop_not_found, prop_matched;
+			Bool pid_excluded, needs_resolve, prop_not_found, prop_matched=GF_FALSE;
 			char prop_dump_buffer[GF_PROP_DUMP_ARG_SIZE];
 
 			char *next_val = NULL;
@@ -9170,7 +9170,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		GF_PropertyValue prop_val_patched;
 		const GF_PropertyValue *prop_val = NULL;
 
-		if (k+1==GF_MAX_PATH) {
+		if (k>=GF_MAX_PATH) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Not enough memory to solve file template %s\n", szTemplate));
 			return GF_OUT_OF_MEM;
 		}
@@ -9362,12 +9362,12 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			sep[0] = '$';
 			szFinalName[k] = '$';
 			k++;
-			while (name[0] && (name[0] != '$')) {
+			while (k<GF_MAX_PATH && name[0] && (name[0] != '$')) {
 				szFinalName[k] = name[0];
 				k++;
 				name++;
 			}
-			szFinalName[k] = '$';
+			szFinalName[MIN(k, GF_MAX_PATH-1)] = '$';
 			k++;
 			name++;
 			//allow $;$ to delimit $$ (may be required with some shells)

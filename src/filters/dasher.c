@@ -3772,7 +3772,9 @@ static void dasher_gather_deps(GF_DasherCtx *ctx, u32 dependency_id, GF_List *mu
 		if (ds->id == dependency_id) {
 			if (ds->tile_base) continue;
 
-			gf_assert(ds->opid);
+			if (!ds->opid || gf_list_find(multi_tracks, ds->opid)>=0)
+				continue;
+
 			gf_list_insert(multi_tracks, ds->opid, 0);
 			if (ds->dep_id) dasher_gather_deps(ctx, ds->dep_id, multi_tracks);
 		}
@@ -10326,7 +10328,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//special case for SAP2: for the first segment, keep probing min CTS as the first frame in decode order (sap2) is not
 			//the first frame in presentation order, we need to adjust the PTO
 			if ((ds->startNumber == ds->seg_number)
-				&& (ds->set->starts_with_sap == GF_FILTER_SAP_2)
+				&& (ds->set && ds->set->starts_with_sap == GF_FILTER_SAP_2)
 				&& gf_timestamp_less(cts, ds->timescale, ctx->min_cts_period.num, ctx->min_cts_period.den)
 			) {
 				ctx->min_cts_period.num = cts;

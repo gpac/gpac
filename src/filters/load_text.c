@@ -1551,7 +1551,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 		u32 vals[6] = {0};
 		char *cur = value;
 		while (cur) {
-			char sep;
+			char sep = 0;
 			char *next_col = strchr(cur, ':');
 			if (!next_col) next_col = strchr(cur, '.');
 			if (next_col) {

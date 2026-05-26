@@ -210,6 +210,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_SSL
 #define GPAC_DISABLE_OGG
 #define GPAC_HAS_STRLCPY
+#define GPAC_HAS_STRLCAT
 #define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_POLL

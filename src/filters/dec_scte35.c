@@ -459,7 +459,7 @@ Bool scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u64 *dur, u32 *spl
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Invalid section length %d\n", section_length));
 		goto exit;
 	}
-	
+
 	/*u8 protocol_version = */gf_bs_read_u8(bs);
 	Bool encrypted_packet = gf_bs_read_int(bs, 1);
 	/*u8 encryption_algorithm = */gf_bs_read_int(bs, 6);
@@ -914,7 +914,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		}
 	}
 
-	GF_Err e;
+	GF_Err e = GF_OK;
 	if (ctx->mode == EVTE) {
 		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
 			//DASH: remember first pck of segment

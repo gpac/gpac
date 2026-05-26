@@ -661,6 +661,7 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 				return;
 			}
 			len_rad = s ? (u32) strlen(s) : 0;
+			if (iri->string) gf_free(iri->string);
 			iri->string = (char*)gf_malloc(sizeof(char)*(len_rad+1+len+1));
 			if (!iri->string) {
 				lsr->last_error = GF_OUT_OF_MEM;
@@ -733,6 +734,7 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 			if (iri.string) {
 				paint->type = SVG_PAINT_URI;
 				paint->iri.type = XMLRI_STRING;
+				if (paint->iri.string) gf_free(paint->iri.string);
 				paint->iri.string = iri.string;
 			} else if (iri.target) {
 				paint->iri.type = XMLRI_ELEMENTID;
@@ -1840,10 +1842,12 @@ static void lsr_read_attribute_name(GF_LASeRCodec *lsr, GF_Node *n)
 
 static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded_type)
 {
+	if (!val) return;
 	//unable to transform, free mem and reset
 	switch (coded_type) {
 	case 0://SVG_string *
-		gf_free(* (SVG_String *)val->value);
+		if ((SVG_String *)val->value)
+			gf_free(* (SVG_String *)val->value);
 		gf_free(val->value);
 		break;
 	case 1://SVG_Number *
@@ -3331,7 +3335,7 @@ static void lsr_read_coord_list(GF_LASeRCodec *lsr, GF_Node *elt, u32 tag, const
 	GF_LSR_READ_INT(lsr, count, 1, name);
 	if (!count) return;
 	count = lsr_read_vluimsbf5(lsr, "nb_coords");
-	if (!count) return;
+	if (!count || !lsr->coord_bits) return;
 
 	lsr->last_error = gf_node_get_attribute_by_tag(elt, tag, GF_TRUE, 0, &info);
 

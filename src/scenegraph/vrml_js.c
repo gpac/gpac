@@ -1737,7 +1737,7 @@ static JSValue vec3f_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 
 static JSValue vec3f_operand(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, u32 op)
 {
-	SFVec3f vec, wvec, *v1, *v2;
+	SFVec3f vec, wvec, *v1, *v2=NULL;
 	Double d=0;
 	JSValue pNew;
 	Fixed v;
@@ -1795,8 +1795,10 @@ static JSValue vec3f_operand(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		SFVec3f_Create(c, pNew, vec.x, vec.y, vec.z);
 		break;
 	case 8:
-		vec = gf_vec_cross(*v1, *v2);
-		SFVec3f_Create(c, pNew, vec.x, vec.y, vec.z);
+		if (v2) {
+			vec = gf_vec_cross(*v1, *v2);
+			SFVec3f_Create(c, pNew, vec.x, vec.y, vec.z);
+		}
 		break;
 	}
 	return pNew;

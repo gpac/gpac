@@ -226,6 +226,7 @@
 #endif /*GPAC_MEMORY_TRACKING*/
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_strlcpy) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_strlcat) )
 
 /* Sound */
 #if !defined(GPAC_DISABLE_COMPOSITOR) &&  !defined(GPAC_DISABLE_RESAMPLE)

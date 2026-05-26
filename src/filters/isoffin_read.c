@@ -151,7 +151,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 	if (read->drefu) {
 		e = gf_isom_override_dref_url(read->mov, read->drefu);
 	}
-	
+
 	//if missing bytes is set, file is incomplete, check if cache is complete
 	if (read->missing_bytes) {
 		read->input_loaded = GF_FALSE;
