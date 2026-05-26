@@ -326,6 +326,9 @@ static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *b
 			if (e) return e;
 			/*then replace*/
 			e = gf_node_replace_child(node, (GF_ChildNodeItem**) field.far_ptr, pos, new_node);
+			if (e) {
+				gf_node_unregister(new_node, node);
+			}
 			count--;
 		}
 		if (!e) gf_bifs_check_field_change(node, &field);
@@ -1297,6 +1300,10 @@ GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_inser
 	GF_Route *r;
 	GF_Node *InNode, *OutNode;
 	u32 RouteID, outField, inField, numBits, ind, node_id;
+
+	if (!gf_bs_available(bs))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	char name[1000];
 
 	RouteID = 0;
