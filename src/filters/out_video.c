@@ -1060,6 +1060,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	nb_vout_inst++;
 
 	vout_set_caption(ctx);
+
 	return GF_OK;
 }
 
@@ -1891,7 +1892,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 					if (gf_filter_reporting_enabled(filter)) {
 						char szStatus[1024];
-						sprintf(szStatus, "buffering %d / %d ms", (u32) (dur/1000), ctx->buffer);
+						sprintf(szStatus, "buffer=%d/%d ms", (u32) (dur/1000), ctx->buffer);
 						gf_filter_update_status(filter, -1, szStatus);
 					}
 					//we don't lock here since we don't access the pointer
@@ -2164,9 +2165,9 @@ draw_frame:
 		} else {
 			ctx->clock_at_first_frame = gf_sys_clock_high_res();
 		}
-		sprintf(szStatus, "%dx%d->%dx%d %s frame TS "LLU"/%d buffer %d / %d ms %02.02f FPS", ctx->width, ctx->height, ctx->display_width, ctx->display_height,
+		sprintf(szStatus, "info=\"%dx%d %s\" time="LLU"/%d buffer=%d/%d ms fps=%02.02f", ctx->display_width, ctx->display_height,
 		 	gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), ctx->buffer, fps);
-		gf_filter_update_status(filter, -1, szStatus);
+		gf_filter_update_status(filter, 0, szStatus);
 	}
 
 	if (ctx->step) {

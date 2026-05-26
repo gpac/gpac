@@ -909,6 +909,15 @@ void gf_fs_del(GF_FilterSession *fsess)
 #endif
 	if (fsess->blacklist) gf_free(fsess->blacklist);
 
+	if (fsess->additionnal_metrics) {
+		while (gf_list_count(fsess->additionnal_metrics)) {
+			GF_FSCustomMetric *m = gf_list_pop_back(fsess->additionnal_metrics);
+			if (m->reg_name) gf_free(m->reg_name);
+			if (m->metric) gf_free(m->metric);
+			gf_free(m);
+		}
+		gf_list_del(fsess->additionnal_metrics);
+	}
 	gf_logs_thread_untag(fsess);
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));

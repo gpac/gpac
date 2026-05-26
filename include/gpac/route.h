@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-MABR) and DVB-MABR demuxer
@@ -379,6 +379,11 @@ u64 gf_route_dmx_get_nb_packets(GF_ROUTEDmx *routedmx);
 \return number of bytes received
  */
 u64 gf_route_dmx_get_recv_bytes(GF_ROUTEDmx *routedmx);
+
+/*! Reset statistics on packets time and sizes
+\param routedmx the ROUTE demultiplexer
+ */
+void gf_route_dmx_reset_stats(GF_ROUTEDmx *routedmx);
 
 /*! Gather only objects with given TSI (for debug purposes)
 \param routedmx the ROUTE demultiplexer

@@ -2441,6 +2441,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_get_last_packet_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_get_nb_packets) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_get_recv_bytes) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_reset_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_set_service_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_get_service_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_debug_tsi) )

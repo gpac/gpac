@@ -2062,12 +2062,12 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 			if (ctx->total_bytes_in) ohead =  ((Double) (total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
 
-			sprintf(szStatus, "done - TS clock % 6d ms bitrate %d kbps - bytes "LLD" in "LLD" out overhead %02.02f%%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
+			sprintf(szStatus, "done mux_clock=%d ms s_rate=%d kbps r_bytes="LLD" s_bytes="LLD" ohead=%02.02f %%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
 			gf_filter_update_status(filter, 10000, szStatus);
 		} else {
 
-			sprintf(szStatus, "sysclock % 6d ms TS clock % 6d ms bitrate % 8d kbps", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000);
-			gf_filter_update_status(filter, -1, szStatus);
+			sprintf(szStatus, "sys_clock=%d ms mux_clock=%d ms s_rate=%d kbps", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000);
+			gf_filter_update_status(filter, 0, szStatus);
 		}
 	}
 
@@ -2169,6 +2169,8 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 		gf_m2ts_get_sys_clock(ctx->mux);
 	}
 #endif
+	gf_filter_add_status_metric(filter, "sys_clock=M2TS System clock;u=ms");
+	gf_filter_add_status_metric(filter, "mux_clock=M2TS Multiplex time;u=ms");
 	return GF_OK;
 }
 

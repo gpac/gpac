@@ -131,6 +131,7 @@ enum
 	JSFS_LAST_PROCESS_ERR,
 	JSFS_LAST_CONNECT_ERR,
 	JSFS_PATH,
+	JSFS_CUSTOM_METRICS
 };
 
 GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val)
@@ -224,6 +225,24 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, gf_fs_get_last_connect_error(fs) );
 	case JSFS_PATH:
 		return JS_NewString(ctx, jsf_get_script_filename(ctx) );
+	case JSFS_CUSTOM_METRICS:
+		{
+			char *custom_metrics = NULL;
+			gf_mx_p(fs->filters_mx);
+			u32 i, count = gf_list_count(fs->additionnal_metrics);
+			for (i=0;i<count; i++) {
+				GF_FSCustomMetric *met = gf_list_get(fs->additionnal_metrics, i);
+				gf_dynstrcat(&custom_metrics, "freg=", NULL);
+				gf_dynstrcat(&custom_metrics, met->reg_name, NULL);
+				gf_dynstrcat(&custom_metrics, met->metric, ";");
+				gf_dynstrcat(&custom_metrics, "\n", NULL);
+			}
+			gf_mx_v(fs->filters_mx);
+			if (!custom_metrics) return JS_NULL;
+			JSValue res = JS_NewString(ctx, custom_metrics );
+			gf_free(custom_metrics);
+			return res;
+		}
 	}
 	return JS_UNDEFINED;
 }
@@ -1963,6 +1982,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("last_process_error", jsfs_prop_get, NULL, JSFS_LAST_PROCESS_ERR),
 	JS_CGETSET_MAGIC_DEF("last_connect_error", jsfs_prop_get, NULL, JSFS_LAST_CONNECT_ERR),
 	JS_CGETSET_MAGIC_DEF("jspath", jsfs_prop_get, NULL, JSFS_PATH),
+	JS_CGETSET_MAGIC_DEF("custom_metrics", jsfs_prop_get, NULL, JSFS_CUSTOM_METRICS),
 
 	JS_CFUNC_DEF("post_task", 0, jsfs_post_task),
 	JS_CFUNC_DEF("abort", 0, jsfs_abort),

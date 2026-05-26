@@ -2388,7 +2388,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 			fprintf(stderr, " (%s)", stats.reg_name);
 		fprintf(stderr, ": ");
 
-		if (stats.status) {
+		if (stats.status && stats.status[0]) {
 			fprintf(stderr, "%s\n", stats.status);
 		} else {
 			if (stats.stream_type)

@@ -2416,6 +2416,43 @@ GF_Err gf_filter_set_rt_udta(GF_Filter *filter, void *udta);
 */
 void *gf_filter_get_rt_udta(GF_Filter *filter);
 
+/*! Adds a private metric used in reporting
+
+ The metric definition is a semi-colon separated key=value list. Spaces are not allowed in keys
+ The first Key/value pair defines the code used and its human readable form.
+ The following keys are also defined, all are optional:
+   * 't': metric type, either num (int, float or fractional a/b), frac (a/b) or str (string). If absent, num is assumed
+   * 'i': free form info about the metric, can use double quotes
+   * 'u': unit of the metric (singular) - defined values are  "kbps",  "fps", "ms", "s", "bytes", "f" (frame), "p" (pixel) , "bool", "pc" (for percent) but any string is accepted
+   * 'm': min value
+   * 'M': max value
+   * 'v': for enum-type, possible codes as a comma-separated list in brackets "values=[A:desc, B:desc, C:desc ]"
+
+ The following internal metrics for status are currently defined:
+  * 'prog' (t=num): fraction in [0,1], indicate progress - if single number, indicates a percentage
+  * 'done' (t=bool, no value and must appear first): same as prog=1/1 - if prog is also set, indicate the progress at the time of cancelation
+  * 'pc' (t=num): explicit percentage, can be used together with prog
+  * 'info' (t=str): custom info, in double quotes if space is present
+  * 'type'' (t=str): stream type, one of V, A, T, M
+  * 'time'' (t=str): time in second
+  * 'r_rate' (t=num, u=kbps): reception rate
+  * 'r_bytes' (t=num): number of bytes received
+  * 'r_pck' (t=num): number of packets received
+  * 's_rate' (t=num, u=kbps): send rate
+  * 's_bytes' (t=num): number of bytes sent
+  * 's_pck' (t=num): number of packets sent
+  * 'ohead' (t=num, u=pc): overhead of mux / packetization / etc, in percent
+  * 'ohead_pc' (t=num): per-packet overhead of mux / packetization / etc in bytes per packet
+  * 'twnd' (t=num, u=ms): time window for stats reporting if any
+  * 'wait' (t=bool, no value, must appear first):  indicate the filter is in a waiting state (usually info gives some details)
+  * 'buffer' (t=frac, u=ms): buffer occupancy cur/max, with cur the current buffer in ms and max the target max buffer in ms
+  * 'fps' (t=num): number of frames per seconds
+
+
+\param filter target filter
+\param metric definition of metric to add
+*/
+void gf_filter_add_status_metric(GF_Filter *filter, const char *metric);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum
@@ -3392,8 +3429,12 @@ Bool gf_filter_is_dynamic(GF_Filter *filter);
 Bool gf_filter_reporting_enabled(GF_Filter *filter);
 
 /*! Updates filter status string and progress. Should not be called if reporting is turned off at session level.
-This allows gathering stats from filter in realtime. The status string can be anything but shall not contain '\n' and
-should not contain any source or destination URL except for sources and sinks.
+This allows gathering stats/info from filter in realtime:
+- The status string can be anything but shall not contain '\n'.
+- Information available throught the filter API (statistisc, number of PIDs, ...) should not be present
+- Formating can use predefined or custom metrics (see \ref gf_filter_add_status_metric)
+- a single array of stats is allowed, e.g. for PIDs internal logic. The array is declared between square brackets `[]`, entries are separated using comma `,`. All keywords are allowed. Formating must be in the form `[name1 K1=v K2=v K3 foo, name2 K4 bar]`. Names must be unique but are not guaranteed to be in same order between calls. The number of items may change between calls and could be empty
+
 \param filter target filter
 \param percent percentage (from 0 to 10000) of operation status. If more than 10000 ignored
 \param szStatus string giving a status of the filter

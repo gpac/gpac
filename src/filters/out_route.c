@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2025
+ *			Copyright (c) Telecom ParisTech 2020-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE output filter
@@ -901,6 +901,11 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		ctx->csum = DVB_CSUM_META;
 	}
 	ctx->check_pending = GF_TRUE;
+
+	//todo refine status for route out
+	gf_filter_add_status_metric(filter, "nb_services=number of services in multiplex");
+	gf_filter_add_status_metric(filter, "active_resources=number of active ressources being broadcasted");
+
 	return GF_OK;
 }
 
@@ -1940,7 +1945,7 @@ retry:
 #if 0
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
-				snprintf(szStatus, 1024, "%s: done - wrote "LLU" bytes", gf_file_basename(ctx->szFileName), ctx->nb_write);
+				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes="LLU"", gf_file_basename(ctx->szFileName), ctx->nb_write);
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 #endif
@@ -3352,9 +3357,9 @@ static GF_Err routeout_process(GF_Filter *filter)
 				progress = (u32) (10000*ctx->total_bytes / ctx->total_size);
 
 			if (ctx->sock_atsc_lls) {
-				snprintf(szStatus, 200, "Mux rate "LLU" kbps - %d services - %d active resources %.02f %% done", rate, count, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate="LLU" kbps nb_services=%d active_resources=%d prog=%.02f %%", rate, count, ctx->nb_resources, ((Double)progress) / 100);
 			} else {
-				snprintf(szStatus, 200, "Mux rate "LLU" kbps - %d active resources %.02f %% done", rate, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate="LLU" kbps active_resources=%d prog=%.02f %%", rate, ctx->nb_resources, ((Double)progress) / 100);
 			}
 			gf_filter_update_status(filter, 0, szStatus);
 		}
