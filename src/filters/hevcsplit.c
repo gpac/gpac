@@ -262,7 +262,7 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 	GF_BitStream *bs_in, *bs_out;
 	u64 length_no_use = 4096;
 	u8 *data_without_emulation_bytes = NULL;
-	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
+	u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1 = 0;
 	u8 max_sub_layers_minus1 = 0, layer_id;
 	Bool conformance_window_flag, multiLayerExtSpsFlag;
 	u32 chroma_format_idc;
@@ -471,7 +471,7 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 
 	num_entry_point_start = (u32) hevc->s_info.entry_point_start_bits;
 
-	// nal_unit_header			 
+	// nal_unit_header
 	gf_bs_write_int(ctx->bs_nal_out, gf_bs_read_int(ctx->bs_nal_in, 1), 1);
 	nal_unit_type = gf_bs_read_int(ctx->bs_nal_in, 6);
 	gf_bs_write_int(ctx->bs_nal_out, nal_unit_type, 6);
@@ -1007,4 +1007,3 @@ const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_AV_PARSERS && !GPAC_DISABLE_HEVCSPLIT
-

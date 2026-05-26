@@ -2310,7 +2310,7 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	u32 i;
 	u32 nb_versions=0;
-	GF_Err e;
+	GF_Err e=GF_OK;
 
 	if (box_registry[idx].max_version_plus_one) {
 		nb_versions = box_registry[idx].max_version_plus_one - 1;

@@ -137,6 +137,7 @@ has_x11_glx="no"
 ffmpeg_vvc="no"
 
 has_strlcpy="no"
+has_strlcat="no"
 
 ffmpeg_extra_ldflags=""
 
@@ -1323,6 +1324,21 @@ EOF
 has_strlcpy="no"
 if docc  -fno-builtin $LDFLAGS ; then
     has_strlcpy="yes"
+fi
+
+#look for strlcat support
+cat > $TMPC << EOF
+#include <string.h>
+int main( void ) {
+    char key[8];
+    strcpy( key, "a" );
+    strlcat( key, "b", sizeof(key) );
+    return 0;
+}
+EOF
+has_strlcat="no"
+if docc  -fno-builtin $LDFLAGS ; then
+    has_strlcat="yes"
 fi
 
 #look for sys/un.h support
@@ -2899,6 +2915,11 @@ fi
 echo "CONFIG_STRLCPY=$has_strlcpy" >> config.mak
 if test "$has_strlcpy" != "no" ; then
     echo "#define GPAC_HAS_STRLCPY" >> $TMPH
+fi
+
+echo "CONFIG_STRLCAT=$has_strlcat" >> config.mak
+if test "$has_strlcat" != "no" ; then
+    echo "#define GPAC_HAS_STRLCAT" >> $TMPH
 fi
 
 if test "$has_sock_un" != "no" ; then

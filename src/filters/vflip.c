@@ -216,7 +216,7 @@ static GF_Err vflip_process(GF_Filter *filter)
 	u8 *output;
 	u32 size;
 	u32 i;
-	u32 wiB, height; //wiB: width in Bytes of a plane
+	u32 wiB=0, height=0; //wiB: width in Bytes of a plane
 	u8 *src_planes[5];
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;

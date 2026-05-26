@@ -967,7 +967,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			}
 
 			while (args) {
-				char c;
+				char c = 0;
 				Bool skip_first=GF_FALSE;
 				char *sep, *aval = NULL;
 				while (args[0]==' ') args++;
