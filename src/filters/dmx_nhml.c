@@ -539,8 +539,6 @@ exit:
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
-#define ZLIB_COMPRESS_SAFE	4
-
 static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char **dict, u32 offset)
 {
 	z_stream stream;

@@ -182,8 +182,6 @@ u32 gf_base16_decode(u8 *in, u32 inSize, u8 *out, u32 outSize)
 
 #include <zlib.h>
 
-#define ZLIB_COMPRESS_SAFE	4
-
 GF_EXPORT
 GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data, Bool use_gz)
 {
@@ -288,10 +286,17 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 			}
 			if (err==Z_STREAM_END) break;
 
+			if (d_stream.total_out / ZLIB_INFLATE_MAX_MULTIPLIER > data_len) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[zlib] uncompressed data size is larger than %u times input data size (%u)\n", (u32) ZLIB_INFLATE_MAX_MULTIPLIER, (u32) data_len ));
+				break;
+			}
+
 			if (size >= GF_UINT_MAX/2 - 1)
 				size = GF_UINT_MAX - 1;
 			else
 				size *= 2;
+
 			*uncompressed_data = (char*)gf_realloc(*uncompressed_data, sizeof(char)*(size+1));
 			if (!*uncompressed_data) return GF_OUT_OF_MEM;
 			d_stream.avail_out = (u32) (size - d_stream.total_out);

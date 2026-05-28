@@ -916,6 +916,12 @@ size_t gf_strlcat(char *dst, const char *src, size_t dsize);
 #endif
 //! @endcond
 
+#ifndef GPAC_DISABLE_ZLIB
+#define ZLIB_INFLATE_MAX_MULTIPLIER 32
+#define ZLIB_COMPRESS_SAFE 4
+#endif
+
+
 #ifdef __cplusplus
 }
 #endif
