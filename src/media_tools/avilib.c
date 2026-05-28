@@ -29,6 +29,11 @@
 
 #ifndef GPAC_DISABLE_AVILIB
 
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include <gpac/internal/avilib.h>
 
 

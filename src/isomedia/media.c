@@ -630,7 +630,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 		/*and finally get the data, include padding if needed*/
 		if (ext_realloc) {
-			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(size_to_alloc, mdia->mediaTrack->sample_alloc_udta);
+			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk((u32)size_to_alloc, mdia->mediaTrack->sample_alloc_udta);
 		} else if ((*samp)->alloc_size) {
 			(*samp)->data = (char *) gf_realloc((*samp)->data, size_to_alloc );
 			if ((*samp)->data) (*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;

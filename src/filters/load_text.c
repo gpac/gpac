@@ -2975,7 +2975,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 
 		memset(szText, 0, 2048);
 		i=j=0;
-		u32 start_p_len = strlen(start_p);
+		u32 start_p_len = (u32)strlen(start_p);
 		while (1) {
 			if (i>=start_p_len)
 				break;

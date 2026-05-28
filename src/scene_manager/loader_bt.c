@@ -243,7 +243,7 @@ next_line:
 				return;
 
 			}
-			u32 line_len = strlen(parser->line_buffer);
+			u32 line_len = (u32)strlen(parser->line_buffer);
 			if (!line_len && gf_gzeof(parser->gz_in)) {
 				parser->done = 1;
 				return;
