@@ -301,6 +301,7 @@ typedef struct
 	s32 mediats;
 	GF_AudioSampleEntryImportMode ase;
 	char *styp;
+	Bool force_seig;
 	Bool lmsg;
 	Bool sseg;
 	Bool noroll, norap;
@@ -4585,7 +4586,9 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 		e = GF_OK;
 		//multikey ALWAYS uses seig
-		if (tkw->cenc_ki->value.data.ptr[0])
+		if (ctx->force_seig)
+			needs_seig = GF_TRUE;
+		else if (tkw->cenc_ki->value.data.ptr[0])
 			needs_seig = GF_TRUE;
 		else if (tkw->def_crypt_byte_block != tkw->crypt_byte_block)
 			needs_seig = GF_TRUE;
@@ -8768,6 +8771,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- moov: in movie box\n"
 	"- both: in movie box and in first moof of each segment\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|both|none", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(force_seig), "force writing `seig` sample group for encrypted samples, even when all samples use the default single-key CENC configuration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vodcache), "enable temp storage for VoD dash modes\n"
 		"- on: use temp storage of complete file for sidx and ssix injection\n"
