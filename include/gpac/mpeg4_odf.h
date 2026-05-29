@@ -1970,7 +1970,7 @@ typedef struct
 */
 GF_IAConfig *gf_odf_iamf_cfg_new();
 
-/*! writes IAMF config to buffer
+/*! writes IAMF config (IACB) to buffer
 \param cfg the IAMF config to write
 \param outData set to an allocated encoded buffer - it is the caller responsibility to free this
 \param outSize set to the encoded dsi buffer size
@@ -1978,12 +1978,19 @@ GF_IAConfig *gf_odf_iamf_cfg_new();
 */
 GF_Err gf_odf_iamf_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize);
 
-/*! Writes the IAMF config to bitstream
+/*! Writes the IAMF config (IACB) to bitstream
 \param cfg the IAMF config to write
 \param bs the bitstream object
 \return error code if any
 */
 GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
+
+/*! Writes the IAMF config payload (OBUs only) to bitstream
+\param cfg the IAMF config to write
+\param bs the bitstream object
+\return error code if any
+*/
+GF_Err gf_odf_iamf_cfg_write_obus(GF_IAConfig *cfg, GF_BitStream *bs);
 
 /*! IAMF config destructor
 \param cfg the IAMF config to destroy
