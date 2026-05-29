@@ -84,12 +84,6 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec)
 	}
 	gf_list_del(codec->font_table);
 
-	while (gf_list_count(codec->deferred_hrefs)) {
-		XMLRI *iri = (XMLRI *)gf_list_last(codec->deferred_hrefs);
-		gf_list_rem_last(codec->deferred_hrefs);
-		if (iri->string) gf_free(iri->string);
-		iri->string = NULL;
-	}
 	gf_list_del(codec->deferred_hrefs);
 	gf_list_del(codec->deferred_anims);
 	gf_list_del(codec->deferred_listeners);
@@ -6005,10 +5999,8 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				com->node = n;
 				gf_list_add(com_list, com);
 			} else {
-				u32 count = gf_list_count(lsr->sg->xlink_hrefs);
-				for (i=0; i<count; i++) {
-					void* href = gf_list_get(lsr->sg->xlink_hrefs, i);
-					gf_list_del_item(lsr->deferred_hrefs, href);
+				while (gf_list_count(lsr->deferred_hrefs)) {
+					gf_list_rem_last(lsr->deferred_hrefs);
 				}
 				while (gf_list_count(lsr->deferred_anims)) {
 					gf_list_rem_last(lsr->deferred_anims);

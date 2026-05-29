@@ -587,7 +587,11 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 		GF_FieldInfo field;
 		/*get it by name in case no add/removeChildren*/
 		e = gf_node_get_field_by_name(def, "children", &field);
-		if (e) return e;
+		if (e) {
+			gf_node_list_del_child(& ((GF_ParentNode *) def)->children, node);
+			gf_node_unregister(node, def);
+			return e;
+		}
 		gf_bifs_check_field_change(def, &field);
 	}
 	return e;

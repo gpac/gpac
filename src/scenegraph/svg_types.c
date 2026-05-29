@@ -390,6 +390,9 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
 	if (!value) return;
 	GF_List *l;
+	if (type==12 && gf_list_find(sg->xlink_hrefs, value)>=0) {
+		type = XML_IDREF_datatype;
+	}
 	switch (type) {
 	case SVG_Paint_datatype:
 		gf_svg_delete_paint(sg, (SVG_Paint *)value);
