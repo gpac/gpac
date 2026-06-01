@@ -608,7 +608,7 @@ static GF_Err nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size,
 			if (err == Z_OK) {
 				while ((s32) d_stream.total_in < size-1) {
 					err = inflate(&d_stream, Z_NO_FLUSH);
-					if (err < Z_OK) break;
+					if (err < Z_OK || d_stream.total_out / ZLIB_INFLATE_MAX_MULTIPLIER > size) break;
 					svg_data[d_stream.total_out - done] = 0;
 					gf_bs_write_data(ctx->bs_w, svg_data, (u32) strlen(svg_data));
 
