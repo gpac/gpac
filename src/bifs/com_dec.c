@@ -164,7 +164,11 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			} else {
 				newnode = gf_bifs_dec_node(codec, bs, targetField.NDTtype);
 			}
-			gf_node_replace_child(target, (GF_ChildNodeItem**) targetField.far_ptr, pos, newnode);
+			GF_Err e = gf_node_replace_child(target, (GF_ChildNodeItem**) targetField.far_ptr, pos, newnode);
+			if (e) {
+				if (!fromNode) gf_node_del(newnode);
+				return e;
+			}
 			if (newnode) gf_node_register(newnode, NULL);
 		}
 		/*erase the field item*/

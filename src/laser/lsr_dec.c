@@ -1553,6 +1553,11 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			} else {
 				da->type=SVG_STROKEDASHARRAY_ARRAY;
 				da->array.count = lsr_read_vluimsbf5(lsr, "len");
+				if (da->array.count > gf_bs_available(lsr->bs)) {
+					da->array.count = 0;
+					lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+					break;
+				}
 				da->array.vals = (Fixed*)gf_realloc(da->array.vals, sizeof(Fixed)*da->array.count);
 				da->array.units = (u8*)gf_realloc(da->array.units, sizeof(u8)*da->array.count);
 				if (!da->array.vals || !da->array.units) {
@@ -1856,7 +1861,11 @@ static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u3
 	case 4: //SVG_Number*
 		gf_free(val->value);
 		break;
-	case 5://SVG_Paint
+	case 5:;//SVG_Paint
+		SVG_Paint* paint = (SVG_Paint*)(val->value);
+		if (paint) {
+			gf_free(paint->iri.string);
+		}
 		gf_free(val->value);
 		break;
 	case 6://u8*
@@ -1892,7 +1901,7 @@ static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u3
 		XMLRI *iri = (XMLRI *)val->value;
 		gf_list_del_item(lsr->deferred_hrefs, iri);
 		gf_node_unregister_iri(lsr->sg, iri);
-		if (iri->string) gf_free(iri->string);
+		if (iri && iri->string) gf_free(iri->string);
 		gf_free(iri);
 	}
 	default:
@@ -6005,6 +6014,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				while (gf_list_count(lsr->deferred_anims)) {
 					gf_list_rem_last(lsr->deferred_anims);
 				}
+				lsr->prev_path = NULL;
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
