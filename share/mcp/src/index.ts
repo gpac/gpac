@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { runCommand, runGpacCommand } from "./utils.js";
+import { runGpacCommand } from "./utils.js";
 
 // Create an MCP server
 const server = new McpServer({
@@ -27,7 +27,7 @@ server.registerTool(
   async ({ file }) =>
     runGpacCommand(
       "File Inspection Tool",
-      `MP4Box -info -logs all@warning:ncl "${file}"`
+      "MP4Box", ["-info", "-logs=all@warning:ncl", file]
     )
 );
 
@@ -48,7 +48,7 @@ server.registerTool(
   async ({ file }) =>
     await runGpacCommand(
       "Box Analysis Tool",
-      `MP4Box -disox -check-xml -std -logs all@warning:ncl "${file}"`,
+      "MP4Box", ["-disox", "-check-xml", "-std", "-logs=all@warning:ncl", file],
       "xml"
     )
 );

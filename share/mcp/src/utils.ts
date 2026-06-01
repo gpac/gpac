@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { mkdtempSync, readFileSync, rmSync } from "fs";
+import { mkdtempSync, readFileSync, rmSync, openSync, closeSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -10,20 +10,24 @@ interface GPACResponse {
   stdout: string;
 }
 
-export async function runCommand(command: string): Promise<GPACResponse> {
+export async function runCommand(executable: string, args: string[]): Promise<GPACResponse> {
   const tmpDir = mkdtempSync(join(tmpdir(), "gpac-"));
   const outPath = join(tmpDir, "stdout.txt");
   const errPath = join(tmpDir, "stderr.txt");
 
-  return new Promise<GPACResponse>((resolve, reject) => {
-    const shellCommand = `(${command}) >"${outPath}" 2>"${errPath}"`;
+  const outFd = openSync(outPath, "w");
+  const errFd = openSync(errPath, "w");
 
-    const child = spawn("sh", ["-c", shellCommand], {
+  return new Promise<GPACResponse>((resolve, reject) => {
+
+    const child = spawn(executable, args, {
       detached: true,
-      stdio: "ignore",
+      stdio: ["ignore", outFd, errFd],
     });
 
     child.on("error", (err) => {
+      closeSync(outFd);
+      closeSync(errFd);
       rmSync(tmpDir, { recursive: true, force: true });
       reject({ exitCode: 1, stdout: "", stderr: err.message });
     });
@@ -38,6 +42,8 @@ export async function runCommand(command: string): Promise<GPACResponse> {
         stderr = readFileSync(errPath, "utf-8");
       } catch {}
 
+      closeSync(outFd);
+      closeSync(errFd);
       rmSync(tmpDir, { recursive: true, force: true });
 
       resolve({
@@ -109,11 +115,11 @@ export function errorResponse({
 
 export async function runGpacCommand(
   title: string,
-  command: string,
+  executable: string, args: string[],
   type: "text" | "xml" = "text"
 ): Promise<CallToolResult> {
   try {
-    const response = await runCommand(command);
+    const response = await runCommand(executable, args);
     if (response.exitCode !== 0) {
       return {
         content: [
