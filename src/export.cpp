@@ -186,6 +186,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_basename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_ext_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_url_colon_suffix) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_realpath) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_has_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
