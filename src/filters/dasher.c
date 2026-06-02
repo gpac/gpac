@@ -565,7 +565,6 @@ typedef struct _dash_stream
 	Bool set_period_switch;
 	u32 all_stsd_crc;
 	u32 cenc_key_info_crc;
-	Bool has_cenc_key_info;
 	Bool cenc_key_info_init;
 
 	u64 frag_start_offset, frag_first_ftdt;
@@ -1821,23 +1820,19 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (ctx->kpswitch) {
-		Bool has_cenc_key_info = GF_FALSE;
 		u32 cenc_key_info_crc = 0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_KEY_INFO);
 		if (p && (p->type==GF_PROP_DATA) && p->value.data.ptr && p->value.data.size) {
-			has_cenc_key_info = GF_TRUE;
 			cenc_key_info_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		}
 
-		if ( is_reconfigure && ds->cenc_key_info_init && 
-			((has_cenc_key_info != ds->has_cenc_key_info) || (has_cenc_key_info && (cenc_key_info_crc != ds->cenc_key_info_crc))) ) {
+		if ( is_reconfigure && (cenc_key_info_crc != ds->cenc_key_info_crc) ) {
 			period_switch = GF_TRUE;
 			new_period_request = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Encryption key changed for PID %s, requesting new Period\n", gf_filter_pid_get_name(ds->ipid)));
 		}
 
-		ds->has_cenc_key_info = has_cenc_key_info;
 		ds->cenc_key_info_crc = cenc_key_info_crc;
 		ds->cenc_key_info_init = GF_TRUE;
 	}
