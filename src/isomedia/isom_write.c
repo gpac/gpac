@@ -8364,7 +8364,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 		//no aux sample associated
 		if (saiz->sample_count<sampleNumber) continue;
 		//no size associated
-		if (!saiz->default_sample_info_size && !saiz->sample_info_size[sampleNumber-1]) continue;
+		if (!saiz->default_sample_info_size && !saiz_get_sample_info_size(saiz, sampleNumber-1)) continue;
 
 		for (j=0; j<gf_list_count(src_trak->Media->information->sampleTable->sai_offsets); j++) {
 			saio = gf_list_get(src_trak->Media->information->sampleTable->sai_offsets, j);
@@ -8382,14 +8382,14 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 
 		if (nb_saio == 1) {
 			for (j=0; j < sampleNumber-1; j++) {
-				size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+				size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, j);
 				offset += size;
 			}
 		} else {
 			offset = saio->offsets[sampleNumber-1];
 		}
 
-		size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+		size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, j);
 
 		if (saio->sai_data) {
 			e = gf_isom_add_sample_aux_info_internal(dst_trak, NULL, j+1, saiz->aux_info_type, saiz->aux_info_type_parameter, saio->sai_data->data + offset, size);
@@ -9333,19 +9333,20 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 		saiz->default_sample_info_size = size;
 	} else {
 		if (sampleNumber > saiz->sample_alloc) {
+			const u8 num_bytes = 1 << saiz->version;
 			saiz->sample_alloc = sampleNumber+10;
-			saiz->sample_info_size = (u8*)gf_realloc(saiz->sample_info_size, sizeof(u8)*(saiz->sample_alloc));
+			saiz->sample_info_size = gf_realloc(saiz->sample_info_size, num_bytes*saiz->sample_alloc);
 		}
 
 		if (saiz->default_sample_info_size) {
 			for (i=0; i<saiz->sample_count; i++)
-				saiz->sample_info_size[i] = saiz->default_sample_info_size;
+				saiz_set_sample_info_size(saiz, i, saiz->default_sample_info_size);
 			saiz->default_sample_info_size = 0;
 		}
 		for (i=saiz->sample_count; i<sampleNumber-1; i++)
-			saiz->sample_info_size[i] = 0;
+			saiz_set_sample_info_size(saiz, i, 0);
 
-		saiz->sample_info_size[sampleNumber-1] = size;
+		saiz_set_sample_info_size(saiz, sampleNumber-1, size);
 		saiz->sample_count = sampleNumber;
 	}
 

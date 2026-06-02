@@ -859,15 +859,25 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 	u8 iv_size;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
+	ptr->use_subsample_encryption = (ptr->flags & 0x3) ? GF_TRUE : GF_FALSE;
+	ptr->use_multi_key = (ptr->flags & 0xc) ? GF_TRUE : GF_FALSE;
+	ptr->use_senc = (ptr->flags & 0x30) ? GF_TRUE : GF_FALSE;
+	ptr->use_sai = (ptr->flags & 0xc0) ? GF_TRUE : GF_FALSE;
+	ptr->use_seig = (ptr->flags & 0x30) ? GF_TRUE : GF_FALSE;
+	ptr->use_encrypted_slice_header = (ptr->flags & 0xc00) ? GF_TRUE : GF_FALSE;
+
 	ISOM_DECREASE_SIZE(ptr, 3);
 
 	gf_bs_read_u8(bs); //reserved
 
-	if (!ptr->version) {
+	if (ptr->version==0) {
 		gf_bs_read_u8(bs); //reserved
-	} else if (ptr->version==1) {
+	} else if (ptr->version>=1) {
 		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
+		if (ptr->version==2) {
+			ptr->isAES256 = GF_TRUE;
+		}
 	} else {
 		ptr->crypt_byte_block = gf_bs_read_u32(bs);
 		ptr->skip_byte_block = gf_bs_read_u32(bs);
