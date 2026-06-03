@@ -6015,6 +6015,9 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				while (gf_list_count(lsr->deferred_anims)) {
 					gf_list_rem_last(lsr->deferred_anims);
 				}
+				while (gf_list_count(lsr->deferred_listeners)) {
+					gf_list_rem_last(lsr->deferred_listeners);
+				}
 				lsr->prev_path = NULL;
 				lsr->prev_rect = NULL;
 				lsr->prev_g = NULL;

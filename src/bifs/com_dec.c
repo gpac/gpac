@@ -166,7 +166,10 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			}
 			GF_Err e = gf_node_replace_child(target, (GF_ChildNodeItem**) targetField.far_ptr, pos, newnode);
 			if (e) {
-				if (!fromNode) gf_node_del(newnode);
+				if (!fromNode) {
+					gf_node_register(newnode, NULL);
+					gf_node_unregister(newnode, NULL);
+				}
 				return e;
 			}
 			if (newnode) gf_node_register(newnode, NULL);

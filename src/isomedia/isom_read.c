@@ -6638,6 +6638,7 @@ GF_Err gf_isom_pop_emsg(GF_ISOFile *the_file, u8 **emsg_data, u32 *emsg_size)
 	gf_isom_box_write(emsg, bs);
 	gf_bs_get_content(bs, emsg_data, emsg_size);
 	gf_isom_box_del(emsg);
+	gf_bs_del(bs);
 	return GF_OK;
 
 #else
