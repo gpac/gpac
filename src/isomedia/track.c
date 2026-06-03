@@ -208,13 +208,14 @@ default_sync:
 			if (rvc_predefined) {
 				esd->decoderConfig->predefined_rvc_config = rvc_predefined;
 			} else {
-				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
+					esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 #if !defined(GPAC_DISABLE_ZLIB)
 					gf_gz_decompress_payload_ex(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength, GF_TRUE);
 					gf_free(rvc_cfg_data);
 #endif
-				} else {
+				} else if (rvc_cfg_data && rvc_cfg_size) {
+					esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 					esd->decoderConfig->rvc_config->data = rvc_cfg_data;
 					esd->decoderConfig->rvc_config->dataLength = rvc_cfg_size;
 				}

@@ -4941,6 +4941,9 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 	if (!rvc_predefined || !data || !size) return GF_BAD_PARAM;
 	*rvc_predefined = 0;
+	*data = NULL;
+	*size=0;
+	if (mime) *mime = NULL;
 
 	trak = gf_isom_get_track_box(movie, track);
 	if (!trak) return GF_BAD_PARAM;
@@ -4955,7 +4958,6 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 	*rvc_predefined = rvcc->predefined_rvc_config;
 	if (rvcc->rvc_meta_idx) {
-		if (!data || !size) return GF_OK;
 		return gf_isom_extract_meta_item_mem(movie, GF_FALSE, track, rvcc->rvc_meta_idx, data, size, NULL, mime, GF_FALSE);
 	}
 	return GF_OK;
