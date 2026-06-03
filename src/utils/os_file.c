@@ -2163,3 +2163,13 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 	}
 	return sep;
 }
+
+
+GF_EXPORT
+char* gf_realpath(const char* path, char* resolved_path) {
+#ifdef _WIN32
+    return _fullpath(resolved_path, path, GF_MAX_PATH);
+#else
+    return realpath(path, resolved_path);
+#endif
+}
