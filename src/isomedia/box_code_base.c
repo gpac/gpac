@@ -3247,24 +3247,21 @@ GF_Err mdhd_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->original_duration = ptr->duration;
 
 	ISOM_DECREASE_SIZE(ptr, 4)
-	//our padding bit
-	gf_bs_read_int(bs, 1);
-	//the spec is unclear here, just says "the value 0 is interpreted as undetermined"
-	ptr->packedLanguage[0] = gf_bs_read_int(bs, 5);
-	ptr->packedLanguage[1] = gf_bs_read_int(bs, 5);
-	ptr->packedLanguage[2] = gf_bs_read_int(bs, 5);
-	//but before or after compaction ?? We assume before
-	if (ptr->packedLanguage[0] || ptr->packedLanguage[1] || ptr->packedLanguage[2]) {
-		if (ptr->packedLanguage[0] < 0x04) {
-			// QuickTime Language Codes
-			u8 code = (ptr->packedLanguage[0] << 16) | (ptr->packedLanguage[1] << 8) | ptr->packedLanguage[2];
-			set_quicktime_lang(ptr->packedLanguage, code);
-		} else {
-			ptr->packedLanguage[0] += 0x60;
-			ptr->packedLanguage[1] += 0x60;
-			ptr->packedLanguage[2] += 0x60;
-		}
+	u16 lang_code = gf_bs_read_u16(bs);
+	ptr->packedLanguage[0] = (lang_code>>10) & 0x1F;
+	ptr->packedLanguage[1] = (lang_code>>5) & 0x1F;
+	ptr->packedLanguage[2] = (lang_code) & 0x1F;
+	// QuickTime Language Codes
+	if (lang_code < 0x400) {
+		u8 code = (ptr->packedLanguage[0] << 16) | (ptr->packedLanguage[1] << 8) | ptr->packedLanguage[2];
+		set_quicktime_lang(ptr->packedLanguage, code);
 	} else {
+		ptr->packedLanguage[0] += 0x60;
+		ptr->packedLanguage[1] += 0x60;
+		ptr->packedLanguage[2] += 0x60;
+	}
+
+	if (!ptr->packedLanguage[0] || !ptr->packedLanguage[1] || !ptr->packedLanguage[2]) {
 		ptr->packedLanguage[0] = 'u';
 		ptr->packedLanguage[1] = 'n';
 		ptr->packedLanguage[2] = 'd';
