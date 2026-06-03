@@ -3214,7 +3214,6 @@ build_object_files_directory_tree()
 
     mkdir -p applications
     ln -sf "$1/applications/Makefile" applications/Makefile
-    mkdir -p applications/testapps
 
     for dir in $APP_DIRS ; do
         mkdir -p "$dir"
