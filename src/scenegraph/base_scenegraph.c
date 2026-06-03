@@ -924,6 +924,9 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 #endif
 	Bool replace_root;
 
+	if (!node || !node->sgprivate || !node->sgprivate->scenegraph)
+		return GF_BAD_PARAM;
+
 #ifndef GPAC_DISABLE_SVG
 	type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
 	if (type) {
@@ -942,9 +945,6 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		replace_proto = 1;
 	}
 #endif
-	if (!node->sgprivate->parents && replace_root) {
-		gf_node_register(new_node, NULL);
-	}
 	while (node->sgprivate->parents) {
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
 		GF_Node *par = node->sgprivate->parents->node;
@@ -965,6 +965,7 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	}
 
 	if (replace_root) {
+		gf_node_register(new_node, NULL);
 		GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 		gf_node_unregister(node, NULL);
 		pSG->RootNode = new_node;
@@ -1869,6 +1870,7 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 
 void gf_node_del(GF_Node *node)
 {
+	if (!node) return;
 	if (node->sgprivate->tag==TAG_UndefinedNode) gf_node_free(node);
 	else if (node->sgprivate->tag==TAG_DOMText) {
 		GF_DOMText *t = (GF_DOMText *)node;

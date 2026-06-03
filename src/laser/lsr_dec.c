@@ -5405,7 +5405,8 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					}
 				} else {
 					/*node replacement*/
-					gf_node_replace(n, new_node, 0);
+					GF_Err e = gf_node_replace(n, new_node, 0);
+					if (!e) n = new_node;
 				}
 			}
 		}
@@ -6015,6 +6016,8 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 					gf_list_rem_last(lsr->deferred_anims);
 				}
 				lsr->prev_path = NULL;
+				lsr->prev_rect = NULL;
+				lsr->prev_g = NULL;
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
