@@ -157,6 +157,10 @@ GF_BitStream *gf_bs_new(const u8 *buffer, u64 BufferSize, u32 mode)
 			/*if BufferSize is specified, use it. This is typically used when AvgSize of
 			some buffers is known, but some exceed it.*/
 			if (BufferSize) {
+				if (BufferSize > GF_UINT_MAX) {
+					gf_free(tmp);
+					return NULL;
+				}
 				tmp->size = BufferSize;
 			} else {
 				tmp->size = BS_MEM_BLOCK_ALLOC_SIZE;
@@ -1176,6 +1180,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 
 				while (new_size < (u32) ( bs->size + nbBytes))
 					new_size *= 2;
+				new_size = MIN(new_size, GF_UINT_MAX);
 				bs->original = (char*)gf_realloc(bs->original, sizeof(u32)*new_size);
 				if (!bs->original)
 					return 0;

@@ -565,7 +565,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 				} else {
 					if (strcmp(att->name, "duration")) continue;
 					duration = atoi(att->value);
-					dur.num += (s32) ( (1000 * duration) / ctx->txml_timescale);
+					dur.num += (s32) ( (1000 * duration) / (ctx->txml_timescale ? ctx->txml_timescale : 1) );
 				}
 			}
 		}

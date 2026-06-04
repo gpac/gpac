@@ -789,10 +789,9 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 		XMLRI *href = (XMLRI *)gf_list_get(lsr->deferred_hrefs, i);
 		char *str_id = href ? href->string : NULL;
 		if (!str_id) return;
-
 		if (str_id[0] == '#') str_id++;
 		/*skip 'N'*/
-		str_id++;
+		if (strlen(str_id)) str_id++;
 		if (id == (1 + (u32) atoi(str_id))) {
 			href->target = (SVG_Element*) n;
 			gf_free(href->string);
