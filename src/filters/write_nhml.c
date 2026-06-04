@@ -879,7 +879,8 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 	} else if (ctx->is_stpp && ctx->nhmlonly) {
 		sprintf(nhml, "<NHNTSubSample><![CDATA[\n");
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-		gf_bs_write_data(ctx->bs_w, data, data_size);
+		if (data && data_size)
+			gf_bs_write_data(ctx->bs_w, data, data_size);
 		sprintf(nhml, "]]></NHNTSubSample>\n");
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}

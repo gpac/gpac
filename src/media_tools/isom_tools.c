@@ -1876,6 +1876,9 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		offset += size + nalu_size_length/8;
 		if (nal_type == GF_AVC_NALU_SVC_SLICE)
 		{
+			if (!avc_state->s_info.pps)
+				continue;
+
 			for (i = 0; i < num_pps; i++)
 			{
 				if (avc_state->s_info.pps->id == pps[i])

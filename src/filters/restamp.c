@@ -203,7 +203,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		} else {
 			GF_Fraction f = prop->value.frac;
 			f.num *= -ctx->fps.num;
-			f.den /= ctx->fps.den;
+			f.den /= ctx->fps.den ? ctx->fps.den : 1;
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_FPS, &PROP_FRAC(f));
 		}
 	}
@@ -679,4 +679,3 @@ const GF_FilterRegister *restamp_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_RESTAMP
-

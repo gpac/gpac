@@ -14795,7 +14795,7 @@ GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
-		if (name_size < 1) {
+		if (name_size < 1 || name_size >= GF_UINT_MAX-1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
 			return GF_ISOM_INVALID_FILE;
 		}
