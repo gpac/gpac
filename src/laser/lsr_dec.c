@@ -1839,7 +1839,7 @@ static void lsr_read_attribute_name(GF_LASeRCodec *lsr, GF_Node *n)
 	lsr_read_attribute_name_ex(lsr, n, GF_TRUE);
 }
 
-static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded_type)
+void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded_type)
 {
 	if (!val) return;
 	//unable to transform, free mem and reset
@@ -1899,8 +1899,10 @@ static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u3
 	case 12:
 	{
 		XMLRI *iri = (XMLRI *)val->value;
-		gf_list_del_item(lsr->deferred_hrefs, iri);
-		gf_node_unregister_iri(lsr->sg, iri);
+		if (lsr) {
+			gf_list_del_item(lsr->deferred_hrefs, iri);
+			gf_node_unregister_iri(lsr->sg, iri);
+		}
 		if (iri && iri->string) gf_free(iri->string);
 		gf_free(iri);
 	}
@@ -2876,7 +2878,7 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 
 	GF_LSR_READ_INT(lsr, coded_type, 4, "type");
 	values->type = coded_type;
-	values->laser_strings = 0;
+	values->laser_strings = 0; //0=svg, 1=lsr string, 2=lsr coded_type
 
 	count = lsr_read_vluimsbf5(lsr, "count");
 	for (i=0; i<count; i++) {
@@ -2907,6 +2909,9 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 			case 3:
 				values->type = SVG_Points_datatype;
 				break;
+			case 7:
+			case 8:
+				values->laser_strings = 2; //0=svg, 1=lsr string, 2=lsr coded_type
 			default:
 				break;
 		}

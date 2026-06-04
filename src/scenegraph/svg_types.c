@@ -28,6 +28,11 @@
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/nodes_svg.h>
 
+#ifndef GPAC_DISABLE_LASER
+#include <gpac/laser.h>
+void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded_type);
+#endif
+
 GF_EXPORT
 Bool gf_svg_is_animation_tag(u32 tag)
 {
@@ -367,12 +372,21 @@ void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *
 {
 	u32 i, count;
 	u8 type = anim_values.type;
-	if (anim_values.laser_strings) type = DOM_String_datatype;
+	if (anim_values.laser_strings==1) type = DOM_String_datatype;
 
 	count = gf_list_count(anim_values.values);
 	for (i = 0; i < count; i++) {
-		void *value = gf_list_get(anim_values.values, i);
-		svg_delete_one_anim_value(type, value, sg);
+		SMIL_AnimateValue a_val;
+		a_val.type = 0;
+		a_val.value = gf_list_get(anim_values.values, i);
+#ifndef GPAC_DISABLE_LASER
+		if (anim_values.laser_strings==2) {
+			lsr_delete_anim_value(NULL, &a_val, type);
+		}
+#endif
+		else
+			svg_delete_one_anim_value(type, a_val.value, sg);
+
 	}
 	gf_list_del(anim_values.values);
 	anim_values.values = NULL;
