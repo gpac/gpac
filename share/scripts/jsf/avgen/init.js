@@ -125,6 +125,7 @@ let frame_offset = 0;
 let nb_frame_init = 0;
 let utc_init = 0;
 let ntp_init = 0;
+let start_time = 0;
 
 /*create a text*/
 let text = null;
@@ -294,6 +295,7 @@ filter.initialize = function() {
 			text.align=GF_TEXT_ALIGN_LEFT;
 		}
 	}
+	start_time = sys.clock_ms();
 }
 
 function put_image(vsrc, tx, is_testcard, is_first)
@@ -623,9 +625,7 @@ function process_video()
 	let time = (video_cts + frame_offset) / filter.fps.n;
 	let sec = Math.floor(time);
 	let col_idx = sec % 2;
-	let cycle_time = time;
-	while (cycle_time>=1) cycle_time -= 1;
-
+	let cycle_time = time - sec;
 
 	let ms = time - sec;
 	let h = Math.floor(sec / 3600);
@@ -695,8 +695,9 @@ function process_video()
 
 	video_cts += filter.fps.d;
 	video_frame++;
+	let fps = 1000 * video_frame / (sys.clock_ms() - start_time);
 
-	filter.update_status(`Frame ${video_frame} CTS ${video_cts} / ${filter.fps.n}`);
+	filter.update_status(`Frame ${video_frame} CTS ${video_cts} / ${filter.fps.n} FPS ${fps}`);
 
 	if (filter.dur.d && (video_cts * filter.dur.d >= filter.fps.n * filter.dur.n)) {
 		print("done playing, cts " + video_cts);
