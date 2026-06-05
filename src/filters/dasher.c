@@ -239,6 +239,7 @@ typedef struct
 	Bool sigfrag, sigfo;
 	DasherTSSHandlingMode sbound;
 	DasherPeriodSwitchMode pswitch;
+	Bool kpswitch;
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
@@ -563,6 +564,8 @@ typedef struct _dash_stream
 
 	Bool set_period_switch;
 	u32 all_stsd_crc;
+	u32 cenc_key_info_crc;
+	Bool cenc_key_info_init;
 
 	u64 frag_start_offset, frag_first_ftdt;
 	u32 tpl_use_time;
@@ -1814,6 +1817,24 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p && (p->value.uint != ds->ts_disc_idx)) {
 		period_switch = GF_TRUE;
 		ds->ts_disc_idx = p->value.uint;
+	}
+
+	if (ctx->kpswitch) {
+		u32 cenc_key_info_crc = 0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_KEY_INFO);
+		if (p && (p->type==GF_PROP_DATA) && p->value.data.ptr && p->value.data.size) {
+			cenc_key_info_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+		}
+
+		if ( is_reconfigure && (cenc_key_info_crc != ds->cenc_key_info_crc) ) {
+			period_switch = GF_TRUE;
+			new_period_request = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Encryption key changed for PID %s, requesting new Period\n", gf_filter_pid_get_name(ds->ipid)));
+		}
+
+		ds->cenc_key_info_crc = cenc_key_info_crc;
+		ds->cenc_key_info_init = GF_TRUE;
 	}
 
 	if (ctx->do_index || ctx->from_index) {
@@ -12118,6 +12139,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- single: change period if PID configuration changes\n"
 		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or ad insertion not using periodID)\n"
 		"- stsd: change period if PID configuration changes unless new configuration was advertised in initial config", GF_PROP_UINT, "single", "single|force|stsd", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(kpswitch), "force a new period when CENC key info changes, including encrypted/clear transitions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -12363,6 +12385,7 @@ GF_FilterRegister DasherRegister = {
 "- first period crypted with one key\n"
 "- second period clear\n"
 "- third period crypted with another key\n"
+"When period signaling is not explicit, [-kpswitch]() can be used to force a new period whenever CENC key information changes.\n"
 "\n"
 "## Forced-Template mode\n"
 "When [-tpl_force]() is set, the [-template]() string is not analyzed nor modified for missing elements.\n"
