@@ -319,7 +319,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 	qp_on = qp_local = 0;
 	initial_qp = codec->ActiveQP ? 1 : 0;
 
-	endFlag = gf_bs_read_int(bs, 1);
+	endFlag = gf_bs_available(bs) ? gf_bs_read_int(bs, 1) : 1;
 	while (!endFlag  && (codec->LastError>=0)) {
 		if (field->fieldType != GF_SG_VRML_MFNODE) {
 			e = gf_sg_vrml_mf_append(field->far_ptr, field->fieldType, & sffield.far_ptr);
@@ -350,9 +350,10 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 							gf_node_register(new_node, NULL);
 							gf_node_unregister(new_node, node);
 						}
-					} else
+					} else {
 						//this is generic MFNode container
 						e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+					}
 
 				}
 				//proto coding: directly add the child
@@ -367,7 +368,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		}
 		if (e) goto exit;
 
-		endFlag = gf_bs_read_int(bs, 1);
+		endFlag = gf_bs_available(bs) ? gf_bs_read_int(bs, 1) : 1;
 
 		//according to the spec, the QP applies to the current node itself,
 		//not just children. If IsLocal is TRUE remove the node
@@ -604,11 +605,11 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF)-1);
 	if (!gf_bs_available(bs)) return codec->LastError;
 
-	flag = gf_bs_read_int(bs, 1);
+	flag = gf_bs_available(bs) ? gf_bs_read_int(bs, 1) : 1;
 	while (!flag && (codec->LastError>=0)) {
 		if (codec->pCurrentProto) {
 			//IS'ed flag
-			flag = gf_bs_read_int(bs, 1);
+			flag = gf_bs_available(bs) ? gf_bs_read_int(bs, 1) : 1;
 			if (flag) {
 				//get field index in ALL mode for node
 				field_ref = gf_bs_read_int(bs, numBitsALL);
@@ -618,7 +619,7 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 				if (e) return e;
 				e = BD_SetProtoISed(codec, field_all, node, field_ref);
 				if (e) return e;
-				flag = gf_bs_read_int(bs, 1);
+				flag = gf_bs_available(bs) ? gf_bs_read_int(bs, 1) : 1;
 				continue;
 			}
 		}

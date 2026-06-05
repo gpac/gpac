@@ -631,6 +631,7 @@ static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 void PA2D_Modified(GF_Node *node, GF_FieldInfo *field)
 {
 	AnimatorStack *stack = (AnimatorStack *)gf_node_get_private(node);
+	if (!stack) return;
 	M_PositionAnimator2D *pa = (M_PositionAnimator2D *)node;
 
 	if ( /*all fields impacting cached path len / nurbs*/

@@ -451,9 +451,14 @@ restart:
 #ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(nlist->node, node, NULL);
-			} else
+			} else {
 #endif
-				ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
+				if (gf_list_find(sg->exported_nodes, nlist->node)<0) {
+					ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
+				}
+#ifndef GPAC_DISABLE_SVG
+			}
+#endif
 
 			/*direct cyclic reference to ourselves, make sure we update the parentList to the next entry before freeing it
 			since the next parent node could be reg_node again (reg_node->reg_node)*/
@@ -958,7 +963,7 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 			ReplaceDEFNode(par, node, new_node, updateOrderedGroup);
 		}
 
-		if (new_node) gf_node_register(new_node, par);
+		if (new_node && new_node != par) gf_node_register(new_node, par);
 		gf_node_unregister(node, par);
 		gf_node_changed(par, NULL);
 		if (do_break) break;
