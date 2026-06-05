@@ -206,6 +206,10 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	switch (targetField.fieldType) {
 	case GF_SG_VRML_SFNODE:
 	{
+		if (fromNode == target && fromField.fieldType != targetField.fieldType) {
+			e = GF_BAD_PARAM;
+			break;
+		}
 		GF_Node *newnode;
 		if (fromNode) {
 			newnode = *(GF_Node**)fromField.far_ptr;
@@ -246,7 +250,11 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			}
 		} else {
 			e = gf_bifs_dec_field(codec, bs, target, &targetField, GF_FALSE);
-			if (e) return e;
+			if (e) {
+				if (previous)
+					gf_node_unregister_children(target, previous);
+				return e;
+			}
 		}
 		if (previous)
 			gf_node_unregister_children(target, previous);
@@ -798,8 +806,9 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	new_node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 	if (!new_node && codec->LastError) return codec->LastError;
 
-	if (node != new_node)
+	if (node != new_node) {
 		e = gf_node_replace(node, new_node, GF_FALSE);
+	}
 
 	return e;
 }
@@ -1365,7 +1374,15 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	GF_Node *root;
 
 	/*Reset the existing scene / scene graph, protos and route lists*/
-	if (!proto_list) gf_sg_reset(codec->current_graph);
+	if (!proto_list) {
+		while (gf_list_count(codec->command_buffers)) {
+			CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
+			gf_node_unregister(cbi->node, NULL);
+			gf_free(cbi);
+			gf_list_rem(codec->command_buffers, 0);
+		}
+		gf_sg_reset(codec->current_graph);
+	}
 
 	/*reserved*/
 	gf_bs_read_int(bs, 6);

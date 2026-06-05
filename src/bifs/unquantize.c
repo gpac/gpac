@@ -398,6 +398,9 @@ GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Nod
 	/*check is the QP is on and retrieves the bounds*/
 	if (!Q_IsTypeOn(codec->ActiveQP, QType, &NbBits, &BMin, &BMax)) return GF_EOS;
 
+	if (NbBits / 8 > gf_bs_available(bs))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	/*ok the field is Quantized, dequantize*/
 	switch (QType) {
 	//these are all SFFloat quantized on n fields

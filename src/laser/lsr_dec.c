@@ -787,6 +787,12 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	count = gf_list_count(lsr->deferred_hrefs);
 	for (i=0; i<count; i++) {
 		XMLRI *href = (XMLRI *)gf_list_get(lsr->deferred_hrefs, i);
+		if (gf_list_find(lsr->sg->xlink_hrefs, href) < 0) {
+			gf_list_rem(lsr->deferred_hrefs, i);
+			i--;
+			count--;
+			continue;
+		}
 		char *str_id = href ? href->string : NULL;
 		if (!str_id) return;
 		if (str_id[0] == '#') str_id++;
@@ -2908,6 +2914,7 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 			case 3:
 				values->type = SVG_Points_datatype;
 				break;
+			case 5:
 			case 7:
 			case 8:
 				values->laser_strings = 2; //0=svg, 1=lsr string, 2=lsr coded_type
@@ -5744,6 +5751,9 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					GF_Node *new_node = gf_node_list_del_child_idx(&elt->children, idx);
 					if (new_node) gf_node_unregister(new_node, n);
 				} else {
+					while (gf_list_count(lsr->deferred_anims)) {
+						gf_list_rem_last(lsr->deferred_anims);
+					}
 					gf_node_unregister_children(n, elt->children);
 					elt->children = NULL;
 				}
