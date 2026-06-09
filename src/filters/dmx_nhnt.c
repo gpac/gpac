@@ -374,13 +374,13 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale));
 
 			if (use_gfio) {
-				strcpy(szMedia, gf_fileio_translate_url(p->value.string) );
+				gf_strlcpy(szMedia, gf_fileio_translate_url(p->value.string), sizeof(szMedia) );
 			} else {
-				strcpy(szMedia, p->value.string);
+				gf_strlcpy(szMedia, p->value.string, sizeof(szMedia));
 			}
 			ext = gf_file_ext_start(szMedia);
 			if (ext) ext[0] = 0;
-			strcat(szMedia, ".info");
+			gf_strlcat(szMedia, ".info", sizeof(szMedia));
 
 			finfo = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
 			dsi = NULL;
