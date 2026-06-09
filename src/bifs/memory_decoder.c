@@ -869,6 +869,11 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	codec->LastError = BD_DecSceneReplace(codec, bs, com->new_proto_list);
 	if (codec->LastError) {
 		gf_sg_command_del(com);
+		while (gf_list_count(codec->scenegraph->Routes)) {
+			GF_Route *r = (GF_Route*)gf_list_get(codec->scenegraph->Routes, 0);
+			gf_list_rem(codec->scenegraph->Routes, 0);
+			gf_sg_route_del(r);
+		}
 	}
 	else {
 		com->use_names = codec->UseName;

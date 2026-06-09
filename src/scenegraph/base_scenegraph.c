@@ -468,12 +468,7 @@ restart:
 
 			gf_free(nlist);
 			nlist = next;
-#if 0
-			if (ignore) {
-				node->sgprivate->parents = nlist;
-				continue;
-			}
-#endif
+
 		}
 
 		node->sgprivate->parents = NULL;

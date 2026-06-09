@@ -206,7 +206,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	switch (targetField.fieldType) {
 	case GF_SG_VRML_SFNODE:
 	{
-		if (fromNode == target && fromField.fieldType != targetField.fieldType) {
+		if (fromField.fieldType != targetField.fieldType) {
 			e = GF_BAD_PARAM;
 			break;
 		}
@@ -595,6 +595,15 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	node = gf_bifs_dec_node(codec, bs, NDT);
 	if (!node) return codec->LastError;
 
+	GF_FieldInfo field;
+	e = gf_node_get_field_by_name(def, "children", &field);
+	if (e || !field.far_ptr || field.far_ptr != &(((GF_ParentNode *) def)->children)) {
+		gf_node_register(node, NULL);
+		gf_node_unregister(node, NULL);
+		return e;
+	}
+
+
 	e = gf_node_register(node, def);
 	if (e) return e;
 	e = gf_node_insert_child(def, node, pos);
@@ -608,6 +617,8 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 			return e;
 		}
 		gf_bifs_check_field_change(def, &field);
+	} else {
+		gf_node_unregister(node, def);
 	}
 	return e;
 }
@@ -1404,6 +1415,10 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	if (root) {
 		e = gf_node_register(root, NULL);
 		if (e) goto exit;
+	}
+
+	if (codec->current_graph->RootNode) {
+		gf_node_unregister(codec->current_graph->RootNode, NULL);
 	}
 	gf_sg_set_root_node(codec->current_graph, root);
 
