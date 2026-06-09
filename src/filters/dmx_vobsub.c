@@ -93,7 +93,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	} else if (ctx->idx_pid != pid) {
 		ctx->sub_pid = pid;
 	}
-	
+
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	if (ctx->idx_pid==pid) {
@@ -490,4 +490,3 @@ const GF_FilterRegister *vobsubdmx_register(GF_FilterSession *session)
 #endif
 
 }
-

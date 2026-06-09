@@ -362,7 +362,8 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			vobsub->langs[id].name = lang_table[vobsub_lang_name((u16)lang_id)].lang;
 			vobsub->langs[id].idx = id;
 
-			vobsub->langs[id].subpos = gf_list_new();
+			if (!vobsub->langs[id].subpos)
+				vobsub->langs[id].subpos = gf_list_new();
 			if (vobsub->langs[id].subpos == NULL)
 			{
 				error = 1;
@@ -370,7 +371,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			}
 
 			delay = 0;
-			vobsub->num_langs++;
+			vobsub->num_langs = MIN( vobsub->num_langs+1, GF_ARRAY_LENGTH(vobsub->langs) );
 		}
 		else if (id >= 0 && stricmp(entry, "delay") == 0)
 		{
