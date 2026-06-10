@@ -38,7 +38,7 @@ NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
 
 #include "tiny_aes.h"
 
-#if !defined(GPAC_HAS_SSL) || defined(GPAC_HAS_GNUTLS)
+#if !defined(GPAC_HAS_SSL)
 
 /*****************************************************************************/
 /* Defines:                                                                  */
