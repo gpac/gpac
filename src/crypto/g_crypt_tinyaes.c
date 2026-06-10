@@ -25,7 +25,7 @@
 
 #include <gpac/internal/crypt_dev.h>
 
-#if !defined(GPAC_HAS_SSL) || defined(GPAC_HAS_GNUTLS)
+#if !defined(GPAC_HAS_SSL)
 #include "tiny_aes.h"
 
 #include <math.h>

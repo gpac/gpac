@@ -1117,7 +1117,18 @@ void gf_log_pop_extra(const GF_LogExtra *log);
 */
 void gf_log_reset_extras();
 
-#define GF_DBG(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+//#define GF_DBG(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+    #define GF_FUNC_NAME __func__
+#elif defined(__GNUC__) || defined(__clang__)
+    #define GF_FUNC_NAME __FUNCTION__
+#else
+    #define GF_FUNC_NAME "nofunc"
+#endif
+
+#define GF_DBG(fmt, ...) \
+    fprintf(stderr, "%s:%d:%s: " fmt "\n", __FILE__, __LINE__, GF_FUNC_NAME, ##__VA_ARGS__)
+
 
 /*!	@} */
 
