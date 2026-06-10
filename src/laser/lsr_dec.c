@@ -5972,6 +5972,10 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 		gf_bs_align(lsr->bs);
 		/*not in memory mode, direct decode*/
 		if (!lsr->memory_dec) {
+			if (s_len > (u32)gf_bs_available(lsr->bs)) {
+				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			com_list = NULL;
 			up->data_size = s_len;
 			up->data = (char*)gf_malloc(sizeof(char)*s_len);

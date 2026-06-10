@@ -2665,6 +2665,12 @@ multiple_riff:
 
 		// Number of frames; only one audio track supported
 		nvi = AVI->video_frames = AVI->total_frames;
+
+		if (nvi <= 0 || nvi >= GF_INT_MAX/sizeof(video_index_entry)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] invalid nvi value %d\n", nvi));
+			ERR_EXIT(AVI_ERR_READ);
+		}
+
 		nai[0] = AVI->track[0].audio_chunks = AVI->total_frames;
 		for(j=1; j<AVI->anum; ++j) AVI->track[j].audio_chunks = 0;
 
