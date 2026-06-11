@@ -616,8 +616,11 @@ function update_play()
 	}
 
 	let src = vout ? vout.ipid_source(0) : aout.ipid_source(0);
-	let hdr = src.ipid_props(0, 'X-From-MABR');
-	if (!hdr) hdr = src.ipid_props(0, 'x-from-mabr');
+	let hdr = null;
+	if (src) {
+		hdr = src.ipid_props(0, 'X-From-MABR');
+		if (!hdr) hdr = src.ipid_props(0, 'x-from-mabr');
+	}
 	if (hdr) {
 		text.fontsize = 16;
 		let msg = 'MABR ' + ((hdr=='yes') ? 'on' : ((hdr=='no') ? 'off' : hdr));
