@@ -5276,7 +5276,8 @@ char *gf_fs_get_defined_metrics(GF_FilterSession *fs)
 			"freg=*;ohead_pck=Per-packet Overhead;i=per-packet overhead of mux, packetization...;u=bytes\n"\
 			"freg=*;twnd=Statistic window time;u=ms\n"\
 			"freg=*;wait=Waiting;i=Filter is in a waiting state;u=bool\n"\
-			"freg=*;wait=Buffer occupancy;i=buffer occupancy as (current buffer) / (target max buffer);u=ms;t=frac\n"
+			"freg=*;buffer=Buffer occupancy;i=buffer occupancy as (current buffer) / (target max buffer);u=ms;t=frac\n"\
+			"freg=*;fps=Frames per second;u=fps\n"
 		, NULL);
 
 	//custom metrics
