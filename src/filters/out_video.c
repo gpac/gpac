@@ -1883,9 +1883,10 @@ static GF_Err vout_process(GF_Filter *filter)
 			ctx->buffer = ctx->rbuffer = 0;
 		} else {
 			//query full buffer duration in us
-			u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+			u32 max_buf=0;
+			u64 dur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", (u32) (dur/1000), ctx->buffer));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] buffer %d / %d ms\r", (u32) (dur/1000), (u32)(max_buf/1000)));
 			if (!ctx->buffer_done) {
 				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 					gf_filter_ask_rt_reschedule(filter, 100000);
@@ -2156,7 +2157,8 @@ draw_frame:
 
 	if (ctx->last_pck && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
-		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		u32 max_buf=0;
+		u64 dur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
 		Double fps = 0;
 		if (ctx->clock_at_first_frame) {
 			fps = ctx->nb_frames;
@@ -2166,7 +2168,7 @@ draw_frame:
 			ctx->clock_at_first_frame = gf_sys_clock_high_res();
 		}
 		sprintf(szStatus, "info=\"%dx%d %s\" time="LLU"/%d buffer=%d/%d ms fps=%02.02f", ctx->display_width, ctx->display_height,
-		 	gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), ctx->buffer, fps);
+			gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), (u32)(max_buf/1000), fps);
 		gf_filter_update_status(filter, 0, szStatus);
 	}
 

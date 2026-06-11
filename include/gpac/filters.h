@@ -3929,6 +3929,12 @@ void gf_filter_pid_set_max_buffer(GF_FilterPid *PID, u32 total_duration_us);
 */
 u32 gf_filter_pid_get_max_buffer(GF_FilterPid *PID);
 
+/*! Copies buffer requirement settings from source to destination.
+ \param dst the target filter PID
+ \param src the source filter PID
+*/
+void gf_filter_pid_copy_buffer_req(GF_FilterPid *dst, GF_FilterPid *src);
+
 /*! Checks if a given filter is in the PID parent chain. This is used to identify sources (rather than checking URL/...)
 \param PID the target filter PID
 \param filter the source filter to check
@@ -4197,9 +4203,18 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *PID, Bool requires_full_bloc
 /*! Gets cumulated buffer duration of PID (recursive until source)
 \param PID the target filter PID
 \param check_pid_full if GF_TRUE, returns 0 if the PID buffer is not yet full, or GF_FILTER_NO_TS if pid buffer is full
-\return the duration in us, or -1 if session is in final flush
+\return the duration in us, or 0 if session is in final flush
 */
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *PID, Bool check_pid_full);
+
+
+/*! Gets cumulated buffer duration of PID (recursive until source) and maximum buffer along path
+\param PID the target filter PID
+ \param max_buffer set to maximum buffer size along path, may be NULL
+ \return the duration in us, or 0 if session is in final flush
+*/
+u64 gf_filter_pid_query_buffer_duration_and_max(GF_FilterPid *PID, u32 *max_buffer);
+
 
 /*! Try to force a synchronous flush of the filter chain downwards this PID. If refetching a packet returns NULL, this failed.
 \param PID the target filter PID

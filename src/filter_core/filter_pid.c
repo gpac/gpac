@@ -339,6 +339,9 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		if ((mtype==i_type) && (codecid != i_codecid)) {
 
 			buffer_us = pid->filter->pid_decode_buffer_max_us ? pid->filter->pid_decode_buffer_max_us : pid->filter->session->decoder_pid_buffer_max_us;
+			//buffer req was set on this pid but this is a decoder, move requirement to source and setup compostion (decoded) buffer based on media type
+			if (pid->user_max_buffer_time)
+				buffer_us = pid->user_max_buffer_time;
 			//default decoder buffer
 			pidi->pid->max_buffer_time = MAX(pidi->pid->user_max_buffer_time, buffer_us);
 			pidi->pid->max_buffer_unit = 0;
@@ -346,10 +349,13 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 			//composition buffer
 			if (pid->filter->pid_buffer_max_units) {
 				pid->max_buffer_unit = pid->filter->pid_buffer_max_units;
+				pid->max_buffer_time = 0;
 			} else if (mtype==GF_STREAM_VISUAL) {
-				pid->max_buffer_unit = 4;
+				pid->max_buffer_unit = 3;
+				pid->max_buffer_time = 0;
 			} else if (mtype==GF_STREAM_AUDIO) {
-				pid->max_buffer_unit = 20;
+				pid->max_buffer_unit = 5;
+				pid->max_buffer_time = 0;
 			}
 
 			if (!pidi->is_decoder_input) {
@@ -7653,16 +7659,34 @@ Bool gf_filter_pid_is_sparse(GF_FilterPid *pid)
 	return pid->pid->is_sparse;
 }
 
-static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool check_pid_full, Bool force_update)
+static GFINLINE u32 get_pid_buf_max(GF_FilterPid *pid)
+{
+	if (pid->max_buffer_time) {
+		return pid->max_buffer_time;
+	} else if (pid->nb_buffer_unit==pid->max_buffer_unit) {
+		return pid->buffer_duration;
+	} else if (pid->nb_buffer_unit) {
+		return pid->buffer_duration * pid->nb_buffer_unit / pid->max_buffer_unit;
+	} else {
+		GF_PropertyMap *props = gf_list_last(pid->properties);
+		if (props->timescale)
+			return gf_timestamp_rescale(pid->min_pck_duration * pid->max_buffer_unit, props->timescale, 1000000);
+	}
+	return 0;
+}
+
+static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool check_pid_full, Bool force_update, u32 *buffer_max)
 {
 	u32 count, i, j;
 	u64 duration=0;
-	if (!pid || pid->filter->session->in_final_flush)
-		return GF_FILTER_NO_TS;
+	if (!pid)
+		return 0;
 
 	if (PID_IS_INPUT(pid)) {
 		GF_Filter *filter;
 		GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+		if (buffer_max)
+			*buffer_max  = 0;
 		if (!pidinst->pid) return 0;
 		filter = pidinst->pid->filter;
 		if (check_pid_full) {
@@ -7693,6 +7717,7 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 		//if many PIDs (large tiling configurations for example)
 		//we cache the last computed value and only update every 10 ms
 		if (!force_update && (pidinst->filter->last_schedule_task_time - pidinst->last_buf_query_clock < 10000)) {
+			if (buffer_max) *buffer_max = pidinst->last_buf_query_max;
 			return pidinst->last_buf_query_dur;
 		}
 		pidinst->last_buf_query_clock = pidinst->filter->last_schedule_task_time;
@@ -7700,10 +7725,14 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 
 		gf_mx_p(filter->tasks_mx);
 		count = filter->num_input_pids;
+		u32 bmax=0;
 		for (i=0; i<count; i++) {
-			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), GF_FALSE, force_update);
+			u32 loc_bmax=0;
+			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), GF_FALSE, force_update, buffer_max ? &loc_bmax : NULL);
 			if (dur > duration)
 				duration = dur;
+			if (buffer_max && (bmax<loc_bmax))
+				bmax = loc_bmax;
 
 			//only probe for first pid when this is a mux or a reassembly filter
 			//this is not as precise but avoids spending too much time here for very large number of input pids (tiling)
@@ -7711,8 +7740,15 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 				break;
 		}
 		gf_mx_v(filter->tasks_mx);
+		if (buffer_max) {
+			*buffer_max += bmax;
+			*buffer_max += get_pid_buf_max(pidinst->pid);
+		}
 		duration += pidinst->buffer_duration;
 		pidinst->last_buf_query_dur = duration;
+		if (buffer_max) {
+			pidinst->last_buf_query_max = *buffer_max;
+		}
 		return duration;
 	} else {
 		u32 count2;
@@ -7726,17 +7762,27 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 		}
 
 		count = pid->num_destinations;
+		u32 bmax = 0;
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, i);
 
 			count2 = pidinst->filter->num_output_pids;
 			for (j=0; j<count2; j++) {
 				GF_FilterPid *pid_n = gf_list_get(pidinst->filter->output_pids, i);
-				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, GF_FALSE, GF_FALSE);
-				if (dur > max_dur ) max_dur = dur;
+				u32 loc_bmax=0;
+				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, GF_FALSE, GF_FALSE, buffer_max ? &loc_bmax : 0);
+				if (dur > max_dur )
+					max_dur = dur;
+				if (buffer_max && (bmax < loc_bmax))
+					bmax = loc_bmax;
 			}
 		}
 		duration += max_dur;
+		if (buffer_max) {
+			*buffer_max += bmax;
+			*buffer_max += get_pid_buf_max(pid);
+
+		}
 	}
 	return duration;
 }
@@ -7744,9 +7790,15 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 GF_EXPORT
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 {
-	return gf_filter_pid_query_buffer_duration_internal(pid, check_pid_full, GF_FALSE);
-
+	return gf_filter_pid_query_buffer_duration_internal(pid, check_pid_full, GF_FALSE, NULL);
 }
+
+GF_EXPORT
+u64 gf_filter_pid_query_buffer_duration_and_max(GF_FilterPid *pid, u32 *buffer_max)
+{
+	return gf_filter_pid_query_buffer_duration_internal(pid, GF_FALSE, GF_FALSE, buffer_max);
+}
+
 GF_EXPORT
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 {
@@ -9032,9 +9084,30 @@ u32 gf_filter_pid_get_max_buffer(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Querying max buffer on output PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return 0;
 	}
-	return pid->pid->user_max_buffer_time;
+	u32 max_buf;
+	gf_filter_pid_query_buffer_duration_and_max(pid, &max_buf);
+	return max_buf;
+	//return pid->pid->user_max_buffer_time;
 }
 
+GF_EXPORT
+void gf_filter_pid_copy_buffer_req(GF_FilterPid *dst, GF_FilterPid *src)
+{
+	if (PID_IS_OUTPUT(src) || PID_IS_INPUT(dst)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Copying buffer requirement settings between incompatile source/dest PIDs (%s:%s to %s;%s)\n", src->pid->name, src->filter->name, dst->pid->name, dst->filter->name));
+		return;
+	}
+	src = src->pid;
+	if (src->max_buffer_unit) {
+		dst->max_buffer_unit = src->max_buffer_unit;
+		src->max_buffer_unit = 1;
+		dst->max_buffer_time = 0;
+	} else {
+		dst->max_buffer_time = src->max_buffer_time;
+		src->max_buffer_time = 1000;
+		dst->max_buffer_unit = 0;
+	}
+}
 
 GF_EXPORT
 void gf_filter_pid_set_loose_connect(GF_FilterPid *pid)

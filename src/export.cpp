@@ -2788,6 +2788,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_would_block ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_is_sparse ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_query_buffer_duration ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_query_buffer_duration_and_max ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_has_seen_eos ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_eos_received ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_send_event ) )
@@ -2802,6 +2803,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_clock_mode ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_args ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_max_buffer ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_copy_buffer_req ) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_max_buffer ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_loose_connect ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_caps_query ) )

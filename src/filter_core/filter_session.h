@@ -1036,6 +1036,7 @@ struct __gf_filter_pid_inst
 
 	u64 last_buf_query_clock;
 	u64 last_buf_query_dur;
+	u32 last_buf_query_max;
 
 	/*! last RT info update time - input pid only */
 	u64 last_rt_report;

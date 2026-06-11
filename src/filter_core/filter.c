@@ -5289,21 +5289,26 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 		if (filter->status_str) filter->status_str[0] = 0;
 		return GF_OK;
 	}
-	len = (u32) strlen(szStatus);
-	if (len>=filter->status_str_alloc) {
-		filter->status_str_alloc = len+1;
-		filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
-		if (!filter->status_str) {
-			filter->status_str_alloc = 0;
-			return GF_OUT_OF_MEM;
+	Bool changed = GF_FALSE;
+	if (!filter->status_str || strcmp(szStatus, filter->status_str)) {
+		changed = GF_TRUE;
+		len = (u32) strlen(szStatus);
+		if (len>=filter->status_str_alloc) {
+			filter->status_str_alloc = len+1;
+			filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
+			if (!filter->status_str) {
+				filter->status_str_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
+		memcpy(filter->status_str, szStatus, len+1);
 	}
-	memcpy(filter->status_str, szStatus, len+1);
-	filter->status_percent = percent;
+	if (filter->status_percent != percent) {
+		filter->status_percent = percent;
+		changed = GF_TRUE;
+	}
+	if (!changed) return GF_OK;
 	filter->report_updated = GF_TRUE;
-
-	if ((s32)percent<0)
-		return GF_OK;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_PROGRESS;
