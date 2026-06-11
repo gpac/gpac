@@ -5252,3 +5252,43 @@ Bool gf_filter_on_main_thread(GF_Filter *filter)
 	return GF_TRUE;
 }
 #endif
+
+GF_EXPORT
+char *gf_fs_get_defined_metrics(GF_FilterSession *fs)
+{
+	char *session_metrics = NULL;
+
+	//builtin metrics
+	gf_dynstrcat(&session_metrics,
+			"freg=*;prog=Progress\n"\
+			"freg=*;done=Done;u=bool\n"\
+			"freg=*;pc=Percent;u=pc\n"\
+			"freg=*;info=Information;t=str\n"\
+			"freg=*;type=Stream Type;t=str;v=[V:Video,A:Audio,T:Text,M:Metadata]\n"\
+			"freg=*;time=Time;u=s\n"\
+			"freg=*;r_rate=Reception rate;u=kbps\n"\
+			"freg=*;r_bytes=Bytes received\n"\
+			"freg=*;r_pck=Packets received\n"\
+			"freg=*;s_rate=Send rate;u=kbps\n"\
+			"freg=*;s_bytes=Bytes sent\n"\
+			"freg=*;s_pck=Packets sent\n"\
+			"freg=*;ohead=Mux Overhead;u=pc\n"\
+			"freg=*;ohead_pck=Per-packet Overhead;i=per-packet overhead of mux, packetization...;u=bytes\n"\
+			"freg=*;twnd=Statistic window time;u=ms\n"\
+			"freg=*;wait=Waiting;i=Filter is in a waiting state;u=bool\n"\
+			"freg=*;wait=Buffer occupancy;i=buffer occupancy as (current buffer) / (target max buffer);u=ms;t=frac\n"
+		, NULL);
+
+	//custom metrics
+	gf_mx_p(fs->filters_mx);
+	u32 i, count = gf_list_count(fs->additionnal_metrics);
+	for (i=0;i<count; i++) {
+		GF_FSCustomMetric *met = gf_list_get(fs->additionnal_metrics, i);
+		gf_dynstrcat(&session_metrics, "freg=", NULL);
+		gf_dynstrcat(&session_metrics, met->reg_name, NULL);
+		gf_dynstrcat(&session_metrics, met->metric, ";");
+		gf_dynstrcat(&session_metrics, "\n", NULL);
+	}
+	gf_mx_v(fs->filters_mx);
+	return session_metrics;
+}

@@ -589,6 +589,17 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *filter_reg, u32 in
 */
 void gf_fs_enable_reporting(GF_FilterSession *session, Bool reporting_on);
 
+/*! Get defined metrics for the current session, as reported by filters - cf \ref gf_filter_update_status
+
+Each metric is reported as a single formated as `freg=REG;METRIC`, with:
+- REG: the name of the filter registry adding the metric, or `*` for global metrics
+- METRIC: the metric string formated as indicated in \ref gf_filter_add_status_metric
+
+ \param session filter session
+ \return the metrics definition string - MUST be freed by caller
+ */
+char *gf_fs_get_defined_metrics(GF_FilterSession *session);
+
 /*! Locks global session mutex - mostly used to query filter reports and avoids concurrent destruction of a filter.
  When adding a filter in an already running session, the session must be locked if set_source is to be used.
 \param session filter session
@@ -2434,7 +2445,7 @@ void *gf_filter_get_rt_udta(GF_Filter *filter);
   * 'pc' (t=num): explicit percentage, can be used together with prog
   * 'info' (t=str): custom info, in double quotes if space is present
   * 'type'' (t=str): stream type, one of V, A, T, M
-  * 'time'' (t=str): time in second
+  * 'time'' (t=num): time in second
   * 'r_rate' (t=num, u=kbps): reception rate
   * 'r_bytes' (t=num): number of bytes received
   * 'r_pck' (t=num): number of packets received
@@ -2442,7 +2453,7 @@ void *gf_filter_get_rt_udta(GF_Filter *filter);
   * 's_bytes' (t=num): number of bytes sent
   * 's_pck' (t=num): number of packets sent
   * 'ohead' (t=num, u=pc): overhead of mux / packetization / etc, in percent
-  * 'ohead_pc' (t=num): per-packet overhead of mux / packetization / etc in bytes per packet
+  * 'ohead_pck' (t=num): per-packet overhead of mux / packetization / etc in bytes per packet
   * 'twnd' (t=num, u=ms): time window for stats reporting if any
   * 'wait' (t=bool, no value, must appear first):  indicate the filter is in a waiting state (usually info gives some details)
   * 'buffer' (t=frac, u=ms): buffer occupancy cur/max, with cur the current buffer in ms and max the target max buffer in ms
