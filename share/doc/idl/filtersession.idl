@@ -220,7 +220,7 @@ readonly attribute boolean last_connect_error;
 /*! File path of source script*/
 readonly attribute DOMString jspath;
 
-/*! Custom metrics defined by session and loaded filters - see gf_fs_get_defined_metrics
+/*! filter metrics defined by session and loaded filters - see gf_fs_get_defined_metrics
 
 The metric string is prefixed with the `freg=FNAME;` indicating the registry name of the filter defining it, eg `freg=rfnalu;metric`. `freg=*` indicate a built-in metric.
 
