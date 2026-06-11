@@ -521,8 +521,8 @@ void section_DSMCC_INT(GF_M2TS_IP_PLATFORM* ip_platform,u8 *data, u32 data_size)
 
 
 	length = data_size ;
-
 	data += 12 ;
+	length -= 12;
 
 	if (!ip_platform || !ip_platform->ip_streams) return;
 	i = dsmcc_pto_platform_descriptor_loop(ip_platform,data);
@@ -530,12 +530,23 @@ void section_DSMCC_INT(GF_M2TS_IP_PLATFORM* ip_platform,u8 *data, u32 data_size)
 	length -= i;
 
 	while (length > 4) {
+
+		u32 loop_length = ((data[0]) & 0xF ) | data[1];
+		if (loop_length > length)
+			break;
+
 		GF_M2TS_IP_Stream *ip_str;
 		GF_SAFEALLOC(ip_str,GF_M2TS_IP_Stream );
 
 		i = dsmcc_pto_descriptor_loop(ip_str,data);
 		data   += i;
 		length -= i;
+
+		loop_length = ((data[0]) & 0xF ) | data[1];
+		if (loop_length > length) {
+			gf_free(ip_str);
+			break;
+		}
 
 		i = dsmcc_pto_descriptor_loop(ip_str,data);
 		data   += i;
@@ -572,6 +583,7 @@ u32 dsmcc_pto_platform_descriptor_loop(GF_M2TS_IP_PLATFORM* ip_platform, u8 *dat
 u32  platform_descriptorDSMCC_INT_UNT(GF_M2TS_IP_PLATFORM* ip_platform, u8 *data)
 
 {
+	if (!data) return 0;
 	u32 length;
 	u32 id;
 
@@ -648,6 +660,7 @@ u32 dsmcc_pto_descriptor_loop ( GF_M2TS_IP_Stream *ip_str,u8 *data)
 u32  descriptorDSMCC_INT_UNT(GF_M2TS_IP_Stream *ip_str,u8 *data)
 
 {
+	if (!data) return 0;
 	u32 length;
 	u32 id;
 
@@ -684,15 +697,16 @@ u32  descriptorDSMCC_INT_UNT(GF_M2TS_IP_Stream *ip_str,u8 *data)
 
 void descriptorTime_slice_fec_identifier( GF_M2TS_IP_Stream *ip_str,u8 * data)
 {
-
 	ip_str->time_slice_fec.time_slicing = (data[2] >> 7) & 0x1;
 	ip_str->time_slice_fec.mpe_fec = (data[2] >> 5 ) & 0x3 ;
 	ip_str->time_slice_fec.frame_size = data[2] & 0x7 ;
 	ip_str->time_slice_fec.max_burst_duration = data[3];
 	ip_str->time_slice_fec.max_average_rate = (data[4]  >> 4) & 0xf ;
 	ip_str->time_slice_fec.time_slice_fec_id = data[4] & 0xf;
-	ip_str->time_slice_fec.id_selector = gf_malloc( data[1] - 3 ) ;
-	memcpy(ip_str->time_slice_fec.id_selector, data + 4, data[1]-3 );
+	if (data[1] > 3) {
+		ip_str->time_slice_fec.id_selector = gf_malloc( data[1] - 3 ) ;
+		memcpy(ip_str->time_slice_fec.id_selector, data + 4, data[1]-3 );
+	}
 	return ;
 }
 
