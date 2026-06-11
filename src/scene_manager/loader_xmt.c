@@ -1508,7 +1508,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	node = NULL;
 	if (!strcmp(name, "NULL")) return NULL;
 	if (!strcmp(name, "ROUTE")) {
-		if (!parser->parsing_proto && (parser->doc_type==1) ) {
+		if (!parser->parsing_proto && (parser->doc_type==1) && parser->scene_au ) {
 			GF_Command *sgcom = gf_sg_command_new(parser->load->scene_graph, GF_SG_ROUTE_INSERT);
 			gf_list_add(parser->scene_au->commands, sgcom);
 			xmt_parse_route(parser, attributes, nb_attributes, 0, sgcom);
@@ -1834,8 +1834,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					ID = xmt_get_node_id(parser, att->value);
 					xmt_report(parser, GF_OK, "Warning: Node %s has been defined several times - IDs may get corrupted", att->value);
 				} else {
-					gf_node_register(node, NULL);
-					gf_node_unregister(node, NULL);
+					if (node != undef_node) {
+						gf_node_register(node, NULL);
+						gf_node_unregister(node, NULL);
+					}
 					node = undef_node;
 					ID = 0;
 				}
@@ -1859,8 +1861,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			}
 
 			/*DESTROY NODE*/
-			gf_node_register(node, NULL);
-			gf_node_unregister(node, NULL);
+			if (node != def_node) {
+				gf_node_register(node, NULL);
+				gf_node_unregister(node, NULL);
+			}
 
 			if (e) return NULL;
 
@@ -1939,11 +1943,11 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		}
 	}
 
-	if (!parser->parsing_proto && (tag || proto) )
+	if (node && !parser->parsing_proto && (tag || proto) )
 		gf_node_init(node);
 
 	/*For Ivica: load proto as soon as found when in playback mode*/
-	if ( (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && proto && !parser->parsing_proto) {
+	if ( node && (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && proto && !parser->parsing_proto) {
 		parser->last_error = gf_sg_proto_load_code(node);
 	}
 	return node;
@@ -2914,11 +2918,13 @@ attach_node:
 			if (parser->doc_type == 1) {
 				GF_CommandField *inf;
 				Bool single_node = 0;
-				node_processed = GF_TRUE;
 				if (!parser->command) {
 					gf_assert(0);
+					gf_node_register(node, NULL);
+					gf_node_unregister(node, NULL);
 					return;
 				}
+				node_processed = GF_TRUE;
 				switch (parser->command->tag) {
 				case GF_SG_SCENE_REPLACE:
 					if (parser->parsing_proto) {
@@ -3241,14 +3247,22 @@ static void load_xmt_done(GF_SceneLoader *load)
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
 	if (!parser) return;
 
+	GF_List* cleaned_nodes = gf_list_new();
+
 	while (1) {
 		XMTNodeStack *st = (XMTNodeStack *)gf_list_last(parser->nodes);
 		if (!st) break;
 		gf_list_rem_last(parser->nodes);
-		gf_node_register(st->node, NULL);
-		gf_node_unregister(st->node, NULL);
+		if (gf_list_find(cleaned_nodes, st->node) < 0) {
+			gf_node_register(st->node, NULL);
+			gf_node_unregister(st->node, NULL);
+			gf_list_add(cleaned_nodes, st->node);
+		}
 		gf_free(st);
 	}
+
+	gf_list_del(cleaned_nodes);
+
 	if (parser->x3d_root) gf_free(parser->x3d_root);
 	gf_list_del(parser->nodes);
 	//we may have one root desc remaining if error
