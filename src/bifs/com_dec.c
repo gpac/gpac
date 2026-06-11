@@ -1146,7 +1146,11 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 
 			if (codec->info->config.UsePredictiveMFField) {
 				flag = gf_bs_read_int(bs, 1);
-				gf_assert(!flag);
+				if (flag) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Extern proto MFUrl with predictive coding is not allowed\n"));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
 			}
 			/*reserved*/
 			gf_bs_read_int(bs, 1);
