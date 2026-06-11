@@ -159,11 +159,6 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 		}
 	}
 
-#ifdef GPAC_HAS_QJS
-	if (fs->jstasks && jsfs_on_event(fs, evt))
-		return GF_TRUE;
-#endif
-
 	if (evt->type==GF_EVENT_AUTHORIZATION) {
 #ifdef GPAC_HAS_QJS
 		if (fs->jstasks && jsfs_on_auth(fs, evt))
@@ -4764,7 +4759,13 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 	gf_mx_p(session->ui_mx);
 	ret = session->ui_event_proc(session->ui_opaque, uievt);
 	gf_mx_v(session->ui_mx);
-	return ret;
+	if (ret) return GF_TRUE;
+
+#ifdef GPAC_HAS_QJS
+	if (session->jstasks && jsfs_on_event(session, uievt))
+		return GF_TRUE;
+#endif
+	return GF_FALSE;
 }
 
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load)
