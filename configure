@@ -1553,11 +1553,12 @@ config_package ()
     config_package_test "$1" "$2" "$3" "$4" "$5" "$6"
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
-        if test "$pname" = "ngtcp2" ; then
-            eval "ldflags_$pname=\"$pck_ldflags -lngtcp2_crypto_quictls\""
-        else
-            eval "ldflags_$pname=\"$pck_ldflags\""
-        fi
+        eval "ldflags_$pname=\"$pck_ldflags\""
+        # if test "$pname" = "ngtcp2" ; then
+        #     eval "ldflags_$pname=\"$pck_ldflags -lngtcp2_crypto_quictls\""
+        # else
+        #     eval "ldflags_$pname=\"$pck_ldflags\""
+        # fi
     fi
 
     eval "has_$pname=\"$has_pck\""
@@ -1797,10 +1798,17 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
-config_package ngtcp2 "libngtcp2" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
+if test "$has_gnutls" != "no" ; then
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_gnutls" "" "-lngtcp2 -lngtcp2_crypto_gnutls" "" '#include <stdio.h>
+#include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto_gnutls.h>
+int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
+else
+config_package ngtcp2 "libngtcp2 libngtcp2_crypto_quictls" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
 int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
+fi
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
 #include <nghttp3/nghttp3.h>
@@ -2883,10 +2891,6 @@ echo "#define GPAC_ASSERT_FATAL" >> $TMPH
 fi
 
 
-echo "HAS_OPENSSL=$has_ssl" >> config.mak
-if test "$has_ssl" != "no" ; then
-    echo "#define GPAC_HAS_SSL" >> $TMPH
-fi
 
 set -x
 #gnutls takes precedence over openssl if present
@@ -2894,12 +2898,25 @@ echo "HAS_GNUTLS=$has_gnutls" >> config.mak
 if test "$has_gnutls" != "no" ; then
     # cflags_ssl=$cflags_gnutls
     # ldflags_ssl=$ldflags_gnutls
-    cflags_ssl="$cflags_ssl $cflags_gnutls $cflags_nettle"
-    ldflags_ssl="$ldflags_ssl $ldflags_gnutls $ldflags_nettle"
-    echo "#ifndef GPAC_HAS_SSL" >> $TMPH
+    # cflags_ssl="$cflags_ssl $cflags_gnutls $cflags_nettle"
+    # ldflags_ssl="$ldflags_ssl $ldflags_gnutls $ldflags_nettle"
+
+    cflags_ssl="$cflags_gnutls $cflags_nettle"
+    ldflags_ssl="$ldflags_gnutls $ldflags_nettle"
+
+    # echo "#ifndef GPAC_HAS_SSL" >> $TMPH
+    # echo "#define GPAC_HAS_SSL" >> $TMPH
+    # echo "#endif //GPAC_HAS_SSL" >> $TMPH
+
     echo "#define GPAC_HAS_SSL" >> $TMPH
-    echo "#endif //GPAC_HAS_SSL" >> $TMPH
     echo "#define GPAC_HAS_GNUTLS" >> $TMPH
+
+    echo "HAS_OPENSSL=no" >> config.mak
+else
+    echo "HAS_OPENSSL=$has_ssl" >> config.mak
+    if test "$has_ssl" != "no" ; then
+        echo "#define GPAC_HAS_SSL" >> $TMPH
+    fi
 fi
 set +x
 
@@ -3031,7 +3048,7 @@ if test "$has_nghttp2" != "no" ; then
     echo "#define GPAC_HAS_HTTP2" >> $TMPH
 fi
 
-if test "$has_ngtcp2" != "no" ; then
+if test "$has_ngtcp2" != "no" -a "$has_nghttp3" != "no" ; then
     echo "#define GPAC_HAS_NGTCP2" >> $TMPH
 fi
 

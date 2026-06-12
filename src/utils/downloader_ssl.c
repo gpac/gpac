@@ -32,7 +32,11 @@
 
 #ifdef GPAC_HAS_NGTCP2
 #include <ngtcp2/ngtcp2_crypto.h>
+#ifdef GPAC_HAS_GNUTLS
+#include <ngtcp2/ngtcp2_crypto_gnutls.h>
+#else
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
+#endif
 #endif
 
 #ifdef GPAC_HAS_SSL
@@ -399,17 +403,18 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
 	//configure H3
 	if (dm->h3_mode && !no_quic) {
 #ifdef GPAC_HAS_NGTCP2
+#ifndef GPAC_HAS_GNUTLS // openssl
 		if (ngtcp2_crypto_quictls_configure_client_context(dm->ssl_ctx) != 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
 			dm->h3_mode = H3_MODE_NO;
 		} else {
-#ifndef GPAC_HAS_GNUTLS // openssl
 			strcat(ALPN_PROTOS, "\x02h3");
-#else
-			alpn_protos[alpn_count++] = alpn_h3;
-#endif
 		}
-#endif
+#else // gnutls
+		alpn_protos[alpn_count++] = alpn_h3;
+#endif // ssl lib
+
+#endif // is quic
 	}
 
 #ifndef GPAC_HAS_GNUTLS // openssl
@@ -441,10 +446,10 @@ void h2_initialize_session(GF_DownloadSession *sess);
 
 #if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 
+#ifndef GPAC_HAS_GNUTLS // openssl
+
 static unsigned char next_proto_list[256];
 static size_t next_proto_list_len;
-
-#ifndef GPAC_HAS_GNUTLS // openssl
 
 #ifndef OPENSSL_NO_NEXTPROTONEG
 static int next_proto_cb(SSL *ssl, const unsigned char **data, unsigned int *len, void *arg)
@@ -509,7 +514,7 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned ch
 #endif //GPAC_HAS_HTTP2
 
 
-#if !defined(LIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2)
+#if !defined(LIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2) && !defined(GPAC_HAS_GNUTLS)
 int ngq_gen_ticket_cb(SSL *ssl, void *arg)
 {
 	ngtcp2_crypto_conn_ref *cref = (ngtcp2_crypto_conn_ref *) SSL_get_app_data(ssl);
@@ -563,7 +568,9 @@ SSL_TICKET_RETURN ngq_decrypt_ticket_cb(SSL *ssl, SSL_SESSION *session, const un
 	return SSL_TICKET_RETURN_USE_RENEW;
 	}
 }
-#endif // !definedLIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2)
+
+//TODO: look into 0-RTT ticket support for gnutls with gnutls_db_set_store_function() or gnutls_session_ticket_enable_server()
+#endif // !definedLIBRESSL_VERSION_NUMBER) && defined(GPAC_HAS_NGTCP2) && !defined(GPAC_HAS_GNUTLS)
 
 
 
@@ -578,7 +585,9 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
 #ifdef GPAC_HAS_NGTCP2
 	if (for_quic) {
+#ifndef GPAC_HAS_GNUTLS
 		method = TLS_server_method();
+#endif
 	}
 #else
 	if (for_quic) return NULL;
@@ -611,8 +620,8 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 	}
 #endif
 
-	//configure H2
-#ifdef GPAC_HAS_HTTP2
+	//configure H2 for openssl
+#if defined(GPAC_HAS_HTTP2) && !defined(GPAC_HAS_GNUTLS)
 	if (!for_quic && !gf_opts_get_bool("core", "no-h2")) {
 		next_proto_list[0] = NGHTTP2_PROTO_VERSION_ID_LEN;
 		memcpy(&next_proto_list[1], NGHTTP2_PROTO_VERSION_ID, NGHTTP2_PROTO_VERSION_ID_LEN);
@@ -623,6 +632,7 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
 #ifdef GPAC_HAS_NGTCP2
 	if (for_quic) {
+#ifndef GPAC_HAS_GNUTLS // quictls
 		ngtcp2_crypto_quictls_configure_server_context(ctx);
 
 		next_proto_list[next_proto_list_len] = 2;
@@ -648,6 +658,14 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
 		SSL_CTX_set_ciphersuites(ctx, "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256");
 		SSL_CTX_set1_groups_list(ctx, "X25519:P-256:P-384:P-521");
+
+#else // GPAC_HAS_GNUTLS
+        // GnuTLS: no context-level QUIC setup.
+        // ngtcp2_crypto_gnutls_configure_server_session() is called
+        // per-session in gf_quic_create_connection() in downloader_ngtcp2.c.
+        // The gnutls_certificate_credentials_t ctx already holds cert+key; nothing else needed.
+
+#endif // GPAC_HAS_GNUTLS
 	}
 #endif
 
@@ -1041,11 +1059,20 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 #else
 		gnutls_session_t session;
-		gnutls_init(&session, GNUTLS_CLIENT);
-		sess->ssl = session;
 
-		// Set default priorities (Ciphers/Protocols)
-		gnutls_priority_set_direct(sess->ssl, "NORMAL", NULL);
+#ifdef GPAC_HAS_NGTCP2
+		if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
+			gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
+			// for quic priority string will be set by ngtcp2_crypto_gnutls_configure_client_session so not here
+		} else
+#endif
+		{
+			gnutls_init(&session, GNUTLS_CLIENT);
+			gnutls_priority_set_direct(session, "NORMAL", NULL);
+		}
+
+
+		sess->ssl = session;
 
 		// Apply credentials from the DownloadManager
 		gnutls_credentials_set(sess->ssl, GNUTLS_CRD_CERTIFICATE, sess->dm->ssl_ctx);
@@ -1074,17 +1101,33 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 				gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
 			}
 			else {
-                gnutls_alpn_set_protocols(sess->ssl, alpn_protos, alpn_count, 0);
+#if defined(GPAC_HAS_NGTCP2)
+				// QUIC mandates a single h3 ALPN; advertising h2 alongside it
+				// is wrong and some servers will reject it.
+				if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
+					gnutls_alpn_set_protocols(sess->ssl, &alpn_h3, 1, GNUTLS_ALPN_MANDATORY);
+				} else
+#endif
+				{
+					gnutls_alpn_set_protocols(sess->ssl, alpn_protos, alpn_count, 0);
+				}
 			}
+//TODO: what if HTTP2 not def but TCP2 def => when do we set h3 alpn?
 #endif // gnutls
         }
 #endif // http2
 
-#ifdef GPAC_HAS_GNUTLS
-		// Connect session to the socket
-		gnutls_transport_set_int(sess->ssl, gf_sk_get_handle(sess->sock));
-#endif
 
+#ifdef GPAC_HAS_GNUTLS
+
+// For plain TLS: attach the socket fd directly (GnuTLS drives I/O itself).
+    // For QUIC: ngtcp2 drives I/O via in-memory buffers; never set a transport fd.
+#ifdef GPAC_HAS_NGTCP2
+    if (!(sess->flags & GF_NETIO_SESSION_USE_QUIC))
+#endif
+		gnutls_transport_set_int(sess->ssl, gf_sk_get_handle(sess->sock));
+
+#else //openssl
 
 
 #ifdef GPAC_HAS_NGTCP2
@@ -1092,10 +1135,33 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		if (!(sess->flags & GF_NETIO_SESSION_USE_QUIC))
 			SSL_set_quic_method(sess->ssl, NULL);
 #endif
+
+#endif // GPAC_HAS_GNUTLS
+
 	}
 
-	if (sess->flags & GF_NETIO_SESSION_USE_QUIC)
+	if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
+#ifdef GPAC_HAS_NGTCP2
+
+#ifdef GPAC_HAS_GNUTLS
+
+        // ngtcp2_crypto_gnutls_configure_client_session:
+        //  - Sets priority to TLS1.3-only with QUIC-appropriate cipher suites
+        //  - Installs custom push/pull functions so ngtcp2 can feed crypto data
+        //    to/from GnuTLS without touching the socket.
+        // The caller (h3_initialize) must set gnutls_session_set_ptr(sess->ssl, &conn_ref)
+        // before the first ngtcp2_conn_read_pkt / ngtcp2_conn_writev_stream call.
+        if (ngtcp2_crypto_gnutls_configure_client_session(sess->ssl) != 0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_client_session failed\n"));
+            gnutls_deinit(sess->ssl);
+            sess->ssl = NULL;
+            return SSL_CONNECT_RETRY;
+        }
+#endif // GPAC_HAS_GNUTLS
+
+#endif // GPAC_HAS_NGTCP2
 		return SSL_CONNECT_RETRY;
+	}
 
 	sess->connect_pending = 0;
 
