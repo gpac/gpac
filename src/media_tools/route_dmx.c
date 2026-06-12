@@ -972,10 +972,10 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 			}
 			char szTOI[20];
 			sprintf(szTOI, obj->rlct->toi_template, obj->toi);
-			strlcpy(obj->solved_path, obj->rlct->toi_prefix, GF_MAX_PATH);
-			strlcat(obj->solved_path, szTOI, GF_MAX_PATH);
+			gf_strlcpy(obj->solved_path, obj->rlct->toi_prefix, GF_MAX_PATH);
+			gf_strlcat(obj->solved_path, szTOI, GF_MAX_PATH);
 			if (obj->rlct->toi_suffix)
-				strlcat(obj->solved_path, obj->rlct->toi_suffix, GF_MAX_PATH);
+				gf_strlcat(obj->solved_path, obj->rlct->toi_suffix, GF_MAX_PATH);
 		}
 		filepath = obj->solved_path;
 	}
