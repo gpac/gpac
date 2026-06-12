@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -399,9 +399,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 	/*apply it*/
 	i=0;
 	while ((st = (ISStack*)gf_list_enum(is_ctx->is_nodes, &i))) {
-		gf_assert(st->is);
-		gf_assert(st->mo);
-		if (!st->is->enabled) continue;
+		if (!st->is || !st->mo || !st->is->enabled) continue;
 
 		count = gf_list_count(st->is->buffer.commandList);
 		scene_time = gf_scene_get_time(is_ctx->odm->parentscene);

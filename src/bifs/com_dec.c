@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -1113,7 +1113,11 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 					if (codec->info->config.UsePredictiveMFField) {
 						f = gf_bs_read_int(bs, 1);
 						/*predictive encoding of proto field is not possible since QP info is not present yet*/
-						gf_assert(!f);
+						if (f) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Proto MFField with predictive coding is not allowed\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
 					}
 					/*reserved*/
 					f = gf_bs_read_int(bs, 1);

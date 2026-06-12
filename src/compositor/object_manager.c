@@ -1579,7 +1579,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	Bool check_disc = GF_FALSE;
 	Bool check_full_buffer = GF_TRUE;
 
-	gf_assert(odm);
+	if (!odm) return GF_FALSE;
 
 	if (!pid) {
 		check_full_buffer = GF_FALSE;
