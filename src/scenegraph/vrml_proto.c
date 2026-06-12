@@ -738,7 +738,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	GF_ProtoFieldInterface *field;
 	GF_ProtoInstance *proto_node;
 	if (!proto) return NULL;
-	
+
 	GF_SAFEALLOC(proto_node, GF_ProtoInstance)
 	if (!proto_node) return NULL;
 
@@ -765,7 +765,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate proto instance field\n]"));
 			continue;
 		}
-		
+
 		inst->EventType = field->EventType;
 		inst->FieldType = field->FieldType;
 
@@ -861,7 +861,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 				}
 			}
 		}
-		
+
 		gf_free(field);
 	}
 	gf_list_del(inst->fields);

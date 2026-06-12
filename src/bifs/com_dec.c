@@ -1425,7 +1425,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 		if (e) goto exit;
 	}
 
-	if (codec->current_graph->RootNode) {
+	if (codec->current_graph->RootNode && codec->current_graph->RootNode != root) {
 		gf_node_unregister(codec->current_graph->RootNode, NULL);
 	}
 	gf_sg_set_root_node(codec->current_graph, root);
