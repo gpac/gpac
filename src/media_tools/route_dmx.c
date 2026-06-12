@@ -3703,6 +3703,20 @@ void gf_route_dmx_print_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 }
 #endif
 
+static Bool rlct_file_match_template(GF_ROUTELCTChannel *rlct, char *filename, u32 *toi)
+{
+	u32 len = rlct->toi_prefix ? (u32) strlen(rlct->toi_prefix) : 0;
+	if (strncmp(filename, rlct->toi_prefix, len)) return GF_FALSE;
+	filename += len;
+
+	if (rlct->toi_suffix) {
+		char *end = strstr(filename, rlct->toi_suffix);
+		if (!end || strcmp(end, rlct->toi_suffix)) return GF_FALSE;
+	}
+	if (sscanf(filename, rlct->toi_template, toi) == 1)
+		return GF_TRUE;
+	return GF_FALSE;
+}
 
 static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous, Bool is_remove, Bool locate_only)
 {
@@ -3719,7 +3733,7 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
-		if (obj->rlct && obj->rlct->toi_template && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
+		if (obj->rlct && obj->rlct->toi_template && rlct_file_match_template(obj->rlct, fileName, &toi)) {
 			u32 tsi;
 			if (toi == obj->toi) {
 				u32 obj_start_time;
