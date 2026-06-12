@@ -509,6 +509,10 @@ GF_Err BM_ParseIndexInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 			/*register*/
 			gf_node_register(node, NULL);
 		}
+		else {
+			gf_node_register(node, NULL);
+			gf_node_unregister(node, NULL);
+		}
 	} else {
 		com = gf_sg_command_new(codec->current_graph, GF_SG_INDEXED_INSERT);
 		BM_SetCommandNode(com, def);
