@@ -960,7 +960,8 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 
 		if (new_node && new_node != par) gf_node_register(new_node, par);
 		gf_node_unregister(node, par);
-		gf_node_changed(par, NULL);
+		if (node != par)
+			gf_node_changed(par, NULL);
 		if (do_break) break;
 	}
 

@@ -6032,6 +6032,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				lsr->prev_g = NULL;
 				lsr->prev_text = NULL;
 				lsr->prev_polygon = NULL;
+				lsr->prev_line = NULL;
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
