@@ -5830,6 +5830,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 				gf_node_unregister(c, (GF_Node*)elt);
 			}
 		} else {
+			gf_list_del_item(lsr->deferred_anims, (void*)elt);
 			gf_node_replace((GF_Node*)elt, NULL, 0);
 		}
 	}
