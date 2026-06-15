@@ -1937,12 +1937,13 @@ int main( void ) { lzma_options_lzma opt_lzma2; lzma_lzma_preset(&opt_lzma2, 9);
 #always force static modules when static build is used, we cannot have one exe with libgpac_static using a module with libgpac dynamic, this would cause bugs with gf_sys_init()
 if test "$static_build" = "yes"; then
 static_modules="yes"
-
-if test "$has_openhevc" != "no" -a "$has_ffmpeg!=no"; then
-    #we cannot have both openhevc and ffmpeg in static build
-    has_openhevc="no"
 fi
 
+if test "$static_modules" = "yes"; then
+if test "$has_openhevc" != "no" -a "$has_ffmpeg!=no"; then
+    #we cannot have both openhevc and ffmpeg in static build / modules
+    has_openhevc="no"
+fi
 fi
 
 
