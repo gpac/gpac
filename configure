@@ -1802,16 +1802,19 @@ if test "$has_gnutls" != "no" ; then
 config_package ngtcp2 "libngtcp2 libngtcp2_crypto_gnutls" "" "-lngtcp2 -lngtcp2_crypto_gnutls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto_gnutls.h>
-int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
+int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }'
 else
 config_package ngtcp2 "libngtcp2 libngtcp2_crypto_quictls" "" "-lngtcp2 -lngtcp2_crypto_quictls" "" '#include <stdio.h>
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
-int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); return 0; }'
+int main( void ) {  ngtcp2_conn *ng_sess=NULL; ngtcp2_conn_del(ng_sess); ngtcp2_ccerr ccerr; (void)ccerr; return 0; }'
 fi
 
 config_package nghttp3 "libnghttp3" "" "-lnghttp3" "" '#include <stdio.h>
 #include <nghttp3/nghttp3.h>
+#if NGHTTP3_VERSION_NUM < 0x010900
+#error nghttp3 too old, need at least v1.9
+#endif
 int main( void ) {  nghttp3_conn *ng_sess=NULL; nghttp3_conn_del(ng_sess); return 0; }'
 
 

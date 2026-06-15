@@ -37,13 +37,22 @@
 
 #if defined(WIN32) && !defined(__GNUC__)
 #pragma comment(lib, "libnghttp3.lib")
+#ifndef GPAC_HAS_GNUTLS
 #pragma comment(lib, "libngtcp2_crypto_quictls.lib")
+#else
+#pragma comment(lib, "libngtcp2_crypto_gnutls.lib")
+#endif
 #pragma comment(lib, "libngtcp2.lib")
 #endif
 
 #include <ngtcp2/ngtcp2.h>
 #include <ngtcp2/ngtcp2_crypto.h>
+#ifndef GPAC_HAS_GNUTLS
 #include <ngtcp2/ngtcp2_crypto_quictls.h>
+#else
+#include <gnutls/crypto.h>
+#include <ngtcp2/ngtcp2_crypto_gnutls.h>
+#endif
 #include <nghttp3/nghttp3.h>
 
 #define NGTCP2_STATELESS_RESET_BURST 100
@@ -69,7 +78,7 @@ struct __gf_quic_server
 	GF_DownloadManager *dm;
 	Bool (*accept_conn)(void *udta, GF_DownloadSession *sess, const char *address, u32 port);
 	void *udta;
-	SSL_CTX *ssl_ctx;
+	gf_ssl_ctx_t ssl_ctx;
 
 	u8 *local_add;
 	u32 local_add_len;
@@ -173,16 +182,24 @@ static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *ra
 	}
 }
 
+static int ngq_rand_bytes(unsigned char* data, int len) {
+#ifndef GPAC_HAS_GNUTLS
+	return RAND_bytes(data, len);
+#else
+	return ( gnutls_rnd(GNUTLS_RND_RANDOM, (void *)data, (size_t)len) == 0 ? 1 : 0 );
+#endif
+}
+
 static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
 {
 	(void)conn;
 	GF_QuicConnection *qc = user_data;
 
-	if (RAND_bytes(cid->data, (int)cidlen) != 1) {
+	if (ngq_rand_bytes(cid->data, (int)cidlen) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	cid->datalen = cidlen;
-	if (RAND_bytes(token, NGTCP2_STATELESS_RESET_TOKENLEN) != 1) {
+	if (ngq_rand_bytes(token, NGTCP2_STATELESS_RESET_TOKENLEN) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	//server
@@ -1349,7 +1366,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	GF_Err e;
 
 	if (!sess->server_mode && sess->dm && (!sess->dm->ssl_ctx || !sess->ssl)) {
-		gf_ssl_try_connect(sess, NULL);
+		gf_ssl_try_connect(sess, server);
 		if (!sess->ssl) return GF_IO_ERR;
 	} else if (!sess->ssl) {
 		return GF_IP_CONNECTION_FAILURE;
@@ -1368,9 +1385,13 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	sess->hmux_sess->hmux_udta = ng_quic;
 	ng_quic->conn_ref.get_conn = ngq_get_conn;
 	ng_quic->conn_ref.user_data = ng_quic;
-	RAND_bytes(ng_quic->secret, 32);
+	ngq_rand_bytes(ng_quic->secret, 32);
 
+#ifndef GPAC_HAS_GNUTLS
 	SSL_set_app_data(sess->ssl, &ng_quic->conn_ref);
+#else
+	gnutls_session_set_ptr(sess->ssl, &ng_quic->conn_ref);
+#endif
 
 	if (qsc) qsc->hmux = sess->hmux_sess;
 
@@ -1471,7 +1492,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 		scid.datalen = NGTCP2_SV_SCIDLEN;
 	else
 		scid.datalen = 17;
-	if (RAND_bytes(scid.data, (int)scid.datalen) != 1) {
+	if (ngq_rand_bytes(scid.data, (int)scid.datalen) != 1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to get random data for source connection ID\n"));
 		e = GF_IO_ERR;
 		goto err;
@@ -1563,7 +1584,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	} else {
 		ngtcp2_cid dcid;
 		dcid.datalen = 18;
-		if (RAND_bytes(dcid.data, (int)dcid.datalen) != 1) {
+		if (ngq_rand_bytes(dcid.data, (int)dcid.datalen) != 1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to get random data for destination connection ID\n"));
 			e = GF_IO_ERR;
 			goto err;
@@ -1665,9 +1686,11 @@ GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServe
 	GF_QuicServer *tmp;
 	if (!dm || !ssl_ctx || !accept_conn || !port) return GF_BAD_PARAM;
 	if (!ngtcp2_tls_init) {
+#ifndef GPAC_HAS_GNUTLS //quictls
 		if (ngtcp2_crypto_quictls_init() != 0) {
 			return GF_IO_ERR;
 		}
+#endif
 		ngtcp2_tls_init=GF_TRUE;
 	}
 
@@ -1686,7 +1709,7 @@ GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServe
 	tmp->connections = gf_list_new();
 
 	u8 buf[50];
-	RAND_bytes(buf, 50);
+	ngq_rand_bytes(buf, 50);
 	gf_sha256_csum(buf, 50, tmp->secret);
 	tmp->stateless_reset_count = NGTCP2_STATELESS_RESET_BURST;
 
@@ -1757,7 +1780,7 @@ static int quic_send_retry(GF_QuicServer *qs, const ngtcp2_pkt_hd *chd, const u8
 {
 	ngtcp2_cid scid;
 	scid.datalen = NGTCP2_SV_SCIDLEN;
-	if (RAND_bytes(scid.data, scid.datalen) != 1) {
+	if (ngq_rand_bytes(scid.data, scid.datalen) != 1) {
 		return -1;
 	}
 	u8 token[NGTCP2_CRYPTO_MAX_RETRY_TOKENLEN2];
@@ -1805,7 +1828,7 @@ static int quic_send_stateless_reset(GF_QuicServer *qs, u32 pktlen, const u8 *dc
 		rand_byteslen = max_rand_byteslen;
 	}
 
-	if (RAND_bytes(rand_bytes, rand_byteslen) != 1) {
+	if (ngq_rand_bytes(rand_bytes, rand_byteslen) != 1) {
 		return -1;
 	}
 
@@ -2026,6 +2049,8 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 	}
 
 	//setup SSL
+#ifndef GPAC_HAS_GNUTLS // quictls
+
 	sess->ssl = SSL_new(qs->ssl_ctx);
 	if (!sess->ssl) {
 		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
@@ -2036,6 +2061,38 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 #ifndef LIBRESSL_VERSION_NUMBER
 	SSL_set_quic_early_data_enabled(sess->ssl, 1);
 #endif // !defined(LIBRESSL_VERSION_NUMBER)
+
+#else // GPAC_HAS_GNUTLS
+
+	gnutls_session_t ssl;
+
+	int ret = gnutls_init(&ssl, GNUTLS_SERVER | GNUTLS_NONBLOCK);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] gnutls_init server session failed: %s\n", gnutls_strerror(ret)));
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		sess->status = GF_NETIO_DISCONNECTED;
+		return GF_IP_CONNECTION_FAILURE;
+	}
+
+	gnutls_priority_set_direct(ssl, "%DISABLE_TLS13_COMPAT_MODE:NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
+
+	gnutls_credentials_set(ssl, GNUTLS_CRD_CERTIFICATE, qs->ssl_ctx);
+
+	gnutls_datum_t alpn_h3 = { (unsigned char *)"h3", 2 };
+	gnutls_alpn_set_protocols(ssl, &alpn_h3, 1, GNUTLS_ALPN_MANDATORY);
+
+	ret = ngtcp2_crypto_gnutls_configure_server_session(ssl);
+	if (ret != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_server_session failed\n"));
+		gnutls_deinit(ssl);
+		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
+		sess->status = GF_NETIO_DISCONNECTED;
+		return GF_IP_CONNECTION_FAILURE;
+	}
+	sess->ssl = ssl;
+
+
+#endif
 
 	GF_SAFEALLOC(c, GF_QuicServerConnection)
 	if (!c) return GF_OUT_OF_MEM;

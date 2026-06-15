@@ -381,7 +381,7 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
 		SSL_CTX_set_msg_callback(dm->ssl_ctx, ssl_on_log);
 #else
         gnutls_global_set_log_function(gnutls_log_callback);
-        gnutls_global_set_log_level(2);
+        gnutls_global_set_log_level(9);
 #endif
 	}
 #endif
@@ -759,10 +759,9 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 #else // gnutls
 
     gnutls_session_t ssl;
-    int ret;
 
     // Initialize session as a SERVER
-    ret = gnutls_init(&ssl, GNUTLS_SERVER);
+    int ret = gnutls_init(&ssl, GNUTLS_SERVER);
 
 	if (ret < 0) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[SSL] Error initializing server session: %s\n", gnutls_strerror(ret)));
@@ -1059,18 +1058,25 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 #else
 		gnutls_session_t session;
+		int ret;
 
 #ifdef GPAC_HAS_NGTCP2
 		if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
-			gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
-			// for quic priority string will be set by ngtcp2_crypto_gnutls_configure_client_session so not here
+			ret = gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
+
+			gnutls_priority_set_direct(session, "%DISABLE_TLS13_COMPAT_MODE:NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
+
 		} else
 #endif
 		{
-			gnutls_init(&session, GNUTLS_CLIENT);
+			ret = gnutls_init(&session, GNUTLS_CLIENT);
 			gnutls_priority_set_direct(session, "NORMAL", NULL);
 		}
 
+		if (ret < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] gnutls_init server session failed: %s\n", gnutls_strerror(ret)));
+			return GF_IP_CONNECTION_FAILURE;
+		}
 
 		sess->ssl = session;
 
@@ -1078,7 +1084,8 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		gnutls_credentials_set(sess->ssl, GNUTLS_CRD_CERTIFICATE, sess->dm->ssl_ctx);
 
 		// Set SNI (Server Name Indication)
-		gnutls_server_name_set(sess->ssl, GNUTLS_NAME_DNS, proxy, strlen(proxy));
+		if (proxy)
+			gnutls_server_name_set(sess->ssl, GNUTLS_NAME_DNS, proxy, strlen(proxy));
 #endif
 
 #ifdef GPAC_HAS_HTTP2
@@ -1145,12 +1152,6 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 #ifdef GPAC_HAS_GNUTLS
 
-        // ngtcp2_crypto_gnutls_configure_client_session:
-        //  - Sets priority to TLS1.3-only with QUIC-appropriate cipher suites
-        //  - Installs custom push/pull functions so ngtcp2 can feed crypto data
-        //    to/from GnuTLS without touching the socket.
-        // The caller (h3_initialize) must set gnutls_session_set_ptr(sess->ssl, &conn_ref)
-        // before the first ngtcp2_conn_read_pkt / ngtcp2_conn_writev_stream call.
         if (ngtcp2_crypto_gnutls_configure_client_session(sess->ssl) != 0) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_client_session failed\n"));
             gnutls_deinit(sess->ssl);
