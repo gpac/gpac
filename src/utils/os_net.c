@@ -538,7 +538,12 @@ static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber
 		node[MAX_PEER_NAME_LEN - 1] = 0;
 		dest = (char *) node;
 	}
-	if (getaddrinfo((const char *)dest, (const char *)service, &hints, &res) != 0) return NULL;
+	int e = getaddrinfo((const char *)dest, (const char *)service, &hints, &res);
+	if (e != 0) {
+		if (res)
+			freeaddrinfo(res);
+		return NULL;
+	}
 	return res;
 }
 
@@ -2666,6 +2671,7 @@ GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, con
 				}
 				sock_close(sock);
 				if (!(options & GF_SOCK_REUSE_PORT) && (LASTSOCKERROR == EADDRINUSE)) {
+					freeaddrinfo(res);
 					return GF_IP_CONNECTION_FAILURE;
 				}
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
