@@ -29,6 +29,7 @@
 #include <nettle/aes.h>
 #include <nettle/cbc.h>
 #include <nettle/ctr.h>
+#include <nettle/macros.h>
 
 typedef struct {
 
@@ -174,43 +175,45 @@ GF_Err gf_crypt_set_IV_gnutls_ctr(GF_Crypt* td, const u8* iv, u32 size) {
     return GF_OK;
 }
 
+
 GF_Err gf_crypt_encrypt_gnutls_ctr(GF_Crypt* td, u8 *buffer, u32 size) {
+    NettleCryptoCtx *ctx = (NettleCryptoCtx *)td->context;
+    if (!ctx || !buffer || ctx->pos >= AES_BLOCK_SIZE) return GF_BAD_PARAM;
 
-	NettleCryptoCtx *ctx = (NettleCryptoCtx *)td->context;
-	if (!ctx || !buffer || ctx->pos >= AES_BLOCK_SIZE) return GF_BAD_PARAM;
+    u32 i = 0;
 
-    // inspired by AES_CTR_xcrypt_buffer() from tinyaes
+    // consume remainder of cached keystream block if pos > 0
+    if (ctx->pos > 0) {
+        u32 avail = AES_BLOCK_SIZE - ctx->pos;
+        u32 take = (size < avail) ? size : avail;
+        for (u32 j = 0; j < take; j++)
+            buffer[j] ^= ctx->buffer[ctx->pos + j];
+        ctx->pos += take;
+        if (ctx->pos == AES_BLOCK_SIZE) ctx->pos = 0;
+        i += take;
+        size -= take;
+    }
 
-    u32 i;
-	int bi = AES_BLOCK_SIZE - ctx->pos;
+    // bulk: whole blocks via ctr_crypt
+    if (size >= AES_BLOCK_SIZE) {
+        u32 bulk = size & ~(AES_BLOCK_SIZE - 1);
+        ctr_crypt(&ctx->enc_ctx, (nettle_cipher_func*)aes_encrypt, AES_BLOCK_SIZE, ctx->iv, bulk, buffer + i, buffer + i);
+        i += bulk;
+        size -= bulk;
+    }
 
-	for (i = 0; i < size; ++i, ++bi) {
+    // trailing partial block
+    if (size > 0) {
+        aes_encrypt(&ctx->enc_ctx, AES_BLOCK_SIZE, ctx->buffer, ctx->iv);
+        INCREMENT(AES_BLOCK_SIZE, ctx->iv);
+        for (u32 j = 0; j < size; j++)
+            buffer[i + j] ^= ctx->buffer[j];
+        ctx->pos = size;
+    }
 
-        if (bi == AES_BLOCK_SIZE) {
-
-            aes_encrypt(&ctx->enc_ctx, AES_BLOCK_SIZE, ctx->buffer, ctx->iv);
-
-			/* Increment the 16-byte IV/Counter register with big-endian overflow handling
-			   (exactly mirroring tinyAES's incremental loop) */
-			int j;
-			for (j = (AES_BLOCK_SIZE - 1); j >= 0; --j) {
-				if (ctx->iv[j] == 255) {
-					ctx->iv[j] = 0;
-					continue;
-				}
-				ctx->iv[j] += 1;
-				break;
-			}
-			bi = 0;
-		}
-
-		buffer[i] ^= ctx->buffer[bi];
-	}
-
-	ctx->pos = AES_BLOCK_SIZE - bi;
-
-	return GF_OK;
+    return GF_OK;
 }
+
 
 /////////////////////////////////////
 
