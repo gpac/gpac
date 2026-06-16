@@ -2341,7 +2341,10 @@ GF_Err gf_sk_connect_ex(GF_Socket *sock, const char *PeerName, u16 PortNumber, c
 					return GF_IP_NETWORK_EMPTY;
 				}
 			}
-			sock_close(sock);
+			if (err != EAFNOSUPPORT) { // for quic: prevents closing pre-bound socket
+				sock_close(sock);
+			}
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying with next host address\n", PeerName, gf_errno_str(err), err ));
 			continue;
 		}
