@@ -141,12 +141,11 @@ void *gf_gzopen(const char *path, const char *mode)
 	s->msg = NULL;
 	s->transparent = 0;
 
-	s->path = (char*)ALLOC(strlen(path)+1);
+	s->path = gf_strdup(path);
 	if (s->path == NULL) {
 		destroy(s);
 		return (gzFile)Z_NULL;
 	}
-	strcpy(s->path, path); /* do this early for debugging */
 
 	s->mode = '\0';
 	do {
@@ -964,11 +963,8 @@ const char * gf_gzerror (void *file, int *errnum)
 	if (m == NULL || *m == '\0') m = (char*)ERR_MSG(s->z_err);
 
 	TRYFREE(s->msg);
-	s->msg = (char*)ALLOC(strlen(s->path) + strlen(m) + 3);
-	if (s->msg == Z_NULL) return (const char*)ERR_MSG(Z_MEM_ERROR);
-	strcpy(s->msg, s->path);
-	strcat(s->msg, ": ");
-	strcat(s->msg, m);
+	s->msg = gf_strdup(s->path);
+	gf_dynstrcat(&s->msg, m, ": ");
 	return (const char*)s->msg;
 }
 

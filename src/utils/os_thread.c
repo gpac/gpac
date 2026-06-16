@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -713,7 +713,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 #ifndef GPAC_DISABLE_LOG
 		char name[100] = {0};
 		if (mx->log_name)
-			strncpy(name, mx->log_name, sizeof(name)-1);
+			gf_strcpy(name, mx->log_name);
 		else
 			sprintf(name, "id=%u", gf_th_id());
 

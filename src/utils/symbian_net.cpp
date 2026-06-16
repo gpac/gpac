@@ -196,10 +196,10 @@ static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int 
 		service = (char *)portstring;
 	}
 	if (PeerName) {
-		strcpy(node, PeerName);
+		gf_strcpy(node, PeerName);
 		if (node[0]=='[') {
 			node[strlen(node)-1] = 0;
-			strcpy(node, &node[1]);
+			gf_strcpy(node, &node[1]);
 		}
 		dest = (char *) node;
 	}
@@ -225,7 +225,7 @@ GF_Err gf_sk_get_host_name(char *buffer)
 	return (ret == SOCKET_ERROR) ? GF_IP_ADDRESS_NOT_FOUND : GF_OK;
 }
 
-GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
+GF_Err gf_sk_get_local_ip(GF_Socket *sock, char buffer[GF_MAX_IP_NAME_LEN])
 {
 #ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
@@ -235,7 +235,7 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 
 	if (getnameinfo((struct sockaddr *)&clientaddr, addrlen, clienthost, sizeof(clienthost), NULL, 0, NI_NUMERICHOST))
 		return GF_IP_NETWORK_FAILURE;
-	strcpy(buffer, clienthost);
+	gf_strlcpy(buffer, clienthost, GF_MAX_IP_NAME_LEN);
 #else
 	char *ip;
 	struct sockaddr_in name;
@@ -243,7 +243,7 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 	if (getsockname(sock->socket, (struct sockaddr*) &name, &len)) return GF_IP_NETWORK_FAILURE;
 	ip = inet_ntoa(name.sin_addr);
 	if (!ip) return GF_IP_NETWORK_FAILURE;
-	strcpy(buffer, ip);
+	gf_strlcpy(buffer, ip, GF_MAX_IP_NAME_LEN);
 #endif
 	return GF_OK;
 }
@@ -1005,7 +1005,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 	return GF_OK;
 }
 
-GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
+GF_Err gf_sk_get_remote_address(GF_Socket *sock, char buf[GF_MAX_IP_NAME_LEN])
 {
 #ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
@@ -1013,10 +1013,10 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 	if (getnameinfo((struct sockaddr *)addrptr, sock->dest_addr_len, clienthost, sizeof(clienthost), NULL, 0, NI_NUMERICHOST))
 		return GF_IP_ADDRESS_NOT_FOUND;
-	strcpy(buf, clienthost);
+	gf_strlcpy(buf, clienthost, GF_MAX_IP_NAME_LEN);
 #else
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
-	strcpy(buf, inet_ntoa(sock->dest_addr.sin_addr));
+	gf_strlcpy(buf, inet_ntoa(sock->dest_addr.sin_addr), GF_MAX_IP_NAME_LEN);
 #endif
 	return GF_OK;
 }

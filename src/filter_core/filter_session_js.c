@@ -2160,7 +2160,7 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 	szFilePath[0] = 0;
 	if (!strncmp(jsfile, "$GSHARE/", 8)) {
 		if (gf_opts_default_shared_directory(szFilePath)) {
-			strcat(szFilePath, jsfile + 7);
+			gf_strcat(szFilePath, jsfile + 7);
 			e = gf_file_load_data(szFilePath, &buf, &buf_len);
 		} else {
 			e = GF_URL_ERROR;

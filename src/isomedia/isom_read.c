@@ -233,7 +233,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		sep = strchr(val, ' ');
 		if (sep) sep[0] = 0;
 
-		if (!strncmp(val, "4cc=", 4)) strcpy(sz4cc, val+4);
+		if (!strncmp(val, "4cc=", 4)) gf_strcpy(sz4cc, val+4);
 		else if (!strncmp(val, "init=", 5)) {
 			char szH[3], *data = val+5;
 			u32 i, len = (u32) strlen(data);
@@ -3753,7 +3753,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->height = entry->Height;
 		udesc->h_res = entry->horiz_res;
 		udesc->v_res = entry->vert_res;
-		strcpy(udesc->compressor_name, entry->compressor_name);
+		gf_strcpy(udesc->compressor_name, entry->compressor_name);
 		udesc->depth = entry->bit_depth;
 		udesc->color_table_index = entry->color_table_index;
 		if (entry->data_size) {

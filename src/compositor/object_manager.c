@@ -1461,12 +1461,12 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 		str = strstr(url->vals[i].url, "#");
 		if (!str) continue;
 		str++;
-		strcpy(seg_url, str);
+		gf_strcpy(seg_url, str);
 		/*segment closed range*/
 		if ((sep = strstr(seg_url, "-")) ) {
-			strcpy(seg2, sep+1);
+			gf_strcpy(seg2, sep+1);
 			sep[0] = 0;
-			strcpy(seg1, seg_url);
+			gf_strcpy(seg1, seg_url);
 			first_seg = gf_odm_find_segment(odm, seg1);
 			if (!first_seg) continue;
 			last_seg = gf_odm_find_segment(odm, seg2);
@@ -1474,7 +1474,7 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 		/*segment open range*/
 		else if ((sep = strstr(seg_url, "+")) ) {
 			sep[0] = 0;
-			strcpy(seg1, seg_url);
+			gf_strcpy(seg1, seg_url);
 			first_seg = gf_odm_find_segment(odm, seg_url);
 			if (!first_seg) continue;
 			last_seg = NULL;

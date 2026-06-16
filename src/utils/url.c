@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -210,12 +210,9 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 		if (pathName[0]=='/') sep = strstr(parentName, "://");
 		if (sep) sep = strchr(sep+3, '/');
 		if (sep) {
-			u32 len;
 			sep[0] = 0;
-			len = (u32) strlen(parentName);
-			outPath = (char*)gf_malloc(sizeof(char)*(len+1+strlen(pathName)));
-			strcpy(outPath, parentName);
-			strcat(outPath, pathName);
+			outPath = gf_strdup(parentName);
+			gf_dynstrcat(&outPath, pathName, NULL);
 			sep[0] = '/';
 		} else {
 			outPath = gf_strdup(pathName);
@@ -487,7 +484,7 @@ char *gf_url_percent_encode(const char *path)
 	}
 	if (!count) return gf_strdup(path);
 	outpath = (char*)gf_malloc(sizeof(char) * (len + count + 1));
-	strcpy(outpath, path);
+	memcpy(outpath, path, len+1);
 
 	count = 0;
 	for (i=0; i<len; i++) {
@@ -589,7 +586,7 @@ void gf_url_free(char *sURL)
 #if 0 //unused
 Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)
 {
-	strcpy(res_path, sURL);
+	gf_strcpy(res_path, sURL);
 	if (sURL[strlen(sURL)-1] == GF_PATH_SEPARATOR) {
 		res_path[strlen(sURL)-1] = 0;
 		return GF_TRUE;

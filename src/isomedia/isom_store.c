@@ -1953,7 +1953,7 @@ static GF_Err write_blank_data(GF_BitStream *bs, u32 size)
 	u8 data[1000];
 
 	memset(data, 0, 1000);
-	strcpy(data, gf_sys_is_test_mode() ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+	gf_strcpy(data, gf_sys_is_test_mode() ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
 
 	while (size) {
 		if (size > 1000) {

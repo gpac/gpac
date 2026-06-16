@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -1576,13 +1576,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					FILE *nhml;
 					char szName[1024];
 					if (parser->load->localPath) {
-						strcpy(szName, parser->load->localPath);
-						strcat(szName, "/");
-						strcat(szName, ID ? ID : "");
+						gf_strcpy(szName, parser->load->localPath);
+						gf_strcat(szName, "/");
+						gf_strcat(szName, ID ? ID : "");
 					} else {
-						strcpy(szName, ID ? ID : "");
+						gf_strcpy(szName, ID ? ID : "");
 					}
-					strcat(szName, "_temp.nhml");
+					gf_strcat(szName, "_temp.nhml");
 					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
 					nhml = gf_fopen(st->nhml_info, "wt");

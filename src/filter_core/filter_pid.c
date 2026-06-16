@@ -2140,12 +2140,13 @@ sourceid_reassign:
 						u32 frag_sep_len = (u32) (frag_sep-frag_name+1);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
-						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
+						u32 blen = strlen(sid) + strlen(prop_dump_buffer)+1;
+						char *new_source_ids = gf_malloc(sizeof(char) * blen);
 						u32 clen = (u32) sublen + frag_sep_len + 1;
-						strncpy(new_source_ids, sid, clen);
+						memcpy(new_source_ids, sid, clen);
 						new_source_ids[clen]=0;
-						strcat(new_source_ids, prop_dump_buffer);
-						if (next_frag) strcat(new_source_ids, next_frag);
+						gf_strlcat(new_source_ids, prop_dump_buffer, blen);
+						if (next_frag) gf_strlcat(new_source_ids, next_frag, blen);
 
 						if (resolved_source_ids) {
 
@@ -2934,9 +2935,9 @@ static void concat_reg(GF_FilterSession *sess, char prefRegister[1001], const ch
 		char szSepChar[2];
 		szSepChar[0] = sess->sep_args;
 		szSepChar[1] = 0;
-		strcat(prefRegister, szSepChar);
+		gf_strlcat(prefRegister, szSepChar, 1001);
 	}
-	strncat(prefRegister, forced_reg, len);
+	gf_strlcat(prefRegister, forced_reg, 1001);
 }
 
 static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *freg, u32 bundle_idx)
@@ -4415,8 +4416,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		if (parse_prop && value && strpbrk(value, "$@")) {
 			char *a_value = gf_strdup(value);
 			filter_solve_prop_template(filter, pid, &a_value);
-			strncpy(ref_prop_dump, a_value, GF_PROP_DUMP_ARG_SIZE-1);
-			ref_prop_dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
+			gf_strcpy(ref_prop_dump, a_value);
 			gf_free(a_value);
 			value = (char*) ref_prop_dump;
 			if (!value[0])
@@ -7990,10 +7990,10 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			if (!url) {
 				*url_addr_dst = NULL;
 			} else {
-				u32 len = (u32) strlen(url);
+				u32 len = (u32) 1 + strlen(url);
 				GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
 				rstr->ref_count=1;
-				strcpy( (char *) &rstr->string[0], url);
+				gf_strlcpy( (char *) &rstr->string[0], url, len);
 				*url_addr_dst = (char *) &rstr->string[0];
 			}
 		}
@@ -9151,7 +9151,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 	char szFormat[30], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
 	const char *name = szTemplate;
 	if (!strchr(szTemplate, '$')) {
-		strcpy(szFinalName, szTemplate);
+		gf_strlcpy(szFinalName, szTemplate, GF_MAX_PATH);
 		return GF_OK;
 	}
 	pck = gf_filter_pid_get_packet(pid);
@@ -9189,7 +9189,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		sep = strchr(name+1, '$');
 		if (!sep) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template `%s` expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
-			strcpy(szFinalName, szTemplate);
+			gf_strlcpy(szFinalName, szTemplate, GF_MAX_PATH);
 			return GF_BAD_PARAM;
 		}
 		szFormat[0] = '%';
@@ -9201,7 +9201,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		sep[0]=0;
 		fsep = strchr(name, '%');
 		if (fsep) {
-			strcpy(szFormat, fsep);
+			gf_strcpy(szFormat, fsep);
 			fsep[0]=0;
 		}
 
@@ -9423,7 +9423,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 					str_val = gf_fileio_translate_url(str_val);
 
 				if (filename) {
-					strcpy(szTemplateVal, filename);
+					gf_strcpy(szTemplateVal, filename);
 				} else {
 					char *ext, *sname;
 					ext = strstr(str_val, "://");
@@ -9439,14 +9439,15 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 
 					if (ext && (ext > sname) ) {
 						u32 len = (u32) (ext - sname);
-						strncpy(szTemplateVal, sname, ext - sname);
+						if (len>=GF_MAX_PATH) len = GF_MAX_PATH-1;
+						memcpy(szTemplateVal, sname, len);
 						szTemplateVal[len] = 0;
 					} else {
-						strcpy(szTemplateVal, sname);
+						gf_strcpy(szTemplateVal, sname);
 					}
 				}
 			} else {
-				strcpy(szTemplateVal, str_val);
+				gf_strcpy(szTemplateVal, str_val);
 			}
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
@@ -9457,7 +9458,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			return GF_OUT_OF_MEM;
 		}
 
-		strcat(szFinalName, szTemplateVal);
+		gf_strlcat(szFinalName, szTemplateVal, GF_MAX_PATH);
 		k = (u32) strlen(szFinalName);
 
 		if (!sep) break;
@@ -9853,7 +9854,7 @@ GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
 
 
 GF_EXPORT
-GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced)
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char szCodec[RFC6381_CODEC_NAME_SIZE_MAX], Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced)
 {
 	u32 subtype=0, subtype_src=0, codec_id, stream_type;
 	s32 mha_pl=-1;
@@ -10192,11 +10193,11 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 			if (mime) mime++;
 			if (mime && mime[0] && strcmp(mime, "octet-string")) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known, using mime type %s\n", mime));
-				strcpy(szCodec, mime);
+				gf_strlcpy(szCodec, mime, RFC6381_CODEC_NAME_SIZE_MAX);
 				return GF_OK;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known, cannot set codec string\n" ));
-			strcpy(szCodec, "unkn");
+			gf_strlcpy(szCodec, "unkn", RFC6381_CODEC_NAME_SIZE_MAX);
 			return GF_OK;
 		}
 

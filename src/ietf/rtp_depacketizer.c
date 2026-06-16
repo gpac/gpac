@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -1304,8 +1304,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	else if (!stricmp(param_name, "StreamType"))
 		rtp->sl_map.StreamType = atoi(param_val);
 	else if (!stricmp(param_name, "mode")) {
-		strncpy(rtp->sl_map.mode, param_val, sizeof(rtp->sl_map.mode)-1);
-		rtp->sl_map.mode[sizeof(rtp->sl_map.mode)-1] = 0;
+		gf_strcpy(rtp->sl_map.mode, param_val);
 		/*in case no IOD and no streamType/OTI in the file*/
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;

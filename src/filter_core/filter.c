@@ -1108,8 +1108,7 @@ void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **val
 		inc_sep[0] = 0;
 		inc_end[0] = 0;
 		inc_end+=1;
-		strncpy(szInt, inc_sep+6, GF_ARRAY_LENGTH(szInt)-1);
-		szInt[ GF_ARRAY_LENGTH(szInt) - 1 ] = 0;
+		gf_strcpy(szInt, inc_sep+6);
 		ainc_crc = (u32) gf_crc_32(szInt, (u32) strlen(szInt) );
 		step_sep = strchr(szInt, ',');
 		if (step_sep) {
@@ -1182,7 +1181,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 	if (value[0]=='$') {
 		if (!strnicmp(value, "$GSHARE", 7)) {
 			if (gf_opts_default_shared_directory(szPath)) {
-				strncat(szPath, value+7, sizeof(szPath)-strlen(szPath)-1);
+				gf_strcat(szPath, value+7);
 				value = szPath;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
@@ -1196,7 +1195,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 			}
 		}
 		else if (!strnicmp(value, "$GJS", 4)) {
-			Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext);
+			Bool gf_fs_solve_js_script(char szPath[GF_MAX_PATH], const char *file_name, const char *file_ext);
 
 			Bool found = gf_fs_solve_js_script(szPath, value+4, NULL);
 
@@ -1521,7 +1520,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			}
 			if (!is_ok) continue;
 
-			strncpy(szArg, o_arg, 100);
+			gf_strcpy(szArg, o_arg);
 			szArg[ MIN(flen + loc_alen, 100) ] = 0;
 			gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL, NULL);
 
@@ -1651,7 +1650,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		if (sep) {
 			u32 cplen = (u32) (sep - o_arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			strncpy(szArg, o_arg, cplen);
+			memcpy(szArg, o_arg, cplen);
 			szArg[cplen] = 0;
 			argv.value.string = (char *) sep+1;
 		} else {
@@ -2002,7 +2001,7 @@ skip_date:
 			alloc_len = len+1;
 			szArg = gf_realloc(szArg, sizeof(char)*alloc_len);
 		}
-		strncpy(szArg, args, len);
+		memcpy(szArg, args, len);
 		szArg[len]=0;
 
 		value = strchr(szArg, filter->session->sep_name);
@@ -4695,7 +4694,7 @@ static void filter_guess_file_ext(GF_FilterSession *sess, GF_FilterPid *pid, con
 			u32 len = (u32) strlen(ext);
 			if (sep) len = (u32) (sep - ext);
 			if (len>19) len=19;
-			strncpy(szExt, ext, len);
+			memcpy(szExt, ext, len);
 			szExt[len] = 0;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(szExt));
 			return;
@@ -4749,8 +4748,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		}
 
 		if (fext) {
-			strncpy(tmp_ext, fext, 20);
-			tmp_ext[20] = 0;
+			gf_strcpy(tmp_ext, fext);
 			strlwr(tmp_ext);
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 			ext_len = (u32) strlen(tmp_ext);
@@ -4772,8 +4770,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				if (s1) s1[0] = 0;
 				if (s2) s2[0] = 0;
 
-				strncpy(tmp_ext, ext, 20);
-				tmp_ext[20] = 0;
+				gf_strcpy(tmp_ext, ext);
 				strlwr(tmp_ext);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 				ext_len = (u32) strlen(tmp_ext);
@@ -4851,8 +4848,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	//this is safe for now as the only reconfig we do is in HTTP streaming context
 	//we furthermore blacklist *octet-* mimes
 	if (mime_type && is_new_pid && !strstr(mime_type, "/octet-")) {
-		strncpy(tmp_ext, mime_type, 50);
-		tmp_ext[49] = 0;
+		gf_strcpy(tmp_ext, mime_type);
 		//keep case for mime type
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
 		//we have a mime, disable extension checking

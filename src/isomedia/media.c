@@ -97,7 +97,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_G
 		gf_bs_write_data(bs, "\x41\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\x00\x80\x5F\xB4\xB9\x7E", 16);
 		gf_bs_write_u16_le(bs, 1);
 		memset(szName, 0, 80);
-		strcpy(szName, "QCELP-13K(GPAC-emulated)");
+		gf_strcpy(szName, "QCELP-13K(GPAC-emulated)");
 		gf_bs_write_data(bs, szName, 80);
 		ent = stbl->TimeToSample->nb_entries ? &stbl->TimeToSample->entries[0] : NULL;
 		sample_rate = entry->samplerate_hi;
@@ -1021,20 +1021,18 @@ GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *U
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new_parent(&dref->child_boxes, GF_ISOM_BOX_TYPE_URN);
 		if (!entry) return GF_OUT_OF_MEM;
 		((GF_DataEntryURNBox *)entry)->flags = 0;
-		((GF_DataEntryURNBox *)entry)->nameURN = (char*)gf_malloc(strlen(URNname)+1);
+		((GF_DataEntryURNBox *)entry)->nameURN = gf_strdup(URNname);
 		if (! ((GF_DataEntryURNBox *)entry)->nameURN) {
 			gf_isom_box_del_parent(&dref->child_boxes, (GF_Box *)entry);
 			return GF_OUT_OF_MEM;
 		}
-		strcpy(((GF_DataEntryURNBox *)entry)->nameURN, URNname);
 		//check for URL
 		if (URLname) {
-			((GF_DataEntryURNBox *)entry)->location = (char*)gf_malloc(strlen(URLname)+1);
+			((GF_DataEntryURNBox *)entry)->location = gf_strdup(URLname);
 			if (! ((GF_DataEntryURNBox *)entry)->location) {
 				gf_isom_box_del_parent(&dref->child_boxes, (GF_Box *)entry);
 				return GF_OUT_OF_MEM;
 			}
-			strcpy(((GF_DataEntryURNBox *)entry)->location, URLname);
 		}
 		*dataRefIndex = gf_list_count(dref->child_boxes);
 		return GF_OK;

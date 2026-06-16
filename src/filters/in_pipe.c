@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / pipe input filter
@@ -143,11 +143,11 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 #ifdef WIN32
 	char szNamedPipe[GF_MAX_PATH];
 	if (!strncmp(src, "\\\\", 2)) {
-		strcpy(szNamedPipe, src);
+		gf_strcpy(szNamedPipe, src);
 	}
 	else {
-		strcpy(szNamedPipe, "\\\\.\\pipe\\gpac\\");
-		strcat(szNamedPipe, src);
+		gf_strcpy(szNamedPipe, "\\\\.\\pipe\\gpac\\");
+		gf_strcat(szNamedPipe, src);
 	}
 	if (strchr(szNamedPipe, '/')) {
 		u32 i, len = (u32)strlen(szNamedPipe);

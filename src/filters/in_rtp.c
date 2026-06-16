@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -69,14 +69,14 @@ static GF_FilterProbeScore rtpin_probe_url(const char *url, const char *mime)
 }
 
 //simplified version of RTSP_UnpackURL for SAT>IP
-void rtpin_satip_get_server_ip(const char *sURL, char *Server)
+void rtpin_satip_get_server_ip(const char *sURL, char Server[GF_MAX_PATH])
 {
 	char schema[10], *test, text[1024], *retest;
 	u32 i, len;
 	Bool is_ipv6;
 	if (!sURL) return;
 
-	strcpy(Server, "");
+	gf_strlcpy(Server, "", GF_MAX_PATH);
 
 	//extract the schema
 	i = 0;
@@ -124,7 +124,7 @@ found:
 		i += 1;
 	}
 	text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
-	strcpy(Server, text);
+	gf_strlcpy(Server, text, GF_MAX_PATH);
 }
 
 

@@ -2013,10 +2013,10 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 						char szName[100];
 						const char *a_sep = strchr(a_val, '|');
 						u32 len = a_sep ? (u32)(a_sep - a_val) : (u32)strlen(a_val);
-						strcpy(szName, "- ");
-						strncat(szName, a_val, MIN(sizeof(szName)-3,len));
+						gf_strcpy(szName, "- ");
+						gf_strcat(szName, a_val);
 						szName[2+len]=0;
-						strcat(szName, ": ");
+						gf_strcat(szName, ": ");
 
 						if (!strstr(a->arg_desc, szName)) {
 							fprintf(stderr, "\nWARNING: filter %s bad description format for arg %s, missing list bullet \"%s\"\n", reg_name, a->arg_name, szName);
@@ -2123,9 +2123,9 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 		char szPath[GF_MAX_PATH];
 		char *ext;
 		if (jsi->js_dir) {
-			strcpy(szPath, jsi->js_dir);
+			gf_strcpy(szPath, jsi->js_dir);
 		} else {
-			strcpy(szPath, item_name);
+			gf_strcpy(szPath, item_name);
 		}
 		ext = gf_file_ext_start(szPath);
 		if (ext) ext[0] = 0;
@@ -2143,9 +2143,9 @@ static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_Fil
 	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
 	jsi->js_dir = item_name;
 
-	strcpy(szPath, jsi->path);
-	strcat(szPath, item_name);
-	strcat(szPath, "/");
+	gf_strcpy(szPath, jsi->path);
+	gf_strcat(szPath, item_name);
+	gf_strcat(szPath, "/");
 	gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, jsi, ".js");
 	jsi->js_dir = NULL;
 	return GF_FALSE;
@@ -2328,7 +2328,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 				if (f) {
 					char *ext;
 					char szPath[GF_MAX_PATH];
-					strcpy(szPath, gf_file_basename(arg) );
+					gf_strcpy(szPath, gf_file_basename(arg) );
 					ext = gf_file_ext_start(szPath);
 					if (ext) ext[0] = 0;
 					if (optname) {
@@ -2359,7 +2359,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 		gf_log_set_tools_levels("console@error", GF_FALSE);
 
 		if (gf_opts_default_shared_directory(szPath)) {
-			strcat(szPath, "/scripts/jsf/");
+			gf_strcat(szPath, "/scripts/jsf/");
 			jsi.path = szPath;
 			gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, &jsi, ".js");
 			gf_enum_directory(szPath, GF_TRUE, jsinfo_dir_enum, &jsi, NULL);
@@ -2369,17 +2369,17 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			if (sep) {
 				u32 cplen = (u32) (sep-js_dirs);
 				if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
-				strncpy(szPath, js_dirs, cplen);
+				memcpy(szPath, js_dirs, cplen);
 				szPath[cplen]=0;
 				js_dirs = sep+1;
 			} else {
-				strcpy(szPath, js_dirs);
+				gf_strcpy(szPath, js_dirs);
 			}
 			//pre 1.1, $GJS was inserted by default
 			if (strcmp(szPath, "$GJS")) {
 				u32 len = (u32) strlen(szPath);
 				if (len && (szPath[len-1]!='/') && (szPath[len-1]!='\\'))
-					strcat(szPath, "/");
+					gf_strcat(szPath, "/");
 				gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, &jsi, ".js");
 			}
 			if (!sep) break;
@@ -2536,9 +2536,9 @@ void dump_all_props(char *pname)
 		if (! prop_info->name) continue;
 
 		if (gen_doc==1) {
-			strcpy(szFlags, "");
-			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
-			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
+			gf_strcpy(szFlags, "");
+			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) gf_strcat(szFlags, "D");
+			if (prop_info->flags & GF_PROP_FLAG_PCK) gf_strcat(szFlags, "P");
 
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s | %s | %s | %s  \n", prop_info->name,  gf_props_get_type_name(prop_info->data_type),
 				szFlags,
@@ -2571,8 +2571,8 @@ void dump_all_props(char *pname)
 				else continue;
 			}
 			szFlags[0]=0;
-			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) strcat(szFlags, "D");
-			if (prop_info->flags & GF_PROP_FLAG_PCK) strcat(szFlags, "P");
+			if (prop_info->flags & GF_PROP_FLAG_GSF_REM) gf_strcat(szFlags, "D");
+			if (prop_info->flags & GF_PROP_FLAG_PCK) gf_strcat(szFlags, "P");
 
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", prop_info->name);
 			len = (u32) strlen(prop_info->name);
@@ -2838,12 +2838,12 @@ void dump_all_codecs(GF_SysArgMode argmode)
 
 		szFlags[0] = 0;
 		if (enc_found || dec_found || dmx_found || mx_found) {
-			strcpy(szFlags, " [");
-			if (dmx_found) { szCap[0] = 'I'; strcat(szFlags, szCap); }
-			if (mx_found) { szCap[0] = 'O'; strcat(szFlags, szCap); }
-			if (dec_found) { szCap[0] = 'D'; strcat(szFlags, szCap); }
-			if (enc_found) { szCap[0] = 'E'; strcat(szFlags, szCap); }
-			strcat(szFlags, "]");
+			gf_strcpy(szFlags, " [");
+			if (dmx_found) { szCap[0] = 'I'; gf_strcat(szFlags, szCap); }
+			if (mx_found) { szCap[0] = 'O'; gf_strcat(szFlags, szCap); }
+			if (dec_found) { szCap[0] = 'D'; gf_strcat(szFlags, szCap); }
+			if (enc_found) { szCap[0] = 'E'; gf_strcat(szFlags, szCap); }
+			gf_strcat(szFlags, "]");
 		}
 
 		mime = gf_codecid_mime(cp.value.uint);
@@ -2903,10 +2903,10 @@ void dump_all_codecs(GF_SysArgMode argmode)
 					count--;
 				}
 			}
-			strcpy(szFlags, " [");
-			if (has_dec) strcat(szFlags, "D");
-			if (has_enc) strcat(szFlags, "E");
-			strcat(szFlags, "]");
+			gf_strcpy(szFlags, " [");
+			if (has_dec) gf_strcat(szFlags, "D");
+			if (has_enc) gf_strcat(szFlags, "E");
+			gf_strcat(szFlags, "]");
 
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s%s: ", name, szFlags);
 			u32 len = (u32) (2 + strlen(name) + strlen(szFlags));
@@ -3585,7 +3585,7 @@ static Bool check_param_extension(char *szArg, int arg_idx, int argc, char **arg
 			return GF_FALSE;
 		}
 		par_end[0] = 0;
-		strcpy(szPar, par_start+2);
+		gf_strcpy(szPar, par_start+2);
 		par_start[0] = 0;
 
 	 	ok = gpac_expand_alias_arg(szPar, szArg, par_end+1, arg_idx, argc, argv, alias_name);
@@ -3803,7 +3803,7 @@ void parse_sep_set(const char *arg, Bool *override_seps)
 	u32 len = (u32) strlen(arg), i;
 	if (!len) return;
 	char save_seps[sizeof(separator_set)];
-	strcpy(save_seps, separator_set);
+	gf_strcpy(save_seps, separator_set);
 	Bool save_override_seps=*override_seps;
 	*override_seps = GF_TRUE;
 
@@ -3821,7 +3821,7 @@ void parse_sep_set(const char *arg, Bool *override_seps)
 		if(strchr(separator_set+i+1, separator_set[i])) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Invalid separator set (%s): duplicate characters found. Reverting to previous set (%s)\n", separator_set, save_seps));
 			*override_seps = save_override_seps;
-			strcpy(separator_set, save_seps);
+			gf_strcpy(separator_set, save_seps);
 			return;
 		}
 	}

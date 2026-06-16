@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -376,7 +376,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	else sess->RTSP_State = GF_RTSP_STATE_WAITING;
 	//teardown invalidates the session most of the time, so we force the user to wait for the reply
 	//as the reply may indicate a connection-closed
-	strcpy(sess->RTSPLastRequest, com->method);
+	gf_strcpy(sess->RTSPLastRequest, com->method);
 
 exit:
 	if (result) gf_free(result);

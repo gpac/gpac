@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -108,8 +108,8 @@ static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
 	if (!ctx->llhls_file_name) return;
 
 	char szName[GF_MAX_PATH];
-	strcpy(szName, ctx->llhls_file_name);
-	strcat(szName, ATOMIC_SUFFIX);
+	gf_strcpy(szName, ctx->llhls_file_name);
+	gf_strcat(szName, ATOMIC_SUFFIX);
 	gf_file_delete(ctx->llhls_file_name);
 	gf_file_move(szName, ctx->llhls_file_name);
 	gf_free(ctx->llhls_file_name);
@@ -120,8 +120,8 @@ static void fileout_check_close(GF_FileOutCtx *ctx)
 {
 	if (!ctx->use_move) return;
 	char szName[GF_MAX_PATH];
-	strcpy(szName, ctx->szFileName);
-	strcat(szName, ATOMIC_SUFFIX);
+	gf_strcpy(szName, ctx->szFileName);
+	gf_strcat(szName, ATOMIC_SUFFIX);
 	gf_file_delete(ctx->szFileName);
 	gf_file_move(szName, ctx->szFileName);
 	ctx->use_move = GF_FALSE;
@@ -182,28 +182,26 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (ctx->dynext) {
 		const char *has_ext = gf_file_ext_start(url);
 
-		strncpy(szFinalName, url, GF_ARRAY_LENGTH(szFinalName)-1);
-		szFinalName[GF_ARRAY_LENGTH(szFinalName)-1] = 0;
+		gf_strcpy(szFinalName, url);
 
 		if (!has_ext && ext && (GF_ARRAY_LENGTH(szFinalName) > (strlen(szFinalName)+1+strlen(ext)))) {
-			strcat(szFinalName, ".");
-			strcat(szFinalName, ext);
+			gf_strcat(szFinalName, ".");
+			gf_strcat(szFinalName, ext);
 		}
 	} else {
-		strncpy(szFinalName, url, GF_ARRAY_LENGTH(szFinalName)-1);
-		szFinalName[GF_ARRAY_LENGTH(szFinalName)-1] = 0;
+		gf_strcpy(szFinalName, url);
 	}
 
 	if (ctx->use_templates) {
 		GF_Err e;
 		gf_assert(ctx->dst);
 		if (!strcmp(filename, ctx->dst)) {
-			strcpy(szName, szFinalName);
+			gf_strcpy(szName, szFinalName);
 			e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
 		} else {
 			char szFileName[GF_MAX_PATH];
-			strcpy(szFileName, szFinalName);
-			strcpy(szName, ctx->dst);
+			gf_strcpy(szFileName, szFinalName);
+			gf_strcpy(szName, ctx->dst);
 			e = gf_filter_pid_resolve_file_template_ex(ctx->pid, szName, szFinalName, file_idx, file_suffix, szFileName);
 		}
 		if (e) {
@@ -233,7 +231,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	}
 
 	if (check_no_open && (ctx->llhas_mode==GF_LLHAS_SUBSEG)) {
-		strcpy(ctx->szFileName, szFinalName);
+		gf_strcpy(ctx->szFileName, szFinalName);
 		ctx->nb_write = 0;
 		return GF_OK;
 	}
@@ -244,9 +242,9 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (ctx->atomic && !append && !is_gfio && (!ctx->original_url || strncmp(ctx->original_url, "gfio://", 7))) {
 		ctx->use_move = GF_TRUE;
 	}
-	strcpy(szName, szFinalName);
+	gf_strcpy(szName, szFinalName);
 	if (ctx->use_move && (GF_ARRAY_LENGTH(szName) > (strlen(szName)+strlen(ATOMIC_SUFFIX)))) {
-		strcat(szName, ATOMIC_SUFFIX);
+		gf_strcat(szName, ATOMIC_SUFFIX);
 	}
 
 #ifdef GPAC_HAS_FD
@@ -264,7 +262,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	if (!strcmp(szFinalName, ctx->szFileName) && !append && ctx->nb_write && !explicit_overwrite) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite (use `cat` option to enable append)\n", szFinalName));
 	}
-	strcpy(ctx->szFileName, szFinalName);
+	gf_strcpy(ctx->szFileName, szFinalName);
 
 	ctx->nb_write = 0;
 	if (!ctx->file
@@ -443,7 +441,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	} else {
-		strncpy(ctx->szExt, ext, 9);
+		gf_strcpy(ctx->szExt, ext);
 		ctx->szExt[9] = 0;
 		strlwr(ctx->szExt);
 		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
@@ -567,7 +565,7 @@ restart:
 			if (!p) p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p) filename = p->value.string;
 			if (filename) {
-				strcpy(ctx->szFileName, filename);
+				gf_strcpy(ctx->szFileName, filename);
 			} else {
 				sprintf(ctx->szFileName, "%d", fnum);
 			}

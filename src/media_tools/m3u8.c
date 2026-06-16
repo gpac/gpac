@@ -324,8 +324,10 @@ static char** extract_attributes(const char *name, const char *line, const int n
 			} else {
 				if (!strncmp(&line[start+spaces], "\t", sz-spaces) || !strncmp(&line[start+spaces], "\n", sz-spaces)) {
 				} else {
-					ret[curr_attribute] = gf_calloc( (1+sz-spaces), sizeof(char));
-					strncpy(ret[curr_attribute], &(line[start+spaces]), sz-spaces);
+					ret[curr_attribute] = gf_malloc( (1+sz-spaces) * sizeof(char));
+					memcpy(ret[curr_attribute], &(line[start+spaces]), sz-spaces);
+					ret[curr_attribute][sz-spaces] = 0;
+
 					curr_attribute++;
 					if (curr_attribute >= num_attributes)
 						break;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -548,7 +548,7 @@ const char *gf_stream_type_all_names()
 	if (!szAllStreamTypes[0]) {
 		u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
 		u32 tot_len=0;
-		strcpy(szAllStreamTypes, "");
+		gf_strcpy(szAllStreamTypes, "");
 		for (i=0; i<nb_st; i++) {
 			u32 len = (u32) strlen(GF_StreamTypes[i].name);
 			if (len+tot_len+2>=500) {
@@ -556,10 +556,10 @@ const char *gf_stream_type_all_names()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllStreamTypes, "|");
+				gf_strcat((char *)szAllStreamTypes, "|");
 				tot_len += 1;
 			}
-			strcat((char *)szAllStreamTypes, GF_StreamTypes[i].name);
+			gf_strcat((char *)szAllStreamTypes, GF_StreamTypes[i].name);
 			tot_len += len;
 		}
 	}
@@ -702,16 +702,16 @@ const char *gf_audio_fmt_all_names()
 	if (!szAllAudioFormats[0]) {
 		u32 i=0;
 		u32 tot_len=4;
-		strcpy(szAllAudioFormats, "none");
+		gf_strcpy(szAllAudioFormats, "none");
 		while (!i || GF_AudioFormats[i].sfmt) {
 			u32 len = (u32) strlen(GF_AudioFormats[i].name);
 			if (len+tot_len+2>=500) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all audio formats!!\n"));
 				break;
 			}
-			strcat((char *)szAllAudioFormats, "|");
+			gf_strcat(szAllAudioFormats, "|");
 			tot_len += 1;
-			strcat((char *)szAllAudioFormats, GF_AudioFormats[i].name);
+			gf_strcat(szAllAudioFormats, GF_AudioFormats[i].name);
 			tot_len += len;
 			i++;
 		}
@@ -736,11 +736,11 @@ const char *gf_audio_fmt_all_shortnames()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllShortAudioFormats, "|");
+				gf_strcat(szAllShortAudioFormats, "|");
 				tot_len += 1;
-				strcat((char *)szAllShortAudioFormats, n);
+				gf_strcat(szAllShortAudioFormats, n);
 			} else {
-				strcpy((char *)szAllShortAudioFormats, n);
+				gf_strcpy(szAllShortAudioFormats, n);
 			}
 			tot_len += len;
 			i++;
@@ -1041,8 +1041,8 @@ const char *gf_audio_fmt_cicp_all_names()
 	if (szCICPLayoutAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(GF_CICPLayouts);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPLayoutAllNames, "|");
-			strcat(szCICPLayoutAllNames, GF_CICPLayouts[i].name);
+			if (i) gf_strcat(szCICPLayoutAllNames, "|");
+			gf_strcat(szCICPLayoutAllNames, GF_CICPLayouts[i].name);
 		}
 	}
 	return szCICPLayoutAllNames;
@@ -1326,7 +1326,7 @@ const char *gf_pixel_fmt_all_names()
 	if (!szAllPixelFormats[0]) {
 		u32 i=0;
 		u32 tot_len=4;
-		strcpy(szAllPixelFormats, "none");
+		gf_strcpy(szAllPixelFormats, "none");
 		while (GF_PixelFormats[i].pixfmt) {
 			u32 len;
 
@@ -1341,9 +1341,9 @@ const char *gf_pixel_fmt_all_names()
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
 			}
-			strcat((char *)szAllPixelFormats, "|");
+			gf_strcat(szAllPixelFormats, "|");
 			tot_len += 1;
-			strcat((char *)szAllPixelFormats, GF_PixelFormats[i].name);
+			gf_strcat(szAllPixelFormats, GF_PixelFormats[i].name);
 			tot_len += len;
 			i++;
 		}
@@ -1374,11 +1374,11 @@ const char *gf_pixel_fmt_all_shortnames()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllShortPixelFormats, "|");
+				gf_strcat(szAllShortPixelFormats, "|");
 				tot_len += 1;
-				strcat((char *)szAllShortPixelFormats, n);
+				gf_strcat(szAllShortPixelFormats, n);
 			} else {
-				strcpy((char *)szAllShortPixelFormats, n);
+				gf_strcpy(szAllShortPixelFormats, n);
 			}
 			tot_len += len;
 			i++;
@@ -2201,8 +2201,8 @@ const char *gf_cicp_color_primaries_all_names()
 	if (szCICPPrimAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorPrimaries);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPPrimAllNames, "|");
-			strcat(szCICPPrimAllNames, CICPColorPrimaries[i].name);
+			if (i) gf_strcat(szCICPPrimAllNames, "|");
+			gf_strcat(szCICPPrimAllNames, CICPColorPrimaries[i].name);
 		}
 	}
 	return szCICPPrimAllNames;
@@ -2271,8 +2271,8 @@ const char *gf_cicp_color_transfer_all_names()
 	if (szCICPTFCAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorTransfer);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPTFCAllNames, "|");
-			strcat(szCICPTFCAllNames, CICPColorTransfer[i].name);
+			if (i) gf_strcat(szCICPTFCAllNames, "|");
+			gf_strcat(szCICPTFCAllNames, CICPColorTransfer[i].name);
 		}
 	}
 	return szCICPTFCAllNames;
@@ -2331,8 +2331,8 @@ const char *gf_cicp_color_matrix_all_names()
 	if (szCICPMXAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorMatrixCoefficients);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPMXAllNames, "|");
-			strcat(szCICPMXAllNames, CICPColorMatrixCoefficients[i].name);
+			if (i) gf_strcat(szCICPMXAllNames, "|");
+			gf_strcat(szCICPMXAllNames, CICPColorMatrixCoefficients[i].name);
 		}
 	}
 	return szCICPMXAllNames;

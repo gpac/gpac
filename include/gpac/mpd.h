@@ -105,7 +105,7 @@ GF_OPT_ENUM (GF_DashHLSLowLatencyType,
 \param forced if true, do not append extension or missing $Number$ or $Time$  when resolving template
 \return error if any
 */
-GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline, Bool forced);
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char segment_name[GF_MAX_PATH], const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline, Bool forced);
 
 /*! metrics, not yet supported*/
 typedef struct

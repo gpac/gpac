@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -98,9 +98,9 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 		}
 		if (_rad_name) {
 			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
-			tmp->filename = (char *)gf_malloc(strlen(_rad_name) + strlen(ext_name) + 1);
-			strcpy(tmp->filename, _rad_name);
-			if (!is_final_name) strcat(tmp->filename, ext_name);
+			
+			tmp->filename = gf_strdup(_rad_name);
+			if (!is_final_name) gf_dynstrcat(&tmp->filename, ext_name, NULL);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
@@ -152,9 +152,9 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 				break;
 			}
 
-			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
-			strcpy(tmp->filename, _rad_name ? _rad_name : "");
-			if (!is_final_name) strcat(tmp->filename, ext_name);
+			tmp->filename = NULL;
+			if (_rad_name) tmp->filename = gf_strdup(_rad_name);
+			if (!is_final_name) gf_dynstrcat(&tmp->filename, ext_name, NULL);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp->filename);
@@ -653,7 +653,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			str = gf_malloc(sizeof(char) * bufsize);
 			if (str) {
 				s32 res;
-				strcpy(str, "data:application/octet-string;base64,");
+				gf_strlcpy(str, "data:application/octet-string;base64,", bufsize);
 				res = gf_base64_encode(((M_BitWrapper*)node)->buffer.buffer, ((M_BitWrapper*)node)->buffer_len, str+37, bufsize-37);
 				if (res<0) {
 					gf_free(str);
@@ -1821,10 +1821,10 @@ static GF_Err DumpNodeInsert(GF_SceneDumper *sdump, GF_Command *com)
 
 	switch (inf->pos) {
 	case 0:
-		strcpy(posname, "BEGIN");
+		gf_strcpy(posname, "BEGIN");
 		break;
 	case -1:
-		strcpy(posname, "END");
+		gf_strcpy(posname, "END");
 		break;
 	default:
 		sprintf(posname, "%d", inf->pos);
@@ -1893,10 +1893,10 @@ static GF_Err DumpIndexInsert(GF_SceneDumper *sdump, GF_Command *com)
 
 	switch (inf->pos) {
 	case 0:
-		strcpy(posname, "BEGIN");
+		gf_strcpy(posname, "BEGIN");
 		break;
 	case -1:
-		strcpy(posname, "END");
+		gf_strcpy(posname, "END");
 		break;
 	default:
 		sprintf(posname, "%d", inf->pos);
@@ -1950,10 +1950,10 @@ static GF_Err DumpIndexDelete(GF_SceneDumper *sdump, GF_Command *com)
 
 	switch (inf->pos) {
 	case -1:
-		strcpy(posname, sdump->XMLDump ? "END" : "LAST");
+		gf_strcpy(posname, sdump->XMLDump ? "END" : "LAST");
 		break;
 	case 0:
-		strcpy(posname, "BEGIN");
+		gf_strcpy(posname, "BEGIN");
 		break;
 	default:
 		sprintf(posname, "%d", inf->pos);
@@ -2128,10 +2128,10 @@ static GF_Err DumpIndexReplace(GF_SceneDumper *sdump, GF_Command *com)
 
 	switch (inf->pos) {
 	case 0:
-		strcpy(posname, "BEGIN");
+		gf_strcpy(posname, "BEGIN");
 		break;
 	case -1:
-		strcpy(posname, sdump->XMLDump ? "END" : "LAST");
+		gf_strcpy(posname, sdump->XMLDump ? "END" : "LAST");
 		break;
 	default:
 		sprintf(posname, "%d", inf->pos);
@@ -2193,10 +2193,10 @@ static GF_Err DumpXReplace(GF_SceneDumper *sdump, GF_Command *com)
 			if (gf_sg_vrml_is_sf_field(field.fieldType)) return GF_NON_COMPLIANT_BITSTREAM;
 			switch (inf->pos) {
 			case 0:
-				strcpy(posname, "BEGIN");
+				gf_strcpy(posname, "BEGIN");
 				break;
 			case -1:
-				strcpy(posname, sdump->XMLDump ? "END" : "LAST");
+				gf_strcpy(posname, sdump->XMLDump ? "END" : "LAST");
 				break;
 			default:
 				sprintf(posname, "%d", inf->pos);

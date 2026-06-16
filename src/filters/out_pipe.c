@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic pipe output filter
@@ -101,13 +101,13 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	if (ctx->dynext) {
 		Bool has_ext = (strchr(filename, '.')==NULL) ? GF_FALSE : GF_TRUE;
 
-		strcpy(szName, filename);
+		gf_strcpy(szName, filename);
 		if (!has_ext && ext) {
-			strcat(szName, ".");
-			strcat(szName, ext);
+			gf_strcat(szName, ".");
+			gf_strcat(szName, ext);
 		}
 	} else {
-		strcpy(szName, filename);
+		gf_strcpy(szName, filename);
 	}
 	gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, NULL);
 
@@ -124,11 +124,11 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	ctx->pipe = INVALID_HANDLE_VALUE;
 	char szNamedPipe[GF_MAX_PATH];
 	if (!strncmp(szFinalName, "\\\\", 2)) {
-		strcpy(szNamedPipe, szFinalName);
+		gf_strcpy(szNamedPipe, szFinalName);
 	}
 	else {
-		strcpy(szNamedPipe, "\\\\.\\pipe\\gpac\\");
-		strcat(szNamedPipe, szFinalName);
+		gf_strcpy(szNamedPipe, "\\\\.\\pipe\\gpac\\");
+		gf_strcat(szNamedPipe, szFinalName);
 	}
 	if (strchr(szFinalName, '/')) {
 		u32 i, len = (u32)strlen(szNamedPipe);
@@ -287,8 +287,7 @@ static GF_Err pipeout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	} else {
-		strncpy(ctx->szExt, ext, 9);
-		ctx->szExt[9] = 0;
+		gf_strcpy(ctx->szExt, ext);
 		strlwr(ctx->szExt);
 		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );

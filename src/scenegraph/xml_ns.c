@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
@@ -1100,7 +1100,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	if (!strcmp(iri->string, "data:,void")) return GF_OK;
 
 	/*handle "data:" scheme when cache is specified*/
-	strcpy(szFile, cache_dir);
+	gf_strcpy(szFile, cache_dir);
 	data_size = (u32) strlen(szFile);
 	if (szFile[data_size-1] != GF_PATH_SEPARATOR) {
 		szFile[data_size] = GF_PATH_SEPARATOR;
@@ -1113,11 +1113,11 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 #endif
 	if (!sep) sep = (char *) base_filename;
 	else sep += 1;
-	strcat(szFile, sep);
+	gf_strcat(szFile, sep);
 
 	sep = gf_file_ext_start(szFile);
 	if (sep) sep[0] = 0;
-	strcat(szFile, "_img_");
+	gf_strcat(szFile, "_img_");
 
 	/*get mime type*/
 	sep = (char *)iri->string + 5;
@@ -1159,8 +1159,8 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 		idx++;
 	}
 	sprintf(buf, "%04X", idx);
-	strcat(szFile, buf);
-	strcat(szFile, ext);
+	gf_strcat(szFile, buf);
+	gf_strcat(szFile, ext);
 
 	GF_Err e = GF_OK;
 	if (!existing) {

@@ -282,8 +282,7 @@ static Bool check_mime_ext(const char *string, const char *pattern)
 	char szLwr[100];
 	if (!pattern) return GF_FALSE;
 
-	strncpy(szLwr, pattern, 99);
-	szLwr[99]=0;
+	gf_strcpy(szLwr, pattern);
 	strlwr(szLwr);
 	u32 len = (u32) strlen(szLwr);
 	char *sep = strstr(string, szLwr);
@@ -814,8 +813,7 @@ static GF_Err rtpout_initialize(GF_Filter *filter)
 			ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 			ctx->in_caps[1].flags = GF_CAPS_INPUT;
 		} else {
-			strncpy(ctx->szExt, ctx->ext, 9);
-			ctx->szExt[9] = 0;
+			gf_strcpy(ctx->szExt, ctx->ext);
 			strlwr(ctx->szExt);
 			ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 			ctx->in_caps[1].val = PROP_NAME( ctx->szExt );

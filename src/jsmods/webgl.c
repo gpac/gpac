@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript WebGL bindings
@@ -871,11 +871,11 @@ static JSValue wgl_getUniform(JSContext *ctx, JSValueConst this_val, int argc, J
 		}
 
 		for (j=0; j<size; j++) {
-			strcpy(sname, name);
+			gf_strcpy(sname, name);
 			if ((size > 1) && (j >= 1)) {
 				char szIdx[100];
 				sprintf(szIdx, "[%d]", j);
-				strcat(sname, szIdx);
+				gf_strcat(sname, szIdx);
 			}
 			GLint loc = glGetUniformLocation(program_shader, sname);
 			if (loc == location) {

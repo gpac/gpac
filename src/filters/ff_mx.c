@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2025
+ *			Copyright (c) Telecom Paris 2019-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -315,7 +315,7 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 		}
 
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
-		strncpy(ctx->muxer->filename, dst, 1023);
+		memcpy(ctx->muxer->filename, dst, 1023);
 		ctx->muxer->filename[1023]=0;
 #else
 		av_freep(&ctx->muxer->url);
@@ -404,11 +404,11 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 		szProto[19] = 0;
 		len = (u32) (proto - url);
 		if (len>19) len=19;
-		strncpy(szProto, url, len);
+		memcpy(szProto, url, len);
 		szProto[len] = 0;
-		if (strncpy(szProto, "srt", len)) {
+		if (!strncmp(szProto, "srt", len)) {
 			ofmt = av_guess_format("mpegts", url, ctx->mime);
-		} else if (strncpy(szProto, "rtmp", len)) {
+		} else if (!strncmp(szProto, "rtmp", len)) {
 			ofmt = av_guess_format("flv", url, ctx->mime);
 		} else {
 			ofmt = av_guess_format(szProto, url, ctx->mime);
@@ -524,7 +524,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 	}
 
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
-	strncpy(ctx->muxer->filename, seg_name, 1023);
+	memcpy(ctx->muxer->filename, seg_name, 1023);
 	ctx->muxer->filename[1023]=0;
 #else
 	av_freep(&ctx->muxer->url);

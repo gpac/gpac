@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -796,11 +796,11 @@ GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMT
 		DumpInt(trace, "style_font_ID", sd->default_style.fontID, indent, XMTDump);
 		DumpInt(trace, "style_font_size", sd->default_style.font_size, indent, XMTDump);
 		DumpIntHex(trace, "style_text_color", sd->default_style.text_color, indent, XMTDump, GF_FALSE);
-		strcpy(szStyles, "");
-		if (sd->default_style.style_flags & GF_TXT_STYLE_BOLD) strcat(szStyles, "bold ");
-		if (sd->default_style.style_flags & GF_TXT_STYLE_ITALIC) strcat(szStyles, "italic ");
-		if (sd->default_style.style_flags & GF_TXT_STYLE_UNDERLINED) strcat(szStyles, "underlined ");
-		if (sd->default_style.style_flags & GF_TXT_STYLE_STRIKETHROUGH) strcat(szStyles, "strikethrough ");
+		gf_strcpy(szStyles, "");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_BOLD) gf_strcat(szStyles, "bold ");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_ITALIC) gf_strcat(szStyles, "italic ");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_UNDERLINED) gf_strcat(szStyles, "underlined ");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_STRIKETHROUGH) gf_strcat(szStyles, "strikethrough ");
 		if (strlen(szStyles)) DumpString(trace, "style_flag", szStyles, indent, XMTDump);
 
 		for (j=0; j<sd->font_count; j++) {

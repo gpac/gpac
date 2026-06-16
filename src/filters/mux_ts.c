@@ -505,23 +505,23 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 					if (p) {
-						strcpy(tspid->ctx->dash_file_name, p->value.string);
+						gf_strcpy(tspid->ctx->dash_file_name, p->value.string);
 						tspid->ctx->dash_file_switch = GF_TRUE;
 					}
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
 					if (p) {
-						strcpy(tspid->ctx->llhas_template, p->value.string);
+						gf_strcpy(tspid->ctx->llhas_template, p->value.string);
 					}
 					return GF_OK;
 				}
 				else if (tspid->ctx->last_is_eods_flush) {
 					const GF_PropertyValue *p2 = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 					if (p2) {
-						strcpy(tspid->ctx->dash_file_name, p2->value.string);
+						gf_strcpy(tspid->ctx->dash_file_name, p2->value.string);
 						tspid->ctx->next_is_start = GF_TRUE;
 						p2 = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
 						if (p2)
-							strcpy(tspid->ctx->llhas_template, p2->value.string);
+							gf_strcpy(tspid->ctx->llhas_template, p2->value.string);
 					}
 				}
 			}
@@ -532,7 +532,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_IDXFILENAME);
 			if (p) {
-				strcpy(tspid->ctx->idx_file_name, p->value.string);
+				gf_strcpy(tspid->ctx->idx_file_name, p->value.string);
 			}
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
@@ -1848,13 +1848,13 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			}
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p)
-				strcpy(tspid->ctx->dash_file_name, p->value.string);
+				gf_strcpy(tspid->ctx->dash_file_name, p->value.string);
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
 			if (p)
-				strcpy(tspid->ctx->llhas_template, p->value.string);
+				gf_strcpy(tspid->ctx->llhas_template, p->value.string);
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_IDXFILENAME);
 			if (p)
-				strcpy(tspid->ctx->idx_file_name, p->value.string);
+				gf_strcpy(tspid->ctx->idx_file_name, p->value.string);
 		}
 		ctx->init_dash = GF_FALSE;
 		ctx->next_is_start = GF_TRUE;

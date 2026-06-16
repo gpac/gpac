@@ -579,8 +579,8 @@ static JSModuleDef *js_module_loader_so(JSContext *ctx,
         filename = js_malloc(ctx, strlen(module_name) + 2 + 1);
         if (!filename)
             return NULL;
-        strcpy(filename, "./");
-        strcpy(filename + 2, module_name);
+        memcpy(filename, "./", 2);
+		memcpy(filename + 2, module_name, strlen(module_name) + 1);
     } else {
         filename = (char *)module_name;
     }
@@ -642,7 +642,8 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
     if (!module_name)
         return -1;
     if (module_name[0] && (module_name[1]!=':') && !strchr(module_name, ':')) {
-        strcpy(buf, "file://");
+        memcpy(buf, "file://", 7);
+		buf[7] = 0;
 #if !defined(_WIN32)
         /* realpath() cannot be used with modules compiled with qjsc
            because the corresponding module source code is not

@@ -2568,11 +2568,11 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 						u8 scheme_len = 0;
 						switch (scheme) {
 						case 1:
-							strcpy(URL, "http://");
+							gf_strcpy(URL, "http://");
 							scheme_len = 7;
 							break;
 						case 2:
-							strcpy(URL, "https://");
+							gf_strcpy(URL, "https://");
 							scheme_len = 8;
 							break;
 						}
@@ -3285,7 +3285,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 	ts->dsmcc_controler = gf_list_new();
 	ts->process_dmscc = 1;
 
-	strcpy(temp_dir, gf_get_default_cache_directory() );
+	gf_strcpy(temp_dir, gf_get_default_cache_directory() );
 	length = (u32) strlen(temp_dir);
 	if(temp_dir[length-1] == GF_PATH_SEPARATOR) {
 		temp_dir[length-1] = 0;

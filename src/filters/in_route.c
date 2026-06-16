@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -497,7 +497,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			if (mpd_cache_entry) {
 				sprintf(szPath, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\n", ctx->clock_init_seg);
 				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
-					strcat(szPath, "x-mcast-ll: yes\r\n");
+					gf_strcat(szPath, "x-mcast-ll: yes\r\n");
 				gf_dm_force_headers(ctx->dm, mpd_cache_entry, szPath);
 				szPath[0] = 0;
 			}

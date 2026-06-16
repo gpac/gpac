@@ -936,8 +936,8 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 				def_size+=1000;
 				enum_val = gf_realloc(enum_val, sizeof(char)*def_size);
 			}
-			if (i) strcat(enum_val, "|");
-			strcat(enum_val, n);
+			if (i) gf_strlcat(enum_val, "|", def_size);
+			gf_strlcat(enum_val, n, def_size);
 			all_len+=len-1;
 		}
 		arg.min_max_enum = enum_val;

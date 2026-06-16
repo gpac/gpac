@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -213,7 +213,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 			else if (!stricmp(att->name, "transactionID")) {
-				if (strlen(att->value)<=16) strcpy(tkc->TransactionID, att->value);
+				if (strlen(att->value)<=16) gf_strcpy(tkc->TransactionID, att->value);
 			}
 			else if (!stricmp(att->name, "textualHeaders")) {
 			}
@@ -542,8 +542,8 @@ static void cryptinfo_text(void *sax_cbck, const char *text, Bool is_cdata)
 	len2 = tkc->TextualHeaders ? (u32) strlen(tkc->TextualHeaders) : 0;
 
 	tkc->TextualHeaders = gf_realloc(tkc->TextualHeaders, sizeof(char) * (len+len2+1));
-	if (!len2) strcpy(tkc->TextualHeaders, "");
-	strcat(tkc->TextualHeaders, text);
+	if (!len2) gf_strlcpy(tkc->TextualHeaders, "", len+len2+1);
+	gf_strlcat(tkc->TextualHeaders, text, len+len2+1);
 }
 
 void gf_crypt_info_del(GF_CryptInfo *info)

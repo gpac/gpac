@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -559,8 +559,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "style_text_color")) GET_U32(sd->default_style.text_color)
 		else if (!stricmp(fieldName, "style_flags")) {
 			char szStyles[1024];
-			strncpy(szStyles, val, sizeof(szStyles)-1);
-			szStyles[sizeof(szStyles)-1] = 0;
+			gf_strcpy(szStyles, val);
 			strlwr(szStyles);
 			if (strstr(szStyles, "bold")) sd->default_style.style_flags |= GF_TXT_STYLE_BOLD;
 			if (strstr(szStyles, "italic")) sd->default_style.style_flags |= GF_TXT_STYLE_ITALIC;

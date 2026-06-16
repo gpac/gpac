@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -265,8 +265,8 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 		size_b64 = gf_base64_encode(Data, 24, d64, 100);
 		d64[size_b64] = 0;
 		cstr->tci->KMS_URI = gf_realloc(cstr->tci->KMS_URI, size_b64+6);
-		strcpy(cstr->tci->KMS_URI, "(key)");
-		strcat(cstr->tci->KMS_URI, d64);
+		gf_strlcpy(cstr->tci->KMS_URI, "(key)", size_b64+6);
+		gf_strlcat(cstr->tci->KMS_URI, d64, size_b64+6);
 		kms_uri = cstr->tci->KMS_URI;
 	}
 
@@ -287,8 +287,8 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 			sprintf(szSTR, "PreviewRange:%d", cstr->tci->sel_enc_range);
 			len = (u32) strlen(szSTR) + ( cstr->tci->TextualHeaders ? (u32) strlen(cstr->tci->TextualHeaders) : 0 ) + 1;
 			szPreview = gf_malloc(sizeof(char) * len);
-			strcpy(szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "");
-			strcat(szPreview, szSTR);
+			gf_strlcpy(szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "", len);
+			gf_strlcat(szPreview, szSTR, len);
 
 			gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_OMA_TXT_HDR, &PROP_STRING_NO_COPY(szPreview));
 		} else {
@@ -2421,7 +2421,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			for (i=0; i<16; i++) {
 				char szTmp[3];
 				sprintf(szTmp, "%02x", cstr->tci->keys[key_idx].KID[i]);
-				strcat(szKID, szTmp);
+				gf_strcat(szKID, szTmp);
 			}
 			i=0;
 			while ((pssh_tpl = gf_list_enum(cstr->pssh_templates, &i))) {
@@ -2511,7 +2511,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					for (j=0; j<16; j++) {
 						char szTmp[3];
 						sprintf(szTmp, "%02x", leaf_key[j]);
-						strcat(szCryptKey, szTmp);
+						gf_strcat(szCryptKey, szTmp);
 					}
 					key_att->value = szCryptKey;
 				}

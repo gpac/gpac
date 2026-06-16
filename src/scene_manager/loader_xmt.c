@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -836,10 +836,10 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 
 	i = 0;
 	while ((str[i]==' ') || (str[i]=='\t')) i++;
-	if (!strncmp(&str[i], "&quot;", 6)) strcpy(sep, "&quot;");
-	else if (!strncmp(&str[i], "&apos;", 6)) strcpy(sep, "&apos;");
-	else if (str[i]=='\'') strcpy(sep, "\'");
-	else if (str[i]=='\"') strcpy(sep, "\"");
+	if (!strncmp(&str[i], "&quot;", 6)) gf_strcpy(sep, "&quot;");
+	else if (!strncmp(&str[i], "&apos;", 6)) gf_strcpy(sep, "&apos;");
+	else if (str[i]=='\'') gf_strcpy(sep, "\'");
+	else if (str[i]=='\"') gf_strcpy(sep, "\"");
 	/*handle as a single field (old GPAC XMT & any unknown cases...*/
 	else {
 		len = (u32) strlen(str);
@@ -899,7 +899,7 @@ static u32 xmt_parse_url(GF_XMTParser *parser, const char *name, MFURL *val, GF_
 	if (!val->vals[idx].url) return res;
 
 	/*remove segments & viewpoints info to create OD link*/
-	strcpy(value, val->vals[idx].url);
+	gf_strcpy(value, val->vals[idx].url);
 	tmp = strstr(value, "#");
 	if (tmp) tmp[0] = 0;
 
@@ -1314,8 +1314,7 @@ static void xmt_update_timenode(GF_XMTParser *parser, GF_Node *node)
 static void xmt_strip_name(const char *in, char *out, size_t out_size)
 {
 	while (in[0]==' ') in++;
-	strncpy(out, in, out_size-1);
-	out[out_size-1] = 0;
+	gf_strlcpy(out, in, out_size);
 	while (out[strlen(out)-1] == ' ') out[strlen(out)-1] = 0;
 }
 

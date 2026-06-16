@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -86,8 +86,8 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	/* Create an idx file */
 	if (!gf_file_ext_start(szName)) {
 		char szPath[GF_MAX_PATH];
-		strcpy(szPath, szName);
-		strcat(szPath, ".idx");
+		gf_strcpy(szPath, szName);
+		gf_strcat(szPath, ".idx");
 		fidx = gf_fopen(szPath, "wb");
 	 } else {
 		fidx = gf_fopen(szName, "wb");
@@ -97,15 +97,17 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create a sub file */
-	char *ext = gf_file_ext_start(szName);
+	char subName[GF_MAX_PATH];
+	gf_strcpy(subName, szName);
+	char *ext = gf_file_ext_start(subName);
 	if (ext && (!stricmp(ext, ".idx") || !stricmp(ext, ".sub")) ) {
 		ext[0] = 0;
 	}
-	szName = strcat(szName, ".sub");
-	fsub = gf_fopen(szName, "wb");
+	gf_strcat(subName, ".sub");
+	fsub = gf_fopen(subName, "wb");
 	if (!fsub) {
 		gf_fclose(fidx);
-		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
+		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", subName);
 	}
 
 	/* Retrieve original subpicture resolution */
@@ -916,8 +918,8 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
 		is_stdout = 1;
-	strcpy(out_file, dumper->out_name ? dumper->out_name : "");
-	strcat(out_file, ".saf");
+	gf_strcpy(out_file, dumper->out_name ? dumper->out_name : "");
+	gf_strcat(out_file, ".saf");
 	saf_f = is_stdout ? stdout : gf_fopen(out_file, "wb");
 	if (!saf_f) {
 		gf_saf_mux_del(mux);
@@ -982,7 +984,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	Bool use_dynext = GF_FALSE;
 
 	args = NULL;
-	strcpy(szExt, "");
+	gf_strcpy(szExt, "");
 	if (dumper->trackID && dumper->file) {
 		u32 msubtype = 0;
 		u32 mtype = 0;
@@ -1023,7 +1025,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 
 		if (!codec_id) {
-			strcpy(szExt, gf_4cc_to_str(msubtype));
+			gf_strcpy(szExt, gf_4cc_to_str(msubtype));
 			ext_forced = GF_TRUE;
 		} else if (codec_id==GF_CODECID_RAW) {
 			switch (mtype) {
@@ -1031,15 +1033,15 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			case GF_ISOM_MEDIA_AUXV:
 			case GF_ISOM_MEDIA_PICT:
 				if (pfmt)
-					strcpy(szExt, gf_pixel_fmt_sname(pfmt));
+					gf_strcpy(szExt, gf_pixel_fmt_sname(pfmt));
 				break;
 			case GF_ISOM_MEDIA_AUDIO:
 				afmt = gf_audio_fmt_from_isobmf(msubtype);
 				if (afmt)
-					strcpy(szExt, gf_audio_fmt_name(afmt));
+					gf_strcpy(szExt, gf_audio_fmt_name(afmt));
 				break;
 			default:
-				strcpy(szExt, gf_4cc_to_str(msubtype));
+				gf_strcpy(szExt, gf_4cc_to_str(msubtype));
 				break;
 			}
 		} else {
@@ -1048,8 +1050,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				szExt[0]=0;
 			} else {
 				char *sep;
-				strncpy(szExt, sname, 29);
-				szExt[29]=0;
+				gf_strcpy(szExt, sname);
 				sep = strchr(szExt, '|');
 				if (sep) sep[0] = 0;
 			}
@@ -1080,9 +1081,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 
 		if ((codec_id==GF_CODECID_VORBIS) || (codec_id==GF_CODECID_THEORA) || (codec_id==GF_CODECID_SPEEX))
-			strcpy(szExt, "ogg");
+			gf_strcpy(szExt, "ogg");
 		else if (codec_id==GF_CODECID_OPUS)
-			strcpy(szExt, "opus");
+			gf_strcpy(szExt, "opus");
 
 		if (codec_id==GF_CODECID_SUBPIC) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1139,8 +1140,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 						szExt[0]=0;
 					} else {
 						char *sep;
-						strncpy(szExt, sname, 29);
-						szExt[29]=0;
+						gf_strcpy(szExt, sname);
 						sep = strchr(szExt, '|');
 						if (sep) sep[0] = 0;
 						use_dynext = GF_FALSE;
@@ -1184,13 +1184,13 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		e |= gf_dynstrcat(&args, dumper->out_name, NULL);
 
 		if (dumper->flags & GF_EXPORT_NHNT) {
-			strcpy(szExt, "nhnt");
+			gf_strcpy(szExt, "nhnt");
 			e |= gf_dynstrcat(&args, ":clone", NULL);
 			no_ext = GF_TRUE;
 			if (!ext)
 				e |= gf_dynstrcat(&args, ":dynext", NULL);
 		} else if (dumper->flags & GF_EXPORT_NHML) {
-			strcpy(szExt, "nhml");
+			gf_strcpy(szExt, "nhml");
 			e |= gf_dynstrcat(&args, ":clone", NULL);
 			no_ext = GF_TRUE;
 			if (!ext)
