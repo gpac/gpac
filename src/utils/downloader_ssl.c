@@ -1042,6 +1042,7 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 	int ret;
 	Bool success;
+	Bool use_quic = (sess->flags & GF_NETIO_SESSION_USE_QUIC) ? GF_TRUE : GF_FALSE;
 
 	if (!sess->ssl) {
 
@@ -1056,12 +1057,31 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
 			SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
 
-#else
-		gnutls_session_t session;
-		int ret;
+
+#ifdef GPAC_HAS_HTTP2
+		if (!use_quic && sess->dm && !sess->dm->disable_http2) {
+			if (sess->h2_upgrade_state == 3) {
+				SSL_set_alpn_protos(sess->ssl, NULL, 0);
+				sess->h2_upgrade_state = 0;
+			} else if (sess->h2_upgrade_state == 4) {
+				SSL_set_alpn_protos(sess->ssl, NULL, 0);
+			}
+		}
+#endif
 
 #ifdef GPAC_HAS_NGTCP2
-		if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
+		// CTX-level quic_method is inherited; clear it for plain TLS sessions
+		if (!use_quic)
+			SSL_set_quic_method(sess->ssl, NULL);
+#endif
+
+
+#else //gnutls
+
+		gnutls_session_t session;
+
+#ifdef GPAC_HAS_NGTCP2
+		if (use_quic) {
 			ret = gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
 
 			gnutls_priority_set_direct(session, "%DISABLE_TLS13_COMPAT_MODE:NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
@@ -1086,81 +1106,46 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		// Set SNI (Server Name Indication)
 		if (proxy)
 			gnutls_server_name_set(sess->ssl, GNUTLS_NAME_DNS, proxy, strlen(proxy));
-#endif
 
+#ifdef GPAC_HAS_NGTCP2
+		if (use_quic) {
+			// QUIC always uses h3 regardless of HTTP/2 support
+			gnutls_alpn_set_protocols(sess->ssl, &alpn_h3, 1, GNUTLS_ALPN_MANDATORY);
+		} else
+#endif
+		{
 #ifdef GPAC_HAS_HTTP2
-        if (sess->dm && !sess->dm->disable_http2) {
-
-			if (sess->h2_upgrade_state==3) {
-#ifndef GPAC_HAS_GNUTLS
-				SSL_set_alpn_protos(sess->ssl, NULL, 0);
-#else
-				gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
-#endif
-				sess->h2_upgrade_state = 0;
-			}
-			//h2 disabled, don't use alpn
-			else if (sess->h2_upgrade_state==4) {
-#ifndef GPAC_HAS_GNUTLS
-				SSL_set_alpn_protos(sess->ssl, NULL, 0);
-			}
-#else
-				gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
-			}
-			else {
-#if defined(GPAC_HAS_NGTCP2)
-				// QUIC mandates a single h3 ALPN; advertising h2 alongside it
-				// is wrong and some servers will reject it.
-				if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
-					gnutls_alpn_set_protocols(sess->ssl, &alpn_h3, 1, GNUTLS_ALPN_MANDATORY);
-				} else
-#endif
-				{
+			if (sess->dm && !sess->dm->disable_http2) {
+				if (sess->h2_upgrade_state == 3) {
+					gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
+					sess->h2_upgrade_state = 0;
+				} else if (sess->h2_upgrade_state == 4) {
+					gnutls_alpn_set_protocols(sess->ssl, NULL, 0, 0);
+				} else {
 					gnutls_alpn_set_protocols(sess->ssl, alpn_protos, alpn_count, 0);
 				}
 			}
-//TODO: what if HTTP2 not def but TCP2 def => when do we set h3 alpn?
-#endif // gnutls
-        }
-#endif // http2
-
-
-#ifdef GPAC_HAS_GNUTLS
-
-// For plain TLS: attach the socket fd directly (GnuTLS drives I/O itself).
-    // For QUIC: ngtcp2 drives I/O via in-memory buffers; never set a transport fd.
-#ifdef GPAC_HAS_NGTCP2
-    if (!(sess->flags & GF_NETIO_SESSION_USE_QUIC))
 #endif
-		gnutls_transport_set_int(sess->ssl, gf_sk_get_handle(sess->sock));
-
-#else //openssl
-
+		}
 
 #ifdef GPAC_HAS_NGTCP2
-		//if not using quic, reset quic methods in ssl
-		if (!(sess->flags & GF_NETIO_SESSION_USE_QUIC))
-			SSL_set_quic_method(sess->ssl, NULL);
+		if (!use_quic)
 #endif
+			gnutls_transport_set_int(sess->ssl, gf_sk_get_handle(sess->sock));
 
-#endif // GPAC_HAS_GNUTLS
+#endif
 
 	}
 
-	if (sess->flags & GF_NETIO_SESSION_USE_QUIC) {
-#ifdef GPAC_HAS_NGTCP2
-
-#ifdef GPAC_HAS_GNUTLS
-
+	if (use_quic) {
+#if defined(GPAC_HAS_NGTCP2) && defined(GPAC_HAS_GNUTLS)
         if (ngtcp2_crypto_gnutls_configure_client_session(sess->ssl) != 0) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_client_session failed\n"));
             gnutls_deinit(sess->ssl);
             sess->ssl = NULL;
             return SSL_CONNECT_RETRY;
         }
-#endif // GPAC_HAS_GNUTLS
-
-#endif // GPAC_HAS_NGTCP2
+#endif
 		return SSL_CONNECT_RETRY;
 	}
 
@@ -1242,49 +1227,47 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 			sess->last_error = GF_IP_NETWORK_EMPTY;
 			return SSL_CONNECT_WAIT;
 		}
-		else {
 
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Handshake failed: %s\n", gnutls_strerror(ret)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Handshake failed: %s\n", gnutls_strerror(ret)));
 
 #if defined(GPAC_HAS_HTTP2)
-			//error and we tried with alpn for h2, retry without (kill/reconnect)
-			if (!sess->h2_upgrade_state && !sess->dm->disable_http2) {
-				// SSL_free(sess->ssl);
-				gnutls_deinit(sess->ssl);
-				sess->ssl = NULL;
-				dm_sess_sk_del(sess);
-				sess->status = GF_NETIO_SETUP;
-				sess->h2_upgrade_state = 3;
-				return SSL_CONNECT_RETRY;
-			}
+		//error and we tried with alpn for h2, retry without (kill/reconnect)
+		if (!sess->h2_upgrade_state && !sess->dm->disable_http2) {
+			// SSL_free(sess->ssl);
+			gnutls_deinit(sess->ssl);
+			sess->ssl = NULL;
+			dm_sess_sk_del(sess);
+			sess->status = GF_NETIO_SETUP;
+			sess->h2_upgrade_state = 3;
+			return SSL_CONNECT_RETRY;
+		}
 #endif
 
-			return SSL_CONNECT_RETRY;
+		return SSL_CONNECT_RETRY;
+	}
 
-		}
 
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] connected\n"));
 
 
 #ifdef GPAC_HAS_HTTP2
-		if (!sess->dm->disable_http2) {
+	if (!sess->dm->disable_http2) {
 
-			gnutls_datum_t selected;
-            // Check what the server picked
-            int alpn_ret = gnutls_alpn_get_selected_protocol((gnutls_session_t)sess->ssl, &selected);
+		gnutls_datum_t selected;
+		// Check what the server picked
+		int alpn_ret = gnutls_alpn_get_selected_protocol((gnutls_session_t)sess->ssl, &selected);
 
-            if (alpn_ret == 0 && selected.size == 2 && memcmp(selected.data, "h2", 2) == 0) {
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 negotiated via ALPN\n"));
-                h2_initialize_session(sess);
-            } else {
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 not negotiated, falling back\n"));
-                sess->h2_upgrade_state = 4;
-            }
-
+		if (alpn_ret == 0 && selected.size == 2 && memcmp(selected.data, "h2", 2) == 0) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 negotiated via ALPN\n"));
+			h2_initialize_session(sess);
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 not negotiated, falling back\n"));
+			sess->h2_upgrade_state = 4;
 		}
-#endif
+
 	}
+#endif
+
 
 #endif //gnutls
 
