@@ -669,7 +669,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	/*rescale the MFField and parse the SFField*/
 	if (field.fieldType==GF_SG_VRML_MFNODE) {
 		GF_Node *node = gf_bifs_dec_node(codec, bs, field.NDTtype);
-		if (!node) return codec->LastError;
+		if (!node || node == def) return codec->LastError;
 
 		e = gf_node_register(node, def);
 		if (e) return e;
@@ -1321,6 +1321,8 @@ exit:
 				gf_node_unregister(cbi->node, NULL);
 				gf_free(cbi);
 			}
+			if (rootSG->global_qp && rootSG->global_qp->sgprivate->scenegraph == proto->sub_graph)
+				rootSG->global_qp->sgprivate->scenegraph = NULL;
 			gf_sg_proto_del(proto);
 		}
 		codec->current_graph = rootSG;

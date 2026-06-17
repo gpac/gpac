@@ -1221,7 +1221,8 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 	if (!mffield->count || RemoveFrom >= mffield->count) return GF_BAD_PARAM;
 
 	if (mffield->count == 1) {
-		gf_free(mffield->array);
+		u32 sf_type = gf_sg_vrml_get_sf_type(FieldType);
+		gf_sg_vrml_field_pointer_del(mffield->array, sf_type);
 		mffield->array = NULL;
 		mffield->count = 0;
 		return GF_OK;

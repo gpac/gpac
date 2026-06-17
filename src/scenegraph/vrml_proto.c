@@ -1116,6 +1116,8 @@ GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_
 	u32 i;
 	GF_ProtoFieldInterface *proto_field;
 
+	if (!proto || !proto->proto_interface) return GF_BAD_PARAM;
+
 	i=0;
 	while ((proto_field = (GF_ProtoFieldInterface*)gf_list_enum(proto->proto_interface->proto_fields, &i))) {
 		gf_assert(proto_field);
@@ -1265,10 +1267,15 @@ const char *gf_sg_proto_get_class_name(GF_Proto *proto)
 u32 gf_sg_proto_get_root_tag(GF_Proto *proto)
 {
 	GF_Node *n;
+	GF_Proto *orig = proto;
 	if (!proto) return TAG_UndefinedNode;
 	n = (GF_Node*)gf_list_get(proto->node_code, 0);
 	if (!n) return TAG_UndefinedNode;
-	if (n->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_root_tag(((GF_ProtoInstance *)n)->proto_interface);
+	if (n->sgprivate->tag == TAG_ProtoNode) {
+		GF_Proto *next = ((GF_ProtoInstance *)n)->proto_interface;
+		if (!next || next == orig) return TAG_UndefinedNode;
+		return gf_sg_proto_get_root_tag(next);
+	}
 	return n->sgprivate->tag;
 }
 

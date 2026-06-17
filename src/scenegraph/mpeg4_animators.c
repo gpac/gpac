@@ -792,6 +792,7 @@ void SA_SetFraction(GF_Node *node, GF_Route *route)
 void SA_Modified(GF_Node *node, GF_FieldInfo *field)
 {
 	AnimatorStack *stack = (AnimatorStack *)gf_node_get_private(node);
+	if (!stack) return;
 	M_ScalarAnimator *sa = (M_ScalarAnimator *)node;
 
 	if ( /*all fields impacting cached path len / nurbs*/

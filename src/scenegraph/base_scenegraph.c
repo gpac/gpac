@@ -751,13 +751,14 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 
 	}
 	/*delete the node*/
-	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph->RootNode==pNode)) {
-		pSG = pNode->sgprivate->scenegraph;
-		gf_node_del(pNode);
-		pSG->RootNode = NULL;
-	} else {
-		gf_node_del(pNode);
+	pSG = pNode->sgprivate->scenegraph;
+	while (pSG) {
+		if (pSG->RootNode == pNode)
+			pSG->RootNode = NULL;
+		pSG = pSG->parent_scene;
 	}
+	gf_node_del(pNode);
+
 	return GF_OK;
 }
 
@@ -1370,7 +1371,7 @@ void gf_node_unregister_children(GF_Node *container, GF_ChildNodeItem *child)
 {
 	while (child) {
 		GF_ChildNodeItem *cur;
-		gf_node_unregister(child->node, container);
+		if (child->node != container) gf_node_unregister(child->node, container);
 		cur = child;
 		child = child->next;
 		gf_free(cur);
@@ -2146,7 +2147,7 @@ static GF_Err gf_node_deactivate_ex(GF_Node *node)
 		/*deactivate anmiations*/
 		if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
 			SVGTimedAnimBaseElement *timed = (SVGTimedAnimBaseElement*)node;
-			if (gf_list_del_item(node->sgprivate->scenegraph->smil_timed_elements, timed->timingp->runtime)>=0) {
+			if (timed && timed->timingp && gf_list_del_item(node->sgprivate->scenegraph->smil_timed_elements, timed->timingp->runtime)>=0) {
 				if (timed->timingp->runtime->evaluate) {
 					timed->timingp->runtime->evaluate(timed->timingp->runtime, 0, SMIL_TIMING_EVAL_DEACTIVATE);
 				}

@@ -4367,6 +4367,10 @@ static GF_Node *lsr_read_use(GF_LASeRCodec *lsr, Bool is_same)
 			lsr_restore_base(lsr, (SVG_Element *)elt, lsr->prev_use, 0, 0);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] sameuse coded in bitstream but no use defined !\n"));
+			gf_node_register(elt, NULL);
+			gf_node_unregister(elt, NULL);
+			lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+			return NULL;
 		}
 		lsr_read_id(lsr, elt);
 		lsr_read_href(lsr, elt);
@@ -5553,7 +5557,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 							gf_node_list_insert_child(&((GF_ParentNode *)n)->children, (GF_Node*)t, idx);
 						} else {
 							t = (GF_DOMText *) gf_node_list_get_child(((SVG_Element*)n)->children, idx);
-							if (t->sgprivate->tag!=TAG_DOMText) t = NULL;
+							if (t && t->sgprivate->tag!=TAG_DOMText) t = NULL;
 						}
 					} else {
 						/*this is a replace, reset ALL node content*/
@@ -6034,6 +6038,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				lsr->prev_text = NULL;
 				lsr->prev_polygon = NULL;
 				lsr->prev_line = NULL;
+				lsr->prev_use = NULL;
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);
