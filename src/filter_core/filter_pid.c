@@ -2140,7 +2140,7 @@ sourceid_reassign:
 						u32 frag_sep_len = (u32) (frag_sep-frag_name+1);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
-						u32 blen = strlen(sid) + strlen(prop_dump_buffer)+1;
+						u32 blen = (u32) strlen(sid) + (u32) strlen(prop_dump_buffer)+1;
 						char *new_source_ids = gf_malloc(sizeof(char) * blen);
 						u32 clen = (u32) sublen + frag_sep_len + 1;
 						memcpy(new_source_ids, sid, clen);
@@ -7990,7 +7990,7 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			if (!url) {
 				*url_addr_dst = NULL;
 			} else {
-				u32 len = (u32) 1 + strlen(url);
+				u32 len = 1 + (u32) strlen(url);
 				GF_RefString *rstr = gf_malloc(sizeof(GF_RefString) + sizeof(char)*len);
 				rstr->ref_count=1;
 				gf_strlcpy( (char *) &rstr->string[0], url, len);

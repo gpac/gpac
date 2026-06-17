@@ -579,10 +579,10 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 
 	u32 asize;
 	if (entry->memory_stored) {
-		asize =  strlen ("gmem://") + 8 + strlen("@") + 16 + 1;
+		asize =  (u32) strlen ("gmem://") + 8 +  (u32) strlen("@") + 16 + 1;
 	} else {
 		/* Sizeof cache directory + hash + possible extension */
-		asize = strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1;
+		asize =  (u32) strlen ( cache_directory ) +  (u32) strlen(cache_file_prefix) +  (u32) strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1;
 	}
 	entry->cache_filename = (char*)gf_malloc(asize);
 
