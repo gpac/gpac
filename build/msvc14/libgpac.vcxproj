@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\gpac\ait.h" />
+    <ClInclude Include="..\..\include\gpac\id3.h" />
     <ClInclude Include="..\..\include\gpac\route.h" />
     <ClInclude Include="..\..\include\gpac\avparse.h" />
     <ClInclude Include="..\..\include\gpac\base_coding.h" />
@@ -138,6 +139,7 @@
     <ClInclude Include="..\..\src\compositor\visual_manager_3d.h" />
     <ClInclude Include="..\..\src\filters\dec_nvdec_sdk.h" />
     <ClInclude Include="..\..\src\filters\ff_common.h" />
+    <ClInclude Include="..\..\src\filters\in_route.h" />
     <ClInclude Include="..\..\src\filters\in_rtp.h" />
     <ClInclude Include="..\..\src\filters\isoffin.h" />
     <ClInclude Include="..\..\src\filter_core\filter_session.h" />
@@ -242,6 +244,7 @@
     <ClCompile Include="..\..\src\compositor\visual_manager_3d.c" />
     <ClCompile Include="..\..\src\compositor\visual_manager_3d_gl.c" />
     <ClCompile Include="..\..\src\compositor\x3d_geometry.c" />
+    <ClCompile Include="..\..\src\crypto\g_crypt_gnutls.c" />
     <ClCompile Include="..\..\src\filters\bs_agg.c" />
     <ClCompile Include="..\..\src\filters\bs_split.c" />
     <ClCompile Include="..\..\src\filters\bsrw.c" />

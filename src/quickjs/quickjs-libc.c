@@ -93,7 +93,9 @@ typedef void (*sighandler_t)(int sig_num);
 #endif
 
 #include <BaseTsd.h>
+#ifndef _SSIZE_T_DEFINED
 typedef SSIZE_T ssize_t;
+#endif
 
 #if !defined(S_IFIFO)
 #define S_IFIFO _S_IFIFO                     /* Pipe */

@@ -224,7 +224,9 @@ typedef enum JSErrorEnum {
 
 #if defined(_WIN32) && !defined(__GNUC__)
 #define __exception
+#ifndef _SSIZE_T_DEFINED
 typedef int64_t ssize_t;
+#endif
 #else
 
 #define __exception __attribute__((warn_unused_result))

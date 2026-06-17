@@ -408,7 +408,7 @@ crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
 
 crypto/g_crypt_gnutls.o: CFLAGS += $(ssl_cflags)
 crypto/g_crypt_gnutls.o: crypto/g_crypt_gnutls.c
-.deps/crypto/g_crypt_openssl.dep: CFLAGS += $(ssl_cflags)
+.deps/crypto/g_crypt_gnutls.dep: CFLAGS += $(ssl_cflags)
 
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) downloader compositor scenegraph media_tools crypto filters filters_ffmpeg filters_libcaption filters_mpeghdec filters_ohevc jsmods $(OBJS)
 #	@echo "OBJS $(OBJS)"

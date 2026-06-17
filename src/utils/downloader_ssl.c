@@ -315,7 +315,12 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic) {
 
 #else
 
-	gnutls_certificate_allocate_credentials(&dm->ssl_ctx);
+	int ret = gnutls_certificate_allocate_credentials(&dm->ssl_ctx);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[SSL] Unable to create GnuTLS credentials: %s\n", gnutls_strerror(ret)));
+		goto error;
+	}
+	alpn_count = 0;
 
 #endif
 
@@ -835,7 +840,7 @@ Bool gf_ssl_check_cert(gf_ssl_sess_t ssl, const char *server_name)
 	long vresult = SSL_get_verify_result(ssl);
 #else
 	u32 vresult;
-	gnutls_certificate_verify_peers2(ssl, &vresult);
+	if (gnutls_certificate_verify_peers2(ssl, &vresult) < 0) vresult = GNUTLS_CERT_INVALID;
 #endif
 
 	Bool success = (vresult == 0);
@@ -1083,7 +1088,6 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 #ifdef GPAC_HAS_NGTCP2
 		if (use_quic) {
 			ret = gnutls_init(&session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
-
 			gnutls_priority_set_direct(session, "%DISABLE_TLS13_COMPAT_MODE:NORMAL:-VERS-ALL:+VERS-TLS1.3", NULL);
 
 		} else
@@ -1095,7 +1099,7 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 
 		if (ret < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] gnutls_init server session failed: %s\n", gnutls_strerror(ret)));
-			return GF_IP_CONNECTION_FAILURE;
+			return SSL_CONNECT_RETRY;
 		}
 
 		sess->ssl = session;

@@ -4455,22 +4455,15 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	//peek message
 	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK);
 	if (res > 0) return GF_OK;
-#if 0
-	res = LASTSOCKERROR;
-	switch (res) {
-	case 0:
-	case EAGAIN:
-	case EINTR:
-		return GF_IP_NETWORK_EMPTY;
-	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] probe error: %s\n", gf_errno_str(res)));
-		return GF_IP_CONNECTION_CLOSED;
-	}
-#else
-	return GF_IP_CONNECTION_CLOSED;
+
+#ifdef WIN32
+	/* UDP recv(MSG_PEEK) with 1-byte buffer returns WSAEMSGSIZE for any
+	   datagram > 1 byte — data IS available, not a connection error */
+	if (LASTSOCKERROR == WSAEMSGSIZE) return GF_OK;
 #endif
 
-	return GF_OK;
+	return GF_IP_CONNECTION_CLOSED;
+
 }
 
 

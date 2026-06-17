@@ -187,6 +187,17 @@ typedef unsigned int size_t;
 #endif
 #endif
 
+#if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
+#define _SSIZE_T_DEFINED
+#if defined(_WIN64)
+typedef signed long ssize_t;
+#else
+typedef signed int ssize_t;
+#endif
+#endif
+
+
+
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/
 

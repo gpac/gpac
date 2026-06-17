@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="include">
@@ -200,9 +200,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\compositor\visual_manager_3d.h">
       <Filter>compositor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\media_tools\id3.h">
-      <Filter>media_tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\media_tools\mpeg2_ps.h">
       <Filter>media_tools</Filter>
@@ -425,6 +422,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\quickjs\quickjs-libc.h">
       <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\filters\in_route.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\gpac\id3.h">
+      <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1529,9 +1532,6 @@
     <ClCompile Include="..\..\src\filters\in_route_repair.c">
       <Filter>filters</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\filters\in_route.h">
-      <Filter>filters</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\evg\ftgrays.c">
       <Filter>evg</Filter>
     </ClCompile>
@@ -1663,6 +1663,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\quickjs\quickjs-libc.c">
       <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\crypto\g_crypt_gnutls.c">
+      <Filter>crypto</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

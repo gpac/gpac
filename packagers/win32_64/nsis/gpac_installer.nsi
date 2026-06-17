@@ -218,8 +218,8 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\gm_dx_hw.dll"
 
   ;all our deps
-  File "${GPAC_BIN}\libcrypto*.dll"
-  File "${GPAC_BIN}\libssl*.dll"
+  File /nonfatal "${GPAC_BIN}\libcrypto*.dll"
+  File /nonfatal "${GPAC_BIN}\libssl*.dll"
   File /nonfatal "${GPAC_BIN}\libnghttp3*.dll"
   File /nonfatal "${GPAC_BIN}\libngtcp2*.dll"
   File "${GPAC_BIN}\avcodec-*.dll"
@@ -233,6 +233,28 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\libx264-*.dll"
   File "${GPAC_BIN}\OpenSVCDecoder.dll"
   File "${GPAC_BIN}\libcurl*.dll"
+
+  ;gnutls and quic libs
+  File /nonfatal "${GPAC_BIN}\libbrotlicommon.dll"
+  File /nonfatal "${GPAC_BIN}\libbrotlidec.dll"
+  File /nonfatal "${GPAC_BIN}\libbrotlienc.dll"
+  File /nonfatal "${GPAC_BIN}\libffi-8.dll"
+  File /nonfatal "${GPAC_BIN}\libgmp-10.dll"
+  File /nonfatal "${GPAC_BIN}\libgnutls-30.dll"
+  File /nonfatal "${GPAC_BIN}\libhogweed-6.dll"
+  File /nonfatal "${GPAC_BIN}\libiconv-2.dll"
+  File /nonfatal "${GPAC_BIN}\libidn2-0.dll"
+  File /nonfatal "${GPAC_BIN}\libintl-8.dll"
+  File /nonfatal "${GPAC_BIN}\libnettle-8.dll"
+  File /nonfatal "${GPAC_BIN}\libnghttp3-9.dll"
+  File /nonfatal "${GPAC_BIN}\libngtcp2-16.dll"
+  File /nonfatal "${GPAC_BIN}\libngtcp2_crypto_gnutls-8.dll"
+  File /nonfatal "${GPAC_BIN}\libp11-kit-0.dll"
+  File /nonfatal "${GPAC_BIN}\libtasn1-6.dll"
+  File /nonfatal "${GPAC_BIN}\libunistring-5.dll"
+  File /nonfatal "${GPAC_BIN}\libwinpthread-1.dll"
+  File /nonfatal "${GPAC_BIN}\libzstd.dll"
+  File /nonfatal "${GPAC_BIN}\zlib1.dll"
 
   ;copy shared resources
   SetOutPath $INSTDIR\share

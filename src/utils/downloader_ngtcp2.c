@@ -209,7 +209,7 @@ static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t
 			ConnIDInfo *ci = &qc->serv_conn->conn_ids[conn_idx];
 			if (!ci->associated) {
 				memcpy(ci->dcid, cid->data, cid->datalen);
-				ci->dcid_len = cid->datalen;
+				ci->dcid_len = (u32)cid->datalen;
 				ci->associated=GF_TRUE;
 				return 0;
 			}
@@ -302,7 +302,7 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 		return NGHTTP3_ERR_WOULDBLOCK;
 	}
 	vec[0].base = sess->local_buf + qr->local_buf_sent;
-	qr->local_buf_sent += vec[0].len;
+	qr->local_buf_sent += (u32)vec[0].len;
 	return 1;
 }
 
@@ -953,8 +953,8 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 	}
 	ret = GF_IP_NETWORK_EMPTY;
 
-	u32 max_pay_size = ngtcp2_conn_get_max_tx_udp_payload_size(qc->conn);
-	u32 path_max_udp_size = ngtcp2_conn_get_path_max_tx_udp_payload_size(qc->conn);
+	u32 max_pay_size = (u32)ngtcp2_conn_get_max_tx_udp_payload_size(qc->conn);
+	u32 path_max_udp_size = (u32)ngtcp2_conn_get_path_max_tx_udp_payload_size(qc->conn);
 	u64 ts = ngtcp2_timestamp();
 
 	ngtcp2_pkt_info pi;
@@ -1571,7 +1571,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 			e = GF_IP_CONNECTION_FAILURE;
 			goto err;
 		}
-		ng_quic->serv_conn->conn_ids[0].dcid_len = scid.datalen;
+		ng_quic->serv_conn->conn_ids[0].dcid_len = (u32)scid.datalen;
 		memcpy(ng_quic->serv_conn->conn_ids[0].dcid, scid.data, scid.datalen);
 
 		rv = ngtcp2_conn_server_new(&ng_quic->conn, &srv_hd->scid, &scid, &ng_quic->path, NGTCP2_PROTO_VER_V1,
@@ -1780,7 +1780,7 @@ static int quic_send_retry(GF_QuicServer *qs, const ngtcp2_pkt_hd *chd, const u8
 {
 	ngtcp2_cid scid;
 	scid.datalen = NGTCP2_SV_SCIDLEN;
-	if (ngq_rand_bytes(scid.data, scid.datalen) != 1) {
+	if (ngq_rand_bytes(scid.data, (int)scid.datalen) != 1) {
 		return -1;
 	}
 	u8 token[NGTCP2_CRYPTO_MAX_RETRY_TOKENLEN2];
@@ -1973,7 +1973,7 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
     int rv = ngtcp2_accept(&hd, data, data_len);
     if (rv != 0) {
 		if (!(data[0] & 0x80) && (data_len >= NGTCP2_SV_SCIDLEN + 22) ) {
-			quic_send_stateless_reset(qs, data_len, vc->dcid, vc->dcidlen, s_add, s_add_len);
+			quic_send_stateless_reset(qs, data_len, vc->dcid, (u32)vc->dcidlen, s_add, s_add_len);
 		}
 		return GF_IP_NETWORK_EMPTY;
 	}
@@ -2082,7 +2082,7 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 	gnutls_alpn_set_protocols(ssl, &alpn_h3, 1, GNUTLS_ALPN_MANDATORY);
 
 	ret = ngtcp2_crypto_gnutls_configure_server_session(ssl);
-	if (ret != 0) {
+	if (ret < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_crypto_gnutls_configure_server_session failed\n"));
 		gnutls_deinit(ssl);
 		quic_send_stateless_connection_close(qs, &hd, s_add, s_add_len);
@@ -2098,7 +2098,7 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 	if (!c) return GF_OUT_OF_MEM;
 	memcpy(c->addr, s_add, s_add_len);
 	c->conn_ids[0].associated = GF_TRUE;
-	c->conn_ids[0].dcid_len = vc->dcidlen;
+	c->conn_ids[0].dcid_len = (u32)vc->dcidlen;
 	memcpy(c->conn_ids[0].dcid, vc->dcid, vc->dcidlen);
 	c->addr_len = s_add_len;
 	c->server = qs;

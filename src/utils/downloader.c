@@ -1427,7 +1427,7 @@ resetup_socket:
 		sess->sock = gf_sk_new_ex(sock_type, sess->netcap_id);
 
 		if (sess->sock && (sess->flags & GF_NETIO_SESSION_NO_BLOCK))
-			gf_sk_set_block_mode(sess->sock, GF_TRUE);
+		    gf_sk_set_block_mode(sess->sock, GF_TRUE);
 
 		if (sess->sock_group) register_sock = GF_TRUE;
 	}
@@ -2722,10 +2722,10 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 					return GF_IP_NETWORK_EMPTY;
 			} else
 #endif
-			if (sess->sock)
-				e = gf_sk_probe(sess->sock);
-
-			// fprintf(stderr, "%s:%d gf_dm_sess_fetch_data returned %s\n", __FILE__, __LINE__, gf_error_to_string(e));
+			{
+				if (sess->sock)
+					e = gf_sk_probe(sess->sock);
+			}
 
 			if ((e==GF_IP_CONNECTION_CLOSED)
 				|| (sess->request_timeout && (gf_sys_clock_high_res() - sess->last_fetch_time > 1000 * sess->request_timeout))

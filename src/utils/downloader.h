@@ -81,7 +81,10 @@ typedef SSL_CTX* gf_ssl_ctx_t;
 
 #ifdef GPAC_HAS_HTTP2
 #if defined(_MSC_VER)
+#ifndef _SSIZE_T_DEFINED
 typedef SSIZE_T ssize_t;
+#define _SSIZE_T_DEFINED
+#endif
 #define NGHTTP2_STATICLIB
 #else
 #if defined(WIN32) && defined(GPAC_STATIC_BUILD)
