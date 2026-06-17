@@ -266,10 +266,10 @@ GF_EXPORT
 void gf_sys_set_android_paths(const char *app_data, const char *ext_storage)
 {
 	if (app_data && (strlen(app_data)<512)) {
-		gf_strcpy(android_app_data, app_data, 512);
+		gf_strlcpy(android_app_data, app_data, 512);
 	}
 	if (ext_storage && (strlen(ext_storage)<512)) {
-		gf_strcpy(android_external_storage, ext_storage, 512);
+		gf_strlcpy(android_external_storage, ext_storage, 512);
 	}
 }
 
