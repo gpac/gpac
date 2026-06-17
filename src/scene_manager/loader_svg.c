@@ -1003,7 +1003,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			/* An observer was specified, so it needs to be used */
 			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_observer, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute((GF_Node *)elt, &info, (char*)ev_observer, 0);
-		} else {
+		} else if (((XMLRI *)info.far_ptr)->target && parent) {
 			/* No observer specified, this listener listens with the parent of the handler as the event target */
 			gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_target, GF_TRUE, GF_FALSE, &info);
 			((XMLRI *)info.far_ptr)->target = parent->node;

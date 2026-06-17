@@ -529,7 +529,7 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 	if (!string_delim) string_delim = '"';
 
 	i=0;
-	while (1) {
+	while (parser->line_pos < parser->line_size) {
 		if (parser->line_buffer[parser->line_pos] == string_delim)
 			if ( !parser->line_pos || (parser->line_buffer[parser->line_pos-1] != '\\') ) break;
 
@@ -559,6 +559,7 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 				}
 				/*UTF8 3 bytes char*/
 				else if ( (c & 0xf0) == 0xe0) {
@@ -566,10 +567,12 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 					res[i] = parser->line_buffer[parser->line_pos];
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 				}
 				/*UTF8 4 bytes char*/
 				else if ( (c & 0xf8) == 0xf0) {
@@ -577,14 +580,17 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 					res[i] = parser->line_buffer[parser->line_pos];
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 					res[i] = parser->line_buffer[parser->line_pos];
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 				}
 			}
 

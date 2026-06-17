@@ -2905,7 +2905,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				goto attach_node;
 			}
 		}
-	} else if (top->node->sgprivate->tag==tag) {
+	} else if (top && top->node && top->node->sgprivate->tag==tag) {
 		node = top->node;
 		gf_list_rem_last(parser->nodes);
 		gf_free(top);
