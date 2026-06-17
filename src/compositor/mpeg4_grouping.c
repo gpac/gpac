@@ -210,7 +210,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state, u32 *positions)
 {
 	u32 i, count;
-	Bool backup;
+	u32 backup;
 	GF_List *sensor_backup;
 	GF_Node *child;
 	GF_ChildNodeItem *list;

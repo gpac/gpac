@@ -545,7 +545,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				szV[0] = value[2*i];
 				szV[1] = value[2*i + 1];
 				szV[2] = 0;
-				sscanf(szV, "%x", &res);
+				if (sscanf(szV, "%x", &res) != 1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong hex format for data: %s\n", value));
+					res = 0;
+				}
 				p.value.data.ptr[i] = res;
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
@@ -724,7 +727,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
 			} else if (p.type == GF_PROP_SINT_LIST) {
 				s32 val_int;
-				sscanf(szV, "%d", &val_int);
+				if (sscanf(szV, "%d", &val_int) != 1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for sint arg %s[%d] - using 0\n", value, name, p.value.sint_list.nb_items));
+					val_int = 0;
+				}
 				p.value.sint_list.vals = gf_realloc(p.value.sint_list.vals, (p.value.sint_list.nb_items+1) * sizeof(u32));
 				p.value.sint_list.vals[p.value.sint_list.nb_items] = val_int;
 			} else {
@@ -2016,7 +2022,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		if (!dump) return NULL;
 		break;
 	}
-	Bool no_reduce = dump_data_flags & GF_PROP_DUMP_NO_REDUCE;
+	Bool no_reduce = (dump_data_flags & GF_PROP_DUMP_NO_REDUCE) ? GF_TRUE : GF_FALSE;
 	u32 dump_data_type = dump_data_flags&0xFF;
 
 	dump[0] = 0;

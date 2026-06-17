@@ -55,7 +55,7 @@ typedef struct
 	s64 ts_shift;
 	Bool ready;
 	Bool suspended;
-	Bool reconfig_stream;
+	u32 reconfig_stream;
 	Bool webvtt;
 } GF_FFMuxStream;
 
@@ -545,7 +545,8 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 			return GF_IO_ERR;
 		}
 	}
-	ctx->muxer->pb->seekable = 0;
+	if (ctx->muxer->pb)
+		ctx->muxer->pb->seekable = 0;
 
 	if (ctx->muxer->oformat->priv_class && ctx->muxer->priv_data)
 		av_opt_set(ctx->muxer->priv_data, "mpegts_flags", "+resend_headers", 0);
@@ -836,7 +837,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			if (!ipck) {
 				//don't wait for subtitles & other streams
 				if ((st->stream->codecpar->codec_type==AVMEDIA_TYPE_VIDEO)
-					|| (st->stream->codecpar->codec_type==AVMEDIA_TYPE_VIDEO)
+					|| (st->stream->codecpar->codec_type==AVMEDIA_TYPE_AUDIO)
 				) {
 					all_ready = GF_FALSE;
 				}

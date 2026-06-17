@@ -716,6 +716,7 @@ u32 gf_svg_get_system_paint_server_type(const char *name)
 static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out_e)
 {
 	char *str = attribute_content;
+	if (!str) return;
 	u32 len = (u32) strlen(attribute_content);
 	while (len && (str[strlen(attribute_content)-1] == ' ')) {
 		str[len-1] = 0;
@@ -731,7 +732,10 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out
 		return;
 	} else if (str[0]=='#') {
 		u32 val;
-		sscanf(str+1, "%x", &val);
+		if (sscanf(str+1, "%x", &val) != 1) {
+			col->type = SVG_COLOR_INHERIT;
+			return;
+		}
 		if (strlen(str) == 7) {
 			col->red = INT2FIX((val>>16) & 0xFF) / 255;
 			col->green = INT2FIX((val>>8) & 0xFF) / 255;
@@ -748,7 +752,10 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out
 		if (strstr(str, "%")) is_percentage = 1;
 		str = strstr(str, "(");
 		str++;
-		sscanf(str, "%f", &_val);
+		if (sscanf(str, "%f", &_val) != 1) {
+			col->red = col->green = col->blue = 0;
+			return;
+		}
 		col->red = FLT2FIX(_val);
 		str = strstr(str, ",");
 		if (!str) {
@@ -3079,7 +3086,7 @@ static void svg_parse_focusable(SVG_Focusable *f, char *attribute_content, GF_Er
 	} else if (!strcmp(attribute_content, "auto")) {
 		*f = SVG_FOCUSABLE_AUTO;
 	} else {
-		*out_e = SVG_FOCUSABLE_AUTO;
+		*out_e = GF_NON_COMPLIANT_BITSTREAM;
 	}
 }
 
