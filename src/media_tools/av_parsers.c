@@ -10578,6 +10578,8 @@ u32 gf_ac3_get_surround_channels(u32 acmod)
 GF_EXPORT
 u32 gf_ac3_get_bitrate(u32 brcode)
 {
+	if (brcode >= sizeof(ac3_sizecod_to_bitrate) / sizeof(u32))
+		return 0;
 	return ac3_sizecod_to_bitrate[brcode];
 }
 
