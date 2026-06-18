@@ -2785,6 +2785,10 @@ refetch_streams:
 				}
 				gf_filter_pck_get_data(pck, &size);
 				ctx->cumulated_size += size;
+			} else {
+				//if not doing range extraction, avoid dispatching too fast (in range extraction we control pid timing)
+				if (!ctx->range_type && gf_filter_pid_would_block(st->opid))
+					break;
 			}
 
 			if (ctx->refs) {
