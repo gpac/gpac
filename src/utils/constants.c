@@ -2370,7 +2370,7 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 		Double res = (Double) value;
 		res *= new_timescale;
 		res /= timescale;
-		return (u64) res;
+		return (res < GF_UINT64_MAX ? (u64)res : GF_UINT64_MAX);
 	}
 	return int_part * new_timescale + frac_part;
 }

@@ -388,7 +388,11 @@ refill:
 		nb_read = 0;
 		if (feof(stdin)) {
 			if (!ctx->ka) {
-				gf_filter_pid_set_eos(ctx->pid);
+				if (ctx->pid)
+					gf_filter_pid_set_eos(ctx->pid);
+				else
+					gf_filter_setup_failure(filter, GF_URL_ERROR);
+				ctx->is_end = GF_TRUE;
 				return GF_EOS;
 			} else if (ctx->sigflush) {
 				gf_filter_pid_send_flush(ctx->pid);

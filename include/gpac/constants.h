@@ -140,7 +140,7 @@ u32 gf_stream_types_enum(u32 *idx, const char **name, const char **desc);
 /*!
 \brief Pixel Formats
 
-Supported pixel formats for everything using video
+Supported pixel formats for everything using raw video
 */
 typedef enum
 {
@@ -252,7 +252,10 @@ typedef enum
 
 	/*!Unknown format exposed a single OpenGL texture to be consumed using samplerExternalOES*/
 	GF_PIXEL_GL_EXTERNAL	=	GF_4CC('E','X','G','L')
-} GF_PixelFormat;
+} GF_PixelFormatValue;
+
+/*! Pixel format, taking one of the possible \ref GF_PixelFormatValue*/
+typedef u32 GF_PixelFormat;
 
 
 /*! enumerates GPAC pixel formats
@@ -864,9 +867,9 @@ enum
 
 
 /*!
-\brief Audio Sample format
+\brief Audio Sample formats
 
- Audio sample bit format.
+ Supported audio sample formats for everything using raw audio
 */
 typedef enum
 {
@@ -906,8 +909,10 @@ typedef enum
 	GF_AUDIO_FMT_DBLP,
 	/*! sample = signed integer, planar channels*/
 	GF_AUDIO_FMT_S24P,
-} GF_AudioFormat;
+} GF_AudioFormatValue;
 
+/*! Audio format, taking one of the possible \ref GF_AudioFormatValue*/
+typedef u32 GF_AudioFormat;
 
 /*! enumerates GPAC audio formats
 \param af_name name of the audio format

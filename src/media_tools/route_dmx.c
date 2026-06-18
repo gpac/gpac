@@ -70,7 +70,7 @@ typedef struct
 typedef struct
 {
 	u32 tsi;
-	char *toi_template;
+	char *toi_template, *toi_prefix, *toi_suffix;
 	//for route services only, list of static files announced in STSID
 	GF_List *static_files;
 	u32 num_components;
@@ -289,6 +289,8 @@ static void gf_route_route_session_del(GF_ROUTEDmx *routedmx, GF_ROUTESession *r
 		GF_ROUTELCTChannel *lc = gf_list_pop_back(rs->channels);
 		gf_route_static_files_del(lc->static_files);
 		if (lc->toi_template) gf_free(lc->toi_template);
+		if (lc->toi_prefix) gf_free(lc->toi_prefix);
+		if (lc->toi_suffix) gf_free(lc->toi_suffix);
 		if (lc->dash_period_id) gf_free(lc->dash_period_id);
 		if (lc->dash_rep_id) gf_free(lc->dash_rep_id);
 		gf_free(lc);
@@ -908,6 +910,8 @@ static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_R
 	}
 	gf_route_static_files_del(lc->static_files);
 	if (lc->toi_template) gf_free(lc->toi_template);
+	if (lc->toi_prefix) gf_free(lc->toi_prefix);
+	if (lc->toi_suffix) gf_free(lc->toi_suffix);
 	if (lc->dash_period_id) gf_free(lc->dash_period_id);
 	if (lc->dash_rep_id) gf_free(lc->dash_rep_id);
 	gf_free(lc);
@@ -966,7 +970,12 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 					gf_route_obj_to_reservoir(routedmx, s, obj);
 				return GF_OK;
 			}
-			sprintf(obj->solved_path, obj->rlct->toi_template, obj->toi);
+			char szTOI[20];
+			sprintf(szTOI, obj->rlct->toi_template, obj->toi);
+			gf_strlcpy(obj->solved_path, obj->rlct->toi_prefix, GF_MAX_PATH);
+			gf_strlcat(obj->solved_path, szTOI, GF_MAX_PATH);
+			if (obj->rlct->toi_suffix)
+				gf_strlcat(obj->solved_path, obj->rlct->toi_suffix, GF_MAX_PATH);
 		}
 		filepath = obj->solved_path;
 	}
@@ -2760,12 +2769,15 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 			if (rlct->toi_template) gf_free(rlct->toi_template);
 			rlct->toi_template = NULL;
+			if (rlct->toi_prefix) gf_free(rlct->toi_prefix);
+			rlct->toi_prefix = NULL;
+			if (rlct->toi_suffix) gf_free(rlct->toi_suffix);
+			rlct->toi_suffix = NULL;
+
 			if (file_template) {
-				if (rlct->toi_template) gf_free(rlct->toi_template);
-				rlct->toi_template = NULL;
 				sep = strstr(file_template, "$TOI");
 				sep[0] = 0;
-				gf_dynstrcat(&rlct->toi_template, file_template, NULL);
+				gf_dynstrcat(&rlct->toi_prefix, file_template, NULL);
 				sep[0] = '$';
 
 				if (sep[4]=='$') {
@@ -2783,7 +2795,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					sep_end[0] = '$';
 					sep = sep_end + 1;
 				}
-				gf_dynstrcat(&rlct->toi_template, sep, NULL);
+				if (sep && sep[0])
+					gf_dynstrcat(&rlct->toi_suffix, sep, NULL);
 			}
 
 			s->nb_media_streams -= rlct->num_components;
@@ -3690,6 +3703,20 @@ void gf_route_dmx_print_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 }
 #endif
 
+static Bool rlct_file_match_template(GF_ROUTELCTChannel *rlct, char *filename, u32 *toi)
+{
+	u32 len = rlct->toi_prefix ? (u32) strlen(rlct->toi_prefix) : 0;
+	if (strncmp(filename, rlct->toi_prefix, len)) return GF_FALSE;
+	filename += len;
+
+	if (rlct->toi_suffix) {
+		char *end = strstr(filename, rlct->toi_suffix);
+		if (!end || strcmp(end, rlct->toi_suffix)) return GF_FALSE;
+	}
+	if (sscanf(filename, rlct->toi_template, toi) == 1)
+		return GF_TRUE;
+	return GF_FALSE;
+}
 
 static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous, Bool is_remove, Bool locate_only)
 {
@@ -3706,7 +3733,7 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
-		if (obj->rlct && obj->rlct->toi_template && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
+		if (obj->rlct && obj->rlct->toi_template && rlct_file_match_template(obj->rlct, fileName, &toi)) {
 			u32 tsi;
 			if (toi == obj->toi) {
 				u32 obj_start_time;
@@ -3939,6 +3966,17 @@ GF_EXPORT
 void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 {
 	if (routedmx) routedmx->debug_tsi = tsi;
+}
+
+GF_EXPORT
+void gf_route_dmx_reset_stats(GF_ROUTEDmx *routedmx)
+{
+	if (routedmx) {
+		routedmx->first_pck_time = 0;
+		routedmx->last_pck_time = 0;
+		routedmx->nb_packets = 0;
+		routedmx->total_bytes_recv = 0;
+	}
 }
 
 GF_EXPORT

@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2025-2025
+ *			Copyright (c) Telecom Paris 2025-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project
@@ -1491,16 +1491,30 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	settings.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT;
 	settings.max_window = 0;
 	settings.max_stream_window = 0;
-	settings.handshake_timeout = sess->conn_timeout*1000000;
-	settings.handshake_timeout = UINT64_MAX;
+	settings.handshake_timeout = ((u64)sess->conn_timeout)*1000000;
 	settings.no_pmtud = 0;
-	settings.ack_thresh = 2;
+	settings.ack_thresh = gf_opts_get_int("core", "h3-ack-threshold");
 	settings.initial_pkt_num = 1;
 
+	u32 h3_opt = gf_opts_get_int("core", "h3-mwnd");
+	if (h3_opt) settings.max_window = h3_opt;
+	h3_opt = gf_opts_get_int("core", "h3-st-mwnd");
+	if (h3_opt) settings.max_stream_window = h3_opt;
+
+	const char *h3_algo = gf_opts_get_key("temp", "h3-algo");
+	if (h3_algo) {
+		if (!strcmp(h3_algo, "bbr")) {
+			settings.cc_algo = NGTCP2_CC_ALGO_BBR;
+		} else if (!strcmp(h3_algo, "cubic")) {
+			settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
+		} else if (!strcmp(h3_algo, "reno")) {
+			settings.cc_algo = NGTCP2_CC_ALGO_RENO;
+		}
+	}
 	//server config
 	if (sess->server_mode) {
-		settings.token = srv_hd->token;
-		settings.tokenlen = srv_hd->tokenlen;
+		settings.token = srv_hd ? srv_hd->token : NULL;
+		settings.tokenlen = srv_hd ? srv_hd->tokenlen : 0;
 		settings.token_type = token_type;
 		settings.max_window = 6000000;
 		settings.max_stream_window = 6000000;
@@ -1508,11 +1522,12 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 
 	ngtcp2_transport_params_default(&params);
 
-	params.initial_max_data = 1024 * 1024;
-	params.initial_max_stream_data_bidi_local = sess->server_mode ? 0 : 16777216;
-	params.initial_max_stream_data_bidi_remote = sess->server_mode ? 16777216 : 0;
-	params.initial_max_stream_data_uni = 16777216;
-	params.initial_max_streams_bidi = sess->server_mode ? 100 : 0;
+	params.initial_max_data = gf_opts_get_int("core", "hx-iwnd");
+	h3_opt = gf_opts_get_int("core", "hx-st-iwnd");
+	params.initial_max_stream_data_bidi_local = sess->server_mode ? 0 : h3_opt;
+	params.initial_max_stream_data_bidi_remote = sess->server_mode ? h3_opt : 0;
+	params.initial_max_stream_data_uni = h3_opt;
+	params.initial_max_streams_bidi = sess->server_mode ? gf_opts_get_int("core", "hx-max-st") : 0;
 	params.initial_max_streams_uni = 3;
 	params.max_idle_timeout = 30 * NGTCP2_SECONDS;
 	params.active_connection_id_limit = 7;

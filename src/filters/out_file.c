@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -501,7 +501,7 @@ restart:
 		if (gf_filter_pid_is_eos(ctx->pid) && !gf_filter_pid_is_flush_eos(ctx->pid)) {
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
-				snprintf(szStatus, 1024, "%s: done - wrote "LLU" bytes", gf_file_basename(ctx->szFileName), ctx->nb_write);
+				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes="LLU, gf_file_basename(ctx->szFileName), ctx->nb_write);
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 
@@ -967,7 +967,7 @@ check_gfio:
 
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
-		snprintf(szStatus, 1024, "%s: wrote % 16"LLD_SUF" bytes", gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
+		snprintf(szStatus, 1024, "info=\"%s\" s_bytes="LLD, gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 	return e;

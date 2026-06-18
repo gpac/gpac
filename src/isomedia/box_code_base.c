@@ -14967,6 +14967,10 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 			u32 offset = gf_bs_read_int(bs, bits-1);
 			u32 pattern_len = gf_bs_read_int(bs, bits);
 			u32 nb_samples = gf_bs_read_int(bs, bits);
+			if (nb_samples > GF_INT_MAX) {
+				e = GF_ISOM_INVALID_FILE;
+				goto exit;
+			}
 			u32 pattern_idx=0;
 			for (j=0; j<nb_samples; j++) {
 				u32 s_offset = offset + pattern_idx;

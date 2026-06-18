@@ -1560,6 +1560,24 @@ GF_GPACArg GPAC_Args[] = {
 #ifdef GPAC_HAS_HTTP2
  GF_DEF_ARG("no-h2c", NULL, "disable HTTP2 upgrade (i.e. over non-TLS)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("h2-copy", NULL, "enable intermediate copy of data in nghttp2 (default is disabled but may report as broken frames in wireshark)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("h2-max-frame", NULL, "set HTTP2 maximum frame size", "1m", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+#endif
+
+#if defined(GPAC_HAS_NGTCP2)
+	GF_DEF_ARG("h3-ack-threshold", NULL, "QUIC ack threshhold (cf `ngtcp2_settings.ack_thresh`)", "2", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("h3-algo", NULL, "congestion control algorithm for QUIC\n"
+			"- cubic: CUBIC\n"
+			"- bbr: BBR v2\n"
+			"- reno: Reno",
+		"cubic", "cubic|bbr|reno", GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("h3-mwnd", NULL, "set QUIC/HTTP3 maximum window size (cf `ngtcp2_settings.max_window`)", "0", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("h3-st-mwnd", NULL, "set QUIC/HTTP3 maximum stream window size (cf `ngtcp2_settings.max_stream`)", "0", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+#endif
+
+#if defined(GPAC_HAS_NGTCP2) || defined(GPAC_HAS_HTTP2)
+	GF_DEF_ARG("hx-max-st", NULL, "set maximum number of HTTP2 or QUIC/HTTP3 concurrent streams", "100", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("hx-iwnd", NULL, "set initial HTTP2 or QUIC/HTTP3 connection window size", "64m", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+	GF_DEF_ARG("hx-st-iwnd", NULL, "set initial HTTP2 or QUIC/HTTP3 stream window size", "32m", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
 
 #ifdef GPAC_HAS_CURL

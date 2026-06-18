@@ -30,6 +30,8 @@
 void jsfs_on_filter_arg_update(GF_Filter *filter);
 #endif
 
+static void gf_filter_cleanup_status_metrics(GF_FilterSession *fs, const GF_FilterRegister *freg);
+
 //helper functions
 void gf_void_del(void *p)
 {
@@ -738,6 +740,7 @@ void gf_filter_del(GF_Filter *filter)
 				a_filter->dst_filter = NULL;
 			gf_mx_v(a_filter->tasks_mx);
 		}
+		gf_filter_cleanup_status_metrics(filter->session, filter->freg);
 		gf_mx_v(filter->session->filters_mx);
 	}
 	if (filter->skip_cids.vals) {
@@ -5286,21 +5289,26 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 		if (filter->status_str) filter->status_str[0] = 0;
 		return GF_OK;
 	}
-	len = (u32) strlen(szStatus);
-	if (len>=filter->status_str_alloc) {
-		filter->status_str_alloc = len+1;
-		filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
-		if (!filter->status_str) {
-			filter->status_str_alloc = 0;
-			return GF_OUT_OF_MEM;
+	Bool changed = GF_FALSE;
+	if (!filter->status_str || strcmp(szStatus, filter->status_str)) {
+		changed = GF_TRUE;
+		len = (u32) strlen(szStatus);
+		if (len>=filter->status_str_alloc) {
+			filter->status_str_alloc = len+1;
+			filter->status_str = gf_realloc(filter->status_str, filter->status_str_alloc);
+			if (!filter->status_str) {
+				filter->status_str_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
+		memcpy(filter->status_str, szStatus, len+1);
 	}
-	memcpy(filter->status_str, szStatus, len+1);
-	filter->status_percent = percent;
+	if (filter->status_percent != percent) {
+		filter->status_percent = percent;
+		changed = GF_TRUE;
+	}
+	if (!changed) return GF_OK;
 	filter->report_updated = GF_TRUE;
-
-	if ((s32)percent<0)
-		return GF_OK;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_PROGRESS;
@@ -6052,4 +6060,53 @@ void gf_filter_log_tag(GF_Filter *filter, Bool is_untag)
 		gf_logs_thread_untag(filter);
 	else
 		gf_logs_thread_tag(filter, GF_LOG_TAG_FILTER);
+}
+
+
+GF_EXPORT
+void gf_filter_add_status_metric(GF_Filter *filter, const char *metric)
+{
+	if (!filter || !metric || !strchr(metric, '=')) return;
+
+	if (!filter->session->additionnal_metrics) {
+		filter->session->additionnal_metrics = gf_list_new();
+		if (!filter->session->additionnal_metrics) return;
+	}
+	u32 i, count = gf_list_count(filter->session->additionnal_metrics);
+	for (i=0; i<count; i++) {
+		GF_FSCustomMetric *met= gf_list_get(filter->session->additionnal_metrics, i);
+		if (strcmp(met->reg_name, filter->freg->name)) continue;
+		if (!strcmp(met->metric, metric)) return;
+	}
+	GF_FSCustomMetric *met;
+	GF_SAFEALLOC(met, GF_FSCustomMetric);
+	met->reg_name = gf_strdup(filter->freg->name);
+	met->metric = gf_strdup(metric);
+	gf_list_add(filter->session->additionnal_metrics, met);
+}
+
+static void gf_filter_cleanup_status_metrics(GF_FilterSession *fs, const GF_FilterRegister *freg)
+{
+	u32 i, count = gf_list_count(fs->filters);
+	Bool found = GF_FALSE;
+	for (i=0; i<count; i++) {
+		GF_Filter *f = gf_list_get(fs->filters, i);
+		if (f->freg == freg) {
+			found=GF_TRUE;
+			break;
+		}
+	}
+	if (!found) return;
+	count = gf_list_count(fs->additionnal_metrics);
+	for (i=0; i<count; i++) {
+		GF_FSCustomMetric *met = gf_list_get(fs->additionnal_metrics, i);
+		if (strcmp(met->reg_name, freg->name)) continue;
+
+		gf_free(met->reg_name);
+		gf_free(met->metric);
+		gf_free(met);
+		gf_list_rem(fs->additionnal_metrics, i);
+		i--;
+		count--;
+	}
 }

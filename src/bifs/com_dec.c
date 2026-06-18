@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -206,7 +206,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	switch (targetField.fieldType) {
 	case GF_SG_VRML_SFNODE:
 	{
-		if (fromNode == target && fromField.fieldType != targetField.fieldType) {
+		if (fromField.fieldType != targetField.fieldType) {
 			e = GF_BAD_PARAM;
 			break;
 		}
@@ -595,6 +595,15 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	node = gf_bifs_dec_node(codec, bs, NDT);
 	if (!node) return codec->LastError;
 
+	GF_FieldInfo field;
+	e = gf_node_get_field_by_name(def, "children", &field);
+	if (e || !field.far_ptr || field.far_ptr != &(((GF_ParentNode *) def)->children)) {
+		gf_node_register(node, NULL);
+		gf_node_unregister(node, NULL);
+		return e;
+	}
+
+
 	e = gf_node_register(node, def);
 	if (e) return e;
 	e = gf_node_insert_child(def, node, pos);
@@ -608,6 +617,8 @@ static GF_Err BD_DecNodeInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 			return e;
 		}
 		gf_bifs_check_field_change(def, &field);
+	} else {
+		gf_node_unregister(node, def);
 	}
 	return e;
 }
@@ -658,7 +669,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	/*rescale the MFField and parse the SFField*/
 	if (field.fieldType==GF_SG_VRML_MFNODE) {
 		GF_Node *node = gf_bifs_dec_node(codec, bs, field.NDTtype);
-		if (!node) return codec->LastError;
+		if (!node || node == def) return codec->LastError;
 
 		e = gf_node_register(node, def);
 		if (e) return e;
@@ -1102,7 +1113,11 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 					if (codec->info->config.UsePredictiveMFField) {
 						f = gf_bs_read_int(bs, 1);
 						/*predictive encoding of proto field is not possible since QP info is not present yet*/
-						gf_assert(!f);
+						if (f) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Proto MFField with predictive coding is not allowed\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
 					}
 					/*reserved*/
 					f = gf_bs_read_int(bs, 1);
@@ -1135,7 +1150,11 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 
 			if (codec->info->config.UsePredictiveMFField) {
 				flag = gf_bs_read_int(bs, 1);
-				gf_assert(!flag);
+				if (flag) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] Extern proto MFUrl with predictive coding is not allowed\n"));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
 			}
 			/*reserved*/
 			gf_bs_read_int(bs, 1);
@@ -1302,6 +1321,8 @@ exit:
 				gf_node_unregister(cbi->node, NULL);
 				gf_free(cbi);
 			}
+			if (rootSG->global_qp && rootSG->global_qp->sgprivate->scenegraph == proto->sub_graph)
+				rootSG->global_qp->sgprivate->scenegraph = NULL;
 			gf_sg_proto_del(proto);
 		}
 		codec->current_graph = rootSG;
@@ -1404,6 +1425,10 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	if (root) {
 		e = gf_node_register(root, NULL);
 		if (e) goto exit;
+	}
+
+	if (codec->current_graph->RootNode && codec->current_graph->RootNode != root) {
+		gf_node_unregister(codec->current_graph->RootNode, NULL);
 	}
 	gf_sg_set_root_node(codec->current_graph, root);
 

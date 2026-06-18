@@ -7666,7 +7666,7 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 {
 	Bool status_changed=GF_FALSE;
 	u32 total_pc = 0;
-	char *status = NULL, szTmp[2048], szTK[20];
+	char *status = NULL, szTmp[2048], szTK[100];
 	if (!gf_filter_reporting_enabled(ctx->filter))
 		return;
 	if (!ctx->update_report)
@@ -7675,14 +7675,14 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 	ctx->update_report = GF_FALSE;
 
 	if (ctx->config_timing) {
-		gf_dynstrcat(&status, "waiting for clock init", NULL);
+		gf_dynstrcat(&status, "wait info=\"waiting for clock init\"", NULL);
 		status_changed = GF_TRUE;
 	} else if (total) {
 		if (done>=total) {
 			Double ohead = 0;
 			if (ctx->total_bytes_in) ohead =  ((Double) (ctx->total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
 
-			sprintf(szTmp, "done %d samples - bytes "LLU" in "LLU" out - overhead %02.02f%% (%02.02g B/sample)", ctx->total_samples, ctx->total_bytes_in, ctx->total_bytes_out, ohead, ((Double)(ctx->total_bytes_out-ctx->total_bytes_in))/ctx->total_samples);
+			sprintf(szTmp, "done r_pck=%d r_bytes="LLU" s_bytes="LLU" ohead=%02.02f %% ohead_pck=%02.02g B/sample", ctx->total_samples, ctx->total_bytes_in, ctx->total_bytes_out, ohead, ((Double)(ctx->total_bytes_out-ctx->total_bytes_in))/ctx->total_samples);
 			status_changed = GF_TRUE;
 			total_pc = 10000;
 
@@ -7690,7 +7690,7 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 			u32 pc = (u32) ((done*10000)/total);
 			if (ctx->last_mux_pc == pc + 1) return;
 			ctx->last_mux_pc = pc + 1;
-			sprintf(szTmp, "mux %d%%", pc);
+			sprintf(szTmp, "prog="LLU"/"LLU" pc=%d", done, total, pc);
 			status_changed = GF_TRUE;
 		}
 		gf_dynstrcat(&status, szTmp, NULL);
@@ -7702,12 +7702,12 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 			Double next = ((Double)ctx->next_frag_start)/ctx->cdur.den;
 			is_frag = GF_TRUE;
 			if (ctx->dash_mode) {
-				sprintf(szTmp, "mux segments %d (frags %d) next %02.3f", ctx->nb_segs, ctx->nb_frags_in_seg, next);
+				sprintf(szTmp, "segs=%d frags=%d next=%02.3f", ctx->nb_segs, ctx->nb_frags_in_seg, next);
 			} else {
-				sprintf(szTmp, "mux frags %d next %02.3f", ctx->nb_frags, next);
+				sprintf(szTmp, "frags=%d next=%02.3f", ctx->nb_frags, next);
 			}
 		} else {
-			sprintf(szTmp, "%s", ((ctx->store==MP4MX_MODE_FLAT) || (ctx->store==MP4MX_MODE_FASTSTART)) ? "mux" : "import");
+			sprintf(szTmp, "info=\"%s\"", ((ctx->store==MP4MX_MODE_FLAT) || (ctx->store==MP4MX_MODE_FASTSTART)) ? "muxing" : "importing");
 		}
 		gf_dynstrcat(&status, szTmp, NULL);
 		for (i=0; i<count; i++) {
@@ -7746,18 +7746,14 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 				total_pc = pc;
 
 			if (is_frag) {
-				sprintf(szTK, " TK%d(%c): %d", tkw->track_id, tkw->status_type, tkw->samples_in_frag);
-				gf_dynstrcat(&status, szTK, NULL);
+				sprintf(szTK, "TK%d type=%c spf=%d pc=%d", tkw->track_id, tkw->status_type, tkw->samples_in_frag, pc/100);
 				status_changed = GF_TRUE;
-				if (pc) {
-					sprintf(szTK, " %d %%", pc/100);
-					gf_dynstrcat(&status, szTK, NULL);
-				}
 			} else {
-				sprintf(szTK, " %s%d(%c): %d %%", tkw->is_item ? "IT" : "TK", tkw->track_id, tkw->status_type, pc/100);
-				gf_dynstrcat(&status, szTK, NULL);
+				sprintf(szTK, "%s%d type=%c pc=%d", tkw->is_item ? "IT" : "TK", tkw->track_id, tkw->status_type, pc/100);
 			}
+			gf_dynstrcat(&status, szTK, i ? ", " : " [");
 		}
+		if (i) gf_dynstrcat(&status, "]", NULL);
 	}
 	if (status_changed) {
 		gf_filter_update_status(ctx->filter, total_pc, status);
@@ -8269,6 +8265,13 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			ctx->nofragdef = GF_TRUE;
 		}
 	}
+
+	gf_filter_add_status_metric(filter, "segs=Segments;i=Number of segments produced");
+	gf_filter_add_status_metric(filter, "frags=Fragments;i=Number of fragments produced");
+	gf_filter_add_status_metric(filter, "next=Next start;i=time of next fragment/segment start;u=s");
+	gf_filter_add_status_metric(filter, "spf=Sample per fragment;i=number of sample for track in current fragment");
+
+
 	return GF_OK;
 }
 

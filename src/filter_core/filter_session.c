@@ -159,11 +159,6 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 		}
 	}
 
-#ifdef GPAC_HAS_QJS
-	if (fs->jstasks && jsfs_on_event(fs, evt))
-		return GF_TRUE;
-#endif
-
 	if (evt->type==GF_EVENT_AUTHORIZATION) {
 #ifdef GPAC_HAS_QJS
 		if (fs->jstasks && jsfs_on_auth(fs, evt))
@@ -909,6 +904,15 @@ void gf_fs_del(GF_FilterSession *fsess)
 #endif
 	if (fsess->blacklist) gf_free(fsess->blacklist);
 
+	if (fsess->additionnal_metrics) {
+		while (gf_list_count(fsess->additionnal_metrics)) {
+			GF_FSCustomMetric *m = gf_list_pop_back(fsess->additionnal_metrics);
+			if (m->reg_name) gf_free(m->reg_name);
+			if (m->metric) gf_free(m->metric);
+			gf_free(m);
+		}
+		gf_list_del(fsess->additionnal_metrics);
+	}
 	gf_logs_thread_untag(fsess);
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
@@ -4755,7 +4759,13 @@ Bool gf_fs_ui_event(GF_FilterSession *session, GF_Event *uievt)
 	gf_mx_p(session->ui_mx);
 	ret = session->ui_event_proc(session->ui_opaque, uievt);
 	gf_mx_v(session->ui_mx);
-	return ret;
+	if (ret) return GF_TRUE;
+
+#ifdef GPAC_HAS_QJS
+	if (session->jstasks && jsfs_on_event(session, uievt))
+		return GF_TRUE;
+#endif
+	return GF_FALSE;
 }
 
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load)
@@ -5242,3 +5252,44 @@ Bool gf_filter_on_main_thread(GF_Filter *filter)
 	return GF_TRUE;
 }
 #endif
+
+GF_EXPORT
+char *gf_fs_get_defined_metrics(GF_FilterSession *fs)
+{
+	char *session_metrics = NULL;
+
+	//builtin metrics
+	gf_dynstrcat(&session_metrics,
+			"freg=*;prog=Progress\n"\
+			"freg=*;done=Done;u=bool\n"\
+			"freg=*;pc=Percent;u=pc\n"\
+			"freg=*;info=Information;t=str\n"\
+			"freg=*;type=Stream Type;t=str;v=[V:Video,A:Audio,T:Text,M:Metadata]\n"\
+			"freg=*;time=Time;u=s\n"\
+			"freg=*;r_rate=Reception rate;u=kbps\n"\
+			"freg=*;r_bytes=Bytes received\n"\
+			"freg=*;r_pck=Packets received\n"\
+			"freg=*;s_rate=Send rate;u=kbps\n"\
+			"freg=*;s_bytes=Bytes sent\n"\
+			"freg=*;s_pck=Packets sent\n"\
+			"freg=*;ohead=Mux Overhead;u=pc\n"\
+			"freg=*;ohead_pck=Per-packet Overhead;i=per-packet overhead of mux, packetization...;u=bytes\n"\
+			"freg=*;twnd=Statistic window time;u=ms\n"\
+			"freg=*;wait=Waiting;i=Filter is in a waiting state;u=bool\n"\
+			"freg=*;buffer=Buffer occupancy;i=buffer occupancy as (current buffer) / (target max buffer);u=ms;t=frac\n"\
+			"freg=*;fps=Frames per second;u=fps\n"
+		, NULL);
+
+	//custom metrics
+	gf_mx_p(fs->filters_mx);
+	u32 i, count = gf_list_count(fs->additionnal_metrics);
+	for (i=0;i<count; i++) {
+		GF_FSCustomMetric *met = gf_list_get(fs->additionnal_metrics, i);
+		gf_dynstrcat(&session_metrics, "freg=", NULL);
+		gf_dynstrcat(&session_metrics, met->reg_name, NULL);
+		gf_dynstrcat(&session_metrics, met->metric, ";");
+		gf_dynstrcat(&session_metrics, "\n", NULL);
+	}
+	gf_mx_v(fs->filters_mx);
+	return session_metrics;
+}

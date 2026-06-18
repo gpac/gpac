@@ -340,7 +340,7 @@ next_line:
 					def->name = gf_strdup(buf);
 					sep[0] = ' ';
 					buf = sep+1;
-					while (strchr(" \t", buf[0])) buf++;
+					while (buf && *buf && strchr(" \t", buf[0])) buf++;
 					def->value = gf_strdup(buf);
 					gf_list_add(parser->def_symbols, def);
 				}
@@ -389,7 +389,7 @@ next_line:
 				char *buf;
 				parser->line_pos+=6;
 				buf = parser->line_buffer+parser->line_pos;
-				while (strchr(" \t", buf[0]))
+				while (buf && *buf && strchr(" \t", buf[0]))
 					buf++;
 				sscanf(buf, "%dx%d", &parser->def_w, &parser->def_h);
 			}
@@ -529,7 +529,7 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 	if (!string_delim) string_delim = '"';
 
 	i=0;
-	while (1) {
+	while (parser->line_pos < parser->line_size) {
 		if (parser->line_buffer[parser->line_pos] == string_delim)
 			if ( !parser->line_pos || (parser->line_buffer[parser->line_pos-1] != '\\') ) break;
 
@@ -559,6 +559,7 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 				}
 				/*UTF8 3 bytes char*/
 				else if ( (c & 0xf0) == 0xe0) {
@@ -566,10 +567,12 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 					res[i] = parser->line_buffer[parser->line_pos];
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 				}
 				/*UTF8 4 bytes char*/
 				else if ( (c & 0xf8) == 0xf0) {
@@ -577,14 +580,17 @@ char *gf_bt_get_string(GF_BTParser *parser, u8 string_delim)
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 					res[i] = parser->line_buffer[parser->line_pos];
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 					res[i] = parser->line_buffer[parser->line_pos];
 					parser->line_pos++;
 					i++;
 					BT_STR_CHECK_ALLOC
+					if (parser->line_pos >= parser->line_size) { gf_bt_check_line(parser); break; }
 				}
 			}
 
@@ -1338,6 +1344,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			gf_list_add(parser->undef_nodes, node);
 		}
 		gf_node_register(node, parent);
+		if (name) gf_free(name);
 		return node;
 	}
 	proto = NULL;
@@ -1353,6 +1360,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		if (!proto) {
 			/*locate proto*/
 			gf_bt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported node", str);
+			if (name) gf_free(name);
 			return NULL;
 		}
 		tag = TAG_ProtoNode;
@@ -1378,6 +1386,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 	if (!node) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
+		if (name) gf_free(name);
 		return NULL;
 	}
 	if (register_def) gf_list_add(parser->def_nodes, node);
@@ -1917,6 +1926,7 @@ next_field:
 
 	isDEF = 0;
 	while (!gf_bt_check_code(parser, '}')) {
+		if (parser->done) break;
 		str = gf_bt_get_next(parser, 0);
 		if (!strcmp(str, "PROTO") || !strcmp(str, "EXTERNPROTO")) {
 			gf_bt_parse_proto(parser, str, NULL);
@@ -3342,6 +3352,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 		/*IOD*/
 		else if (!strcmp(str, "InitialObjectDescriptor") || !strcmp(str, "ObjectDescriptor")) {
+			gf_odf_desc_del((GF_Descriptor *)parser->load->ctx->root_od);
 			parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_bt_parse_descriptor(parser, str);
 		}
 		/*explicit command*/
@@ -3501,7 +3512,10 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (parser->top_nodes) {
 				gf_list_add(parser->top_nodes, node);
 			} else if (!vrml_root_node) {
-				if (init_com) init_com->node = node;
+				if (init_com) {
+					gf_node_unregister(init_com->node, NULL);
+					init_com->node = node;
+				}
 				else if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
 					GF_Command *com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
 					gf_assert(!parser->bifs_au);
@@ -3509,6 +3523,9 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 					parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 					gf_list_add(parser->bifs_au->commands, com);
 					com->node = node;
+				}
+				else {
+					gf_node_unregister(node, vrml_root_node);
 				}
 			} else {
 				gf_node_insert_child(vrml_root_node, node, -1);

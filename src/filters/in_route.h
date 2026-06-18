@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -120,7 +120,8 @@ typedef struct
 	//options
 	char *src, *ifce, *odir;
 	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel, ka, chkiso;
-	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
+	u32 buffer, timeout, max_segs, tsidbg, rtimeout, nbcached;
+	s32 stats;
 	ROUTEInRepairISO riso;
 	ROUTEInRepairMode repair;
 	u32 max_sess, range_merge, minrecv;

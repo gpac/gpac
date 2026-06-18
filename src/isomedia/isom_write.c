@@ -1396,7 +1396,8 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 	if (e) return e;
 
 	trak = gf_isom_get_track_box(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !trak->Media->mediaHeader || !trak->Media->information || !trak->Media->information->sampleTable)
+		return GF_BAD_PARAM;
 
 	if (mode==0) {
 		duration = (u32) dur_num;

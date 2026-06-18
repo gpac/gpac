@@ -113,7 +113,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 		avail-=8;
 
 		if (au_size > avail) break;
-		gf_assert(au_size>=2);
+		if (au_size<2) break;
 
 		type = gf_bs_read_int(bs, 4);
 		stream_id = gf_bs_read_int(bs, 12);

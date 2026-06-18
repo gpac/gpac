@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / media rewinder filter
@@ -101,7 +101,7 @@ static GF_Err rewind_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_max_buffer(ctx->opid, gf_filter_pid_get_max_buffer(pid) );
+		gf_filter_pid_copy_buffer_req(ctx->opid, pid);
 	}
 	if (!ctx->ipid) {
 		ctx->ipid = pid;

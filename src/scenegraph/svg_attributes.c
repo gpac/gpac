@@ -3560,9 +3560,11 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 				xml_ev->parameter = _v;
 			} else { /* key events ... */
 				char *sep2 = strchr(attribute_content, ')');
-				sep2[0] = 0;
-				xml_ev->parameter = gf_dom_get_key_type(sep+1);
-				sep2[0] = ')';
+				if (sep2) {
+					sep2[0] = 0;
+					xml_ev->parameter = gf_dom_get_key_type(sep+1);
+					sep2[0] = ')';
+				}
 			}
 		} else {
 			xml_ev->parameter = 0;

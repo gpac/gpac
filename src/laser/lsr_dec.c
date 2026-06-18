@@ -296,6 +296,10 @@ static void lsr_read_extend_class(GF_LASeRCodec *lsr, char **out_data, u32 *out_
 	u32 len, blen;
 	GF_LSR_READ_INT(lsr, len, lsr->info->cfg.extensionIDBits, "reserved");
 	len = lsr_read_vluimsbf5(lsr, "len");
+	if (len / 8 > gf_bs_available(lsr->bs)) {
+		lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+		return;
+	}
 	while (len && !gf_bs_is_align(lsr->bs)) {
 		gf_bs_read_int(lsr->bs, len);
 		len--;
@@ -2907,21 +2911,7 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 	if (tr_type) {
 		lsr_translate_anim_trans_values(lsr, info.far_ptr, *tr_type);
 	} else {
-		switch (coded_type) {
-			case 2:
-				values->type = SVG_PathData_datatype;
-				break;
-			case 3:
-				values->type = SVG_Points_datatype;
-				break;
-			case 5:
-			case 7:
-			case 8:
-				values->laser_strings = 2; //0=svg, 1=lsr string, 2=lsr coded_type
-			default:
-				break;
-		}
-
+		values->laser_strings = 2; //0=svg, 1=lsr string, 2=lsr coded_type
 	}
 
 }
@@ -4377,6 +4367,10 @@ static GF_Node *lsr_read_use(GF_LASeRCodec *lsr, Bool is_same)
 			lsr_restore_base(lsr, (SVG_Element *)elt, lsr->prev_use, 0, 0);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] sameuse coded in bitstream but no use defined !\n"));
+			gf_node_register(elt, NULL);
+			gf_node_unregister(elt, NULL);
+			lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+			return NULL;
 		}
 		lsr_read_id(lsr, elt);
 		lsr_read_href(lsr, elt);
@@ -5502,17 +5496,17 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			case LSR_UPDATE_TYPE_SCALE:
 				info.far_ptr = (void *)&matrix_tmp;
 				field_type = SVG_Transform_Scale_datatype;
-				is_lsr_transform = 1;
+				// is_lsr_transform = 1; // incompatible type with SVG_Transform
 				break;
 			case LSR_UPDATE_TYPE_ROTATE:
 				info.far_ptr = (void *)&matrix_tmp_rot;
 				field_type = SVG_Transform_Rotate_datatype;
-				is_lsr_transform = 1;
+				// is_lsr_transform = 1;
 				break;
 			case LSR_UPDATE_TYPE_TRANSLATION:
 				info.far_ptr = (void *)&matrix_tmp;
 				field_type = SVG_Transform_Translate_datatype;
-				is_lsr_transform = 1;
+				// is_lsr_transform = 1;
 				break;
 			default:
 				fieldIndex = gf_lsr_anim_type_to_attribute(att_type);
@@ -5563,7 +5557,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 							gf_node_list_insert_child(&((GF_ParentNode *)n)->children, (GF_Node*)t, idx);
 						} else {
 							t = (GF_DOMText *) gf_node_list_get_child(((SVG_Element*)n)->children, idx);
-							if (t->sgprivate->tag!=TAG_DOMText) t = NULL;
+							if (t && t->sgprivate->tag!=TAG_DOMText) t = NULL;
 						}
 					} else {
 						/*this is a replace, reset ALL node content*/
@@ -5741,6 +5735,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			}
 		} else {
 			SVG_Element*elt = (SVG_Element*)n;
+			if (!elt) return GF_BAD_PARAM;
 			GF_ChildNodeItem *last = NULL;
 			u32 count;
 			if (com_type==LSR_UPDATE_INSERT) count = 1;
@@ -5839,6 +5834,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 				gf_node_unregister(c, (GF_Node*)elt);
 			}
 		} else {
+			gf_list_del_item(lsr->deferred_anims, (void*)elt);
 			gf_node_replace((GF_Node*)elt, NULL, 0);
 		}
 	}
@@ -5981,6 +5977,10 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 		gf_bs_align(lsr->bs);
 		/*not in memory mode, direct decode*/
 		if (!lsr->memory_dec) {
+			if (s_len > (u32)gf_bs_available(lsr->bs)) {
+				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			com_list = NULL;
 			up->data_size = s_len;
 			up->data = (char*)gf_malloc(sizeof(char)*s_len);
@@ -6035,6 +6035,10 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 				lsr->prev_path = NULL;
 				lsr->prev_rect = NULL;
 				lsr->prev_g = NULL;
+				lsr->prev_text = NULL;
+				lsr->prev_polygon = NULL;
+				lsr->prev_line = NULL;
+				lsr->prev_use = NULL;
 				gf_sg_reset(lsr->sg);
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 				n = lsr_read_svg(lsr, 1);

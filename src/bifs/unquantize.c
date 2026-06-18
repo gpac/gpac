@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -60,7 +60,7 @@ void gf_bifs_dec_qp14_set_length(GF_BifsDecoder * codec, u32 NbElements)
 
 GF_Err gf_bifs_dec_qp_set(GF_BifsDecoder *codec, GF_Node *qp)
 {
-	gf_assert(gf_node_get_tag(qp) == TAG_MPEG4_QuantizationParameter);
+	if (gf_node_get_tag(qp) != TAG_MPEG4_QuantizationParameter) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*if we have an active QP, push it into the stack*/
 	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) )
