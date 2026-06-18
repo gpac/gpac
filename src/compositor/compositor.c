@@ -683,7 +683,10 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 
 
 	sOpt = gf_opts_get_key("temp", "window-display");
-	if (sOpt) sscanf(sOpt, "%p", &os_disp);
+	if (sOpt) {
+		if (sscanf(sOpt, "%p", &os_disp) != 1)
+			os_disp = NULL;
+	}
 
 	compositor->video_out->evt_cbk_hdl = compositor;
 	compositor->video_out->on_event = gf_sc_on_event;
@@ -770,7 +773,11 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->init_flags = 0;
 	compositor->os_wnd = NULL;
 	sOpt = gf_opts_get_key("temp", "window-handle");
-	if (sOpt) sscanf(sOpt, "%p", &compositor->os_wnd);
+	if (sOpt) {
+		if (sscanf(sOpt, "%p", &compositor->os_wnd) != 1) {
+			compositor->os_wnd = NULL;
+		}
+	}
 	sOpt = gf_opts_get_key("temp", "window-flags");
 	if (sOpt) compositor->init_flags = atoi(sOpt);
 
