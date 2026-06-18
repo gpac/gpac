@@ -1871,7 +1871,8 @@ u32 gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 	GF_CompositionOffsetBox *ctts;
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak || !trak->Media->information->sampleTable->CompositionOffset) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->CompositionOffset)
+		return 0;
 
 	//return true at the first offset found
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
@@ -1886,7 +1887,8 @@ s64 gf_isom_get_cts_to_dts_shift(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak || !trak->Media->information->sampleTable->CompositionToDecode) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->CompositionToDecode)
+		return 0;
 	return trak->Media->information->sampleTable->CompositionToDecode->compositionToDTSShift;
 }
 
@@ -1894,8 +1896,8 @@ GF_EXPORT
 Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_FALSE;
-	if (!trak->Media->information->sampleTable->ShadowSync) return GF_FALSE;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->ShadowSync)
+		return GF_FALSE;
 	if (gf_list_count(trak->Media->information->sampleTable->ShadowSync->entries) ) return GF_TRUE;
 	return GF_FALSE;
 }
@@ -1904,7 +1906,8 @@ GF_EXPORT
 Bool gf_isom_has_sample_dependency(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_FALSE;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable)
+		return GF_FALSE;
 	if (!trak->Media->information->sampleTable->SampleDep) return GF_FALSE;
 	return GF_TRUE;
 }
@@ -1918,8 +1921,8 @@ GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 	*dependedOn = 0;
 	*redundant = 0;
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-	if (!trak->Media->information->sampleTable->SampleDep) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable->SampleDep)
+		return GF_BAD_PARAM;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (sampleNumber <= trak->sample_count_at_seg_start)

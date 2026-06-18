@@ -10562,22 +10562,26 @@ static const u32 ac3_mod_to_surround_chans[] = {
 GF_EXPORT
 u32 gf_ac3_get_total_channels(u32 acmod)
 {
-	u32 nb_ch;
-	nb_ch = ac3_mod_to_total_chans[acmod];
+	u32 nb_ch=0;
+	if (acmod < GF_ARRAY_LENGTH(ac3_mod_to_total_chans))
+		nb_ch = ac3_mod_to_total_chans[acmod];
 	return nb_ch;
 }
 
 GF_EXPORT
 u32 gf_ac3_get_surround_channels(u32 acmod)
 {
-	u32 nb_ch;
-	nb_ch = ac3_mod_to_surround_chans[acmod];
+	u32 nb_ch=0;
+	if (acmod < GF_ARRAY_LENGTH(ac3_mod_to_surround_chans))
+		nb_ch = ac3_mod_to_surround_chans[acmod];
 	return nb_ch;
 }
 
 GF_EXPORT
 u32 gf_ac3_get_bitrate(u32 brcode)
 {
+	if (brcode >= GF_ARRAY_LENGTH(ac3_sizecod_to_bitrate))
+		return 0;
 	return ac3_sizecod_to_bitrate[brcode];
 }
 

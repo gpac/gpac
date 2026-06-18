@@ -148,6 +148,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	GF_MPEGSampleEntryBox *entry = NULL;
 	GF_ESDBox *ESDa;
 	GF_ProtectionSchemeInfoBox *sinf;
+
+	if (!mdia || !mdia->information || !mdia->information->sampleTable)
+		return GF_BAD_PARAM;
+
 	GF_SampleDescriptionBox *stsd = mdia->information->sampleTable->SampleDescription;
 
 	*out_esd = NULL;
@@ -380,7 +384,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		*out_esd = gf_odf_desc_esd_new(2);
 		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_IAMF;
-		
+
 		gf_odf_iamf_cfg_write(iamf_c->cfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		break;
 	}

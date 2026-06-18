@@ -197,7 +197,8 @@ u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription)
+		return 0;
 	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 	for (i=0; i<count; i++) {
 		if (sampleDescriptionIndex && (i+1 != sampleDescriptionIndex))
@@ -685,7 +686,8 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 	u32 i, count;
 
 	trak = gf_isom_get_track_box(the_file, trackNumber);
-	if (!trak) return GF_FALSE;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription)
+		return GF_FALSE;
 
 	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 	for (i=0; i<count; i++) {
