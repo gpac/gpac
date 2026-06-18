@@ -589,6 +589,17 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *filter_reg, u32 in
 */
 void gf_fs_enable_reporting(GF_FilterSession *session, Bool reporting_on);
 
+/*! Get defined metrics for the current session, as reported by filters - cf \ref gf_filter_update_status
+
+Each metric is reported as a single formated as `freg=REG;METRIC`, with:
+- REG: the name of the filter registry adding the metric, or `*` for global metrics
+- METRIC: the metric string formated as indicated in \ref gf_filter_add_status_metric
+
+ \param session filter session
+ \return the metrics definition string - MUST be freed by caller
+ */
+char *gf_fs_get_defined_metrics(GF_FilterSession *session);
+
 /*! Locks global session mutex - mostly used to query filter reports and avoids concurrent destruction of a filter.
  When adding a filter in an already running session, the session must be locked if set_source is to be used.
 \param session filter session
@@ -2416,6 +2427,43 @@ GF_Err gf_filter_set_rt_udta(GF_Filter *filter, void *udta);
 */
 void *gf_filter_get_rt_udta(GF_Filter *filter);
 
+/*! Adds a private metric used in reporting
+
+ The metric definition is a semi-colon separated key=value list. Spaces are not allowed in keys
+ The first Key/value pair defines the code used and its human readable form.
+ The following keys are also defined, all are optional:
+   * 't': metric type, either num (int, float or fractional a/b), frac (a/b) or str (string). If absent, num is assumed
+   * 'i': free form info about the metric, can use double quotes
+   * 'u': unit of the metric (singular) - defined values are  "kbps",  "fps", "ms", "s", "bytes", "f" (frame), "p" (pixel) , "bool", "pc" (for percent) but any string is accepted
+   * 'm': min value
+   * 'M': max value
+   * 'v': for enum-type, possible codes as a comma-separated list in brackets "values=[A:desc, B:desc, C:desc ]"
+
+ The following internal metrics for status are currently defined:
+  * 'prog' (t=num): fraction in [0,1], indicate progress - if single number, indicates a percentage
+  * 'done' (t=bool, no value and must appear first): same as prog=1/1 - if prog is also set, indicate the progress at the time of cancelation
+  * 'pc' (t=num): explicit percentage, can be used together with prog
+  * 'info' (t=str): custom info, in double quotes if space is present
+  * 'type'' (t=str): stream type, one of V, A, T, M
+  * 'time'' (t=num): time in second
+  * 'r_rate' (t=num, u=kbps): reception rate
+  * 'r_bytes' (t=num): number of bytes received
+  * 'r_pck' (t=num): number of packets received
+  * 's_rate' (t=num, u=kbps): send rate
+  * 's_bytes' (t=num): number of bytes sent
+  * 's_pck' (t=num): number of packets sent
+  * 'ohead' (t=num, u=pc): overhead of mux / packetization / etc, in percent
+  * 'ohead_pck' (t=num): per-packet overhead of mux / packetization / etc in bytes per packet
+  * 'twnd' (t=num, u=ms): time window for stats reporting if any
+  * 'wait' (t=bool, no value, must appear first):  indicate the filter is in a waiting state (usually info gives some details)
+  * 'buffer' (t=frac, u=ms): buffer occupancy cur/max, with cur the current buffer in ms and max the target max buffer in ms
+  * 'fps' (t=num): number of frames per seconds
+
+
+\param filter target filter
+\param metric definition of metric to add
+*/
+void gf_filter_add_status_metric(GF_Filter *filter, const char *metric);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum
@@ -3392,8 +3440,12 @@ Bool gf_filter_is_dynamic(GF_Filter *filter);
 Bool gf_filter_reporting_enabled(GF_Filter *filter);
 
 /*! Updates filter status string and progress. Should not be called if reporting is turned off at session level.
-This allows gathering stats from filter in realtime. The status string can be anything but shall not contain '\n' and
-should not contain any source or destination URL except for sources and sinks.
+This allows gathering stats/info from filter in realtime:
+- The status string can be anything but shall not contain '\n'.
+- Information available throught the filter API (statistisc, number of PIDs, ...) should not be present
+- Formating can use predefined or custom metrics (see \ref gf_filter_add_status_metric)
+- a single array of stats is allowed, e.g. for PIDs internal logic. The array is declared between square brackets `[]`, entries are separated using comma `,`. All keywords are allowed. Formating must be in the form `[name1 K1=v K2=v K3 foo, name2 K4 bar]`. Names must be unique but are not guaranteed to be in same order between calls. The number of items may change between calls and could be empty
+
 \param filter target filter
 \param percent percentage (from 0 to 10000) of operation status. If more than 10000 ignored
 \param szStatus string giving a status of the filter
@@ -3888,6 +3940,12 @@ void gf_filter_pid_set_max_buffer(GF_FilterPid *PID, u32 total_duration_us);
 */
 u32 gf_filter_pid_get_max_buffer(GF_FilterPid *PID);
 
+/*! Copies buffer requirement settings from source to destination.
+ \param dst the target filter PID
+ \param src the source filter PID
+*/
+void gf_filter_pid_copy_buffer_req(GF_FilterPid *dst, GF_FilterPid *src);
+
 /*! Checks if a given filter is in the PID parent chain. This is used to identify sources (rather than checking URL/...)
 \param PID the target filter PID
 \param filter the source filter to check
@@ -4156,9 +4214,18 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *PID, Bool requires_full_bloc
 /*! Gets cumulated buffer duration of PID (recursive until source)
 \param PID the target filter PID
 \param check_pid_full if GF_TRUE, returns 0 if the PID buffer is not yet full, or GF_FILTER_NO_TS if pid buffer is full
-\return the duration in us, or -1 if session is in final flush
+\return the duration in us, or 0 if session is in final flush
 */
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *PID, Bool check_pid_full);
+
+
+/*! Gets cumulated buffer duration of PID (recursive until source) and maximum buffer along path
+\param PID the target filter PID
+ \param max_buffer set to maximum buffer size along path, may be NULL
+ \return the duration in us, or 0 if session is in final flush
+*/
+u64 gf_filter_pid_query_buffer_duration_and_max(GF_FilterPid *PID, u32 *max_buffer);
+
 
 /*! Try to force a synchronous flush of the filter chain downwards this PID. If refetching a packet returns NULL, this failed.
 \param PID the target filter PID

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2025
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -751,7 +751,7 @@ static GF_Err routein_process(GF_Filter *filter)
 
 	if (ctx->stats) {
 		u32 now = gf_sys_clock() - ctx->start_time;
-		if (now >= ctx->nb_stats*ctx->stats) {
+		if (now >= ctx->nb_stats * ABS(ctx->stats) ) {
 			ctx->nb_stats+=1;
 			if (gf_filter_reporting_enabled(filter)) {
 				Double rate=0.0;
@@ -762,12 +762,15 @@ static GF_Err routein_process(GF_Filter *filter)
 				u64 nb_pck = gf_route_dmx_get_nb_packets(ctx->route_dmx);
 				u64 nb_bytes = gf_route_dmx_get_recv_bytes(ctx->route_dmx);
 
+				if (ctx->stats > 0)
+					gf_route_dmx_reset_stats(ctx->route_dmx);
+
 				et -= st;
 				if (et) {
 					rate = (Double)nb_bytes*8;
 					rate /= et;
 				}
-				sprintf(szRpt, "[%us] "LLU" bytes "LLU" packets in "LLU" ms rate %.02f mbps", now/1000, nb_bytes, nb_pck, et/1000, rate);
+				sprintf(szRpt, "r_bytes="LLU" r_pck="LLU" twnd="LLU" r_rate=%.02f", nb_bytes, nb_pck, et/1000, 1000*rate);
 				gf_filter_update_status(filter, 0, szRpt);
 			}
 		}
@@ -970,7 +973,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(skipr), "skip repeated files (ignored in cache mode)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output PID per tsi/serviceID (ignored in cache mode)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats, negative values never reset stats)", GF_PROP_SINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_segs), "maximum number of segments to keep on disk", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(odir), "output directory for standalone mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -195,7 +195,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_max_buffer(ctx->opid, gf_filter_pid_get_max_buffer(pid) );
+		gf_filter_pid_copy_buffer_req(ctx->opid, pid);
 	}
 	if (!ctx->ipid) {
 		ctx->ipid = pid;

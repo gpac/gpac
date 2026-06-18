@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2024
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -665,10 +665,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 	gf_filter_pck_send(pck);
 
 	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
-		char szStatus[1024], *szSrc;
-		szSrc = gf_file_basename(ctx->src);
+		char szStatus[1024];
 
-		sprintf(szStatus, "%s: % 16"LLD_SUF" /% 16"LLD_SUF" (%02.02f) % 8d kbps", szSrc, (s64) bytes_done, (s64) ctx->file_size, ((Double)bytes_done*100.0)/ctx->file_size, bytes_per_sec*8/1000);
+		sprintf(szStatus, "prog="LLD"/"LLD" pc=%02.02f r_rate=%u kbps", (s64) bytes_done, (s64) ctx->file_size, ((Double)bytes_done*100.0)/ctx->file_size, bytes_per_sec*8/1000);
 		gf_filter_update_status(filter, (u32) (bytes_done*10000/ctx->file_size), szStatus);
 	}
 

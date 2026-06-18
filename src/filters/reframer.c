@@ -1446,11 +1446,19 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 	}
 
 	if (before) {
-		if (!after)
+		if (!after) {
+			if (gf_filter_reporting_enabled(filter)) {
+				char szStatus[1024];
+				sprintf(szStatus, "wait info=\"packet time "LLU"/%u waiting for range start "LLU"/"LLU"\"", ts, st->timescale, ctx->cur_start.num, ctx->cur_start.den);
+				gf_filter_update_status(filter, 0, szStatus);
+			}
 			return 0;
+		}
 		//long duration samples (typically text) can both start before and end after the target range
-		else
-			return 2;
+		//fallthrough
+	}
+	if (gf_filter_reporting_enabled(filter)) {
+		gf_filter_update_status(filter, 0, NULL);
 	}
 	if (after)
 		return 2;

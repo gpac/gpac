@@ -9508,9 +9508,6 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	ctx->update_report = 0;
 
-	sprintf(szDS, "P%s", ctx->current_period->period->ID ? ctx->current_period->period->ID : "1");
-	gf_dynstrcat(&szStatus, szDS, NULL);
-
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		s32 pc=-1;
@@ -9529,34 +9526,31 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 		else stype='M';
 
 		if (ds->done || ds->subdur_done) {
-			sprintf(szDS, "AS#%d.%d(%c) done (%d segs)", set_idx, rep_idx, stype, ds->seg_number);
+			sprintf(szDS, "AS#%d.%d type=%c done seg=%u", set_idx, rep_idx, stype, ds->seg_number);
 			pc = 10000;
 		} else {
 			Double done;
+			s64 time_diff = ds->last_dts;
+			time_diff -= ds->first_dts;
+			if (time_diff<0) time_diff=0;
+
 			if (ctx->cues) {
-				done = (Double) (ds->last_dts);
-				done /= ds->timescale;
-				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %02.2fs", set_idx, rep_idx, stype, ds->seg_number, done);
+				snprintf(szDS, 200, "AS#%d.%d type=%c seg=%u time="LLD"/%u", set_idx, rep_idx, stype, ds->seg_number, time_diff, ds->timescale);
 			} else {
-				Double pcent, ddur;
-				done = (Double) ds->adjusted_next_seg_start;
-				done -= (Double) ds->last_dts;
-				if (done<0)
-					done=0;
-				done /= ds->timescale;
-				ddur = ((Double)ds->dash_dur.num) / ds->dash_dur.den;
-				done = ddur - done;
+				u32 ddur;
+				s64 dur_done = ds->adjusted_next_seg_start;
+				dur_done -= (Double) ds->last_dts;
+				if (dur_done<0) dur_done=0;
+				ddur = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+				dur_done = ddur - dur_done;
 				//this may happen since we don't print info at segment start
-				if (done<0)
-					done=0;
-				pcent = done / ddur;
-				pc = (s32) (done * 10000);
-				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %02.2fs (%02.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
+				if (dur_done<0) dur_done=0;
+
+				pc = (s32) (dur_done * 10000 / ds->timescale);
+				snprintf(szDS, 200, "AS#%d.%d type=%c seg=%u prog="LLU"/%u time="LLD"/%u", set_idx, rep_idx, stype, ds->seg_number, dur_done, ddur, time_diff, ds->timescale);
 			}
 
-			mpdtime = (Double) ds->last_dts;
-			mpdtime -= (Double) ds->first_dts;
-			if (mpdtime<0) mpdtime=0;
+			mpdtime = (Double) time_diff;
 			mpdtime /= ds->timescale;
 
 			if (ds->duration.den && ds->duration.num) {
@@ -9572,13 +9566,23 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 		//don't use max, do an average
 		total_pc += pc;
 		nb_pc++;
-		gf_dynstrcat(&szStatus, szDS, " ");
+		if (szStatus) {
+			gf_dynstrcat(&szStatus, szDS, ", ");
+		} else {
+			gf_dynstrcat(&szStatus, "[", NULL);
+			gf_dynstrcat(&szStatus, szDS, NULL);
+		}
 	}
+	if (szStatus)
+		gf_dynstrcat(&szStatus, "]", NULL);
+
 	if (nb_pc)
 		total_pc /= nb_pc;
 
+	sprintf(szDS, " period=%s", ctx->current_period->period->ID ? ctx->current_period->period->ID : "1");
+	gf_dynstrcat(&szStatus, szDS, NULL);
 	if (total_pc!=10000) {
-		sprintf(szDS, " / MPD %.2fs %d %%", max_ts, total_pc/100);
+		sprintf(szDS, " time=%.2fs prog=%d", max_ts, total_pc/100);
 		gf_dynstrcat(&szStatus, szDS, NULL);
 	}
 	gf_filter_update_status(filter, total_pc, szStatus);
@@ -11891,6 +11895,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	if (ctx->state)
 		gf_filter_force_main_thread(filter, GF_TRUE);
 #endif
+
+
+	gf_filter_add_status_metric(filter, "seg=Segment Number");
+	gf_filter_add_status_metric(filter, "period=Period ID;i=ID of DASH period;t=str");
 	return GF_OK;
 }
 

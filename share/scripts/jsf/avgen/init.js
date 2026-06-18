@@ -697,7 +697,7 @@ function process_video()
 	video_frame++;
 	let fps = 1000 * video_frame / (sys.clock_ms() - start_time);
 
-	filter.update_status(`Frame ${video_frame} CTS ${video_cts} / ${filter.fps.n} FPS ${fps}`);
+	filter.update_status(`Frame ${video_frame} time=${video_cts}/${filter.fps.n} fps=${fps}`);
 
 	if (filter.dur.d && (video_cts * filter.dur.d >= filter.fps.n * filter.dur.n)) {
 		print("done playing, cts " + video_cts);

@@ -4049,7 +4049,7 @@ naldmx_flush:
 	if ((ctx->nb_nalus>nalu_before) && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 
-		sprintf(szStatus, "%s %dx%d % 10d NALU % 8d I % 8d P % 8d B % 8d SEI", ctx->log_name, ctx->width, ctx->height, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei);
+		sprintf(szStatus, "NALU=%u I=%u P=%u B=%u SI=%u SP=%u IDR=%u CRA=%u SEI=%d", ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_idr, ctx->nb_cra, ctx->nb_sei);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 	if (ctx->full_au_source && ctx->poc_probe_done) {
@@ -4096,6 +4096,16 @@ static GF_Err naludmx_initialize(GF_Filter *filter)
 		}
 	}
 	ctx->sei_loader = gf_sei_loader_new();
+
+	gf_filter_add_status_metric(filter, "NALU=NAL Units");
+	gf_filter_add_status_metric(filter, "I=I slices");
+	gf_filter_add_status_metric(filter, "P=P slices");
+	gf_filter_add_status_metric(filter, "B=B slices");
+	gf_filter_add_status_metric(filter, "SI=SI slices");
+	gf_filter_add_status_metric(filter, "SP=SP slices");
+	gf_filter_add_status_metric(filter, "IDR=IDR slices");
+	gf_filter_add_status_metric(filter, "CRA=CRA slices");
+	gf_filter_add_status_metric(filter, "SEI=SEI Messages");
 	return GF_OK;
 }
 

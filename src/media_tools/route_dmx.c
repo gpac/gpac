@@ -3969,6 +3969,17 @@ void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 }
 
 GF_EXPORT
+void gf_route_dmx_reset_stats(GF_ROUTEDmx *routedmx)
+{
+	if (routedmx) {
+		routedmx->first_pck_time = 0;
+		routedmx->last_pck_time = 0;
+		routedmx->nb_packets = 0;
+		routedmx->total_bytes_recv = 0;
+	}
+}
+
+GF_EXPORT
 GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end)
 {
 	u32 i=0;

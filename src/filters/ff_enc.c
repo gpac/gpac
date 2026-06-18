@@ -221,6 +221,12 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 
+	char szMetric[1024];
+	sprintf(szMetric, "Q=Quality;m=1;M=%u;i=Frame quality (low is good)", FF_LAMBDA_MAX);
+	gf_filter_add_status_metric(filter, szMetric);
+	gf_filter_add_status_metric(filter, "PT=Picture type;t=str;v=[I:Intra, P:Predicted, B:Bi-directional, S:Sprite, SI:Switching Intra, SP:Switching Predicited, BI:Bidirectionnal with intra MBs only, U:Unknown]");
+
+	gf_filter_add_status_metric(filter, "LAT=Latency;i=Internal latency;u=f");
 	return GF_OK;
 }
 
@@ -418,6 +424,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 	case AV_PICTURE_TYPE_I: ptype = "I"; break;
 	case AV_PICTURE_TYPE_P: ptype = "P"; break;
 	case AV_PICTURE_TYPE_S: ptype = "S"; break;
+	case AV_PICTURE_TYPE_SI: ptype = "SI"; break;
 	case AV_PICTURE_TYPE_SP: ptype = "SP"; break;
 	case AV_PICTURE_TYPE_B: ptype = "B"; break;
 	case AV_PICTURE_TYPE_BI: ptype = "B"; break;
@@ -440,7 +447,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 
 	if (do_reporting) {
 		char szStatus[1024];
-		sprintf(szStatus, "[FFEnc] FPS %.02f F %d DTS "LLD" CTS "LLD" Q %02.02f PT %s (F_in %d)", fps, ctx->nb_frames_out, pkt->dts+ctx->ts_shift, pkt->pts+ctx->ts_shift, ((Double)q) /  FF_QP2LAMBDA, ptype, ctx->nb_frames_in);
+		sprintf(szStatus, "fps=%.02f frames=%d time="LLD"/%u Q=%d PT=%s LAT=%u", fps, ctx->nb_frames_out, pkt->pts+ctx->ts_shift, ctx->timescale, q, ptype, (ctx->nb_frames_in > ctx->nb_frames_out) ? (ctx->nb_frames_in -ctx->nb_frames_out) : 0);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 }
