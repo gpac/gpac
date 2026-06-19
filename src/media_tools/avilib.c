@@ -29,6 +29,11 @@
 
 #ifndef GPAC_DISABLE_AVILIB
 
+#if defined(__GNUC__) && __GNUC__ >= 11
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include <gpac/internal/avilib.h>
 
 
@@ -2499,7 +2504,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			// read from file
 			u32 chunk_size = (u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len);
-			if (!chunk_size || chunk_size < 24)
+			if (!chunk_size || chunk_size < 28)
 				continue;
 			chunk_start = en = (char*) gf_malloc(chunk_size);
 
@@ -2660,6 +2665,12 @@ multiple_riff:
 
 		// Number of frames; only one audio track supported
 		nvi = AVI->video_frames = AVI->total_frames;
+
+		if (nvi <= 0 || nvi >= GF_INT_MAX/sizeof(video_index_entry)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] invalid nvi value %d\n", nvi));
+			ERR_EXIT(AVI_ERR_READ);
+		}
+
 		nai[0] = AVI->track[0].audio_chunks = AVI->total_frames;
 		for(j=1; j<AVI->anum; ++j) AVI->track[j].audio_chunks = 0;
 

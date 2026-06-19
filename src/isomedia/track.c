@@ -208,13 +208,14 @@ default_sync:
 			if (rvc_predefined) {
 				esd->decoderConfig->predefined_rvc_config = rvc_predefined;
 			} else {
-				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
+					esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 #if !defined(GPAC_DISABLE_ZLIB)
 					gf_gz_decompress_payload_ex(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength, GF_TRUE);
 					gf_free(rvc_cfg_data);
 #endif
-				} else {
+				} else if (rvc_cfg_data && rvc_cfg_size) {
+					esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 					esd->decoderConfig->rvc_config->data = rvc_cfg_data;
 					esd->decoderConfig->rvc_config->dataLength = rvc_cfg_size;
 				}
@@ -846,7 +847,6 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				if (e) return e;
 			}
 			chunk_size += size;
-
 			if (store_traf_map && first_samp_in_traf) {
 				first_samp_in_traf = GF_FALSE;
 				e = stbl_AppendTrafMap(trak->moov->mov, trak->Media->information->sampleTable, is_seg_start, seg_start, frag_start, tfdt ? tfdt : trak->dts_at_next_frag_start, moof_template, moof_template_size, sidx_start, sidx_end, ent->nb_pack);
@@ -1326,7 +1326,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	if (trak->moov->mov->signal_frag_bounds && !(trak->moov->mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) ) {
 		gf_isom_push_mdat_end(trak->moov->mov, max_end, GF_TRUE);
 	}
-
+	if (moof_template)
+		gf_free(moof_template);
 	return GF_OK;
 }
 

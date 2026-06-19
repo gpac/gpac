@@ -243,6 +243,7 @@ static const GF_FilterCapability LSRDecCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
 };
 
 
@@ -273,4 +274,3 @@ const GF_FilterRegister *lsrdec_register(GF_FilterSession *session)
 	return NULL;
 #endif /*GPAC_DISABLE_LASER*/
 }
-

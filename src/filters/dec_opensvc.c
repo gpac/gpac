@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2024
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenSVC Decoder filter
@@ -438,9 +438,8 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		if (!ctx->nalu_size_length) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			u32 size = gf_media_nalu_next_start_code((u8 *) data, data_size, &sc_size);
-			if (sc_size) {
+			if (sc_size && (data_size >= size+sc_size)) {
 				ptr += size+sc_size;
-				gf_assert(data_size >= size+sc_size);
 				data_size -= size+sc_size;
 			} else
 #endif

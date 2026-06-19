@@ -166,7 +166,11 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				if (gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 				//OK, get the esd
 				e = GetESDForTime(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1], sample->DTS, &esd);
-				if (e) goto err_exit;
+				if (e) {
+					gf_odf_com_del((GF_ODCom **)&esdU);
+					gf_odf_com_del((GF_ODCom**)&esdU2);
+					goto err_exit;
+				}
 				gf_list_add(esdU2->ESDescriptors, esd);
 			}
 			gf_odf_com_del((GF_ODCom **)&esdU);

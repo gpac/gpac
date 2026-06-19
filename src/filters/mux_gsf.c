@@ -225,6 +225,8 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 			hdr_size = gsfmx_get_header_size(ctx, gst, use_seq_num, first_frag, no_frag, ctx->mpck - hdr_size, frame_size, block_offset);
 			to_write = ctx->mpck - hdr_size;
 		}
+		if (to_write >= GF_UINT_MAX-hdr_size)
+			break;
 		osize = hdr_size + to_write;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
@@ -265,6 +267,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		bytes_remain -= to_write;
 		pck_offset += to_write;
 		block_offset += to_write;
+
 		if (frame_hdr_size) {
 			if (frame_hdr_size > block_offset) {
 				frame_hdr_size -= block_offset;
@@ -1358,4 +1361,3 @@ const GF_FilterRegister *gsfmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif
-

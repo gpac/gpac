@@ -158,6 +158,7 @@ CodecIDReg CodecRegistry [] = {
 
 	{GF_CODECID_MPHA, 0, GF_STREAM_AUDIO, "MPEG-H Audio", "mhas", "mha1", "audio/x-mpegh", .unframe=GF_TRUE},
 	{GF_CODECID_MHAS, 0, GF_STREAM_AUDIO, "MPEG-H AudioMux", "mhas", "mhm1", "audio/x-mhas", .unframe=GF_TRUE},
+	{GF_CODECID_IAMF, 0, GF_STREAM_AUDIO, "AOM IAMF (Immersive Audio Model and Formats)", "iamf", "iamf", "audio/iamf", .unframe=GF_TRUE},
 
 	{GF_CODECID_APCH, 0, GF_STREAM_VISUAL, "ProRes Video 422 HQ", "prores|apch", "apch", "video/prores", .unframe=GF_TRUE},
 	{GF_CODECID_APCO, 0, GF_STREAM_VISUAL, "ProRes Video 422 Proxy", "prores|apco", "apco", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
@@ -286,6 +287,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_VP10;
 	case GF_ISOM_SUBTYPE_AVS3:
 		return GF_CODECID_AVS3_VIDEO;
+	case GF_ISOM_SUBTYPE_IAMF:
+		return GF_CODECID_IAMF;
 
 	case GF_QT_SUBTYPE_APCH:
 		return GF_CODECID_APCH;
@@ -2826,7 +2829,7 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 	u32 end, pos = (u32) gf_bs_get_position(bs);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, GF_4CC('u','n','c','C'));
-	gf_bs_write_u32(bs, restricted_allowed ? 1 : 0); //version and flags
+	gf_bs_write_u32(bs, restricted_allowed ? 0x01000000 : 0); //version and flags
 	gf_bs_write_u32(bs, profile); //profile
 	if (restricted_allowed) goto done;
 

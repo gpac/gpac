@@ -518,8 +518,8 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("ipod", "rewrite the file for iPod/old iTunes", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &conv_type, GF_ISOM_CONV_TYPE_IPOD, ARG_OPEN_EDIT),
  	MP4BOX_ARG("psp", "rewrite the file for PSP devices", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &conv_type, GF_ISOM_CONV_TYPE_PSP, ARG_OPEN_EDIT),
  	MP4BOX_ARG("brand", "set major brand of file (`ABCD`) or brand with optional version (`ABCD:v`)", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, parse_brand, 0, ARG_IS_FUN),
- 	MP4BOX_ARG("ab", "add given brand to file's alternate brand list", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, parse_brand, 1, ARG_IS_FUN),
- 	MP4BOX_ARG("rb", "remove given brand to file's alternate brand list", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, parse_brand, 2, ARG_IS_FUN),
+ 	MP4BOX_ARG("ab", "add given brand to alternate brand list", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, parse_brand, 1, ARG_IS_FUN),
+ 	MP4BOX_ARG("rb", "remove given brand from alternate brand list", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, parse_brand, 2, ARG_IS_FUN),
  	MP4BOX_ARG("cprt", "add copyright string to file", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &cprt, 0, 0),
  	MP4BOX_ARG("chap", "set chapter information from given file. The following formats are supported (but cannot be mixed) in the chapter text file:\n"
 		"  - ZoomPlayer: `AddChapter(nb_frames,chapter name)`, `AddChapterBySeconds(nb_sec,chapter name)` and `AddChapterByTime(h,m,s,chapter name)` with 1 chapter per line\n"

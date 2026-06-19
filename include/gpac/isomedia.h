@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -855,6 +855,13 @@ u64 gf_isom_get_duration(GF_ISOFile *isom_file);
 \param isom_file the target ISO file
 \return the duration of the movie*/
 u64 gf_isom_get_original_duration(GF_ISOFile *isom_file);
+
+/*! override dref URL for all entries in the file
+\param isom_file the target ISO file
+\param dref_url the target URL, or NULL to cancel URL overriding
+\return error if any
+*/
+GF_Err gf_isom_override_dref_url(GF_ISOFile *isom_file, const char *dref_url);
 
 /*! time offset since UNIX EPOC for MP4/QT/MJ2K files*/
 #define GF_ISOM_MAC_TIME_OFFSET 2082844800
@@ -2823,15 +2830,13 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *isom_file, GF_ISOTrackID trackID, con
 */
 GF_Err gf_isom_set_track_magic(GF_ISOFile *isom_file, u32 trackNumber, u64 magic);
 
-/*! sets track index in moov
+/*! sets track index in moov when serializing - this does not change trackNumber
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param index the 1-based index to set. Tracks will be reordered after this!
-\param track_num_changed callback function used to notify track changes during the call to this function
-\param udta opaque user data for the callback function
+\param index the 1-based index to set. Tracks with same index as ordered in their order of appearance
 \return error if any
 */
-GF_Err gf_isom_set_track_index(GF_ISOFile *isom_file, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta);
+GF_Err gf_isom_set_track_index(GF_ISOFile *isom_file, u32 trackNumber, u32 index);
 
 /*! removes a sample description with the given index
 \warning This does not remove any added samples for that stream description, nor rewrite the sample to chunk and other boxes referencing the sample description index !
@@ -3024,6 +3029,16 @@ void gf_isom_disable_inplace_rewrite(GF_ISOFile *isom_file);
 \return error if any
 */
 GF_Err gf_isom_set_inplace_padding(GF_ISOFile *isom_file, u32 padding);
+
+/*! Enables automatic track reorder when serializing moov - this does not impact interleaving. When enabled, the track order will be video, then audio, then text then other media types
+
+This mode is automatically turned on when adding timecode tracks
+
+\param isom_file the target ISO file
+\param enabled indicate if auto reordering is used
+\return error if any
+*/
+GF_Err gf_isom_enable_auto_track_reorder(GF_ISOFile *isom_file, Bool enabled);
 
 /*! @} */
 

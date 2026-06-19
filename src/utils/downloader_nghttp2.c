@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project
@@ -714,10 +714,8 @@ static void h2_close_session(GF_DownloadSession *sess)
 void h2_initialize_session(GF_DownloadSession *sess)
 {
 	int rv;
-	nghttp2_settings_entry iv[2] = {
-		{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100},
-		{NGHTTP2_SETTINGS_ENABLE_PUSH, 0}
-	};
+	int nb_settings=0;
+	nghttp2_settings_entry init_settings[10];
 	char szMXName[100];
 	nghttp2_session_callbacks *callbacks;
 
@@ -743,6 +741,35 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	} else {
 		nghttp2_session_client_new((nghttp2_session**) &sess->hmux_sess->hmux_udta, callbacks, sess->hmux_sess);
 	}
+
+#define H2SET_ASSIGN(_key, _val) \
+		init_settings[nb_settings].settings_id = _key; \
+		init_settings[nb_settings].value = _val; \
+		nb_settings++;\
+		gf_assert(nb_settings<10);
+
+	H2SET_ASSIGN(NGHTTP2_SETTINGS_ENABLE_PUSH, 0);
+
+	u32 h2_opt_val = gf_opts_get_int("core", "hx-max-st");
+	if (!h2_opt_val) h2_opt_val = 100;
+	H2SET_ASSIGN(NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, h2_opt_val);
+
+	h2_opt_val = gf_opts_get_int("core", "hx-st-iwnd");
+	if (h2_opt_val) {
+		H2SET_ASSIGN(NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, h2_opt_val);
+	}
+	h2_opt_val = gf_opts_get_int("core", "h2-max-frame");
+	if (h2_opt_val) {
+		H2SET_ASSIGN(NGHTTP2_SETTINGS_MAX_FRAME_SIZE, h2_opt_val);
+	}
+	h2_opt_val = gf_opts_get_int("core", "hx-iwnd");
+	if (h2_opt_val) {
+		rv = nghttp2_session_set_local_window_size(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, 0 /* connection */, h2_opt_val);
+		if (rv) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP/2] set_local_window_size(conn) failed: %d\n", rv));
+		}
+	}
+
 	nghttp2_session_callbacks_del(callbacks);
 	sess->hmux_sess->net_sess = sess;
 	//setup function pointers
@@ -789,7 +816,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	}
 
 	/* client 24 bytes magic string will be sent by nghttp2 library */
-	rv = nghttp2_submit_settings(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, iv, GF_ARRAY_LENGTH(iv));
+	rv = nghttp2_submit_settings(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, init_settings, nb_settings);
 	if (rv != 0) {
 		sess->status = GF_NETIO_STATE_ERROR;
 		SET_LAST_ERR((rv==NGHTTP2_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_SERVICE_ERROR)

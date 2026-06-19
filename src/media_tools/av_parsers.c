@@ -2270,7 +2270,8 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 	int Sb64Cols = 0, Sb64Rows = 0, i;
 	u8 refresh_frame_flags = 0;
 
-	gf_assert(bs && key_frame);
+	if (!bs || !key_frame || !vp9_cfg)
+		return GF_OK;
 
 	/*uncompressed header*/
 	/*frame_marker = */gf_bs_read_int_log(bs, 2, "frame_marker");
@@ -11074,7 +11075,7 @@ Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_
 	(*pos) = AC3_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	bs = gf_bs_new((const char*)(buf + *pos), buflen-*pos, GF_BITSTREAM_READ);
 	ret = gf_eac3_parser_internal(bs, hdr, full_parse);
 	gf_bs_del(bs);
 	return ret;

@@ -451,9 +451,14 @@ restart:
 #ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(nlist->node, node, NULL);
-			} else
+			} else {
 #endif
-				ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
+				if (gf_list_find(sg->exported_nodes, nlist->node)<0) {
+					ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
+				}
+#ifndef GPAC_DISABLE_SVG
+			}
+#endif
 
 			/*direct cyclic reference to ourselves, make sure we update the parentList to the next entry before freeing it
 			since the next parent node could be reg_node again (reg_node->reg_node)*/
@@ -463,12 +468,7 @@ restart:
 
 			gf_free(nlist);
 			nlist = next;
-#if 0
-			if (ignore) {
-				node->sgprivate->parents = nlist;
-				continue;
-			}
-#endif
+
 		}
 
 		node->sgprivate->parents = NULL;
@@ -924,6 +924,9 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 #endif
 	Bool replace_root;
 
+	if (!node || !node->sgprivate || !node->sgprivate->scenegraph)
+		return GF_BAD_PARAM;
+
 #ifndef GPAC_DISABLE_SVG
 	type = (node->sgprivate->tag>GF_NODE_RANGE_LAST_VRML) ? 1 : 0;
 	if (type) {
@@ -942,25 +945,28 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		replace_proto = 1;
 	}
 #endif
-
 	while (node->sgprivate->parents) {
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
 		GF_Node *par = node->sgprivate->parents->node;
 
 #ifndef GPAC_DISABLE_SVG
-		if (type)
+		if (type) {
 			ReplaceIRINode(par, node, new_node);
-		else
+		}
+		else {
 #endif
 			ReplaceDEFNode(par, node, new_node, updateOrderedGroup);
+		}
 
-		if (new_node) gf_node_register(new_node, par);
+		if (new_node && new_node != par) gf_node_register(new_node, par);
 		gf_node_unregister(node, par);
-		gf_node_changed(par, NULL);
+		if (node != par)
+			gf_node_changed(par, NULL);
 		if (do_break) break;
 	}
 
 	if (replace_root) {
+		gf_node_register(new_node, NULL);
 		GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 		gf_node_unregister(node, NULL);
 		pSG->RootNode = new_node;
@@ -1865,6 +1871,7 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 
 void gf_node_del(GF_Node *node)
 {
+	if (!node) return;
 	if (node->sgprivate->tag==TAG_UndefinedNode) gf_node_free(node);
 	else if (node->sgprivate->tag==TAG_DOMText) {
 		GF_DOMText *t = (GF_DOMText *)node;
@@ -2371,6 +2378,9 @@ GF_EXPORT
 GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
 	GF_ChildNodeItem *child, *prev;
+
+	if (!container || !*container) return GF_BAD_PARAM;
+
 #ifndef GPAC_DISABLE_VRML
 	u32 tag;
 #endif

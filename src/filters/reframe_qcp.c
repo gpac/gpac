@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / AMR&EVRC&SMV reframer filter
@@ -228,6 +228,7 @@ static Bool qcpdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
 	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:

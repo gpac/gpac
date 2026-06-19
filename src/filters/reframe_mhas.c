@@ -343,6 +343,7 @@ static Bool mhas_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	GF_FilterEvent fevt;
 	GF_MHASDmxCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 
 	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
 

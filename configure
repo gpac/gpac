@@ -137,6 +137,7 @@ has_x11_glx="no"
 ffmpeg_vvc="no"
 
 has_strlcpy="no"
+has_strlcat="no"
 
 ffmpeg_extra_ldflags=""
 
@@ -1174,6 +1175,11 @@ else
         CFLAGS="$CFLAGS -fstack-protector-strong"
     fi
 fi
+
+if docc -fwrapv ; then
+    CFLAGS="$CFLAGS -fwrapv"
+fi
+
 CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
@@ -1316,8 +1322,23 @@ int main( void ) {
 }
 EOF
 has_strlcpy="no"
-if docc $LDFLAGS ; then
+if docc  -fno-builtin $LDFLAGS ; then
     has_strlcpy="yes"
+fi
+
+#look for strlcat support
+cat > $TMPC << EOF
+#include <string.h>
+int main( void ) {
+    char key[8];
+    strcpy( key, "a" );
+    strlcat( key, "b", sizeof(key) );
+    return 0;
+}
+EOF
+has_strlcat="no"
+if docc  -fno-builtin $LDFLAGS ; then
+    has_strlcat="yes"
 fi
 
 #look for sys/un.h support
@@ -2621,7 +2642,7 @@ fi
 
 #we add no deprecate by default on osx (due to opengl ...)
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces -Wno-typedef-redefinition -Wno-implicit-const-int-float-conversion"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces -Wno-typedef-redefinition -Wno-implicit-const-int-float-conversion  -Wno-unknown-warning-option"
 else
     CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi
@@ -2894,6 +2915,11 @@ fi
 echo "CONFIG_STRLCPY=$has_strlcpy" >> config.mak
 if test "$has_strlcpy" != "no" ; then
     echo "#define GPAC_HAS_STRLCPY" >> $TMPH
+fi
+
+echo "CONFIG_STRLCAT=$has_strlcat" >> config.mak
+if test "$has_strlcat" != "no" ; then
+    echo "#define GPAC_HAS_STRLCAT" >> $TMPH
 fi
 
 if test "$has_sock_un" != "no" ; then
@@ -3188,7 +3214,6 @@ build_object_files_directory_tree()
 
     mkdir -p applications
     ln -sf "$1/applications/Makefile" applications/Makefile
-    mkdir -p applications/testapps
 
     for dir in $APP_DIRS ; do
         mkdir -p "$dir"

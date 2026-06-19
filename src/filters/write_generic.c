@@ -63,6 +63,7 @@ typedef struct
 
 	u32 codecid;
 	Bool is_mj2k;
+	Bool is_iamf;
 	u32 sample_num;
 
 	const char *dcfg;
@@ -136,6 +137,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	cid = p->value.uint;
 
 	ctx->codecid = cid;
+	ctx->is_iamf = GF_FALSE;
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		if (!ctx->opid)
@@ -242,6 +244,11 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	case GF_CODECID_J2K:
 		ctx->split = GF_TRUE;
 		ctx->is_mj2k = GF_TRUE;
+		break;
+	case GF_CODECID_IAMF:
+		ctx->is_iamf = GF_TRUE;
+		if (ctx->decinfo == DECINFO_AUTO)
+			ctx->decinfo = DECINFO_FIRST;
 		break;
 	case GF_CODECID_AMR:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
@@ -1385,7 +1392,7 @@ GF_Err writegen_process(GF_Filter *filter)
 
 	if (ctx->frame) {
 		split = GF_TRUE;
-	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && !ctx->webvtt && (ctx->decinfo!=DECINFO_NO) && !ctx->cfg_sent) {
+	} else if (ctx->dcfg_size && (gf_filter_pck_get_sap(pck) || ctx->is_iamf) && !ctx->is_mj2k && !ctx->webvtt && (ctx->decinfo!=DECINFO_NO) && !ctx->cfg_sent) {
 		if (ctx->codecid==GF_CODECID_FLAC) {
 			u8 *dsi_out;
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->dcfg_size+4, &dsi_out);
@@ -1395,6 +1402,32 @@ GF_Err writegen_process(GF_Filter *filter)
 			dsi_out[2] = 'a';
 			dsi_out[3] = 'C';
 			memcpy(dsi_out+4, ctx->dcfg, ctx->dcfg_size);
+		} else if (ctx->is_iamf) {
+			GF_IAConfig *iacb = gf_odf_iamf_cfg_read((u8 *)ctx->dcfg, ctx->dcfg_size);
+			if (iacb) {
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				gf_odf_iamf_cfg_write_obus(iacb, bs);
+				u8 *obus_data = NULL;
+				u32 obus_size = 0;
+				gf_bs_get_content(bs, &obus_data, &obus_size);
+				gf_bs_del(bs);
+				gf_odf_iamf_cfg_del(iacb);
+				if (obus_data && obus_size) {
+					u8 *pck_data;
+					dst_pck = gf_filter_pck_new_alloc(ctx->opid, obus_size, &pck_data);
+					if (!dst_pck) {
+						gf_free(obus_data);
+						return GF_OUT_OF_MEM;
+					}
+					memcpy(pck_data, obus_data, obus_size);
+					gf_free(obus_data);
+				}
+			}
+			if (!dst_pck) {
+				dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+				gf_filter_pck_set_readonly(dst_pck);
+			}
 		} else {
 			dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
 			if (!dst_pck) return GF_OUT_OF_MEM;
@@ -1857,6 +1890,14 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "usac|xheaac|latm"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/xheaac+latm"),
+	{0},
+
+	//we accept IAMF
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_IAMF),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "iamf"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/iamf"),
 	{0},
 
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),

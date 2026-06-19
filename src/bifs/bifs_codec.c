@@ -82,6 +82,7 @@ static void bifs_info_del(BIFSStreamInfo *info)
 		gf_list_rem_last(info->config.elementaryMasks);
 		gf_free(em);
 	}
+	gf_list_del(info->config.elementaryMasks);
 	gf_free(info);
 }
 
@@ -91,7 +92,7 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 	GF_BifsDecoder *tmp;
 	GF_SAFEALLOC(tmp, GF_BifsDecoder);
 	if (!tmp) return NULL;
-	
+
 	tmp->QPs = gf_list_new();
 	tmp->streamInfo = gf_list_new();
 	tmp->info = NULL;
@@ -165,7 +166,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, u8 *De
 	}
 
 	if (e && (e != GF_ODF_INVALID_DESCRIPTOR)) {
-		gf_free(pInfo);
+		bifs_info_del(pInfo);
 		gf_bs_del(bs);
 		return GF_BIFS_UNKNOWN_VERSION;
 	}
@@ -542,4 +543,3 @@ Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 }
 
 #endif /*GPAC_DISABLE_BIFS*/
-

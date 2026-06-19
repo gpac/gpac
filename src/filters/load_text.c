@@ -565,7 +565,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 				} else {
 					if (strcmp(att->name, "duration")) continue;
 					duration = atoi(att->value);
-					dur.num += (s32) ( (1000 * duration) / ctx->txml_timescale);
+					dur.num += (s32) ( (1000 * duration) / (ctx->txml_timescale ? ctx->txml_timescale : 1) );
 				}
 			}
 		}
@@ -1551,7 +1551,7 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 		u32 vals[6] = {0};
 		char *cur = value;
 		while (cur) {
-			char sep;
+			char sep = 0;
 			char *next_col = strchr(cur, ':');
 			if (!next_col) next_col = strchr(cur, '.');
 			if (next_col) {
@@ -2975,7 +2975,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 
 		memset(szText, 0, 2048);
 		i=j=0;
-		u32 start_p_len = strlen(start_p);
+		u32 start_p_len = (u32)strlen(start_p);
 		while (1) {
 			if (i>=start_p_len)
 				break;

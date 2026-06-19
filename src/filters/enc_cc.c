@@ -208,7 +208,7 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 
 	u32 size;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	gf_assert(size >= GPAC_TX3G_DATA_OFFSET);
+	if (size < GPAC_TX3G_DATA_OFFSET) return GF_NON_COMPLIANT_BITSTREAM;
 	u16 len = (data[0] << 8) | data[1];
 	if (!len) return GF_OK;
 

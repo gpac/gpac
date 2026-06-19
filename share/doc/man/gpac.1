@@ -1278,6 +1278,52 @@ disable HTTP2 upgrade (i.e. over non-TLS)
 enable intermediate copy of data in nghttp2 (default is disabled but may report as broken frames in wireshark)
 .br
 .TP
+.B \-h2-max-frame (int, default: 1m)
+.br
+set HTTP2 maximum frame size
+.br
+.TP
+.B \-h3-ack-threshold (int, default: 2)
+.br
+QUIC ack threshhold (cf ngtcp2_settings.ack_thresh)
+.br
+.TP
+.B \-h3-algo (string, default: cubic, values: cubic|bbr|reno)
+.br
+congestion control algorithm for QUIC
+.br
+* cubic: CUBIC
+.br
+* bbr: BBR v2
+.br
+* reno: Reno
+.br
+.TP
+.B \-h3-mwnd (int, default: 0)
+.br
+set QUIC/HTTP3 maximum window size (cf ngtcp2_settings.max_window)
+.br
+.TP
+.B \-h3-st-mwnd (int, default: 0)
+.br
+set QUIC/HTTP3 maximum stream window size (cf ngtcp2_settings.max_stream)
+.br
+.TP
+.B \-hx-max-st (int, default: 100)
+.br
+set maximum number of HTTP2 or QUIC/HTTP3 concurrent streams
+.br
+.TP
+.B \-hx-iwnd (int, default: 64m)
+.br
+set initial HTTP2 or QUIC/HTTP3 connection window size
+.br
+.TP
+.B \-hx-st-iwnd (int, default: 32m)
+.br
+set initial HTTP2 or QUIC/HTTP3 stream window size
+.br
+.TP
 .B \-curl
 .br
 use CURL instead of GPAC HTTP stack
@@ -5613,6 +5659,11 @@ MPEG-H Audio
 .B mhas
 .br
 MPEG-H AudioMux
+.br
+.TP
+.B iamf
+.br
+AOM IAMF (Immersive Audio Model and Formats)
 .br
 .TP
 .B prores|apch

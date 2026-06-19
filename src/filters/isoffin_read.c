@@ -148,6 +148,10 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 	}
 
 	read->input_loaded = GF_TRUE;
+	if (read->drefu) {
+		e = gf_isom_override_dref_url(read->mov, read->drefu);
+	}
+
 	//if missing bytes is set, file is incomplete, check if cache is complete
 	if (read->missing_bytes) {
 		read->input_loaded = GF_FALSE;
@@ -1929,6 +1933,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(norw), "skip reformatting of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepc), "keep corrupted samples (for multicast sources only)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfo), "signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(drefu), "override dref URL in source file with given value", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

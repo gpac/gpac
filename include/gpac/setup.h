@@ -859,6 +859,14 @@ void* gf_realloc(void *ptr, size_t size);
 */
 size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 
+/*! concat source string to destination, ensuring 0-terminated string result
+\param dst  destination buffer
+\param src  source buffer
+\param dsize size of destination buffer
+\return same as strlcat
+*/
+size_t gf_strlcat(char *dst, const char *src, size_t dsize);
+
 #ifdef GPAC_ASSERT_FATAL
 /*! fatal error assert, will always kill the program if condition is false
  \param _cond condition to test
@@ -907,6 +915,12 @@ size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 #define GF_NOT_EXPORTED
 #endif
 //! @endcond
+
+#ifndef GPAC_DISABLE_ZLIB
+#define ZLIB_INFLATE_MAX_MULTIPLIER 32
+#define ZLIB_COMPRESS_SAFE 4
+#endif
+
 
 #ifdef __cplusplus
 }

@@ -645,7 +645,7 @@ static GF_Err gf_mpd_parse_event_streams(GF_List *comps, GF_XMLNode *root) {
 								while ( (b64 = gf_list_enum(binary->content, &m)) ) {
 								if (b64->type != GF_XML_TEXT_TYPE) continue;
 									if(!event->message) {
-										event->message_size = strlen(b64->name)+1;
+										event->message_size = (u32)strlen(b64->name)+1;
 										event->message = gf_malloc(event->message_size);
 										if (!event->message) return GF_OUT_OF_MEM;
 										event->message_size = gf_base64_decode((u8*)b64->name, event->message_size, event->message, event->message_size);
@@ -3618,7 +3618,7 @@ static void gf_mpd_print_event_stream(FILE *out, GF_MPD_EventStream *event_strea
 			size_t sz = 2*evt->message_size + 3;
 			char *b64 = gf_malloc(sizeof(char) * sz);
 			if (b64) {
-				sz = gf_base64_encode(evt->message, evt->message_size, b64, sz);
+				sz = gf_base64_encode(evt->message, evt->message_size, b64, (u32)sz);
 				b64[sz] = 0;
 				gf_fprintf(out, "<Binary>%s</Binary>", b64);
 				gf_free(b64);
@@ -5508,9 +5508,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		return GF_OK;
 	}
 	/*let's solve the template*/
-	solved_template = gf_malloc(sizeof(char)*(strlen(url_to_solve) + (rep->id ? strlen(rep->id) : 0)) * 2);
+	u32 solved_bufsize = (u32) (sizeof(char)*(strlen(url_to_solve) + (rep->id ? strlen(rep->id) : 0)) * 2);
+	solved_template = gf_malloc(solved_bufsize);
 	if (!solved_template) return GF_OUT_OF_MEM;
 
+	solved_template[solved_bufsize-1] = 0;
 	solved_template[0] = 0;
 	strcpy(solved_template, url_to_solve);
 	first_sep = strchr(solved_template, '$');
@@ -5680,8 +5682,9 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		/*look for next keyword - copy over remaining text if any*/
 		first_sep = strchr(second_sep+1, '$');
 		if (first_sep) first_sep[0] = 0;
-		if (strlen(second_sep+1))
-			strcat(solved_template, second_sep+1);
+		if (strlen(second_sep+1)) {
+			gf_strlcat(solved_template, second_sep+1, solved_bufsize);
+		}
 		if (first_sep) first_sep[0] = '$';
 	}
 	*out_url = gf_url_concatenate(url, solved_template);

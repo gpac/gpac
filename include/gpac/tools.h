@@ -1117,6 +1117,8 @@ void gf_log_pop_extra(const GF_LogExtra *log);
 */
 void gf_log_reset_extras();
 
+#define GF_DBG(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+
 /*!	@} */
 
 /*!
@@ -1903,6 +1905,14 @@ char* gf_file_basename(const char* filename);
 */
 char* gf_file_ext_start(const char* filename);
 
+/*! return the canonicalized absolute pathname
+* portable version of POSIX realpath()
+\param path Path to resolve
+\param resolved_path A buffer to store the result, if NULL a buffer will be allocated and returned
+\return pointer to resolved_path or to a new buffer or NULL if error
+*/
+char* gf_realpath(const char* path, char* resolved_path);
+
 /*!\brief FileEnum info object
 
 The FileEnumInfo object is used to get file attributes upon enumeration of a directory.
@@ -2004,6 +2014,9 @@ Checks if file with given name exists, for regular files or File IO wrapper
 \param par_name  name of the parent file
 \return GF_TRUE if file exists */
 Bool gf_file_exists_ex(const char *file_name, const char *par_name);
+
+
+
 
 /*!
 \brief Open file descriptor

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -755,7 +755,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	DrawableContext *ctx;
 	Bool skipFill;
 	GF_Node *appear;
-	gf_assert(tr_state->visual);
+	if (!tr_state->visual) return NULL;
 
 	/*switched-off geometry nodes are not drawn*/
 	if (tr_state->switched_off) {
@@ -1497,7 +1497,7 @@ static Bool svg_appearance_flag_dirty(u32 flags)
 DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state, SVG_ClipPath *clip_path)
 {
 	DrawableContext *ctx;
-	gf_assert(tr_state->visual);
+	if (!tr_state->visual) return NULL;
 
 	if (clip_path && !clip_path->target.target) {
 		clip_path->target.target = clip_path->target.string ? gf_sg_find_node_by_name(tr_state->visual->compositor->scene, clip_path->target.string+1) : NULL;

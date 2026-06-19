@@ -900,9 +900,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		pid->filter->nb_pids_playing++;
 	}
 
-	if (pid->filter->eos_probe_state)
-		pid->filter->eos_probe_state = 2;
-
 	pid->filter->nb_pck_io++;
 
 	cktype = ( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
@@ -1384,6 +1381,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			}
 		}
 		gf_filter_packet_destroy(pck);
+	} else {
+		//we have sent the packet, move probe state to active
+		if (pid->filter->eos_probe_state)
+			pid->filter->eos_probe_state = 2;
 	}
 	return GF_OK;
 }

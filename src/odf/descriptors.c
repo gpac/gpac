@@ -2746,21 +2746,31 @@ void gf_odf_iamf_cfg_del(GF_IAConfig *cfg)
 }
 
 GF_EXPORT
-GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
+GF_Err gf_odf_iamf_cfg_write_obus(GF_IAConfig *cfg, GF_BitStream *bs)
 {
 	u32 i;
 	if (!cfg || !bs) return GF_BAD_PARAM;
 
 	#ifndef GPAC_DISABLE_AV_PARSERS
-		gf_bs_write_u8(bs, cfg->configurationVersion);
-		gf_av1_leb128_write(bs, cfg->configOBUs_size);
-		for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
-				GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
-				gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
-		}
+	for (i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
+		GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
+		gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
+	}
 	#endif
-
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_iamf_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
+{
+  if (!cfg || !bs) return GF_BAD_PARAM;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+  gf_bs_write_u8(bs, cfg->configurationVersion);
+  gf_av1_leb128_write(bs, cfg->configOBUs_size);
+  return gf_odf_iamf_cfg_write_obus(cfg, bs);
+#endif
+  return GF_OK;
 }
 
 GF_EXPORT

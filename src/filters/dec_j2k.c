@@ -399,7 +399,10 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	h = cinfo.image_h;
 #endif
 	ctx->bpp = ctx->nb_comp * 8;
-	ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;
+	if ((u64)ctx->width * ctx->height * ctx->nb_comp > (u64)GF_UINT_MAX) {
+		return GF_BAD_PARAM;
+	}
+	ctx->out_size = ctx->width * ctx->height * ctx->nb_comp;
 
 	switch (ctx->nb_comp) {
 	case 1:
@@ -442,6 +445,10 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		changed = GF_TRUE;
 	}
 	if (changed) {
+		if ((u64)ctx->width * ctx->height * ctx->nb_comp > (u64)GF_UINT_MAX) {
+			return GF_BAD_PARAM;
+		}
+		ctx->out_size = ctx->width * ctx->height * ctx->nb_comp ;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT( (ctx->pixel_format == GF_PIXEL_YUV) ? ctx->width : ctx->width * ctx->nb_comp) );
 	}
 
@@ -636,4 +643,3 @@ const GF_FilterRegister *j2kdec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-

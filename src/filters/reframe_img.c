@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / image (jpg/png/bmp/j2k) reframer filter
@@ -118,6 +118,7 @@ Bool img_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FilterEvent fevt;
 	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:

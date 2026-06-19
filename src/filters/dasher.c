@@ -239,6 +239,7 @@ typedef struct
 	Bool sigfrag, sigfo;
 	DasherTSSHandlingMode sbound;
 	DasherPeriodSwitchMode pswitch;
+	Bool kpswitch;
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
@@ -563,6 +564,8 @@ typedef struct _dash_stream
 
 	Bool set_period_switch;
 	u32 all_stsd_crc;
+	u32 cenc_key_info_crc;
+	Bool cenc_key_info_init;
 
 	u64 frag_start_offset, frag_first_ftdt;
 	u32 tpl_use_time;
@@ -1814,6 +1817,24 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p && (p->value.uint != ds->ts_disc_idx)) {
 		period_switch = GF_TRUE;
 		ds->ts_disc_idx = p->value.uint;
+	}
+
+	if (ctx->kpswitch) {
+		u32 cenc_key_info_crc = 0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_KEY_INFO);
+		if (p && (p->type==GF_PROP_DATA) && p->value.data.ptr && p->value.data.size) {
+			cenc_key_info_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+		}
+
+		if ( is_reconfigure && (cenc_key_info_crc != ds->cenc_key_info_crc) ) {
+			period_switch = GF_TRUE;
+			new_period_request = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Encryption key changed for PID %s, requesting new Period\n", gf_filter_pid_get_name(ds->ipid)));
+		}
+
+		ds->cenc_key_info_crc = cenc_key_info_crc;
+		ds->cenc_key_info_init = GF_TRUE;
 	}
 
 	if (ctx->do_index || ctx->from_index) {
@@ -3772,7 +3793,9 @@ static void dasher_gather_deps(GF_DasherCtx *ctx, u32 dependency_id, GF_List *mu
 		if (ds->id == dependency_id) {
 			if (ds->tile_base) continue;
 
-			gf_assert(ds->opid);
+			if (!ds->opid || gf_list_find(multi_tracks, ds->opid)>=0)
+				continue;
+
 			gf_list_insert(multi_tracks, ds->opid, 0);
 			if (ds->dep_id) dasher_gather_deps(ctx, ds->dep_id, multi_tracks);
 		}
@@ -3797,14 +3820,14 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 	}
 }
 
-static void dasher_inject_scte35_processor(GF_Filter *filter, GF_DashStream *ds, char *szSRC) {
+static void dasher_inject_interposer(GF_Filter *filter, const char *name, GF_DashStream *ds, char *szSRC) {
 		GF_Err e;
-		GF_Filter *scte35dec = gf_filter_load_filter(filter, "scte35dec", &e);
-		gf_filter_set_source(scte35dec, filter, NULL);
+		GF_Filter *interposer = gf_filter_load_filter(filter, name, &e);
+		gf_filter_set_source(interposer, filter, NULL);
 
 		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
 		gf_filter_reset_source(ds->dst_filter);
-		gf_filter_set_source(ds->dst_filter, scte35dec, szSRC);
+		gf_filter_set_source(ds->dst_filter, interposer, szSRC);
 }
 
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
@@ -4027,8 +4050,14 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		if (ctx->do_m3u8)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] evte_agg option used with HLS is likely not supported by your player\n"));
 
-		//inject scte35dec filter
-		dasher_inject_scte35_processor(filter, ds, szSRC);
+		dasher_inject_interposer(filter, "scte35dec", ds, szSRC);
+	}
+	else if ( ds->codec_id==GF_CODECID_EVTE && (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) ) {
+		// inject scte35dec filter
+		if (ctx->scte35==SCTE35_DASH_XML_BIN)
+			dasher_inject_interposer(filter, "scte35dec:mode=m2ts", ds, szSRC);
+		else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] incompatible set of scte35 options\n"));
 	}
 }
 
@@ -9685,12 +9714,24 @@ static void dasher_set_pto(GF_DashStream *ds, u64 pto_adj)
 static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_DashStream *ds)
 {
 	GF_Err ret = GF_OK;
+	const u8 *data = NULL;
+	u32 size = 0;
 
 	if (ctx->scte35 == SCTE35_NONE)
 		return GF_OK;
 
-	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
-	if (!emsg) return GF_OK;
+	if (ds->codec_id == GF_CODECID_SCTE35) {
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!data || !size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] skipping SCTE-35 packet with no data: check your filter chain\n"));
+			return GF_OK;
+		}
+	} else {
+		const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+		if (!emsg) return GF_OK;
+		data = emsg->value.data.ptr;
+		size = emsg->value.data.size;
+	}
 
 	if (ctx->scte35 == SCTE35_INBAND || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have a SCTE-35 inband event
@@ -9712,7 +9753,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 		}
 	}
 
-	if (ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
+	if (ctx->scte35 == SCTE35_DASH_AUTO || ctx->scte35 == SCTE35_DASH_XML_BIN || ctx->scte35 == SCTE35_ALL) {
 		//check if we already have an event stream
 		GF_List *event_streams = ds->period->period->event_streams;
 		GF_MPD_EventStream *es = NULL;
@@ -9741,7 +9782,7 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 
 		Bool needs_idr = GF_FALSE;
 		u64 dur = 0;
-		if (scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
+		if (scte35dec_get_timing(data, size, &evt->presentation_time, &dur, &evt->id, &needs_idr)) {
 			Bool found = GF_FALSE;
 			GF_MPD_EventStreamEntry *ese = NULL;
 			u32 i = 0;
@@ -9756,10 +9797,10 @@ static GF_Err dasher_handle_scte35(GF_DasherCtx *ctx, GF_FilterPacket *pck, GF_D
 			if (!found) {
 				evt->duration = (u32)dur;
 				es->timescale = gf_filter_pck_get_timescale(pck);
-				evt->message = gf_malloc(emsg->value.data.size);
+				evt->message = gf_malloc(size);
 				if (!evt->message) goto fail;
-				memcpy(evt->message, emsg->value.data.ptr, emsg->value.data.size);
-				evt->message_size = emsg->value.data.size;
+				memcpy(evt->message, data, size);
+				evt->message_size = size;
 				gf_list_add(es->entries, evt);
 				return GF_OK;
 			}
@@ -10308,7 +10349,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//special case for SAP2: for the first segment, keep probing min CTS as the first frame in decode order (sap2) is not
 			//the first frame in presentation order, we need to adjust the PTO
 			if ((ds->startNumber == ds->seg_number)
-				&& (ds->set->starts_with_sap == GF_FILTER_SAP_2)
+				&& (ds->set && ds->set->starts_with_sap == GF_FILTER_SAP_2)
 				&& gf_timestamp_less(cts, ds->timescale, ctx->min_cts_period.num, ctx->min_cts_period.den)
 			) {
 				ctx->min_cts_period.num = cts;
@@ -12098,6 +12139,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- single: change period if PID configuration changes\n"
 		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or ad insertion not using periodID)\n"
 		"- stsd: change period if PID configuration changes unless new configuration was advertised in initial config", GF_PROP_UINT, "single", "single|force|stsd", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(kpswitch), "force a new period when CENC key info changes, including encrypted/clear transitions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -12343,6 +12385,7 @@ GF_FilterRegister DasherRegister = {
 "- first period crypted with one key\n"
 "- second period clear\n"
 "- third period crypted with another key\n"
+"When period signaling is not explicit, [-kpswitch]() can be used to force a new period whenever CENC key information changes.\n"
 "\n"
 "## Forced-Template mode\n"
 "When [-tpl_force]() is set, the [-template]() string is not analyzed nor modified for missing elements.\n"

@@ -2009,6 +2009,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:

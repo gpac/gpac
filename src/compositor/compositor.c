@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -4297,7 +4297,7 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, G
 Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms, u32 dur_in_ms)
 {
 	Bool is_early=GF_FALSE;
-	gf_assert(odm);
+	if (!odm) return GF_FALSE;
 
 	if (for_pid)
 		gf_odm_check_buffering(odm, for_pid);

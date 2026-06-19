@@ -1854,6 +1854,24 @@ static const JSCFunctionListEntry odm_funcs[] = {
 
 #include "../filter_core/filter_session.h"
 
+//we must unload API before the session is destroyed, so not in the finalizer which can be called in gf_sys_close when runtime is destroyeds
+void scenejs_unload(JSContext *c, JSValue global_obj)
+{
+	JSValue js_sess = JS_GetPropertyStr(c, global_obj, "__scene_js");
+	GF_SCENEJSExt *sjs = JS_GetOpaque(js_sess, scene_class_id);
+	if (sjs) {
+		if (sjs->owns_fs_api && sjs->compositor && sjs->compositor->filter) {
+			gf_fs_unload_script(sjs->compositor->filter->session, NULL);
+		}
+		if (sjs->evt_filter.udta) {
+			if (sjs->owns_fs_api && sjs->compositor)
+				gf_filter_remove_event_listener(sjs->compositor->filter, &sjs->evt_filter);
+			sjs->evt_filter.udta = NULL;
+		}
+	}
+	JS_FreeValue(c, js_sess);
+
+}
 static void scenejs_finalize(JSRuntime *rt, JSValue obj)
 {
 	GF_SCENEJSExt *sjs = JS_GetOpaque(obj, scene_class_id);
@@ -1875,16 +1893,8 @@ static void scenejs_finalize(JSRuntime *rt, JSValue obj)
 	gf_list_del(sjs->event_queue);
 	gf_mx_del(sjs->event_mx);
 
-	if (sjs->owns_fs_api && sjs->compositor && sjs->compositor->filter) {
-		gf_fs_unload_script(sjs->compositor->filter->session, NULL);
-	}
 	/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 	JS_FreeValueRT(rt, sjs->evt_fun);
-	if (sjs->evt_filter.udta) {
-		if (sjs->owns_fs_api && sjs->compositor)
-			gf_filter_remove_event_listener(sjs->compositor->filter, &sjs->evt_filter);
-		sjs->evt_filter.udta = NULL;
-	}
 
 	gf_free(sjs);
 }
@@ -1934,7 +1944,7 @@ static int js_scene_init(JSContext *c, JSModuleDef *m)
 	sjs->scene_obj = JS_NewObjectClass(c, scene_class_id);
 	JS_SetPropertyFunctionList(c, sjs->scene_obj, scenejs_funcs, countof(scenejs_funcs));
 	JS_SetOpaque(sjs->scene_obj, sjs);
-//	JS_SetPropertyStr(c, global, "gpac", sjs->scene_obj);
+	JS_SetPropertyStr(c, global, "__scene_js", JS_DupValue(c, sjs->scene_obj) );
 
 	if (scene->script_action) {
 		if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_COMPOSITOR, scene->RootNode, &par)) {

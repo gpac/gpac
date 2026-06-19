@@ -693,6 +693,8 @@ typedef struct
 	GF_Fraction64 last_ts_sent;
 	/*! timestamp and timescale of last packet dropped on input pids*/
 	GF_Fraction64 last_ts_drop;
+	/*! time spent in last task in microseconds*/
+	u32 last_task_time;
 } GF_FilterStats;
 
 /*! Gets statistics for a given filter index in the session

@@ -129,7 +129,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		ctx->file_loaded = GF_TRUE;
 		return;
 	}
-	
+
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p || !p->value.string || !strncmp(p->value.string, "gmem://", 7)) {
 		ctx->is_file = GF_FALSE;
@@ -277,6 +277,7 @@ static Bool amrdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	GF_FilterEvent fevt;
 	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -375,6 +376,10 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	if (!data || !pck_size) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -438,8 +443,8 @@ GF_Err amrdmx_process(GF_Filter *filter)
 			ctx->sample_rate = 16000;
 			ctx->block_size = 320;
 		}
-		start += ctx->start_offset;
-		remain -= ctx->start_offset;
+		start += MIN(remain, ctx->start_offset);
+		remain -= MIN(remain, ctx->start_offset);
 	}
 	if (ctx->resume_from) {
 		start += ctx->resume_from;
@@ -635,4 +640,3 @@ const GF_FilterRegister *rfamr_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_RFAMR
-

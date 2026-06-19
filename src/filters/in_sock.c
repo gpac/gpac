@@ -148,8 +148,8 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	if (gf_sk_is_multicast_address(url)) {
 		e = gf_sk_setup_multicast_ex(ctx->sock_c.socket, url, port, 0, 0, ctx->ifce, (const char **)ctx->ssm.vals, ctx->ssm.nb_items, (const char **)ctx->ssmx.vals, ctx->ssmx.nb_items);
 		ctx->listen = GF_FALSE;
-	} else if ((sock_type==GF_SOCK_TYPE_UDP) 
-#ifdef GPAC_HAS_SOCK_UN 
+	} else if ((sock_type==GF_SOCK_TYPE_UDP)
+#ifdef GPAC_HAS_SOCK_UN
 		|| (sock_type==GF_SOCK_TYPE_UDP_UN)
 #endif
 		) {
@@ -290,7 +290,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 {
 	u32 nb_read, pos, nb_pck=100;
 	u64 now;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	GF_FilterPacket *dst_pck;
 	u8 *out_data, *in_data;
 

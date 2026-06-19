@@ -128,6 +128,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 	case GF_RTSP_STATE_INVALIDATED:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPIn] Cannot send %s: %s\n", com->method, gf_error_to_string(GF_IP_NETWORK_FAILURE) ));
 		gf_list_rem(sess->rtsp_commands, 0);
+		if (!stricmp(com->method, GF_RTSP_PLAY) && com->user_data) gf_free(com->user_data);
 		gf_rtsp_command_del(com);
 		sess->flags &= ~RTSP_WAIT_REPLY;
 		sess->command_time = 0;
@@ -228,7 +229,7 @@ GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control)
 	if (!strcmp(control, "*")) control = (char *) rtp->src;
 	if (!control) return NULL;
 
-	if (gf_rtsp_is_my_session(rtp->session->session, control)) return rtp->session;
+	if (rtp && rtp->session && gf_rtsp_is_my_session(rtp->session->session, control)) return rtp->session;
 	return NULL;
 }
 

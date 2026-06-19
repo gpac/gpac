@@ -745,6 +745,8 @@ struct __gf_filter
 	u64 nb_bytes_sent;
 	//number of microseconds this filter was active
 	u64 time_process;
+	//last task time in us
+	u32 last_task_time;
 
 #ifdef GPAC_MEMORY_TRACKING
 	//various stats in mem tracking mode, mostly used to detect heavy alloc/free usage by the filter

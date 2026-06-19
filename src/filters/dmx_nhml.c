@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -502,11 +502,9 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	}
 	if (breaker.to_pos < breaker.from_pos) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: xmlFrom %s is located after xmlTo %s\n", xmlFrom, xmlTo));
+		e = GF_NON_COMPLIANT_BITSTREAM;
 		goto exit;
 	}
-
-	gf_assert(breaker.to_pos > breaker.from_pos);
-
 
 	ctx->samp_buffer_size = (u32) (breaker.to_pos - breaker.from_pos);
 	if (ctx->samp_buffer_alloc < ctx->samp_buffer_size+1) {
@@ -538,8 +536,6 @@ exit:
 
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
-
-#define ZLIB_COMPRESS_SAFE	4
 
 static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char **dict, u32 offset)
 {

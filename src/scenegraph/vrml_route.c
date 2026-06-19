@@ -520,4 +520,3 @@ void gf_sg_route_new_to_callback(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromF
 
 
 #endif	/*GPAC_DISABLE_VRML*/
-

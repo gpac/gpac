@@ -2329,8 +2329,17 @@ static void print_date_ex(u64 time, Bool full_print)
 static void print_date(u64 time)
 {
 	print_date_ex(time, GF_FALSE);
-
 }
+static void print_dur(u64 time)
+{
+	u64 nb_secs = time/1000;
+	u64 hours = nb_secs/3600;
+	u64 minutes = nb_secs/60 - hours*60;
+	u64 seconds = nb_secs - hours*3600 - minutes*60;
+	u32 ms = time - nb_secs*1000;
+	fprintf(stderr, "%02d:%02d:%02d.%03d", (u32) hours, (u32) minutes, (u32) seconds, ms);
+}
+
 static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_final)
 {
 	u32 i, count, nb_active;
@@ -2363,11 +2372,11 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 
 	gf_sys_get_rti(100, &rti, 0);
 	SET_CONSOLE(GF_CONSOLE_CYAN);
-	print_date(gf_net_get_utc());
 	fprintf(stderr, "GPAC Session Status: ");
 	SET_CONSOLE(GF_CONSOLE_RESET);
-	fprintf(stderr, "mem % 10"LLD_SUF" kb CPU % 2d", rti.gpac_memory/1000, rti.process_cpu_usage);
-	fprintf(stderr, "\n");
+	fprintf(stderr, "Uptime ");
+	print_dur( gf_sys_clock() );
+	fprintf(stderr, " mem "LLU" kb CPU %u\n", rti.gpac_memory/1000, rti.process_cpu_usage);
 
 	gf_fs_lock_filters(fsess, GF_TRUE);
 	nb_active = count = gf_fs_get_filters_count(fsess);

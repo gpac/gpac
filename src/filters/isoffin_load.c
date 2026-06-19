@@ -963,6 +963,16 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_OPUS;
 			gf_isom_opus_config_get(read->mov, track, stsd_idx, &dsi, &dsi_size);
 			break;
+		case GF_ISOM_SUBTYPE_IAMF:
+		{
+			codec_id = GF_CODECID_IAMF;
+			GF_IAConfig *iamf = gf_isom_iamf_config_get(read->mov, track, stsd_idx);
+			if (iamf) {
+				gf_odf_iamf_cfg_write(iamf, &dsi, &dsi_size);
+				gf_odf_iamf_cfg_del(iamf);
+			}
+		}
+			break;
 
 		case GF_QT_SUBTYPE_FL32:
 		case GF_QT_SUBTYPE_FL64:
@@ -1916,6 +1926,11 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			break;
 		}
 
+		//do not export chapter tracks, we extract them into properties
+		if (gf_isom_is_track_referenced(read->mov, i+1, GF_ISOM_REF_CHAP)) {
+			continue;
+		}
+
 		if (!read->alltk && !read->tkid && !gf_isom_is_track_enabled(read->mov, i+1)) {
 			if (count>1) {
 				u32 type = gf_isom_get_media_type(read->mov, i+1);
@@ -1923,8 +1938,6 @@ GF_Err isor_declare_objects(ISOMReader *read)
 				//we don't warn for disabled text tracks due to chapters and forced subs
 				if ((type==GF_ISOM_SUBTYPE_TEXT) || (type==GF_ISOM_MEDIA_SUBT))
 					continue;
-				//disabled tracks using QT chapter refs, do not warn
-				if (gf_isom_is_track_referenced(read->mov, i+1, GF_ISOM_REF_CHAP)) continue;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled, ignoring track - you may retry by specifying alltk option\n", i+1));
 				continue;

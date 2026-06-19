@@ -3247,24 +3247,21 @@ GF_Err mdhd_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->original_duration = ptr->duration;
 
 	ISOM_DECREASE_SIZE(ptr, 4)
-	//our padding bit
-	gf_bs_read_int(bs, 1);
-	//the spec is unclear here, just says "the value 0 is interpreted as undetermined"
-	ptr->packedLanguage[0] = gf_bs_read_int(bs, 5);
-	ptr->packedLanguage[1] = gf_bs_read_int(bs, 5);
-	ptr->packedLanguage[2] = gf_bs_read_int(bs, 5);
-	//but before or after compaction ?? We assume before
-	if (ptr->packedLanguage[0] || ptr->packedLanguage[1] || ptr->packedLanguage[2]) {
-		if (ptr->packedLanguage[0] < 0x04) {
-			// QuickTime Language Codes
-			u8 code = (ptr->packedLanguage[0] << 16) | (ptr->packedLanguage[1] << 8) | ptr->packedLanguage[2];
-			set_quicktime_lang(ptr->packedLanguage, code);
-		} else {
-			ptr->packedLanguage[0] += 0x60;
-			ptr->packedLanguage[1] += 0x60;
-			ptr->packedLanguage[2] += 0x60;
-		}
+	u16 lang_code = gf_bs_read_u16(bs);
+	ptr->packedLanguage[0] = (lang_code>>10) & 0x1F;
+	ptr->packedLanguage[1] = (lang_code>>5) & 0x1F;
+	ptr->packedLanguage[2] = (lang_code) & 0x1F;
+	// QuickTime Language Codes
+	if (lang_code < 0x400) {
+		u8 code = (ptr->packedLanguage[0] << 16) | (ptr->packedLanguage[1] << 8) | ptr->packedLanguage[2];
+		set_quicktime_lang(ptr->packedLanguage, code);
 	} else {
+		ptr->packedLanguage[0] += 0x60;
+		ptr->packedLanguage[1] += 0x60;
+		ptr->packedLanguage[2] += 0x60;
+	}
+
+	if (!ptr->packedLanguage[0] || !ptr->packedLanguage[1] || !ptr->packedLanguage[2]) {
 		ptr->packedLanguage[0] = 'u';
 		ptr->packedLanguage[1] = 'n';
 		ptr->packedLanguage[2] = 'd';
@@ -4008,7 +4005,6 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			GF_TrackBox *tk = (GF_TrackBox *)a;
 			//set our pointer to this obj
 			tk->moov = ptr;
-			tk->index = 1+gf_list_count(ptr->trackList);
 			if (tk->References) {
 				GF_TrackReferenceTypeBox *dpnd=NULL;
 				Track_FindRef(tk, GF_ISOM_REF_BASE, &dpnd);
@@ -4056,6 +4052,96 @@ GF_Err moov_box_write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_write_header(s, bs);
 }
 
+static void moov_check_tracks_position(GF_MovieBox *s, GF_List *childlist, u32 *pos)
+{
+	u32 i, k, count;
+	if (!s || (s->internal_flags & GF_ISOM_ORDER_FREEZE))
+		return;
+
+	if (!s->mov) {
+		gf_isom_check_position_list((GF_Box*)s, childlist, pos);
+		return;
+	}
+	if (!s->mov->auto_reorder_tracks) {
+		//no specific mux index set
+		if (!s->mov->tracks_use_mux_index) {
+			gf_isom_check_position_list((GF_Box*)s, childlist, pos);
+			return;
+		}
+		GF_List *all_tracks = gf_list_new();
+		count = gf_list_count(childlist);
+		for (i=0; i<count; i++) {
+			GF_TrackBox *tk = (GF_TrackBox*)gf_list_get(childlist, i);
+			u32 mux_index = tk->mux_index;
+			//mux index not set on this track , use list index
+			if (!mux_index) mux_index = i+1;
+
+			//resort by mux index
+			for (k=0; k<gf_list_count(all_tracks); k++) {
+				GF_TrackBox *a_tk = (GF_TrackBox*)gf_list_get(all_tracks, k);
+				u32 atk_mux_index = a_tk->mux_index;
+				if (!atk_mux_index) atk_mux_index = k+1;
+				if ((atk_mux_index > mux_index)
+					//if we have a mux index on current track but not on target insertion track, we insert before
+					|| (!a_tk->mux_index && tk->mux_index && (atk_mux_index == mux_index))
+				) {
+					gf_list_insert(all_tracks, tk, k);
+					tk = NULL;
+					break;
+				}
+			}
+			if (tk) gf_list_add(all_tracks, tk);
+		}
+		gf_isom_check_position_list((GF_Box*)s, all_tracks, pos);
+		gf_list_del(all_tracks);
+		return;
+	}
+	count = gf_list_count(childlist);
+	GF_List *v_tracks=gf_list_new();
+	GF_List *a_tracks=gf_list_new();
+	GF_List *t_tracks=gf_list_new();
+	GF_List *o_tracks=gf_list_new();
+
+	for (i=0; i<count; i++) {
+		GF_TrackBox *tk = (GF_TrackBox*)gf_list_get(childlist, i);
+		switch (tk->Media->handler->handlerType) {
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUXV:
+		case GF_ISOM_MEDIA_PICT:
+			gf_list_add(v_tracks, tk);
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			gf_list_add(a_tracks, tk);
+			break;
+		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
+		case GF_ISOM_MEDIA_SUBPIC:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
+		case GF_ISOM_MEDIA_CLOSED_CAPTION:
+			gf_list_add(t_tracks, tk);
+			break;
+		default:
+			gf_list_add(o_tracks, tk);
+			break;
+		}
+	}
+	for (k=0; k<4;k++) {
+		GF_List *src = NULL;
+		switch (k) {
+		case 0: src = v_tracks; break;
+		case 1: src = a_tracks; break;
+		case 2: src = t_tracks; break;
+		case 3: src = o_tracks; break;
+		}
+		count = gf_list_count(src);
+		for (i=0; i<count; i++) {
+			GF_Box *child = gf_list_get(src, i);
+			gf_isom_check_position((GF_Box*)s, child, pos);
+		}
+		gf_list_del(src);
+	}
+}
+
 GF_Err moov_box_size(GF_Box *s)
 {
 	u32 pos=0;
@@ -4069,7 +4155,7 @@ GF_Err moov_box_size(GF_Box *s)
 		gf_isom_check_position(s, (GF_Box *) ptr->mvex, &pos);
 	}
 #endif
-	gf_isom_check_position_list(s, ptr->trackList, &pos);
+	moov_check_tracks_position(ptr, ptr->trackList, &pos);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->mvex && ptr->mvex_after_traks) {
@@ -4415,6 +4501,7 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_ac3, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_flac, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_mlp, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_iamf, &pos);
 
 	if (!ptr->version) {
 		gf_isom_check_position(s, gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_SRAT), &pos);
@@ -14716,7 +14803,7 @@ GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
-		if (name_size < 1) {
+		if (name_size < 1 || name_size >= GF_UINT_MAX-1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
 			return GF_ISOM_INVALID_FILE;
 		}

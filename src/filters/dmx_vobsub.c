@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / vobsub demuxer filter
@@ -62,6 +62,13 @@ typedef struct
 	vobsub_file *vobsub;
 } GF_VOBSubDmxCtx;
 
+static Bool vobsubdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+{
+	GF_Filter *filter = (GF_Filter *)udta;
+	if (udta) gf_filter_setup_failure(filter, err);
+	return GF_FALSE;
+}
+
 
 GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -93,7 +100,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	} else if (ctx->idx_pid != pid) {
 		ctx->sub_pid = pid;
 	}
-	
+
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	if (ctx->idx_pid==pid) {
@@ -135,6 +142,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		if (ctx->mdia) gf_fclose(ctx->mdia);
 		ctx->mdia = NULL;
 		gf_filter_disable_probe(ctx->sub_filter);
+		gf_filter_set_setup_failure_callback(filter, ctx->sub_filter, vobsubdmx_on_filter_setup_error, filter);
 
 		ctx->first = GF_TRUE;
 	}
@@ -490,4 +498,3 @@ const GF_FilterRegister *vobsubdmx_register(GF_FilterSession *session)
 #endif
 
 }
-

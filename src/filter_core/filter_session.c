@@ -969,7 +969,8 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		task_fun(&atask);
 		filter = atask.filter;
 		if (filter) {
-			filter->time_process += gf_sys_clock_high_res() - task_time;
+			filter->last_task_time = (u32) (gf_sys_clock_high_res() - task_time);
+			filter->time_process += filter->last_task_time;
 			if (filter->scheduled_for_next_task == GF_FILTER_DIRECT_SCHEDULED)
 				filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 			filter->nb_tasks_done++;
@@ -2432,6 +2433,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (current_filter) {
 			Bool last_task = GF_FALSE;
 			current_filter->nb_tasks_done++;
+			current_filter->last_task_time = task_time;
 			current_filter->time_process += task_time;
 			consecutive_filter_tasks++;
 
@@ -3641,20 +3643,17 @@ static Bool fs_check_filter_is_source(GF_FilterSession *fsess, const char *fname
 		f_reg = NULL;
 	}
 	if (!f_reg) return GF_FALSE;
-	i=0;
+
 	u32 nb_in=0, nb_out=0;
-	while (1) {
+	for (i=0; i<f_reg->nb_caps; i++) {
 		const GF_FilterCapability *cap = &f_reg->caps[i];
-		if (!cap->code) break;
 		if (!cap->flags) {
 			if (!nb_in && nb_out) return GF_TRUE;
 			nb_in = nb_out = 0;
-			i++;
 			continue;
 		}
 		if (cap->flags & GF_CAPFLAG_INPUT) nb_in++;
 		if (cap->flags & GF_CAPFLAG_OUTPUT) nb_out++;
-		i++;
 	}
 	if (!nb_in && nb_out) return GF_TRUE;
 	return GF_FALSE;
@@ -3767,11 +3766,21 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 			if (strcmp(sURL, "null") && strncmp(sURL, "rand", 4) && strcmp(sURL, "-") && strcmp(sURL, "stdin") && ! gf_file_exists(sURL)) {
 				char szPath[GF_MAX_PATH];
-				//check if this is a JSF filter
+				char *loc_sep = (char *) gf_fs_path_escape_colon(fsess, url);
+				if (loc_sep) loc_sep[0] = 0;
+				//1- check if this is a JSF filter
 				Bool try_direct_load = gf_fs_solve_js_script(szPath, sURL, NULL);
-				//check if we have a register filter class acting as source
+				//2- check JSF but without resolved path
+				if (!try_direct_load)
+					try_direct_load = gf_fs_solve_js_script(szPath, url, NULL);
+				//3- check if we have a register filter class acting as source
 				if (!try_direct_load)
 					try_direct_load = fs_check_filter_is_source(fsess, sURL);
+				//4- same as 3 but without resolved path
+				if (!try_direct_load)
+					try_direct_load = fs_check_filter_is_source(fsess, url);
+
+				if (loc_sep) loc_sep[0] = ':';
 
 				if (sep) sep[0] = fsess->sep_args;
 				if (frag_par) frag_par[0] = f_c;

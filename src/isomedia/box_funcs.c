@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -65,6 +65,7 @@ u32 gf_isom_solve_uuid_box(u8 *UUID)
 {
 	u32 i;
 	char strUUID[33], strChar[3];
+	if (!UUID) return 0;
 	strUUID[0] = 0;
 	strUUID[32] = 0;
 	for (i=0; i<16; i++) {
@@ -2309,7 +2310,7 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	u32 i;
 	u32 nb_versions=0;
-	GF_Err e;
+	GF_Err e=GF_OK;
 
 	if (box_registry[idx].max_version_plus_one) {
 		nb_versions = box_registry[idx].max_version_plus_one - 1;

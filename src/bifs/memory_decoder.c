@@ -509,6 +509,10 @@ GF_Err BM_ParseIndexInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 			/*register*/
 			gf_node_register(node, NULL);
 		}
+		else {
+			gf_node_register(node, NULL);
+			gf_node_unregister(node, NULL);
+		}
 	} else {
 		com = gf_sg_command_new(codec->current_graph, GF_SG_INDEXED_INSERT);
 		BM_SetCommandNode(com, def);
@@ -859,36 +863,62 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	GF_Command *com;
 	GF_Node *backup_root;
 	GF_List *backup_routes;
+	u32 i=0; GF_Route* r=NULL;
 	GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *proto_list);
 
-	backup_routes = codec->scenegraph->Routes;
+	backup_routes = gf_list_new();
+	while ((r = (GF_Route*)gf_list_enum(codec->scenegraph->Routes, &i))) { // save old routes
+		gf_list_add(backup_routes, r);
+	}
 	backup_root = codec->scenegraph->RootNode;
+	gf_node_register(backup_root, NULL);
 	com = gf_sg_command_new(codec->current_graph, GF_SG_SCENE_REPLACE);
-	codec->scenegraph->Routes = gf_list_new();
 	codec->current_graph = codec->scenegraph;
 	codec->LastError = BD_DecSceneReplace(codec, bs, com->new_proto_list);
-	com->use_names = codec->UseName;
-
-	/*restore*/
-	com->node = codec->scenegraph->RootNode;
-	codec->scenegraph->RootNode = backup_root;
-	gf_list_add(com_list, com);
-	/*insert routes*/
-	while (gf_list_count(codec->scenegraph->Routes)) {
-		GF_Route *r = (GF_Route*)gf_list_get(codec->scenegraph->Routes, 0);
-		GF_Command *ri = gf_sg_command_new(codec->current_graph, GF_SG_ROUTE_INSERT);
-		gf_list_rem(codec->scenegraph->Routes, 0);
-		ri->fromFieldIndex = r->FromField.fieldIndex;
-		ri->fromNodeID = gf_node_get_id(r->FromNode);
-		ri->toFieldIndex = r->ToField.fieldIndex;
-		ri->toNodeID = gf_node_get_id(r->ToNode);
-		if (r->ID) ri->RouteID = r->ID;
-		ri->def_name = r->name ? gf_strdup(r->name) : NULL;
-		gf_list_add(com_list, ri);
-		gf_sg_route_del(r);
+	if (codec->LastError) {
+		gf_sg_command_del(com);
+		i=0;
+		while ((r = (GF_Route*)gf_list_enum(codec->scenegraph->Routes, &i))) {
+			if (gf_list_find(backup_routes, r) < 0) { // just remove the new ones
+				i--;
+				gf_list_rem(codec->scenegraph->Routes, i);
+				gf_sg_route_del(r);
+			}
+		}
+		if (backup_root && codec->scenegraph->RootNode != backup_root) {
+			gf_node_unregister(codec->scenegraph->RootNode, NULL);
+			codec->scenegraph->RootNode = backup_root;
+		}
 	}
-	gf_list_del(codec->scenegraph->Routes);
-	codec->scenegraph->Routes = backup_routes;
+	else {
+		com->use_names = codec->UseName;
+
+		/*restore*/
+		com->node = codec->scenegraph->RootNode;
+		codec->scenegraph->RootNode = backup_root;
+		gf_list_add(com_list, com);
+		/*insert routes*/
+		i=0;
+		while ((r = (GF_Route*)gf_list_enum(codec->scenegraph->Routes, &i))) {
+			if (gf_list_find(backup_routes, r) >= 0) {// ignore old routes
+				continue;
+			}
+			i--;
+			gf_list_rem(codec->scenegraph->Routes, i);
+			GF_Command *ri = gf_sg_command_new(codec->current_graph, GF_SG_ROUTE_INSERT);
+			ri->fromFieldIndex = r->FromField.fieldIndex;
+			ri->fromNodeID = gf_node_get_id(r->FromNode);
+			ri->toFieldIndex = r->ToField.fieldIndex;
+			ri->toNodeID = gf_node_get_id(r->ToNode);
+			if (r->ID) ri->RouteID = r->ID;
+			ri->def_name = r->name ? gf_strdup(r->name) : NULL;
+			gf_list_add(com_list, ri);
+			gf_sg_route_del(r);
+
+		}
+	}
+	gf_list_del(backup_routes);
+	gf_node_unregister(backup_root, NULL);
 	return codec->LastError;
 }
 

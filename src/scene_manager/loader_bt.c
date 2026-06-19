@@ -243,7 +243,7 @@ next_line:
 				return;
 
 			}
-			u32 line_len = strlen(parser->line_buffer);
+			u32 line_len = (u32)strlen(parser->line_buffer);
 			if (!line_len && gf_gzeof(parser->gz_in)) {
 				parser->done = 1;
 				return;
@@ -340,7 +340,7 @@ next_line:
 					def->name = gf_strdup(buf);
 					sep[0] = ' ';
 					buf = sep+1;
-					while (strchr(" \t", buf[0])) buf++;
+					while (buf && *buf && strchr(" \t", buf[0])) buf++;
 					def->value = gf_strdup(buf);
 					gf_list_add(parser->def_symbols, def);
 				}
@@ -389,7 +389,7 @@ next_line:
 				char *buf;
 				parser->line_pos+=6;
 				buf = parser->line_buffer+parser->line_pos;
-				while (strchr(" \t", buf[0]))
+				while (buf && *buf && strchr(" \t", buf[0]))
 					buf++;
 				sscanf(buf, "%dx%d", &parser->def_w, &parser->def_h);
 			}
@@ -1338,6 +1338,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			gf_list_add(parser->undef_nodes, node);
 		}
 		gf_node_register(node, parent);
+		if (name) gf_free(name);
 		return node;
 	}
 	proto = NULL;
@@ -1353,6 +1354,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		if (!proto) {
 			/*locate proto*/
 			gf_bt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported node", str);
+			if (name) gf_free(name);
 			return NULL;
 		}
 		tag = TAG_ProtoNode;
@@ -1378,6 +1380,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 	if (!node) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
+		if (name) gf_free(name);
 		return NULL;
 	}
 	if (register_def) gf_list_add(parser->def_nodes, node);
@@ -1917,6 +1920,7 @@ next_field:
 
 	isDEF = 0;
 	while (!gf_bt_check_code(parser, '}')) {
+		if (parser->done) break;
 		str = gf_bt_get_next(parser, 0);
 		if (!strcmp(str, "PROTO") || !strcmp(str, "EXTERNPROTO")) {
 			gf_bt_parse_proto(parser, str, NULL);
@@ -3342,6 +3346,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 		/*IOD*/
 		else if (!strcmp(str, "InitialObjectDescriptor") || !strcmp(str, "ObjectDescriptor")) {
+			gf_odf_desc_del((GF_Descriptor *)parser->load->ctx->root_od);
 			parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_bt_parse_descriptor(parser, str);
 		}
 		/*explicit command*/
@@ -3501,7 +3506,10 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (parser->top_nodes) {
 				gf_list_add(parser->top_nodes, node);
 			} else if (!vrml_root_node) {
-				if (init_com) init_com->node = node;
+				if (init_com) {
+					gf_node_unregister(init_com->node, NULL);
+					init_com->node = node;
+				}
 				else if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
 					GF_Command *com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
 					gf_assert(!parser->bifs_au);
@@ -3509,6 +3517,9 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 					parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 					gf_list_add(parser->bifs_au->commands, com);
 					com->node = node;
+				}
+				else {
+					gf_node_unregister(node, vrml_root_node);
 				}
 			} else {
 				gf_node_insert_child(vrml_root_node, node, -1);

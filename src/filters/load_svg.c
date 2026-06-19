@@ -85,6 +85,12 @@ GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len, Bool is_d
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				break;
 			}
+			if (d_stream.total_out / ZLIB_INFLATE_MAX_MULTIPLIER > buffer_len) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[zlib] uncompressed data size is larger than %u times input data size (%u)\n", (u32) ZLIB_INFLATE_MAX_MULTIPLIER, (u32) buffer_len ));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+
 			svg_data[d_stream.total_out - done] = 0;
 			e = gf_sm_load_string(&svgin->loader, svg_data, GF_FALSE);
 			if (e || (err== Z_STREAM_END)) break;

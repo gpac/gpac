@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -60,7 +60,7 @@ void gf_bifs_dec_qp14_set_length(GF_BifsDecoder * codec, u32 NbElements)
 
 GF_Err gf_bifs_dec_qp_set(GF_BifsDecoder *codec, GF_Node *qp)
 {
-	gf_assert(gf_node_get_tag(qp) == TAG_MPEG4_QuantizationParameter);
+	if (gf_node_get_tag(qp) != TAG_MPEG4_QuantizationParameter) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*if we have an active QP, push it into the stack*/
 	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) )
@@ -226,6 +226,7 @@ Bool Q_IsTypeOn(M_QuantizationParameter *qp, u32 q_type, u32 *NbBits, SFVec3f *b
 Fixed Q_InverseQuantize(Fixed Min, Fixed Max, u32 NbBits, u32 value)
 {
 	if (!value) return Min;
+	if (NbBits>=sizeof(value)*8) return Max;
 	if (value == (u32) ((1 << NbBits) - 1) ) return Max;
 	return Min + gf_muldiv(Max - Min, INT2FIX(value), INT2FIX( (1 << NbBits) - 1) );
 }
@@ -396,6 +397,9 @@ GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Nod
 
 	/*check is the QP is on and retrieves the bounds*/
 	if (!Q_IsTypeOn(codec->ActiveQP, QType, &NbBits, &BMin, &BMax)) return GF_EOS;
+
+	if (NbBits / 8 > gf_bs_available(bs))
+		return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*ok the field is Quantized, dequantize*/
 	switch (QType) {

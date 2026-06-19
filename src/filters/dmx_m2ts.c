@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -1646,6 +1646,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	GF_FilterEvent fevt;
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_M2TS_Demuxer *ts = ctx->ts;
+	if (!ctx->ipid) return GF_TRUE;
 
 	if (com->base.type == GF_FEVT_QUALITY_SWITCH) {
 		u32 i, count;

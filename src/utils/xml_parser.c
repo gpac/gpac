@@ -980,6 +980,7 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	u32 nl_size = string ? (u32) strlen(string) : 0;
 
 	if (!nl_size) return GF_OK;
+	if (size >= GF_UINT_MAX - nl_size - 1) return GF_BAD_PARAM;
 
 	if ( (parser->alloc_size < size+nl_size+1)
 	        /*		|| (parser->alloc_size / 2 ) > size+nl_size+1 */

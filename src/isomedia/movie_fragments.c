@@ -2781,7 +2781,7 @@ GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 	GF_ISOSample *od_sample = NULL;
 	GF_TrunEntry ent, *prev_ent;
 	GF_TrackFragmentBox *traf, *traf_2;
-	GF_TrackFragmentRunBox *trun;
+	GF_TrackFragmentRunBox *trun=NULL;
 
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) || !sample)
 		return GF_BAD_PARAM;
@@ -2891,6 +2891,8 @@ GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 		if (!movie->moof->trun_list) movie->moof->trun_list = gf_list_new();
 		gf_list_add(movie->moof->trun_list, trun);
 	}
+
+	if (!trun) return GF_BAD_PARAM;
 
 	memset(&ent, 0, sizeof(GF_TrunEntry));
 	ent.CTS_Offset = sample->CTS_Offset;

@@ -630,6 +630,7 @@ enum
 	JSFF_PCK_DONE,
 	JSFF_BYTES_DONE,
 	JSFF_TIME,
+	JSFF_LAST_TASK_TIME,
 	JSFF_PCK_SENT_IFCE,
 	JSFF_PCK_SENT,
 	JSFF_BYTES_SENT,
@@ -693,6 +694,8 @@ static JSValue jsfs_f_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt64(ctx, f->nb_bytes_processed);
 	case JSFF_TIME:
 		return JS_NewInt64(ctx, f->time_process);
+	case JSFF_LAST_TASK_TIME:
+		return JS_NewInt32(ctx, f->last_task_time);
 	case JSFF_PCK_SENT_IFCE:
 		return JS_NewInt64(ctx, f->nb_hw_pck_sent);
 	case JSFF_PCK_SENT:
@@ -1726,6 +1729,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CGETSET_MAGIC_DEF_ENUM("event_target", jsfs_f_prop_get, NULL, JSFF_EVENT_TARGET),
 	JS_CGETSET_MAGIC_DEF_ENUM("last_ts_sent", jsfs_f_prop_get, NULL, JSFF_LAST_TS_SENT),
 	JS_CGETSET_MAGIC_DEF_ENUM("last_ts_drop", jsfs_f_prop_get, NULL, JSFF_LAST_TS_DROP),
+	JS_CGETSET_MAGIC_DEF_ENUM("last_task_time", jsfs_f_prop_get, NULL, JSFF_LAST_TASK_TIME),
 
 	JS_CFUNC_DEF("is_destroyed", 0, jsff_is_destroyed),
 	JS_CFUNC_DEF("ipid_props", 0, jsff_enum_ipid_props),
@@ -1983,6 +1987,8 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CFUNC_DEF("print_stats", 0, jsfs_print_stats)
 };
 
+void scenejs_unload(JSContext *c, JSValue global_obj);
+
 void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
 {
 	u32 i, count;
@@ -1999,6 +2005,18 @@ void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
 		}
 	}
 	gf_mx_v(fs->filters_mx);
+
+	JSValue global_obj = JS_GetGlobalObject(c);
+	JSValue js_sess = JS_GetPropertyStr(c, global_obj, "session");
+	JSFS_FilterSession *fsjs = JS_GetOpaque(js_sess, fs_class_id);
+	if (fsjs && fsjs->owns_api) {
+		fsjs->fs = NULL;
+	}
+	JS_FreeValue(c, js_sess);
+	//check if we need to unload the scenejs module as well
+	scenejs_unload(c,global_obj);
+	JS_FreeValue(c, global_obj);
+
 }
 
 

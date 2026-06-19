@@ -346,6 +346,7 @@ static u32 httpio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 }
 static u32 httpio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
+	if (!buffer || !bytes) return 0;
 	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
 	if (!ioctx || ioctx->parent) return 0;
 
@@ -1836,21 +1837,62 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_free(full_path);
 			full_path = NULL;
 		}
-		//browse for permissions
+
+		// check that the resolved absolute path is a child of a root and allowed to be accessed
 		if (full_path) {
 			HTTP_DIRInfo *di = NULL;
 			u32 di_len = 0;
-			for (i=0; i<count; i++) {
-				HTTP_DIRInfo *adi = gf_list_get(sess->ctx->directories, i);
-				u32 adi_len = (u32) strlen(adi->path);
-				if (strncmp(adi->path, full_path, adi_len)) continue;
-				if (!di || (di_len < adi_len)) {
-					di_len = adi_len;
-					di = adi;
+
+			char* full_path_res = gf_realpath(full_path, NULL); // allocates its results without gf_malloc
+
+			if (full_path_res) {
+				u32 full_path_len = (u32)strlen(full_path_res);
+
+				for (i=0; i<count; i++) {
+					Bool is_child = GF_TRUE;
+					HTTP_DIRInfo *adi = gf_list_get(sess->ctx->directories, i);
+					u32 adi_len = (u32) strlen(adi->path);
+
+					char* adi_res = gf_realpath(adi->path, NULL); // we'll check the absolute file against the absolute root
+					if (!adi_res) continue;
+
+					u32 adi_res_len = (u32) strlen(adi_res);
+
+					// if the root isn't a prefix of the file => denied
+					if (strncmp(adi_res, full_path_res, adi_res_len)) {
+						is_child = GF_FALSE;
+					}
+
+					// check for cases like root=/webroot file=/webroot_secret/file
+					else if (full_path_len > adi_res_len) {
+
+						char next_char = full_path_res[adi_res_len];
+						if (next_char != '/' && next_char != '\\') {
+							if (adi_res_len && adi->path[adi_res_len-1] != '/' && adi->path[adi_res_len-1] != '\\')
+								is_child = GF_FALSE;
+						}
+					}
+
+					// allowed
+					if (is_child) {
+						if (!di || (di_len < adi_len)) {
+							di_len = adi_len;
+							di = adi;
+						}
+					}
+					free(adi_res);
 				}
 			}
-			sess->dir_desc = di;
+			if (di)
+				sess->dir_desc = di;
+			else {
+				// if di hasn't been set => denied
+				gf_free(full_path);
+				full_path=NULL;
+			}
+			free(full_path_res);
 		}
+
 		if (!full_path && !strcmp(url+1, "favicon.ico")) {
 			char path[GF_MAX_PATH];
 			if (gf_opts_default_shared_directory(path)) {

@@ -952,6 +952,8 @@ keepc (bool, default: true):   keep corrupted samples (for multicast sources onl
 .br
 sigfo (bool, default: false):  signal segment boundaries on output packets for DASH or HLS sources (same as sigfrag but independent from dasher options)
 .br
+drefu (str):                   override dref URL in source file with given value
+.br
 
 .br
 .SH bifsdec
@@ -2514,6 +2516,8 @@ psshs (enum, default: moov):   set pssh boxes store mode
 .br
 
 .br
+force_seig (bool, default: false): force writing seig sample group for encrypted samples, even when all samples use the default single-key CENC configuration
+.br
 sgpd_traf (bool, default: false): store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box
 .br
 vodcache (enum, default: replace): enable temp storage for VoD dash modes
@@ -2703,6 +2707,22 @@ trunv1 (bool, default: false): force using version 1 of trun regardless of media
 rsot (bool, default: false):   inject redundant sample timing information when present
 .br
 sfrag_tolerance (uint, default: 0): start fragment on SAP if previous fragment is not shorter than the indicated percentage of cdur
+.br
+scte35 (enum, default: auto):  SCTE-35 signalling
+.br
+* auto: 'xmlbin' or 'evte' depending on the input
+.br
+* xmlbin: out-of-band (MPD) EventStream with xml+bin (recommended)
+.br
+* inband: in-band emsg boxes
+.br
+* all: signal everywhere detected
+.br
+* none: no EventStream nor emsg boxes
+.br
+
+.br
+auto_reorder (bool, default: false): reorder tracks in moov (first video, then audio, then text then other)
 .br
 
 .br
@@ -5847,6 +5867,8 @@ If the DRM file uses keyRoll=period, this will generate:
 .br
 - third period crypted with another key
 .br
+When period signaling is not explicit, .I kpswitch can be used to force a new period whenever CENC key information changes.
+.br
 
 .br
 .SS Forced-Template mode
@@ -5864,6 +5886,20 @@ gpac -i SRC -o null:ext=mpd:tpl_force --template=pipe://mypipe
 This will trash the manifest and open mypipe as destination for the muxer result.
 .br
 Warning: Options for segment destination cannot be set through the .I template, global options must be used.
+.br
+
+.br
+.SS Inband and outband events
+.br
+Inband events syntax is a list of triplets {scheme_id_uri,value,stream_type} separated by '@'.
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd::inband_event=https://aomedia.org/emsg/ID3@https://aomedia.org/emsg/ID3@audio,https://aomedia.org/emsg/ID3@www.nielsen.com:id3:v1@audio
+.br
+
+.br
+The doubled colon (::) is used to avoid escaping the colons in the nielsen.com value.
 .br
 
 .br
@@ -6346,6 +6382,8 @@ pswitch (enum, default: single): period switch control mode
 .br
 
 .br
+kpswitch (bool, default: false): force a new period when CENC key info changes, including encrypted/clear transitions
+.br
 chain (str):                   URL of next MPD for regular chaining
 .br
 chain_fbk (str):               URL of fallback MPD
@@ -6370,11 +6408,27 @@ dkid (enum, default: auto):    control injection of default KID in MPD
 .br
 tpl_force (bool, default: false): use template string as is without trying to add extension or solve conflicts in names
 .br
-inband_event (bool, default: false): insert a default inband event stream in the DASH manifest
+inband_event (strl):           insert inband event in the DASH manifest described as triplets {schemeIdUri,value,streamType}
+.br
+with streamType being "audio", "video", "text", or "all"
 .br
 ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
 .br
 evte_agg (bool, default: false): force aggregation of Event Track samples of a DASH segment into a single sample
+.br
+scte35 (enum, default: auto):  SCTE-35 signalling
+.br
+* auto: 'xmlbin' or 'evte' depending on the input
+.br
+* xmlbin: out-of-band (MPD) EventStream with xml+bin (recommended)
+.br
+* inband: in-band emsg boxes
+.br
+* all: signal everywhere detected
+.br
+* none: no EventStream nor emsg boxes
+.br
+
 .br
 base64 (bool, default: false): embed init segments in manifests as base64
 .br
@@ -10374,9 +10428,9 @@ Description: SCTE35 decoder
 .br
 
 .br
-This filter writes the SCTE-35 markers attached as properties to audio and video
+This filter transforms SCTE-35 markers attached as properties to audio and video
 .br
-packets or inside a dedicated stream, as 23001-18 'emib' boxes. It also creates
+packets or inside a dedicated stream, into the request format. It also creates
 .br
 empty 'emeb' box in between following segmentation as hinted by the graph.
 .br
@@ -10385,15 +10439,19 @@ empty 'emeb' box in between following segmentation as hinted by the graph.
 .SH Options (expert):
 .LP
 .br
-mode (enum, default: 23001-18): mode to operate in
+mode (enum, default: evte):    mode to operate in
 .br
-* 23001-18: extract SCTE-35 markers as emib/emeb boxes for Event Tracks
+* evte: outputs emib/emeb boxes for Event Tracks
+.br
+* m2ts: immediate dispatch of entire MPEG-2 TS splice_info_section as per ANSI/SCTE 67 2017 (13.1.1.3)
 .br
 * passthrough: pass-through mode adding cue start property on splice points
 .br
 
 .br
 sampdur (frac, default: 0/1):  segmentation duration in seconds. Default value 0 only flushes when content changes
+.br
+prop (bool, default: false):   also attach data as property in case dasher needs it for dual in+out band
 .br
 
 .br
