@@ -1125,7 +1125,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u
 static void gf_rtp_parse_ac3_eac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size, Bool is_eac3)
 {
 	u8 ft;
-
+	if (size < 2) return;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.randomAccessPointFlag = 1;

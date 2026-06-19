@@ -669,7 +669,7 @@ GF_Err gf_bt_parse_float(GF_BTParser *parser, const char *name, Fixed *val)
 	s32 var;
 	Float f;
 	char *str = gf_bt_get_next(parser, 0);
-	if (!str) return parser->last_error = GF_IO_ERR;
+	if (!str || !val) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
 
 	if (check_keyword(parser, str, &var)) {
@@ -685,7 +685,7 @@ GF_Err gf_bt_parse_float(GF_BTParser *parser, const char *name, Fixed *val)
 GF_Err gf_bt_parse_double(GF_BTParser *parser, const char *name, SFDouble *val)
 {
 	char *str = gf_bt_get_next(parser, 0);
-	if (!str) return parser->last_error = GF_IO_ERR;
+	if (!str || !val) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
 	if (sscanf(str, "%lf", val) != 1) {
 		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
@@ -3514,6 +3514,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			} else if (!vrml_root_node) {
 				if (init_com) {
 					gf_node_unregister(init_com->node, NULL);
+					gf_list_del_item(parser->def_nodes, init_com->node);
 					init_com->node = node;
 				}
 				else if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {

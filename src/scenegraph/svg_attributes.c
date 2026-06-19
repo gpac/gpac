@@ -1040,6 +1040,7 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 		v->element = elt->sgprivate->scenegraph->RootNode;
 		tmp+=10;
 		sep = strchr(d, ')');
+		if (!sep) return GF_BAD_PARAM;
 		sep[0] = 0;
 		v->event.parameter = gf_dom_get_key_type(tmp);
 		sep++;
