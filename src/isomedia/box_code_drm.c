@@ -859,12 +859,12 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 	u8 iv_size;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
-	ptr->use_subsample_encryption = (ptr->flags & 0x3) ? GF_TRUE : GF_FALSE;
-	ptr->use_multi_key = (ptr->flags & 0xc) ? GF_TRUE : GF_FALSE;
-	ptr->use_senc = (ptr->flags & 0x30) ? GF_TRUE : GF_FALSE;
-	ptr->use_sai = (ptr->flags & 0xc0) ? GF_TRUE : GF_FALSE;
-	ptr->use_seig = (ptr->flags & 0x30) ? GF_TRUE : GF_FALSE;
-	ptr->use_encrypted_slice_header = (ptr->flags & 0xc00) ? GF_TRUE : GF_FALSE;
+	ptr->use_subsample_encryption = (ptr->flags & 0x3);
+	ptr->use_multi_key = (ptr->flags & 0xc) >> 2;
+	ptr->use_senc = (ptr->flags & 0x30) >> 4;
+	ptr->use_sai = (ptr->flags & 0xc0) >> 6;
+	ptr->use_seig = (ptr->flags & 0x300) >> 8;
+	ptr->use_encrypted_slice_header = (ptr->flags & 0xc00) >> 10;
 
 	ISOM_DECREASE_SIZE(ptr, 3);
 
@@ -918,6 +918,9 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
+
+	ptr->flags = ptr->use_subsample_encryption + (ptr->use_multi_key << 2) + (ptr->use_senc << 4)
+	           + (ptr->use_sai << 6) + (ptr->use_seig << 8) + (ptr->use_encrypted_slice_header << 10);
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -926,13 +929,12 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!ptr->version) {
 		gf_bs_write_u8(bs, 0); //reserved
 	} else {
-		if (ptr->version==1) {
-			gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
-			gf_bs_write_int(bs, ptr->skip_byte_block, 4);
-		} else {
-			gf_bs_write_u32(bs, ptr->crypt_byte_block);
-			gf_bs_write_u32(bs, ptr->skip_byte_block);
+		gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
+		gf_bs_write_int(bs, ptr->skip_byte_block, 4);
+		if (ptr->version>=2) {
+			ptr->isAES256 = GF_TRUE;
 		}
+		gf_bs_write_int(bs, ptr->isAES256, 1);
 	}
 	gf_bs_write_u8(bs, ptr->isProtected);
 
