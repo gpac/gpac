@@ -418,7 +418,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 	} else {
 		e = gf_sk_receive(ch->rtp, buffer, buffer_size, &res);
 	}
-	if (!res || e || (res < 12)) {
+	if (!res || e || (res < 12) || ((buffer[0] >> 6) != 2)) {
 		res = 0;
 	}
 	if (res) {
