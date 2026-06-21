@@ -350,15 +350,18 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	if (out_data) {
 		item_bs = gf_bs_new(*out_data, *out_size, GF_BITSTREAM_WRITE_DYN);
 	} else if (dump_file_name) {
-		strcpy(szPath, dump_file_name);
+		gf_strlcpy(szPath, dump_file_name, sizeof(szPath));
 		resource = gf_fopen(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	} else {
-		if (item_name && strlen(item_name) > 0) strcpy(szPath, item_name);
-		else sprintf(szPath, "item_id%02d", item_id);
+		if (item_name && strlen(item_name) > 0) gf_strlcpy(szPath, item_name, sizeof(szPath));
+		else snprintf(szPath, sizeof(szPath), "item_id%02d", item_id);
 		resource = gf_fopen(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	}
+
+	if (!item_bs)
+		return GF_BAD_PARAM;
 
 	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264)  || (item_type == GF_ISOM_SUBTYPE_VVC1) ) {
 		u32 j, nb_assoc;

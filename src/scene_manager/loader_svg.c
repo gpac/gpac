@@ -1576,13 +1576,11 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					FILE *nhml;
 					char szName[1024];
 					if (parser->load->localPath) {
-						strcpy(szName, parser->load->localPath);
-						strcat(szName, "/");
-						strcat(szName, ID ? ID : "");
+						snprintf(szName, sizeof(szName), "%s/%s_temp.nhml", parser->load->localPath, ID ? ID : "");
 					} else {
-						strcpy(szName, ID ? ID : "");
+						snprintf(szName, sizeof(szName), "%s_temp.nhml", ID ? ID : "");
 					}
-					strcat(szName, "_temp.nhml");
+					szName[sizeof(szName)-1] = 0;
 					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
 					nhml = gf_fopen(st->nhml_info, "wt");

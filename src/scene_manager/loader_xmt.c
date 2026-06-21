@@ -899,7 +899,7 @@ static u32 xmt_parse_url(GF_XMTParser *parser, const char *name, MFURL *val, GF_
 	if (!val->vals[idx].url) return res;
 
 	/*remove segments & viewpoints info to create OD link*/
-	strcpy(value, val->vals[idx].url);
+	gf_strlcpy(value, val->vals[idx].url, sizeof(value));
 	tmp = strstr(value, "#");
 	if (tmp) tmp[0] = 0;
 

@@ -5224,8 +5224,14 @@ Bool gf_mpd_check_print_format(const char *print_fmt)
 	char *fmt = strchr(print_fmt, '%');
 	if (!fmt) return GF_FALSE;
 	fmt++;
-	while (fmt[0] && (fmt[0] >= '0') && (fmt[0] <= '9'))
+	u32 width = 0, nb_digits = 0;
+	while (fmt[0] && (fmt[0] >= '0') && (fmt[0] <= '9')) {
+		nb_digits++;
+		width = width*10 + (fmt[0] - '0');
+		if (nb_digits > 6) return GF_FALSE; // will catch %000..005d overflows
+		if (width > 32) return GF_FALSE; // will catch %500d overflows
 		fmt++;
+	}
 	if (strchr("duioxX", fmt[0]) == NULL)
 		return GF_FALSE;
 	if (fmt[1])
