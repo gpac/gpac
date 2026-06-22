@@ -128,6 +128,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 {
 	FILE *f;
 	char szPath[GF_MAX_PATH];
+	if (!file_path) return GF_FALSE;
 
 #ifdef _WIN32_WCE
 	TCHAR w_szPath[GF_MAX_PATH];
