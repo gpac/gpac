@@ -190,12 +190,12 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 
 	if (path_type==GF_PATH_SHARE) {
 		char *sep;
-		gf_strcat(file_path, "\\share");
+		gf_strlcat(file_path, "\\share", GF_MAX_PATH);
 		if (check_file_exists("gui\\gui.bt", file_path, file_path)) return GF_TRUE;
 		sep = strstr(file_path, "\\bin\\");
 		if (sep) {
 			sep[0] = 0;
-			gf_strcat(file_path, "\\share");
+			gf_strlcat(file_path, "\\share", GF_MAX_PATH);
 			if (check_file_exists("gui\\gui.bt", file_path, file_path)) return GF_TRUE;
 		}
 		return GF_FALSE;
@@ -239,8 +239,8 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 	gf_strlcpy(file_path, tmp_file_path, GF_MAX_PATH);
 	gf_free(tmp_file_path);
 
-	if (file_path[strlen(file_path)-1] != '\\') gf_strcat(file_path, "\\");
-	gf_strcat(file_path, "GPAC");
+	if (file_path[strlen(file_path)-1] != '\\') gf_strlcat(file_path, "\\", GF_MAX_PATH);
+	gf_strlcat(file_path, "GPAC", GF_MAX_PATH);
 	/*create GPAC dir*/
 	gf_mkdir(file_path);
 	gf_strcpy(szPath, file_path);
@@ -723,7 +723,7 @@ void gf_get_default_font_dir(char szPath[GF_MAX_PATH])
 
 #elif defined(WIN32)
 	GetWindowsDirectory((char*)szPath, MAX_PATH);
-	if (szPath[strlen((char*)szPath)-1] != '\\') gf_strcat((char*)szPath, "\\");
+	if (szPath[strlen((char*)szPath)-1] != '\\') gf_strlcat((char*)szPath, "\\", GF_MAX_PATH);
 	gf_strlcat((char *)szPath, "Fonts", GF_MAX_PATH);
 
 #elif defined(__APPLE__) && defined(GPAC_CONFIG_IOS)
