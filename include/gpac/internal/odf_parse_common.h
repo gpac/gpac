@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -41,8 +41,9 @@
 		ret = 1;\
 		(field) = gf_strdup(val); \
 		if (field) { \
-			if (val[0] == '"') strcpy((field), val+1); \
-			if ((field)[strlen(field)-1] == '"') (field)[strlen(field)-1] = 0;\
+			u32 flen = (u32) strlen(val);\
+			if (val[0] == '"') { memcpy((field), val+1, flen ); flen--; } \
+			if (flen && (field)[flen-1] == '"') (field)[flen-1] = 0;\
 		}\
 	}
 

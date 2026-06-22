@@ -2439,23 +2439,23 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		//init to default, overwrite later
 		algo = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
 		if (gf_file_exists(algo_str)) {
-			strcpy(szFile, algo_str);
+			gf_strcpy(szFile, algo_str);
 			found = GF_TRUE;
 		} else if (!strstr(algo_str, ".js")) {
-			strcpy(szFile, algo_str);
-			strcat(szFile, ".js");
+			gf_strcpy(szFile, algo_str);
+			gf_strcat(szFile, ".js");
 			if (gf_file_exists(szFile)) {
 				found = GF_TRUE;
 			}
 		}
 		if (!found) {
 			gf_opts_default_shared_directory(szFile);
-			strcat(szFile, "/scripts/");
-			strcat(szFile, algo_str);
+			gf_strcat(szFile, "/scripts/");
+			gf_strcat(szFile, algo_str);
 			if (gf_file_exists(szFile)) {
 				found = GF_TRUE;
 			} else if (!strstr(algo_str, ".js")) {
-				strcat(szFile, ".js");
+				gf_strcat(szFile, ".js");
 				if (gf_file_exists(szFile))
 					found = GF_TRUE;
 			}

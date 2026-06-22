@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -1201,7 +1201,7 @@ static JSValue node_toString(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			snprintf(str, 500, "DEF %d ", id - 1);
 		}
 	}
-	strncat(str, gf_node_get_class_name(n), 500);
+	gf_strcat(str, gf_node_get_class_name(n));
 	return JS_NewString(c, (const char *) str);
 }
 

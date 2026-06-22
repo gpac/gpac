@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -128,11 +128,9 @@ found:
 		sep_auth[0] = 0;
 		char *psep = strchr(test, ':');
 		if (psep) psep[0] = 0;
-		strncpy(User, test, 1023);
-		User[1023]=0;
+		gf_strlcpy(User, test, 1024);
 		if (psep) {
-			strncpy(Pass, psep+1, 1023);
-			Pass[1023]=0;
+			gf_strlcpy(Pass, psep+1, 1024);
 			if (psep) psep[0] = ':';
 		}
 
@@ -153,13 +151,11 @@ found:
 		i += 1;
 	}
 	text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
-	strncpy(Server, text, 1024);
-	Server[1023]=0;
+	gf_strlcpy(Server, text, 1024);
 	if (sep) sep[0] = '?';
 
 	if (service_start) {
-		strncpy(Service, service_start+1, 1023);
-		Service[1023]=0;
+		gf_strlcpy(Service, service_start+1, 1024);
 	} else {
 		Service[0]=0;
 	}
@@ -233,7 +229,7 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
 	if (!sess) return;
 
 	if (sess->RTSP_State == GF_RTSP_STATE_WAIT_FOR_CONTROL) {
-		strcpy(sess->RTSPLastRequest, "RESET");
+		gf_strcpy(sess->RTSPLastRequest, "RESET");
 		//skip all we haven't received
 		sess->CSeq += sess->NbPending;
 		sess->NbPending = 0;
@@ -284,7 +280,7 @@ u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	sess->InterID = (u8) -1;
 	sess->pck_start = sess->payloadSize = 0;
 	sess->CurrentPos = sess->CurrentSize = 0;
-	strcpy(sess->RTSPLastRequest, "");
+	gf_strcpy(sess->RTSPLastRequest, "");
 	RemoveTCPChannels(sess);
 	//CSeq 1 is for regular rtsp -> rtsps switch, 0 is for rtsph->rtsph+tls
 	if (sess->CSeq<=1) {
@@ -1034,7 +1030,7 @@ GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char buffer[GF_MAX_IP_NAME_L
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
 	if (gf_sk_get_local_ip(sess->connection, buffer) != GF_OK)
-		strcpy(buffer, "127.0.0.1");
+		gf_strlcpy(buffer, "127.0.0.1", GF_MAX_IP_NAME_LEN);
 	return GF_OK;
 }
 

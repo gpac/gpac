@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato, Jean Le Feuvre
- *          Copyright (c) Telecom ParisTech 2000-2024
+ *          Copyright (c) Telecom ParisTech 2000-2026
  *                  All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1000,7 +1000,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			if (prevLine) {
 				u32 prev_len = (u32) strlen(prevLine);
 				header = (char *)gf_realloc(header, header_len + prev_len + 1);
-				strcpy(header+header_len,prevLine);
+				memcpy(header+header_len, prevLine, prev_len+1);
 				header_len += prev_len;
 				gf_free(prevLine);
 				prevLine = NULL;

@@ -85,7 +85,7 @@ CDECL void   scalable_free(void* ptr);
 #define CALLOC	scalable_calloc
 #define REALLOC	scalable_realloc
 #define FREE	scalable_free
-#define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) scalable_malloc(len); strcpy(ptr, _a); return ptr; } else { return NULL; }
+#define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) scalable_malloc(len); gf_strcpy(ptr, _a); return ptr; } else { return NULL; }
 
 #endif
 
@@ -110,7 +110,7 @@ CDECL void   dlfree(void* ptr);
 #define CALLOC	dlcalloc
 #define REALLOC	dlrealloc
 #define FREE	dlfree
-#define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) dlmalloc(len); strcpy(ptr, _a); return ptr; } else { return NULL; }
+#define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) dlmalloc(len); gf_strcpy(ptr, _a); return ptr; } else { return NULL; }
 
 #endif
 
@@ -411,8 +411,9 @@ char *gf_mem_strdup_tracker(const char *str, const char *filename, int line)
 {
 	char *ptr;
 	if (!str) return NULL;
-	ptr = (char*)gf_mem_malloc_tracker(strlen(str)+1, filename, line);
-	strcpy(ptr, str);
+	u32 alen = (u32) strlen(str);
+	ptr = (char*)gf_mem_malloc_tracker(alen+1, filename, line);
+	memcpy(ptr, str, alen+1);
 	return ptr;
 }
 
@@ -552,9 +553,10 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, unsigned int size
 	}
 #endif
 
-	element->filename = MALLOC(strlen(filename) + 1);
+	u32 alen = (u32) strlen(filename);
+	element->filename = MALLOC(alen + 1);
 	if (element->filename)
-		strcpy(element->filename, filename);
+		memcpy(element->filename, filename, alen + 1);
 
 	element->next = *p;
 	*p = element;

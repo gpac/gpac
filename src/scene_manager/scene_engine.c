@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -612,7 +612,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 	/*check if we dump to BT, XMT or encode to MP4*/
 	ext = NULL;
 	if (ctxFileName) {
-		strcpy(szF, ctxFileName);
+		gf_strcpy(szF, ctxFileName);
 		ext = gf_file_ext_start(szF);
 	}
 	d_mode = GF_SM_DUMP_BT;
@@ -626,7 +626,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 	if (do_enc) {
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 		GF_ISOFile *mp4;
-		strcat(szF, ".mp4");
+		gf_strcat(szF, ".mp4");
 		mp4 = gf_isom_open(szF, GF_ISOM_OPEN_WRITE, NULL);
 		e = gf_sm_encode_to_file(seng->ctx, mp4, NULL);
 		if (e) gf_isom_delete(mp4);

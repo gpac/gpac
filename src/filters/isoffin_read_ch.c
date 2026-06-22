@@ -1169,7 +1169,7 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 		if (grp_flags) {
 			char szPFLags[30];
 			sprintf(szPFLags, "_z%x", grp_flags);
-			strcat(szPName, szPFLags);
+			gf_strcat(szPName, szPFLags);
 		}
 
 		switch (grp_type) {

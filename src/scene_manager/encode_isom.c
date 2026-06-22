@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -240,10 +240,10 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 
 	if (mux->src_url) {
 		ext = gf_url_concatenate(mux->src_url, mux->file_name);
-		strcpy(szName, ext ? ext : mux->file_name);
+		gf_strcpy(szName, ext ? ext : mux->file_name);
 		if (ext) gf_free(ext);
 	} else {
-		strcpy(szName, mux->file_name);
+		gf_strcpy(szName, mux->file_name);
 	}
 	ext = gf_file_ext_start(szName);
 

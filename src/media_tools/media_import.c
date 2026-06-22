@@ -566,7 +566,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		char szT[GF_4CC_MSIZE];
 		mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
 		if (!mstype) mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
-		strcpy(szT, gf_4cc_to_str(mtype));
+		gf_strcpy(szT, gf_4cc_to_str(mtype));
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - media type \"%s:%s\"", orig_name, trackID, szT, gf_4cc_to_str(mstype));
 	}
 	break;
@@ -1021,7 +1021,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			sscanf(sL, "AddChapter(%u,%1023s)", &nb_fr, szTitle);
 			ts = gf_timestamp_rescale(nb_fr, import->video_fps.num, 1000 * import->video_fps.den);
 			sL = strchr(sL, ',');
-			strcpy(szTitle, sL+1);
+			gf_strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
 			if (sL) sL[0] = 0;
 		} else if (!strnicmp(sL, "AddChapterBySecond(", 19)) {
@@ -1030,7 +1030,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			ts = nb_s;
 			ts *= 1000;
 			sL = strchr(sL, ',');
-			strcpy(szTitle, sL+1);
+			gf_strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
 			if (sL) sL[0] = 0;
 		} else if (!strnicmp(sL, "AddChapterByTime(", 17)) {
@@ -1040,7 +1040,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			sL = strchr(sL, ',');
 			if (sL) sL = strchr(sL+1, ',');
 			if (sL) sL = strchr(sL+1, ',');
-			if (sL) strcpy(szTitle, sL+1);
+			if (sL) gf_strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
 			if (sL) sL[0] = 0;
 		}
@@ -1052,14 +1052,13 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				ts = (h*3600 + m*60+s)*1000;
 			}
 			else {
-				char *tok, *szTS = szTemp;
-				strncpy(szTS, sL, 1024);
-				szTS[1024]=0;
-				tok = strrchr(szTS, ' ');
+				gf_strcpy(szTemp, sL);
+				char *szTS = szTemp;
+				char *tok = strrchr(szTS, ' ');
 				if (tok) {
 					title = strchr(sL, ' ') + 1;
 					while (title[0]==' ') title++;
-					if (strlen(title)) strcpy(szTitle, title);
+					if (strlen(title)) gf_strcpy(szTitle, title);
 					tok[0] = 0;
 				}
 				ts = 0;
@@ -1091,8 +1090,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		else if (!strnicmp(sL, "CHAPTER", 7)) {
 			u32 idx;
 			char *str;
-			strncpy(szTemp, sL, 1024);
-			szTemp[1024] = 0;
+			gf_strcpy(szTemp, sL);
 			str = strrchr(szTemp, '=');
 			if (!str) continue;
 			str[0] = 0;
@@ -1102,7 +1100,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			str++;
 			if (strstr(szTemp, "name")) {
 				sscanf(szTemp, "chapter%uname", &idx);
-				strcpy(szTitle, str);
+				gf_strcpy(szTitle, str);
 				if (idx!=cur_chap) {
 					cur_chap=idx;
 					state = 0;
@@ -1388,7 +1386,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->run_in_session) {
 		sprintf(szFilterID, "%u", (u32) ( (importer->source_magic & 0xFFFFFFFFUL) ) );
 	} else {
-		strcpy(szFilterID, "1");
+		gf_strcpy(szFilterID, "1");
 	}
 
 	if (!importer->run_in_session) {

@@ -4536,10 +4536,9 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 
 	if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
 		/* must add a '/' so that the DLL is not searched in the system library paths */
-		filename = gf_malloc(strlen(module_name) + 2 + 1);
+		filename = gf_strdup("./");
+		gf_dynstrcat(&filename, module_name, NULL);
 		if (!filename) return NULL;
-		strcpy(filename, "./");
-		strcpy(filename + 2, module_name);
 	} else {
 		filename = (char *)module_name;
 	}

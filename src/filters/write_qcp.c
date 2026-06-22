@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / QCP stream to file filter
@@ -222,7 +222,7 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 	gf_bs_write_data(bs, ctx->GUID, 16);
 	gf_bs_write_u16_le(bs, 1);
 	memset(szName, 0, 80);
-	strcpy(szName, (ctx->qcp_type==1) ? "QCELP-GPACExport" : ((ctx->qcp_type==2) ? "SMV-GPACExport" : "EVRC-GPACExport"));
+	gf_strcpy(szName, (ctx->qcp_type==1) ? "QCELP-GPACExport" : ((ctx->qcp_type==2) ? "SMV-GPACExport" : "EVRC-GPACExport"));
 	gf_bs_write_data(bs, szName, 80);
 	gf_bs_write_u16_le(bs, avg_rate);
 	gf_bs_write_u16_le(bs, sample_size);

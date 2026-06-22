@@ -1,3 +1,28 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Aurelien David
+ *			Copyright (c) Telecom ParisTech 2025-2026
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / common tools sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
 #include <gpac/tools.h>
 #include <gpac/thread.h>
 #include <gpac/list.h>
@@ -281,7 +306,7 @@ static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *paramete
 
     if (parameter->msg_type != GF_NETIO_PARSE_REPLY) {
         if (parameter->size) {
-            strncat(client_ctx->buffer, parameter->data, parameter->size);
+            gf_strcat(client_ctx->buffer, parameter->data);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("session data is now: %s\n", client_ctx->buffer));
         }
     }

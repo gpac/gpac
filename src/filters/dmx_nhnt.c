@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -312,11 +312,10 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 			if (!strncmp(p->value.string, "gfio://", 7)) {
 				use_gfio = GF_TRUE;
-				strncpy(szMedia, gf_fileio_translate_url(p->value.string), GF_ARRAY_LENGTH(szMedia)-1 );
+				gf_strcpy(szMedia, gf_fileio_translate_url(p->value.string));
 			} else {
-				strncpy(szMedia, p->value.string, GF_ARRAY_LENGTH(szMedia)-1);
+				gf_strcpy(szMedia, p->value.string);
 			}
-			szMedia[ GF_ARRAY_LENGTH(szMedia)-1 ] = 0;
 
 			ext = strrchr(szMedia, '.');
 			if (ext) ext[0] = 0;
@@ -324,7 +323,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Invalid path for MEDIA file %s\n", szMedia));
 				return GF_URL_ERROR;
 			}
-			strcat(szMedia, ".media");
+			gf_strcat(szMedia, ".media");
 			ctx->mdia = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
 
 			if (!ctx->mdia) {
@@ -374,9 +373,9 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale));
 
 			if (use_gfio) {
-				gf_strlcpy(szMedia, gf_fileio_translate_url(p->value.string), sizeof(szMedia) );
+				gf_strcpy(szMedia, gf_fileio_translate_url(p->value.string));
 			} else {
-				gf_strlcpy(szMedia, p->value.string, sizeof(szMedia));
+				gf_strcpy(szMedia, p->value.string);
 			}
 			ext = gf_file_ext_start(szMedia);
 			if (ext) ext[0] = 0;

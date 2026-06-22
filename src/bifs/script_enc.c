@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -1037,7 +1037,7 @@ void SFE_Function(ScriptEnc *sc_enc)
 
 	SFE_NextToken(sc_enc);
 	SFE_CheckToken(sc_enc, TOK_IDENTIFIER);
-	strcpy(szName, sc_enc->token);
+	gf_strcpy(szName, sc_enc->token);
 	SFE_PutIdentifier(sc_enc, sc_enc->token);
 
 	SFE_NextToken(sc_enc);

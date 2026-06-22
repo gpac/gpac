@@ -1262,7 +1262,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 					u32 len_prfx = (u32) strlen("data:application/mpeg4-od-au;base64,");
 					esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
 					if (esd->URLString) {
-						strcpy(esd->URLString, "data:application/mpeg4-od-au;base64,");
+						gf_strlcpy(esd->URLString, "data:application/mpeg4-od-au;base64,", 1 + len_prfx + samp->dataLength);
 						size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
 						esd->URLString[len_prfx + size64] = 0;
 					}
@@ -1301,7 +1301,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				u32 len_prfx = (u32) strlen("data:application/mpeg4-bifs-au;base64,");
 				esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
 				if (esd->URLString) {
-					strcpy(esd->URLString, "data:application/mpeg4-bifs-au;base64,");
+					gf_strlcpy(esd->URLString, "data:application/mpeg4-bifs-au;base64,", 1 + len_prfx + samp->dataLength);
 					size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
 					esd->URLString[len_prfx + size64] = 0;
 				}
@@ -1359,7 +1359,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	u32 len_prfx = (u32) strlen("a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
 	u8 *buf64 = gf_malloc(size*3+4+len_prfx);
 	if (buf64) {
-		strcpy(buf64, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
+		gf_strlcpy(buf64, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,", size*3+4+len_prfx);
 		size64 = gf_base64_encode(buffer, size, buf64+len_prfx, size*3);
 		buf64[len_prfx + size64] = '"';
 		buf64[len_prfx + size64+1] = 0;

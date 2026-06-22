@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2025
+ *			Copyright (c) Telecom ParisTech 2017-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / DVB4Linux input filter
@@ -115,8 +115,7 @@ static GF_Err dvblin_get_channel_params(GF_DVBLinuxCtx *ctx, char *chan_name, GF
 	ctx->freq = 0;
 
 	params->frontend_idx = ctx->idx;
-	strncpy(params->adapter_path, ctx->dev, MAX_DEV_LEN-1);
-	params->adapter_path[MAX_DEV_LEN-1] = 0;
+	gf_strcpy(params->adapter_path, ctx->dev);
 	params->dibseq_csidx = ctx->csidx;
 
 	FILE *chanfile = gf_fopen(ctx->chcfg, "rb");
@@ -151,8 +150,7 @@ static GF_Err dvblin_get_channel_params(GF_DVBLinuxCtx *ctx, char *chan_name, GF
 				cfg+=4;
 				delim = strchr(cfg, ' ');
 				if (delim) delim[0] = 0;
-				strncpy(params->adapter_path, cfg, MAX_DEV_LEN-1);
-				params->adapter_path[MAX_DEV_LEN-1] = 0;
+				gf_strcpy(params->adapter_path, cfg);
 				if (delim) delim[0] = ' ';
 			}
 			cfg = strstr(line, "idx=");
@@ -365,7 +363,7 @@ static GF_Err dvblin_get_channel_params(GF_DVBLinuxCtx *ctx, char *chan_name, GF
 
 	params->main_pid = 0;
 	if (!vpid_str[0] && apid_str[0])
-		strcpy(vpid_str, apid_str);
+		gf_strcpy(vpid_str, apid_str);
 
 	if (!fwd_all && vpid_str[0]) {
 		char *s = strchr(vpid_str, '=');
