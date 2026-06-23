@@ -3424,8 +3424,8 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	}
 	sep = strchr(cat_enum.szRad1, '*');
 	if (!sep) sep = strchr(cat_enum.szRad1, '@');
-	if (strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", (sep + 1)));
+	if (!sep || strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is invald.\n", cat_enum.szRad1));
 		return GF_NOT_SUPPORTED;
 	}
 	gf_strcpy(cat_enum.szRad2, sep+1);
