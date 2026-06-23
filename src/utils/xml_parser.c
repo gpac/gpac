@@ -1060,7 +1060,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 				parser->in_entity = GF_FALSE;
 				continue;
 			}
-			if (!ent) {
+			if (!ent || parser->line_size < (u32) strlen(entityStart)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Entity not found\n"));
 				return GF_CORRUPTED_DATA;
 			}

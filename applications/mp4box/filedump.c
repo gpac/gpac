@@ -4035,7 +4035,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	{
 		u32 dmin, dmax, davg, smin, smax, savg;
 		gf_isom_get_chunks_infos(file, trackNum, &dmin, &davg, &dmax, &smin, &savg, &smax);
-		fprintf(stderr, "\tChunk durations: min %d ms - max %d ms - average %d ms\n", (1000*dmin)/ts, (1000*dmax)/ts, (1000*davg)/ts);
+		fprintf(stderr, "\tChunk durations: min %d ms - max %d ms - average %d ms\n", ts ? (1000*dmin)/ts : 0, ts ? (1000*dmax)/ts : 0, ts ? (1000*davg)/ts : 0);
 		fprintf(stderr, "\tChunk sizes (bytes): min %d - max %d - average %d\n", smin, smax, savg);
 	}
 	fprintf(stderr, "\n");

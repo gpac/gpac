@@ -45,7 +45,7 @@ u32 GetHintFormat(GF_TrackBox *trak)
 	GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;
 	if (hmhd && (hmhd->type != GF_ISOM_BOX_TYPE_HMHD))
 		return 0;
-		
+
 	if (!hmhd || !hmhd->subType) {
 		GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 		if (!hmhd) return a ? a->type : 0;
@@ -876,7 +876,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 	GF_HintTrackInfoBox *hnti;
 
 	//check if we have a udta ...
-	if (!movie->moov || !movie->moov->udta) return GF_OK;
+	if (!movie || !movie->moov || !movie->moov->udta) return GF_OK;
 
 	//find a hnti in the udta
 	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
@@ -1012,4 +1012,3 @@ const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 ind
 }
 
 #endif /*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)*/
-

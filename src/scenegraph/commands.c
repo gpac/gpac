@@ -76,7 +76,10 @@ void gf_sg_command_del(GF_Command *com)
 				}
 				break;
 			default:
-				if (inf->field_ptr) gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+				if (inf->field_ptr && inf->field_ptr != (void *)&inf->new_node 	&& inf->field_ptr != (void *)&inf->node_list) {
+					gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+				}
+				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
 				break;
 			}
 			gf_free(inf);
@@ -1003,4 +1006,3 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 }
 
 #endif
-
