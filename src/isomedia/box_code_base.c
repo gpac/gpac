@@ -11136,6 +11136,10 @@ GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_SampleAuxiliaryInfoSizeBox*ptr = (GF_SampleAuxiliaryInfoSizeBox*) s;
 	if (!s) return GF_BAD_PARAM;
+
+	// TEMP: for test purpose only
+	ptr->version = gf_igetenv("GPAC_CENC_SAIZ_VER");
+
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -11229,9 +11233,6 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_SampleAuxiliaryInfoOffsetBox *ptr = (GF_SampleAuxiliaryInfoOffsetBox *) s;
 	if (!s) return GF_BAD_PARAM;
-
-	// TEMP: for test purpose only
-	ptr->version = gf_igetenv("GPAC_CENC_SAIO_VER");
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
