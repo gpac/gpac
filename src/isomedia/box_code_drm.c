@@ -919,6 +919,14 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
 
+	// TEMP
+	ptr->use_subsample_encryption = gf_igetenv("GPAC_CENC_USE_SUBS");
+	ptr->use_multi_key = gf_igetenv("GPAC_CENC_USE_MKEY");
+	ptr->use_senc = GF_TRUE; //atoi(getenv(""));
+	ptr->use_sai = GF_TRUE; //atoi(getenv(""));
+	ptr->use_seig = gf_igetenv("GPAC_CENC_USE_SEIG");
+	ptr->use_encrypted_slice_header = gf_igetenv("GPAC_CENC_SH");
+
 	ptr->flags = ptr->use_subsample_encryption + (ptr->use_multi_key << 2) + (ptr->use_senc << 4)
 	           + (ptr->use_sai << 6) + (ptr->use_seig << 8) + (ptr->use_encrypted_slice_header << 10);
 	e = gf_isom_full_box_write(s, bs);

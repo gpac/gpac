@@ -10793,6 +10793,7 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	{
 		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
 		Bool use_mkey = seig->key_info[0];
+		setenv("GPAC_CENC_USE_SEIG", "1", 1); // TEMP
 		/*
 		u32 nb_keys = 1;
 		if (use_mkey) {
@@ -11228,6 +11229,10 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_SampleAuxiliaryInfoOffsetBox *ptr = (GF_SampleAuxiliaryInfoOffsetBox *) s;
 	if (!s) return GF_BAD_PARAM;
+
+	// TEMP: for test purpose only
+	ptr->version = gf_igetenv("GPAC_CENC_SAIO_VER");
+
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
@@ -11235,7 +11240,6 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->aux_info_type);
 		gf_bs_write_u32(bs, ptr->aux_info_type_parameter);
 	}
-
 
 	gf_bs_write_u32(bs, ptr->entry_count);
 	if (ptr->entry_count) {
