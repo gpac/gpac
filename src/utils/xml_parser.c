@@ -233,7 +233,9 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
 		gf_strcat(parser->err_msg, szM);
 		len = (u32) strlen(parser->err_msg);
-		memcpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
+		u32 buffer_offset = linepos ? linepos : parser->current_pos;
+		if (parser->alloc_size >= buffer_offset+10)
+			memcpy(parser->err_msg + len, parser->buffer+buffer_offset, 10);
 		parser->err_msg[len + 10] = 0;
 	}
 	parser->sax_state = SAX_STATE_SYNTAX_ERROR;

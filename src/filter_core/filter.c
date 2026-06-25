@@ -2356,11 +2356,13 @@ skip_arg:
 			args=sep+6;
 		} else if (sep) {
 			args=sep+1;
-			if (opaque_arg)
+			if (opaque_arg && args[0]) {
 				args += 1;
+			}
 		} else {
 			args=NULL;
 		}
+		if (args && !args[0]) break;
 	}
 	if (szArg) gf_free(szArg);
 }
