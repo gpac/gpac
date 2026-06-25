@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -101,6 +101,7 @@ typedef struct
 	/*current scene command*/
 	GF_Command *command;
 	SFCommandBuffer *command_buffer;
+	u32 command_buffer_depth;
 
 	GF_StreamContext *od_es;
 	GF_AUContext *od_au;
@@ -283,7 +284,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	odl->mf_urls = gf_list_new();
 	if (url) gf_list_add(odl->mf_urls, url);
 	if (ID) odl->ID = ID;
-	else odl->desc_name = gf_strdup(name);
+	else odl->desc_name = name ? gf_strdup(name) : NULL;
 	gf_list_add(parser->od_links, odl);
 }
 static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name, u32 binID)
@@ -801,6 +802,7 @@ static u32 xmt_parse_time(GF_XMTParser *parser, const char *name, SFTime *val, c
 }
 static u32 xmt_parse_bool(GF_XMTParser *parser, const char *name, SFBool *val, char *a_value)
 {
+	if (!val) return 0;
 	XMT_GET_ONE_VAL
 	if (!stricmp(value, "1") || !stricmp(value, "true"))
 		*val = 1;
@@ -836,10 +838,10 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 
 	i = 0;
 	while ((str[i]==' ') || (str[i]=='\t')) i++;
-	if (!strncmp(&str[i], "&quot;", 6)) strcpy(sep, "&quot;");
-	else if (!strncmp(&str[i], "&apos;", 6)) strcpy(sep, "&apos;");
-	else if (str[i]=='\'') strcpy(sep, "\'");
-	else if (str[i]=='\"') strcpy(sep, "\"");
+	if (!strncmp(&str[i], "&quot;", 6)) gf_strcpy(sep, "&quot;");
+	else if (!strncmp(&str[i], "&apos;", 6)) gf_strcpy(sep, "&apos;");
+	else if (str[i]=='\'') gf_strcpy(sep, "\'");
+	else if (str[i]=='\"') gf_strcpy(sep, "\"");
 	/*handle as a single field (old GPAC XMT & any unknown cases...*/
 	else {
 		len = (u32) strlen(str);
@@ -899,7 +901,7 @@ static u32 xmt_parse_url(GF_XMTParser *parser, const char *name, MFURL *val, GF_
 	if (!val->vals[idx].url) return res;
 
 	/*remove segments & viewpoints info to create OD link*/
-	strcpy(value, val->vals[idx].url);
+	gf_strcpy(value, val->vals[idx].url);
 	tmp = strstr(value, "#");
 	if (tmp) tmp[0] = 0;
 
@@ -996,6 +998,7 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 		SFCommandBuffer *cb = (SFCommandBuffer *)info->far_ptr;
 		if (parser->command_buffer) {
 			cb->buffer = (unsigned char*)parser->command_buffer;
+			parser->command_buffer_depth++;
 		} else {
 			cb->buffer = (unsigned char*)parser->command;
 		}
@@ -1068,7 +1071,10 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 	sfInfo.name = info->name;
 	gf_sg_vrml_mf_reset(info->far_ptr, info->fieldType);
 
-	if (!value || !strlen(value)) return;
+	u32 value_len = strlen(value);
+	char* value_start = value;
+
+	if (!value || !value_len) return;
 
 	while (value[0] && !parser->last_error) {
 
@@ -1089,7 +1095,7 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 		} else {
 			res = xmt_parse_sf_field(parser, &sfInfo, n, value);
 		}
-		if (res) {
+		if (res && value+res-value_start<=value_len) {
 			value += res;
 		} else {
 			break;
@@ -1314,8 +1320,7 @@ static void xmt_update_timenode(GF_XMTParser *parser, GF_Node *node)
 static void xmt_strip_name(const char *in, char *out, size_t out_size)
 {
 	while (in[0]==' ') in++;
-	strncpy(out, in, out_size-1);
-	out[out_size-1] = 0;
+	gf_strlcpy(out, in, out_size);
 	while (out[strlen(out)-1] == ' ') out[strlen(out)-1] = 0;
 }
 
@@ -1490,6 +1495,23 @@ static GF_Err x3d_get_default_container(GF_Node *par, GF_Node *n, GF_FieldInfo *
 		if (gf_node_in_table(n, info->NDTtype)) return GF_OK;
 	}
 	return GF_BAD_PARAM;
+}
+
+
+static void xmt_remove_od_links_for_node(GF_XMTParser *parser, GF_Node *node)
+{
+	u32 i, j, count;
+	count = gf_node_get_field_count(node);
+	for (j = 0; j < count; j++) {
+		GF_FieldInfo field;
+		if (gf_node_get_field(node, j, &field) != GF_OK) continue;
+		if (field.fieldType != GF_SG_VRML_MFURL) continue;
+		i = 0;
+		XMT_ODLink *l;
+		while ((l = (XMT_ODLink *)gf_list_enum(parser->od_links, &i))) {
+			gf_list_del_item(l->mf_urls, field.far_ptr);
+		}
+	}
 }
 
 
@@ -1762,6 +1784,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 						parser->command_buffer = (SFCommandBuffer*)parent->container_field.far_ptr;
 						/*store command*/
 						parser->command_buffer->buffer = (unsigned char *)parser->command;
+						// outermost level - don't increment depth
 						parser->state = XMT_STATE_COMMANDS;
 					}
 					return NULL;
@@ -2311,8 +2334,22 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		else if (!strcmp(name, "Replace")) {
 			tag = GF_SG_SCENE_REPLACE;
 			au_is_rap = 1;
+
+			if (parser->command_buffer) {
+				parser->command_buffer->buffer = NULL;
+				parser->command_buffer = NULL;
+			}
+
 			while (gf_list_count(parser->def_nodes)) {
 				GF_Node *anode = gf_list_pop_back(parser->def_nodes);
+				u32 ni;
+				for (ni = gf_list_count(parser->nodes); ni > 0; ni--) {
+					XMTNodeStack *st = (XMTNodeStack *)gf_list_get(parser->nodes, ni - 1);
+					if (st->node == anode) {
+						gf_list_rem(parser->nodes, ni - 1);
+						gf_free(st);
+					}
+				}
 				gf_node_unregister(anode, NULL);
 			}
 		}
@@ -2773,7 +2810,12 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->state = XMT_STATE_BODY;
 		}
 		else if (parser->state == XMT_STATE_ELEMENTS) {
-			gf_assert((parser->doc_type != 1) || parser->command);
+			//gf_assert((parser->doc_type != 1) || parser->command);
+			if ( (parser->doc_type == 1) && !parser->command ) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Wrong doc_type 1 with no command\n"));
+				parser->state = XMT_STATE_BODY_END;
+				return;
+			}
 			if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete")) {
 				parser->command = NULL;
 				parser->state = XMT_STATE_COMMANDS;
@@ -2873,10 +2915,11 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				if (parser->command_buffer) {
 					if (parser->command_buffer->bufferSize) {
 						parser->command_buffer->bufferSize--;
-					} else {
+					} else if (parser->command_buffer_depth > 0) {
 						SFCommandBuffer *prev = (SFCommandBuffer *) parser->command_buffer->buffer;
 						parser->command_buffer->buffer = NULL;
 						parser->command_buffer = prev;
+						parser->command_buffer_depth--;
 					}
 					/*stay in command parsing mode (state 3) until we find </buffer>*/
 					parser->state = XMT_STATE_COMMANDS;
@@ -2935,6 +2978,7 @@ attach_node:
 						gf_node_register(node, NULL);
 					} else if (parser->command->node != node) {
 						xmt_report(parser, GF_OK, "Warning: top-node already assigned - discarding node %s", name);
+						xmt_remove_od_links_for_node(parser, node);
 						gf_node_register(node, NULL);
 						gf_node_unregister(node, NULL);
 					}
@@ -2974,6 +3018,9 @@ attach_node:
 					if (inf->node_list) {
 						gf_node_list_add_child(& inf->node_list, node);
 					} else {
+						if (inf->field_ptr && inf->field_ptr != (void *)&inf->new_node && inf->field_ptr != (void *)&inf->node_list) {
+							gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+						}
 						inf->new_node = node;
 						inf->field_ptr = &inf->new_node;
 					}
@@ -3215,6 +3262,18 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
 	if (e==GF_OK) e = parser->last_error;
 
+    /*clear any leftover command buffer back-pointers from incomplete parsing*/
+    while (parser->command_buffer) {
+        void *prev = parser->command_buffer->buffer;
+        parser->command_buffer->buffer = NULL;
+        if (parser->command_buffer_depth > 0) {
+            parser->command_buffer_depth--;
+            parser->command_buffer = (SFCommandBuffer *)prev;
+        } else {
+            parser->command_buffer = NULL;
+        }
+    }
+
 	xmt_resolve_routes(parser);
 	xmt_resolve_od_links(parser);
 
@@ -3246,6 +3305,15 @@ static void load_xmt_done(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
 	if (!parser) return;
+
+	/*clear leftover command buffer back-pointers from incomplete parsing*/
+	for (u32 n = 0; n < gf_list_count(parser->nodes); n++) {
+		XMTNodeStack *st = gf_list_get(parser->nodes, n);
+		if (gf_node_get_tag(st->node) == TAG_MPEG4_Conditional) {
+			M_Conditional *cond = (M_Conditional *)st->node;
+			cond->buffer.buffer = NULL;
+		}
+	}
 
 	GF_List* cleaned_nodes = gf_list_new();
 

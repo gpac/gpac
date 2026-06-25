@@ -285,8 +285,8 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 				if (!stricmp(buf+1, "comment")) {
 					id3dmx_set_string(audio_pid, "comment", sep+1, GF_FALSE);
 				} else {
-					strcpy(szTag, "tag_");
-					strncat(szTag, buf+1, 1019);
+					gf_strcpy(szTag, "tag_");
+					gf_strcat(szTag, buf+1);
 					id3dmx_set_string(audio_pid, szTag, sep+1, GF_TRUE);
 				}
 			}

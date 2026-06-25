@@ -157,8 +157,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		ctx->in_caps[1].val = PROP_NAME( ctx->mime );
 		ctx->in_caps[1].flags = GF_CAPS_INPUT;
 	} else {
-		strncpy(ctx->szExt, ext, 9);
-		ctx->szExt[9] = 0;
+		gf_strcpy(ctx->szExt, ext);
 		strlwr(ctx->szExt);
 		ctx->in_caps[1].code = GF_PROP_PID_FILE_EXT;
 		ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
@@ -368,7 +367,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 			if (!sc) return GF_OUT_OF_MEM;
 			
 			sc->socket = new_conn;
-			strcpy(sc->address, "unknown");
+			gf_strcpy(sc->address, "unknown");
 			gf_sk_get_remote_address(new_conn, sc->address);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockOut] Accepting new connection from %s\n", sc->address));

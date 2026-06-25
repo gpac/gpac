@@ -569,10 +569,11 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 				buffer[len] = 0;
 
 				l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
-				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, len+3+l1);
+				u32 blen = len+3+l1;
+				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, blen);
 				tx3g_config_sdp[l1] = 0;
-				if (i) strcat(tx3g_config_sdp, ", ");
-				strcat(tx3g_config_sdp, buffer);
+				if (i) gf_strlcat(tx3g_config_sdp, ", ", blen);
+				gf_strlcat(tx3g_config_sdp, buffer, blen);
 			}
 		}
 		if (tx3g_config_sdp) {

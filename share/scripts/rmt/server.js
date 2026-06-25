@@ -227,6 +227,7 @@ function SessionStatsManager(client) {
   this.isSubscribed = false;
   this.interval = UPDATE_INTERVALS.SESSION_STATS;
   this.fields = [];
+  this.lastSentMetrics = "";
   this.subscribe = function(interval, fields) {
     this.isSubscribed = true;
     this.interval = interval || UPDATE_INTERVALS.SESSION_STATS;
@@ -279,15 +280,25 @@ function SessionStatsManager(client) {
       return JSON.stringify({
         message: "session_stats",
         all_packets_done,
+        ts_us: now,
         stats
       });
     });
     if (this.client.client) {
       this.client.client.send(serialized);
     }
+    const sessionMetrics = session.session_metrics;
+    if (sessionMetrics && sessionMetrics !== this.lastSentMetrics && this.client.client) {
+      this.lastSentMetrics = sessionMetrics;
+      this.client.client.send(JSON.stringify({
+        message: "session_metrics",
+        data: sessionMetrics
+      }));
+    }
   };
   this.cleanup = function() {
     this.isSubscribed = false;
+    this.lastSentMetrics = "";
   };
   this.handleSessionEnd = function() {
     this.unsubscribe();
@@ -386,23 +397,23 @@ function gpac_filter_to_minimal_object(f) {
     ID: f.ID || null,
     nb_ipid: f.nb_ipid,
     nb_opid: f.nb_opid,
-    ipid: {},
-    opid: {}
+    ipid: [],
+    opid: []
   };
   for (let i = 0; i < f.nb_ipid; i++) {
-    const pidName = f.ipid_props(i, "name");
-    const streamType = f.ipid_props(i, "StreamType");
-    minimalFilters.ipid[pidName] = {
+    minimalFilters.ipid.push({
+      pid_index: i,
+      name: f.ipid_props(i, "name"),
       source_idx: f.ipid_source(i).idx,
-      stream_type: streamType
-    };
+      stream_type: f.ipid_props(i, "StreamType")
+    });
   }
   for (let o = 0; o < f.nb_opid; o++) {
-    const pidName = f.opid_props(o, "name");
-    const streamType = f.opid_props(o, "StreamType");
-    minimalFilters.opid[pidName] = {
-      stream_type: streamType
-    };
+    minimalFilters.opid.push({
+      pid_index: o,
+      name: f.opid_props(o, "name"),
+      stream_type: f.opid_props(o, "StreamType")
+    });
   }
   return minimalFilters;
 }
@@ -421,55 +432,61 @@ function on_all_connected(cb) {
 }
 
 // server/JSClient/Filters/PID/PidDataCollector.js
+function _collectMediaProps(getProp) {
+  return {
+    timescale: getProp("Timescale"),
+    codec: getProp("CodecID"),
+    type: getProp("StreamType"),
+    width: getProp("Width"),
+    height: getProp("Height"),
+    pixelformat: getProp("PixelFormat"),
+    bitrate: getProp("Bitrate"),
+    samplerate: getProp("SampleRate"),
+    channels: getProp("Channels")
+  };
+}
+function _collectStats(stats, filter) {
+  if (!stats) return null;
+  const result = {
+    disconnected: stats.disconnected,
+    average_process_rate: stats.average_process_rate,
+    max_process_rate: stats.max_process_rate,
+    average_bitrate: stats.average_bitrate,
+    max_bitrate: stats.max_bitrate,
+    nb_processed: stats.nb_processed,
+    max_process_time: stats.max_process_time,
+    total_process_time: stats.total_process_time
+  };
+  const lastTs = stats.last_ts_sent ?? filter.last_ts_sent;
+  if (lastTs) result.last_ts_sent = lastTs;
+  if (stats.last_process_time) result.last_process_time = stats.last_process_time;
+  if (stats.buffer_time) result.buffer_time = stats.buffer_time;
+  if (stats.nb_buffer_units) result.nb_buffer_units = stats.nb_buffer_units;
+  if (stats.max_buffer_time) result.max_buffer_time = stats.max_buffer_time;
+  if (stats.max_playout_time) result.max_playout_time = stats.max_playout_time;
+  if (stats.min_playout_time) result.min_playout_time = stats.min_playout_time;
+  if (stats.total_process_time > 0) result.average_process_time = stats.total_process_time / stats.nb_processed;
+  return result;
+}
 function PidDataCollector() {
   this.collectInputPids = function(filter, withPidProperties) {
     const ipids = {};
     for (let i = 0; i < filter.nb_ipid; i++) {
-      const pid = {};
       const originalName = filter.ipid_props(i, "name");
-      pid.name = filter.nb_ipid > 1 && originalName ? `${originalName}_${i}` : originalName;
-      pid.buffer = filter.ipid_props(i, "buffer");
-      pid.nb_pck_queued = filter.ipid_props(i, "nb_pck_queued");
-      pid.would_block = filter.ipid_props(i, "would_block");
-      pid.eos = filter.ipid_props(i, "eos");
-      pid.playing = filter.ipid_props(i, "playing");
-      pid.timescale = filter.ipid_props(i, "Timescale");
-      pid.codec = filter.ipid_props(i, "CodecID");
-      pid.type = filter.ipid_props(i, "StreamType");
-      pid.width = filter.ipid_props(i, "Width");
-      pid.height = filter.ipid_props(i, "Height");
-      pid.pixelformat = filter.ipid_props(i, "PixelFormat");
-      pid.bitrate = filter.ipid_props(i, "Bitrate");
-      pid.samplerate = filter.ipid_props(i, "SampleRate");
-      pid.channels = filter.ipid_props(i, "Channels");
+      const getProp = (name) => filter.ipid_props(i, name);
+      const pid = {
+        name: filter.nb_ipid > 1 && originalName ? `${originalName}_${i}` : originalName,
+        buffer: getProp("buffer"),
+        nb_pck_queued: getProp("nb_pck_queued"),
+        would_block: getProp("would_block"),
+        eos: getProp("eos"),
+        playing: getProp("playing"),
+        ..._collectMediaProps(getProp)
+      };
       const source = filter.ipid_source(i);
-      if (source) {
-        pid.source_idx = source.idx;
-      }
-      const stats = filter.ipid_stats(i);
-      if (stats) {
-        pid.stats = {};
-        pid.stats.disconnected = stats.disconnected;
-        pid.stats.average_process_rate = stats.average_process_rate;
-        pid.stats.max_process_rate = stats.max_process_rate;
-        pid.stats.average_bitrate = stats.average_bitrate;
-        pid.stats.max_bitrate = stats.max_bitrate;
-        pid.stats.nb_processed = stats.nb_processed;
-        pid.stats.max_process_time = stats.max_process_time;
-        pid.stats.total_process_time = stats.total_process_time;
-        const lastTs = stats.last_ts_sent ?? filter.last_ts_sent;
-        if (lastTs) pid.stats.last_ts_sent = lastTs;
-        if (stats.last_process_time) pid.stats.last_process_time = stats.last_process_time;
-        if (stats.buffer_time) pid.stats.buffer_time = stats.buffer_time;
-        if (stats.nb_buffer_units) pid.stats.nb_buffer_units = stats.nb_buffer_units;
-        if (stats.max_buffer_time) pid.stats.max_buffer_time = stats.max_buffer_time;
-        if (stats.max_playout_time) pid.stats.max_playout_time = stats.max_playout_time;
-        if (stats.min_playout_time) pid.stats.min_playout_time = stats.min_playout_time;
-        if (stats.total_process_time && stats.total_process_time > 0) {
-          const average_process_time = stats.total_process_time / stats.nb_processed;
-          pid.stats.average_process_time = average_process_time;
-        }
-      }
+      if (source) pid.source_idx = source.idx;
+      const stats = _collectStats(filter.ipid_stats(i), filter);
+      if (stats) pid.stats = stats;
       if (withPidProperties) {
         const allProps = {};
         filter.ipid_props(i, function(pname, ptype, pval) {
@@ -485,54 +502,28 @@ function PidDataCollector() {
   this.collectOutputPids = function(filter) {
     const opids = {};
     for (let i = 0; i < filter.nb_opid; i++) {
-      const pid = {};
       const originalName = filter.opid_props(i, "name");
-      pid.name = filter.nb_opid > 1 && originalName ? `${originalName}_${i}` : originalName;
-      pid.buffer = filter.opid_props(i, "buffer");
-      pid.max_buffer = filter.opid_props(i, "max_buffer");
-      pid.nb_pck_queued = filter.opid_props(i, "nb_pck_queued");
-      pid.would_block = filter.opid_props(i, "would_block");
-      const statsEos = filter.opid_stats(i);
-      pid.eos_received = statsEos?.eos_received;
-      pid.playing = filter.opid_props(i, "playing");
-      pid.timescale = filter.opid_props(i, "Timescale");
-      pid.codec = filter.opid_props(i, "CodecID");
-      pid.type = filter.opid_props(i, "StreamType");
-      pid.width = filter.opid_props(i, "Width");
-      pid.height = filter.opid_props(i, "Height");
-      pid.pixelformat = filter.opid_props(i, "PixelFormat");
-      pid.bitrate = filter.opid_props(i, "Bitrate");
-      pid.samplerate = filter.opid_props(i, "SampleRate");
-      pid.channels = filter.opid_props(i, "Channels");
-      pid.id = filter.opid_props(i, "ID");
-      pid.trackNumber = filter.opid_props(i, "TrackNumber");
-      pid.serviceID = filter.opid_props(i, "ServiceID");
-      pid.language = filter.opid_props(i, "Language");
-      pid.role = filter.opid_props(i, "Role");
-      const stats = filter.opid_stats(i);
+      const getProp = (name) => filter.opid_props(i, name);
+      const rawStats = filter.opid_stats(i);
+      const pid = {
+        name: filter.nb_opid > 1 && originalName ? `${originalName}_${i}` : originalName,
+        buffer: getProp("buffer"),
+        max_buffer: getProp("max_buffer"),
+        nb_pck_queued: getProp("nb_pck_queued"),
+        would_block: getProp("would_block"),
+        eos_received: rawStats?.eos_received,
+        playing: getProp("playing"),
+        ..._collectMediaProps(getProp),
+        id: getProp("ID"),
+        trackNumber: getProp("TrackNumber"),
+        serviceID: getProp("ServiceID"),
+        language: getProp("Language"),
+        role: getProp("Role")
+      };
+      const stats = _collectStats(rawStats, filter);
       if (stats) {
-        pid.stats = {};
-        pid.stats.disconnected = stats.disconnected;
-        pid.stats.average_process_rate = stats.average_process_rate;
-        pid.stats.max_process_rate = stats.max_process_rate;
-        pid.stats.average_bitrate = stats.average_bitrate;
-        pid.stats.max_bitrate = stats.max_bitrate;
-        pid.stats.nb_processed = stats.nb_processed;
-        pid.stats.max_process_time = stats.max_process_time;
-        pid.stats.total_process_time = stats.total_process_time;
-        pid.stats.first_process_time = stats.first_process_time;
-        const lastTs = stats.last_ts_sent ?? filter.last_ts_sent;
-        if (lastTs) pid.stats.last_ts_sent = lastTs;
-        if (stats.last_process_time) pid.stats.last_process_time = stats.last_process_time;
-        if (stats.buffer_time) pid.stats.buffer_time = stats.buffer_time;
-        if (stats.nb_buffer_units) pid.stats.nb_buffer_units = stats.nb_buffer_units;
-        if (stats.max_buffer_time) pid.stats.max_buffer_time = stats.max_buffer_time;
-        if (stats.max_playout_time) pid.stats.max_playout_time = stats.max_playout_time;
-        if (stats.min_playout_time) pid.stats.min_playout_time = stats.min_playout_time;
-        if (stats.total_process_time && stats.total_process_time > 0) {
-          const average_process_time = stats.total_process_time / stats.nb_processed;
-          pid.stats.average_process_time = average_process_time;
-        }
+        if (rawStats.first_process_time) stats.first_process_time = rawStats.first_process_time;
+        pid.stats = stats;
       }
       const key = pid.name || `opid_${i}`;
       opids[key] = pid;
@@ -665,7 +656,7 @@ function FilterManager(client) {
           default:
             break;
         }
-        return JSON.stringify({ message: "filter_stats", ...payload });
+        return JSON.stringify({ message: "filter_stats", ts_us: now, ...payload });
       });
       if (serialized && this.client.client) {
         this.client.client.send(serialized);

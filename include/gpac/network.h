@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -581,7 +581,7 @@ Gets local IP address of a connected socket, typically used for server after an 
 \param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
 \return error if any
  */
-GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer);
+GF_Err gf_sk_get_local_ip(GF_Socket *sock, char buffer[GF_MAX_IP_NAME_LEN]);
 /*!
 \brief get local info
 
@@ -612,7 +612,7 @@ Gets the remote address and port of a peer. The socket MUST be connected.
 \param port set to the remote port, may be NULL
 \return error if any
  */
-GF_Err gf_sk_get_remote_address_port(GF_Socket *sock, char *buffer, u32 *port);
+GF_Err gf_sk_get_remote_address_port(GF_Socket *sock, char buffer[GF_MAX_IP_NAME_LEN], u32 *port);
 
 /*!
 \brief set remote address

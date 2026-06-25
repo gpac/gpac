@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -957,16 +957,12 @@ static void swf_nend(void *sax_cbck, const char *node_name, const char *name_spa
 }
 static void swf_ntext(void *sax_cbck, const char *content, Bool is_cdata)
 {
-	u32 len;
 	SWFFlatText *t;
 	if (!content || is_cdata || !sax_cbck) return;
 	t = (SWFFlatText *)sax_cbck;
-	len = (u32) strlen(content);
-	if (!len) return;
-	t->final = gf_realloc(t->final, sizeof(char)*(t->len+len+1));
-	t->final [t->len] = 0;
-	strcat(t->final, content);
-	t->len = (u32) strlen(t->final)+1;
+	if (!content[0]) return;
+	gf_dynstrcat(&t->final, content, NULL);
+	t->len = t->final ? ( (u32) strlen(t->final)+1 ) : 0;
 }
 
 
@@ -1020,9 +1016,9 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 		break;
 	}
 
-	strcpy(styles, "");
-	if (!text->read_only) strcat(styles, "EDITABLE");
-	if (text->password) strcat(styles, "PASSWORD");
+	gf_strcpy(styles, "");
+	if (!text->read_only) gf_strcat(styles, "EDITABLE");
+	if (text->password) gf_strcat(styles, "PASSWORD");
 
 	if (f->style.buffer) gf_free(f->style.buffer);
 	f->style.buffer = gf_strdup(styles);
@@ -1691,7 +1687,7 @@ static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id
 
 	if (ID==prev_id) return GF_OK;
 
-	strcpy(szDEF, gf_node_get_name(obj));
+	gf_strcpy(szDEF, gf_node_get_name(obj));
 	/*when inserting a button, trigger a pause*/
 	if (!strnicmp(szDEF, "Button", 6)) {
 		u32 i, count;

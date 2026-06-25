@@ -2153,8 +2153,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 
 #if defined(__DARWIN) || defined(__APPLE__)
 	if (!strncmp(dev_name, "screen", 6)) {
-		strcpy(szPatchedName, "Capture screen ");
-		strcat(szPatchedName, dev_name+6);
+		gf_strcpy(szPatchedName, "Capture screen ");
+		gf_strcat(szPatchedName, dev_name+6);
 		dev_name = (char *) szPatchedName;
 	}
 #endif
@@ -2175,8 +2175,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	else if (!strncmp(dev_fmt->priv_class->class_name, "AVFoundation", 12) && wants_audio && !wants_video) {
 		//for avfoundation if no video, we must use ":audio_dev_idx"
 		if (ctx->dev[0] != ':') {
-			strcpy(szPatchedName, ":");
-			strcat(szPatchedName, ctx->dev);
+			gf_strcpy(szPatchedName, ":");
+			gf_strcat(szPatchedName, ctx->dev);
 			dev_name = (char *) szPatchedName;
 		}
 	}

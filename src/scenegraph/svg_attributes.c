@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2004-2022
+ *			Copyright (c) Telecom ParisTech 2004-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Loader module
@@ -716,6 +716,7 @@ u32 gf_svg_get_system_paint_server_type(const char *name)
 static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out_e)
 {
 	char *str = attribute_content;
+	if (!str) return;
 	u32 len = (u32) strlen(attribute_content);
 	while (len && (str[strlen(attribute_content)-1] == ' ')) {
 		str[len-1] = 0;
@@ -731,7 +732,10 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out
 		return;
 	} else if (str[0]=='#') {
 		u32 val;
-		sscanf(str+1, "%x", &val);
+		if (sscanf(str+1, "%x", &val) != 1) {
+			col->type = SVG_COLOR_INHERIT;
+			return;
+		}
 		if (strlen(str) == 7) {
 			col->red = INT2FIX((val>>16) & 0xFF) / 255;
 			col->green = INT2FIX((val>>8) & 0xFF) / 255;
@@ -748,7 +752,10 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out
 		if (strstr(str, "%")) is_percentage = 1;
 		str = strstr(str, "(");
 		str++;
-		sscanf(str, "%f", &_val);
+		if (sscanf(str, "%f", &_val) != 1) {
+			col->red = col->green = col->blue = 0;
+			return;
+		}
 		col->red = FLT2FIX(_val);
 		str = strstr(str, ",");
 		if (!str) {
@@ -1040,6 +1047,7 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 		v->element = elt->sgprivate->scenegraph->RootNode;
 		tmp+=10;
 		sep = strchr(d, ')');
+		if (!sep) return GF_BAD_PARAM;
 		sep[0] = 0;
 		v->event.parameter = gf_dom_get_key_type(tmp);
 		sep++;
@@ -3079,7 +3087,7 @@ static void svg_parse_focusable(SVG_Focusable *f, char *attribute_content, GF_Er
 	} else if (!strcmp(attribute_content, "auto")) {
 		*f = SVG_FOCUSABLE_AUTO;
 	} else {
-		*out_e = SVG_FOCUSABLE_AUTO;
+		*out_e = GF_NON_COMPLIANT_BITSTREAM;
 	}
 }
 
@@ -4001,15 +4009,15 @@ static char *svg_dump_number(SVG_Number *l)
 	else if (l->type == SVG_NUMBER_AUTO_REVERSE) return gf_strdup("auto-reverse");
 	else {
 		sprintf(tmp, "%g", _FIX2FLT(l->value));
-		if (l->type == SVG_NUMBER_PERCENTAGE) strcat(tmp, "%");
-		else if (l->type == SVG_NUMBER_EMS) strcat(tmp, "em");
-		else if (l->type == SVG_NUMBER_EXS) strcat(tmp, "ex");
-		else if (l->type == SVG_NUMBER_PX) strcat(tmp, "px");
-		else if (l->type == SVG_NUMBER_CM) strcat(tmp, "cm");
-		else if (l->type == SVG_NUMBER_MM) strcat(tmp, "mm");
-		else if (l->type == SVG_NUMBER_IN) strcat(tmp, "in");
-		else if (l->type == SVG_NUMBER_PT) strcat(tmp, "pt");
-		else if (l->type == SVG_NUMBER_PC) strcat(tmp, "pc");
+		if (l->type == SVG_NUMBER_PERCENTAGE) gf_strcat(tmp, "%");
+		else if (l->type == SVG_NUMBER_EMS) gf_strcat(tmp, "em");
+		else if (l->type == SVG_NUMBER_EXS) gf_strcat(tmp, "ex");
+		else if (l->type == SVG_NUMBER_PX) gf_strcat(tmp, "px");
+		else if (l->type == SVG_NUMBER_CM) gf_strcat(tmp, "cm");
+		else if (l->type == SVG_NUMBER_MM) gf_strcat(tmp, "mm");
+		else if (l->type == SVG_NUMBER_IN) gf_strcat(tmp, "in");
+		else if (l->type == SVG_NUMBER_PT) gf_strcat(tmp, "pt");
+		else if (l->type == SVG_NUMBER_PC) gf_strcat(tmp, "pc");
 
 		return gf_strdup(tmp);
 	}
@@ -4093,7 +4101,7 @@ static char *svg_dump_path(SVG_PathData *path)
 
 			last_pt = *end;
 			if (path->tags[i+2]==GF_PATH_CLOSE)  {
-				strcat(szT, "z");
+				gf_strcat(szT, "z");
 			}
 			i+=2;
 			break;
@@ -4104,14 +4112,13 @@ static char *svg_dump_path(SVG_PathData *path)
 			sprintf(szT, "C%g %g %g %g %g %g", _FIX2FLT(ct1->x), _FIX2FLT(ct1->y), _FIX2FLT(ct2->x), _FIX2FLT(ct2->y), _FIX2FLT(end->x), _FIX2FLT(end->y));
 			last_pt = *end;
 			if (path->tags[i+2]==GF_PATH_CLOSE) {
-				strcat(szT, "z");
+				gf_strcat(szT, "z");
 			}
 			i+=3;
 			break;
 		}
 		if (szT[0]) {
-			res = gf_realloc(res, sizeof(char)*(strlen(szT)+strlen(res)+1));
-			strcat(res, szT);
+			gf_dynstrcat(&res, szT, NULL);
 		}
 	}
 	return res;
@@ -4127,70 +4134,70 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 	u32 i, pt_i, count;
 	count = gf_list_count(path->commands);
 	pt_i = 0;
-	strcpy(attValue, "");
+	gf_strcpy(attValue, "");
 	for (i = 0; i < count; i++) {
 		u8 command = *(u8 *)gf_list_get(path->commands, i);
 		switch(command) {
 		case SVG_PATHCOMMAND_M:
-			strcat(attValue, "M");
+			gf_strcat(attValue, "M");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_L:
-			strcat(attValue, "L");
+			gf_strcat(attValue, "L");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_C:
-			strcat(attValue, "C");
+			gf_strcat(attValue, "C");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_S:
-			strcat(attValue, "S");
+			gf_strcat(attValue, "S");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_Q:
-			strcat(attValue, "Q");
+			gf_strcat(attValue, "Q");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_T:
-			strcat(attValue, "T");
+			gf_strcat(attValue, "T");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_A:
-			strcat(attValue, "A");
+			gf_strcat(attValue, "A");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
-			strcat(attValue, "0 0 0 ");
+			gf_strcat(attValue, "0 0 0 ");
 			svg_dump_point((SVG_Point*)gf_list_get(path->points, pt_i), szT);
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 			pt_i++;
 			break;
 		case SVG_PATHCOMMAND_Z:
-			strcat(attValue, "Z");
+			gf_strcat(attValue, "Z");
 			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Dumping] unknown path command %d\n", command));
@@ -4200,42 +4207,42 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 }
 #endif
 
-static void svg_dump_access_key(XMLEV_Event *evt, char *attValue)
+static void svg_dump_access_key(XMLEV_Event *evt, char attValue[1024])
 {
 	u32 i, count;
-	strcpy(attValue, "accessKey(");
+	gf_strlcpy(attValue, "accessKey(", 1024);
 	count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
 	for (i=0; i<count; i++) {
 		if (evt->parameter == predefined_key_identifiers[i].key_code) {
-			strcat(attValue, predefined_key_identifiers[i].name);
+			gf_strlcat(attValue, predefined_key_identifiers[i].name, 1024);
 			break;
 		}
 	}
 	/* OLD LASeR CODE
 	switch (evt->parameter) {
-	case 0: strcat(attValue, "UP"); break;
-	case 1: strcat(attValue, "DOWN"); break;
-	case 2: strcat(attValue, "LEFT"); break;
-	case 3: strcat(attValue, "RIGHT"); break;
-	case 4: strcat(attValue, "FIRE"); break;
-	case 5: strcat(attValue, "NO_KEY"); break;
-	case 6: strcat(attValue, "ANY_KEY"); break;
-	case 7: strcat(attValue, "SOFT_KEY_1"); break;
-	case 8: strcat(attValue, "SOFT_KEY_2"); break;
-	case 35: strcat(attValue, "#"); break;
-	case 42: strcat(attValue, "*"); break;
-	case 48: strcat(attValue, "0"); break;
-	case 49: strcat(attValue, "1"); break;
-	case 50: strcat(attValue, "2"); break;
-	case 51: strcat(attValue, "3"); break;
-	case 52: strcat(attValue, "4"); break;
-	case 53: strcat(attValue, "5"); break;
-	case 54: strcat(attValue, "6"); break;
-	case 55: strcat(attValue, "7"); break;
-	case 56: strcat(attValue, "8"); break;
-	case 57: strcat(attValue, "9"); break;
+	case 0: gf_strcat(attValue, "UP"); break;
+	case 1: gf_strcat(attValue, "DOWN"); break;
+	case 2: gf_strcat(attValue, "LEFT"); break;
+	case 3: gf_strcat(attValue, "RIGHT"); break;
+	case 4: gf_strcat(attValue, "FIRE"); break;
+	case 5: gf_strcat(attValue, "NO_KEY"); break;
+	case 6: gf_strcat(attValue, "ANY_KEY"); break;
+	case 7: gf_strcat(attValue, "SOFT_KEY_1"); break;
+	case 8: gf_strcat(attValue, "SOFT_KEY_2"); break;
+	case 35: gf_strcat(attValue, "#"); break;
+	case 42: gf_strcat(attValue, "*"); break;
+	case 48: gf_strcat(attValue, "0"); break;
+	case 49: gf_strcat(attValue, "1"); break;
+	case 50: gf_strcat(attValue, "2"); break;
+	case 51: gf_strcat(attValue, "3"); break;
+	case 52: gf_strcat(attValue, "4"); break;
+	case 53: gf_strcat(attValue, "5"); break;
+	case 54: gf_strcat(attValue, "6"); break;
+	case 55: gf_strcat(attValue, "7"); break;
+	case 56: gf_strcat(attValue, "8"); break;
+	case 57: gf_strcat(attValue, "9"); break;
 	*/
-	strcat(attValue, ")");
+	gf_strlcat(attValue, ")", 1024);
 }
 
 static char *gf_svg_dump_matrix(GF_Matrix2D *matrix)
@@ -4248,11 +4255,11 @@ static char *gf_svg_dump_matrix(GF_Matrix2D *matrix)
 		if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
 			char szT[1024];
 			if ((matrix->m[0]==-FIX_ONE) && (matrix->m[4]==-FIX_ONE)) {
-				strcpy(szT, " rotate(180)");
+				gf_strcpy(szT, " rotate(180)");
 			} else {
 				sprintf(szT, " scale(%g,%g)", _FIX2FLT(matrix->m[0]), _FIX2FLT(matrix->m[4]) );
 			}
-			strcat(attValue, szT);
+			gf_strcat(attValue, szT);
 		}
 	} else if (matrix->m[1] == - matrix->m[3]) {
 		Fixed angle = gf_asin(matrix->m[3]);
@@ -4595,9 +4602,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			szT = svg_dump_iri(iri);
 			len = (u32) strlen(szT);
 			if (len) {
-				attVal = gf_realloc(attVal, sizeof(char)*(len+strlen(attVal)+ (i ? 2 : 1) ));
-				if (i) strcat(attVal, " ");
-				strcat(attVal, szT);
+				if (i) gf_dynstrcat(&attVal, " ", NULL);
+				gf_dynstrcat(&attVal, szT, NULL);
 			}
 			gf_free(szT);
 		}
@@ -4622,9 +4628,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char szT[200];
 			SVG_Point *p = (SVG_Point *)gf_list_get(l, i);
 			sprintf(szT, "%g %g", _FIX2FLT(p->x), _FIX2FLT(p->y));
-			attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
-			if (i) strcat(attVal, " ");
-			strcat(attVal, szT);
+			if (i) gf_dynstrcat(&attVal, " ", NULL);
+			gf_dynstrcat(&attVal, szT, NULL);
 		}
 		return attVal;
 #endif
@@ -4643,9 +4648,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char szT[1000];
 			Fixed *p = (Fixed *)gf_list_get(l, i);
 			sprintf(szT, "%g", _FIX2FLT(*p));
-			attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
-			if (i) strcat(attVal, " ");
-			strcat(attVal, szT);
+			if (i) gf_dynstrcat(&attVal, " ", NULL);
+			gf_dynstrcat(&attVal, szT, NULL);
 		}
 		return attVal;
 	}
@@ -4662,9 +4666,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char *szT;
 			SVG_Coordinate *p = (SVG_Coordinate *)gf_list_get(l, i);
 			szT = svg_dump_number((SVG_Length *)p);
-			attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
-			if (i) strcat(attVal, " ");
-			strcat(attVal, szT);
+			if (i) gf_dynstrcat(&attVal, " ", NULL);
+			gf_dynstrcat(&attVal, szT, NULL);
 			gf_free(szT);
 		}
 		return attVal;
@@ -4696,9 +4699,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 				l.type = p->array.units[i];
 				l.value = p->array.vals[i];
 				szT = svg_dump_number(&l);
-				attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
-				if (i) strcat(attVal, " ");
-				strcat(attVal, szT);
+				if (i) gf_dynstrcat(&attVal, " ", NULL);
+				gf_dynstrcat(&attVal, szT, NULL);
 				gf_free(szT);
 			}
 			return attVal;
@@ -4715,18 +4717,18 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 	{
 		SVG_PreserveAspectRatio *par = (SVG_PreserveAspectRatio *)info->far_ptr;
 		tmp[0] = 0;
-		if (par->defer) strcat(tmp, "defer ");
-		if (par->align == SVG_PRESERVEASPECTRATIO_NONE) strcat(tmp, "none");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMINYMIN) strcat(tmp, "xMinYMin");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMIDYMIN) strcat(tmp, "xMidYMin");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMAXYMIN) strcat(tmp, "xMaxYMin");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMINYMID) strcat(tmp, "xMinYMid");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMIDYMID) strcat(tmp, "xMidYMid");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMAXYMID) strcat(tmp, "xMaxYMid");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMINYMAX) strcat(tmp, "xMinYMax");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMIDYMAX) strcat(tmp, "xMidYMax");
-		else if (par->align == SVG_PRESERVEASPECTRATIO_XMAXYMAX) strcat(tmp, "xMaxYMax");
-		if (par->meetOrSlice== SVG_MEETORSLICE_SLICE) strcat(tmp, " slice");
+		if (par->defer) gf_strcat(tmp, "defer ");
+		if (par->align == SVG_PRESERVEASPECTRATIO_NONE) gf_strcat(tmp, "none");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMINYMIN) gf_strcat(tmp, "xMinYMin");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMIDYMIN) gf_strcat(tmp, "xMidYMin");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMAXYMIN) gf_strcat(tmp, "xMaxYMin");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMINYMID) gf_strcat(tmp, "xMinYMid");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMIDYMID) gf_strcat(tmp, "xMidYMid");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMAXYMID) gf_strcat(tmp, "xMaxYMid");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMINYMAX) gf_strcat(tmp, "xMinYMax");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMIDYMAX) gf_strcat(tmp, "xMidYMax");
+		else if (par->align == SVG_PRESERVEASPECTRATIO_XMAXYMAX) gf_strcat(tmp, "xMaxYMax");
+		if (par->meetOrSlice== SVG_MEETORSLICE_SLICE) gf_strcat(tmp, " slice");
 
 		return gf_strdup(tmp);
 	}
@@ -4778,9 +4780,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		attVal[0] =  0;
 		for (i=0; i<count; i++) {
 			char *p1 = (char *)gf_list_get(l1, i);
-			attVal = gf_realloc(attVal, sizeof(char)*(strlen(p1)+strlen(attVal)+ (i ? 2 : 1) ));
-			if (i) strcat(attVal, " ");
-			strcat(attVal, p1);
+			if (i) gf_dynstrcat(&attVal, " ", NULL);
+			gf_dynstrcat(&attVal, p1, NULL);
 		}
 		return attVal;
 	}
@@ -4797,9 +4798,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char *szT;
 			SVG_Number *p = (SVG_Number *)gf_list_get(l1, i);
 			szT = svg_dump_number(p);
-			attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
-			if (i) strcat(attVal, " ");
-			strcat(attVal, szT);
+			if (i) gf_dynstrcat(&attVal, " ", NULL);
+			gf_dynstrcat(&attVal, szT, NULL);
 			gf_free(szT);
 		}
 		return attVal;
@@ -4904,13 +4904,13 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		attVal[0] = 0;
 		count = gf_list_count(l);
 		for (i=0; i<count; i++) {
-			char szBuf[1000];
+			char szBuf[1024];
 			SMIL_Time *t = (SMIL_Time *)gf_list_get(l, i);
 			szBuf[0] = 0;
 			if (t->type == GF_SMIL_TIME_CLOCK) {
 				sprintf(szBuf, "%gs", t->clock);
 			} else if (t->type==GF_SMIL_TIME_INDEFINITE) {
-				strcpy(szBuf, "indefinite");
+				gf_strcpy(szBuf, "indefinite");
 			} else if (t->type==GF_SMIL_TIME_WALLCLOCK) {
 				u32 h, m, s;
 				/*TODO - day month and year*/
@@ -4924,29 +4924,27 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 					svg_dump_access_key(&t->event, szBuf);
 				} else {
 					if (t->element_id) {
-						strcpy(szBuf, t->element_id);
-						strcat(szBuf, ".");
+						gf_strcpy(szBuf, t->element_id);
+						gf_strcat(szBuf, ".");
 					} else if (t->element && (t->element!=par) && gf_node_get_id(t->element) ) {
 						const char *name = gf_node_get_name(t->element);
 						if (name) {
-							strcpy(szBuf, name);
+							gf_strcpy(szBuf, name);
 						} else {
 							sprintf(szBuf, "N%d", gf_node_get_id(t->element)-1 );
 						}
-						strcat(szBuf, ".");
+						gf_strcat(szBuf, ".");
 					}
-					strcat(szBuf, gf_dom_event_get_name(t->event.type));
+					gf_strcat(szBuf, gf_dom_event_get_name(t->event.type));
 				}
 				if (t->clock) {
 					char szCk[40];
 					sprintf(szCk, "+%gs", t->clock);
-					strcat(szBuf, szCk);
+					gf_strcat(szBuf, szCk);
 				}
 			}
 			if (szBuf[0]) {
-				attVal = gf_realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1) ));
-				if ( strlen(attVal) ) strcat(attVal, ";");
-				strcat(attVal, szBuf);
+				gf_dynstrcat(&attVal, szBuf, ";");
 			}
 		}
 		return attVal;
@@ -5018,9 +5016,8 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 				a_fi.far_ptr = gf_list_get(av->values, i);
 				szBuf = gf_svg_dump_attribute(elt, &a_fi);
 
-				attVal = gf_realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1) ));
-				if (i) strcat(attVal, ";");
-				strcat(attVal, szBuf);
+				if (i) gf_dynstrcat(&attVal, ";", NULL);
+				gf_dynstrcat(&attVal, szBuf, NULL);
 				gf_free(szBuf);
 			}
 		}
@@ -5033,7 +5030,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		if (d->parameter) {
 			svg_dump_access_key(d, tmp);
 		} else {
-			strcpy(tmp, gf_dom_event_get_name(d->type));
+			gf_strcpy(tmp, gf_dom_event_get_name(d->type));
 		}
 		return gf_strdup(tmp);
 	}
@@ -5098,7 +5095,7 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 		if (t->type == GF_SMIL_TIME_CLOCK) {
 			sprintf(tmp, "%gs", t->clock);
 		} else if (t->type==GF_SMIL_TIME_INDEFINITE) {
-			strcpy(tmp, "indefinite");
+			gf_strcpy(tmp, "indefinite");
 		} else if (t->type==GF_SMIL_TIME_WALLCLOCK) {
 			u32 h, m, s;
 			/*TODO - day month and year*/
@@ -5112,25 +5109,25 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 			if (t->event.type == GF_EVENT_KEYDOWN) {
 				svg_dump_access_key(&t->event, tmp);
 			} else {
-				strcpy(tmp, "");
+				gf_strcpy(tmp, "");
 				if (t->element_id) {
-					strcat(tmp, t->element_id);
-					strcat(tmp, ".");
+					gf_strcat(tmp, t->element_id);
+					gf_strcat(tmp, ".");
 				} else if (t->element && (t->element!=par) && gf_node_get_id(t->element) ) {
 					const char *name = gf_node_get_name(t->element);
 					if (name) {
-						strcat(tmp, name);
+						gf_strcat(tmp, name);
 					} else {
 						sprintf(tmp, "N%d", gf_node_get_id(t->element)-1 );
 					}
-					strcat(tmp, ".");
+					gf_strcat(tmp, ".");
 				}
-				strcat(tmp, gf_dom_event_get_name(t->event.type));
+				gf_strcat(tmp, gf_dom_event_get_name(t->event.type));
 			}
 			if (t->clock) {
 				char szBuf[100];
 				sprintf(szBuf, "+%gs", t->clock);
-				strcat(tmp, szBuf);
+				gf_strcat(tmp, szBuf);
 			}
 		}
 		return gf_strdup(tmp);

@@ -4359,8 +4359,8 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		return GF_BAD_PARAM;
 	}
 
-	strcpy(nhmlFileName, the_file->fileName);
-	strcat(nhmlFileName, ".nhml");
+	gf_strcpy(nhmlFileName, the_file->fileName);
+	gf_strcat(nhmlFileName, ".nhml");
 	nhmlFile = gf_fopen(nhmlFileName, "wt");
 	gf_fprintf(nhmlFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	gf_fprintf(nhmlFile, "<NHNTStream streamType=\"3\" objectTypeIndication=\"10\" timeScale=\"%d\" baseMediaFile=\"file.svg\" inRootOD=\"yes\">\n", trak->Media->mediaHeader->timeScale);
@@ -7810,10 +7810,10 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FIL
 		if (box) {
 			JS_SetPropertyStr(ctx, obj, "type", JS_NewString(ctx, szName));
 			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, (u32) box->size));
-			strcat(szName, "Box");
+			gf_strcat(szName, "Box");
 		} else {
 			//sample group description
-			strcat(szName, "Entry");
+			gf_strcat(szName, "Entry");
 			par_type=0;
 		}
 		JS_SetPropertyStr(ctx, obj, "Name", JS_NewString(ctx, szName));

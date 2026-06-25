@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -45,7 +45,7 @@ u32 GetHintFormat(GF_TrackBox *trak)
 	GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;
 	if (hmhd && (hmhd->type != GF_ISOM_BOX_TYPE_HMHD))
 		return 0;
-		
+
 	if (!hmhd || !hmhd->subType) {
 		GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);
 		if (!hmhd) return a ? a->type : 0;
@@ -708,6 +708,7 @@ static void AddSDPLine(GF_List *list, char *sdp_text, Bool is_movie_sdp)
 static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 {
 	char *cur;
+	u32 inlen = (u32) strlen(sdp_text) + 1;
 	GF_List *lines = gf_list_new();
 	cur = sdp_text;
 	while (cur) {
@@ -725,11 +726,11 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 		st[0] = b;
 		cur = st;
 	}
-	strcpy(sdp_text, "");
+	gf_strlcpy(sdp_text, "", inlen);
 	while (gf_list_count(lines)) {
 		cur = (char *)gf_list_get(lines, 0);
 		gf_list_rem(lines, 0);
-		strcat(sdp_text, cur);
+		gf_strlcat(sdp_text, cur, inlen);
 		gf_free(cur);
 	}
 	gf_list_del(lines);
@@ -766,19 +767,13 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	sdp = (GF_SDPBox *) hnti->SDP;
 
 	if (!sdp->sdpText) {
-		sdp->sdpText = (char *)gf_malloc(sizeof(char) * (strlen(text) + 3));
-		if (!sdp->sdpText) return GF_OUT_OF_MEM;
-
-		strcpy(sdp->sdpText, text);
-		strcat(sdp->sdpText, "\r\n");
+		sdp->sdpText = gf_strdup(text);
+		gf_dynstrcat(&sdp->sdpText, "\r\n", NULL);
 		return GF_OK;
 	}
-	buf = (char *)gf_malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
-	if (!buf) return GF_OUT_OF_MEM;
-
-	strcpy(buf, sdp->sdpText);
-	strcat(buf, text);
-	strcat(buf, "\r\n");
+	buf = gf_strdup(sdp->sdpText);
+	gf_dynstrcat(&buf, text, NULL);
+	gf_dynstrcat(&buf, "\r\n", NULL);
 	gf_free(sdp->sdpText);
 	ReorderSDP(buf, GF_FALSE);
 	sdp->sdpText = buf;
@@ -859,19 +854,13 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	rtp = (GF_RTPBox *) hnti->SDP;
 
 	if (!rtp->sdpText) {
-		rtp->sdpText = (char*)gf_malloc(sizeof(char) * (strlen(text) + 3));
-		if (!rtp->sdpText) return GF_OUT_OF_MEM;
-
-		strcpy(rtp->sdpText, text);
-		strcat(rtp->sdpText, "\r\n");
+		rtp->sdpText = gf_strdup(text);
+		gf_dynstrcat(&rtp->sdpText, "\r\n", NULL);
 		return GF_OK;
 	}
-	buf = (char*)gf_malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
-	if (!buf) return GF_OUT_OF_MEM;
-	
-	strcpy(buf, rtp->sdpText);
-	strcat(buf, text);
-	strcat(buf, "\r\n");
+	buf = gf_strdup(rtp->sdpText);
+	gf_dynstrcat(&buf, text, NULL);
+	gf_dynstrcat(&buf, "\r\n", NULL);
 	gf_free(rtp->sdpText);
 	ReorderSDP(buf, GF_TRUE);
 	rtp->sdpText = buf;
@@ -887,7 +876,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 	GF_HintTrackInfoBox *hnti;
 
 	//check if we have a udta ...
-	if (!movie->moov || !movie->moov->udta) return GF_OK;
+	if (!movie || !movie->moov || !movie->moov->udta) return GF_OK;
 
 	//find a hnti in the udta
 	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
@@ -1023,4 +1012,3 @@ const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 ind
 }
 
 #endif /*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)*/
-

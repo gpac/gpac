@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -2574,7 +2574,7 @@ const char *gf_opts_get_filename();
 \param path_buffer GF_MAX_PATH buffer to store output
 \return GF_TRUE if success, GF_FALSE otherwise
  */
-Bool gf_opts_default_shared_directory(char *path_buffer);
+Bool gf_opts_default_shared_directory(char path_buffer[GF_MAX_PATH]);
 
 
 /*!

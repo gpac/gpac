@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2025
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -322,7 +322,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 
 
 
-char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *io_progress)
+char *gf_text_get_utf8_line(char szLine[2048], u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *io_progress)
 {
 	u32 i, j, len;
 	u32 start_pos = (u32) gf_ftell(txt_in);
@@ -409,7 +409,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 			j = lineSize-1 ;
 		}
 		szLineConv[j] = 0;
-		strcpy(szLine, szLineConv);
+		gf_strlcpy(szLine, szLineConv, 2048);
 		return sOK;
 	}
 
@@ -433,7 +433,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	i = gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
 	if (i == GF_UTF8_FAIL) i = 0;
 	szLineConv[i] = 0;
-	strcpy(szLine, szLineConv);
+	gf_strlcpy(szLine, szLineConv, 2048);
 	/*this is ugly indeed: since input is UTF16-LE, there are many chances the gf_fgets never reads the \0 after a \n*/
 	if (unicode_type==3) gf_fgetc(txt_in);
 
@@ -2847,7 +2847,7 @@ exit:
 
 #define MAX_LINE_SIZE 2048
 
-#define LINE_CAT(line, str) (strncat((line), (str), ((size_t)(MAX(0, (int)(MAX_LINE_SIZE-j-1-strlen(str)))))))
+#define LINE_CAT(line, str) (gf_strlcat((line), (str), MAX_LINE_SIZE))
 
 static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {

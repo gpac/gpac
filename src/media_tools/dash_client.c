@@ -917,7 +917,6 @@ setup_multicast_clock:
 
 				dyn_period->duration = dur;
 
-				size_t seg_url_len = seg_url ? strlen(seg_url) : 0;
 				sep = seg_url ? strstr(seg_url, "9876") : NULL;
 				//check last occurence
 				while (sep && seg_url) {
@@ -938,21 +937,19 @@ setup_multicast_clock:
 				len = (u32) strlen(seg_url);
 				if (!strncmp(val, seg_url, len)) {
 					u64 number=0;
-					u32 template_len = (u32) (seg_url_len + 20); // Allocate extra space for "%"
 					char *szTemplate;
-					GF_SAFE_ALLOC_N(szTemplate, template_len, char);
 
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Resolve Multicast clock on bootstrap segment URL %s template %s\n", val, seg_url));
 
-					strcpy(szTemplate, seg_url);
-					strcat(szTemplate, "%");
+					szTemplate = gf_strdup(seg_url);
+					gf_dynstrcat(&szTemplate, "%", NULL);
 					if (nb_space) {
 						char szFmt[20];
 						sprintf(szFmt, "0%d", nb_space+4);
-						strcat(szTemplate, szFmt);
+						gf_dynstrcat(&szTemplate, szFmt, NULL);
 					}
-					strcat(szTemplate, LLU_SUF);
-					strcat(szTemplate, end);
+					gf_dynstrcat(&szTemplate, LLU_SUF, NULL);
+					gf_dynstrcat(&szTemplate, end, NULL);
 					if (sscanf(val, szTemplate, &number) == 1) {
 						u32 startNum = 1;
 						u64 pto=0;
@@ -2657,7 +2654,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 
 		mime_type = dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload) ;
-		strcpy(mime, mime_type ? mime_type : "");
+		gf_strcpy(mime, mime_type ? mime_type : "");
 		strlwr(mime);
 
 		/*in case the session has been restarted, local_url may have been destroyed - get it back*/
@@ -5697,8 +5694,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				if (vid_type && (!strnicmp(rep->codecs, "avc", 3) || !strnicmp(rep->codecs, "svc", 3) || !strnicmp(rep->codecs, "mvc", 3))) {
 					char prof_string[3];
 					u8 prof;
-					strncpy(prof_string, vid_type+5, 2);
-					prof_string[2]=0;
+					gf_strcpy(prof_string, vid_type+5);
 					prof = atoi(prof_string);
 					//Main 10
 					if (prof==0x6E) {
@@ -6398,25 +6394,22 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 		if (dash->query_string && !dash->xlink_sess) {
 			char *full_url;
 			char *purl, *sep;
-			u32 len;
 			purl = url ? url : period_xlink;
-			len = (u32) (2 + strlen(purl) + strlen(dash->query_string) + (period->ID ? strlen(period->ID) : 0 ) );
-			full_url = gf_malloc(sizeof(char)*len);
 
-			strcpy(full_url, purl);
-			if (strchr(purl, '?')) strcat(full_url, "&");
-			else strcat(full_url, "?");
+			full_url = gf_strdup(purl);
+			if (strchr(purl, '?')) gf_dynstrcat(&full_url, "&", NULL);
+			else gf_dynstrcat(&full_url, "?", NULL);
 
 			//append the query string
-			strcat(full_url, dash->query_string);
+			gf_dynstrcat(&full_url, dash->query_string, NULL);
 			//if =PID is given, replace by period ID
 			sep = strstr(dash->query_string, "=PID");
 			if (sep && period->ID) {
 				char *sep2 = strstr(full_url, "=PID");
 				gf_assert(sep2);
 				sep2[1] = 0;
-				strcat(full_url, period->ID);
-				strcat(full_url, sep+4);
+				gf_dynstrcat(&full_url, period->ID, NULL);
+				gf_dynstrcat(&full_url, sep+4, NULL);
 			}
 
 			/*use non-persistent connection for MPD*/
@@ -9074,7 +9067,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		}
 
 		mtype = dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload);
-		strcpy(mime, mtype ? mtype : "");
+		gf_strcpy(mime, mtype ? mtype : "");
 		strlwr(mime);
 
 		reloc_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
@@ -9145,10 +9138,10 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	if (dash->is_m3u8) {
 		if (is_local) {
 			char *sep;
-			strcpy(local_path, local_url);
+			gf_strcpy(local_path, local_url);
 			sep = gf_file_ext_start(local_path);
 			if (sep) sep[0]=0;
-			strcat(local_path, ".mpd");
+			gf_strcat(local_path, ".mpd");
 
 			e = gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, M3U8_TO_MPD_USE_SEGTIMELINE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
 		} else {

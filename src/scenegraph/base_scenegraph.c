@@ -1266,7 +1266,7 @@ GF_Node *gf_sg_new_base_node()
 GF_EXPORT
 u32 gf_node_get_tag(GF_Node*p)
 {
-	gf_assert(p);
+	if (!p) return (u32)-1;
 	return p->sgprivate->tag;
 }
 GF_EXPORT

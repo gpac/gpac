@@ -2191,8 +2191,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
 			CHECK_IMGPROP
-			strncpy(meta->image_props->iccPath, szSlot+9, GF_ARRAY_LENGTH(meta->image_props->iccPath)-1);
-			meta->image_props->iccPath[GF_ARRAY_LENGTH(meta->image_props->iccPath)-1] = 0;
+			gf_strcpy(meta->image_props->iccPath, szSlot+9);
 		}
 		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
 			CHECK_IMGPROP
@@ -2277,7 +2276,7 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 		char *next;
 		if (!opts || !opts[0]) return 0;
 		if (opts[0]==':') opts += 1;
-		strcpy(szSlot, opts);
+		gf_strcpy(szSlot, opts);
 		next = gf_url_colon_suffix(szSlot, '=');
 		if (next) next[0] = 0;
 
@@ -2588,12 +2587,12 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	if (act_type==TRACK_ACTION_SET_LANGUAGE) {
 		char *ext = strchr(param, '=');
 		if (!strnicmp(param, "all=", 4)) {
-			strncpy(tka->lang, param + 4, LANG_SIZE-1);
+			gf_strcpy(tka->lang, param + 4);
 		}
 		else if (!ext) {
-			strncpy(tka->lang, param, LANG_SIZE-1);
+			gf_strcpy(tka->lang, param);
 		} else {
-			strncpy(tka->lang, ext + 1, LANG_SIZE-1);
+			gf_strcpy(tka->lang, ext + 1);
 			ext[0] = 0;
 			parse_track_id(&tka->target_track, param, GF_FALSE);
 			ext[0] = '=';
@@ -2672,7 +2671,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext2[0] = 0;
-		strncpy(tka->lang, ext+1, LANG_SIZE-1);
+		gf_strcpy(tka->lang, ext+1);
 		ext2[0] = ':';
 		parse_track_id(&tka->newTrackID, ext2 + 1, GF_FALSE);
 		return GF_TRUE;
@@ -4057,10 +4056,10 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 		FILE *t;
 		char szFile[GF_MAX_PATH];
 		if (outName) {
-			strcpy(szFile, outName);
+			gf_strcpy(szFile, outName);
 		} else {
-			strcpy(szFile, inName);
-			strcat(szFile, ".bin");
+			gf_strcpy(szFile, inName);
+			gf_strcat(szFile, ".bin");
 		}
 		t = gf_fopen(szFile, "wb");
 		if (!t) {
@@ -4374,7 +4373,7 @@ static u32 convert_mpd()
 		remote = GF_TRUE;
 
 		if (outName)
-			strcpy(outfile, outName);
+			gf_strcpy(outfile, outName);
 		else {
 			const char *sep = gf_file_basename(inName);
 			char *ext = gf_file_ext_start(sep);
@@ -4384,7 +4383,7 @@ static u32 convert_mpd()
 		}
 	} else {
 		if (outName)
-			strcpy(outfile, outName);
+			gf_strcpy(outfile, outName);
 		else {
 			char *dst = strdup(inName);
 			char *ext = strstr(dst, ".m3u8");
@@ -4475,7 +4474,7 @@ static u32 do_import_sub()
 		return mp4box_cleanup(1);
 	}
 	/* Prepare the export */
-	strcpy(outfile, inName);
+	gf_strcpy(outfile, inName);
 	if (strchr(outfile, '.')) {
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
@@ -4745,20 +4744,20 @@ static GF_Err do_scene_encode()
 	FILE *logs = NULL;
 	if (do_scene_log) {
 		char alogfile[GF_MAX_PATH];
-		strcpy(alogfile, inName);
+		gf_strcpy(alogfile, inName);
 		if (strchr(alogfile, '.')) {
 			while (alogfile[strlen(alogfile)-1] != '.') alogfile[strlen(alogfile)-1] = 0;
 			alogfile[strlen(alogfile)-1] = 0;
 		}
-		strcat(alogfile, "_enc.logs");
+		gf_strcat(alogfile, "_enc.logs");
 		logs = gf_fopen(alogfile, "wt");
 	}
-	strcpy(outfile, outName ? outName : inName);
+	gf_strcpy(outfile, outName ? outName : inName);
 	if (strchr(outfile, '.')) {
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 	}
-	strcat(outfile, ".mp4");
+	gf_strcat(outfile, ".mp4");
 	file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, NULL);
 	smenc_opts.mediaSource = mediaSource ? mediaSource : outfile;
 	e = EncodeFile(inName, file, &smenc_opts, logs);
@@ -4791,16 +4790,16 @@ static GF_Err do_dash()
 		return GF_BAD_PARAM;
 	}
 
-	strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
+	gf_strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 	sep = strrchr(outfile, '.');
 	if (sep) sep[0] = 0;
-	if (!outName) strcat(outfile, "_dash");
-	strcpy(szMPD, outfile);
+	if (!outName) gf_strcat(outfile, "_dash");
+	gf_strcpy(szMPD, outfile);
 	if (outName && sep) {
 		sep[0] = '.';
-		strcat(szMPD, sep);
+		gf_strcat(szMPD, sep);
 	} else {
-		strcat(szMPD, ".mpd");
+		gf_strcat(szMPD, ".mpd");
 	}
 
 	if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
@@ -6613,7 +6612,7 @@ int mp4box_main(int argc, char **argv)
 	}
 #endif
 
-	if ( gf_strlcpy(outfile, outName ? outName : inName, sizeof(outfile)) >= sizeof(outfile) ) {
+	if ( gf_strcpy(outfile, outName ? outName : inName) >= sizeof(outfile) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Filename too long (limit is %d)\n", GF_MAX_PATH));
 		return mp4box_cleanup(1);
 	}
@@ -6834,25 +6833,25 @@ int mp4box_main(int argc, char **argv)
 			goto exit;
 		}
 		if (outName) {
-			strcpy(outfile, outName);
+			gf_strcpy(outfile, outName);
 		} else {
 			const char *tmp_dir = gf_opts_get_key("core", "tmp");
 			char *rel_name = strrchr(inName, GF_PATH_SEPARATOR);
 			if (!rel_name) rel_name = strrchr(inName, '/');
 
-			strcpy(outfile, "");
+			gf_strcpy(outfile, "");
 			if (tmp_dir) {
-				strcpy(outfile, tmp_dir);
-				if (!strchr("\\/", tmp_dir[strlen(tmp_dir)-1])) strcat(outfile, "/");
+				gf_strcpy(outfile, tmp_dir);
+				if (!strchr("\\/", tmp_dir[strlen(tmp_dir)-1])) gf_strcat(outfile, "/");
 			}
-			if (!pack_file) strcat(outfile, "out_");
-			strcat(outfile, rel_name ? rel_name + 1 : inName);
+			if (!pack_file) gf_strcat(outfile, "out_");
+			gf_strcat(outfile, rel_name ? rel_name + 1 : inName);
 
 			if (pack_file) {
-				strcpy(outfile, rel_name ? rel_name + 1 : inName);
+				gf_strcpy(outfile, rel_name ? rel_name + 1 : inName);
 				rel_name = strrchr(outfile, '.');
 				if (rel_name) rel_name[0] = 0;
-				strcat(outfile, ".m21");
+				gf_strcat(outfile, ".m21");
 			}
 		}
 
@@ -6893,7 +6892,7 @@ int mp4box_main(int argc, char **argv)
 		}
 
 	} else if (outName) {
-		strcpy(outfile, outName);
+		gf_strcpy(outfile, outName);
 	}
 
 	e = do_track_act();
@@ -6971,7 +6970,7 @@ int mp4box_main(int argc, char **argv)
 
 		if (!do_frag && !do_hint && !full_interleave && !force_co64) {
 			char szName[GF_MAX_PATH];
-			strcpy(szName, gf_isom_get_filename(file) );
+			gf_strcpy(szName, gf_isom_get_filename(file) );
 			gf_isom_delete(file);
 			file = NULL;
 			if (!outName) {

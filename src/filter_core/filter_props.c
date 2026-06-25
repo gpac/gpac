@@ -272,7 +272,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				}
 				if (!a_len && len) {
 					char szVal[50];
-					gf_strlcpy(szVal, str_start, MIN(len+1, 50) );
+					gf_strcpy(szVal, str_start);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using `%s`\n", value, name, enum_values, szVal));
 					break;
 				}
@@ -545,7 +545,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				szV[0] = value[2*i];
 				szV[1] = value[2*i + 1];
 				szV[2] = 0;
-				sscanf(szV, "%x", &res);
+				if (sscanf(szV, "%x", &res) != 1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong hex format for data: %s\n", value));
+					res = 0;
+				}
 				p.value.data.ptr[i] = res;
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
@@ -663,7 +666,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				len = (u32) (sep - v);
 
 			nv = gf_malloc(sizeof(char)*(len+1));
-			strncpy(nv, v, sizeof(char)*len);
+			memcpy(nv, v, sizeof(char)*len);
 			nv[len] = 0;
 			if (!strnicmp(nv, "file@", 5) ) {
 				u8 *data;
@@ -704,7 +707,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			if (!sep)
 			 	len = (u32) strlen(v);
 			if (len>=99) len=99;
-			strncpy(szV, v, len);
+			memcpy(szV, v, len);
 			szV[len] = 0;
 			if (p.type == GF_PROP_UINT_LIST) {
 				u32 val_uint;
@@ -724,7 +727,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
 			} else if (p.type == GF_PROP_SINT_LIST) {
 				s32 val_int;
-				sscanf(szV, "%d", &val_int);
+				if (sscanf(szV, "%d", &val_int) != 1) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for sint arg %s[%d] - using 0\n", value, name, p.value.sint_list.nb_items));
+					val_int = 0;
+				}
 				p.value.sint_list.vals = gf_realloc(p.value.sint_list.vals, (p.value.sint_list.nb_items+1) * sizeof(u32));
 				p.value.sint_list.vals[p.value.sint_list.nb_items] = val_int;
 			} else {
@@ -2016,7 +2022,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		if (!dump) return NULL;
 		break;
 	}
-	Bool no_reduce = dump_data_flags & GF_PROP_DUMP_NO_REDUCE;
+	Bool no_reduce = (dump_data_flags & GF_PROP_DUMP_NO_REDUCE) ? GF_TRUE : GF_FALSE;
 	u32 dump_data_type = dump_data_flags&0xFF;
 
 	dump[0] = 0;
@@ -2037,7 +2043,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 					len = (u32) strlen(str_start);
 				}
 				if (att->value.uint == enum_val) {
-					strncpy(dump, str_start, len);
+					memcpy(dump, str_start, len);
 					dump[len]=0;
 					break;
 				}
@@ -2125,20 +2131,20 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	case GF_PROP_STRING_LIST:
 	{
 		u32 i, count = att->value.string_list.nb_items;
-		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
-		dump[len]=0;
+		dump[0]=0;
 		for (i=0; i<count; i++) {
 			char *s = att->value.string_list.vals[i];
-			if (!i) {
-				strncpy(dump, s, len);
-			} else {
-				strcat(dump, ",");
-				strncat(dump, s, len-1);
-			}
-			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
-			if (len<=1) {
+			if (!s) continue;
+			u32 slen = (u32) strlen(s);
+			if (strlen(dump)+slen>=GF_PROP_DUMP_ARG_SIZE) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("String list is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
 				return dump;
+			}
+			if (!i) {
+				gf_strlcpy(dump, s, GF_PROP_DUMP_ARG_SIZE);
+			} else {
+				gf_strlcat(dump, ",", GF_PROP_DUMP_ARG_SIZE);
+				gf_strlcat(dump, s, GF_PROP_DUMP_ARG_SIZE);
 			}
 		}
 		return dump;
@@ -2149,8 +2155,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	case GF_PROP_VEC2I_LIST:
 	{
 		u32 i, count = att->value.uint_list.nb_items;
-		u32 len = GF_PROP_DUMP_ARG_SIZE-1;
-		dump[len]=0;
+		dump[0]=0;
 		for (i=0; i<count; i++) {
 			char szItem[1024];
 			if (att->type==GF_PROP_UINT_LIST) {
@@ -2162,16 +2167,16 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 			} else {
 				sprintf(szItem, "%dx%d", att->value.v2i_list.vals[i].x, att->value.v2i_list.vals[i].x);
 			}
-			if (!i) {
-				strncpy(dump, szItem, len);
-			} else {
-				strcat(dump, ",");
-				strncat(dump, szItem, len-1);
-			}
-			len = GF_PROP_DUMP_ARG_SIZE - 1 - (u32) strlen(dump);
-			if (len<=1) {
+			u32 slen = (u32) strlen(szItem);
+			if (strlen(dump) + slen >= GF_PROP_DUMP_ARG_SIZE) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("List is too large to fit in predefined property dump buffer of %d bytes, truncating\n", GF_PROP_DUMP_ARG_SIZE));
 				return dump;
+			}
+			if (!i) {
+				gf_strlcpy(dump, szItem, GF_PROP_DUMP_ARG_SIZE);
+			} else {
+				gf_strlcat(dump, ",", GF_PROP_DUMP_ARG_SIZE);
+				gf_strlcat(dump, szItem, GF_PROP_DUMP_ARG_SIZE);
 			}
 		}
 		return dump;

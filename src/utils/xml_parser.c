@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2024
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -64,8 +64,7 @@ GF_STATIC char *xml_translate_xml_string(char *str)
 				u16 wchar[2];
 				u32 val=0, _len;
 				const unsigned short *srcp;
-				strncpy(szChar, str+i, 10);
-				szChar[10] = 0;
+				gf_strcpy(szChar, str+i);
 				end = strchr(szChar, ';');
 				if (!end) break;
 				end[1] = 0;
@@ -232,9 +231,11 @@ static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt,
 	if (strlen(parser->err_msg)+30 < GF_ARRAY_LENGTH(parser->err_msg)) {
 		char szM[20];
 		snprintf(szM, 20, " - Line %d: ", parser->line + 1);
-		strcat(parser->err_msg, szM);
+		gf_strcat(parser->err_msg, szM);
 		len = (u32) strlen(parser->err_msg);
-		strncpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
+		u32 buffer_offset = linepos ? linepos : parser->current_pos;
+		if (parser->alloc_size >= buffer_offset+10)
+			memcpy(parser->err_msg + len, parser->buffer+buffer_offset, 10);
 		parser->err_msg[len + 10] = 0;
 	}
 	parser->sax_state = SAX_STATE_SYNTAX_ERROR;
@@ -1061,7 +1062,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 				parser->in_entity = GF_FALSE;
 				continue;
 			}
-			if (!ent) {
+			if (!ent || parser->line_size < (u32) strlen(entityStart)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Entity not found\n"));
 				return GF_CORRUPTED_DATA;
 			}
@@ -1447,7 +1448,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 								szLine = gf_realloc(szLine, alloc_size);	\
 							}\
 							if (__is_copy) { memmove(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
-							else strcat(szLine, __str); \
+							else gf_strlcat(szLine, __str, alloc_size); \
 
 	from_buffer=GF_FALSE;
 #ifdef NO_GZIP
@@ -1483,7 +1484,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		gf_free(szLine2);
 		return NULL;
 	}
-	strcpy(szLine, parser->buffer + parser->att_name_start);
+	gf_strlcpy(szLine, parser->buffer + parser->att_name_start, alloc_size);
 	cur_line = szLine;
 	att_len = (u32) strlen(att_value);
 	state = 0;

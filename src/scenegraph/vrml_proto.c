@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -389,9 +389,8 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		if (inst_id_suffix[0] && id) {
 			id = gf_sg_get_next_available_node_id(inScene);
 			if (orig_name) {
-				szNodeName = gf_malloc(sizeof(char)*(strlen(orig_name)+strlen(inst_id_suffix)+1));
-				strcpy(szNodeName, orig_name);
-				strcat(szNodeName, inst_id_suffix);
+				szNodeName = gf_strdup(orig_name);
+				gf_dynstrcat(&szNodeName, inst_id_suffix, NULL);
 			}
 		}
 		else if (orig_name) szNodeName = gf_strdup(orig_name);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -1501,7 +1501,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	/*screen is portrait */
 	case 1:
 		equal = (compositor->display_width < compositor->display_height) ? 1 : 2;
-		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		gf_strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*screen width */
 	case 2:
@@ -1543,25 +1543,25 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	case 6:
 		opt = gf_opts_get_key("Profile", "Automotive");
 		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
-		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		gf_strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*visually challenged - fixme we should use a profile doc ?*/
 	case 7:
 		opt = gf_opts_get_key("Profile", "VisuallyChallenged");
 		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
-		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		gf_strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*has touch - fixme we should find out by ourselves*/
 	case 8:
 		opt = gf_opts_get_key("Profile", "HasTouchScreen");
 		equal = (!opt || !strcmp(opt, "yes")) ? 1 : 2;
-		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		gf_strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	/*has key - fixme we should find out by ourselves*/
 	case 9:
 		opt = gf_opts_get_key("Profile", "HasKeyPad");
 		equal = (!opt || !strcmp(opt, "yes")) ? 1 : 2;
-		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		gf_strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	}
 

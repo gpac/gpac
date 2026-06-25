@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR codec sub-project
@@ -666,13 +666,12 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 				if (s) { gf_free(s); }
 				return;
 			}
-
 			iri->string[0] = 0;
 			if (s) {
-				strcpy(iri->string, s);
+				memcpy(iri->string, s, len_rad);
 				gf_free(s);
 			}
-			strcat(iri->string, ",");
+			iri->string[len_rad] = ',';
 			gf_bs_read_data(lsr->bs, iri->string + len_rad + 1, len);
 			iri->string[len_rad + 1 + len] = 0;
 		}

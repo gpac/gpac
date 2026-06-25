@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Pierre Souchay
- *			Copyright (c) Telecom ParisTech 2010-2025
+ *			Copyright (c) Telecom ParisTech 2010-2026
  *					All rights reserved
  *
  *   This file is part of GPAC / downloader sub-project
@@ -541,7 +541,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	if (start_range && end_range) {
 		snprintf(tmp, GF_MAX_PATH, "%s_"LLD"-"LLD, url, start_range, end_range );
 	} else {
-		strcpy ( tmp, url );
+		gf_strcpy ( tmp, url );
 	}
 	gf_sha1_csum ((u8*) tmp, (u32) strlen ( tmp ), hash );
 	tmp[0] = 0;
@@ -552,7 +552,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 			char t[3];
 			t[2] = 0;
 			sprintf ( t, "%02X", hash[i] );
-			strcat ( tmp, t );
+			gf_strcat ( tmp, t );
 		}
 	}
 	assert ( strlen ( tmp ) == (_CACHE_HASH_SIZE * 2) );
@@ -577,12 +577,14 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	entry->write_session = NULL;
 	entry->sessions = gf_list_new();
 
+	u32 asize;
 	if (entry->memory_stored) {
-		entry->cache_filename = (char*)gf_malloc ( strlen ("gmem://") + 8 + strlen("@") + 16 + 1);
+		asize =  (u32) strlen ("gmem://") + 8 +  (u32) strlen("@") + 16 + 1;
 	} else {
 		/* Sizeof cache directory + hash + possible extension */
-		entry->cache_filename = (char*)gf_malloc ( strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1);
+		asize =  (u32) strlen ( cache_directory ) +  (u32) strlen(cache_file_prefix) +  (u32) strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1;
 	}
+	entry->cache_filename = (char*)gf_malloc(asize);
 
 	if ( !entry->hash || !entry->url || !entry->cache_filename || !entry->sessions) {
 		/* Probably out of memory */
@@ -597,7 +599,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 		entry->cache_blob.size = entry->contentLength;
 		char *burl = gf_blob_register(&entry->cache_blob);
 		if (burl) {
-			strcpy(entry->cache_filename, burl);
+			gf_strlcpy(entry->cache_filename, burl, asize);
 			gf_free(burl);
 		}
 		return entry;
@@ -605,10 +607,10 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 
 
 	tmp[0] = '\0';
-	strcpy ( entry->cache_filename, cache_directory );
-	strcat( entry->cache_filename, cache_file_prefix );
-	strcat ( entry->cache_filename, entry->hash );
-	strcpy ( tmp, url );
+	gf_strlcpy ( entry->cache_filename, cache_directory, asize );
+	gf_strlcat( entry->cache_filename, cache_file_prefix, asize);
+	gf_strlcat ( entry->cache_filename, entry->hash, asize);
+	gf_strcpy ( tmp, url );
 
 	{
 		char * parser;
@@ -619,12 +621,9 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 		if ( parser )
 			parser[0] = '\0';
 		parser = strrchr ( tmp, '.' );
-		if ( parser && ( strlen ( parser ) < _CACHE_MAX_EXTENSION_SIZE ) )
-			strncpy(ext, parser, _CACHE_MAX_EXTENSION_SIZE);
-		else
-			strncpy(ext, default_cache_file_suffix, _CACHE_MAX_EXTENSION_SIZE);
+		gf_strcpy(ext, parser ? parser : default_cache_file_suffix);
 		assert (strlen(ext));
-		strcat( entry->cache_filename, ext);
+		gf_strlcat( entry->cache_filename, ext, asize);
 	}
 
 	gf_dynstrcat(&entry->cfg_filename, entry->cache_filename, NULL);
@@ -803,7 +802,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		entry->cache_blob.size = entry->contentLength;
 		char *burl = gf_blob_register(&entry->cache_blob);
 		if (burl) {
-			strcpy(entry->cache_filename, burl);
+			gf_strlcpy(entry->cache_filename, burl, (strlen(entry->cache_filename)+1) );
 			gf_free(burl);
 		}
 		gf_mx_v(entry->cache_blob.mx);
@@ -863,7 +862,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 			entry->cache_blob.size = entry->contentLength;
 			char *burl = gf_blob_register(&entry->cache_blob);
 			if (burl) {
-				strcpy(entry->cache_filename, burl);
+				gf_strlcpy(entry->cache_filename, burl, (strlen(entry->cache_filename)+1) );
 				gf_free(burl);
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
@@ -1182,7 +1181,7 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 		if (!entry->written_in_cache) {
 			char *burl = gf_blob_register(blob);
 			if (burl) {
-				strcpy(entry->cache_filename, burl);
+				gf_strlcpy(entry->cache_filename, burl, (strlen(entry->cache_filename)+1) );
 				gf_free(burl);
 			}
 		}
@@ -1208,7 +1207,7 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 			if (!entry->written_in_cache) {
 				char *burl = gf_blob_register(&entry->cache_blob);
 				if (burl) {
-					strcpy(entry->cache_filename, burl);
+					gf_strlcpy(entry->cache_filename, burl, (strlen(entry->cache_filename)+1) );
 					gf_free(burl);
 				}
 			}

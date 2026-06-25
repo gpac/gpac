@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2024
+ *			Copyright (c) Telecom ParisTech 2018-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / AVI output filter
@@ -162,16 +162,16 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	switch (codec_id) {
 	case GF_CODECID_MPEG4_PART2:
-		strcpy(ctx->comp_name, "XVID");
+		gf_strcpy(ctx->comp_name, "XVID");
 		break;
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
 	case GF_CODECID_MVC:
-		strcpy(ctx->comp_name, "h264");
+		gf_strcpy(ctx->comp_name, "h264");
 		break;
 //	case GF_CODECID_HEVC:
 //	case GF_CODECID_LHVC:
-//		strcpy(szComp, "hevc");
+//		gf_strcpy(szComp, "hevc");
 //		break;
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
@@ -205,7 +205,7 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (p) {
 			if ((p->type==GF_PROP_UINT) || (p->type==GF_PROP_4CC)) {
 				if (type==GF_STREAM_VISUAL)
-					strcpy(ctx->comp_name, gf_4cc_to_str(p->value.uint));
+					gf_strcpy(ctx->comp_name, gf_4cc_to_str(p->value.uint));
 				else
 					wfmt = p->value.uint;
 				break;
@@ -217,13 +217,13 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					str+=1;
 				}
 				if (type==GF_STREAM_VISUAL)
-					strncpy(ctx->comp_name, str, 4);
+					gf_strlcpy(ctx->comp_name, str, 5);
 				else
 					wfmt = gf_4cc_parse(str);
 				break;
 			}
 		}
-		strcpy(ctx->comp_name, gf_4cc_to_str(codec_id));
+		gf_strcpy(ctx->comp_name, gf_4cc_to_str(codec_id));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AVIOut] Muxing codec %s to unknown AVI type %s, set property `AVIType` on input PID to override\n", gf_codecid_name(codec_id), ctx->comp_name));
 		break;
 	}

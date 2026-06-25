@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2026
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript vector graphics bindings
@@ -6172,7 +6172,7 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 	}
 	if (!strncmp(fileName, "$GSHARE/", 8)) {
 		gf_opts_default_shared_directory(szPath);
-		strcat(szPath, fileName + 7);
+		gf_strcat(szPath, fileName + 7);
 		fileName = szPath;
 	}
 	if (!gf_file_exists(fileName) || (gf_file_load_data(fileName, &data, &size) != GF_OK)) {

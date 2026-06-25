@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG4 text renderer filter
@@ -672,30 +672,30 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 
 	fs->size = INT2FIX(fontSize);
 	gf_free(fs->style.buffer);
-	strcpy(szStyle, "");
+	gf_strcpy(szStyle, "");
 	if (styleFlags & GF_TXT_STYLE_BOLD) {
-		if (styleFlags & GF_TXT_STYLE_ITALIC) strcpy(szStyle, "BOLDITALIC");
-		else strcpy(szStyle, "BOLD");
-	} else if (styleFlags & GF_TXT_STYLE_ITALIC) strcat(szStyle, "ITALIC");
-	if (!strlen(szStyle)) strcpy(szStyle, "PLAIN");
+		if (styleFlags & GF_TXT_STYLE_ITALIC) gf_strcpy(szStyle, "BOLDITALIC");
+		else gf_strcpy(szStyle, "BOLD");
+	} else if (styleFlags & GF_TXT_STYLE_ITALIC) gf_strcat(szStyle, "ITALIC");
+	if (!strlen(szStyle)) gf_strcpy(szStyle, "PLAIN");
 	/*also underline for URLs*/
-	if ((styleFlags & GF_TXT_STYLE_UNDERLINED) || (tc->hlink && tc->hlink->URL)) strcat(szStyle, " UNDERLINED");
-	if (styleFlags & GF_TXT_STYLE_STRIKETHROUGH) strcat(szStyle, " STRIKETHROUGH");
+	if ((styleFlags & GF_TXT_STYLE_UNDERLINED) || (tc->hlink && tc->hlink->URL)) gf_strcat(szStyle, " UNDERLINED");
+	if (styleFlags & GF_TXT_STYLE_STRIKETHROUGH) gf_strcat(szStyle, " STRIKETHROUGH");
 
 	if (tc->is_highlight) {
 		if (tc->highlight_col) {
 			char szTxt[50];
 			sprintf(szTxt, " HIGHLIGHT#%x", tc->highlight_col);
-			strcat(szStyle, szTxt);
+			gf_strcat(szStyle, szTxt);
 		} else {
-			strcat(szStyle, " HIGHLIGHT#RV");
+			gf_strcat(szStyle, " HIGHLIGHT#RV");
 		}
 	}
 	/*a better way would be to draw the entire text box in a composite texture & bitmap but we can't really rely
 	on text box size (in MP4Box, it actually defaults to the entire video area) and drawing a too large texture
 	& bitmap could slow down rendering*/
-	if (ctx->texture) strcat(szStyle, " TEXTURED");
-	if (ctx->outline) strcat(szStyle, " OUTLINED");
+	if (ctx->texture) gf_strcat(szStyle, " TEXTURED");
+	if (ctx->outline) gf_strcat(szStyle, " OUTLINED");
 
 	fs->style.buffer = gf_strdup(szStyle);
 	fs->horizontal = (tsd->displayFlags & GF_TXT_VERTICAL) ? 0 : 1;

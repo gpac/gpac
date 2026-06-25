@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / downloader sub-project
@@ -295,7 +295,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 	sess->user_io = user_io;
 	sess->usr_cbk = usr_cbk;
 
-	strcpy(sess->method, "GET");
+	gf_strcpy(sess->method, "GET");
 
 	sess->dl_flags = dl_flags;
 
@@ -307,7 +307,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 		memset(&par, 0, sizeof(GF_NETIO_Parameter));
 		par.msg_type = GF_NETIO_GET_METHOD;
 		sess->user_io(sess->usr_cbk, &par);
-		if (par.name) strcpy(sess->method, par.name);
+		if (par.name) gf_strcpy(sess->method, par.name);
 
 		sess->nb_req_hdrs=0;
 		while (1) {

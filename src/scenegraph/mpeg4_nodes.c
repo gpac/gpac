@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -7129,8 +7129,7 @@ GF_Node *Fog_Create()
 	p->color.red = FLT2FIX(1);
 	p->color.green = FLT2FIX(1);
 	p->color.blue = FLT2FIX(1);
-	p->fogType.buffer = (char*)gf_malloc(sizeof(char) * 7);
-	strcpy(p->fogType.buffer, "LINEAR");
+	p->fogType.buffer = gf_strdup("LINEAR");
 	p->visibilityRange = FLT2FIX(0);
 	return (GF_Node *)p;
 }
@@ -7294,18 +7293,15 @@ GF_Node *FontStyle_Create()
 	/*default field values*/
 	p->family.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->family.count = 1;
-	p->family.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->family.vals[0], "SERIF");
+	p->family.vals[0] = gf_strdup("SERIF");
 	p->horizontal = 1;
-	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->justify.vals[0], "BEGIN");
+	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = 1;
 	p->size = FLT2FIX(1.0);
 	p->spacing = FLT2FIX(1.0);
-	p->style.buffer = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->style.buffer, "PLAIN");
+	p->style.buffer = gf_strdup("PLAIN");
 	p->topToBottom = 1;
 	return (GF_Node *)p;
 }
@@ -9196,8 +9192,7 @@ GF_Node *Layout_Create()
 	p->horizontal = 1;
 	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->justify.vals[0], "BEGIN");
+	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = 1;
 	p->topToBottom = 1;
 	p->spacing = FLT2FIX(1);
@@ -10118,10 +10113,8 @@ GF_Node *NavigationInfo_Create()
 	p->speed = FLT2FIX(1.0);
 	p->type.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->type.count = 2;
-	p->type.vals[0] = (char*)gf_malloc(sizeof(char) * 5);
-	strcpy(p->type.vals[0], "WALK");
-	p->type.vals[1] = (char*)gf_malloc(sizeof(char) * 4);
-	strcpy(p->type.vals[1], "ANY");
+	p->type.vals[0] = gf_strdup("WALK");
+	p->type.vals[1] = gf_strdup("ANY");
 	p->visibilityLimit = FLT2FIX(0.0);
 	return (GF_Node *)p;
 }
@@ -32298,23 +32291,19 @@ GF_Node *XFontStyle_Create()
 	/*default field values*/
 	p->fontName.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->fontName.count = 1;
-	p->fontName.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->fontName.vals[0], "SERIF");
+	p->fontName.vals[0] = gf_strdup("SERIF");
 	p->horizontal = 1;
 	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->justify.vals[0], "BEGIN");
+	p->justify.vals[0] = gf_strdup("BEGIN");
 	p->leftToRight = 1;
 	p->size = FLT2FIX(1.0);
-	p->stretch.buffer = (char*)gf_malloc(sizeof(char) * 7);
-	strcpy(p->stretch.buffer, "NORMAL");
+	p->stretch.buffer = gf_strdup("NORMAL");
 	p->letterSpacing = FLT2FIX(0.0);
 	p->wordSpacing = FLT2FIX(0.0);
 	p->weight = 400;
 	p->fontKerning = 1;
-	p->style.buffer = (char*)gf_malloc(sizeof(char) * 6);
-	strcpy(p->style.buffer, "PLAIN");
+	p->style.buffer = gf_strdup("PLAIN");
 	p->topToBottom = 1;
 	return (GF_Node *)p;
 }

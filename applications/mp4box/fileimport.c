@@ -945,9 +945,8 @@ reparse_opts:
 			if (*(ext+5) == '.')
 				import->force_ext = gf_strdup(ext+5);
 			else {
-				import->force_ext = gf_calloc(1+strlen(ext+5)+1, 1);
-				import->force_ext[0] = '.';
-				strcat(import->force_ext+1, ext+5);
+				import->force_ext = gf_strdup(".");
+				gf_dynstrcat(&import->force_ext, ext+5, NULL);
 			}
 		}
 		else if (!strnicmp(ext+1, "hdlr=", 5)) handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
@@ -1311,8 +1310,7 @@ reparse_opts:
 			}
 		}
 		else if (!strnicmp(ext + 1, "dvp=", 4)) {
-			strncpy(dv_profile, ext + 5, 99);
-			dv_profile[99]=0;
+			gf_strcpy(dv_profile, ext + 5);
 		}
 		else if (!strnicmp(ext + 1, "dvmdc=", 6)) {
 			dv_md_compression = parse_s32(ext+7, "dvmdc=");
@@ -1328,8 +1326,7 @@ reparse_opts:
 		//old name
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
 			M4_LOG(GF_LOG_WARNING, ("Deprecated option name, use `:dvp=` instead\n"));
-			strncpy(dv_profile, ext + 12, 99);
-			dv_profile[99]=0;
+			gf_strcpy(dv_profile, ext + 12);
 		}
 		else if (!strnicmp(ext+1, "fullrange=", 10)) {
 			if (!stricmp(ext+11, "off") || !stricmp(ext+11, "no")) fullrange = 0;
@@ -2343,7 +2340,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		rap_split = GF_TRUE;
 
 	//split in same dir as source
-	strcpy(szName, inName);
+	gf_strcpy(szName, inName);
 	ext = strrchr(szName, '.');
 	if (ext) ext[0] = 0;
 
@@ -2364,8 +2361,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	}
 	//default output name formatting
 	if (!outName) {
-		strcpy(szFile, szName);
-		strcat(szFile, "_$num%03d$");
+		gf_strcpy(szFile, szName);
+		gf_strcat(szFile, "_$num%03d$");
 	}
 
 	gf_dynstrcat(&filter_args, "reframer", NULL);
@@ -2505,44 +2502,44 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	}
 
 	if (!outName) {
-		strcat(szFile, ".mp4");
+		gf_strcat(szFile, ".mp4");
 	} else {
-		strcpy(szFile, outName);
+		gf_strcpy(szFile, outName);
 	}
 	if (gf_dir_exists(szFile)) {
 		char c = szFile[strlen(szFile)-1];
 		if ((c!='/') && (c!='\\'))
-			strcat(szFile, "/");
+			gf_strcat(szFile, "/");
 
-		strcat(szFile, szName);
-		strcat(szFile, "_$num%03d$.mp4");
+		gf_strcat(szFile, szName);
+		gf_strcat(szFile, "_$num%03d$.mp4");
 		M4_LOG(GF_LOG_WARNING, ("Split output is a directory, will use template %s\n", szFile));
 	}
 	else if (split_size_kb || split_dur) {
 		if (!strchr(szFile, '$') && (stricmp(szFile, "null") || !strcmp(szFile, "/dev/null")) ) {
 			char *sep = gf_file_ext_start(szFile);
 			if (sep) sep[0] = 0;
-			strcat(szFile, "_$num$.mp4");
+			gf_strcat(szFile, "_$num$.mp4");
 			M4_LOG(GF_LOG_WARNING, ("Split by %s but output not a template, using %s as output\n", split_size_kb ? "size" : "duration", szFile));
 		}
 	}
 	if (do_frag) {
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
-		strcat(szFile, ":store=frag");
-		strcat(szFile, szArgs);
+		gf_strcat(szFile, ":store=frag");
+		gf_strcat(szFile, szArgs);
 	}
 	else if (do_flat==1) {
-		strcat(szFile, ":store=flat");
+		gf_strcat(szFile, ":store=flat");
 	}
 	else if (do_flat || interleaving_time) {
 		if (do_flat==3) {
-			strcat(szFile, ":store=fstart");
+			gf_strcat(szFile, ":store=fstart");
 		}
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
-		strcat(szFile, szArgs);
+		gf_strcat(szFile, szArgs);
 	}
 	if (use_mfra)
-		strcat(szFile, ":mfra");
+		gf_strcat(szFile, ":mfra");
 
 	dst = gf_fs_load_destination(fs, szFile, NULL, NULL, &e);
 	if (!dst) {
@@ -3382,8 +3379,8 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	if (strnicmp(szName, cat_enum->szRad1, len_rad1)) return 0;
 	if (strlen(cat_enum->szRad2) && !strstr(szName + len_rad1, cat_enum->szRad2) ) return 0;
 
-	strcpy(szFileName, szPath);
-	strcat(szFileName, cat_enum->szOpt);
+	gf_strcpy(szFileName, szPath);
+	gf_strcat(szFileName, cat_enum->szOpt);
 
 	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
 	if (e) return 1;
@@ -3407,43 +3404,43 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", fileName));
 		return GF_NOT_SUPPORTED;
 	}
-	strcpy(cat_enum.szPath, fileName);
+	gf_strcpy(cat_enum.szPath, fileName);
 	sep = strrchr(cat_enum.szPath, GF_PATH_SEPARATOR);
 	if (!sep) sep = strrchr(cat_enum.szPath, '/');
 	if (!sep) {
-		strcpy(cat_enum.szPath, ".");
+		gf_strcpy(cat_enum.szPath, ".");
 		if (strlen(fileName) >= sizeof(cat_enum.szRad1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", fileName));
 			return GF_NOT_SUPPORTED;
 		}
-		strcpy(cat_enum.szRad1, fileName);
+		gf_strcpy(cat_enum.szRad1, fileName);
 	} else {
 		if (strlen(sep + 1) >= sizeof(cat_enum.szRad1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", (sep + 1)));
 			return GF_NOT_SUPPORTED;
 		}
-		strcpy(cat_enum.szRad1, sep+1);
+		gf_strcpy(cat_enum.szRad1, sep+1);
 		sep[0] = 0;
 	}
 	sep = strchr(cat_enum.szRad1, '*');
 	if (!sep) sep = strchr(cat_enum.szRad1, '@');
-	if (strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is too long.\n", (sep + 1)));
+	if (!sep || strlen(sep + 1) >= sizeof(cat_enum.szRad2)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("File name %s is invald.\n", cat_enum.szRad1));
 		return GF_NOT_SUPPORTED;
 	}
-	strcpy(cat_enum.szRad2, sep+1);
+	gf_strcpy(cat_enum.szRad2, sep+1);
 	sep[0] = 0;
 	sep = NULL;
 	if (gf_sys_old_arch_compat()) sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
 	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2, '=');
-	strcpy(cat_enum.szOpt, "");
+	gf_strcpy(cat_enum.szOpt, "");
 	if (sep) {
 		if (strlen(sep) >= sizeof(cat_enum.szOpt)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Invalid option: %s.\n", sep));
 			return GF_NOT_SUPPORTED;
 		}
-		strcpy(cat_enum.szOpt, sep);
+		gf_strcpy(cat_enum.szOpt, sep);
 		sep[0] = 0;
 	}
 	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
@@ -3666,7 +3663,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	char szName[GF_MAX_PATH+100];
 	FILE *f;
 
-	strcpy(szRad, bifsOutputFile);
+	gf_strcpy(szRad, bifsOutputFile);
 	ext = strrchr(szRad, '.');
 	if (ext) ext[0] = 0;
 
@@ -3862,7 +3859,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 		if (e) goto exit;
 
 		/*check if we dump to BT, XMT or encode to MP4*/
-		strcpy(szF, outputContext);
+		gf_strcpy(szF, outputContext);
 		ext = strrchr(szF, '.');
 		d_mode = GF_SM_DUMP_BT;
 		do_enc = 0;
@@ -3874,7 +3871,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 
 		if (do_enc) {
 			GF_ISOFile *mp4;
-			strcat(szF, ".mp4");
+			gf_strcat(szF, ".mp4");
 			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT, NULL);
 			e = gf_sm_encode_to_file(ctx, mp4, NULL);
 			if (e) gf_isom_delete(mp4);
@@ -3975,10 +3972,10 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 		if (sep) {
 			char c = sep[1];
 			sep[1]=0;
-			strcpy(root_dir, file_name);
+			gf_strcpy(root_dir, file_name);
 			sep[1] = c;
 		} else {
-			strcpy(root_dir, "./");
+			gf_strcpy(root_dir, "./");
 		}
 		wgt.dir = root_dir;
 		wgt.root_file = file_name;

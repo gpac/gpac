@@ -1051,7 +1051,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				char szSRC[100];
 				GF_FileIO *gfio = NULL;
 				char *mpath = ctx->out_path ? ctx->out_path : ctx->mname;
-				u32 len;
 				if (!strncmp(mpath, "gfio://", 7)) {
 					gfio = gf_fileio_from_url(mpath);
 					if (!gfio) return GF_BAD_PARAM;
@@ -1060,20 +1059,17 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					if (!mpath) return GF_OUT_OF_MEM;
 				}
 
-				len = (u32) strlen(mpath);
-				char *out_path = gf_malloc(len+10);
+				char *out_path = gf_strdup(mpath);
 				if (!out_path) return GF_OUT_OF_MEM;
-				memcpy(out_path, mpath, len);
-				out_path[len]=0;
 				char *sep = gf_file_ext_start(out_path);
 				if (sep) sep[0] = 0;
 				if (ctx->do_m3u8) {
-					strcat(out_path, ".mpd");
+					gf_dynstrcat(&out_path, ".mpd", NULL);
 					force_ext = "mpd";
 				} else {
 					ctx->opid_alt_m3u8 = GF_TRUE;
 					ctx->do_m3u8 = GF_TRUE;
-					strcat(out_path, ".m3u8");
+					gf_dynstrcat(&out_path, ".m3u8", NULL);
 					force_ext = "m3u8";
 				}
 				if (gfio) {
@@ -2060,33 +2056,32 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	Bool is_m2ts = (ctx->muxtype==DASHER_MUX_TS) ? GF_TRUE : GF_FALSE;
 	if (ctx->profile==GF_DASH_PROFILE_LIVE) {
 		if (ctx->use_xlink && !is_m2ts) {
-			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-live:2014");
+			gf_strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-live:2014");
 		} else {
 			sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", is_m2ts ? "mp2t-simple" : "isoff-live");
 		}
 	} else if (ctx->profile==GF_DASH_PROFILE_ONDEMAND) {
 		if (ctx->use_xlink) {
-			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-on-demand:2014");
+			gf_strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-on-demand:2014");
 		} else {
-			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011");
+			gf_strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011");
 		}
 	} else if (ctx->profile==GF_DASH_PROFILE_MAIN) {
 		sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", is_m2ts ? "mp2t-main" : "isoff-main");
 	} else if (ctx->profile==GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-		strcpy(profiles_string, "urn:hbbtv:dash:profile:isoff-live:2012");
+		gf_strcpy(profiles_string, "urn:hbbtv:dash:profile:isoff-live:2012");
 	} else if (ctx->profile==GF_DASH_PROFILE_AVC264_LIVE) {
-		strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
+		gf_strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
 	} else if (ctx->profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
-		strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011,http://dashif.org/guidelines/dash264");
+		gf_strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011,http://dashif.org/guidelines/dash264");
 	} else if (ctx->profile==GF_DASH_PROFILE_DASHIF_LL) {
-		strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-live:2011,http://www.dashif.org/guidelines/low-latency-live-v5");
+		gf_strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-live:2011,http://www.dashif.org/guidelines/low-latency-live-v5");
 	} else {
-		strcpy(profiles_string, "urn:mpeg:dash:profile:full:2011");
+		gf_strcpy(profiles_string, "urn:mpeg:dash:profile:full:2011");
 	}
 
 	if (ctx->cmaf) {
-		const size_t offset = strlen(profiles_string);
-		strncat(profiles_string+offset, ",urn:mpeg:dash:profile:cmaf:2019", GF_MAX_PATH-offset-1);
+		gf_strcat(profiles_string, ",urn:mpeg:dash:profile:cmaf:2019");
 	}
 
 	if (ctx->profX) {
@@ -2380,21 +2375,21 @@ static GF_DashStream *get_base_ds(GF_DasherCtx *ctx, GF_DashStream *for_ds)
 	return NULL;
 }
 
-static void get_canon_urn(bin128 URN, char *res)
+static void get_canon_urn(bin128 URN, char res[40])
 {
 	char sres[4];
 	u32 i;
 	/* Output canonical UUID form */
-	strcpy(res, "");
-	for (i=0; i<4; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
-	strcat(res, "-");
-	for (i=4; i<6; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
-	strcat(res, "-");
-	for (i=6; i<8; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
-	strcat(res, "-");
-	for (i=8; i<10; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
-	strcat(res, "-");
-	for (i=10; i<16; i++) { sprintf(sres, "%02x", URN[i]); strcat(res, sres); }
+	gf_strlcpy(res, "", 40);
+	for (i=0; i<4; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
+	gf_strlcat(res, "-", 40);
+	for (i=4; i<6; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
+	gf_strlcat(res, "-", 40);
+	for (i=6; i<8; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
+	gf_strlcat(res, "-", 40);
+	for (i=8; i<10; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
+	gf_strlcat(res, "-", 40);
+	for (i=10; i<16; i++) { sprintf(sres, "%02x", URN[i]); gf_strlcat(res, sres, 40); }
 }
 
 static const char *get_drm_kms_name(const char *canURN)
@@ -4464,14 +4459,14 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			continue;
 		}
 		if (ds->template) {
-			strcpy(szTemplate, ds->template);
+			gf_strcpy(szTemplate, ds->template);
 			if (ctx->sigfrag) {
 				const GF_PropertyValue *p = gf_filter_pid_get_property_str(ds->ipid, "source_template");
 				if (p && p->value.boolean)
 					is_source_template = GF_TRUE;
 			}
 		} else {
-			strcpy(szTemplate, ctx->template ? ctx->template : "");
+			gf_strcpy(szTemplate, ctx->template ? ctx->template : "");
 		}
 
 		if (use_inband) {
@@ -4534,13 +4529,13 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			}
 			use_dash_suffix = GF_TRUE;
 		} else if (split_set_names) {
-			strcpy(szDASHSuffix, szSetFileSuffix);
+			gf_strcpy(szDASHSuffix, szSetFileSuffix);
 			use_dash_suffix = GF_TRUE;
 		}
 		//we need dash suffix in template, but the template may be user-provided without dash suffix. If so add it
 		//we don't add suffix if we have $RepresentationID or $Path set, we assume the user knows what (s)he's doing
 		if (!ctx->tpl_force && use_dash_suffix && !strstr(szTemplate, "$FS$") && !strstr(szTemplate, "$RepresentationID$") && !strstr(szTemplate, "$Path=")) {
-			strcat(szTemplate, "$FS$");
+			gf_strcat(szTemplate, "$FS$");
 		}
 
 		//resolve segment template
@@ -4556,12 +4551,12 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (single_template && ds->split_set_names && !use_dash_suffix) {
 				char szStrName[20];
 				sprintf(szStrName, "_set%d", 1 + gf_list_find(ctx->current_period->period->adaptation_sets, set)  );
-				strcat(szDASHTemplate, szStrName);
+				gf_strcat(szDASHTemplate, szStrName);
 			}
 			else if (split_rep_names) {
 				char szStrName[20];
 				sprintf(szStrName, "_rep%d", 1 + gf_list_find(set->representations, ds->rep)  );
-				strcat(szDASHTemplate, szStrName);
+				gf_strcat(szDASHTemplate, szStrName);
 			}
 		}
 
@@ -4593,8 +4588,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					if (p) ext = (char *) gf_audio_fmt_sname(p->value.uint);
 				}
 			}
-			strncpy(szRawExt, ext ? ext : "raw", 19);
-			szRawExt[19] = 0;
+			gf_strcpy(szRawExt, ext ? ext : "raw");
 			ext = strchr(szRawExt, '|');
 			if (ext) ext[0] = 0;
 			def_ext = szRawExt;
@@ -4608,8 +4602,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				if (!strcmp(ext_sub, "tx3g"))
 					ext_sub = "srt";
 
-				strncpy(szRawExt, ext_sub, 19);
-				szRawExt[19] = 0;
+				gf_strcpy(szRawExt, ext_sub);
 				ext_sub = strchr(szRawExt, '|');
 				if (ext_sub) ext_sub[0] = 0;
 				def_ext = szRawExt;
@@ -4692,7 +4685,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (reused_template_idx) {
 				char szExName[20];
 				sprintf(szExName, "_r%d_", reused_template_idx);
-				strcat(szDASHTemplate, szExName);
+				gf_strcat(szDASHTemplate, szExName);
 				//force template at representation level if more than one rep and templates have been reused
 				if (gf_list_count(ds->set->representations)>1)
 					single_template = GF_FALSE;
@@ -4726,7 +4719,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (ctx->template || ds->template) {
 				 if (is_source_template) {
 					const GF_PropertyValue *mpd_url = gf_filter_pid_get_property_str(ds->ipid, "manifest_url");
-					strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
+					gf_strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
 
 					if (ctx->out_path && mpd_url) {
 						Bool keep_src = GF_FALSE;
@@ -4767,19 +4760,19 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 							}
 						}
 						if (keep_src) {
-							strcpy(szInitSegmentFilename, init_url);
-							strcpy(szInitSegmentTemplate, init_url);
-							strcpy(szSegmentName, ds->template);
+							gf_strcpy(szInitSegmentFilename, init_url);
+							gf_strcpy(szInitSegmentTemplate, init_url);
+							gf_strcpy(szSegmentName, ds->template);
 						} else {
 							if (init_url) {
 								url = gf_url_concatenate(mpd_src, init_url);
-								strcpy(szInitSegmentFilename, url);
-								strcpy(szInitSegmentTemplate, url);
+								gf_strcpy(szInitSegmentFilename, url);
+								gf_strcpy(szInitSegmentTemplate, url);
 								gf_free(url);
 							} else {
 								//no init segment URL
-								strcpy(szInitSegmentFilename, "");
-								strcpy(szInitSegmentTemplate, "");
+								gf_strcpy(szInitSegmentFilename, "");
+								gf_strcpy(szInitSegmentTemplate, "");
 							}
 
 							if (hls_variant) {
@@ -4789,7 +4782,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 							} else {
 								url = gf_url_concatenate(mpd_src, ds->template);
 							}
-							strcpy(szSegmentName, url);
+							gf_strcpy(szSegmentName, url);
 							gf_free(url);
 						}
 						if (init_url) gf_free(init_url);
@@ -4797,8 +4790,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					}
 				 }
 			} else {
-				strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
-				strcpy(szSegmentName, gf_file_basename(ds->src_url));
+				gf_strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
+				gf_strcpy(szSegmentName, gf_file_basename(ds->src_url));
 			}
 		}
 
@@ -4866,8 +4859,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				if (!strcmp(p->value.string, src))
 					skip_init_type = DASH_INITSEG_SKIP;
 			}
-			strcpy(szInitSegmentFilename, src);
-			strcpy(szInitSegmentTemplate, src);
+			gf_strcpy(szInitSegmentFilename, src);
+			gf_strcpy(szInitSegmentTemplate, src);
 
 			if (ctx->tpl) {
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_TEMPLATE);
@@ -4876,7 +4869,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					ctx->in_error = GF_TRUE;
 					return;
 				}
-				strcpy(szSegmentName, p->value.string);
+				gf_strcpy(szSegmentName, p->value.string);
 			}
 		}
 
@@ -6244,12 +6237,12 @@ resend:
 		if ((ctx->llhls==GF_DASH_LL_HLS_BRSF) && !m3u8_second_pass && ctx->out_path) {
 			char *sep;
 			char szAltName[GF_MAX_PATH];
-			strcpy(szAltName, ctx->out_path);
+			gf_strcpy(szAltName, ctx->out_path);
 			sep = gf_file_ext_start(szAltName);
 			if (sep) sep[0] = 0;
-			strcat(szAltName, "_IF");
+			gf_strcat(szAltName, "_IF");
 			sep = gf_file_ext_start(ctx->out_path);
-			if (sep) strcat(szAltName, sep);
+			if (sep) gf_strcat(szAltName, sep);
 
 			ctx->mpd->force_llhls_mode = 2;
 			e = dasher_write_and_send_manifest(ctx, last_period_dur, GF_TRUE, GF_TRUE, ctx->opid, szAltName);
@@ -8809,7 +8802,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			ctx->in_error = GF_TRUE;
 			return;
 		}
-		strcpy(szSegmentName, p_fname->value.string);
+		gf_strcpy(szSegmentName, p_fname->value.string);
 		//remove filename property
 		if (pck)
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, NULL);
@@ -9036,11 +9029,11 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					u8 *iv=p->value.data.ptr + 21;
 					char szIV[40];
 					u32 i;
-					strcpy(szIV, "IV=0x");
+					gf_strcpy(szIV, "IV=0x");
 					for (i=0; i<16; i++) {
 						char szVal[3];
 						sprintf(szVal, "%02X", iv[i]);
-						strcat(szIV, szVal);
+						gf_strcat(szIV, szVal);
 					}
 					if (kms_uri && !strstr(kms_uri, "URI=")) {
 						gf_dynstrcat(&kms_iv, "URI=\"", NULL);
@@ -9126,11 +9119,11 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		//get final segment template - output file name is NULL, we already have solved this in source_setup
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, ds->set->bitstream_switching, szIndexName, base_ds->rep_id, NULL, base_ds->idx_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, base_ds->stl, ctx->tpl_force);
 
-		strcpy(szSegmentFullPath, szIndexName);
+		gf_strcpy(szSegmentFullPath, szIndexName);
 		if (ctx->out_path && !ctx->explicit_mode) {
 			char *rel = gf_url_concatenate(ctx->out_path, szIndexName);
 			if (rel) {
-				strcpy(szSegmentFullPath, rel);
+				gf_strcpy(szSegmentFullPath, rel);
 				gf_free(rel);
 			}
 		}
@@ -9281,13 +9274,13 @@ send_packet:
 	if (ctx->from_index==IDXMODE_SEG) {
 		const GF_PropertyValue *p = gf_filter_pid_get_property_str(ds->ipid, "idx_out");
 		if (p) {
-			strcpy(szSegmentName, p->value.string);
-			strcpy(szSegmentFullPath, p->value.string);
+			gf_strcpy(szSegmentName, p->value.string);
+			gf_strcpy(szSegmentFullPath, p->value.string);
 			no_concat = GF_TRUE;
 		}
 	}
 	if (!no_concat)
-		strcpy(szSegmentFullPath, szSegmentName);
+		gf_strcpy(szSegmentFullPath, szSegmentName);
 
 	if (ctx->explicit_mode) {
 
@@ -9305,7 +9298,7 @@ send_packet:
 			rel = gf_url_concatenate(ctx->out_path, szSegmentName);
 
 		if (rel) {
-			strcpy(szSegmentFullPath, rel);
+			gf_strcpy(szSegmentFullPath, rel);
 			gf_free(rel);
 		}
 	}

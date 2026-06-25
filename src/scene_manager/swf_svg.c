@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato, Jean Le Feuvre
- *          Copyright (c) Telecom ParisTech 2000-2022
+ *          Copyright (c) Telecom ParisTech 2000-2026
  *                  All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -63,7 +63,7 @@ static void swf_svg_print(SWFReader *read, const char *format, ...) {
 		memcpy(read->svg_data+read->frame_header_offset, line, line_length);
 		read->frame_header_offset += line_length;
 	} else {
-		strcpy(read->svg_data+read->svg_data_size, line);
+		memcpy(read->svg_data+read->svg_data_size, line, line_length+1);
 	}
 	read->svg_data_size = new_size;
 }

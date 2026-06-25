@@ -1268,40 +1268,38 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 	return GF_FALSE;
 }
 
-static Bool locate_js_script(char *path, const char *file_name, const char *file_ext)
+static Bool locate_js_script(char path[GF_MAX_PATH], const char *file_name, const char *file_ext)
 {
 	u32 len = (u32) strlen(path);
 	u32 flen = 20 + (u32) strlen(file_name);
 
-	char *apath = gf_malloc(sizeof(char) * (len+flen) );
+	u32 alen = len+flen;
+	char *apath = gf_malloc(sizeof(char) * alen );
 	if (!apath) return GF_FALSE;
-	strcpy(apath, path);
+	gf_strlcpy(apath, path, alen);
 
-	strcat(apath, file_name);
+	gf_strlcat(apath, file_name, alen);
 	if (gf_file_exists(apath)) {
-		strncpy(path, apath, GF_MAX_PATH-1);
-		path[GF_MAX_PATH-1] = 0;
+		gf_strlcpy(path, apath, GF_MAX_PATH);
 		gf_free(apath);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Found %s for file %s\n", path, file_name));
 		return GF_TRUE;
 	}
 
 	if (!file_ext) {
-		strcat(apath, ".js");
+		gf_strlcat(apath, ".js", alen);
 		if (gf_file_exists(apath)) {
-			strncpy(path, apath, GF_MAX_PATH-1);
-			path[GF_MAX_PATH-1] = 0;
+			gf_strlcpy(path, apath, GF_MAX_PATH);
 			gf_free(apath);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Found %s for file %s\n", path, file_name));
 			return GF_TRUE;
 		}
 	}
 	apath[len] = 0;
-	strcat(apath, file_name);
-	strcat(apath, "/init.js");
+	gf_strlcat(apath, file_name, alen);
+	gf_strlcat(apath, "/init.js", alen);
 	if (gf_file_exists(apath)) {
-		strncpy(path, apath, GF_MAX_PATH-1);
-		path[GF_MAX_PATH-1] = 0;
+		gf_strlcpy(path, apath, GF_MAX_PATH);
 		gf_free(apath);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Found %s for file %s\n", path, file_name));
 		return GF_TRUE;
@@ -1310,11 +1308,11 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 	return GF_FALSE;
 }
 
-Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext)
+Bool gf_fs_solve_js_script(char szPath[GF_MAX_PATH], const char *file_name, const char *file_ext)
 {
 	const char *js_dirs;
 	if (gf_opts_default_shared_directory(szPath)) {
-		strcat(szPath, "/scripts/jsf/");
+		gf_strlcat(szPath, "/scripts/jsf/", GF_MAX_PATH);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter %s\n", szPath));
 		if (locate_js_script(szPath, file_name, file_ext)) {
 			return GF_TRUE;
@@ -1328,16 +1326,16 @@ Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file
 		if (sep) {
 			u32 cplen = (u32) (sep-js_dirs);
 			if (cplen>=GF_MAX_PATH) cplen = GF_MAX_PATH-1;
-			strncpy(szPath, js_dirs, cplen);
+			memcpy(szPath, js_dirs, cplen);
 			szPath[cplen]=0;
 			js_dirs = sep+1;
 		} else {
-			strcpy(szPath, js_dirs);
+			gf_strlcpy(szPath, js_dirs, GF_MAX_PATH);
 		}
 		if (strcmp(szPath, "$GJS")) {
 			u32 len = (u32) strlen(szPath);
 			if (len && (szPath[len-1]!='/') && (szPath[len-1]!='\\'))
-				strcat(szPath, "/");
+				gf_strlcat(szPath, "/", GF_MAX_PATH);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter in %s\n", szPath));
 			if (locate_js_script(szPath, file_name, file_ext))
 				return GF_TRUE;
@@ -1424,24 +1422,24 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 	if (!file_ext || strstr(name, ".js") || strstr(name, ".jsf") || strstr(name, ".mjs") ) {
 		Bool file_exists = GF_FALSE;
 		char szName[10+GF_MAX_PATH];
-		char szPath[10+GF_MAX_PATH];
-		if (len>GF_MAX_PATH)
+		char szPath[GF_MAX_PATH];
+		if (len>=GF_MAX_PATH)
 			return NULL;
 
-		strncpy(szPath, name, len);
+		memcpy(szPath, name, len);
 		szPath[len]=0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Trying JS filter %s\n", szPath));
 		if (gf_file_exists(szPath)) {
 			file_exists = GF_TRUE;
 		} else {
-			strcpy(szName, szPath);
+			gf_strcpy(szName, szPath);
 			file_exists = gf_fs_solve_js_script(szPath, szName, file_ext);
 			if (!file_exists && !file_ext) {
-				strcat(szName, ".js");
+				gf_strcat(szName, ".js");
 				if (gf_file_exists(szName)) {
-					strncpy(szPath, name, len);
+					memcpy(szPath, name, len);
 					szPath[len]=0;
-					strcat(szPath, ".js");
+					gf_strcat(szPath, ".js");
 					file_exists = GF_TRUE;
 				}
 			}
@@ -1468,9 +1466,9 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 				return NULL;
 			}
 			sprintf(szName, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
-			strcat(szName, szPath);
+			gf_strcat(szName, szPath);
 			if (name[len])
-				strcat(szName, name+len);
+				gf_strcat(szName, name+len);
 			return gf_fs_load_filter(fsess, szName, err_code);
 		}
 	}
@@ -3506,16 +3504,14 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 	//lowercase ext
 	if (_ext) {
 		_ext++;
-		strncpy(s_ext, _ext, 19);
-		s_ext[19]=0;
+		gf_strcpy(s_ext, _ext);
 		strlwr(s_ext);
 		len = (u32) strlen(s_ext);
 		ext = s_ext;
 	}
 	//lowercase mime in case it is provided through external means
 	if (_mime) {
-		strncpy(szMime, _mime, 99);
-		szMime[99] = 0;
+		gf_strcpy(szMime, _mime);
 		strlwr(szMime);
 		mime = szMime;
 	}
@@ -3538,7 +3534,7 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 				len = (u32) strlen(ext_arg);
 			}
 			if (len>99) len=99;
-			strncpy(szExt, ext_arg, len);
+			memcpy(szExt, ext_arg, len);
 			szExt[len] = 0;
 			strlwr(szExt);
 			ext = szExt;
@@ -3696,8 +3692,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			mime_type = strstr(user_args, szMime);
 
 		if (mime_type) {
-			strncpy(szMime, mime_type+6, 49);
-			szMime[49]=0;
+			gf_strcpy(szMime, mime_type+6);
 			sep = strchr(szMime, fsess->sep_args);
 			if (sep) sep[0] = 0;
 			mime_type = szMime;
@@ -5093,8 +5088,8 @@ static Bool fsess_find_res(GF_FSLocales *loc, char *parent, char *path, char *re
 	f = gf_fopen(loc->szAbsRelocatedPath, "rb");
 	if (f) {
 		gf_fclose(f);
-		strcpy(localized_rel_path, path);
-		strcpy(relocated_path, loc->szAbsRelocatedPath);
+		gf_strcpy(localized_rel_path, path);
+		gf_strcpy(relocated_path, loc->szAbsRelocatedPath);
 		return 1;
 	}
 	return 0;
@@ -5135,7 +5130,7 @@ static Bool fs_check_locales(void *__self, const char *locales_parent_path, cons
 		while (strchr(" \t", opt[0]))
 			opt++;
 
-		strcpy(lan, opt);
+		gf_strcpy(lan, opt);
 
 		if (sep_lang) {
 			sep_lang[0] = ';';
@@ -5147,7 +5142,7 @@ static Bool fs_check_locales(void *__self, const char *locales_parent_path, cons
 		while (1) {
 			sep = strstr(lan, "-*");
 			if (!sep) break;
-			strncpy(sep, sep+2, strlen(sep)-2);
+			memmove(sep, sep+2, strlen(sep)-2);
 		}
 
 		sprintf(path, "locales/%s/%s", lan, rel_path);
@@ -5168,8 +5163,8 @@ static Bool fs_check_locales(void *__self, const char *locales_parent_path, cons
 	if (fsess_find_res(loc, (char *) locales_parent_path, (char *) rel_path, relocated_path, localized_rel_path))
 		return 1;
 	/* if we did not find the localized file, both the relocated and localized strings are NULL */
-	strcpy(localized_rel_path, "");
-	strcpy(relocated_path, "");
+	gf_strcpy(localized_rel_path, "");
+	gf_strcpy(relocated_path, "");
 	return 0;
 }
 #endif

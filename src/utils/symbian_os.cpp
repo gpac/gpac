@@ -140,26 +140,26 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec)
 }
 
 GF_EXPORT
-void gf_get_user_name(char *buf, u32 buf_size)
+void gf_get_user_name(char buf[1024])
 {
-	strcpy(buf, "mpeg4-user");
+	gf_strlcpy(buf, "mpeg4-user", 1024);
 
 #if 0
 	s32 len;
 	char *t;
-	strcpy(buf, "");
+	buf[0] = 0;
 	len = 1024;
 	GetUserName(buf, &len);
 	if (!len) {
 		t = getenv("USER");
-		if (t) strcpy(buf, t);
+		if (t) gf_strlcpy(buf, t, 1024);
 	}
 #endif
 #if 0
 	struct passwd *pw;
 	pw = getpwuid(getuid());
-	strcpy(buf, "");
-	if (pw && pw->pw_name) strcpy(name, pw->pw_name);
+	buf[0] = 0;
+	if (pw && pw->pw_name) gf_strlcpy(buf, pw->pw_name, 1024);
 #endif
 }
 
@@ -195,8 +195,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 	if (!dir || !enum_dir_fct) return GF_BAD_PARAM;
 
-	strcpy((char*)path, dir);
-	if (path[strlen((const char*)path)-1] != '\\') strcat((char*)path, "\\");
+	gf_strcpy(path, dir);
+	if (path[strlen((const char*)path)-1] != '\\') gf_strcat(path, "\\");
 
 
 	the_dir = opendir((char*)path);
@@ -211,13 +211,13 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			char ext[30];
 			char *sep = strrchr(the_file->d_name, '.');
 			if (!sep) goto next;
-			strcpy(ext, sep+1);
+			gf_strcpy(ext, sep+1);
 			strlwr(ext);
 			if (!strstr(filter, sep+1)) goto next;
 		}
 
-		strcpy((char*)item_path, (const char*)path);
-		strcat((char*)item_path, the_file->d_name);
+		gf_strcpy(item_path, path);
+		gf_strcat(item_path, the_file->d_name);
 		if (stat( (const char*)item_path, &st ) != 0) goto next;
 		if (enum_directory && ( (st.st_mode & S_IFMT) != S_IFDIR)) goto next;
 		if (!enum_directory && ((st.st_mode & S_IFMT) == S_IFDIR)) goto next;
@@ -802,7 +802,7 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 	GF_SAFEALLOC(inst, ModuleInstance);
 	inst->interfaces = gf_list_new();
 	inst->plugman = pm;
-	strcpy((char*)inst->szName, item_name);
+	inst->name = gf_strdup(item_name);
 	gf_list_add(pm->plug_list, inst);
 	return 0;
 }

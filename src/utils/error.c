@@ -38,7 +38,7 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 {
 	u32 ch, i;
 	if (!type) {
-		strcpy(szType, "00000000");
+		gf_strlcpy(szType, "00000000", GF_4CC_MSIZE);
 		return szType;
 	}
 	char *name = (char *)szType;
@@ -269,8 +269,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 	const char *val = tmp;
 	if (!val_) val_ = "";
 	if (strlen(val_) >= GF_LOG_TOOL_MAX_NAME_SIZE) return GF_BAD_PARAM;
-	strncpy(tmp, val_, GF_LOG_TOOL_MAX_NAME_SIZE - 1);
-	tmp[GF_LOG_TOOL_MAX_NAME_SIZE - 1] = 0;
+	gf_strcpy(tmp, val_);
 
 	while (val && strlen(val)) {
 		void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist);
@@ -424,16 +423,16 @@ char *gf_log_get_tools_levels()
 	u32 i, level, len;
 	char szLogs[GF_MAX_PATH];
 	char szLogTools[GF_MAX_PATH];
-	strcpy(szLogTools, "");
+	gf_strcpy(szLogTools, "");
 
 	level = GF_LOG_QUIET;
 	while (level <= GF_LOG_DEBUG) {
 		u32 nb_tools = 0;
-		strcpy(szLogs, "");
+		gf_strcpy(szLogs, "");
 		for (i=0; i<GF_LOG_TOOL_MAX; i++) {
 			if (global_log_tools[i].level == level) {
-				strcat(szLogs, global_log_tools[i].name);
-				strcat(szLogs, ":");
+				gf_strcat(szLogs, global_log_tools[i].name);
+				gf_strcat(szLogs, ":");
 				nb_tools++;
 			}
 		}
@@ -446,21 +445,21 @@ char *gf_log_get_tools_levels()
 			else if (level==GF_LOG_DEBUG) levelstr = "@debug";
 
 			if (nb_tools>GF_LOG_TOOL_MAX/2) {
-				strcpy(szLogs, szLogTools);
-				strcpy(szLogTools, "all");
-				strcat(szLogTools, levelstr);
+				gf_strcpy(szLogs, szLogTools);
+				gf_strcpy(szLogTools, "all");
+				gf_strcat(szLogTools, levelstr);
 				if (strlen(szLogs)) {
-					strcat(szLogTools, ":");
-					strcat(szLogTools, szLogs);
+					gf_strcat(szLogTools, ":");
+					gf_strcat(szLogTools, szLogs);
 				}
 			} else {
 				if (strlen(szLogTools)) {
-					strcat(szLogTools, ":");
+					gf_strcat(szLogTools, ":");
 				}
 				/*remove last ':' from tool*/
 				szLogs[ strlen(szLogs) - 1 ] = 0;
-				strcat(szLogTools, szLogs);
-				strcat(szLogTools, levelstr);
+				gf_strcat(szLogTools, szLogs);
+				gf_strcat(szLogTools, levelstr);
 			}
 		}
 		level++;
@@ -2344,15 +2343,18 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	lsep = sep ? (u32) strlen(sep) : 0;
 	l1 = *str ? (u32) strlen(*str) : 0;
 	l2 = (u32) strlen(to_append);
-	if (l1) (*str) = gf_realloc((*str), sizeof(char)*(l1+l2+lsep+1));
-	else (*str) = gf_realloc((*str), sizeof(char)*(l2+lsep+1));
+	u32 asize = l2+1;
+	if (l1) asize += l1+lsep;
 
+	(*str) = gf_realloc((*str), sizeof(char)*asize);
 	if (! (*str) )
 		return GF_OUT_OF_MEM;
 
-	(*str)[l1]=0;
-	if (l1 && sep) strcat((*str), sep);
-	strcat((*str), to_append);
+	if (l1 && sep) {
+		memcpy( (*str) + l1, sep, lsep );
+		l1 += lsep;
+	}
+	memcpy((*str) + l1, to_append, l2 + 1); //include NUL-term
 	return GF_OK;
 }
 
@@ -2603,8 +2605,7 @@ Bool gf_sys_solve_path(const char *url, char szPath[GF_MAX_PATH])
 	}
 
 	if (path && path[0]) {
-		strncpy(szPath, path, GF_MAX_PATH-1);
-		szPath[GF_MAX_PATH-1] = 0;
+		gf_strlcpy(szPath, path, GF_MAX_PATH);
 		if (rem_name) {
 			char *sep = strrchr(szPath, '/');
 			if (!sep) sep = strrchr(szPath, '\\');
@@ -2614,7 +2615,7 @@ Bool gf_sys_solve_path(const char *url, char szPath[GF_MAX_PATH])
 		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
 			szPath[len-1]=0;
 
-		strncat(szPath, url+radlen, GF_MAX_PATH-strlen(szPath)-1);
+		gf_strlcat(szPath, url+radlen, GF_MAX_PATH);
 		return GF_TRUE;
 	}
 	return GF_FALSE;

@@ -137,12 +137,10 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 		/*only scan scalable fonts*/
 		if (face->face_flags & FT_FACE_FLAG_SCALABLE) {
 			Bool bold, italic;
-			szfont = gf_malloc(sizeof(char)* (strlen(face->family_name)+100));
+			szfont = gf_strdup(face->family_name);
 			if (!szfont) continue;
-			strcpy(szfont, face->family_name);
-
+			
 			bold = italic = 0;
-
 			if (face->style_name) {
 				char *name = gf_strdup(face->style_name);
 				strupr(name);
@@ -150,16 +148,16 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 				if (strstr(name, "ITALIC")) italic = 1;
 				/*if font is not regular style, append all styles blindly*/
 				if (!strstr(name, "REGULAR")) {
-					strcat(szfont, " ");
-					strcat(szfont, face->style_name);
+					gf_dynstrcat(&szfont, " ", NULL);
+					gf_dynstrcat(&szfont, face->style_name, NULL);
 				}
 				gf_free(name);
 			} else {
 				if (face->style_flags & FT_STYLE_FLAG_BOLD) bold = 1;
 				if (face->style_flags & FT_STYLE_FLAG_ITALIC) italic = 1;
 
-				if (bold) strcat(szfont, " Bold");
-				if (italic) strcat(szfont, " Italic");
+				if (bold) gf_dynstrcat(&szfont, " Bold", NULL);
+				if (italic) gf_dynstrcat(&szfont, " Italic", NULL);
 			}
 			gf_opts_set_key("FontCache", szfont, file_path);
 
@@ -190,8 +188,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 						ftpriv->font_default = gf_strdup(szfont);
 					}
 				}
-
-				strcpy(szfont, face->family_name);
+				if (szfont) gf_free(szfont);
+				szfont = gf_strdup(face->family_name);
 				strlwr(szfont);
 
 				if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) {
@@ -275,22 +273,22 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		if (strstr(key, "Bold")) continue;
 		if (strstr(key, "Italic")) continue;
 
-		strcpy(fkey, key);
-		strcat(fkey, " Italic");
+		gf_strcpy(fkey, key);
+		gf_strcat(fkey, " Italic");
 		opt = gf_opts_get_key("FontCache", fkey);
 		if (!opt) continue;
 
-		strcpy(fkey, key);
-		strcat(fkey, " Bold");
+		gf_strcpy(fkey, key);
+		gf_strcat(fkey, " Bold");
 		opt = gf_opts_get_key("FontCache", fkey);
 		if (!opt) continue;
 
-		strcpy(fkey, key);
-		strcat(fkey, " Bold Italic");
+		gf_strcpy(fkey, key);
+		gf_strcat(fkey, " Bold Italic");
 		opt = gf_opts_get_key("FontCache", fkey);
 		if (!opt) continue;
 
-		strcpy(fkey, key);
+		gf_strcpy(fkey, key);
 		strlwr(fkey);
 
 		/*this font is suited for our case*/
@@ -357,7 +355,7 @@ rescan_font_dirs:
 		char *sep = (char *) strchr(sOpt, ',');
 		if (sep) sep[0] = 0;
 
-		strcpy(dir, sOpt);
+		gf_strcpy(dir, sOpt);
 		while ( (dir[strlen(dir)-1] == '\n') || (dir[strlen(dir)-1] == '\r') )
 			dir[strlen(dir)-1] = 0;
 
@@ -365,7 +363,7 @@ rescan_font_dirs:
 			char ext[2];
 			ext[0] = GF_PATH_SEPARATOR;
 			ext[1] = 0;
-			strcat(dir, ext);
+			gf_strcat(dir, ext);
 		}
 
 		gf_list_add(ftpriv->font_dirs, gf_strdup(dir) );
@@ -512,7 +510,7 @@ static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, u32 styles)
 static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 styles)
 {
 	GF_Err e = GF_OK;
-	char *fname;
+	char *fname=NULL;
 	char *fontName;
 	const char *opt;
 	Bool is_def_font = GF_FALSE;
@@ -559,14 +557,14 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 		}
 		return GF_NOT_SUPPORTED;
 	}
-	fname = gf_malloc(sizeof(char) * (strlen(fontName) + 50));
 
 	int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
 
 checkFont:
-	strcpy(fname, fontName);
-	if (checkStyles & GF_FONT_WEIGHT_BOLD) strcat(fname, " Bold");
-	if (checkStyles & GF_FONT_ITALIC) strcat(fname, " Italic");
+	if (fname) gf_free(fname);
+	fname = gf_strdup(fontName);
+	if (checkStyles & GF_FONT_WEIGHT_BOLD) gf_dynstrcat(&fname, " Bold", NULL);
+	if (checkStyles & GF_FONT_ITALIC) gf_dynstrcat(&fname, " Italic", NULL);
 
 	opt = gf_opts_get_key("FontCache", fname);
 

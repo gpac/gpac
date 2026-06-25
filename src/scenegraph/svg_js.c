@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2025
+ *			Copyright (c) Telecom ParisTech 2005-2026
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -2276,8 +2276,8 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	char *sep = strchr(utf8_script, '(');
 
 	if (!sep) {
-		strcpy(szFuncName, utf8_script);
-		strcat(szFuncName, "(evt)");
+		gf_strcpy(szFuncName, utf8_script);
+		gf_strcat(szFuncName, "(evt)");
 		utf8_script = szFuncName;
 	}
 
