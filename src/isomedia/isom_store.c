@@ -980,7 +980,9 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				gf_list_add(iloc->extent_entries, entry);
 			}
 			//if we use imdt, do NOT reset the extent length
-			GF_Box *url = gf_list_get(meta->file_locations->dref->child_boxes, iloc->data_reference_index-1);
+			GF_Box *url = NULL;
+			if (meta && meta->file_locations && meta->file_locations->dref)
+				url = gf_list_get(meta->file_locations->dref->child_boxes, iloc->data_reference_index-1);
 			if (!url || (url->type != GF_ISOM_BOX_TYPE_IMDT)) {
 				entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 				entry->extent_offset = 0;

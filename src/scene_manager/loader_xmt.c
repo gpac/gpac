@@ -1071,7 +1071,7 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 	sfInfo.name = info->name;
 	gf_sg_vrml_mf_reset(info->far_ptr, info->fieldType);
 
-	u32 value_len = strlen(value);
+	u32 value_len = (u32)strlen(value);
 	char* value_start = value;
 
 	if (!value || !value_len) return;
@@ -1514,6 +1514,25 @@ static void xmt_remove_od_links_for_node(GF_XMTParser *parser, GF_Node *node)
 	}
 }
 
+static Bool xmt_node_on_stack(GF_XMTParser *parser, GF_Node *node)
+{
+	u32 i;
+	for (i = 0; i < gf_list_count(parser->nodes); i++) {
+		XMTNodeStack *st = (XMTNodeStack *)gf_list_get(parser->nodes, i);
+		if (st->node == node) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static void xmt_discard_node(GF_XMTParser *parser, GF_Node *node)
+{
+	if (xmt_node_on_stack(parser, node)) return;
+	gf_list_del_item(parser->peeked_nodes, node);
+	gf_list_del_item(parser->def_nodes, node);
+	gf_node_register(node, NULL);
+	gf_node_unregister(node, NULL);
+}
+
 
 static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes, XMTNodeStack *parent)
 {
@@ -1858,8 +1877,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					xmt_report(parser, GF_OK, "Warning: Node %s has been defined several times - IDs may get corrupted", att->value);
 				} else {
 					if (node != undef_node) {
-						gf_node_register(node, NULL);
-						gf_node_unregister(node, NULL);
+						xmt_discard_node(parser, node);
 					}
 					node = undef_node;
 					ID = 0;
@@ -1883,10 +1901,9 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				xmt_report(parser, GF_OK, "Warning: Node type %s doesn't match type %s of node %s", gf_node_get_class_name(node), gf_node_get_class_name(def_node), att->value);
 			}
 
-			/*DESTROY NODE*/
+			/*DISCARD NODE*/
 			if (node != def_node) {
-				gf_node_register(node, NULL);
-				gf_node_unregister(node, NULL);
+				xmt_discard_node(parser, node);
 			}
 
 			if (e) return NULL;
@@ -2962,9 +2979,7 @@ attach_node:
 				GF_CommandField *inf;
 				Bool single_node = 0;
 				if (!parser->command) {
-					gf_assert(0);
-					gf_node_register(node, NULL);
-					gf_node_unregister(node, NULL);
+					xmt_discard_node(parser, node);
 					return;
 				}
 				node_processed = GF_TRUE;

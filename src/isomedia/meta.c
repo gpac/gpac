@@ -30,12 +30,13 @@
 
 GF_MetaBox *gf_isom_get_meta(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
-	GF_TrackBox *tk;
+	GF_TrackBox *tk = NULL;
 	if (!file) return NULL;
 	if (root_meta) return file->meta;
 	if (!track_num) return file->moov ? file->moov->meta : NULL;
 
-	tk = (GF_TrackBox*)gf_list_get(file->moov->trackList, track_num-1);
+	if (file->moov)
+		tk = (GF_TrackBox*)gf_list_get(file->moov->trackList, track_num-1);
 	return tk ? tk->meta : NULL;
 }
 

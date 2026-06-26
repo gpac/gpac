@@ -189,7 +189,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
-		if (ctx->findex==2)
+		if ((int)ctx->findex==2)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 
 		if (duration) {
