@@ -8145,6 +8145,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	}
 #endif
 	if (ctx->file) {
+		if ((uintptr_t)ctx->file < 0x1000) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid file pointer\n"));
+			return GF_BAD_PARAM;
+		}
 		if (gf_isom_get_mode(ctx->file) < GF_ISOM_OPEN_WRITE) return GF_BAD_PARAM;
 		if (ctx->store>=MP4MX_MODE_FRAG) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented output on already opened ISOBMF file\n"));

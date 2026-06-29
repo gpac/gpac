@@ -2844,9 +2844,11 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			else if (!strcmp(name, "ProtoDeclare") || !strcmp(name, "ExternProtoDeclare"))  {
 				GF_Proto *cur = parser->parsing_proto;
 				xmt_resolve_routes(parser);
-				parser->parsing_proto = (GF_Proto*)cur->userpriv;
-				parser->load->scene_graph = cur->parent_graph;
-				cur->userpriv = NULL;
+				if (cur) {
+					parser->parsing_proto = (GF_Proto*)cur->userpriv;
+					parser->load->scene_graph = cur->parent_graph;
+					cur->userpriv = NULL;
+				}
 			}
 			else if (parser->proto_field && !strcmp(name, "field")) parser->proto_field = NULL;
 			/*end X3D body*/
