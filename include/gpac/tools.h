@@ -2666,6 +2666,10 @@ void gf_gl_txw_reset(GF_GLTextureWrapper *tx);
 /*! macros to get the size of an array of struct*/
 #define GF_ARRAY_LENGTH(a) (sizeof(a) / sizeof((a)[0]))
 
+/*! avoid UB when casting floats to ints */
+#define GF_FLOAT_TO_U32(x) (((x) >= 0) && ((x) <= (double)GF_UINT_MAX) ? (u32)(x) : 0)
+#define GF_FLOAT_TO_U64(x) (((x) >= 0) && ((x) <= (double)GF_UINT64_MAX) ? (u64)(x) : 0)
+
 #ifdef __cplusplus
 }
 #endif

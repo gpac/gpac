@@ -963,9 +963,9 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 /* decodes an Modified Julian Date (MJD) into a Co-ordinated Universal Time (UTC)
 See annex C of DVB-SI ETSI EN 300468 */
 	date = data[0]*256 + data[1];
-	yp = (u32)((date - 15078.2)/365.25);
-	mp = (u32)((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
-	time_table->day = (u32)(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
+	yp = GF_FLOAT_TO_U32((date - 15078.2)/365.25);
+	mp = GF_FLOAT_TO_U32((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
+	time_table->day = GF_FLOAT_TO_U32(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
 	if (mp == 14 || mp == 15) k = 1;
 	else k = 0;
 	time_table->year = yp + k + 1900;

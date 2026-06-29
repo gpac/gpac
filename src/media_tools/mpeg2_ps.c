@@ -1001,7 +1001,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 			sptr->m_fd = FDNULL;
 			return;
 		}
-		sptr->ticks_per_frame = (u64)(90000.0 / sptr->frame_rate);
+		sptr->ticks_per_frame = GF_FLOAT_TO_U64(90000.0 / sptr->frame_rate);
 		return;
 	}
 
