@@ -766,6 +766,7 @@ GF_EXPORT
 GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
 	if (!node) return GF_OK;
+	if (node->sgprivate->num_instances >= 0xFFFF) return GF_BAD_PARAM;
 
 	node->sgprivate->num_instances ++;
 	/*parent may be NULL (top node and proto)*/
