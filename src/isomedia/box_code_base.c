@@ -12891,7 +12891,10 @@ GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
 	ptr->DOVIConfig.dv_md_compression = gf_bs_read_int(bs, 2);
-	if (gf_bs_read_int(bs, 26) != 0)
+	for (i = 0; i < 10; i++) {
+		ptr->DOVIConfig.dv_feature_flags[i] = gf_bs_read_int(bs, 1);
+	}
+	if (gf_bs_read_int(bs, 16) != 0)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bits are not zero\n"));
 
 	for (i = 0; i < 4; i++) {
@@ -12933,8 +12936,10 @@ GF_Err dvcC_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.dv_bl_signal_compatibility_id, 4);
 	gf_bs_write_int(bs, ptr->DOVIConfig.dv_md_compression, 2);
-	gf_bs_write_int(bs, 0, 26);
-	gf_bs_write_u32(bs, 0);
+	for (u32 i = 0; i < 10; i++) {
+		gf_bs_write_int(bs, ptr->DOVIConfig.dv_feature_flags[i], 1);
+	}
+	gf_bs_write_int(bs, 0, 16);	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);

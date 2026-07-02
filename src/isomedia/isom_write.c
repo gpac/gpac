@@ -2197,6 +2197,52 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 }
 
 GF_EXPORT
+GF_Err gf_isom_set_dolby_vision_brands(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc, Bool add_cmaf_brands)
+{
+	GF_Err e;
+	GF_TrackBox* trak;
+	GF_Box *dv_cfge = NULL;
+	GF_MPEGVisualSampleEntryBox* entry;
+	Bool switch_type = GF_FALSE;
+	Bool is_avc = GF_FALSE;
+	GF_SampleDescriptionBox* stsd;
+	GF_DOVIConfigurationBox* dovi = NULL;
+	e = gf_isom_can_access_movie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_box(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->child_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
+
+	// Dolby Vision Streams Within the ISO Base Media File Format specification Version 2.7 section 2.6
+	gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DBY1, GF_TRUE);
+	if (dvcc->dv_bl_signal_compatibility_id == 1) {
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB1P, GF_TRUE);
+	} else if (dvcc->dv_bl_signal_compatibility_id == 2) {
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB2G, GF_TRUE);
+	} else if (dvcc->dv_bl_signal_compatibility_id == 4) {
+		GF_ColourInformationBox *colr = (GF_ColourInformationBox*)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_COLR);
+		u16 ctc = colr ? colr->transfer_characteristics : GF_COLOR_TRC_RESERVED0;
+
+		if (ctc == GF_COLOR_TRC_BT2020_10) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB4G, GF_TRUE);
+		} else if (ctc == GF_COLOR_TRC_ARIB_STD_B67) {
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DB4H, GF_TRUE);
+		}
+	}
+
+	// TODO: add support for CMAF brands once the spec is finalized
+
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_MasteringDisplayColourVolumeInfo* mdcv, GF_ContentLightLevelInfo* clli)
 {
 	GF_Err e;
