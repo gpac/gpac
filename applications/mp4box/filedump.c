@@ -375,6 +375,7 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 	dump = NULL;
 	sm = NULL;
 	sample_list = NULL;
+	e = GF_OK;
 
 	close = 0;
 
@@ -400,12 +401,12 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 	if (e<0) goto exit;
 
 	if (inName) {
-		gf_strcpy(szBuf, inName);
-		if (!is_final_name) gf_strcat(szBuf, "_stat.xml");
+		gf_strlcpy(szBuf, inName, sizeof(szBuf));
+		if (!is_final_name) gf_strlcat(szBuf, "_stat.xml", sizeof(szBuf));
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
-			return;
+			goto exit;
 		}
 		close = 1;
 	} else {
@@ -1427,7 +1428,7 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 		if (is_final_name) {
 			gf_strcpy(szFileName, inName);
 		} else {
-			sprintf(szFileName, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
+			snprintf(szFileName, sizeof(szFileName), "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		}
 		dump = gf_fopen(szFileName, "wt");
 		if (!dump) {
@@ -1709,7 +1710,7 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		char szBuf[GF_MAX_PATH];
 		gf_strcpy(szBuf, inName);
 
-		if (!is_final_name) sprintf(szBuf, "%s_%d_cues.xml", inName, trackID);
+		if (!is_final_name) snprintf(szBuf, sizeof(szBuf), "%s_%d_cues.xml", inName, trackID);
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
@@ -2024,9 +2025,9 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 		if (is_final_name) {
 			gf_strcpy(szBuf, inName) ;
 		} else if (is_convert)
-			sprintf(szBuf, "%s.%s", inName, ext) ;
+			snprintf(szBuf, sizeof(szBuf), "%s.%s", inName, ext) ;
 		else
-			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, ext);
+			snprintf(szBuf, sizeof(szBuf), "%s_%d_text.%s", inName, trackID, ext);
 
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
