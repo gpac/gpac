@@ -4749,7 +4749,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				sai_d[0] = (cnt>>8) & 0xFF;
 				sai_d[1] = (cnt) & 0xFF;
 			} else {
-				u32 cnt = GF_4CC( sai_d[0], sai_d[1], sai_d[2], sai_d[3]);
+				u32 cnt = GF_4CC(sai_d[0], sai_d[1], sai_d[2], sai_d[3]);
 				cnt++;
 				sai_d[0] = (cnt>>24) & 0xFF;
 				sai_d[1] = (cnt>>16) & 0xFF;
