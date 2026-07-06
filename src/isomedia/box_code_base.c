@@ -12939,7 +12939,8 @@ GF_Err dvcC_box_write(GF_Box *s, GF_BitStream *bs)
 	for (u32 i = 0; i < 10; i++) {
 		gf_bs_write_int(bs, ptr->DOVIConfig.dv_feature_flags[i], 1);
 	}
-	gf_bs_write_int(bs, 0, 16);	gf_bs_write_u32(bs, 0);
+	gf_bs_write_int(bs, 0, 16);
+	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
