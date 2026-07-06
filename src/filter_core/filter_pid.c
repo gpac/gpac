@@ -9542,7 +9542,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			name++;
 
 	}
-	szFinalName[k] = 0;
+	szFinalName[MIN(k, GF_MAX_PATH-1)] = 0;
 	return GF_OK;
 }
 
