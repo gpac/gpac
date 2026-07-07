@@ -157,10 +157,16 @@ void gf_sg_vrml_parent_setup(GF_Node *pNode)
 
 void gf_sg_vrml_parent_destroy(GF_Node *pNode)
 {
-	GF_VRMLParent *par = (GF_VRMLParent *)pNode;
-	gf_node_unregister_children(pNode, par->children);
-	gf_node_unregister_children(pNode, par->addChildren);
-	gf_node_unregister_children(pNode, par->removeChildren);
+	GF_VRMLParent* par = (GF_VRMLParent*)pNode;
+	GF_ChildNodeItem* children = par->children;
+	GF_ChildNodeItem* addChildren = par->addChildren;
+	GF_ChildNodeItem* removeChildren = par->removeChildren;
+	par->children = NULL;
+	par->addChildren = NULL;
+	par->removeChildren = NULL;
+	gf_node_unregister_children(pNode, children);
+	gf_node_unregister_children(pNode, addChildren);
+	gf_node_unregister_children(pNode, removeChildren);
 }
 
 GF_EXPORT
