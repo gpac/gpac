@@ -1597,7 +1597,7 @@ fetch_attr:
 			sep++;
 			sub_pos = 0;
 			while (!strchr(" \t\r\n/>", sep[sub_pos])) sub_pos++;
-			sep[sub_pos-1] = 0;
+			sep[sub_pos ? sub_pos-1 : 0] = 0;
 			result = gf_strdup(sep);
 			if (is_substitute) *is_substitute = GF_TRUE;
 			goto exit;

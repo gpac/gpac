@@ -1071,10 +1071,12 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 	sfInfo.name = info->name;
 	gf_sg_vrml_mf_reset(info->far_ptr, info->fieldType);
 
+	if (!value) return;
+
 	u32 value_len = (u32)strlen(value);
 	char* value_start = value;
 
-	if (!value || !value_len) return;
+	if (!value_len) return;
 
 	while (value[0] && !parser->last_error) {
 
@@ -1409,7 +1411,7 @@ static void xmt_parse_script_field(GF_XMTParser *parser, GF_Node *node, const GF
 	}
 	if (val) {
 		gf_node_get_field_by_name(node, fieldName, &field);
-		if (gf_sg_vrml_is_sf_field(fieldType)) {
+		if (gf_sg_vrml_is_sf_field(field.fieldType)) {
 			xmt_parse_sf_field(parser, &field, node, val);
 		} else {
 			xmt_parse_mf_field(parser, &field, node, val);
@@ -1447,6 +1449,11 @@ static void xmt_parse_proto(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 
 	ID = xmt_get_next_proto_id(parser);
 	proto = gf_sg_proto_new(parser->load->scene_graph, ID, szName, proto_list ? 1 : 0);
+	if (!proto) {
+		if (!parser->last_error)
+			parser->last_error = GF_BAD_PARAM;
+		return;
+	}
 	if (proto_list) gf_list_add(proto_list, proto);
 	if (parser->load->ctx && (parser->load->ctx->max_proto_id<ID)) parser->load->ctx->max_proto_id=ID;
 
@@ -2436,22 +2443,24 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 					if (iNode) {
 						GF_FieldInfo idxF;
 						parser->command->toNodeID = gf_node_get_id(iNode);
-						gf_node_get_field_by_name(iNode, idxField, &idxF);
-						parser->command->toFieldIndex = idxF.fieldIndex;
-						position = 0;
-						switch (idxF.fieldType) {
-						case GF_SG_VRML_SFBOOL:
-							if (*(SFBool*)idxF.far_ptr) position = 1;
-							break;
-						case GF_SG_VRML_SFINT32:
-							if (*(SFInt32*)idxF.far_ptr >=0) position = *(SFInt32*)idxF.far_ptr;
-							break;
-						case GF_SG_VRML_SFFLOAT:
-							if ( (*(SFFloat *)idxF.far_ptr) >=0) position = (s32) floor( FIX2FLT(*(SFFloat*)idxF.far_ptr) );
-							break;
-						case GF_SG_VRML_SFTIME:
-							if ( (*(SFTime *)idxF.far_ptr) >=0) position = (s32) floor( (*(SFTime *)idxF.far_ptr) );
-							break;
+						GF_Err e = gf_node_get_field_by_name(iNode, idxField, &idxF);
+						if (!e && idxF.far_ptr) {
+							parser->command->toFieldIndex = idxF.fieldIndex;
+							position = 0;
+							switch (idxF.fieldType) {
+							case GF_SG_VRML_SFBOOL:
+								if (*(SFBool*)idxF.far_ptr) position = 1;
+								break;
+							case GF_SG_VRML_SFINT32:
+								if (*(SFInt32*)idxF.far_ptr >=0) position = *(SFInt32*)idxF.far_ptr;
+								break;
+							case GF_SG_VRML_SFFLOAT:
+								if ( (*(SFFloat *)idxF.far_ptr) >=0) position = (s32) floor( FIX2FLT(*(SFFloat*)idxF.far_ptr) );
+								break;
+							case GF_SG_VRML_SFTIME:
+								if ( (*(SFTime *)idxF.far_ptr) >=0) position = (s32) floor( (*(SFTime *)idxF.far_ptr) );
+								break;
+							}
 						}
 					}
 				}
@@ -2919,7 +2928,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 	if (!tag) {
 		if (top->container_field.name) {
 			if (!strcmp(name, top->container_field.name)) {
-				if (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
+				if (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER && parser->command_buffer) {
 					parser->state = XMT_STATE_ELEMENTS;
 					parser->command = (GF_Command *) (void *) parser->command_buffer->buffer;
 					parser->command_buffer->buffer = NULL;
