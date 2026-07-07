@@ -86,7 +86,7 @@ static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd
 	if (br>0) {
 		GF_ESD *esd = NULL;
 		if (!csize || !cdur) {
-			bitrate = (u32) ((Double) (s64)avg_rate / br);
+			bitrate = GF_FLOAT_TO_U32((Double) (s64)avg_rate / br);
 			bitrate *= 8;
 			max_rate *= 8;
 		}
