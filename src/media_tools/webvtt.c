@@ -139,7 +139,7 @@ void wvtt_box_del(GF_Box *s)
 GF_Err boxstring_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_StringBox *box = (GF_StringBox *)s;
-	if (s->size > 0xFFFFFFFE) return GF_ISOM_INVALID_FILE;
+	if (s->size > GF_UINT_MAX-1) return GF_ISOM_INVALID_FILE;
 	box->string = (char *)gf_malloc((u32)(s->size+1));
 	if (!box->string) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, box->string, (u32)(s->size));
