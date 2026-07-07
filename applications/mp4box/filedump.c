@@ -401,8 +401,8 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 	if (e<0) goto exit;
 
 	if (inName) {
-		gf_strlcpy(szBuf, inName, sizeof(szBuf));
-		if (!is_final_name) gf_strlcat(szBuf, "_stat.xml", sizeof(szBuf));
+		gf_strcpy(szBuf, inName);
+		if (!is_final_name) gf_strcat(szBuf, "_stat.xml");
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
