@@ -1252,19 +1252,25 @@ GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 star
 	GF_VTTCueBox *cuebox;
 	GF_BitStream *bs;
 	char *pre_text;
+	GF_Box *box = NULL;
 	cue = NULL;
 	pre_text = NULL;
 	cues = gf_list_new();
+	if (!cues) return NULL;
 	bs = gf_bs_new((u8 *)data, dataLength, GF_BITSTREAM_READ);
+	if (!bs) {
+		gf_list_del(cues);
+		return NULL;
+	}
 	while(gf_bs_available(bs))
 	{
 		GF_Err  e;
-		GF_Box  *box;
 		e = gf_isom_box_parse(&box, bs);
-		if (e) return NULL;
+		if (e) goto err;
 		if (box->type == GF_ISOM_BOX_TYPE_VTCC_CUE) {
 			cuebox = (GF_VTTCueBox *)box;
 			cue   = gf_webvtt_cue_new();
+			if (!cue) goto err;
 			if (pre_text) {
 				gf_webvtt_cue_add_property(cue, WEBVTT_PRECUE_TEXT, pre_text, (u32) strlen(pre_text));
 				gf_free(pre_text);
@@ -1291,9 +1297,22 @@ GF_List *gf_webvtt_parse_cues_from_data(const u8 *data, u32 dataLength, u64 star
 			}
 		}
 		gf_isom_box_del(box);
+		box = NULL;
 	}
 	gf_bs_del(bs);
 	return cues;
+
+err:
+	if (box) gf_isom_box_del(box);
+	while (cues && gf_list_count(cues)) {
+		GF_WebVTTCue *c = (GF_WebVTTCue *)gf_list_get(cues, 0);
+		gf_list_rem(cues, 0);
+		gf_webvtt_cue_del(c);
+	}
+	if (cues) gf_list_del(cues);
+	if (pre_text) gf_free(pre_text);
+	gf_bs_del(bs);
+	return NULL;
 }
 
 GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
@@ -1492,19 +1511,21 @@ GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_m
 
 GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample, Bool box_mode)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	GF_BitStream *bs;
+	GF_Box *box = NULL;
 
 	if (box_mode) {
 		gf_fprintf(dump, "<WebVTTSample decodingTimeStamp=\""LLU"\" compositionTimeStamp=\""LLD"\" RAP=\"%d\" dataLength=\"%d\" >\n", iso_sample->DTS, (s64)iso_sample->DTS + iso_sample->CTS_Offset, iso_sample->IsRAP, iso_sample->dataLength);
 	}
 	bs = gf_bs_new(iso_sample->data, iso_sample->dataLength, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+
 	while(gf_bs_available(bs))
 	{
-		GF_Box *box;
 		GF_WebVTTTimestamp ts;
 		e = gf_isom_box_parse(&box, bs);
-		if (e) return e;
+		if (e) goto err;
 
 		if (box_mode) {
 #ifndef GPAC_DISABLE_ISOM_DUMP
@@ -1528,12 +1549,18 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 			gf_fprintf(dump, "%s\n\n", ((GF_StringBox *)box)->string);
 		}
 		gf_isom_box_del(box);
+		box = NULL;
 	}
 	gf_bs_del(bs);
 	if (box_mode) {
 		gf_fprintf(dump, "</WebVTTSample>\n");
 	}
 	return GF_OK;
+
+err:
+	if (box) gf_isom_box_del(box);
+	gf_bs_del(bs);
+	return e;
 }
 #endif
 
