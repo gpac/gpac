@@ -11165,6 +11165,9 @@ GF_Err saiz_box_size(GF_Box *s)
 {
 	GF_SampleAuxiliaryInfoSizeBox *ptr = (GF_SampleAuxiliaryInfoSizeBox*)s;
 
+	// TEMP: for test purpose only
+	ptr->version = gf_igetenv("GPAC_CENC_SAIZ_VER");
+
 	const u8 num_bytes = 1 << ptr->version;
 	if (ptr->aux_info_type || ptr->aux_info_type_parameter) {
 		ptr->flags |= 1;
