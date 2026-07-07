@@ -1571,6 +1571,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		if ((nb_saio==1) && !saio_cenc->total_size) {
 			for (j = 0; j < saiz->sample_count; j++) {
 				saio_cenc->total_size += (saiz->default_sample_info_size || !saiz->sample_info_size) ? saiz->default_sample_info_size : saiz_get_sample_info_size(saiz, j);
+				//printf("Romain %u/%u\n", j, saiz_get_sample_info_size(saiz, j));
 			}
 		}
 		if (saiz->cached_sample_num+1== sampleNumber) {

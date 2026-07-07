@@ -2195,14 +2195,24 @@ static GFINLINE u32 saiz_get_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *sai
 		return 0;
 }
 
+__attribute__((unused))
+static int gf_igetenv(const char *name)
+{
+	const char *val = getenv(name);
+	if (!val) return 0;
+	return atoi(val);
+}
+
 static GFINLINE void saiz_set_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *saiz, u32 idx, u32 value)
 {
-	if (saiz->version == 0)
-		((u8*)saiz->sample_info_size)[idx] = value;
-	else if (saiz->version == 1)
+	int version = gf_igetenv("GPAC_CENC_SAIZ_VER");
+
+	if (saiz->version == 1 || version == 1)
 		((u16 *)saiz->sample_info_size)[idx] = value;
 	else if (saiz->version == 2)
 		((u32 *)saiz->sample_info_size)[idx] = value;
+	else // version=0
+		((u8*)saiz->sample_info_size)[idx] = value;
 }
 
 typedef struct _gf_saio_box
@@ -5104,14 +5114,6 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset);
 #endif
-
-__attribute__((unused))
-static int gf_igetenv(const char *name)
-{
-	const char *val = getenv(name);
-	if (!val) return 0;
-	return atoi(val);
-}
 
 #endif //GPAC_DISABLE_ISOM
 

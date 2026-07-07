@@ -11097,6 +11097,12 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 	const u8 num_bytes = 1 << ptr->version;
 	if (ptr->version > 2) return GF_NOT_SUPPORTED;
 
+	// TEMP: for test purpose only
+	if (ptr->version == 1)
+		setenv("GPAC_CENC_SAIZ_VER", "1", 1);
+	else if (ptr->version == 2)
+		setenv("GPAC_CENC_SAIZ_VER", "2", 1);
+
 	if (ptr->flags & 1) {
 		ISOM_DECREASE_SIZE(ptr, 8);
 		ptr->aux_info_type = gf_bs_read_u32(bs);
@@ -11116,8 +11122,12 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 			return GF_OUT_OF_MEM;
 
 		ISOM_DECREASE_SIZE(ptr, ptr->sample_count*num_bytes);
-		for (u32 i=0; i<ptr->sample_count; ++i)
-			saiz_set_sample_info_size(ptr, i, gf_bs_read_int(bs, 8*num_bytes));
+		for (u32 i=0; i<ptr->sample_count; ++i) {
+			u32 val = gf_bs_read_int(bs, 8*num_bytes);
+			saiz_set_sample_info_size(ptr, i, val);
+			//printf("Romain saiz_set_sample_info_size[%u] %u=%u\n", i, val, saiz_get_sample_info_size(ptr, i));
+			assert(val == saiz_get_sample_info_size(ptr, i)); // sanity check
+		}
 	}
 
 	return GF_OK;
@@ -11126,6 +11136,10 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Box *saiz_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_SampleAuxiliaryInfoSizeBox, GF_ISOM_BOX_TYPE_SAIZ);
+
+	// TEMP: for test purpose only
+	tmp->version = gf_igetenv("GPAC_CENC_SAIZ_VER");
+
 	return (GF_Box *)tmp;
 }
 
@@ -11134,7 +11148,7 @@ GF_Box *saiz_box_new()
 GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_SampleAuxiliaryInfoSizeBox*ptr = (GF_SampleAuxiliaryInfoSizeBox*) s;
+	GF_SampleAuxiliaryInfoSizeBox *ptr = (GF_SampleAuxiliaryInfoSizeBox*) s;
 	if (!s) return GF_BAD_PARAM;
 
 	// TEMP: for test purpose only
@@ -11154,8 +11168,10 @@ GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 		if (!ptr->sample_info_size) {
 			gf_bs_write_u8(bs, 0);
 		} else {
-			for (u32 i=0; i<ptr->sample_count; ++i)
+			for (u32 i=0; i<ptr->sample_count; ++i) {
+				//printf("Romain write[%u] %u\n", i, saiz_get_sample_info_size(ptr, i));
 				gf_bs_write_int(bs, saiz_get_sample_info_size(ptr, i), num_bytes*8);
+			}
 		}
 	}
 	return GF_OK;

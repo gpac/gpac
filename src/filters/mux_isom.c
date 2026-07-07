@@ -4782,6 +4782,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 #endif
 	} else {
 		if (sai) {
+			//printf("Romain: adding sample info for track %d, sample %d, size %d\n", tkw->track_num, tkw->nb_samples+1, sai_size);
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
 		} else if (!pck_is_encrypted) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
