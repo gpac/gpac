@@ -1551,18 +1551,17 @@ GF_Err senc_box_write(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_write_u32(bs, nb_crypt_samples);
 
-	if (ptr->version == 0) {
-		e = store_senc_info(ptr, bs);
-		if (e) return e;
+	e = store_senc_info(ptr, bs);
+	if (e) return e;
 
-		for (i = 0; i < sample_count; i++) {
-			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
-			if (sai->isNotProtected || !sai->cenc_data_size)
-				continue;
-			gf_bs_write_data(bs, sai->cenc_data, sai->cenc_data_size);
-		}
-	} else {
-		/*
+	for (i = 0; i < sample_count; i++) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+		if (sai->isNotProtected || !sai->cenc_data_size)
+			continue;
+		gf_bs_write_data(bs, sai->cenc_data, sai->cenc_data_size);
+	}
+	//TODO: add v2:
+/*
 unsigned int(32) sample_count;
 {
 if (version==0) {
@@ -1598,8 +1597,6 @@ if (version==0) {
 }
 }[ sample_count ]
 */
-		assert(0); //not implemented yet
-	}
 
 	return GF_OK;
 }

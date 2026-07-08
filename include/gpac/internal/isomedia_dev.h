@@ -2209,7 +2209,7 @@ static GFINLINE void saiz_set_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *sa
 
 	if (saiz->version == 1 || version == 1)
 		((u16 *)saiz->sample_info_size)[idx] = value;
-	else if (saiz->version == 2)
+	else if (saiz->version == 2 || version == 2)
 		((u32 *)saiz->sample_info_size)[idx] = value;
 	else // version=0
 		((u8*)saiz->sample_info_size)[idx] = value;
