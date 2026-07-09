@@ -4754,7 +4754,7 @@ static void revert_cache_file(char *item_path)
 		}
 		url+=3;
 		len = (u32) strlen(url);
-		dst_name = gf_malloc(len+dir_len+1);
+		GF_SAFE_ALLOC_N(dst_name, len+dir_len+1, char);
 		memcpy(dst_name, item_path, dir_len);
 		dst_name[dir_len]=0;
 		k=dir_len;
