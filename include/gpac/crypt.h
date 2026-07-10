@@ -96,14 +96,14 @@ After calling this function you can use the crypto context for encryption or dec
 for encryption/decryption. MUST be 16 bytes long
 \return error if any
 */
-GF_Err gf_crypt_init(GF_Crypt *gfc, void *key, const void *iv);
+GF_Err gf_crypt_init(GF_Crypt *gfc, u8 *key, const u8 *iv);
 
 /*! changes key, does not touch IV. This is used for key rolling
 \param gfc the target crytpo context
 \param key the new key to use. MUST be 16 bytes long
 \return error if any
 */
-GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key);
+GF_Err gf_crypt_set_key(GF_Crypt *gfc, u8 *key);
 
 /*! sets the IV for the algorithm. Used for ISMA and CENC CTR.
 \param gfc the target crytpo context
@@ -111,7 +111,7 @@ GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key);
 \param size the size of the IV. Must be 16 or 17 for AES. If 17 (AES CTR only), the first byte shall contain the counter position
 \return error if any
 */
-GF_Err gf_crypt_set_IV(GF_Crypt *gfc, const void *iv, u32 size);
+GF_Err gf_crypt_set_IV(GF_Crypt *gfc, const u8 *iv, u32 size);
 
 /*! gets the IV of the algorithm.
 The size will hold the size of the state and the state must have enough bytes to hold it (17 is enough for AES 128).
@@ -121,7 +121,7 @@ In CTR mode, the first byte will be set to the counter value (number of bytes co
 \param size will be set to the IV size (16 for AES CBC? 17 for AES CTR)
 \return error if any
 */
-GF_Err gf_crypt_get_IV(GF_Crypt *gfc, void *iv, u32 *size);
+GF_Err gf_crypt_get_IV(GF_Crypt *gfc, u8 *iv, u32 *size);
 
 /*! encrypts a payload. The encryption is done inplace (plaintext is replaced by the ciphertext).
  The buffer size should be k*algorithms_block_size if used in a mode which operated in blocks (CBC) or whatever when used in CTR which operate in streams.
@@ -131,7 +131,7 @@ GF_Err gf_crypt_get_IV(GF_Crypt *gfc, void *iv, u32 *size);
 \param size the size of the clear buffer
 \return error if any
 */
-GF_Err gf_crypt_encrypt(GF_Crypt *gfc, void *plaintext, u32 size);
+GF_Err gf_crypt_encrypt(GF_Crypt *gfc, u8 *plaintext, u32 size);
 
 /*! decrypts a payload. The decryption is done inplace (ciphertext is replaced by the plaintext).
  The buffer size should be k*algorithms_block_size if used in a mode which operated in blocks (CBC) or whatever when used in CTR which operate in streams.
@@ -141,7 +141,7 @@ GF_Err gf_crypt_encrypt(GF_Crypt *gfc, void *plaintext, u32 size);
 \param size the size of the encrypted buffer
 \return error if any
 */
-GF_Err gf_crypt_decrypt(GF_Crypt *gfc, void *ciphertext, u32 size);
+GF_Err gf_crypt_decrypt(GF_Crypt *gfc, u8 *ciphertext, u32 size);
 
 
 /*! @} */

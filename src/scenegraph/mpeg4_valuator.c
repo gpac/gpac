@@ -34,11 +34,11 @@
 static void format_sftime_string(Fixed _val, char *str)
 {
 	u32 h, m, s;
-	Bool neg = 0;
+	Bool neg = GF_FALSE;
 	Float val = FIX2FLT(_val);
 	if (val<0) {
 		val = -val;
-		neg = 1;
+		neg = GF_TRUE;
 	}
 	h = (u32) (val/3600);
 	m = (u32) (val/60) - h*60;
@@ -49,7 +49,7 @@ static void format_sftime_string(Fixed _val, char *str)
 static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType, Bool do_sum, u32 i, SFVec4f *output, u32 *num_out)
 {
 	if (!inMFField) return;
-	
+
 	switch (inType) {
 	case GF_SG_VRML_MFINT32:
 	{
@@ -165,7 +165,7 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 		if (do_sum) {
 			output.x = output.x + output.y + output.z + output.q;
 			output.y = output.z = output.q = output.x;
-			do_sum = 0;
+			do_sum = GF_FALSE;
 		}
 
 		switch (inType) {
@@ -497,8 +497,8 @@ static void valuator_destroy(GF_Node *node, void *rs, Bool is_destroy)
 
 Bool InitValuator(M_Valuator *node)
 {
-	MFVec4f *temp = gf_sg_vrml_field_pointer_new(GF_SG_VRML_MFROTATION);
-	if (!temp) return 1;
+	MFVec4f *temp = (MFVec4f *) gf_sg_vrml_field_pointer_new(GF_SG_VRML_MFROTATION);
+	if (!temp) return GF_TRUE;
 
 	node->on_inSFTime = Valuator_SetInSFTime;
 	node->on_inSFBool = Valuator_SetInSFBool;
@@ -532,7 +532,7 @@ Bool InitValuator(M_Valuator *node)
 		Valuator_SetInMFString(NULL, NULL);
 	}
 #endif
-	return 1;
+	return GF_TRUE;
 }
 
 

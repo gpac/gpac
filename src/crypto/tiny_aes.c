@@ -154,7 +154,7 @@ static void KeyExpansion(u8* RoundKey, const u8* Key)
 {
   unsigned i;
   u8 tempa[4]; // Used for the column/row operations
-  
+
   // The first round key is the key itself.
   for (i = 0; i < Nk; ++i)
   {
@@ -426,7 +426,7 @@ static void Cipher(state_t* state, u8* RoundKey)
 
   // Add the First round key to the state before starting the rounds.
   AddRoundKey(0, state, RoundKey); 
-  
+
   // There will be Nr rounds.
   // The first Nr-1 rounds are identical.
   // These Nr-1 rounds are executed in the loop below.
@@ -437,7 +437,7 @@ static void Cipher(state_t* state, u8* RoundKey)
     MixColumns(state);
     AddRoundKey(round, state, RoundKey);
   }
-  
+
   // The last round is given below.
   // The MixColumns function is not here in the last round.
   SubBytes(state);
@@ -462,7 +462,7 @@ static void InvCipher(state_t* state,u8* RoundKey)
     AddRoundKey(round, state, RoundKey);
     InvMixColumns(state);
   }
-  
+
   // The last round is given below.
   // The MixColumns function is not here in the last round.
   InvShiftRows(state);
@@ -556,7 +556,7 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, u8* buf, u32 length)
   {
     if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in buffer */
     {
-      
+
       memcpy(ctx->buffer, ctx->Iv, AES_BLOCKLEN);
       Cipher((state_t*)ctx->buffer,ctx->RoundKey);
 

@@ -75,11 +75,12 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	u32 dash_grp_id=0;
 	const GF_PropertyValue *p;
 	GF_TileAggInput *pctx;
+	Bool is_base_codec_type;
 
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
 	if (ctx->in_error) return GF_SERVICE_ERROR;
 
-	pctx = gf_filter_pid_get_udta(pid);
+	pctx = (GF_TileAggInput *)gf_filter_pid_get_udta(pid);
 	if (is_remove) {
 		if (pctx) {
 			gf_list_del_item(ctx->ipids, pctx);
@@ -97,7 +98,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (!p) TILEAGG_CFG_ERR("missing CodecID")
 	codec_id = p->value.uint;
 
-	Bool is_base_codec_type = GF_FALSE;
+	is_base_codec_type = GF_FALSE;
 	if (codec_id==GF_CODECID_HEVC) is_base_codec_type = GF_TRUE;
 	else if (codec_id==GF_CODECID_VVC) is_base_codec_type = GF_TRUE;
 
@@ -240,7 +241,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	u32 pos, nb_ready=0;
 	u32 sabt_idx;
 	Bool has_sei_suffix = GF_FALSE;
-	const char *data;
+	const u8 *data;
 	u8 *output;
 
 	if (ctx->in_error) {
@@ -280,7 +281,7 @@ restart:
 		count = gf_list_count(ctx->ipids);
 		u32 nb_drop=0;
 		for (i=0; i<count; i++) {
-			GF_TileAggInput *pctx = gf_list_get(ctx->ipids, i);
+			GF_TileAggInput *pctx = (GF_TileAggInput *)gf_list_get(ctx->ipids, i);
 			if (pctx->pid==ctx->base_ipid) continue;
 			while (1) {
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->pid);
@@ -305,7 +306,7 @@ restart:
 		GF_FilterPacket *pck;
 		u64 cts;
 		Bool do_drop=GF_FALSE;
-		GF_TileAggInput *pctx = gf_list_get(ctx->ipids, i);
+		GF_TileAggInput *pctx = (GF_TileAggInput *)gf_list_get(ctx->ipids, i);
 		if (pctx->pid==ctx->base_ipid) continue;
 		while (1) {
 			pck = gf_filter_pid_get_packet(pctx->pid);
@@ -334,7 +335,7 @@ restart:
 
 			cts = gf_filter_pck_get_cts(pck);
 			if (cts < min_cts) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] Tiled pid %s with cts "LLU" less than base tile pid cts "LLU" - discarding packet\n", gf_filter_pid_get_name(pctx->pid), cts, min_cts ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] Tiled pid %s with cts " LLU " less than base tile pid cts " LLU " - discarding packet\n", gf_filter_pid_get_name(pctx->pid), cts, min_cts ));
 				gf_filter_pid_drop_packet(pctx->pid);
 			} else {
 				break;
@@ -359,19 +360,19 @@ restart:
 		nb_ready++;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS " LLU " %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
 	if (ctx->flush_packets) {
 		ctx->flush_packets--;
 		if (!ctx->flush_packets) ctx->force_flush = GF_FALSE;
 	}
 	if (ctx->wait_pid) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU" ready after %d ms wait\n", min_cts, gf_sys_clock()-ctx->wait_start));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS " LLU " ready after %d ms wait\n", min_cts, gf_sys_clock()-ctx->wait_start));
 		ctx->wait_pid = 0;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
-	
+
 	final_size = size;
 
 	gf_filter_pck_merge_properties(base_pck, dst_pck);
@@ -409,7 +410,7 @@ restart:
 		for (i=0; i<count; i++) {
 			u64 cts;
 			GF_FilterPacket *pck;
-			GF_TileAggInput *pctx = gf_list_get(ctx->ipids, i);
+			GF_TileAggInput *pctx = (GF_TileAggInput *)gf_list_get(ctx->ipids, i);
 			if (pctx->pid==ctx->base_ipid) continue;
 			if (pid_id && (pctx->id != pid_id)) {
 				continue;
@@ -458,7 +459,7 @@ restart:
 
 	if (size < 	final_size)
 		gf_filter_pck_truncate(dst_pck, size);
-		
+
 	gf_filter_pck_send(dst_pck);
 
 	//flush asap, avoid recursion
@@ -470,7 +471,7 @@ restart:
 static GF_Err tileagg_initialize(GF_Filter *filter)
 {
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
-	ctx->bs_r = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
+	ctx->bs_r = gf_bs_new((u8 *)ctx, 1, GF_BITSTREAM_READ);
 	ctx->ipids = gf_list_new();
 	return GF_OK;
 }
@@ -480,7 +481,7 @@ static void tileagg_finalize(GF_Filter *filter)
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
 	gf_bs_del(ctx->bs_r);
 	while (gf_list_count(ctx->ipids)) {
-		GF_TileAggInput *pctx = gf_list_pop_back(ctx->ipids);
+		GF_TileAggInput *pctx = (GF_TileAggInput *)gf_list_pop_back(ctx->ipids);
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->ipids);

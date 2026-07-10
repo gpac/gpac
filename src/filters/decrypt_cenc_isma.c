@@ -98,7 +98,7 @@ typedef struct
 	u32 nb_crypts;
 
 	//ISMA & OMA
-	char salt[8];
+	u8 salt[8];
 	u64 last_IV;
 	u32 nb_allow_play;
 	Bool is_oma, is_adobe;
@@ -226,7 +226,7 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	FILE *kms;
 	gf_strcpy(szPath, getenv("HOME"));
 	gf_strcat(szPath , "/.kms_data");
-	got_it = 0;
+	got_it = GF_FALSE;
 	kms = gf_fopen(szPath, "rt");
 	while (kms && !gf_feof(kms)) {
 		if (!gf_fgets(szPath, 1024, kms)) break;
@@ -242,7 +242,7 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 			if (!sscanf(szV, "%x", &x)) break;
 			catKey[i] = x;
 		}
-		if (i==24) got_it = 1;
+		if (i==24) got_it = GF_TRUE;
 		break;
 	}
 	if (kms) gf_fclose(kms);
@@ -250,9 +250,9 @@ static Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 		/*watchout, MPEG4IP stores SALT|KEY, NOT KEY|SALT*/
 		memcpy(key, catKey+8, sizeof(char)*16);
 		memcpy(salt, catKey, sizeof(char)*8);
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 #endif
 
@@ -267,15 +267,15 @@ static GF_Err cenc_dec_setup_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	if (scheme_version != 1) return GF_NOT_SUPPORTED;
 	if (!kms_uri) return GF_NON_COMPLIANT_BITSTREAM;
 
-	kms_crc = gf_crc_32(kms_uri, (u32) strlen(kms_uri));
+	kms_crc = gf_crc_32((u8*)kms_uri, (u32) strlen(kms_uri));
 	if (cstr->pssh_crc == kms_crc) return GF_OK;
 	cstr->pssh_crc = kms_crc;
 
 	/*try to fetch the keys*/
 	/*base64 inband encoding*/
 	if (!strnicmp(kms_uri, "(key)", 5)) {
-		char data[100];
-		gf_base64_decode((char*) kms_uri+5, (u32)strlen(kms_uri)-5, data, 100);
+		u8 data[100];
+		gf_base64_decode((u8*) kms_uri+5, (u32)strlen(kms_uri)-5, data, 100);
 		memcpy(cstr->crypts[0].key, data, sizeof(char)*16);
 		memcpy(cstr->salt, data+16, sizeof(char)*8);
 	}
@@ -352,7 +352,7 @@ static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 	GF_Err e;
 
 	if (is_play) {
-		char IV[16];
+		u8 IV[16];
 		if (cstr->state != DECRYPT_STATE_SETUP)
 			return GF_SERVICE_ERROR;
 		gf_assert(!cstr->crypts[0].crypt);
@@ -385,7 +385,7 @@ static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
 	u32 data_size;
-	const char *in_data;
+	const u8 *in_data;
 	u8 *out_data;
 	u64 isma_BSO = 0;
 	u32 offset=0;
@@ -426,7 +426,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	/*resync IV*/
 	if (!cstr->last_IV || (cstr->last_IV != isma_BSO)) {
-		char IV[17];
+		u8 IV[17];
 		u64 count;
 		u32 remain;
 		GF_BitStream *bs;
@@ -443,7 +443,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 		/*decrypt remain bytes*/
 		if (remain) {
-			char dummy[20];
+			u8 dummy[20];
 			gf_crypt_decrypt(cstr->crypts[0].crypt, dummy, remain);
 		}
 		cstr->last_IV = isma_BSO;
@@ -463,7 +463,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	if (cstr->is_nalu) {
 		u32 nalu_size;
 		u32 remain = data_size;
-		char *start, *end;
+		u8 *start, *end;
 		start = out_data;
 		end = start + 4;
 		while (remain>4) {
@@ -655,7 +655,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 	return GF_OK;
 }
 
-static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
+static GF_Err rfmt_dec_b64(char *data, u8 *output, u32 osize)
 {
 	char *tmpd=NULL;
 	u32 len, i=0;
@@ -667,17 +667,17 @@ static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 	len = i;
 	switch (len%4) {
 	case 0:
-		len = gf_base64_decode(data, (u32) strlen(data), output, osize);
+		len = gf_base64_decode((u8*)data, (u32) strlen(data), output, osize);
 		break;
 	case 2:
 		tmpd = gf_strdup(data);
 		gf_dynstrcat(&tmpd, "==", NULL);
-		len = gf_base64_decode(tmpd, (u32) strlen(tmpd), output, osize);
+		len = gf_base64_decode((u8*)tmpd, (u32) strlen(tmpd), output, osize);
 		break;
 	case 3:
 		tmpd = gf_strdup(data);
 		gf_dynstrcat(&tmpd, "=", NULL);
-		len = gf_base64_decode(tmpd, (u32) strlen(tmpd), output, osize);
+		len = gf_base64_decode((u8*)tmpd, (u32) strlen(tmpd), output, osize);
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -690,7 +690,7 @@ static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 #ifdef GPAC_USE_DOWNLOADER
 static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 {
-	GF_CENCDecStream *cstr = usr_cbk;
+	GF_CENCDecStream *cstr = (GF_CENCDecStream *)usr_cbk;
 	switch (par->msg_type) {
 	case GF_NETIO_GET_METHOD:
 		par->name = "POST";
@@ -703,7 +703,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 		}
 		break;
 	case GF_NETIO_GET_CONTENT:
-		par->data = cstr->body;
+		par->data = (u8 *)cstr->body;
 		par->size = (u32) strlen(cstr->body);
 		cstr->res_size = 0;
 		break;
@@ -712,7 +712,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			if (cstr->body) gf_free(cstr->body);
 			cstr->body = NULL;
 		}
-		cstr->body = gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
+		cstr->body = (char *)gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
 		if (!cstr->body) {
 			cstr->state = DECRYPT_STATE_ERROR;
 			break;
@@ -757,8 +757,8 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			e = rfmt_dec_b64(kid, kid_val, 20);
 			if (e) break;
 
-			cstr->keys = gf_realloc(cstr->keys, sizeof(bin128)*(key_idx+1));
-			cstr->KIDs = gf_realloc(cstr->KIDs, sizeof(bin128)*(key_idx+1));
+			cstr->keys = (bin128 *)gf_realloc(cstr->keys, sizeof(bin128)*(key_idx+1));
+			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, sizeof(bin128)*(key_idx+1));
 			memcpy(cstr->keys[key_idx], key_val, sizeof(bin128));
 			memcpy(cstr->KIDs[key_idx], kid_val, sizeof(bin128));
 			key_idx++;
@@ -769,7 +769,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			cstr->KID_count = key_idx;
 
 			if (!cstr->crypts) {
-				cstr->crypts = gf_malloc(sizeof(CENCDecKey));
+				cstr->crypts = (CENCDecKey *)gf_malloc(sizeof(CENCDecKey));
 				memset(cstr->crypts, 0, sizeof(CENCDecKey));
 			}
 			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
@@ -804,7 +804,7 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 {
 	GF_Err e;
 	char data64[32];
-	u32 i, cklen, res = gf_base64_encode(ck_kid, 16, data64, 32);
+	u32 i, cklen, res = gf_base64_encode((u8*)ck_kid, 16, (u8*)data64, 32);
 	data64[res]=0;
 	for (i=0; i<res; i++) {
 		if (data64[i]=='+') data64[i] = '-';
@@ -822,7 +822,7 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	gf_dynstrcat(&cstr->body, "\"], \"type\":\"temporary\"}", NULL);
 
 	cklen = (u32) strlen(cstr->body);
-	u32 crc = gf_crc_32(cstr->body, cklen);
+	u32 crc = gf_crc_32((u8*)cstr->body, cklen);
 	if (cstr->clearkey_crc == crc) return GF_OK;
 
 #ifdef GPAC_USE_DOWNLOADER
@@ -853,7 +853,7 @@ static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
 			cstr->state = DECRYPT_STATE_ERROR;
 			return;
 		}
-		cstr->body = gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
+		cstr->body = (char *)gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
 		if (!cstr->body) {
 			cstr->state = DECRYPT_STATE_ERROR;
 			return;
@@ -868,7 +868,7 @@ static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
 
 			//load keys
 			if (!cstr->crypts) {
-				cstr->crypts = gf_malloc(sizeof(CENCDecKey));
+				cstr->crypts = (CENCDecKey *)gf_malloc(sizeof(CENCDecKey));
 				memset(cstr->crypts, 0, sizeof(CENCDecKey));
 			}
 			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
@@ -986,7 +986,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	}
 
 	if (!cstr->crypts) {
-		cstr->crypts = gf_malloc(sizeof(CENCDecKey));
+		cstr->crypts = (CENCDecKey *)gf_malloc(sizeof(CENCDecKey));
 		memset(cstr->crypts, 0, sizeof(CENCDecKey));
 	}
 	memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
@@ -1010,7 +1010,7 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 
 	for (i = 0; i < nb_pssh; i++) {
 		u32 cypherOffset;
-		char *enc_data;
+		u8 *enc_data;
 		bin128 cypherKey, cypherIV;
 		GF_Crypt *mc;
 		u32 pos, priv_len;
@@ -1096,10 +1096,10 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid cypher offset %d in GPAC init blob\n", cypherOffset));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			if (!strncmp(pssh_data + pos + 1, "master", 6)) {
+			if (!strncmp((char *)pssh_data + pos + 1, "master", 6)) {
 				cstr->gpac_master_leaf = GF_TRUE;
 			}
-			else if (!strncmp(pssh_data + pos + 1, "leaf", 4)) {
+			else if (!strncmp((char *)pssh_data + pos + 1, "leaf", 4)) {
 				is_leaf_key = GF_TRUE;
 			} else if (cypherOffset>1) {
 				cstr->gpac_master_leaf = GF_FALSE;
@@ -1145,7 +1145,7 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
 				return GF_IO_ERR;
 			}
-			enc_data = gf_malloc(priv_len - cypherOffset);
+			enc_data = (u8 *)gf_malloc(priv_len - cypherOffset);
 			memcpy(enc_data, pssh_data + pos + cypherOffset, priv_len - cypherOffset);
 
 			gf_crypt_init(mc, cypherKey, use_cbc ? NULL : cypherIV);
@@ -1246,7 +1246,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_REP_ID);
 		if (!prop) is_valid = GF_FALSE;
 		else {
-			u32 crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+			u32 crc = gf_crc_32((u8*)prop->value.string, (u32) strlen(prop->value.string));
 			if (crc!=cstr->rep_crc) is_valid = GF_FALSE;
 		}
 	}
@@ -1254,7 +1254,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_ID);
 		if (!prop) is_valid = GF_FALSE;
 		else {
-			u32 crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+			u32 crc = gf_crc_32((u8*)prop->value.string, (u32) strlen(prop->value.string));
 			if (crc!=cstr->per_crc) is_valid = GF_FALSE;
 		}
 	}
@@ -1305,7 +1305,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		u32 count = gf_list_count(cinfo->tcis);
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		for (i=0; i<count; i++) {
-			tci = gf_list_get(cinfo->tcis, i);
+			tci = (GF_TrackCryptInfo *)gf_list_get(cinfo->tcis, i);
 			if (tci->trackID && prop && (tci->trackID==prop->value.uint)) {
 				break;
 			}
@@ -1332,7 +1332,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 				if (tci->keys[i].repID) {
 					prop = gf_filter_pid_get_property(pid, GF_PROP_PID_REP_ID);
 					if (prop && prop->value.string && !strcmp(prop->value.string, tci->keys[i].repID)) {
-						cstr->rep_crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+						cstr->rep_crc = gf_crc_32((u8*)prop->value.string, (u32) strlen(prop->value.string));
 					} else {
 						is_valid = GF_FALSE;
 					}
@@ -1340,7 +1340,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 				if (tci->keys[i].periodID) {
 					prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_ID);
 					if (prop && prop->value.string && !strcmp(prop->value.string, tci->keys[i].periodID)) {
-						cstr->per_crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+						cstr->per_crc = gf_crc_32((u8*)prop->value.string, (u32) strlen(prop->value.string));
 					} else {
 						is_valid = GF_FALSE;
 					}
@@ -1487,7 +1487,7 @@ static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u
 		u32 i, count = gf_list_count(cinfo->tcis);
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		for (i=0; i<count; i++) {
-			tci = gf_list_get(cinfo->tcis, i);
+			tci = (GF_TrackCryptInfo *)gf_list_get(cinfo->tcis, i);
 			if (tci->trackID && prop && (tci->trackID==prop->value.uint)) {
 				break;
 			}
@@ -1638,7 +1638,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	u32 subsample_count;
 	u32 data_size;
 	u8 *out_data;
-	const char *sai_payload=NULL;
+	const u8 *sai_payload=NULL;
 	u32 saiz=0;
 	u32 min_sai_size_subs = 6;
 	GF_FilterPacket *out_pck;
@@ -2141,7 +2141,7 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 	encrypted_au = out_data[0] ? GF_TRUE : GF_FALSE;
 	if (encrypted_au) {
 		u32 trim_bytes;
-		char IV[17];
+		u8 IV[17];
 		if (size<17) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ADOBE] Error in sample size, %d bytes remain but at least 17 are required\n", size ) );
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -2216,7 +2216,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (prop) scheme_type = prop->value.uint;
 
 	if (is_remove) {
-		cstr = gf_filter_pid_get_udta(pid);
+		cstr = (GF_CENCDecStream *)gf_filter_pid_get_udta(pid);
 		if (!cstr) return GF_OK; //configure failure
 		if (cstr->opid) {
 			gf_filter_pid_remove(cstr->opid);
@@ -2229,7 +2229,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	cstr = gf_filter_pid_get_udta(pid);
+	cstr = (GF_CENCDecStream *)gf_filter_pid_get_udta(pid);
 	if (!cstr) {
 		GF_SAFEALLOC(cstr, GF_CENCDecStream);
 		if (!cstr) return GF_OUT_OF_MEM;
@@ -2275,7 +2275,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		nb_keys |= prop->value.data.ptr[2];
 	}
 	if (nb_keys > cstr->nb_crypts) {
-		cstr->crypts = gf_realloc(cstr->crypts, sizeof(CENCDecKey) * nb_keys);
+		cstr->crypts = (CENCDecKey *)gf_realloc(cstr->crypts, sizeof(CENCDecKey) * nb_keys);
 		memset(&cstr->crypts[cstr->nb_crypts], 0, sizeof(CENCDecKey) * (nb_keys-cstr->nb_crypts) );
 
 		if (cstr->crypts[0].crypt) {
@@ -2383,7 +2383,7 @@ static Bool cenc_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	ipid = evt->base.on_pid;
 	if (!ipid) return GF_FALSE;
-	cstr = gf_filter_pid_get_udta(ipid);
+	cstr = (GF_CENCDecStream *)gf_filter_pid_get_udta(ipid);
 	if (!cstr) return GF_FALSE;
 
 	switch (evt->base.type) {
@@ -2419,7 +2419,7 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
 		GF_Err e;
-		GF_CENCDecStream *cstr = gf_list_get(ctx->streams, i);
+		GF_CENCDecStream *cstr = (GF_CENCDecStream *)gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(cstr->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(cstr->ipid)) {
@@ -2474,7 +2474,7 @@ static GF_Err cenc_dec_initialize(GF_Filter *filter)
 			return e;
 		}
 	}
-	ctx->bs_r = gf_bs_new((char *) ctx, 1, GF_BITSTREAM_READ);
+	ctx->bs_r = gf_bs_new((u8 *) ctx, 1, GF_BITSTREAM_READ);
 	return GF_OK;
 }
 
@@ -2483,7 +2483,7 @@ static void cenc_dec_finalize(GF_Filter *filter)
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		GF_CENCDecStream *cstr = gf_list_pop_back(ctx->streams);
+		GF_CENCDecStream *cstr = (GF_CENCDecStream *)gf_list_pop_back(ctx->streams);
 		cenc_dec_stream_del(cstr);
 	}
 	gf_list_del(ctx->streams);
@@ -2547,7 +2547,7 @@ GF_FilterRegister CENCDecRegister = {
 	)
 	.private_size = sizeof(GF_CENCDecCtx),
 	.flags = GF_FS_REG_USE_SYNC_READ,
-	.max_extra_pids=-1,
+	.max_extra_pids=(u32)-1,
 	.args = GF_CENCDecArgs,
 	SETCAPS(CENCDecCaps),
 	.configure_pid = cenc_dec_configure_pid,

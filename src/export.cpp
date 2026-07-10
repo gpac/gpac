@@ -270,6 +270,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_bit) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_int) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_bool) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_long_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u8) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_read_u16) )

@@ -104,7 +104,7 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 
 	dsi_size = prop->value.data.size;
-	dsi = gf_malloc(sizeof(u8) * dsi_size);
+	dsi = (u8 *)gf_malloc(dsi_size);
 	memcpy(dsi, prop->value.data.ptr, sizeof(u8) * dsi_size);
 
 	if (ctx->sar.num && ctx->sar.den) {
@@ -122,7 +122,7 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if (ctx->m4vpl>=0) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		gf_m4v_rewrite_pl(&dsi, &dsi_size, (u32) ctx->m4vpl);
-		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(ctx->m4vpl) );
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32)ctx->m4vpl) );
 #else
 		return GF_NOT_SUPPORTED;
 #endif
@@ -335,7 +335,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 	if (!data)
 		return gf_filter_pck_forward(pck, pctx->opid);
 
-	GF_BitStream *bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, pck_size, GF_BITSTREAM_READ);
 	if (!bs) return GF_OUT_OF_MEM;
 
 	while (gf_bs_available(bs)) {
@@ -346,7 +346,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		if (codec_type==0) {
 			//populate the avc state
 			if (ctx->tc) {
-				GF_BitStream *bs_nal = gf_bs_new(data + pos, nal_size, GF_BITSTREAM_READ);
+				GF_BitStream *bs_nal = gf_bs_new((u8*)data + pos, nal_size, GF_BITSTREAM_READ);
 				s32 res = gf_avc_parse_nalu(bs_nal, pctx->avc);
 				gf_bs_del(bs_nal);
 				if (res < 0) {
@@ -389,7 +389,7 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 	u32 tc_sei_type = codec_type == 0 ? 1 : 136;
 	SEI_Filter sei_filter = {
-		.is_whitelist = !ctx->rmsei,
+		.is_whitelist = ctx->rmsei ? GF_FALSE : GF_TRUE,
 		.seis = ctx->seis,
 		.extra_filter = 0
 	};
@@ -514,8 +514,8 @@ static GF_Err nalu_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 
 		//allocate the temporary storage
 		rw_sei_size = nal_size;
-		if (rw_sei_payload) rw_sei_payload = gf_realloc(rw_sei_payload, rw_sei_size);
-		else rw_sei_payload = gf_malloc(rw_sei_size);
+		if (rw_sei_payload) rw_sei_payload = (u8 *)gf_realloc(rw_sei_payload, rw_sei_size);
+		else rw_sei_payload = (u8 *)gf_malloc(rw_sei_size);
 
 		//copy the NAL payload
 		gf_bs_seek(bs, payload_pos);
@@ -589,7 +589,7 @@ static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 
 		GF_SAFEALLOC(pctx->avc, AVCState);
 		for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); ++i) {
-			GF_NALUFFParam *slc = gf_list_get(avcc->sequenceParameterSets, i);
+			GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
 			s32 idx = gf_avc_read_sps(slc->data, slc->size, pctx->avc, 0, NULL);
 			if (idx < 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC SPS\n"));
@@ -598,7 +598,7 @@ static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 			}
 		}
 		for (u32 i=0; i<gf_list_count(avcc->pictureParameterSets); ++i) {
-			GF_NALUFFParam *slc = gf_list_get(avcc->pictureParameterSets, i);
+			GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avcc->pictureParameterSets, i);
 			s32 idx = gf_avc_read_pps(slc->data, slc->size, pctx->avc);
 			if (idx < 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[BSRW] failed to parse AVC PPS\n"));
@@ -633,7 +633,7 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 	return GF_NOT_SUPPORTED;
 #endif
 
-	GF_BitStream *bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, pck_size, GF_BITSTREAM_READ);
 	if (!bs) return GF_OUT_OF_MEM;
 
 	//probe data
@@ -709,9 +709,10 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		u32 hdr_size = (u32)(gf_bs_get_position(bs) - pos);
 
 		//check if timecode metadata
-		Bool is_metadata = obu_type == OBU_METADATA;
+		u64 metadata_type;
+		Bool is_metadata = (obu_type == OBU_METADATA) ? GF_TRUE : GF_FALSE;
 		if (!is_metadata) goto transfer;
-		u64 metadata_type = gf_av1_leb128_read(bs, NULL);
+		metadata_type = gf_av1_leb128_read(bs, NULL);
 		if (metadata_type != OBU_METADATA_TYPE_TIMECODE) goto transfer;
 
 		//skip timecode metadata
@@ -753,18 +754,18 @@ static GF_Err av1_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 static void update_props(BSRWPid *pctx, GF_VUIInfo *vui)
 {
 	if ((vui->ar_num>0) && (vui->ar_den>0))
-		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(vui->ar_num, vui->ar_den) );
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(vui->ar_num, (u32)vui->ar_den) );
 
 	if (vui->fullrange>0)
-		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(vui->fullrange) );
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(vui->fullrange ? GF_TRUE : GF_FALSE) );
 
 	if (!vui->remove_video_info) {
 		if (vui->color_prim>=0)
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(vui->color_prim) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT((u32) vui->color_prim) );
 		if (vui->color_tfc>=0)
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(vui->color_tfc) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT((u32) vui->color_tfc) );
 		if (vui->color_matrix>=0)
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(vui->color_matrix) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) vui->color_matrix) );
 	}
 }
 #endif /*GPAC_DISABLE_AV_PARSERS*/
@@ -805,7 +806,7 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if ((ctx->lev>=0) || (ctx->prof>=0) || (ctx->pcomp>=0)) {
 		u32 i, count = gf_list_count(avcc->sequenceParameterSets);
 		for (i=0; i<count; i++) {
-			GF_NALUFFParam *sps = gf_list_get(avcc->sequenceParameterSets, i);
+			GF_NALUFFParam *sps = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
 			//first byte is nalu header, then profile_idc (8bits), prof_comp (8bits), and level_idc (8bits)
 			if (ctx->prof>=0) {
 				sps->data[1] = (u8) ctx->prof;
@@ -1009,7 +1010,7 @@ static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	pctx->rewrite_vui = GF_TRUE;
 	if (ctx->tc) {
 		if (pctx->codec_id == GF_CODECID_AVC) {
-			pctx->vui.enable_pic_struct = ctx->tc != BSRW_TC_REMOVE;
+			pctx->vui.enable_pic_struct = (ctx->tc != BSRW_TC_REMOVE) ? GF_TRUE : GF_FALSE;
 			return;
 		}
 	}
@@ -1031,7 +1032,7 @@ static GF_Err prores_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPac
 	u8 *output;
 	GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(pctx->opid, pck, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
-	
+
 	//starting at offset 20 in frame:
 	/*
 	prores_frame->chroma_format = gf_bs_read_int(bs, 2);
@@ -1069,21 +1070,21 @@ static GF_Err prores_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPac
 	if (ctx->cprim>=0) {
 		output[22] = (u8) ctx->cprim;
 		if (pctx->prev_cprim != ctx->cprim) {
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(ctx->cprim) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT((u32) ctx->cprim) );
 			pctx->prev_cprim = ctx->cprim;
 		}
 	}
 	if (ctx->ctfc>=0) {
 		output[23] = (u8) ctx->ctfc;
 		if (ctx->ctfc != pctx->prev_ctfc) {
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(ctx->ctfc) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT((u32) ctx->ctfc) );
 			pctx->prev_ctfc = ctx->ctfc;
 		}
 	}
 	if (ctx->cmx>=0) {
 		output[24] = (u8) ctx->cmx;
 		if (pctx->prev_cmx != ctx->cmx) {
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(ctx->cmx) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) ctx->cmx) );
 			pctx->prev_cmx = ctx->cmx;
 		}
 	}
@@ -1095,7 +1096,7 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 {
 	const GF_PropertyValue *prop;
 	GF_BSRWCtx *ctx = (GF_BSRWCtx *) gf_filter_get_udta(filter);
-	BSRWPid *pctx = gf_filter_pid_get_udta(pid);
+	BSRWPid *pctx = (BSRWPid *)gf_filter_pid_get_udta(pid);
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
@@ -1207,7 +1208,7 @@ static GF_Err bsrw_process(GF_Filter *filter)
 		GF_FilterPacket *pck;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		if (!pid) break;
-		pctx = gf_filter_pid_get_udta(pid);
+		pctx = (BSRWPid *)gf_filter_pid_get_udta(pid);
 		if (!pctx) break;
 		if (ctx->reconfigure)
 			pctx->reconfigure = GF_TRUE;
@@ -1267,10 +1268,10 @@ static GF_Err bsrw_initialize(GF_Filter *filter)
 	ctx->pids = gf_list_new();
 
 	GF_Err e = GF_OK;
-	if (ctx->tcxs) e |= bsrw_parse_date(ctx->tcxs, &ctx->tcxs_val);
-	if (ctx->tcxe) e |= bsrw_parse_date(ctx->tcxe, &ctx->tcxe_val);
-	if (ctx->tcsc && !strstr(ctx->tcsc, "first")) {
-		e |= bsrw_parse_date(ctx->tcsc, &ctx->tcsc_val);
+	if (ctx->tcxs) e = bsrw_parse_date(ctx->tcxs, &ctx->tcxs_val);
+	if (ctx->tcxe && !e) e = bsrw_parse_date(ctx->tcxe, &ctx->tcxe_val);
+	if (ctx->tcsc && !strstr(ctx->tcsc, "first") && !e) {
+		e = bsrw_parse_date(ctx->tcsc, &ctx->tcsc_val);
 		ctx->tcsc_inferred = GF_TRUE;
 	}
 	if (e) return e;
@@ -1291,7 +1292,7 @@ static void bsrw_finalize(GF_Filter *filter)
 {
 	GF_BSRWCtx *ctx = (GF_BSRWCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->pids)) {
-		BSRWPid *pctx = gf_list_pop_back(ctx->pids);
+		BSRWPid *pctx = (BSRWPid *)gf_list_pop_back(ctx->pids);
 		if (pctx->avc) gf_free(pctx->avc);
 		gf_free(pctx);
 	}

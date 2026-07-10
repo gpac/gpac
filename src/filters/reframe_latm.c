@@ -59,7 +59,7 @@ typedef struct
 
 	GF_M4ADecSpecInfo acfg;
 
-	char *latm_buffer;
+	u8 *latm_buffer;
 	u32 latm_buffer_size, latm_buffer_alloc;
 	u32 dts_inc, sample_rate;
 
@@ -87,7 +87,7 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 	u32 val, size;
 	u64 pos, mux_size;
 	if (nb_skipped) *nb_skipped = 0;
-	if (!acfg) return 0;
+	if (!acfg) return GF_FALSE;
 
 	while (gf_bs_available(bs)>3) {
 		val = gf_bs_read_u8(bs);
@@ -172,7 +172,7 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 		}
 
 		if (buffer) {
-			gf_bs_read_data(bs, (char *) buffer, size);
+			gf_bs_read_data(bs,buffer, size);
 		} else {
 			while (size) {
 				gf_bs_read_int(bs, 8);
@@ -199,7 +199,7 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 GF_Err latm_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_LATMDmxCtx *ctx = (GF_LATMDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -279,7 +279,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]  && sr_idx < GF_ARRAY_LENGTH(GF_M4ASampleRates) && GF_M4ASampleRates[sr_idx]) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(LATMIdx)*ctx->index_alloc_size);
+			ctx->indexes = (LATMIdx *)gf_realloc(ctx->indexes, sizeof(LATMIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = cur_pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= GF_M4ASampleRates[sr_idx];
@@ -382,7 +382,7 @@ static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_LATMDmxCtx *ctx = (GF_LATMDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -460,10 +460,11 @@ static GFINLINE void latm_dmx_update_cts(GF_LATMDmxCtx *ctx)
 
 GF_Err latm_dmx_process(GF_Filter *filter)
 {
-	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_LATMDmxCtx *ctx = (GF_LATMDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u32 pos;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 pck_size=0, prev_pck_size;
 	u64 cts;
 
@@ -495,7 +496,7 @@ restart:
 			return GF_OK;
 		}
 	} else {
-		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+		data = gf_filter_pck_get_data(pck, &pck_size);
 	}
 
 	//input pid sets some timescale - we flushed pending data , update cts
@@ -511,7 +512,7 @@ restart:
 	if (pck && !ctx->resume_from) {
 		if (ctx->latm_buffer_size + pck_size > ctx->latm_buffer_alloc) {
 			ctx->latm_buffer_alloc = ctx->latm_buffer_size + pck_size;
-			ctx->latm_buffer = gf_realloc(ctx->latm_buffer, ctx->latm_buffer_alloc);
+			ctx->latm_buffer = (u8 *)gf_realloc(ctx->latm_buffer, ctx->latm_buffer_alloc);
 		}
 		memcpy(ctx->latm_buffer + ctx->latm_buffer_size, data, pck_size);
 		ctx->latm_buffer_size += pck_size;
@@ -621,7 +622,7 @@ restart:
 
 static void latm_dmx_finalize(GF_Filter *filter)
 {
-	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_LATMDmxCtx *ctx = (GF_LATMDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->latm_buffer) gf_free(ctx->latm_buffer);
@@ -634,7 +635,7 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	u32 nb_skip=0;
 	GF_M4ADecSpecInfo acfg;
 	acfg.base_sr_index = (u32)-1;
-	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	while (1) {
 		u32 nb_skipped = 0;
 		if (!latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, &nb_skipped)) break;

@@ -60,7 +60,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	const GF_PropertyValue *p;
 	u32 stride, stride_uv;
-	GF_RawVidReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_RawVidReframeCtx *ctx = (GF_RawVidReframeCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -134,12 +134,12 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_FALSE);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->size.x));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->size.y));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT((u32)ctx->size.x));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT((u32)ctx->size.y));
 	if (ctx->spfmt)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->spfmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32)ctx->fps.num));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(stride));
 	if (stride_uv)
@@ -163,7 +163,7 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		nb_frames /= ctx->frame_size;
 		ctx->total_frames = nb_frames;
 		nb_frames *= ctx->fps.den;
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(nb_frames, ctx->fps.num));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT((s64)nb_frames, (u64)ctx->fps.num));
 	}
 
 	if (!ctx->copy) {
@@ -177,7 +177,7 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 {
 	u32 nb_frames;
 	GF_FilterEvent fevt;
-	GF_RawVidReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_RawVidReframeCtx *ctx = (GF_RawVidReframeCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -242,10 +242,10 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 
 GF_Err rawvidreframe_process(GF_Filter *filter)
 {
-	GF_RawVidReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_RawVidReframeCtx *ctx = (GF_RawVidReframeCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	u64 byte_offset;
-	char *data;
+	const u8 *data;
 	u32 pck_size, offset_in_pck;
 
 	if (ctx->done) return GF_EOS;
@@ -266,7 +266,7 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 	offset_in_pck = 0;
 
@@ -275,77 +275,79 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 		if (ctx->is_yuv4mpeg && (!ctx->frame_size || !ctx->nb_bytes_in_frame) ) {
 			Bool is_seq_header = GF_FALSE;
 			GF_Fraction old_fps = ctx->fps;
-			while (pck_size && (data[0] != '\n')) {
+			char *s_data = (char *)data;
+			while (pck_size && (s_data[0] != '\n')) {
 				char sep_val;
-				char *sep = strchr(data, ' ');
-				char *sep2 = strchr(data, '\n');
+				char *sep = strchr(s_data, ' ');
+				char *sep2 = strchr(s_data, '\n');
 				if (!sep || (sep > sep2)) sep = sep2;
 				if (!sep) break;
 				sep_val = sep[0];
 				sep[0] = 0;
-				u32 len = (u32) strlen(data);
+				u32 len = (u32) strlen(s_data);
 				//we allow multiple stream headers
-				if (!strncmp(data, "YUV4MPEG2", len)) {
+				if (!strncmp(s_data, "YUV4MPEG2", len)) {
 					is_seq_header = GF_TRUE;
 				}
-				else if (!strncmp(data, "FRAME", len)) {
+				else if (!strncmp(s_data, "FRAME", len)) {
 				}
-				else if (data[0] == 'W') ctx->size.x = atoi(data+1);
-				else if (data[0] == 'H') ctx->size.y = atoi(data+1);
-				else if (data[0] == 'F') sscanf(data+1, "%d:%d", &ctx->fps.num, &ctx->fps.den);
-				else if (data[0] == 'A') {
+				else if (s_data[0] == 'W') ctx->size.x = atoi(s_data+1);
+				else if (s_data[0] == 'H') ctx->size.y = atoi(s_data+1);
+				else if (s_data[0] == 'F') sscanf(s_data+1, "%d:%d", &ctx->fps.num, &ctx->fps.den);
+				else if (s_data[0] == 'A') {
 					GF_Fraction sar = {0,1};
-					sscanf(data+1, "%d:%d", &sar.num, &sar.den);
+					sscanf(s_data+1, "%d:%d", &sar.num, &sar.den);
 					gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar));
 				}
-				else if (data[0] == 'C') {
-					if (!strcmp(data+1, "420jpeg")) ctx->spfmt = GF_PIXEL_YUV;
-					else if (!strcmp(data+1, "420mpeg2")) ctx->spfmt = GF_PIXEL_YUV;
-					else if (!strcmp(data+1, "420paldv")) ctx->spfmt = GF_PIXEL_YUV;
-					else if (!strcmp(data+1, "420")) ctx->spfmt = GF_PIXEL_YUV;
-					else if (!strcmp(data+1, "422")) ctx->spfmt = GF_PIXEL_YUV422;
-					else if (!strcmp(data+1, "444")) ctx->spfmt = GF_PIXEL_YUV444;
-					else if (!strcmp(data+1, "444alpha")) ctx->spfmt = GF_PIXEL_YUVA444;
-					else if (!strcmp(data+1, "mono")) ctx->spfmt = GF_PIXEL_GREYSCALE;
+				else if (s_data[0] == 'C') {
+					if (!strcmp(s_data+1, "420jpeg")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(s_data+1, "420mpeg2")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(s_data+1, "420paldv")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(s_data+1, "420")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(s_data+1, "422")) ctx->spfmt = GF_PIXEL_YUV422;
+					else if (!strcmp(s_data+1, "444")) ctx->spfmt = GF_PIXEL_YUV444;
+					else if (!strcmp(s_data+1, "444alpha")) ctx->spfmt = GF_PIXEL_YUVA444;
+					else if (!strcmp(s_data+1, "mono")) ctx->spfmt = GF_PIXEL_GREYSCALE;
 					else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Unsupported pixel format %s\n", data+1));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Unsupported pixel format %s\n", s_data+1));
 						sep[0] = sep_val;
 						return GF_NOT_SUPPORTED;
 					}
 				}
-				else if (data[0] == 'I') {
-					if (!strcmp(data+1, "t")) ctx->ilace = 1;
-					else if (!strcmp(data+1, "b")) ctx->ilace = 2;
-					else if (!strcmp(data+1, "?") || !strcmp(data+1, "p")) ctx->ilace = 0;
+				else if (s_data[0] == 'I') {
+					if (!strcmp(s_data+1, "t")) ctx->ilace = 1;
+					else if (!strcmp(s_data+1, "b")) ctx->ilace = 2;
+					else if (!strcmp(s_data+1, "?") || !strcmp(s_data+1, "p")) ctx->ilace = 0;
 					else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Unsupported interlace mode %s\n", data+1));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Unsupported interlace mode %s\n", s_data+1));
 						sep[0] = sep_val;
 						return GF_NOT_SUPPORTED;
 					}
 				}
-				else if (data[0] == 'X') {
-					gf_filter_pid_set_property_str(ctx->opid, "yuv4meg_meta", &PROP_STRING(data+1));
+				else if (s_data[0] == 'X') {
+					gf_filter_pid_set_property_str(ctx->opid, "yuv4meg_meta", &PROP_STRING(s_data+1));
 				}
 				sep[0] = sep_val;
-				data += len;
+				s_data += len;
 				pck_size -= len;
 				byte_offset += len;
-				if (data[0] == ' ') {
-					data++;
+				if (s_data[0] == ' ') {
+					s_data++;
 					pck_size--;
 					byte_offset ++;
 				}
+				data = (u8 *)s_data;
 			}
 			byte_offset ++;
 			data++;
 			pck_size--;
 			if (is_seq_header) {
 				//send configure
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->size.x));
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->size.y));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT((u32)ctx->size.x));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT((u32)ctx->size.y));
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->spfmt));
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps));
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32)ctx->fps.num));
 
 				gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &ctx->frame_size, NULL, NULL, NULL, NULL);
 				if (ctx->seek_ts) {
@@ -430,13 +432,13 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 
 static void rawvidreframe_finalize(GF_Filter *filter)
 {
-	GF_RawVidReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_RawVidReframeCtx *ctx = (GF_RawVidReframeCtx *)gf_filter_get_udta(filter);
 	if (ctx->out_pck) gf_filter_pck_discard(ctx->out_pck);
 }
 
 static const char *rawvidreframe_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if ((size>10) && !strncmp(data, "YUV4MPEG2 ", 10)) {
+	if ((size>10) && !strncmp((char*)data, "YUV4MPEG2 ", 10)) {
 		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return "video/x-yuv4mpeg";
 	}

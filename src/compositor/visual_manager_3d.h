@@ -26,6 +26,10 @@
 #ifndef _VISUAL_MANAGER_3D_
 #define _VISUAL_MANAGER_3D_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/internal/compositor_dev.h>
 
 #ifndef GPAC_DISABLE_3D
@@ -315,6 +319,10 @@ void visual_3d_clean_state(GF_VisualManager *visual);
 
 #endif /*GPAC_DISABLE_3D*/
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_VISUAL_MANAGER_3D_*/
 

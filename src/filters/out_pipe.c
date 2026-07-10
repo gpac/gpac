@@ -76,9 +76,6 @@ typedef struct
 
 } GF_PipeOutCtx;
 
-const char *gf_errno_str(int errnoval);
-
-
 static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite)
 {
 	GF_Err e = GF_OK;
@@ -250,7 +247,7 @@ static GF_Err pipeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 static GF_Err pipeout_initialize(GF_Filter *filter)
 {
-	char *ext;
+	const char *ext;
 	GF_PipeOutCtx *ctx = (GF_PipeOutCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->dst) return GF_OK;
@@ -344,7 +341,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 	const GF_PropertyValue *fname, *p;
 	Bool start, end, broken=GF_FALSE;
 	GF_Err e = GF_OK;
-	const char *pck_data;
+	const u8 *pck_data;
 	u32 pck_size;
 	s32 nb_write;
 	GF_PipeOutCtx *ctx = (GF_PipeOutCtx *) gf_filter_get_udta(filter);

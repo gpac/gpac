@@ -1,6 +1,10 @@
 #ifndef _AES_H_
 #define _AES_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/setup.h>
 
 // #define the macros below to 1/0 to enable/disable the mode of operation.
@@ -89,5 +93,9 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, u8* buf, u32 length);
 
 #endif // #if defined(CTR) && (CTR == 1)
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_AES_H_

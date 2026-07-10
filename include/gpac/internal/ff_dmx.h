@@ -25,6 +25,10 @@
 #ifndef _GF_FF_DMX_H_
 #define _GF_FF_DMX_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/setup.h>
 
 #ifdef GPAC_HAS_FFMPEG
@@ -47,6 +51,10 @@ typedef GF_FFDemuxCallbackRet (*GF_FFDemuxCallbackFn)(void *udta, AVPacket **pkt
 GF_Err gf_filter_bind_ffdmx_callbacks(GF_Filter *filter, void *udta, GF_FFDemuxCallbackFn on_pkt);
 
 #endif // GPAC_HAS_FFMPEG
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _GF_FF_DMX_H_
 

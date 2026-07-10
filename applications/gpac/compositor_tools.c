@@ -158,7 +158,8 @@ GF_GPACArg mp4c_args[] =
 
 typedef enum
 {
-	MP4C_RELOAD=0,
+	MP4C_NONE = 0,
+	MP4C_RELOAD,
 	MP4C_OPEN,
 	MP4C_DISCONNECT,
 	MP4C_PAUSE_RESUME,
@@ -277,7 +278,7 @@ static MP4C_Command get_gui_cmd(u8 char_code)
 			return MP4C_Keys[i].cmd_type;
 		i++;
 	}
-	return 0;
+	return MP4C_NONE;
 }
 
 void gpac_open_urls(const char *urls)
@@ -339,10 +340,10 @@ static void update_rti(const char *legend)
 		char szMsg[1024];
 		if (rti.total_cpu_usage && (bench_mode<2) ) {
 			sprintf(szMsg, "FPS %02.02f CPU %2d (%02d) Mem %d kB",
-			        gf_sc_get_fps(compositor, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
+			        gf_sc_get_fps(compositor, GF_FALSE), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
 		} else {
 			sprintf(szMsg, "FPS %02.02f CPU %02d Mem %d kB",
-			        gf_sc_get_fps(compositor, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			        gf_sc_get_fps(compositor, GF_FALSE), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		}
 
 		if (display_rti==2) {
@@ -359,7 +360,7 @@ static void update_rti(const char *legend)
 		        gf_sys_clock(),
 		        gf_sc_get_time_in_ms(compositor),
 		        rti.total_cpu_usage,
-		        (u32) gf_sc_get_fps(compositor, 0),
+		        (u32) gf_sc_get_fps(compositor, GF_FALSE),
 		        (u32) (rti.gpac_memory / 1024),
 		        legend ? legend : ""
 		       );
@@ -419,7 +420,7 @@ static void set_window_caption()
 			}
 		}
 	} else {
-		event.caption.caption = "GPAC "GPAC_VERSION "-rev" GPAC_GIT_REVISION;
+		event.caption.caption = "GPAC " GPAC_VERSION "-rev" GPAC_GIT_REVISION;
 	}
 	gf_sc_user_event(compositor, &event);
 }
@@ -523,7 +524,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_MESSAGE:
 	{
-		if (!evt->message.message) return 0;
+		if (!evt->message.message) return GF_FALSE;
 		if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;
 			if (evt->message.error==GF_SCRIPT_INFO) {
@@ -538,7 +539,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 	break;
 	case GF_EVENT_PROGRESS:
 	{
-		char *szTitle = "";
+		const char *szTitle = "";
 		if (evt->progress.progress_type==0) {
 			szTitle = "Buffer ";
 			if (bench_mode && (bench_mode!=3) ) {
@@ -559,23 +560,23 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 
 	case GF_EVENT_DBLCLICK:
 		gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, !gf_sc_get_option(compositor, GF_OPT_FULLSCREEN));
-		return 0;
+		return GF_FALSE;
 
 #ifdef DESKTOP_GUI
 	case GF_EVENT_MOUSEDOWN:
 		if (evt->mouse.button==GF_MOUSE_RIGHT) {
-			right_down = 1;
+			right_down = GF_TRUE;
 			last_x = evt->mouse.x;
 			last_y = evt->mouse.y;
 		}
-		return 0;
+		return GF_FALSE;
 	case GF_EVENT_MOUSEUP:
 		if (evt->mouse.button==GF_MOUSE_RIGHT) {
-			right_down = 0;
+			right_down = GF_FALSE;
 			last_x = evt->mouse.x;
 			last_y = evt->mouse.y;
 		}
-		return 0;
+		return GF_FALSE;
 	case GF_EVENT_MOUSEMOVE:
 		if (right_down && (window_flags & GF_VOUT_WINDOWLESS) ) {
 			GF_Event move;
@@ -585,7 +586,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			move.move.relative = 1;
 			gf_sc_user_event(compositor, &move);
 		}
-		return 0;
+		return GF_FALSE;
 #endif
 
 	case GF_EVENT_KEYUP:
@@ -612,7 +613,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, !gf_sc_get_option(compositor, GF_OPT_FULLSCREEN));
 			break;
 		case GF_KEY_F:
-			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_sc_get_fps(compositor, 0));
+			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_sc_get_fps(compositor, GF_FALSE));
 			break;
 		case GF_KEY_T:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Scene Time: %f \n", gf_sc_get_time_in_ms(compositor)/1000.0);
@@ -683,10 +684,10 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_F5:
 			if (is_connected)
-				reload = 1;
+				reload = GF_TRUE;
 			break;
 		case GF_KEY_A:
-			addon_visible = !addon_visible;
+				addon_visible = addon_visible ? GF_FALSE : GF_TRUE;
 			gf_sc_toggle_addons(compositor, addon_visible);
 			break;
 		case GF_KEY_UP:
@@ -710,14 +711,14 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 
 	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
-			is_connected = 1;
+			is_connected = GF_TRUE;
 			fprintf(stderr, "Service Connected\n");
 			eos_seen = GF_FALSE;
 			if (playback_speed != FIX_ONE)
 				gf_sc_set_speed(compositor, playback_speed);
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
-			is_connected = 0;
+			is_connected = GF_FALSE;
 			duration_ms = 0;
 		}
 
@@ -772,7 +773,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 		if (evt->open_file.nb_files) {
 			gf_sc_navigate_to(compositor, evt->open_file.files[0]);
 		}
-		return 1;
+		return GF_TRUE;
 	case GF_EVENT_NAVIGATE_INFO:
 		if (evt->navigate.to_url)
 			fprintf(stderr, "Go to URL: \"%s\"\r", evt->navigate.to_url);
@@ -781,7 +782,7 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 		if (gf_sc_is_supported_url(compositor, evt->navigate.to_url, GF_TRUE)) {
 			fprintf(stderr, "Navigating to URL %s\n", evt->navigate.to_url);
 			gf_sc_navigate_to(compositor, evt->navigate.to_url);
-			return 1;
+			return GF_TRUE;
 		} else {
 			fprintf(stderr, "Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url);
 		}
@@ -799,27 +800,27 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			nb_retry--;
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stderr, "login   : ");
-			if (!gf_read_line_input(evt->auth.user, 50, 1))
+			if (!gf_read_line_input(evt->auth.user, 50, GF_TRUE))
 				continue;
 			fprintf(stderr, "\npassword: ");
-			if (!gf_read_line_input(evt->auth.password, 50, 0))
+			if (!gf_read_line_input(evt->auth.password, 50, GF_FALSE))
 				continue;
 			fprintf(stderr, "*********\n");
 		}
 		if (nb_retry == 0) {
 			fprintf(stderr, "**** No User or password has been filled, aborting ***\n");
-			return 0;
+			return GF_FALSE;
 		}
-		return 1;
+		return GF_TRUE;
 	}
 	case GF_EVENT_ADDON_DETECTED:
 		if (enable_add_ons) {
 			fprintf(stderr, "Media Addon %s detected - enabling it\n", evt->addon_connect.addon_url);
-			addon_visible = 1;
+			addon_visible = GF_TRUE;
 		}
 		return enable_add_ons;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -925,7 +926,7 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 			forced_width = forced_height = 0;
 		}
 	}
-	else if (!strcmp(arg, "-fs")) start_fs = 1;
+	else if (!strcmp(arg, "-fs")) start_fs = GF_TRUE;
 #endif
 	else if (!strcmp(arg, "-nk")) no_keyboard = GF_TRUE;
 	/*arguments only used in non-gui mode*/
@@ -937,13 +938,13 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 		else if (!strcmp(arg, "-sbm")) bench_mode = 3;
 		else if (!strcmp(arg, "-loop")) loop_at_end = GF_TRUE;
 		else if (!strcmp(arg, "-no-addon")) enable_add_ons = GF_FALSE;
-		else if (!strcmp(arg, "-pause")) pause_at_first = 1;
+		else if (!strcmp(arg, "-pause")) pause_at_first = GF_TRUE;
 		else if (!strcmp(arg, "-start")) {
 			play_from = arg_val ? atof(arg_val) : 0;
 		}
 		else if (!strcmp(arg, "-speed")) {
 			if (arg_val) playback_speed = FLT2FIX( atof(arg_val) );
-			if (playback_speed == 0) { playback_speed = FIX_ONE; pause_at_first = 1; }
+			if (playback_speed == 0) { playback_speed = FIX_ONE; pause_at_first = GF_TRUE; }
 			else if (playback_speed < 0) playback_speed = FIX_ONE;
 		}
 		else if (!strcmp(arg, "-update")) {
@@ -992,7 +993,7 @@ void load_compositor(GF_Filter *filter)
 
 
 	comp_filter = filter;
-	compositor = gf_filter_get_udta(comp_filter);
+	compositor = (GF_Compositor *)gf_filter_get_udta(comp_filter);
 	if (start_fs) gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, 1);
 	if (play_from || pause_at_first)
 		gf_sc_connect_from_time(compositor, NULL, (u64) (play_from*1000), pause_at_first, GF_FALSE, NULL);
@@ -1070,7 +1071,7 @@ static void mp4c_coverage()
 	gf_list_del(descs);
 
 
-	gf_sc_dump_scene(compositor, NULL, NULL, GF_FALSE, 0);
+	gf_sc_dump_scene(compositor, NULL, NULL, GF_FALSE, GF_FALSE);
 	gf_sc_get_current_service_id(compositor);
 	gf_sc_toggle_addons(compositor, GF_FALSE);
 	set_navigation();
@@ -1136,7 +1137,7 @@ static void mp4c_coverage()
 	}
 	gf_sc_set_option(compositor, GF_OPT_NAVIGATION_TYPE, 0);
 
-	gf_sc_connect_from_time(compositor, "logo.jpg", 0, 0, GF_FALSE, "./media/auxiliary_files/");
+	gf_sc_connect_from_time(compositor, "logo.jpg", GF_FALSE, 0, GF_FALSE, "./media/auxiliary_files/");
 	gf_sc_navigate_to(compositor, "./media/auxiliary_files/logo.jpg");
 	gpac_open_urls("./media/auxiliary_files/logo.jpg");
 	switch_bench(1);
@@ -1204,10 +1205,10 @@ Bool mp4c_task()
 		if (url) {
 			url = gf_strdup(url);
 			gf_sc_disconnect(compositor);
-			gf_sc_connect_from_time(compositor, url, 0, 0, GF_FALSE, NULL);
+			gf_sc_connect_from_time(compositor, url, GF_FALSE, 0, GF_FALSE, NULL);
 			gf_free(url);
 		}
-		reload = 0;
+		reload = GF_FALSE;
 	}
 
 	if (send_command && is_connected) {
@@ -1240,12 +1241,12 @@ Bool mp4c_handle_prompt(u8 char_val)
 			break;
 		}
 		if (rti_file) init_rti_logs(rti_file, use_rtix);
-		gf_sc_connect_from_time(compositor, szBuf, 0, 0, 0, NULL);
+		gf_sc_connect_from_time(compositor, szBuf, GF_FALSE, 0, GF_FALSE, NULL);
 	}
 		break;
 	case MP4C_RELOAD:
 		if (is_connected)
-			reload = 1;
+			reload = GF_TRUE;
 		break;
 
 	case MP4C_DISCONNECT:
@@ -1254,7 +1255,7 @@ Bool mp4c_handle_prompt(u8 char_val)
 
 	case MP4C_PAUSE_RESUME:
 		if (is_connected) {
-			Bool is_pause = gf_sc_get_option(compositor, GF_OPT_PLAY_STATE);
+			Bool is_pause = gf_sc_get_option(compositor, GF_OPT_PLAY_STATE) ? GF_TRUE : GF_FALSE;
 			fprintf(stderr, "[Status: %s]\n", is_pause ? "Playing" : "Paused");
 			gf_sc_set_option(compositor, GF_OPT_PLAY_STATE, is_pause ? GF_STATE_PLAYING : GF_STATE_PAUSED);
 		}
@@ -1342,13 +1343,13 @@ Bool mp4c_handle_prompt(u8 char_val)
 				fflush(stderr);
 			} while( 1 > scanf("%8191s", szBuf));
 			sExt = strrchr(szBuf, '.');
-			xml_dump = 0;
+			xml_dump = GF_FALSE;
 			if (sExt) {
-				if (!stricmp(sExt, ".x")) xml_dump = 1;
+				if (!stricmp(sExt, ".x")) xml_dump = GF_TRUE;
 				sExt[0] = 0;
 			}
-			std_out = strnicmp(szBuf, "std", 3) ? 0 : 1;
-			GF_Err e = gf_sc_dump_scene(compositor, std_out ? NULL : szBuf, NULL, xml_dump, 0);
+			std_out = strnicmp(szBuf, "std", 3) ? GF_FALSE : GF_TRUE;
+			GF_Err e = gf_sc_dump_scene(compositor, std_out ? NULL : szBuf, NULL, xml_dump, GF_FALSE);
 			if (e<0)
 				fprintf(stderr, "Dump failed: %s\n", gf_error_to_string(e));
 			else
@@ -1358,7 +1359,7 @@ Bool mp4c_handle_prompt(u8 char_val)
 
 	case MP4C_OGL2D:
 	{
-		Bool use_3d = !gf_sc_get_option(compositor, GF_OPT_USE_OPENGL);
+		Bool use_3d = gf_sc_get_option(compositor, GF_OPT_USE_OPENGL) ? GF_FALSE : GF_TRUE;
 		if (gf_sc_set_option(compositor, GF_OPT_USE_OPENGL, use_3d)==GF_OK) {
 			fprintf(stderr, "Using %s for 2D drawing\n", use_3d ? "OpenGL" : "2D rasterizer");
 		}
@@ -1366,8 +1367,8 @@ Bool mp4c_handle_prompt(u8 char_val)
 	break;
 	case MP4C_STRESSMODE:
 	{
-		Bool opt = gf_sc_get_option(compositor, GF_OPT_STRESS_MODE);
-		opt = !opt;
+		Bool opt = gf_sc_get_option(compositor, GF_OPT_STRESS_MODE) ? GF_TRUE : GF_FALSE;
+		opt = opt ? GF_FALSE : GF_TRUE;
 		fprintf(stderr, "Turning stress mode %s\n", opt ? "on" : "off");
 		gf_sc_set_option(compositor, GF_OPT_STRESS_MODE, opt);
 	}
@@ -1502,16 +1503,16 @@ static void mp4c_take_screenshot(Bool for_coverage)
 		}
 	}
 	if (for_coverage && !offscreen_view) {
-		if (gf_sc_get_offscreen_buffer(compositor, &fb, 0, 0)==GF_OK)
+		if (gf_sc_get_offscreen_buffer(compositor, &fb, 0, GF_SC_GRAB_DEPTH_NONE)==GF_OK)
 			gf_sc_release_screen_buffer(compositor, &fb);
 	}
 	while (nb_pass) {
 		nb_pass--;
 		if (offscreen_view) {
 			sprintf(szFileName, "view%d_dump.png", offscreen_view);
-			e = gf_sc_get_offscreen_buffer(compositor, &fb, offscreen_view-1, 0);
+			e = gf_sc_get_offscreen_buffer(compositor, &fb, offscreen_view-1, GF_SC_GRAB_DEPTH_NONE);
 		} else {
-			sprintf(szFileName, "gpac_video_dump_"LLU".png", gf_net_get_utc() );
+			sprintf(szFileName, "gpac_video_dump_" LLU ".png", gf_net_get_utc() );
 			e = gf_sc_get_screen_buffer(compositor, &fb, GF_SC_GRAB_DEPTH_NONE);
 		}
 		offscreen_view++;
@@ -1521,7 +1522,7 @@ static void mp4c_take_screenshot(Bool for_coverage)
 		} else {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			u32 dst_size = fb.width*fb.height*4;
-			u8 *dst = (u8*)gf_malloc(sizeof(u8)*dst_size);
+			u8 *dst = (u8*)gf_malloc(dst_size);
 
 			e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
 			if (e) {

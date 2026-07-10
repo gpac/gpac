@@ -88,7 +88,7 @@ typedef struct
 GF_Err flac_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_FLACDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FLACDmxCtx *ctx = (GF_FLACDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -226,7 +226,7 @@ static Bool flac_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_FLACDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FLACDmxCtx *ctx = (GF_FLACDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
@@ -340,7 +340,7 @@ u8 const flac_dmx_crc8_table[256] = {
 	0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
 };
 
-u8 flac_dmx_crc8(u8 *data, u32 len)
+u8 flac_dmx_crc8(const u8 *data, u32 len)
 {
 	u8 crc = 0;
 	while (len--)
@@ -405,7 +405,7 @@ static u32 flac_dmx_samplerates[] =
 #define FLAC_CHANNELS       8
 #define FLAC_MID_SIDE       3
 
-static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHeader *hdr)
+static Bool flac_parse_header(GF_FLACDmxCtx *ctx, const u8 *data, u32 size, FLACHeader *hdr)
 {
 	u32 block_size, sample_rate, res, top, pos, crc, crc_hdr, ch_lay;
 
@@ -513,7 +513,7 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 
 GF_Err flac_dmx_process(GF_Filter *filter)
 {
-	GF_FLACDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FLACDmxCtx *ctx = (GF_FLACDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *output;
 	u8 *start;
@@ -571,7 +571,7 @@ restart:
 
 		if (ctx->flac_buffer_size + pck_size > ctx->flac_buffer_alloc) {
 			ctx->flac_buffer_alloc = ctx->flac_buffer_size + pck_size;
-			ctx->flac_buffer = gf_realloc(ctx->flac_buffer, ctx->flac_buffer_alloc);
+			ctx->flac_buffer = (u8 *)gf_realloc(ctx->flac_buffer, ctx->flac_buffer_alloc);
 		}
 		memcpy(ctx->flac_buffer + ctx->flac_buffer_size, data, pck_size);
 		ctx->flac_buffer_size += pck_size;
@@ -610,7 +610,7 @@ restart:
 		} else {
 			while (cur_size) {
 				//wait till we have a frame header
-				hdr_start = memchr(cur_buf, 0xFF, cur_size);
+				hdr_start = (u8*)memchr(cur_buf, 0xFF, cur_size);
 				if (!hdr_start) break;
 				next_frame = (u32) (hdr_start-start);
 				if (next_frame + 17 >= remain) {
@@ -662,7 +662,7 @@ restart:
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			while (gf_bs_available(ctx->bs)) {
-				Bool last = gf_bs_read_int(ctx->bs, 1);
+				Bool last = gf_bs_read_bool(ctx->bs);
 				u32 type = gf_bs_read_int(ctx->bs, 7);
 				u32 len = gf_bs_read_int(ctx->bs, 24);
 
@@ -796,13 +796,13 @@ restart:
 
 static GF_Err flac_dmx_initialize(GF_Filter *filter)
 {
-	GF_FLACDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FLACDmxCtx *ctx = (GF_FLACDmxCtx *)gf_filter_get_udta(filter);
 	ctx->bs = gf_bs_new((u8 *)ctx, 1, GF_BITSTREAM_READ);
 	return GF_OK;
 }
 static void flac_dmx_finalize(GF_Filter *filter)
 {
-	GF_FLACDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FLACDmxCtx *ctx = (GF_FLACDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->flac_buffer) gf_free(ctx->flac_buffer);
@@ -812,7 +812,7 @@ static void flac_dmx_finalize(GF_Filter *filter)
 
 static const char *flac_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if ((size>4) && !strncmp(data, "fLaC", 4)) {
+	if ((size>4) && !memcmp(data, "fLaC", 4)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/flac";
 	}

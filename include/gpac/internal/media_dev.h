@@ -40,7 +40,7 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
+GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, const char *format, ...);
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
@@ -639,7 +639,7 @@ s32 gf_hevc_read_sps(u8 *data, u32 size, HEVCState *hevc);
 s32 gf_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc);
 s32 gf_hevc_read_pps(u8 *data, u32 size, HEVCState *hevc);
 s32 gf_hevc_read_pps_bs(GF_BitStream *bs, HEVCState *hevc);
-s32 gf_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+s32 gf_hevc_parse_nalu(const u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 Bool gf_hevc_slice_is_intra(HEVCState *hevc);
 Bool gf_hevc_slice_is_IDR(HEVCState *hevc);
 //parses VPS and rewrites data buffer after removing VPS extension
@@ -651,8 +651,8 @@ s32 gf_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 /*parses HEVC SEI and fill state accordingly*/
-void gf_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
-u32 gf_hevc_reformat_sei(char* buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
+void gf_hevc_parse_sei(u8 *buffer, u32 nal_size, HEVCState *hevc);
+u32 gf_hevc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
 
 
 
@@ -895,10 +895,10 @@ typedef struct _vvc_state
 extern "C" {
 #endif
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
-void gf_vvc_parse_sei(char* buffer, u32 nal_size, VVCState *vvc);
-u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
+void gf_vvc_parse_sei(u8 *buffer, u32 nal_size, VVCState *vvc);
+u32 gf_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
 Bool gf_vvc_slice_is_ref(VVCState *vvc);
-s32 gf_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+s32 gf_vvc_parse_nalu(const u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 #ifdef __cplusplus
 }
 #endif
@@ -1037,7 +1037,7 @@ typedef struct
 	AV1GMParams GmParams;
 	AV1GMParams PrevGmParams;
 	AV1GMParams SavedGmParams[AV1_NUM_REF_FRAMES];
-	u8 RefFrameType[AV1_NUM_REF_FRAMES];
+	AV1FrameType RefFrameType[AV1_NUM_REF_FRAMES];
 
 	u32 RefUpscaledWidth[AV1_NUM_REF_FRAMES];
 	u32 RefFrameHeight[AV1_NUM_REF_FRAMES];
@@ -1199,7 +1199,7 @@ typedef struct
     u32 packet_size;
 } GF_OpusPacketHeader;
 
-u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header);
+u8 gf_opus_parse_packet_header(const u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header);
 
 typedef struct
 {
@@ -1275,7 +1275,7 @@ typedef struct _webvtt_sample GF_WebVTTSample;
 
 GF_WebVTTParser *gf_webvtt_parser_new();
 GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
-                             void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
+                             void *user, GF_Err (*report_message)(void *, GF_Err, const char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *));
 GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser);

@@ -291,7 +291,7 @@ static GF_Err WAV_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels
 	/*make sure we're aligned*/
 	while (ctx->buffer_size % ctx->fmt.nBlockAlign) ctx->buffer_size++;
 
-	ctx->wav_buf = (char*)gf_malloc(ctx->buffer_size*ctx->num_buffers*sizeof(char));
+	ctx->wav_buf = (char*)gf_malloc(ctx->buffer_size*ctx->num_buffers);
 	memset(ctx->wav_buf, 0, ctx->buffer_size*ctx->num_buffers*sizeof(char));
 
 	/*setup wave headers*/
@@ -479,6 +479,8 @@ void DeleteWAVRender(void *ifce)
 	gf_free(dr);
 }
 
+GPAC_MODULE_EXPORT_START
+
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
@@ -506,5 +508,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( wave_out )

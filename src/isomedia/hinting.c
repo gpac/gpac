@@ -167,7 +167,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 	u32 type;
 	GF_Err e;
 #ifndef GPAC_DISABLE_LOG
-	char *szName = (ptr->hint_subtype==GF_ISOM_BOX_TYPE_RTCP_STSD) ? "RTCP" : "RTP";
+	const char *szName = (ptr->hint_subtype==GF_ISOM_BOX_TYPE_RTCP_STSD) ? "RTCP" : "RTP";
 #endif
 	u64 sizeIn, sizeOut;
 
@@ -197,7 +197,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] broken %s sample: %d packet_count indicated but only %d bytes in samples\n", szName, ptr->packetCount, sampleSize));
 		return GF_ISOM_INVALID_MEDIA;
 	}
-	
+
 	for (i = 0; i < ptr->packetCount; i++) {
 		GF_HintPacket *pck;
 		if (! gf_bs_available(bs) ) {
@@ -221,7 +221,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 	//do we have some more data after the packets ??
 	if ((u32)sizeOut < sampleSize) {
 		ptr->dataLength = sampleSize - (u32)sizeOut;
-		ptr->AdditionalData = (char*)gf_malloc(sizeof(char) * ptr->dataLength);
+		ptr->AdditionalData = (u8*)gf_malloc(ptr->dataLength);
 		if (!ptr->AdditionalData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->AdditionalData, ptr->dataLength);
 	}
@@ -508,7 +508,7 @@ GF_Err ReadDTE(GF_GenericDTE *_dte, GF_BitStream *bs)
 		GF_ImmediateDTE *dte = (GF_ImmediateDTE *)_dte;
 		dte->dataLength = gf_bs_read_u8(bs);
 		if (dte->dataLength > 14) return GF_ISOM_INVALID_FILE;
-		gf_bs_read_data(bs, dte->data, dte->dataLength);
+		gf_bs_read_data(bs, (u8 *) dte->data, dte->dataLength);
 		if (dte->dataLength < 14) gf_bs_skip_bytes(bs, 14 - dte->dataLength);
 		return GF_OK;
 	}
@@ -557,7 +557,7 @@ GF_Err WriteDTE(GF_GenericDTE *_dte, GF_BitStream *bs)
 		GF_EmptyDTE *dte = (GF_EmptyDTE *)_dte;
 		gf_bs_write_u8(bs, dte->source);
 		//empty but always 15 bytes !!!
-		gf_bs_write_data(bs, "empty hint DTE", 15);
+		gf_bs_write_data(bs, (u8 *) "empty hint DTE", 15);
 		return GF_OK;
 	}
 	case 1:
@@ -565,9 +565,9 @@ GF_Err WriteDTE(GF_GenericDTE *_dte, GF_BitStream *bs)
 		GF_ImmediateDTE *dte = (GF_ImmediateDTE *)_dte;
 		gf_bs_write_u8(bs, dte->source);
 		gf_bs_write_u8(bs, dte->dataLength);
-		gf_bs_write_data(bs, dte->data, dte->dataLength);
+		gf_bs_write_data(bs, (u8 *) dte->data, dte->dataLength);
 		if (dte->dataLength < 14) {
-			char data[14];
+			u8 data[14];
 			memset(data, 0, 14);
 			gf_bs_write_data(bs, data, 14 - dte->dataLength);
 		}
@@ -688,7 +688,7 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 	//read the DTEs
 	for (i=0; i<count; i++) {
 		GF_GenericDTE *dte;
-		Bool add_it = 0;
+		Bool add_it = GF_FALSE;
 		type = gf_bs_read_u8(bs);
 		dte = NewDTE(type);
 		if (!dte) {
@@ -700,13 +700,13 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		/*little opt, remove empty dte*/
 		switch (type) {
 		case 1:
-			if ( ((GF_ImmediateDTE *)dte)->dataLength) add_it = 1;
+			if ( ((GF_ImmediateDTE *)dte)->dataLength) add_it = GF_TRUE;
 			break;
 		case 2:
-			if ( ((GF_SampleDTE *)dte)->dataLength) add_it = 1;
+			if ( ((GF_SampleDTE *)dte)->dataLength) add_it = GF_TRUE;
 			break;
 		case 3:
-			if ( ((GF_StreamDescDTE *)dte)->dataLength) add_it = 1;
+			if ( ((GF_StreamDescDTE *)dte)->dataLength) add_it = GF_TRUE;
 			break;
 		}
 		if (add_it)
@@ -863,7 +863,7 @@ GF_Err gf_isom_hint_rtcp_read(GF_RTCPPacket *ptr, GF_BitStream *bs)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] RTCP hint packet has more data (%d) than available\n", ptr->length ));
 		return GF_ISOM_INVALID_MEDIA;
 	}
-	ptr->data = gf_malloc(sizeof(char) * ptr->length);
+	ptr->data = (u8 *)gf_malloc(ptr->length);
 	if (!ptr->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->data, ptr->length);
 	return GF_OK;
@@ -988,7 +988,7 @@ static GF_ISOSample *gf_isom_get_data_sample(GF_HintSample *hsamp, GF_TrackBox *
 	}
 
 	samp = gf_isom_sample_new();
-	Media_GetSample(trak->Media, sample_num, &samp, &i, 0, NULL, GF_FALSE);
+	Media_GetSample(trak->Media, sample_num, &samp, &i, GF_FALSE, NULL, GF_FALSE);
 	if (!samp) return NULL;
 	GF_SAFEALLOC(hdc, GF_HintDataCache);
 	if (!hdc) return NULL;

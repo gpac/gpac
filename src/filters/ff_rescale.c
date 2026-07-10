@@ -89,14 +89,12 @@ typedef struct
 #endif
 } GF_FFSWScaleCtx;
 
-#include <libavutil/intreadwrite.h>
-
 u32 gf_evg_stencil_get_pixel_fast(GF_EVGStencil *st, s32 x, s32 y);
 u64 gf_evg_stencil_get_pixel_wide_fast(GF_EVGStencil *st, s32 x, s32 y);
 
 static GF_Err ffsws_process(GF_Filter *filter)
 {
-	const char *data;
+	const u8 *data;
 	u8 *output, *pck_data;
 	u32 osize;
 	s32 res;
@@ -104,7 +102,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;
 	GF_FilterFrameInterface *frame_ifce;
-	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFSWScaleCtx *ctx = (GF_FFSWScaleCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -400,7 +398,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 #endif
 
 	//rescale the cropped frame
-	res = sws_scale(ctx->swscaler, (const u8**) src_planes, ctx->src_stride, 0, ctx->h, dst_planes, ctx->dst_stride);
+	res = sws_scale(ctx->swscaler, (const u8**) src_planes, (s32 *) ctx->src_stride, 0, ctx->h, dst_planes, (s32 *) ctx->dst_stride);
 	if (res + 2*ctx->offset_h != ctx->oh) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Error during scale, expected height %d got %d\n", ctx->oh, res));
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -565,7 +563,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	GF_Fraction sar;
 	Bool fullrange=GF_FALSE;
 	Double par[2], *par_p=NULL;
-	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFSWScaleCtx *ctx = (GF_FFSWScaleCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -702,7 +700,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		Bool res;
 		u32 mode = get_sws_mode(ctx->scale, &nb_par);
 
-		u32 ff_src_pfmt, ff_dst_pfmt;
+		enum AVPixelFormat ff_src_pfmt, ff_dst_pfmt;
 		ctx->unpack_v410 = ctx->repack_v410 = GF_FALSE;
 		ctx->unpack_v210 = ctx->repack_v210 = GF_FALSE;
 		ctx->unpack_generic = ctx->repack_generic = 0;
@@ -777,13 +775,13 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			return GF_NOT_SUPPORTED;
 		}
 		if (ctx->unpack_v410) {
-			ctx->unpack_buf = gf_realloc(ctx->unpack_buf, w*h*3*2);
+			ctx->unpack_buf = (u8 *)gf_realloc(ctx->unpack_buf, w*h*3*2);
 			ctx->nb_src_planes = 3;
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[2] = ctx->src_stride[1] = ctx->src_stride[0] = 2*w;
 			ctx->src_uv_height = h;
 		} else if (ctx->unpack_v210) {
-			ctx->unpack_buf = gf_realloc(ctx->unpack_buf, w*h*2*2);
+			ctx->unpack_buf = (u8 *)gf_realloc(ctx->unpack_buf, w*h*2*2);
 			ctx->nb_src_planes = 3;
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[0] = 2*w;
@@ -792,7 +790,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		} else if (ctx->unpack_generic) {
 			u32 planes = ctx->unpack_alpha ? 4 : 3;
 			u32 Bpp = (ctx->unpack_depth>8) ? 2 : 1;
-			ctx->unpack_buf = gf_realloc(ctx->unpack_buf, w*h*planes*Bpp);
+			ctx->unpack_buf = (u8 *)gf_realloc(ctx->unpack_buf, w*h*planes*Bpp);
 			ctx->nb_src_planes = ctx->unpack_yuv ? planes : 1;
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[2] = ctx->src_stride[1] = ctx->src_stride[0] = Bpp*w;
@@ -816,7 +814,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->repack_v410) {
 			ctx->nb_planes = 3;
 			ctx->repack_stride = ctx->dst_stride[0];
-			ctx->repack_buf = gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 3 * 2);
+			ctx->repack_buf = (u8 *)gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 3 * 2);
 			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->dst_stride[0] = 2 * ctx->ow;
 			ctx->dst_uv_height = ctx->oh;
 			ctx->o_bpp = 2;
@@ -824,7 +822,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		else if (ctx->repack_v210) {
 			ctx->nb_planes = 3;
 			ctx->repack_stride = ctx->dst_stride[0];
-			ctx->repack_buf = gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 2 * 2);
+			ctx->repack_buf = (u8 *)gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 2 * 2);
 			ctx->dst_stride[0] = 2 * ctx->ow;
 			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->ow;
 			ctx->dst_uv_height = ctx->oh;
@@ -835,7 +833,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->repack_stride = ctx->dst_stride[0];
 			ctx->dst_stride[0] = ctx->dst_stride[1] = ctx->dst_stride[2] = ctx->dst_stride[3] = 0;
 			gf_pixel_get_size_info(ctx->repack_generic, ctx->ow, ctx->oh, &osize, &ctx->dst_stride[0] , &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
-			ctx->repack_buf = gf_realloc(ctx->repack_buf, osize);
+			ctx->repack_buf = (u8 *)gf_realloc(ctx->repack_buf, osize);
 			ctx->dst_stride[2] = ctx->dst_stride[1];
 			if (ctx->repack_alpha)
 				ctx->dst_stride[3] = ctx->dst_stride[0];
@@ -860,8 +858,8 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		if (!ctx->swscaler) {
 #ifndef GPAC_DISABLE_LOG
-			Bool in_ok = sws_isSupportedInput(ff_src_pfmt);
-			Bool out_ok = sws_isSupportedInput(ff_dst_pfmt);
+			Bool in_ok = sws_isSupportedInput(ff_src_pfmt) ? GF_TRUE : GF_FALSE;
+			Bool out_ok = sws_isSupportedInput(ff_dst_pfmt) ? GF_TRUE : GF_FALSE;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Cannot allocate context for required format - input %s output %s\n", in_ok ? "OK" : "not supported" , out_ok ? "OK" : "not supported"));
 #endif
 			return GF_NOT_SUPPORTED;
@@ -940,7 +938,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 static GF_Err ffsws_initialize(GF_Filter *filter)
 {
-	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFSWScaleCtx *ctx = (GF_FFSWScaleCtx *)gf_filter_get_udta(filter);
 	ffmpeg_setup_logs(GF_LOG_MEDIA);
 #ifndef GPAC_DISABLE_EVG
 	ctx->surf = gf_evg_surface_new(GF_TRUE);
@@ -958,7 +956,7 @@ static GF_Err ffsws_initialize(GF_Filter *filter)
 }
 static void ffsws_finalize(GF_Filter *filter)
 {
-	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFSWScaleCtx *ctx = (GF_FFSWScaleCtx *)gf_filter_get_udta(filter);
 	if (ctx->swscaler) sws_freeContext(ctx->swscaler);
 	if (ctx->unpack_buf) gf_free(ctx->unpack_buf);
 	if (ctx->repack_buf) gf_free(ctx->repack_buf);
@@ -974,7 +972,7 @@ static void ffsws_finalize(GF_Filter *filter)
 static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	const GF_PropertyValue *p;
-	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFSWScaleCtx *ctx = (GF_FFSWScaleCtx *)gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);

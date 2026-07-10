@@ -71,7 +71,8 @@ static GF_FilterProbeScore rtpin_probe_url(const char *url, const char *mime)
 //simplified version of RTSP_UnpackURL for SAT>IP
 void rtpin_satip_get_server_ip(const char *sURL, char Server[GF_MAX_PATH])
 {
-	char schema[10], *test, text[1024], *retest;
+	char schema[10], text[1024];
+	const char *test, *retest;
 	u32 i, len;
 	Bool is_ipv6;
 	if (!sURL) return;
@@ -132,7 +133,7 @@ static GF_Err rtpin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 {
 	const GF_PropertyValue *prop;
 	u32 crc = 0;
-	GF_RTPIn *ctx = gf_filter_get_udta(filter);
+	GF_RTPIn *ctx = (GF_RTPIn *)gf_filter_get_udta(filter);
 
 	if (ctx->src) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPIn] Configure pid called on filter instanciated with SRC %s\n", ctx->src));
@@ -152,7 +153,7 @@ static GF_Err rtpin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//get crc of URL
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 	if (prop && prop->value.string)
-		crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string) );
+		crc = gf_crc_32((u8*)prop->value.string, (u32) strlen(prop->value.string) );
 
 	if (!ctx->ipid) {
 		ctx->ipid = pid;
@@ -394,7 +395,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		if (reset_stream) {
 			while (gf_list_count(stream->pck_queue)) {
-				GF_FilterPacket *pck = gf_list_pop_front(stream->pck_queue);
+				GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(stream->pck_queue);
 				gf_filter_pck_send(pck);
 			}
 		}
@@ -434,7 +435,7 @@ static void rtpin_rtsp_flush(GF_RTPInRTSP *session, Bool reset_only)
 			break;
 
 		if (reset_only) {
-			GF_RTSPCommand *com = gf_list_pop_back(session->rtsp_commands);
+			GF_RTSPCommand *com = (GF_RTSPCommand *)gf_list_pop_back(session->rtsp_commands);
 			com->Session = NULL;
 			gf_rtsp_command_del(com);
 			session->flags &= ~RTSP_WAIT_REPLY;
@@ -448,7 +449,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 {
 	u32 i;
 	GF_RTPInStream *stream;
-	GF_RTPIn *ctx = gf_filter_get_udta(filter);
+	GF_RTPIn *ctx = (GF_RTPIn *)gf_filter_get_udta(filter);
 
 	if (ctx->is_eos) return GF_EOS;
 	if (ctx->notif_error) {
@@ -464,7 +465,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			u32 sdp_len;
 			const char *sdp_data;
 
-			sdp_data = gf_filter_pck_get_data(pck, &sdp_len);
+			sdp_data = (char *)gf_filter_pck_get_data(pck, &sdp_len);
 			rtpin_load_sdp(ctx, (char *)sdp_data, sdp_len, NULL);
 			gf_filter_pid_drop_packet(ctx->ipid);
 			ctx->sdp_loaded = GF_TRUE;
@@ -491,7 +492,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		} else if (e) {
 
 			if (e==GF_IP_CONNECTION_CLOSED) {
-				if (gf_rtsp_session_reset(ctx->session->session, 1)<10) {
+				if (gf_rtsp_session_reset(ctx->session->session, GF_TRUE)<10) {
 #ifdef GPAC_HAS_SSL
 					if (gf_rtsp_session_needs_ssl(ctx->session->session) ) {
 						gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, GF_TRUE) );
@@ -707,7 +708,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			stream->stat_stop_time = gf_sys_clock();
 			if (stream->pck_queue) {
 				while (gf_list_count(stream->pck_queue)) {
-					GF_FilterPacket *pck = gf_list_pop_front(stream->pck_queue);
+					GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(stream->pck_queue);
 					gf_filter_pck_send(pck);
 				}
 			}
@@ -776,7 +777,7 @@ void rtpin_do_authenticate(GF_RTPIn *ctx)
 
 static GF_Err rtpin_initialize(GF_Filter *filter)
 {
-	GF_RTPIn *ctx = gf_filter_get_udta(filter);
+	GF_RTPIn *ctx = (GF_RTPIn *)gf_filter_get_udta(filter);
 	char *the_ext;
 
 	ctx->streams = gf_list_new();
@@ -846,7 +847,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
-		ctx->session->satip_server = gf_malloc(GF_MAX_PATH);
+		ctx->session->satip_server = (char *)gf_malloc(GF_MAX_PATH);
 		rtpin_satip_get_server_ip(ctx->src, ctx->session->satip_server);
 	}
 
@@ -883,7 +884,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 
 static void rtpin_finalize(GF_Filter *filter)
 {
-	GF_RTPIn *ctx = gf_filter_get_udta(filter);
+	GF_RTPIn *ctx = (GF_RTPIn *)gf_filter_get_udta(filter);
 	ctx->done = GF_TRUE;
 	if (ctx->session) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Closing RTSP service\n"));

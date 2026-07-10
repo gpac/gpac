@@ -26,6 +26,10 @@
 #ifndef _MEDIACODEC_DEC_H_
 #define _MEDIACODEC_DEC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/filters.h>
 
 #ifndef GPAC_CONFIG_ANDROID
@@ -117,7 +121,7 @@ typedef struct {
 	jobject oSurfaceTex;
 	int texture_id;
 } GF_MCDecSurfaceTexture;
-	
+
 GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, GF_MCDecSurfaceTexture * surfaceTex);
 GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture surfaceTex);
 char * mcdec_find_decoder(const char * mime, u32 width, u32 height, Bool * is_adaptive);
@@ -125,6 +129,10 @@ u32 mcdec_exit_callback(void * param);
 
 GF_Err mcdec_update_surface(GF_MCDecSurfaceTexture surfaceTex);
 GF_Err mcdec_get_transform_matrix(struct __matrix * mx, GF_MCDecSurfaceTexture surfaceTex);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_MEDIACODEC_DEC_H_
 

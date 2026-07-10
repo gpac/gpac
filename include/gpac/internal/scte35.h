@@ -26,6 +26,10 @@
 #ifndef _GF_SCTE35_DEV_H_
 #define _GF_SCTE35_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/tools.h>
 
 /*! SCTE-35 DASH-IF binary scheme URI for emsg / InbandEventStream signaling */
@@ -62,5 +66,9 @@ GF_OPT_ENUM (Scte35Mode,
     "- inband: in-band `emsg` boxes\n" \
     "- all: signal everywhere detected\n" \
     "- none: no EventStream nor `emsg` boxes", GF_PROP_UINT, "auto", "auto|xmlbin|inband|all|none", GF_FS_ARG_HINT_EXPERT }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_GF_SCTE35_DEV_H_*/

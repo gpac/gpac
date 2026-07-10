@@ -80,7 +80,7 @@ This is the module interface declaration macro. It must be placed first in an in
 	const char *author_name;		\
 	void *HPLUG;					\
 	GF_GPACArg *args; 				\
-	char *description;				\
+	const char *description;		\
 
 /*!
 \brief Base Interface
@@ -126,8 +126,19 @@ GF_BaseInterface *MyDecoderInterfaceLoad() {
 */
 #ifdef GPAC_STATIC_MODULES
 #define GPAC_MODULE_EXPORT	static
+#define GPAC_MODULE_EXPORT_START
+#define GPAC_MODULE_EXPORT_END
 #else
 #define GPAC_MODULE_EXPORT	GF_EXPORT
+
+#ifdef __cplusplus
+#define GPAC_MODULE_EXPORT_START extern "C" {
+#define GPAC_MODULE_EXPORT_END }
+#else
+#define GPAC_MODULE_EXPORT_START
+#define GPAC_MODULE_EXPORT_END
+#endif
+
 #endif
 
 /*!
@@ -293,7 +304,7 @@ Loads a key from config in the module options.
 \param key the key to query
 \return the key value or null
 */
-const char *gf_module_get_key(GF_BaseInterface *ifce, char *key);
+const char *gf_module_get_key(GF_BaseInterface *ifce, const char *key);
 
 /*!
 \brief query module option as boolean
@@ -303,7 +314,7 @@ Loads a boolean key from config in the module options.
 \param key_name the key to query
 \return GF_TRUE if key is found and equals yes, true or 1, GF_FALSE otherwise
 */
-Bool gf_module_get_bool(GF_BaseInterface *ifce, char *key_name);
+Bool gf_module_get_bool(GF_BaseInterface *ifce, const char *key_name);
 
 /*!
 \brief query module option as int
@@ -313,7 +324,7 @@ Loads an integer key from config in the module options.
 \param key_name the key to query
 \return integer value of key, 0 if not found
 */
-Bool gf_module_get_int(GF_BaseInterface *ifce, char *key_name);
+Bool gf_module_get_int(GF_BaseInterface *ifce, const char *key_name);
 
 /*! @} */
 

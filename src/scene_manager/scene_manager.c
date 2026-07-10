@@ -103,7 +103,7 @@ GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src)
 static void gf_sm_au_del(GF_StreamContext *sc, GF_AUContext *au)
 {
 	while (gf_list_count(au->commands)) {
-		void *comptr = gf_list_last(au->commands);
+		void *comptr = (void *)gf_list_last(au->commands);
 		gf_list_rem_last(au->commands);
 		switch (sc->streamType) {
 		case GF_STREAM_OD:
@@ -156,7 +156,7 @@ void gf_sm_reset(GF_SceneManager *ctx)
 {
 	GF_StreamContext *sc;
 	u32 i=0;
-	while ( (sc = gf_list_enum(ctx->streams, &i)) ) {
+	while ( (sc = (GF_StreamContext *)gf_list_enum(ctx->streams, &i)) ) {
 		gf_sm_reset_stream(sc);
 	}
 	if (ctx->root_od) gf_odf_desc_del((GF_Descriptor *) ctx->root_od);
@@ -181,7 +181,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
 			/*insert AU*/
 			else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-				tmp = gf_malloc(sizeof(GF_AUContext));
+				tmp = (GF_AUContext *)gf_malloc(sizeof(GF_AUContext));
 				if (!tmp) return NULL;
 				memset(tmp, 0, sizeof(GF_AUContext));
 				tmp->commands = gf_list_new();
@@ -214,22 +214,22 @@ static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
 
 	count = gf_list_count(commands);
 	for (i=0; i<count; i++) {
-		GF_Command *com = gf_list_get(commands, i);
+		GF_Command *com = (GF_Command *)gf_list_get(commands, i);
 		if (com->tag>=GF_SG_LAST_BIFS_COMMAND) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] Command check for LASeR/DIMS not supported\n"));
-			return 0;
+			return GF_FALSE;
 		}
 		if (com->tag==GF_SG_SCENE_REPLACE) {
-			if (gf_node_parent_of(com->node, node)) return 1;
+			if (gf_node_parent_of(com->node, node)) return GF_TRUE;
 			continue;
 		}
 		nb_fields = gf_list_count(com->command_fields);
 		for (j=0; j<nb_fields; j++) {
-			GF_CommandField *field = gf_list_get(com->command_fields, j);
+			GF_CommandField *field = (GF_CommandField *)gf_list_get(com->command_fields, j);
 			switch (field->fieldType) {
 			case GF_SG_VRML_SFNODE:
 				if (field->new_node) {
-					if (gf_node_parent_of(field->new_node, node)) return 1;
+					if (gf_node_parent_of(field->new_node, node)) return GF_TRUE;
 				}
 				break;
 			case GF_SG_VRML_MFNODE:
@@ -237,7 +237,7 @@ static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
 					GF_ChildNodeItem *child;
 					child = field->node_list;
 					while (child) {
-						if (gf_node_parent_of(child->node, node)) return 1;
+						if (gf_node_parent_of(child->node, node)) return GF_TRUE;
 						child = child->next;
 					}
 				}
@@ -246,7 +246,7 @@ static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
 		}
 	}
 #endif
-	return 0;
+	return GF_FALSE;
 }
 
 static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *commands, Bool *has_modif)
@@ -261,15 +261,15 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 	/*otherwise, check if we can substitute a previous command with this one*/
 	count = gf_list_count(commands);
 	for (i=0; i<count; i++) {
-		GF_Command *check = gf_list_get(commands, i);
+		GF_Command *check = (GF_Command *)gf_list_get(commands, i);
 
 		if (sc->streamType == GF_STREAM_SCENE) {
-			Bool check_index=0;
-			Bool original_is_index = 0;
+			Bool check_index = GF_FALSE;
+			Bool original_is_index = GF_FALSE;
 			Bool apply;
 			switch (com->tag) {
 			case GF_SG_INDEXED_REPLACE:
-				check_index=1;
+				check_index = GF_TRUE;
 			case GF_SG_MULTIPLE_INDEXED_REPLACE:
 			case GF_SG_FIELD_REPLACE:
 			case GF_SG_MULTIPLE_REPLACE:
@@ -278,7 +278,7 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 				if (check_index) {
 					if (check->tag == GF_SG_INDEXED_REPLACE) {}
 					else if (check->tag == GF_SG_INDEXED_INSERT) {
-						original_is_index = 1;
+						original_is_index = GF_TRUE;
 					}
 					else {
 						break;
@@ -288,12 +288,12 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 				}
 				nb_fields = gf_list_count(com->command_fields);
 				if (gf_list_count(check->command_fields) != nb_fields) break;
-				apply=1;
+				apply = GF_TRUE;
 				for (j=0; j<nb_fields; j++) {
-					field = gf_list_get(com->command_fields, j);
-					check_field = gf_list_get(check->command_fields, j);
+					field = (GF_CommandField *)gf_list_get(com->command_fields, j);
+					check_field = (GF_CommandField *)gf_list_get(check->command_fields, j);
 					if ((field->pos != check_field->pos) || (field->fieldIndex != check_field->fieldIndex)) {
-						apply=0;
+						apply = GF_FALSE;
 						break;
 					}
 				}
@@ -304,7 +304,7 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 
 					gf_sg_command_del((GF_Command *)check);
 					gf_list_rem(commands, i);
-					if (has_modif) *has_modif = 1;
+					if (has_modif) *has_modif = GF_TRUE;
 					return 1;
 				}
 				break;
@@ -320,22 +320,22 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 				/*same node ID, destroy first command and store new one*/
 				gf_sg_command_del((GF_Command *)check);
 				gf_list_rem(commands, i);
-				if (has_modif) *has_modif = 1;
+				if (has_modif) *has_modif = GF_TRUE;
 				return 1;
 
 			case GF_SG_INDEXED_DELETE:
 				/*look for an indexed insert before the indexed delete with same target pos and node. If found, discard both commands!*/
 				if (check->tag != GF_SG_INDEXED_INSERT) break;
 				if (com->node != check->node) break;
-				field = gf_list_get(com->command_fields, 0);
-				check_field = gf_list_get(check->command_fields, 0);
+				field = (GF_CommandField *)gf_list_get(com->command_fields, 0);
+				check_field = (GF_CommandField *)gf_list_get(check->command_fields, 0);
 				if (!field || !check_field) break;
 				if (field->pos != check_field->pos) break;
 				if (field->fieldIndex != check_field->fieldIndex) break;
 
 				gf_sg_command_del((GF_Command *)check);
 				gf_list_rem(commands, i);
-				if (has_modif) *has_modif = 1;
+				if (has_modif) *has_modif = GF_TRUE;
 				return 2;
 
 			default:
@@ -345,7 +345,7 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 		}
 	}
 	/*the command modifies another stream than associated current carousel stream, we have to store it.*/
-	if (has_modif) *has_modif=1;
+	if (has_modif) *has_modif = GF_TRUE;
 #endif
 	return 1;
 }
@@ -355,7 +355,7 @@ static GF_StreamContext *gf_sm_get_stream(GF_SceneManager *ctx, u16 ESID)
 	u32 i, count;
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
-		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 		if (sc->ESID==ESID) return sc;
 	}
 	return NULL;
@@ -406,23 +406,23 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			carousel_commands = gf_list_new();
 		} else if (aggregate_on_stream) {
 			if (!gf_list_count(aggregate_on_stream->AUs)) {
-				carousel_au = gf_sm_stream_au_new(aggregate_on_stream, 0, 0, 1);
+				carousel_au = gf_sm_stream_au_new(aggregate_on_stream, 0, 0, GF_TRUE);
 			} else {
 				/* assert we already performed aggregation */
 				gf_assert(gf_list_count(aggregate_on_stream->AUs)==1);
-				carousel_au = gf_list_get(aggregate_on_stream->AUs, 0);
+				carousel_au = (GF_AUContext *)gf_list_get(aggregate_on_stream->AUs, 0);
 			}
 			carousel_commands = carousel_au->commands;
 		}
 		/*TODO - do this as well for ODs*/
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
-			Bool has_modif = 0;
+			Bool has_modif = GF_FALSE;
 			/*we check for each stream if it is a base stream (SceneReplace ...) - several streams may carry RAPs if inline nodes are used*/
-			Bool base_stream_found = 0;
+			Bool base_stream_found = GF_FALSE;
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
-			if (sc->codec_id == GF_CODECID_DIMS) base_stream_found = 1;
+			if (sc->codec_id == GF_CODECID_DIMS) base_stream_found = GF_TRUE;
 
 			/*apply all commands - this will also apply the SceneReplace*/
 			while (gf_list_count(sc->AUs)) {
@@ -440,13 +440,13 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 
 				for (j=0; j<count; j++) {
 					u32 store=0;
-					com = gf_list_get(au->commands, j);
+					com = (GF_Command *)gf_list_get(au->commands, j);
 					if (!base_stream_found) {
 						switch (com->tag) {
 						case GF_SG_SCENE_REPLACE:
 						case GF_SG_LSR_NEW_SCENE:
 						case GF_SG_LSR_REFRESH_SCENE:
-							base_stream_found = 1;
+							base_stream_found = GF_TRUE;
 							break;
 						}
 					}
@@ -523,7 +523,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 
 			/*and recreate scene replace*/
 			if (base_stream_found) {
-				au = gf_sm_stream_au_new(sc, 0, 0, 1);
+				au = gf_sm_stream_au_new(sc, 0, 0, GF_TRUE);
 
 				switch (sc->codec_id) {
 				case GF_CODECID_BIFS:
@@ -548,7 +548,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					ctx->scene_graph->protos = NULL;
 					/*indicate the command is the aggregated scene graph, so that PROTOs and ROUTEs
 					are taken from the scenegraph when encoding*/
-					com->aggregated = 1;
+					com->aggregated = GF_TRUE;
 					gf_list_add(au->commands, com);
 				}
 			}
@@ -556,7 +556,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			else if (carousel_commands) {
 				/*if current stream caries its own carousel*/
 				if (!carousel_au) {
-					carousel_au = gf_sm_stream_au_new(sc, 0, 0, 1);
+					carousel_au = gf_sm_stream_au_new(sc, 0, 0, GF_TRUE);
 					gf_list_del(carousel_au->commands);
 					carousel_au->commands = carousel_commands;
 				}
@@ -618,7 +618,7 @@ GF_EXPORT
 GF_Err gf_sm_load_init(GF_SceneLoader *load)
 {
 	GF_Err e = GF_NOT_SUPPORTED;
-	char *ext;
+	const char *ext;
 	/*we need at least a scene graph*/
 	if (!load || (!load->ctx && !load->scene_graph)
 #ifndef GPAC_DISABLE_ISOM
@@ -736,7 +736,7 @@ GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
 void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 {
 	u32 data_size = 0;
-	char *data = NULL;
+	u8 *data = NULL;
 	char *buffer;
 	M_BitWrapper *bw = (M_BitWrapper *)node;
 
@@ -755,23 +755,23 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 			gf_free(url);
 		}
 	} else {
-		Bool base_64 = 0;
+		Bool base_64 = GF_FALSE;
 		if (!strnicmp(buffer, "data:application/octet-string", 29)) {
 			char *sep = strchr(bw->buffer.buffer, ',');
-			base_64 = strstr(bw->buffer.buffer, ";base64") ? 1 : 0;
+			base_64 = strstr(bw->buffer.buffer, ";base64") ? GF_TRUE : GF_FALSE;
 			if (sep) buffer = sep+1;
 		}
 
 		if (base_64) {
 			data_size = 2 * (u32) strlen(buffer);
-			data = (char*)gf_malloc(sizeof(char)*data_size);
+			data = (u8*)gf_malloc(data_size);
 			if (data)
-				data_size = gf_base64_decode(buffer, (u32) strlen(buffer), data, data_size);
+				data_size = gf_base64_decode((u8 *)buffer, (u32) strlen(buffer), data, data_size);
 		} else {
 			u32 i, c;
 			if (!strnicmp(buffer, "0x", 2)) buffer += 2;
 			data_size = (u32) strlen(buffer) / 2;
-			data = (char*)gf_malloc(sizeof(char) * data_size);
+			data = (u8*)gf_malloc(data_size);
 			if (data) {
 				char s[3];
 				s[2] = 0;
@@ -788,7 +788,7 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 	bw->buffer.buffer = NULL;
 	bw->buffer_len = 0;
 	if (data) {
-		bw->buffer.buffer = data;
+		bw->buffer.buffer = (char *)data;
 		bw->buffer_len = data_size;
 	}
 

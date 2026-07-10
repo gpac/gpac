@@ -26,10 +26,19 @@
 #ifndef _SG_QJS_COMMON_
 #define _SG_QJS_COMMON_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/list.h>
 #include <gpac/scenegraph.h>
 
 #include "../quickjs/quickjs.h"
+
+void js_dump_error(JSContext *ctx);
+void js_dump_error_exc(JSContext *ctx, const JSValue exception_val);
+//use our own loader
+JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque, JSValueConst attributes);
 
 /********************************************
 
@@ -90,7 +99,7 @@ typedef struct __tag_html_media_script_ctx
 
 typedef struct
 {
-	JSClassDef class;
+	JSClassDef the_class;
 	JSClassID class_id;
 } GF_JSClass;
 
@@ -98,7 +107,7 @@ typedef struct
 struct js_handler_context
 {
 	/* JavaScript context in which the listener is applicable */
-	void *ctx;
+	struct JSContext *ctx;
 	/*function value for handler */
 	JSValue fun_val;
 	/*target EventListener object (this) */

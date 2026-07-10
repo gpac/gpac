@@ -81,7 +81,8 @@ static GF_Err imgdec_process(GF_Filter *filter)
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_FilterPacket *pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 size;
 	GF_IMGDecCtx *ctx = (GF_IMGDecCtx *) gf_filter_get_udta(filter);
 
@@ -93,7 +94,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	data = (char *) gf_filter_pck_get_data(pck, &size);
+	data = gf_filter_pck_get_data(pck, &size);
 
 	if ((ctx->codecid == GF_CODECID_JPEG) || (ctx->codecid == GF_CODECID_PNG)) {
 		GF_FilterPacket *dst_pck;

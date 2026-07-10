@@ -1,6 +1,10 @@
 #ifndef RMT_WS_INCLUDED_H
 #define RMT_WS_INCLUDED_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //! type for callbacks called when a new client connects
 //! \param task user data sent back to the callback
 //! \param new_client a structure representing the client (of type RMT_ClientCtx)
@@ -83,7 +87,7 @@ const char* gf_rmt_get_peer_address(RMT_ClientCtx* client);
 //! \param msg a buffer containing the data to send
 //! \param size the size of the data to send
 //! \param is_binary false if we're sending a utf8 string, true otherwise
-GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary);
+GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const u8* msg, u64 size, Bool is_binary);
 
 //! type for callbacks called when a client receives data on the websocket
 //! \param task user data passed back to the callback
@@ -117,5 +121,9 @@ void* gf_rmt_client_get_on_del_task(RMT_ClientCtx* client);
 //! gets the ws server handler associated with a client
 RMT_WS* gf_rmt_client_get_rmt(RMT_ClientCtx* client);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -58,7 +58,7 @@ typedef struct
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
 //static
-GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len, Bool is_dims)
+GF_Err svgin_deflate(SVGIn *svgin, const u8 *buffer, u32 buffer_len, Bool is_dims)
 {
 	GF_Err e;
 	char svg_data[2049];
@@ -157,7 +157,11 @@ static GF_Err svgin_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		data = gf_filter_pck_get_data(pck, &size);
-		e = gf_sm_load_string(&svgin->loader, data, GF_FALSE);
+		if (gf_utf8_is_legal(data, size)) {
+			e = gf_sm_load_string(&svgin->loader, (char *)data, GF_FALSE);
+		} else {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_filter_pid_drop_packet(svgin->in_pid);
 		break;
 
@@ -182,7 +186,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 		u8 prev, dims_hdr;
 		u32 nb_bytes;
 		u64 pos;
-		char * buf2 ;
+		u8 *buf2 ;
 		GF_BitStream *bs;
 
 		pck = gf_filter_pid_get_packet(svgin->in_pid);
@@ -195,7 +199,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 		}
 		data = gf_filter_pck_get_data(pck, &pck_size);
 
-		buf2 = gf_malloc(pck_size+1);
+		buf2 = (u8 *)gf_malloc(pck_size+1);
 		bs = gf_bs_new((u8 *)data, pck_size, GF_BITSTREAM_READ);
 		memcpy(buf2, data, pck_size);
 		buf2[pck_size] = 0;
@@ -222,7 +226,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 			if (dims_hdr & GF_DIMS_UNIT_C) {
 				e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1, GF_TRUE);
 			} else {
-				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, GF_FALSE);
+				e = gf_sm_load_string(&svgin->loader, (char *) buf2 + pos + nb_bytes + 1, GF_FALSE);
 			}
 			buf2[pos + nb_bytes + size] = prev;
 			gf_bs_skip_bytes(bs, size-1);
@@ -416,7 +420,7 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
-	SVGIn *svgin = gf_filter_get_udta(filter);
+	SVGIn *svgin = (SVGIn *) gf_filter_get_udta(filter);
 	//check for scene attach
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
@@ -437,11 +441,11 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (GF_FilterPid *) gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!svgin->scene) {
-				GF_ObjectManager *odm = com->attach_scene.object_manager;
+				GF_ObjectManager *odm = (GF_ObjectManager *)com->attach_scene.object_manager;
 				svgin->scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 				memset(&svgin->loader, 0, sizeof(GF_SceneLoader));

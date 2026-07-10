@@ -98,17 +98,17 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 
 	cache->txh.stride = pix_bounds->width * 4;
 	cache->txh.pixelformat = for_gl ? GF_PIXEL_RGBA : GF_PIXEL_ARGB;
-	cache->txh.transparent = 1;
+	cache->txh.transparent = GF_TRUE;
 
 	if (cache->txh.data)
 		gf_free(cache->txh.data);
 #ifdef CACHE_DEBUG_ALPHA
 	cache->txh.stride = pix_bounds->width * 3;
 	cache->txh.pixelformat = GF_PIXEL_RGB;
-	cache->txh.transparent = 0;
+	cache->txh.transparent = GF_FALSE;
 #endif
 
-	cache->txh.data = (char *) gf_malloc (sizeof(char) * cache->txh.stride * cache->txh.height);
+	cache->txh.data = (u8 *)gf_malloc (cache->txh.stride * cache->txh.height);
 	memset(cache->txh.data, 0x0, sizeof(char) * cache->txh.stride * cache->txh.height);
 	/*the path of drawable_cache is a rectangle one that is the the bound of the object*/
 	gf_path_reset(cache->drawable->path);
@@ -128,21 +128,21 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	DrawableContext *group_ctx = NULL;
 	GF_ChildNodeItem *l;
 
-	if (!cache) return 0;
+	if (!cache) return GF_FALSE;
 
 	/*do we need to recompute the cache*/
 	if (cache->force_recompute) {
-		force_recompute = 1;
-		cache->force_recompute = 0;
+		force_recompute = GF_TRUE;
+		cache->force_recompute = GF_FALSE;
 	}
 	else if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-		force_recompute = 1;
+		force_recompute = GF_TRUE;
 	}
 
 	/*we need to redraw the group in an offscreen visual*/
 	if (force_recompute) {
 		GF_IRect rc1, rc2;
-		u32 prev_flags;
+		Bool prev_flags;
 		Bool prev_hybgl, visual_attached, for_3d=GF_FALSE;
 		GF_Rect cache_bounds;
 		GF_EVGSurface *offscreen_surface, *old_surf;
@@ -155,7 +155,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Recomputing cache for subtree %s\n", gf_node_get_log_name(node)));
 		/*step 1 : store current state and indicate children should not be cached*/
-		tr_state->in_group_cache = 1;
+		tr_state->in_group_cache = GF_TRUE;
 		prev_flags = tr_state->immediate_draw;
 		/*store the current transform matrix, create a new one for group_cache*/
 		gf_mx2d_copy(backup, tr_state->transform);
@@ -184,14 +184,14 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->traversing_mode = TRAVERSE_SORT;
 
 		if (!cache_bounds.width || !cache_bounds.height) {
-			tr_state->in_group_cache = 0;
+			tr_state->in_group_cache = GF_FALSE;
 			tr_state->immediate_draw = prev_flags;
 			gf_mx2d_copy(tr_state->transform, backup);
 #ifndef GPAC_DISABLE_3D
 			tr_state->visual->type_3d = type_3d;
 #endif
 			tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
-			return 0;
+			return GF_FALSE;
 		}
 
 		/*step 3: insert a DrawableContext for this group in the display list*/
@@ -204,8 +204,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 			group_ctx = drawable_init_context_svg(cache->drawable, tr_state, NULL);
 #endif
 		}
-		if (!group_ctx) return 0;
-		
+		if (!group_ctx) return GF_FALSE;
+
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory
 			create temp raster visual & attach to buffer
@@ -246,7 +246,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		rc1 = gf_rect_pixelize(&cache_bounds);
 		if (rc1.width % 2) rc1.width++;
 		if (rc1.height%2) rc1.height++;
-		
+
 		//TODO - set min offscreen size in cfg file
 		while (rc1.width && rc1.width<128) rc1.width *= 2;
 		while (rc1.height && rc1.height<128) rc1.height *= 2;
@@ -264,7 +264,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		                              cache->txh.pixelformat);
 
 		visual_attached = tr_state->visual->is_attached;
-		tr_state->visual->is_attached = 1;
+		tr_state->visual->is_attached = GF_TRUE;
 
 		/*recompute the bounds with the final scaling used*/
 		scale_x = gf_divfix(INT2FIX(rc1.width), tr_state->bounds.width);
@@ -301,7 +301,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 
 		/*step 5: traverse subtree in direct draw mode*/
-		tr_state->immediate_draw = 1;
+		tr_state->immediate_draw = GF_TRUE;
 		group_ctx->flags &= ~CTX_NO_ANTIALIAS;
 
 		l = ((GF_ParentNode*)node)->children;
@@ -322,7 +322,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 		/*restore state and destroy whatever needs to be cleaned*/
 		gf_mx2d_copy(tr_state->transform, backup);
-		tr_state->in_group_cache = 0;
+		tr_state->in_group_cache = GF_FALSE;
 		tr_state->immediate_draw = prev_flags;
 		tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
 		tr_state->visual->is_attached = visual_attached;
@@ -338,12 +338,12 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		tr_state->visual->top_clipper = rc2;
 
 		/*update texture*/
-		cache->txh.transparent = 1;
+		cache->txh.transparent = GF_TRUE;
 		if (tr_state->visual->center_coords)
 			cache->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
-		
+
 		gf_sc_texture_set_data(&cache->txh);
-		gf_sc_texture_push_image(&cache->txh, 0, for_3d ? 0 : 1);
+		gf_sc_texture_push_image(&cache->txh, GF_FALSE, for_3d ? GF_FALSE : GF_TRUE);
 
 		cache->orig_vp = tr_state->vp_size;
 	}
@@ -359,7 +359,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		}
 	}
-	if (!group_ctx) return 0;
+	if (!group_ctx) return GF_FALSE;
 	group_ctx->flags |= CTX_NO_ANTIALIAS;
 	if (cache->opacity != FIX_ONE)
 		group_ctx->aspect.fill_color = GF_COL_ARGB_FIXED(cache->opacity, FIX_ONE, FIX_ONE, FIX_ONE);
@@ -369,7 +369,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 	if (!cache->opacity) {
 		group_ctx->drawable = NULL;
-		return 0;
+		return GF_FALSE;
 	}
 
 	drawable_check_texture_dirty(group_ctx, group_ctx->drawable, tr_state);
@@ -389,7 +389,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 			gf_mx2d_add_scale(&m, gf_divfix(tr_state->vp_size.x, cache->orig_vp.x), gf_divfix(tr_state->vp_size.y, cache->orig_vp.y) );
 			gf_mx2d_pre_multiply(&tr_state->transform, &m);
 		} else {
-			auto_fit_vp = 0;
+			auto_fit_vp = GF_FALSE;
 		}
 	}
 #endif
@@ -412,7 +412,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	{
 		gf_mx2d_copy(tr_state->transform, backup);
 	}
-	return (force_recompute==1);
+	return force_recompute;
 }
 
 
@@ -428,7 +428,7 @@ static void group_cache_insert_entry(GF_Node *node, GroupingNode2D *group, GF_Tr
 	current = NULL;
 	count = gf_list_count(cache_candidates);
 	for (i=0; i<count; i++) {
-		current = gf_list_get(cache_candidates, i);
+		current = (GroupingNode2D *)gf_list_get(cache_candidates, i);
 		/*if entry's priority is higher than our group, insert our group here*/
 		if (current->priority >= group->priority) {
 			gf_list_insert(cache_candidates, group, i);
@@ -463,14 +463,14 @@ static Bool gf_cache_remove_entry(GF_Compositor *compositor, GF_Node *node, Grou
 	/*auto mode*/
 	if (!group) {
 		group = gf_list_get(cache_candidates, 0);
-		if (!group) return 0;
+		if (!group) return GF_FALSE;
 		/*remove entry*/
 		gf_list_rem(cache_candidates, 0);
 		node = NULL;
 	} else {
 		/*remove entry if present*/
 		if (gf_list_del_item(cache_candidates, group)<0)
-			return 0;
+			return GF_FALSE;
 	}
 
 	/*disable the caching flag of the group if it was marked as such*/
@@ -487,7 +487,7 @@ static Bool gf_cache_remove_entry(GF_Compositor *compositor, GF_Node *node, Grou
 		bytes_remove = group->cached_size;
 	}
 
-	if (bytes_remove == 0) return 0;
+	if (bytes_remove == 0) return GF_FALSE;
 
 	gf_fatal_assert(compositor->video_cache_current_size >= bytes_remove);
 	compositor->video_cache_current_size -= bytes_remove;
@@ -504,7 +504,7 @@ static Bool gf_cache_remove_entry(GF_Compositor *compositor, GF_Node *node, Grou
 	                                    compositor->video_cache_current_size,
 	                                    gf_list_count(compositor->cached_groups)
 	                                   ));
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -513,10 +513,10 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 {
 	Bool is_dirty = gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY;
 	Bool zoom_changed = tr_state->visual->compositor->zoom_changed;
-	Bool needs_recompute = 0;
+	Bool needs_recompute = GF_FALSE;
 
 	/*we are currently in a group cache, regular traversing*/
-	if (tr_state->in_group_cache) return 0;
+	if (tr_state->in_group_cache) return GF_FALSE;
 
 	/*draw mode*/
 	if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
@@ -524,21 +524,21 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 		gf_fatal_assert(group->cache);
 		/*draw it*/
 		group_cache_draw(group->cache, tr_state);
-		return 1;
+		return GF_TRUE;
 	}
 	/*other modes than sorting, use regular traversing*/
-	if (tr_state->traversing_mode != TRAVERSE_SORT) return 0;
+	if (tr_state->traversing_mode != TRAVERSE_SORT) return GF_FALSE;
 
 	/*this is not an offscreen group*/
 	if (!(group->flags & GROUP_IS_CACHED) ) {
-		Bool cache_on = 0;
+		Bool cache_on = GF_FALSE;
 
 		/*group cache has been turned on in the previous frame*/
 		if (!is_dirty && (group->flags & GROUP_IS_CACHABLE)) {
 			group->flags |= GROUP_IS_CACHED;
 			group->flags &= ~GROUP_IS_CACHABLE;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache on - size %d\n", gf_node_get_log_name(node), group->cached_size ));
-			cache_on = 1;
+			cache_on = GF_TRUE;
 		}
 		/*group cache has been turned off in the previous frame*/
 		else if (group->cache) {
@@ -548,7 +548,7 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 			group->nb_stats_frame = 0;
 			group->traverse_time = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache off\n", gf_node_get_log_name(node) ));
-			return 0;
+			return GF_FALSE;
 		}
 
 		if (!cache_on) {
@@ -567,11 +567,11 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 			if (is_dirty || (group->nb_stats_frame < NUM_STATS_FRAMES)) {
 				/*force direct draw mode*/
 				if (!is_dirty)
-					tr_state->visual->compositor->traverse_state->invalidate_all = 1;
+					tr_state->visual->compositor->traverse_state->invalidate_all = GF_TRUE;
 				/*force redraw*/
 				tr_state->visual->compositor->draw_next_frame = 1;
 			}
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	/*cache is dirty*/
@@ -591,7 +591,7 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 			group->nb_stats_frame = 0;
 			group->traverse_time = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache off due to sub-tree modifications\n", gf_node_get_log_name(node) ));
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	/*zoom has changed*/
@@ -606,11 +606,11 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 			Fixed scale = MAX(tr_state->transform.m[0], tr_state->transform.m[4]);
 
 			if (100*scale >= group->cache->scale*(100 + tr_state->visual->compositor->vctol))
-				zoom_changed = 1;
+				zoom_changed = GF_TRUE;
 			else if ((100+tr_state->visual->compositor->vctol)*scale <= 100*group->cache->scale)
-				zoom_changed = 1;
+				zoom_changed = GF_TRUE;
 			else
-				zoom_changed = 0;
+				zoom_changed = GF_FALSE;
 
 			if (zoom_changed) {
 				gf_cache_remove_entry(tr_state->visual->compositor, node, group);
@@ -621,7 +621,7 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 				group->nb_stats_frame = 0;
 				group->traverse_time = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Turning group %s cache off due to zoom changes\n", gf_node_get_log_name(node) ));
-				return 0;
+				return GF_FALSE;
 			}
 		}
 	}
@@ -633,12 +633,12 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 	if (!group->cache) {
 		/*ALLOCATE THE CACHE*/
 		group->cache = group_cache_new(tr_state->visual->compositor, node);
-		needs_recompute = 1;
+		needs_recompute = GF_TRUE;
 	}
 
 	/*cache has been modified due to node changes, reset stats*/
-	group_cache_traverse(node, group->cache, tr_state, needs_recompute, 1, 0);
-	return 1;
+	group_cache_traverse(node, group->cache, tr_state, needs_recompute, GF_TRUE, GF_FALSE);
+	return GF_TRUE;
 }
 
 
@@ -734,7 +734,7 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 	if (cache_size < 400) goto group_reject;
 	/*TEST 6: cache is larger than our allowed memory: discard*/
 	if (cache_size>=vcsize) {
-		tr_state->cache_too_small = 1;
+		tr_state->cache_too_small = GF_TRUE;
 		goto group_reject;
 	}
 
@@ -767,7 +767,7 @@ Bool group_cache_compute_stats(GF_Node *node, GroupingNode2D *group, GF_Traverse
 		if (group->cache)
 			group->cache->force_recompute = 1;
 	}
-	return 1;
+	return GF_TRUE;
 
 
 group_reject:
@@ -800,7 +800,7 @@ group_reject:
 	                                    gf_list_count(tr_state->visual->compositor->cached_groups)
 	                                   ));
 #endif
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -838,7 +838,7 @@ void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 		/*remove all queued cached groups of this node's children*/
 		for (i=0; i<nb_cache_added; i++) {
 			Fixed cache_time;
-			GroupingNode2D *cache = gf_list_get(compositor->cached_groups_queue, last_cache_idx);
+			GroupingNode2D *cache = (GroupingNode2D *)gf_list_get(compositor->cached_groups_queue, last_cache_idx);
 			/*we have been computed the prioirity of the group using a cached subtree, update
 			the priority to reflect that the new cache won't use a cached subtree*/
 			if (cache->cache) {
@@ -869,7 +869,7 @@ void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory)
 	}
 	compositor->vcsize = memory;
 	/*and force recompute*/
-	compositor->zoom_changed = 1;
+	compositor->zoom_changed = GF_TRUE;
 }
 
 #endif /*GF_SR_USE_VIDEO_CACHE*/
@@ -880,7 +880,7 @@ void group_2d_destroy_svg(GF_Node *node, GroupingNode2D *group)
 	GF_Compositor *compositor = gf_sc_get_compositor(node);
 	if (gf_cache_remove_entry(compositor, node, group)) {
 		/*simulate a zoom changed for cache recompute*/
-		compositor->zoom_changed = 1;
+		compositor->zoom_changed = GF_TRUE;
 		compositor->draw_next_frame = 1;
 	}
 	if (group->cache) group_cache_del(group->cache);

@@ -195,7 +195,7 @@ static GF_Err uncv_load_profile(UNCVConfig *uncv)
 
 	if (!uncv->nb_comp_defs) {
 		uncv->nb_comp_defs = nb_comps;
-		uncv->comp_defs = gf_malloc(sizeof(UNCVComponentDefinition)*nb_comps);
+		uncv->comp_defs = (UNCVComponentDefinition *)gf_malloc(sizeof(UNCVComponentDefinition)*nb_comps);
 		if (!uncv->comp_defs) return GF_OUT_OF_MEM;
 		memset(uncv->comp_defs, 0, sizeof(UNCVComponentDefinition)*nb_comps);
 		uncv->comp_defs[0].type = abgr ? 7 : 4;
@@ -205,7 +205,7 @@ static GF_Err uncv_load_profile(UNCVConfig *uncv)
 			uncv->comp_defs[3].type = abgr ? 4 : 7;
 	}
 	uncv->nb_comps = nb_comps;
-	uncv->comps = gf_malloc(sizeof(UNCVComponentInfo)*nb_comps);
+	uncv->comps = (UNCVComponentInfo *)gf_malloc(sizeof(UNCVComponentInfo)*nb_comps);
 	if (!uncv->comps) return GF_OUT_OF_MEM;
 	memset(uncv->comps, 0, sizeof(UNCVComponentInfo)*nb_comps);
 	uncv->comps[0].idx = 0;
@@ -228,7 +228,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 	Bool has_fa=GF_FALSE;
 	*out_err = GF_OK;
 	u32 i;
-	Bool has_cmpd=0, has_uncc=0;
+	Bool has_cmpd=GF_FALSE, has_uncc=GF_FALSE;
 	if (!dsi) {
 		*out_err = GF_BAD_PARAM;
 		return NULL;
@@ -253,7 +253,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			uncv->comp_defs = gf_malloc(sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
+			uncv->comp_defs = (UNCVComponentDefinition *)gf_malloc(sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
 			memset(uncv->comp_defs, 0, sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
 			if (!uncv->comp_defs) {
 				*out_err = GF_OUT_OF_MEM;
@@ -265,7 +265,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 					uncv->comp_defs[i].uri = gf_bs_read_utf8(bs);
 				}
 			}
-			has_cmpd=1;
+			has_cmpd= GF_TRUE;
 		} else if (type==GF_4CC('u','n','c','C')) {
 			s32 bsize = (u32) size - 8;
 			uncv->version = gf_bs_read_u8(bs);
@@ -274,7 +274,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			if (uncv->version==1) {
 				*out_err = uncv_load_profile(uncv);
 				if (*out_err) goto exit;
-				has_cmpd = has_uncc = 1;
+				has_cmpd = has_uncc = GF_TRUE;
 				goto uncc_done;
 			}
 
@@ -284,7 +284,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			uncv->comps = gf_malloc(sizeof(UNCVComponentInfo) * uncv->nb_comps);
+			uncv->comps = (UNCVComponentInfo *)gf_malloc(sizeof(UNCVComponentInfo) * uncv->nb_comps);
 			if (!uncv->comps) {
 				*out_err = GF_OUT_OF_MEM;
 				goto exit;
@@ -299,11 +299,11 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			uncv->sampling = gf_bs_read_u8(bs);
 			uncv->interleave = gf_bs_read_u8(bs);
 			uncv->block_size = gf_bs_read_u8(bs);
-			uncv->components_little_endian = gf_bs_read_int(bs, 1);
-			uncv->block_pad_lsb = gf_bs_read_int(bs, 1);
-			uncv->block_little_endian = gf_bs_read_int(bs, 1);
-			uncv->block_reversed = gf_bs_read_int(bs, 1);
-			uncv->pad_unknown = gf_bs_read_int(bs, 1);
+			uncv->components_little_endian = gf_bs_read_bool(bs);
+			uncv->block_pad_lsb = gf_bs_read_bool(bs);
+			uncv->block_little_endian = gf_bs_read_bool(bs);
+			uncv->block_reversed = gf_bs_read_bool(bs);
+			uncv->pad_unknown = gf_bs_read_bool(bs);
 			gf_bs_read_int(bs, 3);
 			uncv->pixel_size = gf_bs_read_u32(bs);
 			uncv->row_align_size = gf_bs_read_u32(bs);
@@ -313,7 +313,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			//todo, validate profile ?
 
 uncc_done:
-			has_uncc = 1;
+			has_uncc = GF_TRUE;
 		} else if (type==GF_4CC('c','p','a','l')) {
 			u32 bit_size=0;
 			s32 bsize = (u32) size-8;
@@ -337,7 +337,7 @@ uncc_done:
 			}
 			uncv->palette->nb_comps = cpal_count;
 
-			uncv->palette->comps = gf_malloc(sizeof(UNCVComponentInfo)*uncv->palette->nb_comps);
+			uncv->palette->comps = (UNCVComponentInfo *)gf_malloc(sizeof(UNCVComponentInfo)*uncv->palette->nb_comps);
 			if (!uncv->palette->comps) {
 				*out_err = GF_OUT_OF_MEM;
 				goto exit;
@@ -361,7 +361,7 @@ uncc_done:
 				goto exit;
 			}
 
-			uncv->palette->values = gf_malloc(sizeof(u8) * uncv->palette->nb_values * uncv->palette->nb_comps);
+			uncv->palette->values = (u8 *)gf_malloc(uncv->palette->nb_values * uncv->palette->nb_comps);
 			if (!uncv->palette->values) {
 				*out_err = GF_OUT_OF_MEM;
 				goto exit;
@@ -390,7 +390,7 @@ uncc_done:
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			uncv->fa_map = gf_malloc(sizeof(u16)*uncv->fa_width * uncv->fa_height);
+			uncv->fa_map = (u16 *)gf_malloc(sizeof(u16)*uncv->fa_width * uncv->fa_height);
 			if (!uncv->fa_map) {
 				*out_err = GF_OUT_OF_MEM;
 				goto exit;
@@ -429,8 +429,8 @@ uncc_done:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid component index %d\n", uncv->comps[i].idx))
 		}
 		uncv->comps[i].type = uncv->comp_defs[uncv->comps[i].idx].type;
-		if (uncv->comps[i].type == 10) has_pal = 1;
-		if (uncv->comps[i].type == 11) has_fa = 1;
+		if (uncv->comps[i].type == 10) has_pal = GF_TRUE;
+		if (uncv->comps[i].type == 11) has_fa = GF_TRUE;
 		if (uncv->comps[i].align_size && (uncv->comps[i].align_size*8 < uncv->comps[i].bits)) {
 			*out_err = GF_NON_COMPLIANT_BITSTREAM;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Component idx %d align size (%d) less than its bit depth (%d)\n", uncv->comps[i].idx, uncv->comps[i].align_size, uncv->comps[i].bits));
@@ -538,23 +538,23 @@ GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size
 static void uncv_check_comp_type(u32 type, Bool *has_mono, Bool *has_yuv, Bool *has_rgb, Bool *has_alpha, Bool *has_depth, Bool *has_disp, Bool *has_pal, Bool *has_fa, Bool *has_pad, Bool *has_non_int)
 {
 	switch (type) {
-	case 0: *has_mono=1; break;
+	case 0: *has_mono=GF_TRUE; break;
 	case 1:
 	case 2:
 	case 3:
-		*has_yuv=1;
+		*has_yuv=GF_TRUE;
 		break;
 	case 4:
 	case 5:
 	case 6:
-		*has_rgb=1;
+		*has_rgb=GF_TRUE;
 		break;
-	case 7: *has_alpha = 1; break;
-	case 8: *has_depth = 1; break;
-	case 9: *has_disp = 1; break;
-	case 10: *has_pal = 1; break;
-	case 11: *has_fa = 1; break;
-	case 12: *has_pad = 1; break;
+	case 7: *has_alpha = GF_TRUE; break;
+	case 8: *has_depth = GF_TRUE; break;
+	case 9: *has_disp = GF_TRUE; break;
+	case 10: *has_pal = GF_TRUE; break;
+	case 11: *has_fa = GF_TRUE; break;
+	case 12: *has_pad = GF_TRUE; break;
 	}
 }
 static void uncv_check_comps_type(UNCVComponentInfo *comps, u32 nb_comps, Bool *has_mono, Bool *has_yuv, Bool *has_rgb, Bool *has_alpha, Bool *has_depth, Bool *has_disp, Bool *has_pal, Bool *has_fa, Bool *has_pad, Bool *has_non_int)
@@ -562,14 +562,14 @@ static void uncv_check_comps_type(UNCVComponentInfo *comps, u32 nb_comps, Bool *
 	u32 i;
 	for (i=0;i<nb_comps; i++) {
 		uncv_check_comp_type(comps[i].type, has_mono, has_yuv, has_rgb, has_alpha, has_depth, has_disp, has_pal, has_fa, has_pad, has_non_int);
-		if (comps[i].format) *has_non_int = 1;
+		if (comps[i].format) *has_non_int = GF_TRUE;
 	}
 }
 
 static u32 uncv_get_compat(UNCVDecCtx *ctx)
 {
-	Bool has_mono=0, has_yuv=0, has_rgb=0, has_alpha=0, has_depth=0, has_disp=0, has_pal=0, has_fa=0, has_pad=0;
-	Bool has_non_int=0;
+	Bool has_mono=GF_FALSE, has_yuv=GF_FALSE, has_rgb=GF_FALSE, has_alpha=GF_FALSE, has_depth=GF_FALSE, has_disp=GF_FALSE, has_pal=GF_FALSE, has_fa=GF_FALSE, has_pad=GF_FALSE;
+	Bool has_non_int= GF_FALSE;
 	UNCVConfig *cfg = ctx->cfg;
 	UNCVComponentInfo *c = cfg->comps;
 
@@ -914,7 +914,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 	UNCVComponentInfo *comps = config->comps;
 /*	pixel = [];
 */
-	u32 *bits = gf_malloc(sizeof(u32) * config->nb_comps*2);
+	u32 *bits = (u32 *)gf_malloc(sizeof(u32) * config->nb_comps*2);
 	u32 nb_bits=0;
 	u32 i, min_bits = 0;
 	ctx->subsample_x = 1;
@@ -1100,19 +1100,19 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 		ctx->nb_bsrs = config->nb_comps;
 	}
 
-	ctx->bsrs = gf_malloc(sizeof(BSRead) * ctx->nb_bsrs);
+	ctx->bsrs = (BSRead *)gf_malloc(sizeof(BSRead) * ctx->nb_bsrs);
 	memset(ctx->bsrs, 0, sizeof(BSRead) * ctx->nb_bsrs);
 	for (i=0; i<ctx->nb_bsrs; i++) {
 		BSRead *bsr = &ctx->bsrs[i];
 		bsr->bs = gf_bs_new((u8*)&ctx, 1, GF_BITSTREAM_READ);
 
 		if (config->block_size && config->block_little_endian) {
-			bsr->le_buf = gf_malloc(sizeof(u8) * config->block_size);
+			bsr->le_buf = (u8 *)gf_malloc(config->block_size);
 			bsr->le_bs = gf_bs_new((u8*)&ctx, 1, GF_BITSTREAM_READ);
 		}
 
 		if (ctx->blocksize_bits) {
-			bsr->block_comps = gf_malloc(sizeof(BlockComp) * ctx->max_comp_per_block);
+			bsr->block_comps = (BlockComp *)gf_malloc(sizeof(BlockComp) * ctx->max_comp_per_block);
 		}
 	}
 
@@ -1121,11 +1121,11 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 	//we always write 3 comp in pixels
 	if (nb_out_comp<ctx->bpp) nb_out_comp = ctx->bpp;
 
-	ctx->pixel = gf_malloc(sizeof(u8)*nb_out_comp);
+	ctx->pixel = (u8 *)gf_malloc(nb_out_comp);
 	memset(ctx->pixel, 0, sizeof(u8)*nb_out_comp);
 
 	if (config->components_little_endian && max_align_size) {
-		ctx->comp_le_buf = gf_malloc(sizeof(u8)*max_align_size);
+		ctx->comp_le_buf = (u8 *)gf_malloc(max_align_size);
 		ctx->comp_le_bs = gf_bs_new(ctx->comp_le_buf, max_align_size, GF_BITSTREAM_READ);
 	}
 	return GF_OK;

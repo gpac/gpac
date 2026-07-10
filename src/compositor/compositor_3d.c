@@ -124,7 +124,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	{
 		u32 bpp;
 		GF_VideoSurface bb;
-		GF_Err e = compositor->video_out->LockBackBuffer(compositor->video_out, &bb, 1);
+		GF_Err e = compositor->video_out->LockBackBuffer(compositor->video_out, &bb, GF_TRUE);
 		if (e==GF_OK) {
 			switch (bb.pixel_format) {
 			case GF_PIXEL_RGBX:
@@ -148,7 +148,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 				compositor->tgl_ctx = ostgl_create_context(bb.width, bb.height, bpp, &bb.video_buffer, 1);
 				if (compositor->tgl_ctx) ostgl_make_current(compositor->tgl_ctx, 0);
 			}
-			compositor->video_out->LockBackBuffer(compositor->video_out, &bb, 0);
+			compositor->video_out->LockBackBuffer(compositor->video_out, &bb, GF_FALSE);
 		}
 	}
 #endif
@@ -176,7 +176,7 @@ void compositor_3d_reset_camera(GF_Compositor *compositor)
 		camera_reset_viewpoint(cam, GF_TRUE);
 		gf_sc_invalidate(compositor, NULL);
 	}
-	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, 0, GF_TRUE);
+	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, GF_FALSE, GF_TRUE);
 }
 
 void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseState *tr_state, Fixed width, Fixed height, Fixed bmp_scale_x, Fixed bmp_scale_y)
@@ -207,7 +207,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
 
 	visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
-		
+
 	if (alpha && (alpha != 0xFF)) {
 		gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
 	} else if (gf_sc_texture_is_transparent(txh)) {

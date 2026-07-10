@@ -2770,7 +2770,7 @@ void gf_bbox_union(GF_BBox *b1, GF_BBox *b2)
 GF_EXPORT
 Bool gf_bbox_equal(GF_BBox *b1, GF_BBox *b2)
 {
-	return (gf_vec_equal(b1->min_edge, b2->min_edge) && gf_vec_equal(b1->max_edge, b2->max_edge));
+	return (gf_vec_equal(b1->min_edge, b2->min_edge) && gf_vec_equal(b1->max_edge, b2->max_edge)) ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
@@ -2778,7 +2778,7 @@ Bool gf_bbox_point_inside(GF_BBox *box, GF_Vec *p)
 {
 	return (p->x >= box->min_edge.x && p->x <= box->max_edge.x &&
 	        p->y >= box->min_edge.y && p->y <= box->max_edge.y &&
-	        p->z >= box->min_edge.z && p->z <= box->max_edge.z);
+	        p->z >= box->min_edge.z && p->z <= box->max_edge.z) ? GF_TRUE : GF_FALSE;
 }
 
 /*vertices are ordered to respect p vertex indexes (vertex from bbox closer to plane)

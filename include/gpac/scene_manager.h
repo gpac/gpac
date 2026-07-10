@@ -36,7 +36,7 @@ extern "C" {
 \file <gpac/scene_manager.h>
 \brief Scene management for importing/encoding of BIFS, XMT, LASeR scenes
 */
-	
+
 /*!
 \addtogroup smgr Scene Manager
 \ingroup scene_grp

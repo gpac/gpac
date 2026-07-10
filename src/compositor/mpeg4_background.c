@@ -39,17 +39,17 @@
 
 static Bool back_use_texture(MFURL *url)
 {
-	if (!url->count) return 0;
-	if (url->vals[0].OD_ID > 0) return 1;
-	if (url->vals[0].url && strlen(url->vals[0].url)) return 1;
-	return 0;
+	if (!url->count) return GF_FALSE;
+	if (url->vals[0].OD_ID > 0) return GF_TRUE;
+	if (url->vals[0].url && strlen(url->vals[0].url)) return GF_TRUE;
+	return GF_FALSE;
 }
 
 static void UpdateBackgroundTexture(GF_TextureHandler *txh)
 {
-	gf_sc_texture_update_frame(txh, 0);
+	gf_sc_texture_update_frame(txh, GF_FALSE);
 	/*restart texture if needed (movie background controled by MediaControl)*/
-	if (txh->stream_finished && gf_mo_get_loop(txh->stream, 0)) gf_sc_texture_restart(txh);
+	if (txh->stream_finished && gf_mo_get_loop(txh->stream, GF_FALSE)) gf_sc_texture_restart(txh);
 }
 
 
@@ -59,7 +59,7 @@ static Bool back_gf_sc_texture_enabled(MFURL *url, GF_TextureHandler *txh)
 	if (use_texture) {
 		/*texture not ready*/
 		if (!txh->tx_io) {
-			use_texture = 0;
+			use_texture = GF_FALSE;
 			gf_sc_invalidate(txh->compositor, NULL);
 		}
 		gf_sc_texture_set_blend_mode(txh, gf_sc_texture_is_transparent(txh) ? TX_REPLACE : TX_DECAL);
@@ -150,12 +150,12 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	last_idx = 0;
 	ang_idx = 0;
 
-	pad = 1;
+	pad = GF_TRUE;
 	next_angle = first_angle = 0;
 	if (angles->count) {
 		next_angle = angles->vals[0];
 		first_angle = 7*next_angle/8;
-		pad = 0;
+		pad = GF_FALSE;
 	}
 
 	step_div_h = DOME_STEP_H;
@@ -183,11 +183,11 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 				if (ang_idx+1<color->count) {
 					COL_TO_RGBA(end_col, color->vals[ang_idx+1]);
 				} else {
-					pad = 1;
+					pad = GF_TRUE;
 				}
 			} else {
 				if (ground_dome) break;
-				pad = 1;
+				pad = GF_TRUE;
 			}
 		}
 
@@ -296,7 +296,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 			gf_list_add(st->reg_stacks, tr_state->backgrounds);
 		/*only bound if we're on top*/
 		if (gf_list_get(tr_state->backgrounds, 0) == bck) {
-			if (!bck->isBound) Bindable_SetIsBound(node, 1);
+			if (!bck->isBound) Bindable_SetIsBound(node, GF_TRUE);
 		}
 
 		/*check streams*/
@@ -332,8 +332,8 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	right_tx = back_gf_sc_texture_enabled(&bck->rightUrl, &st->txh_right);
 	left_tx = back_gf_sc_texture_enabled(&bck->leftUrl, &st->txh_left);
 
-	has_sky = ((bck->skyColor.count>1) && bck->skyAngle.count) ? 1 : 0;
-	has_ground = ((bck->groundColor.count>1) && bck->groundAngle.count) ? 1 : 0;
+	has_sky = ((bck->skyColor.count>1) && bck->skyAngle.count) ? GF_TRUE : GF_FALSE;
+	has_ground = ((bck->groundColor.count>1) && bck->groundAngle.count) ? GF_TRUE : GF_FALSE;
 
 	/*if we clear the main visual clear it entirely - ONLY IF NOT IN LAYER*/
 	if ((tr_state->visual == compositor->visual) && (tr_state->visual->back_stack == tr_state->backgrounds)) {
@@ -359,7 +359,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	/*NB: we don't support local rotation of the background ...*/
 
 	/*enable background state (turn off all quality options)*/
-	visual_3d_set_background_state(tr_state->visual, 1);
+	visual_3d_set_background_state(tr_state->visual, GF_TRUE);
 
 	if (has_sky) {
 		GF_Matrix bck_mx;
@@ -368,7 +368,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 
 		if (!st->sky_mesh) {
 			st->sky_mesh = new_mesh();
-			back_build_dome(st->sky_mesh, &bck->skyAngle, &bck->skyColor, 0);
+			back_build_dome(st->sky_mesh, &bck->skyAngle, &bck->skyColor, GF_FALSE);
 		}
 
 		gf_mx_init(mx);
@@ -397,7 +397,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 
 		if (!st->ground_mesh) {
 			st->ground_mesh = new_mesh();
-			back_build_dome(st->ground_mesh, &bck->groundAngle, &bck->groundColor, 1);
+			back_build_dome(st->ground_mesh, &bck->groundAngle, &bck->groundColor, GF_TRUE);
 		}
 
 		gf_mx_init(mx);
@@ -429,7 +429,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		gf_mx_add_scale(&mx, scale, scale, scale);
 
-		visual_3d_enable_antialias(tr_state->visual, 1);
+		visual_3d_enable_antialias(tr_state->visual, GF_TRUE);
 
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 
@@ -444,7 +444,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*enable background state (turn off all quality options)*/
-	visual_3d_set_background_state(tr_state->visual, 0);
+	visual_3d_set_background_state(tr_state->visual, GF_FALSE);
 }
 
 

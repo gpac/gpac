@@ -50,7 +50,7 @@ GF_Err gf_bifs_field_index_by_mode(GF_Node *node, u32 all_ind, u8 indexMode, u32
 }
 
 
-void BE_WriteSFFloat(GF_BifsEncoder *codec, Fixed val, GF_BitStream *bs, char *com)
+void BE_WriteSFFloat(GF_BifsEncoder *codec, Fixed val, GF_BitStream *bs, const char *com)
 {
 	if (codec->ActiveQP && codec->ActiveQP->useEfficientCoding) {
 		gf_bifs_enc_mantissa_float(codec, val, bs);
@@ -113,7 +113,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 
 			while (size) {
 				u32 read = (u32) gf_fread(buf, 4096, f);
-				gf_bs_write_data(bs, buf, read);
+				gf_bs_write_data(bs, (u8*)buf, read);
 				size -= read;
 			}
 			gf_fclose(f);
@@ -647,7 +647,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	/*no updates of time fields for now - NEEDED FOR A LIVE ENCODER*/
 
 	/*if coords were not stored for QP14 before coding this node, reset QP14 it when leaving*/
-	reset_qp14 = !codec->coord_stored;
+	reset_qp14 = codec->coord_stored ? GF_FALSE : GF_TRUE;
 
 	/*QP14 case*/
 	switch (node_tag) {

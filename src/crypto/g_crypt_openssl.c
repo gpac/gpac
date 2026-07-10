@@ -48,7 +48,7 @@ typedef struct {
 
 /** CBC STUFF **/
 
-GF_Err gf_crypt_init_openssl_cbc(GF_Crypt* td, void *key, const void *iv)
+GF_Err gf_crypt_init_openssl_cbc(GF_Crypt* td, const u8 *key, const u8 *iv)
 {
 	Openssl_ctx_cbc *ctx = (Openssl_ctx_cbc*)td->context;
 	if (!ctx) {
@@ -57,7 +57,7 @@ GF_Err gf_crypt_init_openssl_cbc(GF_Crypt* td, void *key, const void *iv)
 		ctx->use_evp = gf_opts_get_bool("core", "no-evp") ? GF_FALSE : GF_TRUE;
 		td->context = ctx;
 	}
-	
+
 	if (iv != NULL) {
 		memcpy(ctx->previous_ciphertext, iv, AES_BLOCK_SIZE);
 	}
@@ -74,7 +74,7 @@ void gf_crypt_deinit_openssl_cbc(GF_Crypt* td)
 	}
 }
 
-void gf_set_key_openssl_cbc(GF_Crypt* td, void *key)
+void gf_set_key_openssl_cbc(GF_Crypt* td, const u8 *key)
 {
 	Openssl_ctx_cbc* ctx = (Openssl_ctx_cbc*)td->context;
 	memcpy(ctx->key, key, 16);
@@ -205,7 +205,7 @@ typedef struct {
 
 /** CTR STUFF **/
 
-void gf_set_key_openssl_ctr(GF_Crypt* td, void *key)
+void gf_set_key_openssl_ctr(GF_Crypt* td, const u8 *key)
 {
 	Openssl_ctx_ctr* ctx = (Openssl_ctx_ctr*)td->context;
 	memcpy(ctx->raw_key, key, 16);
@@ -253,7 +253,7 @@ GF_Err gf_crypt_get_IV_openssl_ctr(GF_Crypt* td, u8 *iv, u32 *iv_size)
 	return GF_OK;
 }
 
-GF_Err gf_crypt_init_openssl_ctr(GF_Crypt* td, void *key, const void *iv)
+GF_Err gf_crypt_init_openssl_ctr(GF_Crypt* td, const u8 *key, const u8 *iv)
 {
 	Openssl_ctx_ctr *ctx = (Openssl_ctx_ctr*)td->context;
 	if (!ctx) {
@@ -332,7 +332,7 @@ typedef struct {
 	EVP_CIPHER_CTX *ossl_evp;
 } Openssl_ctx_ecb;
 
-GF_Err gf_crypt_init_openssl_ecb(GF_Crypt* td, void *key, const void *iv)
+GF_Err gf_crypt_init_openssl_ecb(GF_Crypt* td, const u8 *key, const u8 *iv)
 {
 	Openssl_ctx_ecb *ctx = (Openssl_ctx_ecb*)td->context;
 	if (!ctx) {
@@ -354,7 +354,7 @@ void gf_crypt_deinit_openssl_ecb(GF_Crypt* td)
 	}
 }
 
-void gf_set_key_openssl_ecb(GF_Crypt* td, void *key)
+void gf_set_key_openssl_ecb(GF_Crypt* td, const u8 *key)
 {
 	Openssl_ctx_ecb* ctx = (Openssl_ctx_ecb*)td->context;
 	memcpy(ctx->key, key, 16);

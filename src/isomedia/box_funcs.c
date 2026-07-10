@@ -42,7 +42,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *box_type, 
 			// We could not even read the box size, we at least need 8 bytes
 			*bytesExpected = 8;
 			if (box_type) *box_type = 0;
-			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box - start "LLU"\n", start));
+			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box - start " LLU "\n", start));
 		}
 		else {
 			u32 type = (*outBox)->type;
@@ -52,7 +52,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *box_type, 
 			*bytesExpected = (*outBox)->size;
 			if (box_type) *box_type = (*outBox)->type;
 
-			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s - start "LLU" size "LLU"\n", gf_4cc_to_str(type), start, (*outBox)->size));
+			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s - start " LLU " size " LLU "\n", gf_4cc_to_str(type), start, (*outBox)->size));
 			gf_isom_box_del(*outBox);
 			*outBox = NULL;
 		}
@@ -99,7 +99,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 {
 	u32 type, otype, uuid_type, hdr_size, restore_type;
 	u64 size, start, comp_start, end;
-	char uuid[16];
+	u8 uuid[16];
 	GF_Err e;
 	GF_BitStream *uncomp_bs = NULL;
 	GF_BitStream *orig_bs = NULL;
@@ -148,8 +148,8 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				size = gf_bs_available(bs) + 8;
 			} else {
 				if (!skip_logs) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level. Forbidden, skipping end of parent box !\n", gf_4cc_to_str(type), type, start));
-					return GF_SKIP_BOX;
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position " LLU " has size 0 but is not at root/file level. Forbidden, skipping end of parent box !\n", gf_4cc_to_str(type), type, start));
+					return (GF_Err) GF_SKIP_BOX;
 				}
 				return GF_ISOM_INVALID_FILE;
 			}
@@ -161,7 +161,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			do_uncompress = GF_TRUE;
 
 		if (do_uncompress) {
-			u32 do_uncompress = 0;
+			u32 do_uncompress = GF_FALSE;
 			u8 *compb = NULL;
 			u32 extra_bytes = 0;
 			u32 osize = 0;
@@ -176,7 +176,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				u32 cbtype, cbsize, ctype;
 
 				if (!skip_logs) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size %d start "LLU"\n", gf_4cc_to_str(type), size, start));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size %d start " LLU "\n", gf_4cc_to_str(type), size, start));
 				}
 				start+=8;
 				//parse child boxes directly
@@ -186,9 +186,9 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				if (cbtype != GF_QT_BOX_TYPE_DCOM) return GF_ISOM_INVALID_FILE;
 
 				if (!skip_logs) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size %d start "LLU"\n", gf_4cc_to_str(cbtype), cbsize, start));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size %d start " LLU "\n", gf_4cc_to_str(cbtype), cbsize, start));
 				}
-				skip_logs = 1;
+				skip_logs = GF_TRUE;
 
 				ctype = gf_bs_read_u32(bs);
 				if (ctype != GF_4CC('z', 'l', 'i', 'b')) return GF_NOT_SUPPORTED;
@@ -227,7 +227,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload too large (%u)\n", size));
 					return GF_NOT_SUPPORTED;
 				}
-				compb = gf_malloc((u32) (size-8));
+				compb = (u8 *)gf_malloc((u32) (size-8));
 				if (!compb) return GF_OUT_OF_MEM;
 
 				compressed_size = (u32) (size - 8 - extra_bytes);
@@ -284,15 +284,15 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		hdr_size += 8;
 	}
 	if (!skip_logs)
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(otype), size,  start));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size " LLD " start " LLD "\n", gf_4cc_to_str(otype), size,  start));
 
 	if ( size < hdr_size ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLD" less than box header size %d\n", gf_4cc_to_str(otype), size, hdr_size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size " LLD " less than box header size %d\n", gf_4cc_to_str(otype), size, hdr_size));
 		ERR_EXIT(GF_ISOM_INVALID_FILE);
 	}
 	//if parent size is given, make sure box fits within parent
 	if (parent_size && (parent_size<size)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLU" is larger than remaining parent size "LLU"\n", gf_4cc_to_str(otype), size, parent_size ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size " LLU " is larger than remaining parent size " LLU "\n", gf_4cc_to_str(otype), size, parent_size ));
 		ERR_EXIT(GF_ISOM_INVALID_FILE);
 	}
 	restore_type = 0;
@@ -403,7 +403,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			e = GF_ISOM_INVALID_FILE;
 
 		if (!skip_logs && (e!=GF_SKIP_BOX)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" (start "LLU") failed (%s) - skipping\n", gf_4cc_to_str(type), start, gf_error_to_string(e)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" (start " LLU ") failed (%s) - skipping\n", gf_4cc_to_str(type), start, gf_error_to_string(e)));
 		}
 		//we don't try to reparse known boxes that have been failing (too dangerous)
 		return e;
@@ -411,7 +411,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	if (end-start > size) {
 		if (!skip_logs) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" (start "LLU") invalid (read "LLU")\n", gf_4cc_to_str(type), size, start, (end-start) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size " LLU " (start " LLU ") invalid (read " LLU ")\n", gf_4cc_to_str(type), size, start, (end-start) ));
 		}
 		/*let's still try to load the file since no error was notified*/
 		gf_bs_seek(bs, start+size);
@@ -419,7 +419,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		u32 to_skip = (u32) (size-(end-start));
 		if (!skip_logs) {
 			if ((to_skip!=4) || gf_bs_peek_bits(bs, 32, 0)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" (start "LLU") has %u extra bytes\n", gf_4cc_to_str(type), start, to_skip));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" (start " LLU ") has %u extra bytes\n", gf_4cc_to_str(type), start, to_skip));
 				unused_bytes += to_skip;
 			}
 		}
@@ -516,7 +516,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 		}
 
 		if (conv_uuid) {
-			char uuid[16];
+			u8 uuid[16];
 			for (i = 0; i < 16; i++) {
 				char t[3];
 				t[2] = 0;
@@ -532,7 +532,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 	if (ptr->size > 0xFFFFFFFF)
 		gf_bs_write_u64(bs, ptr->size);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Written Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(ptr->type), ptr->size, start));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Written Box type %s size " LLD " start " LLD "\n", gf_4cc_to_str(ptr->type), ptr->size, start));
 
 	return GF_OK;
 }
@@ -2043,7 +2043,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
 {
-	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE, GF_FALSE);
+	return gf_isom_box_new_ex(boxType, 0, GF_FALSE, GF_FALSE, GF_FALSE);
 }
 
 GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
@@ -2215,7 +2215,7 @@ void gf_isom_check_position_list(GF_Box *s, GF_List *childlist, u32 *pos)
 		return;
 	count = gf_list_count(childlist);
 	for (i=0; i<count; i++) {
-		GF_Box *child = gf_list_get(childlist, i);
+		GF_Box *child = (GF_Box *)gf_list_get(childlist, i);
 		gf_isom_check_position(s, child, pos);
 	}
 }
@@ -2244,7 +2244,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	pos = gf_bs_get_position(bs) - pos;
 	if (pos != a->size) {
 		if (a->type != GF_ISOM_BOX_TYPE_MDAT) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box %s wrote "LLU" bytes but size is "LLU"\n", gf_4cc_to_str(a->type), pos, a->size ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box %s wrote " LLU " bytes but size is " LLU "\n", gf_4cc_to_str(a->type), pos, a->size ));
 		}
 	}
 	return e;
@@ -2380,7 +2380,7 @@ GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool
 
 	if (!(a->internal_flags & GF_ISOM_DUMP_SKIP_SIZE)) {
 		if (a->size > 0xFFFFFFFF) {
-			gf_fprintf(trace, "LargeSize=\""LLU"\" ", a->size);
+			gf_fprintf(trace, "LargeSize=\"" LLU "\" ", a->size);
 		} else {
 			gf_fprintf(trace, "Size=\"%u\" ", (u32) a->size);
 		}
@@ -2471,7 +2471,7 @@ GF_Box *gf_isom_box_find_child(GF_List *children, u32 code)
 	if (!children) return NULL;
 	count = gf_list_count(children);
 	for (i=0; i<count; i++) {
-		GF_Box *c = gf_list_get(children, i);
+		GF_Box *c = (GF_Box *)gf_list_get(children, i);
 		if (c->type==code) return c;
 
 		if (c->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
@@ -2492,7 +2492,7 @@ Bool gf_isom_box_check_unique(GF_List *children, GF_Box *a)
 	if (!children) return GF_TRUE;
 	count = gf_list_count(children);
 	for (i=0; i<count; i++) {
-		GF_Box *c = gf_list_get(children, i);
+		GF_Box *c = (GF_Box *)gf_list_get(children, i);
 		if (c==a) continue;
 		if (c->type==a->type) return GF_FALSE;
 	}
@@ -2535,7 +2535,7 @@ void gf_isom_box_freeze_order(GF_Box *box)
 	if (!box) return;
 	box->internal_flags |= GF_ISOM_ORDER_FREEZE;
 
-	while ((child = gf_list_enum(box->child_boxes, &i))) {
+	while ((child = (GF_Box *)gf_list_enum(box->child_boxes, &i))) {
 		gf_isom_box_freeze_order(child);
 	}
 

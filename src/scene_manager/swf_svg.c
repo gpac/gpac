@@ -56,7 +56,7 @@ static void swf_svg_print(SWFReader *read, const char *format, ...) {
 	/* add the line to the buffer */
 	line_length = (u32)strlen(line);
 	new_size = read->svg_data_size+line_length;
-	read->svg_data = (char *)gf_realloc(read->svg_data, new_size+1);
+	read->svg_data = (u8 *)gf_realloc(read->svg_data, new_size+1);
 	if (read->print_frame_header) {
 		/* write at the beginning of the buffer */
 		memmove(read->svg_data+read->frame_header_offset+line_length, read->svg_data+read->frame_header_offset, (read->svg_data_size-read->frame_header_offset)+1);
@@ -224,7 +224,7 @@ static GF_Err swf_svg_define_shape(SWFReader *read, SWFShape *shape, SWFFont *pa
 		swf_svg_print(read, "<path d=\"");
 		swf_svg_print_shape_record_to_path_d(read, srec);
 		swf_svg_print(read, "\" ");
-		swg_svg_print_shape_record_to_fill_stroke(read, srec, 1);
+		swg_svg_print_shape_record_to_fill_stroke(read, srec, GF_TRUE);
 		swf_svg_print(read, "/>\n");
 	}
 	i=0;
@@ -232,7 +232,7 @@ static GF_Err swf_svg_define_shape(SWFReader *read, SWFShape *shape, SWFFont *pa
 		swf_svg_print(read, "<path d=\"");
 		swf_svg_print_shape_record_to_path_d(read, srec);
 		swf_svg_print(read, "\" ");
-		swg_svg_print_shape_record_to_fill_stroke(read, srec, 0);
+		swg_svg_print_shape_record_to_fill_stroke(read, srec, GF_FALSE);
 		swf_svg_print(read, "/>\n");
 	}
 
@@ -253,7 +253,7 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 	SWFGlyphRec     *gr;
 	SWFFont         *ft;
 
-	use_text = (read->flags & GF_SM_SWF_NO_FONT) ? 1 : 0;
+	use_text = (read->flags & GF_SM_SWF_NO_FONT) ? GF_TRUE : GF_FALSE;
 
 	swf_svg_print(read, "<defs>\n");
 	swf_svg_print(read, "<g id=\"S%d\" ", text->ID);
@@ -267,7 +267,7 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 		if (use_text) {
 			ft = swf_find_font(read, gr->fontID);
 			if (!ft->glyph_codes) {
-				use_text = 0;
+				use_text = GF_FALSE;
 				swf_report(read, GF_BAD_PARAM, "Font glyphs are not defined, cannot reference extern font - Forcing glyph embedding");
 			}
 		}
@@ -303,7 +303,7 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 					str_w[j] = ft->glyph_codes[gr->indexes[j]];
 				}
 				str_w[j] = 0;
-				str = (char*)gf_malloc(sizeof(char) * (gr->nbGlyphs+2));
+				str = (char*)gf_malloc(gr->nbGlyphs+2);
 				widestr = str_w;
 				_len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
 				if (_len != GF_UTF8_FAIL) {
@@ -459,7 +459,7 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
 	}
 
 	if (read->svg_data && read->svg_data_size)
-		read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0));
+		read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0) ? GF_TRUE : GF_FALSE);
 
 	if (read->svg_data) {
 		gf_free(read->svg_data);

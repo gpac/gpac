@@ -27,6 +27,10 @@
 #ifndef OFFSCREEN_CACHE_H
 #define OFFSCREEN_CACHE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "drawable.h"
 
 typedef struct _group_cache
@@ -54,6 +58,10 @@ void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state);
 Fixed group_cache_check_coverage_increase(GF_Rect *ctx, GF_Rect *grp_bounds, DrawableContext *curr, DrawableContext* first_child);
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*OFFSCREEN_CACHE_H*/
 

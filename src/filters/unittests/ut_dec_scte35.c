@@ -6,7 +6,7 @@ static GF_FilterPacket* pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **dat
 {
 	GF_FilterPacket *pck;
 	GF_SAFEALLOC(pck, GF_FilterPacket);
-	pck->data = gf_malloc(data_size);
+	pck->data = (u8 *)gf_malloc(data_size);
 	pck->pck = pck;
 	pck->data_length = data_size;
 	*data = pck->data;

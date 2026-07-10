@@ -99,7 +99,7 @@ static void ut_filter_finalize(GF_Filter *filter)
 
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
-		PIDCtx *pidctx = gf_list_get(stack->pids, i);
+		PIDCtx *pidctx = (PIDCtx *)gf_list_get(stack->pids, i);
 		if (pidctx->sha_ctx && (stack->mode!=UTF_MODE_SOURCE) ) {
 			gf_sha1_finish(pidctx->sha_ctx, digest);
 
@@ -160,7 +160,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
-		PIDCtx *pidctx = gf_list_get(stack->pids, i);
+		PIDCtx *pidctx = (PIDCtx *)gf_list_get(stack->pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
 		if (!pck)
 			return GF_OK;
@@ -177,7 +177,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 		u32 pck_size;
 		u8 *data_ptr;
 		u32 data_offset=0;
-		PIDCtx *pidctx = gf_list_get(stack->pids, i);
+		PIDCtx *pidctx = (PIDCtx *)gf_list_get(stack->pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
 		gf_assert (pck);
 		gf_assert(pidctx == gf_filter_pid_get_udta(pidctx->src_pid));
@@ -232,7 +232,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 			if (stack->framing==3) is_end = GF_FALSE;
 
 			gf_filter_pck_set_framing(pck_dst, is_start, is_end);
-			
+
 			pidctx->nb_packets++;
 			//copy over src props to dst
 			gf_filter_pck_merge_properties(pck, pck_dst);
@@ -259,7 +259,7 @@ static void ut_source_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 
 static GF_Err ut_source_ifce_get_plane(struct _gf_filter_frame_interface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
-	PIDCtx *pctx = frame->user_data;
+	PIDCtx *pctx = (PIDCtx *)frame->user_data;
 	memset(pctx->ifce_data, 0, 10);
 	if (plane_idx) return GF_BAD_PARAM;
 	*outPlane = pctx->ifce_data;
@@ -277,7 +277,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 	nb_eos = 0;
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
-		PIDCtx *pidctx=gf_list_get(stack->pids, i);
+		PIDCtx *pidctx = (PIDCtx *)gf_list_get(stack->pids, i);
 
 		if (pidctx->nb_packets==stack->max_pck) {
 			if (stack->gsftest) {
@@ -304,17 +304,17 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			u8 *data;
 			pck = gf_filter_pck_new_alloc(pidctx->dst_pid, 10, &data);
 			memcpy(data, "PacketCopy", 10);
-			gf_sha1_update(pidctx->sha_ctx, "PacketCopy", 10);
+			gf_sha1_update(pidctx->sha_ctx, (u8*)"PacketCopy", 10);
 		} else {
-			pck = gf_filter_pck_new_shared(pidctx->dst_pid, "PacketShared", 12, test_pck_del);
-			gf_sha1_update(pidctx->sha_ctx, "PacketShared", 12);
+			pck = gf_filter_pck_new_shared(pidctx->dst_pid, (u8*)"PacketShared", 12, test_pck_del);
+			gf_sha1_update(pidctx->sha_ctx, (u8*)"PacketShared", 12);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("TestSource: pck %d PacketShared\n", pidctx->nb_packets));
 
 		gf_filter_pck_set_cts(pck, pidctx->nb_packets);
 
 		p.type = GF_PROP_NAME;
-		p.value.string = "custom_value";
+		p.value.string = (char *)"custom_value";
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','t'), &p);
 
 		//try all our properties
@@ -335,8 +335,8 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA(pidctx->ifce_data, 8));
 				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA(pidctx->ifce_data, 8));
 			} else {
-				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA((char *) pidctx, sizeof(pidctx)));
-				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA((char *) pidctx, sizeof(pidctx)));
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &PROP_DATA((u8 *) pidctx, sizeof(pidctx)));
+				gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &PROP_CONST_DATA((u8 *) pidctx, sizeof(pidctx)));
 			}
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','c'), &PROP_STRING("custom"));
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','d'), &PROP_STRING("custom"));
@@ -351,7 +351,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','j'), &p);
 			p.type = GF_PROP_STRING_LIST;
 			p.value.string_list.nb_items = 1;
-			p.value.string_list.vals = gf_malloc(sizeof(char *));
+			p.value.string_list.vals = (char **)gf_malloc(sizeof(char *));
 			p.value.string_list.vals[0] = gf_strdup("custom");
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','k'), &p);
 			p.type = GF_PROP_UINT_LIST;
@@ -390,7 +390,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 				pidctx->sha_ctx = NULL;
 				p.type = GF_PROP_DATA;
 				p.value.data.size = GF_SHA1_DIGEST_SIZE;
-				p.value.data.ptr = (char *) digest;
+				p.value.data.ptr = (u8 *) digest;
 				//with this we test both:
 				//- SHA of send data is correct at the receiver side
 				//- property update on a PID
@@ -414,14 +414,14 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 static GF_Err ut_filter_process_sink(GF_Filter *filter)
 {
 	u32 size, i, count, nb_eos;
-	const char *data;
+	const u8 *data;
 	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
 	count = gf_list_count(stack->pids);
 	nb_eos=0;
 
 	for (i=0; i<count; i++) {
-	PIDCtx *pidctx=gf_list_get(stack->pids, i);
+	PIDCtx *pidctx = (PIDCtx *)gf_list_get(stack->pids, i);
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
 	if (!pck) {
@@ -452,7 +452,7 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 	} //end PID loop
 
 	if (nb_eos==count) return GF_EOS;
-	
+
 	return GF_OK;
 }
 
@@ -473,7 +473,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	count = gf_list_count(stack->pids);
 	for (i=0; i<count; i++) {
-		pidctx = gf_list_get(stack->pids, i);
+		pidctx = (PIDCtx *)gf_list_get(stack->pids, i);
 
 		//something is being reconfigured. We check we have the same custom arg, otherwise we do not support
 		if (pidctx->src_pid == pid) {
@@ -512,7 +512,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	pidctx->src_pid = pid;
 	gf_list_add(stack->pids, pidctx);
 	gf_assert(pidctx->src_pid);
-	
+
 	//coverage mode
 	if (stack->cov) {
 		u8 *data;
@@ -520,7 +520,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_filter_pid_set_property(pidctx->src_pid, GF_4CC('s','h','a','1'), format);
 		gf_filter_pid_reset_properties(pidctx->src_pid);
 		gf_filter_pck_new_alloc(pidctx->src_pid, 20, &data);
-		gf_filter_pck_new_shared(pidctx->src_pid, "foo", 3, NULL);
+		gf_filter_pck_new_shared(pidctx->src_pid, (u8*)"foo", 3, NULL);
 		gf_filter_pck_new_ref(pidctx->src_pid, 0, 3, NULL);
 		gf_log_set_strict_error(old_strict);
 	}
@@ -618,7 +618,7 @@ static GF_Err ut_filter_update_arg(GF_Filter *filter, const char *arg_name, cons
 GF_Err utfilter_initialize(GF_Filter *filter)
 {
 	GF_PropertyValue p;
-	GF_UnitTestFilter *stack = gf_filter_get_udta(filter);
+	GF_UnitTestFilter *stack = (GF_UnitTestFilter *)gf_filter_get_udta(filter);
 
 	stack->pids = gf_list_new();
 
@@ -670,7 +670,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		}
 		val = 0xFFFFFFFF;
 		val *= 2;
-		sprintf(szFmt, ""LLD, -val);
+		sprintf(szFmt, LLD, -val);
 		p = gf_props_parse_value(GF_PROP_LSINT, "prop", szFmt, NULL, 0);
 		if (p.value.longsint != -val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longsint value\n"));
@@ -679,7 +679,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if (p.value.longsint != -1000000) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longsint value\n"));
 		}
-		sprintf(szFmt, ""LLU, val);
+		sprintf(szFmt, LLU, val);
 		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL, 0);
 		if (p.value.longuint != val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing longuint value\n"));
@@ -805,25 +805,25 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_POINTER, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_UINT, "prop", "test", "foo|bar", 0);
-		gf_props_parse_value(100, "prop", "test", NULL, 0);
+		gf_props_parse_value(GF_PROP_LAST_DEFINED, "prop", "test", NULL, 0);
 
 		memset(&p, 0, sizeof(GF_PropertyValue));
 		p2=p;
 		for (i=GF_PROP_FORBIDDEN; i<GF_PROP_LAST_DEFINED; i++) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
-			gf_props_get_type_name(i);
-			p.type = p2.type = i;
+			gf_props_get_type_name((GF_PropType)i);
+			p.type = p2.type = (GF_PropType)i;
 			gf_props_equal(&p, &p2);
 			gf_props_dump_val(&p, dump, GF_PROP_DUMP_DATA_NONE, NULL);
 		}
 		p.type = GF_PROP_DATA;
 		p.value.data.size = 4;
-		p.value.data.ptr = "test";
+		p.value.data.ptr = (u8*)"test";
 		p2 = p;
 		p2.value.data.ptr = NULL;
 		gf_props_equal(&p, &p2);
 		p2.value.data.size = 3;
-		p2.value.data.ptr = "test";
+		p2.value.data.ptr = (u8*)"test";
 		gf_props_equal(&p, &p2);
 		p2.value.data.size = 4;
 		gf_props_equal(&p, &p2);

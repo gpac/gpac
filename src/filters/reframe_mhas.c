@@ -95,7 +95,7 @@ typedef struct
 GF_Err mhas_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_MHASDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MHASDmxCtx *ctx = (GF_MHASDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -191,11 +191,11 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		if (!gf_bs_available(bs) ) break;
 		if (mhas_size > gf_bs_available(bs)) break;
 
-		mhas_sap = 0;
+		mhas_sap = GF_FALSE;
 		//frame
 		if (mhas_type==2) {
-			mhas_sap = gf_bs_read_int(bs, 1);
-			if (!mhas_last_cfg) mhas_sap = 0;
+			mhas_sap = gf_bs_read_bool(bs);
+			if (!mhas_last_cfg) mhas_sap = GF_FALSE;
 		//config
 		} else if (mhas_type==1) {
 			/*u32 pl = */gf_bs_read_u8(bs);
@@ -213,9 +213,9 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		}
 		//audio truncation
 		else if (mhas_type==17) {
-			Bool isActive = gf_bs_read_int(bs, 1);
+			Bool isActive = gf_bs_read_bool(bs);
 			/*Bool ati_reserved = */gf_bs_read_int(bs, 1);
-			Bool trunc_from_begin = gf_bs_read_int(bs, 1);
+			Bool trunc_from_begin = gf_bs_read_bool(bs);
 			u32 nb_trunc_samples = gf_bs_read_int(bs, 13);
 			if (isActive && !trunc_from_begin) {
 				duration.num -= nb_trunc_samples;
@@ -230,7 +230,7 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		if (mhas_sap && duration.den && (cur_dur >= ctx->index * duration.den) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MHASIdx)*ctx->index_alloc_size);
+			ctx->indexes = (MHASIdx *)gf_realloc(ctx->indexes, sizeof(MHASIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = mhas_last_cfg;
 			ctx->indexes[ctx->index_size].duration = ((Double) duration.num) / duration.den;
 			ctx->index_size ++;
@@ -311,7 +311,7 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 
 	if (ctx->mpha) {
-		u8 *data = gf_malloc(sizeof(u8) * (dsi_size+5) );
+		u8 *data = (u8 *)gf_malloc(dsi_size+5);
 		if (!data) return;
 		data[0] = 1;
 		data[1] = PL;
@@ -342,7 +342,7 @@ static Bool mhas_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_MHASDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MHASDmxCtx *ctx = (GF_MHASDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
@@ -452,7 +452,7 @@ static const char *mhas_pck_name(u32 pck_type)
 
 GF_Err mhas_dmx_process(GF_Filter *filter)
 {
-	GF_MHASDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MHASDmxCtx *ctx = (GF_MHASDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *in_pck;
 	u8 *output;
 	u8 *start;
@@ -462,8 +462,8 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 	u32 au_start = 0;
 	u32 consumed = 0;
 	u32 nb_trunc_samples = 0;
-	Bool trunc_from_begin = 0;
-	Bool has_cfg = 0;
+	Bool trunc_from_begin = GF_FALSE;
+	Bool has_cfg = GF_FALSE;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -509,7 +509,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 
 		if (ctx->mhas_buffer_size + pck_size > ctx->mhas_buffer_alloc) {
 			ctx->mhas_buffer_alloc = ctx->mhas_buffer_size + pck_size;
-			ctx->mhas_buffer = gf_realloc(ctx->mhas_buffer, ctx->mhas_buffer_alloc);
+			ctx->mhas_buffer = (u8 *)gf_realloc(ctx->mhas_buffer, ctx->mhas_buffer_alloc);
 		}
 		memcpy(ctx->mhas_buffer + ctx->mhas_buffer_size, data, pck_size);
 		ctx->mhas_buffer_size += pck_size;
@@ -539,7 +539,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 
 	while (ctx->nosync && (remain>3)) {
 		//wait till we have a frame header
-		u8 *hdr_start = memchr(start, 0xC0, remain);
+		const u8 *hdr_start = (u8 *) memchr(start, 0xC0, remain);
 		if (!hdr_start) {
 			remain=0;
 			break;
@@ -562,7 +562,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 	//MHAS packet
 	while (remain > consumed) {
 		u32 pay_start, parse_end, mhas_size, mhas_label;
-		Bool mhas_sap = 0;
+		Bool mhas_sap = GF_FALSE;
 		u32 mhas_type;
 		if (!ctx->is_playing && ctx->opid) {
 			ctx->resume_from = 1;
@@ -602,14 +602,14 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		if (ctx->buffer_too_small) break;
 		if (mhas_size > gf_bs_available(ctx->bs)) {
 			//incomplete frame, keep in buffer
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] incomplete packet type %d %s label "LLU" size "LLU" - keeping in buffer\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] incomplete packet type %d %s label " LLU " size " LLU " - keeping in buffer\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
 			break;
 		}
 		ctx->is_sync = GF_TRUE;
 
 		//frame
 		if (mhas_type==2) {
-			mhas_sap = gf_bs_peek_bits(ctx->bs, 1, 0);
+			mhas_sap = gf_bs_peek_bits(ctx->bs, 1, 0) ? GF_TRUE : GF_FALSE;
 			ctx->nb_unknown_pck = 0;
 		}
 		//config
@@ -648,9 +648,9 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		}
 		//audio truncation
 		else if (mhas_type==17) {
-			Bool isActive = gf_bs_read_int(ctx->bs, 1);
+			Bool isActive = gf_bs_read_bool(ctx->bs);
 			/*Bool ati_reserved = */gf_bs_read_int(ctx->bs, 1);
-			trunc_from_begin = gf_bs_read_int(ctx->bs, 1);
+			trunc_from_begin = gf_bs_read_bool(ctx->bs);
 			nb_trunc_samples = gf_bs_read_int(ctx->bs, 13);
 			if (!isActive) {
 				nb_trunc_samples = 0;
@@ -678,7 +678,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		//remaining of packet payload
 		gf_bs_skip_bytes(ctx->bs, mhas_size - parse_end);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] MHAS Packet type %d %s label "LLU" size "LLU"\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] MHAS Packet type %d %s label " LLU " size " LLU "\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
 
 		if (ctx->timescale && !prev_pck_size && (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
@@ -727,7 +727,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 
 			memcpy(output, start + au_start, au_size);
 			if (!has_cfg)
-				mhas_sap = 0;
+				mhas_sap = GF_FALSE;
 
 			gf_filter_pck_set_sap(dst, mhas_sap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 
@@ -740,7 +740,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 				offset += ctx->byte_offset + au_start;
 				gf_filter_pck_set_byte_offset(dst, offset);
 			}
- 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] Send AU CTS "LLU" size %d dur %d sap %d\n", ctx->cts, au_size, (u32) pck_dur, mhas_sap));
+ 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] Send AU CTS " LLU " size %d dur %d sap %d\n", ctx->cts, au_size, (u32) pck_dur, mhas_sap));
 			gf_filter_pck_send(dst);
 
 			au_start += au_size;
@@ -748,7 +748,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			ctx->nb_frames ++;
 
 			mhas_dmx_update_cts(ctx,(u32)  pck_dur);
-			has_cfg = 0;
+			has_cfg = GF_FALSE;
 
 			if (prev_pck_size) {
 				u64 next_pos = (u64) (start + au_start - ctx->mhas_buffer);
@@ -821,14 +821,14 @@ static void mhas_buffer_too_small(void *udta)
 
 static GF_Err mhas_dmx_initialize(GF_Filter *filter)
 {
-	GF_MHASDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MHASDmxCtx *ctx = (GF_MHASDmxCtx *)gf_filter_get_udta(filter);
 	ctx->bs = gf_bs_new((u8 *)ctx, 1, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(ctx->bs, mhas_buffer_too_small, ctx);
 	return GF_OK;
 }
 static void mhas_dmx_finalize(GF_Filter *filter)
 {
-	GF_MHASDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MHASDmxCtx *ctx = (GF_MHASDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->mhas_buffer) gf_free(ctx->mhas_buffer);
@@ -843,10 +843,10 @@ static const char *mhas_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	u32 nb_mhas_cfg = 0;
 	u32 nb_mhas_frames = 0;
 	u32 nb_mhas_unknown = 0;
-	const u8 *ptr = data;
+	u8 *ptr = (u8 *)data;
 	while (ptr) {
 		u32 pos = (u32) (ptr - data);
-		const u8 *sync_start = memchr(ptr, 0xC0, size - pos);
+		u8 *sync_start = (u8 *)memchr(ptr, 0xC0, size - pos);
 		if (!sync_start) return NULL;
 		u32 remain = size - (u32) (sync_start-data);
 		if (remain<2) return NULL;
@@ -857,7 +857,7 @@ static const char *mhas_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ptr = sync_start+1;
 	}
 	if (sync_pos<0) return NULL;
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	gf_bs_skip_bytes(bs, sync_pos);
 
 	while (gf_bs_available(bs)) {

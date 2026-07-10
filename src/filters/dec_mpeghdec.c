@@ -39,7 +39,7 @@
 # endif
 #endif
 
-#ifndef bool
+#if! defined (__cplusplus) && !defined(bool)
 typedef int bool;
 #endif
 
@@ -70,7 +70,7 @@ static GF_Err mpegh_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 {
 	const GF_PropertyValue *p, *dsi;
 	u32 codec_id;
-	MPEGHDecCtx *ctx = gf_filter_get_udta(filter);
+	MPEGHDecCtx *ctx = (MPEGHDecCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -160,7 +160,7 @@ static GF_Err mpegh_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 static GF_Err mpegh_dec_process(GF_Filter *filter)
 {
-	MPEGHDecCtx *ctx = gf_filter_get_udta(filter);
+	MPEGHDecCtx *ctx = (MPEGHDecCtx *)gf_filter_get_udta(filter);
 	u32 pck_size;
 	Bool is_eos = GF_FALSE;
 	MPEGH_DECODER_ERROR err;
@@ -251,7 +251,7 @@ static GF_Err mpegh_dec_process(GF_Filter *filter)
 		//look for src with same timestamp, copy over properties
 		u64 ts = gf_timestamp_rescale(mphInfo.pts, 1000000000, ctx->timescale);
 		while (1) {
-			pck = gf_list_get(ctx->src_pcks, 0);
+			pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, 0);
 			if (!pck) break;
 			u64 src_ts = gf_filter_pck_get_cts(pck);
 			s64 diff = gf_timestamp_rescale_signed( (s64) src_ts - (s64) ts, ctx->timescale, 1000);
@@ -277,11 +277,11 @@ static GF_Err mpegh_dec_process(GF_Filter *filter)
 static Bool mpegh_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (evt->base.type==GF_FEVT_STOP) {
-		MPEGHDecCtx *ctx = gf_filter_get_udta(filter);
+		MPEGHDecCtx *ctx = (MPEGHDecCtx *)gf_filter_get_udta(filter);
 		if (ctx->codec) mpeghdecoder_flush(ctx->codec);
 		ctx->flush_state = 0;
 		while (gf_list_count(ctx->src_pcks)) {
-			GF_FilterPacket *pck = gf_list_pop_back(ctx->src_pcks);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
 			gf_filter_pck_unref(pck);
 		}
 	}
@@ -290,17 +290,17 @@ static Bool mpegh_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 static GF_Err mpegh_dec_initialize(GF_Filter *filter)
 {
-	MPEGHDecCtx *ctx = gf_filter_get_udta(filter);
+	MPEGHDecCtx *ctx = (MPEGHDecCtx *)gf_filter_get_udta(filter);
 	ctx->src_pcks = gf_list_new();
 	return GF_OK;
 }
 
 static void mpegh_dec_finalize(GF_Filter *filter)
 {
-	MPEGHDecCtx *ctx = gf_filter_get_udta(filter);
+	MPEGHDecCtx *ctx = (MPEGHDecCtx *)gf_filter_get_udta(filter);
 	if (ctx->codec) mpeghdecoder_destroy(ctx->codec);
 	while (gf_list_count(ctx->src_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_pcks);

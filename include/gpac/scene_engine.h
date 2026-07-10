@@ -36,7 +36,7 @@ extern "C" {
 \file <gpac/scene_engine.h>
 \brief Live scene encoding engine with RAP generation support.
 */
-	
+
 /*!
 \addtogroup seng Scene Engine
 \ingroup scene_grp
@@ -65,7 +65,8 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, u8 *data, u32 size, u64 t
 \param embed_resources indicates if images and scripts should be encoded inline with the content
 \return e scene engine object
 */
-GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path, Bool embed_resources);
+GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, GF_SceneManager_LoadType load_type, char *dump_path, Bool embed_resources);
+GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, GF_SceneManager_LoadType load_type, char *dump_path, Bool embed_resources);
 
 /*! get the number of streams in the scene
 \param seng the target scene engine

@@ -210,7 +210,7 @@ static __maybe_unused void re_string_list_dump(const char *str, const REStringLi
         }
     }
     printf("]\n");
-    
+
     j = 0;
     for(i = 0; i < s->hash_size; i++) {
         for(p = s->hash_table[i]; p != NULL; p = p->next) {
@@ -248,7 +248,7 @@ static int re_string_find2(REStringList *s, int len, const uint32_t *buf,
         uint32_t new_hash_size;
         new_hash_bits = max_int(s->hash_bits + 1, 4);
         new_hash_size = 1 << new_hash_bits;
-        new_hash_table = lre_realloc(s->cr.mem_opaque, NULL,
+        new_hash_table = (REString **) lre_realloc(s->cr.mem_opaque, NULL,
                                      sizeof(new_hash_table[0]) * new_hash_size);
         if (!new_hash_table)
             return -1;
@@ -268,7 +268,7 @@ static int re_string_find2(REStringList *s, int len, const uint32_t *buf,
         h = h0 >> (32 - s->hash_bits);
     }
 
-    p = lre_realloc(s->cr.mem_opaque, NULL, sizeof(REString) + len * sizeof(buf[0]));
+    p = (REString*) lre_realloc(s->cr.mem_opaque, NULL, sizeof(REString) + len * sizeof(buf[0]));
     if (!p)
         return -1;
     p->next = s->hash_table[h];
@@ -357,7 +357,7 @@ static int re_string_list_canonicalize(REParseState *s1,
         REStringList a_s, *a = &a_s;
         int i, j;
         REString *p;
-        
+
         /* XXX: simplify */
         re_string_list_init(s1, a);
 
@@ -365,7 +365,7 @@ static int re_string_list_canonicalize(REParseState *s1,
         a->hash_size = s->hash_size;
         a->hash_bits = s->hash_bits;
         a->hash_table = s->hash_table;
-        
+
         s->n_strings = 0;
         s->hash_size = 0;
         s->hash_bits = 0;
@@ -866,7 +866,7 @@ static BOOL is_unicode_char(int c)
 /* XXX: memory error test */
 static void seq_prop_cb(void *opaque, const uint32_t *seq, int seq_len)
 {
-    REStringList *sl = opaque;
+    REStringList *sl = (REStringList *)opaque;
     re_string_add(sl, seq_len, seq);
 }
 
@@ -1000,14 +1000,14 @@ static int parse_class_string_disjunction(REParseState *s, REStringList *cr,
     const uint8_t *p;
     DynBuf str;
     int c;
-    
+
     p = *pp;
     if (*p != '{')
         return re_parse_error(s, "expecting '{' after \\q");
 
     dbuf_init2(&str, s->opaque, lre_realloc);
     re_string_list_init(s, cr);
-    
+
     p++;
     for(;;) {
         str.size = 0;
@@ -1282,7 +1282,7 @@ static int re_emit_string_list(REParseState *s, const REStringList *sl)
     REString **tab, *p;
     int i, j, split_pos, last_match_pos, n;
     BOOL has_empty_string, is_last;
-    
+
     //    re_string_list_dump("sl", sl);
     if (sl->n_strings == 0) {
         /* simple case: only characters */
@@ -1291,7 +1291,7 @@ static int re_emit_string_list(REParseState *s, const REStringList *sl)
     } else {
         /* at least one string list is present : match the longest ones first */
         /* XXX: add a new op_switch opcode to compile as a trie */
-        tab = lre_realloc(s->opaque, NULL, sizeof(tab[0]) * sl->n_strings);
+        tab = (REString **)lre_realloc(s->opaque, NULL, sizeof(tab[0]) * sl->n_strings);
         if (!tab) {
             re_parse_out_of_memory(s);
             return -1;
@@ -1308,7 +1308,7 @@ static int re_emit_string_list(REParseState *s, const REStringList *sl)
             }
         }
         assert(n <= sl->n_strings);
-        
+
         rqsort(tab, n, sizeof(tab[0]), re_string_cmp_len, NULL);
 
         last_match_pos = -1;
@@ -1349,7 +1349,7 @@ static int re_emit_string_list(REParseState *s, const REStringList *sl)
             put_u32(s->byte_code.buf + last_match_pos, s->byte_code.size - (last_match_pos + 4));
             last_match_pos = next_pos;
         }
-        
+
         lre_realloc(s->opaque, tab, 0);
     }
     return 0;
@@ -1361,7 +1361,7 @@ static int re_parse_class_set_operand(REParseState *s, REStringList *cr, const u
 {
     int c1;
     const uint8_t *p = *pp;
-    
+
     if (*p == '[') {
         if (re_parse_nested_class(s, cr, pp))
             return -1;
@@ -1403,7 +1403,7 @@ static int re_parse_nested_class(REParseState *s, REStringList *cr, const uint8_
         p++;
         invert = TRUE;
     }
-    
+
     /* handle unions */
     is_first = TRUE;
     for(;;) {
@@ -1852,6 +1852,7 @@ static int re_parse_term(REParseState *s, BOOL is_backward_dir)
     int c, last_atom_start, quant_min, quant_max, last_capture_count;
     BOOL greedy, is_neg, is_backward_lookahead;
     REStringList cr_s, *cr = &cr_s;
+	const uint8_t *q;
 
     last_atom_start = -1;
     last_capture_count = 0;
@@ -2114,7 +2115,7 @@ static int re_parse_term(REParseState *s, BOOL is_backward_dir)
         case '5': case '6': case '7': case '8':
         case '9':
             {
-                const uint8_t *q = ++p;
+                q = ++p;
 
                 c = parse_digits(&p, FALSE);
                 if (c < 0 || (c >= s->capture_count && c >= re_count_captures(s))) {
@@ -2635,7 +2636,7 @@ static BOOL is_line_terminator(uint32_t c)
                     c = from_surrogate(c, *_p++);                       \
                 }                                                       \
             }                                                           \
-            cptr = (const void *)_p;                                    \
+            cptr = (const uint8_t *)_p;                                    \
         }                                                               \
     } while (0)
 
@@ -2685,7 +2686,7 @@ static BOOL is_line_terminator(uint32_t c)
                     c = from_surrogate(*--_p, c);                       \
                 }                                                       \
             }                                                           \
-            cptr = (const void *)_p;                                    \
+            cptr = (const uint8_t *)_p;                                    \
         }                                                               \
     } while (0)
 
@@ -2701,7 +2702,7 @@ static BOOL is_line_terminator(uint32_t c)
                     --_p;                                               \
                 }                                                       \
             }                                                           \
-            cptr = (const void *)_p;                                    \
+            cptr = (const uint8_t *)_p;                                    \
         }                                                               \
     } while (0)
 
@@ -2741,6 +2742,7 @@ typedef struct {
     StackElem static_stack_buf[32]; /* static stack to avoid allocation in most cases */
 } REExecContext;
 
+
 static int lre_poll_timeout(REExecContext *s)
 {
     if (unlikely(--s->interrupt_counter <= 0)) {
@@ -2759,13 +2761,13 @@ static no_inline int stack_realloc(REExecContext *s, size_t n)
     if (new_size < n)
         new_size = n;
     if (s->stack_buf == s->static_stack_buf) {
-        new_stack = lre_realloc(s->opaque, NULL, new_size * sizeof(StackElem));
+        new_stack = (StackElem *) lre_realloc(s->opaque, NULL, new_size * sizeof(StackElem));
         if (!new_stack)
             return -1;
         /* XXX: could use correct size */
         memcpy(new_stack, s->stack_buf, s->stack_size * sizeof(StackElem));
     } else {
-        new_stack = lre_realloc(s->opaque, s->stack_buf, new_size * sizeof(StackElem));
+        new_stack = (StackElem *) lre_realloc(s->opaque, s->stack_buf, new_size * sizeof(StackElem));
         if (!new_stack)
             return -1;
     }
@@ -2866,7 +2868,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
                 
                 pc = sp[-3].ptr;
                 cptr = sp[-2].ptr;
-                type = sp[-1].bp.type;
+                type = (REExecStateEnum) sp[-1].bp.type;
                 bp = s->stack_buf + sp[-1].bp.val;
                 sp -= 3;
                 if (type != RE_EXEC_STATE_LOOKAHEAD)
@@ -2889,9 +2891,9 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
                     sp = bp;
                     pc = sp[-3].ptr;
                     cptr = sp[-2].ptr;
-                    type = sp[-1].bp.type;
+                    type = (REExecStateEnum) sp[-1].bp.type;
                     bp = s->stack_buf + sp[-1].bp.val;
-                    sp[-1].ptr = (void *)sp1; /* save the next value for the copy step */
+                    sp[-1].ptr = (uint8_t *)sp1; /* save the next value for the copy step */
                     sp -= 3;
                     if (type == RE_EXEC_STATE_LOOKAHEAD)
                         break;
@@ -2900,7 +2902,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
                     /* keep the undo info if there is a saved state */
                     sp1 = sp;
                     while (sp1 < sp_top) {
-                        next_sp = (void *)sp1[2].ptr;
+                        next_sp = (StackElem *)sp1[2].ptr;
                         sp1 += 3;
                         while (sp1 < next_sp)
                             *sp++ = *sp1++;
@@ -2912,7 +2914,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
             /* pop all the saved states until reaching start of the negative lookahead */
             for(;;) {
                 REExecStateEnum type;
-                type = bp[-1].bp.type;
+                type = (REExecStateEnum) bp[-1].bp.type;
                 /* undo the modifications to capture[] */
                 while (sp > bp) {
                     capture[sp[-2].val] = sp[-1].ptr;
@@ -2920,7 +2922,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
                 }
                 pc = sp[-3].ptr;
                 cptr = sp[-2].ptr;
-                type = sp[-1].bp.type;
+                type = (REExecStateEnum) sp[-1].bp.type;
                 bp = s->stack_buf + sp[-1].bp.val;
                 sp -= 3;
                 if (type == RE_EXEC_STATE_NEGATIVE_LOOKAHEAD)
@@ -3060,7 +3062,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
             idx = 2 * s->capture_count + pc[0];
             val = get_u32(pc + 1);
             pc += 5;
-            SAVE_CAPTURE_CHECK(idx, (void *)(uintptr_t)val);
+            SAVE_CAPTURE_CHECK(idx, (uint8_t *)(uintptr_t)val);
             break;
         case REOP_loop:
             {
@@ -3070,7 +3072,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
                 pc += 5;
 
                 val2 = (uintptr_t)capture[idx] - 1;
-                SAVE_CAPTURE_CHECK(idx, (void *)(uintptr_t)val2);
+                SAVE_CAPTURE_CHECK(idx, (uint8_t *)(uintptr_t)val2);
                 if (val2 != 0) {
                     pc += (int)val;
                     if (lre_poll_timeout(s))
@@ -3092,7 +3094,7 @@ static intptr_t lre_exec_backtrack(REExecContext *s, uint8_t **capture,
 
                 /* decrement the counter */
                 val2 = (uintptr_t)capture[idx] - 1;
-                SAVE_CAPTURE_CHECK(idx, (void *)(uintptr_t)val2);
+                SAVE_CAPTURE_CHECK(idx, (uint8_t *)(uintptr_t)val2);
 
                 if (val2 > limit) {
                     /* normal loop if counter > limit */

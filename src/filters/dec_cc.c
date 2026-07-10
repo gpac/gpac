@@ -62,7 +62,7 @@ typedef struct
 {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
-	
+
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
 	GF_Err (*pck_truncate)(GF_FilterPacket *pck, u32 size);
@@ -75,7 +75,7 @@ typedef struct
 
 	/*aggregation mode for dispatch*/
 	u32 agg;
-	u8 txtdata[2/*double for aggregation*/*CAPTION_FRAME_TEXT_BYTES+1];
+	char txtdata[2/*double for aggregation*/*CAPTION_FRAME_TEXT_BYTES+1];
 	u32 txtlen;
 
 	u32 timescale;
@@ -90,12 +90,12 @@ typedef struct
 
 GF_Err ccdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	CCDecCtx *ctx = gf_filter_get_udta(filter);
+	CCDecCtx *ctx = (CCDecCtx *)gf_filter_get_udta(filter);
 	GF_FilterPid *out_pid;
 	const GF_PropertyValue *prop;
 
 	if (is_remove) {
-		out_pid = gf_filter_pid_get_udta(pid);
+		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 		if (out_pid==ctx->opid)
 			ctx->opid = NULL;
 		if (out_pid)
@@ -230,7 +230,7 @@ static int find_last_separator(const char *input)
 
 static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
 {
-	u32 crc = gf_crc_32(ctx->txtdata+ctx->txtlen, size);
+	u32 crc = gf_crc_32((u8*)ctx->txtdata+ctx->txtlen, size);
 	if (crc!=ctx->cc_last_crc) {
 		ctx->cc_last_crc = crc;
 	} else {
@@ -286,7 +286,7 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 
 static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 {
-	CCItem *cc = gf_list_pop_front(ctx->cc_queue);
+	CCItem *cc = (CCItem *)gf_list_pop_front(ctx->cc_queue);
 	if (!cc) return GF_EOS;
 
 	cea708_t scc;
@@ -313,8 +313,8 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 		int valid;
 		cea708_cc_type_t type;
 		uint16_t cc_data = cea708_cc_data(&scc.user_data, i, &valid, &type);
-		Bool use_field1 = (ctx->field == 1 && (cc_type_ntsc_cc_field_1 == type));
-		Bool use_field2 = (ctx->field == 2 && (cc_type_ntsc_cc_field_2 == type));
+		Bool use_field1 = ((ctx->field == 1) && (cc_type_ntsc_cc_field_1 == type)) ? GF_TRUE : GF_FALSE;
+		Bool use_field2 = ((ctx->field == 2) && (cc_type_ntsc_cc_field_2 == type)) ? GF_TRUE : GF_FALSE;
 
 		if (valid && (use_field1 || use_field2)) {
 			status = libcaption_status_update(status, caption_frame_decode(ctx->ccframe, cc_data, timestamp));
@@ -367,7 +367,7 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 		return GF_OUT_OF_MEM;
 	}
 	if (!keep_data) {
-		it->data = gf_malloc(sizeof(u8)*max_size);
+		it->data = (u8 *)gf_malloc(max_size);
 		if (!it->data) return GF_OUT_OF_MEM;
 		memcpy(it->data, data, sizeof(u8)*max_size);
 	} else {
@@ -379,7 +379,7 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 	Bool can_flush = GF_FALSE;
 	u32 i, count=gf_list_count(ctx->cc_queue);
 	for (i=0; i<count; i++) {
-		CCItem *an_it = gf_list_get(ctx->cc_queue, i);
+		CCItem *an_it = (CCItem *)gf_list_get(ctx->cc_queue, i);
 		if (an_it->timestamp > it->timestamp) {
 			gf_list_insert(ctx->cc_queue, it, i);
 			if (i)
@@ -391,7 +391,7 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 	if (it) gf_list_add(ctx->cc_queue, it);
 
 	while (can_flush) {
-		it = gf_list_get(ctx->cc_queue, 0);
+		it = (CCItem *)gf_list_get(ctx->cc_queue, 0);
 		if (it->timestamp>=ts) break;
 		ccdec_flush_queue(ctx);
 	}
@@ -411,7 +411,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 {
 	GF_Err e;
 	u64 ts;
-	CCDecCtx *ctx = gf_filter_get_udta(filter);
+	CCDecCtx *ctx = (CCDecCtx *)gf_filter_get_udta(filter);
 	const u8 *data;
 	u32 size;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -471,11 +471,11 @@ GF_Err ccdec_process(GF_Filter *filter)
 		}
 		gf_m4v_parser_del(m4v);
 	} else if (ctx->cctype==CCTYPE_OBU) {
-		if (!ctx->bs) ctx->bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		if (!ctx->bs) ctx->bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 		else gf_bs_reassign_buffer(ctx->bs, data, size);
 
 		while (size) {
-			ObuType obu_type = 0;
+			ObuType obu_type = OBU_RESERVED_0;
 			u32 obu_hdr_size;
 			u8 temporal_id, spatial_id;
 			u64 obu_size = 0;
@@ -543,7 +543,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 			}
 			//we have an sei message, parse it using EBP removal
 			if (sei_h_size) {
-				if (!ctx->bs) ctx->bs = gf_bs_new(data, nal_size, GF_BITSTREAM_READ);
+				if (!ctx->bs) ctx->bs = gf_bs_new((u8*)data, nal_size, GF_BITSTREAM_READ);
 				else gf_bs_reassign_buffer(ctx->bs, data, nal_size);
 				gf_bs_enable_emulation_byte_removal(ctx->bs, GF_TRUE);
 
@@ -578,7 +578,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 						u32 terminal_provider_code = gf_bs_read_u16(ctx->bs);
 						i+=2;
 						if (terminal_provider_code==GF_ITU_T35_PROVIDER_ATSC) {
-							u8 *data = gf_malloc(sizeof(u8)*sei_size);
+							u8 *data = (u8 *)gf_malloc(sei_size);
 							gf_bs_seek(ctx->bs, pos);
 							i=0;
 							while (i<sei_size) {
@@ -608,7 +608,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 
 static GF_Err ccdec_initialize(GF_Filter *filter)
 {
-	CCDecCtx *ctx = gf_filter_get_udta(filter);
+	CCDecCtx *ctx = (CCDecCtx *)gf_filter_get_udta(filter);
 	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
 	ctx->pck_truncate = gf_filter_pck_truncate;
 	ctx->pck_send = gf_filter_pck_send;
@@ -619,9 +619,9 @@ static GF_Err ccdec_initialize(GF_Filter *filter)
 
 static void ccdec_finalize(GF_Filter *filter)
 {
-	CCDecCtx *ctx = gf_filter_get_udta(filter);
+	CCDecCtx *ctx = (CCDecCtx *)gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->cc_queue)) {
-		CCItem *cc = gf_list_pop_back(ctx->cc_queue);
+		CCItem *cc = (CCItem *)gf_list_pop_back(ctx->cc_queue);
 		gf_free(cc->data);
 		gf_free(cc);
 	}
@@ -632,7 +632,7 @@ static void ccdec_finalize(GF_Filter *filter)
 
 static Bool ccdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	CCDecCtx *ctx = gf_filter_get_udta(filter);
+	CCDecCtx *ctx = (CCDecCtx *)gf_filter_get_udta(filter);
 	if (evt->base.type==GF_FEVT_PLAY) {
 		if (ctx->ccframe) caption_frame_init(ctx->ccframe);
 	}

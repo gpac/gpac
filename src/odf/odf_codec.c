@@ -147,7 +147,7 @@ GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const u8 *au, u32 au_length)
 	//the bitStream should not be here
 	if (codec->bs) return GF_BAD_PARAM;
 
-	codec->bs = gf_bs_new(au, (u64) au_length, (unsigned char)GF_BITSTREAM_READ);
+	codec->bs = gf_bs_new((u8*)au, (u64) au_length, (unsigned char)GF_BITSTREAM_READ);
 	if (!codec->bs) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
@@ -324,7 +324,7 @@ GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs)
 	//then encode our desc...
 	e = gf_odf_write_descriptor(bs, desc);
 	if (e) return e;
-	
+
 	return GF_OK;
 }
 
@@ -341,7 +341,7 @@ GF_Err gf_odf_desc_write(GF_Descriptor *desc, u8 **outEncDesc, u32 *outSize)
 	if (!bs) return GF_OUT_OF_MEM;
 
 	e = gf_odf_desc_write_bs(desc, bs);
-	
+
 	//then get the content from our bitstream
 	gf_bs_get_content(bs, outEncDesc, outSize);
 	gf_bs_del(bs);
@@ -659,7 +659,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 				for (k=0; k<count2; k++) {
 					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, k);
 					for (j=0; j<gf_list_count(od->ESDescriptors); j++) {
-						GF_ESD *esd = gf_list_get(od->ESDescriptors, j);
+						GF_ESD *esd = (GF_ESD *)gf_list_get(od->ESDescriptors, j);
 						for (l=0; l<esdR->NbESDs; l++) {
 							if (esdR->ES_ID[l] == esd->ESID) {
 								gf_list_rem(od->ESDescriptors, j);
@@ -677,7 +677,7 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 				GF_ESDRemove *esdR = (GF_ESDRemove *) command;
 				GF_ESDUpdate *esdU = (GF_ESDUpdate*)com;
 				for (j=0; j<gf_list_count(esdU->ESDescriptors); j++) {
-					GF_ESD *esd = gf_list_get(esdU->ESDescriptors, j);
+					GF_ESD *esd = (GF_ESD *)gf_list_get(esdU->ESDescriptors, j);
 					for (k=0; k<esdR->NbESDs; k++) {
 						if (esd->ESID == esdR->ES_ID[k]) {
 							gf_list_rem(codec->CommandList, j);
@@ -710,12 +710,12 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 					if (od->objectDescriptorID==esdU->ODID) {
 						GF_ESD *esd;
 						while (gf_list_count(od->ESDescriptors)) {
-							esd = gf_list_pop_back(od->ESDescriptors);
+							esd = (GF_ESD *)gf_list_pop_back(od->ESDescriptors);
 							gf_odf_desc_del((GF_Descriptor *)esd);
 						}
 						gf_list_transfer(od->ESDescriptors, esdU->ESDescriptors);
 						l = 0;
-						while ((esd = gf_list_enum(esdU->ESDescriptors, &l))) {
+						while ((esd = (GF_ESD *)gf_list_enum(esdU->ESDescriptors, &l))) {
 							GF_ESD *new_esd;
 							GF_Err e = gf_odf_desc_copy((GF_Descriptor*)esd, (GF_Descriptor**)&new_esd);
 							if (e==GF_OK)

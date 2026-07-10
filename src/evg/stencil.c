@@ -62,7 +62,7 @@ static void gradient_update(EVG_BaseGradient *_this)
 	s32 start, end, diff;
 	Fixed maxPos = INT2FIX(EVGGRADIENTMAXINTPOS);
 
-	_this->updated = 1;
+	_this->updated = GF_TRUE;
 
 	if (_this->pos[0]>=0) {
 		if(_this->pos[0]>0) {
@@ -192,7 +192,7 @@ GF_EVGStencil * gf_evg_stencil_new(GF_StencilType type)
 		gf_mx2d_init(st->pmat);
 		gf_mx2d_init(st->smat);
 		gf_cmx_init(&st->cmat);
-		st->auto_mx = 1;
+		st->auto_mx = GF_TRUE;
 	}
 	return st;
 }
@@ -213,7 +213,9 @@ void gf_evg_stencil_delete(GF_EVGStencil * st)
 		if (tx->owns_texture && tx->pixels) gf_free(tx->pixels);
 		gf_free(st);
 	}
-	return;
+		return;
+	default:
+		return;
 	}
 }
 
@@ -221,7 +223,7 @@ GF_EXPORT
 GF_Err gf_evg_stencil_set_auto_matrix(GF_EVGStencil * st, Bool auto_on)
 {
        if (!st) return GF_BAD_PARAM;
-       st->auto_mx = auto_on ? 1 : 0;
+       st->auto_mx = auto_on;
        return GF_OK;
 }
 
@@ -255,7 +257,7 @@ Bool gf_evg_stencil_get_matrix(GF_EVGStencil * st, GF_Matrix2D *mx)
 GF_EXPORT
 GF_StencilType gf_evg_stencil_type(GF_EVGStencil *sten)
 {
-	return sten ? sten->type : 0;
+	return sten ? sten->type : GF_STENCIL_SOLID;
 }
 
 /*
@@ -264,8 +266,8 @@ GF_StencilType gf_evg_stencil_type(GF_EVGStencil *sten)
 static void sc_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 x, s32 y, u32 count)
 {
 	EVG_Brush *sc = (EVG_Brush *)p;
-	u32 *data = rctx->stencil_pix_run;
-	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
+	u64 *data_wide = rctx->surf->not_8bits ? (u64 *)rctx->stencil_pix_run : NULL;
 	while (count) {
 		if (data) *data++ = sc->fill_col;
 		else *data_wide++ = sc->fill_col_wide;
@@ -341,8 +343,8 @@ static void lg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	Fixed _res;
 	s32 val;
 	u32 col;
-	u32 *data = rctx->stencil_pix_run;
-	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
+	u64 *data_wide = rctx->surf->not_8bits ? (u64 *) rctx->stencil_pix_run : NULL;
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
 
 	gf_assert(data);
@@ -438,8 +440,8 @@ static void rg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	Fixed x, y, dx, dy, b, val;
 	s32 pos;
 	u32 col;
-	u32 *data = rctx->stencil_pix_run;
-	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
+	u64 *data_wide = rctx->surf->not_8bits ? (u64 *) rctx->stencil_pix_run : NULL;
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
 	gf_assert(data);
@@ -565,7 +567,7 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf)
 	if (!has_changed) {
 		return;
 	}
-	grad->updated = 0;
+	grad->updated = GF_FALSE;
 
 	do_yuv = (surf->yuv_type==EVG_YUV_NONE) ? GF_FALSE : GF_TRUE;
 
@@ -731,7 +733,7 @@ u64 evg_paramtx_get_pixel_wide(struct __evg_texture *_this, u32 x, u32 y, EVGRas
 static void tex_fill_run_callback(GF_EVGStencil *_p, EVGRasterCtx *rctx, s32 _x, s32 _y, u32 count)
 {
 	EVG_Texture *p = (EVG_Texture *)_p;
-	u32 *data = rctx->stencil_pix_run;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
 	while (count) {
 		*data = evg_paramtx_get_pixel(p, _x, _y, NULL);
 		data++;
@@ -743,7 +745,7 @@ static void tex_fill_run_callback(GF_EVGStencil *_p, EVGRasterCtx *rctx, s32 _x,
 static void tex_fill_run_callback_wide(GF_EVGStencil *_p, EVGRasterCtx *rctx, s32 _x, s32 _y, u32 count)
 {
 	EVG_Texture *p = (EVG_Texture *)_p;
-	u64 *data = rctx->stencil_pix_run;
+	u64 *data = (u64 *) rctx->stencil_pix_run;
 	while (count) {
 		*data = evg_paramtx_get_pixel_wide(p, _x, _y, NULL);
 		data++;
@@ -764,7 +766,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 	s32 incx, incy;
 #endif
 	EVG_YUVType yuv_type = rctx->surf->yuv_type;
-	u32 *data = rctx->stencil_pix_run;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 	tex_untransform_coord(_this, _x, _y, &x, &y);
@@ -774,8 +776,8 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 	incy = (_this->inc_y>0) ? 1 : -1;
 #endif
 
-	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
-	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+	repeat_s = (Bool) (_this->mod & GF_TEXTURE_REPEAT_S);
+	repeat_t = (Bool) (_this->mod & GF_TEXTURE_REPEAT_T);
 
 	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
 	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
@@ -944,7 +946,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 	u32 pad_y = 0;
 	Fixed x, y;
 	EVG_YUVType yuv_type = rctx->surf->yuv_type;
-	u32 *data = rctx->stencil_pix_run;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 	/*get texture coords in FIXED - offset*/
@@ -966,7 +968,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 		else y = 0;
 	}
 
-	repeat_s = (_this->mod & GF_TEXTURE_REPEAT_S);
+	repeat_s = (Bool) (_this->mod & GF_TEXTURE_REPEAT_S);
 
 	y0 = FIX2INT(y);
 	if (y0<0) {
@@ -1059,7 +1061,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 	s32 incx, incy;
 #endif
 	EVG_YUVType yuv_type = rctx->surf->yuv_type;
-	u64 *data = rctx->stencil_pix_run;
+	u64 *data = (u64 *) rctx->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 	tex_untransform_coord(_this, _x, _y, &x, &y);
@@ -1069,8 +1071,8 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 	incy = (_this->inc_y>0) ? 1 : -1;
 #endif
 
-	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
-	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+	repeat_s = (Bool) (_this->mod & GF_TEXTURE_REPEAT_S);
+	repeat_t = (Bool) (_this->mod & GF_TEXTURE_REPEAT_T);
 
 	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
 	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
@@ -1242,7 +1244,7 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32
 	Bool repeat_s = GF_FALSE;
 	Fixed x, y;
 	EVG_YUVType yuv_type = rctx->surf->yuv_type;
-	u64 *data = rctx->stencil_pix_run;
+	u64 *data = (u64 *) rctx->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 	/*get texture coords in FIXED - offset*/
@@ -1262,7 +1264,7 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32
 	}
 
 	/* and move in absolute coords*/
-	repeat_s = (_this->mod & GF_TEXTURE_REPEAT_S);
+	repeat_s = (Bool) (_this->mod & GF_TEXTURE_REPEAT_S);
 
 	y0 = FIX2INT(y);
 
@@ -1346,20 +1348,20 @@ static void tex_fill_run_3d(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y
 	s32 incx, incy;
 #endif
 	EVG_YUVType yuv_type = rctx->surf->yuv_type;
-	u32 *data = rctx->stencil_pix_run;
+	u32 *data = (u32 *) rctx->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 
 #if USE_BILINEAR
-	Bool use_bili = (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? 1 : 0;
+	Bool use_bili = (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? GF_TRUE : GF_FALSE;
 	incx = (_this->inc_x>0) ? 1 : -1;
 	incy = (_this->inc_y>0) ? 1 : -1;
 #endif
 
 	Bool do_mx = gf_mx2d_is_identity(_this->smat_bck) ? GF_FALSE : GF_TRUE;
 
-	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
-	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+	repeat_s = (Bool) (_this->mod & GF_TEXTURE_REPEAT_S);
+	repeat_t = (Bool) (_this->mod & GF_TEXTURE_REPEAT_T);
 
 	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
 	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
@@ -1531,20 +1533,20 @@ static void tex_fill_run_3d_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s
 	s32 incx, incy;
 #endif
 	EVG_YUVType yuv_type = rctx->surf->yuv_type;
-	u64 *data = rctx->stencil_pix_run;
+	u64 *data = (u64 *) rctx->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
 
 #if USE_BILINEAR
-	Bool use_bili = (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? 1 : 0;
+	Bool use_bili = (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? GF_TRUE : GF_FALSE;
 	incx = (_this->inc_x>0) ? 1 : -1;
 	incy = (_this->inc_y>0) ? 1 : -1;
 #endif
 
 	Bool do_mx = gf_mx2d_is_identity(_this->smat_bck) ? GF_FALSE : GF_TRUE;
 
-	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
-	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+	repeat_s = (Bool) (_this->mod & GF_TEXTURE_REPEAT_S);
+	repeat_t = (Bool) (_this->mod & GF_TEXTURE_REPEAT_T);
 
 	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
 	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
@@ -2227,7 +2229,7 @@ u64 get_pix_v210_wide(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 u32 get_pix_yuyv_10(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
 	u8 vy, vu, vv;
-	Bool odd = x%2;
+	u32 odd = x%2;
 	u8 *p_src = _this->pixels + y * _this->stride + (x/2)*8;
 
 	vu = GET_LE_10BIT_LEFT_AS_8(p_src + _this->off_u);
@@ -2504,7 +2506,7 @@ static void texture_set_callbacks(EVG_Texture *_this)
 	}
 }
 
-static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width, u32 height, GF_PixelFormat pixelFormat, const char *pixels, u32 stride, const char *u_plane, const char *v_plane, u32 uv_stride, const char *alpha_plane, u32 alpha_stride)
+static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *pixels, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane, u32 alpha_stride)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;
 	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !pixels || !width || !height || _this->owns_texture)
@@ -2616,9 +2618,9 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 	_this->stride = stride;
 	_this->stride_uv = uv_stride;
 	_this->stride_alpha = alpha_stride ? alpha_stride : stride;
-	_this->pixels = (char *) pixels;
-	_this->pix_u = (char *) u_plane;
-	_this->pix_v = (char *) v_plane;
+	_this->pixels = (u8 *) pixels;
+	_this->pix_u = (u8 *) u_plane;
+	_this->pix_v = (u8 *) v_plane;
 	texture_set_callbacks(_this);
 	return GF_OK;
 }
@@ -2849,11 +2851,11 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil * st, GF_ColorMatrix *cmat)
 
 	if (!cmat) {
 		if (is_grad && !_this->cmat.identity)
-			_this->updated = 1;
+			_this->updated = GF_TRUE;
 		gf_cmx_init(&_this->cmat);
 	} else {
 		if (is_grad && memcmp(&_this->cmat.m, &cmat->m, sizeof(Fixed)*20))
-			_this->updated = 1;
+			_this->updated = GF_TRUE;
 		gf_cmx_copy(&_this->cmat, cmat);
 	}
 	return GF_OK;
@@ -3077,7 +3079,7 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil * st, u8 alpha)
 		_this->alpha = alpha;
 	else {
 		if ( ((EVG_BaseGradient*)st)->alpha != alpha) {
-			((EVG_BaseGradient*)st)->updated = 1;
+			((EVG_BaseGradient*)st)->updated = GF_TRUE;
 		}
 		((EVG_BaseGradient*)st)->alpha = alpha;
 	}
@@ -3102,7 +3104,7 @@ void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y)
 {
 
 	if (rctx->surf->direct_yuv_3d) {
-		u32 *src = rctx->stencil_pix_run;
+		u32 *src = (u32 *) rctx->stencil_pix_run;
 		return src + span->x;
 	}
 	if (rctx->surf->is_shader) {
@@ -3167,14 +3169,14 @@ void *evg_fill_run_mask(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s3
 	u8 *mask = rctx->surf->internal_mask + y*rctx->surf->width + span->x;
 	u32 i;
 	if (rctx->surf->not_8bits) {
-		u64 *wcols = res;
+		u64 *wcols = (u64 *) res;
 		for (i=0; i<span->len; i++) {
 			*wcols = (*wcols & 0x0000FFFFFFFFFFFFUL) | (((u64) *mask)*256)<<48;
 			wcols++;
 			mask++;
 		}
 	} else {
-		u32 * cols = res;
+		u32 * cols = (u32 *) res;
 		for (i=0; i<span->len; i++) {
 			*cols = (*cols & 0x00FFFFFF) | ((u32)*mask)<<24;
 			cols++;
@@ -3189,14 +3191,14 @@ void *evg_fill_run_mask_inv(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span
 	u8 *mask = rctx->surf->internal_mask + y*rctx->surf->width + span->x;
 	u32 i;
 	if (rctx->surf->not_8bits) {
-		u64 *wcols = res;
+		u64 *wcols = (u64 *) res;
 		for (i=0; i<span->len; i++) {
 			*wcols = (*wcols & 0x0000FFFFFFFFFFFFUL) | (((u64) (0xFF- *mask))*256)<<48;
 			wcols++;
 			mask++;
 		}
 	} else {
-		u32 * cols = res;
+		u32 *cols = (u32 *) res;
 		for (i=0; i<span->len; i++) {
 			*cols = (*cols & 0x00FFFFFF) | ((u32) (0xFF- *mask) )<<24;
 			cols++;
@@ -3264,7 +3266,7 @@ void evg_fill_span_mask(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, 
 	u32 mix = rctx->surf->mix_val; \
 	u32 imix = _val - mix; \
 	u32 i=0; \
-	_type col1, col2, *col1p = rctx->stencil_pix_run, *col2p = rctx->stencil_pix_run2; \
+	_type col1, col2, *col1p = (_type *)rctx->stencil_pix_run, *col2p = (_type *)rctx->stencil_pix_run2; \
 	if (!mix) return; \
 	if (!imix) return;\
 	\
@@ -3300,7 +3302,7 @@ static void mix_run_wide(EVGRasterCtx *rctx, u32 count)
 	u32 mix = rctx->surf->mix_val; \
 	u32 imix = _val - mix; \
 	u32 i=0; \
-	_type col1, col2, *col1p = rctx->stencil_pix_run, *col2p = rctx->stencil_pix_run2; \
+	_type col1, col2, *col1p = (_type *)rctx->stencil_pix_run, *col2p = (_type *)rctx->stencil_pix_run2; \
 	if (!mix) return; \
 	if (!imix) return; \
  \
@@ -3336,7 +3338,7 @@ static void mixa_run_wide(EVGRasterCtx *rctx, u32 count)
 
 #define repa_run_func(_type, _shift, _mask, _A) \
 	u32 i=0; \
-	_type a2, col1, col2, *col1p = rctx->stencil_pix_run, *col2p = rctx->stencil_pix_run2; \
+	_type a2, col1, col2, *col1p = (_type *)rctx->stencil_pix_run, *col2p = (_type *)rctx->stencil_pix_run2; \
  \
 	while (i<count) { \
 		col1 = col1p[i]; \
@@ -3382,7 +3384,7 @@ static void replace_alpha_run_b_wide(EVGRasterCtx *rctx, u32 count)
 
 #define repa_m1_run_func(_type, _val, _shift, _mask, _A) \
 	u32 i=0; \
-	_type a2, col1, col2, *col1p = rctx->stencil_pix_run, *col2p = rctx->stencil_pix_run2; \
+	_type a2, col1, col2, *col1p = (_type *)rctx->stencil_pix_run, *col2p = (_type *)rctx->stencil_pix_run2; \
  \
 	while (i<count) { \
 		col1 = col1p[i]; \
@@ -3429,7 +3431,7 @@ static void replace_alpha_m1_run_b_wide(EVGRasterCtx *rctx, u32 count)
 #define mix_dyn_run_func(_type, _val, _shift, _A, _R, _G, _B, _ARGB) \
 	u32 r1, g1, b1, r2, g2, b2; \
 	u32 i=0; \
-	_type col1, col2, *col1p = rctx->stencil_pix_run, *col2p = rctx->stencil_pix_run2, *col3p = rctx->stencil_pix_run3; \
+	_type col1, col2, *col1p = (_type *)rctx->stencil_pix_run, *col2p = (_type *)rctx->stencil_pix_run2, *col3p = (_type *)rctx->stencil_pix_run3; \
  \
 	while (i<count) { \
 		u32 mix = _A(col3p[i]); \
@@ -3492,7 +3494,7 @@ static void mix_dyn_run_b_wide(EVGRasterCtx *rctx, u32 count)
 #define mix_dyna_run_func(_type, _val, _shift, _A, _R, _G, _B, _ARGB) \
 	u32 a1, r1, g1, b1, a2, r2, g2, b2; \
 	u32 i=0; \
-	_type col1, col2, *col1p = rctx->stencil_pix_run, *col2p = rctx->stencil_pix_run2, *col3p = rctx->stencil_pix_run3; \
+	_type col1, col2, *col1p = (_type *)rctx->stencil_pix_run, *col2p = (_type *)rctx->stencil_pix_run2, *col3p = (_type *)rctx->stencil_pix_run3; \
  \
 	while (i<count) { \
 		u32 mix = _A(col3p[i]); \
@@ -3664,11 +3666,11 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 	if (surf->not_8bits) surf->run_size *= 2;
 
 	if (surf->sten2 && !surf->raster_ctx.stencil_pix_run2) {
-		surf->raster_ctx.stencil_pix_run2 = gf_malloc(sizeof(u8) * surf->run_size);
+		surf->raster_ctx.stencil_pix_run2 = (void *)gf_malloc(surf->run_size);
 		if (!surf->raster_ctx.stencil_pix_run2) return GF_OUT_OF_MEM;
 	}
 	if (surf->sten3 && !surf->raster_ctx.stencil_pix_run3) {
-		surf->raster_ctx.stencil_pix_run3 = gf_malloc(sizeof(u8) * surf->run_size);
+		surf->raster_ctx.stencil_pix_run3 = (void *)gf_malloc(surf->run_size);
 		if (!surf->raster_ctx.stencil_pix_run3) return GF_OUT_OF_MEM;
 	}
 
@@ -3677,11 +3679,11 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 	for (i=0; i<surf->nb_threads; i++) {
 		EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
 		if (surf->sten2 && !rctx->stencil_pix_run2) {
-			rctx->stencil_pix_run2 = gf_malloc(sizeof(u8) * surf->run_size);
+			rctx->stencil_pix_run2 = (void *)gf_malloc(surf->run_size);
 			if (!rctx->stencil_pix_run2) return GF_OUT_OF_MEM;
 		}
 		if (surf->sten3 && !rctx->stencil_pix_run3) {
-			rctx->stencil_pix_run3 = gf_malloc(sizeof(u8) * surf->run_size);
+			rctx->stencil_pix_run3 = (void *)gf_malloc(surf->run_size);
 			if (!rctx->stencil_pix_run3) return GF_OUT_OF_MEM;
 		}
 	}

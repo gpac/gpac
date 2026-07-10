@@ -153,7 +153,7 @@ static GF_Err wcenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	const GF_PropertyValue *p;
 	u32 streamtype;
 	char *codec_par=NULL;
-	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	GF_WCEncCtx *ctx = (GF_WCEncCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -444,7 +444,7 @@ static GF_Err wcenc_process(GF_Filter *filter)
 	GF_Err e;
 	const u8 *in_buffer;
 	u32 in_buffer_size;
-	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	GF_WCEncCtx *ctx = (GF_WCEncCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
 	if (ctx->error)
@@ -552,7 +552,7 @@ EM_JS(int, wcenc_get_config, (int wc_ctx, int buf, int buf_size), {
 GF_EXPORT
 void wcenc_on_config(GF_WCEncCtx *ctx, int size)
 {
-	u8 *buf = gf_malloc(size);
+	u8 *buf = (u8 *)gf_malloc(size);
 	memset(buf, 0, size);
 	wcenc_get_config(EM_CAST_PTR ctx, EM_CAST_PTR buf, size);
 	u32 dsi_crc = gf_crc_32(buf, size);
@@ -591,7 +591,7 @@ void wcenc_on_frame(GF_WCEncCtx *ctx, u64 timestamp, u32 duration, u32 size, int
 
 	count = gf_list_count(ctx->src_pcks);
 	for (i=0; i<count; i++) {
-		src_pck = gf_list_get(ctx->src_pcks, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, i);
 		s64 ts = gf_filter_pck_get_cts(src_pck);
 		if (ABS(ts - cts) <= 1) {
 			gf_list_rem(ctx->src_pcks, i);
@@ -615,7 +615,7 @@ void wcenc_on_frame(GF_WCEncCtx *ctx, u64 timestamp, u32 duration, u32 size, int
 
 	if (ctx->sample_rate) {
 		while (gf_list_count(ctx->src_pcks)) {
-			src_pck = gf_list_pop_back(ctx->src_pcks);
+			src_pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
 			gf_filter_pck_unref(src_pck);
 		}
 	}
@@ -625,7 +625,7 @@ void wcenc_on_frame(GF_WCEncCtx *ctx, u64 timestamp, u32 duration, u32 size, int
 
 GF_Err wcenc_initialize(GF_Filter *filter)
 {
-	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	GF_WCEncCtx *ctx = (GF_WCEncCtx *)gf_filter_get_udta(filter);
 	ctx->filter = filter;
 	ctx->src_pcks = gf_list_new();
 	return GF_OK;
@@ -645,11 +645,11 @@ EM_JS(int, wcenc_del, (int wc_ctx), {
 
 void wcenc_finalize(GF_Filter *filter)
 {
-	GF_WCEncCtx *ctx = gf_filter_get_udta(filter);
+	GF_WCEncCtx *ctx = (GF_WCEncCtx *)gf_filter_get_udta(filter);
 	wcenc_del(EM_CAST_PTR ctx);
 
 	while (gf_list_count(ctx->src_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_pcks);

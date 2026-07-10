@@ -26,6 +26,10 @@
 #ifndef _GF_SWF_DEV_H_
 #define _GF_SWF_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/scene_manager.h>
 #include <gpac/color.h>
 #include <gpac/media_tools.h>
@@ -72,7 +76,7 @@ struct SWFReader
 	char *localPath;
 	/*file header*/
 	u32 length;
-	char *mem;
+	u8 *mem;
 	u32 frame_rate;
 	u32 frame_count;
 	Fixed width, height;
@@ -181,7 +185,7 @@ struct SWFReader
 	Bool print_stream_header;
 	Bool print_frame_header;
 	u32 frame_header_offset;
-	char *svg_data;
+	u8 *svg_data;
 	u32 svg_data_size;
 	Bool svg_shape_started;
 	/* end of SVG conversion state */
@@ -195,7 +199,7 @@ struct SWFReader
 };
 
 
-void swf_report(SWFReader *read, GF_Err e, char *format, ...);
+void swf_report(SWFReader *read, GF_Err e, const char *format, ...);
 SWFFont *swf_find_font(SWFReader *read, u32 fontID);
 GF_Err swf_parse_sprite(SWFReader *read);
 GF_Err swf_parse_tag(SWFReader *read);
@@ -406,5 +410,9 @@ struct SWFAction
 };
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_GF_SWF_DEV_H_*/

@@ -106,7 +106,7 @@ static void faaddec_check_mc_config(GF_FAADCtx *ctx)
 static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
+	GF_FAADCtx *ctx = (GF_FAADCtx *)gf_filter_get_udta(filter);
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
@@ -171,7 +171,8 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
-		u8 *dsi, *s_base_object_type;
+		u8 *dsi;
+		const char *s_base_object_type;
 		u32 dsi_len;
 		switch (a_cfg.base_object_type) {
 		case GF_M4A_AAC_MAIN:
@@ -276,7 +277,7 @@ static s8 faaddec_get_channel_pos(GF_FAADCtx *ffd, u32 ch_cfg)
 
 static GF_Err faaddec_process(GF_Filter *filter)
 {
-	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
+	GF_FAADCtx *ctx = (GF_FAADCtx *)gf_filter_get_udta(filter);
 	void *buffer;
 	u8 *output;
 	u32 i, j;
@@ -294,8 +295,8 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		buffer = NeAACDecDecode(ctx->codec, &ctx->info, NULL, 0);
 	} else {
 		u32 size;
-		const char *data = gf_filter_pck_get_data(pck, &size);
-		buffer = NeAACDecDecode(ctx->codec, &ctx->info, (char *) data, size);
+		const u8 *data = gf_filter_pck_get_data(pck, &size);
+		buffer = NeAACDecDecode(ctx->codec, &ctx->info, (u8 *) data, size);
 	}
 
 	if (ctx->info.error>0) {
@@ -434,7 +435,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 
 static void faaddec_finalize(GF_Filter *filter)
 {
-	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
+	GF_FAADCtx *ctx = (GF_FAADCtx *)gf_filter_get_udta(filter);
 	if (ctx->codec) NeAACDecClose(ctx->codec);
 }
 static const GF_FilterCapability FAADCaps[] =

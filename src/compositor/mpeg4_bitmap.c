@@ -61,7 +61,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	        || (tr_state->visual->type_3d && !txh->tx_io)
 #endif
 	   ) {
-		if (notify_changes) gf_node_dirty_set(node, 0, 1);
+		if (notify_changes) gf_node_dirty_set(node, GF_FALSE, GF_TRUE);
 		return;
 	}
 
@@ -139,7 +139,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	st->size = size;
 
 	/*change in size*/
-	if (notify_changes) gf_node_dirty_set(node, 0, 1);
+	if (notify_changes) gf_node_dirty_set(node, GF_FALSE, GF_TRUE);
 
 	/*get size with scale*/
 	drawable_reset_path(&st->s_graph);
@@ -157,7 +157,7 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 	M_Bitmap *bmp = (M_Bitmap *)node;
 
 	/*no choice but to update the graph since a bitmap may be used with several textures ...*/
-	Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds, 0);
+	Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds, GF_FALSE);
 
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
@@ -270,9 +270,9 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_GET_BOUNDS:
 		Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds,
 #ifndef GPAC_DISABLE_3D
-		                  tr_state->visual->type_3d ? 1 : 0
+		                  tr_state->visual->type_3d ? GF_TRUE : GF_FALSE
 #else
-		                  0
+						  GF_FALSE
 #endif
 		                 );
 
@@ -287,7 +287,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	memset(&rc, 0, sizeof(rc));
-	Bitmap_BuildGraph(node, st, tr_state, &rc, 1);
+	Bitmap_BuildGraph(node, st, tr_state, &rc, GF_TRUE);
 	if (!rc.width || !rc.height) return;
 
 	ctx = drawable_init_context_mpeg4(&st->s_graph, tr_state);

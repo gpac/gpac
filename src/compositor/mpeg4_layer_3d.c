@@ -179,7 +179,7 @@ static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Boo
 	tr_state->bbox.max_edge.y = tr_state->camera->height/2;
 	tr_state->bbox.min_edge.y = -tr_state->bbox.max_edge.y;
 	tr_state->bbox.max_edge.z = tr_state->bbox.min_edge.z = 0;
-	tr_state->bbox.is_set = 1;
+	tr_state->bbox.is_set = GF_TRUE;
 
 }
 
@@ -284,7 +284,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->viewpoints = st->visual->view_stack;
 	tr_state->navigations = st->visual->navigation_stack;
 	tr_state->fogs = st->visual->fog_stack;
-	tr_state->is_layer = 1;
+	tr_state->is_layer = GF_TRUE;
 	tr_state->camera = &st->visual->camera;
 
 	gf_mx_copy(model_backup, tr_state->model_matrix);
@@ -337,7 +337,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Redrawing\n"));
 
-		layer3d_setup_clip(st, tr_state, 1, rc);
+		layer3d_setup_clip(st, tr_state, GF_TRUE, rc);
 
 		//this only happens in hybridGL mode
 		if (trav_mode==TRAVERSE_DRAW_2D) {
@@ -416,17 +416,17 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		SFVec3f start, end;
 		SFVec4f res;
 		Fixed in_x, in_y;
-		Bool do_pick = 0;
+		Bool do_pick = GF_FALSE;
 
 		if (!prev_cam) rc = st->vp;
 
-		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
+		layer3d_setup_clip(st, tr_state, prev_cam ? GF_TRUE : GF_FALSE, rc);
 
 		old_type_3d = tr_state->visual->type_3d;
 		tr_state->visual->type_3d = 2;
 
 		if (tr_state->visual->compositor->active_layer==node) {
-			do_pick = (tr_state->visual->compositor->grabbed_sensor || tr_state->visual->compositor->navigation_state) ? 1 : 0;
+			do_pick = (tr_state->visual->compositor->grabbed_sensor || tr_state->visual->compositor->navigation_state) ? GF_TRUE : GF_FALSE;
 		}
 
 		if (!prev_cam || tr_state->visual->compositor->hybrid_opengl) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);
@@ -455,7 +455,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			start.y = gf_muldiv(start.y, st->visual->camera.height, st->clip.height);
 		}
 
-		visual_3d_setup_projection(tr_state, 1);
+		visual_3d_setup_projection(tr_state, GF_TRUE);
 
 		in_x = 2 * gf_divfix(start.x, st->visual->camera.width);
 		in_y = 2 * gf_divfix(start.y, st->visual->camera.height);
@@ -530,8 +530,8 @@ l3d_exit:
 
 	/*in case we missed bindables*/
 	if (st->first) {
-		st->first = 0;
-		gf_node_dirty_set(node, 0, 0);
+		st->first = GF_FALSE;
+		gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
 	}
 }
@@ -552,11 +552,11 @@ void compositor_init_layer3d(GF_Compositor *compositor, GF_Node *node)
 	}
 	stack->visual = visual_new(compositor);
 	stack->visual->type_3d = 2;
-	stack->visual->camera.is_3D = 1;
+	stack->visual->camera.is_3D = GF_TRUE;
 	stack->visual->camera.visibility = 0;
 	stack->visual->camera.speed = FIX_ONE;
 	camera_invalidate(&stack->visual->camera);
-	stack->first = 1;
+	stack->first = GF_TRUE;
 
 	stack->txh.compositor = compositor;
 	stack->drawable = drawable_new();

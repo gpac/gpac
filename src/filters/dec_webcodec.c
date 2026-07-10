@@ -143,7 +143,7 @@ static GF_Err wcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	const GF_PropertyValue *p, *dsi;
 	u32 codecid, dsi_crc;
 	u32 streamtype;
-    GF_WCDecCtx *ctx = gf_filter_get_udta(filter);
+    GF_WCDecCtx *ctx = (GF_WCDecCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -348,7 +348,7 @@ void wcdec_on_video(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 width, u3
 	GF_FilterPacket *src_pck = NULL;
 	u32 i, count = gf_list_count(ctx->src_pcks);
 	for (i=0; i<count; i++) {
-		src_pck = gf_list_get(ctx->src_pcks, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, i);
 		if (!src_pck) {
 			continue;
 		}
@@ -429,7 +429,7 @@ void wcdec_on_audio(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 num_frame
 	GF_FilterPacket *src_pck = NULL;
 	u32 i, count = gf_list_count(ctx->src_pcks);
 	for (i=0; i<count; i++) {
-		src_pck = gf_list_get(ctx->src_pcks, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_pcks, i);
 		if (!src_pck) {
 			continue;
 		}
@@ -491,7 +491,7 @@ static GF_Err wcdec_process(GF_Filter *filter)
 	const u8 *in_buffer;
 	u32 in_buffer_size;
 	GF_FilterSAPType sap;
-	GF_WCDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_WCDecCtx *ctx = (GF_WCDecCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
 	if (ctx->error)
@@ -558,7 +558,7 @@ static GF_Err wcdec_process(GF_Filter *filter)
 
 static Bool wcdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-    GF_WCDecCtx *ctx = gf_filter_get_udta(filter);
+    GF_WCDecCtx *ctx = (GF_WCDecCtx *)gf_filter_get_udta(filter);
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		ctx->playing = GF_TRUE;
@@ -574,7 +574,7 @@ static Bool wcdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err wcdec_initialize(GF_Filter *filter)
 {
-    GF_WCDecCtx *ctx = gf_filter_get_udta(filter);
+    GF_WCDecCtx *ctx = (GF_WCDecCtx *)gf_filter_get_udta(filter);
     ctx->filter = filter;
 	ctx->src_pcks = gf_list_new();
     return GF_OK;
@@ -594,11 +594,11 @@ EM_JS(int, wcdec_del, (int wc_ctx), {
 
 void wcdec_finalize(GF_Filter *filter)
 {
-    GF_WCDecCtx *ctx = gf_filter_get_udta(filter);
+    GF_WCDecCtx *ctx = (GF_WCDecCtx *)gf_filter_get_udta(filter);
     wcdec_del(EM_CAST_PTR ctx);
 
     while (gf_list_count(ctx->src_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_pcks);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_pcks);

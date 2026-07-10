@@ -660,7 +660,7 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 	default:
 		/*for all nodes, invalidate parent graph - note we do that for sensors as well to force recomputing
 		sensor list cached at grouping node level*/
-		gf_node_dirty_set(byObj, 0, GF_TRUE);
+		gf_node_dirty_set(byObj, GF_FALSE, GF_TRUE);
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	}

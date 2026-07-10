@@ -44,11 +44,11 @@ GF_ODF_FieldType gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName)
 		else if (!stricmp(fieldName, "ipmpDescr")) return GF_ODF_FT_OD_LIST;
 		else if (!stricmp(fieldName, "extDescr")) return GF_ODF_FT_OD_LIST;
 		else if (!stricmp(fieldName, "toolListDescr")) return GF_ODF_FT_OD;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_DCD_TAG:
 		if (!stricmp(fieldName, "decSpecificInfo")) return GF_ODF_FT_OD;
 		if (!stricmp(fieldName, "profileLevelIndicationIndexDescr")) return GF_ODF_FT_OD_LIST;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_ESD_TAG:
 		if (!stricmp(fieldName, "decConfigDescr")) return GF_ODF_FT_OD;
 		if (!stricmp(fieldName, "muxInfo")) return GF_ODF_FT_OD;
@@ -61,24 +61,24 @@ GF_ODF_FieldType gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName)
 		if (!stricmp(fieldName, "ipIDS")) return GF_ODF_FT_OD_LIST;
 		if (!stricmp(fieldName, "ipmpDescrPtr")) return GF_ODF_FT_OD_LIST;
 		if (!stricmp(fieldName, "extDescr")) return GF_ODF_FT_OD_LIST;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_TEXT_CFG_TAG:
 		if (!stricmp(fieldName, "SampleDescriptions")) return GF_ODF_FT_OD_LIST;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_IPMP_TAG:
 		if (!stricmp(fieldName, "IPMPX_Data")) return GF_ODF_FT_IPMPX_LIST;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_IPMP_TL_TAG:
 		if (!stricmp(fieldName, "ipmpTool")) return GF_ODF_FT_OD_LIST;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_IPMP_TOOL_TAG:
 		if (!stricmp(fieldName, "toolParamDesc")) return GF_ODF_FT_IPMPX;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	case GF_ODF_BIFS_CFG_TAG:
 		if (!stricmp(fieldName, "elementaryMask")) return GF_ODF_FT_OD_LIST;
-		return 0;
+		return GF_ODF_FT_DEFAULT;
 	}
-	return 0;
+	return GF_ODF_FT_DEFAULT;
 }
 
 u32 gf_odf_get_tag_by_name(char *descName)
@@ -138,10 +138,10 @@ void OD_ParseBinData(u8 *val, u8 **out_data, u32 *out_data_size)
 {
 	u32 i, c;
 	char s[3];
-	u32 len = (u32) strlen(val) / 3;
+	u32 len = (u32) strlen((char*)val) / 3;
 	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
-	*out_data = gf_malloc(sizeof(char) * len);
+	*out_data = (u8*)gf_malloc(len);
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -449,7 +449,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		if (!stricmp(fieldName, "info")) {
 			/*only parse true hexa strings*/
 			if (val[0] == '%') {
-				OD_ParseBinData(val, &dsi->data, &dsi->dataLength);
+				OD_ParseBinData((u8 *)val, &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
 				if (gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength) == GF_OK)
@@ -462,7 +462,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			val += len;
 			/*only parse true hexa strings*/
 			if (val[0] == '%') {
-				OD_ParseBinData(val, &dsi->data, &dsi->dataLength);
+				OD_ParseBinData((u8 *)val, &dsi->data, &dsi->dataLength);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
 				if (gf_file_load_data(val+5, (u8 **) &dsi->data, &dsi->dataLength) == GF_OK)
@@ -488,7 +488,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "uiData")) {
 			/*only parse true hexa strings*/
 			if (val[0] == '%') {
-				OD_ParseBinData(val, &uic->ui_data, &uic->ui_data_length);
+				OD_ParseBinData((u8 *)val, &uic->ui_data, &uic->ui_data_length);
 				ret = 1;
 			} else if (!strnicmp(val, "file:", 5)) {
 				if (gf_file_load_data(val+5, (u8 **) &uic->ui_data, &uic->ui_data_length)==GF_OK)

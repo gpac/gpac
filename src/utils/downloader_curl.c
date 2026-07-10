@@ -77,7 +77,7 @@ static int curl_trace(CURL *handle, curl_infotype type, char *data, size_t size,
 
 static int curl_on_connect(void *clientp, char *conn_primary_ip, char *conn_local_ip, int conn_primary_port, int conn_local_port)
 {
-	GF_DownloadSession *sess = clientp;
+	GF_DownloadSession *sess = (GF_DownloadSession *) clientp;
 	if (sess->status == GF_NETIO_SETUP) {
 		sess->status = GF_NETIO_CONNECTED;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[CURL] connected\n"));
@@ -93,20 +93,20 @@ static int curl_on_connect(void *clientp, char *conn_primary_ip, char *conn_loca
 
 static int curl_on_socket_close(void *clientp, curl_socket_t item)
 {
-	GF_DownloadManager *dm = clientp;
+	GF_DownloadManager *dm = (GF_DownloadManager *) clientp;
 	dm->curl_has_close = GF_TRUE;
 	return 0;
 }
 
 static size_t curl_on_header(char *buffer, size_t size, size_t nitems, void *clientp)
 {
-	GF_DownloadSession *sess = clientp;
+	GF_DownloadSession *sess = (GF_DownloadSession *) clientp;
 	if ((buffer[0]=='\r') || (buffer[0]=='\n'))
 		return nitems * size;
 
 	if (sess->status==GF_NETIO_WAIT_FOR_REPLY) {
 		//push headers
-		char *sep = memchr(buffer, ':', nitems*size);
+		char *sep = (char *) memchr(buffer, ':', nitems*size);
 		if (sep) {
 			sep[0] = 0;
 			GF_HTTPHeader *hdrp;
@@ -114,7 +114,7 @@ static size_t curl_on_header(char *buffer, size_t size, size_t nitems, void *cli
 			if (hdrp) {
 				u32 len = (u32) strlen(buffer) + 2;
 				hdrp->name = gf_strdup(buffer);
-				hdrp->value = gf_malloc(nitems * size - len + 1);
+				hdrp->value = (char *)gf_malloc(nitems * size - len + 1);
 				memcpy(hdrp->value, buffer+len, nitems * size - len);
 				hdrp->value[nitems * size - len] = 0;
 				gf_list_add(sess->headers, hdrp);
@@ -128,11 +128,11 @@ static size_t curl_on_header(char *buffer, size_t size, size_t nitems, void *cli
 
 static size_t curl_on_data(char *ptr, size_t size, size_t nmemb, void *clientp)
 {
-	GF_DownloadSession *sess = clientp;
+	GF_DownloadSession *sess = (GF_DownloadSession *) clientp;
 	u32 len = (u32) (size*nmemb);
 	if (sess->local_buf_len + len > sess->local_buf_alloc) {
 		sess->local_buf_alloc = sess->local_buf_len + len;
-		sess->local_buf = gf_realloc(sess->local_buf, sizeof(u8) * sess->local_buf_alloc);
+		sess->local_buf = (u8 *)gf_realloc(sess->local_buf, sess->local_buf_alloc);
 		if (!sess->local_buf) return 0;
 	}
 	memcpy(sess->local_buf + sess->local_buf_len, ptr, len);
@@ -392,7 +392,7 @@ void curl_destroy(GF_DownloadSession *sess)
 Bool curl_can_handle_url(const char *url)
 {
 	curl_version_info_data *ver = curl_version_info(CURLVERSION_NOW);
-	char *prot_sep = strstr(url, "://");
+	const char *prot_sep = strstr(url, "://");
 	if (!prot_sep) return GF_FALSE;
 	u32 i=0, len = (u32) (prot_sep - url);
 	while (ver && ver->protocols[i]) {

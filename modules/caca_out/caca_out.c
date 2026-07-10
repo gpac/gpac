@@ -64,7 +64,7 @@ static void cacao_shutdown(GF_VideoOutput *dr)
 	ctx->display=NULL;
 
 	while (gf_list_count(ctx->dithers)) {
-		CacaDither *d = gf_list_pop_back(ctx->dithers);
+		CacaDither *d = (CacaDither *)gf_list_pop_back(ctx->dithers);
 		if (d->dither) caca_free_dither(d->dither);
 		gf_free(d);
 	}
@@ -313,7 +313,7 @@ static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Wind
 	CacaDither *d = NULL;
 	u32 i, count = gf_list_count(ctx->dithers);
 	for (i=0; i<count; i++) {
-		d = gf_list_get(ctx->dithers, i);
+		d = (CacaDither *)gf_list_get(ctx->dithers, i);
 		if (d->pfmt == video_src->pixel_format) break;
 		d = NULL;
 	}
@@ -398,7 +398,7 @@ static GF_Err cacao_lock_backbuffer(GF_VideoOutput *driv, GF_VideoSurface *video
 	if (!do_lock) return GF_OK;
 
 	if (!ctx->backbuffer) {
-		ctx->backbuffer = gf_malloc(3*ctx->wnd_w*ctx->wnd_h);
+		ctx->backbuffer = (u8 *)gf_malloc(3*ctx->wnd_w*ctx->wnd_h);
 		if (!ctx->backbuffer) return GF_OUT_OF_MEM;
 
 		ctx->bb_dither = caca_create_dither(24, ctx->wnd_w, ctx->wnd_h, ctx->wnd_w*3, 0x0000ff, 0x00ff00, 0xff0000, 0);
@@ -513,12 +513,12 @@ static void *cacao_new()
 static void cacao_del(void *ifce)
 {
 	GF_VideoOutput *dr = (GF_VideoOutput *)ifce;
-	CacaOutCtx *ctx = dr->opaque;
+	CacaOutCtx *ctx = (CacaOutCtx *) dr->opaque;
 	if (ctx->display) caca_free_display(ctx->display);
 	if (ctx->canvas) caca_free_canvas(ctx->canvas);
 
 	while (gf_list_count(ctx->dithers)) {
-		CacaDither *d = gf_list_pop_back(ctx->dithers);
+		CacaDither *d = (CacaDither *)gf_list_pop_back(ctx->dithers);
 		if (d->dither) caca_free_dither(d->dither);
 		gf_free(d);
 	}
@@ -539,6 +539,7 @@ static void cacao_del(void *ifce)
 }
 
 
+GPAC_MODULE_EXPORT_START
 
 /*interface query*/
 GPAC_MODULE_EXPORT
@@ -569,6 +570,8 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( caca_out )
 

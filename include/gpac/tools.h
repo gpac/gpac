@@ -225,6 +225,16 @@ Returns a printable version of a given error
 */
 const char *gf_error_to_string(GF_Err e);
 
+
+/*!
+\brief error code description
+
+Returns text description of given errno code
+\param errnoval the error value to test
+\return its description
+ */
+const char *gf_errno_str(int errnoval);
+
 /*! @} */
 
 
@@ -717,6 +727,16 @@ Checks if compatibility with old arch is enabled - this function will be removed
  */
 Bool gf_sys_old_arch_compat();
 
+/*! Check if global args are used (--)
+ \return GF_TRUE if global args are found
+*/
+Bool gf_sys_has_filter_global_args();
+
+/*! Check if global meta args are used (-+)
+ \return GF_TRUE if global args are found
+*/
+Bool gf_sys_has_filter_global_meta_args();
+
 #ifdef GPAC_ENABLE_COVERAGE
 /*!
 \brief checks if coverage tests are enabled
@@ -777,7 +797,7 @@ void* gf_sys_get_rmtws();
 void* gf_sys_get_userws();
 
 /*!
-GPAC Log tools
+GPAC console tools
 \hideinitializer
 
 Describes the color code for console print
@@ -815,7 +835,10 @@ typedef enum
 	GF_CONSOLE_UNDERLINED = 1<<18,
 	/*!set text to strikethrough*/
 	GF_CONSOLE_STRIKE = 1<<19
-} GF_ConsoleCodes;
+} GF_ConsoleCodesValues;
+
+/*! color code for console print*/
+typedef u32 GF_ConsoleCodes;
 
 /*! sets console code
 \param std the output stream (stderr or stdout)
@@ -1027,7 +1050,7 @@ Gets log level of a given tool
 \param log_tool tool to check
 \return log level of tool
 */
-u32 gf_log_get_tool_level(GF_LOG_Tool log_tool);
+GF_LOG_Level gf_log_get_tool_level(GF_LOG_Tool log_tool);
 
 /*!
 \brief Set log tools and levels
@@ -1071,7 +1094,7 @@ Parses a log tool by name
 \param logs the name to parse
 \return log tool value
 */
-u32 gf_log_parse_tool(const char *logs);
+GF_LOG_Tool gf_log_parse_tool(const char *logs);
 
 #ifdef GPAC_DISABLE_LOG
 void gf_log_check_error(u32 ll, u32 lt);
@@ -1120,6 +1143,13 @@ void gf_log_reset_extras();
 #define GF_DBG(fmt, ...) fprintf(stderr, "%s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 /*!	@} */
+
+//! @cond Doxygen_Suppress
+void gf_logs_thread_tag(void *tag_val, u32 tag_type);
+void gf_logs_thread_untag(void *tag_val);
+void gf_logs_thread_tag_del(void *tag_val);
+void *gf_logs_get_thread_tag(u32 *tag_type, u32 *o_th_id);
+//! @endcond
 
 /*!
 \addtogroup miscsys_grp
@@ -1682,6 +1712,12 @@ The caller shall not free the string.
 const char * gf_get_default_cache_directory();
 
 /**
+Gets default font directory
+\param szPath variable set to the default font directory
+ */
+void gf_get_default_font_dir(char szPath[GF_MAX_PATH]);
+
+/**
 Gets the number of open file handles (gf_fopen/gf_fclose only).
 \return  number of open file handles
  */
@@ -1897,13 +1933,13 @@ s32 gf_fseek(FILE *f, s64 pos, s32 whence);
 \param filename Path of the file, can be an absolute path
 \return a pointer to the start of a filepath basename or null
 */
-char* gf_file_basename(const char* filename);
+const char* gf_file_basename(const char* filename);
 
 /*! gets extension from filename
 \param filename Path of the file, can be an absolute path
 \return a pointer to the start of a filepath extension or null
 */
-char* gf_file_ext_start(const char* filename);
+const char* gf_file_ext_start(const char* filename);
 
 /*! return the canonicalized absolute pathname
 * portable version of POSIX realpath()
@@ -2104,7 +2140,7 @@ gf_fileio_new or as a response to open with mode "url".
 \param printf printf proc for IO, may be NULL
 \return the newly created file IO wrapper
  */
-GF_FileIO *gf_fileio_new(char *url, void *udta,
+GF_FileIO *gf_fileio_new(const char *url, void *udta,
 	gfio_open_proc open,
 	gfio_seek_proc seek,
 	gfio_read_proc read,
@@ -2434,7 +2470,7 @@ GF_SHA1Context *gf_sha1_starts();
 \param input data to hash
 \param length size of data in bytes
 */
-void gf_sha1_update(GF_SHA1Context *ctx, u8 *input, u32 length);
+void gf_sha1_update(GF_SHA1Context *ctx, const u8 *input, u32 length);
 /*! generates SHA-1 of all bytes ingested
 \param ctx the target SHA1 context
 \param digest buffer to store message digest
@@ -2460,7 +2496,7 @@ GF_Err gf_sha1_file_ptr(FILE *file, u8 digest[GF_SHA1_DIGEST_SIZE] );
 \param buflen size of input buffer in bytes
 \param digest buffer to store message digest
  */
-void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
+void gf_sha1_csum(const u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 /*! @} */
 
 /*! checksum size for SHA-256*/

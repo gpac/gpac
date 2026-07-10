@@ -28,6 +28,10 @@
 #ifndef _GF_EVG_DEV_H_
 #define _GF_EVG_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/evg.h>
 
 #ifndef GPAC_DISABLE_EVG
@@ -42,8 +46,8 @@ typedef struct _traster_ctx EVGRasterCtx;
 	GF_Matrix2D smat_bck;					\
 	GF_Rect frame;					\
 	GF_ColorMatrix cmat;\
-	u8 type;	\
-	u8 auto_mx;     \
+	GF_StencilType type;	\
+	Bool auto_mx;     \
 
 
 
@@ -150,7 +154,7 @@ typedef struct
 		u32	precomputed_dest[(1<<EVGGRADIENTBITS)];	\
 		u32 yuv_prof; \
 		u8 alpha;		\
-		u8 updated;		\
+		Bool updated;		\
 
 typedef struct
 {
@@ -188,8 +192,8 @@ typedef struct __evg_texture
 	EVGBASESTENCIL
 	u32 width, height, stride, stride_uv, stride_alpha;
 	u32 pixel_format, Bpp;
-	char *pixels;
-	char *pix_u, *pix_v, *pix_a;
+	u8 *pixels;
+	u8 *pix_u, *pix_v, *pix_a;
 
 	GF_Point2D cur_pt;
 	Fixed cur_y, inc_x, inc_y;
@@ -486,7 +490,7 @@ void evg_get_fragment(GF_EVGSurface *surf, EVGRasterCtx *rctx, Bool *is_transpar
 struct _gf_evg_surface
 {
 	/*surface info*/
-	char *pixels;
+	u8 *pixels;
 	u32 pixelFormat, BPP;
 	u32 width, height;
 	s32 pitch_x, pitch_y;
@@ -590,10 +594,11 @@ struct _gf_evg_surface
 	u32 mix_val;
 	u32 run_size;
 
+	//either u32 * or u64* for wide col dest
 	void *(*fill_run)(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
 
 	u8 *internal_mask;
-	u32 mask_mode;
+	GF_EVGMaskMode mask_mode;
 
 	u32 vp_x, vp_y, vp_w, vp_h;
 
@@ -613,6 +618,10 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 
 
 #endif // GPAC_DISABLE_EVG
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

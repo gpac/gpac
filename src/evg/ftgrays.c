@@ -564,7 +564,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 
 	if ((coverage < 0xFF) && (coverage > raster->surf->aa_level))
 		return;
-		
+
 	if (!coverage)
 		return;
 
@@ -588,7 +588,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 	} else {
 		if ((u32) count==raster->alloc_gray_spans) {
 			raster->alloc_gray_spans*=2;
-			raster->gray_spans = gf_realloc(raster->gray_spans, sizeof(EVG_Span)*raster->alloc_gray_spans);
+			raster->gray_spans = (EVG_Span *)gf_realloc(raster->gray_spans, sizeof(EVG_Span)*raster->alloc_gray_spans);
 			span = raster->gray_spans + count - 1;
 		}
 		span++;
@@ -669,7 +669,7 @@ static Bool th_fetch_lines(EVGRasterCtx *rctx)
 
 u32 th_sweep_lines(void *par)
 {
-	EVGRasterCtx *rctx = par;
+	EVGRasterCtx *rctx = (EVGRasterCtx *)par;
 
 	while (rctx->th_state == 1) {
 		u32 i;

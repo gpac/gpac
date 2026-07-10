@@ -153,7 +153,7 @@ typedef struct __rtspout_session
 	u32 sdp_state;
 
 	u32 next_stream_id;
-	Bool needs_reconfig;
+	u32 needs_reconfig;
 
 	u64 pause_sys_clock;
 	Bool request_pending;
@@ -173,7 +173,7 @@ static void rtspout_send_response(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 	sess->response->User_Agent = ctx->user_agent;
 	sess->response->Session = sess->sessionID;
 	if (ctx->close && !sess->interleave && !sess->is_tunnel)
-		sess->response->Connection = "close";
+		sess->response->Connection = (char *) "close";
 	gf_rtsp_send_response(sess->rtsp, sess->response);
 	sess->response->User_Agent = NULL;
 	sess->response->Session = NULL;
@@ -231,7 +231,7 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	if (e) return e;
 
 	fsize = (u32) gf_ftell(sdp_out);
-	char *sdp_output = gf_malloc(sizeof(char)*(fsize+1));
+	char *sdp_output = (char *)gf_malloc(fsize+1);
 	gf_fseek(sdp_out, 0, SEEK_SET);
 	u32 read = (u32) gf_fread(sdp_output, fsize, sdp_out);
 	sdp_output[read]=0;
@@ -241,7 +241,7 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	gf_rtsp_response_reset(sess->response);
 	sess->response->ResponseCode = NC_RTSP_OK;
 	sess->response->CSeq = sess->command->CSeq;
-	sess->response->Content_Type = "application/sdp";
+	sess->response->Content_Type = (char *) "application/sdp";
 	sess->response->body = sdp_output;
 
 	rtspout_send_response(sess->ctx, sess);
@@ -269,7 +269,7 @@ static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 {
 	//server mode, cleanup
 	while (gf_list_count(sess->streams)) {
-		GF_RTPOutStream *stream = gf_list_pop_back(sess->streams);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_pop_back(sess->streams);
 		rtspout_del_stream(stream);
 	}
 	gf_list_del(sess->streams);
@@ -281,7 +281,7 @@ static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 
 	if (filter) {
 		while (gf_list_count(sess->filter_srcs)) {
-			GF_Filter *fsrc = gf_list_pop_back(sess->filter_srcs);
+			GF_Filter *fsrc = (struct __gf_filter *)gf_list_pop_back(sess->filter_srcs);
 			gf_filter_remove_src(filter, fsrc);
 		}
 	}
@@ -304,18 +304,18 @@ GF_RTSPOutSession *rtspout_locate_session_for_pid(GF_Filter *filter, GF_RTSPOutC
 	u32 i, count = gf_list_count(ctx->sessions);
 	if (ctx->dst) {
 		for (i=0; i<count; i++) {
-			GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
+			GF_RTSPOutSession *sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 			if (sess->single_session) return sess;
 		}
 		return NULL;
 	}
 	for (i=0; i<count; i++) {
 		u32 j, nb_filters;
-		GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
+		GF_RTSPOutSession *sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 		if (sess->single_session) continue;
 		nb_filters = gf_list_count(sess->filter_srcs);
 		for (j=0; j<nb_filters; j++) {
-			GF_Filter *srcf = gf_list_get(sess->filter_srcs, j);
+			GF_Filter *srcf = (struct __gf_filter *)gf_list_get(sess->filter_srcs, j);
 			if (gf_filter_pid_is_filter_in_parents(pid, srcf))
 				return sess;
 		}
@@ -343,7 +343,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (is_remove) {
 		if (!sess) return GF_OK;
-		GF_RTPOutStream *t = gf_filter_pid_get_udta(pid);
+		GF_RTPOutStream *t = (GF_RTPOutStream *)gf_filter_pid_get_udta(pid);
 		if (t) {
 			if (sess->active_stream==t) sess->active_stream = NULL;
 			gf_list_del_item(sess->streams, t);
@@ -354,7 +354,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		return GF_OK;
 	}
-	stream = gf_filter_pid_get_udta(pid);
+	stream = (GF_RTPOutStream *)gf_filter_pid_get_udta(pid);
 	//session not found, fail silently if we had a stream - it is likely that TEARDOWWN was received and we posted a filter remove
 	//but still get a reconfigure on trailing packets
 	if (!sess)
@@ -362,7 +362,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	streamType = p ? p->value.uint : 0;
-	Bool is_m2ts=0;
+	Bool is_m2ts= GF_FALSE;
 
 	switch (streamType) {
 	case GF_STREAM_VISUAL:
@@ -471,7 +471,7 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 		seed |= (u64) sess;
 #endif
 		seed |= gf_sys_clock();
-		sprintf(sess->ctrl_name, "/s"LLX"", seed);
+		sprintf(sess->ctrl_name, "/s" LLX "", seed);
 	}
 
 	if (new_sess) {
@@ -529,7 +529,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 			if (strlen(szIP)) ip = szIP;
 		}
 		rtspout_check_new_session(ctx, GF_TRUE);
-		sess = gf_list_get(ctx->sessions, 0);
+		sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, 0);
 		if (!sess) return GF_SERVICE_ERROR;
 		sess->server_path = ctx->dst;
 		sess->sdp_state = SDP_LOADED;
@@ -649,7 +649,7 @@ static void rtspout_finalize(GF_Filter *filter)
 	GF_RTSPOutCtx *ctx = (GF_RTSPOutCtx *) gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->sessions)) {
-		GF_RTSPOutSession *tmp = gf_list_get(ctx->sessions, 0);
+		GF_RTSPOutSession *tmp = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, 0);
 		rtspout_del_session(NULL, tmp);
 	}
 	gf_list_del(ctx->sessions);
@@ -664,7 +664,7 @@ static void rtspout_finalize(GF_Filter *filter)
 #endif
 
 	while (gf_list_count(ctx->directories)) {
-		RTSP_DIRInfo *di = gf_list_pop_back(ctx->directories);
+		RTSP_DIRInfo *di = (RTSP_DIRInfo *)gf_list_pop_back(ctx->directories);
 		gf_free(di->path);
 		if (di->name) gf_free(di->name);
 		if (di->ru) gf_free(di->ru);
@@ -684,7 +684,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 	for (i=0; i<count; i++) {
 		u64 dts;
 		GF_FilterPacket *pck;
-		GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
 		if (!stream->selected) continue;
 
 		while (1) {
@@ -715,11 +715,11 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 	}
 	sess->sys_clock_at_init = gf_sys_clock_high_res();
 	sess->microsec_ts_init = min_dts;
-	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPOut] Session %s: RTP clock initialized - time origin set to "LLU" us (sys clock) / "LLU" us (media clock)\n", sess->service_name, sess->sys_clock_at_init, sess->microsec_ts_init));
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPOut] Session %s: RTP clock initialized - time origin set to " LLU " us (sys clock) / " LLU " us (media clock)\n", sess->service_name, sess->sys_clock_at_init, sess->microsec_ts_init));
 	if (ctx->tso<0) {
 		gf_rand_init(GF_FALSE);
 		for (i=0; i<count; i++) {
-			GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
+			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
 			stream->rtp_ts_offset = gf_rand();
 			while (stream->rtp_ts_offset>0xFFFFFFF)
 				stream->rtp_ts_offset/=2;
@@ -732,7 +732,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 	sess->response->ResponseCode = NC_RTSP_OK;
 	for (i=0; i<count; i++) {
 		GF_RTPInfo *rtpi;
-		GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
 		if (!stream->selected) continue;
 		if (!stream->send_rtpinfo) continue;
 		stream->send_rtpinfo = GF_FALSE;
@@ -740,7 +740,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 		GF_SAFEALLOC(rtpi, GF_RTPInfo);
 		if (rtpi) {
 			u32 timescale;
-			rtpi->url = gf_malloc(sizeof(char) * (strlen(sess->service_name)+50));
+			rtpi->url = (char *)gf_malloc((strlen(sess->service_name)+50));
 			sprintf(rtpi->url, "%s_%d", sess->ctrl_name, stream->ctrl_id);
 			rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
 			rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
@@ -776,7 +776,7 @@ static void rtspout_send_event(GF_RTSPOutSession *sess, Bool send_stop, Bool sen
 	memset(&fevt, 0, sizeof(GF_FilterEvent));
 
 	for (i=0; i<count; i++) {
-		GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
 		fevt.base.on_pid = stream->pid;
 		if (!stream->selected) {
 			//send a play/stop event for this pid
@@ -884,7 +884,7 @@ static GF_Err rtspout_load_media_service(GF_Filter *filter, GF_RTSPOutCtx *ctx, 
 	Bool found = GF_FALSE;
 	u32 i, count = gf_list_count(sess->filter_srcs);
 	for (i=0; i<count; i++) {
-		GF_Filter *src = gf_list_get(sess->filter_srcs, i);
+		GF_Filter *src = (struct __gf_filter *)gf_list_get(sess->filter_srcs, i);
 		const char *url = gf_filter_get_arg_str(src, "src", NULL);
 		if (url && !strcmp(src_url, url)) {
 			found = GF_TRUE;
@@ -921,10 +921,10 @@ static GF_Err rtspout_check_sdp(GF_Filter *filter, GF_RTSPOutSession *sess)
 
 	for (j=0; j<nb_filters; j++) {
 		Bool found = GF_FALSE;
-		GF_Filter *srcf = gf_list_get(sess->filter_srcs, j);
+		GF_Filter *srcf = (struct __gf_filter *)gf_list_get(sess->filter_srcs, j);
 		//check we have at least one pid
 		for (i=0; i<count; i++) {
-			GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
+			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
 			if (gf_filter_pid_is_filter_in_parents(stream->pid, srcf)) {
 				found = GF_TRUE;
 				break;
@@ -950,7 +950,7 @@ static void rtspout_get_next_mcast_port(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *s
 	u32 min_port=ctx->firstport;
 	for (i=0; i<count; i++) {
 		u32 j, count2;
-		GF_RTSPOutSession *asess = gf_list_get(ctx->sessions, i);
+		GF_RTSPOutSession *asess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 		if (asess == sess) continue;
 		if (!asess->multicast_ip || !sess->multicast_ip) continue;
 		//reuse port number if different multicast groups
@@ -958,7 +958,7 @@ static void rtspout_get_next_mcast_port(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *s
 
 		count2 = gf_list_count(asess->streams);
 		for (j=0; j<count2; j++) {
-			GF_RTPOutStream *stream = gf_list_get(asess->streams, j);
+			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(asess->streams, j);
 			if (stream->mcast_port>min_port) min_port = stream->mcast_port;
 			if (stream->mcast_port == *port) *port = 0;
 		}
@@ -971,7 +971,7 @@ static GF_RTSPOutSession *rtspout_locate_mcast(GF_RTSPOutCtx *ctx, char *res_pat
 	u32 i, count = gf_list_count(ctx->sessions);
 	for (i=0; i<count; i++) {
 		char *a_sess_path=NULL;
-		GF_RTSPOutSession *a_sess = gf_list_get(ctx->sessions, i);
+		GF_RTSPOutSession *a_sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 		if (!a_sess->multicast_ip) continue;
 		if (a_sess->mcast_sname && !strcmp(a_sess->mcast_sname, res_path))
 			return a_sess;
@@ -998,7 +998,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 	if (res_path) {
 		for (i=0; i<count; i++) {
 			char *res_path_loc = res_path;
-			di = gf_list_get(ctx->directories, i);
+			di = (RTSP_DIRInfo *)gf_list_get(ctx->directories, i);
 			char *mpoint = di->path;
 			if (di->name) {
 				if (strncmp(res_path, di->name, di->name_len)) continue;
@@ -1018,7 +1018,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 		di = NULL;
 		di_len = 0;
 		for (i=0; i<count; i++) {
-			RTSP_DIRInfo *adi = gf_list_get(ctx->directories, i);
+			RTSP_DIRInfo *adi = (RTSP_DIRInfo *)gf_list_get(ctx->directories, i);
 			u32 plen = (u32) strlen(adi->path);
 			if (!src_url) {
 				if (strcmp(adi->path, "$dynurl"))
@@ -1052,7 +1052,7 @@ static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_R
 		return NULL;
 	}
 	if (!strncmp(com->Authorization, "Basic ", 6)) {
-		u32 len = gf_base64_decode(com->Authorization+6, (u32) strlen(com->Authorization)-6, szUsrPass, 200);
+		u32 len = gf_base64_decode((u8*)com->Authorization+6, (u32) strlen(com->Authorization)-6, (u8*)szUsrPass, 200);
 		szUsrPass[len]=0;
 		char *sep = strchr(szUsrPass, ':');
 		if (!sep) {
@@ -1114,7 +1114,7 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 	GF_Err e;
 	char remoteIP[GF_MAX_IP_NAME_LEN];
 	GF_RTPOutStream *stream = NULL;
-	GF_RTSPTransport *transport = gf_list_get(sess->command->Transports, 0);
+	GF_RTSPTransport *transport = (GF_RTSPTransport *)gf_list_get(sess->command->Transports, 0);
 	u32 rsp_code=NC_RTSP_OK;
 	Bool enable_multicast = GF_FALSE;
 	Bool reset_transport_dest = GF_FALSE;
@@ -1130,7 +1130,7 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 	} else {
 		u32 i, count = gf_list_count(sess->streams);
 		for (i=0; i<count; i++) {
-			stream = gf_list_get(sess->streams, i);
+			stream = (GF_RTPOutStream *)gf_list_get(sess->streams, i);
 			if (stream_ctrl_id==stream->ctrl_id)
 				break;
 			stream=NULL;
@@ -1190,7 +1190,7 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 
 			if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
 				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
-				transport->destination = "127.0.0.1";
+				transport->destination = (char *) "127.0.0.1";
 				reset_transport_dest = GF_TRUE;
 			}
 		}
@@ -1320,7 +1320,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 		u32 i, count = gf_list_count(ctx->sessions);
 		for (i=0; i<count; i++) {
 			Bool swap_sess = GF_FALSE;
-			GF_RTSPOutSession *a_sess = gf_list_get(ctx->sessions, i);
+			GF_RTSPOutSession *a_sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 			if (a_sess->rtsp) continue;
 
 			if (a_sess->sessionID && sess->command->Session && !strcmp(a_sess->sessionID, sess->command->Session) ) {
@@ -1375,7 +1375,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	if (!strcmp(sess->command->method, GF_RTSP_OPTIONS)) {
 		gf_rtsp_response_reset(sess->response);
 		sess->response->ResponseCode = NC_RTSP_OK;
-		sess->response->Public = "DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE";
+		sess->response->Public = (char *)"DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE";
 		sess->response->CSeq = sess->command->CSeq;
 		rtspout_send_response(ctx, sess);
 		sess->response->Public = NULL;
@@ -1412,7 +1412,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	) {
 		u32 rsp_code = NC_RTSP_OK;
 		GF_RTSPOutMulticastMode mcast_mode=MCAST_OFF;
-		Bool is_setup = !strcmp(sess->command->method, GF_RTSP_SETUP);
+		Bool is_setup = strcmp(sess->command->method, GF_RTSP_SETUP) ? GF_FALSE : GF_TRUE;
 
 		char *res_path = NULL;
 		if (sess->command->service_name) {
@@ -1513,7 +1513,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 						break;
 				}
 				while (gf_list_count(paths)) {
-					char *src_url = gf_list_pop_front(paths);
+					char *src_url = (char *)gf_list_pop_front(paths);
 					if (rsp_code == NC_RTSP_OK) {
 						//load media service
 						e = rtspout_load_media_service(filter, ctx, sess, src_url);
@@ -1705,7 +1705,7 @@ void rtspout_merge_http_tunnel(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSPOut
 	}
 	count = gf_list_count(ctx->sessions);
 	for (i=0; i<count; i++) {
-		GF_RTSPOutSession *a_sess = gf_list_get(ctx->sessions, i);
+		GF_RTSPOutSession *a_sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 		if (!a_sess->rtsp) continue;
 		char a_sip[GF_MAX_IP_NAME_LEN];
 		const char *a_session_cookie = gf_rtsp_get_session_cookie(sess->rtsp);
@@ -1732,7 +1732,7 @@ static GF_Err rtspout_process(GF_Filter *filter)
 {
 	GF_Err e=GF_OK;
 	u32 i, count, now;
-	GF_RTSPOutCtx *ctx = gf_filter_get_udta(filter);
+	GF_RTSPOutCtx *ctx = (GF_RTSPOutCtx *)gf_filter_get_udta(filter);
 
 	if (ctx->done)
 		return GF_EOS;
@@ -1747,13 +1747,13 @@ static GF_Err rtspout_process(GF_Filter *filter)
  	count = gf_list_count(ctx->sessions);
 	for (i=0; i<count; i++) {
 		GF_Err sess_err;
-		GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
+		GF_RTSPOutSession *sess = (GF_RTSPOutSession *)gf_list_get(ctx->sessions, i);
 		if (!sess) break;
 
 		if (sess->needs_reconfig) {
 			u32 k, nb_st = gf_list_count(sess->streams);
 			for (k=0; k<nb_st; k++) {
-				GF_RTPOutStream *st = gf_list_get(sess->streams, k);
+				GF_RTPOutStream *st = (GF_RTPOutStream *)gf_list_get(sess->streams, k);
 				if (!st->do_probe) continue;
 				st->do_probe = GF_FALSE;
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(st->pid);
@@ -1777,12 +1777,12 @@ static GF_Err rtspout_process(GF_Filter *filter)
 			count--;
 			continue;
 		}
-		if (sess_err) e |= sess_err;
+		if (sess_err) e = sess_err;
 		if (!sess) break;
 
 		if (sess->play_state==1) {
 			sess_err = rtspout_process_rtp(filter, ctx, sess);
-			if (sess_err) e |= sess_err;
+			if (sess_err) e = sess_err;
 		}
 
 		if (ctx->runfor>0) {
@@ -1950,7 +1950,7 @@ GF_FilterRegister RTSPOutRegister = {
 		"The tunnel conforms to QT specification, and only HTTP 1.0 and 1.1 tunnels are supported.\n"
 	)
 	.private_size = sizeof(GF_RTSPOutCtx),
-	.max_extra_pids = -1,
+	.max_extra_pids = (u32) -1,
 	.args = RTSPOutArgs,
 	.probe_url = rtspout_probe_url,
 	.initialize = rtspout_initialize,

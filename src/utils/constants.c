@@ -30,7 +30,7 @@
 typedef struct
 {
 	//codec ID
-	u32 codecid;
+	GF_CodecID codecid;
 	//not defined (0) if codecid>255
 	u8 mpeg4_oti;
 	//stream type
@@ -44,7 +44,7 @@ typedef struct
 	//mime type of raw format
 	const char *mime_type;
 	//alternate codecid name
-	u32 alt_codecid;
+	GF_CodecID alt_codecid;
 	//if true, unframe format exists in gpac (we can reparse the bitstream)
 	Bool unframe;
 } CodecIDReg;
@@ -197,7 +197,7 @@ GF_CodecID gf_codecid_parse(const char *cname)
 
 		const char *n = CodecRegistry[i].sname;
 		while (n) {
-			char *sep = strchr(n, '|');
+			const char *sep = strchr(n, '|');
 			u32 len;
 			if (sep)
 				len = (u32) (sep - n);
@@ -340,7 +340,7 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		if (CodecRegistry[i].rfc_4cc && !strncmp(CodecRegistry[i].rfc_4cc, c4cc, 4))
 			return CodecRegistry[i].codecid;
 	}
-	return 0;
+	return GF_CODECID_NONE;
 }
 
 
@@ -966,7 +966,7 @@ const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
 		ch_layout |= (GF_AUDIO_CH_REAR_SURROUND_LEFT|GF_AUDIO_CH_REAR_SURROUND_RIGHT);
 		return gf_audio_fmt_get_layout_name(ch_layout);
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout value "LLU"\n", ch_layout));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout value " LLU "\n", ch_layout));
 	return "unknown";
 }
 
@@ -994,7 +994,7 @@ u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].channel_mask == chan_layout) return GF_CICPLayouts[i].cicp;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout "LLU"\n", chan_layout));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout " LLU "\n", chan_layout));
 	return 255;
 }
 
@@ -1019,7 +1019,7 @@ const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].cicp == cicp_code) return GF_CICPLayouts[i].name;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout "LLU"\n", cicp_code));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout " LLU "\n", cicp_code));
 	return NULL;
 }
 
@@ -1930,78 +1930,78 @@ u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pix_fmt)
 static struct _itags {
 	const char *name;
 	const char *alt_name;
-	u32 itag;
+	GF_ISOiTunesTag itag;
 	u32 id3tag;
 	u32 type;
 	Bool match_substr;
 } itunes_tags[] = {
 
-	{"title", "name", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR, 0},
-	{"artist", NULL, GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR, 0},
-	{"album_artist", "albumArtist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_STR, 1},
-	{"album", NULL, GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR, 0},
-	{"group", "grouping", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR, 0},
-	{"composer", NULL, GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR, 0},
-	{"writer", NULL, GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR, 0},
-	{"conductor", NULL, GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR, 0},
-	{"comment", "comments", GF_ISOM_ITUNE_COMMENT, GF_ID3V2_FRAME_COMM, GF_ITAG_STR, 1},
+	{"title", "name", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR},
+	{"artist", NULL, GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR},
+	{"album_artist", "albumArtist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_STR, .match_substr=GF_TRUE},
+	{"album", NULL, GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR},
+	{"group", "grouping", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR},
+	{"composer", NULL, GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR},
+	{"writer", NULL, GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR},
+	{"conductor", NULL, GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR},
+	{"comment", "comments", GF_ISOM_ITUNE_COMMENT, GF_ID3V2_FRAME_COMM, GF_ITAG_STR, .match_substr=GF_TRUE},
 	//mapped dynamically to GF_ISOM_ITUNE_GENRE or GF_ISOM_ITUNE_GENRE_USER
-	{"genre", NULL, GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE, 0},
-	{"created", "releaseDate", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TYER, GF_ITAG_STR, 1},
-	{"track", NULL, GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR, 0},
-	{"tracknum", NULL, GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_FRAC8, 0},
-	{"disk", NULL, GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_FRAC6, 0},
-	{"tempo", NULL, GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_INT16, 0},
-	{"compilation", NULL, GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL, 0},
-	{"show", "tvShow", GF_ISOM_ITUNE_TV_SHOW, 0, GF_ITAG_STR, 0},
-	{"episode_id", "tvEpisodeID", GF_ISOM_ITUNE_TV_EPISODE, 0, GF_ITAG_STR, 0},
-	{"season", "tvSeason", GF_ISOM_ITUNE_TV_SEASON, 0, GF_ITAG_INT32, 0},
-	{"episode", "tvEPisode", GF_ISOM_ITUNE_TV_EPISODE_NUM, 0, GF_ITAG_INT32, 0},
-	{"network", "tvNetwork", GF_ISOM_ITUNE_TV_NETWORK, 0, GF_ITAG_STR, 0},
-	{"sdesc", "description", GF_ISOM_ITUNE_DESCRIPTION, 0, GF_ITAG_STR, 0},
-	{"ldesc", "longDescription", GF_ISOM_ITUNE_LONG_DESCRIPTION, GF_ID3V2_FRAME_TDES, GF_ITAG_STR, 0},
-	{"lyrics", NULL, GF_ISOM_ITUNE_LYRICS, GF_ID3V2_FRAME_USLT, GF_ITAG_STR, 0},
-	{"sort_name", "sortName", GF_ISOM_ITUNE_SORT_NAME, GF_ID3V2_FRAME_TSOT, GF_ITAG_STR, 0},
-	{"sort_artist", "sortArtist", GF_ISOM_ITUNE_SORT_ARTIST, GF_ID3V2_FRAME_TSOP, GF_ITAG_STR, 0},
-	{"sort_album_artist", "sortAlbumArtist", GF_ISOM_ITUNE_SORT_ALB_ARTIST, GF_ID3V2_FRAME_TSO2, GF_ITAG_STR, 0},
-	{"sort_album", "sortAlbum", GF_ISOM_ITUNE_SORT_ALBUM, GF_ID3V2_FRAME_TSOA, GF_ITAG_STR, 0},
-	{"sort_composer", "sortComposer", GF_ISOM_ITUNE_SORT_COMPOSER, GF_ID3V2_FRAME_TSOC, GF_ITAG_STR, 0},
-	{"sort_show", "sortShow", GF_ISOM_ITUNE_SORT_SHOW, 0, GF_ITAG_STR, 0},
-	{"cover", "artwork", GF_ISOM_ITUNE_COVER_ART, 0, GF_ITAG_FILE, 0},
-	{"copyright", NULL, GF_ISOM_ITUNE_COPYRIGHT, GF_ID3V2_FRAME_TCOP, GF_ITAG_STR, 0},
-	{"tool", "encodingTool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR, 0},
-	{"encoder", "encodedBy", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TENC, GF_ITAG_STR, 0},
-	{"pdate", "purchaseDate", GF_ISOM_ITUNE_PURCHASE_DATE, 0, GF_ITAG_STR, 0},
-	{"podcast", NULL, GF_ISOM_ITUNE_PODCAST, 0, GF_ITAG_BOOL, 0},
-	{"url", "podcastURL", GF_ISOM_ITUNE_PODCAST_URL, 0, GF_ITAG_STR, 0},
-	{"keywords", NULL, GF_ISOM_ITUNE_KEYWORDS, GF_ID3V2_FRAME_TKWD, GF_ITAG_STR, 0},
-	{"category", NULL, GF_ISOM_ITUNE_CATEGORY, GF_ID3V2_FRAME_TCAT, GF_ITAG_STR, 0},
-	{"hdvideo", NULL, GF_ISOM_ITUNE_HD_VIDEO, 0, GF_ITAG_INT8, 0},
-	{"media", "mediaType", GF_ISOM_ITUNE_MEDIA_TYPE, 0, GF_ITAG_INT8, 0},
-	{"rating", "contentRating", GF_ISOM_ITUNE_RATING, 0, GF_ITAG_INT8, 0},
-	{"gapless", NULL, GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL, 0},
-	{"art_director", NULL, GF_ISOM_ITUNE_ART_DIRECTOR, 0, GF_ITAG_STR, 0},
-	{"arranger", NULL, GF_ISOM_ITUNE_ARRANGER, 0, GF_ITAG_STR, 0},
-	{"lyricist", NULL, GF_ISOM_ITUNE_LYRICIST, 0, GF_ITAG_STR, 0},
-	{"acknowledgement", NULL, GF_ISOM_ITUNE_COPY_ACK, 0, GF_ITAG_STR, 0},
-	{"song_description", NULL, GF_ISOM_ITUNE_SONG_DESC, 0, GF_ITAG_STR, 0},
-	{"director", NULL, GF_ISOM_ITUNE_DIRECTOR, 0, GF_ITAG_STR, 0},
-	{"equalizer", NULL, GF_ISOM_ITUNE_EQ_PRESET, 0, GF_ITAG_STR, 0},
-	{"liner", NULL, GF_ISOM_ITUNE_LINER_NOTES, 0, GF_ITAG_STR, 0},
-	{"record_company", NULL, GF_ISOM_ITUNE_REC_COMPANY, 0, GF_ITAG_STR, 0},
-	{"original_artist", NULL, GF_ISOM_ITUNE_ORIG_ARTIST, 0, GF_ITAG_STR, 0},
-	{"phono_rights", NULL, GF_ISOM_ITUNE_PHONO_RIGHTS, 0, GF_ITAG_STR, 0},
-	{"producer", NULL, GF_ISOM_ITUNE_PRODUCER, 0, GF_ITAG_STR, 0},
-	{"performer", NULL, GF_ISOM_ITUNE_PERFORMER, 0, GF_ITAG_STR, 0},
-	{"publisher", NULL, GF_ISOM_ITUNE_PUBLISHER, 0, GF_ITAG_STR, 0},
-	{"sound_engineer", NULL, GF_ISOM_ITUNE_SOUND_ENG, 0, GF_ITAG_STR, 0},
-	{"soloist", NULL, GF_ISOM_ITUNE_SOLOIST, 0, GF_ITAG_STR, 0},
-	{"credits", NULL, GF_ISOM_ITUNE_CREDITS, 0, GF_ITAG_STR, 0},
-	{"thanks", NULL, GF_ISOM_ITUNE_THANKS, 0, GF_ITAG_STR, 0},
-	{"online_info", NULL, GF_ISOM_ITUNE_ONLINE, 0, GF_ITAG_STR, 0},
-	{"exec_producer", NULL, GF_ISOM_ITUNE_EXEC_PRODUCER, 0, GF_ITAG_STR, 0},
-	{"genre", NULL, GF_ISOM_ITUNE_GENRE_USER, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE, 0},
-	{"location", NULL, GF_ISOM_ITUNE_LOCATION, 0, GF_ITAG_STR, 0},
+	{"genre", NULL, GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE},
+	{"created", "releaseDate", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TYER, GF_ITAG_STR, .match_substr=GF_TRUE},
+	{"track", NULL, GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR},
+	{"tracknum", NULL, GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_FRAC8},
+	{"disk", NULL, GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_FRAC6},
+	{"tempo", NULL, GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_INT16},
+	{"compilation", NULL, GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL},
+	{"show", "tvShow", GF_ISOM_ITUNE_TV_SHOW, 0, GF_ITAG_STR},
+	{"episode_id", "tvEpisodeID", GF_ISOM_ITUNE_TV_EPISODE, 0, GF_ITAG_STR},
+	{"season", "tvSeason", GF_ISOM_ITUNE_TV_SEASON, 0, GF_ITAG_INT32},
+	{"episode", "tvEPisode", GF_ISOM_ITUNE_TV_EPISODE_NUM, 0, GF_ITAG_INT32},
+	{"network", "tvNetwork", GF_ISOM_ITUNE_TV_NETWORK, 0, GF_ITAG_STR},
+	{"sdesc", "description", GF_ISOM_ITUNE_DESCRIPTION, 0, GF_ITAG_STR},
+	{"ldesc", "longDescription", GF_ISOM_ITUNE_LONG_DESCRIPTION, GF_ID3V2_FRAME_TDES, GF_ITAG_STR},
+	{"lyrics", NULL, GF_ISOM_ITUNE_LYRICS, GF_ID3V2_FRAME_USLT, GF_ITAG_STR},
+	{"sort_name", "sortName", GF_ISOM_ITUNE_SORT_NAME, GF_ID3V2_FRAME_TSOT, GF_ITAG_STR},
+	{"sort_artist", "sortArtist", GF_ISOM_ITUNE_SORT_ARTIST, GF_ID3V2_FRAME_TSOP, GF_ITAG_STR},
+	{"sort_album_artist", "sortAlbumArtist", GF_ISOM_ITUNE_SORT_ALB_ARTIST, GF_ID3V2_FRAME_TSO2, GF_ITAG_STR},
+	{"sort_album", "sortAlbum", GF_ISOM_ITUNE_SORT_ALBUM, GF_ID3V2_FRAME_TSOA, GF_ITAG_STR},
+	{"sort_composer", "sortComposer", GF_ISOM_ITUNE_SORT_COMPOSER, GF_ID3V2_FRAME_TSOC, GF_ITAG_STR},
+	{"sort_show", "sortShow", GF_ISOM_ITUNE_SORT_SHOW, 0, GF_ITAG_STR},
+	{"cover", "artwork", GF_ISOM_ITUNE_COVER_ART, 0, GF_ITAG_FILE},
+	{"copyright", NULL, GF_ISOM_ITUNE_COPYRIGHT, GF_ID3V2_FRAME_TCOP, GF_ITAG_STR},
+	{"tool", "encodingTool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR},
+	{"encoder", "encodedBy", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TENC, GF_ITAG_STR},
+	{"pdate", "purchaseDate", GF_ISOM_ITUNE_PURCHASE_DATE, 0, GF_ITAG_STR},
+	{"podcast", NULL, GF_ISOM_ITUNE_PODCAST, 0, GF_ITAG_BOOL},
+	{"url", "podcastURL", GF_ISOM_ITUNE_PODCAST_URL, 0, GF_ITAG_STR},
+	{"keywords", NULL, GF_ISOM_ITUNE_KEYWORDS, GF_ID3V2_FRAME_TKWD, GF_ITAG_STR},
+	{"category", NULL, GF_ISOM_ITUNE_CATEGORY, GF_ID3V2_FRAME_TCAT, GF_ITAG_STR},
+	{"hdvideo", NULL, GF_ISOM_ITUNE_HD_VIDEO, 0, GF_ITAG_INT8},
+	{"media", "mediaType", GF_ISOM_ITUNE_MEDIA_TYPE, 0, GF_ITAG_INT8},
+	{"rating", "contentRating", GF_ISOM_ITUNE_RATING, 0, GF_ITAG_INT8},
+	{"gapless", NULL, GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL},
+	{"art_director", NULL, GF_ISOM_ITUNE_ART_DIRECTOR, 0, GF_ITAG_STR},
+	{"arranger", NULL, GF_ISOM_ITUNE_ARRANGER, 0, GF_ITAG_STR},
+	{"lyricist", NULL, GF_ISOM_ITUNE_LYRICIST, 0, GF_ITAG_STR},
+	{"acknowledgement", NULL, GF_ISOM_ITUNE_COPY_ACK, 0, GF_ITAG_STR},
+	{"song_description", NULL, GF_ISOM_ITUNE_SONG_DESC, 0, GF_ITAG_STR},
+	{"director", NULL, GF_ISOM_ITUNE_DIRECTOR, 0, GF_ITAG_STR},
+	{"equalizer", NULL, GF_ISOM_ITUNE_EQ_PRESET, 0, GF_ITAG_STR},
+	{"liner", NULL, GF_ISOM_ITUNE_LINER_NOTES, 0, GF_ITAG_STR},
+	{"record_company", NULL, GF_ISOM_ITUNE_REC_COMPANY, 0, GF_ITAG_STR},
+	{"original_artist", NULL, GF_ISOM_ITUNE_ORIG_ARTIST, 0, GF_ITAG_STR},
+	{"phono_rights", NULL, GF_ISOM_ITUNE_PHONO_RIGHTS, 0, GF_ITAG_STR},
+	{"producer", NULL, GF_ISOM_ITUNE_PRODUCER, 0, GF_ITAG_STR},
+	{"performer", NULL, GF_ISOM_ITUNE_PERFORMER, 0, GF_ITAG_STR},
+	{"publisher", NULL, GF_ISOM_ITUNE_PUBLISHER, 0, GF_ITAG_STR},
+	{"sound_engineer", NULL, GF_ISOM_ITUNE_SOUND_ENG, 0, GF_ITAG_STR},
+	{"soloist", NULL, GF_ISOM_ITUNE_SOLOIST, 0, GF_ITAG_STR},
+	{"credits", NULL, GF_ISOM_ITUNE_CREDITS, 0, GF_ITAG_STR},
+	{"thanks", NULL, GF_ISOM_ITUNE_THANKS, 0, GF_ITAG_STR},
+	{"online_info", NULL, GF_ISOM_ITUNE_ONLINE, 0, GF_ITAG_STR},
+	{"exec_producer", NULL, GF_ISOM_ITUNE_EXEC_PRODUCER, 0, GF_ITAG_STR},
+	{"genre", NULL, GF_ISOM_ITUNE_GENRE_USER, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE},
+	{"location", NULL, GF_ISOM_ITUNE_LOCATION, 0, GF_ITAG_STR},
 };
 
 GF_EXPORT
@@ -2067,7 +2067,7 @@ GF_EXPORT
 u32 gf_itags_get_itag(u32 tag_idx)
 {
 	u32 count = GF_ARRAY_LENGTH(itunes_tags);
-	if (tag_idx>=count) return 0;
+	if (tag_idx>=count) return GF_ISOM_ITUNE_PROBE;
 	return itunes_tags[tag_idx].itag;
 }
 
@@ -2370,7 +2370,7 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 		Double res = (Double) value;
 		res *= new_timescale;
 		res /= timescale;
-		return (res < GF_UINT64_MAX ? (u64)res : GF_UINT64_MAX);
+		return (res < (Double) GF_UINT64_MAX ? (u64)res : GF_UINT64_MAX);
 	}
 	return int_part * new_timescale + frac_part;
 }
@@ -2407,11 +2407,11 @@ s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale)
 
 #define TIMESTAMP_COMPARE(_op) \
 	if (timescale1==timescale2) { \
-		return (value1 _op value2); \
+		return (value1 _op value2) ? GF_TRUE : GF_FALSE; \
 	} \
 	\
 	if ((value1 <= GF_INT_MAX) && (value2 <= GF_INT_MAX)) { \
-		return (value1 * timescale2 _op value2 * timescale1); \
+		return (value1 * timescale2 _op value2 * timescale1) ? GF_TRUE : GF_FALSE; \
 	} \
 	\
 	if ((value1==0xFFFFFFFFFFFFFFFFUL) || (value2==0xFFFFFFFFFFFFFFFFUL)) \
@@ -2420,7 +2420,7 @@ s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale)
 	if (!timescale1 || !timescale2) return GF_FALSE; \
 	\
 	u64 v1_rescale = gf_timestamp_rescale(value1, timescale1, timescale2); \
-	return (v1_rescale _op value2); \
+	return (v1_rescale _op value2) ? GF_TRUE : GF_FALSE; \
 
 
 GF_EXPORT
@@ -2923,10 +2923,10 @@ u64 gf_timecode_to_timestamp(GF_TimeCode *tc, u32 timescale)
 }
 
 #define TIMECODE_COMPARE(_op) \
-	if (value1->hours != value2->hours) return value1->hours _op value2->hours; \
-	if (value1->minutes != value2->minutes) return value1->minutes _op value2->minutes; \
-	if (value1->seconds != value2->seconds) return value1->seconds _op value2->seconds; \
-	return value1->n_frames _op value2->n_frames;
+if (value1->hours != value2->hours) return (value1->hours _op value2->hours) ? GF_TRUE : GF_FALSE; \
+	if (value1->minutes != value2->minutes) return (value1->minutes _op value2->minutes) ? GF_TRUE : GF_FALSE; \
+	if (value1->seconds != value2->seconds) return (value1->seconds _op value2->seconds) ? GF_TRUE : GF_FALSE; \
+	return (value1->n_frames _op value2->n_frames) ? GF_TRUE : GF_FALSE;
 
 GF_EXPORT
 Bool gf_timecode_less(GF_TimeCode *value1, GF_TimeCode *value2)

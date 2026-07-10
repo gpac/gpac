@@ -68,7 +68,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		if (!strcmp(szTest, szLine)) *fmt = GF_TEXT_IMPORT_SRT;
 	}
 	else if (!strnicmp(szLine, "<?xml ", 6)) {
-		char *ext = gf_file_ext_start(filename);
+		const char *ext = gf_file_ext_start(filename);
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
@@ -162,7 +162,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	curLine = 0;
 	au = NULL;
 	com = NULL;
-	italic = underlined = bold = 0;
+	italic = underlined = bold = GF_FALSE;
 	inf = NULL;
 
 	while (1) {
@@ -193,7 +193,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 					gf_list_add(au->commands, com);
 				}
 
-				au = gf_sm_stream_au_new(srt, end, 0, 1);
+				au = gf_sm_stream_au_new(srt, end, 0, GF_TRUE);
 				com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
 				com->node = text;
 				gf_node_register(text, NULL);
@@ -220,7 +220,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			continue;
 		}
 
-		if (!gf_utf8_is_legal(sOK, (u32)strlen(szLine))) {
+		if (!gf_utf8_is_legal((u8*)sOK, (u32)strlen(szLine))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] Illegal UTF8 data\n"));
 			e = GF_CORRUPTED_DATA;
 			goto exit;
@@ -255,7 +255,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			end = (3600*eh + 60*em + es)*1000 + ems;
 			/*make stream start at 0 by inserting a fake AU*/
 			if ((curLine==1) && start>0) {
-				au = gf_sm_stream_au_new(srt, 0, 0, 1);
+				au = gf_sm_stream_au_new(srt, 0, 0, GF_TRUE);
 				com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
 				com->node = text;
 				gf_node_register(text, NULL);
@@ -266,10 +266,10 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 				gf_list_add(au->commands, com);
 			}
 
-			au = gf_sm_stream_au_new(srt, start, 0, 1);
+			au = gf_sm_stream_au_new(srt, start, 0, GF_TRUE);
 			com = NULL;
 			state = 2;
-			italic = underlined = bold = 0;
+			italic = underlined = bold = GF_FALSE;
 			break;
 
 		default:
@@ -277,15 +277,15 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			/*FIXME - other styles posssibles ??*/
 			while (1) {
 				if (!strnicmp(ptr, "<i>", 3)) {
-					italic = 1;
+					italic = GF_TRUE;
 					ptr += 3;
 				}
 				else if (!strnicmp(ptr, "<u>", 3)) {
-					underlined = 1;
+					underlined = GF_TRUE;
 					ptr += 3;
 				}
 				else if (!strnicmp(ptr, "<b>", 3)) {
-					bold = 1;
+					bold = GF_TRUE;
 					ptr += 3;
 				}
 				else
@@ -428,7 +428,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	inf = NULL;
 
 	line = 0;
-	first_samp = 1;
+	first_samp = GF_TRUE;
 	while (1) {
 		char *sOK = gf_fgets(szLine, 2048, sub_in);
 		if (!sOK) break;
@@ -487,7 +487,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		}
 
 		if (start && first_samp) {
-			au = gf_sm_stream_au_new(srt, 0, 0, 1);
+			au = gf_sm_stream_au_new(srt, 0, 0, GF_TRUE);
 			com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
 			com->node = text;
 			gf_node_register(text, NULL);

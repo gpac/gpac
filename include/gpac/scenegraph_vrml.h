@@ -35,7 +35,7 @@ extern "C" {
 \file <gpac/scenegraph_vrml.h>
 \brief Scenegraph for VRML files
 */
-	
+
 /*!
 \addtogroup svrml BIFS/VRML/X3D Scenegraph
 \ingroup scene_grp
@@ -120,7 +120,7 @@ u32 gf_node_get_num_fields_in_mode(GF_Node *n, u8 IndexMode);
 
 /*		SF Types	*/
 /*! Boolean*/
-typedef u32 SFBool;
+typedef Bool SFBool;
 /*! Integer*/
 typedef s32 SFInt32;
 /*! Integer*/
@@ -189,7 +189,7 @@ typedef struct {
 	u32 width;
 	u32 height;
 	u8 numComponents;
-	unsigned char* pixels;
+	u8* pixels;
 } SFImage;
 /*! BIFS Command Buffer*/
 typedef struct {
@@ -243,7 +243,7 @@ typedef struct {
 /*! Boolean array*/
 typedef struct {
 	u32 count;
-	u32* vals;
+	Bool* vals;
 } MFBool;
 /*! Color RGB array*/
 typedef struct {
@@ -690,7 +690,7 @@ u32 gf_sg_get_next_available_proto_id(GF_SceneGraph *sg);
 \param unregistered if GF_TRUE, the proto is not stored in the graph main proto list but in an alternate list (used for memory handling of scene graph only). Several protos with the same ID/Name can be stored unregistered
 \return a new proto object
 */
-GF_Proto *gf_sg_proto_new(GF_SceneGraph *sg, u32 ProtoID, char *name, Bool unregistered);
+GF_Proto *gf_sg_proto_new(GF_SceneGraph *sg, u32 ProtoID, const char *name, Bool unregistered);
 
 /*! destroys a proto - can be used even if instances of the proto are still present
 \param proto the target proto
@@ -723,7 +723,7 @@ u32 gf_sg_proto_get_field_count(GF_Proto *proto);
 \param fieldName the name of the field
 \return the proto field interface or NULL if not found
 */
-GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, char *fieldName);
+GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, const char *fieldName);
 /*! locates field declaration by index
 \param proto the target proto
 \param fieldIndex 0-based index of the field to query
@@ -739,7 +739,7 @@ fieldName can be NULL, if so the name will be fieldN, N being the index of the c
 \param fieldName the name of the field to create (may be NULL)
 \return the new proto field interface
 */
-GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u32 eventType, char *fieldName);
+GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u32 eventType, const char *fieldName);
 
 /*! assigns the node field to a field of the proto (the node field IS the proto field)
 the node shall be a node of the proto scenegraph, and the fieldtype/eventType of both fields shall match
@@ -792,7 +792,7 @@ GF_Err gf_sg_proto_load_code(GF_Node *proto_inst);
 \param name the name of the proto to locate
 \return the proto node or NULL if not found
 */
-GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name);
+GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, const char *name);
 
 /*! deletes all protos in given scene - does NOT delete instances of protos, only the proto object is destroyed
 \param sg the target scene graph

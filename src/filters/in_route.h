@@ -32,6 +32,10 @@
 #ifndef IN_ROUTE_H
 #define IN_ROUTE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef GPAC_DISABLE_ROUTE
 
 enum
@@ -112,7 +116,7 @@ typedef struct
 	RouteRepairRange *range;
 	RouteRepairServer *server;
 	u32 initial_retry, retry_in;
-	char http_buf[REPAIR_BUF_SIZE];
+	u8 http_buf[REPAIR_BUF_SIZE];
 } RouteRepairSession;
 
 typedef struct
@@ -181,7 +185,7 @@ typedef struct
 {
 	u32 sample_id;
 	u32 nb_refs, nb_refs_alloc;
-	u32 *refs;
+	s32 *refs;
 	u32 start_range;
 	u32 end_range;
 	u64 dts;
@@ -232,5 +236,9 @@ void routein_check_type(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo, u32 servi
 TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo);
 
 #endif /* GPAC_DISABLE_ROUTE */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //#define IN_ROUTE_H

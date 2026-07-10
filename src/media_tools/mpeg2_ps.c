@@ -148,7 +148,7 @@ static FILE *file_open (const char *name)
 
 static Bool file_okay (FILE *fd)
 {
-	return (fd!=NULL) ? 1 : 0;
+	return (fd!=NULL) ? GF_TRUE : GF_FALSE;
 }
 
 static void file_close (FILE *fd)
@@ -161,7 +161,7 @@ static Bool file_read_bytes(FILE *fd,
                             u32 len)
 {
 	u32 readval = (u32) gf_fread(buffer, len, fd);
-	return readval == len;
+	return readval == len ? GF_TRUE : GF_FALSE;
 }
 
 // note: len could be negative.
@@ -390,7 +390,7 @@ static mpeg2ps_stream_t *mpeg2ps_stream_create (u8 stream_id,
 	if (!ptr) return NULL;
 	ptr->m_stream_id = stream_id;
 	ptr->m_substream_id = substream;
-	ptr->is_video = stream_id >= 0xe0;
+	ptr->is_video = (stream_id >= 0xe0) ? GF_TRUE : GF_FALSE;
 	ptr->pes_buffer = (u8 *)gf_malloc(4*4096);
 	ptr->pes_buffer_size_max = 4 * 4096;
 	return ptr;
@@ -459,7 +459,7 @@ static Bool find_pack_start (FILE *fd,
 	u32 buffer_on = 0, new_offset, scode;
 	memcpy(buffer, saved, len);
 	if (file_read_bytes(fd, buffer + len, sizeof(buffer) - len) == 0) {
-		return 0;
+		return GF_FALSE;
 	}
 	while (1) {
 		if (gf_mv12_next_start_code(buffer + buffer_on,
@@ -469,7 +469,7 @@ static Bool find_pack_start (FILE *fd,
 			buffer_on += new_offset;
 			if (scode == MPEG2_PS_PACKSTART) {
 				file_skip_bytes(fd, buffer_on - 512); // go back to header
-				return 1;
+				return GF_TRUE;
 			}
 			buffer_on += 1;
 		} else {
@@ -490,12 +490,12 @@ static Bool find_pack_start (FILE *fd,
 				len = 1;
 			}
 			if (file_read_bytes(fd, buffer + len, sizeof(buffer) - len) == 0) {
-				return 0;
+				return GF_FALSE;
 			}
 			buffer_on = 0;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /*
@@ -545,7 +545,7 @@ static Bool read_to_next_pes_header (FILE *fd,
 	while (1) {
 		// read the pes header
 		if (file_read_bytes(fd, local, 6) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 
 		hdr = convert32(local);
@@ -554,7 +554,7 @@ static Bool read_to_next_pes_header (FILE *fd,
 		if (((hdr & MPEG2_PS_START_MASK) != MPEG2_PS_START) ||
 		        (hdr < MPEG2_PS_END)) {
 			if (find_pack_start(fd, local, 6) == 0) {
-				return 0;
+				return GF_FALSE;
 			}
 			continue;
 		}
@@ -571,9 +571,9 @@ static Bool read_to_next_pes_header (FILE *fd,
 		// we should have a valid stream and pes_len here...
 		*stream_id = hdr & 0xff;
 		*pes_len = convert16(local + 4);
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /*
@@ -591,28 +591,28 @@ static Bool read_pes_header_data (FILE *fd,
 	u8 local[10] = {0};
 	u32 hdr_len;
 
-	ts->have_pts = 0;
-	ts->have_dts = 0;
-	if (have_ts) *have_ts = 0;
+	ts->have_pts = GF_FALSE;
+	ts->have_dts = GF_FALSE;
+	if (have_ts) *have_ts = GF_FALSE;
 	if (file_read_bytes(fd, local, 1) == 0) {
-		return 0;
+		return GF_FALSE;
 	}
 	pes_len--; // remove this first byte from length
 	while (*local == 0xff) {
 		if (file_read_bytes(fd, local, 1) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 		pes_len--;
 		if (pes_len == 0) {
 			*pes_left = 0;
-			return 1;
+			return GF_TRUE;
 		}
 	}
 	if ((*local & 0xc0) == 0x40) {
 		// buffer scale & size
 		file_skip_bytes(fd, 1);
 		if (file_read_bytes(fd, local, 1) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 		pes_len -= 2;
 	}
@@ -620,42 +620,42 @@ static Bool read_pes_header_data (FILE *fd,
 	if ((*local & 0xf0) == 0x20) {
 		// mpeg-1 with pts
 		if (file_read_bytes(fd, local + 1, 4) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
-		ts->have_pts = 1;
+		ts->have_pts = GF_TRUE;
 		ts->pts = ts->dts = read_pts(local);
-		*have_ts = 1;
+		*have_ts = GF_TRUE;
 		pes_len -= 4;
 	} else if ((*local & 0xf0) == 0x30) {
 		// have mpeg 1 pts and dts
 		if (file_read_bytes(fd, local + 1, 9) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
-		ts->have_pts = 1;
-		ts->have_dts = 1;
-		*have_ts = 1;
+		ts->have_pts = GF_TRUE;
+		ts->have_dts = GF_TRUE;
+		*have_ts = GF_TRUE;
 		ts->pts = read_pts(local);
 		ts->dts = read_pts(local + 5);
 		pes_len -= 9;
 	} else if ((*local & 0xc0) == 0x80) {
 		// mpeg2 pes header  - we're pointing at the flags field now
 		if (file_read_bytes(fd, local + 1, 2) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 		hdr_len = local[2];
 		pes_len -= hdr_len + 2; // first byte removed already
 		if ((local[1] & 0xc0) == 0x80) {
 			// just pts
-			ts->have_pts = 1;
+			ts->have_pts = GF_TRUE;
 			file_read_bytes(fd, local, 5);
 			ts->pts = ts->dts = read_pts(local);
-			*have_ts = 1;
+			*have_ts = GF_TRUE;
 			hdr_len -= 5;
 		} else if ((local[1] & 0xc0) == 0xc0) {
 			// pts and dts
-			ts->have_pts = 1;
-			ts->have_dts = 1;
-			*have_ts = 1;
+			ts->have_pts = GF_TRUE;
+			ts->have_dts = GF_TRUE;
+			*have_ts = GF_TRUE;
 			file_read_bytes(fd, local, 10);
 			ts->pts = read_pts(local);
 			ts->dts = read_pts(local  + 5);
@@ -667,7 +667,7 @@ static Bool read_pes_header_data (FILE *fd,
 		pes_len = 0;
 	}
 	*pes_left = pes_len;
-	return 1;
+	return GF_TRUE;
 }
 
 static Bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
@@ -682,7 +682,7 @@ static Bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
 		// this will read until we find the next pes.  We don't know if the
 		// stream matches - this will read over pack headers
 		if (read_to_next_pes_header(sptr->m_fd, &stream_id, pes_len) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 
 		if (stream_id != sptr->m_stream_id) {
@@ -696,7 +696,7 @@ static Bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
 		                         pes_len,
 		                         have_ts,
 		                         &sptr->next_pes_ts) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 
 		// If we're looking at a private stream, make sure that the sub-stream
@@ -717,9 +717,9 @@ static Bool search_for_next_pes_header (mpeg2ps_stream_t *sptr,
 			mpeg2ps_record_pts(sptr, loc, &sptr->next_pes_ts);
 		}
 		if (found_loc != NULL) *found_loc = loc;
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /*
@@ -733,12 +733,12 @@ static Bool mpeg2ps_stream_read_next_pes_buffer (mpeg2ps_stream_t *sptr)
 	Bool have_ts;
 
 	if (search_for_next_pes_header(sptr, &pes_len, &have_ts, NULL) == 0) {
-		return 0;
+		return GF_FALSE;
 	}
 
 	copy_bytes_to_pes_buffer(sptr, pes_len);
 
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -767,7 +767,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
 {
 	u32 offset, scode;
 	Bool have_pict;
-	Bool started_new_pes = 0;
+	Bool started_new_pes = GF_FALSE;
 	u32 start;
 	/*
 	 * First thing - determine if we have enough bytes to read the header.
@@ -777,9 +777,9 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
 	sptr->frame_ts = sptr->next_pes_ts;
 	if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 4) {
 		if (sptr->pes_buffer_size != sptr->pes_buffer_on)
-			started_new_pes = 1;
+			started_new_pes = GF_TRUE;
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	while (gf_mv12_next_start_code(sptr->pes_buffer + sptr->pes_buffer_on,
@@ -791,10 +791,10 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
 			sptr->pes_buffer_on = sptr->pes_buffer_size - 3;
 		else {
 			sptr->pes_buffer_on = sptr->pes_buffer_size;
-			started_new_pes = 1;
+			started_new_pes = GF_TRUE;
 		}
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	sptr->pes_buffer_on += offset;
@@ -805,13 +805,13 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
 		// starting.  So, we want to use the header that we read.
 		sptr->frame_ts = sptr->next_pes_ts; // set timestamp after searching
 		// clear timestamp indication
-		sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = 0;
+		sptr->next_pes_ts.have_pts = sptr->next_pes_ts.have_dts = GF_FALSE;
 	}
 
 	if (scode == MPEG12_PICTURE_START_CODE) {
 		sptr->pict_header_offset = sptr->pes_buffer_on;
-		have_pict = 1;
-	} else have_pict = 0;
+		have_pict = GF_TRUE;
+	} else have_pict = GF_FALSE;
 
 	start = 4 + sptr->pes_buffer_on;
 	while (1) {
@@ -824,7 +824,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
 			start -= sptr->pes_buffer_on;
 			sptr->pict_header_offset -= sptr->pes_buffer_on;
 			if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-				return 0;
+				return GF_FALSE;
 			}
 			start += sptr->pes_buffer_on;
 			sptr->pict_header_offset += sptr->pes_buffer_on;
@@ -832,50 +832,50 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
 			start += offset;
 			if (have_pict == 0) {
 				if (scode == MPEG12_PICTURE_START_CODE) {
-					have_pict = 1;
+					have_pict = GF_TRUE;
 					sptr->pict_header_offset = start;
 				}
 			} else {
 				if (IS_MPEG_START(scode & 0xff) ||
 				        scode == MPEG12_SEQUENCE_END_START_CODE) {
 					sptr->frame_len = start - sptr->pes_buffer_on;
-					sptr->have_frame_loaded = 1;
-					return 1;
+					sptr->have_frame_loaded = GF_TRUE;
+					return GF_TRUE;
 				}
 			}
 			start += 4;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
 {
 	u32 diff;
-	Bool started_new_pes = 0;
+	Bool started_new_pes = GF_FALSE;
 	GF_AC3Config hdr;
 	memset(&hdr, 0, sizeof(GF_AC3Config));
 	sptr->frame_ts = sptr->next_pes_ts; // set timestamp after searching
 	if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 6) {
 		if (sptr->pes_buffer_size != sptr->pes_buffer_on)
-			started_new_pes = 1;
+			started_new_pes = GF_TRUE;
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	while (gf_ac3_parser(sptr->pes_buffer + sptr->pes_buffer_on,
 	                     sptr->pes_buffer_size - sptr->pes_buffer_on,
 	                     &diff,
-	                     &hdr, 0) <= 0) {
+	                     &hdr, GF_FALSE) <= 0) {
 		// don't have frame
 		if (sptr->pes_buffer_size > 6) {
 			sptr->pes_buffer_on = sptr->pes_buffer_size - 6;
-			started_new_pes = 1;
+			started_new_pes = GF_TRUE;
 		} else {
 			sptr->pes_buffer_on = sptr->pes_buffer_size;
 		}
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	sptr->frame_len = hdr.framesize;
@@ -884,28 +884,28 @@ static Bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
 		// we might have a new PTS - but it's not here
 	} else {
 		sptr->frame_ts = sptr->next_pes_ts;
-		sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = 0;
+		sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = GF_FALSE;
 	}
 	while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
-	sptr->have_frame_loaded = 1;
-	return 1;
+	sptr->have_frame_loaded = GF_TRUE;
+	return GF_TRUE;
 }
 
 static Bool mpeg2ps_stream_find_mp3_frame (mpeg2ps_stream_t *sptr)
 {
 	u32 diff, hdr;
-	Bool started_new_pes = 0;
+	Bool started_new_pes = GF_FALSE;
 
 	sptr->frame_ts = sptr->next_pes_ts;
 	if (sptr->pes_buffer_size <= sptr->pes_buffer_on + 4) {
 		if (sptr->pes_buffer_size != sptr->pes_buffer_on)
-			started_new_pes = 1;
+			started_new_pes = GF_TRUE;
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	while ((hdr=gf_mp3_get_next_header_mem(sptr->pes_buffer + sptr->pes_buffer_on,
@@ -916,12 +916,12 @@ static Bool mpeg2ps_stream_find_mp3_frame (mpeg2ps_stream_t *sptr)
 			if (sptr->pes_buffer_on != sptr->pes_buffer_size) {
 				sptr->pes_buffer_on = sptr->pes_buffer_size - 3;
 			}
-			started_new_pes = 1; // we have left over bytes...
+			started_new_pes = GF_TRUE; // we have left over bytes...
 		} else {
 			sptr->pes_buffer_on = sptr->pes_buffer_size;
 		}
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	// have frame.
@@ -931,15 +931,15 @@ static Bool mpeg2ps_stream_find_mp3_frame (mpeg2ps_stream_t *sptr)
 
 	} else {
 		sptr->frame_ts = sptr->next_pes_ts;
-		sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = 0;
+		sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = GF_FALSE;
 	}
 	while (sptr->pes_buffer_size - sptr->pes_buffer_on < sptr->frame_len) {
 		if (mpeg2ps_stream_read_next_pes_buffer(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
-	sptr->have_frame_loaded = 1;
-	return 1;
+	sptr->have_frame_loaded = GF_TRUE;
+	return GF_TRUE;
 }
 
 /*
@@ -959,9 +959,9 @@ static Bool mpeg2ps_stream_read_frame (mpeg2ps_stream_t *sptr,
 			if (advance_pointers) {
 				sptr->pes_buffer_on += sptr->frame_len;
 			}
-			return 1;
+			return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 	} else if (sptr->m_stream_id == 0xbd) {
 		// would need to handle LPCM here
 		if (mpeg2ps_stream_find_ac3_frame(sptr)) {
@@ -969,17 +969,17 @@ static Bool mpeg2ps_stream_read_frame (mpeg2ps_stream_t *sptr,
 			*buflen = sptr->frame_len;
 			if (advance_pointers)
 				sptr->pes_buffer_on += sptr->frame_len;
-			return 1;
+			return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 	} else if (mpeg2ps_stream_find_mp3_frame(sptr)) {
 		*buffer = sptr->pes_buffer + sptr->pes_buffer_on;
 		*buflen = sptr->frame_len;
 		if (advance_pointers)
 			sptr->pes_buffer_on += sptr->frame_len;
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /*
@@ -1021,7 +1021,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 			u32 pos;
 			GF_AC3Config hdr;
 			memset(&hdr, 0, sizeof(GF_AC3Config));
-			gf_ac3_parser(buffer, buflen, &pos, &hdr, 0);
+			gf_ac3_parser(buffer, buflen, &pos, &hdr, GF_FALSE);
 			sptr->bitrate = gf_ac3_get_bitrate(hdr.brcode);
 			sptr->freq = hdr.sample_rate;
 			sptr->channels = hdr.streams[0].channels;
@@ -1042,9 +1042,9 @@ static void clear_stream_buffer (mpeg2ps_stream_t *sptr)
 {
 	sptr->pes_buffer_on = sptr->pes_buffer_size = 0;
 	sptr->frame_len = 0;
-	sptr->have_frame_loaded = 0;
-	sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = 0;
-	sptr->frame_ts.have_dts = sptr->frame_ts.have_pts = 0;
+	sptr->have_frame_loaded = GF_FALSE;
+	sptr->next_pes_ts.have_dts = sptr->next_pes_ts.have_pts = GF_FALSE;
+	sptr->frame_ts.have_dts = sptr->frame_ts.have_pts = GF_FALSE;
 }
 
 /*
@@ -1113,7 +1113,7 @@ static Bool add_stream (mpeg2ps_t *ps,
 	mpeg2ps_stream_t *sptr;
 
 	sptr = find_stream_from_id(ps, stream_id, substream);
-	if (sptr != NULL) return 0;
+	if (sptr != NULL) return GF_FALSE;
 
 	// need to add
 
@@ -1121,10 +1121,10 @@ static Bool add_stream (mpeg2ps_t *ps,
 	sptr->first_pes_loc = first_loc;
 	if (ts == NULL ||
 	        (ts->have_dts == 0 && ts->have_pts == 0)) {
-		sptr->first_pes_has_dts = 0;
+		sptr->first_pes_has_dts = GF_FALSE;
 	} else {
 		sptr->start_dts = ts->have_dts ? ts->dts : ts->pts;
-		sptr->first_pes_has_dts = 1;
+		sptr->first_pes_has_dts = GF_TRUE;
 	}
 	if (sptr->is_video) {
 		// can't be more than 16 - e0 to ef...
@@ -1133,12 +1133,12 @@ static Bool add_stream (mpeg2ps_t *ps,
 	} else {
 		if (ps->audio_cnt >= 32) {
 			mpeg2ps_stream_destroy(sptr);
-			return 0;
+			return GF_FALSE;
 		}
 		ps->audio_streams[ps->audio_cnt] = sptr;
 		ps->audio_cnt++;
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 static void check_fd_for_stream (mpeg2ps_t *ps,
@@ -1158,7 +1158,7 @@ static void check_fd_for_stream (mpeg2ps_t *ps,
 static void advance_frame (mpeg2ps_stream_t *sptr)
 {
 	sptr->pes_buffer_on += sptr->frame_len;
-	sptr->have_frame_loaded = 0;
+	sptr->have_frame_loaded = GF_FALSE;
 	if (sptr->frame_ts.have_dts || sptr->frame_ts.have_pts) {
 		if (sptr->frame_ts.have_dts)
 			sptr->last_ts = sptr->frame_ts.dts;
@@ -1199,7 +1199,7 @@ static void get_info_for_all_streams (mpeg2ps_t *ps)
 			if (mpeg2ps_stream_read_frame(sptr,
 			                              &buffer,
 			                              &buflen,
-			                              0) == 0) {
+			                              GF_FALSE) == 0) {
 				sptr->m_stream_id = 0;
 				sptr->m_fd = FDNULL;
 				continue;
@@ -1212,7 +1212,7 @@ static void get_info_for_all_streams (mpeg2ps_t *ps)
 				do {
 					advance_frame(sptr);
 					have_frame =
-					    mpeg2ps_stream_read_frame(sptr, &buffer, &buflen, 0);
+					    mpeg2ps_stream_read_frame(sptr, &buffer, &buflen, GF_FALSE);
 					frames_from_beg++;
 				} while (have_frame &&
 				         sptr->frame_ts.have_dts == 0 &&
@@ -1281,7 +1281,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 			                         &ts) == 0) {
 				return;
 			}
-			valid_stream = 0;
+			valid_stream = GF_FALSE;
 			substream = 0;
 			if (stream_id == 0xbd) {
 				if (file_read_bytes(ps->fd, &substream, 1) == 0) {
@@ -1290,11 +1290,11 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 				pes_left--; // remove byte we just read
 				if ((substream >= 0x80 && substream < 0x90) ||
 				        (substream >= 0xa0 && substream < 0xb0)) {
-					valid_stream = 1;
+					valid_stream = GF_TRUE;
 				}
 			} else if (stream_id >= 0xc0) {
 				// audio and video
-				valid_stream = 1;
+				valid_stream = GF_TRUE;
 			}
 			if (valid_stream) {
 				if (add_stream(ps, stream_id, substream, loc, &ts)) {
@@ -1414,7 +1414,7 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
 				while (mpeg2ps_stream_read_frame(sptr,
 				                                 &buffer,
 				                                 &buflen,
-				                                 1)) {
+				                                 GF_TRUE)) {
 					frame_cnt_since_last++;
 				}
 				sptr->m_fd = FDNULL;
@@ -1451,9 +1451,9 @@ u32 mpeg2ps_get_video_stream_count (mpeg2ps_t *ps)
 // routine to check stream number passed.
 static Bool invalid_video_streamno (mpeg2ps_t *ps, u32 streamno)
 {
-	if (streamno >= NUM_ELEMENTS_IN_ARRAY(ps->video_streams)) return 1;
-	if (ps->video_streams[streamno] == NULL) return 1;
-	return 0;
+	if (streamno >= NUM_ELEMENTS_IN_ARRAY(ps->video_streams)) return GF_TRUE;
+	if (ps->video_streams[streamno] == NULL) return GF_TRUE;
+	return GF_FALSE;
 }
 
 #if 0 //unused
@@ -1528,9 +1528,9 @@ u32 mpeg2ps_get_video_stream_id(mpeg2ps_t *ps, u32 streamno)
 
 static Bool invalid_audio_streamno (mpeg2ps_t *ps, u32 streamno)
 {
-	if (streamno >= NUM_ELEMENTS_IN_ARRAY(ps->audio_streams)) return 1;
-	if (ps->audio_streams[streamno] == NULL) return 1;
-	return 0;
+	if (streamno >= NUM_ELEMENTS_IN_ARRAY(ps->audio_streams)) return GF_TRUE;
+	if (ps->audio_streams[streamno] == NULL) return GF_TRUE;
+	return GF_FALSE;
 }
 
 u32 mpeg2ps_get_audio_stream_count (mpeg2ps_t *ps)
@@ -1702,7 +1702,7 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps, u32 streamno,
 {
 	u64 dts, cts;
 	mpeg2ps_stream_t *sptr;
-	if (invalid_video_streamno(ps, streamno)) return 0;
+	if (invalid_video_streamno(ps, streamno)) return GF_FALSE;
 
 	sptr = ps->video_streams[streamno];
 	check_fd_for_stream(ps, sptr);
@@ -1711,7 +1711,7 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps, u32 streamno,
 		// if we don't have the frame in the buffer (like after a seek),
 		// read the next frame
 		if (mpeg2ps_stream_find_mpeg_video_frame(sptr) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	*buffer = sptr->pes_buffer + sptr->pes_buffer_on;
@@ -1739,7 +1739,7 @@ Bool mpeg2ps_get_video_frame(mpeg2ps_t *ps, u32 streamno,
 	advance_frame(sptr);
 
 
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -1752,14 +1752,14 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, u32 streamno,
                              u64 *timestamp)
 {
 	mpeg2ps_stream_t *sptr;
-	if (invalid_audio_streamno(ps, streamno)) return 0;
+	if (invalid_audio_streamno(ps, streamno)) return GF_FALSE;
 
 	sptr = ps->audio_streams[streamno];
 	check_fd_for_stream(ps, sptr);
 
 	if (sptr->have_frame_loaded == 0) {
-		if (mpeg2ps_stream_read_frame(sptr, buffer, buflen, 0) == 0)
-			return 0;
+		if (mpeg2ps_stream_read_frame(sptr, buffer, buflen, GF_FALSE) == 0)
+			return GF_FALSE;
 	}
 
 	if (freq_timestamp) {
@@ -1772,7 +1772,7 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, u32 streamno,
 		*timestamp = sptr->frame_ts.have_pts ? sptr->frame_ts.pts : sptr->frame_ts.dts;
 	}
 	advance_frame(sptr);
-	return 1;
+	return GF_TRUE;
 }
 
 #if 0 //unused
@@ -1813,7 +1813,7 @@ static void mpeg2ps_binary_seek (mpeg2ps_t *ps,
   u64 loc;
   u16 pes_len;
   Bool have_ts = GF_FALSE;
-  u64 found_loc;
+  s64 found_loc;
   u64 found_dts;
 
   while (1) {

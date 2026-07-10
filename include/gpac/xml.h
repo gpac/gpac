@@ -204,7 +204,7 @@ u32 gf_xml_sax_get_line(GF_SAXParser *parser);
 \return name of the XML node found, or NULL if no match. This string has to be freed by the caller using gf_free
 
 */
-char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute);
+char *gf_xml_sax_peek_node(GF_SAXParser *parser, const char *att_name, const char *att_value, const char *substitute, const char *get_attr, const char *end_pattern, Bool *is_substitute);
 
 /*! For file mode only, indicates if a file is compressed or not
 \param parser SAX parser to use
@@ -273,7 +273,7 @@ GF_Err gf_xml_dom_parse(GF_DOMParser *parser, const char *file, gf_xml_sax_progr
 \param string the string to parse
 \return error code if any
 */
-GF_Err gf_xml_dom_parse_string(GF_DOMParser *parser, char *string);
+GF_Err gf_xml_dom_parse_string(GF_DOMParser *parser, const char *string);
 /*! Gets the last error that happened during the parsing. The parser aborts at the first error found within a SAX callback
 \param parser the DOM parser to use
 \return last error code if any

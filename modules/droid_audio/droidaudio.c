@@ -97,7 +97,7 @@ static GF_Err AAOut_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, 
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AndroidAudio] Setup for %d buffers", num_buffers ));
 
-	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
+	ctx->force_config = (num_buffers && total_duration) ? GF_TRUE : GF_FALSE;
 	ctx->cfg_num_buffers = num_buffers;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
 	ctx->cfg_duration = total_duration;
@@ -362,18 +362,18 @@ void *NewAAOutRender()
 {
 	DroidContext *ctx;
 	GF_AudioOutput *driv;
-	ctx = gf_malloc(sizeof(DroidContext));
+	ctx = (DroidContext *)gf_malloc(sizeof(DroidContext));
 	memset(ctx, 0, sizeof(DroidContext));
 	ctx->num_buffers = 1;
 	ctx->pan = 50;
 	ctx->volume = 100;
-	driv = gf_malloc(sizeof(GF_AudioOutput));
+	driv = (GF_AudioOutput *)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "android", "gpac distribution")
 
 	driv->opaque = ctx;
 
-	driv->SelfThreaded = 0;
+	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = AAOut_Setup;
 	driv->Shutdown = AAOut_Shutdown;
 	driv->Configure = AAOut_ConfigureOutput;
@@ -394,6 +394,8 @@ void DeleteAAOutRender(void *ifce)
 		return;
 	gf_free(dr);
 }
+
+GPAC_MODULE_EXPORT_START
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
@@ -421,5 +423,8 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
+
 
 GPAC_MODULE_STATIC_DECLARATION( droid_audio )

@@ -164,13 +164,13 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	if (ctx->audio_out->GetAudioDelay) {
 		ctx->hwdelay_us = ctx->audio_out->GetAudioDelay(ctx->audio_out);
 		ctx->hwdelay_us *= 1000;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[AudioOut] Hardware delay is "LLU" us\n", ctx->hwdelay_us ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[AudioOut] Hardware delay is " LLU " us\n", ctx->hwdelay_us ));
 	}
 	ctx->totaldelay_us = 0;
 	if (ctx->audio_out->GetTotalBufferTime) {
 		ctx->totaldelay_us = ctx->audio_out->GetTotalBufferTime(ctx->audio_out);
 		ctx->totaldelay_us *= 1000;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[AudioOut] Total audio delay is "LLU" ms\n", ctx->totaldelay_us ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[AudioOut] Total audio delay is " LLU " ms\n", ctx->totaldelay_us ));
 	}
 }
 
@@ -206,7 +206,7 @@ u32 aout_th_proc(void *p)
 static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 {
 	u32 done = 0;
-	GF_AudioOutCtx *ctx = ptr;
+	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *)ptr;
 	Bool is_first_pck = GF_TRUE;
 
 	memset(buffer, 0, buffer_size);
@@ -277,7 +277,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		}
 		ctx->buffer_done = GF_TRUE;
 		if (ctx->rebuffer) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] rebuffer done in "LLU" ms\n", (u32) ( (gf_sys_clock_high_res() - ctx->rebuffer) /1000) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] rebuffer done in " LLU " ms\n", (u32) ( (gf_sys_clock_high_res() - ctx->rebuffer) /1000) ));
 			ctx->rebuffer = 0;
 		}
 	} else if (ctx->rbuffer && !ctx->rebuffer) {
@@ -304,7 +304,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		is_first_pck = GF_FALSE;
 
 	while (done < buffer_size) {
-		const char *data;
+		const u8 *data;
 		u32 size;
 		u64 cts;
 		s64 delay;
@@ -354,7 +354,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			if ((diff > ctx->timescale/5) && (gf_filter_pid_get_clock_info(ctx->pid, NULL, NULL) != GF_FILTER_CLOCK_PCR_DISC) ) {
 				diff = gf_timestamp_rescale(diff, ctx->timescale, 1000000);
 				if (now < ctx->last_clock + diff) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Frame too early by "LLU" us\n", ctx->last_clock + diff - now));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Frame too early by " LLU " us\n", ctx->last_clock + diff - now));
 					goto err_empty;
 				}
 			}
@@ -395,7 +395,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			if (timestamp.num<0) timestamp.num = 0;
 			timestamp.den = ctx->timescale;
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), timestamp);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" (compensated time %g s, HW delay "LLU" us)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den, ctx->hwdelay_us ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS " LLU " (compensated time %g s, HW delay " LLU " us)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den, ctx->hwdelay_us ));
 		}
 
 		if (data && !ctx->wait_recfg && (size >= ctx->pck_offset)) {
@@ -409,7 +409,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				char szStatus[1024];
 				u32 max_buf=0;
 				u64 bdur = gf_filter_pid_query_buffer_duration_and_max(ctx->pid, &max_buf);
-				sprintf(szStatus, "info=\"%d Hz %d ch %s\" time="LLU"/%u buffer=%d/%d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), ctx->last_cts, ctx->timescale, (u32) (bdur/1000), (u32)(max_buf/1000));
+				sprintf(szStatus, "info=\"%d Hz %d ch %s\" time=" LLU "/%u buffer=%d/%d ms", ctx->sr, ctx->nb_ch, gf_audio_fmt_name(ctx->afmt), ctx->last_cts, ctx->timescale, (u32) (bdur/1000), (u32)(max_buf/1000));
 				gf_filter_update_status(ctx->filter, -1, szStatus);
 			}
 

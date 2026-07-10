@@ -44,7 +44,7 @@ enum
 	GF_SVG_ATTOPT_LISTENER = 4,
 	/*attribute only valid for filters*/
 	GF_SVG_ATTOPT_FILTER = 5,
-} GF_SVGAttOption;
+};
 
 /* unused XBL tags (deprecated)
 
@@ -379,7 +379,7 @@ void gf_xml_pop_namespaces(GF_DOMNode *elt)
 }
 
 
-static u32 gf_xml_get_namespace(GF_DOMNode *elt, const char *attribute_name)
+static GF_NamespaceType gf_xml_get_namespace(GF_DOMNode *elt, const char *attribute_name)
 {
 	GF_DOMAttribute *att = elt->attributes;
 	while (att) {
@@ -391,7 +391,7 @@ static u32 gf_xml_get_namespace(GF_DOMNode *elt, const char *attribute_name)
 		}
 		att = att->next;
 	}
-	if (!elt->sgprivate->parents) return 0;
+	if (!elt->sgprivate->parents) return GF_XMLNS_UNDEFINED;
 	return gf_xml_get_namespace((GF_DOMNode*)elt->sgprivate->parents->node, attribute_name);
 }
 
@@ -412,13 +412,13 @@ static char *gf_xml_get_namespace_qname(GF_DOMNode *elt, u32 ns)
 	return gf_xml_get_namespace_qname((GF_DOMNode*)elt->sgprivate->parents->node, ns);
 }
 
-u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, GF_NamespaceType ns)
+u32 gf_xml_get_attribute_tag(GF_Node *elt, const char *attribute_name, GF_NamespaceType ns)
 {
 	u32 i, count;
 	count = sizeof(xml_attributes) / sizeof(struct xml_att_def);
 
 	if (!ns) {
-		char *ns_sep = strchr(attribute_name, ':');
+		char *ns_sep = (char *) strchr(attribute_name, ':');
 		if (ns_sep) {
 			ns_sep[0] = 0;
 			ns = gf_sg_get_namespace_code(elt->sgprivate->scenegraph, attribute_name);
@@ -548,7 +548,7 @@ GF_DOMAttribute *gf_xml_create_attribute(GF_Node *node, u32 tag)
 static const struct xml_elt_def {
 	const char *name;
 	u32 tag;
-	u32 xmlns;
+	GF_NamespaceType xmlns;
 } xml_elements [] =
 {
 	{ "listener", TAG_SVG_listener, GF_XMLNS_XMLEV},
@@ -747,7 +747,7 @@ SVGAttribute *gf_node_create_attribute_from_datatype(u32 data_type, u32 attribut
 }
 
 GF_EXPORT
-GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
+GF_Err gf_node_get_attribute_by_name(GF_Node *node, const char *name, GF_NamespaceType xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field)
 {
 	u32 attribute_tag = gf_xml_get_attribute_tag(node, name, xmlns_code);
 	if (attribute_tag == TAG_DOM_ATT_any) {
@@ -804,7 +804,7 @@ static void attributes_set_default_value(GF_Node *node, SVGAttribute *att)
 	case TAG_SVG_ATT_width:
 	case TAG_SVG_ATT_height:
 		if (node_tag == TAG_SVG_svg) {
-			SVG_Length *len = att->data;
+			SVG_Length *len = (SVG_Length *)att->data;
 			len->type = SVG_NUMBER_PERCENTAGE;
 			len->value = INT2FIX(100);
 		}
@@ -982,7 +982,7 @@ void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 #endif
 }
 
-GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
+GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, const char *inst_id, Bool deep)
 {
 	GF_DOMAttribute *att;
 	GF_Node *clone;
@@ -1010,14 +1010,14 @@ GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cl
 			GF_FieldInfo dst, src;
 			/*create by name*/
 			if (att->tag==TAG_DOM_ATT_any) {
-				gf_node_get_attribute_by_name(clone, ((GF_DOMFullAttribute*)att)->name, 0, 1, 0, &dst);
+				gf_node_get_attribute_by_name(clone, ((GF_DOMFullAttribute*)att)->name, GF_XMLNS_UNDEFINED, GF_TRUE, GF_FALSE, &dst);
 			} else {
-				gf_node_get_attribute_by_tag(clone, att->tag, 1, 0, &dst);
+				gf_node_get_attribute_by_tag(clone, att->tag, GF_TRUE, GF_FALSE, &dst);
 			}
 			src.far_ptr = att->data;
 			src.fieldType = att->data_type;
 			src.fieldIndex = att->tag;
-			gf_svg_attributes_copy(&dst, &src, 0);
+			gf_svg_attributes_copy(&dst, &src, GF_FALSE);
 			if (att->tag==TAG_XLINK_ATT_href) {
 				XMLRI *iri = (XMLRI *)att->data;
 				if (iri->target == gf_node_get_parent(orig, 0)) {
@@ -1038,7 +1038,7 @@ GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cl
 	if (deep) {
 		GF_ChildNodeItem *child = ((GF_ParentNode *)orig)->children;
 		while (child) {
-			gf_node_clone(inScene, child->node, clone, inst_id, 1);
+			gf_node_clone(inScene, child->node, clone, inst_id, GF_TRUE);
 			child = child->next;
 		}
 	}
@@ -1049,7 +1049,7 @@ GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cl
 #include <gpac/base_coding.h>
 
 
-static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_size, u32 idx)
+static u32 check_existing_file(char *base_file, const char *ext, char *data, u32 data_size, u32 idx)
 {
 	char szFile[GF_MAX_PATH];
 	u64 fsize;
@@ -1090,7 +1090,8 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 GF_EXPORT
 GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char *base_filename)
 {
-	char szFile[GF_MAX_PATH], buf[20], *sep, *data=NULL, *ext;
+	char szFile[GF_MAX_PATH], buf[20], *sep, *data=NULL;
+	const char *ext;
 	u32 data_size=0, idx;
 	Bool existing;
 
@@ -1107,7 +1108,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 		szFile[data_size+1] = 0;
 	}
 
-	sep = strrchr(base_filename, GF_PATH_SEPARATOR);
+	sep = (char *)strrchr(base_filename, GF_PATH_SEPARATOR);
 #ifdef WIN32
 	if (!sep) sep = strrchr(base_filename, '/');
 #endif
@@ -1115,7 +1116,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	else sep += 1;
 	gf_strcat(szFile, sep);
 
-	sep = gf_file_ext_start(szFile);
+	sep = (char*)gf_file_ext_start(szFile);
 	if (sep) sep[0] = 0;
 	gf_strcat(szFile, "_img_");
 
@@ -1132,28 +1133,28 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2 * (u32) strlen(sep);
-		data = (char*)gf_malloc(sizeof(char)*data_size);
+		data = (char*)gf_malloc(data_size);
 		if (!data) return GF_OUT_OF_MEM;
-		data_size = gf_base64_decode(sep, (u32) strlen(sep), data, data_size);
+		data_size = gf_base64_decode((u8 *)sep, (u32) strlen(sep), (u8 *)data, data_size);
 	}
 	else if (!strncmp(sep, ";base16,", 8)) {
 		data_size = 2 * (u32) strlen(sep);
-		data = (char*)gf_malloc(sizeof(char)*data_size);
+		data = (char*)gf_malloc(data_size);
 		if (!data) return GF_OUT_OF_MEM;
 		sep += 8;
-		data_size = gf_base16_decode(sep, (u32) strlen(sep), data, data_size);
+		data_size = gf_base16_decode((u8*)sep, (u32) strlen(sep), (u8*)data, data_size);
 	}
 	if (!data || !data_size) return GF_OK;
 
 	iri->type = XMLRI_STRING;
 
-	existing = 0;
+	existing = GF_FALSE;
 	idx = 0;
 	while (1) {
 		u32 res = check_existing_file(szFile, ext, data, data_size, idx);
 		if (!res) break;
 		if (res==2) {
-			existing = 1;
+			existing = GF_TRUE;
 			break;
 		}
 		idx++;

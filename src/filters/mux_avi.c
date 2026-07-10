@@ -63,7 +63,7 @@ typedef struct
 
 	u64 last_video_time_ms;
 	Bool video_is_eos;
-	char *buf_tmp;
+	u8 *buf_tmp;
 	u32 buf_alloc;
 	Bool in_error;
 
@@ -105,11 +105,12 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	Bool strip_box_header=GF_FALSE;
 	GF_FilterEvent evt;
 	const GF_PropertyValue *p;
-	u32 w, h, sr, stride, bps, nb_ch, pf, codec_id, type, br, timescale, wfmt;
+	u32 w, h, sr, stride, bps, nb_ch, pf, type, br, timescale, wfmt;
+	GF_CodecID codec_id;
 	GF_Fraction fps;
 	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 
-	stream = gf_filter_pid_get_udta(pid);
+	stream = (AVIStream *)gf_filter_pid_get_udta(pid);
 
 	if (is_remove) {
 		if (!stream) return GF_SERVICE_ERROR;
@@ -122,14 +123,15 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	gf_filter_pid_check_caps(pid);
 
-	w = h = sr = nb_ch = pf = codec_id = type = timescale = wfmt = stride = 0;
+	w = h = sr = nb_ch = pf = type = timescale = wfmt = stride = 0;
+	codec_id = GF_CODECID_NONE;
 	bps = 16;
 	br=128000;
 	fps.den = fps.num = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) type = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (p) codec_id = p->value.uint;
+	if (p) codec_id = (GF_CodecID) p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) timescale = p->value.uint;
 
@@ -320,7 +322,7 @@ check_mx:
 				}
 			}
 			ctx->avi_out->extradata_size = data_size;
-			ctx->avi_out->extradata = gf_malloc(data_size);
+			ctx->avi_out->extradata = (u8 *)gf_malloc(data_size);
 			memcpy(ctx->avi_out->extradata, data, data_size);
 		}
 	}
@@ -332,7 +334,7 @@ static void avimux_finalize(GF_Filter *filter)
 	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 	avimux_open_close(ctx, NULL, NULL, 0);
 	while (gf_list_count(ctx->streams)) {
-		AVIStream *st = gf_list_pop_back(ctx->streams);
+		AVIStream *st = (AVIStream *)gf_list_pop_back(ctx->streams);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
@@ -346,7 +348,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 	const GF_PropertyValue *p;
 	u32 i, count, nb_eos, nb_suspended;
 	AVIStream *video_st=NULL;
-	const char *pck_data;
+	const u8 *pck_data;
 	u32 pck_size;
 	GF_AVIMuxCtx *ctx = (GF_AVIMuxCtx *) gf_filter_get_udta(filter);
 
@@ -356,7 +358,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 	count = gf_list_count(ctx->streams);
 	if (!ctx->avi_out) {
 		for (i=0; i<count; i++) {
-			AVIStream *st = gf_list_get(ctx->streams, i);
+			AVIStream *st = (AVIStream *)gf_list_get(ctx->streams, i);
 			GF_Err e = avimux_configure_pid(filter, st->pid, GF_FALSE);
 			if (e) return e;
 		}
@@ -375,7 +377,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 	nb_suspended = 0;
 	for (i=0; i<count; i++) {
 		u64 cts;
-		AVIStream *st = gf_list_get(ctx->streams, i);
+		AVIStream *st = (AVIStream *)gf_list_get(ctx->streams, i);
 
 		if (st->is_video) {
 			video_st=st;
@@ -427,7 +429,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 			} else {
 				AVI_set_audio_track(ctx->avi_out, st->tk_idx);
 			}
-			res = AVI_write_audio(ctx->avi_out, (char *) pck_data, pck_size);
+			res = AVI_write_audio(ctx->avi_out, pck_data, pck_size);
 			gf_filter_pid_drop_packet(st->pid);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIOut] Audio write error %d\n", res));
@@ -499,14 +501,14 @@ static GF_Err avimux_process(GF_Filter *filter)
 			if (video_st->is_raw_vid) {
 				if (ctx->buf_alloc<pck_size) {
 					ctx->buf_alloc = pck_size;
-					ctx->buf_tmp = gf_realloc(ctx->buf_tmp, pck_size);
+					ctx->buf_tmp = (u8 *)gf_realloc(ctx->buf_tmp, pck_size);
 				}
 				for (i=0; i<video_st->height; i++) {
 					memcpy(ctx->buf_tmp + i*out_stride, pck_data + (video_st->height-i-1)*out_stride, out_stride);
 				}
-				res = AVI_write_frame(ctx->avi_out, (char *) ctx->buf_tmp, pck_size, is_rap);
+				res = AVI_write_frame(ctx->avi_out, ctx->buf_tmp, pck_size, is_rap);
 			} else {
-				res = AVI_write_frame(ctx->avi_out, (char *) pck_data, pck_size, is_rap);
+				res = AVI_write_frame(ctx->avi_out, pck_data, pck_size, is_rap);
 			}
 		}
 
@@ -529,7 +531,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 	if (nb_suspended && (nb_suspended==count)) {
 		avimux_open_close(ctx, NULL, NULL, 0);
 		for (i=0; i<count; i++) {
-			AVIStream *st = gf_list_get(ctx->streams, i);
+			AVIStream *st = (AVIStream *)gf_list_get(ctx->streams, i);
 			st->is_open = GF_FALSE;
 			st->suspended = GF_FALSE;
 		}
@@ -548,7 +550,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 
 static GF_FilterProbeScore avimux_probe_url(const char *url, const char *mime)
 {
-	char *fext = gf_file_ext_start(url);
+	const char *fext = gf_file_ext_start(url);
 	if (fext && !stricmp(fext, ".avi")) return GF_FPROBE_FORCE;
 	if (mime) {
 		if (!stricmp(mime, "video/avi")) return GF_FPROBE_FORCE;
@@ -652,7 +654,7 @@ GF_FilterRegister AVIMuxRegister = {
 		"If the string is prefixed with `+` and the decoder configuration is present and formatted as an ISOBMFF box, the box header will be removed.\n"
 	)
 	.private_size = sizeof(GF_AVIMuxCtx),
-	.max_extra_pids = -1,
+	.max_extra_pids = (u32) -1,
 	.args = AVIMuxArgs,
 	SETCAPS(AVIMuxCaps),
 	.probe_url = avimux_probe_url,

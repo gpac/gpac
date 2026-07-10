@@ -199,7 +199,7 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
 
 typedef struct
 {
-	u32 ff_pf;
+	enum AVPixelFormat ff_pf;
 	u32 gpac_pf;
 	u32 flags; //only 1 used, for full range
 } GF_FF_PFREG;
@@ -256,7 +256,7 @@ static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 	{AV_PIX_FMT_YUVJ420P, GF_PIXEL_YUV, 1},
 	{AV_PIX_FMT_YUVJ422P, GF_PIXEL_YUV422, 1},
 	{AV_PIX_FMT_YUVJ444P, GF_PIXEL_YUV444, 1},
-	{0},
+	{AV_PIX_FMT_NONE, 0, 0},
 };
 
 enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt, Bool no_warn)
@@ -308,7 +308,7 @@ Bool ffmpeg_pixfmt_is_fullrange(u32 pfmt)
 u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range)
 {
 	u32 i=0;
-	if (is_full_range) *is_full_range = 0;
+	if (is_full_range) *is_full_range = GF_FALSE;
 
 	while (FF2GPAC_PixelFormats[i].gpac_pf) {
 		if (avcodec_pix_fmt_to_codec_tag(FF2GPAC_PixelFormats[i].ff_pf) == codec_tag) {
@@ -325,7 +325,7 @@ u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range)
 
 typedef struct
 {
-	u32 ff_sf;
+	enum AVSampleFormat ff_sf;
 	u32 gpac_sf;
 } GF_FF_AFREG;
 
@@ -341,10 +341,10 @@ static const GF_FF_AFREG FF2GPAC_AudioFormats[] =
 	{AV_SAMPLE_FMT_S32P, GF_AUDIO_FMT_S32P},
 	{AV_SAMPLE_FMT_FLTP, GF_AUDIO_FMT_FLTP},
 	{AV_SAMPLE_FMT_DBLP, GF_AUDIO_FMT_DBLP},
-	{0},
+	{AV_SAMPLE_FMT_NONE, 0},
 };
 
-u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
+enum AVSampleFormat ffmpeg_audio_fmt_from_gpac(u32 sfmt)
 {
 	u32 i=0;
 	while (FF2GPAC_AudioFormats[i].gpac_sf) {
@@ -353,7 +353,7 @@ u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
 		i++;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
-	return 0;
+	return AV_SAMPLE_FMT_NONE;
 }
 
 u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
@@ -429,8 +429,8 @@ u64 ffmpeg_channel_layout_to_gpac(u64 ff_ch_layout)
 
 typedef struct
 {
-	u32 ff_codec_id;
-	u32 gpac_codec_id;
+	enum AVCodecID ff_codec_id;
+	GF_CodecID gpac_codec_id;
 	u32 ff_codectag;
 	u32 gpac_audio_format;
 } GF_FF_CIDREG;
@@ -544,10 +544,10 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_DTS, GF_CODECID_DTS_EXPRESS_LBR, 0},
 	{AV_CODEC_ID_ALAC, GF_CODECID_ALAC, 0},
 	{AV_CODEC_ID_DNXHD, GF_CODECID_DNXHD, 0},
-	{0}
+	{AV_CODEC_ID_NONE, GF_CODECID_NONE, 0}
 };
 
-u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag)
+enum AVCodecID ffmpeg_codecid_from_gpac(GF_CodecID codec_id, u32 *ff_codectag)
 {
 	u32 i=0;
 	if (ff_codectag) *ff_codectag = 0;
@@ -561,17 +561,17 @@ u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag)
 	}
 	//try unmapped codecs
 	if (gf_codecid_type(codec_id)==GF_STREAM_UNKNOWN) {
-		const AVCodec *c = avcodec_find_decoder(codec_id);
+		const AVCodec *c = avcodec_find_decoder((enum AVCodecID) codec_id);
 		if (c) return c->id;
 		c = avcodec_find_decoder_by_name(gf_4cc_to_str(codec_id));
 		if (c) return c->id;
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
-	return 0;
+	return AV_CODEC_ID_NONE;
 }
 
-u32 ffmpeg_codecid_to_gpac(u32 codec_id)
+GF_CodecID ffmpeg_codecid_to_gpac(enum AVCodecID codec_id)
 {
 	u32 i=0;
 	while (FF2GPAC_CodecIDs[i].ff_codec_id) {
@@ -580,7 +580,7 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 		i++;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg codec ID %s\n", avcodec_get_name(codec_id) ));
-	return 0;
+	return GF_CODECID_NONE;
 }
 
 u32 ffmpeg_codecid_to_gpac_audio_fmt(u32 codec_id)
@@ -596,7 +596,7 @@ u32 ffmpeg_codecid_to_gpac_audio_fmt(u32 codec_id)
 
 typedef struct
 {
-	u32 ff_st;
+	enum AVMediaType ff_st;
 	u32 gpac_st;
 } GF_FF_ST;
 
@@ -607,11 +607,10 @@ static const GF_FF_ST FF2GPAC_StreamTypes[] =
 	{AVMEDIA_TYPE_DATA, GF_STREAM_METADATA},
 	{AVMEDIA_TYPE_SUBTITLE, GF_STREAM_TEXT},
 	{AVMEDIA_TYPE_ATTACHMENT, GF_STREAM_METADATA},
-	{AVMEDIA_TYPE_UNKNOWN, GF_STREAM_UNKNOWN},
-	{0},
+	{AVMEDIA_TYPE_UNKNOWN, GF_STREAM_UNKNOWN}
 };
 
-u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
+enum AVMediaType ffmpeg_stream_type_from_gpac(u32 streamtype)
 {
 	u32 i=0;
 	while (FF2GPAC_StreamTypes[i].gpac_st) {
@@ -624,7 +623,7 @@ u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 }
 
 
-u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
+u32 ffmpeg_stream_type_to_gpac(enum AVMediaType streamtype)
 {
 	u32 i=0;
 	while (FF2GPAC_StreamTypes[i].gpac_st) {
@@ -719,9 +718,9 @@ static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl)
 	}
 }
 
-void ffmpeg_setup_logs(u32 log_class)
+void ffmpeg_setup_logs(GF_LOG_Tool log_class)
 {
-	u32 level = gf_log_get_tool_level(log_class);
+	GF_LOG_Level level = gf_log_get_tool_level(log_class);
 	int av_level = gpac_to_ffmpeg_log_level(level);
 	//only set if more verbose
 	if (av_level > av_log_get_level())
@@ -753,13 +752,13 @@ void ffmpeg_initialize()
 
 void ffmpeg_register_set_dyn_help(GF_FilterRegister *reg)
 {
-	GF_FFRegistryExt *ffregext = reg->udta;
+	GF_FFRegistryExt *ffregext = (GF_FFRegistryExt *)reg->udta;
 	if (ffregext) ffregext->free_help = GF_TRUE;
 }
 static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg)
 {
 	u32 i;
-	GF_FFRegistryExt *ffregext = reg->udta;
+	GF_FFRegistryExt *ffregext = (GF_FFRegistryExt *)reg->udta;
 	GF_List *all_filters = ffregext->all_filters;
 	u32 nb_skip_begin = ffregext->nb_arg_skip;
 	if (ffregext->is_building) return;
@@ -774,7 +773,7 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 	if (all_filters) {
 		while (gf_list_count(all_filters)) {
 			i=0;
-			GF_FilterRegister *f = gf_list_pop_back(all_filters);
+			GF_FilterRegister *f = (struct __gf_filter_register *)gf_list_pop_back(all_filters);
 			if (f->caps)
 				gf_free((void *)f->caps);
 
@@ -840,9 +839,9 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		sprintf(szDef, LLD, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
 		if (opt->max>=(Double) GF_INT_MAX)
-			sprintf(szDef, LLD"-I", (s64) opt->min);
+			sprintf(szDef, LLD "-I", (s64) opt->min);
 		else
-			sprintf(szDef, LLD"-"LLD, (s64) opt->min, (s64) opt->max);
+			sprintf(szDef, LLD "-" LLD, (s64) opt->min, (s64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
 #if LIBAVCODEC_VERSION_MAJOR >= 57
@@ -851,9 +850,9 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		sprintf(szDef, LLU, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
 		if (opt->max>=(Double) GF_INT_MAX)
-			sprintf(szDef, LLU"-I", (s64) opt->min);
+			sprintf(szDef, LLU "-I", (s64) opt->min);
 		else
-			sprintf(szDef, LLU"-"LLU, (u64) opt->min, (u64) opt->max);
+			sprintf(szDef, LLU "-" LLU, (u64) opt->min, (u64) opt->max);
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
 	case AV_OPT_TYPE_BOOL:
@@ -907,7 +906,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 	case AV_OPT_TYPE_FLAGS:
 		arg.arg_type = GF_PROP_UINT;
-		sprintf(szDef, ""LLD, opt->default_val.i64);
+		sprintf(szDef, "" LLD, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
 		break;
 	case AV_OPT_TYPE_BINARY:
@@ -924,17 +923,17 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.arg_default_val = gf_strdup(av_get_pix_fmt_name(AV_PIX_FMT_YUV420P) );
 		{
 		u32 i, all_len=1, def_size=1000;
-		char *enum_val = gf_malloc(sizeof(char)*def_size);
+		char *enum_val = (char *)gf_malloc(def_size);
 		enum_val[0] = 0;
 		for (i=0; i<AV_PIX_FMT_NB; i++) {
 			u32 len;
-			const char *n = av_get_pix_fmt_name(i);
+			const char *n = av_get_pix_fmt_name((enum AVPixelFormat)i);
 			if (!n) continue;
 
 			len = (u32) strlen(n)+ (i ? 2 : 1);
 			if (len+all_len>def_size) {
 				def_size+=1000;
-				enum_val = gf_realloc(enum_val, sizeof(char)*def_size);
+				enum_val = (char *)gf_realloc(enum_val, def_size);
 			}
 			if (i) gf_strlcat(enum_val, "|", def_size);
 			gf_strlcat(enum_val, n, def_size);
@@ -1249,7 +1248,7 @@ second_pass:
 		 	u32 cid = ffmpeg_codecid_to_gpac(codec->id);
 		 	freg->nb_caps = 3;
 
-			caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+			caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
 			memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 			caps[0].code = GF_PROP_PID_STREAM_TYPE;
 			caps[0].val.type = GF_PROP_UINT;
@@ -1297,7 +1296,7 @@ second_pass:
 #else
 			freg->nb_caps = 2;
 #endif
-		 	caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+		 	caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
 		 	memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
 		 	caps[0].val.type = GF_PROP_UINT;
@@ -1338,7 +1337,7 @@ second_pass:
 #else
 			freg->nb_caps = 2;
 #endif
-			caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+			caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
 			memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 			caps[0].code = GF_PROP_PID_STREAM_TYPE;
 			caps[0].val.type = GF_PROP_UINT;
@@ -1378,7 +1377,7 @@ second_pass:
 
 			if (!nb_codecs) {
 				freg->nb_caps = 5;
-				caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+				caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
 				memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 				caps[0].code = GF_PROP_PID_STREAM_TYPE;
 				caps[0].val.type = GF_PROP_UINT;
@@ -1396,13 +1395,13 @@ second_pass:
 				caps[4].flags = GF_CAPS_INPUT_OUTPUT;
 			} else {
 				freg->nb_caps = 3*nb_codecs - 1;
-				caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+				caps = (GF_FilterCapability *)gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
 				memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
 
 				i=0;
 				cur_cap = 0;
 				while (bsf->codec_ids) {
-					u32 codec_id;
+					enum AVCodecID codec_id;
 					if (bsf->codec_ids[i]==AV_CODEC_ID_NONE) break;
 					codec_id = bsf->codec_ids[i];
 					i++;
@@ -1457,7 +1456,7 @@ second_pass:
 			idx++;
 		}
 		if (i) {
-			GF_FilterArgs *args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
+			GF_FilterArgs *args = (GF_FilterArgs *)gf_malloc(sizeof(GF_FilterArgs)*(i+1));
 			memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
 			freg->args = args;
 
@@ -1619,7 +1618,7 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 	i += nb_def_args;
 
 	nb_args = i+1;
-	args = gf_malloc(sizeof(GF_FilterArgs)*nb_args);
+	args = (GF_FilterArgs *)gf_malloc(sizeof(GF_FilterArgs)*nb_args);
 	memset(args, 0, sizeof(GF_FilterArgs)*nb_args);
 	orig_reg->args = args;
 
@@ -1779,7 +1778,7 @@ void ffmpeg_report_options(GF_Filter *filter, AVDictionary *options, AVDictionar
 			AVDictionaryEntry *unkn = av_dict_get(options, prev_e->key, NULL, 0);
 			if (unkn) unknown_opt = GF_TRUE;
 		}
-		gf_filter_report_meta_option(filter, prev_e->key, unknown_opt ? 0 : 1, NULL);
+		gf_filter_report_meta_option(filter, prev_e->key, unknown_opt ? GF_FALSE : GF_TRUE, NULL);
 	}
 	if (options)
 		av_dict_free(&options);
@@ -1800,7 +1799,7 @@ GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_i
 		u8 *d;
 		GF_BitStream *bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		GF_BitStream *bs2 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		GF_BitStream *bs = gf_bs_new(dsi_in, dsi_in_size, GF_BITSTREAM_READ);
+		GF_BitStream *bs = gf_bs_new((u8*)dsi_in, dsi_in_size, GF_BITSTREAM_READ);
 		gf_bs_write_u8(bs1, 0);
 		while (gf_bs_available(bs)) {
 			u32 size = gf_bs_read_u16(bs);
@@ -1830,7 +1829,7 @@ GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_i
 		gf_bs_del(bs1);
 		gf_bs_del(bs2);
 		*dsi_out_size = dsize;
-		*dsi_out = av_malloc(dsize + AV_INPUT_BUFFER_PADDING_SIZE);
+		*dsi_out = (u8*) av_malloc(dsize + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (!*dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, d, dsize);
 		memset(*dsi_out + dsize, 0, AV_INPUT_BUFFER_PADDING_SIZE);
@@ -1842,7 +1841,7 @@ GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_i
 	else if (gpac_codec_id==GF_CODECID_FLAC) {
 		const u8 *flac_dsi=NULL;
 		u32 flac_dsi_size=0;
-		GF_BitStream *bs = gf_bs_new(dsi_in, dsi_in_size, GF_BITSTREAM_READ);
+		GF_BitStream *bs = gf_bs_new((u8*)dsi_in, dsi_in_size, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
 			gf_bs_read_int(bs, 1);
 			u8 type = gf_bs_read_int(bs, 7);
@@ -1857,23 +1856,23 @@ GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_i
 		gf_bs_del(bs);
 		if (!flac_dsi || !flac_dsi_size) return GF_NON_COMPLIANT_BITSTREAM;
 		*dsi_out_size = flac_dsi_size;
-		*dsi_out = av_malloc(sizeof(char) * (flac_dsi_size) + AV_INPUT_BUFFER_PADDING_SIZE);
+		*dsi_out = (u8 *) av_malloc(sizeof(char) * (flac_dsi_size) + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, flac_dsi, flac_dsi_size);
 	} else if (gpac_codec_id==GF_CODECID_OPUS) {
 		*dsi_out_size = dsi_in_size+8;
-		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size+8) + AV_INPUT_BUFFER_PADDING_SIZE);
+		*dsi_out = (u8 *) av_malloc(sizeof(char) * (dsi_in_size+8) + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, "OpusHead", 8);
 		memcpy(*dsi_out+8, dsi_in, dsi_in_size);
 	} else if ((gpac_codec_id==GF_CODECID_SMPTE_VC1) && (dsi_in_size>7)) {
 		*dsi_out_size = dsi_in_size-7;
-		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size-7) + AV_INPUT_BUFFER_PADDING_SIZE);
+		*dsi_out = (u8 *) av_malloc(sizeof(char) * (dsi_in_size-7) + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, dsi_in+7, dsi_in_size-7);
 	} else {
 		*dsi_out_size = dsi_in_size;
-		*dsi_out = av_malloc(sizeof(char) * dsi_in_size + AV_INPUT_BUFFER_PADDING_SIZE);
+		*dsi_out = (u8 *) av_malloc(sizeof(char) * dsi_in_size + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (! *dsi_out) return GF_OUT_OF_MEM;
 		memcpy(*dsi_out, dsi_in, dsi_in_size);
 	}
@@ -1910,7 +1909,7 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 		//flac DSI is only STREAMINFO block in ffmpeg, without block header
 		if ((size>4) && (GF_4CC(data[0],data[1], data[2], data[3]) != GF_4CC('f', 'L', 'a', 'c'))) {
 			*dsi_out_size = size+4;
-			u8 *dsi = gf_malloc(size+4);
+			u8 *dsi = (u8 *)gf_malloc(size+4);
 			if (! dsi) return GF_OUT_OF_MEM;
 
 			dsi[0] = (size==34) ? 0x80 : 0;
@@ -1927,7 +1926,7 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 	if (gpac_codec_id==GF_CODECID_OPUS) {
 		if ((size>8) && !memcmp(data, "OpusHead", 8)) {
 			*dsi_out_size = size-8;
-			*dsi_out = gf_malloc(size-8);
+			*dsi_out = (u8 *)gf_malloc(size-8);
 			if (! *dsi_out) return GF_OUT_OF_MEM;
 			memcpy(*dsi_out, data+8, size-8);
 			return GF_OK;
@@ -1945,7 +1944,7 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 	//default is direct mapping
 
 	*dsi_out_size = size;
-	*dsi_out = gf_malloc(size);
+	*dsi_out = (u8 *)gf_malloc(size);
 	if (! *dsi_out) return GF_OUT_OF_MEM;
 	memcpy(*dsi_out, data, size);
 	return GF_OK;
@@ -1982,7 +1981,7 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 		u32 width = 0, height = 0, renderWidth, renderHeight;
 		u32 num_frames_in_superframe = 0, superframe_index_size = 0, i;
 		u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 		e = gf_vp9_parse_superframe(bs, size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
 		if (!e) {
 			vpc = gf_odf_vp_cfg_new();
@@ -2003,7 +2002,7 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 	case GF_CODECID_EAC3:
 		flag = GF_TRUE;
 	case GF_CODECID_AC3:
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 		if (flag) {
 			if (gf_eac3_parser_bs(bs, &ac3hdr, GF_FALSE) == GF_TRUE) {
 				ac3hdr.is_ec3=GF_TRUE;
@@ -2019,7 +2018,7 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 	case GF_CODECID_TRUEHD:
 	{
 		u32 format, peak_rate, sync, valid=0;
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 
 		/*nibble, frame size and time = */gf_bs_read_u32(bs);
 		sync = gf_bs_read_u32(bs);
@@ -2062,7 +2061,7 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 		mvp = gf_m4v_parser_new((u8*)data, size, flag);
 		if (gf_m4v_parse_config(mvp, &vcfg) == GF_OK) {
 			dsi_size = (u32) gf_m4v_get_object_start(mvp);
-			dsi = gf_malloc(sizeof(u8) * dsi_size);
+			dsi = (u8 *)gf_malloc(dsi_size);
 			memcpy(dsi, data, dsi_size);
 		}
 		gf_m4v_parser_del(mvp);
@@ -2104,7 +2103,7 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 			if (p) {
 				codecpar->format = ffmpeg_pixfmt_from_gpac(p->value.uint, GF_FALSE);
-				codecpar->codec_tag = avcodec_pix_fmt_to_codec_tag(codecpar->format);
+				codecpar->codec_tag = avcodec_pix_fmt_to_codec_tag((enum AVPixelFormat) codecpar->format);
 			}
 		}
 
@@ -2114,19 +2113,19 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 			codecpar->sample_aspect_ratio.den = p->value.frac.den;
 		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
-		if (p) codecpar->color_primaries = p->value.uint;
+		if (p) codecpar->color_primaries = (enum AVColorPrimaries) p->value.uint;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
 		if (p) codecpar->color_range = (p->value.uint==1) ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER);
-		if (p) codecpar->color_trc = p->value.uint;
+		if (p) codecpar->color_trc = (enum AVColorTransferCharacteristic) p->value.uint;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
-		if (p) codecpar->color_space = p->value.uint;
+		if (p) codecpar->color_space = (enum AVColorSpace) p->value.uint;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_CHROMALOC);
-		if (p) codecpar->chroma_location = p->value.uint;
+		if (p) codecpar->chroma_location = (enum AVChromaLocation) p->value.uint;
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout;
@@ -2187,11 +2186,11 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 	if (!opid || !codecpar) return GF_BAD_PARAM;
 
 	if (codecpar->width)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT(codecpar->width));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT((u32) codecpar->width));
 	if (codecpar->height)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_HEIGHT, &PROP_UINT(codecpar->height));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_HEIGHT, &PROP_UINT((u32) codecpar->height));
 	if (codecpar->sample_aspect_ratio.num) {
-		gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(codecpar->sample_aspect_ratio.num, codecpar->sample_aspect_ratio.den));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(codecpar->sample_aspect_ratio.num, (u32) codecpar->sample_aspect_ratio.den));
 	}
 	//not supported by all versions of ffmpeg, so we comment it in test mode
 	if (codecpar->width && !gf_sys_is_test_mode()) {
@@ -2215,14 +2214,14 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 
 	if (codecpar->format>=0) {
 		if (codecpar->width) {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_PIXFMT, &PROP_UINT( ffmpeg_pixfmt_to_gpac(codecpar->format, GF_FALSE)));
+			gf_filter_pid_set_property(opid, GF_PROP_PID_PIXFMT, &PROP_UINT( ffmpeg_pixfmt_to_gpac((enum AVPixelFormat) codecpar->format, GF_FALSE)));
 		} else {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( ffmpeg_audio_fmt_to_gpac(codecpar->format)));
+			gf_filter_pid_set_property(opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( (u32) ffmpeg_audio_fmt_to_gpac(codecpar->format)));
 		}
 	}
 
 	if (codecpar->sample_rate)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codecpar->sample_rate));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT((u32) codecpar->sample_rate));
 
 	u32 nb_ch=0;
 	u64 ch_layout=0;
@@ -2240,10 +2239,10 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 		}
 
 		if (codecpar->frame_size)
-			gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(codecpar->frame_size));
+			gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT((u32) codecpar->frame_size));
 
 		if (codecpar->bits_per_raw_sample)
-			gf_filter_pid_set_property(opid, GF_PROP_PID_AUDIO_BPS, &PROP_UINT(codecpar->bits_per_raw_sample));
+			gf_filter_pid_set_property(opid, GF_PROP_PID_AUDIO_BPS, &PROP_UINT((u32) codecpar->bits_per_raw_sample));
 	}
 	return GF_OK;
 }

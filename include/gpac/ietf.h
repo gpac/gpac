@@ -36,7 +36,7 @@ extern "C" {
 \file <gpac/ietf.h>
 \brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
 */
-	
+
 /*!
 \addtogroup ietf_grp RTP Streaming
 \ingroup media_grp
@@ -476,7 +476,7 @@ u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 \param url the URL to test
 \return GF_TRUE if the session matches the URL, GF_FALSE otherwise
 */
-Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url);
+Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, const char *url);
 
 /*! gets server name of an RTSP session
 \param sess the target RTSP session
@@ -886,7 +886,7 @@ u32 gf_rtp_read_flush(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size);
 \param PayloadStart set to the offset in bytes of the start of the payload in the RTP packet
 \return error if any
 */
-GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
+GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, const u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
 
 /*! decodes an RTCP packet and update timing info, send ReceiverReport too
 \param ch the target RTP channel
@@ -895,7 +895,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader 
 \param has_sr set to GF_TRUE if the RTCP packet contained an SenderReport
 \return error if any
 */
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr);
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, const u8 *pck, u32 pck_size, Bool *has_sr);
 
 /*! computes and send Receiver report.
 If the channel is a TCP channel, you must specify
@@ -1530,7 +1530,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt,
                                      void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
                                      void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
                                      void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-                                     void (*OnData)(void *cbk, u8 *data, u32 data_size, Bool is_head)
+                                     void (*OnData)(void *cbk, const u8 *data, u32 data_size, Bool is_head)
                                     );
 
 /*! destroys an RTP packetizer
@@ -1573,7 +1573,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 MaxPaylo
                          u32 avgSize, u32 maxSize,
                          u32 avgTS, u32 maxDTS,
                          u32 IV_length, u32 KI_length,
-                         char *pref_mode);
+						 const char *pref_mode);
 
 /*! sets frame crypto info (ISMA E&A) for frame starting in next RTP packet
 \param builder the target RTP packetizer
@@ -1592,7 +1592,7 @@ void gf_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 \param descIndex sample description index (mostly needed for 3GPP text streams)
 \return error if any
 */
-GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
+GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, const u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
 
 /*! formats the "fmtp: " attribute for the MPEG-4 generic packetizer. sdpline shall be at least 2000 char
 \param builder the target RTP packetizer
@@ -1602,7 +1602,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 \param dsi_size size of the decoder config
 \return error if any
 */
-GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, char *dsi, u32 dsi_size);
+GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, u8 *dsi, u32 dsi_size);
 
 #define MAX_PAYT_LEN 20
 #define MAX_MEDIA_LEN 20
@@ -1653,7 +1653,7 @@ typedef struct rtp_static_payt {
 \param hdr MPEG-4 Sync Layer structure for the payload (with AU start/end flag, timestamps, etc)
 \param e error if any
 */
-typedef void (*gf_rtp_packet_cbk)(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
+typedef void (*gf_rtp_packet_cbk)(void *udta, const u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e);
 
 
 
@@ -1682,7 +1682,7 @@ void gf_rtp_depacketizer_reset(GF_RTPDepacketizer *rtpd, Bool full_reset);
 \param payload the RTP packet payload
 \param size the RTP packet payload size
 */
-void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtpd, GF_RTPHeader *hdr, u8 *payload, u32 size);
+void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtpd, GF_RTPHeader *hdr, const u8 *payload, u32 size);
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

@@ -81,7 +81,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		M2PSStream *st = NULL;
 		u32 j, count = gf_list_count(ctx->streams);
 		for (j=0; j<count; j++) {
-			st = gf_list_get(ctx->streams, j);
+			st = (M2PSStream *)gf_list_get(ctx->streams, j);
 			if ((st->stream_type==GF_STREAM_VISUAL) && !st->in_use) break;
 			st = NULL;
 		}
@@ -116,7 +116,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 
 		fps = mpeg2ps_get_video_stream_framerate(ctx->ps, i);
 		if (fps) {
-			gf_media_get_video_timing(fps, &frac.num, &frac.den);
+			gf_media_get_video_timing(fps, (u32*)&frac.num, &frac.den);
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC( frac ) );
 		}
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_WIDTH, &PROP_UINT( mpeg2ps_get_video_stream_width(ctx->ps, i) ) );
@@ -148,7 +148,7 @@ static void m2psdmx_setup(GF_Filter *filter, GF_M2PSDmxCtx *ctx)
 		}
 
 		for (j=0; j<count; j++) {
-			st = gf_list_get(ctx->streams, j);
+			st = (M2PSStream *)gf_list_get(ctx->streams, j);
 			if ((st->stream_type==GF_STREAM_AUDIO) && !st->in_use) break;
 			st = NULL;
 		}
@@ -202,12 +202,12 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 {
 	u32 i;
 	const GF_PropertyValue *p;
-	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2PSDmxCtx *ctx = (GF_M2PSDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
 		while (gf_list_count(ctx->streams) ) {
-			M2PSStream *st = gf_list_pop_back(ctx->streams);
+			M2PSStream *st = (M2PSStream *)gf_list_pop_back(ctx->streams);
 			if (st->opid)
 				gf_filter_pid_remove(st->opid);
 			gf_free(st);
@@ -237,7 +237,7 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (ctx->ps) {
 		mpeg2ps_close(ctx->ps);
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			M2PSStream *st = gf_list_get(ctx->streams, i);
+			M2PSStream *st = (M2PSStream *)gf_list_get(ctx->streams, i);
 			st->in_use = GF_FALSE;
 		}
 	}
@@ -251,7 +251,7 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
-	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2PSDmxCtx *ctx = (GF_M2PSDmxCtx *)gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -271,7 +271,7 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			M2PSStream *pss = gf_list_get(ctx->streams, i);
+			M2PSStream *pss = (M2PSStream *)gf_list_get(ctx->streams, i);
 			if (pss->opid == evt->base.on_pid)
 				pss->in_use = GF_TRUE;
 			if (!pss->in_use) continue;
@@ -288,7 +288,7 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			M2PSStream *pss = gf_list_get(ctx->streams, i);
+			M2PSStream *pss = (M2PSStream *)gf_list_get(ctx->streams, i);
 			if (pss->opid == evt->base.on_pid)
 				pss->in_use = GF_FALSE;
 		}
@@ -309,7 +309,7 @@ static Bool m2psdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err m2psdmx_process(GF_Filter *filter)
 {
-	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2PSDmxCtx *ctx = (GF_M2PSDmxCtx *)gf_filter_get_udta(filter);
 	Bool start, end;
 	u32 i, count, nb_done;
 	if (!ctx->ps) {
@@ -342,7 +342,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 	if (ctx->in_seek) {
 		u64 seek_to = (u64) (1000*ctx->start_range);
 		for (i=0; i<count;i++) {
-			M2PSStream *st = gf_list_get(ctx->streams, i);
+			M2PSStream *st = (M2PSStream *)gf_list_get(ctx->streams, i);
 			if (!st->in_use) continue;
 			if (st->stream_type==GF_STREAM_VISUAL) {
 				mpeg2ps_seek_video_frame(ctx->ps, st->stream_num, seek_to);
@@ -359,7 +359,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 		u32 buf_len;
 		u8 *pck_data;
 		GF_FilterPacket *dst_pck;
-		M2PSStream *st = gf_list_get(ctx->streams, i);
+		M2PSStream *st = (M2PSStream *)gf_list_get(ctx->streams, i);
 		if (!st->in_use) {
 			nb_done++;
 			continue;
@@ -407,7 +407,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 			}
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
 			if (!dst_pck) continue;
-			
+
 			memcpy(pck_data, buf, buf_len);
 			if (cts != GF_FILTER_NO_TS) {
 				cts -= ctx->first_dts;
@@ -424,7 +424,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 
 	if (nb_done==count) {
 		for (i=0; i<count;i++) {
-			M2PSStream *st = gf_list_get(ctx->streams, i);
+			M2PSStream *st = (M2PSStream *)gf_list_get(ctx->streams, i);
 			gf_filter_pid_set_eos(st->opid);
 		}
 		return GF_EOS;
@@ -434,17 +434,17 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 
 GF_Err m2psdmx_initialize(GF_Filter *filter)
 {
-	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2PSDmxCtx *ctx = (GF_M2PSDmxCtx *)gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 	return GF_OK;
 }
 
 void m2psdmx_finalize(GF_Filter *filter)
 {
-	GF_M2PSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2PSDmxCtx *ctx = (GF_M2PSDmxCtx *)gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		M2PSStream *st = gf_list_pop_back(ctx->streams);
+		M2PSStream *st = (M2PSStream *)gf_list_pop_back(ctx->streams);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);

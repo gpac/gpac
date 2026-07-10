@@ -83,18 +83,18 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 		}
 	}
 
-	read->src_crc = gf_crc_32(src, (u32) strlen(src));
+	read->src_crc = gf_crc_32((u8*)src, (u32) strlen(src));
 
 	url = gf_strdup(src);
 	if (!url) return GF_OUT_OF_MEM;
-	tmp = gf_file_ext_start(url);
+	tmp = (char*)gf_file_ext_start(url);
 	if (tmp) {
 		Bool truncate = GF_TRUE;
 		tmp = strchr(tmp, '#');
 		if (!tmp && read->pid) {
 			prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);
 			if (prop && prop->value.string) {
-				tmp = gf_file_ext_start(prop->value.string);
+				tmp = (char*)gf_file_ext_start(prop->value.string);
 				if (tmp) tmp = strchr(tmp, '#');
 				truncate = GF_FALSE;
 			}
@@ -267,7 +267,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	//this is a fragment
 	case 3:
-		gf_isom_release_segment(read->mov, 1);
+		gf_isom_release_segment(read->mov, GF_TRUE);
 		gf_isom_reset_fragment_info(read->mov, GF_TRUE);
 
 		if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
@@ -286,7 +286,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 			read->refresh_fragmented = GF_TRUE;
 
 		for (i=0; i<gf_list_count(read->channels); i++) {
-			ISOMChannel *ch = gf_list_get(read->channels, i);
+			ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch->last_state==GF_EOS)
 				ch->last_state=GF_OK;
 
@@ -303,9 +303,9 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 #ifndef GPAC_DISABLE_LOG
 		if (e<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC " LLU ": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
 		} else if (read->end_range) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", next_url, read->start_range, read->end_range));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: " LLU "-" LLU "\n", next_url, read->start_range, read->end_range));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", next_url));
 		}
@@ -320,15 +320,15 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		//if the next segment has a tfdt or a tfrx, this will be ignored
 		//otherwise this value will be used as base tfdt for next segment
 		tfdt = gf_isom_get_smooth_next_tfdt(read->mov, 1);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU") - range "LLU"-"LLU"\n", next_url, tfdt, read->start_range, read->end_range));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset=" LLU ") - range " LLU "-" LLU "\n", next_url, tfdt, read->start_range, read->end_range));
 
 		if (gf_isom_is_smooth_streaming_moov(read->mov)) {
-			char *tfdt_val = strstr(next_url, "tfdt=");
+			char *tfdt_val = (char *) strstr(next_url, "tfdt=");
 			//smooth addressing, replace tfdt=0000000000000000 with proper value
 			if (tfdt_val) {
 				sprintf(tfdt_val+5, LLX, tfdt);
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", next_url, gf_net_get_utc() ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC " LLU "\n", next_url, gf_net_get_utc() ));
 			}
 		}
 #endif
@@ -344,7 +344,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 		read->moov_not_loaded = 0;
 		if (e < 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC " LLU ": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
 		}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (read->sigfrag)
@@ -371,12 +371,12 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		count = gf_list_count(read->channels);
 		read->invalid_segment = GF_TRUE;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-		gf_isom_release_segment(read->mov, 1);
+		gf_isom_release_segment(read->mov, GF_TRUE);
 		//error opening the segment, reset everything ...
 		gf_isom_reset_fragment_info(read->mov, GF_FALSE);
 #endif
 		for (i=0; i<count; i++) {
-			ISOMChannel *ch = gf_list_get(read->channels, i);
+			ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch) {
 				ch->sample_num = 0;
 				ch->eos_sent = 0;
@@ -397,7 +397,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 
 	for (i=0; i<count; i++) {
-		ISOMChannel *ch = gf_list_get(read->channels, i);
+		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
 		ch->eos_sent = 0;
 		if (ch->pid)
@@ -458,7 +458,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *prop;
-	ISOMReader *read = gf_filter_get_udta(filter);
+	ISOMReader *read = (ISOMReader *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		isoffin_disconnect(read);
@@ -486,7 +486,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (read->pid && prop->value.string) {
 		const char *next_url = prop->value.string;
 		u64 sr, er;
-		u32 crc = gf_crc_32(next_url, (u32) strlen(next_url) );
+		u32 crc = gf_crc_32((u8*)next_url, (u32) strlen(next_url) );
 
 		sr = er = 0;
 		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE);
@@ -524,7 +524,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 GF_Err isoffin_initialize(GF_Filter *filter)
 {
-	ISOMReader *read = gf_filter_get_udta(filter);
+	ISOMReader *read = (ISOMReader *)gf_filter_get_udta(filter);
 	GF_Err e = GF_OK;
 	read->filter = filter;
 	read->channels = gf_list_new();
@@ -631,7 +631,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 	u32 track = ch->track;
 	u32 scheme_type, scheme_version, i, count;
 	const char *kms_uri, *scheme_uri;
-	Bool selectiveEncryption=0;
+	Bool selectiveEncryption= GF_FALSE;
 	u32 IVLength=0;
 	u32 KeyIndicationLength=0;
 	const char *txtHdr=NULL;
@@ -670,7 +670,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 			}
 		}
 		if ((nb_same_mtype==count) && (nb_clear==nb_encrypted)) {
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(first_is_clear ? 1 : 2) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT((u32) (first_is_clear ? 1 : 2)) );
 			stsd_idx = first_crypted_stsd;
 		}
 
@@ -697,7 +697,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		gf_isom_get_adobe_protection_info(mov, track, stsd_idx, &ofmt, &scheme_type, &scheme_version, &metadata);
 		if (metadata)
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((char *)metadata, (u32) strlen(metadata) ) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((u8 *)metadata, (u32) strlen(metadata) ) );
 	}
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
@@ -727,7 +727,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
 
 		if (ch->skip_byte_block || ch->crypt_byte_block) {
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT((s32)ch->skip_byte_block, ch->crypt_byte_block) );
 		}
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_KEY_INFO, &PROP_DATA((u8 *)key_info, key_info_size) );
 		ch->key_info_crc = gf_crc_32(key_info, key_info_size);
@@ -798,7 +798,7 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		isoffin_set_channel_ctso(read, ch);
 
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? 1 : 0;
-	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap ? GF_TRUE : GF_FALSE) );
 	//some fragmented files do not advertize a sync sample table (legal) so we need to update as soon as we fetch a fragment
 	//to see if we are all-intra (as detected here) or not
 	if (!ch->has_rap && ch->owner->frag_type)
@@ -886,7 +886,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 			if (ref_count) {
 				gf_isom_get_reference(the_file, ch->track, GF_ISOM_REF_BASE, 1, &trackID);
 				for (i=0; i<gf_list_count(ch->owner->channels) && trackID; i++) {
-					ISOMChannel *base = gf_list_get(ch->owner->channels, i);
+					ISOMChannel *base = (ISOMChannel *)gf_list_get(ch->owner->channels, i);
 					if (base->track_id==trackID) {
 						u32 sample_desc_index;
 						u64 resume_at;
@@ -950,7 +950,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	Bool cancel_event = GF_TRUE;
 	Double start_range, speed;
 	ISOMChannel *ch, *ref_ch;
-	ISOMReader *read = gf_filter_get_udta(filter);
+	ISOMReader *read = (ISOMReader *) gf_filter_get_udta(filter);
 
 	if (!read || read->disconnected) return GF_FALSE;
 
@@ -991,7 +991,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ch->eos_sent = 0;
 		ch->speed = is_byte_range ? 1 : evt->play.speed;
 		ch->initial_play_seen = 1;
-		read->reset_frag_state = 1;
+		read->reset_frag_state = GF_TRUE;
 		if (read->frag_type)
 			read->frag_type = 1;
 
@@ -1073,7 +1073,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				}
 			}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback " LLD " to " LLD " (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
 		} else {
 			ch->end = 0;
 			ch->sample_num = 0;
@@ -1151,7 +1151,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 						dur = gf_timestamp_rescale(dur, ts, read->timescale);
 						if (ch->duration != dur) {
 							ch->duration = dur;
-							gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->timescale));
+							gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT((s64) ch->duration, read->timescale));
 						}
 					}
 				}
@@ -1159,11 +1159,12 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #endif
 			if (!is_sidx_seek) {
 				for (i=0; i< count; i++) {
-					u32 mode, sample_desc_index, sample_num;
+					GF_ISOSearchMode mode;
+					u32 sample_desc_index, sample_num;
 					u64 data_offset;
 					GF_Err e;
 					u64 time;
-					ISOMChannel *ach = gf_list_get(read->channels, i);
+					ISOMChannel *ach = (ISOMChannel *)gf_list_get(read->channels, i);
 					mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
 					time = (u64) (evt->play.start_range * ach->timescale);
 
@@ -1211,7 +1212,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if ((read->nb_playing>1) && !ch->midrun_tune) {
 			count = gf_list_count(read->channels);
 			for (i=0; i<count;i++) {
-				ISOMChannel *ach = gf_list_get(read->channels, i);
+				ISOMChannel *ach = (ISOMChannel *)gf_list_get(read->channels, i);
 				//locate disconnected channels playing
 				if (ach == ch) continue;
 				if (ach->clock_id != ch->clock_id) continue;
@@ -1249,7 +1250,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		//don't send a stop if some of our channels are still waiting for initial play
 		for (i=0; i<gf_list_count(read->channels); i++) {
-			ISOMChannel *a_ch = gf_list_get(read->channels, i);
+			ISOMChannel *a_ch = (ISOMChannel *)gf_list_get(read->channels, i);
 			if (ch==a_ch) continue;
 			if (!a_ch->initial_play_seen) return GF_TRUE;
 		}
@@ -1286,7 +1287,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 		read->mem_url = gf_blob_register(&read->mem_blob);
 	}
 	if (read->mem_blob_alloc < read->mem_blob.size + data_size) {
-		read->mem_blob.data = gf_realloc(read->mem_blob.data, read->mem_blob.size + data_size);
+		read->mem_blob.data = (u8 *)gf_realloc(read->mem_blob.data, read->mem_blob.size + data_size);
 		read->mem_blob_alloc = read->mem_blob.size + data_size;
 	}
 	memcpy(read->mem_blob.data + read->mem_blob.size, pck_data, data_size);
@@ -1294,7 +1295,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 
 	if (read->mem_load_mode==1) {
 		u32 box_type;
-		e = gf_isom_open_progressive_ex(read->mem_url, 0, 0, read->sigfrag, &read->mov, &bytes_missing, &box_type);
+		e = gf_isom_open_progressive_ex(read->mem_url, GF_FALSE, 0, read->sigfrag, &read->mov, &bytes_missing, &box_type);
 
 		if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 			gf_filter_setup_failure(filter, e);
@@ -1372,7 +1373,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	read->bytes_removed += nb_bytes_to_purge;
 	gf_isom_set_removed_bytes(read->mov, read->bytes_removed);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d bytes in mem, "LLU" bytes trashed since start\n", read->mem_blob.size, read->bytes_removed));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d bytes in mem, " LLU " bytes trashed since start\n", read->mem_blob.size, read->bytes_removed));
 
 	//force a refresh
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1384,7 +1385,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	//fragmented file, cleanup sample tables
 	count = gf_list_count(read->channels);
 	for (i=0; i<count; i++) {
-		ISOMChannel *ch = gf_list_get(read->channels, i);
+		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, i);
 		u32 num_samples;
 		u32 prev_samples = gf_isom_get_sample_count(read->mov, ch->track);
 		//don't run this too often
@@ -1404,7 +1405,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 
 static GF_Err isoffin_process(GF_Filter *filter)
 {
-	ISOMReader *read = gf_filter_get_udta(filter);
+	ISOMReader *read = (ISOMReader *)gf_filter_get_udta(filter);
 	u32 i, count = gf_list_count(read->channels);
 	Bool is_active = GF_FALSE;
 	Bool in_is_eos = GF_FALSE;
@@ -1449,7 +1450,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (read->is_partial_download && read->wait_for_source && !read->mem_load_mode) {
 				const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_DOWNLOAD_SESSION);
 				if (prop && prop->type==GF_PROP_POINTER) {
-					const char *new_url = gf_dm_sess_get_cache_name(prop->value.ptr);
+					const char *new_url = gf_dm_sess_get_cache_name((GF_DownloadSession *)prop->value.ptr);
 					if (new_url)
 						gf_isom_switch_source(read->mov, new_url);
 				}
@@ -1500,7 +1501,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			read->invalid_segment = GF_FALSE;
 
 			for (i=0; i<count; i++) {
-				ISOMChannel *ch = gf_list_get(read->channels, i);
+				ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, i);
 				if (!ch->playing) {
 					continue;
 				}
@@ -1552,18 +1553,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				read->refresh_fragmented = GF_FALSE;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC "LLU" - "LLU" bytes still missing - input is EOS %d\n", gf_net_get_utc(), bytesMissing, in_is_eos));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC " LLU " - " LLU " bytes still missing - input is EOS %d\n", gf_net_get_utc(), bytesMissing, in_is_eos));
 			}
 #endif
 
 			if (!read->refresh_fragmented && !read->was_aborted && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received on PID %s - "LLU" bytes missing but EOF found\n", gf_filter_pid_get_name(read->pid), bytesMissing ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received on PID %s - " LLU " bytes missing but EOF found\n", gf_filter_pid_get_name(read->pid), bytesMissing ));
 			}
 
 #ifndef GPAC_DISABLE_LOG
 			if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
 				for (i=0; i<count; i++) {
-					ISOMChannel *ch = gf_list_get(read->channels, i);
+					ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, i);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
 			}
@@ -1581,7 +1582,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		u8 *data;
 		u32 nb_pck=50;
 		ISOMChannel *ch;
-		ch = gf_list_get(read->channels, i);
+		ch = (ISOMChannel *)gf_list_get(read->channels, i);
 		if (!ch->playing) {
 			nb_forced_end++;
 			continue;
@@ -1635,7 +1636,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {
 					ch->check_has_rap = 0;
 					ch->has_rap = 1;
-					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap ? GF_TRUE : GF_FALSE) );
 				}
 
 				//strip param sets from payload, trigger reconfig if needed
@@ -1687,7 +1688,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->sample->nb_pack)
 					sample_dur *= ch->sample->nb_pack;
 				gf_filter_pck_set_duration(pck, sample_dur);
-				gf_filter_pck_set_seek_flag(pck, ch->seek_flag);
+				gf_filter_pck_set_seek_flag(pck, ch->seek_flag ? GF_TRUE : GF_FALSE);
 
 				//for now we only signal xPS mask for non-sap
 				if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {
@@ -1695,14 +1696,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				if (!ch->item_id) {
 					u32 ID, nb_refs=0;
-					const u32 *refs=NULL;
+					const s32 *refs=NULL;
 					if (gf_isom_get_sample_references(read->mov, ch->track, ch->sample_num, &ID, &nb_refs, &refs)==GF_OK) {
-						gf_filter_pck_set_property(pck, GF_PROP_PCK_ID, &PROP_SINT(ID));
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_ID, &PROP_UINT(ID));
 						if (refs && nb_refs) {
 							GF_PropertyValue p;
 							p.type = GF_PROP_SINT_LIST;
 							p.value.sint_list.nb_items = nb_refs;
-							p.value.sint_list.vals = (u32*) refs;
+							p.value.sint_list.vals = (s32*) refs;
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_REFS, &p);
 						}
 					}
@@ -1748,14 +1749,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 						start = finfo.frag_start;
 						if (finfo.seg_start_plus_one) start = finfo.seg_start_plus_one-1;
-						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_RANGE, &PROP_FRAC64_INT(start, finfo.mdat_end));
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_RANGE, &PROP_FRAC64_INT((s64) start, finfo.mdat_end));
 
 
 						if (finfo.moof_template) {
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));
 						}
 						if (finfo.sidx_end) {
-							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(finfo.sidx_start , finfo.sidx_end));
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT((s64) finfo.sidx_start , finfo.sidx_end));
 						}
 
 						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_TFDT, &PROP_LONGUINT(finfo.first_dts));

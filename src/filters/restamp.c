@@ -80,7 +80,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *prop;
 	GF_Fraction64 fps_scaler;
 	RestampCtx *ctx = (RestampCtx *) gf_filter_get_udta(filter);
-	RestampPid *pctx = gf_filter_pid_get_udta(pid);
+	RestampPid *pctx = (RestampPid *)gf_filter_pid_get_udta(pid);
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
@@ -91,7 +91,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_set_udta(pid, NULL);
 			gf_list_del_item(ctx->pids, pctx);
 			while (gf_list_count(pctx->packets)) {
-				GF_FilterPacket *pck = gf_list_pop_front(pctx->packets);
+				GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
 				gf_filter_pck_unref(pck);
 			}
 			gf_list_del(pctx->packets);
@@ -225,7 +225,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	if ((ctx->fps.num>0) && (timescale % ctx->fps.num)) {
-		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32)ctx->fps.num));
 		pctx->rescale = GF_TRUE;
 		pctx->ts_rescale = ctx->fps.num;
 	}
@@ -235,7 +235,8 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots, Bool is_ref_ts, GF_FilterPacket *pck)
 {
 	if (ots == GF_FILTER_NO_TS) return ots;
-	u64 ts;
+	u64 ts, nb_frames, dur;
+	s64 diff;
 
 	if (pctx->ts_shift_plus_one) {
 		ots = ots + (pctx->ts_shift_plus_one-1);
@@ -259,7 +260,7 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots, Boo
 			pctx->keep_prev_state = 1;
 		goto ts_done;
 	}
-	s64 diff = ts - (pctx->last_min_dts-1);
+	diff = ts - (pctx->last_min_dts-1);
 	if (ctx->fps.num<0) {
 		diff *= ctx->fps.den;
 		diff /= -ctx->fps.num;
@@ -268,7 +269,7 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots, Boo
 	}
 
 	if (ots + 1 <= pctx->last_ts) goto ts_done;
-	u64 dur = ots - (pctx->last_ts-1);
+	dur = ots - (pctx->last_ts-1);
 	if (!pctx->min_dur || (dur < pctx->min_dur)) pctx->min_dur = (u32) dur;
 
 
@@ -295,7 +296,7 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots, Boo
 	}
 
 
-	u64 nb_frames = diff / pctx->min_dur;
+	nb_frames = diff / pctx->min_dur;
 	if (!pctx->rescale) {
 		nb_frames *= ((u64) pctx->min_dur * ctx->fps.num) / pctx->timescale;
 	}
@@ -355,7 +356,7 @@ static void restamp_config_timing(GF_Filter *filter, RestampCtx *ctx)
 
 	u32 i, count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
-		RestampPid *pctx = gf_list_get(ctx->pids, i);
+		RestampPid *pctx = (RestampPid *)gf_list_get(ctx->pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->ipid);
 		if (!pck) {
 			if (!gf_filter_pid_is_eos(pctx->ipid))
@@ -382,7 +383,7 @@ static void restamp_config_timing(GF_Filter *filter, RestampCtx *ctx)
 	ctx->config_retry=0;
 
 	for (i=0; i<count; i++) {
-		RestampPid *pctx = gf_list_get(ctx->pids, i);
+		RestampPid *pctx = (RestampPid *)gf_list_get(ctx->pids, i);
 
 		pctx->ts_shift_plus_one = - (s64) gf_timestamp_rescale_signed(min_ts, min_timescale, pctx->timescale);
 		pctx->ts_shift_plus_one += gf_timestamp_rescale(ctx->tsinit.num, ctx->tsinit.den, pctx->timescale);
@@ -404,7 +405,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 
 	count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
-		RestampPid *pctx = gf_list_get(ctx->pids, i);
+		RestampPid *pctx = (RestampPid *)gf_list_get(ctx->pids, i);
 		if (!pctx) continue;
 		if (ctx->reconfigure) {
 			restamp_configure_pid(filter, pctx->ipid, GF_FALSE);
@@ -418,7 +419,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 			if (!pck) {
 				if (gf_filter_pid_is_eos(pctx->ipid)) {
 					if (pctx->packets) {
-						pck = gf_list_pop_front(pctx->packets);
+						pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
 						is_ref = GF_TRUE;
 					}
 					if (!pck) {
@@ -438,7 +439,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 				u32 j;
 				Bool can_flush=GF_FALSE;
 				for (j=0; j<gf_list_count(pctx->packets); j++) {
-					GF_FilterPacket *tmp = gf_list_get(pctx->packets, j);
+					GF_FilterPacket *tmp = (struct __gf_filter_pck *)gf_list_get(pctx->packets, j);
 					u64 ats = gf_filter_pck_get_cts(tmp);
 					if (ats>ts) {
 						gf_filter_pck_ref(&pck);
@@ -456,7 +457,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 				gf_filter_pid_drop_packet(pctx->ipid);
 				if (!can_flush)
 					break;
-				pck = gf_list_pop_front(pctx->packets);
+				pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
 				is_ref = GF_TRUE;
 			}
 
@@ -506,16 +507,16 @@ static GF_Err restamp_process(GF_Filter *filter)
 					else
 						gf_filter_pid_drop_packet(pctx->ipid);
 
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Droping frame TS "LLU"/%u\n", ots, pctx->timescale));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Droping frame TS " LLU "/%u\n", ots, pctx->timescale));
 					continue;
 				}
 
 				if (!pctx->keep_prev_state && pctx->pck_ref) {
 					gf_filter_pck_unref(pctx->pck_ref);
 					pctx->pck_ref = NULL;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Moving to next frame for output TS "LLU"\n", ts));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Moving to next frame for output TS " LLU "\n", ts));
 				} else if (pctx->pck_ref) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Keeping prev frame for output ts "LLU"\n", ts));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Keeping prev frame for output ts " LLU "\n", ts));
 				}
 				if (!pctx->pck_ref) {
 					pctx->pck_ref = pck;
@@ -587,10 +588,10 @@ static void restamp_finalize(GF_Filter *filter)
 {
 	RestampCtx *ctx = (RestampCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->pids)) {
-		RestampPid *pctx = gf_list_pop_back(ctx->pids);
+		RestampPid *pctx = (RestampPid *)gf_list_pop_back(ctx->pids);
 		if (pctx->pck_ref) gf_filter_pck_unref(pctx->pck_ref);
 		while (gf_list_count(pctx->packets)) {
-			GF_FilterPacket *pck = gf_list_pop_front(pctx->packets);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(pctx->packets);
 			gf_filter_pck_unref(pck);
 		}
 		gf_list_del(pctx->packets);

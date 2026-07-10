@@ -223,6 +223,7 @@ static void reset_em_thread();
 static int gpac_exit_fun(GF_Err code)
 {
 	u32 i;
+	s32 res_code = (s32) code;
 	if (code!=GF_BAD_PARAM) {
 		for (i=1; i<gf_sys_get_argc(); i++) {
 			if (!gf_sys_is_arg_used(i)) {
@@ -231,7 +232,7 @@ static int gpac_exit_fun(GF_Err code)
 		}
 	} else {
 		//negative code is unrecognized option, don't print unused arguments
-		code = 1;
+		res_code = 1;
 	}
 
 	if (alias_argv) {
@@ -262,16 +263,16 @@ static int gpac_exit_fun(GF_Err code)
 	cleanup_logs();
 
 	gf_sys_close();
-	if (code<0) {
-		if (return_gferr) code = -code;
-		else code = 1;
+	if (res_code<0) {
+		if (return_gferr) res_code = -res_code;
+		else res_code = 1;
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (gf_memory_size() || gf_file_handles_count() ) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
-		if (!code) code = 2;
+		if (!res_code) res_code = 2;
 	}
 #endif
 
@@ -288,20 +289,20 @@ static int gpac_exit_fun(GF_Err code)
 
 	MAIN_THREAD_EM_ASM({
 		if (typeof libgpac.gpac_done == 'function') libgpac.gpac_done($0);
-	}, code);
+	}, res_code);
 #endif
 
-	return code;
+	return res_code;
 }
 
-u32 get_u32(char *val, char *log_name)
+u32 get_u32(const char *val, const char *log_name)
 {
 	u32 res;
 	if (sscanf(val, "%u", &res)==1) return res;
 	GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
 	return 0;
 }
-s32 get_s32(char *val, char *log_name)
+s32 get_s32(const char *val, const char *log_name)
 {
 	s32 res;
 	if (sscanf(val, "%d", &res)==1) return res;
@@ -311,7 +312,7 @@ s32 get_s32(char *val, char *log_name)
 
 
 #define gpac_exit(_code) \
-	return gpac_exit_fun(_code)
+	return gpac_exit_fun((GF_Err) _code)
 
 
 #if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
@@ -463,7 +464,7 @@ static Bool defer_mode = GF_FALSE;
 #ifndef GPAC_DISABLE_NETWORK
 static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flags)
 {
-	char *prev_name = cbk;
+	char *prev_name = (char *)cbk;
 	if (strcmp(prev_name, name)) {
 		if (prev_name[0]) fprintf(stdout, "\n");
 		gf_strlcpy(prev_name, name, 100);
@@ -1147,9 +1148,9 @@ static int gpac_run()
 
 #endif
 
-	Bool prev_filter_is_sink = 0;
+	Bool prev_filter_is_sink = GF_FALSE;
 	u32 current_subsession_id = 0;
-	Bool prev_filter_is_not_source = 0;
+	Bool prev_filter_is_not_source = GF_FALSE;
 	u32 current_source_id = 0;
 
 #ifndef GPAC_CONFIG_EMSCRIPTEN
@@ -1159,9 +1160,9 @@ static int gpac_run()
 //on non-emscrypten, we use goto to avoid recursion - we cannot with emscripten with video support
 restart:
 
-	prev_filter_is_sink = 0;
+	prev_filter_is_sink = GF_FALSE;
 	current_subsession_id = 0;
-	prev_filter_is_not_source = 0;
+	prev_filter_is_not_source = GF_FALSE;
 	current_source_id = 0;
 #endif
 
@@ -1221,7 +1222,7 @@ restart:
 	if (session_js) {
 		u32 ijs, nb_js=gf_list_count(session_js);
 		for (ijs=0; ijs<nb_js; ijs++) {
-			const char *js_src = gf_list_get(session_js, ijs);
+			const char *js_src = (char *)gf_list_get(session_js, ijs);
 			e = gf_fs_load_script(session, js_src);
 			if (e) {
 				if ((e==GF_URL_ERROR) && strstr(js_src, "/rmt/server.js")) {
@@ -1259,7 +1260,7 @@ restart:
 						u32 count = gf_fs_get_filters_count(session);
 						f = gf_fs_get_filter(session, count-1-relink);
 					} else {
-						f = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
+						f = (struct __gf_filter *)gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
 					}
 					if (!f) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Invalid filter index in %s\n", arg));
@@ -1409,7 +1410,7 @@ restart:
 					const char *fio_url;
 					char *updated_args;
 					u32 len = (u32) (need_gfio - arg);
-					updated_args = gf_malloc(sizeof(char)*(len+1));
+					updated_args = (char *)gf_malloc(len+1);
 					memcpy(updated_args, arg, len);
 					updated_args[len]=0;
 
@@ -1457,7 +1458,7 @@ restart:
 			gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
 
 		while (gf_list_count(links_directive)) {
-			char *link = gf_list_pop_front(links_directive);
+			char *link = (char *)gf_list_pop_front(links_directive);
 			e = gf_fs_process_link_directive(link, filter, loaded_filters, NULL);
 			if (e) {
 				ERR_EXIT
@@ -1477,9 +1478,9 @@ restart:
 					current_source_id++;
 					gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
 				}
-				prev_filter_is_not_source = 0;
+				prev_filter_is_not_source = GF_FALSE;
 			} else {
-				prev_filter_is_not_source = 1;
+				prev_filter_is_not_source = GF_TRUE;
 			}
 
 			if (gf_filter_is_sink(filter)) {
@@ -1489,7 +1490,7 @@ restart:
 				prev_filter_is_sink = GF_FALSE;
 				current_subsession_id++;
 				current_source_id=0;
-				prev_filter_is_not_source = 0;
+				prev_filter_is_not_source = GF_FALSE;
 				gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
 			}
 		}
@@ -1524,7 +1525,7 @@ restart:
 	if (gf_list_count(links_directive)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Link separators specified but no following filter, ignoring links "));
 		while (gf_list_count(links_directive)) {
-			const char *ld = gf_list_pop_front(links_directive);
+			const char *ld = (char *)gf_list_pop_front(links_directive);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\"%s\"", ld));
 		}
 		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\n"));
@@ -1701,11 +1702,11 @@ int main(int argc, char **argv)
 {
     const char *is_gui = (argc==1) ? getenv("GPAC_GUI") : NULL;
     if (is_gui && !stricmp(is_gui, "yes")) {
-        char *_argv[2];
+        const char *_argv[2];
         _argv[0] = "gpac";
         _argv[1] = "-gui";
         compositor_mode = LOAD_GUI_ENV;
-        return gpac_main(2, _argv);
+        return gpac_main(2, (char **)_argv);
     }
     return gpac_main(argc, argv);
 }
@@ -1952,7 +1953,7 @@ static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx, 
 		*o_f = gf_fs_get_filter(session, count-1-f_idx);
 	} else {
 		count = gf_list_count(loaded_filters);
-		*o_f = gf_list_get(loaded_filters, count-1-f_idx);
+		*o_f = (GF_Filter *) gf_list_get(loaded_filters, count-1-f_idx);
 	}
 	if (!*o_f || !gf_fs_check_filter(session, *o_f)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter at index %d in arg %s\n", f_idx, arg));
@@ -2282,7 +2283,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 	va_end(vlist_tmp);
 	if (log_buf_size < len+2) {
 		log_buf_size = len+2;
-		log_buf = gf_realloc(log_buf, log_buf_size);
+		log_buf = (char *)gf_realloc(log_buf, log_buf_size);
 	}
 	vsprintf(log_buf, fmt, vlist);
 
@@ -2354,7 +2355,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		logs_to_file = gf_log_use_file();
 		if (!logs_to_file && (enable_reports==2) ) {
 			if (!nb_log_entries) nb_log_entries = 1;
-			static_logs = gf_malloc(sizeof(struct _logentry) * nb_log_entries);
+			static_logs = (struct _logentry *)gf_malloc(sizeof(struct _logentry) * nb_log_entries);
 			memset(static_logs, 0, sizeof(struct _logentry) * nb_log_entries);
 			gf_log_set_callback(fsess, gpac_on_logs);
 		}
@@ -2376,7 +2377,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	SET_CONSOLE(GF_CONSOLE_RESET);
 	fprintf(stderr, "Uptime ");
 	print_dur( gf_sys_clock() );
-	fprintf(stderr, " mem "LLU" kb CPU %u\n", rti.gpac_memory/1000, rti.process_cpu_usage);
+	fprintf(stderr, " mem " LLU " kb CPU %u\n", rti.gpac_memory/1000, rti.process_cpu_usage);
 
 	gf_fs_lock_filters(fsess, GF_TRUE);
 	nb_active = count = gf_fs_get_filters_count(fsess);
@@ -2410,12 +2411,12 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 				pck_per_sec *= 1000000;
 				pck_per_sec /= (stats.time_process+1);
 
-				fprintf(stderr, "% 10"LLD_SUF" pck %02.02f FPS ", (s64) stats.nb_out_pck, pck_per_sec);
+				fprintf(stderr, "% 10" LLD_SUF " pck %02.02f FPS ", (s64) stats.nb_out_pck, pck_per_sec);
 			} else {
 				if (stats.nb_pid_in)
-					fprintf(stderr, "%d input PIDs % 10"LLD_SUF" pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
+					fprintf(stderr, "%d input PIDs % 10" LLD_SUF " pck ", stats.nb_pid_in, (s64)stats.nb_in_pck);
 				if (stats.nb_pid_out)
-					fprintf(stderr, "%d output PIDs % 10"LLD_SUF" pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
+					fprintf(stderr, "%d output PIDs % 10" LLD_SUF " pck ", stats.nb_pid_out, (s64) stats.nb_out_pck);
 			}
 			if (stats.in_eos)
 				fprintf(stderr, "- EOS");
@@ -2651,7 +2652,7 @@ static Bool cache_file_op(void *cbck, char *item_name, char *item_path, GF_FileE
 		}
 		url+=3;
 		len = (u32) strlen(url);
-		dst_name = gf_malloc(len+dir_len+1);
+		dst_name = (char *)gf_malloc(len+dir_len+1);
 		memcpy(dst_name, item_path, dir_len);
 		dst_name[dir_len] = 0;
 		k=dir_len;
@@ -2717,7 +2718,7 @@ static void do_cache_check(u32 op_type, char *arg_val)
 		u32 csize = gf_opts_get_int("core", "cache-size");
 		if (!csize) csize = 1;
 
-		gf_fprintf(stdout, "Cache info:\n\tMax size: "LLU" bytes\n\tNumber of items: %u\n\tTotal Size: %u (used %u %%)\n\tMin Size: %u\n\tMax Size: %u\n", csize, ci.nb_entries, ci.total_size, (u32) (ci.total_size*100/csize), ci.min_size, ci.max_size);
+		gf_fprintf(stdout, "Cache info:\n\tMax size: " LLU " bytes\n\tNumber of items: %u\n\tTotal Size: %u (used %u %%)\n\tMin Size: %u\n\tMax Size: %u\n", csize, ci.nb_entries, ci.total_size, (u32) (ci.total_size*100/csize), ci.min_size, ci.max_size);
 		if (!ci.nb_entries) return;
 		gf_fprintf(stdout, "\tOldest entry: %s\n", format_date(ci.min_created, szDate) );
 		gf_fprintf(stdout, "\tMost recent entry: %s\n", format_date(ci.max_created, szDate) );
@@ -2753,14 +2754,14 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 
 static GF_Err fio_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return GF_BAD_PARAM;
 	gf_fseek(ioctx->filep, offset, whence);
 	return GF_OK;
 }
 static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return 0;
 	//flush eos
 	if (!bytes) bytes=1;
@@ -2768,7 +2769,7 @@ static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 }
 static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return 0;
 	if (!bytes) {
 		fflush(ioctx->filep);
@@ -2778,19 +2779,19 @@ static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 }
 static s64 fio_tell(GF_FileIO *fileio)
 {
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return -1;
 	return gf_ftell(ioctx->filep);
 }
 static Bool fio_eof(GF_FileIO *fileio)
 {
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return GF_TRUE;
-	return feof(ioctx->filep);
+	return feof(ioctx->filep) ? GF_TRUE : GF_FALSE;
 }
 static int fio_printf(GF_FileIO *fileio, const char *format, va_list args)
 {
-	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return -1;
 	return vfprintf(ioctx->filep, format, args);
 }
@@ -2804,7 +2805,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	u32 i, count;
 	u64 file_size;
 	Bool no_concatenate = GF_FALSE;
-	FileIOCtx *ioctx_ref = gf_fileio_get_udta(fileio_ref);
+	FileIOCtx *ioctx_ref = (FileIOCtx *) gf_fileio_get_udta(fileio_ref);
 
 	*out_err = GF_OK;
 
@@ -2878,8 +2879,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 	ioctx = NULL;
 	count = gf_list_count(all_gfio_defined);
 	for (i=0; i<count; i++) {
-		GF_FileIO *a_gfio = gf_list_get(all_gfio_defined, i);
-		ioctx = gf_fileio_get_udta(a_gfio);
+		GF_FileIO *a_gfio = (struct __gf_file_io *)gf_list_get(all_gfio_defined, i);
+		ioctx = (FileIOCtx *) gf_fileio_get_udta(a_gfio);
 		if (ioctx && !strcmp(ioctx->path, url)) {
 			if (ioctx->filep) {
 				no_concatenate = GF_TRUE;
@@ -2942,7 +2943,7 @@ static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
 		gfio = gf_fileio_from_url(url);
 		if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
 			return GF_EOS;
-		ioctx = gf_fileio_get_udta(gfio);
+		ioctx = (FileIOCtx *) gf_fileio_get_udta(gfio);
 		if (ioctx->filep) return GF_BAD_PARAM;
 		if (ioctx->path) gf_file_delete(ioctx->path);
 		return GF_OK;
@@ -2951,7 +2952,7 @@ static GF_Err gpac_gfio_del(const char *url, const char *parent_gfio)
 	gfio = gf_fileio_from_url(parent_gfio);
 	if (!gfio || (gf_list_find(all_gfio_defined, gfio)<0))
 		return GF_EOS;
-	ioctx = gf_fileio_get_udta(gfio);
+	ioctx = (FileIOCtx *) gf_fileio_get_udta(gfio);
 	if (!ioctx->path) return GF_EOS;
 
 	char *path = gf_url_concatenate(ioctx->path, url);
@@ -3075,8 +3076,8 @@ static void cleanup_file_io()
 	}
 
 	while (gf_list_count(all_gfio_defined)) {
-		GF_FileIO *gfio = gf_list_pop_back(all_gfio_defined);
-		FileIOCtx *ioctx = gf_fileio_get_udta(gfio);
+		GF_FileIO *gfio = (struct __gf_file_io *)gf_list_pop_back(all_gfio_defined);
+		FileIOCtx *ioctx = (FileIOCtx *) gf_fileio_get_udta(gfio);
 		gf_fileio_del(gfio);
 
 		if (ioctx->filep) {
@@ -3090,7 +3091,7 @@ static void cleanup_file_io()
 	all_gfio_defined = NULL;
 
 	while (gf_list_count(all_blobs_defined)) {
-		BlobCtx *bctx = gf_list_pop_back(all_blobs_defined);
+		BlobCtx *bctx = (BlobCtx *)gf_list_pop_back(all_blobs_defined);
 		if (bctx->fio) {
 			gf_fclose((FILE*)bctx->fio);
 			gf_fileio_del(bctx->fio);
@@ -3128,7 +3129,7 @@ static GF_Err cust_process(GF_Filter *filter)
 		while (1) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
 			if (!pck) break;
-			fprintf(stderr, "PID %s Got packet CTS "LLU"\n", name, gf_filter_pck_get_cts(pck));
+			fprintf(stderr, "PID %s Got packet CTS " LLU "\n", name, gf_filter_pck_get_cts(pck));
 			gf_filter_pid_drop_packet(pid);
 		}
 	}
@@ -3463,7 +3464,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_prompt_set_echo_off(GF_FALSE);
 	gf_getch();
 	gf_prompt_get_char();
-	gf_read_line_input(utf8_buf, 7, 1);
+	gf_read_line_input(utf8_buf, 7, GF_TRUE);
 
 	gf_net_set_ntp_shift(-1000);
 	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
@@ -3785,7 +3786,7 @@ static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd
 	* ((u64*) &salt[24]) = v4;
 
 	u32 len = (u32) strlen(passwd);
-	pass = gf_malloc(len+GF_SHA256_DIGEST_SIZE+1);
+	pass = (u8 *)gf_malloc(len+GF_SHA256_DIGEST_SIZE+1);
 	memcpy(pass, passwd, len);
 	pass[len] = '@';
 	memcpy(pass + len + 1, salt, GF_SHA256_DIGEST_SIZE);
@@ -3829,6 +3830,11 @@ static int gpac_do_creds(char *creds_args)
 {
 #ifndef GPAC_DISABLE_NETWORK
 	GF_Config *creds = NULL;
+	Bool is_group;
+	u32 is_add;
+	Bool is_rem;
+	char *param;
+	u32 keys;
 
 	const char *cred_file = gf_opts_get_key("core", "users");
 	if (!cred_file) {
@@ -3875,15 +3881,15 @@ static int gpac_do_creds(char *creds_args)
 		fprintf(stderr, "Failed to open creds file %s\n", cred_file);
 		goto err_exit;
 	}
-	Bool is_group=GF_FALSE;
-	u32 is_add=0;
-	Bool is_rem=GF_FALSE;
+	is_group=GF_FALSE;
+	is_add=0;
+	is_rem=GF_FALSE;
 	if (creds_args[0] == '@') { is_group = GF_TRUE; creds_args++; }
 	if (creds_args[0] == '+') { is_add = 1; creds_args++;}
 	if (creds_args[0] == '_') { is_add = 2; creds_args++; }
 	if (creds_args[0] == '-') { is_rem = GF_TRUE; creds_args++;}
 
-	char *param = strchr(creds_args, ':');
+	param = strchr(creds_args, ':');
 	if (param) {
 		param[0] = 0;
 	}
@@ -3952,7 +3958,7 @@ static int gpac_do_creds(char *creds_args)
 		goto exit;
 	}
 
-	u32 keys = gf_cfg_get_key_count(creds, creds_args);
+	keys = gf_cfg_get_key_count(creds, creds_args);
 	if (!keys && !is_add) {
 		fprintf(stderr, "No such user %s\n", creds_args);
 		//trash creds in test mode
@@ -3974,7 +3980,7 @@ static int gpac_do_creds(char *creds_args)
 
 			if (pass) {
 				fprintf(stderr, "Enter old password for %s\n", creds_args);
-				if (!gf_read_line_input(szP2, 100, 0))
+				if (!gf_read_line_input(szP2, 100, GF_FALSE))
 					goto err_exit;
 				fprintf(stderr, "*********\n");
 
@@ -3985,7 +3991,7 @@ static int gpac_do_creds(char *creds_args)
 			}
 
 			fprintf(stderr, "Enter new password for %s\n", creds_args);
-			if (!gf_read_line_input(szP1, 100, 0))
+			if (!gf_read_line_input(szP1, 100, GF_FALSE))
 				goto err_exit;
 			fprintf(stderr, "*********\n");
 			if (strlen(szP1)<8) {
@@ -3993,7 +3999,7 @@ static int gpac_do_creds(char *creds_args)
 				goto err_exit;
 			}
 			fprintf(stderr, "Re-enter new password for %s\n", creds_args);
-			if (!gf_read_line_input(szP2, 100, 0))
+			if (!gf_read_line_input(szP2, 100, GF_FALSE))
 				goto err_exit;
 			fprintf(stderr, "*********\n");
 			if (strcmp(szP1, szP2)) {
@@ -4011,7 +4017,7 @@ static int gpac_do_creds(char *creds_args)
 		val = gf_cfg_get_key(creds, creds_args, _key);\
 		if (!val) val="";\
 		fprintf(stderr, "\nEnter %s (%s): \n", _prompt, val);\
-		if (gf_read_line_input(szP1, 50, 1) && szP1[0]) \
+		if (gf_read_line_input(szP1, 50, GF_TRUE) && szP1[0]) \
 			gf_cfg_set_key(creds, creds_args, _key, szP1); \
 
 

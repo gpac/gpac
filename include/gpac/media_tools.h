@@ -55,7 +55,7 @@ This section documents media tools  functions .
  *computes file hash.
  If file is ISOBMFF based, computes hash according to OMA (P)DCF (without MutableDRMInformation box).
  Otherwise this is equivalent to \ref gf_sha1_file
- 
+
 \param file the source file to hash
 \param hash the 20 bytes buffer in which sha128 is performed for this file
 \return error if any.
@@ -258,7 +258,7 @@ enum
 	GF_IMPORT_KEEP_AV1_TEMPORAL_OBU  = 1<<28,
 	/*! imports sample dependencies information*/
 	GF_IMPORT_SAMPLE_DEPS  = 1<<29,
-	
+
 	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
 
@@ -307,7 +307,7 @@ struct __track_import_info
 	/*! stream type (one of GF_STREAM_XXXX)*/
 	u32 stream_type;
 	/*! codec ID ( one of GF_CODECID_XXX*)*/
-	u32 codecid;
+	GF_CodecID codecid;
 	/*! GF_ISOM_MEDIA_* : vide, auxv, pict*/
 	u32 media_subtype;
 	Bool is_chapter;
@@ -357,7 +357,7 @@ typedef struct __track_import
 	*/
 	u32 trackID;
 	/*! media source - selects importer type based on extension*/
-	char *in_name;
+	const char *in_name;
 	/*! import duration if any*/
 	GF_Fraction duration;
 	/*! importer flags*/
@@ -634,7 +634,7 @@ This section documents media functions for MPEG-DASH creation.
 typedef struct
 {
 	/*! source file to be used*/
-	char *file_name;
+	const char *file_name;
 	/*! ID of the representation, may be NULL (assigned by dasher)*/
 	char *representationID;
 	/*! ID of the period, may be NULL (assigned by dasher)*/
@@ -1237,11 +1237,11 @@ typedef struct __track_exporter
 	/*! sample number to export for GF_EXPORT_RAW_SAMPLES only*/
 	u32 sample_num;
 	/*! output name, if no extension set the extension will be added based on track type*/
-	char *out_name;
+	const char *out_name;
 	/*! dump type and flags*/
 	u32 flags;
 	/*! non-ISOBMF source file (AVI, TS)*/
-	char *in_name;
+	const char *in_name;
 	/*! optional FILE for output*/
 	FILE *dump_file;
 	/*! filter session dump flags*/
@@ -1438,7 +1438,7 @@ void gf_saf_mux_del(GF_SAFMuxer *mux);
 \param remote_url URL of the SAF stream if not embedded in the multiplex
 \return error if any
  */
-GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, char *mime_type, char *dsi, u32 dsi_len, char *remote_url);
+GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, const char *mime_type, u8 *dsi, u32 dsi_len, char *remote_url);
 
 
 /*!
@@ -1451,7 +1451,7 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 \param is_rap set to GF_TRUE to signal a random access point
 \return error if any
 */
-GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u32 data_len, Bool is_rap);
+GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, const u8 *data, u32 data_len, Bool is_rap);
 
 /*!
   Gets the content of the multiplexer for the given time.

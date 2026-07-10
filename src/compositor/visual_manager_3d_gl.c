@@ -72,7 +72,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #ifdef GPAC_USE_TINYGL
 	/*let TGL handle texturing*/
 	compositor->gl_caps.rect_texture = 1;
-	compositor->gl_caps.npot_texture = 1;
+	compositor->gl_caps.npot_texture = GF_TRUE;
 #else
 	const char *ext = NULL;
 
@@ -89,43 +89,43 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	memset(&compositor->gl_caps, 0, sizeof(GLCaps));
 
 	if (CHECK_GL_EXT("GL_ARB_multisample") || CHECK_GL_EXT("GLX_ARB_multisample") || CHECK_GL_EXT("WGL_ARB_multisample"))
-		compositor->gl_caps.multisample = 1;
+		compositor->gl_caps.multisample = GF_TRUE;
 	if (CHECK_GL_EXT("GL_ARB_texture_non_power_of_two"))
-		compositor->gl_caps.npot_texture = 1;
+		compositor->gl_caps.npot_texture = GF_TRUE;
 	if (CHECK_GL_EXT("GL_EXT_abgr"))
-		compositor->gl_caps.abgr_texture = 1;
+		compositor->gl_caps.abgr_texture = GF_TRUE;
 	if (CHECK_GL_EXT("GL_EXT_bgra"))
-		compositor->gl_caps.bgra_texture = 1;
+		compositor->gl_caps.bgra_texture = GF_TRUE;
 	if (CHECK_GL_EXT("GL_EXT_framebuffer_object") || CHECK_GL_EXT("GL_ARB_framebuffer_object"))
-		compositor->gl_caps.fbo = 1;
+		compositor->gl_caps.fbo = GF_TRUE;
 	if (CHECK_GL_EXT("GL_ARB_texture_non_power_of_two"))
-		compositor->gl_caps.npot = 1;
+		compositor->gl_caps.npot = GF_TRUE;
 
 
 	if (CHECK_GL_EXT("GL_ARB_point_parameters")) {
-		compositor->gl_caps.point_sprite = 1;
+		compositor->gl_caps.point_sprite = GF_TRUE;
 		if (CHECK_GL_EXT("GL_ARB_point_sprite") || CHECK_GL_EXT("GL_NV_point_sprite")) {
-			compositor->gl_caps.point_sprite = 2;
+			compositor->gl_caps.point_sprite = GF_TRUE;
 		}
 	}
 
 #ifdef GPAC_USE_GLES2
-	compositor->gl_caps.vbo = 1;
+	compositor->gl_caps.vbo = GF_TRUE;
 #else
 	if (CHECK_GL_EXT("GL_ARB_vertex_buffer_object")) {
-		compositor->gl_caps.vbo = 1;
+		compositor->gl_caps.vbo = GF_TRUE;
 	}
 #endif
 
 
 #ifndef GPAC_USE_GLES1X
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
-		compositor->gl_caps.rect_texture = 1;
+		compositor->gl_caps.rect_texture = GF_TRUE;
 	}
 #endif
 
 	if (CHECK_GL_EXT("EXT_unpack_subimage") ) {
-		compositor->gl_caps.gles2_unpack = 1;
+		compositor->gl_caps.gles2_unpack = GF_TRUE;
 	}
 
 	if (!has_gl_context) return;
@@ -135,12 +135,12 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &compositor->gl_caps.max_texture_size);
 
 	if (CHECK_GL_EXT("GL_ARB_pixel_buffer_object")) {
-		compositor->gl_caps.pbo=1;
+		compositor->gl_caps.pbo = GF_TRUE;
 	}
 
 #ifdef LOAD_GL_2_0
 	if (glCreateProgram != NULL) {
-		compositor->gl_caps.has_shaders = 1;
+		compositor->gl_caps.has_shaders = GF_TRUE;
 
 #ifndef GPAC_CONFIG_ANDROID
 		if (glGetAttribLocation == NULL) {
@@ -205,7 +205,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	"#endif\n" \
 	"#endif\n"
 
-static char *glsl_autostereo_vertex = GLSL_PREFIX "\
+static const char *glsl_autostereo_vertex = GLSL_PREFIX "\
 	attribute vec4 gfVertex;\
 	attribute vec2 gfTextureCoordinates;\
 	uniform mat4 gfProjectionMatrix;\
@@ -216,7 +216,7 @@ static char *glsl_autostereo_vertex = GLSL_PREFIX "\
 		gl_Position = gfProjectionMatrix * gfVertex;\
 	}";
 
-static char *glsl_view_anaglyph = GLSL_PREFIX "\
+static const char *glsl_view_anaglyph = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -230,7 +230,7 @@ static char *glsl_view_anaglyph = GLSL_PREFIX "\
 	}";
 
 #ifdef GPAC_UNUSED_FUNC
-static char *glsl_view_anaglyph_optimize = GLSL_PREFIX "\
+static const char *glsl_view_anaglyph_optimize = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -245,7 +245,7 @@ static char *glsl_view_anaglyph_optimize = GLSL_PREFIX "\
 	}";
 #endif /*GPAC_UNUSED_FUNC*/
 
-static char *glsl_view_columns = GLSL_PREFIX "\
+static const char *glsl_view_columns = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -257,7 +257,7 @@ static char *glsl_view_columns = GLSL_PREFIX "\
 			gl_FragColor = texture2D(gfView2, TexCoord.st); \
 	}";
 
-static char *glsl_view_rows = GLSL_PREFIX "\
+static const char *glsl_view_rows = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -269,7 +269,7 @@ static char *glsl_view_rows = GLSL_PREFIX "\
 			gl_FragColor = texture2D(gfView2, TexCoord.st); \
 	}";
 
-static char *glsl_view_5VSP19 = GLSL_PREFIX "\
+static const char *glsl_view_5VSP19 = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	uniform sampler2D gfView3;\
@@ -302,7 +302,7 @@ static char *glsl_view_5VSP19 = GLSL_PREFIX "\
 		gl_FragColor.b = color.b;\
 	}";
 
-static char *glsl_view_8VAlio = GLSL_PREFIX "\
+static const char *glsl_view_8VAlio = GLSL_PREFIX "\
 	uniform sampler2D gfView1; \
 	uniform sampler2D gfView2; \
 	uniform sampler2D gfView3; \
@@ -359,7 +359,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	GLsizei slen = 0;
 	s32 len;
 	GLint is_compiled=0;
-	if (!source || !shader_id) return 0;
+	if (!source || !shader_id) return GF_FALSE;
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
@@ -379,9 +379,9 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile %s shader: %s\n", name, compiler_log));
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GLSL] ***** faulty shader code ****\n%s\n**********************\n", source));
 		gf_free (compiler_log);
-		return 0;
+		return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 }
 static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 shader_type)
 {
@@ -642,7 +642,7 @@ static void gf_glQueryUniforms(GF_SHADERID progObj)
 
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORMS, &numUniforms);
 	glGetProgramiv(progObj, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformLen);
-	uniformName = gf_malloc(sizeof(char) * maxUniformLen);
+	uniformName = (char *)gf_malloc(maxUniformLen);
 	for(index = 0; index < numUniforms; index++) {
 		GLint size;
 		GLenum type;
@@ -702,7 +702,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 	printf("Listing Attribs... \n");
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTES, &numAttributes);
 	glGetProgramiv(progObj, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeLen);
-	attributeName = gf_malloc(sizeof(char) * maxAttributeLen);
+	attributeName = (char *)gf_malloc(maxAttributeLen);
 	for(index = 0; index < numAttributes; index++) {
 		GLint size;
 		GLenum type;
@@ -848,7 +848,7 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 			visual->compositor->hybrid_opengl = GF_FALSE;
 			visual->compositor->force_opengl_2d = GF_FALSE;
 			/*force resetup*/
-			visual->compositor->root_visual_setup = 0;
+			visual->compositor->root_visual_setup = GF_FALSE;
 			/*force texture setup when switching to OpenGL*/
 			gf_sc_reset_graphics(visual->compositor);
 			/*force redraw*/
@@ -881,7 +881,7 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 	}
 
 	while (gf_list_count(visual->compiled_programs)) {
-		GF_GLProgInstance *gi = gf_list_pop_back(visual->compiled_programs);
+		GF_GLProgInstance *gi = (GF_GLProgInstance *)gf_list_pop_back(visual->compiled_programs);
 		DEL_SHADER(gi->vertex);
 		DEL_SHADER(gi->fragment);
 		DEL_PROGRAM(gi->prog);
@@ -957,7 +957,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	Bool use_npot = visual->compositor->gl_caps.npot_texture;
 	if (visual->gl_textures) return GF_OK;
 
-	visual->gl_textures = gf_malloc(sizeof(GLuint) * visual->nb_views);
+	visual->gl_textures = (u32 *)gf_malloc(sizeof(GLuint) * visual->nb_views);
 	glGenTextures(visual->nb_views, visual->gl_textures);
 
 	bw = visual->width;
@@ -985,7 +985,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	visual->autostereo_mesh = new_mesh();
 	s.x = INT2FIX(bw);
 	s.y = INT2FIX(bh);
-	mesh_new_rectangle(visual->autostereo_mesh, s, NULL, 0);
+	mesh_new_rectangle(visual->autostereo_mesh, s, NULL, GF_FALSE);
 
 	if (! use_npot) {
 		u32 i;
@@ -1287,7 +1287,7 @@ void visual_3d_set_background_state(GF_VisualManager *visual, Bool on)
 	}
 #endif
 
-	visual_3d_enable_depth_buffer(visual, ! on);
+	visual_3d_enable_depth_buffer(visual, on ? GF_FALSE : GF_TRUE);
 }
 
 
@@ -1434,7 +1434,7 @@ static void visual_3d_update_matrices(GF_TraverseState *tr_state)
 	GF_Matrix mx;
 	if (!tr_state || !tr_state->camera) return;
 	if (tr_state->visual->needs_projection_matrix_reload) {
-		tr_state->visual->needs_projection_matrix_reload = 0;
+		tr_state->visual->needs_projection_matrix_reload = GF_FALSE;
 		glMatrixMode(GL_PROJECTION);
 		visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
 		glMatrixMode(GL_MODELVIEW);
@@ -1882,7 +1882,7 @@ static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void
 		if (mesh->vbo) {
 			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
 			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-			mesh->vbo_dirty = 0;
+			mesh->vbo_dirty = GF_FALSE;
 		} else {
 			return GF_FALSE;
 		}
@@ -1913,7 +1913,7 @@ static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
 
-		mesh->vbo_dirty = 0;
+		mesh->vbo_dirty = GF_FALSE;
 	}
 	return GF_TRUE;
 }
@@ -1926,7 +1926,7 @@ static void visual_3d_update_matrices_shaders(GF_TraverseState *tr_state)
 	GF_Matrix mx;
 
 	if (tr_state->visual->needs_projection_matrix_reload) {
-		tr_state->visual->needs_projection_matrix_reload = 0;
+		tr_state->visual->needs_projection_matrix_reload = GF_FALSE;
 		visual_3d_load_matrix_shaders(tr_state->visual->glsl_program, (Fixed *) tr_state->camera->projection.m, "gfProjectionMatrix");
 	}
 
@@ -2175,7 +2175,7 @@ GF_GLProgInstance *visual_3d_check_program_exists(GF_VisualManager *root_visual,
 
 	count = gf_list_count(root_visual->compiled_programs);
 	for (i=0; i<count; i++) {
-		prog = gf_list_get(root_visual->compiled_programs, i);
+		prog = (GF_GLProgInstance *)gf_list_get(root_visual->compiled_programs, i);
 		if ((prog->flags==flags) && (prog->pix_fmt==pix_fmt)) break;
 		prog = NULL;
 	}
@@ -2392,7 +2392,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			//for now colors are 8bit/comp RGB(A), so used GL_UNSIGNED_BYTE and GL_TRUE for normalizing values
 			if (mesh->flags & MESH_HAS_ALPHA) {
 				glEnable(GL_BLEND);
-				tr_state->mesh_is_transparent = 1;
+				tr_state->mesh_is_transparent = GF_TRUE;
 				glVertexAttribPointer(loc_color_array, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_COLOR_OFFSET));
 			} else {
 				glVertexAttribPointer(loc_color_array, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_COLOR_OFFSET));
@@ -2610,10 +2610,10 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	visual->has_material_2d = GF_FALSE;
 	visual->active_glsl_flags = root_visual->active_glsl_flags;
 	root_visual->active_glsl_flags &= ~ GF_GL_HAS_COLOR;
-	visual->has_material = 0;
-	visual->state_color_on = 0;
+	visual->has_material = GF_FALSE;
+	visual->state_color_on = GF_FALSE;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
-	tr_state->mesh_is_transparent = 0;
+	tr_state->mesh_is_transparent = GF_FALSE;
 	GL_CHECK_ERR()
 	glUseProgram(0);
 	GL_CHECK_ERR()
@@ -2672,7 +2672,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 		return;
 	}
-	has_col = has_tx = has_norm = 0;
+	has_col = has_tx = has_norm = GF_FALSE;
 
 	if (!is_debug_bounds) {
 		//set lights before pushing modelview matrix
@@ -2718,12 +2718,12 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glDisable(GL_LIGHTING);
 		if (visual->mat_2d.alpha != FIX_ONE) {
 			glEnable(GL_BLEND);
-			visual_3d_enable_antialias(visual, 0);
+			visual_3d_enable_antialias(visual, GF_FALSE);
 		} else {
 			//disable blending only if no texture !
 			if (!tr_state->mesh_num_textures)
 				glDisable(GL_BLEND);
-			visual_3d_enable_antialias(visual, visual->compositor->aa ? 1 : 0);
+			visual_3d_enable_antialias(visual, visual->compositor->aa ? GF_TRUE : GF_FALSE);
 		}
 #ifdef GPAC_USE_GLES1X
 		glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
@@ -2790,13 +2790,13 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 #endif
 		glEnableClientState(GL_COLOR_ARRAY);
-		has_col = 1;
+		has_col = GF_TRUE;
 
 #if defined (GPAC_USE_GLES1X)
 
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
-			tr_state->mesh_is_transparent = 1;
+			tr_state->mesh_is_transparent = GF_TRUE;
 		}
 #ifdef MESH_USE_SFCOLOR
 		/*glES only accepts full RGBA colors*/
@@ -2814,7 +2814,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		we must thus rebuild a dedicated array...*/
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			u32 i;
-			color_array = gf_malloc(sizeof(Float)*4*mesh->v_count);
+			color_array = (Float *)gf_malloc(sizeof(Float)*4*mesh->v_count);
 			for (i=0; i<mesh->v_count; i++) {
 				color_array[4*i] = FIX2FLT(mesh->vertices[i].color.red);
 				color_array[4*i+1] = FIX2FLT(mesh->vertices[i].color.green);
@@ -2823,9 +2823,9 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			}
 			glEnable(GL_BLEND);
 			glColorPointer(4, GL_FLOAT, 4*sizeof(Float), color_array);
-			tr_state->mesh_is_transparent = 1;
+			tr_state->mesh_is_transparent = GF_TRUE;
 		} else {
-			color_array = gf_malloc(sizeof(Float)*3*mesh->v_count);
+			color_array = (Float *)gf_malloc(sizeof(Float)*3*mesh->v_count);
 			for (i=0; i<mesh->v_count; i++) {
 				color_array[3*i] = FIX2FLT(mesh->vertices[i].color.red);
 				color_array[3*i+1] = FIX2FLT(mesh->vertices[i].color.green);
@@ -2843,14 +2843,14 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
 			glColorPointer(4, GL_FLOAT, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
-			tr_state->mesh_is_transparent = 1;
+			tr_state->mesh_is_transparent = GF_TRUE;
 		} else {
 			glColorPointer(3, GL_FLOAT, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 		}
 #else
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
-			tr_state->mesh_is_transparent = 1;
+			tr_state->mesh_is_transparent = GF_TRUE;
 			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 		} else {
 			glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
@@ -2861,7 +2861,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 	if (tr_state->mesh_num_textures && (mesh->mesh_type==MESH_TRIANGLES) && !(mesh->flags & MESH_NO_TEXTURE)) {
-		has_tx = 1;
+		has_tx = GF_TRUE;
 
 		glMatrixMode(GL_TEXTURE);
 		if (visual->has_tx_matrix) {
@@ -2918,7 +2918,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	} else {
 		u32 normal_type = GL_FLOAT;
-		has_norm = 1;
+		has_norm = GF_TRUE;
 		glEnableClientState(GL_NORMAL_ARRAY );
 #ifdef MESH_USE_FIXED_NORMAL
 
@@ -2983,10 +2983,10 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	//reset all our states
 	visual_3d_reset_clippers(visual);
 	visual->has_material_2d = GF_FALSE;
-	visual->has_material = 0;
-	visual->state_color_on = 0;
+	visual->has_material = GF_FALSE;
+	visual->state_color_on = GF_FALSE;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
-	tr_state->mesh_is_transparent = 0;
+	tr_state->mesh_is_transparent = GF_FALSE;
 
 	GL_CHECK_ERR()
 #endif
@@ -3150,7 +3150,7 @@ static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
 void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 #if !defined(GPAC_USE_GLES2)
-	Bool mesh_drawn = 0;
+	Bool mesh_drawn = GF_FALSE;
 #endif
 
 	GL_CHECK_ERR()
@@ -3161,7 +3161,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (tr_state->visual->compositor->wire != GF_WIREFRAME_ONLY) {
 		visual_3d_draw_mesh(tr_state, mesh);
 #if !defined(GPAC_USE_GLES2)
-		mesh_drawn = 1;
+		mesh_drawn = GF_TRUE;
 #endif
 	}
 
@@ -3169,7 +3169,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (tr_state->visual->compositor->norms) {
 		if (!mesh_drawn) {
 			visual_3d_update_matrices(tr_state);
-			mesh_drawn=1;
+			mesh_drawn= GF_TRUE;
 		}
 		visual_3d_draw_normals(tr_state, mesh);
 	}
@@ -3495,7 +3495,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		if (compositor->screen_buffer_alloc_size < fb->pitch_y * fb->height) {
 			compositor->screen_buffer_alloc_size = fb->pitch_y * fb->height;
-			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+			compositor->screen_buffer = (u8 *)gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
 		}
 
 		fb->video_buffer = compositor->screen_buffer;
@@ -3542,7 +3542,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif
 		if (compositor->screen_buffer_alloc_size < size) {
 			compositor->screen_buffer_alloc_size = size;
-			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+			compositor->screen_buffer = (u8 *)gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
 		}
 		fb->video_buffer = compositor->screen_buffer;
 
@@ -3555,7 +3555,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset));
 		*/
 
-		depth_data = (char*) gf_malloc(sizeof(char)*fb->width*fb->height);
+		depth_data = (char*) gf_malloc(fb->width*fb->height);
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
 
 		if (depth_dump_mode==2) {
@@ -3597,8 +3597,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		size = fb->pitch_y * fb->height;
 		if (compositor->screen_buffer_alloc_size < size) {
 			compositor->screen_buffer_alloc_size = size;
-			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
-			compositor->line_buffer = gf_realloc(compositor->line_buffer, fb->pitch_y);
+			compositor->screen_buffer = (u8 *)gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+			compositor->line_buffer = (u8 *)gf_realloc(compositor->line_buffer, fb->pitch_y);
 
 		}
 
@@ -3654,7 +3654,7 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 	fb->height = compositor->visual->auto_stereo_height;
 	fb->pixel_format = GF_PIXEL_RGB;
 	fb->pitch_y = 3*fb->width;
-	fb->video_buffer = gf_malloc(sizeof(char)*3*fb->width*fb->height);
+	fb->video_buffer = (u8 *)gf_malloc(3*fb->width*fb->height);
 	if (!fb->video_buffer) return GF_OUT_OF_MEM;
 
 	glEnable(GL_TEXTURE_2D);
@@ -3663,7 +3663,7 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 	glDisable(GL_TEXTURE_2D);
 
 	/*flip image (OpenGL always handle image data bottom to top) */
-	tmp = (char*)gf_malloc(sizeof(char)*fb->pitch_y);
+	tmp = (char*)gf_malloc(fb->pitch_y);
 	hy = fb->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
@@ -3694,7 +3694,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		Float z;
 		static GLfloat none[3] = { 1.0f, 0, 0 };
 
-		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
+		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
 		if (pixel_format!=GF_PIXEL_RGBD) return;
 		stride = txh->stride;
@@ -3750,7 +3750,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		if (!delta) first_pass = 2;
 		else first_pass = 1;
 
-		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
+		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
 		if (pixel_format!=GF_PIXEL_RGBD) return;
 		stride = txh->stride;
@@ -3773,7 +3773,7 @@ restart:
 		y = gf_mulfix(y, INT2FIX(txh->height/2));
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
-		in_strip = 0;
+		in_strip = GF_FALSE;
 		for (h=0; h<txh->height - 1; h++) {
 			u8 *src = data + h*stride;
 			x = -1;
@@ -3791,7 +3791,7 @@ restart:
 #if 0
 						if (in_strip) {
 							glEnd();
-							in_strip = 0;
+							in_strip = GF_FALSE;
 						}
 #endif
 						x += FLT2FIX(inc);
@@ -3802,7 +3802,7 @@ restart:
 					{
 						if (in_strip) {
 							glEnd();
-							in_strip = 0;
+							in_strip = GF_FALSE;
 						}
 						x += FLT2FIX(inc);
 						continue;
@@ -3820,7 +3820,7 @@ restart:
 
 				if (!in_strip) {
 					glBegin(GL_TRIANGLE_STRIP);
-					in_strip = 1;
+					in_strip = GF_TRUE;
 				}
 
 				glColor3f(r, g, b);
@@ -3840,7 +3840,7 @@ restart:
 			}
 			if (in_strip) {
 				glEnd();
-				in_strip = 0;
+				in_strip = GF_FALSE;
 			}
 			y -= FLT2FIX(inc);
 		}
@@ -3856,7 +3856,7 @@ restart:
 	/*render using vertex array*/
 	if (!stack->mesh) {
 		stack->mesh = new_mesh();
-		stack->mesh->vbo_dynamic = 1;
+		stack->mesh->vbo_dynamic = GF_TRUE;
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 //		x = 0;
@@ -3885,16 +3885,16 @@ restart:
 				y -= FLT2FIX(inc);
 			}
 			/*force recompute of Z*/
-			txh->needs_refresh = 1;
+			txh->needs_refresh = GF_TRUE;
 		}
 	}
 
 	/*texture has been updated, recompute Z*/
 	if (txh->needs_refresh) {
 		Fixed f_scale = FLT2FIX(visual->compositor->depth_gl_scale);
-		txh->needs_refresh = 0;
+		txh->needs_refresh = GF_FALSE;
 
-		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
+		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
 		if (pixel_format!=GF_PIXEL_RGB_DEPTH) return;
 		data += txh->height*txh->width*3;
@@ -3908,7 +3908,7 @@ restart:
 				stack->mesh->vertices[w + h*txh->width].pos.z = z;
 			}
 		}
-		stack->mesh->vbo_dirty = 1;
+		stack->mesh->vbo_dirty = GF_TRUE;
 	}
 #ifndef GPAC_DISABLE_VRML
 	if (tr_state->appear) txtrans = ((M_Appearance *)tr_state->appear)->textureTransform;

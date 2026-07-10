@@ -83,7 +83,7 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 		Bool bind;
 		n = (GF_Node*)gf_list_get(compositor->visual->view_stack, viewpoint_idx-1);
 		bind = Bindable_GetIsBound(n);
-		Bindable_SetSetBind(n, !bind);
+		Bindable_SetSetBind(n, bind ? GF_FALSE : GF_TRUE);
 		return GF_OK;
 	}
 	for (i=0; i<count; i++) {
@@ -106,7 +106,7 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 		}
 		if (name && !stricmp(name, viewpoint_name)) {
 			Bool bind = Bindable_GetIsBound(n);
-			Bindable_SetSetBind(n, !bind);
+			Bindable_SetSetBind(n, bind ? GF_FALSE : GF_TRUE);
 			return GF_OK;
 		}
 	}
@@ -141,7 +141,7 @@ static void viewport_set_bind(GF_Node *node, GF_Route *route)
 	/*notify change of vp stack*/
 	VPCHANGED(rend);
 	/*and dirty ourselves to force frustrum update*/
-	gf_node_dirty_set(node, 0, 0);
+	gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 }
 
 
@@ -173,9 +173,9 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 			gf_list_add(st->reg_stacks, tr_state->viewpoints);
 
 		if (gf_list_get(tr_state->viewpoints, 0) == vp) {
-			if (!vp->isBound) Bindable_SetIsBound(node, 1);
+			if (!vp->isBound) Bindable_SetIsBound(node, GF_TRUE);
 		} else {
-			if (gf_inline_is_default_viewpoint(node)) Bindable_SetSetBindEx(node, 1, tr_state->viewpoints);
+			if (gf_inline_is_default_viewpoint(node)) Bindable_SetSetBindEx(node, GF_TRUE, tr_state->viewpoints);
 		}
 		VPCHANGED(tr_state->visual->compositor);
 		/*in any case don't draw the first time (since the viewport could have been declared last)*/
@@ -331,13 +331,13 @@ static void viewpoint_set_bind(GF_Node *node, GF_Route *route)
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 
 	if (!((M_Viewpoint*)node)->isBound )
-		st->prev_was_bound = 0;
+		st->prev_was_bound = GF_FALSE;
 	Bindable_OnSetBind(node, st->reg_stacks, NULL);
 	gf_sc_invalidate(rend, NULL);
 	/*notify change of vp stack*/
 	VPCHANGED(rend);
 	/*and dirty ourselves to force frustrum update*/
-	gf_node_dirty_set(node, 0, 0);
+	gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 }
 
 static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
@@ -364,13 +364,13 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 			gf_list_add(st->reg_stacks, tr_state->viewpoints);
 
 		if (gf_list_get(tr_state->viewpoints, 0) == vp) {
-			if (!vp->isBound) Bindable_SetIsBound(node, 1);
+			if (!vp->isBound) Bindable_SetIsBound(node, GF_TRUE);
 		} else {
-			if (gf_inline_is_default_viewpoint(node)) Bindable_SetSetBind(node, 1);
+			if (gf_inline_is_default_viewpoint(node)) Bindable_SetSetBind(node, GF_TRUE);
 		}
 		VPCHANGED(tr_state->visual->compositor);
 		/*in any case don't draw the first time (since the viewport could have been declared last)*/
-		if (tr_state->layer3d) gf_node_dirty_set(tr_state->layer3d, GF_SG_VRML_BINDABLE_DIRTY, 0);
+		if (tr_state->layer3d) gf_node_dirty_set(tr_state->layer3d, GF_SG_VRML_BINDABLE_DIRTY, GF_FALSE);
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
 	}
 	/*not evaluating vp, return*/
@@ -381,7 +381,7 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 		if ((tr_state->traversing_mode==TRAVERSE_SORT) || (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
 			if (!gf_mx_equal(&st->world_view_mx, &tr_state->model_matrix)) {
 				gf_mx_copy(st->world_view_mx, tr_state->model_matrix);
-				gf_node_dirty_set(node, 0, 0);
+				gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 			}
 		}
 		return;
@@ -411,8 +411,8 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 	gf_mx_apply_vec(&st->world_view_mx, &v1);
 	/*set frustrum param - animate only if not bound last frame and jump false*/
-	visual_3d_viewpoint_change(tr_state, node, (!st->prev_was_bound && !vp->jump) ? 1 : 0, vp->fieldOfView, pos, ori, v1);
-	st->prev_was_bound = 1;
+	visual_3d_viewpoint_change(tr_state, node, (!st->prev_was_bound && !vp->jump) ? GF_TRUE : GF_FALSE, vp->fieldOfView, pos, ori, v1);
+	st->prev_was_bound = GF_TRUE;
 }
 
 void compositor_init_viewpoint(GF_Compositor *compositor, GF_Node *node)
@@ -463,7 +463,7 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 	/*FIXME, we only deal with one node, no bind stack for the current time*/
 	for (i=0; i<ni->type.count; i++) {
 		if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "NONE")) {
-			tr_state->visual->compositor->navigation_disabled = 1;
+			tr_state->visual->compositor->navigation_disabled = GF_TRUE;
 		}
 	}
 #else
@@ -474,7 +474,7 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_list_find(tr_state->navigations, node) < 0) {
 		gf_list_add(tr_state->navigations, node);
 		if (gf_list_get(tr_state->navigations, 0) == ni) {
-			if (!ni->isBound) Bindable_SetIsBound(node, 1);
+			if (!ni->isBound) Bindable_SetIsBound(node, GF_TRUE);
 		}
 		if (gf_list_find(st->reg_stacks, tr_state->navigations)<0)
 			gf_list_add(st->reg_stacks, tr_state->navigations);
@@ -490,7 +490,7 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 		if ((tr_state->traversing_mode==TRAVERSE_SORT) || (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
 			if (!gf_mx_equal(&st->world_view_mx, &tr_state->model_matrix)) {
 				gf_mx_copy(st->world_view_mx, tr_state->model_matrix);
-				gf_node_dirty_set(node, 0, 0);
+				gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 			}
 		}
 		return;
@@ -602,7 +602,7 @@ static void TraverseFog(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_list_find(tr_state->fogs, node) < 0) {
 		gf_list_add(tr_state->fogs, node);
 		if (gf_list_get(tr_state->fogs, 0) == fog) {
-			if (!fog->isBound) Bindable_SetIsBound(node, 1);
+			if (!fog->isBound) Bindable_SetIsBound(node, GF_TRUE);
 		}
 		if (gf_list_find(st->reg_stacks, tr_state->fogs)<0)
 			gf_list_add(st->reg_stacks, tr_state->fogs);

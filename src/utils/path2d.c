@@ -71,7 +71,7 @@ GF_Path *gf_path_clone(GF_Path *gp)
 		gf_free(dst);
 		return NULL;
 	}
-	dst->tags = (u8 *) gf_malloc(sizeof(u8)*gp->n_points);
+	dst->tags = (u8 *) gf_malloc(gp->n_points);
 	if (!dst->tags) {
 		gf_free(dst->points);
 		gf_free(dst->contours);
@@ -103,9 +103,9 @@ void gf_path_del(GF_Path *gp)
 	if (_gp->n_alloc_points < _gp->n_points+3) {	\
 		_gp->n_alloc_points = (_gp->n_alloc_points<5) ? 10 : (_gp->n_alloc_points*2);	\
 		_gp->points = (GF_Point2D *)gf_realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
-		_gp->tags = (u8 *) gf_realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
+		_gp->tags = (u8 *) gf_realloc(_gp->tags, (_gp->n_alloc_points)); \
 	}	\
- 
+
 
 GF_EXPORT
 GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
@@ -302,7 +302,7 @@ GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *src, GF_Matrix2D *mx)
 	gp->n_alloc_points += src->n_alloc_points;
 	gp->points = (GF_Point2D*)gf_realloc(gp->points, sizeof(GF_Point2D)*gp->n_alloc_points);
 	if (!gp->points) return GF_OUT_OF_MEM;
-	gp->tags = (u8*)gf_realloc(gp->tags, sizeof(u8)*gp->n_alloc_points);
+	gp->tags = (u8*)gf_realloc(gp->tags, gp->n_alloc_points);
 	if (!gp->tags) return GF_OUT_OF_MEM;
 	if (src->n_points) {
 		memcpy(gp->points + gp->n_points, src->points, sizeof(GF_Point2D)*src->n_points);
@@ -1310,7 +1310,7 @@ void gf_path_iterator_del(GF_PathIterator *it)
     pcur = pts[iread++];						\
     delta.x = pcur.x - pprev.x;					\
     delta.y = pcur.y - pprev.y;					\
- 
+
 #define ConvexCross(p, q) gf_mulfix(p.x,q.y) - gf_mulfix(p.y,q.x);
 
 #define ConvexCheckTriple						\
@@ -1331,7 +1331,7 @@ void gf_path_iterator_del(GF_PathIterator *it)
     pSecond = pThird;		\
     dprev.x = dcur.x;		\
     dprev.y = dcur.y;							\
- 
+
 GF_EXPORT
 u32 gf_polygone2d_get_convexity(GF_Point2D *pts, u32 len)
 {

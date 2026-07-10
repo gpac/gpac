@@ -293,7 +293,7 @@ static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILEPATH);
 		if (p && p->value.string) {
 			dst = p->value.string;
-			char *sep = strstr(dst, "://");
+			const char *sep = strstr(dst, "://");
 			if (sep) {
 				dst = strchr(sep+3, '/');
 				if (!dst) return;
@@ -372,7 +372,8 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 static GF_Err fileout_initialize(GF_Filter *filter)
 {
-	char *ext=NULL, *sep;
+	const char *ext=NULL;
+	const char*sep;
 	const char *dst;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
@@ -469,7 +470,7 @@ static void fileout_finalize(GF_Filter *filter)
 
 	if (ctx->past_files) {
 		while (gf_list_count(ctx->past_files)) {
-			char *url = gf_list_pop_back(ctx->past_files);
+			char *url = (char *)gf_list_pop_back(ctx->past_files);
 			gf_free(url);
 		}
 		gf_list_del(ctx->past_files);
@@ -499,7 +500,7 @@ restart:
 		if (gf_filter_pid_is_eos(ctx->pid) && !gf_filter_pid_is_flush_eos(ctx->pid)) {
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
-				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes="LLU, gf_file_basename(ctx->szFileName), ctx->nb_write);
+				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes=" LLU, gf_file_basename(ctx->szFileName), ctx->nb_write);
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 
@@ -694,7 +695,7 @@ restart:
 
 		if (ctx->max_segs) {
 			while (gf_list_count(ctx->past_files)>ctx->max_segs) {
-				char *url = gf_list_pop_front(ctx->past_files);
+				char *url = (char *)gf_list_pop_front(ctx->past_files);
 				gf_file_delete(url);
 				gf_free(url);
 			}
@@ -754,7 +755,7 @@ check_gfio:
 	}
 
 
-	Bool main_valid = 0;
+	Bool main_valid = GF_FALSE;
 	if (ctx->file
 #ifdef GPAC_HAS_FD
 		|| (ctx->fd>=0)
@@ -800,7 +801,7 @@ check_gfio:
 
 						cur_r = pos;
 						pos = cur_w;
-						block = gf_malloc(ctx->mvbk);
+						block = (u8 *)gf_malloc(ctx->mvbk);
 						if (!block) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate block of %d bytes\n", ctx->mvbk));
 							e = GF_IO_ERR;
@@ -965,7 +966,7 @@ check_gfio:
 
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
-		snprintf(szStatus, 1024, "info=\"%s\" s_bytes="LLD, gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
+		snprintf(szStatus, 1024, "info=\"%s\" s_bytes=" LLD, gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 	return e;
@@ -983,7 +984,7 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] delete file %s\n", evt->file_del.url));
 
 			char *gfio_sep = NULL;
-			if (!strncmp(evt->file_del.url, "gfio://", 7)) gfio_sep = strchr(evt->file_del.url, '@');
+			if (!strncmp(evt->file_del.url, "gfio://", 7)) gfio_sep = (char *)strchr(evt->file_del.url, '@');
 			if (gfio_sep) {
 				gfio_sep[0] = 0;
 				gf_fileio_file_delete(gfio_sep+1, evt->file_del.url);
@@ -1064,7 +1065,7 @@ GF_FilterRegister FileOutRegister = {
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
 		"\n"
 		"By default output files are created directly, which may lead to issues if concurrent programs attempt to access them.\n"
-		"By enabling [-atomic](), files will be created in target destination folder with the `"ATOMIC_SUFFIX"` suffix and move to their final name upon close.\n"
+		"By enabling [-atomic](), files will be created in target destination folder with the `" ATOMIC_SUFFIX "` suffix and move to their final name upon close.\n"
 		"\n"
 		"# Discard sink mode\n"
 		"When the destination is `null`, the filter is a sink dropping all input packets.\n"

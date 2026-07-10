@@ -80,13 +80,13 @@ static Bool mod_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumIn
 }
 #endif
 
-static Bool check_file_exists(char *name, char *path, char outPath[GF_MAX_PATH])
+static Bool check_file_exists(const char *name, const char *path, char outPath[GF_MAX_PATH])
 {
 	char szPath[GF_MAX_PATH];
 	FILE *f;
 	int concatres;
 
-	if (! gf_dir_exists(path)) return 0;
+	if (! gf_dir_exists(path)) return GF_FALSE;
 
 	if (!strcmp(name, TEST_MODULE)) {
 		Bool res = GF_FALSE;
@@ -97,7 +97,7 @@ static Bool check_file_exists(char *name, char *path, char outPath[GF_MAX_PATH])
 #endif
 		if (!res) return GF_FALSE;
 		if (outPath != path) gf_strlcpy(outPath, path, GF_MAX_PATH);
-		return 1;
+		return GF_TRUE;
 	}
 
 	concatres = snprintf(szPath, GF_MAX_PATH, "%s%c%s", path, GF_PATH_SEPARATOR, name);
@@ -208,15 +208,15 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		HMODULE hm=NULL;
 		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
 			(LPCSTR)&get_default_install_path, &hm) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 		if (GetModuleFileName(hm, file_path, GF_MAX_PATH) == 0) {
-			return 0;
+			return GF_FALSE;
 		}
 		char *sep = strrchr(file_path, '\\');
 		if (!sep) sep = strrchr(file_path, '/');
 		if (sep) sep[0] = 0;
-		return 1;
+		return GF_TRUE;
 	}
 
 	/*we are looking for the config file path - make sure it is writable*/
@@ -232,7 +232,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		return GF_TRUE;
 	}
 #ifdef _WIN32_WCE
-	return 0;
+	return GF_FALSE;
 #else
 	/*no write access, get user home directory*/
 	SHGetSpecialFolderPathW(NULL, wtmp_file_path, CSIDL_APPDATA, 1);
@@ -277,11 +277,11 @@ void gf_sys_set_android_paths(const char *app_data, const char *ext_storage)
 
 static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 {
-	if (!file_path) return 0;
+	if (!file_path) return GF_FALSE;
 
 	if (path_type==GF_PATH_APP) {
 		gf_strlcpy(file_path, android_app_data[0] ? android_app_data : "/data/data/io.gpac.gpac", GF_MAX_PATH);
-		return 1;
+		return GF_TRUE;
 	} else if (path_type==GF_PATH_CFG) {
 		const char *res = android_external_storage[0] ? android_external_storage : getenv("EXTERNAL_STORAGE");
 		if (!res) res = "/sdcard";
@@ -289,24 +289,24 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		gf_strlcat(file_path, "/GPAC", GF_MAX_PATH);
 		//GPAC folder exists in external storage, use profile from this location
 		if (gf_dir_exists(file_path)) {
-			return 1;
+			return GF_TRUE;
 		}
 		//otherwise use profile in app data store
 		gf_strlcpy(file_path, android_app_data[0] ? android_app_data : "/data/data/io.gpac.gpac", GF_MAX_PATH);
 		gf_strlcat(file_path, "/GPAC", GF_MAX_PATH);
-		return 1;
+		return GF_TRUE;
 	} else if (path_type==GF_PATH_SHARE) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
-			return 0;
+			return GF_FALSE;
 		gf_strlcat(file_path, "/share", GF_MAX_PATH);
-		return 1;
+		return GF_TRUE;
 	} else if (path_type==GF_PATH_MODULES) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
-			return 0;
+			return GF_FALSE;
 		gf_strlcat(file_path, "/lib", GF_MAX_PATH);
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -328,7 +328,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 	else if (path_type==GF_PATH_CFG) gf_strlcpy(file_path, SYMBIAN_GPAC_CFG_DIR, GF_MAX_PATH);
 	else if (path_type==GF_PATH_GUI) gf_strlcpy(file_path, SYMBIAN_GPAC_GUI_DIR, GF_MAX_PATH);
 	else if (path_type==GF_PATH_MODULES) gf_strlcpy(file_path, SYMBIAN_GPAC_MODULES_DIR, GF_MAX_PATH);
-	return 1;
+	return GF_TRUE;
 }
 
 /*Linux, OSX, iOS*/
@@ -370,7 +370,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 				gf_mkdir("/idbfs/.gpac");
 			}
 			gf_strlcpy(file_path, "/idbfs/.gpac", GF_MAX_PATH);
-			return 1;
+			return GF_TRUE;
 		}
 #endif
 
@@ -382,7 +382,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 
 		if (!user_home) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Couldn't find HOME directory\n"));
-			return 0;
+			return GF_FALSE;
 		}
 #ifdef GPAC_CONFIG_IOS
 		res = realpath(user_home, buf);
@@ -406,7 +406,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		if (!gf_dir_exists(file_path)) {
 			gf_mkdir(file_path);
 		}
-		return 1;
+		return GF_TRUE;
 	}
 
 	if (path_type==GF_PATH_APP) {
@@ -416,7 +416,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 			realpath(app_path, file_path);
 			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
-			return 1;
+			return GF_TRUE;
 		}
 
 #elif defined(GPAC_CONFIG_LINUX) || defined(__FreeBSD__)
@@ -425,7 +425,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 			file_path[size] = 0;
 			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
-			return 1;
+			return GF_TRUE;
 		}
 
 #elif defined(GPAC_CONFIG_WIN32)
@@ -446,13 +446,13 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 			if (sep) {
 				gf_strlcpy(file_path, sep, GF_MAX_PATH);
 			}
-			return 1;
+			return GF_TRUE;
 		}
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
-		return 0;
+		return GF_FALSE;
 #endif
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find executable path\n"));
-		return 0;
+		return GF_FALSE;
 	}
 
 	if (path_type==GF_PATH_LIB) {
@@ -465,16 +465,16 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 			gf_strlcpy(file_path, dl_info.dli_fname, GF_MAX_PATH);
 			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
-			return 1;
+			return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 #endif
 
 		//for emscripten we use a static load for now
 #if !defined(GPAC_CONFIG_EMSCRIPTEN)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Unknown arch, cannot find library path\n"));
 #endif
-		return 0;
+		return GF_FALSE;
 	}
 
 	/*check system install:
@@ -493,14 +493,14 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		if (!get_default_install_path(app_path, GF_PATH_LIB)) {
 			if (!get_default_install_path(app_path, GF_PATH_APP)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
-				return 0;
+				return GF_FALSE;
 			}
 		}
 #endif
 		//check if we are a lib path and have a .gpac/ here
 		if ((path_type==GF_PATH_MODULES) && strstr(app_path, "/lib")) {
 			gf_strcat(app_path, "/gpac");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			char *sep = strrchr(app_path, '/');
 			if (sep) sep[0]=0;
 		}
@@ -523,13 +523,13 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 		}
 		if ((path_type==GF_PATH_SHARE) && root) {
 			gf_strcat(app_path, "/share/gpac");
-			if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+			if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 
 			/*failsafe - look in possible install dirs ...*/
-			if (check_file_exists("gui/gui.bt", "/usr/share/gpac", file_path)) return 1;
-			if (check_file_exists("gui/gui.bt", "/usr/local/share/gpac", file_path)) return 1;
-			if (check_file_exists("gui/gui.bt", "/opt/share/gpac", file_path)) return 1;
-			if (check_file_exists("gui/gui.bt", "/opt/local/share/gpac", file_path)) return 1;
+			if (check_file_exists("gui/gui.bt", "/usr/share/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists("gui/gui.bt", "/usr/local/share/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists("gui/gui.bt", "/opt/share/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists("gui/gui.bt", "/opt/local/share/gpac", file_path)) return GF_TRUE;
 
 		} else if ((path_type==GF_PATH_MODULES) && root) {
 			//if arch-specific scheme try it first (to avoid loading 64bit versions for 32bit shared...)
@@ -537,29 +537,29 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 				gf_strcat(app_path, "/");
 				gf_strcat(app_path, lib_arch_scheme);
 				gf_strcat(app_path, "/gpac");
-				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 				root[0]=0;
 			}
 			gf_strcat(app_path, "/lib64/gpac");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			root[0]=0;
 			gf_strcat(app_path, "/lib/gpac");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			root[0]=0;
 			gf_strcat(app_path, "/lib/x86_64-linux-gnu/gpac");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			root[0]=0;
 			gf_strcat(app_path, "/lib/i386-linux-gnu/gpac");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 
 			/*failsafe - look in possible install dirs ...*/
-			if (check_file_exists(TEST_MODULE, "/usr/lib64/gpac", file_path)) return 1;
-			if (check_file_exists(TEST_MODULE, "/usr/lib/gpac", file_path)) return 1;
-			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
-			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
-			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
-			if (check_file_exists(TEST_MODULE, "/usr/lib/x86_64-linux-gnu/gpac", file_path)) return 1;
-			if (check_file_exists(TEST_MODULE, "/usr/lib/i386-linux-gnu/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib64/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/x86_64-linux-gnu/gpac", file_path)) return GF_TRUE;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/i386-linux-gnu/gpac", file_path)) return GF_TRUE;
 		}
 	}
 
@@ -570,7 +570,7 @@ static Bool get_default_install_path(char file_path[GF_MAX_PATH], u32 path_type)
 			if (sep) sep[5]=0;
 			/*GUI not found, look in ~/.gpac/share/gui/ */
 			gf_strcat(app_path, "/share");
-			if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+			if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 		}
 
 		/*GUI not found, look in gpac distribution if any */
@@ -582,15 +582,15 @@ retry_lib:
 			if (sep) {
 				sep[0] = 0;
 				gf_strcat(app_path, "/share");
-				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 				gf_strcat(app_path, "/gpac");
-				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 			}
 			sep = strstr(app_path, "/build/");
 			if (sep) {
 				sep[0] = 0;
 				gf_strcat(app_path, "/share");
-				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 			}
 		}
 		if (get_default_install_path(app_path, GF_PATH_LIB)) {
@@ -599,9 +599,9 @@ retry_lib:
 			if (sep) {
 				sep[0] = 0;
 				gf_strcat(app_path, "/share");
-				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 				gf_strcat(app_path, "/gpac");
-				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 			}
 			if (try_lib) {
 				try_lib = GF_FALSE;
@@ -614,11 +614,11 @@ retry_lib:
 	if (path_type==GF_PATH_MODULES) {
 		/*look in gpac compilation tree (modules are output in the same folder as apps) and in distrib tree */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 
 			/*on OSX check modules subdirectory */
 			gf_strcat(app_path, "/modules");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 
 			get_default_install_path(app_path, GF_PATH_APP);
 			gf_strcat(app_path, "/");
@@ -626,7 +626,7 @@ retry_lib:
 			if (sep) {
 				sep[0] = 0;
 				gf_strcat(app_path, "/lib/gpac");
-				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			}
 
 			/*modules not found*/
@@ -635,9 +635,9 @@ retry_lib:
 
 		/*look in lib install */
 		if (get_default_install_path(app_path, GF_PATH_LIB)) {
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			gf_strcat(app_path, "/gpac");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find any modules in lib path %s\n", app_path));
 		}
 
@@ -645,13 +645,13 @@ retry_lib:
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
 			gf_strcat(app_path, "/modules");
-			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 		}
 		/*modules not found, failure*/
 #ifndef GPAC_STATIC_MODULES
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
 #endif
-		return 0;
+		return GF_FALSE;
 	}
 
 	/*OSX way vs iPhone*/
@@ -663,21 +663,21 @@ retry_lib:
 	if (path_type==GF_PATH_SHARE) {
 #ifndef GPAC_CONFIG_IOS
 		gf_strcat(app_path, "/Contents/MacOS/share");
-		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+		if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 #else /*iOS: for now, everything is set flat within the package*/
 		/*iOS app is distributed with embedded GUI*/
 		get_default_install_path(app_path, GF_PATH_APP);
-		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+		if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 		gf_strcat(app_path, "/share");
-		if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+		if (check_file_exists("gui/gui.bt", app_path, file_path)) return GF_TRUE;
 #endif
 	}
 	else { // (path_type==GF_PATH_MODULES)
 		gf_strcat(app_path, "/Contents/MacOS/modules");
-		if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+		if (check_file_exists(TEST_MODULE, app_path, file_path)) return GF_TRUE;
 	}
 	/*not found ...*/
-	return 0;
+	return GF_FALSE;
 }
 
 #endif
@@ -1087,7 +1087,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	if (profile) {
 		prof_len = (u32) strlen(profile);
-		prof_opt = gf_url_colon_suffix(profile, 0);
+		prof_opt = (char*) gf_url_colon_suffix(profile, 0);
 		if (prof_opt) {
 			prof_len -= (u32) strlen(prof_opt);
 			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;
@@ -1258,7 +1258,7 @@ Bool gf_opts_default_shared_directory(char path_buffer[GF_MAX_PATH])
 	const char *opt = gf_opts_get_key("temp", "share_dir");
 	if (opt) {
 		gf_strlcpy(path_buffer, opt, GF_MAX_PATH);
-		return 1;
+		return GF_TRUE;
 	}
 	return get_default_install_path(path_buffer, GF_PATH_SHARE);
 }
@@ -1747,8 +1747,8 @@ GF_EXPORT
 Bool gf_sys_set_cfg_option(const char *opt_string)
 {
 	size_t sepIdx;
-	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
-	sep = strchr(opt_string, ':');
+	char szSec[1024], szKey[1024], szVal[1024];
+	const char *sep = strchr(opt_string, ':');
 	if (!sep) {
 		sep = strchr(opt_string, '=');
 		if (sep && !stricmp(sep, "=null")) {
@@ -1771,7 +1771,7 @@ Bool gf_sys_set_cfg_option(const char *opt_string)
 	szSec[sepIdx] = 0;
 
 	sep ++;
-	sep2 = strchr(sep, '=');
+	const char *sep2 = strchr(sep, '=');
 	if (!sep2) {
 		gf_opts_set_key(szSec, sep, NULL);
 		return  GF_TRUE;
@@ -1838,7 +1838,7 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 			if (! gf_sys_set_cfg_option(val)) *e = GF_BAD_PARAM;
 		} else {
 			u32 sec_len = 0;
-			char *sep = val ? strchr(val, ':') : NULL;
+			const char *sep = val ? strchr(val, ':') : NULL;
 			u32 sec_count = gf_opts_get_section_count();
 			if (sep) {
 				sec_len = (u32) (sep - val - 1);
@@ -1878,7 +1878,7 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 		return GF_TRUE;
 	}
 	if (!strcmp(arg->name, "strict-error")) {
-		gf_log_set_strict_error(1);
+		gf_log_set_strict_error(GF_TRUE);
 		return GF_TRUE;
 	}
 
@@ -1914,7 +1914,7 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 GF_EXPORT
 u32 gf_sys_is_gpac_arg(const char *arg_name)
 {
-	char *argsep;
+	const char *argsep;
 	u32 arglen;
 	const GF_GPACArg *arg = NULL;
 	u32 i=0;
@@ -1933,7 +1933,7 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 		i++;
 		if ((strlen(arg->name) == arglen) && !strncmp(arg->name, arg_name, arglen)) break;
 		if (arg->altname) {
-			char *alt = strstr(arg->altname, arg_name);
+			const char *alt = strstr(arg->altname, arg_name);
 			if (alt) {
 				char c = alt[strlen(arg_name)];
 				if (!c || (c==' ')) break;
@@ -1965,7 +1965,7 @@ void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg
 		}
 	}
 	if (arg->description) {
-		char *sep;
+		const char *sep;
 
 		if ((arg->description[0]>='A') && (arg->description[0]<='Z')) {
 			if ((arg->description[1]<'A') || (arg->description[1]>'Z')) {
@@ -2141,7 +2141,7 @@ enum
 	TOK_LINKSTART,
 };
 struct _token {
-	char *tok;
+	const char *tok;
 	GF_ConsoleCodes cmd_type;
 } Tokens[] =
 {
@@ -2232,7 +2232,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 	va_end(vlist);
 	if (help_buf_size < len+2) {
 		help_buf_size = len+2;
-		help_buf = gf_realloc(help_buf, help_buf_size);
+		help_buf = (char*)gf_realloc(help_buf, help_buf_size);
 	}
 	va_start(vlist, fmt);
 	vsprintf(help_buf, fmt, vlist);
@@ -2576,7 +2576,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			line_pos+=(u32) strlen(line);
 
 			if (!next_token) break;
-			has_token = !has_token;
+			has_token = has_token ? GF_FALSE : GF_TRUE;
 
 			if (!gen_doc) {
 				if (has_token) {
@@ -2771,8 +2771,8 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 		return GF_TRUE;
 
 	if (olen*2 < dlen) {
-		char *s1 = strchr(orig, ':');
-		char *s2 = strchr(dst, ':');
+		const char *s1 = strchr(orig, ':');
+		const char *s2 = strchr(dst, ':');
 		if (s1 && !s2) return GF_FALSE;
 		if (!s1 && s2) return GF_FALSE;
 
@@ -2786,13 +2786,13 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 	if ((olen>=3) && gf_strnistr(dst, orig, olen))
 		return GF_TRUE;
 
-	run = gf_malloc(sizeof(u32) * olen);
+	run = (u32*)gf_malloc(sizeof(u32) * olen);
 	memset(run, 0, sizeof(u32) * olen);
 
 	for (i=0; i<dlen; i++) {
 		u32 dist_char;
 		u32 offset=0;
-		char *pos;
+		const char *pos;
 
 retry_char:
 		pos = strchr(orig+offset, dst[i]);

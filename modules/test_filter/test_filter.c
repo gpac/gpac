@@ -108,9 +108,12 @@ GF_FilterRegister TestFilterRegister = {
 	.process_event = testfilter_process_event,
 };
 
+GPAC_MODULE_EXPORT_START
+
 GPAC_MODULE_EXPORT
 GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
 {
 	return &TestFilterRegister;
 }
 
+GPAC_MODULE_EXPORT_END

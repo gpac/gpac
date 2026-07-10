@@ -35,7 +35,7 @@
 
 static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx)
 {
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -48,7 +48,7 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 		return NULL;
 	}
 
-	tmp->center_coords = 1;
+	tmp->center_coords = GF_TRUE;
 	tmp->compositor = compositor;
 	ra_init(&tmp->to_redraw);
 #ifndef GPAC_DISABLE_VRML
@@ -136,12 +136,12 @@ Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *
 	if (tr_state->pixel_metrics) {
 		*surf_width = w;
 		*surf_height = h;
-		return 1;
+		return GF_TRUE;
 	}
 	if (tr_state->min_hsize) {
 		*surf_width = gf_divfix(w, tr_state->min_hsize);
 		*surf_height = gf_divfix(h, tr_state->min_hsize);
-		return 0;
+		return GF_FALSE;
 	}
 	if (h > w) {
 		*surf_width = 2*FIX_ONE;
@@ -150,19 +150,19 @@ Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *
 		*surf_width = gf_divfix(2*w, h);
 		*surf_height = 2*FIX_ONE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 void visual_clean_contexts(GF_VisualManager *visual)
 {
 	u32 i, count;
-	Bool is_root_visual = (visual->compositor->visual==visual) ? 1 : 0;
+	Bool is_root_visual = (visual->compositor->visual==visual) ? GF_TRUE : GF_FALSE;
 	DrawableContext *ctx = visual->context;
 	while (ctx && ctx->drawable) {
 		/*remove visual registration flag*/
 		ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_VISUAL;
 		if (is_root_visual && (ctx->flags & CTX_HAS_APPEARANCE))
-			gf_node_dirty_reset(ctx->appear, 0);
+			gf_node_dirty_reset(ctx->appear, GF_FALSE);
 
 #ifndef GPAC_DISABLE_3D
 		/*this may happen when switching a visual from 2D to 3D - discard context*/
@@ -179,11 +179,11 @@ void visual_clean_contexts(GF_VisualManager *visual)
 	for nodes drawn on several visuals*/
 	count = gf_list_count(visual->compositor->visuals);
 	for (i=1; i<count; i++) {
-		GF_VisualManager *a_vis = gf_list_get(visual->compositor->visuals, i);
+		GF_VisualManager *a_vis = (struct _visual_manager *)gf_list_get(visual->compositor->visuals, i);
 		ctx = a_vis->context;
 		while (ctx && ctx->drawable) {
 			if (ctx->flags & CTX_HAS_APPEARANCE)
-				gf_node_dirty_reset(ctx->appear, 0);
+				gf_node_dirty_reset(ctx->appear, GF_FALSE);
 
 			ctx->drawable = NULL;
 			ctx = ctx->next;
@@ -216,9 +216,9 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 		if (self == tr_state->for_node) {
 			gf_mx2d_pre_multiply(&tr_state->mx_at_node, &tr_state->transform);
 		}
-		tr_state->abort_bounds_traverse=0;
+		tr_state->abort_bounds_traverse= GF_FALSE;
 		gf_sc_get_nodes_bounds(self, children, tr_state, child_idx);
-		tr_state->abort_bounds_traverse=1;
+		tr_state->abort_bounds_traverse= GF_TRUE;
 		return;
 	}
 	if (!children) return;
@@ -256,7 +256,7 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 
 		/*we hit the target node*/
 		if (children->node == tr_state->for_node)
-			tr_state->abort_bounds_traverse = 1;
+			tr_state->abort_bounds_traverse = GF_TRUE;
 
 		gf_node_traverse(children->node, tr_state);
 
@@ -275,15 +275,15 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 #ifndef GPAC_DISABLE_SVG
 	if (gf_node_get_tag(self)==TAG_SVG_use) {
 		GF_FieldInfo info;
-		if (gf_node_get_attribute_by_tag(self, TAG_XLINK_ATT_href, 0, 0, &info)==GF_OK) {
-			GF_Node *iri = ((XMLRI*)info.far_ptr)->target;
+		if (gf_node_get_attribute_by_tag(self, TAG_XLINK_ATT_href, GF_FALSE, GF_FALSE, &info)==GF_OK) {
+			GF_Node *iri = (GF_Node *) ((XMLRI*)info.far_ptr)->target;
 			if (iri) {
 				gf_mx2d_init(tr_state->transform);
 				tr_state->bounds = gf_rect_center(0,0);
 
 				/*we hit the target node*/
 				if (iri == tr_state->for_node)
-					tr_state->abort_bounds_traverse = 1;
+					tr_state->abort_bounds_traverse = GF_TRUE;
 
 				gf_node_traverse(iri, tr_state);
 

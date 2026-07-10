@@ -112,7 +112,9 @@ typedef enum
 	GF_TEXTURE_FLIP_X = (1<<3),
 	/*! texture is fliped vertically*/
 	GF_TEXTURE_FLIP_Y = (1<<4),
-} GF_TextureMapFlags;
+} GF_TextureMapFlagValues;
+
+typedef u32 GF_TextureMapFlags;
 
 /*! filter levels for texturing - up to the graphics engine but the following levels are used by
 the client*/

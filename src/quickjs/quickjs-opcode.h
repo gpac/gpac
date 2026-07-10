@@ -60,6 +60,7 @@ FMT(label_u16)
 
 #ifndef def
 #define def(id, size, n_pop, n_push, f) DEF(id, size, n_pop, n_push, f)
+
 #endif
 
 DEF(invalid, 1, 0, 0, none) /* never emitted */

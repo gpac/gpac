@@ -89,16 +89,16 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_G
 		sample_size = stbl->SampleSize->sampleSize;
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_QCELP;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs, "QLCMfmt ", 8);
+		gf_bs_write_data(bs, (u8 *) "QLCMfmt ", 8);
 		gf_bs_write_u32_le(bs, 150);/*fmt chunk size*/
 		gf_bs_write_u8(bs, 1);
 		gf_bs_write_u8(bs, 0);
 		/*QCELP GUID*/
-		gf_bs_write_data(bs, "\x41\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\x00\x80\x5F\xB4\xB9\x7E", 16);
+		gf_bs_write_data(bs, (u8 *) "\x41\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\x00\x80\x5F\xB4\xB9\x7E", 16);
 		gf_bs_write_u16_le(bs, 1);
 		memset(szName, 0, 80);
 		gf_strcpy(szName, "QCELP-13K(GPAC-emulated)");
-		gf_bs_write_data(bs, szName, 80);
+		gf_bs_write_data(bs, (u8 *)szName, 80);
 		ent = stbl->TimeToSample->nb_entries ? &stbl->TimeToSample->entries[0] : NULL;
 		sample_rate = entry->samplerate_hi;
 		block_size = (ent && ent->sampleDelta) ? ent->sampleDelta : 160;
@@ -120,7 +120,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_G
 		}
 		gf_bs_write_u16(bs, 0);
 		memset(szName, 0, 80);
-		gf_bs_write_data(bs, szName, 20);/*reserved*/
+		gf_bs_write_data(bs, (u8*)szName, 20);/*reserved*/
 		gf_bs_get_content(bs, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 	}
@@ -325,7 +325,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd->decoderConfig->objectTypeIndication = GF_CODECID_WEBVTT;
 			if (vtte->config) {
 				esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) strlen(vtte->config->string);
-				esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				esd->decoderConfig->decoderSpecificInfo->data = (u8 *)gf_malloc(esd->decoderConfig->decoderSpecificInfo->dataLength);
 				memcpy(esd->decoderConfig->decoderSpecificInfo->data, vtte->config->string, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			}
 		}
@@ -428,7 +428,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
 			esd->decoderConfig->objectTypeIndication = GF_CODECID_LASER;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = ptr->lsr_config->hdr_size;
-			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*ptr->lsr_config->hdr_size);
+			esd->decoderConfig->decoderSpecificInfo->data = (u8 *)gf_malloc(ptr->lsr_config->hdr_size);
 			if (!esd->decoderConfig->decoderSpecificInfo->data) return GF_OUT_OF_MEM;
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);
 			break;
@@ -486,13 +486,13 @@ Bool Media_IsSampleSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
 {
 	u32 i;
 	GF_StshEntry *ent;
-	if (!stsh) return 0;
+	if (!stsh) return GF_FALSE;
 	i=0;
 	while ((ent = (GF_StshEntry*)gf_list_enum(stsh->entries, &i))) {
-		if ((u32) ent->syncSampleNumber == sampleNumber) return 1;
-		else if ((u32) ent->syncSampleNumber > sampleNumber) return 0;
+		if ((u32) ent->syncSampleNumber == sampleNumber) return GF_TRUE;
+		else if ((u32) ent->syncSampleNumber > sampleNumber) return GF_FALSE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sIDX, Bool no_data, u64 *out_offset, Bool ext_realloc)
@@ -655,7 +655,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (ext_realloc) {
 			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk((u32)size_to_alloc, mdia->mediaTrack->sample_alloc_udta);
 		} else if ((*samp)->alloc_size) {
-			(*samp)->data = (char *) gf_realloc((*samp)->data, size_to_alloc );
+			(*samp)->data = (u8 *) gf_realloc((*samp)->data, size_to_alloc );
 			if ((*samp)->data) (*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
 		} else {
 			(*samp)->data = (u8 *) gf_malloc(size_to_alloc);
@@ -773,7 +773,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	GF_SampleEntryBox *se = NULL;
 
 	Media_GetSampleDesc(mdia, StreamDescIndex, &se, &drefIndex);
-	if (!drefIndex) return 0;
+	if (!drefIndex) return GF_FALSE;
 	if (mdia
 		&& mdia->information
 		&& mdia->information->dataInformation
@@ -783,13 +783,13 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	}
 	if (!a) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] broken file: Data reference index set to %d but no data reference entry found\n", drefIndex));
-		return 1;
+		return GF_TRUE;
 	}
-	if (a->flags & 1) return 1;
+	if (a->flags & 1) return GF_TRUE;
 	/*QT specific*/
-	if (a->type == GF_QT_BOX_TYPE_ALIS) return 1;
-	if (a->type == GF_QT_BOX_TYPE_CIOS) return 1;
-	return 0;
+	if (a->type == GF_QT_BOX_TYPE_ALIS) return GF_TRUE;
+	if (a->type == GF_QT_BOX_TYPE_CIOS) return GF_TRUE;
+	return GF_FALSE;
 }
 
 GF_ISOMDataRefAllType Media_SelfContainedType(GF_MediaBox *mdia)
@@ -912,7 +912,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	if (nbSamp == 0) {
 		trak->Media->mediaHeader->duration = 0;
 		if (Track_IsMPEG4Stream(trak->Media->handler->handlerType)) {
-			Media_GetESD(trak->Media, 1, &esd, 1);
+			Media_GetESD(trak->Media, GF_TRUE, &esd, GF_TRUE);
 			if (esd && esd->URLString) trak->Media->mediaHeader->duration = (u64) -1;
 		}
 		return GF_OK;
@@ -969,7 +969,7 @@ GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, co
 	) {
 		dref_entry->location = gf_strdup(origName);
 	} else {
-		char *fname = strrchr(origName, '/');
+		const char *fname = strrchr(origName, '/');
 		if (!fname) fname = strrchr(origName, '\\');
 		if (fname) fname++;
 
@@ -989,7 +989,7 @@ GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, co
 }
 
 
-GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex)
+GF_Err Media_CreateDataRef(GF_ISOFile *movie, GF_DataReferenceBox *dref, const char *URLname, const char *URNname, u32 *dataRefIndex)
 {
 	GF_Err e;
 	Bool use_alis=GF_FALSE;

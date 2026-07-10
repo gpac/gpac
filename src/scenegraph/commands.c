@@ -236,7 +236,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_NODE_REPLACE:
 		if (!gf_list_count(com->command_fields)) return GF_OK;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
-		e = gf_node_replace(com->node, inf->new_node, 0);
+		e = gf_node_replace(com->node, inf->new_node, GF_FALSE);
 		//TOCHECK - this is commented as registering shouldn't happen (already done at command creation) and creates mem leak
 //		if (inf->new_node) gf_node_register(inf->new_node, NULL);
 		break;
@@ -267,7 +267,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				list = * ((GF_ChildNodeItem **) inf->field_ptr);
 				prev=NULL;
 				while (list) {
-					cur = gf_malloc(sizeof(GF_ChildNodeItem));
+					cur = (GF_ChildNodeItem *)gf_malloc(sizeof(GF_ChildNodeItem));
 					cur->next = NULL;
 					cur->node = list->node;
 					if (prev) {
@@ -305,7 +305,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				count = gf_list_count(cb_src->commandList);
 				for (i=0; i<count; i++) {
 					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, i);
-					GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, sg, 0);
+					GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, sg, GF_FALSE);
 					gf_list_add(cb_dst->commandList, new_com);
 				}
 			}
@@ -390,7 +390,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_NODE_DELETE_EX:
 	case GF_SG_NODE_DELETE:
 	{
-		if (com->node) gf_node_replace(com->node, NULL, (com->tag==GF_SG_NODE_DELETE_EX) ? 1 : 0);
+		if (com->node) gf_node_replace(com->node, NULL, (com->tag==GF_SG_NODE_DELETE_EX) ? GF_TRUE : GF_FALSE);
 		break;
 	}
 	case GF_SG_ROUTE_DELETE:
@@ -414,7 +414,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if ((inf->pos < 0) || ((u32) inf->pos >= ((GenMFField *) field.far_ptr)->count) ) {
 				inf->pos = ((GenMFField *)field.far_ptr)->count - 1;
 			}
-			/*this is a regular MFField, just remove the item (gf_realloc)*/
+			/*this is a regular MFField, just remove the item (realloc)*/
 			e = gf_sg_vrml_mf_remove(field.far_ptr, field.fieldType, inf->pos);
 		}
 		/*deletion -> node has changed*/
@@ -612,7 +612,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				list = * ((GF_ChildNodeItem **) value.far_ptr);
 				prev=NULL;
 				while (list) {
-					cur = gf_malloc(sizeof(GF_ChildNodeItem));
+					cur = (GF_ChildNodeItem *)gf_malloc(sizeof(GF_ChildNodeItem));
 					cur->next = NULL;
 					cur->node = list->node;
 					if (prev) {
@@ -660,7 +660,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_LSR_DELETE:
 		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
 		if (!gf_list_count(com->command_fields)) {
-			gf_node_replace(com->node, NULL, 0);
+			gf_node_replace(com->node, NULL, GF_FALSE);
 			gf_node_deactivate(com->node);
 			return GF_OK;
 		}
@@ -702,7 +702,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					gf_node_register(inf->new_node, com->node);
 					gf_node_activate(inf->new_node);
 				} else {
-					e = gf_node_replace(com->node, inf->new_node, 0);
+					e = gf_node_replace(com->node, inf->new_node, GF_FALSE);
 					gf_node_activate(inf->new_node);
 				}
 			} else {
@@ -790,8 +790,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				         || (inf->fieldIndex==TAG_LSR_ATT_rotation)
 				        ) {
 					SVG_Transform *mx;
-					gf_node_get_attribute_by_tag(com->node, TAG_SVG_ATT_transform, 1, 0, &a);
-					mx = a.far_ptr;
+					gf_node_get_attribute_by_tag(com->node, TAG_SVG_ATT_transform, GF_TRUE, GF_FALSE, &a);
+					mx = (SVG_Transform *)a.far_ptr;
 					if (com->tag == GF_SG_LSR_REPLACE) {
 						GF_Point2D scale, translate;
 						SVG_Point_Angle rotate;
@@ -813,16 +813,16 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					/*signal node modif*/
 					gf_node_changed(com->node, &a);
 				}
-				else if (gf_node_get_attribute_by_tag(com->node, inf->fieldIndex, 1, 0, &a) == GF_OK) {
+				else if (gf_node_get_attribute_by_tag(com->node, inf->fieldIndex, GF_TRUE, GF_FALSE, &a) == GF_OK) {
 					b = a;
 					b.far_ptr = inf->field_ptr;
 					if (com->tag == GF_SG_LSR_REPLACE) {
-						gf_svg_attributes_copy(&a, &b, 0);
+						gf_svg_attributes_copy(&a, &b, GF_FALSE);
 					} else {
-						gf_svg_attributes_add(&a, &b, &a, 0);
+						gf_svg_attributes_add(&a, &b, &a, GF_FALSE);
 					}
 					if (a.fieldType==XMLRI_datatype) {
-						gf_node_dirty_set(com->node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+						gf_node_dirty_set(com->node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 					}
 					/*signal node modif*/
 					gf_node_changed(com->node, &a);
@@ -852,9 +852,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			} else {
 				gf_node_get_field(com->node, inf->fieldIndex, &a);
 				if (com->tag == GF_SG_LSR_REPLACE) {
-					e = gf_svg_attributes_copy(&a, &b, 0);
+					e = gf_svg_attributes_copy(&a, &b, GF_FALSE);
 				} else {
-					e = gf_svg_attributes_add(&a, &b, &a, 0);
+					e = gf_svg_attributes_add(&a, &b, &a, GF_FALSE);
 				}
 			}
 			gf_node_changed(com->node, &a);
@@ -874,7 +874,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = com->send_event_name;
+		evt.type = (GF_EventType) com->send_event_name;
 		evt.detail = com->send_event_integer;
 		evt.clientX = com->send_event_x;
 		evt.clientY = com->send_event_y;
@@ -937,11 +937,11 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	if (gf_list_count(com->new_proto_list)) return NULL;
 	dest = gf_sg_command_new(inGraph, com->tag);
 
-	if (com->in_scene!=inGraph) force_clone = 1;
+	if (com->in_scene != inGraph) force_clone = GF_TRUE;
 
 	/*node the command applies to - may be NULL*/
 	if (force_clone) {
-		dest->node = gf_node_clone(inGraph, com->node, NULL, "", 0);
+		dest->node = gf_node_clone(inGraph, com->node, NULL, "", GF_FALSE);
 	} else {
 		dest->node = com->node;
 		gf_node_register(dest->node, NULL);
@@ -982,7 +982,7 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 
 		if (fo->new_node) {
 			if (force_clone) {
-				fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node, "", 0);
+				fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node, "", GF_FALSE);
 			} else {
 				fd->new_node = fo->new_node;
 				gf_node_register(fd->new_node, NULL);
@@ -996,7 +996,7 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 			while (child) {
 				cur = (GF_ChildNodeItem*) gf_malloc(sizeof(GF_ChildNodeItem));
 				if (force_clone) {
-					cur->node = gf_node_clone(inGraph, child->node, dest->node, "", 0);
+					cur->node = gf_node_clone(inGraph, child->node, dest->node, "", GF_FALSE);
 				} else {
 					cur->node = child->node;
 					gf_node_register(cur->node, NULL);

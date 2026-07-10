@@ -69,7 +69,7 @@ Bool scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 			if (root->subscene) {
 				u32 i, count = gf_list_count(root->subscene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *anodm = gf_list_get(root->subscene->resources, i);
+					GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(root->subscene->resources, i);
 					anodm->ck = NULL;
 					if (anodm->scene_ns==root->scene_ns)
 					 	anodm->scene_ns = NULL;
@@ -89,7 +89,7 @@ Bool scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 			if (!root->parentscene) {
 				GF_Event evt;
 				evt.type = GF_EVENT_CONNECT;
-				evt.connect.is_connected = 0;
+				evt.connect.is_connected = GF_FALSE;
 				gf_filter_send_gf_event(scene->compositor->filter, &evt);
 			} else {
 				/*try to reinsert OD for VRML/X3D with multiple URLs:
@@ -168,7 +168,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		char *ext, *url;
 		u32 match_esid = 0;
 		Bool type_matched = GF_FALSE;
-		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
+		GF_MediaObject *mo = (GF_MediaObject *)gf_list_get(scene->scene_objects, i);
 
 		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID))
 			min_od_id = mo->OD_ID;
@@ -193,7 +193,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 			//if not external OD, look for ODM with same ID
 			if (mo->OD_ID != GF_MEDIA_EXTERNAL_ID) {
 				for (j=0; j<gf_list_count(scene->resources); j++) {
-					GF_ObjectManager *an_odm = gf_list_get(scene->resources, j);
+					GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, j);
 					if (an_odm->ID == mo->OD_ID) {
 						mo->odm = an_odm;
 						break;
@@ -206,7 +206,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		}
 		/*if object is attached to a service, don't bother looking in a different one*/
 		if (mo->odm->scene_ns && (mo->odm->scene_ns != sns)) {
-			Bool mine = 0;
+			Bool mine = GF_FALSE;
 			if (mo->odm->scene_ns->source_filter) {
 				mine = gf_filter_pid_is_filter_in_parents(pid, mo->odm->scene_ns->source_filter);
 			}
@@ -289,7 +289,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	otherwise we may have another modules declaring an object with ID 0 from
 	another thread, which will assert (only one object with a givne OD ID)*/
 	for (i=0; i<gf_list_count(scene->resources); i++) {
-		GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+		GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(scene->resources, i);
 
 		if (an_odm->ID == GF_MEDIA_EXTERNAL_ID) continue;
 
@@ -415,7 +415,7 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 	}
 	if (sns->clocks) {
 		while (gf_list_count(sns->clocks)) {
-			GF_Clock *ck = gf_list_pop_back(sns->clocks);
+			GF_Clock *ck = (struct _object_clock *)gf_list_pop_back(sns->clocks);
 			gf_clock_del(ck);
 		}
 		gf_list_del(sns->clocks);
@@ -434,7 +434,7 @@ Bool scene_ns_remove_object(GF_Filter *filter, void *callback, u32 *reschedule_m
 }
 
 /*connects given OD manager to its URL*/
-void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url, GF_SceneNamespace *addon_parent_ns)
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, const char *serviceURL, char *parent_url, GF_SceneNamespace *addon_parent_ns)
 {
 	GF_Err e;
 	char *frag;
@@ -476,12 +476,12 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 	}
 
-	frag = strchr(serviceURL, '#');
+	frag = (char*) strchr(serviceURL, '#');
 	if (frag) {
 		frag[0] = 0;
 		u32 i, count = gf_list_count(scene->compositor->root_scene->namespaces);
 		for (i=0; i<count; i++) {
-			GF_SceneNamespace *sns = gf_list_get(scene->compositor->root_scene->namespaces, i);
+			GF_SceneNamespace *sns = (GF_SceneNamespace *)gf_list_get(scene->compositor->root_scene->namespaces, i);
 			if (sns->url && !strcmp(sns->url, serviceURL)) {
 				frag[0] = '#';
 				odm->scene_ns = sns;
@@ -547,7 +547,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		if (!odm->mo && target_scene) {
 			u32 i;
 			for (i=0; i<gf_list_count(target_scene->scene_objects); i++) {
-				GF_MediaObject *mo = gf_list_get(target_scene->scene_objects, i);
+				GF_MediaObject *mo = (GF_MediaObject *)gf_list_get(target_scene->scene_objects, i);
 				if (mo->odm) continue;
 				if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (mo->OD_ID==odm->ID)) {
 					odm->mo = mo;

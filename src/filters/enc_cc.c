@@ -76,12 +76,12 @@ typedef struct
 
 GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 	GF_FilterPid *out_pid;
 	const GF_PropertyValue *prop;
 
 	if (is_remove) {
-		out_pid = gf_filter_pid_get_udta(pid);
+		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 		if (out_pid == ctx->opid)
 			ctx->opid = NULL;
 		if (out_pid)
@@ -179,12 +179,12 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 static GF_Err ccenc_enqueue_cc_clear(GF_Filter *filter, u64 cts)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 
 	// Find the insertion point
 	u32 pos = 0;
 	CCItem *item = NULL;
-	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
+	while ((item = (CCItem *)gf_list_enum(ctx->cc_queue, &pos))) {
 		// new caption would clear the previous one
 		if (item->cts == cts) return GF_OK;
 		if (item->cts > cts) break;
@@ -204,7 +204,7 @@ static GF_Err ccenc_enqueue_cc_clear(GF_Filter *filter, u64 cts)
 
 static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 
 	u32 size;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
@@ -221,7 +221,7 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 	cc->is_clear = GF_FALSE;
 
 	// Create null-terminated text from the subtitle data
-	cc->text = gf_malloc(len + 1);
+	cc->text = (char *)gf_malloc(len + 1);
 	if (!cc->text) {
 		gf_free(cc);
 		return GF_OUT_OF_MEM;
@@ -237,7 +237,7 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 	// If there is a clear command with the same timestamp, remove it
 	u32 pos = 0;
 	CCItem *item = NULL;
-	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
+	while ((item = (CCItem *)gf_list_enum(ctx->cc_queue, &pos))) {
 		if (item->cts == cc->cts && item->is_clear) {
 			gf_list_rem(ctx->cc_queue, pos - 1);
 			gf_free(item);
@@ -252,12 +252,21 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 
 static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 	GF_Err err = GF_OK;
 	GF_BitStream *bs = NULL;
 	libcaption_stauts_t status;
 	u8 *sei_data = NULL;
 	u32 size;
+	u32 nb_bytes_to_add, sei_payload_size;
+	u8 *sei_data_with_epb;
+	u8 nhdr_type_len;
+	size_t nal_size;
+	const u8 *vdata;
+	u32 new_size, sei_r_size;
+	u8 *new_data, *bs_content;
+	u64 min_dts, cur_dts;
+	GF_FilterPacket *new_vpck;
 
 	// forward the video if we haven't yet received any captions
 	if (!ctx->sei && !cc) {
@@ -288,22 +297,22 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	}
 
 	// Render the SEI
-	sei_data = gf_malloc(sei_render_size(ctx->sei));
+	sei_data = (u8 *)gf_malloc(sei_render_size(ctx->sei));
 	CHECK_OOM(sei_data);
-	size_t sei_render_size = sei_render(ctx->sei, sei_data);
+	sei_r_size = sei_render(ctx->sei, sei_data);
 
 	// Add EBP to the SEI
 	// sei_render_size includes nal_type (1 byte)
-	u32 nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(sei_data + 1, (u32) sei_render_size - 1);
-	u32 sei_payload_size = (u32) sei_render_size - 1 + nb_bytes_to_add;
-	u8 *sei_data_with_epb = gf_malloc(sei_payload_size);
+	nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(sei_data + 1, sei_r_size - 1);
+	sei_payload_size = sei_r_size - 1 + nb_bytes_to_add;
+	sei_data_with_epb = (u8 *)gf_malloc(sei_payload_size);
 	CHECK_OOM(sei_data_with_epb);
-	gf_media_nalu_add_emulation_bytes(sei_data + 1, sei_data_with_epb, (u32) sei_render_size - 1);
+	gf_media_nalu_add_emulation_bytes(sei_data + 1, sei_data_with_epb, sei_r_size - 1);
 	gf_free(sei_data);
 
 	// Prepare the NALU writer
-	u8 nhdr_type_len = (ctx->cctype == CCTYPE_HEVC || ctx->cctype == CCTYPE_VVC) ? 2 : 1;
-	size_t nal_size = ctx->nalu_size_len + nhdr_type_len + sei_payload_size;
+	nhdr_type_len = (ctx->cctype == CCTYPE_HEVC || ctx->cctype == CCTYPE_VVC) ? 2 : 1;
+	nal_size = ctx->nalu_size_len + nhdr_type_len + sei_payload_size;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	CHECK_OOM(bs);
 
@@ -332,35 +341,35 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	gf_free(sei_data_with_epb);
 
 	// Write rest of the video data
-	const u8 *vdata = gf_filter_pck_get_data(vpck, &size);
+	vdata = gf_filter_pck_get_data(vpck, &size);
 	gf_bs_write_data(bs, vdata, size);
 
 	// Check the size
-	u32 new_size = (u32) nal_size + size;
+	new_size = (u32) nal_size + size;
 	gf_assert(new_size == gf_bs_get_position(bs));
 
 	// Create the new video packet
-	u8 *new_data = NULL;
-	GF_FilterPacket *new_vpck = gf_filter_pck_new_alloc(ctx->opid, new_size, &new_data);
+	new_data = NULL;
+	new_vpck = gf_filter_pck_new_alloc(ctx->opid, new_size, &new_data);
 	CHECK_OOM(new_vpck);
 	gf_filter_pck_merge_properties(vpck, new_vpck);
 
 	// Copy the data
-	u8 *bs_content = NULL;
+	bs_content = NULL;
 	gf_bs_get_content(bs, &bs_content, &size);
 	gf_assert(size == new_size);
 	memcpy(new_data, bs_content, new_size);
 	gf_free(bs_content);
 
 	// Send the new packet
-	u64 min_dts = gf_list_count(ctx->frame_queue) ? gf_filter_pck_get_dts(gf_list_get(ctx->frame_queue, 0)) : GF_UINT64_MAX;
-	u64 cur_dts = gf_filter_pck_get_dts(new_vpck);
+	min_dts = gf_list_count(ctx->frame_queue) ? gf_filter_pck_get_dts((GF_FilterPacket *)gf_list_get(ctx->frame_queue, 0)) : GF_UINT64_MAX;
+	cur_dts = gf_filter_pck_get_dts(new_vpck);
 	if (cur_dts > min_dts) {
 		// place the new packet in the queue, sorted
 		// next flush will forward it
 		u32 pos = 0;
 		GF_FilterPacket *item = NULL;
-		while ((item = gf_list_enum(ctx->frame_queue, &pos)))
+		while ((item = (struct __gf_filter_pck *)gf_list_enum(ctx->frame_queue, &pos)))
 			if (gf_filter_pck_get_dts(item) > cur_dts) break;
 		gf_list_insert(ctx->frame_queue, new_vpck, pos - 1);
 		gf_filter_pck_ref(&new_vpck); // so that unreffing wouldn't error
@@ -396,31 +405,31 @@ static void ccenc_forward_video(GF_Filter *filter, GF_FilterPacket *vpck)
 
 static Bool ccenc_can_use_frame(GF_Filter *filter, GF_FilterPacket *vpck)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 	if (gf_list_count(ctx->frame_queue) <= 1) return GF_FALSE;
 
-	u64 newest_dts = gf_filter_pck_get_dts(gf_list_last(ctx->frame_queue));
+	u64 newest_dts = gf_filter_pck_get_dts((GF_FilterPacket *)gf_list_last(ctx->frame_queue));
 	u64 current_dts = gf_filter_pck_get_dts(vpck);
 	return gf_timestamp_greater_or_equal(newest_dts - current_dts, ctx->v_ts, ctx->vb_time.num, ctx->vb_time.den);
 }
 
 static void ccenc_flush(GF_Filter *filter, Bool full_flush)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 	if (gf_list_count(ctx->cc_queue) == 0 && gf_list_count(ctx->frame_queue) == 0) return;
 
 retry:
 	// try to pair video and subtitle data, gracefully
 	while (gf_list_count(ctx->cc_queue) && gf_list_count(ctx->frame_queue)) {
-		GF_FilterPacket *vpck = gf_list_get(ctx->frame_queue, 0);
-		CCItem *ccitem = gf_list_get(ctx->cc_queue, 0);
+		GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_get(ctx->frame_queue, 0);
+		CCItem *ccitem = (CCItem *)gf_list_get(ctx->cc_queue, 0);
 
 		// if we have a video frame with cts lower than the minimum subtitle cts, send it
 		u64 last_video_cts = gf_filter_pck_get_cts(vpck);
 		u64 last_subtitle_cts = ccitem->cts;
 		if (gf_timestamp_less(last_video_cts, ctx->v_ts, last_subtitle_cts, ctx->s_ts)) {
 			// impossible to pair, send video frame
-			GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
+			GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->frame_queue);
 			ccenc_forward_video(filter, vpck);
 			continue;
 		}
@@ -428,7 +437,7 @@ retry:
 		// check if it's exact match
 		if (gf_timestamp_equal(last_video_cts, ctx->v_ts, last_subtitle_cts, ctx->s_ts)) {
 			gf_list_del_item(ctx->cc_queue, ccitem);
-			ccenc_pair(filter, gf_list_pop_front(ctx->frame_queue), ccitem);
+			ccenc_pair(filter, (GF_FilterPacket *) gf_list_pop_front(ctx->frame_queue), ccitem);
 			continue;
 		}
 
@@ -444,7 +453,7 @@ retry:
 		u64 target_cc_cts = gf_timestamp_rescale(last_subtitle_cts, ctx->s_ts, ctx->v_ts);
 		u64 delta_cts = gf_filter_pck_get_cts(candidate_vpck) - target_cc_cts;
 		while (!found) {
-			GF_FilterPacket *next_vpck = gf_list_get(ctx->frame_queue, pos);
+			GF_FilterPacket *next_vpck = (struct __gf_filter_pck *)gf_list_get(ctx->frame_queue, pos);
 			if (!next_vpck) break;
 			u64 next_delta_cts = gf_filter_pck_get_cts(next_vpck) - target_cc_cts;
 
@@ -472,9 +481,9 @@ retry:
 	if (gf_list_count(ctx->frame_queue) == 0) return;
 
 	// flush the video frames based on buffer time
-	if (ccenc_can_use_frame(filter, gf_list_get(ctx->frame_queue, 0))) {
+	if (ccenc_can_use_frame(filter, (GF_FilterPacket *) gf_list_get(ctx->frame_queue, 0))) {
 		// we couldn't pair this video frame with a subtitle frame
-		GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
+		GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->frame_queue);
 		ccenc_forward_video(filter, vpck);
 
 		// we might be able to pair the next video frame with a subtitle frame
@@ -484,7 +493,7 @@ retry:
 	if (full_flush) {
 		// we've tried to pair all video frames with subtitle frames, but we still have video frames left
 		while (gf_list_count(ctx->frame_queue)) {
-			GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
+			GF_FilterPacket *vpck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->frame_queue);
 			ccenc_forward_video(filter, vpck);
 		}
 	}
@@ -493,7 +502,7 @@ retry:
 GF_Err ccenc_process(GF_Filter *filter)
 {
 	GF_Err err;
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 
 	if (gf_filter_connections_pending(filter))
 		return GF_OK;
@@ -532,7 +541,7 @@ GF_Err ccenc_process(GF_Filter *filter)
 		if (gf_list_count(ctx->cc_queue) > 0) {
 			Bool should_warn = GF_FALSE;
 			while (gf_list_count(ctx->cc_queue)) {
-				CCItem *cc = gf_list_pop_back(ctx->cc_queue);
+				CCItem *cc = (CCItem *)gf_list_pop_back(ctx->cc_queue);
 				if (!cc->is_clear) {
 					should_warn = GF_TRUE;
 					gf_free(cc->text);
@@ -552,7 +561,7 @@ GF_Err ccenc_process(GF_Filter *filter)
 	// if we couldn't process the current "blocking" video frame, forward it
 	if (vpck && gf_list_last(ctx->frame_queue) == vpck) {
 		if (gf_filter_pck_is_blocking_ref(vpck))
-			ccenc_forward_video(filter, gf_list_pop_back(ctx->frame_queue));
+			ccenc_forward_video(filter, (GF_FilterPacket *)gf_list_pop_back(ctx->frame_queue));
 	}
 
 	return GF_OK;
@@ -560,7 +569,7 @@ GF_Err ccenc_process(GF_Filter *filter)
 
 static GF_Err ccenc_initialize(GF_Filter *filter)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 	ctx->is_cc_eos = GF_FALSE;
 	ctx->cc_queue = gf_list_new();
 	ccenc_enqueue_cc_clear(filter, 0);
@@ -572,14 +581,14 @@ static GF_Err ccenc_initialize(GF_Filter *filter)
 
 static void ccenc_finalize(GF_Filter *filter)
 {
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
+	CCEncCtx *ctx = (CCEncCtx *)gf_filter_get_udta(filter);
 
 	if (gf_list_count(ctx->cc_queue) > 0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Finalizing with %u CC items left in the queue\n", gf_list_count(ctx->cc_queue)));
 		// free all CC items in the queue
 		u32 pos = 0;
 		CCItem *cc = NULL;
-		while ((cc = gf_list_enum(ctx->cc_queue, &pos))) {
+		while ((cc = (CCItem *)gf_list_enum(ctx->cc_queue, &pos))) {
 			if (cc->text) gf_free(cc->text);
 			gf_free(cc);
 		}
@@ -591,7 +600,7 @@ static void ccenc_finalize(GF_Filter *filter)
 		// free all video frames in the queue
 		u32 pos = 0;
 		GF_FilterPacket *vpck = NULL;
-		while ((vpck = gf_list_enum(ctx->frame_queue, &pos)))
+		while ((vpck = (struct __gf_filter_pck *)gf_list_enum(ctx->frame_queue, &pos)))
 			gf_filter_pck_unref(vpck);
 	}
 	gf_list_del(ctx->frame_queue);

@@ -135,13 +135,13 @@ s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 }
 
 GF_EXPORT
-const char *gf_token_find_word(const char *in_str, const char *word, char *charsep)
+const char *gf_token_find_word(const char *in_str, const char *word, const char *charsep)
 {
 	u32 len;
 	if (!in_str || !word) return NULL;
 	len = (u32) strlen(word);
 	while (in_str) {
-		char *sep = strstr(in_str, word);
+		const char *sep = strstr(in_str, word);
 		if (!sep) return NULL;
 		if (!charsep) return sep;
 

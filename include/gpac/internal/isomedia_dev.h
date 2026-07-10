@@ -860,7 +860,7 @@ typedef struct
 	GF_ISOTrackID nextTrackID;
 	u32 preferredRate;
 	u16 preferredVolume;
-	char reserved[10];
+	u8 reserved[10];
 	u32 matrixA;
 	u32 matrixB;
 	u32 matrixU;
@@ -1277,7 +1277,7 @@ typedef struct
 #define GF_ISOM_SAMPLE_ENTRY_FIELDS		\
 	GF_ISOM_UUID_BOX					\
 	u16 dataReferenceIndex;				\
-	char reserved[ 6 ];					\
+	u8 reserved[ 6 ];					\
 	u32 internal_type;					\
 
 /*base sample entry box - used by some generic media sample descriptions of QT*/
@@ -1607,10 +1607,12 @@ typedef struct {
 	GF_DOVIDecoderConfigurationRecord DOVIConfig;
 } GF_DOVIConfigurationBox;
 
-/*typedef struct { //extends Box('hvcE')
+#if 0
+typedef struct {
 	GF_ISOM_BOX
 	GF_HEVCConfig HEVCConfig;
-} GF_DolbyVisionELHEVCConfigurationBox;*/
+} GF_DolbyVisionELHEVCConfigurationBox;
+#endif
 
 typedef struct { //extends HEVCSampleEntry('dvhe')
 	GF_DOVIConfigurationBox config;
@@ -1861,7 +1863,7 @@ typedef struct
 	u8 mha_pl_indication;
 	u8 reference_channel_layout;
 	u16 mha_config_size;
-	char *mha_config;
+	u8 *mha_config;
 } GF_MHAConfigBox;
 
 
@@ -2231,7 +2233,7 @@ typedef struct
 {
 	u32 sampleID;
 	u32 nb_refs;
-	u32 *sample_refs;
+	s32 *sample_refs;
 } GF_SampleRefEntry;
 
 typedef struct
@@ -2433,12 +2435,12 @@ typedef struct
 {
 	GF_ISOM_SAMPLE_ENTRY_FIELDS				\
 	u32 displayFlags;
-	u32 textJustification;
-	char background_color[6], foreground_color[6];
+	s32 textJustification;
+	u8 background_color[6], foreground_color[6];
 	GF_BoxRecord default_box;
 	u16 fontNumber;
 	u16 fontFace;
-	char reserved1[8];
+	u8 reserved1[8];
 	u8 reserved2;
 	u16 reserved3;
 	char *textName; /*font name*/
@@ -2743,7 +2745,7 @@ typedef struct
 	u32 single_view_allowed;
 	u32 stereo_scheme;
 	u32 sit_len;
-	char *stereo_indication_type;
+	u8 *stereo_indication_type;
 } GF_StereoVideoBox;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -3465,7 +3467,7 @@ typedef struct
 	char *scheme_id_uri;
 	char *value;
 	u32 timescale;
-	s64 presentation_time_delta;
+	u64 presentation_time_delta;
 	u32 event_duration;
 	u32 event_id;
 	u8 *message_data;
@@ -3952,7 +3954,7 @@ typedef struct __adobe_enc_info_box
 typedef struct __adobe_flash_access_params_box
 {
 	GF_ISOM_BOX
-	u8 *metadata; /*base-64 encoded metadata used by the DRM client to retrieve decrypted key*/
+	char *metadata; /*base-64 encoded metadata used by the DRM client to retrieve decrypted key*/
 } GF_AdobeFlashAccessParamsBox;
 
 typedef struct __adobe_key_info_box
@@ -4378,7 +4380,7 @@ struct __tag_isom {
 	/*if true 3GPP text streams are read as MPEG-4 StreamingText*/
 	u8 convert_streaming_text;
 	u8 is_jp2;
-	u8 force_co64;
+	Bool force_co64;
 	u8 disable_odf_translate;
 	u8 disable_brand_rewrite;
 	u64 next_flush_chunk_time;
@@ -4414,7 +4416,7 @@ struct __tag_isom {
 	void *progress_cbk_udta;
 
 	char *override_dref_url;
-	
+
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;
@@ -4610,7 +4612,7 @@ u8 RequestTrack(GF_MovieBox *moov, GF_ISOTrackID TrackID);
 GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale);
 GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOSample **od_samp);
 GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber);
-GF_Err Media_CreateDataRef(GF_ISOFile *file, GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex);
+GF_Err Media_CreateDataRef(GF_ISOFile *file, GF_DataReferenceBox *dref, const char *URLname, const char *URNname, u32 *dataRefIndex);
 GF_Err Media_SetDrefURL(GF_DataEntryURLBox *dref_entry, const char *origName, const char *finalName);
 
 /*update a media sample. ONLY in edit mode*/

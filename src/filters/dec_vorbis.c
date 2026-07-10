@@ -94,7 +94,7 @@ static GF_Err vorbisdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	const GF_PropertyValue *p;
 	ogg_packet oggpacket;
 	GF_BitStream *bs;
-	GF_VorbisDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_VorbisDecCtx *ctx = (GF_VorbisDecCtx *)gf_filter_get_udta(filter);
 
 
 	if (is_remove) {
@@ -111,7 +111,7 @@ static GF_Err vorbisdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
 		u32 ex_crc;
-		if (strncmp(&p->value.data.ptr[3], "vorbis", 6)) return GF_NON_COMPLIANT_BITSTREAM;
+		if (strncmp((char *)&p->value.data.ptr[3], "vorbis", 6)) return GF_NON_COMPLIANT_BITSTREAM;
 		ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		if (ctx->cfg_crc == ex_crc) return GF_OK;
 		ctx->cfg_crc = ex_crc;
@@ -148,7 +148,7 @@ static GF_Err vorbisdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	while (gf_bs_available(bs)) {
 		GF_Err e = GF_OK;
 		oggpacket.bytes = gf_bs_read_u16(bs);
-		oggpacket.packet = gf_malloc(sizeof(char) * oggpacket.bytes);
+		oggpacket.packet = (u8 *)gf_malloc(oggpacket.bytes);
 		gf_bs_read_data(bs, oggpacket.packet, oggpacket.bytes);
 		if (vorbis_synthesis_headerin(&ctx->vi, &ctx->vc, &oggpacket) < 0 ) {
 			e = GF_NON_COMPLIANT_BITSTREAM;
@@ -178,7 +178,7 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 		ogg_int16_t *ptr;
 		ptr = &data[i];
 		if (!ptr) break;
-		
+
 		if (channels>2) {
 			/*center is third in gpac*/
 			if (i==1) ptr = &data[2];
@@ -208,7 +208,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	u8 *buffer=NULL;
 	Float **pcm;
 	u32 samples, total_samples, total_bytes, size;
-	GF_VorbisDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_VorbisDecCtx *ctx = (GF_VorbisDecCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck=NULL;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -283,7 +283,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 
 static void vorbisdec_finalize(GF_Filter *filter)
 {
-	GF_VorbisDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_VorbisDecCtx *ctx = (GF_VorbisDecCtx *)gf_filter_get_udta(filter);
 
 	vorbis_block_clear(&ctx->vb);
 	vorbis_dsp_clear(&ctx->vd);

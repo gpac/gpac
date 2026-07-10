@@ -369,7 +369,7 @@ s32 input_sample_s24_be(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32
 #define TRUNC_FLT_DBL(_a) \
 	if (_a<-1.0) return GF_INT_MIN;\
 	else if (_a>1.0) return GF_INT_MAX;\
-	return (s32) (_a * GF_INT_MAX);\
+	return (s32) (_a * (Float) GF_INT_MAX);\
 
 s32 input_sample_flt(u8 *data, u32 nb_ch, u32 sample_offset, u32 channel, u32 planar_stride)
 {
@@ -538,7 +538,8 @@ static void gf_am_configure_source(MixerInput *in)
 GF_EXPORT
 Bool gf_mixer_reconfig(GF_AudioMixer *am)
 {
-	u32 i, count, numInit, max_sample_rate, max_channels, max_afmt, cfg_changed;
+	u32 i, count, numInit, max_sample_rate, max_channels, max_afmt;
+	Bool cfg_changed;
 	u64 ch_layout;
 	gf_mixer_lock(am, GF_TRUE);
 	if (am->isEmpty || !am->must_reconfig) {
@@ -555,7 +556,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	numInit = 0;
 	max_channels = am->nb_channels;
 	max_afmt = am->afmt;
-	cfg_changed = 0;
+	cfg_changed = GF_FALSE;
 	max_sample_rate = 0;
 
 	ch_layout = 0;
@@ -582,15 +583,15 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 			max_sample_rate = in->src->samplerate;
 		}
 		if ((count==1) && (max_afmt != in->src->afmt)) {
-			cfg_changed = 1;
+			cfg_changed = GF_TRUE;
 			max_afmt = in->src->afmt;
 		} else if (max_afmt<in->src->afmt) {
-			cfg_changed = 1;
+			cfg_changed = GF_TRUE;
 			max_afmt = in->src->afmt;
 		}
 		if (!am->force_channel_out) {
 			if ((count==1) && (max_channels!=in->src->chan)) {
-				cfg_changed = 1;
+				cfg_changed = GF_TRUE;
 				max_channels = in->src->chan;
 //				if (in->src->forced_layout)
 					ch_layout |= in->src->ch_layout;
@@ -607,7 +608,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 					ch_layout |= in->src->ch_layout;
 				}
 				if (max_channels < nb_ch) {
-					cfg_changed = 1;
+					cfg_changed = GF_TRUE;
 					max_channels = nb_ch;
 					if (nb_ch > 2) ch_layout |= in->src->ch_layout;
 				}
@@ -650,7 +651,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	}
 
 	if (numInit == count) am->must_reconfig = GF_FALSE;
-	if (am->ar) cfg_changed = 1;
+	if (am->ar) cfg_changed = GF_TRUE;
 
 	gf_mixer_lock(am, GF_FALSE);
 	return cfg_changed;
@@ -875,9 +876,9 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		}
 
 		for (j = 0; j < in_ch; j++) {
-			inChan[j] = use_prev ? in->last_channels[j] : in->get_sample(in_data, in_ch, prev, j, planar_stride);
+			inChan[j] = use_prev ? in->last_channels[j] : in->get_sample((u8*)in_data, in_ch, prev, j, planar_stride);
 			if (frac) {
-				inChanNext[j] = in->get_sample(in_data, in_ch, next, j, planar_stride);
+				inChanNext[j] = in->get_sample((u8*)in_data, in_ch, next, j, planar_stride);
 				inChan[j] = (s32) ( ( ((s64) inChanNext[j])*frac + ((s64)inChan[j])*(RESAMPLE_SCALER-frac)) / RESAMPLE_SCALER );
 			}
 			//don't apply pan when forced layout is used
@@ -926,7 +927,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 			u32 idx;
 			idx = (prev >= src_samp) ? (src_samp-1) : (prev);
 			for (j=0; j<in_ch; j++) {
-				in->last_channels[j] = in->get_sample(in_data, in_ch, idx, j, planar_stride);
+				in->last_channels[j] = in->get_sample((u8*)in_data, in_ch, idx, j, planar_stride);
 			}
 		}
 	}
@@ -950,7 +951,8 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	Bool is_muted, force_mix;
 	u32 i, j, count, size, in_size, nb_samples, nb_written;
 	s32 *out_mix, nb_act_src;
-	char *data, *ptr;
+	const u8 *data;
+	u8 *ptr;
 
 	am->source_buffering = GF_FALSE;
 	am->nb_eos = 0;
@@ -1001,7 +1003,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 
 single_source_mix:
 
-	ptr = (char *)buffer;
+	ptr = (u8 *)buffer;
 	in_size = buffer_size;
 	is_muted = single_source->muted;
 
@@ -1229,7 +1231,7 @@ do_mix:
 		for (i = 0; i < nb_written; i++) {
 			for (j = 0; j < am->nb_channels; j++) {
 				s32 samp = (*out_mix);
-				(*out_flt) = ((Float)samp) / GF_INT_MAX;
+				(*out_flt) = ((Float)samp) / (Float) GF_INT_MAX;
 				out_flt += 1;
 
 #ifdef GPAC_BIG_ENDIAN
@@ -1248,7 +1250,7 @@ do_mix:
 		for (i = 0; i < nb_written; i++) {
 			for (j = 0; j < am->nb_channels; j++) {
 				s32 samp = (*out_mix);
-				(*out_flt) = ((Float)samp) / GF_INT_MAX;
+				(*out_flt) = ((Float)samp) / (Float) GF_INT_MAX;
 				out_flt += 1;
 
 #ifndef GPAC_BIG_ENDIAN
@@ -1268,7 +1270,7 @@ do_mix:
 			out_mix = am->output + j;
 			for (i = 0; i < nb_written; i++) {
 				s32 samp = (*out_mix);
-				(*out_flt) = ((Float)samp) / GF_INT_MAX;
+				(*out_flt) = ((Float)samp) / (Float) GF_INT_MAX;
 				out_flt += 1;
 
 #ifdef GPAC_BIG_ENDIAN
@@ -1287,7 +1289,7 @@ do_mix:
 		for (i = 0; i < nb_written; i++) {
 			for (j = 0; j < am->nb_channels; j++) {
 				s32 samp = (*out_mix);
-				(*out_dbl) = ((Double)samp) / GF_INT_MAX;
+				(*out_dbl) = ((Double)samp) / (Double) GF_INT_MAX;
 				out_dbl += 1;
 
 #ifdef GPAC_BIG_ENDIAN
@@ -1307,7 +1309,7 @@ do_mix:
 			out_mix = am->output + j;
 			for (i = 0; i < nb_written; i++) {
 				s32 samp = (*out_mix);
-				(*out_dbl) = ((Double)samp) / GF_INT_MAX;
+				(*out_dbl) = ((Double)samp) / (Double) GF_INT_MAX;
 				out_dbl += 1;
 #ifdef GPAC_BIG_ENDIAN
 				(*out_u64) = swap_64(*out_u64);

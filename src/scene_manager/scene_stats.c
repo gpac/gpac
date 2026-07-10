@@ -181,8 +181,8 @@ static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 	if (stat->max_2d.y < val->y) stat->max_2d.y = val->y;
 	if (stat->min_2d.x > val->x) stat->min_2d.x = val->x;
 	if (stat->min_2d.y > val->y) stat->min_2d.y = val->y;
-	StatFixed(stat, val->x, 0);
-	StatFixed(stat, val->y, 0);
+	StatFixed(stat, val->x, GF_FALSE);
+	StatFixed(stat, val->y, GF_FALSE);
 }
 #endif
 
@@ -223,11 +223,11 @@ static void StatField(GF_SceneStatistics *stat, GF_FieldInfo *field)
 		break;
 	case GF_SG_VRML_SFVEC2F:
 		stat->count_2f++;
-		StatSFVec2f(stat, field->far_ptr);
+		StatSFVec2f(stat, (SFVec2f*) field->far_ptr);
 		break;
 	case GF_SG_VRML_SFVEC3F:
 		stat->count_3f++;
-		StatSFVec3f(stat, field->far_ptr);
+		StatSFVec3f(stat, (SFVec3f *) field->far_ptr);
 		break;
 
 	case GF_SG_VRML_MFFLOAT:
@@ -299,10 +299,10 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	case SVG_ViewBox_datatype:
 	{
 		SVG_ViewBox *vB = (SVG_ViewBox *)field->far_ptr;
-		StatFixed(stat, vB->x, 0);
-		StatFixed(stat, vB->y, 0);
-		StatFixed(stat, vB->width, 0);
-		StatFixed(stat, vB->height, 0);
+		StatFixed(stat, vB->x, GF_FALSE);
+		StatFixed(stat, vB->y, GF_FALSE);
+		StatFixed(stat, vB->width, GF_FALSE);
+		StatFixed(stat, vB->height, GF_FALSE);
 	}
 	break;
 	case SVG_Points_datatype:
@@ -320,12 +320,12 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	{
 		GF_Matrix2D *mx = &((SVG_Transform *)field->far_ptr)->mat;
 		if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
-			StatFixed(stat, mx->m[0], 1);
-			StatFixed(stat, mx->m[1], 1);
-			StatFixed(stat, mx->m[3], 1);
-			StatFixed(stat, mx->m[4], 1);
-			StatFixed(stat, mx->m[2], 0);
-			StatFixed(stat, mx->m[5], 0);
+			StatFixed(stat, mx->m[0], GF_TRUE);
+			StatFixed(stat, mx->m[1], GF_TRUE);
+			StatFixed(stat, mx->m[3], GF_TRUE);
+			StatFixed(stat, mx->m[4], GF_TRUE);
+			StatFixed(stat, mx->m[2], GF_FALSE);
+			StatFixed(stat, mx->m[5], GF_FALSE);
 		}
 	}
 	break;
@@ -333,18 +333,18 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 	{
 		GF_Matrix2D *mx = (GF_Matrix2D *)field->far_ptr;
 		if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
-			StatFixed(stat, mx->m[0], 1);
-			StatFixed(stat, mx->m[1], 1);
-			StatFixed(stat, mx->m[3], 1);
-			StatFixed(stat, mx->m[4], 1);
-			StatFixed(stat, mx->m[2], 0);
-			StatFixed(stat, mx->m[5], 0);
+			StatFixed(stat, mx->m[0], GF_TRUE);
+			StatFixed(stat, mx->m[1], GF_TRUE);
+			StatFixed(stat, mx->m[3], GF_TRUE);
+			StatFixed(stat, mx->m[4], GF_TRUE);
+			StatFixed(stat, mx->m[2], GF_FALSE);
+			StatFixed(stat, mx->m[5], GF_FALSE);
 		}
 	}
 	break;
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-		StatFixed(stat, ((SVG_Number *)field->far_ptr)->value, 0);
+		StatFixed(stat, ((SVG_Number *)field->far_ptr)->value, GF_FALSE);
 		break;
 	}
 }
@@ -375,13 +375,13 @@ Bool StatIsUSE(GF_StatManager *st, GF_Node *n)
 {
 	u32 i;
 	GF_Node *ptr;
-	if (!n || !gf_node_get_id(n) ) return 0;
+	if (!n || !gf_node_get_id(n) ) return GF_FALSE;
 	i=0;
 	while ((ptr = (GF_Node*)gf_list_enum(st->def_nodes, &i))) {
-		if (ptr == n) return 1;
+		if (ptr == n) return GF_TRUE;
 	}
 	gf_list_add(st->def_nodes, n);
-	return 0;
+	return GF_FALSE;
 }
 
 static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
@@ -392,7 +392,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 	if (!n) return GF_OK;
 
 	no_cycle = gf_node_set_cyclic_traverse_flag(n, GF_TRUE);
-	StatNode(st->stats, n, StatIsUSE(st, n), 0, NULL);
+	StatNode(st->stats, n, StatIsUSE(st, n), GF_FALSE, NULL);
 
 	if (!no_cycle) return GF_OK;
 
@@ -536,7 +536,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	case GF_SG_NODE_DELETE:
 	case GF_SG_NODE_DELETE_EX:
 	case GF_SG_GLOBAL_QUANTIZER:
-		if (com->node) StatNode(stat->stats, com->node, 0, 1, NULL);
+		if (com->node) StatNode(stat->stats, com->node, GF_FALSE, GF_TRUE, NULL);
 		break;
 	case GF_SG_INDEXED_DELETE:
 		if (!inf) return GF_OK;
@@ -546,7 +546,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 		/*then we need special handling in case of a node*/
 		if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFNODE) {
 			GF_Node *n = gf_node_list_get_child( * (GF_ChildNodeItem **) field.far_ptr, inf->pos);
-			if (n) StatNode(stat->stats, n, 0, 1, NULL);
+			if (n) StatNode(stat->stats, n, GF_FALSE, GF_TRUE, NULL);
 		} else {
 			StatRemField(stat->stats, inf->fieldType, NULL);
 		}

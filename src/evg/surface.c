@@ -42,7 +42,7 @@ static void get_surface_world_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat)
 static GF_Err evg_raster_ctx_init(EVGRasterCtx *raster_ctx, GF_EVGSurface *surf)
 {
 	raster_ctx->max_gray_spans = raster_ctx->alloc_gray_spans = FT_MAX_GRAY_SPANS;
-	raster_ctx->gray_spans = gf_malloc(sizeof(EVG_Span)* raster_ctx->max_gray_spans);
+	raster_ctx->gray_spans = (EVG_Span *)gf_malloc(sizeof(EVG_Span)* raster_ctx->max_gray_spans);
 	if (!raster_ctx->gray_spans) return GF_OUT_OF_MEM;
 	raster_ctx->surf = surf;
 	return GF_OK;
@@ -106,7 +106,7 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 	}
 	surf->nb_threads = (u32) nb_threads;
 	if (!surf->nb_threads) return GF_OK;
-	surf->th_raster_ctx = gf_malloc(sizeof(EVGRasterCtx) * surf->nb_threads);
+	surf->th_raster_ctx = (EVGRasterCtx *)gf_malloc(sizeof(EVGRasterCtx) * surf->nb_threads);
 	sprintf(szName, "EVGMX%p", surf);
 	surf->raster_mutex = gf_mx_new(szName);
 
@@ -129,12 +129,12 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 		}
 		rctx->surf = surf;
 		rctx->max_gray_spans = rctx->alloc_gray_spans = FT_MAX_GRAY_SPANS;
-		rctx->gray_spans = gf_malloc(sizeof(EVG_Span) * rctx->max_gray_spans);
+		rctx->gray_spans = (EVG_Span *)gf_malloc(sizeof(EVG_Span) * rctx->max_gray_spans);
 
 		if (run_size) {
-			rctx->stencil_pix_run = gf_realloc(rctx->stencil_pix_run, run_size);
+			rctx->stencil_pix_run = (void *)gf_realloc(rctx->stencil_pix_run, run_size);
 		}
-		
+
 		if (!rctx->gray_spans || !rctx->stencil_pix_run) {
 			surf->nb_threads = i;
 			break;
@@ -432,7 +432,7 @@ static GF_Err gf_evg_surface_attach_to_buffer_internal(GF_EVGSurface *surf, u8 *
 
 	if (!pitch_x) pitch_x = BPP;
 	if (!pitch_y) {
-		gf_pixel_get_size_info(pixelFormat, width, height, NULL, &pitch_y, NULL, NULL, NULL);
+		gf_pixel_get_size_info(pixelFormat, width, height, NULL, (u32*) &pitch_y, NULL, NULL, NULL);
 	}
 
 	surf->pitch_x = pitch_x;
@@ -440,15 +440,15 @@ static GF_Err gf_evg_surface_attach_to_buffer_internal(GF_EVGSurface *surf, u8 *
 	if (!surf->raster_ctx.stencil_pix_run || (surf->width != width)) {
 		u32 run_size = sizeof(u32) * (width+2);
 		if (surf->not_8bits) run_size *= 2;
-		surf->raster_ctx.stencil_pix_run = gf_realloc(surf->raster_ctx.stencil_pix_run, run_size);
+		surf->raster_ctx.stencil_pix_run = (void *)gf_realloc(surf->raster_ctx.stencil_pix_run, run_size);
 		if (!surf->raster_ctx.stencil_pix_run) return GF_OUT_OF_MEM;
 
 		if (surf->raster_ctx.stencil_pix_run2) {
-			surf->raster_ctx.stencil_pix_run2 = gf_realloc(surf->raster_ctx.stencil_pix_run2, run_size);
+			surf->raster_ctx.stencil_pix_run2 = (void *)gf_realloc(surf->raster_ctx.stencil_pix_run2, run_size);
 			if (!surf->raster_ctx.stencil_pix_run2) return GF_OUT_OF_MEM;
 		}
 		if (surf->raster_ctx.stencil_pix_run3) {
-			surf->raster_ctx.stencil_pix_run3 = gf_realloc(surf->raster_ctx.stencil_pix_run3, run_size);
+			surf->raster_ctx.stencil_pix_run3 = (void *)gf_realloc(surf->raster_ctx.stencil_pix_run3, run_size);
 			if (!surf->raster_ctx.stencil_pix_run3) return GF_OUT_OF_MEM;
 		}
 
@@ -456,15 +456,15 @@ static GF_Err gf_evg_surface_attach_to_buffer_internal(GF_EVGSurface *surf, u8 *
 		u32 i;
 		for (i=0; i<surf->nb_threads; i++) {
 			EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
-			rctx->stencil_pix_run = gf_realloc(rctx->stencil_pix_run, run_size);
+			rctx->stencil_pix_run = (void *)gf_realloc(rctx->stencil_pix_run, run_size);
 			if (!rctx->stencil_pix_run) return GF_OUT_OF_MEM;
 
 			if (rctx->stencil_pix_run2) {
-				rctx->stencil_pix_run2 = gf_realloc(rctx->stencil_pix_run2, run_size);
+				rctx->stencil_pix_run2 = (void *)gf_realloc(rctx->stencil_pix_run2, run_size);
 				if (!rctx->stencil_pix_run2) return GF_OUT_OF_MEM;
 			}
 			if (rctx->stencil_pix_run3) {
-				rctx->stencil_pix_run3 = gf_realloc(rctx->stencil_pix_run3, run_size);
+				rctx->stencil_pix_run3 = (void *)gf_realloc(rctx->stencil_pix_run3, run_size);
 				if (!rctx->stencil_pix_run3) return GF_OUT_OF_MEM;
 			}
 		}
@@ -478,7 +478,7 @@ static GF_Err gf_evg_surface_attach_to_buffer_internal(GF_EVGSurface *surf, u8 *
 		surf->height = height;
 		size_changed = GF_TRUE;
 	}
-	surf->pixels = (char*)pixels;
+	surf->pixels = pixels;
 	surf->pixelFormat = pixelFormat;
 	surf->BPP = BPP;
 	evg_surface_set_components_idx(surf);
@@ -712,7 +712,7 @@ GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf , GF_IRect *rc)
 GF_EXPORT
 Bool gf_evg_surface_use_clipper(GF_EVGSurface *surf)
 {
-	if (!surf) return 0;
+	if (!surf) return GF_FALSE;
 	return surf->useClipper ? GF_TRUE : GF_FALSE;
 }
 
@@ -782,7 +782,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 	if (use_const && !a && !surf->is_transparent) return GF_FALSE;
 
 	surf->is_422 = GF_FALSE;
-	surf->yuv_type = 0;
+	surf->yuv_type = EVG_YUV_NONE;
 	surf->swap_uv = GF_FALSE;
 	surf->yuv_flush_uv = NULL;
 	surf->direct_yuv_3d = GF_FALSE;
@@ -791,7 +791,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 	else if (surf->get_alpha) a=100;
 	surf->fill_single = NULL;
 	surf->fill_single_a = NULL;
-	
+
 	switch (surf->pixelFormat) {
 	case GF_PIXEL_GREYSCALE:
 		if (use_const) {
@@ -1134,12 +1134,12 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 		uv_alpha_size += 4;
 		if (surf->uv_alpha_alloc < uv_alpha_size) {
 			surf->uv_alpha_alloc = uv_alpha_size;
-			surf->raster_ctx.uv_alpha = gf_realloc(surf->raster_ctx.uv_alpha, uv_alpha_size);
+			surf->raster_ctx.uv_alpha = (u8 *)gf_realloc(surf->raster_ctx.uv_alpha, uv_alpha_size);
 			if (!surf->raster_ctx.uv_alpha) return GF_FALSE;
 #ifndef GPAC_DISABLE_THREADS
 			for (i=0;i<surf->nb_threads; i++) {
 				EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
-				rctx->uv_alpha = gf_realloc(rctx->uv_alpha, uv_alpha_size);
+				rctx->uv_alpha = (u8 *)gf_realloc(rctx->uv_alpha, uv_alpha_size);
 				if (!rctx->uv_alpha) return GF_FALSE;
 			}
 #endif
@@ -1249,7 +1249,7 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 			_tx->tx_get_pixel = shader_get_pix;
 			_tx->tx_get_pixel_wide = shader_get_pix_wide;
 			_tx->is_wide = 1;
-			
+
 			_tx->is_yuv = surf->yuv_type ? 1 : 0;
 		}
 		gf_mx2d_apply_rect(mat, &rc);
@@ -1368,6 +1368,8 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 			evg_gradient_precompute((EVG_BaseGradient *)rad, surf);
 		}
 		break;
+		default:
+			break;
 		}
 	} else {
 		EVG_Brush *sc = (EVG_Brush *) sten;
@@ -1503,7 +1505,7 @@ GF_Err gf_evg_surface_multi_fill(GF_EVGSurface *surf, GF_EVGMultiTextureMode ope
 GF_EXPORT
 GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *sten)
 {
-	return gf_evg_surface_multi_fill(surf, 0, sten, NULL, NULL, NULL);
+	return gf_evg_surface_multi_fill(surf, GF_EVG_OPERAND_NONE, sten, NULL, NULL, NULL);
 }
 
 void gf_evg_surface_set_composite_mode(GF_EVGSurface *surf, GF_EVGCompositeMode comp_mode)
@@ -1560,7 +1562,7 @@ GF_Err gf_evg_surface_draw_array(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, 
 		surf->max_gray_spans = 0xFFFFFFFF;
 
 	surf->aa_level = 0xFF;
-	
+
 	/*and call the raster*/
 	e = evg_raster_render3d(surf, indices, nb_idx, vertices, nb_vertices, nb_comp, prim_type);
 	surf->max_gray_spans =  max_gray;
@@ -1614,7 +1616,7 @@ GF_Err gf_evg_surface_set_mask_mode(GF_EVGSurface *surf, GF_EVGMaskMode mask_mod
 		u8 clear_val = 0;
 		Bool clear_mask = GF_FALSE;
 		if (!surf->internal_mask) {
-			surf->internal_mask = gf_malloc(sizeof(u8) * surf->width * surf->height);
+			surf->internal_mask = (u8 *)gf_malloc(surf->width * surf->height);
 			if (!surf->internal_mask) return GF_OUT_OF_MEM;
 			clear_mask = GF_TRUE;
 		}

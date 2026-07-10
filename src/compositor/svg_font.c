@@ -86,12 +86,12 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 		while (child) {
 			u32 tag = gf_node_get_tag(child->node);
 			if (tag==TAG_SVG_missing_glyph) {
-				missing_glyph = gf_node_get_private(child->node);
+				missing_glyph = (SVG_GlyphStack *)gf_node_get_private(child->node);
 			} else if (tag ==TAG_SVG_glyph) {
-				Bool glyph_ok = 0;
+				Bool glyph_ok = GF_FALSE;
 				SVGAllAttributes atts;
 
-				st = gf_node_get_private(child->node);
+				st = (SVG_GlyphStack *)gf_node_get_private(child->node);
 				if (!st) {
 					child = child->next;
 					continue;
@@ -101,35 +101,35 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 					u32 j, count;
 					gf_svg_flatten_attributes((SVG_Element*)child->node, &atts);
 					if (!lang) {
-						glyph_ok = 1;
+						glyph_ok = GF_TRUE;
 					} else {
 						if (!atts.lang) {
-							glyph_ok = 1;
+							glyph_ok = GF_TRUE;
 						} else {
 							count = gf_list_count(*atts.lang);
 							for (j=0; j<count; j++) {
-								char *name = gf_list_get(*atts.lang, j);
+								char *name = (char *)gf_list_get(*atts.lang, j);
 								if (!stricmp(name, lang) || strstr(lang, name)) {
-									glyph_ok = 1;
+									glyph_ok = GF_TRUE;
 									break;
 								}
 							}
 						}
 					}
 					if (atts.arabic_form) {
-						Bool first = (!prev_c || (prev_c==' ')) ? 1 : 0;
-						Bool last = ((i+1==len) || (glyph_buffer[i+1]==' ') ) ? 1 : 0;
+						Bool first = (!prev_c || (prev_c==' ')) ? GF_TRUE : GF_FALSE;
+						Bool last = ((i+1==len) || (glyph_buffer[i+1]==' ') ) ? GF_TRUE : GF_FALSE;
 						if (!strcmp(*atts.arabic_form, "isolated")) {
-							if (!first || !last) glyph_ok = 0;
+							if (!first || !last) glyph_ok = GF_FALSE;
 						}
 						if (!strcmp(*atts.arabic_form, "initial")) {
-							if (!first) glyph_ok = 0;
+							if (!first) glyph_ok = GF_FALSE;
 						}
 						if (!strcmp(*atts.arabic_form, "medial")) {
-							if (first || last) glyph_ok = 0;
+							if (first || last) glyph_ok = GF_FALSE;
 						}
 						if (!strcmp(*atts.arabic_form, "terminal")) {
-							if (!last) glyph_ok = 0;
+							if (!last) glyph_ok = GF_FALSE;
 						}
 					}
 					if (glyph_ok) break;
@@ -169,7 +169,7 @@ static GF_Glyph *svg_font_load_glyph(void *udta, u32 glyph_name)
 
 	while (child) {
 		if (gf_node_get_tag(child->node)==TAG_SVG_glyph) {
-			SVG_GlyphStack *st = gf_node_get_private(child->node);
+			SVG_GlyphStack *st = (SVG_GlyphStack *)gf_node_get_private(child->node);
 			if (st->glyph.ID==glyph_name) {
 				return &st->glyph;
 			}
@@ -183,7 +183,7 @@ static GF_Glyph *svg_font_load_glyph(void *udta, u32 glyph_name)
 static void svg_traverse_font(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
-		GF_Font *font = gf_node_get_private(node);
+		GF_Font *font = (GF_Font *)gf_node_get_private(node);
 		if (font) {
 			gf_font_manager_unregister_font(font->ft_mgr, font);
 			if (font->name) gf_free(font->name);
@@ -197,11 +197,11 @@ static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event, GF_Node *obs
 	GF_Font *font;
 	gf_assert(event->currentTarget->ptr_type==GF_DOM_EVENT_TARGET_NODE);
 	gf_assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_font);
-	font = gf_node_get_private((GF_Node*)event->currentTarget->ptr);
-	font->not_loaded = 0;
+	font = (GF_Font *)gf_node_get_private((GF_Node*)event->currentTarget->ptr);
+	font->not_loaded = GF_FALSE;
 
 	/*brute-force signaling that all fonts have changed and texts must be recomputed*/
-	font->compositor->reset_fonts = 1;
+	font->compositor->reset_fonts = GF_TRUE;
 	gf_sc_next_frame_state(font->compositor, GF_SC_DRAW_FRAME);
 	font->compositor->fonts_pending--;
 }
@@ -312,7 +312,7 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 	gf_svg_flatten_attributes((SVG_Element*)node_font, &atts);
 	font->max_advance_h = atts.horiz_adv_x ? FIX2INT( gf_ceil(atts.horiz_adv_x->value) ) : 0;
 
-	font->not_loaded = 1;
+	font->not_loaded = GF_TRUE;
 
 	/*wait for onLoad event before activating the font, otherwise we may not have all the glyphs*/
 	handler = gf_dom_listener_build(node_font, GF_EVENT_LOAD, 0);
@@ -325,7 +325,7 @@ static void svg_traverse_glyph(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		GF_Font *font;
 		GF_Glyph *prev_glyph, *a_glyph;
-		SVG_GlyphStack *st = gf_node_get_private(node);
+		SVG_GlyphStack *st = (SVG_GlyphStack *)gf_node_get_private(node);
 		if (st->unicode) gf_free(st->unicode);
 
 		font = st->font;
@@ -360,7 +360,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 	/*locate the font node*/
 	if (node_font) node_font = gf_node_get_parent(node, 0);
 	if (!node_font || (gf_node_get_tag(node_font)!=TAG_SVG_font) ) return;
-	font = gf_node_get_private(node_font);
+	font = (GF_Font *)gf_node_get_private(node_font);
 	if (!font) return;
 
 	gf_svg_flatten_attributes((SVG_Element*)node, &atts);
@@ -384,7 +384,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 		st->uni_len = 1;
 	} else {
 		st->glyph.utf_name = (u32) (PTR_TO_U_CAST st);
-		st->unicode = gf_malloc(sizeof(u16)*len);
+		st->unicode = (u16 *)gf_malloc(sizeof(u16)*len);
 		st->uni_len = (u16) len;
 		memcpy(st->unicode, utf_name, sizeof(u16)*len);
 	}
@@ -432,54 +432,54 @@ static Bool svg_font_uri_check(GF_Node *node, FontURIStack *st)
 	GF_Node *font_elt;
 	SVGAllAttributes atts;
 	gf_svg_flatten_attributes((SVG_Element*)node, &atts);
-	if (!atts.xlink_href) return 0;
+	if (!atts.xlink_href) return GF_FALSE;
 
 	if (atts.xlink_href->type == XMLRI_ELEMENTID) {
 		if (!atts.xlink_href->target) atts.xlink_href->target = gf_sg_find_node_by_name(gf_node_get_graph(node), atts.xlink_href->string+1);
 	} else {
 		GF_SceneGraph *ext_sg;
 		char *font_name = strchr(atts.xlink_href->string, '#');
-		if (!font_name) return 0;
+		if (!font_name) return GF_FALSE;
 		if (!st->mo) {
-			st->mo = gf_mo_load_xlink_resource(node, 0, 0, -1);
+			st->mo = gf_mo_load_xlink_resource(node, GF_FALSE, 0, -1);
 			if (!st->mo) {
 				st->compositor->fonts_pending--;
-				return 0;
+				return GF_FALSE;
 			}
 		}
 		ext_sg = gf_mo_get_scenegraph(st->mo);
 		if (!ext_sg) {
 			st->compositor->fonts_pending--;
-			return 0;
+			return GF_FALSE;
 		}
 		atts.xlink_href->target = gf_sg_find_node_by_name(ext_sg, font_name+1);
 		if (!atts.xlink_href->target) {
 			st->compositor->fonts_pending--;
-			return 0;
+			return GF_FALSE;
 		}
 	}
-	font_elt = atts.xlink_href->target;
+	font_elt = (GF_Node*)atts.xlink_href->target;
 	if (gf_node_get_tag(font_elt) != TAG_SVG_font) {
 		st->compositor->fonts_pending--;
-		return 0;
+		return GF_FALSE;
 	}
-	font = gf_node_get_private(font_elt);
+	font = (GF_Font *)gf_node_get_private(font_elt);
 	if (!font) {
 		st->compositor->fonts_pending--;
-		return 0;
+		return GF_FALSE;
 	}
 
 	st->alias = font;
 
 	gf_mo_is_done(st->mo);
-	font->not_loaded = 0;
-	return 1;
+	font->not_loaded = GF_FALSE;
+	return GF_TRUE;
 }
 
 GF_Font *svg_font_uri_get_alias(void *udta)
 {
 	GF_Node *node = (GF_Node *)udta;
-	FontURIStack *st = gf_node_get_private(node);
+	FontURIStack *st = (FontURIStack *)gf_node_get_private(node);
 	if (!st->alias && !svg_font_uri_check(node, st)) {
 		return NULL;
 	}
@@ -489,7 +489,7 @@ GF_Font *svg_font_uri_get_alias(void *udta)
 static void svg_traverse_font_face_uri(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
-		FontURIStack *st = gf_node_get_private(node);
+		FontURIStack *st = (FontURIStack *)gf_node_get_private(node);
 		if (st) {
 			gf_font_manager_unregister_font(st->font->ft_mgr, st->font);
 			if (st->font->name) gf_free(st->font->name);
@@ -524,7 +524,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	if (!atts.font_family) return;
 
 	/*if font with the same name exists, don't load*/
-	if (gf_compositor_svg_set_font(compositor->font_manager, atts.font_family->value, 0, 1) != NULL)
+	if (gf_compositor_svg_set_font(compositor->font_manager, atts.font_family->value, 0, GF_TRUE) != NULL)
 		return;
 
 	/*register font to font manager*/
@@ -533,7 +533,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate font for svg font face URI\n"));
 		return;
 	}
-	
+
 	e = gf_font_manager_register_font(compositor->font_manager, font);
 	if (e) {
 		gf_free(font);
@@ -556,7 +556,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_font_face_uri);
 
-	font->not_loaded = 1;
+	font->not_loaded = GF_TRUE;
 	compositor->fonts_pending++;
 	svg_font_uri_check(node, stack);
 }

@@ -41,7 +41,7 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	const char* opt;
 
 	DirectFBVID();
-	DirectFBVid_CtxSetIsInit(ctx, 0);
+	DirectFBVid_CtxSetIsInit(ctx, GF_FALSE);
 
 	// initialisation and surface creation
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization\n"));
@@ -60,7 +60,7 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	DirectFBVid_CtxSetFlipMode(ctx, flip_mode);
 
 	// end of initialization
-	DirectFBVid_CtxSetIsInit(ctx, 1);
+	DirectFBVid_CtxSetIsInit(ctx, GF_TRUE);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization success - HW caps %08x\n", driv->hw_caps));
 
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Pixel format %s\n", gf_4cc_to_str(ctx->pixel_format)));
@@ -248,11 +248,11 @@ void *DirectFBNewVideo()
 	DirectFBVidCtx *ctx;
 	GF_VideoOutput *driv;
 
-	driv = gf_malloc(sizeof(GF_VideoOutput));
+	driv = (GF_VideoOutput *)gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "directfb", "gpac distribution");
 
-	ctx = gf_malloc(DirectFBVid_GetCtxSizeOf());
+	ctx = (DirectFBVidCtx *)gf_malloc(DirectFBVid_GetCtxSizeOf());
 	memset(ctx, 0, DirectFBVid_GetCtxSizeOf());
 
 	/* GF_VideoOutput */
@@ -284,6 +284,7 @@ void DirectFBDeleteVideo(void *ifce)
 	gf_free(driv);
 }
 
+GPAC_MODULE_EXPORT_START
 
 /*interface query*/
 GPAC_MODULE_EXPORT
@@ -316,5 +317,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( directfb_out )

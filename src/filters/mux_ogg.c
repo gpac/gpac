@@ -77,7 +77,7 @@ typedef struct
 
 static void oggmux_on_packet_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	OGGMuxCtx *ctx = gf_filter_get_udta(filter);
+	OGGMuxCtx *ctx = (OGGMuxCtx *)gf_filter_get_udta(filter);
 	gf_filter_lock(filter, GF_TRUE);
 	if (ctx->packets_pending) ctx->packets_pending--;
 	if (!ctx->packets_pending) gf_filter_post_process_task(filter);
@@ -131,9 +131,9 @@ static GF_Err oggmux_send_config(OGGMuxCtx *ctx, OGGMuxStream *pctx, GF_FilterPa
 
 	if (pctx->codec_id==GF_CODECID_OPUS) {
 		GF_BitStream *bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs_out, "OpusHead", 8);
+		gf_bs_write_data(bs_out, (u8*)"OpusHead", 8);
 		gf_bs_write_data(bs_out, p->value.data.ptr, p->value.data.size);
-		gf_bs_get_content(bs_out, &pctx->op.packet, &pctx->op.bytes);
+		gf_bs_get_content(bs_out, &pctx->op.packet, (u32*)&pctx->op.bytes);
 		gf_bs_del(bs_out);
 		ogg_stream_packetin(&pctx->os, &pctx->op);
 		gf_free(pctx->op.packet);
@@ -141,22 +141,22 @@ static GF_Err oggmux_send_config(OGGMuxCtx *ctx, OGGMuxStream *pctx, GF_FilterPa
 
 		//opus tags is mandatory
 		bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs_out, "OpusTags", 8);
+		gf_bs_write_data(bs_out, (u8*)"OpusTags", 8);
 		const char *vendor = gf_sys_is_test_mode() ? "GPAC" : gf_gpac_version();
 		u32 vlen = (u32) strlen(vendor);
 		gf_bs_write_u32_le(bs_out, vlen);
-		gf_bs_write_data(bs_out, vendor, vlen);
+		gf_bs_write_data(bs_out, (u8 *) vendor, vlen);
 		gf_bs_write_u32_le(bs_out, 0);
-		gf_bs_get_content(bs_out, &pctx->op.packet, &pctx->op.bytes);
+		gf_bs_get_content(bs_out, &pctx->op.packet, (u32*)&pctx->op.bytes);
 		gf_bs_del(bs_out);
 		ogg_stream_packetin(&pctx->os, &pctx->op);
 		gf_free(pctx->op.packet);
 		pctx->op.packetno ++;
 	} else if (pctx->codec_id==GF_CODECID_FLAC) {
 		GF_BitStream *bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_data(bs_out, "fLaC", 4);
+		gf_bs_write_data(bs_out, (u8*)"fLaC", 4);
 		gf_bs_write_data(bs_out, p->value.data.ptr, p->value.data.size);
-		gf_bs_get_content(bs_out, &pctx->op.packet, &pctx->op.bytes);
+		gf_bs_get_content(bs_out, &pctx->op.packet, (u32*)&pctx->op.bytes);
 		gf_bs_del(bs_out);
 		ogg_stream_packetin(&pctx->os, &pctx->op);
 		gf_free(pctx->op.packet);
@@ -172,7 +172,7 @@ static GF_Err oggmux_send_config(OGGMuxCtx *ctx, OGGMuxStream *pctx, GF_FilterPa
 
 			if ((pctx->codec_id==GF_CODECID_THEORA) && (pctx->op.packet[0]==0x80)){
 				u32 kff;
-				GF_BitStream *vbs = gf_bs_new((char*)pctx->op.packet, pctx->op.bytes, GF_BITSTREAM_READ);
+				GF_BitStream *vbs = gf_bs_new(pctx->op.packet, pctx->op.bytes, GF_BITSTREAM_READ);
 				gf_bs_skip_bytes(vbs, 40);
 				gf_bs_read_int(vbs, 6); /* quality */
 				kff = 1 << gf_bs_read_int(vbs, 5);
@@ -210,7 +210,7 @@ static GF_Err oggmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	u32 codec_id;
 	OGGMuxCtx *ctx = (OGGMuxCtx *) gf_filter_get_udta(filter);
 
-	OGGMuxStream *pctx = gf_filter_pid_get_udta(pid);
+	OGGMuxStream *pctx = (OGGMuxStream *)gf_filter_pid_get_udta(pid);
 	if (is_remove) {
 		if (pctx) {
 			gf_list_del_item(ctx->streams, pctx);
@@ -315,7 +315,7 @@ static void oggmux_send_seg_info(OGGMuxCtx *ctx)
 {
 	if (ctx->seg_size) {
 		GF_FilterEvent evt;
-		OGGMuxStream *pctx = gf_list_get(ctx->streams, 0);
+		OGGMuxStream *pctx = (OGGMuxStream *)gf_list_get(ctx->streams, 0);
 		GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, pctx->ipid);
 		evt.seg_size.media_range_start = ctx->seg_start;
 		evt.seg_size.media_range_end = ctx->seg_start + ctx->seg_size - 1;
@@ -334,7 +334,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		const u8 *data=NULL;
 		u32 size;
-		OGGMuxStream *pctx = gf_list_get(ctx->streams, i);
+		OGGMuxStream *pctx = (OGGMuxStream *)gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->ipid);
 
 		if (!pctx->ready) {
@@ -402,7 +402,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 		pctx->op.packetno ++;
 
 		if (pctx->theora_kgs) {
-			Bool is_sap = (data[0] & 0x40) ? 0 : 1;
+			Bool is_sap = (data[0] & 0x40) ? GF_FALSE : GF_TRUE;
 			if (is_sap) {
 				pctx->nb_i += pctx->nb_p;
 				pctx->nb_p = 0;
@@ -438,7 +438,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 		if (ctx->is_eos) return GF_EOS;
 		ctx->is_eos = GF_TRUE;
 		for (i=0; i<count; i++) {
-			OGGMuxStream *pctx = gf_list_get(ctx->streams, i);
+			OGGMuxStream *pctx = (OGGMuxStream *)gf_list_get(ctx->streams, i);
 
 			while (ogg_stream_flush(&pctx->os, &pctx->og)>0) {
 				oggmux_send_page(ctx, pctx, NULL);
@@ -459,7 +459,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 			ctx->seg_num = ctx->next_seg_num;
 			ctx->copy_props = GF_TRUE;
 			for (i=0; i<count; i++) {
-				pctx = gf_list_get(ctx->streams, i);
+				pctx = (OGGMuxStream *)gf_list_get(ctx->streams, i);
 				pctx->inject_cfg = GF_TRUE;
 
 				if (ogg_stream_flush(&pctx->os, &pctx->og)>0)
@@ -475,7 +475,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 			if (gf_timestamp_greater_or_equal(ctx->ts_regulate.num, ctx->ts_regulate.den, ctx->last_reconf, ctx->rcfg.den)) {
 				ctx->last_reconf += ctx->rcfg.num;
 				for (i=0; i<count; i++) {
-					OGGMuxStream *pctx = gf_list_get(ctx->streams, i);
+					OGGMuxStream *pctx = (OGGMuxStream *)gf_list_get(ctx->streams, i);
 					pctx->inject_cfg = GF_TRUE;
 				}
 			}
@@ -516,7 +516,7 @@ static void oggmux_finalize(GF_Filter *filter)
 	OGGMuxCtx *ctx = (OGGMuxCtx *) gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		OGGMuxStream *pctx = gf_list_pop_back(ctx->streams);
+		OGGMuxStream *pctx = (OGGMuxStream *)gf_list_pop_back(ctx->streams);
 		if (pctx->dangling_ref) gf_filter_pck_discard(pctx->dangling_ref);
 		ogg_stream_clear(&pctx->os);
 		gf_free(pctx);
@@ -559,7 +559,7 @@ GF_FilterRegister OGGMuxRegister = {
 		"The [-cdur]() option allows specifying the interleaving duration (max time difference between consecutive packets of different streams). \n"
 	)
 	.private_size = sizeof(OGGMuxCtx),
-	.max_extra_pids = -1,
+	.max_extra_pids = (u32)-1,
 	.args = OGGMuxArgs,
 	SETCAPS(OGGMuxCaps),
 	.initialize = oggmux_initialize,

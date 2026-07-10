@@ -285,10 +285,10 @@ Bool html_media_tracklist_has_track(GF_HTML_TrackList *tracklist, const char *id
 		GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
 		if (!strcmp(id, track->id))
 		{
-			return 1;
+			return GF_TRUE;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_HTML_Track *html_media_tracklist_get_track(GF_HTML_TrackList *tracklist, const char *id)

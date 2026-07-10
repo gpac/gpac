@@ -27,6 +27,10 @@
 #ifndef _GF_DVB_MPE_DEV_H_
 #define _GF_DVB_MPE_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/dvb_mpe.h>
 #include <gpac/internal/reedsolomon.h>
 
@@ -261,5 +265,9 @@ void descriptor_PRIVATE (u8 *b, DTAG_SCOPE tag_scope, GF_List * descriptors );
 
 
 #endif //!defined(GPAC_DISABLE_MPEG2TS) && !defined(GPAC_DISABLE_NETWORK)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	//_GF_DVB_MPE_DEV_H_

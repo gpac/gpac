@@ -76,7 +76,7 @@ typedef struct
 static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
+	GF_J2KCtx *ctx = (GF_J2KCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -229,13 +229,13 @@ static int int_ceildivpow2(int a, int b) {
 #if OPENJP2
 typedef struct
 {
-	char *data;
+	const u8 *data;
 	u32 len, pos;
 } OJP2Frame;
 
 static OPJ_SIZE_T j2kdec_stream_read(void *out_buffer, OPJ_SIZE_T nb_bytes, void *user_data)
 {
-	OJP2Frame *frame = user_data;
+	OJP2Frame *frame = (OJP2Frame *)user_data;
 	u32 remain;
 	if (frame->pos == frame->len) return (OPJ_SIZE_T)-1;
 	remain = frame->len - frame->pos;
@@ -247,7 +247,7 @@ static OPJ_SIZE_T j2kdec_stream_read(void *out_buffer, OPJ_SIZE_T nb_bytes, void
 
 static OPJ_OFF_T j2kdec_stream_skip(OPJ_OFF_T nb_bytes, void *user_data)
 {
-	OJP2Frame *frame = user_data;
+	OJP2Frame *frame = (OJP2Frame *)user_data;
 	if (!user_data) return 0;
 
 	if (nb_bytes < 0) {
@@ -271,7 +271,7 @@ static OPJ_OFF_T j2kdec_stream_skip(OPJ_OFF_T nb_bytes, void *user_data)
 
 static OPJ_BOOL j2kdec_stream_seek(OPJ_OFF_T nb_bytes, void *user_data)
 {
-	OJP2Frame *frame = user_data;
+	OJP2Frame *frame = (OJP2Frame *)user_data;
 	if (nb_bytes < 0 || nb_bytes > frame->pos) return OPJ_FALSE;
 	frame->pos = (u32)nb_bytes;
 	return OPJ_TRUE;
@@ -282,7 +282,8 @@ static OPJ_BOOL j2kdec_stream_seek(OPJ_OFF_T nb_bytes, void *user_data)
 static GF_Err j2kdec_process(GF_Filter *filter)
 {
 	u32 i, w, wr, h, hr, wh, size, pf;
-	u8 *data, *buffer;
+	const u8 *data;
+	u8 *buffer;
 	opj_dparameters_t *parameters;	/* decompression parameters */
 #if OPENJP2
 	s32 res;
@@ -297,7 +298,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 #endif
 	opj_image_t *image = NULL;
 	u32 start_offset=0;
-	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
+	GF_J2KCtx *ctx = (GF_J2KCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *pck_dst;
 	Bool changed = GF_FALSE;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -306,7 +307,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
-	data = (char *) gf_filter_pck_get_data(pck, &size);
+	data = gf_filter_pck_get_data(pck, &size);
 	if (!data) {
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_IO_ERR;

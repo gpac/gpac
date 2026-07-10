@@ -79,7 +79,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	u32 i, sr, chan_cfg=0;
 	Bool patch_channels = GF_FALSE;
 	const GF_PropertyValue *p;
-	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSMxCtx *ctx = (GF_ADTSMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -244,9 +244,10 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 GF_Err adtsmx_process(GF_Filter *filter)
 {
-	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSMxCtx *ctx = (GF_ADTSMxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 pck_size, size;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -258,7 +259,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!pck_size) {
 		//if output and packet properties, forward - this is required for sinks using packets for state signaling
 		//such as TS muxer in dash mode looking for EODS property
@@ -318,7 +319,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, 0, 1);/*other data present*/
 			gf_bs_write_int(ctx->bs_w, 0, 1);/*crcCheckPresent*/
 
-			ctx->update_dsi = 0;
+			ctx->update_dsi = GF_FALSE;
 		} else {
 			gf_bs_write_int(ctx->bs_w, 1, 1);
 		}
@@ -395,7 +396,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 
 static void adtsmx_finalize(GF_Filter *filter)
 {
-	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSMxCtx *ctx = (GF_ADTSMxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (ctx->pce) gf_free(ctx->pce);
@@ -447,7 +448,7 @@ const GF_FilterRegister *ufadts_register(GF_FilterSession *session)
 
 static GF_Err latmmx_initialize(GF_Filter*filter)
 {
-	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSMxCtx *ctx = (GF_ADTSMxCtx *)gf_filter_get_udta(filter);
 	ctx->is_latm = GF_TRUE;
 	return GF_OK;
 }

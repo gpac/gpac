@@ -108,7 +108,7 @@ static void parse_param_list(GF_SEILoader *sei, GF_List *params)
 {
 	u32 i, count = gf_list_count(params);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *p = gf_list_get(params, i);
+		GF_NALUFFParam *p = (GF_NALUFFParam *)gf_list_get(params, i);
 		gf_bs_reassign_buffer(sei->bs, p->data, p->size);
 		if (sei->avc_state) {
 			gf_avc_parse_nalu(sei->bs, sei->avc_state);
@@ -163,7 +163,7 @@ GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid)
 			sei->nalu_size = hvcc->nal_unit_size;
 			count = gf_list_count(hvcc->param_array);
 			for (i=0; i<count; i++) {
-				GF_NALUFFParamArray *pa = gf_list_get(hvcc->param_array, i);
+				GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(hvcc->param_array, i);
 				parse_param_list(sei, pa->nalus);
 			}
 			gf_odf_hevc_cfg_del(hvcc);
@@ -179,7 +179,7 @@ GF_Err gf_sei_init_from_pid(GF_SEILoader *sei, GF_FilterPid *pid)
 			sei->nalu_size = vvcc->nal_unit_size;
 			count = gf_list_count(vvcc->param_array);
 			for (i=0; i<count; i++) {
-				GF_NALUFFParamArray *pa = gf_list_get(vvcc->param_array, i);
+				GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(vvcc->param_array, i);
 				parse_param_list(sei, pa->nalus);
 			}
 			gf_odf_vvc_cfg_del(vvcc);
@@ -374,7 +374,7 @@ static GF_Err gf_sei_load_from_packet_av1(GF_SEILoader *sei, GF_FilterPacket *pc
 	u8 *data = (u8*) gf_filter_pck_get_data(pck, &data_len);
 
 	while (data_len) {
-		ObuType obu_type = 0;
+		ObuType obu_type = OBU_RESERVED_0;
 		u64 obu_size = 0;
 		u32 hdr_size = 0;
 		gf_bs_reassign_buffer(sei->bs, data, data_len);
@@ -483,8 +483,8 @@ typedef struct
 static GF_Err seiload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	SEILoadCtx *ctx = (SEILoadCtx *) gf_filter_get_udta(filter);
-	GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
-	GF_SEILoader *loader = opid ? gf_filter_pid_get_udta(opid) : NULL;
+	GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+	GF_SEILoader *loader = opid ? (GF_SEILoader *)gf_filter_pid_get_udta(opid) : NULL;
 	if (is_remove) {
 		if (loader) {
 			gf_filter_pid_set_udta(opid, NULL);
@@ -510,8 +510,8 @@ static GF_Err seiload_process(GF_Filter *filter)
 	u32 i, nb_eos=0, count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
-		GF_SEILoader *loader = opid ? gf_filter_pid_get_udta(opid) : NULL;
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+		GF_SEILoader *loader = opid ? (GF_SEILoader *)gf_filter_pid_get_udta(opid) : NULL;
 		while (1) {
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
 			if (!pck) {
@@ -556,7 +556,7 @@ static void seiload_finalize(GF_Filter *filter)
 {
 	SEILoadCtx *ctx = (SEILoadCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->loaders)) {
-		GF_SEILoader *pctx = gf_list_pop_back(ctx->loaders);
+		GF_SEILoader *pctx = (GF_SEILoader *)gf_list_pop_back(ctx->loaders);
 		gf_sei_loader_del(pctx);
 	}
 	gf_list_del(ctx->loaders);

@@ -75,7 +75,7 @@ typedef struct
 
 	Bool is_end, pck_out, is_first, owns_pipe;
 	Bool do_reconfigure;
-	char *buffer;
+	u8 *buffer;
 	Bool is_stdin;
 	u32 left_over, copy_offset;
 	u8 store_char;
@@ -244,7 +244,7 @@ setup_done:
 
 	ctx->is_first = GF_TRUE;
 	if (!ctx->buffer)
-		ctx->buffer = gf_malloc(ctx->block_size +1);
+		ctx->buffer = (u8 *)gf_malloc(ctx->block_size +1);
 
 	gf_filter_post_process_task(filter);
 
@@ -564,7 +564,7 @@ refill:
 			ctx->copy_offset = 0;
 		}
 		while (nb_read) {
-			u8 *m = memchr(start, PIPE_FLUSH_MARKER[0], avail);
+			u8 *m = (u8 *)memchr(start, PIPE_FLUSH_MARKER[0], avail);
 			if (!m) break;
 			u32 remain = (u32) ((u8*) ctx->buffer + nb_read - m);
 			if (remain<8) {

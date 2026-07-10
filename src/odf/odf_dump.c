@@ -40,7 +40,7 @@
 		for (z=0; z<indent; z++) ind_buf[z] = ' '; \
 		ind_buf[z] = 0; \
 	} \
- 
+
 GF_EXPORT
 GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -352,7 +352,7 @@ static void DumpBool(FILE *trace, const char *attName, u32  val, u32 indent, Boo
 	EndAttribute(trace, indent, XMTDump);
 }
 
-static void DumpString(FILE *trace, const char *attName, char *val, u32 indent, Bool XMTDump)
+static void DumpString(FILE *trace, const char *attName, const char *val, u32 indent, Bool XMTDump)
 {
 	if (!val) return;
 	StartAttribute(trace, attName, indent, XMTDump);
@@ -362,7 +362,7 @@ static void DumpString(FILE *trace, const char *attName, char *val, u32 indent, 
 	EndAttribute(trace, indent, XMTDump);
 }
 
-static void DumpData(FILE *trace, const char *name, char *data, u64 dataLength, u32 indent, Bool XMTDump)
+static void DumpData(FILE *trace, const char *name, u8 *data, u64 dataLength, u32 indent, Bool XMTDump)
 {
 	u64 i;
 	if (!name ||!data) return;
@@ -852,7 +852,7 @@ GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDum
 				while ((c=gf_bs_read_int(bs, 8))) gf_fprintf(trace, "%c", c);
 				gf_fprintf(trace, " ");
 				for (j=0; j<nbPhone; j++) {
-					gf_bs_read_data(bs, szPh, 2);
+					gf_bs_read_data(bs, (u8*) szPh, 2);
 					if (j) gf_fprintf(trace, " ");
 					if (!stricmp(szPh, "vc")) gf_fprintf(trace, "vcl");
 					else gf_fprintf(trace, "%s", szPh);
@@ -862,7 +862,7 @@ GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDum
 			EndAttribute(trace, indent, XMTDump);
 			gf_bs_del(bs);
 		} else {
-			DumpData(trace, "uiData", uid->ui_data, uid->ui_data_length, indent, XMTDump);
+			DumpData(trace, "uiData",  (u8*)uid->ui_data, uid->ui_data_length, indent, XMTDump);
 		}
 	}
 
@@ -911,7 +911,7 @@ GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool 
 				while ((c=gf_bs_read_int(bs, 8))) gf_fprintf(trace, "%c", c);
 				gf_fprintf(trace, " ");
 				for (j=0; j<nbPhone; j++) {
-					gf_bs_read_data(bs, szPh, 2);
+					gf_bs_read_data(bs, (u8 *)szPh, 2);
 					if (j) gf_fprintf(trace, " ");
 					if (!stricmp(szPh, "vc")) gf_fprintf(trace, "vcl");
 					else gf_fprintf(trace, "%s", szPh);
@@ -920,7 +920,7 @@ GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool 
 			if (!XMTDump) gf_fprintf(trace, "\"");
 			EndAttribute(trace, indent, XMTDump);
 		} else {
-			char *data = dsi->data;
+			u8 *data = dsi->data;
 			data += gf_bs_get_position(bs);
 			DumpData(trace, "uiData", data, len, indent, XMTDump);
 		}

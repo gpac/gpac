@@ -54,14 +54,14 @@ typedef struct
 
 static GF_Err rewind_initialize(GF_Filter *filter)
 {
-	GF_RewindCtx *ctx = gf_filter_get_udta(filter);
+	GF_RewindCtx *ctx = (GF_RewindCtx *)gf_filter_get_udta(filter);
 	ctx->frames = gf_list_new();
 	return GF_OK;
 }
 
 static void rewind_finalize(GF_Filter *filter)
 {
-	GF_RewindCtx *ctx = gf_filter_get_udta(filter);
+	GF_RewindCtx *ctx = (GF_RewindCtx *)gf_filter_get_udta(filter);
 	gf_list_del(ctx->frames);
 }
 
@@ -70,7 +70,7 @@ static GF_Err rewind_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	const GF_PropertyValue *p;
 	u32 afmt;
-	GF_RewindCtx *ctx = gf_filter_get_udta(filter);
+	GF_RewindCtx *ctx = (GF_RewindCtx *)gf_filter_get_udta(filter);
 	if (is_remove) {
 		if (ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
@@ -133,7 +133,7 @@ static GF_Err rewind_process_video(GF_RewindCtx *ctx, GF_FilterPacket *pck)
 	//frame was a SAP, flush all previous frames in reverse order
 	if (do_flush) {
 		while (1) {
-			GF_FilterPacket *frame = gf_list_pop_back(ctx->frames);
+			GF_FilterPacket *frame = (struct __gf_filter_pck *)gf_list_pop_back(ctx->frames);
 			if (!frame) break;
 			gf_filter_pck_forward(frame, ctx->opid);
 			gf_filter_pck_unref(frame);
@@ -157,7 +157,7 @@ static GF_Err rewind_process(GF_Filter *filter)
 	const u8 *data;
 	u32 size;
 	GF_FilterPacket *pck, *dstpck;
-	GF_RewindCtx *ctx = gf_filter_get_udta(filter);
+	GF_RewindCtx *ctx = (GF_RewindCtx *)gf_filter_get_udta(filter);
 
 	if (!ctx->ipid) return GF_OK;
 
@@ -195,8 +195,8 @@ static GF_Err rewind_process(GF_Filter *filter)
 
 		bytes_per_samp = ctx->bytes_per_sample / ctx->nb_ch;
 		for (j=0; j<ctx->nb_ch; j++) {
-			char *dst = output + j * planesize;
-			char *src = (char *) data + j * planesize;
+			u8 *dst = output + j * planesize;
+			const u8 *src = data + j * planesize;
 
 			for (i=0; i<nb_samples; i++) {
 				memcpy(dst + i*bytes_per_samp, src + (nb_samples - i - 1)*bytes_per_samp, bytes_per_samp);
@@ -217,7 +217,7 @@ static GF_Err rewind_process(GF_Filter *filter)
 
 static Bool rewind_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_RewindCtx *ctx = gf_filter_get_udta(filter);
+	GF_RewindCtx *ctx = (GF_RewindCtx *)gf_filter_get_udta(filter);
 	if (evt->base.type==GF_FEVT_PLAY) {
 		if (evt->play.speed>0) ctx->passthrough = GF_TRUE;
 		else ctx->passthrough = GF_FALSE;

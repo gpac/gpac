@@ -57,10 +57,10 @@ static void timesensor_destroy(GF_Node *ts, void *rs, Bool is_destroy)
 static
 void timesensor_deactivate(TimeSensorStack *stack, M_TimeSensor *ts)
 {
-	ts->isActive = 0;
+	ts->isActive = GF_FALSE;
 	gf_node_event_out((GF_Node *) ts, 7);//"isActive"
 	gf_assert(stack->time_handle.is_registered);
-	stack->time_handle.needs_unregister = 1;
+	stack->time_handle.needs_unregister = GF_TRUE;
 	stack->num_cycles = 0;
 }
 
@@ -76,14 +76,14 @@ void timesensor_update_time(GF_TimeNode *st)
 	if (! TS->enabled) {
 		if (TS->isActive) {
 			TS->cycleTime = gf_node_get_scene_time(st->udta);
-			gf_node_event_out(st->udta, 5);//"cycleTime"
+			gf_node_event_out((GF_Node*)st->udta, 5);//"cycleTime"
 			timesensor_deactivate(stack, TS);
 		}
 		return;
 	}
 
 	if (stack->store_info) {
-		stack->store_info = 0;
+		stack->store_info = GF_FALSE;
 		stack->start_time = TS->startTime;
 		stack->cycle_interval = TS->cycleInterval;
 	}
@@ -93,7 +93,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		if (currentTime < stack->start_time) return;
 		/*special case: if we're greater than both start and stop time don't activate*/
 		if (!TS->isActive && (TS->stopTime > stack->start_time) && (currentTime >= TS->stopTime)) {
-			stack->time_handle.needs_unregister = 1;
+			stack->time_handle.needs_unregister = GF_TRUE;
 			return;
 		}
 #ifndef GPAC_DISABLE_X3D
@@ -147,8 +147,8 @@ void timesensor_update_time(GF_TimeNode *st)
 	equal to startTime, an isActive TRUE event is generated and the time-dependent node becomes active 	*/
 
 	if (!TS->isActive) {
-		st->needs_unregister = 0;
-		TS->isActive = 1;
+		st->needs_unregister = GF_FALSE;
+		TS->isActive = GF_TRUE;
 		gf_node_event_out(st->udta, 7); //"isActive"
 		TS->cycleTime = currentTime;
 		gf_node_event_out(st->udta, 5);//"cycleTime"
@@ -176,10 +176,10 @@ void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node)
 	}
 	st->time_handle.UpdateTimeNode = timesensor_update_time;
 	st->time_handle.udta = node;
-	st->store_info = 1;
+	st->store_info = GF_TRUE;
 	st->compositor = compositor;
 #ifndef GPAC_DISABLE_X3D
-	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_TimeSensor) ? 1 : 0;
+	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_TimeSensor) ? GF_TRUE : GF_FALSE;
 #endif
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, timesensor_destroy);
@@ -197,10 +197,10 @@ void compositor_timesensor_modified(GF_Node *t)
 
 	if (ts->isActive) timesensor_update_time(&stack->time_handle);
 
-	if (!ts->isActive) stack->store_info = 1;
+	if (!ts->isActive) stack->store_info = GF_TRUE;
 
 	if (ts->enabled) {
-		stack->time_handle.needs_unregister = 0;
+		stack->time_handle.needs_unregister = GF_FALSE;
 		if (!stack->time_handle.is_registered) {
 			gf_sc_register_time_node(stack->compositor, &stack->time_handle);
 		}

@@ -34,7 +34,7 @@
 
 
 
-static GF_Err gf_qtvr_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
+static GF_Err gf_qtvr_report(GF_SceneLoader *load, GF_Err e, const char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
 	if (format && gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
@@ -43,7 +43,7 @@ static GF_Err gf_qtvr_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 		va_start(args, format);
 		vsnprintf(szMsg, 1024, format, args);
 		va_end(args);
-		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[QT Parsing] %s\n", szMsg) );
+		GF_LOG((e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[QT Parsing] %s\n", szMsg) );
 	}
 #endif
 	return e;
@@ -74,7 +74,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	w = h = tk = 0;
 	nb_samp = 0;
 
-	has_qtvr = 0;
+	has_qtvr = GF_FALSE;
 	for (i=0; i<gf_isom_get_track_count(src); i++) {
 		switch (gf_isom_get_media_type(src, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
@@ -92,7 +92,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 			}
 			break;
 		case GF_ISOM_MEDIA_QTVR:
-			has_qtvr = 1;
+			has_qtvr = GF_TRUE;
 			break;
 		}
 	}
@@ -118,7 +118,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	gr = (M_Group *) gf_node_new(sg, TAG_MPEG4_Group);
 	gf_node_register((GF_Node *)gr, NULL);
 	st = gf_sm_stream_new(load->ctx, 1, GF_STREAM_SCENE, GF_CODECID_BIFS);
-	au = gf_sm_stream_au_new(st, 0, 0, 1);
+	au = gf_sm_stream_au_new(st, 0, 0, GF_TRUE);
 	com = gf_sg_command_new(load->ctx->scene_graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(au->commands, com);
 	com->node = (GF_Node *)gr;
@@ -149,7 +149,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 
 	/*create ODs*/
 	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, GF_CODECID_OD_V1);
-	au = gf_sm_stream_au_new(st, 0, 0, 1);
+	au = gf_sm_stream_au_new(st, 0, 0, GF_TRUE);
 	odU = (GF_ODUpdate*) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 	gf_list_add(au->commands, odU);
 	for (i=0; i<6; i++) {
@@ -167,7 +167,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 		/*extract image and remember it*/
 		mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
 		gf_list_add(esd->extensionDescriptors, mi);
-		mi->delete_file = 1;
+		mi->delete_file = GF_TRUE;
 		sprintf(szName, "%s_img%d.jpg", load->fileName, esd->ESID);
 		mi->file_name = gf_strdup(szName);
 

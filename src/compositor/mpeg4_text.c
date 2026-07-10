@@ -39,9 +39,9 @@
 #define FSSTYLE		(fs && fs->style.buffer) ? (const char *)fs->style.buffer : ""
 #define FSMAJOR		( (fs && fs->justify.count && fs->justify.vals[0]) ? (const char *)fs->justify.vals[0] : "FIRST")
 #define FSMINOR		( (fs && (fs->justify.count>1) && fs->justify.vals[1]) ? (const char *)fs->justify.vals[1] : "FIRST")
-#define FSHORIZ		(fs ? fs->horizontal : 1)
-#define FSLTR		(fs ? fs->leftToRight : 1)
-#define FSTTB		(fs ? fs->topToBottom : 1)
+#define FSHORIZ		(fs ? fs->horizontal : GF_TRUE)
+#define FSLTR		(fs ? fs->leftToRight : GF_TRUE)
+#define FSTTB		(fs ? fs->topToBottom : GF_TRUE)
 #define FSLANG		(fs ? fs->language : "")
 #define FSSPACE		(fs ? fs->spacing : 1)
 
@@ -95,7 +95,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 		if (strstr(fs->style.buffer, "STRIKETHROUGH") || strstr(fs->style.buffer, "strikethrough")) styles |= GF_FONT_STRIKEOUT;
 	}
 
-	font = gf_font_manager_set_font(ft_mgr, fs ? fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
+	font = gf_font_manager_set_font(ft_mgr, fs ? (const char **)fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
 	if (!font) return;
 
 	st->ascent = (fontSize*font->ascent) / font->em_size;
@@ -148,7 +148,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 			span->nb_glyphs = split_words ? (j - first_char) : 1;
 			if (split_words && !is_space) span->nb_glyphs++;
-			span->glyphs = (GF_Glyph**)gf_malloc(sizeof(void *)*span->nb_glyphs);
+			span->glyphs = (GF_Glyph**)gf_malloc(sizeof(GF_Glyph *)*span->nb_glyphs);
 
 			span->bounds.height = st->ascent + st->descent;
 			span->bounds.y = start_y;
@@ -171,7 +171,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			gf_list_add(st->spans, span);
 
 			/*request a context (first one is always valid when entering sort phase)*/
-			if (idx) parent_node_start_group(tr_state->parent, NULL, GF_FALSE);
+			if (idx) parent_node_start_group(tr_state->parent, NULL, 0);
 
 			idx++;
 			parent_node_end_text_group(tr_state->parent, &span->bounds, st->ascent, st->descent, idx);
@@ -180,7 +180,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 				span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
 				memcpy(span, tspan, sizeof(GF_TextSpan));
 				span->nb_glyphs = 1;
-				span->glyphs = (GF_Glyph**)gf_malloc(sizeof(void *));
+				span->glyphs = (GF_Glyph**)gf_malloc(sizeof(GF_Glyph *));
 
 				gf_list_add(st->spans, span);
 				span->bounds.height = st->ascent + st->descent;
@@ -231,7 +231,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		if (strstr(fs->style.buffer, "PASSWD") || strstr(fs->style.buffer, "passwd")) use_pass = GF_TRUE;
 	}
 
-	font = gf_font_manager_set_font(ft_mgr, fs ? fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
+	font = gf_font_manager_set_font(ft_mgr, fs ? (const char **)fs->family.vals : NULL, fs ? fs->family.count : 0, styles);
 	if (!font) return;
 
 	/*NOTA: we could use integer maths here but we have a risk of overflow with large fonts, so use fixed maths*/
@@ -498,7 +498,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture, u32 *hl_color, DrawAspect2D *asp)
 {
 	const char *fs_style;
-	char *hlight;
+	const char *hlight;
 	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) node)->fontStyle;
 
 	*hl_color = 0;
@@ -514,7 +514,7 @@ static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture,
 			if (strlen(hlight)!=8) *hl_color |= 0xFF000000;
 		}
 	}
-	*force_texture = st->texture_text_flag;
+	*force_texture = st->texture_text_flag ? GF_TRUE : GF_FALSE;
 	if (strstr(fs_style, "TEXTURED")) *force_texture = GF_TRUE;
 	if (strstr(fs_style, "OUTLINED")) {
 		if (asp && !asp->pen_props.width) {

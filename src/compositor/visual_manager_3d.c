@@ -72,7 +72,7 @@ void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state,
 	if (!hlight) return;
 
 	/*check if focus node has changed*/
-	prev_node = gf_node_get_private(hlight->node);
+	prev_node = (GF_Node *)gf_node_get_private(hlight->node);
 	if (prev_node != node) {
 		gf_node_set_private(hlight->node, node);
 
@@ -85,7 +85,7 @@ void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state,
 		gf_mx_init(tr_state->model_matrix);
 		prev_mode = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
-		tr_state->bbox.is_set = 0;
+		tr_state->bbox.is_set = GF_FALSE;
 
 //		gf_sc_get_nodes_bounds(node, ((GF_ParentNode *)node)->children, tr_state, 1);
 		gf_node_traverse_children(node, tr_state);
@@ -168,7 +168,7 @@ static void visual_3d_setup_traversing_state(GF_VisualManager *visual, GF_Traver
 	tr_state->bbox.max_edge.y = tr_state->camera->height / 2;
 	tr_state->bbox.min_edge.y = -tr_state->bbox.max_edge.y;
 	tr_state->bbox.max_edge.z = tr_state->bbox.min_edge.z = 0;
-	tr_state->bbox.is_set = 1;
+	tr_state->bbox.is_set = GF_TRUE;
 }
 
 
@@ -301,7 +301,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	tr_state->camera->examine_center = local_center;
 
 	camera_reset_viewpoint(tr_state->camera, animate_change);
-	if (tr_state->layer3d) gf_node_dirty_set(tr_state->layer3d, GF_SG_VRML_BINDABLE_DIRTY, 0);
+	if (tr_state->layer3d) gf_node_dirty_set(tr_state->layer3d, GF_SG_VRML_BINDABLE_DIRTY, GF_FALSE);
 	gf_sc_invalidate(tr_state->visual->compositor, NULL);
 }
 
@@ -346,11 +346,11 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 				r.q = r.x = r.z = 0;
 				r.y = FIX_ONE;
 				/*this takes care of pixelMetrics*/
-				visual_3d_viewpoint_change(tr_state, NULL, 0, fov, pos, r, center);
+				visual_3d_viewpoint_change(tr_state, NULL, GF_FALSE, fov, pos, r, center);
 				/*initial vp compute, don't animate*/
 				if (had_vp == 2) {
 					camera_stop_anim(tr_state->camera);
-					camera_reset_viewpoint(tr_state->camera, 0);
+					camera_reset_viewpoint(tr_state->camera, GF_FALSE);
 					/*scene not yet ready, force a recompute of world bounds at next frame*/
 					if (!is_layer && gf_sc_fit_world_to_screen(tr_state->visual->compositor) == 0) {
 						tr_state->camera->had_viewpoint = 2;
@@ -487,7 +487,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 #ifndef GPAC_DISABLE_VRML
 	GF_Node *bindable;
 #endif
-	Bool off_axis_background = (tr_state->camera->is_3D && (tr_state->visual->camlay==GF_3D_CAMERA_OFFAXIS)) ? 1 : 0;
+	Bool off_axis_background = (tr_state->camera->is_3D && (tr_state->visual->camlay==GF_3D_CAMERA_OFFAXIS)) ? GF_TRUE : GF_FALSE;
 
 	/*if not in layer, traverse navigation node
 	FIXME: we should update the nav info according to the world transform at the current viewpoint (vrml)*/
@@ -496,7 +496,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	bindable = tr_state->navigations ? (GF_Node*) gf_list_get(tr_state->navigations, 0) : NULL;
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_traverse(bindable, tr_state);
-		tr_state->camera->had_nav_info = 1;
+		tr_state->camera->had_nav_info = GF_TRUE;
 	} else
 #endif
 		if (tr_state->camera->had_nav_info) {
@@ -529,7 +529,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 					tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
 				}
 			}
-			tr_state->camera->had_nav_info = 0;
+			tr_state->camera->had_nav_info = GF_FALSE;
 
 			if (tr_state->pixel_metrics) {
 				tr_state->camera->visibility = gf_mulfix(tr_state->camera->visibility, tr_state->min_hsize);
@@ -541,7 +541,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 	/*animate current camera - if returns TRUE draw next frame*/
 	if (camera_animate(tr_state->camera, tr_state->visual->compositor)) {
-		if (tr_state->visual->compositor->active_layer) gf_node_dirty_set(tr_state->visual->compositor->active_layer, 0, 1);
+		if (tr_state->visual->compositor->active_layer) gf_node_dirty_set(tr_state->visual->compositor->active_layer, GF_FALSE, GF_TRUE);
 
 		tr_state->visual->compositor->force_next_frame_redraw = GF_TRUE;
 	}
@@ -607,7 +607,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 
 		/*setup projection*/
-		visual_3d_setup_projection(tr_state, layer_type);
+		visual_3d_setup_projection(tr_state, layer_type ? GF_TRUE : GF_FALSE);
 
 		tr_state->camera->proj_vp = tr_state->camera->vp;
 		tr_state->camera->vp = orig_vp;
@@ -636,7 +636,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 
 		/*setup projection*/
-		visual_3d_setup_projection(tr_state, layer_type);
+		visual_3d_setup_projection(tr_state, layer_type ? GF_TRUE : GF_FALSE);
 
 		tr_state->camera->proj_vp = tr_state->camera->vp;
 		tr_state->camera->vp = orig_vp;
@@ -648,7 +648,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 
 		/*setup projection*/
-		visual_3d_setup_projection(tr_state, layer_type);
+		visual_3d_setup_projection(tr_state, layer_type ? GF_TRUE : GF_FALSE);
 
 		if (tr_state->visual->autostereo_type) {
 			visual_3d_clear_depth(tr_state->visual);
@@ -662,7 +662,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 	/*set headlight if any*/
 	if (tr_state->visual->type_3d>1) {
-		visual_3d_enable_headlight(tr_state->visual, (tr_state->camera->navigation_flags & NAV_HEADLIGHT) ? 1 : 0, tr_state->camera);
+		visual_3d_enable_headlight(tr_state->visual, (tr_state->camera->navigation_flags & NAV_HEADLIGHT) ? GF_TRUE : GF_FALSE, tr_state->camera);
 	}
 
 	//reset scissor
@@ -683,39 +683,38 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 			switch (tag) {
 			/*for M2D: if filled & transparent we're transparent - otherwise we must check texture*/
 			case TAG_MPEG4_Material2D:
-				if (((M_Material2D *)mat)->filled && ((M_Material2D *)mat)->transparency) return 1;
+				if (((M_Material2D *)mat)->filled && ((M_Material2D *)mat)->transparency) return GF_TRUE;
 				break;
 			case TAG_MPEG4_Material:
 #ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_Material:
 #endif
 				is_mat3D = GF_TRUE;
-				if ( ((M_Material *)mat)->transparency) return 1;
+				if ( ((M_Material *)mat)->transparency) return GF_TRUE;
 				break;
 			case TAG_MPEG4_MaterialKey:
-				return 1;
-				break;
+				return GF_TRUE;
 			}
 		} else if (tr_state->camera->is_3D) {
 			GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-			if (txh && txh->transparent) return 1;
+			if (txh && txh->transparent) return GF_TRUE;
 		}
 	}
 
 	/*check alpha texture in3D or with bitmap*/
 	if (tr_state->appear && ( is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap))) {
 		GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-		if (txh && txh->transparent) return 1;
+		if (txh && txh->transparent) return GF_TRUE;
 	}
 
 #endif /*GPAC_DISABLE_VRML*/
 
 	/*TODO - FIXME check alpha only...*/
-	if (!tr_state->color_mat.identity) return 1;
+	if (!tr_state->color_mat.identity) return GF_TRUE;
 
 	stack = (Drawable3D *)gf_node_get_private(geom);
-	if (stack && stack->mesh && (stack->mesh->flags & MESH_HAS_ALPHA)) return 1;
-	return 0;
+	if (stack && stack->mesh && (stack->mesh->flags & MESH_HAS_ALPHA)) return GF_TRUE;
+	return GF_FALSE;
 }
 
 void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
@@ -758,7 +757,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D context\n"));
 		return;
 	}
-	
+
 	ctx->directional_lights = gf_list_new();
 	ctx->geometry = geometry;
 	ctx->appearance = tr_state->appear;
@@ -819,7 +818,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		Drawable3DContext *ctx = (Drawable3DContext *)gf_list_get(visual->alpha_nodes_to_draw, idx);
 
 		/*apply directional lights*/
-		tr_state->local_light_on = 1;
+		tr_state->local_light_on = GF_TRUE;
 		i=0;
 		while ((dl = (DirectionalLightContext*)gf_list_enum(ctx->directional_lights, &i))) {
 			GF_Matrix mx;
@@ -838,7 +837,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 		/*clip planes, set it in world coords only*/
 		for (i=0; i<ctx->num_clip_planes; i++)
-			visual_3d_set_clip_plane(visual, ctx->clip_planes[i], NULL, 0);
+			visual_3d_set_clip_plane(visual, ctx->clip_planes[i], NULL, GF_FALSE);
 
 		/*restore traversing state*/
 		memcpy(&tr_state->model_matrix, &ctx->model_matrix, sizeof(GF_Matrix));
@@ -864,7 +863,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		}
 
 		/*reset directional lights*/
-		tr_state->local_light_on = 0;
+		tr_state->local_light_on = GF_FALSE;
 		for (i=gf_list_count(ctx->directional_lights); i>0; i--) {
 			dl = (DirectionalLightContext*)gf_list_get(ctx->directional_lights, i-1);
 			gf_node_traverse(dl->dlight, tr_state);
@@ -965,13 +964,13 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	visual_3d_setup_traversing_state(visual, tr_state);
 
 	if (is_root_visual) {
-		Bool auto_stereo = 0;
+		Bool auto_stereo = GF_FALSE;
 
 		visual_3d_setup_clipper(visual, tr_state);
 
 		if (tr_state->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER) {
 			visual_3d_init_autostereo(visual);
-			auto_stereo = 1;
+			auto_stereo = GF_TRUE;
 		}
 
 #ifndef GPAC_USE_GLES1X
@@ -1005,7 +1004,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	if (visual->compositor->fbo_id)
 		compositor_3d_enable_fbo(visual->compositor, GF_FALSE);
 
-	return 1;
+	return GF_TRUE;
 }
 
 static void reset_collide_cursor(GF_Compositor *compositor)
@@ -1028,7 +1027,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 	/*don't collide on VP animations or when modes discard collision*/
 	if ((tr_state->camera->anim_len && !tr_state->camera->jumping) || !tr_state->visual->compositor->collide_mode || (tr_state->camera->navigate_mode>=GF_NAVIGATE_EXAMINE)) {
 		/*reset ground flag*/
-		tr_state->camera->last_had_ground = 0;
+		tr_state->camera->last_had_ground = GF_FALSE;
 		/*and avoid resetting move at next collision change*/
 		tr_state->camera->last_pos = tr_state->camera->position;
 		return;
@@ -1049,8 +1048,8 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 	gf_vec_norm(&dir);
 
 	diff = 0;
-	go = 1;
-	tr_state->camera->last_had_col = 0;
+	go = GF_TRUE;
+	tr_state->camera->last_had_col = GF_FALSE;
 	/*some explanation: the current collision detection algo only checks closest distance
 	to objects, but doesn't attempt to track object cross during a move. If we step more than
 	the collision detection size, we may cross an object without detecting collision. we thus
@@ -1061,7 +1060,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 			diff += tr_state->camera->avatar_size.x;
 		} else {
 			diff += pos_diff;
-			go = 0;
+			go = GF_FALSE;
 		}
 		n = gf_vec_scale(dir, diff);
 		gf_vec_add(tr_state->camera->position, tr_state->camera->last_pos, n);
@@ -1087,7 +1086,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 		} else {
 			if ((tr_state->camera->jumping && fabs(diff)>tr_state->camera->dheight)
 			        || (!tr_state->camera->jumping && (ABS(diff)>FIX_ONE/1000) )) {
-				tr_state->camera->last_had_ground = 1;
+				tr_state->camera->last_had_ground = GF_TRUE;
 				n = gf_vec_scale(tr_state->camera->up, -diff);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] Ground detected camera position: %g %g %g - offset: %g %g %g (dist %g)\n",
 				                                      FIX2FLT(tr_state->camera->position.x), FIX2FLT(tr_state->camera->position.y), FIX2FLT(tr_state->camera->position.z),
@@ -1104,7 +1103,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 	if (tr_state->camera->collide_flags & CF_COLLISION) {
 		if (tr_state->visual->compositor->sensor_type != GF_CURSOR_COLLIDE) {
 			GF_Event evt;
-			tr_state->camera->last_had_col = 1;
+			tr_state->camera->last_had_col = GF_TRUE;
 			evt.type = GF_EVENT_SET_CURSOR;
 			tr_state->visual->compositor->sensor_type = evt.cursor.cursor_type = GF_CURSOR_COLLIDE;
 			tr_state->visual->compositor->video_out->ProcessEvent(tr_state->visual->compositor->video_out, &evt);
@@ -1124,7 +1123,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 					/*safety check due to precision, always stay below collide dist*/
 					tr_state->camera->collide_dist = tr_state->camera->avatar_size.x;
 				}
-				
+
 				gf_vec_diff(n, tr_state->camera->position, tr_state->camera->collide_point);
 				gf_vec_norm(&n);
 				n = gf_vec_scale(n, tr_state->camera->avatar_size.x - tr_state->camera->collide_dist);
@@ -1147,7 +1146,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] no collision found\n"));
 	}
 
-	if (tr_state->camera->flags & CAM_IS_DIRTY) visual_3d_setup_projection(tr_state, 0);
+	if (tr_state->camera->flags & CAM_IS_DIRTY) visual_3d_setup_projection(tr_state, GF_FALSE);
 }
 
 /*uncomment to disable frustum cull*/
@@ -1164,7 +1163,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 {
 #ifdef DISABLE_VIEW_CULL
 	tr_state->cull_flag = CULL_INSIDE;
-	return 1;
+	return GF_TRUE;
 #else
 	GF_BBox b;
 	Fixed irad, rad;
@@ -1173,14 +1172,14 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 	u32 i, p_idx;
 	SFVec3f cdiff, vertices[8];
 
-	if (!tr_state->camera || (tr_state->cull_flag == CULL_INSIDE)) return 1;
+	if (!tr_state->camera || (tr_state->cull_flag == CULL_INSIDE)) return GF_TRUE;
 	gf_assert(tr_state->cull_flag != CULL_OUTSIDE);
 
 	/*empty bounds*/
 	if (!bbox->is_set) {
 		tr_state->cull_flag = CULL_OUTSIDE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (bbox not set)\n"));
-		return 0;
+		return GF_FALSE;
 	}
 
 	/*get bbox sphere in world space*/
@@ -1192,7 +1191,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 	if (gf_bbox_point_inside(&b, &cam->position)) {
 		tr_state->cull_flag = CULL_INTERSECTS;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node intersect (camera in box test)\n"));
-		return 1;
+		return GF_TRUE;
 	}
 	/*first check: sphere vs frustum sphere intersection, this will discard far objects quite fast*/
 	if (tr_state->camera->is_3D) {
@@ -1201,7 +1200,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 		if (gf_vec_len(cdiff) > rad) {
 			tr_state->cull_flag = CULL_OUTSIDE;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (sphere-sphere test)\n"));
-			return 0;
+			return GF_FALSE;
 		}
 	}
 
@@ -1209,7 +1208,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 	to n/p vertex check.*/
 	rad = b.radius;
 	irad = -b.radius;
-	do_sphere = 1;
+	do_sphere = GF_TRUE;
 
 	/*skip near/far tests in ortho mode, and near in 3D*/
 	i = (tr_state->camera->is_3D) ? (skip_near ? 1 : 0) : 2;
@@ -1220,7 +1219,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 			if (d<irad) {
 				tr_state->cull_flag = CULL_OUTSIDE;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (sphere-planes test) plane %s\n", szPlaneNames[i]));
-				return 0;
+				return GF_FALSE;
 			}
 			/*intersect, move to n-p vertex test*/
 			if (d<rad) {
@@ -1229,7 +1228,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 				gf_mx_apply_bbox(&tr_state->model_matrix, &b);
 				/*get box vertices*/
 				gf_bbox_get_vertices(b.min_edge, b.max_edge, vertices);
-				do_sphere = 0;
+				do_sphere = GF_FALSE;
 			} else {
 				continue;
 			}
@@ -1240,7 +1239,7 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 		if (d<0) {
 			tr_state->cull_flag = CULL_OUTSIDE;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (p-vertex test) plane %s - Distance %g\n", szPlaneNames[i], FIX2FLT(d) ));
-			return 0;
+			return GF_FALSE;
 		}
 
 		/*check n-vertex: if not in plane, we're intersecting - don't check for near and far planes*/
@@ -1249,14 +1248,14 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 			if (d<0) {
 				tr_state->cull_flag = CULL_INTERSECTS;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node intersect (n-vertex test) plane %s - Distance %g\n", szPlaneNames[i], FIX2FLT(d) ));
-				return 1;
+				return GF_TRUE;
 			}
 		}
 	}
 
 	tr_state->cull_flag = CULL_INSIDE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node inside (%s test)\n", do_sphere ? "sphere-planes" : "n-p vertex"));
-	return 1;
+	return GF_TRUE;
 #endif
 }
 
@@ -1332,7 +1331,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 {
 
 	visual_3d_setup_traversing_state(visual, tr_state);
-	visual_3d_setup_projection(tr_state, 0);
+	visual_3d_setup_projection(tr_state, GF_FALSE);
 
 
 	if (!visual_3d_setup_ray(visual, tr_state, ev->mouse.x, ev->mouse.y))
@@ -1381,7 +1380,7 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 	if (mesh) {
 		if (mesh->mesh_type!=MESH_TRIANGLES)
 			return;
-		if (!visual_3d_node_cull(tr_state, &mesh->bounds, 0)) {
+		if (!visual_3d_node_cull(tr_state, &mesh->bounds, GF_FALSE)) {
 			tr_state->cull_flag = cull_bckup;
 			return;
 		}
@@ -1412,14 +1411,14 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 	}
 	if (drawable) {
 		DrawAspect2D asp;
-		node_is_over = 0;
+		node_is_over = GF_FALSE;
 		if (compositor_get_2d_plane_intersection(&r, &local_pt)) {
 			if (gf_path_point_over(drawable->path, local_pt.x, local_pt.y)) {
 				hit_normal.x = hit_normal.y = 0;
 				hit_normal.z = FIX_ONE;
 				text_coords.x = gf_divfix(local_pt.x, drawable->path->bbox.width) + FIX_ONE/2;
 				text_coords.y = gf_divfix(local_pt.y, drawable->path->bbox.height) + FIX_ONE/2;
-				node_is_over = 1;
+				node_is_over = GF_TRUE;
 			}
 			memset(&asp, 0, sizeof(DrawAspect2D));
 			drawable_get_aspect_2d_mpeg4(drawable->node, &asp, tr_state);
@@ -1430,7 +1429,7 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 					hit_normal.z = FIX_ONE;
 					text_coords.x = gf_divfix(local_pt.x, si->outline->bbox.width) + FIX_ONE/2;
 					text_coords.y = gf_divfix(local_pt.y, si->outline->bbox.height) + FIX_ONE/2;
-					node_is_over = 1;
+					node_is_over = GF_TRUE;
 				}
 			}
 		}
@@ -1478,7 +1477,7 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 		compositor->hit_appear = NULL;
 	}
 	compositor->hit_node = n;
-	compositor->hit_use_dom_events = 0;
+	compositor->hit_use_dom_events = GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(n), gf_node_get_name(n),
 	                                      FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
 }
@@ -1509,7 +1508,7 @@ void visual_3d_vrml_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 
 	/*cull but don't use near plane to detect objects behind us*/
 	cull_backup = tr_state->cull_flag;
-	if (!visual_3d_node_cull(tr_state, &st->mesh->bounds, 1)) {
+	if (!visual_3d_node_cull(tr_state, &st->mesh->bounds, GF_TRUE)) {
 		tr_state->cull_flag = cull_backup;
 		return;
 	}
@@ -1606,7 +1605,7 @@ static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state,
 		visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
 		gf_sc_texture_set_blend_mode(asp->fill_texture, TX_MODULATE);
 	} else {
-		visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
+		visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, GF_FALSE);
 		gf_sc_texture_set_blend_mode(asp->fill_texture, TX_REPLACE);
 	}
 
@@ -1643,7 +1642,7 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 			visual_3d_set_material_2d(tr_state->visual, asp->line_color, asp->line_alpha);
 			gf_sc_texture_set_blend_mode(asp->txh, TX_MODULATE);
 		} else {
-			visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
+			visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, GF_FALSE);
 			gf_sc_texture_set_blend_mode(asp->txh, TX_REPLACE);
 		}
 #endif
@@ -1691,7 +1690,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	if (!si) return;
 
 	if (!si->mesh_outline) {
-		si->is_vectorial = asp->line_texture ? GF_TRUE : !tr_state->visual->compositor->linegl;
+		si->is_vectorial = asp->line_texture ? GF_TRUE : (tr_state->visual->compositor->linegl ? GF_FALSE : GF_TRUE);
 		si->mesh_outline = new_mesh();
 #ifdef GPAC_HAS_GLU
 		if (si->is_vectorial) {
@@ -1749,14 +1748,14 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 	if (!tr_state->appear) {
 		/*use material2D to disable lighting*/
 		visual_3d_set_material_2d(tr_state->visual, def, FIX_ONE);
-		return 1;
+		return GF_TRUE;
 	}
 
 #ifndef GPAC_DISABLE_VRML
 #ifndef GPAC_DISABLE_X3D
 	if (gf_node_get_tag(tr_state->appear)==TAG_X3D_Appearance) {
 		X_FillProperties *fp = (X_FillProperties *) ((X_Appearance*)tr_state->appear)->fillProperties;
-		if (fp && !fp->filled) return 0;
+		if (fp && !fp->filled) return GF_FALSE;
 	}
 #endif
 
@@ -1764,7 +1763,7 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 	if (!__mat) {
 		/*use material2D to disable lighting (cf VRML specs)*/
 		visual_3d_set_material_2d(tr_state->visual, def, FIX_ONE);
-		return 1;
+		return GF_TRUE;
 	}
 
 	switch (gf_node_get_tag((GF_Node *)__mat)) {
@@ -1788,7 +1787,7 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 			if (tr_state->camera->is_3D) diff = mat->emissiveColor;
 			if (!tr_state->color_mat.identity) gf_cmx_apply_fixed(&tr_state->color_mat, &diff_a, &diff.red, &diff.green, &diff.blue);
 			visual_3d_set_material_2d(tr_state->visual, diff, diff_a);
-			return 1;
+			return GF_TRUE;
 		}
 
 		spec = mat->specularColor;
@@ -1800,23 +1799,23 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 			gf_cmx_apply_fixed(&tr_state->color_mat, &emi_a, &emi.red, &emi.green, &emi.blue);
 
 			if ((diff_a+FIX_EPSILON<FIX_ONE) || (spec_a+FIX_EPSILON<FIX_ONE) || (emi_a+FIX_EPSILON<FIX_ONE )) {
-				has_alpha = 1;
+				has_alpha = GF_TRUE;
 			} else {
-				has_alpha = 0;
+				has_alpha = GF_FALSE;
 			}
 		} else {
-			has_alpha = (mat->transparency>FIX_EPSILON) ? 1 : 0;
+			has_alpha = (mat->transparency>FIX_EPSILON) ? GF_TRUE : GF_FALSE;
 			/*100% transparent DON'T DRAW*/
-			if (mat->transparency+FIX_EPSILON>=FIX_ONE) return 0;
+			if (mat->transparency+FIX_EPSILON>=FIX_ONE) return GF_FALSE;
 		}
 
 		/*using antialiasing with alpha usually gives bad results (non-edge face segments are visible)*/
-		visual_3d_enable_antialias(tr_state->visual, !has_alpha);
+		visual_3d_enable_antialias(tr_state->visual, has_alpha ? GF_FALSE : GF_TRUE);
 		if (has_alpha) {
 			flag |= V3D_STATE_BLEND;
-			tr_state->mesh_is_transparent = 1;
+			tr_state->mesh_is_transparent = GF_TRUE;
 		}
-		visual_3d_set_state(tr_state->visual, flag, 1);
+		visual_3d_set_state(tr_state->visual, flag, GF_TRUE);
 
 		vec[0] = gf_mulfix(diff.red, mat->ambientIntensity);
 		vec[1] = gf_mulfix(diff.green, mat->ambientIntensity);
@@ -1857,8 +1856,8 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		emi_a = FIX_ONE - mat->transparency;
 		if (!tr_state->color_mat.identity) gf_cmx_apply_fixed(&tr_state->color_mat, &emi_a, &emi.red, &emi.green, &emi.blue);
 		/*100% transparent DON'T DRAW*/
-		if (emi_a<FIX_EPSILON) return 0;
-		else if (emi_a+FIX_EPSILON<FIX_ONE) visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 1);
+		if (emi_a<FIX_EPSILON) return GF_FALSE;
+		else if (emi_a+FIX_EPSILON<FIX_ONE) visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, GF_TRUE);
 
 
 		/*this is an extra feature: if material2D.filled is FALSE on 3D objects, switch to TX_REPLACE mode
@@ -1870,23 +1869,23 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 				GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 				if (txh) {
 					gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
-					visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
-					visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
-					return 1;
+					visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, GF_FALSE);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, GF_TRUE);
+					return GF_TRUE;
 				}
 			}
 		}
 		/*regular mat 2D*/
-		visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT | V3D_STATE_COLOR, 0);
+		visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT | V3D_STATE_COLOR, GF_FALSE);
 		visual_3d_set_material_2d(tr_state->visual, emi, emi_a);
 	}
 	break;
 	default:
 		break;
 	}
-	return 1;
+	return GF_TRUE;
 #else
-	return 0;
+	return GF_FALSE;
 #endif	/*GPAC_DISABLE_VRML*/
 }
 
@@ -1897,7 +1896,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 	tr_state->mesh_num_textures = 0;
 	if (!tr_state->appear) return GF_TRUE;
 
-	gf_node_dirty_reset(tr_state->appear, 0);
+	gf_node_dirty_reset(tr_state->appear, GF_FALSE);
 
 	txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 	//no texture, return TRUE (eg draw)
@@ -1927,7 +1926,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 				v[0] = v[1] = v[2] = v[3] = FIX_ONE;
 				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
 			}
-			tr_state->mesh_is_transparent = 1;
+			tr_state->mesh_is_transparent = GF_TRUE;
 			break;
 		}
 	}
@@ -1951,10 +1950,10 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 {
 	Fixed diff_a;
 	/*setup material and check if 100% transparent - in which case don't draw*/
-	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return 0;
+	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return GF_FALSE;
 	/*setup texture*/
-	if (! visual_3d_setup_texture(tr_state, diff_a)) return 0;
-	return 1;
+	if (! visual_3d_setup_texture(tr_state, diff_a)) return GF_FALSE;
+	return GF_TRUE;
 }
 
 
@@ -2005,7 +2004,7 @@ void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 void visual_3d_projection_matrix_modified(GF_VisualManager *visual)
 {
-	visual->needs_projection_matrix_reload = 1;
+	visual->needs_projection_matrix_reload = GF_TRUE;
 }
 
 void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *cam)
@@ -2029,7 +2028,7 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
 {
 	visual->has_material_2d = alpha ? GF_TRUE : GF_FALSE;
-	visual->has_material = 0;
+	visual->has_material = GF_FALSE;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = col.red;
 		visual->mat_2d.green = col.green;
@@ -2043,7 +2042,7 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
 	u32 a = GF_COL_A(col);
 	visual->has_material_2d = a ? GF_TRUE : GF_FALSE;
-	visual->has_material = 0;
+	visual->has_material = GF_FALSE;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
@@ -2088,8 +2087,8 @@ void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *
 	visual->materials[material_type].blue = rgba[2];
 	visual->materials[material_type].alpha = rgba[3];
 
-	visual->has_material = 1;
-	visual->has_material_2d=0;
+	visual->has_material = GF_TRUE;
+	visual->has_material_2d= GF_FALSE;
 }
 
 void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)
@@ -2107,7 +2106,7 @@ void visual_3d_set_state(GF_VisualManager *visual, u32 flag_mask, Bool setOn)
 
 void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx)
 {
-	visual->has_tx_matrix = mx ? 1 : 0;
+	visual->has_tx_matrix = mx ? GF_TRUE : GF_FALSE;
 	if (mx) gf_mx_copy(visual->tx_matrix, *mx);
 }
 
@@ -2119,7 +2118,7 @@ void visual_3d_has_inactive_light(GF_VisualManager *visual)
 
 Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location, GF_Matrix *light_mx)
 {
-	if (visual->num_lights==visual->max_lights) return 0;
+	if (visual->num_lights==visual->max_lights) return GF_FALSE;
 	visual->lights[visual->num_lights].type = 2;
 	visual->lights[visual->num_lights].ambientIntensity = ambientIntensity;
 	visual->lights[visual->num_lights].attenuation = attenuation;
@@ -2128,13 +2127,13 @@ Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity,
 	visual->lights[visual->num_lights].position = location;
 	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
 	visual->num_lights++;
-	return 1;
+	return GF_TRUE;
 }
 
 Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, Fixed beamWidth,
                               SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx)
 {
-	if (visual->num_lights==visual->max_lights) return 0;
+	if (visual->num_lights==visual->max_lights) return GF_FALSE;
 	visual->lights[visual->num_lights].type = 1;
 	visual->lights[visual->num_lights].ambientIntensity = ambientIntensity;
 	visual->lights[visual->num_lights].attenuation = attenuation;
@@ -2146,12 +2145,12 @@ Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, 
 	visual->lights[visual->num_lights].position = location;
 	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
 	visual->num_lights++;
-	return 1;
+	return GF_TRUE;
 }
 
 Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientIntensity, SFColor color, Fixed intensity, SFVec3f direction, GF_Matrix *light_mx)
 {
-	if (visual->num_lights==visual->max_lights) return 0;
+	if (visual->num_lights==visual->max_lights) return GF_FALSE;
 	visual->lights[visual->num_lights].type = 0;
 	visual->lights[visual->num_lights].ambientIntensity = ambientIntensity;
 	visual->lights[visual->num_lights].color = color;
@@ -2168,7 +2167,7 @@ Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientInte
 	}
 
 	visual->num_lights++;
-	return 1;
+	return GF_TRUE;
 }
 
 

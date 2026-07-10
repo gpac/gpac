@@ -26,6 +26,10 @@
 #ifndef _GL_INC_H_
 #define _GL_INC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef WIN32
 # include <windows.h>
 #endif
@@ -698,5 +702,9 @@ GLDECL(GLenum, glCheckFramebufferStatus, (GLenum target))
 #endif //GPAC_USE_GLES1X || GPAC_USE_GLES2
 
 #endif	/*GPAC_DISABLE_3D*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_GL_INC_H_*/

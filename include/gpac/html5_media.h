@@ -36,7 +36,7 @@ extern "C" {
 \file <gpac/html5_media.h>
 \brief Scene graph extensions for HTML5 media.
  */
-	
+
 /*!
 \defgroup html5_grp HTML5
 \ingroup scene_grp

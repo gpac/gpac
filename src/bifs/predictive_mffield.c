@@ -84,7 +84,7 @@ GF_Err PMF_UnquantizeNormal(PredMF *pmf, GF_FieldInfo *field)
 	u32 i;
 	Fixed delta=FIX_ONE;
 	for (i=0; i<2; i++) {
-		Fixed v = PMF_UnquantizeFloat(pmf->current_val[i] - (1<< (pmf->QNbBits -1) ), 0 , FIX_ONE, pmf->QNbBits, 1);
+		Fixed v = PMF_UnquantizeFloat(pmf->current_val[i] - (1<< (pmf->QNbBits -1) ), 0, FIX_ONE, pmf->QNbBits, GF_TRUE);
 		tang[i]= gf_tan(gf_mulfix(GF_PI * 4, v));
 		delta += gf_mulfix(tang[i], tang[i]);
 	}
@@ -110,7 +110,7 @@ GF_Err PMF_UnquantizeRotation(PredMF *pmf, GF_FieldInfo *field)
 	Fixed sine, delta = FIX_ONE;
 
 	for (i=0; i<3; i++) {
-		Fixed v = PMF_UnquantizeFloat(pmf->current_val[i] - (1<<(pmf->QNbBits - 1)), 0, FIX_ONE, pmf->QNbBits, 1);
+		Fixed v = PMF_UnquantizeFloat(pmf->current_val[i] - (1<<(pmf->QNbBits - 1)), 0, FIX_ONE, pmf->QNbBits, GF_TRUE);
 		tang[i] = gf_tan(gf_mulfix(GF_PI / 4, v));
 		delta += gf_mulfix(tang[i], tang[i]);
 	}
@@ -152,21 +152,21 @@ GF_Err PMF_Unquantize(PredMF *pmf, GF_FieldInfo *field)
 	gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, &slot, pmf->cur_field);
 	switch (field->fieldType) {
 	case GF_SG_VRML_MFVEC3F:
-		((SFVec3f *) slot)->x = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, 0);
-		((SFVec3f *) slot)->y = PMF_UnquantizeFloat(pmf->current_val[1], pmf->BMin.y, pmf->BMax.y, pmf->QNbBits, 0);
-		((SFVec3f *) slot)->z = PMF_UnquantizeFloat(pmf->current_val[2], pmf->BMin.z, pmf->BMax.z, pmf->QNbBits, 0);
+		((SFVec3f *) slot)->x = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, GF_FALSE);
+		((SFVec3f *) slot)->y = PMF_UnquantizeFloat(pmf->current_val[1], pmf->BMin.y, pmf->BMax.y, pmf->QNbBits, GF_FALSE);
+		((SFVec3f *) slot)->z = PMF_UnquantizeFloat(pmf->current_val[2], pmf->BMin.z, pmf->BMax.z, pmf->QNbBits, GF_FALSE);
 		break;
 	case GF_SG_VRML_MFVEC2F:
-		((SFVec2f *) slot)->x = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, 0);
-		((SFVec2f *) slot)->y = PMF_UnquantizeFloat(pmf->current_val[1], pmf->BMin.y, pmf->BMax.y, pmf->QNbBits, 0);
+		((SFVec2f *) slot)->x = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, GF_FALSE);
+		((SFVec2f *) slot)->y = PMF_UnquantizeFloat(pmf->current_val[1], pmf->BMin.y, pmf->BMax.y, pmf->QNbBits, GF_FALSE);
 		break;
 	case GF_SG_VRML_MFFLOAT:
-		*((SFFloat *) slot) = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, 0);
+		*((SFFloat *) slot) = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, GF_FALSE);
 		break;
 	case GF_SG_VRML_MFCOLOR:
-		((SFColor *) slot)->red = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, 0);
-		((SFColor *) slot)->green = PMF_UnquantizeFloat(pmf->current_val[1], pmf->BMin.y, pmf->BMax.y, pmf->QNbBits, 0);
-		((SFColor *) slot)->blue = PMF_UnquantizeFloat(pmf->current_val[2], pmf->BMin.z, pmf->BMax.z, pmf->QNbBits, 0);
+		((SFColor *) slot)->red = PMF_UnquantizeFloat(pmf->current_val[0], pmf->BMin.x, pmf->BMax.x, pmf->QNbBits, GF_FALSE);
+		((SFColor *) slot)->green = PMF_UnquantizeFloat(pmf->current_val[1], pmf->BMin.y, pmf->BMax.y, pmf->QNbBits, GF_FALSE);
+		((SFColor *) slot)->blue = PMF_UnquantizeFloat(pmf->current_val[2], pmf->BMin.z, pmf->BMax.z, pmf->QNbBits, GF_FALSE);
 		break;
 	case GF_SG_VRML_MFINT32:
 		switch (pmf->QType) {

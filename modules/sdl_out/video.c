@@ -445,7 +445,7 @@ void SDLVid_SetIcon(SDLVidCtx *ctx)
 	}
 	gf_img_png_dec(buffer, size, &w, &h, &pf, NULL, &dst_size);
 	Bpp = gf_pixel_get_bytes_per_pixel(pf);
-	dec_buf = gf_malloc(sizeof(char)*dst_size);
+	dec_buf = (u8 *)gf_malloc(dst_size);
 	gf_img_png_dec(buffer, size, &w, &h, &pf, dec_buf, &dst_size);
 	//RGBA only
 	SDL_Surface *surface = SDL_CreateRGBSurfaceFrom(dec_buf, w, h, Bpp*8, w*Bpp, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
@@ -538,8 +538,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			/*creating a window, at least on OSX, changes the locale and screws up float parsing !!
 			force setting the local back and pray that it will be changed before any other atof/strtod is called
 
-			!! it also looks like the locale is not enforced synchronously on OSX: adding
-				assert(strtod(0.5)) in gf_malloc proto would lead to random crashes
+			!! it also looks like the locale is not enforced synchronously on OSX: adding assert(strtod(0.5)) in gf_malloc proto
+			 would lead to random crashes
 			 */
 #ifndef _WIN32_WCE
 			setlocale( LC_NUMERIC, "C" );
@@ -584,7 +584,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 
 		if (!ctx->disable_vsync)
-			ctx->disable_vsync = !gf_module_get_bool((GF_BaseInterface *)dr, "vsync");
+			ctx->disable_vsync = gf_module_get_bool((GF_BaseInterface *)dr, "vsync") ? GF_FALSE : GF_TRUE;
 
 		if (ctx->disable_vsync) {
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
@@ -886,7 +886,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				Bool found=GF_FALSE;
 				u32 i;
 				for (i=0; i<nb_video_outputs; i++) {
-					GF_VideoOutput *dr2 = gf_list_get(video_outputs, i);
+					GF_VideoOutput *dr2 = (GF_VideoOutput *)gf_list_get(video_outputs, i);
 					if (win_id==dr2->window_id) {
 						found=GF_TRUE;
 						break;
@@ -1448,7 +1448,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 	if (ctx->back_buffer_pixels) gf_free(ctx->back_buffer_pixels);
 
 	ctx->tx_back_buffer = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, newWidth, newHeight);
-	ctx->back_buffer_pixels = gf_malloc(sizeof(char)*3*newWidth*newHeight);
+	ctx->back_buffer_pixels = (u8 *)gf_malloc(3*newWidth*newHeight);
 
 
 	SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
@@ -1511,10 +1511,10 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 		video_info->pitch_y = ctx->width*3;
 		video_info->video_buffer = ctx->back_buffer_pixels;
 		video_info->pixel_format = GF_PIXEL_RGB;
-		video_info->is_hardware_memory = 0;
+		video_info->is_hardware_memory = GF_FALSE;
 		if (ctx->needs_bb_grab) {
 			SDL_RenderReadPixels(ctx->renderer, NULL, SDL_PIXELFORMAT_RGB24, video_info->video_buffer, video_info->pitch_y);
-			ctx->needs_bb_grab = 0;
+			ctx->needs_bb_grab = GF_FALSE;
 		}
 	} else {
 		SDL_UpdateTexture(ctx->tx_back_buffer, NULL, video_info->video_buffer, video_info->pitch_y);
@@ -1588,13 +1588,13 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 			SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
 		}
 		SDL_RenderReadPixels(ctx->renderer, NULL, SDL_PIXELFORMAT_RGB24, ctx->back_buffer_pixels, 3*ctx->width);
-		ctx->needs_bb_grab = 0;
-		ctx->needs_bb_flush = 0;
+		ctx->needs_bb_grab = GF_FALSE;
+		ctx->needs_bb_flush = GF_FALSE;
 		SDL_RenderPresent(ctx->renderer);
 		//push back texture after SDL flip
 		SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
 	} else {
-		ctx->needs_clear = 1;
+		ctx->needs_clear = GF_TRUE;
 		SDL_RenderPresent(ctx->renderer);
 	}
 
@@ -1867,11 +1867,11 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
 	SDLVID();
-	Bool need_copy=0;
+	Bool need_copy= GF_FALSE;
 	u32 format;
 	s32 acc, w, h;
 	int res;
-	Bool set_blend=0;
+	Bool set_blend= GF_FALSE;
 	SDL_Rect dstrc;
 	SDL_Texture **pool;
 	SDL_Rect srcrc, *src_ptr=NULL;
@@ -1881,13 +1881,13 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	if (ctx->needs_bb_flush) {
 		SDL_UpdateTexture(ctx->tx_back_buffer, NULL, ctx->back_buffer_pixels, 3*ctx->width);
 		SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
-		ctx->needs_bb_grab = 1;
+		ctx->needs_bb_grab = GF_TRUE;
 	}
 
-	ctx->needs_bb_grab = 1;
+	ctx->needs_bb_grab = GF_TRUE;
 	if (ctx->needs_clear) {
 		SDL_RenderClear(ctx->renderer);
-		ctx->needs_clear = 0;
+		ctx->needs_clear = GF_FALSE;
 	}
 
 	dstrc.w = dst_wnd->w;
@@ -1943,7 +1943,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	case GF_PIXEL_RGBA:
 		pool = &ctx->pool_rgba;
 		format=SDL_PIXELFORMAT_ABGR8888;
-		set_blend=1;
+		set_blend= GF_TRUE;
 		break;
 	case GF_PIXEL_YUV:
 		pool = &ctx->pool_yuv;
@@ -1958,7 +1958,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV_10:
-		need_copy=1;
+		need_copy= GF_TRUE;
 		pool = &ctx->pool_yuv;
 		format=SDL_PIXELFORMAT_IYUV;
 		break;

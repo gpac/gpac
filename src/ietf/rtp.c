@@ -39,8 +39,8 @@ GF_RTPChannel *gf_rtp_new_ex(const char *netcap_id)
 		return NULL;
 	tmp->first_SR = 1;
 	tmp->SSRC = gf_rand();
-	tmp->bs_r = gf_bs_new("d", 1, GF_BITSTREAM_READ);
-	tmp->bs_w = gf_bs_new("d", 1, GF_BITSTREAM_WRITE);
+	tmp->bs_r = gf_bs_new((u8*)"d", 1, GF_BITSTREAM_READ);
+	tmp->bs_w = gf_bs_new((u8*)"d", 1, GF_BITSTREAM_WRITE);
 	tmp->netcap_id = netcap_id;
 	return tmp;
 }
@@ -308,7 +308,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	if (IsSource) {
 		if (ch->send_buffer) gf_free(ch->send_buffer);
 		ch->send_buffer_size = PathMTU + 12;
-		ch->send_buffer = (char *) gf_malloc(sizeof(char) * ch->send_buffer_size);
+		ch->send_buffer = (u8 *) gf_malloc(ch->send_buffer_size);
 	}
 
 	//format CNAME if not done yet
@@ -454,7 +454,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 			ch->last_nat_keepalive_time = now;
 		} else {
 			if (now - ch->last_nat_keepalive_time >= ch->nat_keepalive_time_period) {
-				char rtp_nat[12];
+				u8 rtp_nat[12];
 				rtp_nat[0] = (u8) 0xC0;
 				rtp_nat[1] = ch->PayloadType;
 				rtp_nat[2] = (ch->last_pck_sn>>8)&0xFF;
@@ -483,7 +483,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 
 
 GF_EXPORT
-GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart)
+GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, const u8 *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart)
 {
 	GF_Err e;
 	s32 deviance, delta;
@@ -623,7 +623,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader 
 
 	if (rtp_hdr->Extension) {
 		u16 ext_size;
-		char *payl = pck + *PayloadStart;
+		const u8 *payl = pck + *PayloadStart;
 		ext_size = payl[2];
 		ext_size <<= 8;
 		ext_size |= payl[3];
@@ -657,7 +657,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, u8 *pck, u32
 {
 	GF_Err e;
 	u32 i, Start;
-	char *hdr = NULL;
+	u8 *hdr = NULL;
 
 	if (!ch || !rtp_hdr
 	        || !ch->send_buffer
@@ -932,7 +932,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 	it->pck_seq_num = pck_seqnum;
 	it->next = NULL;
 	it->size = pck_size;
-	it->pck = gf_malloc(pck_size);
+	it->pck = (u8 *)gf_malloc(pck_size);
 	memcpy(it->pck, pck, pck_size);
 	/*do NOT reset timeout when receiving a new packet, this would make the re-orderer wait forever to output a packet in case of losses*/
 

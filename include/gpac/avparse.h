@@ -137,7 +137,7 @@ typedef struct __tag_m4v_parser GF_M4VParser;
 \param mpeg12video if set, parses as MPEG-1 or MPEG-2
 \return the created parser
 */
-GF_M4VParser *gf_m4v_parser_new(u8 *data, u64 data_size, Bool mpeg12video);
+GF_M4VParser *gf_m4v_parser_new(const u8 *data, u64 data_size, Bool mpeg12video);
 /*! Creates a new MPEG-1/2/4 video parser from a bitstream object
 \param bs the bitstream object to use for parsing
 \param mpeg12video if set, parses as MPEG-1 or MPEG-2
@@ -187,14 +187,14 @@ u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 \param dsi the decoder specific info structure to fill
 \return error if any
 */
-GF_Err gf_m4v_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+GF_Err gf_m4v_get_config(const u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*! decodes DSI/VOSHeader for MPEG12
 \param rawdsi encoded MPEG-1/2 decoder config
 \param rawdsi_size size of encoded MPEG-1/2 decoder config
 \param dsi the decoder specific info structure to fill
 \return error if any
 */
-GF_Err gf_mpegv12_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+GF_Err gf_mpegv12_get_config(const u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 
 /*! rewrites Profile and Level indicator in MPEG-4 DSI
 \param io_dsi encoded MPEG-4 decoder config
@@ -823,7 +823,7 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 \param dst_nb_comp number of components in destination buffer
 \return GF_BUFFER_TOO_SMALL if destination buffer is too small or error if any
 */
-GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp);
+GF_Err gf_img_jpeg_dec(const u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp);
 
 /*! decodes a PNG image in a preallocated buffer
 \param png the PNG buffer
@@ -835,7 +835,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 \param dst_size size in bytes of the buffer to hold the decoded pixels (may be 0)
 \return GF_BUFFER_TOO_SMALL if destination buffer is too small or error if any
 */
-GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size);
+GF_Err gf_img_png_dec(const u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size);
 /*! encodes a raw image into a PNG image
 \param data the pixel data
 \param width the pixel width
@@ -846,39 +846,8 @@ GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel
 \param dst_size set to the size in bytes of the buffer to hold the decoded pixels (may be 0)
 \return GF_BUFFER_TOO_SMALL if destination buffer is too small or error if any
 */
-GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size);
+GF_Err gf_img_png_enc(const u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size);
 
-
-/*!\brief OBU types*/
-typedef enum {
-	OBU_RESERVED_0 = 0,
-	OBU_SEQUENCE_HEADER = 1,
-	OBU_TEMPORAL_DELIMITER = 2,
-	OBU_FRAME_HEADER = 3,
-	OBU_TILE_GROUP = 4,
-	OBU_METADATA = 5,
-	OBU_FRAME = 6,
-	OBU_REDUNDANT_FRAME_HEADER = 7,
-	OBU_TILE_LIST = 8,
-	OBU_RESERVED_9 = 9,
-	OBU_RESERVED_10 = 10,
-	OBU_RESERVED_11 = 11,
-	OBU_RESERVED_12 = 12,
-	OBU_RESERVED_13 = 13,
-	OBU_RESERVED_14 = 14,
-	OBU_PADDING = 15,
-} ObuType;
-
-/*!\brief OBU metadata types*/
-typedef enum {
-	OBU_METADATA_TYPE_HDR_CLL = 1,
-	OBU_METADATA_TYPE_HDR_MDCV = 2,
-	OBU_METADATA_TYPE_SCALABILITY = 3,
-	OBU_METADATA_TYPE_ITUT_T35 = 4,
-	OBU_METADATA_TYPE_TIMECODE = 5,
-	OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE = 7,
-	OBU_METADATA_TYPE_PRIVATE_TIMECODE_SIMPLE_BIS = 32, //same as 7
-} ObuMetadataType;
 
 /*! gets the name of a given OBU type
 \param obu_type the OBU type
@@ -886,41 +855,6 @@ typedef enum {
 */
 const char *gf_av1_get_obu_name(ObuType obu_type);
 
-/*!\brief IAMF OBU types */
-typedef enum {
-        OBU_IAMF_CODEC_CONFIG = 0,
-        OBU_IAMF_AUDIO_ELEMENT = 1,
-        OBU_IAMF_MIX_PRESENTATION = 2,
-        OBU_IAMF_PARAMETER_BLOCK = 3,
-        OBU_IAMF_TEMPORAL_DELIMITER = 4,
-        OBU_IAMF_AUDIO_FRAME = 5,
-        OBU_IAMF_AUDIO_FRAME_ID0 = 6,
-        OBU_IAMF_AUDIO_FRAME_ID1 = 7,
-        OBU_IAMF_AUDIO_FRAME_ID2 = 8,
-        OBU_IAMF_AUDIO_FRAME_ID3 = 9,
-        OBU_IAMF_AUDIO_FRAME_ID4 = 10,
-        OBU_IAMF_AUDIO_FRAME_ID5 = 11,
-        OBU_IAMF_AUDIO_FRAME_ID6 = 12,
-        OBU_IAMF_AUDIO_FRAME_ID7 = 13,
-        OBU_IAMF_AUDIO_FRAME_ID8 = 14,
-        OBU_IAMF_AUDIO_FRAME_ID9 = 15,
-        OBU_IAMF_AUDIO_FRAME_ID10 = 16,
-        OBU_IAMF_AUDIO_FRAME_ID11 = 17,
-        OBU_IAMF_AUDIO_FRAME_ID12 = 18,
-        OBU_IAMF_AUDIO_FRAME_ID13 = 19,
-        OBU_IAMF_AUDIO_FRAME_ID14 = 20,
-        OBU_IAMF_AUDIO_FRAME_ID15 = 21,
-        OBU_IAMF_AUDIO_FRAME_ID16 = 22,
-        OBU_IAMF_AUDIO_FRAME_ID17 = 23,
-        OBU_IAMF_RESERVED_24 = 24,
-        OBU_IAMF_RESERVED_25 = 25,
-        OBU_IAMF_RESERVED_26 = 26,
-        OBU_IAMF_RESERVED_27 = 27,
-        OBU_IAMF_RESERVED_28 = 28,
-        OBU_IAMF_RESERVED_29 = 29,
-        OBU_IAMF_RESERVED_30 = 30,
-        OBU_IAMF_SEQUENCE_HEADER = 31
-} IamfObuType;
 
 /*! gets the name of a given IAMF OBU type
 \param obu_type the OBU type

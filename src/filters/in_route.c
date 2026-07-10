@@ -41,7 +41,7 @@ static GF_FilterProbeScore routein_probe_url(const char *url, const char *mime)
 static void routein_finalize(GF_Filter *filter)
 {
 	u32 i;
-	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
+	ROUTEInCtx *ctx = (ROUTEInCtx *)gf_filter_get_udta(filter);
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode())
@@ -53,7 +53,7 @@ static void routein_finalize(GF_Filter *filter)
 
 	if (ctx->tsi_outs) {
 		while (gf_list_count(ctx->tsi_outs)) {
-			TSI_Output *tsio = gf_list_pop_back(ctx->tsi_outs);
+			TSI_Output *tsio = (TSI_Output *)gf_list_pop_back(ctx->tsi_outs);
 			gf_list_del(tsio->pending_repairs);
 			if (tsio->dash_rep_id) gf_free(tsio->dash_rep_id);
 			gf_free(tsio);
@@ -63,10 +63,10 @@ static void routein_finalize(GF_Filter *filter)
 	if (ctx->received_seg_names) {
 		while (gf_list_count(ctx->received_seg_names)) {
 			if (ctx->odir) {
-				char *filedel = gf_list_pop_back(ctx->received_seg_names);
+				char *filedel = (char *)gf_list_pop_back(ctx->received_seg_names);
 				if (filedel) gf_free(filedel);
 			} else {
-				SegInfo *si = gf_list_pop_back(ctx->received_seg_names);
+				SegInfo *si = (SegInfo *)gf_list_pop_back(ctx->received_seg_names);
 				gf_free(si->seg_name);
 				gf_free(si);
 			}
@@ -78,13 +78,13 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_transfer(ctx->seg_repair_reservoir, ctx->seg_repair_queue);
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->repair_servers)) {
-		RouteRepairServer *tmp = gf_list_pop_back(ctx->repair_servers);
+		RouteRepairServer *tmp = (RouteRepairServer *)gf_list_pop_back(ctx->repair_servers);
 		if (tmp->service_id) gf_free(tmp->url);
 		gf_free(tmp);
 	}
 	gf_list_del(ctx->repair_servers);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
-		RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
+		RepairSegmentInfo *rsi = (struct _route_repair_seg_info *)gf_list_pop_back(ctx->seg_repair_reservoir);
 		if (!ctx->seg_range_reservoir && rsi->ranges)
 			ctx->seg_range_reservoir = gf_list_new();
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
@@ -95,13 +95,13 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_del(ctx->seg_repair_reservoir);
 
 	while (gf_list_count(ctx->seg_range_reservoir)) {
-		RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+		RouteRepairRange *rr = (RouteRepairRange *)gf_list_pop_back(ctx->seg_range_reservoir);
 		gf_free(rr);
 	}
 	gf_list_del(ctx->seg_range_reservoir);
 
 	while (gf_list_count(ctx->sample_deps_reservoir)) {
-		SampleDepInfo *sr = gf_list_pop_back(ctx->sample_deps_reservoir);
+		SampleDepInfo *sr = (SampleDepInfo *)gf_list_pop_back(ctx->sample_deps_reservoir);
 		if (sr->refs) gf_free(sr->refs);
 		gf_free(sr);
 	}
@@ -126,7 +126,7 @@ static void push_seg_info(ROUTEInCtx *ctx, GF_FilterPid *pid, GF_ROUTEEventFileI
 	}
 	while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
 		GF_FilterEvent evt;
-		SegInfo *si = gf_list_pop_front(ctx->received_seg_names);
+		SegInfo *si = (SegInfo *)gf_list_pop_front(ctx->received_seg_names);
 		GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, si->opid);
 		evt.file_del.url = si->seg_name;
 		gf_filter_pid_send_event(si->opid, &evt);
@@ -150,7 +150,7 @@ TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileI
 	if (!finfo->tsi || !ctx->stsi) return NULL;
 	u32 i, count = gf_list_count(ctx->tsi_outs);
 	for (i=0; i<count; i++) {
-		tsio = gf_list_get(ctx->tsi_outs, i);
+		tsio = (TSI_Output *)gf_list_get(ctx->tsi_outs, i);
 		if (tsio->sid!=service_id) continue;
 		if (tsio->tsi!=finfo->tsi) continue;
 		if (!tsio->dash_rep_id && !finfo->dash_rep_id)
@@ -175,7 +175,7 @@ TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileI
 static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, GF_ROUTEEventType evt_type)
 {
 	u8 *output;
-	char *ext;
+	const char *ext;
 	GF_FilterPid *pid, **p_pid;
 	GF_FilterPacket *pck;
 	TSI_Output *tsio = NULL;
@@ -218,7 +218,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		//special case for init segments not sent with the service but sent on the config multicast
 		//we don't have a service associated hence no base URI, assume the name is URI/path/to/file and strip URI part
 		else if (!service_id) {
-			char *sep = strchr(finfo->filename, ':');
+			const char *sep = strchr(finfo->filename, ':');
 			if (sep && !strncmp(sep, "://", 3)) sep += 3;
 			else if (sep) sep++;
 			if (sep) sep = strchr(sep, '/');
@@ -233,7 +233,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 			tsio->bytes_sent = 0;
 
 			if (finfo->dash_period_id) gf_filter_pid_set_property(pid, GF_PROP_PID_PERIOD_ID, &PROP_STRING(finfo->dash_period_id));
-			if (finfo->dash_as_id>=0) gf_filter_pid_set_property(pid, GF_PROP_PID_AS_ID, &PROP_UINT(finfo->dash_as_id));
+			if (finfo->dash_as_id>=0) gf_filter_pid_set_property(pid, GF_PROP_PID_AS_ID, &PROP_UINT((u32) finfo->dash_as_id));
 			if (finfo->dash_rep_id) gf_filter_pid_set_property(pid, GF_PROP_PID_REP_ID, &PROP_STRING(finfo->dash_rep_id));
 		}
 		if (repair_server) {
@@ -365,7 +365,7 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 		gf_list_add(ctx->received_seg_names, gf_strdup(szPath));
 
 		while (gf_list_count(ctx->received_seg_names) > ctx->max_segs) {
-			char *filedel = gf_list_pop_front(ctx->received_seg_names);
+			char *filedel = (char *)gf_list_pop_front(ctx->received_seg_names);
 			if (filedel) {
 				gf_file_delete(filedel);
 				gf_free(filedel);
@@ -377,7 +377,7 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool is_defer_repair, Bool drop_if_first)
 {
 	char szPath[GF_MAX_PATH];
-	char *mime;
+	const char *mime;
 	u32 nb_obj;
 	Bool is_init = GF_TRUE;
 	Bool is_loop = GF_FALSE;
@@ -398,7 +398,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
 	gf_mx_v(finfo->blob->mx);
 
-	cache_entry = finfo->udta;
+	cache_entry = (DownloadedCacheEntry) finfo->udta;
 	szPath[0] = 0;
 	switch (evt) {
 	case GF_ROUTE_EVT_MPD:
@@ -414,7 +414,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			break;
 		}
 		sprintf(szPath, "http://gmcast/service%d/%s", evt_param, finfo->filename);
-		mime = finfo->mime ? (char*)finfo->mime : "application/dash+xml";
+		mime = finfo->mime ? finfo->mime : "application/dash+xml";
 		//also set x-mcast header to all manifest and variant
 		//if a clock info is present, also add it
 		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, mime, GF_TRUE, 0);
@@ -427,7 +427,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		}
 
 		if (evt==GF_ROUTE_EVT_MPD) {
-			char *fext = finfo->filename ? gf_file_ext_start(finfo->filename) : NULL;
+			const char *fext = finfo->filename ? gf_file_ext_start(finfo->filename) : NULL;
 			if (fext) fext++;
 			else fext = "mpd";
 
@@ -493,7 +493,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			if (!ctx->clock_init_seg && ((evt==GF_ROUTE_EVT_DYN_SEG) || ctx->llmode))
 				ctx->clock_init_seg = gf_strdup(finfo->filename);
 
-			DownloadedCacheEntry mpd_cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
+			DownloadedCacheEntry mpd_cache_entry = (DownloadedCacheEntry) gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
 			if (mpd_cache_entry) {
 				sprintf(szPath, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\n", ctx->clock_init_seg);
 				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
@@ -682,7 +682,7 @@ static GF_Err routein_process(GF_Filter *filter)
 {
 	GF_Err e;
 	u32 resched = 50000;
-	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
+	ROUTEInCtx *ctx = (ROUTEInCtx *)gf_filter_get_udta(filter);
 
 	if (!ctx->nb_playing) {
 		e = routein_do_repair(ctx);
@@ -770,7 +770,7 @@ static GF_Err routein_process(GF_Filter *filter)
 					rate = (Double)nb_bytes*8;
 					rate /= et;
 				}
-				sprintf(szRpt, "r_bytes="LLU" r_pck="LLU" twnd="LLU" r_rate=%.02f", nb_bytes, nb_pck, et/1000, 1000*rate);
+				sprintf(szRpt, "r_bytes=" LLU " r_pck=" LLU " twnd=" LLU " r_rate=%.02f", nb_bytes, nb_pck, et/1000, 1000*rate);
 				gf_filter_update_status(filter, 0, szRpt);
 			}
 		}
@@ -784,7 +784,7 @@ RouteRepairServer *routein_push_repair_server(ROUTEInCtx *ctx, const char *url, 
 	if (service_id) {
 		u32 i;
 		for (i=0;i<gf_list_count(ctx->repair_servers); i++) {
-			server = gf_list_get(ctx->repair_servers, i);
+			server = (RouteRepairServer *)gf_list_get(ctx->repair_servers, i);
 			if (server->service_id==service_id) {
 				if (!strcmp(server->url, url)) return server;
 				gf_list_rem(ctx->repair_servers, i);
@@ -809,7 +809,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	Bool is_atsc = GF_TRUE;
 	Bool is_mabr = GF_FALSE;
 	u32 prot_offset=0;
-	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
+	ROUTEInCtx *ctx = (ROUTEInCtx *)gf_filter_get_udta(filter);
 	ctx->filter = filter;
 
 	if (!ctx->src) return GF_BAD_PARAM;
@@ -922,7 +922,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		//we need at least one session in fast repair mode
 		else if (ctx->repair < ROUTEIN_REPAIR_FULL) ctx->max_sess = 1;
 
-		ctx->http_repair_sessions = gf_malloc(sizeof(RouteRepairSession)*ctx->max_sess);
+		ctx->http_repair_sessions = (RouteRepairSession *)gf_malloc(sizeof(RouteRepairSession)*ctx->max_sess);
 		memset(ctx->http_repair_sessions, 0, sizeof(RouteRepairSession)*ctx->max_sess);
 
 		ctx->seg_repair_queue = gf_list_new();
@@ -941,7 +941,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 
 static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
+	ROUTEInCtx *ctx = (ROUTEInCtx *)gf_filter_get_udta(filter);
 	if (evt->base.type==GF_FEVT_PLAY) {
 		if (!ctx->initial_play_forced)
 			ctx->nb_playing++;

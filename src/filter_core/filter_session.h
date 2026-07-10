@@ -26,6 +26,10 @@
 #ifndef _GF_FILTER_SESSION_H_
 #define _GF_FILTER_SESSION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/list.h>
 #include <gpac/thread.h>
 #include <gpac/filters.h>
@@ -88,8 +92,8 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter);
 void gf_props_del(GF_PropertyMap *prop);
 void gf_props_reset(GF_PropertyMap *prop);
 
-GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value);
-GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value);
+GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, const char *dyn_name, const GF_PropertyValue *value);
+GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, const char *dyn_name, const GF_PropertyValue *value);
 
 void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name);
 
@@ -252,7 +256,7 @@ struct __gf_filter_pck
 
 	GF_FilterPckInfo info;
 
-	char *data;
+	u8 *data;
 	u32 data_length;
 
 	//for allocated memory packets
@@ -845,7 +849,7 @@ struct __gf_filter
 #endif
 
 	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
-	u32 encoder_codec_id;
+	GF_CodecID encoder_codec_id;
 	GF_PropStringList skip_cids;
 	Bool filter_skipped;
 
@@ -1105,7 +1109,8 @@ struct __gf_filter_pid
 	//a sparse pid always triggers blocking if parent filter has more than one output
 	Bool is_sparse;
 	//for stats only
-	u32 stream_type, codecid;
+	u32 stream_type;
+	GF_CodecID codecid;
 
 	volatile u32 would_block; // concurrent set
 	volatile u32 nb_decoder_inputs;
@@ -1299,10 +1304,6 @@ typedef struct __freg_desc
 
 void bundle_cache_free(GF_FilterRegDesc *reg_desc);
 
-#ifdef GPAC_MEMORY_TRACKING
-size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
-#endif
-
 void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dispatch);
 
 //get next option after path, NULL if not found
@@ -1328,7 +1329,7 @@ typedef struct
 
 GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst, GF_List *tmp_blacklist, GF_LinkInfo *link_info);
 
-GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values);
+GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, GF_PropType type, const char *name, const char *value, const char *enum_values);
 
 //check if item can be added to a reservoir queue, returns GF_TRUE if not added
 Bool gf_fq_res_add(GF_FilterQueue *fq, void *item);
@@ -1342,8 +1343,15 @@ enum {
 	GF_LOG_TAG_FILTER = 2
 };
 
-void gf_logs_thread_tag(void *tag_val, u32 tag_type);
-void gf_logs_thread_untag(void *tag_val);
-void gf_logs_thread_tag_del(void *tag_val);
+#ifdef GPAC_HAS_QJS
+GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF_PropertyValue *prop, GF_PropType prop_type);
+
+GF_Filter *jsf_custom_filter_opaque(JSContext *ctx, JSValueConst this_val);
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_GF_FILTER_SESSION_H_

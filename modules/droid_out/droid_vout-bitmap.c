@@ -118,7 +118,7 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->locked_data;
-		vi->is_hardware_memory = 0;
+		vi->is_hardware_memory = GF_FALSE;
 		vi->pitch_x = NBPP;
 		vi->pitch_y = NBPP * vi->width;
 		vi->pixel_format = RAW_OUT_PIXEL_FORMAT;
@@ -156,7 +156,7 @@ GF_VideoOutput *NewRawVideoOutput()
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "androidbmp", "gpac distribution")
 
-	pCtx = gf_malloc(sizeof(AndroidContext));
+	pCtx = (AndroidContext *)gf_malloc(sizeof(AndroidContext));
 	memset(pCtx, 0, sizeof(AndroidContext));
 
 	driv->opaque = pCtx;
@@ -186,6 +186,8 @@ void DeleteVideoOutput(void *ifce)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout deinit\n"));
 }
 
+GPAC_MODULE_EXPORT_START
+
 /*interface query*/
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
@@ -213,5 +215,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( droid_vidbmp )

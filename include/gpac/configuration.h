@@ -27,6 +27,10 @@
 #ifndef _GF_CONFIG_H_
 #define _GF_CONFIG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*!
 \addtogroup setup_grp
 \brief Base data types
@@ -366,5 +370,9 @@ this macro is currently defined in setup.h */
 //#define GPAC_DISABLE_VOBSUB
 
 /*! @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif		/*_GF_CONFIG_H_*/

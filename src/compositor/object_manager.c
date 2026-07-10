@@ -71,7 +71,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 {
 	if (odm->addon && (odm->addon->root_od==odm)) {
 		odm->addon->root_od = NULL;
-		odm->addon->started = 0;
+		odm->addon->started = GF_FALSE;
 	}
 	if (odm->upper_layer_odm) {
 		odm->upper_layer_odm->lower_layer_odm = NULL;
@@ -85,7 +85,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	if (odm->mo) odm->mo->odm = NULL;
 
 #ifndef GPAC_DISABLE_VRML
-	gf_odm_reset_media_control(odm, 0);
+	gf_odm_reset_media_control(odm, GF_FALSE);
 	gf_list_del(odm->ms_stack);
 	gf_list_del(odm->mc_stack);
 
@@ -98,7 +98,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	if (odm->pid) gf_filter_pid_set_udta(odm->pid, NULL);
 	if (odm->extra_pids) {
 		while (gf_list_count(odm->extra_pids)) {
-			GF_ODMExtraPid *xpid = gf_list_pop_back(odm->extra_pids);
+			GF_ODMExtraPid *xpid = (GF_ODMExtraPid *)gf_list_pop_back(odm->extra_pids);
 			if (xpid->pid) gf_filter_pid_set_udta(xpid->pid, NULL);
 			gf_free(xpid);
 		}
@@ -193,7 +193,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 			switch (gf_node_get_tag(n)) {
 #ifndef GPAC_DISABLE_VRML
 			case TAG_MPEG4_InputSensor:
-				((M_InputSensor*)n)->enabled = 0;
+				((M_InputSensor*)n)->enabled = GF_FALSE;
 				InputSensorModified(n);
 				break;
 #endif
@@ -287,7 +287,7 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 
 	count = gf_list_count(odm->parentscene->resources);
 	for (i=0; i<count; i++) {
-		GF_ObjectManager *an_odm = gf_list_get(odm->parentscene->resources, i);
+		GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(odm->parentscene->resources, i);
 		if (an_odm==odm) continue;
 		if (an_odm->type != odm->type) continue;
 		//same type - if the first one has been automatically activated, do not activate this one
@@ -297,7 +297,7 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 }
 
 
-void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url, Bool for_addon)
+void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, const char *remote_url, Bool for_addon)
 {
 	char *parent_url = NULL;
 	if (!remote_url) {
@@ -539,7 +539,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		GF_Event evt;
 
 		if (odm->addon) {
-			Bool role_set = 0;
+			Bool role_set = GF_FALSE;
 
 			if (odm->addon->addon_type >= GF_ADDON_TYPE_MAIN) return;
 
@@ -548,7 +548,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 				char *sep = strchr(odm->mo->URLs.vals[0].url, '?');
 				if (sep && strstr(sep, "role=main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
-					role_set = 1;
+					role_set = GF_TRUE;
 				}
 			}
 
@@ -739,7 +739,7 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 		dur /= prop->value.lfrac.den;
 	}
 	gf_filter_release_property(pe);
-	
+
 	if ((u32) dur > odm->duration) {
 		odm->duration = (u32) dur;
 		/*update scene duration*/
@@ -789,8 +789,8 @@ void gf_odm_start(GF_ObjectManager *odm)
 void gf_odm_play(GF_ObjectManager *odm)
 {
 	u64 range_end;
-	Bool media_control_paused = 0;
-	Bool start_range_is_clock = 0;
+	Bool media_control_paused = GF_FALSE;
+	Bool start_range_is_clock = GF_FALSE;
 	Double ck_time;
 	GF_Clock *clock = odm->ck;
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
@@ -801,7 +801,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	GF_Clock *parent_ck = NULL;
 
 	if (!scene) return;
-	
+
 	if (odm->mo && odm->mo->pck && !(odm->flags & GF_ODM_PREFETCH)) {
 		/*reset*/
 		gf_filter_pck_unref(odm->mo->pck);
@@ -854,7 +854,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	else {
 		ck_time = (Double) gf_clock_media_time(clock);
 		ck_time /= 1000;
-		start_range_is_clock = 1;
+		start_range_is_clock = GF_TRUE;
 	}
 
 	/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
@@ -924,7 +924,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		&& (ck_time<com.play.end_range)) {
 			com.play.start_range = ck_time;
 		}
-		if (ctrl->paused) media_control_paused = 1;
+		if (ctrl->paused) media_control_paused = GF_TRUE;
 
 		gf_clock_set_speed(clock, ctrl->control->mediaSpeed);
 		if (odm->mo) odm->mo->speed = ctrl->control->mediaSpeed;
@@ -989,7 +989,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	if (odm->extra_pids) {
 		u32 k, count = gf_list_count(odm->extra_pids);
 		for (k=0; k<count; k++) {
-			GF_ODMExtraPid *xpid = gf_list_get(odm->extra_pids, k);
+			GF_ODMExtraPid *xpid = (GF_ODMExtraPid *)gf_list_get(odm->extra_pids, k);
 			if (xpid->state != GF_ODM_STATE_PLAY) {
 				xpid->state = GF_ODM_STATE_PLAY;
 				com.base.on_pid = xpid->pid;
@@ -1004,7 +1004,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 					if (gf_list_find(scene->compositor->systems_pids, xpid->pid)<0)
 						gf_list_add(scene->compositor->systems_pids, xpid->pid);
 				}
-				
+
 				gf_filter_pid_send_event(xpid->pid, &com);
 			}
 		}
@@ -1012,7 +1012,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	if (odm->parentscene) {
 		if (odm->parentscene->root_od->addon) {
-			odm->parentscene->root_od->addon->started = 1;
+			odm->parentscene->root_od->addon->started = GF_TRUE;
 		}
 		if (odm->parentscene->first_frame_pause_type) {
 			media_control_paused = GF_TRUE;
@@ -1028,7 +1028,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
 		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
-		media_control_paused = 1;
+		media_control_paused = GF_TRUE;
 	}
 
 	if (media_control_paused) {
@@ -1048,7 +1048,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	GF_FilterEvent com;
 
 	odm->flags &= ~GF_ODM_PREFETCH;
-	
+
 	//root ODs of dynamic scene may not have seen play/pause request
 	if (!odm->state && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
@@ -1090,7 +1090,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	}
 
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
-		odm->parentscene->root_od->addon->started = 0;
+		odm->parentscene->root_od->addon->started = GF_FALSE;
 	}
 	if (odm->nb_buffering) {
 		gf_assert(scene->nb_buffering>=odm->nb_buffering);
@@ -1140,7 +1140,7 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 	count = gf_list_count(odm->extra_pids);
 	for (i=0; i<count; i++) {
-		GF_ODMExtraPid *xpid = gf_list_get(odm->extra_pids, i);
+		GF_ODMExtraPid *xpid = (GF_ODMExtraPid *)gf_list_get(odm->extra_pids, i);
 		if (xpid->pid == pid) {
 			xpid->has_seen_eos = GF_TRUE;
 		}
@@ -1149,13 +1149,13 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (!all_done) return;
 
 	if (odm->addon && odm->addon->is_splicing)
-		odm->addon->is_over = 1;
+		odm->addon->is_over = GF_TRUE;
 	if (odm->parentscene && odm->parentscene->root_od->addon && odm->parentscene->root_od->addon->is_splicing)
-		odm->parentscene->root_od->addon->is_over = 1;
+		odm->parentscene->root_od->addon->is_over = GF_TRUE;
 
 	if (odm->ck->has_seen_eos) return;
 
-	odm->ck->has_seen_eos = 1;
+	odm->ck->has_seen_eos = GF_TRUE;
 	gf_odm_check_buffering(odm, pid);
 
 #ifndef GPAC_DISABLE_VRML
@@ -1187,7 +1187,7 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 			gf_filter_pid_set_udta(odm->pid, NULL);
 			odm->pid = NULL;
 			for (i=0; i<count; i++) {
-				GF_ODMExtraPid *xpid = gf_list_get(odm->extra_pids, i);
+				GF_ODMExtraPid *xpid = (GF_ODMExtraPid *)gf_list_get(odm->extra_pids, i);
 				gf_filter_pid_set_udta(xpid->pid, NULL);
 				xpid->pid = NULL;
 			}
@@ -1204,11 +1204,11 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm)
 {
 	if (odm->parentscene && !gf_scene_is_root(odm->parentscene) ) {
 		GF_ObjectManager *root = odm->parentscene->root_od;
-		Bool is_over = 0;
+		Bool is_over = GF_FALSE;
 
-		if (!gf_scene_check_clocks(root->scene_ns, root->subscene, 0)) return;
+		if (!gf_scene_check_clocks(root->scene_ns, root->subscene, GF_FALSE)) return;
 		if (root->subscene->is_dynamic_scene)
-			is_over = 1;
+			is_over = GF_TRUE;
 		else
 			is_over = gf_sc_is_over(odm->parentscene->compositor, root->subscene->graph);
 
@@ -1217,7 +1217,7 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm)
 		}
 	} else {
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
-		if (scene && odm->parentscene && gf_sc_check_end_of_scene(scene->compositor, 0)) {
+		if (scene && odm->parentscene && gf_sc_check_end_of_scene(scene->compositor, GF_FALSE)) {
 			GF_Event evt;
 			evt.type = GF_EVENT_EOS;
 			gf_sc_send_event(odm->parentscene->compositor, &evt);
@@ -1315,7 +1315,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
 		if (media_sens->sensor->isActive) {
-			media_sens->sensor->isActive = 0;
+			media_sens->sensor->isActive = GF_FALSE;
 			gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 		}
 	}
@@ -1383,7 +1383,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
 		if (!media_sens->sensor->isActive) {
-			media_sens->sensor->isActive = 1;
+			media_sens->sensor->isActive = GF_TRUE;
 			gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 		}
 	}
@@ -1437,7 +1437,7 @@ static void gf_odm_insert_segment(GF_ObjectManager *odm, GF_Segment *seg, GF_Lis
 	/*this reorders segments when inserting into list - I believe this is not compliant*/
 	GF_Segment *desc;
 	u32 i = 0;
-	while ((desc = gf_list_enum(list, &i))) {
+	while ((desc = (GF_Segment *)gf_list_enum(list, &i))) {
 		if (desc == seg) return;
 		if (seg->startTime + seg->Duration <= desc->startTime) {
 			gf_list_insert(list, seg, i);
@@ -1619,7 +1619,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	 	u32 i=0;
 		Bool ret = odm_update_buffer(scene, odm, pid, check_full_buffer, &signal_eob);
 	 	if (ret) return GF_TRUE;
-		while (odm->nb_buffering && (xpid = gf_list_enum(odm->extra_pids, &i))) {
+		while (odm->nb_buffering && (xpid = (GF_ODMExtraPid *)gf_list_enum(odm->extra_pids, &i))) {
 			ret = odm_update_buffer(scene, odm, xpid->pid, GF_FALSE, &signal_eob);
 			if (ret) return GF_TRUE;
 		}
@@ -1628,7 +1628,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (scene->nb_buffering) {
 		GF_ObjectManager *an_odm;
 		u32 i=0;
-		while ((an_odm = gf_list_enum(scene->resources,&i))) {
+		while ((an_odm = (struct _od_manager *)gf_list_enum(scene->resources,&i))) {
 			if (odm==an_odm) continue;
 			if (!an_odm->pid) continue;
 
@@ -1664,7 +1664,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			clock_reference = gf_timestamp_to_clocktime(clock_reference, timescale);
 			diff = (s32) clock_time + odm->buffer_playout_ms;
 			diff -= (s32) clock_reference;
-			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("Clock %d (ODM %d) reference found "LLU" ms clock time %d ms - diff %d - type %d\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("Clock %d (ODM %d) reference found " LLU " ms clock time %d ms - diff %d - type %d\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type));
 
 			//if explicit clock discontinuity, mark clock
 			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
@@ -1677,7 +1677,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			diff = (u32) ((u64) clock_time - pck_time);
 			diff_to = (s32) (odm->ck->ocr_discontinuity_time ? 500 : 8000) * ABS(FIX2INT(odm->ck->speed) );
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) pck time %d - clock ref " LLU " clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
 
 		//we have a valid TS for the packet, and the CTS diff to the current clock is larget than 8 sec, check for discontinuities
 		//it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems, 8 sec should be enough
@@ -1693,11 +1693,11 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (diff_pck_old_clock > diff_pck_new_clock) {
 				u32 i, count;
 				GF_Scene *in_scene = odm->subscene ? odm->subscene : odm->parentscene;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("Clock %d (ODM %d) discontinuity detected " LLU " clock time %d - diff %d - type %d - pck time " LLU "\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
 
 				count = gf_list_count(in_scene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *an_odm = gf_list_get(in_scene->resources, i);
+					GF_ObjectManager *an_odm = (struct _od_manager *)gf_list_get(in_scene->resources, i);
 					if (an_odm->ck != odm->ck) continue;
 					an_odm->prev_clock_at_discontinuity_plus_one = 1 + clock_time;
 				}
@@ -1722,7 +1722,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
 			odm->ck->ocr_discontinuity_time = 1 + clock_reference;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) received "LLU" type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) received " LLU " type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
 	}
 	//only send event when playing
 	if (!odm->ck->nb_buffering) {
@@ -1757,7 +1757,7 @@ void gf_odm_collect_buffer_info(GF_SceneNamespace *scene_ns, GF_ObjectManager *o
 		*min_time = (u32) buf_val;
 
 	i=0;
-	while ((xpid = gf_list_enum(odm->extra_pids, &i))) {
+	while ((xpid = (GF_ODMExtraPid *)gf_list_enum(odm->extra_pids, &i))) {
 
 		buf_val = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE)/1000;
 		if (buf_val > odm->buffer_max_ms) buf_val = odm->buffer_max_ms;
@@ -1869,7 +1869,7 @@ Bool gf_odm_stop_or_destroy(GF_ObjectManager *odm)
 		gf_odm_disconnect(odm, 2);
 		return GF_TRUE;
 	}
-	gf_odm_stop(odm, 0);
+	gf_odm_stop(odm, GF_FALSE);
 	return GF_FALSE;
 }
 
@@ -1937,7 +1937,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	if (odm->subscene && !odm->pid && odm->addon && !gf_list_count(odm->subscene->resources)) {
 		u32 i;
 		for (i=0; i<gf_list_count(odm->parentscene->resources); i++) {
-			GF_ObjectManager *par_odm = gf_list_get(odm->parentscene->resources, i);
+			GF_ObjectManager *par_odm = (struct _od_manager *)gf_list_get(odm->parentscene->resources, i);
 			if (!par_odm->pid) continue;
 			pid = gf_filter_pid_first_pid_for_source(par_odm->pid, odm->addon->root_od->scene_ns->source_filter);
 			if (!pid) continue;
@@ -2017,7 +2017,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 		info->service_handler = odm->scene_ns->source_filter ? gf_filter_get_name(odm->scene_ns->source_filter) : "unloaded";
 
 		info->service_url = odm->scene_ns->url;
-		if (odm->scene_ns->owner == odm) info->owns_service = 1;
+		if (odm->scene_ns->owner == odm) info->owns_service = GF_TRUE;
 	} else if ((odm->subscene && odm->subscene->graph_attached) || (odm->ID)) {
 		info->service_url = "No associated network Service";
 	} else {
@@ -2114,7 +2114,7 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 		scene->root_od->media_current_time = 0;
 
 	for (i=0; i<gf_list_count(scene->resources); i++) {
-		GF_ObjectManager *anodm = gf_list_get(scene->resources, i);
+		GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(scene->resources, i);
 		anodm->media_current_time = 0;
 	}
 }

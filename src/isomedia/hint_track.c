@@ -362,7 +362,7 @@ GF_Err gf_isom_begin_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 //set IsRandomAccessPoint if you want to indicate that this is a random access point
 //in the stream
 GF_EXPORT
-GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRandomAccessPoint)
+GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, Bool IsRandomAccessPoint)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;
@@ -392,7 +392,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 	}
 	samp = gf_isom_sample_new();
 	samp->CTS_Offset = 0;
-	samp->IsRAP = IsRandomAccessPoint;
+	samp->IsRAP = IsRandomAccessPoint ? SAP_TYPE_1 : RAP_NO;
 	samp->DTS = entry->hint_sample->TransmissionTime;
 	//get the sample
 	gf_bs_get_content(bs, &samp->data, &samp->dataLength);
@@ -438,7 +438,7 @@ GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin
 //adds a chunk of data (max 14 bytes) in the packet that is directly copied
 //while streaming
 GF_EXPORT
-GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, u8 *data, u32 dataLength, u8 AtBegin)
+GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, const u8 *data, u32 dataLength, u8 AtBegin)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;
@@ -466,7 +466,7 @@ GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, u8 *data,
 }
 
 GF_EXPORT
-GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTrackID SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, u8 *extra_data, u8 AtBegin)
+GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTrackID SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, const u8 *extra_data, u8 AtBegin)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;
@@ -516,7 +516,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTra
 		if (!SampleNumber || (SampleNumber == trak->Media->information->sampleTable->SampleSize->sampleCount + 1)) {
 			//we adding some stuff in the current sample ...
 			dte->byteOffset += entry->hint_sample->dataLength;
-			entry->hint_sample->AdditionalData = (char*)gf_realloc(entry->hint_sample->AdditionalData, sizeof(char) * (entry->hint_sample->dataLength + DataLength));
+			entry->hint_sample->AdditionalData = (u8*)gf_realloc(entry->hint_sample->AdditionalData, (entry->hint_sample->dataLength + DataLength));
 			if (AtBegin) {
 				if (entry->hint_sample->dataLength)
 					memmove(entry->hint_sample->AdditionalData + DataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);
@@ -845,7 +845,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxes, 0);
 
 	if (!hnti->SDP) {
-		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, 0, GF_FALSE, GF_FALSE);
+		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, GF_FALSE, GF_FALSE, GF_FALSE);
 		if (!a) return GF_OUT_OF_MEM;
 		hnti_on_child_box((GF_Box*)hnti, a, GF_FALSE);
 		if (!hnti->child_boxes) hnti->child_boxes = gf_list_new();

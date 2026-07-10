@@ -23,6 +23,7 @@
  *
  */
 
+#include <gpac/scene_manager.h>
 #include <gpac/internal/scenegraph_dev.h>
 
 /*MPEG4 & X3D tags (for node tables & script handling)*/
@@ -37,19 +38,19 @@
 GF_EXPORT
 Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
 {
-	if (!tag) return 0;
-	if (tag==TAG_ProtoNode) return 1;
+	if (!tag) return GF_FALSE;
+	if (tag==TAG_ProtoNode) return GF_TRUE;
 	else if (tag<=GF_NODE_RANGE_LAST_MPEG4) {
 #ifndef GPAC_DISABLE_BIFS
 		u32 i;
 		for (i=0; i<GF_BIFS_LAST_VERSION; i++) {
-			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return 1;
+			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 #else
 		/*if BIFS is disabled, we don't have the NDTs - we therefore allow any node in any table otherwise we would reject
 		them all*/
-		return 1;
+		return GF_TRUE;
 #endif
 
 	}
@@ -58,7 +59,7 @@ Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
 		return gf_x3d_get_node_type(NDTType, tag);
 	}
 #endif
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -262,7 +263,7 @@ void gf_sg_script_load(GF_Node *n)
 }
 
 GF_EXPORT
-GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
+GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, const char *name)
 {
 	GF_Proto *proto;
 	u32 i;
@@ -734,7 +735,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 
 
 /*********************************************************************
-		MF Fields manipulation (alloc, gf_realloc, GetAt)
+(u8 *)MF Fields manipulation (alloc, gf_realloc, GetAt)
 *********************************************************************/
 GF_EXPORT
 const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
@@ -841,7 +842,7 @@ const char *gf_sg_vrml_get_field_type_name(u32 FieldType)
 	}
 }
 
-u32 gf_sg_field_type_by_name(char *fieldType)
+u32 gf_sg_field_type_by_name(const char *fieldType)
 {
 	if (!stricmp(fieldType, "SFBool")) return GF_SG_VRML_SFBOOL;
 	else if (!stricmp(fieldType, "SFFloat")) return GF_SG_VRML_SFFLOAT;
@@ -891,7 +892,7 @@ Bool gf_sg_vrml_is_sf_field(u32 FieldType)
 {
 	//special case for AttrRef declared after first MF
 	if (FieldType==GF_SG_VRML_SFATTRREF) return GF_TRUE;
-	return (FieldType<GF_SG_VRML_FIRST_MF);
+	return (FieldType<GF_SG_VRML_FIRST_MF) ? GF_TRUE : GF_FALSE;
 }
 
 void gf_sg_mfstring_del(MFString par)
@@ -928,7 +929,7 @@ void gf_sg_vrml_copy_mfurl(MFURL *dst, MFURL *src)
 	u32 i;
 	gf_sg_vrml_mf_reset(dst, GF_SG_VRML_MFURL);
 	dst->count = src->count;
-	dst->vals = gf_malloc(sizeof(SFURL)*src->count);
+	dst->vals = (SFURL *)gf_malloc(sizeof(SFURL)*src->count);
 	for (i=0; i<src->count; i++) {
 		dst->vals[i].OD_ID = src->vals[i].OD_ID;
 		dst->vals[i].url = src->vals[i].url ? gf_strdup(src->vals[i].url) : NULL;
@@ -1069,7 +1070,7 @@ u32 gf_sg_vrml_get_sf_type(u32 FieldType)
 GF_EXPORT
 GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertAt)
 {
-	char *buffer;
+	u8 *buffer;
 	u32 FieldSize, i, k;
 	GenMFField *mffield = (GenMFField *)mf;
 
@@ -1084,7 +1085,7 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 	//first item ever
 	if (!mffield->count || !mffield->array) {
 		if (mffield->array) gf_free(mffield->array);
-		mffield->array = (char*)gf_malloc(sizeof(char)*FieldSize);
+		mffield->array = (u8 *)gf_malloc(FieldSize);
 		memset(mffield->array, 0, sizeof(char)*FieldSize);
 		mffield->count = 1;
 		if (new_ptr) *new_ptr = mffield->array;
@@ -1093,14 +1094,14 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 
 	//append at the end
 	if (InsertAt >= mffield->count) {
-		mffield->array = (char*)gf_realloc(mffield->array, sizeof(char)*(1+mffield->count)*FieldSize);
+		mffield->array = (u8 *)gf_realloc(mffield->array, (1+mffield->count)*FieldSize);
 		memset(mffield->array + mffield->count * FieldSize, 0, FieldSize);
 		if (new_ptr) *new_ptr = mffield->array + mffield->count * FieldSize;
 		mffield->count += 1;
 		return GF_OK;
 	}
 	//alloc 1+itemCount
-	buffer = (char*)gf_malloc(sizeof(char)*(1+mffield->count)*FieldSize);
+	buffer = (u8*)gf_malloc((1+mffield->count)*FieldSize);
 
 	//insert in the array
 	k=0;
@@ -1173,7 +1174,7 @@ GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 	if (mffield->count==NbItems) return GF_OK;
 	gf_sg_vrml_mf_reset(mf, FieldType);
 	if (NbItems) {
-		mffield->array = (char*)gf_malloc(sizeof(char)*FieldSize*NbItems);
+		mffield->array = (u8 *)gf_malloc(FieldSize*NbItems);
 		memset(mffield->array, 0, sizeof(char)*FieldSize*NbItems);
 	}
 	mffield->count = NbItems;
@@ -1214,7 +1215,7 @@ GF_Err gf_sg_vrml_mf_append(void *mf, u32 FieldType, void **new_ptr)
 GF_EXPORT
 GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 {
-	char *buffer;
+	u8 *buffer;
 	u32 FieldSize, i, k;
 	GenMFField *mffield = (GenMFField *)mf;
 	if (!mffield) return GF_NON_COMPLIANT_BITSTREAM;
@@ -1234,7 +1235,7 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 		return GF_OK;
 	}
 	k=0;
-	buffer = (char*)gf_malloc(sizeof(char)*(mffield->count-1)*FieldSize);
+	buffer = (u8*)gf_malloc((mffield->count-1)*FieldSize);
 	for (i=0; i<mffield->count; i++) {
 		if (RemoveFrom == i) {
 			k = 1;
@@ -1374,7 +1375,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
 		size = ((SFImage *)dest)->width * ((SFImage *)dest)->height * ((SFImage *)dest)->numComponents;
-		((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
+		((SFImage *)dest)->pixels = (u8*)gf_malloc(size);
 		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
@@ -1384,7 +1385,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 
 		cb_dst->bufferSize = cb_src->bufferSize;
 		if (cb_dst->bufferSize && !gf_list_count(cb_src->commandList) ) {
-			cb_dst->buffer = (u8*)gf_realloc(cb_dst->buffer, sizeof(char)*cb_dst->bufferSize);
+			cb_dst->buffer = (u8*)gf_realloc(cb_dst->buffer, cb_dst->bufferSize);
 			memcpy(cb_dst->buffer, cb_src->buffer, sizeof(char)*cb_src->bufferSize);
 		} else {
 			u32 j, c2;
@@ -1394,7 +1395,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 			c2 = gf_list_count(cb_src->commandList);
 			for (j=0; j<c2; j++) {
 				GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, j);
-				GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, inScene, 0);
+				GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, inScene, GF_FALSE);
 				gf_list_add(cb_dst->commandList, new_com);
 			}
 		}
@@ -1422,7 +1423,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 	case GF_SG_VRML_MFATTRREF:
 		size = gf_sg_vrml_get_sf_size(field_type) * ((GenMFField *)orig)->count;
 		if (((GenMFField *)orig)->count != ((GenMFField *)dest)->count) {
-			((GenMFField *)dest)->array = gf_realloc(((GenMFField *)dest)->array, size);
+			((GenMFField *)dest)->array = (u8 *)gf_realloc(((GenMFField *)dest)->array, size);
 			((GenMFField *)dest)->count = ((GenMFField *)orig)->count;
 		}
 		if (size)
@@ -1458,69 +1459,69 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 {
 	u32 size, i, sf_type;
 	void *dst_field, *orig_field;
-	Bool changed = 0;
+	Bool changed = GF_FALSE;
 
-	if (!dest || !orig) return 0;
+	if (!dest || !orig) return GF_FALSE;
 
 	switch (field_type) {
 	case GF_SG_VRML_SFBOOL:
-		changed = memcmp(dest, orig, sizeof(SFBool));
+			changed = memcmp(dest, orig, sizeof(SFBool)) ? GF_TRUE : GF_FALSE;
 		break;
 	case GF_SG_VRML_SFCOLOR:
-		if (((SFColor *)dest)->red != ((SFColor *)orig)->red) changed = 1;
-		else if (((SFColor *)dest)->green != ((SFColor *)orig)->green) changed = 1;
-		else if (((SFColor *)dest)->blue != ((SFColor *)orig)->blue) changed = 1;
+		if (((SFColor *)dest)->red != ((SFColor *)orig)->red) changed = GF_TRUE;
+		else if (((SFColor *)dest)->green != ((SFColor *)orig)->green) changed = GF_TRUE;
+		else if (((SFColor *)dest)->blue != ((SFColor *)orig)->blue) changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_SFFLOAT:
-		if ( (*(SFFloat *)dest) != (*(SFFloat *)orig) ) changed = 1;
+		if ( (*(SFFloat *)dest) != (*(SFFloat *)orig) ) changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_SFINT32:
-		changed = memcmp(dest, orig, sizeof(SFInt32));
+		changed = memcmp(dest, orig, sizeof(SFInt32)) ? GF_TRUE : GF_FALSE;
 		break;
 	case GF_SG_VRML_SFROTATION:
-		if (((SFRotation *)dest)->x != ((SFRotation *)orig)->x) changed = 1;
-		else if (((SFRotation *)dest)->y != ((SFRotation *)orig)->y) changed = 1;
-		else if (((SFRotation *)dest)->z != ((SFRotation *)orig)->z) changed = 1;
-		else if (((SFRotation *)dest)->q != ((SFRotation *)orig)->q) changed = 1;
+		if (((SFRotation *)dest)->x != ((SFRotation *)orig)->x) changed = GF_TRUE;
+		else if (((SFRotation *)dest)->y != ((SFRotation *)orig)->y) changed = GF_TRUE;
+		else if (((SFRotation *)dest)->z != ((SFRotation *)orig)->z) changed = GF_TRUE;
+		else if (((SFRotation *)dest)->q != ((SFRotation *)orig)->q) changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_SFTIME:
-		if ( (*(SFTime *)dest) != (*(SFTime*)orig) ) changed = 1;
+		if ( (*(SFTime *)dest) != (*(SFTime*)orig) ) changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_SFVEC2F:
-		if (((SFVec2f *)dest)->x != ((SFVec2f *)orig)->x) changed = 1;
-		else if (((SFVec2f *)dest)->y != ((SFVec2f *)orig)->y) changed = 1;
+		if (((SFVec2f *)dest)->x != ((SFVec2f *)orig)->x) changed = GF_TRUE;
+		else if (((SFVec2f *)dest)->y != ((SFVec2f *)orig)->y) changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_SFVEC3F:
-		if (((SFVec3f *)dest)->x != ((SFVec3f *)orig)->x) changed = 1;
-		else if (((SFVec3f *)dest)->y != ((SFVec3f *)orig)->y) changed = 1;
-		else if (((SFVec3f *)dest)->z != ((SFVec3f *)orig)->z) changed = 1;
+		if (((SFVec3f *)dest)->x != ((SFVec3f *)orig)->x) changed = GF_TRUE;
+		else if (((SFVec3f *)dest)->y != ((SFVec3f *)orig)->y) changed = GF_TRUE;
+		else if (((SFVec3f *)dest)->z != ((SFVec3f *)orig)->z) changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_SFSTRING:
 		if ( ((SFString*)dest)->buffer && ((SFString*)orig)->buffer) {
-			changed = strcmp(((SFString*)dest)->buffer, ((SFString*)orig)->buffer);
+			changed = strcmp(((SFString*)dest)->buffer, ((SFString*)orig)->buffer) ? GF_TRUE : GF_FALSE;
 		} else {
-			changed = ( !((SFString*)dest)->buffer && !((SFString*)orig)->buffer) ? 0 : 1;
+			changed = ( !((SFString*)dest)->buffer && !((SFString*)orig)->buffer) ? GF_FALSE : GF_TRUE;
 		}
 		break;
 	case GF_SG_VRML_SFURL:
 		if (((SFURL *)dest)->OD_ID > 0 || ((SFURL *)orig)->OD_ID > 0) {
-			if ( ((SFURL *)orig)->OD_ID != ((SFURL *)dest)->OD_ID) changed = 1;
+			if ( ((SFURL *)orig)->OD_ID != ((SFURL *)dest)->OD_ID) changed = GF_TRUE;
 		} else {
-			if ( ((SFURL *)orig)->url && ! ((SFURL *)dest)->url) changed = 1;
-			else if ( ! ((SFURL *)orig)->url && ((SFURL *)dest)->url) changed = 1;
-			else if ( ((SFURL *)orig)->url && ((SFURL *)dest)->url && strcmp( ((SFURL *)orig)->url , ((SFURL *)dest)->url) ) changed = 1;
+			if ( ((SFURL *)orig)->url && ! ((SFURL *)dest)->url) changed = GF_TRUE;
+			else if ( ! ((SFURL *)orig)->url && ((SFURL *)dest)->url) changed = GF_TRUE;
+			else if ( ((SFURL *)orig)->url && ((SFURL *)dest)->url && strcmp( ((SFURL *)orig)->url , ((SFURL *)dest)->url) ) changed = GF_TRUE;
 		}
 		break;
 	case GF_SG_VRML_SFIMAGE:
 	case GF_SG_VRML_SFATTRREF:
 	case GF_SG_VRML_SFSCRIPT:
 	case GF_SG_VRML_SFCOMMANDBUFFER:
-		changed = 1;
+		changed = GF_TRUE;
 		break;
 
 	//MFFields
 	case GF_SG_VRML_MFATTRREF:
-		changed = 1;
+		changed = GF_TRUE;
 		break;
 	case GF_SG_VRML_MFBOOL:
 	case GF_SG_VRML_MFFLOAT:
@@ -1534,7 +1535,7 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 	case GF_SG_VRML_MFIMAGE:
 	case GF_SG_VRML_MFURL:
 	case GF_SG_VRML_MFSCRIPT:
-		if ( ((GenMFField *)orig)->count != ((GenMFField *)dest)->count) changed = 1;
+		if ( ((GenMFField *)orig)->count != ((GenMFField *)dest)->count) changed = GF_TRUE;
 		else {
 			size = ((GenMFField *)orig)->count;
 			sf_type = gf_sg_vrml_get_sf_type(field_type);
@@ -1542,14 +1543,14 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 				gf_sg_vrml_mf_get_item(dest, field_type, &dst_field, i);
 				gf_sg_vrml_mf_get_item(orig, field_type, &orig_field, i);
 				if (! gf_sg_vrml_field_equal(dst_field, orig_field, sf_type) ) {
-					changed = 1;
+					changed = GF_TRUE;
 					break;
 				}
 			}
 		}
 		break;
 	}
-	return changed ? 0 : 1;
+	return changed ? GF_FALSE : GF_TRUE;
 }
 
 
@@ -1658,13 +1659,13 @@ Bool gf_sg_vrml_node_init(GF_Node *node)
 		return InitValuator((M_Valuator *)node);
 	case TAG_MPEG4_PositionAnimator:
 		PA_Init(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_MPEG4_PositionAnimator2D:
 		PA2D_Init(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_MPEG4_ScalarAnimator:
 		SA_Init(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_MPEG4_PositionInterpolator4D:
 		return InitPositionInterpolator4D((M_PositionInterpolator4D *)node);
 	case TAG_MPEG4_CoordinateInterpolator4D:
@@ -1673,33 +1674,33 @@ Bool gf_sg_vrml_node_init(GF_Node *node)
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script:
 #endif
-		return 1;
+		return GF_TRUE;
 
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_BooleanFilter:
 		InitBooleanFilter(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_X3D_BooleanSequencer:
 		InitBooleanSequencer(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_X3D_BooleanToggle:
 		InitBooleanToggle(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_X3D_BooleanTrigger:
 		InitBooleanTrigger(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_X3D_IntegerSequencer:
 		InitIntegerSequencer(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_X3D_IntegerTrigger:
 		InitIntegerTrigger(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_X3D_TimeTrigger:
 		InitTimeTrigger(node);
-		return 1;
+		return GF_TRUE;
 #endif
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
@@ -1707,7 +1708,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 	switch (node->sgprivate->tag) {
 	case TAG_ProtoNode:
 		/*hardcoded protos need modification notifs*/
-		if (node->sgprivate->UserCallback) return 0;
+		if (node->sgprivate->UserCallback) return GF_FALSE;
 	case TAG_MPEG4_ColorInterpolator:
 	case TAG_MPEG4_CoordinateInterpolator:
 	case TAG_MPEG4_CoordinateInterpolator2D:
@@ -1736,18 +1737,18 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_IntegerTrigger:
 	case TAG_X3D_TimeTrigger:
 #endif
-		return 1;
+		return GF_TRUE;
 	case TAG_MPEG4_PositionAnimator:
 		PA_Modified(node, field);
-		return 1;
+		return GF_TRUE;
 	case TAG_MPEG4_PositionAnimator2D:
 		PA2D_Modified(node, field);
-		return 1;
+		return GF_TRUE;
 	case TAG_MPEG4_ScalarAnimator:
 		SA_Modified(node, field);
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 #if 0 //unused
@@ -1812,7 +1813,7 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 
 		count = img->width * img->height * img->numComponents;
 		i = (3/*' 0x'*/ + 2/*%02X*/*img->numComponents)*count + 20;
-		buf = gf_malloc(sizeof(char) * i);
+		buf = (char *)gf_malloc(i);
 
 		sprintf(buf , "%d %d %d", img->width, img->height, img->numComponents);
 
@@ -1856,10 +1857,10 @@ Bool gf_node_in_table(GF_Node *node, u32 NDTType)
 	u32 tag = node ? node->sgprivate->tag : 0;
 	if (tag==TAG_ProtoNode) {
 		tag = gf_sg_proto_get_root_tag(((GF_ProtoInstance *)node)->proto_interface);
-		if (tag==TAG_UndefinedNode) return 1;
+		if (tag==TAG_UndefinedNode) return GF_TRUE;
 	}
 	return gf_node_in_table_by_tag(tag, NDTType);
 #else
-	return 1;
+	return GF_TRUE;
 #endif
 }

@@ -133,7 +133,7 @@ void ttmldec_setup_scene(GF_TTMLDec *ctx)
 	n = root = gf_node_new(ctx->scenegraph, TAG_SVG_svg);
 	gf_node_register(root, NULL);
 	gf_sg_set_root_node(ctx->scenegraph, root);
-	gf_node_get_attribute_by_name(n, "xmlns", 0, GF_TRUE, GF_FALSE, &info);
+	gf_node_get_attribute_by_name(n, "xmlns", GF_XMLNS_UNDEFINED, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(n, &info, "http://www.w3.org/2000/svg", 0);
 	ttmldec_update_size_info(ctx);
 	gf_node_init(n);
@@ -212,7 +212,7 @@ static void ttmldec_toggle_display(GF_TTMLDec *ctx)
 
 static Bool ttmldec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
-	GF_TTMLDec *ctx = gf_filter_get_udta(filter);
+	GF_TTMLDec *ctx = (GF_TTMLDec *)gf_filter_get_udta(filter);
 
 	//check for scene attach
 	switch (com->base.type) {
@@ -240,7 +240,7 @@ static Bool ttmldec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	}
 	if (ctx->opid != com->attach_scene.on_pid) return GF_TRUE;
 
-	ctx->odm = com->attach_scene.object_manager;
+	ctx->odm = (GF_ObjectManager *)com->attach_scene.object_manager;
 	ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 	/*timedtext cannot be a root scene object*/
@@ -253,8 +253,6 @@ static Bool ttmldec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	 }
 	 return GF_TRUE;
 }
-
-void js_dump_error(JSContext *ctx);
 
 JSContext *ttmldec_get_js_context(GF_TTMLDec *ctx)
 {
@@ -416,7 +414,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[TTMLDec] Invalid subsample size %d for packet size %d\n", subs_size, pck_size));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
-				pck_alloc = gf_malloc(sizeof(char)*(subs_size+2));
+				pck_alloc = (char *)gf_malloc(subs_size+2);
 				memcpy(pck_alloc, pck_data, sizeof(char)*subs_size);
 				pck_alloc[subs_size] = 0;
 				pck_alloc[subs_size+1] = 0;
@@ -425,7 +423,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		}
 	} else {
 		//we cannot assume the doc ends with 0
-		pck_alloc = gf_malloc(sizeof(char)*(pck_size+2));
+		pck_alloc = (char *)gf_malloc(pck_size+2);
 		memcpy(pck_alloc, ttml_doc, sizeof(char)*pck_size);
 		pck_alloc[pck_size] = 0;
 		pck_alloc[pck_size+1] = 0;
@@ -495,14 +493,14 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 
 static GF_Err ttmldec_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
 {
-	GF_TTMLDec *ctx = gf_filter_get_udta(filter);
+	GF_TTMLDec *ctx = (GF_TTMLDec *)gf_filter_get_udta(filter);
 	ctx->update_args = GF_TRUE;
 	return GF_OK;
 }
 
 static GF_Err ttmldec_initialize(GF_Filter *filter)
 {
-	GF_TTMLDec *ctx = gf_filter_get_udta(filter);
+	GF_TTMLDec *ctx = (GF_TTMLDec *)gf_filter_get_udta(filter);
 
 	if (!ctx->script) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TTMLDec] TTML JS renderer script not set\n"));

@@ -36,7 +36,7 @@
 		for (z=0; z<indent; z++) ind_buf[z] = ' '; \
 		ind_buf[z] = 0; \
 	} \
- 
+
 
 static void StartList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
 {
@@ -264,12 +264,12 @@ void gf_ipmpx_dump_BaseData(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMT
 #if 0
 	if (XMTDump) {
 		StartElement(trace, "IPMP_BaseData", indent, XMTDump);
-		DumpInt(trace, "dataID", _p->dataID, indent, 1);
-		DumpInt(trace, "Version", _p->Version, indent, 1);
+		DumpInt(trace, "dataID", _p->dataID, indent, GF_TRUE);
+		DumpInt(trace, "Version", _p->Version, indent, GF_TRUE);
 		EndLeafAttribute(trace, indent, XMTDump);
 	} else {
-		DumpInt(trace, "dataID", _p->dataID, indent, 0);
-		DumpInt(trace, "Version", _p->Version, indent, 0);
+		DumpInt(trace, "dataID", _p->dataID, indent, GF_FALSE);
+		DumpInt(trace, "Version", _p->Version, indent, GF_FALSE);
 	}
 #endif
 }

@@ -27,6 +27,10 @@
 #ifndef _GF_DVB_MPE_H_
 #define _GF_DVB_MPE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/mpegts.h>
 #include <string.h>
 
@@ -42,5 +46,9 @@ void gf_dvb_mpe_section_del(GF_M2TS_ES *es);
 void gf_dvb_mpe_print_info(GF_M2TS_Demuxer *ts);
 
 #endif //GPAC_DISABLE_MPEG2TS
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	//_GF_DVB_MPE_H_

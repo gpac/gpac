@@ -198,43 +198,43 @@ GF_Err gf_odf_parse_qos(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qual_s
 	//Payload
 	switch (tag) {
 	case QoSMaxDelayTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxDelay));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxDelay *)newQoS)->MaxDelay = gf_bs_read_int(bs, 32);
 		bytesParsed += 4;
 		break;
 
 	case QoSPrefMaxDelayTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_PrefMaxDelay));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_PrefMaxDelay *)newQoS)->PrefMaxDelay = gf_bs_read_int(bs, 32);
 		bytesParsed += 4;
 		break;
 
 	case QoSLossProbTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_LossProb));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_LossProb *)newQoS)->LossProb = gf_bs_read_float(bs);
 		bytesParsed += 4;
 		break;
 
 	case QoSMaxGapLossTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxGapLoss));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxGapLoss *)newQoS)->MaxGapLoss = gf_bs_read_int(bs, 32);
 		bytesParsed += 4;
 		break;
 
 	case QoSMaxAUSizeTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxAUSize));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxAUSize *)newQoS)->MaxAUSize = gf_bs_read_int(bs, 32);
 		bytesParsed += 4;
 		break;
 
 	case QoSAvgAUSizeTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_AvgAUSize));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_AvgAUSize *)newQoS)->AvgAUSize = gf_bs_read_int(bs, 32);
 		bytesParsed += 4;
 		break;
 
 	case QoSMaxAURateTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxAURate));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxAURate *)newQoS)->MaxAURate = gf_bs_read_int(bs, 32);
 		bytesParsed += 4;
 		break;
@@ -245,7 +245,7 @@ GF_Err gf_odf_parse_qos(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qual_s
 
 	default:
 		//we defined the private qos...
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Private));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_Private *)newQoS)->Data = NULL;
 		((GF_QoS_Private *)newQoS)->DataLength = qos_size;
 		if (qos_size > 0) {
@@ -273,43 +273,43 @@ GF_QoS_Default *NewQoS(u8 tag)
 
 	switch (tag) {
 	case QoSMaxDelayTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxDelay));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxDelay *)newQoS)->MaxDelay = 0;
 		((GF_QoS_MaxDelay *)newQoS)->size = 4;
 		break;
 
 	case QoSPrefMaxDelayTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_PrefMaxDelay));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_PrefMaxDelay *)newQoS)->PrefMaxDelay = 0;
 		((GF_QoS_PrefMaxDelay *)newQoS)->size = 4;
 		break;
 
 	case QoSLossProbTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_LossProb));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_LossProb *)newQoS)->LossProb = 0;
 		((GF_QoS_LossProb *)newQoS)->size = 4;
 		break;
 
 	case QoSMaxGapLossTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxGapLoss));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxGapLoss *)newQoS)->MaxGapLoss = 0;
 		((GF_QoS_MaxGapLoss *)newQoS)->size = 4;
 		break;
 
 	case QoSMaxAUSizeTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxAUSize));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxAUSize *)newQoS)->MaxAUSize = 0;
 		((GF_QoS_MaxAUSize *)newQoS)->size = 0;
 		break;
 
 	case QoSAvgAUSizeTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_AvgAUSize));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_AvgAUSize *)newQoS)->AvgAUSize = 0;
 		((GF_QoS_AvgAUSize *)newQoS)->size = 4;
 		break;
 
 	case QoSMaxAURateTag:
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_MaxAURate));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_MaxAURate *)newQoS)->MaxAURate = 0;
 		((GF_QoS_MaxAURate *)newQoS)->size = 4;
 		break;
@@ -320,7 +320,7 @@ GF_QoS_Default *NewQoS(u8 tag)
 
 	default:
 		//we defined the private qos...
-		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Private));
+		newQoS = (GF_QoS_Default *) gf_malloc(sizeof(GF_QoS_Default));
 		((GF_QoS_Private *)newQoS)->DataLength = 0;
 		((GF_QoS_Private *)newQoS)->Data = NULL;
 		break;

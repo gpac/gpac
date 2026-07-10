@@ -80,11 +80,11 @@ static void yuv2rgb_init(void)
 	}
 }
 
-static void yuv_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
+static void yuv_load_lines_planar(u8 *dst, s32 dststride, u8 *y_src, u8 *u_src, u8 * v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *) dst + dststride;
-	unsigned char *y_src2 = (unsigned char *) y_src + y_stride;
+	u8 *dst2 = (u8 *) dst + dststride;
+	u8 *y_src2 = (u8 *) y_src + y_stride;
 
 	hw = width / 2;
 	if (dst_yuv) {
@@ -156,13 +156,13 @@ static void yuv_load_lines_planar(unsigned char *dst, s32 dststride, unsigned ch
 		dst2 += 8;
 	}
 }
-static void yuv422_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
+static void yuv422_load_lines_planar(u8 *dst, s32 dststride, u8 *y_src, u8 *u_src, u8 * v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *)dst + dststride;
-	unsigned char *y_src2 = (unsigned char *)y_src + y_stride;
-	unsigned char *u_src2 = (unsigned char *)u_src + uv_stride;
-	unsigned char *v_src2 = (unsigned char *)v_src + uv_stride;
+	u8 *dst2 = (u8 *)dst + dststride;
+	u8 *y_src2 = (u8 *)y_src + y_stride;
+	u8 *u_src2 = (u8 *)u_src + uv_stride;
+	u8 *v_src2 = (u8 *)v_src + uv_stride;
 
 	hw = width / 2;
 	if (dst_yuv) {
@@ -242,13 +242,13 @@ static void yuv422_load_lines_planar(unsigned char *dst, s32 dststride, unsigned
 		dst2 += 8;
 	}
 }
-static void yuv444_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
+static void yuv444_load_lines_planar(u8 *dst, s32 dststride, u8 *y_src, u8 *u_src, u8 * v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *)dst + dststride;
-	unsigned char *y_src2 = (unsigned char *)y_src + y_stride;
-	unsigned char *u_src2 = (unsigned char *)u_src + uv_stride;
-	unsigned char *v_src2 = (unsigned char *)v_src + uv_stride;
+	u8 *dst2 = (u8 *)dst + dststride;
+	u8 *y_src2 = (u8 *)y_src + y_stride;
+	u8 *u_src2 = (u8 *)u_src + uv_stride;
+	u8 *v_src2 = (u8 *)v_src + uv_stride;
 
 	hw = width / 2;
 
@@ -357,10 +357,10 @@ static void yuv444_load_lines_planar(unsigned char *dst, s32 dststride, unsigned
 	}
 }
 
-static void yuv_10_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *_y_src, unsigned char *_u_src, unsigned char *_v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
+static void yuv_10_load_lines_planar(u8 *dst, s32 dststride, u8 *_y_src, u8 *_u_src, u8 *_v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *) dst + dststride;
+	u8 *dst2 = (u8 *) dst + dststride;
 	unsigned short *y_src2 = (unsigned short *) (_y_src + y_stride);
 	unsigned short *y_src = (unsigned short *)_y_src;
 	unsigned short *u_src = (unsigned short *)_u_src;
@@ -436,10 +436,10 @@ static void yuv_10_load_lines_planar(unsigned char *dst, s32 dststride, unsigned
 		dst2 += 8;
 	}
 }
-static void yuv422_10_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *_y_src, unsigned char *_u_src, unsigned char *_v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
+static void yuv422_10_load_lines_planar(u8 *dst, s32 dststride, u8 *_y_src, u8 *_u_src, u8 *_v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *)dst + dststride;
+	u8 *dst2 = (u8 *)dst + dststride;
 	unsigned short *y_src2 = (unsigned short *)(_y_src + y_stride);
 	unsigned short *u_src2 = (unsigned short *)(_u_src + uv_stride);
 	unsigned short *v_src2 = (unsigned short *)(_v_src + uv_stride);
@@ -529,10 +529,10 @@ static void yuv422_10_load_lines_planar(unsigned char *dst, s32 dststride, unsig
 		dst2 += 8;
 	}
 }
-static void yuv444_10_load_lines_planar(unsigned char *dst, s32 dststride, unsigned char *_y_src, unsigned char *_u_src, unsigned char *_v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
+static void yuv444_10_load_lines_planar(u8 *dst, s32 dststride, u8 *_y_src, u8 *_u_src, u8 *_v_src, s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *)dst + dststride;
+	u8 *dst2 = (u8 *)dst + dststride;
 	unsigned short * y_src2 = (unsigned short *)(_y_src + y_stride);
 	unsigned short * u_src2 = (unsigned short *)(_u_src + uv_stride);
 	unsigned short * v_src2 = (unsigned short *)(_v_src + uv_stride);
@@ -641,7 +641,7 @@ static void yuv444_10_load_lines_planar(unsigned char *dst, s32 dststride, unsig
 	}
 }
 
-static void yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 width, Bool dst_yuv)
+static void yuv_load_lines_packed(u8 *dst, s32 dststride, u8 *y_src, u8 *u_src, u8 * v_src, s32 width, Bool dst_yuv)
 {
 	u32 hw;
 
@@ -692,13 +692,13 @@ static void yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned ch
 }
 
 
-static void yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, unsigned char *a_src,
+static void yuva_load_lines(u8 *dst, s32 dststride, u8 *y_src, u8 *u_src, u8 *v_src, u8 *a_src,
                                s32 y_stride, s32 uv_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = dst + dststride;
-	unsigned char *y_src2 = y_src + y_stride;
-	unsigned char *a_src2 = a_src + y_stride;
+	u8 *dst2 = dst + dststride;
+	u8 *y_src2 = y_src + y_stride;
+	u8 *a_src2 = a_src + y_stride;
 
 	yuv2rgb_init();
 
@@ -1561,7 +1561,7 @@ static void load_line_argb(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch
 		dst_bits += 4;
 	}
 }
-static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
+static void load_line_yv12(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
 	pY = (u8 *)src_bits;
@@ -1575,7 +1575,7 @@ static void load_line_yv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	pV += x_offset/2 + y_offset*y_pitch/4;
 	yuv_load_lines_planar((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width, dst_yuv);
 }
-static void load_line_yuv422(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
+static void load_line_yuv422(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
 	pY = (u8 *)src_bits;
@@ -1583,13 +1583,13 @@ static void load_line_yuv422(char *src_bits, u32 x_offset, u32 y_offset, u32 y_p
 		pU = (u8 *)src_bits + y_pitch*height;
 		pV = (u8 *)src_bits + 3 * y_pitch*height / 2;
 	}
-	
+
 	pY += x_offset + y_offset*y_pitch;
 	pU += x_offset / 2 + y_offset*y_pitch / 2;
 	pV += x_offset / 2 + y_offset*y_pitch / 2;
 	yuv422_load_lines_planar((unsigned char*)dst_bits, 4 * width, pY, pU, pV, y_pitch, y_pitch / 2, width, dst_yuv);
 }
-static void load_line_yuv444(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
+static void load_line_yuv444(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
 	pY = (u8 *)src_bits;
@@ -1598,13 +1598,13 @@ static void load_line_yuv444(char *src_bits, u32 x_offset, u32 y_offset, u32 y_p
 		pV = (u8 *)src_bits + 2 * y_pitch*height;
 	}
 
-	
+
 	pY += x_offset + y_offset*y_pitch;
 	pU += x_offset + y_offset*y_pitch;
 	pV += x_offset + y_offset*y_pitch;
 	yuv444_load_lines_planar((unsigned char*)dst_bits, 4 * width, pY, pU, pV, y_pitch, y_pitch, width, dst_yuv);
 }
-static void load_line_yv12_10(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
+static void load_line_yv12_10(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
 	pY = (u8 *)src_bits;
@@ -1618,7 +1618,7 @@ static void load_line_yv12_10(char *src_bits, u32 x_offset, u32 y_offset, u32 y_
 	pV += x_offset/2 + y_offset*y_pitch/4;
 	yuv_10_load_lines_planar((unsigned char*)dst_bits, 4*width, pY, pU, pV, y_pitch, y_pitch/2, width, dst_yuv);
 }
-static void load_line_yuv422_10(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
+static void load_line_yuv422_10(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
 	u16  *src_y, *src_u, *src_v;
@@ -1630,14 +1630,14 @@ static void load_line_yuv422_10(char *src_bits, u32 x_offset, u32 y_offset, u32 
 	src_y = (u16 *)pY + x_offset;
 	src_u = (u16 *)pU + x_offset / 2;
 	src_v = (u16 *)pV + x_offset / 2;
-	
+
 
 	pY = (u8 *)src_y + y_offset*y_pitch;
 	pU = (u8 *)src_u + y_offset*y_pitch / 2;
 	pV = (u8 *)src_v + y_offset*y_pitch / 2;
 	yuv422_10_load_lines_planar((unsigned char*)dst_bits, 4 * width, pY, pU, pV, y_pitch, y_pitch / 2, width, dst_yuv);
 }
-static void load_line_yuv444_10(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
+static void load_line_yuv444_10(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, Bool dst_yuv)
 {
 	u8 *pY;
 	u16  *src_y, *src_u, *src_v;
@@ -1649,14 +1649,14 @@ static void load_line_yuv444_10(char *src_bits, u32 x_offset, u32 y_offset, u32 
 	 src_y = (u16 *)pY + x_offset;
 	 src_u = (u16 *)pU + x_offset;
 	 src_v = (u16 *)pV + x_offset;
-	
+
 
 	pY = (u8 *)src_y + y_offset*y_pitch;
 	pU = (u8 *)src_u + y_offset*y_pitch;
 	pV = (u8 *)src_v + y_offset*y_pitch;
 	yuv444_10_load_lines_planar((unsigned char*)dst_bits, 4 * width, pY, pU, pV, y_pitch, y_pitch, width, dst_yuv);
 }
-static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, u8 *pA, Bool dst_yuv)
+static void load_line_yuva(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, u8 *pV, u8 *pA, Bool dst_yuv)
 {
 	u8 *pY;
 	pY = (u8*)src_bits;
@@ -1707,11 +1707,11 @@ static void load_line_vyuy(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch
 }
 
 
-static void gf_yuv_load_lines_nv12_nv21(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, s32 y_stride, s32 width, Bool dst_yuv)
+static void gf_yuv_load_lines_nv12_nv21(u8 *dst, s32 dststride, u8 *y_src, u8 *u_src, u8 *v_src, s32 y_stride, s32 width, Bool dst_yuv)
 {
 	u32 hw, x;
-	unsigned char *dst2 = (unsigned char *) dst + dststride;
-	unsigned char *y_src2 = (unsigned char *) y_src + y_stride;
+	u8 *dst2 = (u8 *) dst + dststride;
+	u8 *y_src2 = (u8 *) y_src + y_stride;
 
 	hw = width / 2;
 	if (dst_yuv) {
@@ -1784,7 +1784,7 @@ static void gf_yuv_load_lines_nv12_nv21(unsigned char *dst, s32 dststride, unsig
 	}
 }
 
-static void load_line_nv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, Bool dst_yuv)
+static void load_line_nv12(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, Bool dst_yuv)
 {
 	u8 *pY = (u8*)src_bits;
 	if (!pU) {
@@ -1795,7 +1795,7 @@ static void load_line_nv12(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 	pU += x_offset + y_offset*y_pitch/2; //half vertical sampling
 	gf_yuv_load_lines_nv12_nv21(dst_bits, 4*width, pY, pU, pU + 1, y_pitch, width, dst_yuv);
 }
-static void load_line_nv21(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, Bool dst_yuv)
+static void load_line_nv21(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits, u8 *pU, Bool dst_yuv)
 {
 	u8 *pY = (u8*)src_bits;
 	if (!pU) {
@@ -1936,8 +1936,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		}
 		if (e == GF_OK) return GF_OK;
 	}
-	
-	
+
+
 	switch (src->pixel_format) {
 	case GF_PIXEL_GREYSCALE:
 		load_line = load_line_grey;
@@ -2118,10 +2118,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 
 	if (!src_w || !src_h || !dst_w || !dst_h)
 		return GF_OK;
-		
+
 	if (yuv_planar_type && (src_w%2)) src_w++;
 
-	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_planar_type ? 8 : 4) );
+	tmp = (u8 *) gf_malloc(src_w * (yuv_planar_type ? 8 : 4) );
 	rows = tmp;
 
 	if ( (src_h / dst_h) * dst_h != src_h) force_load_odd_yuv_lines = GF_TRUE;
@@ -2176,19 +2176,19 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 							load_line_yuv444(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 						}
 						else if (yuv_planar_type == 3) {
-							load_line_yv12_10((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
+							load_line_yv12_10((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 						}
 						else if (yuv_planar_type == 6) {
-							load_line_yuv422_10((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
+							load_line_yuv422_10((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 						}
 						else if (yuv_planar_type == 7) {
-							load_line_yuv444_10((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
+							load_line_yuv444_10((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 						}
 						else if (yuv_planar_type == 8) {
-							load_line_nv21((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
+							load_line_nv21((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
 						}
 						else if (yuv_planar_type == 9) {
-							load_line_nv12((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
+							load_line_nv12((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
 						}
 						else {
 							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, (u8 *)src->a_ptr, dst_yuv);
@@ -2235,19 +2235,19 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						load_line_yuv444(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 					}
 					else if (yuv_planar_type == 3) {
-						load_line_yv12_10((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
+						load_line_yv12_10((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 					}
 					else if (yuv_planar_type == 6) {
-						load_line_yuv422_10((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
+						load_line_yuv422_10((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 					}
 					else if (yuv_planar_type == 7) {
-						load_line_yuv444_10((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
+						load_line_yuv444_10((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, dst_yuv);
 					}
 					else if (yuv_planar_type == 8) {
-						load_line_nv21((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
+						load_line_nv21((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
 					}
 					else if (yuv_planar_type == 9) {
-						load_line_nv12((char *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
+						load_line_nv12((u8 *)src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, dst_yuv);
 					}
 					else {
 						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *)src->u_ptr, (u8 *)src->v_ptr, (u8 *)src->a_ptr, dst_yuv);
@@ -2557,12 +2557,12 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 
 #ifdef GPAC_HAS_SSE2
 
-static GF_Err color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
 	if (!pY) return GF_BAD_PARAM;
-	
+
 	if (!pU) {
 		pU = pY + src_stride * src_height;
 		pV = pY + 5*src_stride * src_height/4;
@@ -2588,7 +2588,7 @@ static GF_Err color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigne
 	}
 
 
-	
+
 		for (i=0; i<h; i++) {
 			src1 = (__m128i *)(pY + i*src_stride);
 			src2 = src1+1;
@@ -2636,10 +2636,10 @@ static GF_Err color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigne
 			}
 		}
 		return GF_OK;
-	
+
 }
 
-static GF_Err color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  u8 *pY, u8 *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -2666,7 +2666,7 @@ static GF_Err color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  u
 	}
 
 
-	
+
 	for (i=0; i<h; i++) {
 		src1 = (__m128i *)(pY + i*src_stride);
 		src2 = src1+1;
@@ -2714,10 +2714,10 @@ static GF_Err color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  u
 		}
 	}
 	return GF_OK;
-	
+
 }
 
-static GF_Err color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -2792,9 +2792,9 @@ static GF_Err color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, un
 		}
 	}
 	return GF_OK;
-	
+
 }
-static GF_Err color_write_yuv422_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv422_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -2872,11 +2872,11 @@ static GF_Err color_write_yuv422_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsig
 	return GF_OK;
 
 }
-static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, u8 *pY, u8 *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	__m128i val1, val2,val3,val4, val12, val34, val_dst, *src1, *src2,*src3,*src4, *dst;
-	
+
 	if (!pU) {
 		pU = pY + src_stride * src_height;
 		pV = pY + 2 * src_stride * src_height;
@@ -2933,17 +2933,17 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsig
 			val12 = _mm_srli_epi16(val12, 2);
 
 			val3 = _mm_load_si128(src3);
-			
+
 			val3 = _mm_srli_epi32(val3, 16);
 			val4 = _mm_load_si128(src4);
-		
+
 			val4 = _mm_srli_epi32(val4, 16);
 			val34 = _mm_packs_epi32(val3, val4); 
 			val34 = _mm_srli_epi16(val34, 2);
 
 			val_dst = _mm_packus_epi16(val12, val34);
 			_mm_store_si128(dst, val_dst);
-			
+
 		}
 	}
 
@@ -2957,19 +2957,19 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsig
 
 		for (j = 0; j<w / 32; j++, src1 += 4, src2 += 4, src3 += 4, src4 += 4, dst++) {
 			val1 = _mm_load_si128(src1);
-			
+
 			val1 = _mm_srli_epi32(val1, 16);
 			val2 = _mm_load_si128(src2);
-			
+
 			val2 = _mm_srli_epi32(val2, 16);
 			val12 = _mm_packs_epi32(val1, val2); 
 			val12 = _mm_srli_epi16(val12, 2);
 
 			val3 = _mm_load_si128(src3);
-			
+
 			val3 = _mm_srli_epi32(val3, 16);
 			val4 = _mm_load_si128(src4);
-			
+
 			val4 = _mm_srli_epi32(val4, 16);
 			val34 = _mm_packs_epi32(val3, val4); 
 			val34 = _mm_srli_epi16(val34, 2);
@@ -2978,7 +2978,7 @@ static GF_Err color_write_yuv444_10_to_yuv_intrin(GF_VideoSurface *vs_dst, unsig
 			_mm_store_si128(dst, val_dst);
 		}
 	}
-	
+
 	return GF_OK;
 
 }
@@ -3037,7 +3037,7 @@ static GF_Err color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurfac
 		pU = t;
 	}
 
-	
+
 	for (i=0; i<h; i++) {
 		u16 *src = (u16 *) (pY + i*vs_src->pitch_y);
 		u8 *dst = (u8 *) vs_dst->video_buffer + i*vs_dst->pitch_y;
@@ -3210,7 +3210,7 @@ static GF_Err color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst, GF_VideoS
 		pV = pU;
 		pU = t;
 	}
-	
+
 	for (i=0; i<h; i++) {
 		u16 *src_y = (u16 *) (pY + i*vs_src->pitch_y);
 		u8 *dst_y = (u8 *) vs_dst->video_buffer + i*vs_dst->pitch_y;
@@ -3228,12 +3228,12 @@ static GF_Err color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst, GF_VideoS
 		u8 *dst_v = (u8 *) vs_dst->video_buffer + 3*vs_dst->pitch_y * vs_dst->height/2  + i*vs_dst->pitch_y/2;
 		if (vs_dst->u_ptr) dst_u = (u8 *) (vs_dst->u_ptr + i*vs_dst->pitch_y/2);
 		if (vs_dst->v_ptr) dst_v = (u8 *) (vs_dst->v_ptr + i*vs_dst->pitch_y/2);
-		
+
 		for (j=0; j<w/2; j++) {
 			*dst_u = (*src_u) >> 2;
 			dst_u++;
 			src_u++;
-			
+
 			*dst_v = (*src_v) >> 2;
 			dst_v++;
 			src_v++;
@@ -3296,10 +3296,10 @@ static GF_Err color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst, GF_VideoS
 	for (i=0; i<h; i++) {
 		u16 *src_y = (u16 *) (pY + i*vs_src->pitch_y);
 		u8 *dst_y = (u8 *) vs_dst->video_buffer + i*vs_dst->pitch_y;
-		
+
 		u16 *src_u= (u16 *) (pU + i*vs_src->pitch_y);
 		u8 *dst_u = (u8 *) vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height+ i*vs_dst->pitch_y;
-		
+
 		u16 *src_v = (u16 *) (pV + i*vs_src->pitch_y);
 		u8 *dst_v = (u8 *) vs_dst->video_buffer + 2*vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y;
 
@@ -3310,11 +3310,11 @@ static GF_Err color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst, GF_VideoS
 			*dst_y = (*src_y) >> 2;
 			dst_y++;
 			src_y++;
-			
+
 			*dst_u = (*src_u) >> 2;
 			dst_u++;
 			src_u++;
-			
+
 		   *dst_v= (*src_v) >> 2;
 			dst_v++;
 			src_v++;
@@ -3356,7 +3356,7 @@ static GF_Err color_write_yuv422_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 		return color_write_yuv422_10_to_yuv_intrin(vs_dst, pY, pU, pV, vs_src->pitch_y, vs_src->width, vs_src->height, _src_wnd, swap_uv);
 	}
 #endif
-	
+
 	if (!pU) {
 		pU = pY + vs_src->pitch_y * vs_src->height;
 		pV = pY + 3 * vs_src->pitch_y * vs_src->height/2;
@@ -3429,7 +3429,7 @@ static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 		w = vs_src->width;
 		h = vs_src->height;
 	}
-	
+
 
 #ifdef GPAC_HAS_SSE2
 
@@ -3466,7 +3466,7 @@ static GF_Err color_write_yuv444_10_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurf
 		pV = pU;
 		pU = t;
 	}
-	
+
 	for (i = 0; i<h; i++) {
 		u16 *src = (u16 *)(pY + i*vs_src->pitch_y);
 		u8 *dst = (u8 *)vs_dst->video_buffer + i*vs_dst->pitch_y;
@@ -3836,7 +3836,7 @@ static GF_Err color_write_yvyu_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *
 	u32 i, j;
 	u32 w, h, ox, oy;
 	u8 *pY, *pU, *pV;
-	
+
 	if (_src_wnd) {
 		w = _src_wnd->w;
 		h = _src_wnd->h;
@@ -3911,7 +3911,7 @@ static GF_Err color_write_yvyu_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface *
 
 	if (vs_src->pixel_format == vs_dst->pixel_format) {
 		for (i = 0; i<h; i++) {
-			char *dst = vs_dst->video_buffer + i*vs_dst->pitch_y;
+			u8 *dst = vs_dst->video_buffer + i*vs_dst->pitch_y;
 			pY = vs_src->video_buffer + vs_src->pitch_y * (i + oy) + ox;
 			memcpy(dst, pY, sizeof(char) * 2 * w);
 		}

@@ -217,7 +217,10 @@ typedef enum
 	GF_PRINTARG_ESCAPE_XML = 1<<18,
 	/*! '|' should be escaped (for  markdown generation only) */
 	GF_PRINTARG_ESCAPE_PIPE = 1<<19,
-} GF_SysPrintArgFlags;
+} GF_SysPrintArgFlagsValues;
+
+/*! flags for help formatting*/
+typedef u32 GF_SysPrintArgFlags;
 
 
 /*! prints a argument

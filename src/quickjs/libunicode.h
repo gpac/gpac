@@ -24,6 +24,10 @@
 #ifndef LIBUNICODE_H
 #define LIBUNICODE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 /* unicode standard version */
@@ -192,5 +196,9 @@ static inline int lre_js_is_ident_next(uint32_t c) {
 #endif
     }
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBUNICODE_H */

@@ -65,11 +65,11 @@ static Bool movietexture_get_loop(MovieTextureStack *stack, M_MovieTexture *mt)
 }
 static void movietexture_activate(MovieTextureStack *stack, M_MovieTexture *mt, Double scene_time)
 {
-	mt->isActive = 1;
+	mt->isActive = GF_TRUE;
 	gf_node_event_out((GF_Node*)mt, 8/*"isActive"*/);
 	if (!stack->txh.is_open) {
 		scene_time -= mt->startTime;
-		gf_sc_texture_play_from_to(&stack->txh, &mt->url, scene_time, -1, gf_mo_get_loop(stack->txh.stream, mt->loop), 0);
+		gf_sc_texture_play_from_to(&stack->txh, &mt->url, scene_time, -1, gf_mo_get_loop(stack->txh.stream, mt->loop), GF_FALSE);
 	} else if (stack->first_frame_fetched) {
 		gf_mo_resume(stack->txh.stream);
 	}
@@ -77,9 +77,9 @@ static void movietexture_activate(MovieTextureStack *stack, M_MovieTexture *mt, 
 }
 static void movietexture_deactivate(MovieTextureStack *stack, M_MovieTexture *mt)
 {
-	mt->isActive = 0;
+	mt->isActive = GF_FALSE;
 	gf_node_event_out((GF_Node*)mt, 8/*"isActive"*/);
-	stack->time_handle.needs_unregister = 1;
+	stack->time_handle.needs_unregister = GF_TRUE;
 
 	if (stack->txh.is_open) {
 		gf_sc_texture_stop_no_unregister(&stack->txh);
@@ -95,7 +95,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 	if (!txnode->isActive && st->first_frame_fetched) return;
 
 	/*when fetching the first frame disable resync*/
-	gf_sc_texture_update_frame(txh, 0);
+	gf_sc_texture_update_frame(txh, GF_FALSE);
 
 	if (txh->stream_finished) {
 		if (movietexture_get_loop(st, txnode)) {
@@ -108,14 +108,14 @@ static void movietexture_update(GF_TextureHandler *txh)
 	}
 	/*first frame is fetched*/
 	if (!st->first_frame_fetched && (txh->needs_refresh) ) {
-		st->first_frame_fetched = 1;
+		st->first_frame_fetched = GF_TRUE;
 		txnode->duration_changed = gf_mo_get_duration(txh->stream);
 		gf_node_event_out(txh->owner, 7/*"duration_changed"*/);
 		/*stop stream if needed*/
 		if (!txnode->isActive && txh->is_open) {
 			gf_mo_pause(txh->stream);
 			/*make sure the refresh flag is not cleared*/
-			txh->needs_refresh = 1;
+			txh->needs_refresh = GF_TRUE;
 			gf_sc_invalidate(txh->compositor, NULL);
 		}
 	}
@@ -129,13 +129,13 @@ static void movietexture_update_time(GF_TimeNode *st)
 {
 	Double time;
 	M_MovieTexture *mt = (M_MovieTexture *)st->udta;
-	MovieTextureStack *stack = (MovieTextureStack *)gf_node_get_private(st->udta);
+	MovieTextureStack *stack = (MovieTextureStack *)gf_node_get_private((GF_Node*)st->udta);
 
 	/*not active, store start time and speed*/
 	if ( ! mt->isActive) {
 		stack->start_time = mt->startTime;
 	}
-	time = gf_node_get_scene_time(st->udta);
+	time = gf_node_get_scene_time((GF_Node*)st->udta);
 
 	if (time < stack->start_time ||
 	        /*special case if we're getting active AFTER stoptime */
@@ -144,7 +144,7 @@ static void movietexture_update_time(GF_TimeNode *st)
 	   ) {
 		/*opens stream only at first access to fetch first frame*/
 		if (stack->fetch_first_frame) {
-			stack->fetch_first_frame = 0;
+			stack->fetch_first_frame = GF_FALSE;
 			if (!stack->txh.is_open)
 				gf_sc_texture_play(&stack->txh, &mt->url);
 			else
@@ -183,13 +183,13 @@ void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)
 	st->txh.update_texture_fcnt = movietexture_update;
 	st->time_handle.UpdateTimeNode = movietexture_update_time;
 	st->time_handle.udta = node;
-	st->fetch_first_frame = 1;
+	st->fetch_first_frame = GF_TRUE;
 	st->txh.flags = 0;
 	if (((M_MovieTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (((M_MovieTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
 #ifndef GPAC_DISABLE_X3D
-	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? 1 : 0;
+	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? GF_TRUE : GF_FALSE;
 #endif
 
 	gf_node_set_private(node, st);
@@ -221,7 +221,7 @@ void compositor_movietexture_modified(GF_Node *node)
 		if (!mt->isActive) return;
 	}
 	/*reregister if needed*/
-	st->time_handle.needs_unregister = 0;
+	st->time_handle.needs_unregister = GF_FALSE;
 	if (!st->time_handle.is_registered) gf_sc_register_time_node(st->txh.compositor, &st->time_handle);
 }
 
@@ -269,7 +269,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 		if (!txh->is_open && url.count) {
 			gf_sc_texture_play(txh, &url);
 		}
-		gf_sc_texture_update_frame(txh, 0);
+		gf_sc_texture_update_frame(txh, GF_FALSE);
 
 		if (
 		    /*URL is present but not opened - redraw till fetch*/
@@ -317,7 +317,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				e = gf_img_jpeg_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
 				if (e==GF_BUFFER_TOO_SMALL) {
 					u32 BPP;
-					txh->data = gf_malloc(sizeof(char) * out_size);
+					txh->data = (u8 *)gf_malloc(out_size);
 					if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
 					else BPP = 3;
 
@@ -325,7 +325,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					if (e==GF_OK) {
 						gf_sc_texture_allocate(txh);
 						gf_sc_texture_set_data(txh);
-						txh->needs_refresh = 1;
+						txh->needs_refresh = GF_TRUE;
 						txh->stride = out_size / txh->height;
 					}
 				}
@@ -334,12 +334,12 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				out_size = 0;
 				e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
 				if (e==GF_BUFFER_TOO_SMALL) {
-					txh->data = gf_malloc(sizeof(char) * out_size);
+					txh->data = (u8 *)gf_malloc(out_size);
 					e = gf_img_png_dec(ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
 					if (e==GF_OK) {
 						gf_sc_texture_allocate(txh);
 						gf_sc_texture_set_data(txh);
-						txh->needs_refresh = 1;
+						txh->needs_refresh = GF_TRUE;
 						txh->stride = out_size / txh->height;
 					}
 				}
@@ -457,7 +457,7 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 
 GF_TextureHandler *it_get_texture(GF_Node *node)
 {
-	return gf_node_get_private(node);
+	return (GF_TextureHandler *) gf_node_get_private(node);
 }
 void compositor_imagetexture_modified(GF_Node *node)
 {
@@ -516,7 +516,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 
 	/*pixel texture doesn not use any media object but has data in the content.
 	However we still use the same texture object, just be careful not to use media funtcions*/
-	txh->transparent = 0;
+	txh->transparent = GF_FALSE;
 	stride = pt->image.width;
 	/*num_components are as in VRML (1->4) not as in BIFS bitstream (0->3)*/
 	switch (pt->image.numComponents) {
@@ -525,17 +525,17 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 		break;
 	case 2:
 		pix_format = GF_PIXEL_ALPHAGREY;
-		txh->transparent = 1;
+		txh->transparent = GF_TRUE;
 		stride *= 2;
 		break;
 	case 3:
 		pix_format = GF_PIXEL_RGB;
-		txh->transparent = 0;
+		txh->transparent = GF_FALSE;
 		stride *= 3;
 		break;
 	case 4:
 		pix_format = GF_PIXEL_RGBA;
-		txh->transparent = 1;
+		txh->transparent = GF_TRUE;
 		stride *= 4;
 		break;
 	default:
@@ -548,7 +548,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 	}
 
 	if (st->pixels) gf_free(st->pixels);
-	st->pixels = (char*)gf_malloc(sizeof(char) * stride * pt->image.height);
+	st->pixels = (char*)gf_malloc(stride * pt->image.height);
 	/*FIXME FOR OPENGL !!*/
 #if 0
 	for (i=0; i<pt->image.height; i++) {
@@ -565,7 +565,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 	txh->height = pt->image.height;
 	txh->stride = stride;
 	txh->pixelformat = pix_format;
-	txh->data = st->pixels;
+	txh->data = (u8 *)st->pixels;
 
 	gf_sc_texture_set_data(txh);
 }

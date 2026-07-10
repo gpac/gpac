@@ -201,7 +201,7 @@ GF_Err xml_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	if (ptr->xml) gf_bs_write_data(bs, ptr->xml, (u32) strlen(ptr->xml));
+	if (ptr->xml) gf_bs_write_data(bs, (u8 *) ptr->xml, (u32) strlen(ptr->xml));
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
@@ -234,7 +234,7 @@ GF_Err bxml_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_BinaryXMLBox *ptr = (GF_BinaryXMLBox *)s;
 
 	ptr->data_length = (u32)(ptr->size);
-	ptr->data = (char*)gf_malloc(sizeof(char)*ptr->data_length);
+	ptr->data = (u8*)gf_malloc(ptr->data_length);
 	if (!ptr->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->data, ptr->data_length);
 	return GF_OK;
@@ -370,7 +370,7 @@ GF_Err iloc_box_read(GF_Box *s, GF_BitStream *bs)
 			GF_ItemExtentEntry *extent_entry;
 			GF_SAFEALLOC(extent_entry, GF_ItemExtentEntry);
 			if (!extent_entry) return GF_OUT_OF_MEM;
-			
+
 			gf_list_add(location_entry->extent_entries, extent_entry);
 			if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {
 				ISOM_DECREASE_SIZE(ptr, ptr->index_size)
@@ -607,7 +607,7 @@ GF_Err infe_box_read(GF_Box *s, GF_BitStream *bs)
 	buf_len = (u32) (ptr->size);
 	buf = (char*)gf_malloc(buf_len);
 	if (!buf) return GF_OUT_OF_MEM;
-	if (buf_len != gf_bs_read_data(bs, buf, buf_len)) {
+	if (buf_len != gf_bs_read_data(bs, (u8 *) buf, buf_len)) {
 		gf_free(buf);
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -616,15 +616,15 @@ GF_Err infe_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < buf_len; i++) {
 		if (buf[i] == 0) {
 			if (!ptr->item_name) {
-				ptr->item_name = (char*)gf_malloc(sizeof(char)*string_len);
+				ptr->item_name = (char*)gf_malloc(string_len);
 				if (!ptr->item_name) return GF_OUT_OF_MEM;
 				memcpy(ptr->item_name, buf+string_start, string_len);
 			} else if (!ptr->content_type) {
-				ptr->content_type = (char*)gf_malloc(sizeof(char)*string_len);
+				ptr->content_type = (char*)gf_malloc(string_len);
 				if (!ptr->content_type) return GF_OUT_OF_MEM;
 				memcpy(ptr->content_type, buf+string_start, string_len);
 			} else if (!ptr->content_encoding) {
-				ptr->content_encoding = (char*)gf_malloc(sizeof(char)*string_len);
+				ptr->content_encoding = (char*)gf_malloc(string_len);
 				if (!ptr->content_encoding) return GF_OUT_OF_MEM;
 				memcpy(ptr->content_encoding, buf+string_start, string_len);
 			} else {
@@ -657,7 +657,7 @@ GF_Err infe_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_free(ptr->content_encoding);
 		ptr->content_encoding = NULL;
 	}
-	
+
 	return GF_OK;
 }
 
@@ -682,14 +682,14 @@ GF_Err infe_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 	if (ptr->item_name) {
 		len = (u32) strlen(ptr->item_name)+1;
-		gf_bs_write_data(bs, ptr->item_name, len);
+		gf_bs_write_data(bs, (u8 *) ptr->item_name, len);
 	} else {
 		gf_bs_write_byte(bs, 0, 1);
 	}
 	if (ptr->item_type == GF_META_ITEM_TYPE_MIME || ptr->item_type == GF_META_ITEM_TYPE_URI) {
 		if (ptr->content_type) {
 			len = (u32)strlen(ptr->content_type) + 1;
-			gf_bs_write_data(bs, ptr->content_type, len);
+			gf_bs_write_data(bs, (u8 *) ptr->content_type, len);
 		}
 		else {
 			gf_bs_write_byte(bs, 0, 1);
@@ -698,7 +698,7 @@ GF_Err infe_box_write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->item_type == GF_META_ITEM_TYPE_MIME) {
 		if (ptr->content_encoding) {
 			len = (u32)strlen(ptr->content_encoding) + 1;
-			gf_bs_write_data(bs, ptr->content_encoding, len);
+			gf_bs_write_data(bs, (u8 *) ptr->content_encoding, len);
 		}
 		else {
 			gf_bs_write_byte(bs, 0, 1);

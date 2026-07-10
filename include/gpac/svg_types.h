@@ -34,7 +34,7 @@ extern "C" {
 \file <gpac/svg_types.h>
 \brief Data types used for SVG scene graph
 */
-	
+
 /*!
 \ingroup ssvg
 \brief Data types used for SVG scene graph.

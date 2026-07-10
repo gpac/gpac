@@ -80,7 +80,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 
-	gf_filter_set_name(filter, "encpng:"PNG_LIBPNG_VER_STRING );
+	gf_filter_set_name(filter, "encpng:" PNG_LIBPNG_VER_STRING );
 	//not yeat ready
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
 	if (!prop) return GF_OK;
@@ -126,7 +126,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	if (ctx->height > ctx->nb_alloc_rows) {
 		ctx->nb_alloc_rows = ctx->height;
-		ctx->row_pointers = gf_realloc(ctx->row_pointers, sizeof(png_bytep) * ctx->height);
+		ctx->row_pointers = (png_bytep *)gf_realloc(ctx->row_pointers, sizeof(png_bytep) * ctx->height);
 	}
 	return GF_OK;
 }
@@ -152,7 +152,7 @@ static void pngenc_write(png_structp png, png_bytep data, png_size_t size)
 		u32 old_size = ctx->alloc_size;
 		while (ctx->pos + size > ctx->alloc_size)
 			ctx->alloc_size += PNG_BLOCK_SIZE;
-		
+
 		if (gf_filter_pck_expand(ctx->dst_pck, ctx->alloc_size - old_size, &ctx->output, &new_data, &new_size) != GF_OK) {
 			return;
 		}
@@ -195,7 +195,7 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	png_structp png_ptr;
 	png_infop info_ptr;
-	char *in_data;
+	const u8 *in_data;
 	u32 size, stride;
 
 	if (ctx->ipid)
@@ -211,7 +211,7 @@ static GF_Err pngenc_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	stride = ctx->stride;
-	in_data = (char *) gf_filter_pck_get_data(pck, &size);
+	in_data = gf_filter_pck_get_data(pck, &size);
 	if (!in_data) {
 		GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
 		if (!frame_ifce || !frame_ifce->get_plane) {

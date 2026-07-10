@@ -50,7 +50,7 @@
 #endif
 
 
-static char *default_glsl_vertex = "\
+static const char *default_glsl_vertex = "\
 	attribute vec4 gfVertex;\n\
 	attribute vec4 gfTexCoord;\n\
 	uniform mat4 gfModViewProjMatrix;\n\
@@ -204,9 +204,9 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 	GLint blen = 0;
 	GLsizei slen = 0;
 	u32 len;
-	if (!source || !shader_id) return 0;
+	if (!source || !shader_id) return GF_FALSE;
 	len = (u32) strlen(source);
-	glShaderSource(shader_id, 1, &source, &len);
+	glShaderSource(shader_id, 1, &source, (GLint*)&len);
 	glCompileShader(shader_id);
 
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
@@ -221,9 +221,9 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 #endif
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GLSL] Failed to compile shader %s: %s\n", name, compiler_log));
 		gf_free (compiler_log);
-		return 0;
+		return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 }
 #endif // VOUT_USE_OPENGL
 
@@ -255,7 +255,7 @@ static void vout_set_caption(GF_VideoOutCtx *ctx)
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SET_CAPTION;
 
-	evt.caption.caption = "GPAC "GPAC_VERSION;
+	evt.caption.caption = "GPAC " GPAC_VERSION;
 	if (ctx->pid) {
 		p = gf_filter_pid_get_property_str(ctx->pid, "title");
 		evt.caption.caption = p ? p->value.string : NULL;
@@ -290,9 +290,9 @@ static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
 	} else
 #endif
 	{
-		evt.setup.back_buffer = 1;
+		evt.setup.back_buffer = GF_TRUE;
 	}
-	evt.setup.disable_vsync = !ctx->vsync;
+	evt.setup.disable_vsync = ctx->vsync ? GF_FALSE : GF_TRUE;
 	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	if (evt.setup.use_opengl) {
 		gf_opengl_init();
@@ -310,7 +310,7 @@ static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
 	if ((ctx->disp<MODE_2D) && (glCompileShader == NULL)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load OpenGL, fallback to 2D blit\n"));
 		evt.setup.use_opengl = GF_FALSE;
-		evt.setup.back_buffer = 1;
+		evt.setup.back_buffer = GF_TRUE;
 		ctx->disp = MODE_2D;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
@@ -845,7 +845,7 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 	Bool is_down=GF_FALSE;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) cbk;
 
-	fevt.base.type = 0;
+	fevt.base.type = GF_FEVT_NONE;
 	switch (evt->type) {
 	case GF_EVENT_SIZE:
 		if ((ctx->display_width != evt->size.width) || (ctx->display_height != evt->size.height)) {
@@ -1032,8 +1032,8 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		evt.setup.width = 320;
 		evt.setup.height = 240;
 		evt.setup.use_opengl = GF_TRUE;
-		evt.setup.back_buffer = 1;
-		evt.setup.disable_vsync = !ctx->vsync;
+		evt.setup.back_buffer = GF_TRUE;
+		evt.setup.disable_vsync = ctx->vsync ? GF_FALSE : GF_TRUE;
 		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 
 		if (evt.setup.use_opengl) {
@@ -1303,7 +1303,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 			snprintf(szFileName, 1024, "%s_%d.rgb", ctx->out, ctx->dump_f_idx);
 		}
 		if (!ctx->dump_buffer)
-			ctx->dump_buffer = gf_malloc(sizeof(char)*ctx->display_width*ctx->display_height*3);
+			ctx->dump_buffer = (char *)gf_malloc(ctx->display_width*ctx->display_height*3);
 
 		glFlush();
 
@@ -1353,7 +1353,7 @@ static void vbo_changed(GF_VideoOutCtx *ctx)
 
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 {
-	char *data;
+	u8 *data;
 	GF_Matrix mx;
 	Float hw, hh;
 	u32 wsize;
@@ -1484,7 +1484,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (frame_ifce && frame_ifce->get_gl_texture) {
 		vout_draw_gl_hw_textures(ctx, frame_ifce);
 	} else {
-		data = (char*) gf_filter_pck_get_data(pck, &wsize);
+		data = (u8*) gf_filter_pck_get_data(pck, &wsize);
 		if ((data && wsize) || frame_ifce) {
 			//upload texture
 			gf_gl_txw_upload(&ctx->tx, data, frame_ifce);
@@ -1542,7 +1542,7 @@ exit:
 
 void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 {
-	char *data;
+	const u8 *data;
 	u32 wsize;
 	GF_Err e;
 	GF_VideoSurface src_surf;
@@ -1559,7 +1559,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	src_surf.pixel_format = ctx->pfmt;
 	src_surf.global_alpha = 0xFF;
 
-	data = (char *) gf_filter_pck_get_data(pck, &wsize);
+	data = gf_filter_pck_get_data(pck, &wsize);
 	if (!data) {
 		u32 stride_luma;
 		u32 stride_chroma;
@@ -1590,7 +1590,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			}
 		}
 	} else {
-		src_surf.video_buffer = data;
+		src_surf.video_buffer = (u8*) data;
 	}
 
 
@@ -1599,7 +1599,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.back_buffer = 1;
+		evt.setup.back_buffer = GF_TRUE;
 		evt.setup.width = ctx->display_width;
 		evt.setup.height = ctx->display_height;
 		e = ctx->video_out->ProcessEvent(ctx->video_out, &evt);
@@ -1723,6 +1723,7 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 static GF_Err vout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
+	const GF_PropertyValue *p;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->force_vout) {
@@ -1763,7 +1764,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 		ctx->nb_frames = 0;
 		ctx->buffer_done = GF_FALSE;
-		ctx->no_buffering = 0;
+		ctx->no_buffering = GF_FALSE;
 		ctx->first_cts_plus_one = 0;
 		ctx->clock_at_first_cts = ctx->last_frame_clock = ctx->clock_at_first_frame = 0;
 		return GF_OK;
@@ -1905,7 +1906,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				if (ctx->rebuffer) {
 					u64 rebuf_time = gf_sys_clock_high_res() - ctx->rebuffer;
 					ctx->rebuffer = 0;
-					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] rebuffer done in "LLU" ms\n", (u32) (rebuf_time/1000)));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] rebuffer done in " LLU " ms\n", (u32) (rebuf_time/1000)));
 					if (ctx->clock_at_first_cts)
 						ctx->clock_at_first_cts += rebuf_time;
 				}
@@ -1993,7 +1994,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			safety = DEF_VIDEO_AUDIO_ADVANCE_MS * ctx->timescale / 1000;
 			if (!ctx->step && !ctx->raw_grab && (cts > ref_ts + safety)) {
 				u32 resched_time = (u32) gf_timestamp_rescale(cts-ref_ts - safety, ctx->timescale, 1000000);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame CTS " LLU " CTS greater than reference clock CTS " LLU " (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
 				if (resched_time>100000)
@@ -2002,7 +2003,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				//not ready yet
 				return GF_OK;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame CTS "LLU" latest reference clock CTS "LLU" (%g sec)\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame CTS " LLU " latest reference clock CTS " LLU " (%g sec)\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 			ref_clock = ref_ts;
 			check_clock = GF_TRUE;
 		} else if (!ctx->first_cts_plus_one) {
@@ -2059,7 +2060,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 
 			if (!ctx->raw_grab && (diff < -2000)) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d "LLU" us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts " LLU "/%d " LLU " us too early, waiting\n", gf_sys_clock(), cts, ctx->timescale, -diff));
 				if (diff<-100000) diff = -100000;
 				gf_filter_ask_rt_reschedule(filter, (u32) (-diff));
 
@@ -2068,7 +2069,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				return GF_OK;
 			}
 			if (ABS(diff)>2000) {
-				GF_LOG((diff<0) ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d is "LLD" us too %s\n", gf_sys_clock(), cts, ctx->timescale, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
+				GF_LOG((diff<0) ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts " LLU "/%d is " LLD " us too %s\n", gf_sys_clock(), cts, ctx->timescale, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
 
 				if ((diff>5000000) && !ctx->too_slow) {
 					GF_Event evt;
@@ -2119,7 +2120,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 
 			if (do_drop) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms drop frame "LLU" ms reference clock "LLU" ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale, (1000*ref_clock)/ctx->timescale));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms drop frame " LLU " ms reference clock " LLU " ms\n", gf_sys_clock(), (1000*cts)/ctx->timescale, (1000*ref_clock)/ctx->timescale));
 
 				gf_filter_pck_unref(pck);
 				gf_filter_ask_rt_reschedule(filter, 10);
@@ -2127,7 +2128,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts " LLU "/%d  " LLU " ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
 	} else {
 		gf_filter_pck_ref(&pck);
 		gf_filter_pid_drop_packet(ctx->pid);
@@ -2135,7 +2136,7 @@ static GF_Err vout_process(GF_Filter *filter)
 #ifndef GPAC_DISABLE_LOG
 #ifdef VOUT_USE_OPENGL
 		u64 cts = gf_filter_pck_get_cts(pck);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts "LLU"/%d  "LLU" ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame cts " LLU "/%d  " LLU " ms\n", gf_sys_clock(), cts, ctx->timescale, (1000*cts)/ctx->timescale));
 #endif
 #endif
 
@@ -2145,7 +2146,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_pck_unref(ctx->last_pck);
 	ctx->last_pck = pck;
 	ctx->nb_frames++;
-	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MEDIA_TIME);
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MEDIA_TIME);
 	if (p) {
 		Double a_ts = (Double)  gf_filter_pck_get_cts(pck);
 		a_ts /= ctx->timescale;
@@ -2167,7 +2168,7 @@ draw_frame:
 		} else {
 			ctx->clock_at_first_frame = gf_sys_clock_high_res();
 		}
-		sprintf(szStatus, "info=\"%dx%d %s\" time="LLU"/%d buffer=%d/%d ms fps=%02.02f", ctx->display_width, ctx->display_height,
+		sprintf(szStatus, "info=\"%dx%d %s\" time=" LLU "/%d buffer=%d/%d ms fps=%02.02f", ctx->display_width, ctx->display_height,
 			gf_pixel_fmt_name(ctx->pfmt), gf_filter_pck_get_cts(ctx->last_pck), ctx->timescale, (u32) (dur/1000), (u32)(max_buf/1000), fps);
 		gf_filter_update_status(filter, 0, szStatus);
 	}
@@ -2289,7 +2290,7 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 	}
 	if (!strcmp(arg_name, "speed") && ctx->pid) {
 		GF_FilterEvent fevt;
-		GF_FEVT_INIT(fevt, 0, ctx->pid);
+		GF_FEVT_INIT(fevt, GF_FEVT_NONE, ctx->pid);
 		if (new_val->value.number) {
 			if (!ctx->speed) {
 				fevt.base.type = GF_FEVT_RESUME;

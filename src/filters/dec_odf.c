@@ -40,7 +40,7 @@ typedef struct
 
 GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_ODFDecCtx *ctx = (GF_ODFDecCtx *)gf_filter_get_udta(filter);
 	Bool in_iod = GF_FALSE;
 	GF_FilterPid *out_pid;
 	const GF_PropertyValue *prop;
@@ -62,7 +62,7 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (is_remove) {
-		out_pid = gf_filter_pid_get_udta(pid);
+		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 		if (out_pid==ctx->out_pid)
 			ctx->out_pid = NULL;
 		if (out_pid)
@@ -125,7 +125,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		if (odm->ID != GF_MEDIA_EXTERNAL_ID) {
 			count = gf_list_count(scene->scene_objects);
 			for (i=0; i<count; i++) {
-				GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
+				GF_MediaObject *mo = (GF_MediaObject *)gf_list_get(scene->scene_objects, i);
 				if (mo->OD_ID != odm->ID) continue;
 				if (mo->type == GF_MEDIA_OBJECT_SCENE) {
 					odm->subscene = gf_scene_new(scene->compositor, scene);
@@ -145,7 +145,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	nb_esd = gf_list_count(od->ESDescriptors);
 	nb_scene = nb_od = 0;
 	for (i=0; i<nb_esd; i++) {
-		esd = gf_list_get(od->ESDescriptors, i);
+		esd = (GF_ESD *)gf_list_get(od->ESDescriptors, i);
 		if (esd->decoderConfig && (esd->decoderConfig->streamType==GF_STREAM_SCENE)) nb_scene++;
 		else if (esd->decoderConfig && (esd->decoderConfig->streamType==GF_STREAM_OD)) nb_od++;
 	}
@@ -153,13 +153,13 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	for (j=0; j<nb_esd; j++) {
 		Bool skip_od = GF_FALSE;
 		GF_FilterPid *pid = NULL;
-		esd = gf_list_get(od->ESDescriptors, j);
+		esd = (GF_ESD *)gf_list_get(od->ESDescriptors, j);
 
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			u32 k=0;
 			GF_ODMExtraPid *xpid;
-			odm = gf_list_get(scene->resources, i);
+			odm = (struct _od_manager *)gf_list_get(scene->resources, i);
 			//can happen with interaction and scene streams
 			if (!odm->pid) {
 				if (odm->mo && odm->mo->OD_ID == od->objectDescriptorID) {
@@ -171,12 +171,12 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				odm = NULL;
 				continue;
 			}
-			
+
 			if (odm->pid_id == esd->ESID) {
 				pid = odm->pid;
 				break;
 			}
-			while ( (xpid = gf_list_enum(odm->extra_pids, &k))) {
+			while ( (xpid = (GF_ODMExtraPid *)gf_list_enum(odm->extra_pids, &k))) {
 				if (xpid->pid_id == esd->ESID) {
 					pid = odm->pid;
 					break;
@@ -338,10 +338,10 @@ GF_Err odf_dec_process(GF_Filter *filter)
 	GF_ODCodec *oddec;
 	u64 cts, now;
 	u32 count, i;
-	const char *data;
+	const u8 *data;
 	u32 size, ESID=0;
 	const GF_PropertyValue *prop;
-	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_ODFDecCtx *ctx = (GF_ODFDecCtx *)gf_filter_get_udta(filter);
 
 	if (!ctx->scene) {
 		if (ctx->is_playing) {
@@ -355,8 +355,8 @@ GF_Err odf_dec_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		GF_Scene *scene;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
-		GF_ObjectManager *odm = gf_filter_pid_get_udta(opid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
+		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(opid);
 		if (!odm) continue;
 
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
@@ -414,7 +414,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 			{
 				GF_IPMPUpdate *ipmpU = (GF_IPMPUpdate *)com;
 				while (gf_list_count(ipmpU->IPMPDescList)) {
-					GF_IPMP_Descriptor *ipmp = gf_list_get(ipmpU->IPMPDescList, 0);
+					GF_IPMP_Descriptor *ipmp = (GF_IPMP_Descriptor *)gf_list_get(ipmpU->IPMPDescList, 0);
 					gf_list_rem(ipmpU->IPMPDescList, 0);
 					IS_UpdateIPMP(priv->scene, ipmp);
 				}
@@ -446,7 +446,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 		gf_odf_codec_del(oddec);
 
 		now = gf_sys_clock_high_res() - now;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] ODM%d #CH%d decoded AU TS %u in "LLU" us\n", odm->ID, ESID, cts, now));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] ODM%d #CH%d decoded AU TS %u in " LLU " us\n", odm->ID, ESID, cts, now));
 	}
 
 	return GF_OK;
@@ -457,7 +457,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
-	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_ODFDecCtx *ctx = (GF_ODFDecCtx *)gf_filter_get_udta(filter);
 
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
@@ -474,11 +474,11 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	//attach inline scenes
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!ctx->odm) {
-				ctx->odm = com->attach_scene.object_manager;
+				ctx->odm = (GF_ObjectManager *)com->attach_scene.object_manager;
 				ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 			}
 			gf_filter_pid_set_udta(opid, com->attach_scene.object_manager);

@@ -100,18 +100,18 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 		GF_ESDUpdate *esdU = (GF_ESDUpdate *)com;
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(esdU->ESDescriptors, &i))) {
-			Bool import = 1;
+			Bool import = GF_TRUE;
 			if (esd->URLString) continue;
 			if (esd->decoderConfig) {
 				switch (esd->decoderConfig->streamType) {
 				case GF_STREAM_OD:
-					import = 0;
+					import = GF_FALSE;
 					break;
 				case GF_STREAM_SCENE:
 					if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
 							(esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
 					   ) {
-						import = 0;
+						import = GF_FALSE;
 					}
 					break;
 				/*dump the OCR track duration in case the OCR is used by media controls & co*/
@@ -125,7 +125,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 					dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
 					dur /= gf_isom_get_timescale(mp4);
 					mi->duration = (u32) (dur * 1000);
-					import = 0;
+					import = GF_FALSE;
 				}
 					break;
 				default:
@@ -144,7 +144,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 	}
 }
 
-static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
+static void mp4_report(GF_SceneLoader *load, GF_Err e, const char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
 	if (format && gf_log_tool_level_on(GF_LOG_PARSER, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
@@ -153,7 +153,7 @@ static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 		va_start(args, format);
 		vsnprintf(szMsg, 1024, format, args);
 		va_end(args);
-		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[MP4 Loading] %s\n", szMsg) );
+		GF_LOG((e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[MP4 Loading] %s\n", szMsg) );
 	}
 #endif
 }
@@ -178,7 +178,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 	nbBifs = nbLaser = 0;
 	e = GF_OK;
 #ifndef GPAC_DISABLE_BIFS
-	bifs_dec = gf_bifs_decoder_new(load->scene_graph, 1);
+	bifs_dec = gf_bifs_decoder_new(load->scene_graph, GF_TRUE);
 #endif
 	od_dec = gf_odf_codec_new();
 	logs = NULL;
@@ -204,7 +204,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 		}
 	}
 	samp_done = 1;
-	gf_isom_text_set_streaming_mode(load->isom, 1);
+	gf_isom_text_set_streaming_mode(load->isom, GF_TRUE);
 
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
@@ -295,7 +295,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			}
 			samp->DTS += init_offset;
 
-			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)(s64) samp->DTS) / sc->timeScale, (samp->IsRAP==RAP) ? 1 : 0);
+			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)(s64) samp->DTS) / sc->timeScale, (samp->IsRAP==RAP) ? GF_TRUE : GF_FALSE);
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 #ifndef GPAC_DISABLE_BIFS
@@ -331,7 +331,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		esd = NULL;
 	}
-	gf_isom_text_set_streaming_mode(load->isom, 0);
+	gf_isom_text_set_streaming_mode(load->isom, GF_FALSE);
 
 exit:
 #ifndef GPAC_DISABLE_BIFS
@@ -362,7 +362,7 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	GF_BIFSConfig *bc;
 	GF_ESD *esd;
 	GF_Err e;
-	char *scene_msg = "MPEG-4 BIFS Scene Parsing";
+	const char *scene_msg = "MPEG-4 BIFS Scene Parsing";
 	if (!load->isom) return GF_BAD_PARAM;
 
 	/*load IOD*/
@@ -430,7 +430,7 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 		}
 		/*LASeR*/
 		else if (esd->decoderConfig->objectTypeIndication==0x09) {
-			load->ctx->is_pixel_metrics = 1;
+			load->ctx->is_pixel_metrics = GF_TRUE;
 		}
 	}
 	gf_odf_desc_del((GF_Descriptor *) esd);

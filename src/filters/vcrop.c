@@ -72,7 +72,7 @@ typedef struct
 
 GF_Err vcrop_frame_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
-	GF_VCropFrame *vframe = frame->user_data;
+	GF_VCropFrame *vframe = (GF_VCropFrame *)frame->user_data;
 
 	if (plane_idx>=vframe->ctx->nb_planes) return GF_BAD_PARAM;
 	if (outPlane) *outPlane = vframe->planes[plane_idx];
@@ -85,7 +85,7 @@ void vcrop_packet_destruct(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 	GF_VCropFrame *vframe;
 	GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	if (!frame_ifce) return;
-	vframe = frame_ifce->user_data;
+	vframe = (GF_VCropFrame *)frame_ifce->user_data;
 	gf_assert(vframe->pck);
 	gf_filter_pck_unref(vframe->pck);
 	vframe->pck = NULL;
@@ -106,7 +106,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 	Bool do_memset = GF_FALSE;
 	GF_FilterPacket *dst_pck;
 	GF_FilterFrameInterface *frame_ifce;
-	GF_VCropCtx *ctx = gf_filter_get_udta(filter);
+	GF_VCropCtx *ctx = (GF_VCropCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
@@ -182,7 +182,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 	}
 
 	if (ctx->use_reference) {
-		GF_VCropFrame *vframe = gf_list_pop_back(ctx->frames_res);
+		GF_VCropFrame *vframe = (GF_VCropFrame *)gf_list_pop_back(ctx->frames_res);
 		if (!vframe) {
 			GF_SAFEALLOC(vframe, GF_VCropFrame);
 			if (!vframe) return GF_OUT_OF_MEM;
@@ -227,7 +227,7 @@ static GF_Err vcrop_process(GF_Filter *filter)
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
-	
+
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	dst_planes[0] = output;
 	if (ctx->nb_planes==1) {
@@ -452,7 +452,7 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	const GF_PropertyValue *p;
 	u32 w, h, stride, pfmt;
 	GF_Fraction sar;
-	GF_VCropCtx *ctx = gf_filter_get_udta(filter);
+	GF_VCropCtx *ctx = (GF_VCropCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -570,17 +570,17 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 void vcrop_finalize(GF_Filter *filter)
 {
-	GF_VCropCtx *ctx = gf_filter_get_udta(filter);
+	GF_VCropCtx *ctx = (GF_VCropCtx *)gf_filter_get_udta(filter);
 	if (ctx->frames) {
 		while (gf_list_count(ctx->frames)) {
-			GF_VCropFrame *vframe = gf_list_pop_back(ctx->frames);
+			GF_VCropFrame *vframe = (GF_VCropFrame *)gf_list_pop_back(ctx->frames);
 			gf_free(vframe);
 		}
 		gf_list_del(ctx->frames);
 	}
 	if (ctx->frames_res) {
 		while (gf_list_count(ctx->frames_res)) {
-			GF_VCropFrame *vframe = gf_list_pop_back(ctx->frames_res);
+			GF_VCropFrame *vframe = (GF_VCropFrame *)gf_list_pop_back(ctx->frames_res);
 			gf_free(vframe);
 		}
 		gf_list_del(ctx->frames_res);

@@ -78,7 +78,7 @@ GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStrea
 	ptr->vert_res = gf_bs_read_u32(bs);
 	ptr->entry_data_size = gf_bs_read_u32(bs);
 	ptr->frames_per_sample = gf_bs_read_u16(bs);
-	gf_bs_read_data(bs, ptr->compressor_name, 32);
+	gf_bs_read_data(bs, (u8 *)ptr->compressor_name, 32);
 	ptr->compressor_name[32] = 0;
 	ptr->bit_depth = gf_bs_read_u16(bs);
 	ptr->color_table_index = gf_bs_read_u16(bs);
@@ -102,7 +102,7 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 	gf_bs_write_u32(bs, ptr->vert_res);
 	gf_bs_write_u32(bs, ptr->entry_data_size);
 	gf_bs_write_u16(bs, ptr->frames_per_sample);
-	gf_bs_write_data(bs, ptr->compressor_name, 32);
+	gf_bs_write_data(bs, (u8 *)ptr->compressor_name, 32);
 	gf_bs_write_u16(bs, ptr->bit_depth);
 	gf_bs_write_u16(bs, ptr->color_table_index);
 
@@ -213,10 +213,10 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 	//QT only
 	if (ptr->version==1) {
 		ISOM_DECREASE_SIZE(ptr, 16)
-		gf_bs_read_data(bs, (char *) ptr->extensions, 16);
+		gf_bs_read_data(bs,ptr->extensions, 16);
 	} else if (ptr->version==2) {
 		ISOM_DECREASE_SIZE(ptr, 36)
-		gf_bs_read_data(bs,  (char *) ptr->extensions, 36);
+		gf_bs_read_data(bs,ptr->extensions, 36);
 	}
 	return GF_OK;
 }
@@ -270,7 +270,7 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 		if (ptr->version==1) {
 			//direct copy of data
 			if (ptr->qtff_mode==GF_ISOM_AUDIO_QTFF_ON_EXT_VALID) {
-				gf_bs_write_data(bs,  (char *) ptr->extensions, 16);
+				gf_bs_write_data(bs,ptr->extensions, 16);
 			} else {
 				gf_bs_write_u32(bs, codec_ext ? 1024 : 1);
 				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample/8);
@@ -278,7 +278,7 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 				gf_bs_write_u32(bs, codec_ext ? 0 : ptr->bitspersample <= 16 ? ptr->bitspersample/8 : 2);
 			}
 		} else if (ptr->version==2) {
-			gf_bs_write_data(bs,  (char *) ptr->extensions, 36);
+			gf_bs_write_data(bs,ptr->extensions, 36);
 		}
 	}
 }
@@ -405,7 +405,7 @@ GF_Err gf_isom_flac_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 	if (type!=GF_ISOM_BOX_TYPE_FLAC) return GF_BAD_PARAM;
 	if (!entry->cfg_flac) return GF_OK;
 	if (dsi) {
-		*dsi = gf_malloc(sizeof(u8)*entry->cfg_flac->dataSize);
+		*dsi = (u8 *)gf_malloc(entry->cfg_flac->dataSize);
 		memcpy(*dsi, entry->cfg_flac->data, entry->cfg_flac->dataSize);
 	}
 	if (dsi_size) *dsi_size = entry->cfg_flac->dataSize;
@@ -758,7 +758,7 @@ GF_Err gf_isom_ac3_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	entry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescriptionIndex-1);
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	if (!entry->cfg_ac3) return GF_BAD_PARAM;
 
@@ -827,7 +827,7 @@ GF_Err gf_isom_ac4_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!the_file->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	entry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescriptionIndex-1);
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	if (!entry->cfg_ac4) return GF_BAD_PARAM;
 
@@ -870,7 +870,7 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metada
 	entry->cfg_flac->dataSize = metadata_size;
 	entry->cfg_flac->data = NULL;
 	if (metadata && metadata_size) {
-		entry->cfg_flac->data = gf_malloc(sizeof(u8)*metadata_size);
+		entry->cfg_flac->data = (u8 *)gf_malloc(metadata_size);
 		memcpy(entry->cfg_flac->data, metadata, sizeof(u8)*metadata_size);
 	}
 	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
@@ -1153,7 +1153,7 @@ GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
 		if (!lsr->lsr_config) return GF_OUT_OF_MEM;
 	}
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		lsr->lsr_config->hdr = gf_realloc(lsr->lsr_config->hdr, sizeof(char) * esd->decoderConfig->decoderSpecificInfo->dataLength);
+		lsr->lsr_config->hdr = (u8 *)gf_realloc(lsr->lsr_config->hdr, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		lsr->lsr_config->hdr_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 		memcpy(lsr->lsr_config->hdr, esd->decoderConfig->decoderSpecificInfo->data, sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}
@@ -1943,7 +1943,7 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 		if (mpa->cfg_mha->mha_config_size < dsi_size-5)
 			return GF_BAD_PARAM;
 
-		mpa->cfg_mha->mha_config = gf_malloc(sizeof(u8) * mpa->cfg_mha->mha_config_size);
+		mpa->cfg_mha->mha_config = (u8 *)gf_malloc(mpa->cfg_mha->mha_config_size);
 		if (!mpa->cfg_mha->mha_config) return GF_OUT_OF_MEM;
 		memcpy(mpa->cfg_mha->mha_config, dsi+5, dsi_size-5);
 	}

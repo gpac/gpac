@@ -136,7 +136,7 @@ struct __xhr_context
 
 	char *method, *url;
 	GF_DownloadSession *sess;
-	char *data;
+	u8 *data;
 	u32 size;
 	JSValue arraybuffer;
 	GF_Err ret_code;
@@ -229,7 +229,7 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 			}
 			/*append value*/
 			else {
-				char *new_val = (char *)gf_malloc(sizeof(char) * (strlen(ctx->headers[nb_hdr+1])+strlen(val)+3));
+				char *new_val = (char *)gf_malloc((strlen(ctx->headers[nb_hdr+1])+strlen(val)+3));
 				sprintf(new_val, "%s, %s", ctx->headers[nb_hdr+1], val);
 				gf_free(ctx->headers[nb_hdr+1]);
 				ctx->headers[nb_hdr+1] = new_val;
@@ -351,7 +351,7 @@ static void xml_http_finalize(JSRuntime *rt, JSValue obj)
 	if (ctx->event_target) {
 		if (ctx->local_graph) {
 			while (gf_list_count(ctx->event_target->listeners)) {
-				GF_Node *listener = gf_list_get(ctx->event_target->listeners, 0);
+				GF_Node *listener = (GF_Node *)gf_list_get(ctx->event_target->listeners, 0);
 				gf_dom_listener_del(listener, ctx->event_target);
 			}
 		}
@@ -386,7 +386,7 @@ void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOME
 {
 	if (c) {
 		/*XHR interface*/
-		XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+		XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 		if (!ctx) return;
 
 		if (ctx->local_graph)
@@ -541,7 +541,7 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	ctx->async = GF_TRUE;
 	if (argc>2) {
 		val = NULL;
-		ctx->async = JS_ToBool(c, argv[2]) ? GF_TRUE : GF_FALSE;
+		ctx->async = (Bool) JS_ToBool(c, argv[2]);
 		if (argc>3) {
 			if (!JS_CHECK_STRING(argv[3])) return GF_JS_EXCEPTION(c);
 			/*TODO*/
@@ -809,7 +809,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			}
 
 			if (ctx->responseType!=XHR_RESPONSETYPE_PUSH) {
-				ctx->data = (char *)gf_realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
+				ctx->data = (u8 *)gf_realloc(ctx->data, (ctx->size+parameter->size+1));
 				memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
 				ctx->size += parameter->size;
 				ctx->data[ctx->size] = 0;
@@ -908,7 +908,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 
 	ctx->html_status = 200;
 
-	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
+	ctx->data = (u8 *)gf_malloc((size_t)(fsize+1));
 	fsize = gf_fread(ctx->data, (size_t)fsize, responseFile);
 	gf_fclose(responseFile);
 	ctx->data[fsize] = 0;
@@ -956,7 +956,8 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	GF_Err e;
 	GF_JSAPIParam par;
 	GF_SceneGraph *scene;
-	const char *data = NULL;
+	Bool is_str = GF_FALSE;
+	const u8 *data = NULL;
 	u32 data_size = 0;
 	XMLHTTPContext *ctx = (XMLHTTPContext *) JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
@@ -988,17 +989,25 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			return GF_JS_EXCEPTION(c);
 		} else {
 			if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
-			data = JS_ToCString(c, argv[0]);
-			data_size = (u32) strlen(data);
+			data = (u8*) JS_ToCString(c, argv[0]);
+			data_size = (u32) strlen((char *)data);
+			is_str = GF_TRUE;
 		}
 	}
 
 	/*reset previous text*/
 	xml_http_del_data(ctx);
-	ctx->data = data ? gf_strdup(data) : NULL;
+	ctx->data = NULL;
+	if (data) {
+		ctx->data = (u8*) gf_malloc(data_size+1);
+		if (!ctx->data) return GF_JS_EXCEPTION(c);
+		memcmp(ctx->data, data, data_size);
+		ctx->data[data_size] = 0;
+	}
 	ctx->size = data_size;
 
-	JS_FreeCString(c, data);
+	if (is_str)
+		JS_FreeCString(c, (char *)data);
 
 	if (!strncmp(ctx->url, "http://", 7) || !strncmp(ctx->url, "https://", 8)) {
 		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
@@ -1057,7 +1066,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 static JSValue xml_http_abort(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_DownloadSession *sess;
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+	XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	sess = ctx->sess;
@@ -1081,7 +1090,7 @@ static JSValue xml_http_get_all_headers(JSContext *c, JSValueConst obj, int argc
 	char *szVal = NULL;
 	const char *hdr_name, *hdr_val;
 	JSValue res;
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+	XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	/*must be received or loaded*/
@@ -1106,7 +1115,7 @@ static JSValue xml_http_get_all_headers(JSContext *c, JSValueConst obj, int argc
 static JSValue xml_http_get_header(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	const char *hdr;
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+	XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
@@ -1126,7 +1135,7 @@ static GF_Err xml_http_load_dom(XMLHTTPContext *ctx)
 {
 	GF_Err e;
 	GF_DOMParser *parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse_string(parser, ctx->data);
+	e = gf_xml_dom_parse_string(parser, (char *)ctx->data);
 	if (!e) {
 		e = gf_sg_init_from_xml_node(ctx->document, gf_xml_dom_get_root(parser));
 	}
@@ -1139,7 +1148,7 @@ static GF_Err xml_http_load_dom(XMLHTTPContext *ctx)
 static JSValue xml_http_overrideMimeType(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	const char *mime;
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+	XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx || !argc) return GF_JS_EXCEPTION(c);
 
 	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
@@ -1159,7 +1168,7 @@ static void xml_http_array_buffer_free(JSRuntime *rt, void *opaque, void *ptr)
 
 static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+	XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
@@ -1175,7 +1184,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case XHR_RESPONSETEXT:
 		if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_NULL;
 		if (ctx->data) {
-			return JS_NewString(c, ctx->data);
+			return JS_NewString(c, (char *)ctx->data);
 		} else {
 			return JS_NULL;
 		}
@@ -1210,7 +1219,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 			{
 			case XHR_RESPONSETYPE_NONE:
 			case XHR_RESPONSETYPE_TEXT:
-				return JS_NewString(c, ctx->data);
+				return JS_NewString(c, (char *)ctx->data);
 
 			case XHR_RESPONSETYPE_ARRAYBUFFER:
 				if (JS_IsUndefined(ctx->arraybuffer)) {
@@ -1238,7 +1247,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 				return js_throw_err_msg(c, GF_NOT_SUPPORTED, "DOM support not included in buil");
 #endif
 			case XHR_RESPONSETYPE_JSON:
-				return JS_ParseJSON(c, ctx->data, ctx->size, "responseJSON");
+				return JS_ParseJSON(c, (char *)ctx->data, ctx->size, "responseJSON");
 			case XHR_RESPONSETYPE_PUSH:
 				return GF_JS_EXCEPTION(c);
 			default:
@@ -1300,7 +1309,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
 {
-	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
+	XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 #define SET_CBK(_sym) \
@@ -1337,11 +1346,11 @@ static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 		SET_CBK(ontimeout)
 
 	case XHR_TIMEOUT:
-		if (JS_ToInt32(c, &ctx->timeout, value)) return GF_JS_EXCEPTION(c);
+		if (JS_ToUint32(c, &ctx->timeout, value)) return GF_JS_EXCEPTION(c);
 		return JS_TRUE;
 
 	case XHR_WITHCREDENTIALS:
-		ctx->withCredentials = JS_ToBool(c, value) ? GF_TRUE : GF_FALSE;
+		ctx->withCredentials = (Bool) JS_ToBool(c, value);
 		return JS_TRUE;
 	case XHR_RESPONSETYPE:
 	{
@@ -1423,7 +1432,7 @@ static const JSCFunctionListEntry xhr_Funcs[] =
 
 static void xml_http_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
-    XMLHTTPContext *ctx = JS_GetOpaque(val, xhrClass.class_id);
+    XMLHTTPContext *ctx = (XMLHTTPContext *)JS_GetOpaque(val, xhrClass.class_id);
     if (!ctx) return;
 
 	JS_MarkValue(rt, ctx->onabort, mark_func);
@@ -1443,10 +1452,10 @@ static JSValue xhr_load_class(JSContext *c)
 {
 	if (! xhrClass.class_id) {
 		JS_NewClassID(&xhrClass.class_id);
-		xhrClass.class.class_name = "XMLHttpRequest";
-		xhrClass.class.finalizer = xml_http_finalize;
-		xhrClass.class.gc_mark = xml_http_gc_mark;
-		JS_NewClass(JS_GetRuntime(c), xhrClass.class_id, &xhrClass.class);
+		xhrClass.the_class.class_name = "XMLHttpRequest";
+		xhrClass.the_class.finalizer = xml_http_finalize;
+		xhrClass.the_class.gc_mark = xml_http_gc_mark;
+		JS_NewClass(JS_GetRuntime(c), xhrClass.class_id, &xhrClass.the_class);
 	}
 	JSValue proto = JS_NewObjectClass(c, xhrClass.class_id);
 	JS_SetPropertyFunctionList(c, proto, xhr_Funcs, countof(xhr_Funcs));

@@ -150,13 +150,13 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 			goto exit;
 		}
 		if (len) {
-			ce->name = (char *)gf_malloc(sizeof(char)*(len+1));
+			ce->name = (char *)gf_malloc(len+1);
 			if (!ce->name) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
 			}
 			ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, len)
-			gf_bs_read_data(bs, ce->name, len);
+			gf_bs_read_data(bs, (u8 *)ce->name, len);
 			ce->name[len] = 0;
 		} else {
 			ce->name = gf_strdup("");
@@ -202,7 +202,7 @@ GF_Err chpl_box_write(GF_Box *s, GF_BitStream *bs)
 			len = (u32) strlen(ce->name);
 			if (len>255) len = 255;
 			gf_bs_write_u8(bs, len);
-			gf_bs_write_data(bs, ce->name, len);
+			gf_bs_write_data(bs, (u8 *)ce->name, len);
 		} else {
 			gf_bs_write_u8(bs, 0);
 		}
@@ -252,9 +252,9 @@ GF_Err cprt_box_read(GF_Box *s,GF_BitStream *bs)
 	}
 	if (ptr->size) {
 		u32 bytesToRead = (u32) ptr->size;
-		ptr->notice = (char*)gf_malloc((bytesToRead+1) * sizeof(char));
+		ptr->notice = (char*)gf_malloc(bytesToRead+1);
 		if (ptr->notice == NULL) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->notice, bytesToRead);
+		gf_bs_read_data(bs, (u8 *)ptr->notice, bytesToRead);
 		ptr->notice[bytesToRead] = 0;
 	}
 	return GF_OK;
@@ -288,7 +288,7 @@ GF_Err cprt_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_int(bs, 0, 15);
 	}
 	if (ptr->notice) {
-		gf_bs_write_data(bs, ptr->notice, (u32) (strlen(ptr->notice) + 1) );
+		gf_bs_write_data(bs, (u8 *)ptr->notice, (u32) (strlen(ptr->notice) + 1) );
 	}
 	return GF_OK;
 }
@@ -320,14 +320,13 @@ GF_Err kind_box_read(GF_Box *s,GF_BitStream *bs)
 
 	if (ptr->size) {
 		u32 bytesToRead = (u32) ptr->size;
-		char *data;
 		u32 schemeURIlen;
-		data = (char*)gf_malloc(bytesToRead * sizeof(char));
+		char *data = (char*)gf_malloc(bytesToRead);
 		if (!data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, data, bytesToRead);
+		gf_bs_read_data(bs, (u8 *)data, bytesToRead);
 		/*safety check in case the string is not null-terminated*/
 		if (data[bytesToRead-1]) {
-			data = (char*)gf_realloc(data, sizeof(char)*(bytesToRead + 1));
+			data = (char *)gf_realloc(data, (bytesToRead + 1));
 			if (!data) return GF_OUT_OF_MEM;
 			data[bytesToRead] = 0;
 			bytesToRead++;
@@ -362,12 +361,12 @@ GF_Err kind_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	if (ptr->schemeURI)
-		gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
+		gf_bs_write_data(bs, (u8 *)ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
 	else
 		gf_bs_write_u8(bs, 0);
 
 	if (ptr->value) {
-		gf_bs_write_data(bs, ptr->value, (u32) (strlen(ptr->value) + 1) );
+		gf_bs_write_data(bs, (u8 *)ptr->value, (u32) (strlen(ptr->value) + 1) );
 	}
 	return GF_OK;
 }
@@ -575,8 +574,8 @@ GF_Err ccst_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_CodingConstraintsBox *ptr = (GF_CodingConstraintsBox *)s;
 
 	ISOM_DECREASE_SIZE(ptr, 4);
-	ptr->all_ref_pics_intra = gf_bs_read_int(bs, 1);
-	ptr->intra_pred_used = gf_bs_read_int(bs, 1);
+	ptr->all_ref_pics_intra = gf_bs_read_bool(bs);
+	ptr->intra_pred_used = gf_bs_read_bool(bs);
 	ptr->max_ref_per_pic = gf_bs_read_int(bs, 4);
 	ptr->reserved = gf_bs_read_int(bs, 26);
 	return GF_OK;
@@ -642,7 +641,7 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		ptr->location = (char*)gf_malloc(location_size);
 		if (! ptr->location) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->location, location_size);
+		gf_bs_read_data(bs, (u8 *)ptr->location, location_size);
 		if (ptr->location[location_size-1]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] url box location is not 0-terminated\n" ));
 			return GF_ISOM_INVALID_FILE;
@@ -674,7 +673,7 @@ GF_Err url_box_write(GF_Box *s, GF_BitStream *bs)
 	//the flag set indicates we have a string (WE HAVE TO for URLs)
 	if ( !(ptr->flags & 1)) {
 		if (ptr->location) {
-			gf_bs_write_data(bs, ptr->location, (u32)strlen(ptr->location) + 1);
+			gf_bs_write_data(bs, (u8 *)ptr->location, (u32)strlen(ptr->location) + 1);
 		}
 	}
 	return GF_OK;
@@ -716,10 +715,10 @@ GF_Err urn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	//here we have to handle that in a clever way
 	to_read = (u32) ptr->size;
-	tmpName = (char*)gf_malloc(sizeof(char) * to_read);
+	tmpName = (char*)gf_malloc(to_read);
 	if (!tmpName) return GF_OUT_OF_MEM;
 	//get the data
-	gf_bs_read_data(bs, tmpName, to_read);
+	gf_bs_read_data(bs, (u8 *) tmpName, to_read);
 
 	//then get the break
 	i = 0;
@@ -738,7 +737,7 @@ GF_Err urn_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 	}
 	//OK, this has both URN and URL
-	ptr->nameURN = (char*)gf_malloc(sizeof(char) * (i+1));
+	ptr->nameURN = (char*)gf_malloc(i+1);
 	if (!ptr->nameURN) {
 		gf_free(tmpName);
 		return GF_OUT_OF_MEM;
@@ -749,7 +748,7 @@ GF_Err urn_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] urn box contains invalid location field\n" ));
 	}
 	else {
-		ptr->location = (char*)gf_malloc(sizeof(char) * (to_read - i - 1));
+		ptr->location = (char*)gf_malloc(to_read - i - 1);
 		if (!ptr->location) {
 			gf_free(tmpName);
 			gf_free(ptr->nameURN);
@@ -783,10 +782,10 @@ GF_Err urn_box_write(GF_Box *s, GF_BitStream *bs)
 	if ( !(ptr->flags & 1)) {
 		//to check, the spec says: First name, then location
 		if (ptr->nameURN) {
-			gf_bs_write_data(bs, ptr->nameURN, (u32)strlen(ptr->nameURN) + 1);
+			gf_bs_write_data(bs, (u8 *)ptr->nameURN, (u32)strlen(ptr->nameURN) + 1);
 		}
 		if (ptr->location) {
-			gf_bs_write_data(bs, ptr->location, (u32)strlen(ptr->location) + 1);
+			gf_bs_write_data(bs, (u8 *)ptr->location, (u32)strlen(ptr->location) + 1);
 		}
 	}
 	return GF_OK;
@@ -830,7 +829,7 @@ GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 	}
 
-	ptr->data = (char*)gf_malloc(bytesToRead);
+	ptr->data = (u8*)gf_malloc(bytesToRead);
 	if (ptr->data == NULL ) return GF_OUT_OF_MEM;
 	ptr->dataSize = bytesToRead;
 	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
@@ -1005,7 +1004,7 @@ GF_Err uuid_box_read(GF_Box *s, GF_BitStream *bs)
 	bytesToRead = (u32) (ptr->size);
 
 	if (bytesToRead) {
-		ptr->data = (char*)gf_malloc(bytesToRead);
+		ptr->data = (u8*)gf_malloc(bytesToRead);
 		if (ptr->data == NULL ) return GF_OUT_OF_MEM;
 		ptr->dataSize = bytesToRead;
 		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
@@ -1350,7 +1349,7 @@ GF_Err esds_box_read(GF_Box *s, GF_BitStream *bs)
 	descSize = (u32) (ptr->size);
 
 	if (descSize) {
-		char *enc_desc = (char*)gf_malloc(sizeof(char) * descSize);
+		u8 *enc_desc = (u8*)gf_malloc(descSize);
 		if (!enc_desc) return GF_OUT_OF_MEM;
 		//get the payload
 		gf_bs_read_data(bs, enc_desc, descSize);
@@ -1448,7 +1447,7 @@ GF_Err free_box_read(GF_Box *s, GF_BitStream *bs)
 	bytesToRead = (u32) (ptr->size);
 
 	if (bytesToRead) {
-		ptr->data = (char*)gf_malloc(bytesToRead * sizeof(char));
+		ptr->data = (u8*)gf_malloc(bytesToRead);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->data, bytesToRead);
 		ptr->dataSize = bytesToRead;
@@ -1591,7 +1590,7 @@ GF_Err gnrm_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 8)
 	if (ptr->size) {
 		ptr->data_size = (u32) ptr->size;
-		ptr->data = (char*)gf_malloc(ptr->data_size * sizeof(char));
+		ptr->data = (u8*)gf_malloc(ptr->data_size);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->data, ptr->data_size);
 	}
@@ -1650,7 +1649,7 @@ GF_Err gnrv_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	if (ptr->size) {
 		ptr->data_size = (u32) ptr->size;
-		ptr->data = (char*)gf_malloc(ptr->data_size * sizeof(char));
+		ptr->data = (u8*)gf_malloc(ptr->data_size);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->data, ptr->data_size);
 	}
@@ -1712,7 +1711,7 @@ GF_Err gnra_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	if (ptr->size) {
 		ptr->data_size = (u32) ptr->size;
-		ptr->data = (char*)gf_malloc(ptr->data_size * sizeof(char));
+		ptr->data = (u8*)gf_malloc(ptr->data_size);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->data, ptr->data_size);
 	}
@@ -1768,7 +1767,7 @@ GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 20);
 	ptr->reserved1 = gf_bs_read_u32(bs);
 	ptr->handlerType = gf_bs_read_u32(bs);
-	gf_bs_read_data(bs, (char*)ptr->reserved2, 12);
+	gf_bs_read_data(bs, ptr->reserved2, 12);
 
 	cookie = gf_bs_get_cookie(bs);
 	if (ptr->handlerType==GF_ISOM_MEDIA_VISUAL)
@@ -1785,7 +1784,7 @@ GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		ptr->nameUTF8 = (char*)gf_malloc(name_size);
 		if (!ptr->nameUTF8) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->nameUTF8, name_size);
+		gf_bs_read_data(bs, (u8 *)ptr->nameUTF8, name_size);
 
 		//patch for old QT files - we cannot rely on checking if str[0]==len(str+1) since we may have
 		//cases where the first character of the string decimal value is indeed the same as the string length!!
@@ -1818,15 +1817,15 @@ GF_Err hdlr_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->reserved1);
 	gf_bs_write_u32(bs, ptr->handlerType);
-	gf_bs_write_data(bs, (char*)ptr->reserved2, 12);
+	gf_bs_write_data(bs, ptr->reserved2, 12);
 
 	if (ptr->nameUTF8) {
 		u32 len = (u32)strlen(ptr->nameUTF8);
 		if (ptr->store_counted_string) {
 			gf_bs_write_u8(bs, len);
-			gf_bs_write_data(bs, ptr->nameUTF8, len);
+			gf_bs_write_data(bs, (u8 *)ptr->nameUTF8, len);
 		} else {
-			gf_bs_write_data(bs, ptr->nameUTF8, len);
+			gf_bs_write_data(bs, (u8 *)ptr->nameUTF8, len);
 			gf_bs_write_u8(bs, 0);
 		}
 	} else {
@@ -2027,10 +2026,10 @@ GF_Err sdp_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	//sdp text has no delimiter !!!
-	ptr->sdpText = (char*)gf_malloc(sizeof(char) * (length+1));
+	ptr->sdpText = (char*)gf_malloc(length+1);
 	if (!ptr->sdpText) return GF_OUT_OF_MEM;
 
-	gf_bs_read_data(bs, ptr->sdpText, length);
+	gf_bs_read_data(bs, (u8 *)ptr->sdpText, length);
 	ptr->sdpText[length] = 0;
 	return GF_OK;
 }
@@ -2049,7 +2048,7 @@ GF_Err sdp_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	//don't write the NULL char!!!
 	if (ptr->sdpText)
-		gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
+		gf_bs_write_data(bs, (u8 *)ptr->sdpText, (u32) strlen(ptr->sdpText));
 	return GF_OK;
 }
 GF_Err sdp_box_size(GF_Box *s)
@@ -2090,10 +2089,10 @@ GF_Err rtp_hnti_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	//sdp text has no delimiter !!!
-	ptr->sdpText = (char*)gf_malloc(sizeof(char) * (length+1));
+	ptr->sdpText = (char*)gf_malloc(length+1);
 	if (!ptr->sdpText) return GF_OUT_OF_MEM;
 
-	gf_bs_read_data(bs, ptr->sdpText, length);
+	gf_bs_read_data(bs, (u8 *)ptr->sdpText, length);
 	ptr->sdpText[length] = 0;
 	return GF_OK;
 }
@@ -2114,7 +2113,7 @@ GF_Err rtp_hnti_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->subType);
 	//don't write the NULL char!!!
-	gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
+	gf_bs_write_data(bs, (u8 *) ptr->sdpText, (u32) strlen(ptr->sdpText));
 	return GF_OK;
 }
 
@@ -2699,9 +2698,9 @@ GF_Err payt_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->payloadCode = gf_bs_read_u32(bs);
 	length = gf_bs_read_u8(bs);
 	ISOM_DECREASE_SIZE(ptr, length);
-	ptr->payloadString = (char*)gf_malloc(sizeof(char) * (length+1) );
+	ptr->payloadString = (char*)gf_malloc(length+1);
 	if (! ptr->payloadString) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, ptr->payloadString, length);
+	gf_bs_read_data(bs, (u8 *)ptr->payloadString, length);
 	ptr->payloadString[length] = 0;
 
 	return GF_OK;
@@ -2723,7 +2722,7 @@ GF_Err payt_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->payloadCode);
 	len = ptr->payloadString ? (u32) strlen(ptr->payloadString) : 0;
 	gf_bs_write_u8(bs, len);
-	if (len) gf_bs_write_data(bs, ptr->payloadString, len);
+	if (len) gf_bs_write_data(bs, (u8 *) ptr->payloadString, len);
 	return GF_OK;
 }
 GF_Err payt_box_size(GF_Box *s)
@@ -2758,10 +2757,10 @@ GF_Err name_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 	}
 
-	ptr->string = (char*)gf_malloc(sizeof(char) * (length+1));
+	ptr->string = (char*)gf_malloc(length+1);
 	if (! ptr->string) return GF_OUT_OF_MEM;
 
-	gf_bs_read_data(bs, ptr->string, length);
+	gf_bs_read_data(bs, (u8 *)ptr->string, length);
 	ptr->string[length] = 0;
 	return GF_OK;
 }
@@ -2779,7 +2778,7 @@ GF_Err name_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	if (ptr->string) {
-		gf_bs_write_data(bs, ptr->string, (u32) strlen(ptr->string) + 1);
+		gf_bs_write_data(bs, (u8 *)ptr->string, (u32) strlen(ptr->string) + 1);
 	}
 	return GF_OK;
 }
@@ -2942,12 +2941,12 @@ GF_Err iods_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 descSize;
-	char *desc;
+	u8 *desc;
 	GF_ObjectDescriptorBox *ptr = (GF_ObjectDescriptorBox *)s;
 
 	//use the OD codec...
 	descSize = (u32) (ptr->size);
-	desc = (char*)gf_malloc(sizeof(char) * descSize);
+	desc = (u8*)gf_malloc(descSize);
 	if (!desc) return GF_OUT_OF_MEM;
 
 	gf_bs_read_data(bs, desc, descSize);
@@ -3030,7 +3029,7 @@ GF_Err mdat_box_read(GF_Box *s, GF_BitStream *bs)
 
 	//store idat for rewrite
 	if (ptr->type==GF_ISOM_BOX_TYPE_IDAT) {
-		ptr->data = gf_malloc(sizeof(u8) * (size_t)ptr->dataSize);
+		ptr->data = (u8 *)gf_malloc((size_t)ptr->dataSize);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->data, (u32) ptr->dataSize);
 		ptr->size = 0;
@@ -3683,7 +3682,7 @@ GF_Err elng_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size) {
 		ptr->extended_language = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->extended_language == NULL) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->extended_language, (u32) ptr->size);
+		gf_bs_read_data(bs, (u8 *)ptr->extended_language, (u32) ptr->size);
 		/*safety check in case the string is not null-terminated*/
 		if (ptr->extended_language[ptr->size-1]) {
 			char *str = (char*)gf_malloc((u32) ptr->size + 1);
@@ -3712,7 +3711,7 @@ GF_Err elng_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	if (ptr->extended_language) {
-		gf_bs_write_data(bs, ptr->extended_language, (u32)(strlen(ptr->extended_language)+1));
+		gf_bs_write_data(bs, (u8 *)ptr->extended_language, (u32)(strlen(ptr->extended_language)+1));
 	}
 	return GF_OK;
 }
@@ -3888,7 +3887,7 @@ void moof_box_del(GF_Box *s)
 	//happens if error while fragmenting, the emsg boxes are not part of the moof hierarchy !
 	if (ptr->emsgs) {
 		while (1) {
-			GF_Box *emsg = gf_list_pop_front(ptr->emsgs);
+			GF_Box *emsg = (GF_Box *)gf_list_pop_front(ptr->emsgs);
 			if (!emsg) break;
 			gf_isom_box_del(emsg);
 		}
@@ -4135,7 +4134,7 @@ static void moov_check_tracks_position(GF_MovieBox *s, GF_List *childlist, u32 *
 		}
 		count = gf_list_count(src);
 		for (i=0; i<count; i++) {
-			GF_Box *child = gf_list_get(src, i);
+			GF_Box *child = (GF_Box *) gf_list_get(src, i);
 			gf_isom_check_position((GF_Box*)s, child, pos);
 		}
 		gf_list_del(src);
@@ -4349,7 +4348,7 @@ GF_Err audio_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEGAudioSampleEntryBox *ptr;
-	char *data;
+	u8 *data;
 	u8 a, b, c, d;
 	u32 i, size, v, nb_alnum;
 	GF_Err e;
@@ -4415,7 +4414,7 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 
 	/*hack for some weird files (possibly recorded with live.com tools, needs further investigations)*/
 	gf_bs_seek(bs, pos);
-	data = (char*)gf_malloc(sizeof(char) * size);
+	data = (u8*)gf_malloc(size);
 	if (!data) return GF_OUT_OF_MEM;
 
 	gf_bs_read_data(bs, data, size);
@@ -5143,7 +5142,7 @@ GF_Err padb_box_read(GF_Box *s,GF_BitStream *bs)
 	if (ptr->size < ptr->SampleCount/2) //half byte per sample
 		return GF_ISOM_INVALID_FILE;
 
-	ptr->padbits = (u8 *)gf_malloc(sizeof(u8)*ptr->SampleCount);
+	ptr->padbits = (u8 *)gf_malloc(ptr->SampleCount);
 	if (!ptr->padbits) return GF_OUT_OF_MEM;
 
 	for (i=0; i<ptr->SampleCount; i += 2) {
@@ -5457,7 +5456,7 @@ GF_Err stbl_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		//check subsample box
 		if (!is_rem) {
 			GF_SubSampleInformationBox *subs = (GF_SubSampleInformationBox *)a;
-			GF_SubSampleInfoEntry *ent = gf_list_get(subs->Samples, 0);
+			GF_SubSampleInfoEntry *ent = (GF_SubSampleInfoEntry *)gf_list_get(subs->Samples, 0);
 			if (!ent) {
 				gf_list_rem(subs->Samples, 0);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] first entry in SubSample in track SampleTable is invalid\n"));
@@ -5503,7 +5502,7 @@ GF_Err stbl_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	if (!ptr->SyncSample)
-		ptr->no_sync_found = 1;
+		ptr->no_sync_found = GF_TRUE;
 
 	ptr->nb_sgpd_in_stbl = gf_list_count(ptr->sampleGroupsDescription);
 	ptr->nb_stbl_boxes = gf_list_count(ptr->child_boxes);
@@ -5777,7 +5776,7 @@ GF_Err stsc_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->alloc_size = ptr->nb_entries;
 	ptr->entries = NULL;
 	if (ptr->nb_entries) {
-		ptr->entries = gf_malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
+		ptr->entries = (GF_StscEntry*)gf_malloc(sizeof(GF_StscEntry)*ptr->alloc_size);
 		if (!ptr->entries) return GF_OUT_OF_MEM;
 	}
 
@@ -6336,7 +6335,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	ptr->alloc_size = ptr->nb_entries;
-	ptr->entries = gf_malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
+	ptr->entries = (GF_SttsEntry *) gf_malloc(sizeof(GF_SttsEntry)*ptr->alloc_size);
 	if (!ptr->entries) return GF_OUT_OF_MEM;
 
 	for (i=0; i<ptr->nb_entries; i++) {
@@ -6381,7 +6380,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 				//split entry in two
 				if (ptr->nb_entries>=ptr->alloc_size) {
 					ptr->alloc_size += 1;
-					ptr->entries = gf_realloc(ptr->entries, sizeof(GF_SttsEntry) * ptr->alloc_size);
+					ptr->entries = (GF_SttsEntry *)gf_realloc(ptr->entries, sizeof(GF_SttsEntry) * ptr->alloc_size);
 				}
 				memmove(&ptr->entries[k+2], &ptr->entries[k+1], sizeof(GF_SttsEntry) * (ptr->nb_entries - k - 1) );
 				ptr->entries[k].sampleCount -= 1;
@@ -6964,7 +6963,7 @@ GF_Err tfrf_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->version = gf_bs_read_u8(bs);
 	ptr->flags = gf_bs_read_u24(bs);
 	ptr->frags_count = gf_bs_read_u8(bs);
-	ptr->frags = gf_malloc(sizeof(GF_MSSTimeEntry) * ptr->frags_count);
+	ptr->frags = (GF_MSSTimeEntry *)gf_malloc(sizeof(GF_MSSTimeEntry) * ptr->frags_count);
 	if (!ptr->frags) return GF_OUT_OF_MEM;
 
 	for (i=0; i<ptr->frags_count; i++) {
@@ -7042,7 +7041,7 @@ static void stsd_switch_box(GF_BitStream *bs, GF_Box *box, GF_UnknownBox *a, u8 
 			GF_BitStream *new_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			//serialize all unknown boxes
 			for (i=0; i<count_subb; i++) {
-				GF_UnknownBox *priv = gf_list_get(box->child_boxes, i);
+				GF_UnknownBox *priv = (GF_UnknownBox*)gf_list_get(box->child_boxes, i);
 				if (priv->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
 				gf_bs_write_u32(new_dsi, 8 + priv->dataSize);
 				gf_bs_write_u32(new_dsi, priv->original_4cc);
@@ -7403,7 +7402,7 @@ GF_Err trak_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	for (i=0; i<gf_list_count(ptr->Media->information->sampleTable->child_boxes); i++) {
-		GF_Box *a = gf_list_get(ptr->Media->information->sampleTable->child_boxes, i);
+		GF_Box *a = (GF_Box *)gf_list_get(ptr->Media->information->sampleTable->child_boxes, i);
 		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
 			ptr->sample_encryption = (struct __sample_encryption_box *) a;
 			break;
@@ -7894,7 +7893,7 @@ void trun_box_del(GF_Box *s)
 	if (ptr->sample_order) gf_free(ptr->sample_order);
 	if (ptr->sample_refs) {
 		while (gf_list_count(ptr->sample_refs)) {
-			GF_TrafSampleRef *sref = gf_list_pop_back(ptr->sample_refs);
+			GF_TrafSampleRef *sref = (GF_TrafSampleRef *)gf_list_pop_back(ptr->sample_refs);
 			if (!sref->ref) gf_free(sref->data);
 			gf_free(sref);
 		}
@@ -7981,7 +7980,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 	inherit_ctso = flags & GF_ISOM_CTRN_INHERIT_CTSO;
 
 	if (flags & GF_ISOM_CTRN_FIRST_SAMPLE) {
-		ent = gf_list_get(ptr->entries, 0);
+		ent = (GF_TrunEntry *)gf_list_get(ptr->entries, 0);
 		first_idx = 1;
 		if (!inherit_dur && ptr->ctrn_first_dur) {
 			ent->Duration = gf_bs_read_int(bs, gf_isom_ctrn_field_size_bits(ptr->ctrn_first_dur) );
@@ -8007,7 +8006,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_dur);
 		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
 		for (i=first_idx; i<ptr->sample_count; i++) {
-			ent = gf_list_get(ptr->entries, i);
+			ent = (GF_TrunEntry *)gf_list_get(ptr->entries, i);
 			ent->Duration = gf_bs_read_int(bs, nbbits);
 		}
 	}
@@ -8015,7 +8014,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_size);
 		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
 		for (i=first_idx; i<ptr->sample_count; i++) {
-			ent = gf_list_get(ptr->entries, i);
+			ent = (GF_TrunEntry *)gf_list_get(ptr->entries, i);
 			ent->size = gf_bs_read_int(bs, nbbits);
 		}
 	}
@@ -8023,7 +8022,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_sample_flags);
 		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
 		for (i=first_idx; i<ptr->sample_count; i++) {
-			ent = gf_list_get(ptr->entries, i);
+			ent = (GF_TrunEntry *)gf_list_get(ptr->entries, i);
 			ent->flags = ctrn_read_flags(bs, nbbits);
 		}
 	}
@@ -8031,7 +8030,7 @@ static GF_Err ctrn_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ptr->ctrn_ctts);
 		ISOM_DECREASE_SIZE(ptr, count * nbbits / 8);
 		for (i=first_idx; i<ptr->sample_count; i++) {
-			ent = gf_list_get(ptr->entries, i);
+			ent = (GF_TrunEntry *)gf_list_get(ptr->entries, i);
 			ent->CTS_Offset = gf_bs_read_int(bs, nbbits);
 			if (ptr->ctso_multiplier)
 				ent->CTS_Offset *= (s32) ptr->ctso_multiplier;
@@ -8072,7 +8071,7 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->first_sample_flags = gf_bs_read_u32(bs);
 	}
 	if (! (ptr->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
-		ptr->samples = gf_malloc(sizeof(GF_TrunEntry));
+		ptr->samples = (GF_TrunEntry*)gf_malloc(sizeof(GF_TrunEntry));
 		if (!ptr->samples) return GF_OUT_OF_MEM;
 		//memset to 0 !!
 		memset(ptr->samples, 0, sizeof(GF_TrunEntry));
@@ -8094,7 +8093,7 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of samples %u in trun\n", ptr->sample_count));
 			return GF_ISOM_INVALID_FILE;
 		}
-		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
+		ptr->samples = (GF_TrunEntry*)gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
 		if (!ptr->samples) return GF_OUT_OF_MEM;
 		ptr->sample_alloc = ptr->nb_samples = ptr->sample_count;
 		//memset to 0 upfront
@@ -8199,7 +8198,7 @@ GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u16(bs, ctrn->ctso_multiplier);
 	}
 	/*we always write first sample using first flags*/
-	ent = gf_list_get(ctrn->entries, 0);
+	ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, 0);
 	gf_bs_write_int(bs, ent->Duration, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_dur) );
 	gf_bs_write_int(bs, ent->size, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_size) );
 	ctrn_write_sample_flags(bs, ent->flags, gf_isom_ctrn_field_size_bits(ctrn->ctrn_first_sample_flags) );
@@ -8209,28 +8208,28 @@ GF_Err ctrn_box_write(GF_Box *s, GF_BitStream *bs)
 	if (ctrn->ctrn_dur) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_dur);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			GF_TrunEntry *a_ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, i);
 			gf_bs_write_int(bs, a_ent->Duration, nbbits);
 		}
 	}
 	if (ctrn->ctrn_size) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_size);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			GF_TrunEntry *a_ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, i);
 			gf_bs_write_int(bs, a_ent->size, nbbits);
 		}
 	}
 	if (ctrn->ctrn_sample_flags) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_sample_flags);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			GF_TrunEntry *a_ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, i);
 			ctrn_write_sample_flags(bs, a_ent->flags, nbbits);
 		}
 	}
 	if (ctrn->ctrn_ctts) {
 		u32 nbbits = gf_isom_ctrn_field_size_bits(ctrn->ctrn_ctts);
 		for (i=1; i<count; i++) {
-			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			GF_TrunEntry *a_ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, i);
 			ctrn_write_ctso(ctrn, bs, a_ent->CTS_Offset, nbbits);
 		}
 	}
@@ -8364,7 +8363,7 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 	count = gf_list_count(ctrn->entries);
 	if (ctrn->ctso_multiplier && (ctrn->flags & GF_ISOM_TRUN_CTS_OFFSET) && (ctrn->ctso_multiplier<=0xFFFF) ) {
 		for (i=0; i<count; i++) {
-			GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+			GF_TrunEntry *a_ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, i);
 			if (a_ent->CTS_Offset % ctrn->ctso_multiplier) {
 				use_ctso_multi = GF_FALSE;
 				break;
@@ -8386,7 +8385,7 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 	}
 
 	/*we always write first sample using first flags*/
-	ent = gf_list_get(ctrn->entries, 0);
+	ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, 0);
 	ctrn->ctrn_flags |= GF_ISOM_CTRN_FIRST_SAMPLE;
 
 	if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_DURATION)) {
@@ -8422,7 +8421,7 @@ static GF_Err ctrn_box_size(GF_TrackFragmentRunBox *ctrn)
 
 	for (i=1; i<count; i++) {
 		u8 field_idx;
-		GF_TrunEntry *a_ent = gf_list_get(ctrn->entries, i);
+		GF_TrunEntry *a_ent = (GF_TrunEntry *)gf_list_get(ctrn->entries, i);
 
 		if (!ctrn->use_inherit && (ctrn->flags & GF_ISOM_TRUN_DURATION)) {
 			field_idx = ctrn_u32_to_index(a_ent->Duration);
@@ -8627,7 +8626,7 @@ GF_Err udta_on_child_box_ex(GF_Box *s, GF_Box *a, Bool is_rem, Bool rem_same_typ
 	if (rem_same_type) {
 		u32 i, count = gf_list_count(map->boxes);
 		for (i=0; i<count; i++) {
-			GF_Box *b = gf_list_get(map->boxes, i);
+			GF_Box *b = (GF_Box *)gf_list_get(map->boxes, i);
 			u32 btype = b->type;
 			if (b->type==GF_ISOM_BOX_TYPE_UNKNOWN) btype = ((GF_UnknownBox*)b)->original_4cc;
 			if (btype != box_type) continue;
@@ -8886,10 +8885,10 @@ GF_Err sdtp_box_read(GF_Box *s, GF_BitStream *bs)
 	if (!ptr->sampleCount) ptr->sampleCount = (u32) ptr->size;
 	else if (ptr->sampleCount > (u32) ptr->size) return GF_ISOM_INVALID_FILE;
 
-	ptr->sample_info = (u8 *) gf_malloc(sizeof(u8)*ptr->sampleCount);
+	ptr->sample_info = (u8 *) gf_malloc(ptr->sampleCount);
 	if (!ptr->sample_info) return GF_OUT_OF_MEM;
 	ptr->sample_alloc = ptr->sampleCount;
-	gf_bs_read_data(bs, (char*)ptr->sample_info, ptr->sampleCount);
+	gf_bs_read_data(bs, ptr->sample_info, ptr->sampleCount);
 	ISOM_DECREASE_SIZE(ptr, ptr->sampleCount);
 	return GF_OK;
 }
@@ -8903,7 +8902,7 @@ GF_Err sdtp_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox *)s;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, (char*)ptr->sample_info, ptr->sampleCount);
+	gf_bs_write_data(bs, ptr->sample_info, ptr->sampleCount);
 	return GF_OK;
 }
 
@@ -9071,12 +9070,12 @@ GF_Err metx_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 8);
 
 	if (ptr->size > (u64)SIZE_MAX) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in metx\n", ptr->size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size " LLU " in metx\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
 
 	size = (u32) ptr->size;
-	str = gf_malloc(sizeof(char)*size);
+	str = (char *)gf_malloc(size);
 	if (!str) return GF_OUT_OF_MEM;
 	i=0;
 
@@ -9172,23 +9171,23 @@ GF_Err metx_box_write(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->type!=GF_ISOM_BOX_TYPE_STPP) {
 		if (ptr->content_encoding)
-			gf_bs_write_data(bs, ptr->content_encoding, (u32) strlen(ptr->content_encoding));
+			gf_bs_write_data(bs, (u8 *)ptr->content_encoding, (u32) strlen(ptr->content_encoding));
 		gf_bs_write_u8(bs, 0);
 	}
 
 	if ((ptr->type==GF_ISOM_BOX_TYPE_METX) || (ptr->type==GF_ISOM_BOX_TYPE_STPP)) {
 		if (ptr->xml_namespace)
-			gf_bs_write_data(bs, ptr->xml_namespace, (u32) strlen(ptr->xml_namespace));
+			gf_bs_write_data(bs, (u8 *)ptr->xml_namespace, (u32) strlen(ptr->xml_namespace));
 
 		gf_bs_write_u8(bs, 0);
 
 		if (ptr->xml_schema_loc)
-			gf_bs_write_data(bs, ptr->xml_schema_loc, (u32) strlen(ptr->xml_schema_loc));
+			gf_bs_write_data(bs, (u8 *)ptr->xml_schema_loc, (u32) strlen(ptr->xml_schema_loc));
 		gf_bs_write_u8(bs, 0);
 
 		if (ptr->type==GF_ISOM_BOX_TYPE_STPP) {
 			if (ptr->mime_type)
-				gf_bs_write_data(bs, ptr->mime_type, (u32) strlen(ptr->mime_type));
+				gf_bs_write_data(bs, (u8 *)ptr->mime_type, (u32) strlen(ptr->mime_type));
 
 			gf_bs_write_u8(bs, 0);
 		}
@@ -9196,7 +9195,7 @@ GF_Err metx_box_write(GF_Box *s, GF_BitStream *bs)
 	//mett, sbtt, stxt
 	else {
 		if (ptr->mime_type)
-			gf_bs_write_data(bs, ptr->mime_type, (u32) strlen(ptr->mime_type));
+			gf_bs_write_data(bs, (u8 *)ptr->mime_type, (u32) strlen(ptr->mime_type));
 
 		gf_bs_write_u8(bs, 0);
 	}
@@ -9268,9 +9267,9 @@ GF_Err txtc_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in txtc box\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
-	ptr->config = (char *)gf_malloc(sizeof(char)*((u32) ptr->size+1));
+	ptr->config = (char *)gf_malloc(((u32) ptr->size+1));
 	if (!ptr->config) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, ptr->config, (u32) ptr->size);
+	gf_bs_read_data(bs, (u8 *) ptr->config, (u32) ptr->size);
 	ptr->config[ptr->size] = 0;
 	return GF_OK;
 }
@@ -9285,7 +9284,7 @@ GF_Err txtc_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	if (ptr->config)
-		gf_bs_write_data(bs, ptr->config, (u32) strlen(ptr->config));
+		gf_bs_write_data(bs, (u8 *)ptr->config, (u32) strlen(ptr->config));
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
@@ -9328,7 +9327,7 @@ GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 	pos = gf_bs_get_position(bs);
-	e = gf_odf_ac3_cfg_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
+	e = gf_odf_ac3_cfg_parse_bs(bs, ptr->cfg.is_ec3 ? GF_TRUE : GF_FALSE, &ptr->cfg);
 	if (e) return e;
 	pos = gf_bs_get_position(bs) - pos;
 	ISOM_DECREASE_SIZE(ptr, pos);
@@ -9468,7 +9467,7 @@ GF_Err lsrc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_LASERConfigurationBox *ptr = (GF_LASERConfigurationBox *)s;
 	ptr->hdr_size = (u32) ptr->size;
-	ptr->hdr = gf_malloc(sizeof(char)*ptr->hdr_size);
+	ptr->hdr = (u8 *)gf_malloc(ptr->hdr_size);
 	if (!ptr->hdr) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->hdr, ptr->hdr_size);
 	return GF_OK;
@@ -9609,13 +9608,13 @@ GF_Err sidx_box_read(GF_Box *s,GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 	}
 
-	ptr->refs = gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
+	ptr->refs = (GF_SIDXReference *)gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
 	if (!ptr->refs) return GF_OUT_OF_MEM;
 	for (i=0; i<ptr->nb_refs; i++) {
-		ptr->refs[i].reference_type = gf_bs_read_int(bs, 1);
+		ptr->refs[i].reference_type = gf_bs_read_bool(bs);
 		ptr->refs[i].reference_size = gf_bs_read_int(bs, 31);
 		ptr->refs[i].subsegment_duration = gf_bs_read_u32(bs);
-		ptr->refs[i].starts_with_SAP = gf_bs_read_int(bs, 1);
+		ptr->refs[i].starts_with_SAP = gf_bs_read_bool(bs);
 		ptr->refs[i].SAP_type = gf_bs_read_int(bs, 3);
 		ptr->refs[i].SAP_delta_time = gf_bs_read_int(bs, 28);
 
@@ -9801,7 +9800,7 @@ GF_Err leva_box_read(GF_Box *s, GF_BitStream *bs)
 
 		level->track_id = gf_bs_read_u32(bs);
 		tmp = gf_bs_read_u8(bs);
-		level->padding_flag = tmp >> 7;
+		level->padding_flag = (tmp >> 7) ? GF_TRUE : GF_FALSE;
 		level->type = tmp & 0x7F;
 		if (level->type == 0) {
 			ISOM_DECREASE_SIZE(ptr, 4)
@@ -9902,7 +9901,7 @@ GF_Err pcrb_box_read(GF_Box *s,GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 	}
 
-	ptr->pcr_values = gf_malloc(sizeof(u64)*ptr->subsegment_count);
+	ptr->pcr_values = (u64 *)gf_malloc(sizeof(u64)*ptr->subsegment_count);
 	if (!ptr->pcr_values) return GF_OUT_OF_MEM;
 	for (i=0; i<ptr->subsegment_count; i++) {
 		u64 data1 = gf_bs_read_u32(bs);
@@ -10296,7 +10295,7 @@ GF_Err sbgp_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size < sizeof(GF_SampleGroupEntry)*ptr->entry_count || (u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(GF_SampleGroupEntry))
 		return GF_ISOM_INVALID_FILE;
 
-	ptr->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry)*ptr->entry_count);
+	ptr->sample_entries = (GF_SampleGroupEntry*)gf_malloc(sizeof(GF_SampleGroupEntry)*ptr->entry_count);
 	if (!ptr->sample_entries) return GF_OUT_OF_MEM;
 
 	for (i=0; i<ptr->entry_count; i++) {
@@ -10373,7 +10372,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		GF_SAPEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_SAPEntry);
 		if (!ptr) return NULL;
-		ptr->dependent_flag = gf_bs_read_int(bs, 1);
+		ptr->dependent_flag = gf_bs_read_bool(bs);
 		gf_bs_read_int(bs, 3);
 		ptr->SAP_type = gf_bs_read_int(bs, 4);
 		*total_bytes = 1;
@@ -10394,7 +10393,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		GF_TemporalLevelEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_TemporalLevelEntry);
 		if (!ptr) return NULL;
-		ptr->level_independently_decodable = gf_bs_read_int(bs, 1);
+		ptr->level_independently_decodable = gf_bs_read_bool(bs);
 		gf_bs_read_int(bs, 7);
 		*total_bytes = 1;
 		return ptr;
@@ -10405,8 +10404,8 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		if (bytes_in_box<3) return NULL;
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
 		if (!ptr) return NULL;
-		Bool use_mkey = gf_bs_read_int(bs, 1);
-		Bool ext_pattern = gf_bs_read_int(bs, 1);
+		Bool use_mkey = gf_bs_read_bool(bs);
+		Bool ext_pattern = gf_bs_read_bool(bs);
 		gf_bs_read_int(bs, 6); //reserved
 		if (ext_pattern) {
 			ptr->crypt_byte_block = gf_bs_read_u32(bs);
@@ -10441,7 +10440,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 				}
 			}
 			ptr->key_info_size = 1 + (u32) (gf_bs_get_position(bs) - pos);
-			ptr->key_info = gf_malloc(sizeof(u8) * ptr->key_info_size);
+			ptr->key_info = (u8 *)gf_malloc(ptr->key_info_size);
 			if (!ptr->key_info) {
 				gf_free(ptr);
 				return NULL;
@@ -10480,7 +10479,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 			if (!iv_size && ptr->IsProtected) {
 				ptr->key_info_size += 1 + const_iv_size;
 			}
-			ptr->key_info = gf_malloc(sizeof(u8) * ptr->key_info_size);
+			ptr->key_info = (u8 *)gf_malloc(ptr->key_info_size);
 			if (!ptr->key_info) {
 				gf_free(ptr);
 				return NULL;
@@ -10492,7 +10491,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 			memcpy(ptr->key_info+4, kid, 16);
 			if (!iv_size && ptr->IsProtected) {
 				ptr->key_info[20] = const_iv_size;
-				gf_bs_read_data(bs, (char *)ptr->key_info+21, const_iv_size);
+				gf_bs_read_data(bs, ptr->key_info+21, const_iv_size);
 				*total_bytes += 1 + const_iv_size;
 			}
 		}
@@ -10547,8 +10546,8 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 			Bool rle, large_size;
 			u32 entry_count;
 			gf_bs_read_int(bs, 6);
-			large_size = gf_bs_read_int(bs, 1);
-			rle = gf_bs_read_int(bs, 1);
+			large_size = gf_bs_read_bool(bs);
+			rle = gf_bs_read_bool(bs);
 			entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
 			gf_bs_seek(bs, start);
 			entry_size = 1 + (large_size ? 2 : 1);
@@ -10576,10 +10575,10 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		GF_SubpictureOrderEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_SubpictureOrderEntry);
 		if (!ptr) return NULL;
-		ptr->subpic_id_info_flag = gf_bs_read_int(bs, 1);
+		ptr->subpic_id_info_flag = gf_bs_read_bool(bs);
 		ptr->num_subpic_ref_idx = gf_bs_read_int(bs, 15);
 		*total_bytes = 2;
-		ptr->subp_track_ref_idx = gf_malloc(sizeof(u16) * ptr->num_subpic_ref_idx);
+		ptr->subp_track_ref_idx = (u16 *)gf_malloc(sizeof(u16) * ptr->num_subpic_ref_idx);
 		if (!ptr->subp_track_ref_idx) {
 			gf_free(ptr);
 			return NULL;
@@ -10617,7 +10616,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		ptr->groupID_info_4cc = gf_bs_read_u32(bs);
 		ptr->nb_entries = 1 + gf_bs_read_u16(bs);
 		*total_bytes = 6;
-		ptr->groupIDs = gf_malloc(sizeof(u16) * ptr->nb_entries);
+		ptr->groupIDs = (u16 *)gf_malloc(sizeof(u16) * ptr->nb_entries);
 		if (!ptr->groupIDs) {
 			gf_free(ptr);
 			return NULL;
@@ -10654,7 +10653,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 			return NULL;
 		}
 		*total_bytes = 4;
-		ptr->group_types = gf_malloc(sizeof(u32) * ptr->nb_types);
+		ptr->group_types = (u32 *) gf_malloc(sizeof(u32) * ptr->nb_types);
 		if (!ptr->group_types) {
 			gf_free(ptr);
 			return NULL;
@@ -10686,12 +10685,12 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 	if (!def_ptr) return NULL;
 	if (entry_size) {
 		def_ptr->length = entry_size;
-		def_ptr->data = (u8 *) gf_malloc(sizeof(u8)*def_ptr->length);
+		def_ptr->data = (u8 *) gf_malloc(def_ptr->length);
 		if (!def_ptr->data) {
 			gf_free(def_ptr);
 			return NULL;
 		}
-		gf_bs_read_data(bs, (char *) def_ptr->data, def_ptr->length);
+		gf_bs_read_data(bs, def_ptr->data, def_ptr->length);
 		*total_bytes = entry_size;
 	}
 	return def_ptr;
@@ -10792,7 +10791,7 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
 	{
 		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
-		Bool use_mkey = seig->key_info[0];
+		Bool use_mkey = seig->key_info[0] ? GF_TRUE : GF_FALSE;
 		/*
 		u32 nb_keys = 1;
 		if (use_mkey) {
@@ -10884,7 +10883,7 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
 		if (ptr->length)
-			gf_bs_write_data(bs, (char *) ptr->data, ptr->length);
+			gf_bs_write_data(bs, ptr->data, ptr->length);
 	}
 	}
 }
@@ -10968,7 +10967,7 @@ void sgpd_box_del(GF_Box *a)
 {
 	GF_SampleGroupDescriptionBox *p = (GF_SampleGroupDescriptionBox *)a;
 	while (gf_list_count(p->group_descriptions)) {
-		void *ptr = gf_list_last(p->group_descriptions);
+		void *ptr = (void *)gf_list_last(p->group_descriptions);
 		sgpd_del_entry(p->grouping_type, ptr, p->is_opaque);
 		gf_list_rem_last(p->group_descriptions);
 	}
@@ -11035,7 +11034,7 @@ GF_Err sgpd_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, nb_descs);
 
 	for (i=0; i<nb_descs; i++) {
-		void *ptr = gf_list_get(p->group_descriptions, i);
+		void *ptr = (void *)gf_list_get(p->group_descriptions, i);
 		if ((p->version >= 1) && !p->default_length) {
 			u32 size = sgpd_size_entry(p->grouping_type, ptr);
 			gf_bs_write_u32(bs, size);
@@ -11064,7 +11063,7 @@ GF_Err sgpd_box_size(GF_Box *s)
 
 	nb_descs = gf_list_count(p->group_descriptions);
 	for (i=0; i<nb_descs; i++) {
-		void *ptr = gf_list_get(p->group_descriptions, i);
+		void *ptr = (void *)gf_list_get(p->group_descriptions, i);
 		u32 size = sgpd_size_entry(p->grouping_type, ptr);
 		p->size += size;
 		if (use_def_size && !p->default_length) {
@@ -11108,13 +11107,13 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 		if (ptr->size < ptr->sample_count)
 			return GF_ISOM_INVALID_FILE;
 
-		ptr->sample_info_size = gf_malloc(sizeof(u8)*ptr->sample_count);
+		ptr->sample_info_size = (u8*)gf_malloc(ptr->sample_count);
 		ptr->sample_alloc = ptr->sample_count;
 		if (!ptr->sample_info_size)
 			return GF_OUT_OF_MEM;
 
 		ISOM_DECREASE_SIZE(ptr, ptr->sample_count);
-		gf_bs_read_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
+		gf_bs_read_data(bs, ptr->sample_info_size, ptr->sample_count);
 	}
 	return GF_OK;
 }
@@ -11145,7 +11144,7 @@ GF_Err saiz_box_write(GF_Box *s, GF_BitStream *bs)
 		if (!ptr->sample_info_size)
 			gf_bs_write_u8(bs, 0);
 		else
-			gf_bs_write_data(bs, (char *) ptr->sample_info_size, ptr->sample_count);
+			gf_bs_write_data(bs, ptr->sample_info_size, ptr->sample_count);
 	}
 	return GF_OK;
 }
@@ -11190,7 +11189,7 @@ GF_Err saio_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 i;
 		if (ptr->size / (ptr->version == 0 ? 4 : 8) < ptr->entry_count || (u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(u64))
 			return GF_ISOM_INVALID_FILE;
-		ptr->offsets = gf_malloc(sizeof(u64)*ptr->entry_count);
+		ptr->offsets = (u64 *)gf_malloc(sizeof(u64)*ptr->entry_count);
 		if (!ptr->offsets)
 			return GF_OUT_OF_MEM;
 		ptr->entry_alloc = ptr->entry_count;
@@ -11480,7 +11479,7 @@ GF_Err stvi_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->sit_len = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, ptr->sit_len);
 
-	ptr->stereo_indication_type = gf_malloc(sizeof(char)*ptr->sit_len);
+	ptr->stereo_indication_type = (u8 *)gf_malloc(ptr->sit_len);
 	if (!ptr->stereo_indication_type) return GF_OUT_OF_MEM;
 
 	gf_bs_read_data(bs, ptr->stereo_indication_type, ptr->sit_len);
@@ -11659,7 +11658,7 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size
 	u32 len=10;
 	u32 i=0;
 
-	*out_str = gf_malloc(sizeof(char)*len);
+	*out_str = (char*)gf_malloc(len);
 	if (! *out_str) return GF_OUT_OF_MEM;
 
 	if (!s->size) {
@@ -11674,7 +11673,7 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size
 		i++;
 		if (i==len) {
 			len += 10;
-			*out_str = gf_realloc(*out_str, sizeof(char)*len);
+			*out_str = (char *)gf_realloc(*out_str, len);
 		}
 		if (gf_bs_available(bs) == 0) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] missing null character in null terminated string\n"));
@@ -11746,7 +11745,7 @@ GF_Err fpar_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->encoding_symbol_length);
 	gf_bs_write_u16(bs, ptr->max_number_of_encoding_symbols);
 	if (ptr->scheme_specific_info) {
-		gf_bs_write_data(bs, ptr->scheme_specific_info, (u32)strlen(ptr->scheme_specific_info) );
+		gf_bs_write_data(bs, (u8*)ptr->scheme_specific_info, (u32)strlen(ptr->scheme_specific_info) );
 	}
 	//null terminated string
 	gf_bs_write_u8(bs, 0);
@@ -12009,7 +12008,7 @@ GF_Err gitn_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->nb_entries);
 	for (i=0; i<ptr->nb_entries; i++) {
 		gf_bs_write_u32(bs, ptr->entries[i].group_id);
-		if (ptr->entries[i].name) gf_bs_write_data(bs, ptr->entries[i].name, (u32)strlen(ptr->entries[i].name) );
+		if (ptr->entries[i].name) gf_bs_write_data(bs, (u8*)ptr->entries[i].name, (u32)strlen(ptr->entries[i].name) );
 		gf_bs_write_u8(bs, 0);
 	}
 	return GF_OK;
@@ -12081,7 +12080,7 @@ GF_Err fdpa_box_read(GF_Box *s, GF_BitStream *bs)
 
 		if (ptr->headers[i].header_extension_type > 127) {
 			ISOM_DECREASE_SIZE(ptr, 3);
-			gf_bs_read_data(bs, (char *) ptr->headers[i].content, 3);
+			gf_bs_read_data(bs, (u8 *) ptr->headers[i].content, 3);
 		} else {
 			ISOM_DECREASE_SIZE(ptr, 1);
 			ptr->headers[i].data_length = gf_bs_read_u8(bs);
@@ -12089,7 +12088,7 @@ GF_Err fdpa_box_read(GF_Box *s, GF_BitStream *bs)
 				ptr->headers[i].data_length = 4*ptr->headers[i].data_length - 2;
 				if (ptr->size < sizeof(char) * ptr->headers[i].data_length)
 					return GF_ISOM_INVALID_FILE;
-				ptr->headers[i].data = gf_malloc(sizeof(char) * ptr->headers[i].data_length);
+				ptr->headers[i].data = (u8 *)gf_malloc(ptr->headers[i].data_length);
 				if (!ptr->headers[i].data) return GF_OUT_OF_MEM;
 
 				ISOM_DECREASE_SIZE(ptr, ptr->headers[i].data_length);
@@ -12122,7 +12121,7 @@ GF_Err fdpa_box_write(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->header_ext_count; i++) {
 		gf_bs_write_u8(bs, ptr->headers[i].header_extension_type);
 		if (ptr->headers[i].header_extension_type > 127) {
-			gf_bs_write_data(bs, (const char *) ptr->headers[i].content, 3);
+			gf_bs_write_data(bs, ptr->headers[i].content, 3);
 		} else {
 			gf_bs_write_u8(bs, ptr->headers[i].data_length ? (ptr->headers[i].data_length+2)/4 : 0);
 			if (ptr->headers[i].data_length) {
@@ -12178,7 +12177,7 @@ GF_Err extr_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	if (!ptr->feci || ptr->feci->size > ptr->size) return GF_ISOM_INVALID_MEDIA;
 	ptr->data_length = (u32) (ptr->size - ptr->feci->size);
-	ptr->data = gf_malloc(sizeof(char)*ptr->data_length);
+	ptr->data = (u8 *)gf_malloc(ptr->data_length);
 	if (!ptr->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->data, ptr->data_length);
 
@@ -12357,10 +12356,10 @@ GF_Err bloc_box_read(GF_Box *s,GF_BitStream *bs)
 	GF_BaseLocationBox *ptr = (GF_BaseLocationBox *) s;
 
 	ISOM_DECREASE_SIZE(s, 256)
-	gf_bs_read_data(bs, (char *) ptr->baseLocation, 256);
+	gf_bs_read_data(bs, (u8 *) ptr->baseLocation, 256);
 	ptr->baseLocation[256]=0;
 	ISOM_DECREASE_SIZE(s, 256)
-	gf_bs_read_data(bs, (char *) ptr->basePurlLocation, 256);
+	gf_bs_read_data(bs, (u8 *) ptr->basePurlLocation, 256);
 	ISOM_DECREASE_SIZE(s, 512)
 	ptr->basePurlLocation[256]=0;
 	gf_bs_skip_bytes(bs, 512);
@@ -12383,8 +12382,8 @@ GF_Err bloc_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, (const char *) ptr->baseLocation, 256);
-	gf_bs_write_data(bs, (const char *) ptr->basePurlLocation, 256);
+	gf_bs_write_data(bs, (u8 *) ptr->baseLocation, 256);
+	gf_bs_write_data(bs, (u8 *) ptr->basePurlLocation, 256);
 	for (i=0; i < 64; i++ ) {
 		gf_bs_write_u64(bs, 0);
 	}
@@ -12432,7 +12431,7 @@ GF_Err ainf_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->profile_version);
 	if (ptr->APID)
-		gf_bs_write_data(bs, ptr->APID, (u32) strlen(ptr->APID) );
+		gf_bs_write_data(bs, (u8 *) ptr->APID, (u32) strlen(ptr->APID) );
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
@@ -12466,7 +12465,7 @@ GF_Err mhac_box_read(GF_Box *s,GF_BitStream *bs)
 	if (ptr->mha_config_size) {
 		ISOM_DECREASE_SIZE(s, ptr->mha_config_size)
 
-		ptr->mha_config = gf_malloc(sizeof(char)*ptr->mha_config_size);
+		ptr->mha_config = (u8*)gf_malloc(ptr->mha_config_size);
 		if (!ptr->mha_config) return GF_OUT_OF_MEM;
 
 		gf_bs_read_data(bs, ptr->mha_config, ptr->mha_config_size);
@@ -12527,7 +12526,7 @@ GF_Err mhap_box_read(GF_Box *s,GF_BitStream *bs)
 	if (!ptr->num_profiles) return GF_OK;
 
 	ISOM_DECREASE_SIZE(s, ptr->num_profiles)
-	ptr->compat_profiles = gf_malloc(sizeof(u8) * ptr->num_profiles);
+	ptr->compat_profiles = (u8 *) gf_malloc(ptr->num_profiles);
 	if (!ptr->compat_profiles) return GF_OUT_OF_MEM;
 	for (i=0; i<ptr->num_profiles; i++) {
 		ptr->compat_profiles[i] = gf_bs_read_u8(bs);
@@ -12886,9 +12885,9 @@ GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->DOVIConfig.dv_version_minor = gf_bs_read_u8(bs);
 	ptr->DOVIConfig.dv_profile = gf_bs_read_int(bs, 7);
 	ptr->DOVIConfig.dv_level = gf_bs_read_int(bs, 6);
-	ptr->DOVIConfig.rpu_present_flag = gf_bs_read_int(bs, 1);
-	ptr->DOVIConfig.el_present_flag = gf_bs_read_int(bs, 1);
-	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
+	ptr->DOVIConfig.rpu_present_flag = gf_bs_read_bool(bs);
+	ptr->DOVIConfig.el_present_flag = gf_bs_read_bool(bs);
+	ptr->DOVIConfig.bl_present_flag = gf_bs_read_bool(bs);
 	ptr->DOVIConfig.dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
 	ptr->DOVIConfig.dv_md_compression = gf_bs_read_int(bs, 2);
 	if (gf_bs_read_int(bs, 26) != 0)
@@ -13017,7 +13016,7 @@ GF_Err dOps_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 2+ptr->opcfg.OutputChannelCount);
 		ptr->opcfg.StreamCount = gf_bs_read_u8(bs);
 		ptr->opcfg.CoupledCount = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *) ptr->opcfg.ChannelMapping, ptr->opcfg.OutputChannelCount);
+		gf_bs_read_data(bs, ptr->opcfg.ChannelMapping, ptr->opcfg.OutputChannelCount);
 	}
 	return GF_OK;
 }
@@ -13042,7 +13041,7 @@ GF_Err dOps_box_write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->opcfg.ChannelMappingFamily) {
 		gf_bs_write_u8(bs, ptr->opcfg.StreamCount);
 		gf_bs_write_u8(bs, ptr->opcfg.CoupledCount);
-		gf_bs_write_data(bs, (char *) ptr->opcfg.ChannelMapping, ptr->opcfg.OutputChannelCount);
+		gf_bs_write_data(bs, ptr->opcfg.ChannelMapping, ptr->opcfg.OutputChannelCount);
 	}
 	return GF_OK;
 }
@@ -13118,7 +13117,7 @@ GF_Err dfla_box_read(GF_Box *s,GF_BitStream *bs)
 	GF_FLACConfigBox *ptr = (GF_FLACConfigBox *) s;
 	ptr->dataSize = (u32) ptr->size;
 	ptr->size=0;
-	ptr->data = gf_malloc(ptr->dataSize);
+	ptr->data = (u8*)gf_malloc(ptr->dataSize);
 	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	return GF_OK;
 }
@@ -13272,7 +13271,7 @@ GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->cfg.PresentationIDTagDataSize > 0) {
 		ISOM_DECREASE_SIZE(ptr, ptr->cfg.PresentationIDTagDataSize);
 
-		ptr->cfg.PresentationIDTagData = gf_realloc(ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
+		ptr->cfg.PresentationIDTagData = (u8 *)gf_realloc(ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
 		if (!ptr->cfg.PresentationIDTagData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
 	}
@@ -13280,7 +13279,7 @@ GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size && ptr->cfg.ExpansionBoxPresent) {
 		ptr->cfg.ExpansionBoxDataSize = (u32) ptr->size;
 		ISOM_DECREASE_SIZE(ptr, ptr->cfg.ExpansionBoxDataSize);
-		ptr->cfg.ExpansionBoxData = gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
+		ptr->cfg.ExpansionBoxData = (u8*)gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 		if (!ptr->cfg.ExpansionBoxData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 	} else {
@@ -13347,7 +13346,7 @@ GF_Err mvcg_box_read(GF_Box *s,GF_BitStream *bs)
 	ptr->multiview_group_id = gf_bs_read_u32(bs);
 	ptr->num_entries = gf_bs_read_u16(bs);
 	gf_bs_read_u8(bs);
-	ptr->entries = gf_malloc(ptr->num_entries * sizeof(MVCIEntry));
+	ptr->entries = (MVCIEntry*)gf_malloc(ptr->num_entries * sizeof(MVCIEntry));
 	if (!ptr->entries) return GF_OUT_OF_MEM;
 	memset(ptr->entries, 0, ptr->num_entries * sizeof(MVCIEntry));
 	for (i=0; i<ptr->num_entries; i++) {
@@ -13478,7 +13477,7 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 	if (ptr->num_views > ptr->size / 6)
 		return GF_ISOM_INVALID_FILE;
 
-	ptr->views = gf_malloc(sizeof(ViewIDEntry)*ptr->num_views);
+	ptr->views = (ViewIDEntry*)gf_malloc(sizeof(ViewIDEntry)*ptr->num_views);
 	memset(ptr->views, 0, sizeof(ViewIDEntry)*ptr->num_views);
 	for (i=0; i<ptr->num_views; i++) {
 		u32 j;
@@ -13498,7 +13497,7 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 		if (ptr->views[i].num_ref_views > ptr->size / 2)
 			return GF_ISOM_INVALID_FILE;
 
-		ptr->views[i].view_refs = gf_malloc(sizeof(ViewIDRefViewEntry)*ptr->views[i].num_ref_views);
+		ptr->views[i].view_refs = (ViewIDRefViewEntry*)gf_malloc(sizeof(ViewIDRefViewEntry)*ptr->views[i].num_ref_views);
 		for (j=0; j<ptr->views[i].num_ref_views; j++) {
 			ISOM_DECREASE_SIZE(s, 2)
 			gf_bs_read_int(bs, 4);
@@ -13821,11 +13820,11 @@ GF_Err emsg_box_read(GF_Box *s,GF_BitStream *bs)
 	}
 	if (ptr->size) {
 		if (ptr->size>0xFFFFFFFUL) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] emsg message data size too big ("LLU") to be loaded\n", ptr->size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] emsg message data size too big (" LLU ") to be loaded\n", ptr->size));
 			return GF_OUT_OF_MEM;
 		}
 		ptr->message_data_size = (u32) ptr->size;
-		ptr->message_data = gf_malloc(ptr->message_data_size);
+		ptr->message_data = (u8*)gf_malloc(ptr->message_data_size);
 		if (!ptr->message_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->message_data, ptr->message_data_size);
 		ptr->size = 0;
@@ -13852,11 +13851,11 @@ GF_Err emsg_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 
 	len = ptr->scheme_id_uri ? (u32) strlen(ptr->scheme_id_uri) : 0;
-	if (len) gf_bs_write_data(bs, ptr->scheme_id_uri, len);
+	if (len) gf_bs_write_data(bs, (u8*)ptr->scheme_id_uri, len);
 	gf_bs_write_u8(bs, 0);
 
 	len = ptr->value ? (u32) strlen(ptr->value) : 0;
-	if (len) gf_bs_write_data(bs, ptr->value, len);
+	if (len) gf_bs_write_data(bs, (u8*)ptr->value, len);
 	gf_bs_write_u8(bs, 0);
 
 	if (ptr->version==0) {
@@ -13923,7 +13922,7 @@ GF_Err silb_box_read(GF_Box *s, GF_BitStream *bs)
 		if (!ptr->schemes) return GF_OUT_OF_MEM;
 
 		for (u32 i=0; i<ptr->number_of_schemes; i++) {
-			GF_SchemeIdListBoxEntry *ent = gf_malloc(sizeof(GF_SchemeIdListBoxEntry));
+			GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry *)gf_malloc(sizeof(GF_SchemeIdListBoxEntry));
 			if (!ent) return GF_OUT_OF_MEM;
 			memset(ent, 0, sizeof(GF_SchemeIdListBoxEntry));
 
@@ -13964,14 +13963,14 @@ GF_Err silb_box_write(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_write_u32(bs, ptr->number_of_schemes);
 	for (u32 i=0; i<ptr->number_of_schemes; i++) {
-		GF_SchemeIdListBoxEntry *ent = gf_list_get(ptr->schemes, i);
+		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry *) gf_list_get(ptr->schemes, i);
 
 		u32 len = ent->scheme_id_uri ? (u32) strlen(ent->scheme_id_uri) : 0;
-		if (len) gf_bs_write_data(bs, ent->scheme_id_uri, len);
+		if (len) gf_bs_write_data(bs, (u8 *)ent->scheme_id_uri, len);
 		gf_bs_write_u8(bs, 0);
 
 		len = ent->value ? (u32) strlen(ent->value) : 0;
-		if (len) gf_bs_write_data(bs, ent->value, len);
+		if (len) gf_bs_write_data(bs, (u8 *)ent->value, len);
 		gf_bs_write_u8(bs, 0);
 
 		gf_bs_write_int(bs, ent->reserved, 7);
@@ -13990,7 +13989,7 @@ GF_Err silb_box_size(GF_Box *s)
 
 	ptr->size += 4;     //number_of_schemes
 	for (u32 i=0; i<ptr->number_of_schemes; i++) {
-		GF_SchemeIdListBoxEntry *ent = gf_list_get(ptr->schemes, i);
+		GF_SchemeIdListBoxEntry *ent = (GF_SchemeIdListBoxEntry *) gf_list_get(ptr->schemes, i);
 		if (!ent) return GF_BAD_PARAM;
 		ptr->size += 2; //2 NULL-terminated strings
 		if (ent->scheme_id_uri) ptr->size += strlen(ent->scheme_id_uri);
@@ -14038,11 +14037,11 @@ GF_Err emib_box_read(GF_Box *s,GF_BitStream *bs)
 
 	if (ptr->size) {
 		if (ptr->size>0xFFFFFFFUL) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] emib message data size too big ("LLU") to be loaded\n", ptr->size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] emib message data size too big (" LLU ") to be loaded\n", ptr->size));
 			return GF_OUT_OF_MEM;
 		}
 		ptr->message_data_size = (u32) ptr->size;
-		ptr->message_data = gf_malloc(ptr->message_data_size);
+		ptr->message_data = (u8 *)gf_malloc(ptr->message_data_size);
 		if (!ptr->message_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->message_data, ptr->message_data_size);
 		ptr->size = 0;
@@ -14066,11 +14065,11 @@ GF_Err emib_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->event_id);
 
 	len = ptr->scheme_id_uri ? (u32) strlen(ptr->scheme_id_uri) : 0;
-	if (len) gf_bs_write_data(bs, ptr->scheme_id_uri, len);
+	if (len) gf_bs_write_data(bs, (u8*)ptr->scheme_id_uri, len);
 	gf_bs_write_u8(bs, 0);
 
 	len = ptr->value ? (u32) strlen(ptr->value) : 0;
-	if (len) gf_bs_write_data(bs, ptr->value, len);
+	if (len) gf_bs_write_data(bs, (u8*)ptr->value, len);
 	gf_bs_write_u8(bs, 0);
 
 	if (ptr->message_data)
@@ -14220,7 +14219,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 	}
 
-	ptr->patterns = gf_malloc(sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
+	ptr->patterns = (GF_CompactSampleGroupPattern *)gf_malloc(sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
 	if (!ptr->patterns) return GF_OUT_OF_MEM;
 	memset(ptr->patterns, 0, sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
 
@@ -14237,7 +14236,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		patterns_sizes+=ptr->patterns[i].length;
 		if (patterns_sizes * index_size > ptr->size*8) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample group pattern cumulated sizes "LLU" larger than box size "LLU"\n", patterns_sizes, ptr->size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample group pattern cumulated sizes " LLU " larger than box size " LLU "\n", patterns_sizes, ptr->size));
 			ptr->patterns[i].sample_group_description_indices = NULL;
 			return GF_ISOM_INVALID_FILE;
 		}
@@ -14247,7 +14246,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 			ptr->patterns[i].sample_group_description_indices = NULL;
 			return GF_ISOM_INVALID_FILE;
 		}
-		ptr->patterns[i].sample_group_description_indices = gf_malloc(sizeof(u32) * ptr->patterns[i].length);
+		ptr->patterns[i].sample_group_description_indices = (u32 *)gf_malloc(sizeof(u32) * ptr->patterns[i].length);
 		if (!ptr->patterns[i].sample_group_description_indices) return GF_OUT_OF_MEM;
 	}
 	bits = 0;
@@ -14404,7 +14403,7 @@ void xtra_box_del(GF_Box *s)
 {
 	GF_XtraBox *ptr = (GF_XtraBox *)s;
 	while (gf_list_count(ptr->tags)) {
-		GF_XtraTag *tag = gf_list_pop_back(ptr->tags);
+		GF_XtraTag *tag = (GF_XtraTag *) gf_list_pop_back(ptr->tags);
 		if (tag->name) gf_free(tag->name);
 		if (tag->prop_value) gf_free(tag->prop_value);
 		gf_free(tag);
@@ -14420,7 +14419,8 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_XtraTag *tag;
 		u32 prop_type = 0;
 
-		char *data=NULL, *data2=NULL;
+		char *data=NULL;
+		u8 *data2=NULL;
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, 8)
 		s32 tag_size = gf_bs_read_u32(bs);
 		u32 name_size = gf_bs_read_u32(bs);
@@ -14433,8 +14433,8 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, 10)
 
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, name_size)
-		data = gf_malloc(sizeof(char) * (name_size+1));
-		gf_bs_read_data(bs, data, name_size);
+		data = (char *)gf_malloc(name_size+1);
+		gf_bs_read_data(bs, (u8 *)data, name_size);
 		data[name_size] = 0;
 		tag_size-=name_size;
 
@@ -14451,7 +14451,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			}
 			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
 			//add 3 extra bytes for UTF16 case string dump (3 because we need 0-aligned short value)
-			data2 = gf_malloc(sizeof(char) * (prop_size+3));
+			data2 = (u8 *)gf_malloc(prop_size+3);
 			gf_bs_read_data(bs, data2, prop_size);
 			data2[prop_size] = 0;
 			data2[prop_size+1] = 0;
@@ -14490,7 +14490,7 @@ GF_Err xtra_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	for (i=0; i<count; i++) {
-		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
+		GF_XtraTag *tag = (GF_XtraTag *) gf_list_get(ptr->tags, i);
 		u32 tag_size = 16;
 		u32 name_len = tag->name ? (u32) strlen(tag->name) : 0;
 		tag_size += name_len;
@@ -14499,7 +14499,7 @@ GF_Err xtra_box_write(GF_Box *s, GF_BitStream *bs)
 		}
 		gf_bs_write_u32(bs, tag_size);
 		gf_bs_write_u32(bs, name_len);
-		gf_bs_write_data(bs, tag->name, name_len);
+		gf_bs_write_data(bs, (u8 *)tag->name, name_len);
 		gf_bs_write_u32(bs, tag->flags);
 		gf_bs_write_u32(bs, 6 + tag->prop_size);
 		gf_bs_write_u16(bs, tag->prop_type);
@@ -14513,7 +14513,7 @@ GF_Err xtra_box_size(GF_Box *s)
 	GF_XtraBox *ptr = (GF_XtraBox *)s;
 	u32 i, count = gf_list_count(ptr->tags);
 	for (i=0; i<count; i++) {
-		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
+		GF_XtraTag *tag = (GF_XtraTag *) gf_list_get(ptr->tags, i);
 		ptr->size += 18 + (u32) strlen(tag->name) + tag->prop_size;
 	}
 	return GF_OK;
@@ -14588,9 +14588,9 @@ GF_Err svhd_box_read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in svhd box\n", ptr->size));
 		return GF_ISOM_INVALID_FILE;
 	}
-	ptr->string = gf_malloc(sizeof(char) * ((u32) ptr->size+1));
+	ptr->string = (char *)gf_malloc(((u32) ptr->size+1));
 	if (!ptr->string) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, ptr->string, (u32) ptr->size);
+	gf_bs_read_data(bs, (u8 *)ptr->string, (u32) ptr->size);
 	ptr->string[ptr->size] = 0;
 	return GF_OK;
 }
@@ -14606,7 +14606,7 @@ GF_Err svhd_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	if (ptr->string)
-		gf_bs_write_data(bs, ptr->string, (u32) strlen(ptr->string));
+		gf_bs_write_data(bs, (u8 *)ptr->string, (u32) strlen(ptr->string));
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
@@ -14802,7 +14802,7 @@ GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		ptr->location = (char*)gf_malloc(name_size+1);
 		if (!ptr->location) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->location, name_size);
+		gf_bs_read_data(bs, (u8 *)ptr->location, name_size);
 		ptr->location[name_size] = 0;
 	}
 	return GF_OK;
@@ -14869,7 +14869,7 @@ void sref_box_del(GF_Box *s)
 {
 	GF_SampleReferences *ptr = (GF_SampleReferences*)s;
 	while (gf_list_count(ptr->entries)) {
-		GF_SampleRefEntry *ent = gf_list_pop_back(ptr->entries);
+		GF_SampleRefEntry *ent = (GF_SampleRefEntry *) gf_list_pop_back(ptr->entries);
 		if (ent->sample_refs) gf_free(ent->sample_refs);
 		gf_free(ent);
 	}
@@ -14906,6 +14906,7 @@ static s32 read_signed_int(GF_BitStream *bs, u32 nb_bits, s32 max_val)
 GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 {
 	GF_Err e = GF_OK;
+	u32 prev_sample_id;
 	ISOM_DECREASE_SIZE(s, 1)
 	s->flags = gf_bs_read_u8(bs);
 	Bool use_nodiff = (s->flags & 16) ? GF_TRUE : GF_FALSE;
@@ -14931,7 +14932,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 	GF_List *samples = gf_list_new();
 	for (i=0; i<s->cdrf_entries; i++) {
 		ISOM_DECREASE_SIZE_GOTO_EXIT(s, bits/8)
-		Bool is_ref = gf_bs_read_int(bs, 1);
+		Bool is_ref = gf_bs_read_bool(bs);
 		if (!is_ref) {
 			GF_SampleRefDiffEntry *ent;
 			u32 nb_refs = gf_bs_read_int(bs, bits-1);
@@ -14947,7 +14948,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 			}
 			gf_list_add(def_refs, ent);
 			gf_list_add(samples, ent);
-			ent->sample_refs = gf_malloc(sizeof(s32)*nb_refs);
+			ent->sample_refs = (s32 *)gf_malloc(sizeof(s32)*nb_refs);
 			if (!ent->sample_refs) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
@@ -14956,7 +14957,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 			if (use_nodiff) {
 				ent->diff_sampleID = (s32) read_signed_int(bs, bits, max_val);
 			} else {
-				ent->is_abs = gf_bs_read_int(bs, 1);
+				ent->is_abs = gf_bs_read_bool(bs);
 				ent->diff_sampleID = (s32) read_signed_int(bs, bits-1, max_val2);
 			}
 			for (j=0; j<nb_refs; j++) {
@@ -14975,7 +14976,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 			u32 pattern_idx=0;
 			for (j=0; j<nb_samples; j++) {
 				u32 s_offset = offset + pattern_idx;
-				GF_SampleRefDiffEntry *ent = gf_list_get(samples, s_offset);
+				GF_SampleRefDiffEntry *ent = (GF_SampleRefDiffEntry *) gf_list_get(samples, s_offset);
 				if (!ent) {
 					e = GF_ISOM_INVALID_FILE;
 					goto exit;
@@ -15002,13 +15003,13 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 		}
 	}
 
-	u32 prev_sample_id = 0;
+	prev_sample_id = 0;
 	while (gf_list_count(samples)) {
-		GF_SampleRefDiffEntry *ent = gf_list_pop_front(samples);
+		GF_SampleRefDiffEntry *ent = (GF_SampleRefDiffEntry *) gf_list_pop_front(samples);
 		GF_SampleRefEntry *final_ent;
 		GF_SAFEALLOC(final_ent, GF_SampleRefEntry);
 		if (final_ent) {
-			final_ent->sample_refs = gf_malloc(sizeof(u32)*ent->nb_refs);
+			final_ent->sample_refs = (s32 *)gf_malloc(sizeof(s32)*ent->nb_refs);
 			gf_list_add(s->entries, final_ent);
 		}
 		if (!final_ent || !final_ent->sample_refs) {
@@ -15041,7 +15042,7 @@ GF_Err cdrf_box_read(GF_SampleReferences *s, GF_BitStream *bs)
 exit:
 	if (use_nodiff) {
 		while (gf_list_count(samples)) {
-			GF_SampleRefDiffEntry *ent = gf_list_pop_front(samples);
+			GF_SampleRefDiffEntry *ent = (GF_SampleRefDiffEntry *) gf_list_pop_front(samples);
 			if (gf_list_find(def_refs, ent) < 0) {
 				gf_free(ent);
 			}
@@ -15050,7 +15051,7 @@ exit:
 	gf_list_del(samples);
 
 	while (gf_list_count(def_refs)) {
-		GF_SampleRefDiffEntry *ent = gf_list_pop_back(def_refs);
+		GF_SampleRefDiffEntry *ent = (GF_SampleRefDiffEntry *) gf_list_pop_back(def_refs);
 		if (ent->sample_refs) gf_free(ent->sample_refs);
 		gf_free(ent);
 	}
@@ -15086,7 +15087,7 @@ GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 		if (ent->nb_refs > s->size * 8 / bits) return GF_ISOM_INVALID_FILE;
 		if (ent->nb_refs) {
 			u32 j;
-			ent->sample_refs = gf_malloc(sizeof(u32) * ent->nb_refs);
+			ent->sample_refs = (s32 *)gf_malloc(sizeof(s32) * ent->nb_refs);
 			for (j=0; j<ent->nb_refs; j++) {
 				ent->sample_refs[j] = gf_bs_read_int(bs, bits);
 				ISOM_DECREASE_SIZE(s, bits/8)
@@ -15103,7 +15104,7 @@ static Bool cdrf_sample_is_leaf(GF_SampleReferences *ptr, u32 sample_id)
 {
 	u32 i, j, nb_entries = gf_list_count(ptr->entries);
 	for (i=0; i<nb_entries; i++) {
-		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		GF_SampleRefEntry *ent = (GF_SampleRefEntry *) gf_list_get(ptr->entries, i);
 		for (j=0; j<ent->nb_refs; j++) {
 			if (ent->sample_refs[j]==sample_id) return GF_TRUE;
 		}
@@ -15122,7 +15123,7 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 	Bool prev_is_irap=GF_FALSE;
 	GF_List *refs = gf_list_new();
 	for (i=0; i<nb_entries; i++) {
-		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		GF_SampleRefEntry *ent = (GF_SampleRefEntry *)gf_list_get(ptr->entries, i);
 		GF_SampleRefDiffEntry *rent;
 		GF_SAFEALLOC(rent, GF_SampleRefDiffEntry);
 		rent->diff_sampleID = rent->orig_sampleID = ent->sampleID;
@@ -15143,7 +15144,7 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 			all_intra = GF_FALSE;
 			rent->nb_refs = ent->nb_refs;
 			rent->orig_sample_refs = ent->sample_refs;
-			rent->sample_refs = gf_malloc(sizeof(s32) * ent->nb_refs);
+			rent->sample_refs = (s32 *)gf_malloc(sizeof(s32) * ent->nb_refs);
 			for (j=0; j<rent->nb_refs; j++) {
 				rent->sample_refs[j] = ent->sampleID;
 				rent->sample_refs[j] -= ent->sample_refs[j];
@@ -15177,7 +15178,7 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 	}
 	if (all_intra) {
 		for (i=0; i<nb_entries; i++) {
-			GF_SampleRefDiffEntry *ent = gf_list_get(refs, i);
+			GF_SampleRefDiffEntry *ent = (GF_SampleRefDiffEntry *) gf_list_get(refs, i);
 			ent->flags = 1;
 		}
 	}
@@ -15189,7 +15190,7 @@ static GF_List *cdrf_get_refs(GF_SampleReferences *ptr, s32 *out_max_id, s32 *ou
 static void cdrf_clean_refs(GF_List *refs)
 {
 	while (gf_list_count(refs)) {
-		GF_SampleRefDiffEntry *rent = gf_list_pop_back(refs);
+		GF_SampleRefDiffEntry *rent = (GF_SampleRefDiffEntry *)gf_list_pop_back(refs);
 		if (rent->sample_refs) gf_free(rent->sample_refs);
 		gf_free(rent);
 	}
@@ -15234,26 +15235,26 @@ static s32 cdrf_locate_first_ref(GF_SampleRefDiffEntry *ref_ent, u32 max_idx, GF
 {
 	u32 j;
 	if (pattern_offset>=0) {
-		GF_SampleRefDiffEntry *ref = gf_list_get(refs, pattern_offset);
+		GF_SampleRefDiffEntry *ref = (GF_SampleRefDiffEntry *) gf_list_get(refs, pattern_offset);
 		//detect loop
 		if (cdrf_same_entry(ref_ent, ref, mode))
 			return pattern_offset;
 		//detect following
 		pattern_offset += nb_in_pattern;
-		ref = gf_list_get(refs, pattern_offset);
+		ref = (GF_SampleRefDiffEntry*)gf_list_get(refs, pattern_offset);
 		if (cdrf_same_entry(ref_ent, ref, mode))
 			return pattern_offset;
 	}
 	//browse from start
 	for (j=0; j<max_idx; j++) {
-		GF_SampleRefDiffEntry *ref = gf_list_get(refs, j);
+		GF_SampleRefDiffEntry *ref = (GF_SampleRefDiffEntry *) gf_list_get(refs, j);
 		if (cdrf_same_entry(ref_ent, ref, mode))
 			return j;
 	}
 	return -1;
 }
 
-static void cdrf_box_flush_pattern(GF_BitStream *bs, u32 pattern_len, s32 prev_offset, u32 nb_samples, u32 *sample_ids, u32 bits)
+static void cdrf_box_flush_pattern(GF_BitStream *bs, u32 pattern_len, s32 prev_offset, u32 nb_samples, s32 *sample_ids, u32 bits)
 {
 	gf_assert(pattern_len);
 	gf_assert(nb_samples);
@@ -15293,12 +15294,12 @@ GF_Err cdrf_box_write(GF_SampleReferences *ptr, GF_BitStream *bs)
 	u32 nb_entries = gf_list_count(ptr->entries);
 	s32 *sample_ids = NULL;
 	if (mode) {
-		sample_ids = gf_malloc(sizeof(s32)*nb_entries);
+		sample_ids = (s32 *)gf_malloc(sizeof(s32)*nb_entries);
 		if (!sample_ids) return GF_OUT_OF_MEM;
 	}
 
 	for (i=0; i<nb_entries; i++) {
-		GF_SampleRefDiffEntry *rent = gf_list_get(refs, i);
+		GF_SampleRefDiffEntry *rent = (GF_SampleRefDiffEntry *)gf_list_get(refs, i);
 		s32 found = cdrf_locate_first_ref(rent, i, refs, prev_offset, prev_len, mode);
 
 		if (found<0) {
@@ -15381,7 +15382,7 @@ GF_Err sref_box_write(GF_Box *s, GF_BitStream *bs)
 	u32 i, nb_entries = gf_list_count(ptr->entries);
 	gf_bs_write_u32(bs, nb_entries);
 	for (i=0; i<nb_entries; i++) {
-		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		GF_SampleRefEntry *ent = (GF_SampleRefEntry *) gf_list_get(ptr->entries, i);
 		if (ent->sampleID == GF_INT_MAX) {
 			gf_bs_write_int(bs, 0xFFFFFFFF, bits);
 			continue;
@@ -15417,7 +15418,7 @@ static u32 cdrf_get_cost(GF_List *refs, u32 mode, s32 max_id, u32 *cost_full, u3
 	*cost_full=0;
 
 	for (i=0; i<nb_entries; i++) {
-		GF_SampleRefDiffEntry *rent = gf_list_get(refs, i);
+		GF_SampleRefDiffEntry *rent = (GF_SampleRefDiffEntry *) gf_list_get(refs, i);
 		s32 found = cdrf_locate_first_ref(rent, i, refs, prev_offset, prev_len, mode);
 
 		*cost_full += 2 + rent->nb_refs;
@@ -15458,7 +15459,7 @@ static u32 cdrf_get_cost(GF_List *refs, u32 mode, s32 max_id, u32 *cost_full, u3
 #ifdef DUMP_STATS
 			if (mode==2) {
 				//reuse existing refs sample group, no refs extra cost
-				GF_SampleRefDiffEntry *prev_ent = gf_list_get(refs, i-1);
+				GF_SampleRefDiffEntry *prev_ent = (GF_SampleRefDiffEntry *)gf_list_get(refs, i-1);
 				//same as previous, RLE from previous sbgp entry can be used
 				if (prev_ent && cdrf_same_entry(rent, prev_ent, 2)) {
 
@@ -15636,7 +15637,7 @@ GF_Err sref_box_size(GF_Box *s)
 	ptr->size += 4;
 	u32 max_size = 1;
 	for (i=0; i<nb_entries; i++) {
-		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		GF_SampleRefEntry *ent = (GF_SampleRefEntry *) gf_list_get(ptr->entries, i);
 		if (ent->sampleID==GF_INT_MAX) {
 			continue;
 		}

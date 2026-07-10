@@ -36,7 +36,7 @@ static void gf_m2ts_Delete_IpPacket(GF_M2TS_IP_Packet *ip_packet);
 static void empty_list(GF_List * list)
 {
 	while(gf_list_count(list)) {
-		void *obj = gf_list_get(list,0);
+		void *obj = (void *)gf_list_get(list,0);
 		gf_list_rem(list,0);
 		gf_free(obj);
 		obj = NULL;
@@ -103,10 +103,10 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 
 	if (ip_platform->ip_streams) {
 		while(gf_list_count(ip_platform->ip_streams)) {
-			GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, 0);
+			GF_M2TS_IP_Stream *ip_stream_buff = (GF_M2TS_IP_Stream *)gf_list_get(ip_platform->ip_streams, 0);
 
 			while (gf_list_count(ip_stream_buff->targets)) {
-				GF_M2TS_IP_Target *ip_targets = gf_list_get(ip_stream_buff->targets, 0);
+				GF_M2TS_IP_Target *ip_targets = (GF_M2TS_IP_Target *)gf_list_get(ip_stream_buff->targets, 0);
 				gf_free(ip_targets);
 				gf_list_rem(ip_stream_buff->targets,0);
 			}
@@ -119,7 +119,7 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 	ip_platform->ip_streams = NULL;
 	if (ip_platform->socket_struct) {
 		while(gf_list_count(ip_platform->socket_struct)) {
-			GF_SOCK_ENTRY *socket_struct = gf_list_get(ip_platform->socket_struct, 0);
+			GF_SOCK_ENTRY *socket_struct = (struct _sock_entry *)gf_list_get(ip_platform->socket_struct, 0);
 			gf_free(socket_struct);
 			gf_list_rem(ip_platform->socket_struct,0);
 		}
@@ -222,7 +222,7 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 		GF_SAFEALLOC(mpe->mff,MPE_FEC_FRAME);
 		i_streams = gf_list_count(ip_platform->ip_streams);
 		for(j=0; j<i_streams; j++) {
-			ip_stream_buff=gf_list_get(ip_platform->ip_streams, j);
+			ip_stream_buff = (GF_M2TS_IP_Stream *)gf_list_get(ip_platform->ip_streams, j);
 
 			if(mpe->program->number == ip_stream_buff->location.service_id) {
 				switch(ip_stream_buff->time_slice_fec.frame_size) {
@@ -326,7 +326,7 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 		if((mff->p_error_adt+offset)[0] == 0x01010101) {
 			i_holes = gf_list_count(mff->mpe_holes);
 			for(i=0; i<i_holes; i++) {
-				mff_holes=gf_list_get(mff->mpe_holes, i);
+				mff_holes = (MPE_Error_Holes *)gf_list_get(mff->mpe_holes, i);
 				if(mff_holes->offset == offset) {
 					offset += mff_holes->length;
 					break;
@@ -347,7 +347,7 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 			ip_address_bootstrap[1]=0;
 			ip_address_bootstrap[2]=23;
 			ip_address_bootstrap[3]=14;
-			socket_simu(ip_packet,ts, 1);
+			socket_simu(ip_packet, ts, GF_TRUE);
 
 			/* compare the destination ip address and the ESG Bootstrap address */
 			Boostrap_ip = gf_m2ts_compare_ip(ip_packet->u8_rx_adr,ip_address_bootstrap);
@@ -413,7 +413,7 @@ void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 mpe_pid, unsigned char *
 	/*excluding UDP header*/
 	ip_pck.data = udp_data + 8;
 
-	socket_simu(&ip_pck, ts, 0);
+	socket_simu(&ip_pck, ts, GF_FALSE);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("MPE PID %d - send datagram %d bytes to %d.%d.%d.%d port:%d\n", mpe_pid, ip_pck.u32_udp_data_size-8, ip_pck.u8_rx_adr[0], ip_pck.u8_rx_adr[1], ip_pck.u8_rx_adr[2], ip_pck.u8_rx_adr[3], ip_pck.u32_rx_udp_port));
 }
@@ -425,9 +425,9 @@ Bool gf_m2ts_compare_ip(u8 rx_ip_address[4], u8 ip_address_bootstrap[4])
 	for (i=0; i<4; i++)
 	{
 		if (rx_ip_address[i] != ip_address_bootstrap[i])
-			return 0;
+			return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -461,9 +461,9 @@ u32 gf_m2ts_ipdatagram_reader(u8 *datagram,GF_M2TS_IP_Packet *ip_packet, u32 off
 	ip_packet->u32_udp_chksm = ((datagram+offset)+(ip_packet->u32_hdr_length*4))[6]<<8|((datagram+offset)+(ip_packet->u32_hdr_length*4))[7];
 
 
-	ip_packet->data = gf_malloc((ip_packet->u32_udp_data_size-8)*sizeof(u8));
+	ip_packet->data = (u8 *)gf_malloc(ip_packet->u32_udp_data_size-8);
 	memcpy(ip_packet->data,datagram+offset+(ip_packet->u32_hdr_length*4)+8,(ip_packet->u32_udp_data_size-8)*sizeof(u8));
-	/*ip_packet->data = gf_malloc((ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));
+	/*ip_packet->data = (char *)gf_malloc((ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));
 	memcpy(ip_packet->data,datagram+offset+20,(ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));*/
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("TX addr: %d.%d.%d.%d RX addr : %d.%d.%d.%d port:%d(0x%x) \n",ip_packet->u8_tx_adr[0],ip_packet->u8_tx_adr[1],ip_packet->u8_tx_adr[2],ip_packet->u8_tx_adr[3],ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1],ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3],ip_packet->u32_rx_udp_port,ip_packet->u32_rx_udp_port));
@@ -617,7 +617,7 @@ void gf_ip_platform_descriptor(GF_M2TS_IP_PLATFORM* ip_platform,u8 * data)
 	length = data[1];
 	gf_assert( ip_platform );
 	/* allocation ofr the name of the platform */
-	ip_platform->name = gf_malloc(sizeof(char)*(length-3+1));
+	ip_platform->name = (u8 *)gf_malloc(length-3+1);
 	memcpy(ip_platform->name, data+5, length-3);
 	ip_platform->name[length-3] = 0;
 	return ;
@@ -629,7 +629,7 @@ void gf_ip_platform_provider_descriptor(GF_M2TS_IP_PLATFORM* ip_platform, u8 * d
 	length = data[1];
 	/* allocation of the name of the platform */
 	gf_assert( ip_platform );
-	ip_platform->provider_name = gf_malloc(sizeof(char)*(length-3+1));
+	ip_platform->provider_name = (u8 *)gf_malloc(length-3+1);
 	memcpy(ip_platform->provider_name, data+5, length-3);
 	ip_platform->provider_name[length-3] = 0;
 	return ;
@@ -704,7 +704,7 @@ void descriptorTime_slice_fec_identifier( GF_M2TS_IP_Stream *ip_str,u8 * data)
 	ip_str->time_slice_fec.max_average_rate = (data[4]  >> 4) & 0xf ;
 	ip_str->time_slice_fec.time_slice_fec_id = data[4] & 0xf;
 	if (data[1] > 3) {
-		ip_str->time_slice_fec.id_selector = gf_malloc( data[1] - 3 ) ;
+		ip_str->time_slice_fec.id_selector = (u8 *)gf_malloc( data[1] - 3 ) ;
 		memcpy(ip_str->time_slice_fec.id_selector, data + 4, data[1]-3 );
 	}
 	return ;
@@ -730,7 +730,7 @@ void gf_m2ts_target_ip(GF_M2TS_IP_Stream* ip_str, u8 * data)
 	{
 		GF_M2TS_IP_Target* ip_data;
 		GF_SAFEALLOC(ip_data,GF_M2TS_IP_Target);
-		//ip_data=gf_malloc(sizeof(GF_M2TS_IP_Target));
+		//ip_data= (GF_M2TS_IP_Target *)gf_malloc(sizeof(GF_M2TS_IP_Target));
 		ip_data->type = 0;
 		ip_data->address_mask = 0;
 		memcpy(ip_data->address, data+2+i, 4);
@@ -776,7 +776,7 @@ void decode_fec(MPE_FEC_FRAME * mff)
 	u8 linebuffer[255];
 
 	size = (mff->rows*191)*sizeof(char);
-	data = gf_malloc(size);
+	data = (u8 *)gf_malloc(size);
 	memset(data,0, size);
 
 	initialize_ecc ();
@@ -840,7 +840,7 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 			i_holes = gf_list_count(mff->mpe_holes);
 			for(i=0; i<i_holes; i++)
 			{
-				mff_holes=gf_list_get(mff->mpe_holes, i);
+				mff_holes = (MPE_Error_Holes *)gf_list_get(mff->mpe_holes, i);
 				if(mff_holes->offset == offset)
 				{
 					offset += mff_holes->length;
@@ -862,7 +862,7 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 				i_streams = gf_list_count(ip_platform->ip_streams);
 				for(k=0; k<i_streams; k++)
 				{
-					ip_stream_buff=gf_list_get(ip_platform->ip_streams, k);
+					ip_stream_buff = (GF_M2TS_IP_Stream *)gf_list_get(ip_platform->ip_streams, k);
 
 					if(ip_stream_buff == NULL || ip_stream_buff->stream_info_gathered ==1)
 					{
@@ -873,7 +873,7 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 						u32 i_targets = gf_list_count(ip_stream_buff->targets);
 						for(j=0; j<i_targets; j++)
 						{
-							ip_targets = gf_list_get(ip_stream_buff->targets, j);
+							ip_targets = (GF_M2TS_IP_Target *)gf_list_get(ip_stream_buff->targets, j);
 
 							if(gf_m2ts_compare_ip(ip_packet->u8_rx_adr,ip_targets->address))
 							{
@@ -924,13 +924,13 @@ void gf_dvb_mpe_print_info(GF_M2TS_Demuxer *ts)
 	gf_assert(ip_platform->ip_streams);
 	i_streams = gf_list_count(ip_platform->ip_streams);
 	for(i=0; i<i_streams; i++) {
-		GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, i);
+		GF_M2TS_IP_Stream *ip_stream_buff = (GF_M2TS_IP_Stream *)gf_list_get(ip_platform->ip_streams, i);
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("PID:%d - Target IP address: \n", ip_stream_buff->PID));
 		/*Print the target IP address  */
 		u32 i_targets = gf_list_count(ip_stream_buff->targets);
 		for(j=0; j<i_targets; j++)
 		{
-			ip_targets = gf_list_get(ip_stream_buff->targets, j);
+			ip_targets = (GF_M2TS_IP_Target *)gf_list_get(ip_stream_buff->targets, j);
 
 			l=0;
 
@@ -1023,7 +1023,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 	ipv4_addr = GF_4CC(ip_packet->u8_rx_adr[0], ip_packet->u8_rx_adr[1], ip_packet->u8_rx_adr[2], ip_packet->u8_rx_adr[3]);
 	nb_socket_struct = gf_list_count(ts->ip_platform->socket_struct);
 	for(i=0; i<nb_socket_struct; i++) {
-		Sock_Struct = gf_list_get(ts->ip_platform->socket_struct,i);
+		Sock_Struct = (struct _sock_entry *)gf_list_get(ts->ip_platform->socket_struct,i);
 		if ((Sock_Struct->ipv4_addr==ipv4_addr)&& (Sock_Struct->port == (u16) ip_packet->u32_rx_udp_port)) {
 			if (Sock_Struct->bind_failure) return;
 			break;
@@ -1045,7 +1045,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 		sprintf(name, "%d.%d.%d.%d", ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1], ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3]);
 
 		if (gf_sk_is_multicast_address(name) ) {
-			e = gf_sk_setup_multicast(Sock_Struct->sock, name, ip_packet->u32_rx_udp_port, 1/*TTL - FIXME this should be in a cfg file*/, 0, NULL/*FIXME this should be in a cfg file*/);
+			e = gf_sk_setup_multicast(Sock_Struct->sock, name, ip_packet->u32_rx_udp_port, 1, GF_FALSE, NULL);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Setting up multicast socket for MPE on %s:%d\n", name, ip_packet->u32_rx_udp_port ));
 		} else {
 			/*
@@ -1059,7 +1059,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 
 		if (e != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Server Bind Error: %s\n", gf_error_to_string(e)));
-			Sock_Struct->bind_failure = 1;
+			Sock_Struct->bind_failure = GF_TRUE;
 		}
 		gf_list_add(ts->ip_platform->socket_struct, Sock_Struct);
 	}
@@ -1085,12 +1085,12 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 Bool init_frame(MPE_FEC_FRAME * mff, u32 rows)
 {
 	assert (mff != NULL);
-	if (rows != 256 && rows != 512 && rows != 768 && rows != 1024) return 0;
+	if (rows != 256 && rows != 512 && rows != 768 && rows != 1024) return GF_FALSE;
 	mff->rows = rows ;
 	mff->col_adt = MPE_ADT_COLS;
 	mff->col_rs = MPE_RS_COLS;
-	mff->p_adt = (u8 *)gf_calloc(MPE_ADT_COLS*rows,sizeof(u8));
-	mff->p_rs = (u8 *)gf_calloc(MPE_RS_COLS*rows,sizeof(u8));
+	mff->p_adt = (u8 *)gf_calloc(MPE_ADT_COLS*rows,1);
+	mff->p_rs = (u8 *)gf_calloc(MPE_RS_COLS*rows,1);
 
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("MPE_RS_COLS*rows :%d \n",MPE_RS_COLS*rows));
@@ -1104,7 +1104,7 @@ Bool init_frame(MPE_FEC_FRAME * mff, u32 rows)
 	mff->PID = 0;
 	mff->mpe_holes = gf_list_new();
 	mff->initialized = 1;
-	return 1;
+	return GF_TRUE;
 }
 
 void resetMFF(MPE_FEC_FRAME * mff)

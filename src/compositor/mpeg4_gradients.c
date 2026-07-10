@@ -45,7 +45,7 @@ enum
 typedef struct
 {
 	GF_TextureHandler txh;
-	char *tx_data;
+	u8 *tx_data;
 //	Bool no_rgb_support;
 } GradientStack;
 
@@ -100,14 +100,14 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
 
 	if (!gf_node_dirty_get(txh->owner)) {
-		txh->needs_refresh = 0;
+		txh->needs_refresh = GF_FALSE;
 		return;
 	}
 	if (lg->key.count > lg->keyValue.count) return;
 
 	if (!txh->tx_io) {
-		gf_node_dirty_set(gf_node_get_parent(txh->owner, 0), 0, 1);
-		gf_node_dirty_set(txh->owner, 0, 1);
+		gf_node_dirty_set(gf_node_get_parent(txh->owner, GF_FALSE), 0, GF_TRUE);
+		gf_node_dirty_set(txh->owner, GF_FALSE, GF_TRUE);
 		gf_sc_texture_allocate(txh);
 	}
 
@@ -117,15 +117,15 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	gf_sc_texture_set_stencil(txh, stencil);
 
 	gf_node_dirty_clear(txh->owner, 0);
-	txh->needs_refresh = 1;
+	txh->needs_refresh = GF_TRUE;
 
-	st->txh.transparent = 0;
-	const_a = (lg->opacity.count == 1) ? 1 : 0;
+	st->txh.transparent = GF_FALSE;
+	const_a = (lg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*)gf_malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
-		if (a != FIX_ONE) txh->transparent = 1;
+		if (a != FIX_ONE) txh->transparent = GF_TRUE;
 	}
 	gf_evg_stencil_set_gradient_interpolation(stencil, lg->key.vals, cols, lg->key.count);
 	gf_free(cols);
@@ -192,18 +192,18 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	start = lg->startPoint;
 	end = lg->endPoint;
 
-	transparent = (lg->opacity.count==1) ? (lg->opacity.vals[0]!=FIX_ONE) : 1;
+	transparent = (lg->opacity.count==1) ? ((lg->opacity.vals[0]!=FIX_ONE) ? GF_TRUE : GF_FALSE) : GF_TRUE;
 
 	/*init our 2D graphics stuff*/
 	texture2D = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 	if (!texture2D) return;
-	surface = gf_evg_surface_new(1);
+	surface = gf_evg_surface_new(GF_TRUE);
 	if (!surface) {
 		gf_evg_stencil_delete(texture2D);
 		return;
 	}
 
-	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
+	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = GF_TRUE;
 
 	if (st->tx_data && (st->txh.transparent != transparent)) {
 		gf_free(st->tx_data);
@@ -212,7 +212,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 
 	if (transparent) {
 		if (!st->tx_data) {
-			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		}
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 
@@ -224,16 +224,16 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 		}
 	} else {
 		if (!st->tx_data) {
-			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
 		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
 			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
-			transparent = 1;
+			transparent = GF_TRUE;
 			gf_free(st->tx_data);
-			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
@@ -265,7 +265,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	start.y *= GRAD_TEXTURE_SIZE;
 	end.y *= GRAD_TEXTURE_SIZE;
 	gf_evg_stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y);
-	const_a = (lg->opacity.count == 1) ? 1 : 0;
+	const_a = (lg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*)gf_malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
@@ -316,7 +316,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 		/*back to RGBA texturing*/
 		if (pix_fmt != GF_PIXEL_RGBA) {
 			for (i=0; i<txh->height; i++) {
-				char *data = txh->data + i*txh->stride;
+				u8 *data = txh->data + i*txh->stride;
 				for (j=0; j<txh->width; j++) {
 					u32 val = *(u32 *) &data[4*j];
 					data[4*j] = (val>>16) & 0xFF;
@@ -385,18 +385,18 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	if (rg->key.count<2) return;
 	if (rg->key.count != rg->keyValue.count) return;
 
-	transparent = (rg->opacity.count==1) ? ((rg->opacity.vals[0]!=FIX_ONE) ? 1 : 0) : 1;
+	transparent = (rg->opacity.count==1) ? ((rg->opacity.vals[0]!=FIX_ONE) ? GF_TRUE : GF_FALSE) : GF_TRUE;
 
 	/*init our 2D graphics stuff*/
 	texture2D = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
 	if (!texture2D) return;
-	surface = gf_evg_surface_new(1);
+	surface = gf_evg_surface_new(GF_TRUE);
 	if (!surface) {
 		gf_evg_stencil_delete(texture2D);
 		return;
 	}
 
-	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
+	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = GF_TRUE;
 
 	if (st->tx_data && (st->txh.transparent != transparent)) {
 		gf_free(st->tx_data);
@@ -405,7 +405,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 
 	if (transparent) {
 		if (!st->tx_data) {
-			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		}
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 
@@ -419,16 +419,16 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 		}
 	} else {
 		if (!st->tx_data) {
-			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
 		e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
 			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
-			transparent = 1;
+			transparent = GF_TRUE;
 			gf_free(st->tx_data);
-			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			st->tx_data = (u8 *) gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 			e = gf_evg_stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
@@ -467,7 +467,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 
 	gf_evg_stencil_set_radial_gradient(stenc, center.x, center.y, focal.x, focal.y, radius, radius);
 
-	const_a = (rg->opacity.count == 1) ? 1 : 0;
+	const_a = (rg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*) gf_malloc(sizeof(u32) * rg->key.count);
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
@@ -517,7 +517,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 		/*back to RGBA texturing*/
 		if (pix_fmt == GF_PIXEL_ARGB) {
 			for (i=0; i<txh->height; i++) {
-				char *data = txh->data + i*txh->stride;
+				u8 *data = txh->data + i*txh->stride;
 				for (j=0; j<txh->width; j++) {
 					u8 pa, pr, pg, pb;
 					pa = data[4*j];
@@ -551,7 +551,7 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
 
 	if (!gf_node_dirty_get(txh->owner)) {
-		txh->needs_refresh = 0;
+		txh->needs_refresh = GF_FALSE;
 		return;
 	}
 	if (rg->key.count > rg->keyValue.count) return;
@@ -564,17 +564,17 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 	gf_sc_texture_set_stencil(txh, stencil);
 
 	gf_node_dirty_clear(txh->owner, 0);
-	txh->needs_refresh = 1;
+	txh->needs_refresh = GF_TRUE;
 
-	st->txh.transparent = 0;
+	st->txh.transparent = GF_FALSE;
 	for (i=0; i<rg->opacity.count; i++) {
 		if (rg->opacity.vals[i] != FIX_ONE) {
-			st->txh.transparent = 1;
+			st->txh.transparent = GF_TRUE;
 			break;
 		}
 	}
 
-	const_a = (rg->opacity.count == 1) ? 1 : 0;
+	const_a = (rg->opacity.count == 1) ? GF_TRUE : GF_FALSE;
 	cols = (u32*)gf_malloc(sizeof(u32) * rg->key.count);
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);

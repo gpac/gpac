@@ -68,14 +68,14 @@ void SFS_GetBoolean(ScriptParser *parser);
 
 #define PARSER_STEP_ALLOC	500
 
-static void SFS_AddString(ScriptParser *parser, char *str)
+static void SFS_AddString(ScriptParser *parser, const char *str)
 {
 	if (!str) return;
 	u32 c_str = (u32) strlen(parser->string);
 	u32 a_str = (u32) strlen(str);
 	if (c_str + a_str >= parser->length) {
 		parser->length = c_str + a_str + PARSER_STEP_ALLOC;
-		parser->string = (char *)gf_realloc(parser->string, sizeof(char)*parser->length);
+		parser->string = (char *)gf_realloc(parser->string, parser->length);
 	}
 	gf_strlcat(parser->string, str, parser->length);
 }
@@ -173,7 +173,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	parser.script = n;
 	parser.bs = bs;
 	parser.length = 500;
-	parser.string = (char *) gf_malloc(sizeof(char)* parser.length);
+	parser.string = (char *) gf_malloc(parser.length);
 	parser.string[0] = 0;
 	parser.identifiers = gf_list_new();
 	parser.new_line = (char *) (codec->dec_memory_mode ? "\n" : NULL);

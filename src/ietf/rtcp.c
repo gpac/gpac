@@ -48,10 +48,10 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr)
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, const u8 *pck, u32 pck_size, Bool *has_sr)
 {
 	GF_RTCPHeader rtcp_hdr;
-	char sdes_buffer[300];
+	u8 sdes_buffer[300];
 	u32 i, sender_ssrc, cur_ssrc, val, sdes_type, sdes_len, res, first;
 	GF_Err e = GF_OK;
 
@@ -427,7 +427,7 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 	gf_bs_write_u8(bs, 1);
 	//length and cname
 	gf_bs_write_u8(bs, (u32) strlen(ch->CName));
-	gf_bs_write_data(bs, ch->CName, (u32) strlen(ch->CName));
+	gf_bs_write_data(bs, (u8*)ch->CName, (u32) strlen(ch->CName));
 
 	gf_bs_write_u8(bs, 0);
 

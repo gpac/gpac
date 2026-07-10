@@ -43,7 +43,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	backup = gf_node_dirty_get(node);
 	if (backup & GF_SG_CHILD_DIRTY) {
 		GF_SensorHandler *hsens;
-		Bool check_anchor=0;
+		Bool check_anchor= GF_FALSE;
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
 		if (group->sensors) gf_list_reset(group->sensors);
@@ -54,9 +54,9 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		but still mark the group as empty*/
 		group->bounds.width = 0;
 		/*special case for anchor which is a parent node acting as a sensor*/
-		if (ntag==TAG_MPEG4_Anchor) check_anchor=1;
+		if (ntag==TAG_MPEG4_Anchor) check_anchor= GF_TRUE;
 #ifndef GPAC_DISABLE_X3D
-		else if (ntag==TAG_X3D_Anchor) check_anchor=1;
+		else if (ntag==TAG_X3D_Anchor) check_anchor= GF_TRUE;
 #endif
 		if (check_anchor) {
 			GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n);
@@ -122,19 +122,19 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		group->bounds.width = group->bounds.height = 0;
 		tr_state->bounds.width = tr_state->bounds.height = 0;
 #ifndef GPAC_DISABLE_3D
-		tr_state->bbox.is_set = 0;
+		tr_state->bbox.is_set = GF_FALSE;
 #endif
 		while (child) {
 			gf_node_traverse(child->node, tr_state);
 			if (tr_state->disable_cull) {
 				group->flags |= GROUP_SKIP_CULLING;
-				tr_state->disable_cull = 0;
+				tr_state->disable_cull = GF_FALSE;
 			}
 			/*handle 3D nodes in 2D groups*/
 #ifndef GPAC_DISABLE_3D
 			if (tr_state->bbox.is_set) {
 				gf_rect_from_bbox(&tr_state->bounds, &tr_state->bbox);
-				tr_state->bbox.is_set = 0;
+				tr_state->bbox.is_set = GF_FALSE;
 			}
 #endif
 			gf_rect_union(&group->bounds, &tr_state->bounds);
@@ -145,7 +145,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		tr_state->bounds = group->bounds;
 
 		if (group->flags & GROUP_SKIP_CULLING)
-			tr_state->disable_cull = 1;
+			tr_state->disable_cull = GF_TRUE;
 		tr_state->text_split_mode = backup;
 	}
 	/*TRAVERSE_SORT */
@@ -153,15 +153,15 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		Bool prev_inv = tr_state->invalidate_all;
 #ifdef GF_SR_USE_VIDEO_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
-		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? GF_TRUE : GF_FALSE;
 		u32 cache_too_small = 0;
 		u32 traverse_time = gf_sys_clock();
 		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
-		tr_state->cache_too_small = 0;
+		tr_state->cache_too_small = GF_FALSE;
 #endif
 
 		if (backup & GF_SG_VRML_COLOR_DIRTY) {
-			tr_state->invalidate_all = 1;
+			tr_state->invalidate_all = GF_TRUE;
 			gf_node_dirty_clear(node, GF_SG_VRML_COLOR_DIRTY);
 		}
 
@@ -179,7 +179,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 		if (cache_too_small) {
-			tr_state->cache_too_small = 1;
+			tr_state->cache_too_small = GF_TRUE;
 		} else {
 			/*get the traversal time for each group*/
 			traverse_time = gf_sys_clock() - traverse_time;
@@ -221,15 +221,15 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	backup = gf_node_dirty_get(node);
 	if (backup & GF_SG_CHILD_DIRTY) {
 		GF_SensorHandler *hsens;
-		Bool check_anchor=0;
+		Bool check_anchor= GF_FALSE;
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
 		drawable_reset_group_highlight(tr_state, node);
 		/*special case for anchor which is a parent node acting as a sensor*/
-		if (ntag==TAG_MPEG4_Anchor) check_anchor=1;
+		if (ntag==TAG_MPEG4_Anchor) check_anchor= GF_TRUE;
 #ifndef GPAC_DISABLE_X3D
-		else if (ntag==TAG_X3D_Anchor) check_anchor=1;
+		else if (ntag==TAG_X3D_Anchor) check_anchor= GF_TRUE;
 #endif
 		if (check_anchor) {
 			GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n);
@@ -290,7 +290,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		group->bounds.width = group->bounds.height = 0;
 		tr_state->bounds.width = tr_state->bounds.height = 0;
 #ifndef GPAC_DISABLE_3D
-		tr_state->bbox.is_set = 0;
+		tr_state->bbox.is_set = GF_FALSE;
 #endif
 		count = gf_node_list_get_count(list);
 		for (i=0; i<count; i++) {
@@ -298,13 +298,13 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 			gf_node_traverse(child, tr_state);
 			if (tr_state->disable_cull) {
 				group->flags |= GROUP_SKIP_CULLING;
-				tr_state->disable_cull = 0;
+				tr_state->disable_cull = GF_FALSE;
 			}
 			/*handle 3D nodes in 2D groups*/
 #ifndef GPAC_DISABLE_3D
 			if (tr_state->bbox.is_set) {
 				gf_rect_from_bbox(&tr_state->bounds, &tr_state->bbox);
-				tr_state->bbox.is_set = 0;
+				tr_state->bbox.is_set = GF_FALSE;
 			}
 #endif
 			gf_rect_union(&group->bounds, &tr_state->bounds);
@@ -313,7 +313,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		tr_state->bounds = group->bounds;
 
 		if (group->flags & GROUP_SKIP_CULLING)
-			tr_state->disable_cull = 1;
+			tr_state->disable_cull = GF_TRUE;
 		tr_state->text_split_mode = backup;
 
 		/*TRAVERSE_SORT */
@@ -322,14 +322,14 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 #ifdef GF_SR_USE_VIDEO_CACHE
 		DrawableContext *first_ctx = tr_state->visual->cur_context;
 		u32 cache_too_small = 0;
-		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+		Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? GF_TRUE : GF_FALSE;
 		u32 traverse_time = gf_sys_clock();
 		u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
-		tr_state->cache_too_small = 0;
+		tr_state->cache_too_small = GF_FALSE;
 #endif
 
 		if (backup & GF_SG_VRML_COLOR_DIRTY) {
-			tr_state->invalidate_all = 1;
+			tr_state->invalidate_all = GF_TRUE;
 			gf_node_dirty_clear(node, GF_SG_VRML_COLOR_DIRTY);
 		}
 
@@ -347,7 +347,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 		if (cache_too_small) {
-			tr_state->cache_too_small = 1;
+			tr_state->cache_too_small = GF_TRUE;
 		} else {
 			/*get the traversal time for each group*/
 			traverse_time = gf_sys_clock() - traverse_time;
@@ -413,8 +413,8 @@ static u32 get_light_type(GF_Node *n)
 /*This is the generic routine for child traversing*/
 void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_state)
 {
-	u32 mode_back;
-	Bool split_text_backup, do_lights;
+	u32 mode_back, split_text_backup;
+	Bool do_lights;
 	DirectionalLightContext *dl;
 	GF_List *sensor_backup;
 	GF_SensorHandler *hsens;
@@ -423,10 +423,10 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
 		//we are drawing 3D object but configured for 2D, force 3D
 		if (!tr_state->visual->type_3d && tr_state->visual->compositor->hybrid_opengl) {
-			tr_state->visual->compositor->root_visual_setup=0;
-			tr_state->visual->compositor->force_type_3d=1;
+			tr_state->visual->compositor->root_visual_setup = GF_FALSE;
+			tr_state->visual->compositor->force_type_3d = GF_TRUE;
 		}
-		
+
 		/*need to recompute bounds*/
 		if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
 			/*traverse subtree to recompute bounds*/
@@ -482,7 +482,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	        /*for geometry AND lights*/
 	        && (tr_state->traversing_mode==TRAVERSE_SORT)
 	        /*do cull*/
-	        && !visual_3d_node_cull(tr_state, &group->bbox, 0)) {
+	        && !visual_3d_node_cull(tr_state, &group->bbox, GF_FALSE)) {
 
 		tr_state->cull_flag = mode_back;
 		return;
@@ -507,7 +507,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	}
 
 	/*turn on local lights and global ones*/
-	do_lights = 0;
+	do_lights = GF_FALSE;
 	if (group->flags & GROUP_HAS_LIGHTS) {
 		/*turn on global lights*/
 		if (tr_state->traversing_mode==TRAVERSE_LIGHTING) {
@@ -519,9 +519,9 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 		}
 		/*turn on local lights*/
 		else if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			do_lights = 1;
+			do_lights = GF_TRUE;
 			tr_state->traversing_mode = TRAVERSE_DRAW_3D;
-			tr_state->local_light_on = 1;
+			tr_state->local_light_on = GF_TRUE;
 
 			l = ((GF_ParentNode*)node)->children;
 			while (l) {
@@ -545,7 +545,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 		l = ((GF_ParentNode*)node)->children;
 		split_text_backup = tr_state->text_split_mode;
 		if (tr_state->text_split_mode && (gf_node_list_get_count(l)>1) ) tr_state->text_split_mode = 0;
-		group->bbox.is_set = tr_state->bbox.is_set = 0;
+		group->bbox.is_set = tr_state->bbox.is_set = GF_FALSE;
 		tr_state->bounds.width = 0;
 		group->flags &= ~GROUP_SKIP_CULLING;
 
@@ -553,7 +553,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 			gf_node_traverse(l->node, tr_state);
 			if (tr_state->disable_cull) {
 				group->flags |= GROUP_SKIP_CULLING;
-				tr_state->disable_cull = 0;
+				tr_state->disable_cull = GF_FALSE;
 			}
 			/*handle 2D nodes in 3D groups*/
 			if (tr_state->bounds.width) {
@@ -564,12 +564,12 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 			if (tr_state->bbox.is_set) {
 				gf_bbox_union(&group->bbox, &tr_state->bbox);
 			}
-			tr_state->bbox.is_set = 0;
+			tr_state->bbox.is_set = GF_FALSE;
 			l = l->next;
 		}
 		tr_state->bbox = group->bbox;
 		if (group->flags & GROUP_SKIP_CULLING)
-			tr_state->disable_cull = 1;
+			tr_state->disable_cull = GF_TRUE;
 		tr_state->text_split_mode = split_text_backup;
 	} else {
 		l = ((GF_ParentNode*)node)->children;
@@ -593,7 +593,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	if (do_lights) {
 		u32 lcount;
 		tr_state->traversing_mode = TRAVERSE_DRAW_3D;
-		tr_state->local_light_on = 0;
+		tr_state->local_light_on = GF_FALSE;
 		while ( (lcount = gf_list_count(tr_state->local_lights)) ) {
 			dl = (DirectionalLightContext*)gf_list_get(tr_state->local_lights, lcount-1);
 			gf_list_rem(tr_state->local_lights, lcount-1);
@@ -635,11 +635,11 @@ void parent_node_reset(ParentNode2D *group)
 	}
 }
 
-void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable)
+void parent_node_start_group(ParentNode2D *group, GF_Node *n, u32 discard_type)
 {
 	ChildGroup *cg;
 	if (!n) {
-		cg = gf_list_last(group->groups);
+		cg = (ChildGroup *)gf_list_last(group->groups);
 		if (!cg) return;
 		n = cg->child;
 	}
@@ -649,7 +649,7 @@ void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable)
 		return;
 	}
 	cg->child = n;
-	cg->text_type = discardable;
+	cg->text_type = (u8) discard_type;
 	gf_list_add(group->groups, cg);
 }
 
@@ -677,19 +677,19 @@ void parent_node_end_text_group(ParentNode2D *group, GF_Rect *bounds, Fixed asce
 
 void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *tr_state)
 {
-	Bool split_text_backup;
+	u32 split_text_backup;
 	GF_List *sensor_backup;
 	GF_ChildNodeItem *l;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-		Bool check_anchor=0;
+		Bool check_anchor= GF_FALSE;
 		/*parent groups must recompute their bounds themselves since they modify children layout*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
 		/*special case for anchor which is a parent node acting as a sensor*/
-		if (ntag==TAG_MPEG4_Anchor) check_anchor=1;
+		if (ntag==TAG_MPEG4_Anchor) check_anchor= GF_TRUE;
 #ifndef GPAC_DISABLE_X3D
-		else if (ntag==TAG_X3D_Anchor) check_anchor=1;
+		else if (ntag==TAG_X3D_Anchor) check_anchor= GF_TRUE;
 #endif
 		if (check_anchor) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
@@ -738,7 +738,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 	group->flags &= ~GROUP_SKIP_CULLING;
 	tr_state->bounds.width = tr_state->bounds.height = 0;
 #ifndef GPAC_DISABLE_3D
-	tr_state->bbox.is_set = 0;
+	tr_state->bbox.is_set = GF_FALSE;
 #endif
 
 	l = ((GF_ParentNode *)node)->children;
@@ -753,7 +753,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->bbox.is_set) {
 			gf_rect_from_bbox(&tr_state->bounds, &tr_state->bbox);
-			tr_state->bbox.is_set = 0;
+			tr_state->bbox.is_set = GF_FALSE;
 		}
 #endif
 		parent_node_end_group(group, &tr_state->bounds);

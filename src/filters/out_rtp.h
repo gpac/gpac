@@ -26,6 +26,10 @@
 #ifndef _OUT_RTP_H_
 #define _OUT_RTP_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*module interface*/
 #include <gpac/filters.h>
 #include <gpac/constants.h>
@@ -118,5 +122,9 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 void rtpout_del_stream(GF_RTPOutStream *st);
 
 #endif /*GPAC_DISABLE_STREAMING*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_IN_RTP_H_

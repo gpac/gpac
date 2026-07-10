@@ -85,8 +85,8 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 25)
 	ptr->bootstrapinfo_version = gf_bs_read_u32(bs);
 	ptr->profile = gf_bs_read_int(bs, 2);
-	ptr->live = gf_bs_read_int(bs, 1);
-	ptr->update = gf_bs_read_int(bs, 1);
+	ptr->live = gf_bs_read_bool(bs);
+	ptr->update = gf_bs_read_bool(bs);
 	ptr->reserved = gf_bs_read_int(bs, 4);
 	ptr->time_scale = gf_bs_read_u32(bs);
 	ptr->current_media_time = gf_bs_read_u64(bs);
@@ -95,7 +95,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	i=0;
 	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
 	tmp_strsize =(u32)ptr->size;
-	tmp_str = gf_malloc(sizeof(char)*(tmp_strsize+1));
+	tmp_str = (char *)gf_malloc(tmp_strsize+1);
 	if (!tmp_str) return GF_OUT_OF_MEM;
 	memset(tmp_str, 0, sizeof(char)*(tmp_strsize+1) );
 
@@ -289,29 +289,29 @@ GF_Err abst_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u64(bs, ptr->current_media_time);
 	gf_bs_write_u64(bs, ptr->smpte_time_code_offset);
 	if (ptr->movie_identifier)
-		gf_bs_write_data(bs, ptr->movie_identifier, (u32)strlen(ptr->movie_identifier) + 1);
+		gf_bs_write_data(bs, (u8 *) ptr->movie_identifier, (u32)strlen(ptr->movie_identifier) + 1);
 	else
 		gf_bs_write_u8(bs, 0);
 
 	gf_bs_write_u8(bs, ptr->server_entry_count);
 	for (i=0; i<ptr->server_entry_count; i++) {
 		char *str = (char*)gf_list_get(ptr->server_entry_table, i);
-		gf_bs_write_data(bs, str, (u32)strlen(str) + 1);
+		gf_bs_write_data(bs, (u8 *) str, (u32)strlen(str) + 1);
 	}
 
 	gf_bs_write_u8(bs, ptr->quality_entry_count);
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		char *str = (char*)gf_list_get(ptr->quality_entry_table, i);
-		gf_bs_write_data(bs, str, (u32)strlen(str) + 1);
+		gf_bs_write_data(bs, (u8 *) str, (u32)strlen(str) + 1);
 	}
 
 	if (ptr->drm_data)
-		gf_bs_write_data(bs, ptr->drm_data, (u32)strlen(ptr->drm_data) + 1);
+		gf_bs_write_data(bs, (u8 *) ptr->drm_data, (u32)strlen(ptr->drm_data) + 1);
 	else
 		gf_bs_write_u8(bs, 0);
 
 	if (ptr->meta_data)
-		gf_bs_write_data(bs, ptr->meta_data, (u32)strlen(ptr->meta_data) + 1);
+		gf_bs_write_data(bs, (u8 *) ptr->meta_data, (u32)strlen(ptr->meta_data) + 1);
 	else
 		gf_bs_write_u8(bs, 0);
 
@@ -340,13 +340,19 @@ GF_Err abst_box_size(GF_Box *s)
 	           + (ptr->movie_identifier ? (strlen(ptr->movie_identifier) + 1) : 1)
 	           + 1;
 
-	for (i=0; i<ptr->server_entry_count; i++)
-		s->size += strlen(gf_list_get(ptr->server_entry_table, i)) + 1;
+	for (i=0; i<ptr->server_entry_count; i++) {
+		char *str = (char *)gf_list_get(ptr->server_entry_table, i);
+		if (str)
+			s->size += (u32 ) strlen(str) + 1;
+	}
 
 	s->size += 1;
 
-	for (i=0; i<ptr->quality_entry_count; i++)
-		s->size += strlen(gf_list_get(ptr->quality_entry_table, i)) + 1;
+	for (i=0; i<ptr->quality_entry_count; i++) {
+		char *str = (char *)gf_list_get(ptr->quality_entry_table, i);
+		if (str)
+			s->size += (u32 ) strlen(str) + 1;
+	}
 
 	s->size += (ptr->drm_data ? (strlen(ptr->drm_data) + 1) : 1)
 	           + (ptr->meta_data ? (strlen(ptr->meta_data) + 1) : 1)
@@ -397,9 +403,9 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;
 
 	ISOM_DECREASE_SIZE(ptr, 9)
-	ptr->long_ids = gf_bs_read_int(bs, 1);
-	ptr->long_offsets = gf_bs_read_int(bs, 1);
-	ptr->global_entries = gf_bs_read_int(bs, 1);
+	ptr->long_ids = gf_bs_read_bool(bs);
+	ptr->long_offsets = gf_bs_read_bool(bs);
+	ptr->global_entries = gf_bs_read_bool(bs);
 	ptr->reserved = gf_bs_read_int(bs, 5);
 	ptr->time_scale = gf_bs_read_u32(bs);
 
@@ -408,7 +414,7 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 
 	for (i=0; i<ptr->entry_count; i++) {
-		GF_AfraEntry *ae = gf_malloc(sizeof(GF_AfraEntry));
+		GF_AfraEntry *ae = (GF_AfraEntry *)gf_malloc(sizeof(GF_AfraEntry));
 		if (!ae) return GF_OUT_OF_MEM;
 		gf_list_add(ptr->local_access_entries, ae);
 
@@ -427,7 +433,7 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4)
 		ptr->global_entry_count = gf_bs_read_u32(bs);
 		for (i=0; i<ptr->global_entry_count; i++) {
-			GF_GlobalAfraEntry *ae = gf_malloc(sizeof(GF_GlobalAfraEntry));
+			GF_GlobalAfraEntry *ae = (GF_GlobalAfraEntry *)gf_malloc(sizeof(GF_GlobalAfraEntry));
 			if (!ae) return GF_OUT_OF_MEM;
 			gf_list_add(ptr->global_access_entries, ae);
 
@@ -585,7 +591,7 @@ GF_Err asrt_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 
 	for (i=0; i<ptr->segment_run_entry_count; i++) {
-		GF_AdobeSegmentRunEntry *sre = gf_malloc(sizeof(GF_AdobeSegmentRunEntry));
+		GF_AdobeSegmentRunEntry *sre = (GF_AdobeSegmentRunEntry *)gf_malloc(sizeof(GF_AdobeSegmentRunEntry));
 		if (!sre) return GF_OUT_OF_MEM;
 		gf_list_add(ptr->segment_run_entry_table, sre);
 		ISOM_DECREASE_SIZE(ptr, 8)
@@ -618,7 +624,7 @@ GF_Err asrt_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->quality_entry_count);
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		char *str = (char*)gf_list_get(ptr->quality_segment_url_modifiers, i);
-		gf_bs_write_data(bs, str, (u32)strlen(str) + 1);
+		gf_bs_write_data(bs, (u8 *) str, (u32)strlen(str) + 1);
 	}
 
 	gf_bs_write_u32(bs, ptr->segment_run_entry_count);
@@ -639,8 +645,11 @@ GF_Err asrt_box_size(GF_Box *s)
 
 	s->size += 5;
 
-	for (i=0; i<ptr->quality_entry_count; i++)
-		s->size += strlen(gf_list_get(ptr->quality_segment_url_modifiers, i)) + 1;
+	for (i=0; i<ptr->quality_entry_count; i++) {
+		char *str = (char *) gf_list_get(ptr->quality_segment_url_modifiers, i);
+		if (str)
+			s->size += (u32 )strlen(str) + 1;
+	}
 
 	s->size += ptr->segment_run_entry_count * sizeof(GF_AdobeSegmentRunEntry);
 
@@ -705,7 +714,7 @@ GF_Err afrt_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size / 16 < ptr->fragment_run_entry_count)
 		return GF_ISOM_INVALID_FILE;
 	for (i=0; i<ptr->fragment_run_entry_count; i++) {
-		GF_AdobeFragmentRunEntry *fre = gf_malloc(sizeof(GF_AdobeFragmentRunEntry));
+		GF_AdobeFragmentRunEntry *fre = (GF_AdobeFragmentRunEntry *)gf_malloc(sizeof(GF_AdobeFragmentRunEntry));
 		if (!fre) return GF_OUT_OF_MEM;
 		gf_list_add(ptr->fragment_run_entry_table, fre);
 		ISOM_DECREASE_SIZE(ptr, 16)
@@ -744,7 +753,7 @@ GF_Err afrt_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->quality_entry_count);
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		char *str = (char*)gf_list_get(ptr->quality_segment_url_modifiers, i);
-		gf_bs_write_data(bs, str, (u32)strlen(str) + 1);
+		gf_bs_write_data(bs, (u8 *) str, (u32)strlen(str) + 1);
 	}
 
 	gf_bs_write_u32(bs, ptr->fragment_run_entry_count);
@@ -768,8 +777,11 @@ GF_Err afrt_box_size(GF_Box *s)
 
 	s->size += 5;
 
-	for (i=0; i<ptr->quality_entry_count; i++)
-		s->size += strlen(gf_list_get(ptr->quality_segment_url_modifiers, i)) + 1;
+	for (i=0; i<ptr->quality_entry_count; i++) {
+		char *str = (char *) gf_list_get(ptr->quality_segment_url_modifiers, i);
+		if (str)
+			s->size += (u32 )strlen(str) + 1;
+	}
 
 	s->size += 4;
 

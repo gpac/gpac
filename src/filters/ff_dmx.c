@@ -33,11 +33,6 @@
 //for NTP clock
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
-#if (LIBAVCODEC_VERSION_MAJOR>58)
-#include <libavutil/mastering_display_metadata.h>
-#else
-#define FFMPEG_NO_DOVI
-#endif
 
 GF_OPT_ENUM(GF_FFDemuxRawFrameCopyMode,
 	COPY_NO,
@@ -70,7 +65,7 @@ typedef struct
 
 	//internal data
 	const char *fname;
-	u32 log_class;
+	GF_LOG_Tool log_class;
 
 	Bool raw_data;
 	//input file
@@ -137,7 +132,7 @@ static void ffdmx_finalize(GF_Filter *filter)
 		for (i=0; i<ctx->nb_streams; i++) {
 			if (!ctx->pids_ctx[i].pck_queue) continue;
 			while (gf_list_count(ctx->pids_ctx[i].pck_queue)) {
-				gf_filter_pck_discard( gf_list_pop_back(ctx->pids_ctx[i].pck_queue) );
+				gf_filter_pck_discard( (GF_FilterPacket *) gf_list_pop_back(ctx->pids_ctx[i].pck_queue) );
 			}
 			gf_list_del(ctx->pids_ctx[i].pck_queue);
 		}
@@ -364,7 +359,7 @@ static GF_Err ffdmx_flush_input(GF_Filter *filter, GF_FFDemuxCtx *ctx)
 		ctx->strbuf_offset = 0;
 		if (ctx->strbuf_size + size > ctx->strbuf_alloc) {
 			ctx->strbuf_alloc = ctx->strbuf_size + size;
-			ctx->strbuf = gf_realloc(ctx->strbuf, ctx->strbuf_alloc);
+			ctx->strbuf = (u8 *)gf_realloc(ctx->strbuf, ctx->strbuf_alloc);
 			if (!ctx->strbuf) {
 				ctx->strbuf_alloc = 0;
 				return GF_OUT_OF_MEM;
@@ -498,7 +493,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 					u64 sleep_for = 2*ctx->rcv_time_diff/3000;
 					if (sleep_for > ctx->mwait.y) sleep_for = ctx->mwait.y;
 					if (sleep_for < ctx->mwait.x) sleep_for = ctx->mwait.x;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[FFDMX] empty (got %u pck) - sleeping for "LLU" ms\n", nb_pck, sleep_for ));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[FFDMX] empty (got %u pck) - sleeping for " LLU " ms\n", nb_pck, sleep_for ));
 					gf_filter_ask_rt_reschedule(filter, (u32) sleep_for*1000);
 					return GF_OK;
 				}
@@ -621,7 +616,7 @@ restart:
 
 				if (pctx->pck_queue) {
 					while (gf_list_count(pctx->pck_queue)) {
-						GF_FilterPacket *pck_q = gf_list_pop_front(pctx->pck_queue);
+						GF_FilterPacket *pck_q = (struct __gf_filter_pck *)gf_list_pop_front(pctx->pck_queue);
 						gf_filter_pck_send(pck_q);
 					}
 					gf_list_del(pctx->pck_queue);
@@ -839,7 +834,7 @@ restart:
 				pctx->fake_dts_set = GF_TRUE;
 				if (pctx->pck_queue) {
 					while (gf_list_count(pctx->pck_queue)) {
-						GF_FilterPacket *pck_q = gf_list_pop_front(pctx->pck_queue);
+						GF_FilterPacket *pck_q = (struct __gf_filter_pck *)gf_list_pop_front(pctx->pck_queue);
 						gf_filter_pck_send(pck_q);
 					}
 					gf_list_del(pctx->pck_queue);
@@ -873,7 +868,7 @@ restart:
 			AVPacketSideData *sd = &pkt->side_data[i];
 			if (!sd->data) continue;
 			if ((sd->type == AV_PKT_DATA_WEBVTT_IDENTIFIER) || (sd->type == AV_PKT_DATA_WEBVTT_SETTINGS)) {
-				u8 *d = gf_malloc(sd->size+1);
+				u8 *d = (u8 *)gf_malloc(sd->size+1);
 				if (d) {
 					memcpy(d, sd->data, sd->size);
 					d[sd->size]=0;
@@ -883,7 +878,7 @@ restart:
 						gf_filter_pck_set_property_str(pck_dst, "vtt_cueid", &PROP_STRING_NO_COPY(d) );
 				}
 			} else if ((sd->type == AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL) && (sd->size>8)) {
-				u8 *d = gf_malloc(sd->size-7);
+				u8 *d = (u8 *)gf_malloc(sd->size-7);
 				if (d) {
 					memcpy(d, sd->data+8, sd->size-8);
 					d[sd->size-8]=0;
@@ -929,7 +924,7 @@ restart:
 
 static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 	return ffmpeg_update_arg(ctx->fname, ctx->demuxer, &ctx->options, arg_name, arg_val);
 }
 
@@ -1059,7 +1054,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 	ctx->pkt = av_packet_alloc();
 #endif
 
-	ctx->pids_ctx = gf_malloc(sizeof(PidCtx)*ctx->demuxer->nb_streams);
+	ctx->pids_ctx = (PidCtx *)gf_malloc(sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	memset(ctx->pids_ctx, 0, sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	ctx->nb_streams = ctx->demuxer->nb_streams;
 
@@ -1089,7 +1084,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		u32 j;
 		u32 force_reframer = 0;
 		Bool expose_ffdec=GF_FALSE;
-		u32 gpac_codec_id;
+		GF_CodecID gpac_codec_id;
 		AVStream *stream = ctx->demuxer->streams[i];
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 		AVCodecContext *codec = stream->codec;
@@ -1115,7 +1110,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 #else
 		u32 codec_type = stream->codecpar->codec_type;
-		u32 codec_id = stream->codecpar->codec_id;
+		enum AVCodecID codec_id = stream->codecpar->codec_id;
 		const uint8_t *exdata = stream->codecpar->extradata;
 		u32 exdata_size = stream->codecpar->extradata_size;
 		u32 codec_sample_rate = stream->codecpar->sample_rate;
@@ -1186,20 +1181,20 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (ctx->raw_data && ctx->sclock) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000000) );
 		} else {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(stream->time_base.den) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32) stream->time_base.den) );
 		}
 		if (clock_id)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(clock_id) );
 
 		if (!ctx->raw_data) {
 			if (stream->duration>=0)
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(stream->duration, stream->time_base.den) );
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(stream->duration, (u32) stream->time_base.den) );
 			else if (ctx->demuxer->duration>=0)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ctx->demuxer->duration, AV_TIME_BASE) );
 		}
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC_INT( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC_INT( stream->sample_aspect_ratio.num, (u32) stream->sample_aspect_ratio.den ) );
 
 		ffmpeg_tags_to_gpac(stream->metadata, pid);
 
@@ -1227,7 +1222,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		}
 
 
-		u32 lt = gf_log_get_tool_level(GF_LOG_CODING);
+		GF_LOG_Level lt = gf_log_get_tool_level(GF_LOG_CODING);
 		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
 		force_reframer = ffdmx_valid_should_reframe(gpac_codec_id, (u8 *) exdata, exdata_size);
 		gf_log_set_tool_level(GF_LOG_CODING, lt);
@@ -1240,7 +1235,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT( codec_id ) );
 			if (exdata) {
 				//expose as const data
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)exdata, exdata_size) );
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (u8 *)exdata, exdata_size) );
 			}
 #endif
 
@@ -1286,6 +1281,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 					gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 				}
 				break;
+			default:
+				break;
 			}
 		}
 
@@ -1313,8 +1310,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 		if (codec_width && codec_height) {
 			if (codec_framerate.num && codec_framerate.den) {
-				gf_media_get_reduced_frame_rate(&codec_framerate.num, &codec_framerate.den);
-				gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec_framerate.num, codec_framerate.den ) );
+				gf_media_get_reduced_frame_rate((u32*)&codec_framerate.num, (u32*)&codec_framerate.den);
+				gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec_framerate.num, (u32) codec_framerate.den ) );
 			} else {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unknown frame rate, will use 25 fps - use `:#FPS=VAL` to force frame rate signaling\n", ctx->fname));
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( 25, 1 ) );
@@ -1331,8 +1328,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			u32 pfmt = 0;
 
 			if (codec_pixfmt) {
-				pfmt = ffmpeg_pixfmt_to_gpac(codec_pixfmt, GF_FALSE);
-				is_full_range = ffmpeg_pixfmt_is_fullrange(codec_pixfmt);
+				pfmt = ffmpeg_pixfmt_to_gpac((enum AVPixelFormat)codec_pixfmt, GF_FALSE);
+				is_full_range = ffmpeg_pixfmt_is_fullrange((enum AVPixelFormat)codec_pixfmt);
 			} else if (codec_tag) {
 				pfmt = ffmpeg_pixfmt_from_codec_tag(codec_tag, &is_full_range);
 			}
@@ -1410,8 +1407,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			GF_PropStringList names;
 			u32 nb_c = ctx->demuxer->nb_chapters;
 
-			times.vals = gf_malloc(sizeof(u32)*nb_c);
-			names.vals = gf_malloc(sizeof(char *)*nb_c);
+			times.vals = (u32 *)gf_malloc(sizeof(u32)*nb_c);
+			names.vals = (char **)gf_malloc(sizeof(char *)*nb_c);
 			memset(names.vals, 0, sizeof(char *)*nb_c);
 			times.nb_items = names.nb_items = nb_c;
 
@@ -1469,14 +1466,15 @@ static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)
 	return (int64_t) gf_fseek(ctx->gfio, offset, whence);
 }
 
-#include <libavutil/avstring.h>
 static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
-	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 	GF_Err e;
 	s32 res;
 	u32 i;
-	char *ext;
+	AVDictionary** optionsarr;
+	u32 optionsarr_size;
+	const char *ext;
 	const char *url;
 	const AVInputFormat *av_in = NULL;
 	ctx->fname = "FFDmx";
@@ -1542,7 +1540,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Failed to open %s\n", ctx->fname, ctx->src));
 			return GF_URL_ERROR;
 		}
-		ctx->avio_ctx_buffer = av_malloc(ctx->block_size);
+		ctx->avio_ctx_buffer = (u8*) av_malloc(ctx->block_size);
 		if (!ctx->avio_ctx_buffer) {
 			return GF_OUT_OF_MEM;
 		}
@@ -1616,8 +1614,8 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		return e;
 	}
 
-	AVDictionary** optionsarr = NULL;
-	u32 optionsarr_size = 0;
+	optionsarr = NULL;
+	optionsarr_size = 0;
 	if (ctx->options && ctx->demuxer) {
 		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
 		optionsarr_size = ctx->demuxer->nb_streams;
@@ -1708,7 +1706,7 @@ static int64_t ffdmx_seek(void *opaque, int64_t offset, int whence)
 
 static GF_Err ffdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 
 	if (ctx->ipid && is_remove) {
 		u32 i;
@@ -1727,11 +1725,11 @@ static GF_Err ffdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	ctx->src = gf_strdup(p->value.string);
 	ctx->ipid = pid;
 	if (ctx->avio_ctx_buffer) return GF_OK;
-	ctx->avio_ctx_buffer = av_malloc(ctx->block_size);
+	ctx->avio_ctx_buffer = (u8*)av_malloc(ctx->block_size);
 	if (!ctx->avio_ctx_buffer) return GF_OUT_OF_MEM;
 
 	ctx->strbuf_min = ctx->strbuf_alloc = 1000000;
-	ctx->strbuf = gf_malloc(ctx->strbuf_alloc);
+	ctx->strbuf = (u8 *)gf_malloc(ctx->strbuf_alloc);
 	if (!ctx->strbuf) return GF_OUT_OF_MEM;
 
 	ctx->avio_ctx = avio_alloc_context(ctx->avio_ctx_buffer, ctx->block_size, 0, ctx, &ffdmx_read_packet, NULL, &ffdmx_seek);
@@ -1749,10 +1747,11 @@ static GF_Err ffdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
-	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+	{
 		if (evt->play.initial_broadcast_play==2)
 			return GF_TRUE;
 
@@ -1823,6 +1822,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		ctx->stop_seen = GF_FALSE;
 		return cancel_event;
+	}
 
 	case GF_FEVT_STOP:
 		if (evt->play.initial_broadcast_play==2)
@@ -1877,7 +1877,7 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	//not setting this crashes some probers in ffmpeg
 	pb.filename = "";
 	if (size <= AVPROBE_PADDING_SIZE) {
-		pb.buf = gf_malloc(sizeof(char) * (size+AVPROBE_PADDING_SIZE) );
+		pb.buf = (u8 *)gf_malloc(size+AVPROBE_PADDING_SIZE);
 		memcpy(pb.buf, data, sizeof(char)*size);
 		memset(pb.buf+size, 0, sizeof(char)*AVPROBE_PADDING_SIZE);
 		pb.buf_size = size;
@@ -1887,7 +1887,7 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 		gf_free(pb.buf);
 	} else {
-		pb.buf =  (char *) data;
+		pb.buf = (u8 *)data;
 		pb.buf_size = size - AVPROBE_PADDING_SIZE;
 		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
@@ -2030,7 +2030,7 @@ static const GF_FilterArgs FFDemuxPidArgs[] =
 
 static void ffdmxpid_finalize(GF_Filter *filter)
 {
-	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 	if (ctx->src) {
 		gf_free((char *)ctx->src);
 		ctx->src = NULL;
@@ -2075,7 +2075,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	const char *dev_name=NULL;
 	const char *default_fmt=NULL;
 	const AVInputFormat *dev_fmt=NULL;
-	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)gf_filter_get_udta(filter);
 	Bool wants_audio = GF_FALSE;
 	Bool wants_video = GF_FALSE;
 	ctx->fname = "FFAVIn";
@@ -2246,7 +2246,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	if (res < 0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot open device %s:%s\n", ctx->fname, dev_fmt->priv_class->class_name, ctx->dev));
 		if (options) av_dict_free(&options);
-		return -1;
+		return GF_IO_ERR;
 	}
 
 	av_dump_format(ctx->demuxer, 0, ctx->dev, 0);
@@ -2297,7 +2297,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	}
 	ctx->probe_frames = ctx->probes;
 	if (has_v && ctx->probes) {
-		ctx->probe_times = gf_malloc(sizeof(u64) * ctx->probes);
+		ctx->probe_times = (u64 *)gf_malloc(sizeof(u64) * ctx->probes);
 		memset(ctx->probe_times, 0, sizeof(u64) * ctx->probes);
 		//we probe timestamps in either modes because timestamps of first frames are sometimes off
 		ctx->probe_frames = 0;

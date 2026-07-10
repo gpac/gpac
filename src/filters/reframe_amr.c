@@ -75,7 +75,7 @@ typedef struct
 GF_Err amrdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AMRDmxCtx *ctx = (GF_AMRDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -211,7 +211,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		if (cur_dur > ctx->index * ctx->sample_rate) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AMRIdx)*ctx->index_alloc_size);
+			ctx->indexes = (AMRIdx *)gf_realloc(ctx->indexes, sizeof(AMRIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos - 1;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->sample_rate;
@@ -276,7 +276,7 @@ static Bool amrdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AMRDmxCtx *ctx = (GF_AMRDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -351,11 +351,11 @@ static GFINLINE void amrdmx_update_cts(GF_AMRDmxCtx *ctx)
 
 GF_Err amrdmx_process(GF_Filter *filter)
 {
-	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AMRDmxCtx *ctx = (GF_AMRDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
-	u8 *data, *output;
-	u8 *start;
+	const u8 *data, *start;
+	u8 *output;
 	u32 pck_size, remain;
 
 	//update duration
@@ -375,7 +375,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!data || !pck_size) {
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
@@ -425,19 +425,19 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	}
 	if (ctx->skip_magic) {
 
-		if (!strnicmp(start, "#!AMR\n", 6)) {
+		if ((remain>6) && !memcmp(start, "#!AMR\n", 6)) {
 			ctx->start_offset = 6;
 			ctx->codecid = GF_CODECID_AMR;
 		}
-		else if (!strnicmp(start, "#!EVRC\n", 7)) {
+		else if ((remain>7) && !memcmp(start, "#!EVRC\n", 7)) {
 			ctx->start_offset = 7;
 			ctx->codecid = GF_CODECID_EVRC;
 		}
-		else if (!strnicmp(start, "#!SMV\n", 6)) {
+		else if ((remain>6) && !memcmp(start, "#!SMV\n", 6)) {
 			ctx->start_offset = 6;
 			ctx->codecid = GF_CODECID_SMV;
 		}
-		else if (!strnicmp(start, "#!AMR-WB\n", 9)) {
+		else if ((remain>9) && !memcmp(start, "#!AMR-WB\n", 9)) {
 			ctx->codecid = GF_CODECID_AMR_WB;
 			ctx->start_offset = 9;
 			ctx->sample_rate = 16000;
@@ -542,7 +542,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		start += size;
 		remain -= size;
 
-		ctx->skip_magic = 0;
+		ctx->skip_magic = GF_FALSE;
 		if (ctx->remaining) break;
 		amrdmx_update_cts(ctx);
 
@@ -560,32 +560,32 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 static GF_Err amrdmx_initialize(GF_Filter *filter)
 {
-	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AMRDmxCtx *ctx = (GF_AMRDmxCtx *)gf_filter_get_udta(filter);
 	ctx->skip_magic = GF_TRUE;
 	return GF_OK;
 }
 
 static void amrdmx_finalize(GF_Filter *filter)
 {
-	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AMRDmxCtx *ctx = (GF_AMRDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
 static const char * amrdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if (!strnicmp(data, "#!AMR\n", 6)) {
+	if ((size>6) && !memcmp(data, "#!AMR\n", 6)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/amr";
 	}
-	else if (!strnicmp(data, "#!AMR-WB\n", 9)) {
+	else if ((size>9) && !memcmp(data, "#!AMR-WB\n", 9)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/amr";
 	}
-	else if (!strnicmp(data, "#!EVRC\n", 7)) {
+	else if ((size>7) && !memcmp(data, "#!EVRC\n", 7)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/evrc";
 	}
-	else if (!strnicmp(data, "#!SMV\n", 6)) {
+	else if ((size>6) && !memcmp(data, "#!SMV\n", 6)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "audio/smv";
 	}

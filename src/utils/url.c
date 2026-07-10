@@ -50,7 +50,7 @@ enum
 /*resolve the protocol type, for a std URL: http:// or ftp:// ...*/
 static u32 URL_GetProtocolType(const char *pathName)
 {
-	char *begin;
+	const char *begin;
 	if (!pathName) return GF_URL_TYPE_INVALID;
 
 	/* URL with the data scheme are not relative to avoid concatenation */
@@ -104,7 +104,7 @@ Bool gf_url_is_relative(const char *pathName)
 GF_EXPORT
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 {
-	char* sep;
+	const char* sep;
 	u32 parent_type;
 	char* res = NULL;
 
@@ -163,6 +163,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 {
 	u32 pathSepCount, i, prot_type;
 	Bool had_sep_count = GF_FALSE;
+	char szEmpty[1] = {0};
 	char *outPath, *name, *rad, *tmp2;
 	char *tmp = NULL;
 
@@ -207,7 +208,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) {
 		char *sep = NULL;
-		if (pathName[0]=='/') sep = strstr(parentName, "://");
+		if (pathName[0]=='/') sep = (char *)strstr(parentName, "://");
 		if (sep) sep = strchr(sep+3, '/');
 		if (sep) {
 			sep[0] = 0;
@@ -221,9 +222,9 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	}
 
 	/*old upnp addressing a la Platinum*/
-	rad = strstr(parentName, "%3fpath=");
-	if (!rad) rad = strstr(parentName, "%3Fpath=");
-	if (!rad) rad = strstr(parentName, "?path=");
+	rad = (char*)strstr(parentName, "%3fpath=");
+	if (!rad) rad = (char*)strstr(parentName, "%3Fpath=");
+	if (!rad) rad = (char*)strstr(parentName, "?path=");
 	if (rad) {
 		char *the_path;
 		rad = strchr(rad, '=');
@@ -252,7 +253,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	}
 
 	/*rewrite path to use / not % encoding*/
-	rad = strchr(parentName, '%');
+	rad = (char*)strchr(parentName, '%');
 	if (rad && (!strnicmp(rad, "%5c", 3) || !strnicmp(rad, "%05c", 4) || !strnicmp(rad, "%2f", 3)  || !strnicmp(rad, "%02f", 4))) {
 		char *the_path = gf_strdup(parentName);
 		i=0;
@@ -279,11 +280,11 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	if (pathName[0] == '.') {
 		if (!strcmp(pathName, "..")) {
 			pathSepCount = 1;
-			name = "";
+			name = szEmpty;
 		}
 		if (!strcmp(pathName, "./")) {
 			pathSepCount = 0;
-			name = "";
+			name = szEmpty;
 		}
 		for (i = 0; i< strlen(pathName) - 2; i++) {
 			/*current dir*/
@@ -327,7 +328,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 		u32 l1=0, l2=0;
 		rad = strrchr(tmp, '/');
 		if (rad) l1 = (u32) (rad - tmp);
-		rad = strrchr(pathName, '/');
+		rad = (char*)strrchr(pathName, '/');
 		if (rad) l2 = (u32) (rad - pathName);
 		if (l1 && l2 && (l1==l2) && !strncmp(pathName, parentName, l1)) {
 			outPath = gf_strdup(pathName + l1 + 1);
@@ -378,7 +379,7 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 		const char *p_tmp = tmp+2;
 		//strip if same beginning
 		while (1) {
-			char *sep = strchr(p_src, '/');
+			const char *sep = strchr(p_src, '/');
 			if (!sep) sep = strchr(p_src, '\\');
 			if (!sep) break;
 			u32 sep_len = (u32) (sep - p_src);
@@ -452,7 +453,7 @@ void gf_url_to_fs_path(char *sURL)
 	}
 
 	while (1) {
-		char *sep = strstr(sURL, "%20");
+		char *sep = (char*)strstr(sURL, "%20");
 		if (!sep) break;
 		sep[0] = ' ';
 		memmove(sep+1, sep+3, strlen(sep)-2);
@@ -483,7 +484,7 @@ char *gf_url_percent_encode(const char *path)
 		}
 	}
 	if (!count) return gf_strdup(path);
-	outpath = (char*)gf_malloc(sizeof(char) * (len + count + 1));
+	outpath = (char*)gf_malloc(len + count + 1);
 	memcpy(outpath, path, len+1);
 
 	count = 0;
@@ -532,7 +533,7 @@ char *gf_url_percent_decode(const char *path)
 		count++;
 	}
 	if (count==len) return gf_strdup(path);
-	outpath = (char*)gf_malloc(sizeof(char) * (count + 1));
+	outpath = (char*)gf_malloc(count + 1);
 
 	u32 d_idx=0;
 	for (i=0; i<len; i++) {
@@ -558,7 +559,7 @@ char *gf_url_percent_decode(const char *path)
 GF_EXPORT
 const char *gf_url_get_resource_name(const char *sURL)
 {
-	char *sep;
+	const char *sep;
 	if (!sURL) return NULL;
 	sep = strrchr(sURL, '/');
 	if (!sep) sep = strrchr(sURL, '\\');
@@ -569,7 +570,7 @@ const char *gf_url_get_resource_name(const char *sURL)
 GF_EXPORT
 const char *gf_url_get_path(const char *sURL)
 {
-	char *sep = strstr(sURL, "://");
+	const char *sep = strstr(sURL, "://");
 	if (!sep) return sURL;
 	sep = strchr(sep + 3, '/');
 	if (sep) return sep;

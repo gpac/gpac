@@ -191,9 +191,9 @@ GF_Err ftab_box_read(GF_Box *s, GF_BitStream *bs)
 		len = gf_bs_read_u8(bs);
 		if (len) {
 			ISOM_DECREASE_SIZE(ptr, len);
-			ptr->fonts[i].fontName = (char *)gf_malloc(sizeof(char)*(len+1));
+			ptr->fonts[i].fontName = (char *)gf_malloc(len+1);
 			if (!ptr->fonts[i].fontName) return GF_OUT_OF_MEM;
-			gf_bs_read_data(bs, ptr->fonts[i].fontName, len);
+			gf_bs_read_data(bs, (u8 *)ptr->fonts[i].fontName, len);
 			ptr->fonts[i].fontName[len] = 0;
 		}
 	}
@@ -214,7 +214,7 @@ GF_Err ftab_box_write(GF_Box *s, GF_BitStream *bs)
 		if (ptr->fonts[i].fontName) {
 			u32 len = (u32) strlen(ptr->fonts[i].fontName);
 			gf_bs_write_u8(bs, len);
-			gf_bs_write_data(bs, ptr->fonts[i].fontName, len);
+			gf_bs_write_data(bs, (u8 *)ptr->fonts[i].fontName, len);
 		} else {
 			gf_bs_write_u8(bs, 0);
 		}
@@ -412,10 +412,10 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 	}
 	if (pSize) {
-		ptr->textName = (char*) gf_malloc((pSize+1) * sizeof(char));
+		ptr->textName = (char*) gf_malloc(pSize+1);
 		if (!ptr->textName) return GF_OUT_OF_MEM;
 
-		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize) {
+		if (gf_bs_read_data(bs, (u8 *)ptr->textName, pSize) != pSize) {
 			gf_free(ptr->textName);
 			ptr->textName = NULL;
 			return GF_ISOM_INVALID_FILE;
@@ -506,7 +506,7 @@ GF_Err text_box_write(GF_Box *s, GF_BitStream *bs)
 	//pSize assignment below is not a mistake
 	if (ptr->textName && (pSize = (u16) strlen(ptr->textName))) {
 		gf_bs_write_u8(bs, pSize);					/*a Pascal string begins with its size*/
-		gf_bs_write_data(bs, ptr->textName, pSize);	/*Font name*/
+		gf_bs_write_data(bs, (u8 *)ptr->textName, pSize);	/*Font name*/
 	} else {
 		gf_bs_write_u8(bs, 0);
 	}
@@ -797,17 +797,17 @@ GF_Err href_box_read(GF_Box *s, GF_BitStream *bs)
 	len = gf_bs_read_u8(bs);
 	if (len) {
 		ISOM_DECREASE_SIZE(ptr, len)
-		ptr->URL = (char *) gf_malloc(sizeof(char) * (len+1));
+		ptr->URL = (char *) gf_malloc(len+1);
 		if (!ptr->URL) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->URL, len);
+		gf_bs_read_data(bs, (u8 *)ptr->URL, len);
 		ptr->URL[len] = 0;
 	}
 	len = gf_bs_read_u8(bs);
 	if (len) {
 		ISOM_DECREASE_SIZE(ptr, len)
-		ptr->URL_hint = (char *) gf_malloc(sizeof(char) * (len+1));
+		ptr->URL_hint = (char *) gf_malloc(len+1);
 		if (!ptr->URL_hint) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->URL_hint, len);
+		gf_bs_read_data(bs, (u8 *)ptr->URL_hint, len);
 		ptr->URL_hint[len]= 0;
 	}
 	return GF_OK;
@@ -827,14 +827,14 @@ GF_Err href_box_write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->URL) {
 		len = (u32) strlen(ptr->URL);
 		gf_bs_write_u8(bs, len);
-		gf_bs_write_data(bs, ptr->URL, len);
+		gf_bs_write_data(bs, (u8 *)ptr->URL, len);
 	} else {
 		gf_bs_write_u8(bs, 0);
 	}
 	if (ptr->URL_hint) {
 		len = (u32) strlen(ptr->URL_hint);
 		gf_bs_write_u8(bs, len);
-		gf_bs_write_data(bs, ptr->URL_hint, len);
+		gf_bs_write_data(bs, (u8 *)ptr->URL_hint, len);
 	} else {
 		gf_bs_write_u8(bs, 0);
 	}
@@ -988,7 +988,7 @@ GF_Err tsel_box_read(GF_Box *s,GF_BitStream *bs)
 
 	if (ptr->size % 4) return GF_ISOM_INVALID_FILE;
 	ptr->attributeListCount = (u32)ptr->size/4;
-	ptr->attributeList = gf_malloc(ptr->attributeListCount*sizeof(u32));
+	ptr->attributeList = (u32 *) gf_malloc(ptr->attributeListCount*sizeof(u32));
 	if (ptr->attributeList == NULL) return GF_OUT_OF_MEM;
 
 	for (i=0; i< ptr->attributeListCount; i++) {
@@ -1056,12 +1056,12 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	p->profile = gf_bs_read_u8(bs);
 	p->level = gf_bs_read_u8(bs);
 	p->pathComponents = gf_bs_read_int(bs, 4);
-	p->fullRequestHost = gf_bs_read_int(bs, 1);
-	p->streamType = gf_bs_read_int(bs, 1);
+	p->fullRequestHost = gf_bs_read_bool(bs);
+	p->streamType = gf_bs_read_bool(bs);
 	p->containsRedundant = gf_bs_read_int(bs, 2);
 
 	if (p->size > GF_UINT_MAX-1) return GF_ISOM_INVALID_FILE;
-	char *str = gf_malloc( (size_t) (p->size+1));
+	char *str = (char *) gf_malloc( (size_t) (p->size+1));
 	if (!str) return GF_OUT_OF_MEM;
 	msize = (u32) p->size;
 	str[msize] = 0;
@@ -1117,10 +1117,10 @@ GF_Err dimC_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, p->streamType, 1);
 	gf_bs_write_int(bs, p->containsRedundant, 2);
 	if (p->textEncoding)
-		gf_bs_write_data(bs, p->textEncoding, (u32) strlen(p->textEncoding));
+		gf_bs_write_data(bs, (u8 *)p->textEncoding, (u32) strlen(p->textEncoding));
 	gf_bs_write_u8(bs, 0);
 	if (p->contentEncoding)
-		gf_bs_write_data(bs, p->contentEncoding, (u32) strlen(p->contentEncoding));
+		gf_bs_write_data(bs, (u8 *)p->contentEncoding, (u32) strlen(p->contentEncoding));
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
@@ -1153,9 +1153,9 @@ GF_Err diST_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
 
 	if (s->size > GF_UINT_MAX-1) return GF_ISOM_INVALID_FILE;
-	p->content_script_types = gf_malloc(sizeof(u8) * ((u32) s->size + 1));
+	p->content_script_types = (char *)gf_malloc(((u32) s->size + 1));
 	if (!p->content_script_types) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, p->content_script_types, (u32) s->size);
+	gf_bs_read_data(bs, (u8 *)p->content_script_types, (u32) s->size);
 	p->content_script_types[(u32) s->size] = 0;
 	return GF_OK;
 }
@@ -1167,7 +1167,7 @@ GF_Err diST_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	if (p->content_script_types)
-		gf_bs_write_data(bs, p->content_script_types, (u32) strlen(p->content_script_types)+1);
+		gf_bs_write_data(bs, (u8 *)p->content_script_types, (u32) strlen(p->content_script_types)+1);
 	else
 		gf_bs_write_u8(bs, 0);
 	return GF_OK;

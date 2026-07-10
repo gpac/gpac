@@ -144,7 +144,7 @@ static GF_Err Anchor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Anchor_get_field_index_by_name(char *name)
+static s32 Anchor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -159,7 +159,7 @@ static Bool Anchor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -280,7 +280,7 @@ static GF_Err AnimationStream_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AnimationStream_get_field_index_by_name(char *name)
+static s32 AnimationStream_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("loop", name)) return 0;
 	if (!strcmp("speed", name)) return 1;
@@ -299,9 +299,9 @@ static Bool AnimationStream_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -401,7 +401,7 @@ static GF_Err Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Appearance_get_field_index_by_name(char *name)
+static s32 Appearance_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("material", name)) return 0;
 	if (!strcmp("texture", name)) return 1;
@@ -412,7 +412,7 @@ static Bool Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -552,7 +552,7 @@ static GF_Err AudioBuffer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioBuffer_get_field_index_by_name(char *name)
+static s32 AudioBuffer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("loop", name)) return 0;
 	if (!strcmp("pitch", name)) return 1;
@@ -574,34 +574,34 @@ static Bool AudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -736,7 +736,7 @@ static GF_Err AudioClip_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioClip_get_field_index_by_name(char *name)
+static s32 AudioClip_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("description", name)) return 0;
 	if (!strcmp("loop", name)) return 1;
@@ -756,9 +756,9 @@ static Bool AudioClip_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -877,7 +877,7 @@ static GF_Err AudioDelay_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioDelay_get_field_index_by_name(char *name)
+static s32 AudioDelay_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -896,16 +896,16 @@ static Bool AudioDelay_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -1043,7 +1043,7 @@ static GF_Err AudioFX_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioFX_get_field_index_by_name(char *name)
+static s32 AudioFX_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -1063,23 +1063,23 @@ static Bool AudioFX_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -1208,7 +1208,7 @@ static GF_Err AudioMix_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioMix_get_field_index_by_name(char *name)
+static s32 AudioMix_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -1228,29 +1228,29 @@ static Bool AudioMix_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(1);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -1398,7 +1398,7 @@ static GF_Err AudioSource_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioSource_get_field_index_by_name(char *name)
+static s32 AudioSource_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -1420,29 +1420,29 @@ static Bool AudioSource_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -1565,7 +1565,7 @@ static GF_Err AudioSwitch_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioSwitch_get_field_index_by_name(char *name)
+static s32 AudioSwitch_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -1584,23 +1584,23 @@ static Bool AudioSwitch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QT13_bits = 1;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -1762,7 +1762,7 @@ static GF_Err Background_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Background_get_field_index_by_name(char *name)
+static s32 Background_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("groundAngle", name)) return 1;
@@ -1786,27 +1786,27 @@ static Bool Background_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1.5707963);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 8;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3.14159265);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -1914,7 +1914,7 @@ static GF_Err Background2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Background2D_get_field_index_by_name(char *name)
+static s32 Background2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("backColor", name)) return 1;
@@ -1930,9 +1930,9 @@ static Bool Background2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2042,7 +2042,7 @@ static GF_Err Billboard_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Billboard_get_field_index_by_name(char *name)
+static s32 Billboard_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -2056,9 +2056,9 @@ static Bool Billboard_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 	case 3:
 		*AType = 9;
 		*QType = 9;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2145,7 +2145,7 @@ static GF_Err Bitmap_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Bitmap_get_field_index_by_name(char *name)
+static s32 Bitmap_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("scale", name)) return 0;
 	return -1;
@@ -2158,9 +2158,9 @@ static Bool Bitmap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QType = 12;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2233,7 +2233,7 @@ static GF_Err Box_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Box_get_field_index_by_name(char *name)
+static s32 Box_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("size", name)) return 0;
 	return -1;
@@ -2246,9 +2246,9 @@ static Bool Box_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2334,7 +2334,7 @@ static GF_Err Circle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Circle_get_field_index_by_name(char *name)
+static s32 Circle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	return -1;
@@ -2347,9 +2347,9 @@ static Bool Circle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2467,7 +2467,7 @@ static GF_Err Collision_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Collision_get_field_index_by_name(char *name)
+static s32 Collision_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -2481,7 +2481,7 @@ static Bool Collision_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2496,7 +2496,7 @@ GF_Node *Collision_Create()
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
 	/*default field values*/
-	p->collide = 1;
+	p->collide = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -2567,7 +2567,7 @@ static GF_Err Color_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Color_get_field_index_by_name(char *name)
+static s32 Color_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	return -1;
@@ -2580,9 +2580,9 @@ static Bool Color_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2682,7 +2682,7 @@ static GF_Err ColorInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ColorInterpolator_get_field_index_by_name(char *name)
+static s32 ColorInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -2698,15 +2698,15 @@ static Bool ColorInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -2837,7 +2837,7 @@ static GF_Err CompositeTexture2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 CompositeTexture2D_get_field_index_by_name(char *name)
+static s32 CompositeTexture2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -2858,23 +2858,23 @@ static Bool CompositeTexture2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3031,7 +3031,7 @@ static GF_Err CompositeTexture3D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 CompositeTexture3D_get_field_index_by_name(char *name)
+static s32 CompositeTexture3D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -3055,16 +3055,16 @@ static Bool CompositeTexture3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3081,8 +3081,8 @@ GF_Node *CompositeTexture3D_Create()
 	/*default field values*/
 	p->pixelWidth = -1;
 	p->pixelHeight = -1;
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -3169,7 +3169,7 @@ static GF_Err Conditional_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Conditional_get_field_index_by_name(char *name)
+static s32 Conditional_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("activate", name)) return 0;
 	if (!strcmp("reverseActivate", name)) return 1;
@@ -3181,7 +3181,7 @@ static Bool Conditional_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3271,7 +3271,7 @@ static GF_Err Cone_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Cone_get_field_index_by_name(char *name)
+static s32 Cone_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bottomRadius", name)) return 0;
 	if (!strcmp("height", name)) return 1;
@@ -3287,15 +3287,15 @@ static Bool Cone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3311,8 +3311,8 @@ GF_Node *Cone_Create()
 	/*default field values*/
 	p->bottomRadius = FLT2FIX(1);
 	p->height = FLT2FIX(2);
-	p->side = 1;
-	p->bottom = 1;
+	p->side = GF_TRUE;
+	p->bottom = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -3383,7 +3383,7 @@ static GF_Err Coordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Coordinate_get_field_index_by_name(char *name)
+static s32 Coordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	return -1;
@@ -3396,9 +3396,9 @@ static Bool Coordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3482,7 +3482,7 @@ static GF_Err Coordinate2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Coordinate2D_get_field_index_by_name(char *name)
+static s32 Coordinate2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	return -1;
@@ -3495,9 +3495,9 @@ static Bool Coordinate2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3598,7 +3598,7 @@ static GF_Err CoordinateInterpolator_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 CoordinateInterpolator_get_field_index_by_name(char *name)
+static s32 CoordinateInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -3614,15 +3614,15 @@ static Bool CoordinateInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *Q
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3723,7 +3723,7 @@ static GF_Err CoordinateInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *in
 }
 
 
-static s32 CoordinateInterpolator2D_get_field_index_by_name(char *name)
+static s32 CoordinateInterpolator2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -3739,15 +3739,15 @@ static Bool CoordinateInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3845,7 +3845,7 @@ static GF_Err Curve2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Curve2D_get_field_index_by_name(char *name)
+static s32 Curve2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("fineness", name)) return 1;
@@ -3860,16 +3860,16 @@ static Bool Curve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3965,7 +3965,7 @@ static GF_Err Cylinder_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Cylinder_get_field_index_by_name(char *name)
+static s32 Cylinder_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bottom", name)) return 0;
 	if (!strcmp("height", name)) return 1;
@@ -3982,15 +3982,15 @@ static Bool Cylinder_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -4004,11 +4004,11 @@ GF_Node *Cylinder_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Cylinder);
 
 	/*default field values*/
-	p->bottom = 1;
+	p->bottom = GF_TRUE;
 	p->height = FLT2FIX(2);
 	p->radius = FLT2FIX(1);
-	p->side = 1;
-	p->top = 1;
+	p->side = GF_TRUE;
+	p->top = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -4122,7 +4122,7 @@ static GF_Err CylinderSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 CylinderSensor_get_field_index_by_name(char *name)
+static s32 CylinderSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("diskAngle", name)) return 1;
@@ -4143,27 +4143,27 @@ static Bool CylinderSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1.5707963);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(-6.2831853);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(-6.2831853);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -4177,9 +4177,9 @@ GF_Node *CylinderSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CylinderSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
+	p->autoOffset = GF_TRUE;
 	p->diskAngle = FLT2FIX(0.262);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->maxAngle = FLT2FIX(-1);
 	p->minAngle = FLT2FIX(0);
 	p->offset = FLT2FIX(0);
@@ -4276,7 +4276,7 @@ static GF_Err DirectionalLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 DirectionalLight_get_field_index_by_name(char *name)
+static s32 DirectionalLight_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -4293,25 +4293,25 @@ static Bool DirectionalLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 9;
 		*QType = 9;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -4333,7 +4333,7 @@ GF_Node *DirectionalLight_Create()
 	p->direction.y = FLT2FIX(0);
 	p->direction.z = FLT2FIX(-1);
 	p->intensity = FLT2FIX(1);
-	p->on = 1;
+	p->on = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -4441,7 +4441,7 @@ static GF_Err DiscSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 DiscSensor_get_field_index_by_name(char *name)
+static s32 DiscSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -4461,21 +4461,21 @@ static Bool DiscSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 6;
 		*b_min = FLT2FIX(-6.2831853);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(-6.2831853);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -4489,8 +4489,8 @@ GF_Node *DiscSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DiscSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
-	p->enabled = 1;
+	p->autoOffset = GF_TRUE;
+	p->enabled = GF_TRUE;
 	p->maxAngle = FLT2FIX(-1);
 	p->minAngle = FLT2FIX(0);
 	p->offset = FLT2FIX(0);
@@ -4646,7 +4646,7 @@ static GF_Err ElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ElevationGrid_get_field_index_by_name(char *name)
+static s32 ElevationGrid_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_height", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -4672,39 +4672,39 @@ static Bool ElevationGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 		*QType = 11;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -4718,11 +4718,11 @@ GF_Node *ElevationGrid_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ElevationGrid);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	p->xDimension = 0;
 	p->xSpacing = FLT2FIX(1.0);
 	p->zDimension = 0;
@@ -4822,7 +4822,7 @@ static GF_Err Expression_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Expression_get_field_index_by_name(char *name)
+static s32 Expression_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("expression_select1", name)) return 0;
 	if (!strcmp("expression_intensity1", name)) return 1;
@@ -4841,30 +4841,30 @@ static Bool Expression_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(63);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(63);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -5033,7 +5033,7 @@ static GF_Err Extrusion_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Extrusion_get_field_index_by_name(char *name)
+static s32 Extrusion_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_crossSection", name)) return 0;
 	if (!strcmp("set_orientation", name)) return 1;
@@ -5059,33 +5059,33 @@ static Bool Extrusion_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 10;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -5099,9 +5099,9 @@ GF_Node *Extrusion_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Extrusion);
 
 	/*default field values*/
-	p->beginCap = 1;
-	p->ccw = 1;
-	p->convex = 1;
+	p->beginCap = GF_TRUE;
+	p->ccw = GF_TRUE;
+	p->convex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
 	p->crossSection.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*5);
 	p->crossSection.count = 5;
@@ -5115,7 +5115,7 @@ GF_Node *Extrusion_Create()
 	p->crossSection.vals[3].y = FLT2FIX(1);
 	p->crossSection.vals[4].x = FLT2FIX(1);
 	p->crossSection.vals[4].y = FLT2FIX(1);
-	p->endCap = 1;
+	p->endCap = GF_TRUE;
 	p->orientation.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*1);
 	p->orientation.count = 1;
 	p->orientation.vals[0].x = FLT2FIX(0);
@@ -5126,7 +5126,7 @@ GF_Node *Extrusion_Create()
 	p->scale.count = 1;
 	p->scale.vals[0].x = FLT2FIX(1);
 	p->scale.vals[0].y = FLT2FIX(1);
-	p->solid = 1;
+	p->solid = GF_TRUE;
 	p->spine.vals = (SFVec3f *)gf_malloc(sizeof(SFVec3f)*2);
 	p->spine.count = 2;
 	p->spine.vals[0].x = FLT2FIX(0);
@@ -5234,7 +5234,7 @@ static GF_Err Face_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Face_get_field_index_by_name(char *name)
+static s32 Face_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("fap", name)) return 0;
 	if (!strcmp("fdp", name)) return 1;
@@ -5247,7 +5247,7 @@ static Bool Face_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -5341,7 +5341,7 @@ static GF_Err FaceDefMesh_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FaceDefMesh_get_field_index_by_name(char *name)
+static s32 FaceDefMesh_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("faceSceneGraphNode", name)) return 0;
 	if (!strcmp("intervalBorders", name)) return 1;
@@ -5355,17 +5355,17 @@ static Bool FaceDefMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 	case 1:
 		*AType = 0;
 		*QType = 0;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -5466,7 +5466,7 @@ static GF_Err FaceDefTables_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FaceDefTables_get_field_index_by_name(char *name)
+static s32 FaceDefTables_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("fapID", name)) return 0;
 	if (!strcmp("highLevelSelect", name)) return 1;
@@ -5483,16 +5483,16 @@ static Bool FaceDefTables_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(1);
 		*b_max = FLT2FIX( 68);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 6;
 		*b_min = FLT2FIX(1);
 		*b_max = FLT2FIX( 64);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -5591,7 +5591,7 @@ static GF_Err FaceDefTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FaceDefTransform_get_field_index_by_name(char *name)
+static s32 FaceDefTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("faceSceneGraphNode", name)) return 0;
 	if (!strcmp("fieldId", name)) return 1;
@@ -5608,17 +5608,17 @@ static Bool FaceDefTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 10;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -6114,7 +6114,7 @@ static GF_Err FAP_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FAP_get_field_index_by_name(char *name)
+static s32 FAP_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("viseme", name)) return 0;
 	if (!strcmp("expression", name)) return 1;
@@ -6194,399 +6194,399 @@ static Bool FAP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 19:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 20:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 21:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 22:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 23:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 24:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 25:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 26:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 27:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 28:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 29:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 30:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 31:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 32:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 33:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 34:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 35:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 36:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 37:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 38:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 39:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 40:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 41:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 42:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 43:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 44:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 45:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 46:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 47:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 48:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 49:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 50:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 51:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 52:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 53:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 54:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 55:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 56:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 57:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 58:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 59:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 60:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 61:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 62:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 63:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 64:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 65:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 66:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 67:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -6763,7 +6763,7 @@ static GF_Err FDP_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FDP_get_field_index_by_name(char *name)
+static s32 FDP_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("featurePointsCoord", name)) return 0;
 	if (!strcmp("textureCoord", name)) return 1;
@@ -6776,7 +6776,7 @@ static Bool FDP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -6912,7 +6912,7 @@ static GF_Err FIT_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FIT_get_field_index_by_name(char *name)
+static s32 FIT_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("FAPs", name)) return 0;
 	if (!strcmp("Graph", name)) return 1;
@@ -6934,51 +6934,51 @@ static Bool FIT_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(68);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(68);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 10;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1023);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(10);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(10);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7087,7 +7087,7 @@ static GF_Err Fog_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Fog_get_field_index_by_name(char *name)
+static s32 Fog_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("fogType", name)) return 1;
@@ -7104,15 +7104,15 @@ static Bool Fog_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7248,7 +7248,7 @@ static GF_Err FontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FontStyle_get_field_index_by_name(char *name)
+static s32 FontStyle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("family", name)) return 0;
 	if (!strcmp("horizontal", name)) return 1;
@@ -7269,15 +7269,15 @@ static Bool FontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7291,18 +7291,18 @@ GF_Node *FontStyle_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_FontStyle);
 
 	/*default field values*/
-	p->family.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->family.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->family.count = 1;
 	p->family.vals[0] = gf_strdup("SERIF");
-	p->horizontal = 1;
+	p->horizontal = GF_TRUE;
 	p->justify.count = 1;
-	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->justify.vals[0] = gf_strdup("BEGIN");
-	p->leftToRight = 1;
+	p->leftToRight = GF_TRUE;
 	p->size = FLT2FIX(1.0);
 	p->spacing = FLT2FIX(1.0);
 	p->style.buffer = gf_strdup("PLAIN");
-	p->topToBottom = 1;
+	p->topToBottom = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -7417,7 +7417,7 @@ static GF_Err Form_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Form_get_field_index_by_name(char *name)
+static s32 Form_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -7436,23 +7436,23 @@ static Bool Form_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 10;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1022);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 10;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1022);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7552,7 +7552,7 @@ static GF_Err Group_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Group_get_field_index_by_name(char *name)
+static s32 Group_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -7563,7 +7563,7 @@ static Bool Group_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7656,7 +7656,7 @@ static GF_Err ImageTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ImageTexture_get_field_index_by_name(char *name)
+static s32 ImageTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("repeatS", name)) return 1;
@@ -7667,7 +7667,7 @@ static Bool ImageTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7681,8 +7681,8 @@ GF_Node *ImageTexture_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ImageTexture);
 
 	/*default field values*/
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -7870,7 +7870,7 @@ static GF_Err IndexedFaceSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedFaceSet_get_field_index_by_name(char *name)
+static s32 IndexedFaceSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -7900,33 +7900,33 @@ static Bool IndexedFaceSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -7940,12 +7940,12 @@ GF_Node *IndexedFaceSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedFaceSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->convex = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->convex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -8086,7 +8086,7 @@ static GF_Err IndexedFaceSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedFaceSet2D_get_field_index_by_name(char *name)
+static s32 IndexedFaceSet2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -8109,21 +8109,21 @@ static Bool IndexedFaceSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -8137,8 +8137,8 @@ GF_Node *IndexedFaceSet2D_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedFaceSet2D);
 
 	/*default field values*/
-	p->colorPerVertex = 1;
-	p->convex = 1;
+	p->colorPerVertex = GF_TRUE;
+	p->convex = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -8250,7 +8250,7 @@ static GF_Err IndexedLineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedLineSet_get_field_index_by_name(char *name)
+static s32 IndexedLineSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -8269,15 +8269,15 @@ static Bool IndexedLineSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -8291,7 +8291,7 @@ GF_Node *IndexedLineSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedLineSet);
 
 	/*default field values*/
-	p->colorPerVertex = 1;
+	p->colorPerVertex = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -8403,7 +8403,7 @@ static GF_Err IndexedLineSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedLineSet2D_get_field_index_by_name(char *name)
+static s32 IndexedLineSet2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -8422,15 +8422,15 @@ static Bool IndexedLineSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -8444,7 +8444,7 @@ GF_Node *IndexedLineSet2D_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedLineSet2D);
 
 	/*default field values*/
-	p->colorPerVertex = 1;
+	p->colorPerVertex = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -8511,7 +8511,7 @@ static GF_Err Inline_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Inline_get_field_index_by_name(char *name)
+static s32 Inline_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	return -1;
@@ -8520,7 +8520,7 @@ static Bool Inline_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -8614,7 +8614,7 @@ static GF_Err LOD_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LOD_get_field_index_by_name(char *name)
+static s32 LOD_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("level", name)) return 0;
 	if (!strcmp("center", name)) return 1;
@@ -8629,15 +8629,15 @@ static Bool LOD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -8763,7 +8763,7 @@ static GF_Err Layer2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Layer2D_get_field_index_by_name(char *name)
+static s32 Layer2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -8781,9 +8781,9 @@ static Bool Layer2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 12;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -8925,7 +8925,7 @@ static GF_Err Layer3D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Layer3D_get_field_index_by_name(char *name)
+static s32 Layer3D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -8945,9 +8945,9 @@ static Bool Layer3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 12;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9124,7 +9124,7 @@ static GF_Err Layout_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Layout_get_field_index_by_name(char *name)
+static s32 Layout_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -9151,28 +9151,28 @@ static Bool Layout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9189,14 +9189,14 @@ GF_Node *Layout_Create()
 	/*default field values*/
 	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
-	p->horizontal = 1;
-	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->horizontal = GF_TRUE;
+	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->justify.count = 1;
 	p->justify.vals[0] = gf_strdup("BEGIN");
-	p->leftToRight = 1;
-	p->topToBottom = 1;
+	p->leftToRight = GF_TRUE;
+	p->topToBottom = GF_TRUE;
 	p->spacing = FLT2FIX(1);
-	p->scrollVertical = 1;
+	p->scrollVertical = GF_TRUE;
 	p->scrollRate = FLT2FIX(0);
 	p->scrollMode = 0;
 	return (GF_Node *)p;
@@ -9280,7 +9280,7 @@ static GF_Err LineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LineProperties_get_field_index_by_name(char *name)
+static s32 LineProperties_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("lineColor", name)) return 0;
 	if (!strcmp("lineStyle", name)) return 1;
@@ -9295,22 +9295,22 @@ static Bool LineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(5);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 7;
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9436,7 +9436,7 @@ static GF_Err ListeningPoint_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ListeningPoint_get_field_index_by_name(char *name)
+static s32 ListeningPoint_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("jump", name)) return 1;
@@ -9453,15 +9453,15 @@ static Bool ListeningPoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 	case 2:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9475,7 +9475,7 @@ GF_Node *ListeningPoint_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ListeningPoint);
 
 	/*default field values*/
-	p->jump = 1;
+	p->jump = GF_TRUE;
 	p->orientation.x = FLT2FIX(0);
 	p->orientation.y = FLT2FIX(0);
 	p->orientation.z = FLT2FIX(1);
@@ -9582,7 +9582,7 @@ static GF_Err Material_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Material_get_field_index_by_name(char *name)
+static s32 Material_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("diffuseColor", name)) return 1;
@@ -9600,39 +9600,39 @@ static Bool Material_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9747,7 +9747,7 @@ static GF_Err Material2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Material2D_get_field_index_by_name(char *name)
+static s32 Material2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("emissiveColor", name)) return 0;
 	if (!strcmp("filled", name)) return 1;
@@ -9763,15 +9763,15 @@ static Bool Material2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9907,7 +9907,7 @@ static GF_Err MovieTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MovieTexture_get_field_index_by_name(char *name)
+static s32 MovieTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("loop", name)) return 0;
 	if (!strcmp("speed", name)) return 1;
@@ -9928,9 +9928,9 @@ static Bool MovieTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -9947,8 +9947,8 @@ GF_Node *MovieTexture_Create()
 	p->speed = FLT2FIX(1.0);
 	p->startTime = 0;
 	p->stopTime = 0;
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -10057,7 +10057,7 @@ static GF_Err NavigationInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NavigationInfo_get_field_index_by_name(char *name)
+static s32 NavigationInfo_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("avatarSize", name)) return 1;
@@ -10076,21 +10076,21 @@ static Bool NavigationInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10109,9 +10109,9 @@ GF_Node *NavigationInfo_Create()
 	p->avatarSize.vals[0] = FLT2FIX(0.25);
 	p->avatarSize.vals[1] = FLT2FIX(1.6);
 	p->avatarSize.vals[2] = FLT2FIX(0.75);
-	p->headlight = 1;
+	p->headlight = GF_TRUE;
 	p->speed = FLT2FIX(1.0);
-	p->type.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->type.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->type.count = 2;
 	p->type.vals[0] = gf_strdup("WALK");
 	p->type.vals[1] = gf_strdup("ANY");
@@ -10186,7 +10186,7 @@ static GF_Err Normal_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Normal_get_field_index_by_name(char *name)
+static s32 Normal_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("vector", name)) return 0;
 	return -1;
@@ -10197,9 +10197,9 @@ static Bool Normal_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 	case 0:
 		*AType = 9;
 		*QType = 9;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10300,7 +10300,7 @@ static GF_Err NormalInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NormalInterpolator_get_field_index_by_name(char *name)
+static s32 NormalInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -10316,15 +10316,15 @@ static Bool NormalInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 9;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10428,7 +10428,7 @@ static GF_Err OrderedGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 OrderedGroup_get_field_index_by_name(char *name)
+static s32 OrderedGroup_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -10444,9 +10444,9 @@ static Bool OrderedGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10547,7 +10547,7 @@ static GF_Err OrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 }
 
 
-static s32 OrientationInterpolator_get_field_index_by_name(char *name)
+static s32 OrientationInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -10563,15 +10563,15 @@ static Bool OrientationInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 10;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10663,7 +10663,7 @@ static GF_Err PixelTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PixelTexture_get_field_index_by_name(char *name)
+static s32 PixelTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("image", name)) return 0;
 	if (!strcmp("repeatS", name)) return 1;
@@ -10676,9 +10676,9 @@ static Bool PixelTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 	case 0:
 		*AType = 0;
 		*QType = 0;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10692,8 +10692,8 @@ GF_Node *PixelTexture_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PixelTexture);
 
 	/*default field values*/
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -10801,7 +10801,7 @@ static GF_Err PlaneSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PlaneSensor_get_field_index_by_name(char *name)
+static s32 PlaneSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -10821,21 +10821,21 @@ static Bool PlaneSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -10849,8 +10849,8 @@ GF_Node *PlaneSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PlaneSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
-	p->enabled = 1;
+	p->autoOffset = GF_TRUE;
+	p->enabled = GF_TRUE;
 	p->maxPosition.x = FLT2FIX(-1);
 	p->maxPosition.y = FLT2FIX(-1);
 	p->minPosition.x = FLT2FIX(0);
@@ -10965,7 +10965,7 @@ static GF_Err PlaneSensor2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PlaneSensor2D_get_field_index_by_name(char *name)
+static s32 PlaneSensor2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -10985,21 +10985,21 @@ static Bool PlaneSensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 12;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11013,8 +11013,8 @@ GF_Node *PlaneSensor2D_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PlaneSensor2D);
 
 	/*default field values*/
-	p->autoOffset = 1;
-	p->enabled = 1;
+	p->autoOffset = GF_TRUE;
+	p->enabled = GF_TRUE;
 	p->maxPosition.x = FLT2FIX(0);
 	p->maxPosition.y = FLT2FIX(0);
 	p->minPosition.x = FLT2FIX(0);
@@ -11126,7 +11126,7 @@ static GF_Err PointLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointLight_get_field_index_by_name(char *name)
+static s32 PointLight_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("attenuation", name)) return 1;
@@ -11145,39 +11145,39 @@ static Bool PointLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 1;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11202,7 +11202,7 @@ GF_Node *PointLight_Create()
 	p->location.x = FLT2FIX(0);
 	p->location.y = FLT2FIX(0);
 	p->location.z = FLT2FIX(0);
-	p->on = 1;
+	p->on = GF_TRUE;
 	p->radius = FLT2FIX(100);
 	return (GF_Node *)p;
 }
@@ -11279,7 +11279,7 @@ static GF_Err PointSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointSet_get_field_index_by_name(char *name)
+static s32 PointSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -11289,7 +11289,7 @@ static Bool PointSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11378,7 +11378,7 @@ static GF_Err PointSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointSet2D_get_field_index_by_name(char *name)
+static s32 PointSet2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -11388,7 +11388,7 @@ static Bool PointSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11488,7 +11488,7 @@ static GF_Err PositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PositionInterpolator_get_field_index_by_name(char *name)
+static s32 PositionInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -11504,15 +11504,15 @@ static Bool PositionInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTy
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11612,7 +11612,7 @@ static GF_Err PositionInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 PositionInterpolator2D_get_field_index_by_name(char *name)
+static s32 PositionInterpolator2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -11628,15 +11628,15 @@ static Bool PositionInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *Q
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11757,7 +11757,7 @@ static GF_Err ProximitySensor2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ProximitySensor2D_get_field_index_by_name(char *name)
+static s32 ProximitySensor2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("size", name)) return 1;
@@ -11777,15 +11777,15 @@ static Bool ProximitySensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 2;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11803,7 +11803,7 @@ GF_Node *ProximitySensor2D_Create()
 	p->center.y = FLT2FIX(0);
 	p->size.x = FLT2FIX(0);
 	p->size.y = FLT2FIX(0);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -11911,7 +11911,7 @@ static GF_Err ProximitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ProximitySensor_get_field_index_by_name(char *name)
+static s32 ProximitySensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("size", name)) return 1;
@@ -11931,15 +11931,15 @@ static Bool ProximitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -11959,7 +11959,7 @@ GF_Node *ProximitySensor_Create()
 	p->size.x = FLT2FIX(0);
 	p->size.y = FLT2FIX(0);
 	p->size.z = FLT2FIX(0);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -12251,7 +12251,7 @@ static GF_Err QuantizationParameter_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 QuantizationParameter_get_field_index_by_name(char *name)
+static s32 QuantizationParameter_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("isLocal", name)) return 0;
 	if (!strcmp("position3DQuant", name)) return 1;
@@ -12303,181 +12303,181 @@ static Bool QuantizationParameter_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QT
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 19:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 20:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 22:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 23:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 24:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 26:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 27:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 28:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 30:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 31:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 32:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 34:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 36:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 37:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 38:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -12506,26 +12506,26 @@ GF_Node *QuantizationParameter_Create()
 	p->drawOrderMin = FIX_MIN;
 	p->drawOrderMax = FIX_MAX;
 	p->drawOrderNbBits = 8;
-	p->colorQuant = 1;
+	p->colorQuant = GF_TRUE;
 	p->colorMin = FLT2FIX(0.0);
 	p->colorMax = FLT2FIX(1.0);
 	p->colorNbBits = 8;
-	p->textureCoordinateQuant = 1;
+	p->textureCoordinateQuant = GF_TRUE;
 	p->textureCoordinateMin = FLT2FIX(0);
 	p->textureCoordinateMax = FLT2FIX(1);
 	p->textureCoordinateNbBits = 16;
-	p->angleQuant = 1;
+	p->angleQuant = GF_TRUE;
 	p->angleMin = FLT2FIX(0.0);
 	p->angleMax = FLT2FIX(6.2831853);
 	p->angleNbBits = 16;
 	p->scaleMin = FLT2FIX(0.0);
 	p->scaleMax = FIX_MAX;
 	p->scaleNbBits = 8;
-	p->keyQuant = 1;
+	p->keyQuant = GF_TRUE;
 	p->keyMin = FLT2FIX(0.0);
 	p->keyMax = FLT2FIX(1.0);
 	p->keyNbBits = 8;
-	p->normalQuant = 1;
+	p->normalQuant = GF_TRUE;
 	p->normalNbBits = 8;
 	p->sizeMin = FLT2FIX(0);
 	p->sizeMax = FIX_MAX;
@@ -12599,7 +12599,7 @@ static GF_Err Rectangle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Rectangle_get_field_index_by_name(char *name)
+static s32 Rectangle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("size", name)) return 0;
 	return -1;
@@ -12612,9 +12612,9 @@ static Bool Rectangle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -12716,7 +12716,7 @@ static GF_Err ScalarInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ScalarInterpolator_get_field_index_by_name(char *name)
+static s32 ScalarInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -12732,15 +12732,15 @@ static Bool ScalarInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -12833,7 +12833,7 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 
 //unused
 #if 0
-static s32 Script_get_field_index_by_name(char *name)
+static s32 Script_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("directOutput", name)) return 1;
@@ -12845,7 +12845,7 @@ static Bool Script_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -12934,7 +12934,7 @@ static GF_Err Shape_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Shape_get_field_index_by_name(char *name)
+static s32 Shape_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("appearance", name)) return 0;
 	if (!strcmp("geometry", name)) return 1;
@@ -12944,7 +12944,7 @@ static Bool Shape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13083,7 +13083,7 @@ static GF_Err Sound_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Sound_get_field_index_by_name(char *name)
+static s32 Sound_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("direction", name)) return 0;
 	if (!strcmp("intensity", name)) return 1;
@@ -13105,51 +13105,51 @@ static Bool Sound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 		*QType = 9;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 7;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13175,7 +13175,7 @@ GF_Node *Sound_Create()
 	p->minBack = FLT2FIX(1);
 	p->minFront = FLT2FIX(1);
 	p->priority = FLT2FIX(0);
-	p->spatialize = 1;
+	p->spatialize = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -13265,7 +13265,7 @@ static GF_Err Sound2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Sound2D_get_field_index_by_name(char *name)
+static s32 Sound2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("intensity", name)) return 0;
 	if (!strcmp("location", name)) return 1;
@@ -13281,15 +13281,15 @@ static Bool Sound2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 2;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13306,7 +13306,7 @@ GF_Node *Sound2D_Create()
 	p->intensity = FLT2FIX(1);
 	p->location.x = FLT2FIX(0);
 	p->location.y = FLT2FIX(0);
-	p->spatialize = 1;
+	p->spatialize = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -13364,7 +13364,7 @@ static GF_Err Sphere_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Sphere_get_field_index_by_name(char *name)
+static s32 Sphere_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	return -1;
@@ -13377,9 +13377,9 @@ static Bool Sphere_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13489,7 +13489,7 @@ static GF_Err SphereSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SphereSensor_get_field_index_by_name(char *name)
+static s32 SphereSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -13507,9 +13507,9 @@ static Bool SphereSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 10;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13523,8 +13523,8 @@ GF_Node *SphereSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_SphereSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
-	p->enabled = 1;
+	p->autoOffset = GF_TRUE;
+	p->enabled = GF_TRUE;
 	p->offset.x = FLT2FIX(0);
 	p->offset.y = FLT2FIX(1);
 	p->offset.z = FLT2FIX(0);
@@ -13652,7 +13652,7 @@ static GF_Err SpotLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SpotLight_get_field_index_by_name(char *name)
+static s32 SpotLight_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("attenuation", name)) return 1;
@@ -13674,57 +13674,57 @@ static Bool SpotLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 1;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 8;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1.5707963);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 4;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 8;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1.5707963);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 9;
 		*QType = 9;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13754,7 +13754,7 @@ GF_Node *SpotLight_Create()
 	p->location.x = FLT2FIX(0);
 	p->location.y = FLT2FIX(0);
 	p->location.z = FLT2FIX(0);
-	p->on = 1;
+	p->on = GF_TRUE;
 	p->radius = FLT2FIX(100);
 	return (GF_Node *)p;
 }
@@ -13829,7 +13829,7 @@ static GF_Err Switch_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Switch_get_field_index_by_name(char *name)
+static s32 Switch_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("choice", name)) return 0;
 	if (!strcmp("whichChoice", name)) return 1;
@@ -13844,9 +13844,9 @@ static Bool Switch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QT13_bits = 10;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX( 1022);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -13939,7 +13939,7 @@ static GF_Err TermCap_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TermCap_get_field_index_by_name(char *name)
+static s32 TermCap_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("evaluate", name)) return 0;
 	if (!strcmp("capability", name)) return 1;
@@ -13955,16 +13955,16 @@ static Bool TermCap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(127);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(7);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14070,7 +14070,7 @@ static GF_Err Text_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Text_get_field_index_by_name(char *name)
+static s32 Text_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("string", name)) return 0;
 	if (!strcmp("length", name)) return 1;
@@ -14086,15 +14086,15 @@ static Bool Text_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 7;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14179,7 +14179,7 @@ static GF_Err TextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TextureCoordinate_get_field_index_by_name(char *name)
+static s32 TextureCoordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	return -1;
@@ -14192,9 +14192,9 @@ static Bool TextureCoordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 5;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14295,7 +14295,7 @@ static GF_Err TextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TextureTransform_get_field_index_by_name(char *name)
+static s32 TextureTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("rotation", name)) return 1;
@@ -14311,27 +14311,27 @@ static Bool TextureTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 6;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 12;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 2;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14465,7 +14465,7 @@ static GF_Err TimeSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TimeSensor_get_field_index_by_name(char *name)
+static s32 TimeSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("cycleInterval", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -14482,7 +14482,7 @@ static Bool TimeSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14497,7 +14497,7 @@ GF_Node *TimeSensor_Create()
 
 	/*default field values*/
 	p->cycleInterval = 1;
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->startTime = 0;
 	p->stopTime = 0;
 	return (GF_Node *)p;
@@ -14601,7 +14601,7 @@ static GF_Err TouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TouchSensor_get_field_index_by_name(char *name)
+static s32 TouchSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("enabled", name)) return 0;
 	if (!strcmp("hitNormal_changed", name)) return 1;
@@ -14616,7 +14616,7 @@ static Bool TouchSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14630,7 +14630,7 @@ GF_Node *TouchSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TouchSensor);
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -14748,7 +14748,7 @@ static GF_Err Transform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Transform_get_field_index_by_name(char *name)
+static s32 Transform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -14768,29 +14768,29 @@ static Bool Transform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 11;
 		*QType = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -14939,7 +14939,7 @@ static GF_Err Transform2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Transform2D_get_field_index_by_name(char *name)
+static s32 Transform2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -14959,33 +14959,33 @@ static Bool Transform2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 6;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 12;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 6;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 2;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -15345,7 +15345,7 @@ static GF_Err Valuator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Valuator_get_field_index_by_name(char *name)
+static s32 Valuator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("inSFBool", name)) return 0;
 	if (!strcmp("inSFColor", name)) return 1;
@@ -15398,51 +15398,51 @@ static Bool Valuator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 33:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 34:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 35:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 36:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 37:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 38:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 39:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -15577,7 +15577,7 @@ static GF_Err Viewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Viewpoint_get_field_index_by_name(char *name)
+static s32 Viewpoint_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("fieldOfView", name)) return 1;
@@ -15597,19 +15597,19 @@ static Bool Viewpoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3.1415927);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -15624,7 +15624,7 @@ GF_Node *Viewpoint_Create()
 
 	/*default field values*/
 	p->fieldOfView = FLT2FIX(0.785398);
-	p->jump = 1;
+	p->jump = GF_TRUE;
 	p->orientation.x = FLT2FIX(0);
 	p->orientation.y = FLT2FIX(0);
 	p->orientation.z = FLT2FIX(1);
@@ -15731,7 +15731,7 @@ static GF_Err VisibilitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 VisibilitySensor_get_field_index_by_name(char *name)
+static s32 VisibilitySensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -15749,15 +15749,15 @@ static Bool VisibilitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 11;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -15774,7 +15774,7 @@ GF_Node *VisibilitySensor_Create()
 	p->center.x = FLT2FIX(0);
 	p->center.y = FLT2FIX(0);
 	p->center.z = FLT2FIX(0);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->size.x = FLT2FIX(0);
 	p->size.y = FLT2FIX(0);
 	p->size.z = FLT2FIX(0);
@@ -15861,7 +15861,7 @@ static GF_Err Viseme_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Viseme_get_field_index_by_name(char *name)
+static s32 Viseme_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("viseme_select1", name)) return 0;
 	if (!strcmp("viseme_select2", name)) return 1;
@@ -15878,23 +15878,23 @@ static Bool Viseme_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(63);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -15976,7 +15976,7 @@ static GF_Err WorldInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 WorldInfo_get_field_index_by_name(char *name)
+static s32 WorldInfo_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("info", name)) return 0;
 	if (!strcmp("title", name)) return 1;
@@ -15986,7 +15986,7 @@ static Bool WorldInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -16127,7 +16127,7 @@ static GF_Err AcousticMaterial_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AcousticMaterial_get_field_index_by_name(char *name)
+static s32 AcousticMaterial_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("diffuseColor", name)) return 1;
@@ -16149,63 +16149,63 @@ static Bool AcousticMaterial_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -16344,7 +16344,7 @@ static GF_Err AcousticScene_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AcousticScene_get_field_index_by_name(char *name)
+static s32 AcousticScene_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("Size", name)) return 1;
@@ -16362,39 +16362,39 @@ static Bool AcousticScene_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0 );
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0 );
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0 );
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0 );
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -16530,7 +16530,7 @@ static GF_Err ApplicationWindow_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ApplicationWindow_get_field_index_by_name(char *name)
+static s32 ApplicationWindow_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("isActive", name)) return 0;
 	if (!strcmp("startTime", name)) return 1;
@@ -16549,21 +16549,21 @@ static Bool ApplicationWindow_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 12;
 		*QType = 12;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -18416,7 +18416,7 @@ static GF_Err BAP_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BAP_get_field_index_by_name(char *name)
+static s32 BAP_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("sacroiliac_tilt", name)) return 0;
 	if (!strcmp("sacroiliac_torsion", name)) return 1;
@@ -18724,1779 +18724,1779 @@ static Bool BAP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 19:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 20:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 21:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 22:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 23:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 24:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 25:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 26:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 27:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 28:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 29:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 30:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 31:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 32:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 33:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 34:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 35:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 36:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 37:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 38:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 39:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 40:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 41:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 42:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 43:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 44:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 45:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 46:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 47:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 48:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 49:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 50:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 51:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 52:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 53:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 54:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 55:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 56:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 57:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 58:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 59:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 60:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 61:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 62:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 63:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 64:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 65:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 66:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 67:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 68:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 69:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 70:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 71:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 72:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 73:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 74:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 75:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 76:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 77:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 78:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 79:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 80:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 81:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 82:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 83:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 84:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 85:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 86:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 87:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 88:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 89:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 90:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 91:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 92:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 93:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 94:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 95:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 96:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 97:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 98:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 99:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 100:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 101:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 102:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 103:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 104:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 105:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 106:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 107:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 108:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 109:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 110:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 111:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 112:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 113:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 114:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 115:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 116:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 117:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 118:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 119:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 120:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 121:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 122:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 123:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 124:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 125:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 126:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 127:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 128:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 129:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 130:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 131:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 132:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 133:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 134:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 135:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 136:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 137:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 138:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 139:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 140:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 141:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 142:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 143:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 144:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 145:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 146:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 147:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 148:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 149:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 150:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 151:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 152:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 153:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 154:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 155:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 156:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 157:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 158:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 159:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 160:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 161:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 162:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 163:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 164:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 165:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 166:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 167:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 168:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 169:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 170:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 171:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 172:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 173:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 174:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 175:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 176:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 177:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 178:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 179:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 180:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 181:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 182:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 183:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 184:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 185:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 186:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 187:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 188:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 189:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 190:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 191:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 192:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 193:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 194:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 195:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 196:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 197:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 198:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 199:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 200:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 201:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 202:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 203:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 204:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 205:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 206:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 207:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 208:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 209:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 210:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 211:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 212:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 213:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 214:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 215:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 216:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 217:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 218:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 219:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 220:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 221:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 222:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 223:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 224:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 225:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 226:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 227:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 228:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 229:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 230:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 231:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 232:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 233:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 234:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 235:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 236:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 237:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 238:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 239:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 240:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 241:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 242:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 243:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 244:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 245:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 246:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 247:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 248:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 249:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 250:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 251:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 252:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 253:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 254:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 255:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 256:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 257:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 258:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 259:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 260:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 261:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 262:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 263:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 264:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 265:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 266:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 267:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 268:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 269:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 270:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 271:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 272:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 273:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 274:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 275:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 276:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 277:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 278:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 279:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 280:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 281:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 282:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 283:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 284:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 285:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 286:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 287:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 288:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 289:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 290:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 291:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 292:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 293:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 294:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 295:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -20881,7 +20881,7 @@ static GF_Err BDP_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BDP_get_field_index_by_name(char *name)
+static s32 BDP_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bodyDefTables", name)) return 0;
 	if (!strcmp("bodySceneGraph", name)) return 1;
@@ -20891,7 +20891,7 @@ static Bool BDP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -20988,7 +20988,7 @@ static GF_Err Body_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Body_get_field_index_by_name(char *name)
+static s32 Body_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bdp", name)) return 0;
 	if (!strcmp("bap", name)) return 1;
@@ -20999,7 +20999,7 @@ static Bool Body_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -21113,7 +21113,7 @@ static GF_Err BodyDefTable_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BodyDefTable_get_field_index_by_name(char *name)
+static s32 BodyDefTable_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bodySceneGraphNodeName", name)) return 0;
 	if (!strcmp("bapIDs", name)) return 1;
@@ -21132,27 +21132,27 @@ static Bool BodyDefTable_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QT13_bits = 9;
 		*b_min = FLT2FIX(1);
 		*b_max = FLT2FIX(296);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(2);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -21254,7 +21254,7 @@ static GF_Err BodySegmentConnectionHint_get_field(GF_Node *node, GF_FieldInfo *i
 }
 
 
-static s32 BodySegmentConnectionHint_get_field_index_by_name(char *name)
+static s32 BodySegmentConnectionHint_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("firstSegmentNodeName", name)) return 0;
 	if (!strcmp("secondSegmentNodeName", name)) return 1;
@@ -21270,15 +21270,15 @@ static Bool BodySegmentConnectionHint_get_aq_info(GF_Node *n, u32 FieldIndex, u8
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -21440,7 +21440,7 @@ static GF_Err DirectiveSound_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 DirectiveSound_get_field_index_by_name(char *name)
+static s32 DirectiveSound_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("direction", name)) return 0;
 	if (!strcmp("intensity", name)) return 1;
@@ -21465,51 +21465,51 @@ static Bool DirectiveSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 9;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3.14159265);
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -21530,7 +21530,7 @@ GF_Node *DirectiveSound_Create()
 	p->location.x = FLT2FIX(0);
 	p->location.y = FLT2FIX(0);
 	p->location.z = FLT2FIX(0);
-	p->spatialize = 1;
+	p->spatialize = GF_TRUE;
 	p->directivity.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
 	p->directivity.count = 1;
 	p->directivity.vals[0] = FLT2FIX(1);
@@ -21624,7 +21624,7 @@ static GF_Err Hierarchical3DMesh_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Hierarchical3DMesh_get_field_index_by_name(char *name)
+static s32 Hierarchical3DMesh_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("triangleBudget", name)) return 0;
 	if (!strcmp("level", name)) return 1;
@@ -21640,15 +21640,15 @@ static Bool Hierarchical3DMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 0;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -21762,7 +21762,7 @@ static GF_Err MaterialKey_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MaterialKey_get_field_index_by_name(char *name)
+static s32 MaterialKey_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("isKeyed", name)) return 0;
 	if (!strcmp("isRGB", name)) return 1;
@@ -21780,27 +21780,27 @@ static Bool MaterialKey_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -21814,8 +21814,8 @@ GF_Node *MaterialKey_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MaterialKey);
 
 	/*default field values*/
-	p->isKeyed = 1;
-	p->isRGB = 1;
+	p->isKeyed = GF_TRUE;
+	p->isRGB = GF_TRUE;
 	p->keyColor.red = FLT2FIX(0);
 	p->keyColor.green = FLT2FIX(0);
 	p->keyColor.blue = FLT2FIX(0);
@@ -22002,7 +22002,7 @@ static GF_Err PerceptualParameters_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PerceptualParameters_get_field_index_by_name(char *name)
+static s32 PerceptualParameters_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("sourcePresence", name)) return 0;
 	if (!strcmp("sourceWarmth", name)) return 1;
@@ -22033,117 +22033,117 @@ static Bool PerceptualParameters_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTy
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -22336,7 +22336,7 @@ static GF_Err TemporalTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TemporalTransform_get_field_index_by_name(char *name)
+static s32 TemporalTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -22361,29 +22361,29 @@ static Bool TemporalTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 12;
 		*QType = 12;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 1;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -22530,7 +22530,7 @@ static GF_Err TemporalGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TemporalGroup_get_field_index_by_name(char *name)
+static s32 TemporalGroup_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -22551,9 +22551,9 @@ static Bool TemporalGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 		*QType = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -22568,7 +22568,7 @@ GF_Node *TemporalGroup_Create()
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
 	/*default field values*/
-	p->costart = 1;
+	p->costart = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -22655,7 +22655,7 @@ static GF_Err ServerCommand_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ServerCommand_get_field_index_by_name(char *name)
+static s32 ServerCommand_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("trigger", name)) return 0;
 	if (!strcmp("enable", name)) return 1;
@@ -22667,7 +22667,7 @@ static Bool ServerCommand_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -22766,7 +22766,7 @@ static GF_Err InputSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 InputSensor_get_field_index_by_name(char *name)
+static s32 InputSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("enabled", name)) return 0;
 	if (!strcmp("buffer", name)) return 1;
@@ -22778,7 +22778,7 @@ static Bool InputSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -22793,7 +22793,7 @@ GF_Node *InputSensor_Create()
 	p->buffer.commandList = gf_list_new();
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -22903,7 +22903,7 @@ static GF_Err MatteTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MatteTexture_get_field_index_by_name(char *name)
+static s32 MatteTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("surfaceA", name)) return 0;
 	if (!strcmp("surfaceB", name)) return 1;
@@ -22918,7 +22918,7 @@ static Bool MatteTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23032,7 +23032,7 @@ static GF_Err MediaBuffer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MediaBuffer_get_field_index_by_name(char *name)
+static s32 MediaBuffer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bufferSize", name)) return 0;
 	if (!strcmp("url", name)) return 1;
@@ -23046,7 +23046,7 @@ static Bool MediaBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23063,7 +23063,7 @@ GF_Node *MediaBuffer_Create()
 	p->bufferSize = FLT2FIX(0.0);
 	p->mediaStartTime = -1;
 	p->mediaStopTime = FIX_MAX;
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -23178,7 +23178,7 @@ static GF_Err MediaControl_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MediaControl_get_field_index_by_name(char *name)
+static s32 MediaControl_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("mediaStartTime", name)) return 1;
@@ -23195,7 +23195,7 @@ static Bool MediaControl_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23212,8 +23212,8 @@ GF_Node *MediaControl_Create()
 	p->mediaStartTime = -1;
 	p->mediaStopTime = FIX_MAX;
 	p->mediaSpeed = FLT2FIX(1.0);
-	p->preRoll = 1;
-	p->enabled = 1;
+	p->preRoll = GF_TRUE;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -23311,7 +23311,7 @@ static GF_Err MediaSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MediaSensor_get_field_index_by_name(char *name)
+static s32 MediaSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("mediaCurrentTime", name)) return 1;
@@ -23325,7 +23325,7 @@ static Bool MediaSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23418,7 +23418,7 @@ static GF_Err BitWrapper_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BitWrapper_get_field_index_by_name(char *name)
+static s32 BitWrapper_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("node", name)) return 0;
 	if (!strcmp("type", name)) return 1;
@@ -23430,7 +23430,7 @@ static Bool BitWrapper_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23532,7 +23532,7 @@ static GF_Err CoordinateInterpolator4D_get_field(GF_Node *node, GF_FieldInfo *in
 }
 
 
-static s32 CoordinateInterpolator4D_get_field_index_by_name(char *name)
+static s32 CoordinateInterpolator4D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -23548,15 +23548,15 @@ static Bool CoordinateInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23665,7 +23665,7 @@ static GF_Err DepthImage_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 DepthImage_get_field_index_by_name(char *name)
+static s32 DepthImage_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("diTexture", name)) return 0;
 	if (!strcmp("farPlane", name)) return 1;
@@ -23680,7 +23680,7 @@ static Bool DepthImage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -23702,7 +23702,7 @@ GF_Node *DepthImage_Create()
 	p->orientation.y = FLT2FIX(0);
 	p->orientation.z = FLT2FIX(1);
 	p->orientation.q = FLT2FIX(0);
-	p->orthographic = 1;
+	p->orthographic = GF_TRUE;
 	p->position.x = FLT2FIX(0);
 	p->position.y = FLT2FIX(0);
 	p->position.z = FLT2FIX(10);
@@ -23857,7 +23857,7 @@ static GF_Err FFD_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FFD_get_field_index_by_name(char *name)
+static s32 FFD_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -23882,51 +23882,51 @@ static Bool FFD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(2);
 		*b_max = FLT2FIX(257);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(2);
 		*b_max = FLT2FIX(33);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(2);
 		*b_max = FLT2FIX(257);
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(2);
 		*b_max = FLT2FIX(33);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(2);
 		*b_max = FLT2FIX(257);
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(2);
 		*b_max = FLT2FIX(33);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24042,7 +24042,7 @@ static GF_Err Implicit_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Implicit_get_field_index_by_name(char *name)
+static s32 Implicit_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bboxSize", name)) return 0;
 	if (!strcmp("c", name)) return 1;
@@ -24059,15 +24059,15 @@ static Bool Implicit_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24175,7 +24175,7 @@ static GF_Err XXLFM_Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXLFM_Appearance_get_field_index_by_name(char *name)
+static s32 XXLFM_Appearance_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("blendList", name)) return 0;
 	if (!strcmp("lightMapList", name)) return 1;
@@ -24187,7 +24187,7 @@ static Bool XXLFM_Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24274,7 +24274,7 @@ static GF_Err XXLFM_BlendList_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXLFM_BlendList_get_field_index_by_name(char *name)
+static s32 XXLFM_BlendList_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("blendMode", name)) return 0;
 	if (!strcmp("lightMapIndex", name)) return 1;
@@ -24289,13 +24289,13 @@ static Bool XXLFM_BlendList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 		*QT13_bits = 1;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24382,7 +24382,7 @@ static GF_Err XXLFM_FrameList_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXLFM_FrameList_get_field_index_by_name(char *name)
+static s32 XXLFM_FrameList_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("index", name)) return 0;
 	if (!strcmp("frame", name)) return 1;
@@ -24394,15 +24394,15 @@ static Bool XXLFM_FrameList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 	case 0:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24523,7 +24523,7 @@ static GF_Err XXLFM_LightMap_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXLFM_LightMap_get_field_index_by_name(char *name)
+static s32 XXLFM_LightMap_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("biasRGB", name)) return 0;
 	if (!strcmp("priorityLevel", name)) return 1;
@@ -24540,22 +24540,22 @@ static Bool XXLFM_LightMap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 7;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 7;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24664,7 +24664,7 @@ static GF_Err XXLFM_SurfaceMapList_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXLFM_SurfaceMapList_get_field_index_by_name(char *name)
+static s32 XXLFM_SurfaceMapList_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("tileIndex", name)) return 0;
 	if (!strcmp("triangleCoordinate", name)) return 1;
@@ -24678,17 +24678,17 @@ static Bool XXLFM_SurfaceMapList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTy
 	case 0:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -24791,7 +24791,7 @@ static GF_Err XXLFM_ViewMapList_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXLFM_ViewMapList_get_field_index_by_name(char *name)
+static s32 XXLFM_ViewMapList_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("textureOrigin", name)) return 0;
 	if (!strcmp("textureSize", name)) return 1;
@@ -24805,13 +24805,13 @@ static Bool XXLFM_ViewMapList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 	case 2:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -25053,7 +25053,7 @@ static GF_Err MeshGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MeshGrid_get_field_index_by_name(char *name)
+static s32 MeshGrid_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -25089,68 +25089,68 @@ static Bool MeshGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QT13_bits = 32;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 13;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX( 1);
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 13;
 		*QType = 13;
 		*QT13_bits = 32;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 7;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 7;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FLT2FIX(0.0);
 		*b_max = FLT2FIX( 2.0);
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX( 3);
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 20:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(-1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -25167,7 +25167,7 @@ GF_Node *MeshGrid_Create()
 	p->displayLevel = 0;
 	p->filterType = 0;
 	p->hierarchicalLevel = 0;
-	p->solid = 1;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -25260,7 +25260,7 @@ static GF_Err NonLinearDeformer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NonLinearDeformer_get_field_index_by_name(char *name)
+static s32 NonLinearDeformer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("axis", name)) return 0;
 	if (!strcmp("extend", name)) return 1;
@@ -25273,7 +25273,7 @@ static Bool NonLinearDeformer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -25410,7 +25410,7 @@ static GF_Err NurbsCurve_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsCurve_get_field_index_by_name(char *name)
+static s32 NurbsCurve_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -25430,20 +25430,20 @@ static Bool NurbsCurve_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(3);
 		*b_max = FLT2FIX(34);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -25458,7 +25458,7 @@ GF_Node *NurbsCurve_Create()
 
 	/*default field values*/
 	p->tessellation = 0;
-	p->colorPerVertex = 1;
+	p->colorPerVertex = GF_TRUE;
 	p->order = 4;
 	return (GF_Node *)p;
 }
@@ -25578,7 +25578,7 @@ static GF_Err NurbsCurve2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsCurve2D_get_field_index_by_name(char *name)
+static s32 NurbsCurve2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -25598,20 +25598,20 @@ static Bool NurbsCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(3);
 		*b_max = FLT2FIX(34);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -25626,7 +25626,7 @@ GF_Node *NurbsCurve2D_Create()
 
 	/*default field values*/
 	p->tessellation = 0;
-	p->colorPerVertex = 1;
+	p->colorPerVertex = GF_TRUE;
 	p->order = 4;
 	return (GF_Node *)p;
 }
@@ -25812,7 +25812,7 @@ static GF_Err NurbsSurface_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsSurface_get_field_index_by_name(char *name)
+static s32 NurbsSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_texColorIndex", name)) return 1;
@@ -25842,45 +25842,45 @@ static Bool NurbsSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(3);
 		*b_max = FLT2FIX(258);
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(3);
 		*b_max = FLT2FIX(34);
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(3);
 		*b_max = FLT2FIX(258);
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(3);
 		*b_max = FLT2FIX(34);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -25896,9 +25896,9 @@ GF_Node *NurbsSurface_Create()
 	/*default field values*/
 	p->uTessellation = 0;
 	p->vTessellation = 0;
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	p->uDimension = 4;
 	p->uOrder = 4;
 	p->vDimension = 4;
@@ -25982,7 +25982,7 @@ static GF_Err OctreeImage_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 OctreeImage_get_field_index_by_name(char *name)
+static s32 OctreeImage_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("images", name)) return 0;
 	if (!strcmp("octree", name)) return 1;
@@ -25999,16 +25999,16 @@ static Bool OctreeImage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -26238,7 +26238,7 @@ static GF_Err XXParticles_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXParticles_get_field_index_by_name(char *name)
+static s32 XXParticles_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("creationRate", name)) return 0;
 	if (!strcmp("creationRateVariation", name)) return 1;
@@ -26271,7 +26271,7 @@ static Bool XXParticles_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -26303,7 +26303,7 @@ GF_Node *XXParticles_Create()
 	p->emitVelocityVariation.x = FLT2FIX(1);
 	p->emitVelocityVariation.y = FLT2FIX(1);
 	p->emitVelocityVariation.z = FLT2FIX(1);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->fadeAlpha = FLT2FIX(1.0);
 	p->fadeColor.red = FLT2FIX(0.25);
 	p->fadeColor.green = FLT2FIX(0.25);
@@ -26392,7 +26392,7 @@ static GF_Err XXParticleInitBox_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXParticleInitBox_get_field_index_by_name(char *name)
+static s32 XXParticleInitBox_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("falloff", name)) return 0;
 	if (!strcmp("size", name)) return 1;
@@ -26402,7 +26402,7 @@ static Bool XXParticleInitBox_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -26503,7 +26503,7 @@ static GF_Err XXPlanarObstacle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXPlanarObstacle_get_field_index_by_name(char *name)
+static s32 XXPlanarObstacle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("distance", name)) return 0;
 	if (!strcmp("normal", name)) return 1;
@@ -26515,7 +26515,7 @@ static Bool XXPlanarObstacle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -26620,7 +26620,7 @@ static GF_Err XXPointAttractor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XXPointAttractor_get_field_index_by_name(char *name)
+static s32 XXPointAttractor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("innerRadius", name)) return 0;
 	if (!strcmp("outerRadius", name)) return 1;
@@ -26632,7 +26632,7 @@ static Bool XXPointAttractor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -26735,7 +26735,7 @@ static GF_Err PointTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointTexture_get_field_index_by_name(char *name)
+static s32 PointTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("depth", name)) return 1;
@@ -26753,9 +26753,9 @@ static Bool PointTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -26915,7 +26915,7 @@ static GF_Err PositionAnimator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PositionAnimator_get_field_index_by_name(char *name)
+static s32 PositionAnimator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("fromTo", name)) return 1;
@@ -26938,27 +26938,27 @@ static Bool PositionAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 	case 1:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 4;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -27127,7 +27127,7 @@ static GF_Err PositionAnimator2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PositionAnimator2D_get_field_index_by_name(char *name)
+static s32 PositionAnimator2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("fromTo", name)) return 1;
@@ -27150,27 +27150,27 @@ static Bool PositionAnimator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 	case 1:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 4;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -27283,7 +27283,7 @@ static GF_Err PositionInterpolator4D_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 PositionInterpolator4D_get_field_index_by_name(char *name)
+static s32 PositionInterpolator4D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -27299,15 +27299,15 @@ static Bool PositionInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *Q
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -27508,7 +27508,7 @@ static GF_Err ProceduralTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ProceduralTexture_get_field_index_by_name(char *name)
+static s32 ProceduralTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("aSmooth", name)) return 0;
 	if (!strcmp("aWarpmap", name)) return 1;
@@ -27540,80 +27540,80 @@ static Bool ProceduralTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX( 1);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 4;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(1);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(4);
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(1);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -27821,7 +27821,7 @@ static GF_Err Quadric_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Quadric_get_field_index_by_name(char *name)
+static s32 Quadric_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bboxSize", name)) return 0;
 	if (!strcmp("densities", name)) return 1;
@@ -27843,45 +27843,45 @@ static Bool Quadric_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 15;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 15;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 15;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 15;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 15;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 15;
 		*QType = 15;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -28146,7 +28146,7 @@ static GF_Err SBBone_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBBone_get_field_index_by_name(char *name)
+static s32 SBBone_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -28183,58 +28183,58 @@ static Bool SBBone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 		*QT13_bits = 10;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1023);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(4);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3);
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(23);
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 11;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 21:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 23:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -28376,7 +28376,7 @@ static GF_Err SBMuscle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBMuscle_get_field_index_by_name(char *name)
+static s32 SBMuscle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("falloff", name)) return 0;
 	if (!strcmp("muscleCurve", name)) return 1;
@@ -28395,26 +28395,26 @@ static Bool SBMuscle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(4);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 10;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1023);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 11;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 14;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -28544,7 +28544,7 @@ static GF_Err SBSegment_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBSegment_get_field_index_by_name(char *name)
+static s32 SBSegment_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -28561,9 +28561,9 @@ static Bool SBSegment_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 	case 2:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -28717,7 +28717,7 @@ static GF_Err SBSite_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBSite_get_field_index_by_name(char *name)
+static s32 SBSite_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -28736,25 +28736,25 @@ static Bool SBSite_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 	case 2:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 11;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -28958,7 +28958,7 @@ static GF_Err SBSkinnedModel_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBSkinnedModel_get_field_index_by_name(char *name)
+static s32 SBSkinnedModel_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bones", name)) return 0;
 	if (!strcmp("center", name)) return 1;
@@ -28983,25 +28983,25 @@ static Bool SBSkinnedModel_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 	case 1:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 11;
 		*QType = 7;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 10;
 		*QType = 10;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 1;
 		*QType = 1;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -29106,7 +29106,7 @@ static GF_Err SBVCAnimation_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBVCAnimation_get_field_index_by_name(char *name)
+static s32 SBVCAnimation_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("virtualCharacters", name)) return 1;
@@ -29116,7 +29116,7 @@ static Bool SBVCAnimation_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -29260,7 +29260,7 @@ static GF_Err ScalarAnimator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ScalarAnimator_get_field_index_by_name(char *name)
+static s32 ScalarAnimator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("fromTo", name)) return 1;
@@ -29281,21 +29281,21 @@ static Bool ScalarAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 	case 1:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 8;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 0;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -29387,7 +29387,7 @@ static GF_Err SimpleTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SimpleTexture_get_field_index_by_name(char *name)
+static s32 SimpleTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("depth", name)) return 0;
 	if (!strcmp("texture", name)) return 1;
@@ -29397,7 +29397,7 @@ static Bool SimpleTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -29495,7 +29495,7 @@ static GF_Err SolidRep_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SolidRep_get_field_index_by_name(char *name)
+static s32 SolidRep_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bboxSize", name)) return 0;
 	if (!strcmp("densityList", name)) return 1;
@@ -29510,9 +29510,9 @@ static Bool SolidRep_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -29774,7 +29774,7 @@ static GF_Err SubdivisionSurface_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SubdivisionSurface_get_field_index_by_name(char *name)
+static s32 SubdivisionSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -29813,16 +29813,16 @@ static Bool SubdivisionSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3);
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(3);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -29839,10 +29839,10 @@ GF_Node *SubdivisionSurface_Create()
 	p->subdivisionLevel = 0;
 	p->subdivisionType = 0;
 	p->subdivisionSubType = 0;
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->convex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->convex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -29944,7 +29944,7 @@ static GF_Err SubdivSurfaceSector_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SubdivSurfaceSector_get_field_index_by_name(char *name)
+static s32 SubdivSurfaceSector_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("flatness", name)) return 0;
 	if (!strcmp("normal", name)) return 1;
@@ -29963,40 +29963,40 @@ static Bool SubdivSurfaceSector_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTyp
 		*QType = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 9;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 14;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -30104,7 +30104,7 @@ static GF_Err WaveletSubdivisionSurface_get_field(GF_Node *node, GF_FieldInfo *i
 }
 
 
-static s32 WaveletSubdivisionSurface_get_field_index_by_name(char *name)
+static s32 WaveletSubdivisionSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("baseMesh", name)) return 0;
 	if (!strcmp("fieldOfView", name)) return 1;
@@ -30116,7 +30116,7 @@ static Bool WaveletSubdivisionSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -30244,7 +30244,7 @@ static GF_Err Clipper2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Clipper2D_get_field_index_by_name(char *name)
+static s32 Clipper2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -30259,7 +30259,7 @@ static Bool Clipper2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -30274,7 +30274,7 @@ GF_Node *Clipper2D_Create()
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
 	/*default field values*/
-	p->inside = 1;
+	p->inside = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -30482,7 +30482,7 @@ static GF_Err ColorTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ColorTransform_get_field_index_by_name(char *name)
+static s32 ColorTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -30517,123 +30517,123 @@ static Bool ColorTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 7;
 		*QType = 4;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 7;
 		*QType = 4;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 7;
 		*QType = 4;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 19:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 20:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 21:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 22:
 		*AType = 7;
 		*QType = 4;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -30737,7 +30737,7 @@ static GF_Err Ellipse_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Ellipse_get_field_index_by_name(char *name)
+static s32 Ellipse_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	return -1;
@@ -30750,9 +30750,9 @@ static Bool Ellipse_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -30878,7 +30878,7 @@ static GF_Err LinearGradient_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LinearGradient_get_field_index_by_name(char *name)
+static s32 LinearGradient_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("endPoint", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -30897,40 +30897,40 @@ static Bool LinearGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 5;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 2;
 		*QType = 5;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -31084,7 +31084,7 @@ static GF_Err PathLayout_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PathLayout_get_field_index_by_name(char *name)
+static s32 PathLayout_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -31107,28 +31107,28 @@ static Bool PathLayout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -31149,7 +31149,7 @@ GF_Node *PathLayout_Create()
 	p->pathOffset = FLT2FIX(0);
 	p->spacing = FLT2FIX(1.0);
 	p->wrapMode = 0;
-	p->splitText = 1;
+	p->splitText = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -31266,7 +31266,7 @@ static GF_Err RadialGradient_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 RadialGradient_get_field_index_by_name(char *name)
+static s32 RadialGradient_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("focalPoint", name)) return 1;
@@ -31286,46 +31286,46 @@ static Bool RadialGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QType = 5;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 2;
 		*QType = 5;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 2;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -31480,7 +31480,7 @@ static GF_Err SynthesizedTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SynthesizedTexture_get_field_index_by_name(char *name)
+static s32 SynthesizedTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("translation", name)) return 0;
 	if (!strcmp("rotation", name)) return 1;
@@ -31503,35 +31503,35 @@ static Bool SynthesizedTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 10;
 		*QType = 10;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -31673,7 +31673,7 @@ static GF_Err TransformMatrix2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TransformMatrix2D_get_field_index_by_name(char *name)
+static s32 TransformMatrix2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -31694,39 +31694,39 @@ static Bool TransformMatrix2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 7;
 		*QType = 7;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -31867,7 +31867,7 @@ static GF_Err Viewport_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Viewport_get_field_index_by_name(char *name)
+static s32 Viewport_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("position", name)) return 1;
@@ -31888,35 +31888,35 @@ static Bool Viewport_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 12;
 		*QType = 12;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 6;
 		*QType = 6;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6.2831853);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -32023,7 +32023,7 @@ static GF_Err XCurve2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XCurve2D_get_field_index_by_name(char *name)
+static s32 XCurve2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("fineness", name)) return 1;
@@ -32038,16 +32038,16 @@ static Bool XCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -32232,7 +32232,7 @@ static GF_Err XFontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XFontStyle_get_field_index_by_name(char *name)
+static s32 XFontStyle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("fontName", name)) return 0;
 	if (!strcmp("horizontal", name)) return 1;
@@ -32261,21 +32261,21 @@ static Bool XFontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 11;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -32289,22 +32289,22 @@ GF_Node *XFontStyle_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XFontStyle);
 
 	/*default field values*/
-	p->fontName.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->fontName.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->fontName.count = 1;
 	p->fontName.vals[0] = gf_strdup("SERIF");
-	p->horizontal = 1;
-	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->horizontal = GF_TRUE;
+	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->justify.count = 1;
 	p->justify.vals[0] = gf_strdup("BEGIN");
-	p->leftToRight = 1;
+	p->leftToRight = GF_TRUE;
 	p->size = FLT2FIX(1.0);
 	p->stretch.buffer = gf_strdup("NORMAL");
 	p->letterSpacing = FLT2FIX(0.0);
 	p->wordSpacing = FLT2FIX(0.0);
 	p->weight = 400;
-	p->fontKerning = 1;
+	p->fontKerning = GF_TRUE;
 	p->style.buffer = gf_strdup("PLAIN");
-	p->topToBottom = 1;
+	p->topToBottom = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -32451,7 +32451,7 @@ static GF_Err XLineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 XLineProperties_get_field_index_by_name(char *name)
+static s32 XLineProperties_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("lineColor", name)) return 0;
 	if (!strcmp("lineStyle", name)) return 1;
@@ -32476,60 +32476,60 @@ static Bool XLineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 1:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(5);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 12;
 		*b_min = FLT2FIX(1);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 8;
 		*QType = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 7;
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 7;
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 7;
 		*QType = 12;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -32547,8 +32547,8 @@ GF_Node *XLineProperties_Create()
 	p->lineColor.green = FLT2FIX(0);
 	p->lineColor.blue = FLT2FIX(0);
 	p->lineStyle = 0;
-	p->isCenterAligned = 1;
-	p->isScalable = 1;
+	p->isCenterAligned = GF_TRUE;
+	p->isScalable = GF_TRUE;
 	p->lineCap = 0;
 	p->lineJoin = 0;
 	p->miterLimit = FLT2FIX(4);
@@ -32733,7 +32733,7 @@ static GF_Err AdvancedAudioBuffer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AdvancedAudioBuffer_get_field_index_by_name(char *name)
+static s32 AdvancedAudioBuffer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -32763,81 +32763,81 @@ static Bool AdvancedAudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTyp
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(4);
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 16;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
 		*b_min = FIX_MIN;
 		*b_max = FLT2FIX( 0);
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 17;
 		*b_min = FIX_MIN;
 		*b_max = FLT2FIX( 0);
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 14:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 15:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -33067,7 +33067,7 @@ static GF_Err AudioChannelConfig_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioChannelConfig_get_field_index_by_name(char *name)
+static s32 AudioChannelConfig_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -33102,93 +33102,93 @@ static Bool AudioChannelConfig_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(4);
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(6);
-		return 1;
+		return GF_TRUE;
 	case 9:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(2);
-		return 1;
+		return GF_TRUE;
 	case 11:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(127);
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(5);
-		return 1;
+		return GF_TRUE;
 	case 16:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 3;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(7);
-		return 1;
+		return GF_TRUE;
 	case 17:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(15);
-		return 1;
+		return GF_TRUE;
 	case 18:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	case 20:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(127);
-		return 1;
+		return GF_TRUE;
 	case 21:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 8;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(255);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -33316,7 +33316,7 @@ static GF_Err DepthImageV2_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 DepthImageV2_get_field_index_by_name(char *name)
+static s32 DepthImageV2_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("diTexture", name)) return 0;
 	if (!strcmp("farPlane", name)) return 1;
@@ -33332,7 +33332,7 @@ static Bool DepthImageV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -33354,7 +33354,7 @@ GF_Node *DepthImageV2_Create()
 	p->orientation.y = FLT2FIX(0);
 	p->orientation.z = FLT2FIX(1);
 	p->orientation.q = FLT2FIX(0);
-	p->orthographic = 1;
+	p->orthographic = GF_TRUE;
 	p->position.x = FLT2FIX(0);
 	p->position.y = FLT2FIX(0);
 	p->position.z = FLT2FIX(10);
@@ -33448,7 +33448,7 @@ static GF_Err MorphShape_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MorphShape_get_field_index_by_name(char *name)
+static s32 MorphShape_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("baseShape", name)) return 0;
 	if (!strcmp("morphID", name)) return 1;
@@ -33465,9 +33465,9 @@ static Bool MorphShape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QT13_bits = 7;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX( 1023);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -33595,7 +33595,7 @@ static GF_Err MultiTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MultiTexture_get_field_index_by_name(char *name)
+static s32 MultiTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("alpha", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -33611,7 +33611,7 @@ static Bool MultiTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -33734,7 +33734,7 @@ static GF_Err PointTextureV2_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointTextureV2_get_field_index_by_name(char *name)
+static s32 PointTextureV2_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("depth", name)) return 1;
@@ -33755,21 +33755,21 @@ static Bool PointTextureV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 		*QT13_bits = 5;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(31);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -33913,7 +33913,7 @@ static GF_Err SBVCAnimationV2_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SBVCAnimationV2_get_field_index_by_name(char *name)
+static s32 SBVCAnimationV2_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("activeUrlIndex", name)) return 0;
 	if (!strcmp("loop", name)) return 1;
@@ -33935,15 +33935,15 @@ static Bool SBVCAnimationV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -34052,7 +34052,7 @@ static GF_Err SimpleTextureV2_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SimpleTextureV2_get_field_index_by_name(char *name)
+static s32 SimpleTextureV2_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("depth", name)) return 0;
 	if (!strcmp("normal", name)) return 1;
@@ -34065,7 +34065,7 @@ static Bool SimpleTextureV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -34186,7 +34186,7 @@ static GF_Err SurroundingSound_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SurroundingSound_get_field_index_by_name(char *name)
+static s32 SurroundingSound_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("source", name)) return 0;
 	if (!strcmp("intensity", name)) return 1;
@@ -34205,27 +34205,27 @@ static Bool SurroundingSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 3:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 10;
 		*QType = 10;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -34249,7 +34249,7 @@ GF_Node *SurroundingSound_Create()
 	p->orientation.y = FLT2FIX(0.0);
 	p->orientation.z = FLT2FIX(1.0);
 	p->orientation.q = FLT2FIX(0.0);
-	p->isTransformable = 1;
+	p->isTransformable = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -34373,7 +34373,7 @@ static GF_Err Transform3DAudio_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Transform3DAudio_get_field_index_by_name(char *name)
+static s32 Transform3DAudio_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -34394,39 +34394,39 @@ static Bool Transform3DAudio_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 4:
 		*AType = 11;
 		*QType = 7;
 		*b_min = FLT2FIX(-3.14159265);
 		*b_max = FLT2FIX(3.14159265);
-		return 1;
+		return GF_TRUE;
 	case 5:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 11;
 		*QType = 7;
 		*b_min = FLT2FIX(-1);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 7:
 		*AType = 7;
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 0;
 		*QType = 10;
 		*b_min = FLT2FIX(-3.14159265);
 		*b_max = FLT2FIX(3.14159265);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -34612,7 +34612,7 @@ static GF_Err WideSound_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 WideSound_get_field_index_by_name(char *name)
+static s32 WideSound_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("source", name)) return 0;
 	if (!strcmp("intensity", name)) return 1;
@@ -34639,46 +34639,46 @@ static Bool WideSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(1);
-		return 1;
+		return GF_TRUE;
 	case 2:
 		*AType = 1;
 		*QType = 1;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 6:
 		*AType = 0;
 		*QType = 13;
 		*QT13_bits = 4;
 		*b_min = FLT2FIX(0);
 		*b_max = FLT2FIX(4);
-		return 1;
+		return GF_TRUE;
 	case 8:
 		*AType = 9;
 		*QType = 9;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 10:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 12:
 		*AType = 0;
 		*QType = 1;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	case 13:
 		*AType = 0;
 		*QType = 0;
 		*b_min = FLT2FIX(0);
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -34696,7 +34696,7 @@ GF_Node *WideSound_Create()
 	p->location.x = FLT2FIX(0.0);
 	p->location.y = FLT2FIX(0.0);
 	p->location.z = FLT2FIX(0.0);
-	p->spatialize = 1;
+	p->spatialize = GF_TRUE;
 	p->shape = 0;
 	p->size.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*1);
 	p->size.count = 1;
@@ -34784,7 +34784,7 @@ static GF_Err ScoreShape_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ScoreShape_get_field_index_by_name(char *name)
+static s32 ScoreShape_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("score", name)) return 0;
 	if (!strcmp("geometry", name)) return 1;
@@ -34794,7 +34794,7 @@ static Bool ScoreShape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35076,7 +35076,7 @@ static GF_Err MusicScore_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MusicScore_get_field_index_by_name(char *name)
+static s32 MusicScore_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("executeCommand", name)) return 0;
 	if (!strcmp("gotoLabel", name)) return 1;
@@ -35119,9 +35119,9 @@ static Bool MusicScore_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 		*QType = 0;
 		*b_min = FIX_MIN;
 		*b_max = FIX_MAX;
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35136,7 +35136,7 @@ GF_Node *MusicScore_Create()
 
 	/*default field values*/
 	p->firstVisibleMeasure = 0;
-	p->hyperlinkEnable = 1;
+	p->hyperlinkEnable = GF_TRUE;
 	p->scoreOffset = 0.0;
 	p->size.x = FLT2FIX(-1);
 	p->size.y = FLT2FIX(-1);
@@ -35211,7 +35211,7 @@ static GF_Err FootPrintSetNode_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FootPrintSetNode_get_field_index_by_name(char *name)
+static s32 FootPrintSetNode_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("children", name)) return 0;
 	return -1;
@@ -35220,7 +35220,7 @@ static Bool FootPrintSetNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35308,7 +35308,7 @@ static GF_Err FootPrintNode_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FootPrintNode_get_field_index_by_name(char *name)
+static s32 FootPrintNode_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("index", name)) return 0;
 	if (!strcmp("footprint", name)) return 1;
@@ -35318,7 +35318,7 @@ static Bool FootPrintNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35448,7 +35448,7 @@ static GF_Err BuildingPartNode_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BuildingPartNode_get_field_index_by_name(char *name)
+static s32 BuildingPartNode_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("index", name)) return 0;
 	if (!strcmp("footprint", name)) return 1;
@@ -35464,7 +35464,7 @@ static Bool BuildingPartNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35615,7 +35615,7 @@ static GF_Err RoofNode_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 RoofNode_get_field_index_by_name(char *name)
+static s32 RoofNode_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("Type", name)) return 0;
 	if (!strcmp("Height", name)) return 1;
@@ -35635,7 +35635,7 @@ static Bool RoofNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35656,7 +35656,7 @@ GF_Node *RoofNode_Create()
 	p->SlopeAngle.vals[0] = FLT2FIX(0.0);
 	p->EaveProjection = FLT2FIX(0.0);
 	p->EdgeSupportIndex = -1;
-	p->IsGenericTexture = 1;
+	p->IsGenericTexture = GF_TRUE;
 	p->TextureXScale = FLT2FIX(1.0);
 	p->TextureYScale = FLT2FIX(1.0);
 	p->TextureXPosition = FLT2FIX(0.0);
@@ -35804,7 +35804,7 @@ static GF_Err FacadeNode_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FacadeNode_get_field_index_by_name(char *name)
+static s32 FacadeNode_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("WidthRatio", name)) return 0;
 	if (!strcmp("XScale", name)) return 1;
@@ -35825,7 +35825,7 @@ static Bool FacadeNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35960,7 +35960,7 @@ static GF_Err Shadow_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Shadow_get_field_index_by_name(char *name)
+static s32 Shadow_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -35975,7 +35975,7 @@ static Bool Shadow_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -35990,9 +35990,9 @@ GF_Node *Shadow_Create()
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
 	/*default field values*/
-	p->enabled = 1;
-	p->cast = 1;
-	p->receive = 1;
+	p->enabled = GF_TRUE;
+	p->cast = GF_TRUE;
+	p->receive = GF_TRUE;
 	p->penumbra = FLT2FIX(0);
 	return (GF_Node *)p;
 }
@@ -36098,7 +36098,7 @@ static GF_Err CacheTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 CacheTexture_get_field_index_by_name(char *name)
+static s32 CacheTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("objectTypeIndication", name)) return 0;
 	if (!strcmp("decoderSpecificInfo", name)) return 1;
@@ -36114,7 +36114,7 @@ static Bool CacheTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -36130,8 +36130,8 @@ GF_Node *CacheTexture_Create()
 	/*default field values*/
 	p->objectTypeIndication = 0;
 	p->expirationDate = 0;
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -36248,7 +36248,7 @@ static GF_Err EnvironmentTest_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 EnvironmentTest_get_field_index_by_name(char *name)
+static s32 EnvironmentTest_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("evaluate", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -36265,7 +36265,7 @@ static Bool EnvironmentTest_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -36279,9 +36279,9 @@ GF_Node *EnvironmentTest_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_EnvironmentTest);
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->parameter = 0;
-	p->evaluateOnChange = 1;
+	p->evaluateOnChange = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -36416,7 +36416,7 @@ static GF_Err KeyNavigator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 KeyNavigator_get_field_index_by_name(char *name)
+static s32 KeyNavigator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("setFocus", name)) return 0;
 	if (!strcmp("sensor", name)) return 1;
@@ -36434,7 +36434,7 @@ static Bool KeyNavigator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -36539,7 +36539,7 @@ static GF_Err SpacePartition_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SpacePartition_get_field_index_by_name(char *name)
+static s32 SpacePartition_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -36551,7 +36551,7 @@ static Bool SpacePartition_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -36665,7 +36665,7 @@ static GF_Err Storage_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Storage_get_field_index_by_name(char *name)
+static s32 Storage_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("forceSave", name)) return 0;
 	if (!strcmp("forceRestore", name)) return 1;
@@ -36679,7 +36679,7 @@ static Bool Storage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 {
 	switch (FieldIndex) {
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -36693,7 +36693,7 @@ GF_Node *Storage_Create()
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Storage);
 
 	/*default field values*/
-	p->_auto = 1;
+	p->_auto = GF_TRUE;
 	p->expireAfter = 0;
 	return (GF_Node *)p;
 }
@@ -39678,7 +39678,7 @@ Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *
 	case TAG_MPEG4_Storage:
 		return Storage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -39999,7 +39999,7 @@ u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 	return 0;
 }
 
-s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
+s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, const char *name)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_MPEG4_Anchor:

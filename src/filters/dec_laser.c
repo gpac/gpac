@@ -45,7 +45,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 {
 	GF_FilterPid *out_pid;
 	u32 ESID=0;
-	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_LSRDecCtx *ctx = (GF_LSRDecCtx *)gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
 
 	//we must have streamtype SCENE
@@ -72,7 +72,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (is_remove) {
-		out_pid = gf_filter_pid_get_udta(pid);
+		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 		if (ctx->out_pid==out_pid)
 			ctx->out_pid = NULL;
 		if (out_pid)
@@ -111,7 +111,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 static Bool lsrdec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
-	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_LSRDecCtx *ctx = (GF_LSRDecCtx *)gf_filter_get_udta(filter);
 	//check for scene attach
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
@@ -127,11 +127,11 @@ static Bool lsrdec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!ctx->odm) {
-				ctx->odm = com->attach_scene.object_manager;
+				ctx->odm = (GF_ObjectManager *)com->attach_scene.object_manager;
 				ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 				ctx->codec = gf_laser_decoder_new(ctx->scene->graph);
@@ -151,12 +151,12 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
 	GF_FilterPacket *pck;
-	const char *data;
+	const u8 *data;
 	u32 size, ESID=0;
 	u64 now, cts;
 	u32 i, count;
 	const GF_PropertyValue *prop;
-	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_LSRDecCtx *ctx = (GF_LSRDecCtx *)gf_filter_get_udta(filter);
 	GF_Scene *scene = ctx->scene;
 
 	if (!scene) {
@@ -175,9 +175,9 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 
-		GF_ObjectManager *odm = gf_filter_pid_get_udta(opid);
+		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(opid);
 		//object clock shall be valid
 		if (!odm || !odm->ck) continue;
 
@@ -207,7 +207,7 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 		e = gf_laser_decode_au(ctx->codec, ESID, data, size);
 		now = gf_sys_clock_high_res() - now;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[BIFS] ODM%d #CH%d at %d decoded AU TS %u in "LLU" us\n", odm->ID, ESID, cts, now));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[BIFS] ODM%d #CH%d at %d decoded AU TS %u in " LLU " us\n", odm->ID, ESID, cts, now));
 
 		gf_filter_pid_drop_packet(pid);
 
@@ -231,7 +231,7 @@ static GF_Err lsrdec_initialize(GF_Filter *filter)
 
 static void lsrdec_finalize(GF_Filter *filter)
 {
-	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_LSRDecCtx *ctx = (GF_LSRDecCtx *)gf_filter_get_udta(filter);
 	if (ctx->codec) gf_laser_decoder_del(ctx->codec);
 }
 

@@ -59,7 +59,7 @@ typedef struct
 
 
 	u32 bytes_in_header;
-	char hdr_store[8];
+	u8 hdr_store[8];
 
 	Bool is_playing;
 	Bool is_file, file_loaded;
@@ -77,7 +77,7 @@ typedef struct
 GF_Err h263dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_H263DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_H263DmxCtx *ctx = (GF_H263DmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -129,7 +129,7 @@ static u32 h263dmx_next_start_code_bs(GF_BitStream *bs)
 			if (load_size>H263_CACHE_SIZE) load_size=H263_CACHE_SIZE;
 			bpos = 0;
 			cache_start = gf_bs_get_position(bs);
-			gf_bs_read_data(bs, (char *) h263_cache, (u32) load_size);
+			gf_bs_read_data(bs,h263_cache, (u32) load_size);
 		}
 		v = (v<<8) | h263_cache[bpos];
 		bpos++;
@@ -191,7 +191,7 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 		if (pos && type && (cur_dur > ctx->index * ctx->fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(H263Idx)*ctx->index_alloc_size);
+			ctx->indexes = (H263Idx *)gf_realloc(ctx->indexes, sizeof(H263Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->fps.num;
@@ -242,7 +242,7 @@ static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_H263));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT((u32)ctx->fps.num));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
 
 	ctx->width = width;
@@ -264,7 +264,7 @@ static Bool h263dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
-	GF_H263DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_H263DmxCtx *ctx = (GF_H263DmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -335,7 +335,7 @@ static GFINLINE void h263dmx_update_cts(GF_H263DmxCtx *ctx)
 }
 
 
-static s32 h263dmx_next_start_code(u8 *data, u32 size)
+static s32 h263dmx_next_start_code(const u8 *data, u32 size)
 {
 	u32 v, bpos;
 	s64 end;
@@ -387,11 +387,10 @@ static void h263_get_pic_size(GF_BitStream *bs, u32 fmt, u32 *w, u32 *h)
 
 GF_Err h263dmx_process(GF_Filter *filter)
 {
-	GF_H263DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_H263DmxCtx *ctx = (GF_H263DmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
-	char *data;
-	u8 *start;
+	const u8 *data, *start;
 	Bool first_frame_found = GF_FALSE;
 	u32 pck_size;
 	s32 remain;
@@ -412,7 +411,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -571,7 +570,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		if (ctx->bytes_in_header) {
 			gf_bs_reassign_buffer(ctx->bs, ctx->hdr_store+current, 8-current);
 		} else if (!ctx->bs) {
-			ctx->bs = gf_bs_new(start, remain, GF_BITSTREAM_READ);
+			ctx->bs = gf_bs_new((u8*)start, remain, GF_BITSTREAM_READ);
 		} else {
 			gf_bs_reassign_buffer(ctx->bs, start, remain);
 		}
@@ -667,7 +666,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 
 static void h263dmx_finalize(GF_Filter *filter)
 {
-	GF_H263DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_H263DmxCtx *ctx = (GF_H263DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 }

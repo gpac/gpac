@@ -212,7 +212,7 @@ static void vertical_flip(GF_VFlipCtx *ctx, u8 *src_plane, u8 *dst_plane, u32 he
 
 static GF_Err vflip_process(GF_Filter *filter)
 {
-	const char *data;
+	const u8 *data;
 	u8 *output;
 	u32 size;
 	u32 i;
@@ -221,7 +221,7 @@ static GF_Err vflip_process(GF_Filter *filter)
 	u8 *dst_planes[5];
 	GF_FilterPacket *dst_pck;
 	GF_FilterFrameInterface *frame_ifce;
-	GF_VFlipCtx *ctx = gf_filter_get_udta(filter);
+	GF_VFlipCtx *ctx = (GF_VFlipCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
@@ -349,7 +349,7 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	const GF_PropertyValue *p;
 	u32 w, h, stride, pfmt;
 	GF_Fraction sar;
-	GF_VFlipCtx *ctx = gf_filter_get_udta(filter);
+	GF_VFlipCtx *ctx = (GF_VFlipCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -434,8 +434,8 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[VFlip] Configured output full frame size %dx%d\n", ctx->w, ctx->h));
 
-		ctx->line_buffer_vf = gf_realloc(ctx->line_buffer_vf, sizeof(char)*ctx->dst_stride[0] );
-		ctx->line_buffer_hf = gf_realloc(ctx->line_buffer_hf, sizeof(char)*ctx->src_stride[0] );
+		ctx->line_buffer_vf = (char *)gf_realloc(ctx->line_buffer_vf, ctx->dst_stride[0] );
+		ctx->line_buffer_hf = (char *)gf_realloc(ctx->line_buffer_hf, ctx->src_stride[0] );
 
 		ctx->packed_422 = GF_FALSE;
 		switch (pfmt) {
@@ -465,7 +465,7 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 void vflip_finalize(GF_Filter *filter)
 {
-	GF_VFlipCtx *ctx = gf_filter_get_udta(filter);
+	GF_VFlipCtx *ctx = (GF_VFlipCtx *)gf_filter_get_udta(filter);
 	if (ctx->line_buffer_vf) gf_free(ctx->line_buffer_vf);
 	if (ctx->line_buffer_hf) gf_free(ctx->line_buffer_hf);
 }

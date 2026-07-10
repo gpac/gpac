@@ -34,7 +34,7 @@ extern "C" {
 \file <gpac/bifs.h>
 \brief MPEG-4 BIFS encoding and decoding.
 */
-	
+
 /*!
 \addtogroup bifs_grp MPEG-4 BIFS
 \ingroup mpeg4sys_grp
@@ -43,7 +43,7 @@ extern "C" {
 This section documents the BIFS encoding and decoding of the GPAC framework. For scene graph documentation, check scenegraph.h
 @{
  */
-	
+
 
 #include <gpac/nodes_mpeg4.h>
 /*for BIFSConfig*/

@@ -80,7 +80,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 
 	if (ctx->use_file_fps) {
 		Double fps = AVI_frame_rate(ctx->avi);
-		gf_media_get_video_timing(fps, &ctx->fps.num, &ctx->fps.den);
+		gf_media_get_video_timing(fps, (u32*) &ctx->fps.num, &ctx->fps.den);
 		if (!ctx->fps.num) ctx->fps.num = ctx->fps.den = 1000;
 	}
 
@@ -141,7 +141,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
-		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
+		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32) ctx->fps.num) );
 
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_ID, &PROP_UINT( sync_id) );
 		gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT( sync_id ) );
@@ -163,7 +163,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 			gf_filter_pid_set_property_str(ctx->v_opid, "nocts", &PROP_BOOL( GF_TRUE ) );
 		} else if (ctx->avi->extradata_size && ctx->avi->extradata) {
-			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(ctx->avi->extradata, ctx->avi->extradata_size) );
+			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8*)ctx->avi->extradata, ctx->avi->extradata_size) );
 		}
 		if (ctx->noreframe)
 			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, NULL);
@@ -263,7 +263,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			AVIAstream *st = NULL;
 			u32 brate, j, c  = gf_list_count(ctx->audios);
 			for (j=0; j<c; j++) {
-				st = gf_list_get(ctx->audios, j);
+				st = (AVIAstream *)gf_list_get(ctx->audios, j);
 				if (!st->in_use) break;
 				st = NULL;
 			}
@@ -280,7 +280,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 
 			if (codecid==GF_CODECID_MPEG_AUDIO) {
 				u32 cid=0;
-				char data[8];
+				u8 data[8];
 				AVI_set_audio_track(ctx->avi, i);
 				if (AVI_read_audio(ctx->avi, data, 8, (int*)&cid)) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -346,7 +346,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AVIDmxCtx *ctx = (GF_AVIDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -355,7 +355,7 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			ctx->v_opid = NULL;
 		}
 		while (gf_list_count(ctx->audios) ) {
-			AVIAstream *st = gf_list_pop_back(ctx->audios);
+			AVIAstream *st = (AVIAstream *)gf_list_pop_back(ctx->audios);
 			if (st->opid)
 				gf_filter_pid_remove(st->opid);
 			gf_free(st);
@@ -387,7 +387,7 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		AVI_close(ctx->avi);
 		ctx->v_in_use = GF_FALSE;
 		for (i=0; i<gf_list_count(ctx->audios); i++) {
-			AVIAstream *st = gf_list_get(ctx->audios, i);
+			AVIAstream *st = (AVIAstream *)gf_list_get(ctx->audios, i);
 			st->in_use = GF_FALSE;
 		}
 	}
@@ -400,7 +400,7 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AVIDmxCtx *ctx = (GF_AVIDmxCtx *)gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -430,7 +430,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			u32 i;
 			for (i=0; i<gf_list_count(ctx->audios); i++) {
-				AVIAstream *st = gf_list_get(ctx->audios, i);
+				AVIAstream *st = (AVIAstream *)gf_list_get(ctx->audios, i);
 				if (st->opid != evt->base.on_pid) continue;
 				st->playing = GF_TRUE;
 				st->audio_done = GF_FALSE;
@@ -453,7 +453,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			u32 i;
 			for (i=0; i<gf_list_count(ctx->audios); i++) {
-				AVIAstream *st = gf_list_get(ctx->audios, i);
+				AVIAstream *st = (AVIAstream *)gf_list_get(ctx->audios, i);
 				if (st->opid != evt->base.on_pid) continue;
 				st->playing = GF_FALSE;
 			}
@@ -473,7 +473,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err avidmx_process(GF_Filter *filter)
 {
-	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AVIDmxCtx *ctx = (GF_AVIDmxCtx *)gf_filter_get_udta(filter);
 	u32 i, count, nb_done, nb_active=0;
 	Bool start, end;
 	u32 a_pc=0;
@@ -507,7 +507,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 	}
 
 	if (ctx->v_in_use && ctx->v_playing && (ctx->cur_frame < ctx->nb_frames) && !gf_filter_pid_would_block(ctx->v_opid) ) {
-		u32 key;
+		s32 key;
 		u64 file_offset, cts;
 		u8 *pck_data;
 		s32 size = AVI_frame_size(ctx->avi, ctx->cur_frame);
@@ -559,7 +559,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		s32 size;
 		u32 pc=0;
-		AVIAstream *st = gf_list_get(ctx->audios, i);
+		AVIAstream *st = (AVIAstream *)gf_list_get(ctx->audios, i);
 		if (st->audio_done || !st->in_use) {
 			nb_done++;
 			continue;
@@ -665,7 +665,7 @@ restart:
 
 GF_Err avidmx_initialize(GF_Filter *filter)
 {
-	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AVIDmxCtx *ctx = (GF_AVIDmxCtx *)gf_filter_get_udta(filter);
 	ctx->use_file_fps = ctx->fps.den ? GF_FALSE : GF_TRUE;
 	ctx->audios = gf_list_new();
 	return GF_OK;
@@ -673,10 +673,10 @@ GF_Err avidmx_initialize(GF_Filter *filter)
 
 void avidmx_finalize(GF_Filter *filter)
 {
-	GF_AVIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AVIDmxCtx *ctx = (GF_AVIDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->avi) AVI_close(ctx->avi);
 	while (gf_list_count(ctx->audios)) {
-		AVIAstream *st = gf_list_pop_back(ctx->audios);
+		AVIAstream *st = (AVIAstream *)gf_list_pop_back(ctx->audios);
 		gf_free(st);
 	}
 	gf_list_del(ctx->audios);
@@ -691,8 +691,8 @@ static const char * avidmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 {
 	if (size<12) return NULL;
 	*score = GF_FPROBE_NOT_SUPPORTED;
-	if (strncmp(data, "RIFF", 4)) return NULL;
-	if (strncmp(data+8, "AVI ", 4)) return NULL;
+	if (memcmp(data, "RIFF", 4)) return NULL;
+	if (memcmp(data+8, "AVI ", 4)) return NULL;
 	*score = GF_FPROBE_SUPPORTED;
 	return "video/avi";
 }

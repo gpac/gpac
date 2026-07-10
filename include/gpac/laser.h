@@ -35,7 +35,7 @@ extern "C" {
 \file <gpac/laser.h>
 \brief MPEG-4 LASeR encoding and decoding.
 */
-	
+
 /*!
 \addtogroup laser_grp MPEG-4 LASER
 \ingroup mpeg4sys_grp
@@ -45,7 +45,7 @@ This section documents the LASeR encoding and decoding functions of the GPAC fra
 
 @{
  */
-	
+
 #include <gpac/nodes_svg.h>
 
 #ifndef GPAC_DISABLE_LASER

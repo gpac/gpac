@@ -65,7 +65,7 @@ static void TraverseSound2D(GF_Node *node, void *rs, Bool is_destroy)
 	gf_node_traverse((GF_Node *) snd->source, tr_state);
 	tr_state->sound_holder = NULL;
 	/*never cull Sound2d*/
-	tr_state->disable_cull = 1;
+	tr_state->disable_cull = GF_TRUE;
 }
 static Bool SND2D_GetChannelVolume(GF_Node *node, Fixed *vol)
 {
@@ -74,7 +74,7 @@ static Bool SND2D_GetChannelVolume(GF_Node *node, Fixed *vol)
 	for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++) {
 		vol[i] = volume;
 	}
-	return (volume==FIX_ONE) ? 0 : 1;
+	return (volume==FIX_ONE) ? GF_FALSE : GF_TRUE;
 }
 
 
@@ -190,7 +190,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		/*we can't cull sound since*/
-		tr_state->disable_cull = 1;
+		tr_state->disable_cull = GF_TRUE;
 	} else if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		GF_Matrix mx;
 		SFVec3f usr, snd_dir, pos;
@@ -221,7 +221,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 			st->intensity = gf_mulfix(st->intensity, snd->intensity);
 			st->last_pos = usr;
 		}
-		st->identity = (st->intensity==FIX_ONE) ? 1 : 0;
+		st->identity = (st->intensity==FIX_ONE) ? GF_TRUE : GF_FALSE;
 
 		if (snd->spatialize) {
 			Fixed sign;
@@ -245,7 +245,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 			st->lgain = gf_mulfix(st->lgain, 4*st->intensity/3);
 			st->rgain = gf_mulfix(st->rgain, 4*st->intensity/3);
 
-			if (st->identity && ((st->lgain!=FIX_ONE) || (st->rgain!=FIX_ONE))) st->identity = 0;
+			if (st->identity && ((st->lgain!=FIX_ONE) || (st->rgain!=FIX_ONE))) st->identity = GF_FALSE;
 		} else {
 			st->lgain = st->rgain = FIX_ONE;
 		}
@@ -268,7 +268,7 @@ static Bool SND_GetChannelVolume(GF_Node *node, Fixed *vol)
 	} else {
 		vol[0] = vol[1] = st->intensity;
 	}
-	return !st->identity;
+	return st->identity ? GF_FALSE : GF_TRUE;
 }
 
 void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)

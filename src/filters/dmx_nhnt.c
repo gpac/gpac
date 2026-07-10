@@ -131,7 +131,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 		u64 dts;
 		u64 pos  =gf_bs_get_position(bs);
 		/*u32 len = */gf_bs_read_u24(bs);
-		Bool is_rap = gf_bs_read_int(bs, 1);
+		Bool is_rap = gf_bs_read_bool(bs);
 		/*Bool is_start = (Bool)*/gf_bs_read_int(bs, 1);
 		/*Bool is_end = (Bool)*/gf_bs_read_int(bs, 1);
 		/*3 reserved + AU type (2)*/
@@ -157,7 +157,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 		if (is_rap && (cur_dur >= ctx->index * ctx->timescale) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(NHNTIdx)*ctx->index_alloc_size);
+			ctx->indexes = (NHNTIdx *)gf_realloc(ctx->indexes, sizeof(NHNTIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].duration = (Double) dur.num;
 			ctx->indexes[ctx->index_size].duration /= ctx->timescale;
@@ -184,7 +184,7 @@ static void nhntdmx_check_dur(GF_NHNTDmxCtx *ctx)
 
 GF_Err nhntdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_NHNTDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDmxCtx *ctx = (GF_NHNTDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -211,7 +211,7 @@ static Bool nhntdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	GF_FilterEvent fevt;
 	u64 file_pos = 0;
 	u32 i;
-	GF_NHNTDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDmxCtx *ctx = (GF_NHNTDmxCtx *)gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -265,7 +265,7 @@ static Bool nhntdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err nhntdmx_process(GF_Filter *filter)
 {
-	GF_NHNTDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDmxCtx *ctx = (GF_NHNTDmxCtx *)gf_filter_get_udta(filter);
 	const GF_PropertyValue *p;
 	GF_FilterPacket *pck;
 	u32 pkt_size;
@@ -302,7 +302,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		if (!ctx->opid) {
 			char *ext;
 			char szMedia[1000];
-			char *dsi;
+			u8 *dsi;
 			u32 dsi_size;
 			u32 val, oti;
 			u64 media_size;
@@ -377,7 +377,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			} else {
 				gf_strcpy(szMedia, p->value.string);
 			}
-			ext = gf_file_ext_start(szMedia);
+			ext = (char*)gf_file_ext_start(szMedia);
 			if (ext) ext[0] = 0;
 			gf_strlcat(szMedia, ".info", sizeof(szMedia));
 
@@ -425,7 +425,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		u8 *output;
 		u64 dts, cts, offset;
 		u32 res, len = gf_bs_read_u24(ctx->bs);
-		Bool is_rap = gf_bs_read_int(ctx->bs, 1);
+		Bool is_rap = gf_bs_read_bool(ctx->bs);
 		Bool is_start = (Bool)gf_bs_read_int(ctx->bs, 1);
 		Bool is_end = (Bool)gf_bs_read_int(ctx->bs, 1);
 		/*3 reserved + AU type (2)*/
@@ -482,7 +482,7 @@ GF_Err nhntdmx_initialize(GF_Filter *filter)
 
 void nhntdmx_finalize(GF_Filter *filter)
 {
-	GF_NHNTDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDmxCtx *ctx = (GF_NHNTDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->mdia) gf_fclose(ctx->mdia);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);

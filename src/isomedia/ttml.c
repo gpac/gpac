@@ -36,7 +36,7 @@ GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char
 {
 	if (!samp) return GF_BAD_PARAM;
 	if (!text_len) return GF_OK;
-	samp->text = (char*)gf_realloc(samp->text, sizeof(char) * (samp->len + text_len) );
+	samp->text = (char*)gf_realloc(samp->text, (samp->len + text_len) );
 	memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
 	samp->len += text_len;
 	return GF_OK;
@@ -105,7 +105,7 @@ GF_GenericSubtitleSample *gf_isom_parse_xml_subtitle_sample(GF_BitStream *bs)
 	if (s->len) {
 		/*2 extra bytes for UTF-16 term char just in case (we don't know if a BOM marker is present or
 		not since this may be a sample carried over RTP*/
-		s->text = (char *) gf_malloc(sizeof(char)*(s->len+2) );
+		s->text = (char *) gf_malloc(s->len+2);
 		if (!s->text) return NULL;
 		s->text[s->len] = 0;
 		s->text[s->len+1] = 0;

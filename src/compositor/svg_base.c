@@ -331,7 +331,7 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	if (count) {
 		for (i=0; i<count; i++) {
 			char *font = (char*)gf_list_get(*atts->requiredFonts, i);
-			if (gf_font_manager_set_font_ex(compositor->font_manager, &font, 1, 0, GF_TRUE)==NULL)
+			if (gf_font_manager_set_font_ex(compositor->font_manager, (const char **)&font, 1, 0, GF_TRUE)==NULL)
 				return GF_FALSE;
 		}
 	}

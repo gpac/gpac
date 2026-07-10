@@ -26,6 +26,10 @@
 #ifndef _VISUAL_MANAGER_2D_
 #define _VISUAL_MANAGER_2D_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 Bool gf_irect_overlaps(GF_IRect *rc1, GF_IRect *rc2);
 /*intersects @rc1 with @rc2 - the new @rc1 is the intersection*/
 void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2);
@@ -140,6 +144,10 @@ void visual_2d_draw_overlays(GF_VisualManager *visual);
 
 #ifndef GPAC_DISABLE_3D
 void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_TraverseState *tr_state);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif	/*_VISUAL_MANAGER_2D_*/

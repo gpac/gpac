@@ -52,7 +52,7 @@
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
-	
+
 	Bool configured;
 
 	u32 sample_rate, num_samples, num_channels;
@@ -94,7 +94,7 @@ static void maddec_copy_props(GF_MADCtx *ctx)
 static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_MADCtx *ctx = gf_filter_get_udta(filter);
+	GF_MADCtx *ctx = (GF_MADCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -147,7 +147,7 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (p) ctx->num_channels = p->value.uint;
 
 	if (!ctx->buffer) {
-		ctx->buffer = (unsigned char*)gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
+		ctx->buffer = (unsigned char*)gf_malloc(sizeof(unsigned char) * 2*MAD_BUFFER_MDLEN);
 	}
 
 	gf_filter_set_name(filter, "dec_mad:MAD " MAD_VERSION);
@@ -163,7 +163,7 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 static void maddec_finalize(GF_Filter *filter)
 {
-	GF_MADCtx *ctx = gf_filter_get_udta(filter);
+	GF_MADCtx *ctx = (GF_MADCtx *)gf_filter_get_udta(filter);
 
 	if (ctx->buffer) gf_free(ctx->buffer);
 
@@ -183,14 +183,14 @@ static void maddec_finalize(GF_Filter *filter)
 	else if (chan < -MAD_F_ONE)				\
 		chan = -MAD_F_ONE;				\
 	ret = chan >> (MAD_F_FRACBITS + 1 - 16);		\
- 
+
 static GF_Err maddec_process(GF_Filter *filter)
 {
 	mad_fixed_t *left_ch, *right_ch, chan;
 	u8 *ptr;
-	u8 *data;
+	const u8 *data;
 	u32 num, samples_to_trash, in_size; //, outSize=0;
-	GF_MADCtx *ctx = gf_filter_get_udta(filter);
+	GF_MADCtx *ctx = (GF_MADCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
@@ -207,7 +207,7 @@ static GF_Err maddec_process(GF_Filter *filter)
 			return GF_OK;
 		}
 	} else {
-		data = (char *) gf_filter_pck_get_data(pck, &in_size);
+		data = gf_filter_pck_get_data(pck, &in_size);
 
 		if (ctx->len + in_size > 2*MAD_BUFFER_MDLEN) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[MAD] MAD buffer overflow, truncating\n"));

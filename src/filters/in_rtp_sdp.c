@@ -37,7 +37,7 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 	GF_SDPMedia *media;
 	Double Start, End;
 	u32 i;
-	char *sess_ctrl;
+	const char *sess_ctrl;
 	GF_X_Attribute *att;
 	GF_RTSPRange *range;
 
@@ -193,7 +193,7 @@ void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *
 		GF_ObjectDescriptor *iod = (GF_ObjectDescriptor *)stream->rtpin->iod_desc;
 		count = gf_list_count(iod->ESDescriptors);
 		for (i=0; i<count; i++) {
-			GF_ESD *esd = gf_list_get(iod->ESDescriptors, i);
+			GF_ESD *esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, i);
 			if (esd->ESID == stream->ES_ID) {
 				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_IN_IOD, &PROP_BOOL( GF_TRUE ) );
 			}

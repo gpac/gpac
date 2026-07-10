@@ -517,7 +517,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
-	if (!gf_utf8_is_legal(sdp_text, text_size))
+	if (!gf_utf8_is_legal((u8*)sdp_text, text_size))
 		return GF_NON_COMPLIANT_BITSTREAM;
 
 
@@ -866,7 +866,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 #define SDP_WRITE_ALLOC_STR_WITHOUT_CHECK(str, space)		\
 	if (strlen(str)+pos + (space ? 1 : 0) >= buf_size) {	\
 		buf_size += SDP_WRITE_STEPALLOC;	\
-		buf = (char*)gf_realloc(buf, sizeof(char)*buf_size);		\
+		buf = (char *)gf_realloc(buf, buf_size); \
 	}	\
 	gf_strcpy(buf+pos, str);		\
 	pos += (u32) strlen(str);		\
@@ -1205,7 +1205,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 		}
 	}
 
-	//finally gf_realloc
+(u8 *)//finally gf_realloc
 	//finall NULL char
 	pos += 1;
 	buf = (char *)gf_realloc(buf, pos);

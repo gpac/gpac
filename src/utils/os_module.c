@@ -39,7 +39,7 @@
 void gf_modules_free_module(ModuleInstance *inst)
 {
 	while (gf_list_count(inst->interfaces)) {
-		void *objinterface = gf_list_get(inst->interfaces, 0);
+		void *objinterface = (void *)gf_list_get(inst->interfaces, 0);
 		gf_list_rem(inst->interfaces, 0);
 		inst->destroy_func(objinterface);
 	}
@@ -144,7 +144,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	inst->lib_handle = dlopen(path, _flags);
 	if (!inst->lib_handle) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s, error is %s\n", path, dlerror()));
-		return 0;
+		return GF_FALSE;
 	}
 	error = dlerror();    /* Clear any existing error */
 	if (error)
@@ -325,14 +325,14 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 #if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || (defined(TARGET_IPHONE_SIMULATOR) && TARGET_IPHONE_SIMULATOR)
 		/*we are in static build for modules by default*/
 #else
-		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dylib");
+		gf_enum_directory(pm->dirs[i], GF_FALSE, enum_modules, pm, ".dylib");
 #endif
 #else
 
 #if defined(GPAC_CONFIG_WIN32)
-		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dll");
+		gf_enum_directory(pm->dirs[i], GF_FALSE, enum_modules, pm, ".dll");
 #else
-		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".so");
+		gf_enum_directory(pm->dirs[i], GF_FALSE, enum_modules, pm, ".so");
 #endif
 
 #endif

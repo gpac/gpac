@@ -106,7 +106,7 @@ typedef struct
 	Bool timer_active;
 
 	Bool simple_text;
-	u8 *static_text;
+	char *static_text;
 	u32 txt_static_alloc;
 	u64 sample_end;
 
@@ -195,7 +195,7 @@ static void ttd_update_size_info(GF_TTXTDec *ctx)
 
 		u32 i=0;
 		GF_TextSampleDescriptor *td;
-		while ((td = gf_list_enum(ctx->cfg->sample_descriptions, &i))) {
+		while ((td = (GF_TextSampleDescriptor *)gf_list_enum(ctx->cfg->sample_descriptions, &i))) {
 			td->default_pos.left = 0;
 			td->default_pos.top = 0;
 			td->default_pos.right = w;
@@ -248,7 +248,7 @@ static GFINLINE GF_Node *ttd_create_node(GF_TTXTDec *ttd, u32 tag, const char *d
 
 static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
+	GF_TTXTDec *ctx = (GF_TTXTDec *)gf_filter_get_udta(filter);
 	GF_Err e;
 	u32 st, codecid, dsi_crc;
 	const GF_PropertyValue *p, *dsi;
@@ -334,7 +334,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 			}
 			ctx->is_tx3g = GF_FALSE;
 
-			GF_TextSampleDescriptor *sd = gf_list_get(ctx->cfg->sample_descriptions, 0);
+			GF_TextSampleDescriptor *sd = (GF_TextSampleDescriptor *)gf_list_get(ctx->cfg->sample_descriptions, 0);
 			if (sd && (sd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED))
 				ctx->forced_sub = 2;
 			else if (sd && (sd->displayFlags & GF_TXT_SOME_SAMPLES_FORCED))
@@ -397,7 +397,7 @@ static void ttd_setup_scene(GF_TTXTDec *ctx)
 	((M_Shape *)n1)->appearance = ttd_create_node(ctx, TAG_MPEG4_Appearance, NULL);
 	gf_node_register(((M_Shape *)n1)->appearance, n1);
 	ctx->mat_track = (M_Material2D *) ttd_create_node(ctx, TAG_MPEG4_Material2D, NULL);
-	ctx->mat_track->filled = 1;
+	ctx->mat_track->filled = GF_TRUE;
 	ctx->mat_track->transparency = 1;
 	((M_Appearance *) ((M_Shape *)n1)->appearance)->material = (GF_Node *) ctx->mat_track;
 	gf_node_register((GF_Node *) ctx->mat_track, ((M_Shape *)n1)->appearance);
@@ -416,7 +416,7 @@ static void ttd_setup_scene(GF_TTXTDec *ctx)
 	((M_Shape *)n1)->appearance = ttd_create_node(ctx, TAG_MPEG4_Appearance, NULL);
 	gf_node_register(((M_Shape *)n1)->appearance, n1);
 	ctx->mat_box = (M_Material2D *) ttd_create_node(ctx, TAG_MPEG4_Material2D, NULL);
-	ctx->mat_box->filled = 1;
+	ctx->mat_box->filled = GF_TRUE;
 	ctx->mat_box->transparency = 1;
 	((M_Appearance *) ((M_Shape *)n1)->appearance)->material = (GF_Node *)ctx->mat_box;
 	gf_node_register((GF_Node *)ctx->mat_box, ((M_Shape *)n1)->appearance);
@@ -435,7 +435,7 @@ static void ttd_setup_scene(GF_TTXTDec *ctx)
 	ctx->ts_blink = (M_TimeSensor *) ttd_create_node(ctx, TAG_MPEG4_TimeSensor, "TimerBlink");
 	ctx->ts_blink->cycleInterval = 0.25;
 	ctx->ts_blink->startTime = 0.0;
-	ctx->ts_blink->loop = 1;
+	ctx->ts_blink->loop = GF_TRUE;
 	ctx->process_blink = (M_ScalarInterpolator *) ttd_create_node(ctx, TAG_MPEG4_ScalarInterpolator, NULL);
 	/*override set_fraction*/
 	ctx->process_blink->on_set_fraction = ttd_set_blink_fraction;
@@ -446,7 +446,7 @@ static void ttd_setup_scene(GF_TTXTDec *ctx)
 	ctx->ts_scroll = (M_TimeSensor *) ttd_create_node(ctx, TAG_MPEG4_TimeSensor, "TimerScroll");
 	ctx->ts_scroll->cycleInterval = 0;
 	ctx->ts_scroll->startTime = -1;
-	ctx->ts_scroll->loop = 0;
+	ctx->ts_scroll->loop = GF_FALSE;
 	ctx->process_scroll = (M_ScalarInterpolator *) ttd_create_node(ctx, TAG_MPEG4_ScalarInterpolator, NULL);
 	/*override set_fraction*/
 	ctx->process_scroll->on_set_fraction = ttd_set_scroll_fraction;
@@ -560,7 +560,7 @@ static void ttd_reset_display(GF_TTXTDec *ctx)
 	ctx->tr_scroll = NULL;
 }
 
-static char *ttd_find_font(GF_TextSampleDescriptor *tsd, u32 ID)
+static const char *ttd_find_font(GF_TextSampleDescriptor *tsd, u32 ID)
 {
 	u32 i;
 	for (i=0; i<tsd->font_count; i++) {
@@ -606,7 +606,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	GF_Node *txt_model, *n2, *txt_material;
 	M_Text *text;
 	M_FontStyle *fs;
-	char *fontName;
+	const char *fontName;
 	char szStyle[1024];
 	u32 fontSize, styleFlags, color, i, start_char;
 
@@ -645,7 +645,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	((M_Appearance *)n2)->material = txt_material;
 	gf_node_register(txt_material, n2);
 
-	((M_Material2D *)txt_material)->filled = 1;
+	((M_Material2D *)txt_material)->filled = GF_TRUE;
 	((M_Material2D *)txt_material)->transparency = FIX_ONE - INT2FIX((color>>24) & 0xFF) / 255;
 	((M_Material2D *)txt_material)->emissiveColor.red = INT2FIX((color>>16) & 0xFF) / 255;
 	((M_Material2D *)txt_material)->emissiveColor.green = INT2FIX((color>>8) & 0xFF) / 255;
@@ -698,7 +698,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	if (ctx->outline) gf_strcat(szStyle, " OUTLINED");
 
 	fs->style.buffer = gf_strdup(szStyle);
-	fs->horizontal = (tsd->displayFlags & GF_TXT_VERTICAL) ? 0 : 1;
+	fs->horizontal = (tsd->displayFlags & GF_TXT_VERTICAL) ? GF_FALSE : GF_TRUE;
 	text->fontStyle = (GF_Node *) fs;
 	gf_node_register((GF_Node *)fs, (GF_Node *)text);
 	gf_sg_vrml_mf_reset(&text->string, GF_SG_VRML_MFSTRING);
@@ -754,8 +754,8 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 				if (tc->has_blink && txt_material) gf_list_add(ctx->blink_nodes, txt_material);
 
 
-				s16 *wsChunk = gf_malloc(sizeof(s16)*utf_alloc_size);
-				char *szLine = gf_malloc(utf_alloc_size*2);
+				s16 *wsChunk = (s16 *)gf_malloc(sizeof(s16)*utf_alloc_size);
+				char *szLine = (char *)gf_malloc(utf_alloc_size*2);
 				if (wsChunk && szLine) {
 					memcpy(wsChunk, &utf16_txt[start_char], sizeof(s16)*(i-start_char));
 					wsChunk[i-start_char] = 0;
@@ -1024,7 +1024,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		ctx->tr_scroll = NULL;
 	}
 
-	u16 *utf16_text = gf_malloc(sizeof(u16) * ((txt->len/2)*2 + 4) );
+	u16 *utf16_text = (u16 *)gf_malloc(sizeof(u16) * ((txt->len/2)*2 + 4) );
 	if (is_utf_16) {
 		memcpy((char *) utf16_text, txt->text, sizeof(char) * txt->len);
 		((char *) utf16_text)[txt->len] = 0;
@@ -1281,7 +1281,7 @@ static void ttd_toggle_display(GF_TTXTDec *ctx)
 
 static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
+	GF_TTXTDec *ctx = (GF_TTXTDec *)gf_filter_get_udta(filter);
 
 	//check for scene attach
 	switch (evt->base.type) {
@@ -1311,7 +1311,7 @@ static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	if (ctx->opid != evt->attach_scene.on_pid) return GF_TRUE;
 
-	ctx->odm = evt->attach_scene.object_manager;
+	ctx->odm = (GF_ObjectManager *)evt->attach_scene.object_manager;
 	ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 	/*timedtext cannot be a root scene object*/
@@ -1332,7 +1332,7 @@ static GF_Err ttd_render_simple_text(GF_TTXTDec *ctx, const char *pck_data, u32 
 	GF_TextSample static_txts;
 	memset(&static_txts, 0, sizeof (GF_TextSample));
 	if (ctx->txt_static_alloc < pck_size+1) {
-		ctx->static_text = gf_realloc(ctx->static_text, pck_size+1);
+		ctx->static_text = (char *)gf_realloc(ctx->static_text, pck_size+1);
 		if (ctx->static_text) ctx->txt_static_alloc = pck_size+1;
 		else return GF_OUT_OF_MEM;
 	}
@@ -1349,11 +1349,11 @@ static GF_Err ttd_render_simple_text(GF_TTXTDec *ctx, const char *pck_data, u32 
 }
 static GF_Err ttd_process(GF_Filter *filter)
 {
-	const char *pck_data;
+	const u8 *pck_data;
 	u32 pck_size;
 	u64 cts;
 	GF_FilterPacket *pck;
-	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
+	GF_TTXTDec *ctx = (GF_TTXTDec *)gf_filter_get_udta(filter);
 
 	if (!ctx->scene) {
 		if (ctx->is_playing) {
@@ -1424,7 +1424,11 @@ static GF_Err ttd_process(GF_Filter *filter)
 
 	if (ctx->simple_text) {
 		u32 sample_duration = gf_filter_pck_get_duration(pck);
-		GF_Err e = ttd_render_simple_text(ctx, pck_data, pck_size, sample_duration);
+		GF_Err e;
+		if (gf_utf8_is_legal(pck_data, pck_size))
+			e = ttd_render_simple_text(ctx, (char *)pck_data, pck_size, sample_duration);
+		else
+			e = GF_NON_COMPLIANT_BITSTREAM;
 		gf_filter_pid_drop_packet(ctx->ipid);
 		ctx->sample_end = sample_duration + cts;
 		return e;
@@ -1433,7 +1437,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 
 	while (gf_bs_available(ctx->bs_r)) {
 		GF_TextSample *txt;
-		Bool is_utf_16=0;
+		Bool is_utf_16 = GF_FALSE;
 		u32 type, /*length, */sample_index, sample_duration;
 
 		if (!ctx->is_tx3g) {
@@ -1477,14 +1481,14 @@ static GF_Err ttd_process(GF_Filter *filter)
 
 static GF_Err ttd_initialize(GF_Filter *filter)
 {
-	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
-	ctx->bs_r = gf_bs_new((char *) "", 1, GF_BITSTREAM_READ);
+	GF_TTXTDec *ctx = (GF_TTXTDec *)gf_filter_get_udta(filter);
+	ctx->bs_r = gf_bs_new((u8 *) "", 1, GF_BITSTREAM_READ);
 	return GF_OK;
 }
 
 void ttd_finalize(GF_Filter *filter)
 {
-	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
+	GF_TTXTDec *ctx = (GF_TTXTDec *)gf_filter_get_udta(filter);
 
 	ttd_reset_scene(ctx);
 

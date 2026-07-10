@@ -22,7 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
- 
+
 #ifndef _SENSORS_DEF_H_
 #define _SENSORS_DEF_H_
 

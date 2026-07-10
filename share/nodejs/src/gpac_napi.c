@@ -214,8 +214,6 @@ napi_value gpac_sys_keyname(napi_env env, napi_callback_info info)
 {
 	napi_value val;
 #ifndef GPAC_DISABLE_SVG
-	const char *gf_dom_get_friendly_name(u32 key_identifier);
-
 	NARG_ARGS(1, 1)
 	NARG_S32(code, 0, 0);
 	NAPI_CALL( napi_create_string_utf8(env, gf_dom_get_friendly_name(code), NAPI_AUTO_LENGTH, &val) );

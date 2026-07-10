@@ -88,7 +88,7 @@ static void tilesplit_update_pid_props(GF_TileSplitCtx *ctx, TileSplitPid *tinfo
 	gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_SRD, &pval);
 #else
 
-	gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(tinfo->x, tinfo->y) );
+	gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT((s32)tinfo->x, (s32)tinfo->y) );
 
 #endif
 }
@@ -141,9 +141,9 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	count = gf_list_count(hvcc->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParamArray *ar = gf_list_get(hvcc->param_array, i);
+		GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *)gf_list_get(hvcc->param_array, i);
 		for (j=0; j < gf_list_count(ar->nalus); j++) {
-			GF_NALUFFParam *sl = gf_list_get(ar->nalus, j);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			if (!sl) continue;
 			switch (ar->type) {
 			case GF_HEVC_NALU_PIC_PARAM:
@@ -188,7 +188,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	}
 
 	if (nb_tiles>ctx->nb_alloc_tiles) {
-		ctx->opids = gf_realloc(ctx->opids, sizeof(TileSplitPid) * nb_tiles);
+		ctx->opids = (TileSplitPid *)gf_realloc(ctx->opids, sizeof(TileSplitPid) * nb_tiles);
 		memset(&ctx->opids[ctx->nb_alloc_tiles], 0, sizeof(TileSplitPid) * (nb_tiles-ctx->nb_alloc_tiles) );
 		ctx->nb_alloc_tiles = nb_tiles;
 	}
@@ -327,7 +327,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	//setup sabt track ref
 	pval.type = GF_PROP_4CC_LIST;
 	pval.value.uint_list.nb_items = active_tiles;
-	pval.value.uint_list.vals = gf_malloc(sizeof(u32) * active_tiles);
+	pval.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32) * active_tiles);
 	active_tiles = 0;
 	for (i=0; i<nb_tiles; i++) {
 		if (!ctx->opids[i].opid)
@@ -338,7 +338,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	gf_filter_pid_set_property_str(ctx->base_opid, "isom:sabt", &pval);
 	gf_free(pval.value.uint_list.vals);
 
-	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(ctx->width, ctx->height) );
+	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT((s32)ctx->width, (s32)ctx->height) );
 	gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_BITRATE, bitrate ? &PROP_UINT(10000) : NULL);
 
 	gf_odf_hevc_cfg_del(hvcc);

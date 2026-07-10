@@ -87,7 +87,7 @@ typedef struct
 	u32 nb_layers, cur_layer;
 
 	Bool decoder_started;
-	
+
 	u32 frame_idx;
 	u32 dec_frames;
 	u8  chroma_format_idc;
@@ -95,7 +95,7 @@ typedef struct
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
 	u32 avc_nalu_size_length;
-	char *avc_base;
+	u8 *avc_base;
 	u32 avc_base_size;
 	u32 avc_base_pts;
 #endif
@@ -106,10 +106,10 @@ typedef struct
 	OHFrame frame_ptr;
 	Bool frame_out;
 
-	char *reaggregation_buffer;
+	u8 *reaggregation_buffer;
 	u32 reaggregation_alloc_size, reaggregation_size;
 
-	char *inject_buffer;
+	u8 *inject_buffer;
 	u32 inject_buffer_alloc_size, reaggregatioinject_buffer_size;
 
 	Bool reconfig_pending;
@@ -156,7 +156,7 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	if (!ctx->hevc_nalu_size_length) ctx->hevc_nalu_size_length = cfg->nal_unit_size;
 	else if (ctx->hevc_nalu_size_length != cfg->nal_unit_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
-	
+
 	ctx->nb_layers++;
 	ctx->cur_layer++;
 	oh_select_active_layer(ctx->codec, ctx->nb_layers-1);
@@ -200,9 +200,9 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 		//the decoder may not be already started
 		if (!ctx->decoder_started) {
 			oh_start(ctx->codec);
-			ctx->decoder_started=1;
+			ctx->decoder_started = GF_TRUE;
 		}
-		
+
 		oh_decode(ctx->codec, (u8 *)data, data_len, 0);
 		gf_free(data);
 	}
@@ -215,7 +215,7 @@ static void ohevcdec_write_ps_list(GF_BitStream *bs, GF_List *list, u32 nalu_siz
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *sl = gf_list_get(list, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(list, i);
 		gf_bs_write_int(bs, sl->size, 8*nalu_size_length);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
@@ -236,7 +236,7 @@ static void ohevcdec_create_inband(GF_HEVCStream *stream, u32 nal_unit_size, GF_
 #if defined(OPENHEVC_HAS_AVC_BASE) && !defined(GPAC_DISABLE_LOG)
 void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 {
-	u32 level = GF_LOG_DEBUG;
+	GF_LOG_Level level = GF_LOG_DEBUG;
 	if (l <= OHEVC_LOG_ERROR) level = GF_LOG_ERROR;
 	else if (l <= OHEVC_LOG_WARNING) level = GF_LOG_WARNING;
 	else if (l <= OHEVC_LOG_INFO) level = GF_LOG_INFO;
@@ -253,11 +253,11 @@ static void ohevcdec_set_codec_name(GF_Filter *filter)
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	if (ctx->avc_base_id) {
-		if (ctx->cur_layer==1) gf_filter_set_name(filter, "OpenHEVC-v"NV_VERSION"-AVC|H264");
-		else gf_filter_set_name(filter, "OpenHEVC-v"NV_VERSION"-AVC|H264+LHVC");
+		if (ctx->cur_layer==1) gf_filter_set_name(filter, "OpenHEVC-v" NV_VERSION "-AVC|H264");
+		else gf_filter_set_name(filter, "OpenHEVC-v" NV_VERSION "-AVC|H264+LHVC");
 	}
-	if (ctx->cur_layer==1) gf_filter_set_name(filter, "OpenHEVC-v"NV_VERSION);
-	else gf_filter_set_name(filter, "OpenHEVC-v"NV_VERSION"-LHVC");
+	if (ctx->cur_layer==1) gf_filter_set_name(filter, "OpenHEVC-v" NV_VERSION);
+	else gf_filter_set_name(filter, "OpenHEVC-v" NV_VERSION "-LHVC");
 #else
 	return gf_filter_set_name(filter, libOpenHevcVersion(ctx->codec) );
 #endif
@@ -484,7 +484,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 #else
 	return GF_NOT_SUPPORTED;
 #endif
-	
+
 	if (dsi && dsi->value.data.size) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (codecid==GF_CODECID_AVC) {
@@ -765,7 +765,7 @@ static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt
 		}
 	}
 	else if ((fevt->base.type==GF_FEVT_PLAY) || (fevt->base.type==GF_FEVT_SET_SPEED) || (fevt->base.type==GF_FEVT_RESUME)) {
-		ctx->drop_non_refs = fevt->play.drop_non_ref;
+		ctx->drop_non_refs = (Bool) fevt->play.drop_non_ref;
 	}
 	return GF_FALSE;
 }
@@ -817,7 +817,7 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0;i<count; i++) {
-		src_pck = gf_list_get(ctx->src_packets, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == ctx->frame_ptr.frame_par.pts) {
 			if (gf_filter_pck_get_mark(src_pck))
 				ohevc_set_out_props(ctx, src_pck);
@@ -871,7 +871,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0;i<count; i++) {
-		src_pck = gf_list_get(ctx->src_packets, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == cts) break;
 		src_pck = NULL;
 	}
@@ -917,7 +917,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		ohevc_set_out_props(ctx, NULL);
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending output frame CTS "LLU"\n", openHevcFrame_FL.frame_par.pts ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending output frame CTS " LLU "\n", openHevcFrame_FL.frame_par.pts ));
 
 	if (ctx->no_copy && !ctx->pack_hfr) {
 		return ohevcdec_send_output_frame(ctx);
@@ -952,7 +952,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		} else {
 			pU = (u8*)(ctx->packed_data + 2 * ctx->stride * 2 * ctx->height + idx_w / 2 + idx_h / 4);
 			pV = (u8*)(ctx->packed_data + 4 * ( 5 *ctx->stride  * ctx->height  / 4) + idx_w / 2 + idx_h / 4);
-		
+
 		}
 
 		if (oh_output_update(ctx->codec, 1, &openHFrame)) {
@@ -1015,7 +1015,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
 	if (!pck) return GF_OUT_OF_MEM;
-	
+
 	openHevcFrame_FL.data_y = (void*) data;
 
 	if ((ctx->cur_layer==2) && ctx->is_multiview && ctx->force_stereo && !ctx->no_copy){
@@ -1107,7 +1107,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	u64 min_cts = GF_FILTER_NO_TS;
 	u32 idx, nb_eos=0;
 	u32 data_size;
-	char *data;
+	const u8 *data;
 	Bool has_pic = GF_FALSE;
 	GF_FilterPacket *pck_ref = NULL;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
@@ -1204,7 +1204,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			}
 		}
 
-		data = (char *) gf_filter_pck_get_data(pck, &data_size);
+		data = gf_filter_pck_get_data(pck, &data_size);
 		//TODO: this is a clock signaling, for now just trash ..
 		if (!data) {
 			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
@@ -1246,7 +1246,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		}
 		gf_filter_pid_set_eos(ctx->opid);
 		while (gf_list_count(ctx->src_packets)) {
-			GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 			gf_filter_pck_unref(pck);
 		}
 		return GF_EOS;
@@ -1291,12 +1291,12 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			continue;
 		}
 
-		data = (char *) gf_filter_pck_get_data(pck, &data_size);
+		data = gf_filter_pck_get_data(pck, &data_size);
 
 		if (ctx->streams[idx].inject_hdr) {
 			if (ctx->inject_buffer_alloc_size < ctx->streams[idx].inject_hdr_size + data_size) {
 				ctx->inject_buffer_alloc_size = ctx->streams[idx].inject_hdr_size + data_size;
-				ctx->inject_buffer = gf_realloc(ctx->inject_buffer, ctx->inject_buffer_alloc_size);
+				ctx->inject_buffer = (u8 *)gf_realloc(ctx->inject_buffer, ctx->inject_buffer_alloc_size);
 			}
 			memcpy(ctx->inject_buffer, ctx->streams[idx].inject_hdr, ctx->streams[idx].inject_hdr_size);
 			memcpy(ctx->inject_buffer+ctx->streams[idx].inject_hdr_size, data, data_size);
@@ -1306,8 +1306,8 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			gf_free(ctx->streams[idx].inject_hdr);
 			ctx->streams[idx].inject_hdr=NULL;
 			ctx->streams[idx].inject_hdr_size=0;
-			
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Config changed, injecting param sets inband at DTS "LLU" CTS "LLU"\n", dts, cts));
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Config changed, injecting param sets inband at DTS " LLU " CTS " LLU "\n", dts, cts));
 		}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
@@ -1323,7 +1323,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			if (ctx->nb_streams>1) {
 				if (ctx->reaggregation_alloc_size < ctx->reaggregation_size + data_size) {
 					ctx->reaggregation_alloc_size = ctx->reaggregation_size + data_size;
-					ctx->reaggregation_buffer = gf_realloc(ctx->reaggregation_buffer, sizeof(char)*ctx->reaggregation_alloc_size);
+					ctx->reaggregation_buffer = (u8 *)gf_realloc(ctx->reaggregation_buffer, ctx->reaggregation_alloc_size);
 				}
 				memcpy(ctx->reaggregation_buffer + ctx->reaggregation_size, data, sizeof(char)*data_size);
 				ctx->reaggregation_size += data_size;
@@ -1380,7 +1380,7 @@ static void ohevcdec_finalize(GF_Filter *filter)
 	if (ctx->inject_buffer) gf_free(ctx->inject_buffer);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
@@ -1441,9 +1441,11 @@ GF_FilterRegister OHEVCDecRegister = {
 #endif // defined(GPAC_HAS_OPENHEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
 
 #ifdef GPAC_HAS_OPENHEVC
+#include <gpac/module.h>
+
+GPAC_MODULE_EXPORT_START
 
 #ifndef GPAC_OPENHEVC_STATIC
-#include <gpac/module.h>
 
 GPAC_MODULE_EXPORT
 GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
@@ -1458,5 +1460,7 @@ const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
+
+GPAC_MODULE_EXPORT_END
 
 #endif

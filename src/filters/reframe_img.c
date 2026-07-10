@@ -86,7 +86,7 @@ typedef struct
 
 GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframeImgCtx *ctx = (GF_ReframeImgCtx *)gf_filter_get_udta(filter);
 	const GF_PropertyValue *p;
 
 	if (is_remove) {
@@ -117,7 +117,7 @@ GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 Bool img_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FilterEvent fevt;
-	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframeImgCtx *ctx = (GF_ReframeImgCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 	if (evt->base.on_pid != ctx->opid) return GF_TRUE;
 	switch (evt->base.type) {
@@ -148,12 +148,12 @@ Bool img_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err img_process(GF_Filter *filter)
 {
-	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframeImgCtx *ctx = (GF_ReframeImgCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	GF_Err e;
-	u8 *data, *output;
+	const u8 *data, *pix;
+	u8 *output;
 	u32 size, w=0, h=0, pf=0, data_size=0;
-	u8 *pix;
 	u32 i, j, irow, in_stride, out_stride;
 	GF_BitStream *bs;
 	BITMAPFILEHEADER fh;
@@ -169,7 +169,7 @@ GF_Err img_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	data = (char *) gf_filter_pck_get_data(pck, &size);
+	data = gf_filter_pck_get_data(pck, &size);
 	data_size = size;
 
 	if (!ctx->opid || !ctx->codec_id) {
@@ -187,7 +187,7 @@ GF_Err img_process(GF_Filter *filter)
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
 		else {
-			bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+			bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 			gf_img_parse(bs, &codecid, &w, &h, &dsi, &dsi_size);
 			gf_bs_del(bs);
 		}
@@ -240,7 +240,7 @@ GF_Err img_process(GF_Filter *filter)
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
 #endif
 		if (! gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_TIMESCALE)) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32) ctx->fps.num) );
 			ctx->owns_timescale = GF_TRUE;
 		}
 
@@ -261,7 +261,7 @@ GF_Err img_process(GF_Filter *filter)
 			}
 
 			if ((data[4]=='j') && (data[5]=='P') && (data[6]==' ') && (data[7]==' ')) {
-				bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+				bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 				while (gf_bs_available(bs)) {
 					u32 bsize = gf_bs_read_u32(bs);
 					u32 btype = gf_bs_read_u32(bs);
@@ -292,7 +292,7 @@ GF_Err img_process(GF_Filter *filter)
 		return e;
 	}
 
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 
 	/*fh.bfType = */ gf_bs_read_u16(bs);
 	/*fh.bfSize = */ gf_bs_read_u32(bs);
@@ -301,7 +301,7 @@ GF_Err img_process(GF_Filter *filter)
 	fh.bfOffBits = gf_bs_read_u32(bs);
 	fh.bfOffBits = gf_ntohl(fh.bfOffBits);
 
-	gf_bs_read_data(bs, (char *) &fi, 40);
+	gf_bs_read_data(bs, (u8 *)&fi, 40);
 	gf_bs_del(bs);
 
 	if ((fi.biCompression != BI_RGB) || (fi.biPlanes!=1)) return GF_NOT_SUPPORTED;
@@ -391,7 +391,7 @@ static const char * img_probe_data(const u8 *data, u32 size, GF_FilterProbeScore
 		*score = GF_FPROBE_SUPPORTED;
 		return "image/png";
 	}
-	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	u32 bsize = gf_bs_read_u32(bs);
 	u32 btype = gf_bs_read_u32(bs);
 	if ( (bsize==12) && ( (btype==GF_ISOM_BOX_TYPE_JP ) || (btype==GF_ISOM_BOX_TYPE_JP2H) ) ) {

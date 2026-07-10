@@ -66,7 +66,7 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 	scene_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
 	if (gf_odm_shares_clock(odm, scene_ck)) {
 		if (odm->parentscene->is_dynamic_scene)
-			gf_scene_restart_dynamic(odm->parentscene, 0, 0, 0);
+			gf_scene_restart_dynamic(odm->parentscene, GF_FALSE, GF_FALSE, GF_FALSE);
 		return;
 	}
 
@@ -91,7 +91,7 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		/*if running, stop and collect for restart*/
 		if (ctrl_od->state) {
-			gf_odm_stop(ctrl_od, 1);
+			gf_odm_stop(ctrl_od, GF_TRUE);
 			gf_list_add(to_restart, ctrl_od);
 		}
 	}
@@ -114,19 +114,19 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 {
 	u32 i;
-	if (gf_mo_get_od_id(old_url) != gf_mo_get_od_id(new_url)) return 1;
-	
+	if (gf_mo_get_od_id(old_url) != gf_mo_get_od_id(new_url)) return GF_TRUE;
+
 	if ((new_url->count==1) && new_url->vals[0].url && !strlen(new_url->vals[0].url) ) new_url->count = 0;
-	
-	if (old_url->count != new_url->count) return 1;
+
+	if (old_url->count != new_url->count) return GF_TRUE;
 
 	for (i=0; i<old_url->count; i++) {
 		if (old_url->vals[i].url || new_url->vals[i].url) {
-			if (!old_url->vals[i].url || !new_url->vals[i].url) return 1;
-			if (strcmp(old_url->vals[i].url, new_url->vals[i].url)) return 1;
+			if (!old_url->vals[i].url || !new_url->vals[i].url) return GF_TRUE;
+			if (strcmp(old_url->vals[i].url, new_url->vals[i].url)) return GF_TRUE;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -258,7 +258,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 					}
 				}
 			}
-			gf_scene_restart_dynamic(in_scene, time, 0, 1);
+			gf_scene_restart_dynamic(in_scene, time, GF_FALSE, GF_TRUE);
 			return;
 		}
 		gf_clock_set_speed(ck, speed);
@@ -346,13 +346,13 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	//we need to disable culling otherwise we may never be called back again ...
-	tr_state->disable_cull = 1;
+	tr_state->disable_cull = GF_TRUE;
 
 	/*not changed nothing to do - note we need to register with stream yet for control switching...*/
 	if (stack->stream && (!stack->changed || !stack->control->enabled)) return;
 
-	need_restart = (stack->changed==2) ? 1 : 0;
-	shall_restart = (stack->control->mediaStartTime>=0) ? 1 : 0;
+	need_restart = (stack->changed==2) ? GF_TRUE : GF_FALSE;
+	shall_restart = (stack->control->mediaStartTime>=0) ? GF_TRUE : GF_FALSE;
 
 	/*check url target*/
 	if (stack->stream) {
@@ -364,7 +364,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			if (gf_list_find(stack->parent->scene_objects, prev)<0)
 				prev = NULL;
 
-			stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
+			stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, GF_FALSE);
 			if (stack->stream) {
 				if (!stack->stream->odm) return;
 				/*MediaControl on inline: if dynamic scene, make sure it is connected before attaching...*/
@@ -385,9 +385,9 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 				stack->current_seg = 0;
 				//do not restart if no mediaStartTime and speed is 1
 				if ((stack->control->mediaStartTime>0) || gf_list_count(stack->seg) || (stack->control->mediaSpeed != FIX_ONE) ) {
-					shall_restart = need_restart = 1;
+					shall_restart = need_restart = GF_TRUE;
 				} else {
-					shall_restart = need_restart = 0;
+					shall_restart = need_restart = GF_FALSE;
 					//URL changed, we are by default in PLAY mode.
 					stack->media_speed = 1;
 				}
@@ -397,9 +397,9 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			/*control has been removed and we were paused, resume*/
 			else if (stack->paused) {
 				if (prev)
-					mediacontrol_resume((GF_ObjectManager *) prev->odm, 0);
-				
-				stack->paused = 0;
+					mediacontrol_resume((GF_ObjectManager *) prev->odm, GF_FALSE);
+
+				stack->paused = GF_FALSE;
 			}
 			/*MediaControl has been detached*/
 			else {
@@ -409,7 +409,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			}
 		}
 	} else {
-		stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
+		stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, GF_FALSE);
 		if (!stack->stream || !stack->stream->odm) {
 			if (stack->control->url.count) gf_sc_invalidate(stack->parent->compositor, NULL);
 			stack->stream = NULL;
@@ -427,7 +427,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		if (!stack->ck) {
 			stack->stream = NULL;
 			if (stack->control->url.count) {
-				stack->is_init = 0;
+				stack->is_init = GF_FALSE;
 				gf_sc_invalidate(stack->parent->compositor, NULL);
 			}
 			return;
@@ -440,7 +440,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->current_seg = 0;
 
 		/*we shouldn't have to restart unless start/stop times have been changed, which is tested below*/
-		need_restart = (stack->stream->odm->state==GF_ODM_STATE_PLAY) ? 1 : 0;
+		need_restart = (stack->stream->odm->state==GF_ODM_STATE_PLAY) ? GF_TRUE : GF_FALSE;
 	}
 
 	if ((stack->is_init && !stack->changed) || !stack->control->enabled || !stack->stream) return;
@@ -449,38 +449,38 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 	/*if not previously enabled and now enabled, switch all other controls off and reactivate*/
 	if (!stack->enabled) {
 		Bool restart;
-		stack->enabled = 1;
+		stack->enabled = GF_TRUE;
 		restart = gf_odm_switch_mediacontrol(stack->stream->odm, stack);
-		if (restart) need_restart = 1;
+		if (restart) need_restart = GF_TRUE;
 	}
 
 	stack->changed = 0;
 
-	if (!stack->control->mediaSpeed) shall_restart = 0;
+	if (!stack->control->mediaSpeed) shall_restart = GF_FALSE;
 
 	odm = (GF_ObjectManager *)stack->stream->odm;
 
 	/*check for changes*/
 	if (!stack->is_init) {
-		need_restart = 0;
+		need_restart = GF_FALSE;
 		/*not linked yet*/
 		if (!odm) return;
 		stack->media_speed = stack->control->mediaSpeed;
 		stack->enabled = stack->control->enabled;
 		stack->media_start = stack->control->mediaStartTime;
 		if (stack->media_stop != stack->control->mediaStopTime) {
-			if (stack->control->mediaStopTime < 1000000000) need_restart  = 1;
+			if (stack->control->mediaStopTime < 1000000000) need_restart  = GF_TRUE;
 			stack->media_stop = stack->control->mediaStopTime;
 		}
-		stack->is_init = 1;
-		stack->paused = 0;
+		stack->is_init = GF_TRUE;
+		stack->paused = GF_FALSE;
 		/*the object has already been started, and media start time is not 0, restart*/
 		if (stack->stream->num_open) {
 			if (need_restart  || (stack->media_start > 0) || (gf_list_count(stack->seg)>0 )  || (stack->media_speed!=FIX_ONE ) ) {
 				mediacontrol_restart(odm);
 			} else if (stack->media_speed == 0) {
 				mediacontrol_pause(odm);
-				stack->paused = 1;
+				stack->paused = GF_TRUE;
 			}
 		}
 		return;
@@ -490,35 +490,35 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		/*if no speed pause*/
 		if (!stack->control->mediaSpeed && !stack->paused) {
 			mediacontrol_pause(odm);
-			stack->paused = 1;
+			stack->paused = GF_TRUE;
 		}
 		/*else resume if paused*/
 		else if (stack->control->mediaSpeed && stack->paused) {
-			mediacontrol_resume(odm, 0);
-			stack->paused = 0;
-			need_restart += shall_restart;
+			mediacontrol_resume(odm, GF_FALSE);
+			stack->paused = GF_FALSE;
+			if (shall_restart) need_restart = GF_TRUE;
 		}
 		/*else set speed*/
 		else if (stack->media_speed && stack->control->mediaSpeed) {
 			/*don't set speed if we have to restart the media ...*/
 			if (!shall_restart) mediacontrol_set_speed(odm, stack->control->mediaSpeed);
-			need_restart += shall_restart;
+			if (shall_restart) need_restart = GF_TRUE;
 		}
 		/*init state was paused*/
 		else if (!stack->media_speed) {
-			need_restart ++;
+			need_restart = GF_TRUE;
 		}
 		stack->media_speed = stack->control->mediaSpeed;
 	}
 	/*check start/stop changes*/
 	if (stack->media_start != stack->control->mediaStartTime) {
 		stack->media_start = stack->control->mediaStartTime;
-		need_restart += shall_restart;
+		need_restart = GF_TRUE;
 	}
 	/*stop change triggers restart no matter what (new range) if playing*/
 	if (stack->media_stop != stack->control->mediaStopTime) {
 		stack->media_stop = stack->control->mediaStopTime;
-		if (stack->control->mediaSpeed) need_restart = 1;
+		if (stack->control->mediaSpeed) need_restart = GF_TRUE;
 	}
 
 	if (need_restart) {
@@ -572,7 +572,7 @@ void MC_Modified(GF_Node *node)
 //		else stack->changed = 1;
 	}
 
-	gf_node_dirty_set( gf_sg_get_root_node(gf_node_get_graph(node)), 0, 1);
+	gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(node)), 0, GF_TRUE);
 	/*invalidate scene, we recompute MC state in render*/
 	gf_sc_invalidate(stack->parent->compositor, NULL);
 }
@@ -588,7 +588,7 @@ void gf_odm_set_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 		if (odm->ck) {
 			/*deactivate current control*/
 			if (ctrl && odm->ck->mc) {
-				odm->ck->mc->control->enabled = 0;
+				odm->ck->mc->control->enabled = GF_FALSE;
 				gf_node_event_out((GF_Node *)odm->ck->mc->control, 7/*"enabled"*/);
 			}
 			odm->ck->mc = ctrl;
@@ -598,7 +598,7 @@ void gf_odm_set_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 		if (odm->ck && (odm->ck->mc != ctrl)) {
 			/*deactivate current control*/
 			if (ctrl && odm->ck->mc) {
-				odm->ck->mc->control->enabled = 0;
+				odm->ck->mc->control->enabled = GF_FALSE;
 				gf_node_event_out((GF_Node *)odm->ck->mc->control, 7/*"enabled"*/);
 			}
 			/*and attach this control to the clock*/
@@ -627,7 +627,7 @@ void gf_odm_remove_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 	if (odm->media_ctrl == ctrl) {
 		/*we're about to release the media control from this object - if paused, force a resume (as if no MC was set)*/
 		if (ctrl->paused)
-			mediacontrol_resume(odm, 0);
+			mediacontrol_resume(odm, GF_FALSE);
 		gf_odm_set_mediacontrol(odm, NULL);
 	}
 }
@@ -636,21 +636,21 @@ Bool gf_odm_switch_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 {
 	u32 i;
 	MediaControlStack *st2;
-	if (!ctrl->control->enabled) return 0;
+	if (!ctrl->control->enabled) return GF_FALSE;
 
 	/*for all media controls other than this one force enable to false*/
 	i=0;
 	while ((st2 = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
 		if (st2 == ctrl) continue;
 		if (st2->control->enabled) {
-			st2->control->enabled = 0;
+			st2->control->enabled = GF_FALSE;
 			gf_node_event_out((GF_Node *) st2->control, 7/*"enabled"*/);
 		}
-		st2->enabled = 0;
+		st2->enabled = GF_FALSE;
 	}
-	if (ctrl == odm->media_ctrl) return 0;
+	if (ctrl == odm->media_ctrl) return GF_FALSE;
 	gf_odm_set_mediacontrol(odm, ctrl);
-	return 1;
+	return GF_TRUE;
 }
 
 Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
@@ -660,11 +660,11 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 	MediaControlStack *ctrl = gf_odm_get_mediacontrol(odm);
 
 	/*if no control or control not on this object ignore segment switch*/
-	if (!ctrl || (ctrl->stream->odm != odm)) return 0;
+	if (!ctrl || (ctrl->stream->odm != odm)) return GF_FALSE;
 
 	count = gf_list_count(ctrl->seg);
 	/*reached end of controled stream (no more segments)*/
-	if (ctrl->current_seg>=count) return 0;
+	if (ctrl->current_seg>=count) return GF_FALSE;
 
 	/*synth media, trigger if end of segment run-time*/
 	if (!odm->type || ((odm->type!=GF_STREAM_VISUAL) && (odm->type!=GF_STREAM_AUDIO))) {
@@ -672,11 +672,11 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 		u64 now = gf_clock_time_absolute(ck);
 		u64 dur = odm->subscene ? odm->subscene->duration : odm->duration;
 		cur = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
-		if (odm->subscene && odm->subscene->needs_restart) return 0;
+		if (odm->subscene && odm->subscene->needs_restart) return GF_FALSE;
 		if (cur) dur = (u32) ((cur->Duration+cur->startTime)*1000);
 		//if next frame is after current segment trigger switch now
 		if (now + odm->parentscene->compositor->frame_duration < dur)
-			return 0;
+			return GF_FALSE;
 	} else {
 		/*FIXME - for natural media with scalability, we should only process when all streams of the object are done*/
 	}
@@ -702,14 +702,14 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 		}
 	}
 	/*if last segment in ctrl is done, end of stream*/
-	if (ctrl->current_seg >= count) return 0;
+	if (ctrl->current_seg >= count) return GF_FALSE;
 	next = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 
 	/*if next seg start is not in current seg, media needs restart*/
 	if ((next->startTime < cur->startTime) || (cur->startTime + cur->Duration < next->startTime))
 		mediacontrol_restart(odm);
 
-	return 1;
+	return GF_TRUE;
 }
 
 

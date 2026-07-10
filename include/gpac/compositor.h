@@ -34,7 +34,7 @@ extern "C" {
 \file <gpac/compositor.h>
 \brief GPAC A/V/2D/3D compositor/rendering.
 */
-	
+
 /*!
 \addtogroup compose_grp Compositor
 \ingroup playback_grp
@@ -54,7 +54,7 @@ This section documents the compositor of GPAC in charge of assembling audio, ima
 
 @{
  */
-	
+
 
 /*include scene graph API*/
 #include <gpac/scenegraph.h>
@@ -402,7 +402,7 @@ GF_Err gf_sc_dump_scene(GF_Compositor *compositor, char *rad_name, char **filena
 \param com the textual update
 \return error if any
 */
-GF_Err gf_sc_scene_update(GF_Compositor *compositor, char *type, char *com);
+GF_Err gf_sc_scene_update(GF_Compositor *compositor, const char *type, char *com);
 
 /*! selects service by given ID for multiplexed services (MPEG-2 TS)
 \param compositor the target compositor

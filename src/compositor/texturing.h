@@ -70,7 +70,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 /*disables the texture (unbinds it)*/
 void gf_sc_texture_disable(GF_TextureHandler *txh);
 /*retrieves the internal (potentially converted for YUV) data buffer*/
-char *gf_sc_texture_get_data(GF_TextureHandler *txh, u32 *pix_format);
+u8 *gf_sc_texture_get_data(GF_TextureHandler *txh, u32 *pix_format);
 /*checks if the data buffer shall be pushed to graphics card*/
 Bool gf_sc_texture_needs_reload(GF_TextureHandler *hdl);
 

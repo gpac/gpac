@@ -57,7 +57,7 @@ GF_Err ac4mx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 crc;
 	const GF_PropertyValue *p;
-	GF_AC4MxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4MxCtx *ctx = (GF_AC4MxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -112,9 +112,10 @@ GF_Err ac4mx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 GF_Err ac4mx_process(GF_Filter *filter)
 {
-	GF_AC4MxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4MxCtx *ctx = (GF_AC4MxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 pck_size, size;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -126,7 +127,7 @@ GF_Err ac4mx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!pck_size) {
 		//if output and packet properties, forward - this is required for sinks using packets for state signaling
 		//such as TS muxer in dash mode looking for EODS property
@@ -170,14 +171,14 @@ GF_Err ac4mx_process(GF_Filter *filter)
 
 static GF_Err ac4mx_initialize(GF_Filter *filter)
 {
-	GF_AC4MxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4MxCtx *ctx = (GF_AC4MxCtx *)gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new((u8*)ctx, 1, GF_BITSTREAM_WRITE);
 	return GF_OK;
 }
 
 static void ac4mx_finalize(GF_Filter *filter)
 {
-	GF_AC4MxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4MxCtx *ctx = (GF_AC4MxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 }
 

@@ -50,23 +50,8 @@ struct RMT_WS {
 };
 
 
-
-GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
-void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
-GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
-void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
-void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
-GF_Err dm_sess_write(GF_DownloadSession *session, const u8 *buffer, u32 size);
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
-void httpout_format_date(u64 time, char szDate[200], Bool for_listing);
-
 #ifdef GPAC_HAS_SSL
-
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void *gf_ssl_server_context_new(const char *cert, const char *key);
-void gf_ssl_server_context_del(void *ssl_server_ctx);
-Bool gf_ssl_init_lib();
-
+#include "../utils/downloader.h"
 #endif
 
 enum {
@@ -78,7 +63,7 @@ enum {
     RMT_WEBSOCKET_PONG = 10,
 };
 
-static char RMT_WEBSOCKET_PING_MSG[2] = { 0x89, 0x00 };
+static u8 RMT_WEBSOCKET_PING_MSG[2] = { 0x89, 0x00 };
 
 struct __rmt_serverctx {
 
@@ -213,7 +198,7 @@ void rmt_clientctx_del(RMT_ClientCtx* client) {
 void rmt_serverctx_reset(RMT_ServerCtx* ctx) {
 	if (ctx->active_clients) {
 		while (gf_list_count(ctx->active_clients)) {
-			RMT_ClientCtx* client = gf_list_pop_back(ctx->active_clients);
+			RMT_ClientCtx* client = (RMT_ClientCtx*)gf_list_pop_back(ctx->active_clients);
             rmt_clientctx_del(client);
             client = NULL;
 		}
@@ -254,13 +239,13 @@ void rmt_close_client(RMT_ClientCtx* client) {
     rmt_clientctx_del(client);
 }
 
-GF_Err rmt_send_reply(GF_DownloadSession* http_sess, int responseCode, char* response_body, char* content_type) {
+static GF_Err rmt_send_reply(GF_DownloadSession* http_sess, int responseCode, const char* response_body, const char* content_type) {
 
         u32 body_size = 0;
         char szFmt[100];
         char szDate[200];
 
-	    httpout_format_date(gf_net_get_utc(), szDate, GF_FALSE);
+	gf_dm_http_format_date(gf_net_get_utc(), szDate, GF_FALSE);
 	    gf_dm_sess_set_header(http_sess, "Date", szDate);
         gf_dm_sess_set_header(http_sess, "Server", gf_gpac_version());
 
@@ -272,7 +257,7 @@ GF_Err rmt_send_reply(GF_DownloadSession* http_sess, int responseCode, char* res
 
         }
 
-        return gf_dm_sess_send_reply(http_sess, responseCode, response_body, response_body ? (u32) strlen(response_body) : 0, (response_body==NULL));
+	return gf_dm_sess_send_reply(http_sess, responseCode, response_body, response_body ? (u32) strlen(response_body) : 0, (response_body==NULL) ? GF_TRUE : GF_FALSE);
 
 }
 
@@ -306,7 +291,7 @@ static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *paramete
 
     if (parameter->msg_type != GF_NETIO_PARSE_REPLY) {
         if (parameter->size) {
-            gf_strcat(client_ctx->buffer, parameter->data);
+            gf_strlcat(client_ctx->buffer, (char*)parameter->data, 1024);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("session data is now: %s\n", client_ctx->buffer));
         }
     }
@@ -342,9 +327,9 @@ static void rmt_on_http_session_data(void *usr_cbk, GF_NETIO_Parameter *paramete
 
 
                 u8 hash[GF_SHA1_DIGEST_SIZE];
-                gf_sha1_csum( resp_key, resp_key_len, hash );
+                gf_sha1_csum( (u8*)resp_key, resp_key_len, hash );
 
-                u32 end_b64 = gf_base64_encode(hash, GF_SHA1_DIGEST_SIZE, resp_key, resp_key_len);
+                u32 end_b64 = gf_base64_encode(hash, GF_SHA1_DIGEST_SIZE, (u8*)resp_key, resp_key_len);
                 resp_key[resp_key_len-1] = 0;
                 if (end_b64 < resp_key_len) {
                     resp_key[end_b64] = 0;
@@ -410,7 +395,7 @@ GF_Err rmt_create_server(RMT_ServerCtx* ctx) {
         if (!prev_noh2)
             gf_opts_set_key("core", "no-h2", "1");
 
-        ctx->ssl_ctx = gf_ssl_server_context_new(rmt_settings->cert, rmt_settings->pkey);
+        ctx->ssl_ctx = gf_ssl_server_context_new(rmt_settings->cert, rmt_settings->pkey, GF_FALSE);
 
         if (!prev_noh2)
             gf_opts_set_key("core", "no-h2", "0");
@@ -556,6 +541,9 @@ GF_Err rmt_client_handle_ws_payload(RMT_ClientCtx* client, u8* payload, u64 size
 
 GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
 
+	u8* respbuf=NULL;
+	u32 respsize=0;
+	GF_BitStream* respbs;
     GF_Err e = GF_OK;
 
     if (gf_bs_available(bs) < 2) return GF_IO_ERR;
@@ -585,7 +573,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
     if (payload_size + gf_bs_get_position(bs) > gf_bs_get_size(bs)) {
         u64 extra_size = payload_size + gf_bs_get_position(bs) - gf_bs_get_size(bs) ;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("buffer too small for payload_size %llu bs_pos %u bs_size %u => extra_size %llu\n", payload_size, gf_bs_get_position(bs), gf_bs_get_size(bs), extra_size));
-        extra_payload = gf_malloc( sizeof(u8) * extra_size );
+        extra_payload = (u8*)gf_malloc( extra_size );
 
         e = GF_OK;
         while (!e && extra_read < extra_size) {
@@ -597,7 +585,7 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("extra gf_dm_read_data => %d e=%s\n",extra_read, gf_error_to_string(e)));
     }
 
-    u8* unmasked_payload = gf_malloc( payload_size * sizeof(u8) + 1); // add 1 to add null to get c string
+    u8* unmasked_payload = (u8*)gf_malloc( payload_size + 1);
     int i=0;
     for (i=0; i<payload_size && gf_bs_available(bs); i++) {
         unmasked_payload[i] = (u8) ( gf_bs_read_u8(bs) ^ masking_key[i%4] );
@@ -629,14 +617,14 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
         case RMT_WEBSOCKET_TEXT:
         case RMT_WEBSOCKET_BINARY:
 
-            e = rmt_client_handle_ws_payload(client, unmasked_payload, payload_size, (opcode==RMT_WEBSOCKET_BINARY));
+			e = rmt_client_handle_ws_payload(client, unmasked_payload, payload_size, (opcode==RMT_WEBSOCKET_BINARY) ? GF_TRUE : GF_FALSE);
 
             break;
 
 
         case RMT_WEBSOCKET_PING:;
 
-            GF_BitStream* respbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE_DYN);
+            respbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE_DYN);
             gf_bs_write_int(respbs, 1, 1); //FIN=1
             gf_bs_write_int(respbs, 0, 3); //RSV=0
             gf_bs_write_int(respbs, RMT_WEBSOCKET_PONG, 4); //opcode=pong
@@ -644,8 +632,6 @@ GF_Err rmt_client_handle_ws_frame(RMT_ClientCtx* client, GF_BitStream* bs) {
             gf_bs_write_int(respbs, (s32)payload_size, 7);
             gf_bs_write_data(respbs, unmasked_payload, (u32)payload_size);
 
-            u8* respbuf=NULL;
-            u32 respsize=0;
             gf_bs_get_content(respbs, &respbuf, &respsize);
             GF_LOG(GF_LOG_DEBUG, GF_LOG_RMTWS, ("ready to send PONG respbuf of size %d: %.*s\n", respsize, respsize, respbuf));
             e = dm_sess_write(client->http_sess, respbuf, respsize);
@@ -715,9 +701,9 @@ GF_Err rmt_client_send_ping(RMT_ClientCtx* client) {
 }
 
 GF_EXPORT
-GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const char* msg, u64 size, Bool is_binary) {
+GF_Err gf_rmt_client_send_to_ws(RMT_ClientCtx* client, const u8* msg, u64 size, Bool is_binary) {
 
-    return rmt_client_send_payload(client, (const u8*) msg, size, is_binary);
+    return rmt_client_send_payload(client, msg, size, is_binary);
 
 }
 
@@ -778,7 +764,7 @@ GF_Err rmt_server_wait_for_event(RMT_ServerCtx* ctx) {
             // check active sessions
 		    u32 count = gf_list_count(ctx->active_clients);
 		    for (u32 i=0; i<count; i++) {
-			    RMT_ClientCtx* client = gf_list_get(ctx->active_clients, i);
+			    RMT_ClientCtx* client = (RMT_ClientCtx*)gf_list_get(ctx->active_clients, i);
 
                 if (rmt_client_should_close(client)) {
 

@@ -24,6 +24,10 @@
 #ifndef LIBREGEXP_H
 #define LIBREGEXP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -61,5 +65,9 @@ int lre_check_stack_overflow(void *opaque, size_t alloca_size);
 /* must be provided by the user, return non zero if time out */
 int lre_check_timeout(void *opaque);
 void *lre_realloc(void *opaque, void *ptr, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBREGEXP_H */

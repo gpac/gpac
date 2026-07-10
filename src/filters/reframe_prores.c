@@ -34,7 +34,8 @@ typedef struct
 {
 	//filter args
 	GF_Fraction fps;
-	Bool findex, notime;
+	Bool notime;
+	u32 findex;
 	char *cid;
 
 	//only one input pid declared
@@ -76,7 +77,7 @@ typedef struct
 GF_Err proresdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_ProResDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ProResDmxCtx *ctx = (GF_ProResDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -175,7 +176,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 
 		if (!idx_size) idx_size = 10;
 		else if (idx_size == ctx->nb_frames) idx_size += 10;
-		ctx->frame_sizes = gf_realloc(ctx->frame_sizes, sizeof(u32)*idx_size);
+		ctx->frame_sizes = (u32 *)gf_realloc(ctx->frame_sizes, sizeof(u32)*idx_size);
 		ctx->frame_sizes[ctx->nb_frames] = fsize;
 		ctx->nb_frames++;
 		frame_start += fsize;
@@ -206,7 +207,7 @@ static Bool proresdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 	u32 i;
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
-	GF_ProResDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ProResDmxCtx *ctx = (GF_ProResDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -377,7 +378,7 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codec_id));
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT((u32)ctx->cur_fps.num));
 
 	//if we have a FPS prop, use it
 	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
@@ -444,7 +445,7 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 	u32 last_frame_end = 0;
 	GF_Err e = GF_OK;
 
-	if (!ctx->bs) ctx->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	if (!ctx->bs) ctx->bs = gf_bs_new((u8*)data, data_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs, data, data_size);
 
 	while (gf_bs_available(ctx->bs)) {
@@ -514,9 +515,9 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 GF_Err proresdmx_process(GF_Filter *filter)
 {
 	GF_Err e;
-	GF_ProResDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ProResDmxCtx *ctx = (GF_ProResDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
-	char *data;
+	const u8 *data;
 	u32 pck_size;
 
 	if (!ctx->is_playing && ctx->opid)
@@ -555,7 +556,7 @@ GF_Err proresdmx_process(GF_Filter *filter)
 			return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale) {
@@ -569,7 +570,7 @@ GF_Err proresdmx_process(GF_Filter *filter)
 		if (!start) {
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
-				ctx->buffer = gf_realloc(ctx->buffer, ctx->alloc_size);
+				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -601,7 +602,7 @@ GF_Err proresdmx_process(GF_Filter *filter)
 		if (!end) {
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
-				ctx->buffer = gf_realloc(ctx->buffer, ctx->alloc_size);
+				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -619,7 +620,7 @@ GF_Err proresdmx_process(GF_Filter *filter)
 	//not from framed stream, copy buffer
 	if (ctx->alloc_size < ctx->buf_size + pck_size) {
 		ctx->alloc_size = ctx->buf_size + pck_size;
-		ctx->buffer = gf_realloc(ctx->buffer, ctx->alloc_size);
+		ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
 	}
 	memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 	ctx->buf_size += pck_size;
@@ -630,7 +631,7 @@ GF_Err proresdmx_process(GF_Filter *filter)
 
 static void proresdmx_finalize(GF_Filter *filter)
 {
-	GF_ProResDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ProResDmxCtx *ctx = (GF_ProResDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->frame_sizes) gf_free(ctx->frame_sizes);
 	if (ctx->buffer) gf_free(ctx->buffer);

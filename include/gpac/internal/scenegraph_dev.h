@@ -130,7 +130,7 @@ typedef struct
 {
 	char *name;
 	char *qname;
-	u32 xmlns_id;
+	GF_NamespaceType xmlns_id;
 } GF_XMLNS;
 
 struct __tag_scene_graph
@@ -346,7 +346,7 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode);
 void gf_sg_mpeg4_node_del(GF_Node *node);
 const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag);
 Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
-s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name);
+s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, const char *name);
 
 #ifndef GPAC_DISABLE_X3D
 /*X3D def*/
@@ -355,7 +355,7 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field);
 u32 gf_sg_x3d_node_get_field_count(GF_Node *node);
 void gf_sg_x3d_node_del(GF_Node *node);
 const char *gf_sg_x3d_node_get_class_name(u32 NodeTag);
-s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name);
+s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, const char *name);
 Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag);
 #endif
 
@@ -395,7 +395,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 u32 gf_sg_vrml_get_sf_size(u32 FieldType);
 
 /*returns field type from its name*/
-u32 gf_sg_field_type_by_name(char *fieldType);
+u32 gf_sg_field_type_by_name(const char *fieldType);
 
 /*clones the command in another graph - needed for uncompressed conditional in protos
 if force_clone is not set and the target graph is the same as the command graph, nodes are just registered
@@ -540,9 +540,9 @@ node can be the proto instance or a node from the proto code
 this will call NodeChanged if needed, forward to proto/node or trigger any route if needed*/
 void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_node);
 
-s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name);
+s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, const char *name);
 
-GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id_suffix);
+GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, const char *inst_id_suffix);
 
 #endif /*GPAC_DISABLE_VRML*/
 
@@ -827,6 +827,8 @@ void gf_smil_anim_set_anim_runtime_in_timing(GF_Node *n);
 void gf_smil_timing_pause(GF_Node *node);
 void gf_smil_timing_resume(GF_Node *node);
 
+void gf_svg_script_context_del(struct __tag_svg_script_ctx *svg_js, GF_SceneGraph *scenegraph);
+
 #endif
 
 
@@ -914,7 +916,7 @@ const char *gf_xml_get_element_name(GF_Node *node);
 
 SVGAttribute *gf_node_create_attribute_from_datatype(u32 data_type, u32 attribute_tag);
 
-GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
+GF_Err gf_node_get_attribute_by_name(GF_Node *node, const char *name, GF_NamespaceType xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
 void *gf_svg_get_property_pointer_from_tag(SVGPropertiesPointers *output_property_context, u32 prop_tag);
 void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
                                   SVGPropertiesPointers *output_property_context);
@@ -922,7 +924,7 @@ void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute);
 
 /*exported for LASeR paring*/
-u32 svg_parse_point(SVG_Point *p, char *value_string, GF_Err *out_e);
+u32 svg_parse_point(SVG_Point *p, const char *value_string, GF_Err *out_e);
 
 /*activates node. This is used by LASeR:activate and whenever a node is inserted in the scene
 through DOM*/
@@ -942,11 +944,11 @@ void gf_dom_listener_reset_deferred(GF_SceneGraph *sg);
 
 void gf_node_delete_attributes(GF_Node *node);
 
-GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
+GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, const char *inst_id, Bool deep);
 
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 
-GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
+GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, GF_EventType event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
 
 void	gf_dom_event_dump_listeners(GF_Node *n, FILE *f);
 void	gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target, GF_SceneGraph *sg);

@@ -309,8 +309,8 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 	if (n->pos) {
 		/*we really want to check all possible intersections to get the closest point on ray*/
 		Bool res = gf_mesh_aabb_ray_hit(mesh, n->pos, ray, closest, outPoint, outNormal, outTexCoords);
-		res += gf_mesh_aabb_ray_hit(mesh, n->neg, ray, closest, outPoint, outNormal, outTexCoords);
-		return res;
+		Bool res2 = gf_mesh_aabb_ray_hit(mesh, n->neg, ray, closest, outPoint, outNormal, outTexCoords);
+		return (res || res2) ? GF_TRUE : GF_FALSE;
 
 	}
 

@@ -71,7 +71,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		prev_switch = tr_state->switched_off;
 		/*check changes in choice field*/
 		if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != whichChoice) ) {
-			tr_state->switched_off = 1;
+			tr_state->switched_off = GF_TRUE;
 			i=0;
 			l = children;
 			while (l) {
@@ -80,7 +80,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 				l = l->next;
 				i++;
 			}
-			tr_state->switched_off = 0;
+			tr_state->switched_off = GF_FALSE;
 			st->last_switch = whichChoice;
 		}
 
@@ -314,14 +314,14 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	prev_inv = tr_state->invalidate_all;
-	c_changed = 0;
+	c_changed = GF_FALSE;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		gf_cmx_set(&ptr->cmat,
 		           tr->mrr , tr->mrg, tr->mrb, tr->mra, tr->tr,
 		           tr->mgr , tr->mgg, tr->mgb, tr->mga, tr->tg,
 		           tr->mbr, tr->mbg, tr->mbb, tr->mba, tr->tb,
 		           tr->mar, tr->mag, tr->mab, tr->maa, tr->ta);
-		c_changed = 1;
+		c_changed = GF_TRUE;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 
@@ -330,7 +330,7 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 
 	/*if modified redraw all nodes*/
-	if (c_changed) tr_state->invalidate_all = 1;
+	if (c_changed) tr_state->invalidate_all = GF_TRUE;
 
 	/*note we don't clear dirty flag, this is done in traversing*/
 	if (ptr->cmat.identity) {
@@ -422,7 +422,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 		for (i=0; i<count; i++) stack->positions[i] = priorities[i].position;
 		gf_free(priorities);
 
-		tr_state->invalidate_all = 1;
+		tr_state->invalidate_all = GF_TRUE;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	group_2d_traverse_with_order(node, (GroupingNode2D*)stack, tr_state, stack->positions);
@@ -434,7 +434,7 @@ void compositor_init_orderedgroup(GF_Compositor *compositor, GF_Node *node)
 	OrderedGroupStack *ptr;
 	GF_SAFEALLOC(ptr, OrderedGroupStack);
 	if (!ptr) return;
-	
+
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseOrderedGroup);
 }

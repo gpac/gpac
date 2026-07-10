@@ -34,7 +34,7 @@ extern "C" {
 \file <gpac/scenegraph_svg.h>
 \brief Scenegraph for SVG files
 */
-	
+
 /*!
 \addtogroup ssvg SVG Scenegraph
 \ingroup scene_grp
@@ -302,6 +302,24 @@ enum
 	TAG_GSVG_ATT_depthGain,
 };
 
+/*! DOM built-in namespaces*/
+typedef enum
+{
+	/*XMLNS is undefined*/
+	GF_XMLNS_UNDEFINED = 0,
+
+	GF_XMLNS_XML,
+	GF_XMLNS_XLINK,
+	GF_XMLNS_XMLEV,
+	GF_XMLNS_LASER,
+	GF_XMLNS_SVG,
+	GF_XMLNS_XBL,
+
+	GF_XMLNS_SVG_GPAC_EXTENSION,
+
+	/*any other namespace uses the CRC32 of the namespace as an identifier*/
+} GF_NamespaceType;
+
 /*! macro for DOM base attribute*/
 #define GF_DOM_BASE_ATTRIBUTE	\
 	u16 tag;	/*attribute identifier*/	\
@@ -323,7 +341,7 @@ typedef struct __dom_base_attribute
 typedef struct __dom_full_attribute
 {
 	GF_DOM_BASE_ATTRIBUTE
-	u32 xmlns;
+	GF_NamespaceType xmlns;
 	char *name; /*attribute name - in this case, the data field is the attribute literal value*/
 } GF_DOMFullAttribute;
 
@@ -344,57 +362,39 @@ typedef struct __dom_full_node
 {
 	GF_DOM_BASE_NODE
 	char *name;
-	u32 ns;
+	GF_NamespaceType ns;
 } GF_DOMFullNode;
-
-/*! DOM built-in namespaces*/
-typedef enum
-{
-	/*XMLNS is undefined*/
-	GF_XMLNS_UNDEFINED = 0,
-
-	GF_XMLNS_XML,
-	GF_XMLNS_XLINK,
-	GF_XMLNS_XMLEV,
-	GF_XMLNS_LASER,
-	GF_XMLNS_SVG,
-	GF_XMLNS_XBL,
-
-	GF_XMLNS_SVG_GPAC_EXTENSION,
-
-	/*any other namespace uses the CRC32 of the namespace as an identifier*/
-} GF_NamespaceType;
 
 /*! gets built-in XMLNS id for this namespace
 \param name name of the namespace
 \return namespace ID if known, otherwise GF_XMLNS_UNDEFINED*/
-GF_NamespaceType gf_xml_get_namespace_id(char *name);
+GF_NamespaceType gf_xml_get_namespace_id(const char *name);
 /*! adds a new namespace
 \param sg the target scene graph
 \param name name of the namespace (full URL)
 \param qname QName of the namespace (short name in doc, eg "ev")
 \return error if any
 */
-GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
+GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, const char *name, const char *qname);
 /*! removes a new namespace
 \param sg the target scene graph
 \param name name of the namespace
 \param qname QName of the namespace
 \return error if any
 */
-GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);
+GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, const char *name, const char *qname);
 /*! gets namespace code
 \param sg the target scene graph
 \param qname QName of the namespace
 \return namespace code
 */
-GF_NamespaceType gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);
+GF_NamespaceType gf_sg_get_namespace_code(GF_SceneGraph *sg, const char *qname);
 /*! gets namespace code from name
 \param sg the target scene graph
 \param name name of the namespace
 \return namespace code
 */
-GF_NamespaceType gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name);
+GF_NamespaceType gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, const char *name);
 
 /*! gets namespace qname from ID
 \param sg the target scene graph
@@ -640,25 +640,6 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
 */
 Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack);
 
-/*! gets event type by name
-\param name the event name
-\return the event type*/
-GF_EventType gf_dom_event_type_by_name(const char *name);
-/*! gets event name by type
-\param type the event type
-\return the event name*/
-const char *gf_dom_event_get_name(GF_EventType type);
-
-/*! gets key name by type
-\param key_identifier the key type
-\return the key name*/
-const char *gf_dom_get_key_name(GF_KeyCode key_identifier);
-/*! gets key type by name
-\param key_name the key name
-\return the key type*/
-GF_KeyCode gf_dom_get_key_type(char *key_name);
-
-
 /*! macro for DOM listener
 DOM listener is simply a node added to the node events list.
 Only one observer can be attached to a listener. The listener will remove itself from the observer
@@ -713,7 +694,10 @@ typedef enum
 	GF_DOM_EVENT_GPAC = 1<<30,
 	/*fake events - these events are NEVER fired*/
 	GF_DOM_EVENT_FAKE = 0x80000000 //1<<31
-} GF_DOMEventCategory;
+} GF_DOMEventCategoryFlags;
+
+/*! DOM Event category type*/
+typedef u32 GF_DOMEventCategory;
 
 /*! gets category of DOM event
 \param type type of event
@@ -979,7 +963,7 @@ const char *gf_svg_attribute_type_to_string(u32 att_type);
 \param anim_value_type the SMIL animation value type for this attribute, 0 if not animatable
 \return error if any
 */
-GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type);
+GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, const char *attribute_content, u8 anim_value_type);
 /*! parses an SVG style
 \param n the target node
 \param style the UTF-8 style string to parse
@@ -1041,7 +1025,7 @@ void gf_smil_timing_insert_clock(GF_Node *n, Bool is_end, Double clock);
 \param mat the matrix to fill
 \param attribute_content the UTF8 string representin the SVG transformation
 \return GF_TRUE if success*/
-Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content);
+Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, const char *attribute_content);
 
 /*! SMIL runtime timing information*/
 typedef struct _smil_timing_rti SMIL_Timing_RTI;
@@ -1150,7 +1134,7 @@ u32 gf_xml_get_attribute_type(u32 tag);
 \param attribute_name the target attribute name
 \param ns the target namespace
 \return the attribute tag*/
-u32 gf_xml_get_attribute_tag(GF_Node *n, char *attribute_name, GF_NamespaceType ns);
+u32 gf_xml_get_attribute_tag(GF_Node *n, const char *attribute_name, GF_NamespaceType ns);
 
 /*! gets the built-in tag of a node
 \param node_name the target node name

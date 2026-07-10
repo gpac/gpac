@@ -77,11 +77,11 @@ void evaluate_scene_cap(GF_Node *node, GF_Route *route)
 	u32 b_charge, b_level;
 
 	M_TermCap *tc = (M_TermCap *)node;
-	GF_Scene *scene = gf_node_get_private(node);
+	GF_Scene *scene = (GF_Scene *) gf_node_get_private(node);
 	tc->value = 0;
 	switch (tc->capability) {
 	case 0:	/*framerate*/
-		fps = gf_sc_get_fps(scene->compositor, 1);
+		fps = gf_sc_get_fps(scene->compositor, GF_TRUE);
 		if (fps<=5.0) tc->value = 1;
 		else if (fps<=10.0) tc->value = 2;
 		else if (fps<=20.0) tc->value = 3;
@@ -134,7 +134,7 @@ void evaluate_scene_cap(GF_Node *node, GF_Route *route)
 		tc->value = scene->compositor->display_height;
 		break;
 	case 102: /*frame rate*/
-		tc->value = (u32) gf_sc_get_fps(scene->compositor, 1);
+		tc->value = (u32) gf_sc_get_fps(scene->compositor, GF_TRUE);
 		break;
 	case 103: /*total CPU*/
 		if (!gf_sys_get_rti(200, &rti, 0) ) return;

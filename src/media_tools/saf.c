@@ -42,7 +42,7 @@ enum
 
 typedef struct
 {
-	char *data;
+	u8 *data;
 	u32 data_size;
 	Bool is_rap;
 	u32 ts;
@@ -57,7 +57,7 @@ typedef struct
 	char *mime_type;
 	char *remote_url;
 
-	char *dsi;
+	u8 *dsi;
 	u32 dsi_len;
 
 	GF_List *aus;
@@ -122,7 +122,7 @@ static GFINLINE GF_SAFStream *saf_get_stream(GF_SAFMuxer *mux, u32 stream_id)
 	return NULL;
 }
 
-GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, char *mime_type, char *dsi, u32 dsi_len, char *remote_url)
+GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, const char *mime_type, u8 *dsi, u32 dsi_len, char *remote_url)
 {
 	GF_SAFStream *str = saf_get_stream(mux, stream_id);
 	if (str) return GF_BAD_PARAM;
@@ -144,7 +144,7 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 	}
 	str->dsi_len = dsi_len;
 	if (dsi_len) {
-		str->dsi = (char *) gf_malloc(sizeof(char)*dsi_len);
+		str->dsi = (u8 *) gf_malloc(dsi_len);
 		memcpy(str->dsi, dsi, sizeof(char)*dsi_len);
 	}
 	if (remote_url) str->remote_url = gf_strdup(remote_url);
@@ -177,7 +177,7 @@ GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id)
 #endif
 
 
-GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u32 data_len, Bool is_rap)
+GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, const u8 *data, u32 data_len, Bool is_rap)
 {
 	GF_SAFSample *au;
 	GF_SAFStream *str = saf_get_stream(mux, stream_id);
@@ -188,7 +188,7 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
 
 	GF_SAFEALLOC(au, GF_SAFSample);
 	if (!au) return GF_OUT_OF_MEM;
-	au->data = data;
+	au->data = (u8*)data;
 	au->data_size = data_len;
 	au->is_rap = is_rap;
 	au->ts = CTS;
@@ -240,12 +240,12 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 		if (str->mime_type) {
 			u32 len = (u32) strlen(str->mime_type);
 			gf_bs_write_u16(payload, len);
-			gf_bs_write_data(payload, str->mime_type, len);
+			gf_bs_write_data(payload, (u8*)str->mime_type, len);
 		}
 		if (str->remote_url) {
 			u32 len = (u32) strlen(str->remote_url);
 			gf_bs_write_u16(payload, len);
-			gf_bs_write_data(payload, str->remote_url, len);
+			gf_bs_write_data(payload, (u8*)str->remote_url, len);
 		}
 		if (str->dsi) {
 			gf_bs_write_data(payload, str->dsi, str->dsi_len);

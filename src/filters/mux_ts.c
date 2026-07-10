@@ -38,7 +38,7 @@ void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char
 
 	p = gf_filter_pid_get_property(ipid, GF_PROP_PID_FILE_EXT);
 	if (p) {
-		char *match = strstr(file_exts, p->value.string);
+		const char *match = strstr(file_exts, p->value.string);
 		if (match) {
 			u32 slen = (u32) strlen(match);
 			if (!match[slen-1] || (match[slen-1]=='|'))
@@ -51,7 +51,7 @@ void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char
 	p = gf_filter_pid_get_property(ipid, GF_PROP_PID_MIME);
 	found = GF_FALSE;
 	if (p) {
-		char *match = strstr(mime_types, p->value.string);
+		const char *match = strstr(mime_types, p->value.string);
 		if (match) {
 			u32 slen = (u32) strlen(match);
 			if (!match[slen-1] || (match[slen-1]=='|'))
@@ -122,7 +122,7 @@ typedef struct
 
 	Bool check_pcr;
 	Bool update_mux;
-	char *pack_buffer;
+	u8 *pack_buffer;
 	u64 nb_pck;
 	Bool init_buffering;
 	u32 last_log_time;
@@ -210,7 +210,7 @@ typedef struct __tsmx_pid
 	GF_M2TS_Mux_Program *prog;
 
 	u32 sid;
-	u32 codec_id;
+	GF_CodecID codec_id;
 	u32 pmt_pid;
 	u32 nb_pck;
 	Bool is_repeat;
@@ -285,7 +285,7 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32
 				gf_bs_write_int(bs,	0, 8); //url_scheme
 			}
 			gf_bs_write_u8(bs, (u32) strlen(url)); //url_path_len
-			gf_bs_write_data(bs, url, (u32) strlen(url) ); //url
+			gf_bs_write_data(bs, (u8 *) url, (u32) strlen(url) ); //url
 		}
 		gf_bs_write_u8(bs, 0); //nb_addons
 		//rewrite len
@@ -381,7 +381,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 			for (od_index=0; od_index<od_count; od_index++) {
 				GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
 				esd_index = 0;
-				while ( (esd = gf_list_enum(od->ESDescriptors, &esd_index)) ) {
+				while ( (esd = (GF_ESD *)gf_list_enum(od->ESDescriptors, &esd_index)) ) {
 					gf_assert(esd->slConfig);
 					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
 				}
@@ -390,7 +390,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 		case GF_ODF_ESD_UPDATE_TAG:
 			esdU = (GF_ESDUpdate*)com;
 			esd_index = 0;
-			while ( (esd = gf_list_enum(esdU->ESDescriptors, &esd_index)) ) {
+			while ( (esd = (GF_ESD *)gf_list_enum(esdU->ESDescriptors, &esd_index)) ) {
 					gf_assert(esd->slConfig);
 					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
 			}
@@ -634,7 +634,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			u32 i, count=gf_list_count(tspid->temi_descs);
 
 			for (i=0; i<count; i++) {
-				TEMIDesc *temi = gf_list_get(tspid->temi_descs, i);
+				TEMIDesc *temi = (TEMIDesc *)gf_list_get(tspid->temi_descs, i);
 				u64 ntp=0;
 				u32 timescale = ifce->timescale;
 				u64 tc;
@@ -705,16 +705,16 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				}
 				GF_Fraction time;
 				u32 timeline_id  = atoi(pname+7);
-				const char *temi_url = p->value.data.ptr;
-				u8 is_announce = gf_bs_read_int(bs, 1);
-				u8 is_splicing = gf_bs_read_int(bs, 1);
-				u8 is_reload = gf_bs_read_int(bs, 1);
+				const char *temi_url = (const char *) p->value.data.ptr;
+				Bool is_announce = gf_bs_read_bool(bs);
+				Bool is_splicing = gf_bs_read_bool(bs);
+				Bool is_reload = gf_bs_read_bool(bs);
 				gf_bs_read_int(bs, 5);
 				if (is_announce) {
 					time.den = gf_bs_read_u32(bs);
 					time.num = gf_bs_read_u32(bs);
 				}
-				Bool invalid = gf_bs_is_overflow(bs);
+				Bool invalid = gf_bs_is_overflow(bs) ? GF_TRUE : GF_FALSE;
 				gf_bs_del(bs);
 				//rewrite
 				u32 last_t=0;
@@ -728,10 +728,10 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				u32 timescale = gf_bs_read_u32(bs);
 				u64 timestamp = gf_bs_read_u64(bs);
 				/*u64 media_pts = */gf_bs_read_u64(bs);
-				u8 is_reload = gf_bs_read_int(bs, 1);
-				u8 is_paused = gf_bs_read_int(bs, 1);
-				u8 is_discontinuity = gf_bs_read_int(bs, 1);
-				u8 has_ntp = gf_bs_read_int(bs, 1);
+				Bool is_reload = gf_bs_read_bool(bs);
+				Bool is_paused = gf_bs_read_bool(bs);
+				Bool is_discontinuity = gf_bs_read_bool(bs);
+				Bool has_ntp = gf_bs_read_bool(bs);
 				gf_bs_read_int(bs, 4);
 
 				u64 ntp = 0;
@@ -740,7 +740,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					if (tspid->ctx->temi_fwd==IN_TEMI_NTP)
 						ntp = gf_net_get_ntp_ts();
 				}
-				Bool invalid = gf_bs_is_overflow(bs);
+				Bool invalid = gf_bs_is_overflow(bs) ? GF_TRUE : GF_FALSE;
 				gf_bs_del(bs);
 
 				u32 last_t=0;
@@ -761,7 +761,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (p) {
 			gf_assert(tspid->ctx->scte35_stream);
 			gf_assert(!tspid->ctx->scte35_payload);
-			tspid->ctx->scte35_payload = gf_malloc(p->value.data.size);
+			tspid->ctx->scte35_payload = (u8 *)gf_malloc(p->value.data.size);
 			memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
 			tspid->ctx->scte35_size = p->value.data.size;
 			tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
@@ -791,7 +791,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
 				diff = gf_timestamp_rescale(diff, tspid->esi.timescale, 1000000);
 
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d (prev offset "LLU" us)\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale, tspid->prog->cts_offset));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS " LLU " is less than packet DTS " LLU ", adjusting all CTS by %d / %d (prev offset " LLU " us)\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale, tspid->prog->cts_offset));
 
 				tspid->prog->cts_offset += (u32) diff;
 				es_pck.cts += cts_diff;
@@ -804,7 +804,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				es_pck.flags |= GF_ESI_DATA_HAS_DTS;
 			}
 		}
-		es_pck.data = (char *) gf_filter_pck_get_data(pck, &es_pck.data_len);
+		es_pck.data = (u8*)gf_filter_pck_get_data(pck, &es_pck.data_len);
 		es_pck.duration = gf_filter_pck_get_duration(pck);
 		tspid->last_dur = es_pck.duration;
 
@@ -853,7 +853,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		tspid->nb_pck++;
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &es_pck);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSMux] PID %d: packet %d CTS "LLU"\n", tspid->esi.stream_id, tspid->nb_pck, es_pck.cts));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSMux] PID %d: packet %d CTS " LLU "\n", tspid->esi.stream_id, tspid->nb_pck, es_pck.cts));
 
 		//data is copied by muxer for now, should need rewrite to avoid un-needed allocations
 		gf_filter_pid_drop_packet(tspid->ipid);
@@ -889,7 +889,7 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 			esd->ESID = stream->ifce->stream_id;
 			esd->dependsOnESID = stream->ifce->depends_on_stream;
 			if (stream->ifce->decoder_config_size) {
-				esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*stream->ifce->decoder_config_size);
+				esd->decoderConfig->decoderSpecificInfo->data = (u8 *)gf_malloc(stream->ifce->decoder_config_size);
 				memcpy(esd->decoderConfig->decoderSpecificInfo->data, stream->ifce->decoder_config, stream->ifce->decoder_config_size);
 				esd->decoderConfig->decoderSpecificInfo->dataLength = stream->ifce->decoder_config_size;
 			}
@@ -1048,7 +1048,7 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 		} else {
 			gf_bs_write_u32(bs, 0);
 		}
-		
+
 		if (tspid->esi.stream_type==GF_STREAM_VISUAL) {
 			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_WIDTH);
 			gf_bs_write_u32(bs, p ? p->value.uint : 0);
@@ -1224,7 +1224,7 @@ static void tsmux_del_stream(M2Pid *tspid)
 {
 	if (tspid->temi_descs) {
 		while (gf_list_count(tspid->temi_descs)) {
-			TEMIDesc *temi = gf_list_pop_back(tspid->temi_descs);
+			TEMIDesc *temi = (TEMIDesc *)gf_list_pop_back(tspid->temi_descs);
 			if (temi->url) gf_free(temi->url);
 			gf_free(temi);
 		}
@@ -1248,10 +1248,10 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	M2Pid *tspid=NULL;
 	char *sname, *pname;
 	GF_M2TS_Mux_Program *prog;
-	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_TSMuxCtx *ctx = (GF_TSMuxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		tspid = gf_filter_pid_get_udta(pid);
+		tspid = (M2Pid *)gf_filter_pid_get_udta(pid);
 		if (!tspid) return GF_OK;
 		//remove stream - this will update PMT as well
 		gf_m2ts_program_stream_remove(tspid->mstream);
@@ -1309,7 +1309,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			//use large pack buffer for dash unless not default value
 			if (ctx->nb_pack==4) {
 				ctx->nb_pack = 200;
-				ctx->pack_buffer = gf_realloc(ctx->pack_buffer, sizeof(u8)*188*ctx->nb_pack);
+				ctx->pack_buffer = (u8 *)gf_realloc(ctx->pack_buffer, 188*ctx->nb_pack);
 			}
 			//in dash, force singel PES per AU, some demuxers have issues with PES packets with no ADTS headers (middle of a frame)
 			gf_m2ts_mux_use_single_au_pes_mode(ctx->mux, GF_M2TS_PACK_NONE);
@@ -1329,7 +1329,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	gf_filter_release_property(pe);
 
-	tspid = gf_filter_pid_get_udta(pid);
+	tspid = (M2Pid *)gf_filter_pid_get_udta(pid);
 	if (!tspid) {
 		GF_SAFEALLOC(tspid, M2Pid);
 		if (!tspid) return GF_OUT_OF_MEM;
@@ -1448,7 +1448,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			GF_SAFEALLOC(scte35_desc, GF_M2TSDescriptor);
 			if (!scte35_desc) return GF_OUT_OF_MEM;
 			scte35_desc->tag = GF_M2TS_REGISTRATION_DESCRIPTOR;
-			scte35_desc->data = gf_strdup("CUEI");
+			scte35_desc->data = (u8*) gf_strdup("CUEI");
 			if (!scte35_desc->data) return GF_OUT_OF_MEM;
 			scte35_desc->data_len = 4;
 			gf_list_add(m2pid->prog->loop_descriptors, scte35_desc);
@@ -1463,7 +1463,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
 	if (tspid->esi.stream_type != streamtype)
-		tspid->codec_id = 0;
+		tspid->codec_id = GF_CODECID_NONE;
 
 	//first setup
 	if (!tspid->codec_id) {
@@ -1471,7 +1471,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		Bool force_pes=GF_FALSE;
 		u32 pes_pid;
 		gf_assert(!tspid->esi.stream_type);
-		tspid->codec_id = codec_id;
+		tspid->codec_id = (GF_CodecID) codec_id;
 		tspid->esi.stream_type = streamtype;
 
 		if (ctx->bifs_pes && (tspid->esi.stream_type==GF_STREAM_SCENE))
@@ -1518,7 +1518,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		return GF_OK;
 	} else {
-		tspid->codec_id = codec_id;
+		tspid->codec_id = (GF_CodecID) codec_id;
 		tsmux_setup_esi(ctx, prog, tspid, streamtype);
 		prog->pmt->table_needs_update = GF_TRUE;
 		ctx->pmt_update_pending = GF_TRUE;
@@ -1534,7 +1534,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u32 max_skip_ts = 0;
 		ts_stream = prog->streams;
 		while (ts_stream) {
-			M2Pid *atspid = ts_stream->ifce->input_udta;
+			M2Pid *atspid = (M2Pid *) ts_stream->ifce->input_udta;
 			s64 media_skip;
 			if (atspid->media_delay>=0) {
 				ts_stream = ts_stream->next;
@@ -1551,7 +1551,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		ts_stream = prog->streams;
 		while (ts_stream) {
-			M2Pid *atspid = ts_stream->ifce->input_udta;
+			M2Pid *atspid = (M2Pid *)ts_stream->ifce->input_udta;
 			if (max_skip_ts) {
 				atspid->max_media_skip = (max_media_skip * atspid->esi.timescale / max_skip_ts);
 			} else {
@@ -1601,7 +1601,7 @@ static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	for (i=0; i<count; i++) {
 		u32 buf;
 		Bool buf_ok;
-		M2Pid *tspid = gf_list_get(ctx->pids, i);
+		M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 		buf_ok = gf_filter_pid_get_buffer_occupancy(tspid->ipid, NULL, NULL, NULL, &buf);
 		if (buf_ok && (buf < mbuf) && !gf_filter_pid_has_seen_eos(tspid->ipid)) {
 			if (!tspid->is_sparse) not_ready++;
@@ -1648,11 +1648,11 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	M2Pid *tspid = NULL;
 
 		for (i=0; i<gf_list_count(ctx->pids); i++) {
-		tspid = gf_list_get(ctx->pids, i);
+		tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 		if (ctx->mux->ref_pid == tspid->mstream->pid) break;
 		tspid = NULL;
 	}
-	if (!tspid) tspid = gf_list_get(ctx->pids, 0);
+	if (!tspid) tspid = (M2Pid *)gf_list_get(ctx->pids, 0);
 
 	//in MP4Box HLS mode, sub_sidx can be 0 (single sidx per segment) but not produced (ctx->idx_file_name is empty)
 	if (ctx->nb_sidx_entries && ctx->idx_file_name[0]) {
@@ -1770,7 +1770,7 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 	if (!tsidx) {
 		if (ctx->nb_sidx_entries == ctx->nb_sidx_alloc) {
 			ctx->nb_sidx_alloc += 10;
-			ctx->sidx_entries = gf_realloc(ctx->sidx_entries, sizeof(TS_SIDX)*ctx->nb_sidx_alloc);
+			ctx->sidx_entries = (TS_SIDX *)gf_realloc(ctx->sidx_entries, sizeof(TS_SIDX)*ctx->nb_sidx_alloc);
 		}
 		tsidx = &ctx->sidx_entries[ctx->nb_sidx_entries];
 		ctx->nb_sidx_entries ++;
@@ -1805,7 +1805,7 @@ static void tsmux_flush_frag_llhas(GF_TSMuxCtx *ctx, Bool is_last)
 
 static void ts_mux_on_packet_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_TSMuxCtx *ctx = (GF_TSMuxCtx *)gf_filter_get_udta(filter);
 	if (ctx->force_seg_sync) {
 		gf_filter_lock(filter, GF_TRUE);
 		if (ctx->pending_packets)
@@ -1822,7 +1822,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	GF_M2TSMuxState status;
 	u32 usec_till_next;
 	GF_FilterPacket *pck;
-	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_TSMuxCtx *ctx = (GF_TSMuxCtx *)gf_filter_get_udta(filter);
 
 	if (ctx->check_pcr) {
 		ctx->check_pcr = GF_FALSE;
@@ -1838,7 +1838,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		u32 i, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
-			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 			pck = gf_filter_pid_get_packet(tspid->ipid);
 			if (!pck) return GF_OK;
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
@@ -1885,13 +1885,13 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		Bool is_eods_flush = GF_FALSE;
 		u32 i, done=0, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
-			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 			if (tspid->has_seen_eods) done++;
 		}
 
 		if (done==count) {
 			for (i=0; i<count; i++) {
-				M2Pid *tspid = gf_list_get(ctx->pids, i);
+				M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 				if (tspid->has_seen_eods==M2TS_EODS_FORCED)
 					is_eods_flush = GF_TRUE;
 				else if (tspid->has_seen_eods==M2TS_EODS_LLHAS) {
@@ -1944,13 +1944,13 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		u8 *output;
 		u32 osize;
 		Bool is_pack_flush = GF_FALSE;
-		const char *ts_pck;
+		const u8 *ts_pck;
 
 		ts_pck = gf_m2ts_mux_process(ctx->mux, &status, &usec_till_next);
 		if (ts_pck == NULL) {
 			if (!nb_pck_in_pack)
 				break;
-			ts_pck = (const char *) ctx->pack_buffer;
+			ts_pck = ctx->pack_buffer;
 			is_pack_flush = GF_TRUE;
 		} else {
 
@@ -1963,7 +1963,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				if (nb_pck_in_pack < ctx->nb_pack)
 					continue;
 
-				ts_pck = (const char *) ctx->pack_buffer;
+				ts_pck = (u8 *) ctx->pack_buffer;
 			} else {
 				nb_pck_in_pack = 1;
 			}
@@ -1976,7 +1976,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 		}
 		if (!pck) return GF_OUT_OF_MEM;
-		
+
 		memcpy(output, ts_pck, osize);
 		gf_filter_pck_set_framing(pck, ctx->nb_pck ? ctx->next_is_start : GF_TRUE, (status==GF_M2TS_STATE_EOS) ? GF_TRUE : GF_FALSE);
 
@@ -2045,7 +2045,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	if (ctx->wait_dash_flush || ctx->wait_llhas_flush) {
 		u32 i, done=0, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
-			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 			if (!tspid->done && tspid->has_seen_eods) done++;
 		}
 		if (done==count) {
@@ -2062,7 +2062,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 			if (ctx->total_bytes_in) ohead =  ((Double) (total_bytes_out - ctx->total_bytes_in)*100 / ctx->total_bytes_in);
 
-			sprintf(szStatus, "done mux_clock=%d ms s_rate=%d kbps r_bytes="LLD" s_bytes="LLD" ohead=%02.02f %%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
+			sprintf(szStatus, "done mux_clock=%d ms s_rate=%d kbps r_bytes=" LLD " s_bytes=" LLD " ohead=%02.02f %%", gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->bit_rate/1000, ctx->total_bytes_in, total_bytes_out, ohead);
 			gf_filter_update_status(filter, 10000, szStatus);
 		} else {
 
@@ -2074,7 +2074,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	if (ctx->nb_suspended && (ctx->nb_suspended==gf_list_count(ctx->pids)) ) {
 		u32 i, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
-			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 			tspid->esi.caps &= ~GF_ESI_STREAM_IS_OVER;
 			tspid->suspended = GF_FALSE;
 		}
@@ -2129,7 +2129,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 static GF_Err tsmux_initialize(GF_Filter *filter)
 {
-	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_TSMuxCtx *ctx = (GF_TSMuxCtx *)gf_filter_get_udta(filter);
 	gf_filter_set_max_extra_input_pids(filter, -1);
 
 	ctx->mux = gf_m2ts_mux_new(ctx->rate, ctx->pat_rate, ctx->realtime);
@@ -2162,7 +2162,7 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 		ctx->init_buffering = GF_TRUE;
 	}
 	ctx->pids = gf_list_new();
-	if (ctx->nb_pack>1) ctx->pack_buffer = gf_malloc(sizeof(u8)*188*ctx->nb_pack);
+	if (ctx->nb_pack>1) ctx->pack_buffer = (u8 *)gf_malloc(188*ctx->nb_pack);
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
@@ -2177,19 +2177,19 @@ static GF_Err tsmux_initialize(GF_Filter *filter)
 
 static void tsmux_finalize(GF_Filter *filter)
 {
-	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_TSMuxCtx *ctx = (GF_TSMuxCtx *)gf_filter_get_udta(filter);
 #ifndef GPAC_DISABLE_LOG
 	u64 bits = ctx->mux->tot_pck_sent*8*188;
 #endif
 	u64 dur_ms = gf_m2ts_get_ts_clock(ctx->mux);
 	if (!dur_ms) dur_ms = 1;
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[M2TSMux] Done muxing - %.02f sec - %sbitrate %d kbps "LLD" packets written\nPadding: "LLD" packets (%g kbps) - "LLD" PES padded bytes (%g kbps)\n",
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[M2TSMux] Done muxing - %.02f sec - %sbitrate %d kbps " LLD " packets written\nPadding: " LLD " packets (%g kbps) - " LLD " PES padded bytes (%g kbps)\n",
 		((Double) dur_ms)/1000.0, ctx->rate ? "" : "average ", (u32) (bits/dur_ms), ctx->mux->tot_pck_sent,
 		 ctx->mux->tot_pad_sent, (Double) (ctx->mux->tot_pad_sent*188*8.0/dur_ms) , ctx->mux->tot_pes_pad_bytes, (Double) (ctx->mux->tot_pes_pad_bytes*8.0/dur_ms)
 	));
 
 	while (gf_list_count(ctx->pids)) {
-		M2Pid *tspid = gf_list_pop_back(ctx->pids);
+		M2Pid *tspid = (M2Pid *)gf_list_pop_back(ctx->pids);
 		tsmux_del_stream(tspid);
 	}
 	gf_list_del(ctx->pids);
@@ -2204,9 +2204,9 @@ static Bool tsmux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if ((evt->base.type==GF_FEVT_STOP) || (evt->base.type==GF_FEVT_PLAY) ) {
 		u32 i;
-		GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+		GF_TSMuxCtx *ctx = (GF_TSMuxCtx *)gf_filter_get_udta(filter);
 		for (i=0; i<gf_list_count(ctx->pids); i++) {
-			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			M2Pid *tspid = (M2Pid *)gf_list_get(ctx->pids, i);
 			if (evt->base.type==GF_FEVT_STOP)
 				tspid->esi.caps |= GF_ESI_STREAM_IS_OVER;
 			else

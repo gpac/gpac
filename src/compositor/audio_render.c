@@ -131,7 +131,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, ar->aout);
 				gf_filter_pid_send_event(ar->aout, &evt);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Audio] pausing master clock - time "LLD" (sys time "LLD")\n", ar->freeze_time, gf_sys_clock_high_res()));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Audio] pausing master clock - time " LLD " (sys time " LLD ")\n", ar->freeze_time, gf_sys_clock_high_res()));
 			ar->Frozen = GF_TRUE;
 		}
 	} else {
@@ -143,7 +143,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 			}
 
 			ar->start_time += gf_sys_clock_high_res() - ar->freeze_time;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Audio] resuming master clock - new time "LLD" (sys time "LLD") \n", ar->start_time, gf_sys_clock_high_res()));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Audio] resuming master clock - new time " LLD " (sys time " LLD ") \n", ar->start_time, gf_sys_clock_high_res()));
 			ar->Frozen = GF_FALSE;
 		}
 	}
@@ -188,10 +188,10 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 void gf_sc_ar_reset(GF_AudioRenderer *ar)
 {
 	if (!ar) return;
-	
+
 	gf_mixer_remove_all(ar->mixer);
 	if (ar->scene_ready) {
-		ar->scene_ready = 0;
+		ar->scene_ready = GF_FALSE;
 		ar->current_time = 0;
 		ar->current_time_sr = 0;
 		ar->bytes_requested = 0;
@@ -283,10 +283,10 @@ void gf_sc_ar_update_video_clock(GF_AudioRenderer *ar, u32 video_ts)
 static void gf_ar_pck_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	u32 size;
-	GF_Compositor *compositor = gf_filter_pid_get_udta(pid);
+	GF_Compositor *compositor = (GF_Compositor *) gf_filter_pid_get_udta(pid);
 	/*data = */gf_filter_pck_get_data(pck, &size);
 	if (!size) return;
-	
+
 	if (size <= compositor->audio_renderer->nb_bytes_out)
 		compositor->audio_renderer->nb_bytes_out -= size;
 	else//should never happen but we can live with it
@@ -397,7 +397,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		gf_filter_pck_set_cts(pck, ar->current_time_sr);
 		dur = written / ar->bytes_per_samp;
 		gf_filter_pck_set_duration(pck, dur);
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS "LLU" nb samples %d - AR clock %u - delay %d ms\n", ar->current_time_sr, dur, ar->current_time, delay_ms));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Compositor] Send audio frame TS " LLU " nb samples %d - AR clock %u - delay %d ms\n", ar->current_time_sr, dur, ar->current_time, delay_ms));
 
 		ar->nb_bytes_out += written;
 		gf_filter_pck_send(pck);

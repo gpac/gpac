@@ -116,14 +116,14 @@ EM_JS(int, webgrab_next_audio, (int wg_ctx),
 
 static GF_Err webgrab_process(GF_Filter *filter)
 {
-	GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = (GF_WebGrab *)gf_filter_get_udta(filter);
 	if (ctx->init_err) return ctx->init_err;
 	if (!ctx->init_play_done) return GF_OK;
 
 	if (!ctx->v_playing && !ctx->a_playing && ctx->init_play_done) return GF_EOS;
 
 	while (gf_list_count(ctx->video_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_front(ctx->video_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->video_pcks);
 		gf_filter_pck_send(pck);
 
 		if (ctx->is_canvas && (ctx->fps.num<=0)) {
@@ -132,7 +132,7 @@ static GF_Err webgrab_process(GF_Filter *filter)
 	}
 
 	while (gf_list_count(ctx->audio_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_front(ctx->audio_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->audio_pcks);
 		gf_filter_pck_send(pck);
 	}
 
@@ -149,7 +149,7 @@ static GF_Err webgrab_process(GF_Filter *filter)
 
 static Bool webgrab_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = (GF_WebGrab *)gf_filter_get_udta(filter);
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		if (evt->base.on_pid==ctx->vpid) {
@@ -242,7 +242,7 @@ void webgrab_on_video_frame(GF_WebGrab *ctx, u32 width, u32 height, char * pixfm
 	if (first) {
 		return;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[WebGrab] Got frame ts "LLU"\n", ts));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[WebGrab] Got frame ts " LLU "\n", ts));
 
 	u8 *output;
 	ctx->pck_v = gf_filter_pck_new_alloc(ctx->vpid, ctx->out_size, &output);
@@ -308,7 +308,7 @@ void webgrab_on_audio_data(GF_WebGrab *ctx, u32 sr, u32 channels, char * afmt, u
 	if (first) {
 		return;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[WebGrab] Got audio frame ts "LLU"\n", ts));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[WebGrab] Got audio frame ts " LLU "\n", ts));
 
 	u32 i, output_size = ctx->bytes_per_sample*num_frames*channels;
 	u8 *output;
@@ -431,7 +431,7 @@ GF_Err webgrab_initialize(GF_Filter *filter)
 {
 	Bool use_video=GF_FALSE, use_audio=GF_FALSE;
 	char *canvas_id=NULL;
-	GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = (GF_WebGrab *)gf_filter_get_udta(filter);
 	ctx->filter = filter;
 
 	if (!ctx->src) return GF_BAD_PARAM;
@@ -472,15 +472,15 @@ EM_JS(int, wgrab_del, (int wg_ctx), {
 
 void webgrab_finalize(GF_Filter *filter)
 {
-	GF_WebGrab *ctx = gf_filter_get_udta(filter);
+	GF_WebGrab *ctx = (GF_WebGrab *)gf_filter_get_udta(filter);
 	wgrab_del(EM_CAST_PTR ctx);
 	while (gf_list_count(ctx->video_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_front(ctx->video_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->video_pcks);
 		gf_filter_pck_discard(pck);
 	}
 	gf_list_del(ctx->video_pcks);
 	while (gf_list_count(ctx->audio_pcks)) {
-		GF_FilterPacket *pck = gf_list_pop_front(ctx->audio_pcks);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->audio_pcks);
 		gf_filter_pck_discard(pck);
 	}
 	gf_list_del(ctx->audio_pcks);

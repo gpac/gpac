@@ -26,7 +26,7 @@
 #include <gpac/tools.h>
 #include <gpac/thread.h>
 #include <gpac/utf.h>
-
+#include <gpac/iso639.h>
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
@@ -51,13 +51,13 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 			char szTmp[2];
 			szTmp[0] = 0xc2;
 			szTmp[1] = ch;
-			if (gf_utf8_is_legal(szTmp, 2)) {
+			if (gf_utf8_is_legal((const u8*)szTmp, 2)) {
 				name[0] = 0xc2;
 				name[1] = ch;
 				name+=2;
 			} else {
 				szTmp[0] = 0xc3;
-				if (gf_utf8_is_legal(szTmp, 2)) {
+				if (gf_utf8_is_legal((const u8*)szTmp, 2)) {
 					name[0] = 0xc3;
 					name[1] = ch;
 					name+=2;
@@ -203,7 +203,7 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 
 /*ENTRIES MUST BE IN THE SAME ORDER AS LOG_TOOL DECLARATION IN <gpac/tools.h>*/
 static struct log_tool_info {
-	u32 type;
+	GF_LOG_Tool type;
 	const char *name;
 	GF_LOG_Level level;
 	Bool strict;
@@ -245,7 +245,7 @@ static struct log_tool_info {
 
 #endif
 
-u32 gf_log_parse_tool(const char *logs)
+GF_LOG_Tool gf_log_parse_tool(const char *logs)
 {
 #ifndef GPAC_DISABLE_LOG
 	u32 i;
@@ -278,7 +278,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 		const char *next_val = NULL;
 		const char *tools = NULL;
 		/*look for log level*/
-		char *sep_level = strchr(val, '@');
+		char *sep_level = (char*) strchr(val, '@');
 		if (!sep_level) {
 			if (!strcmp(val, "ncl")) {
 				gpac_no_color_logs = GF_TRUE;
@@ -310,7 +310,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 				return GF_BAD_PARAM;
 			}
 		}
-		char *strict_sep = strstr(sep_level+1, "+strict");
+		char *strict_sep = (char *)strstr(sep_level+1, "+strict");
 		if (strict_sep) strict_sep[0] = 0;
 		if (!strnicmp(sep_level+1, "error", 5)) {
 			level = GF_LOG_ERROR;
@@ -352,12 +352,12 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 		while (tools) {
 			u32 i;
 
-			char *sep = strchr(tools, ':');
+			char *sep = (char *)strchr(tools, ':');
 			if (sep) sep[0] = 0;
 
 			if (!stricmp(tools, "all")) {
 				for (i=0; i<GF_LOG_TOOL_MAX; i++)
-					global_log_tools[i].level = level;
+					global_log_tools[i].level = (GF_LOG_Level) level;
 			}
 			else if (!strcmp(val, "ncl")) {
 				gpac_no_color_logs = GF_TRUE;
@@ -374,7 +374,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 						|| (global_log_tools[i].alt && !strcmp(global_log_tools[i].alt, tools))
 					) {
 						if (level<=GF_LOG_DEBUG)
-							global_log_tools[i].level = level;
+							global_log_tools[i].level = (GF_LOG_Level) level;
 						global_log_tools[i].strict = use_strict;
 						found = GF_TRUE;
 						break;
@@ -437,7 +437,7 @@ char *gf_log_get_tools_levels()
 			}
 		}
 		if (nb_tools) {
-			char *levelstr = "@warning";
+			const char *levelstr = "@warning";
 			if (level==GF_LOG_QUIET) levelstr = "@quiet";
 			else if (level==GF_LOG_ERROR) levelstr = "@error";
 			else if (level==GF_LOG_WARNING) levelstr = "@warning";
@@ -684,8 +684,8 @@ win32_ismtty:
 }
 
 #ifndef GPAC_DISABLE_LOG
-u32 call_lev = 0;
-u32 call_tool = 0;
+GF_LOG_Level call_lev = GF_LOG_ERROR;
+GF_LOG_Tool call_tool = GF_LOG_TOOL_UNDEFINED;
 
 extern GF_Mutex *logs_mx;
 
@@ -728,7 +728,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 		gf_mx_p(logs_mx);
 		u32 count = logs_extras ? gf_list_count(logs_extras) : 0; //avoid race condition
 		for (u32 i=0;i<count;i++) {
-			GF_LogExtra *lf = gf_list_get(logs_extras, i);
+			GF_LogExtra *lf = (GF_LogExtra *) gf_list_get(logs_extras, i);
 			u32 j;
 			for (j=0; j<lf->nb_tools; j++) {
 				if (lf->tools[j]==GF_LOG_ALL) {}
@@ -780,7 +780,7 @@ const char *gf_log_level_name(GF_LOG_Level log_level)
 }
 
 GF_EXPORT
-u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
+GF_LOG_Level gf_log_get_tool_level(GF_LOG_Tool log_tool)
 {
 	if (log_tool>=GF_LOG_TOOL_MAX) return GF_LOG_ERROR;
 	return global_log_tools[log_tool].level;
@@ -801,7 +801,7 @@ static void do_log_time(FILE *logs, const char *fmt)
 	if (last_log_is_lf) {
 		if (gpac_log_time_start) {
 			u64 now = gf_sys_clock_high_res();
-			gf_fprintf(logs, "At "LLD" (diff %d) - ", now, (u32) (now - gpac_last_log_time) );
+			gf_fprintf(logs, "At " LLD " (diff %d) - ", now, (u32) (now - gpac_last_log_time) );
 			gpac_last_log_time = now;
 		}
 		if (gpac_log_utc_time) {
@@ -809,7 +809,7 @@ static void do_log_time(FILE *logs, const char *fmt)
 			time_t secs = utc_clock/1000;
 			struct tm t;
 			t = *gf_gmtime(&secs);
-			gf_fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+			gf_fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS " LLU ") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
 		}
 	}
 	u32 flen = (u32) strlen(fmt);
@@ -906,7 +906,7 @@ void gf_logs_close()
 		gpac_log_file = NULL;
 	}
 	while (gf_list_count(logs_thread_tags)) {
-		GF_LogThreadTag *tag = gf_list_pop_back(logs_thread_tags);
+		GF_LogThreadTag *tag = (GF_LogThreadTag *) gf_list_pop_back(logs_thread_tags);
 		gf_free(tag);
 	}
 	gf_list_del(logs_thread_tags);
@@ -924,7 +924,7 @@ static void gf_logs_set_thread_tag_internal(void *tag_val, u32 tag_type, Bool is
 	u32 i, count = gf_list_count(logs_thread_tags);
 	GF_LogThreadTag *tag = NULL;
 	for (i=0;i<count;i++) {
-		tag = gf_list_get(logs_thread_tags, i);
+		tag = (GF_LogThreadTag*)gf_list_get(logs_thread_tags, i);
 		if (tag->udta == tag_val) {
 			if (is_rem) {
 				gf_list_rem(logs_thread_tags, i);
@@ -969,7 +969,7 @@ void *gf_logs_get_thread_tag(u32 *tag_type, u32 *o_th_id)
 	u32 i, count = gf_list_count(logs_thread_tags);
 	GF_LogThreadTag *highest_tag = NULL;
 	for (i=0; i<count; i++) {
-		GF_LogThreadTag *tag = gf_list_get(logs_thread_tags, i);
+		GF_LogThreadTag *tag = (GF_LogThreadTag*)gf_list_get(logs_thread_tags, i);
 		if (tag->tagged && (tag->th_id == th_id)) {
 			if (!highest_tag || (highest_tag->type < tag->type))
 				highest_tag = tag;
@@ -1320,6 +1320,9 @@ u32 gf_crc_32(const u8 *data, u32 len)
 static const char *gf_enabled_features()
 {
 	const char *features = ""
+#ifdef __cplusplus
+	                       "GPAC_BUILD_C++ "
+#endif
 #ifdef GPAC_CONFIG_WIN32
 	                       "GPAC_CONFIG_WIN32 "
 #endif
@@ -2333,7 +2336,6 @@ const char *gf_lang_get_3cc(u32 idx)
 	return defined_languages[idx].three_char_code;
 }
 
-
 GF_EXPORT
 GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 {
@@ -2346,7 +2348,7 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	u32 asize = l2+1;
 	if (l1) asize += l1+lsep;
 
-	(*str) = gf_realloc((*str), sizeof(char)*asize);
+	(*str) = (char *)gf_realloc((*str), asize);
 	if (! (*str) )
 		return GF_OUT_OF_MEM;
 
@@ -2364,16 +2366,16 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 	Float v;
 	u32 len, i;
 	Bool all_num=GF_TRUE;
-	char *sep;
+	const char *sep;
 	if (!frac) return GF_FALSE;
 	frac->num = 0;
 	frac->den = 0;
 	if (!value) return GF_FALSE;
 
-	if (sscanf(value, LLD"/"LLU, &frac->num, &frac->den) == 2) {
+	if (sscanf(value, LLD "/" LLU, &frac->num, &frac->den) == 2) {
 		return GF_TRUE;
 	}
-	if (sscanf(value, LLD"-"LLU, &frac->num, &frac->den) == 2) {
+	if (sscanf(value, LLD "-" LLU, &frac->num, &frac->den) == 2) {
 		return GF_TRUE;
 	}
 	if (sscanf(value, "%g", &v) != 1) {
@@ -2403,7 +2405,7 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 	}
 	if (all_num) {
 		u32 div_trail_zero = 1;
-		sscanf(value, LLD"."LLU, &frac->num, &frac->den);
+		sscanf(value, LLD "." LLU, &frac->num, &frac->den);
 		i=0;
 		frac->den = 1;
 		while (i<len) {
@@ -2458,13 +2460,13 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 Bool gf_strict_atoi(const char* str, s32* ans) {
     char* end_ptr = NULL;
     *ans = strtol(str, &end_ptr, 10);
-    return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
+	return (!isspace(*str) && end_ptr != str && *end_ptr == '\0') ? GF_TRUE : GF_FALSE;
 }
 
 Bool gf_strict_atoui(const char* str, u32* ans) {
 	char* end_ptr = NULL;
 	*ans = strtoul(str, &end_ptr, 10);
-	return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
+	return (!isspace(*str) && end_ptr != str && *end_ptr == '\0') ? GF_TRUE : GF_FALSE;
 }
 
 const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)
@@ -2477,7 +2479,7 @@ const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)
 
        //basically a memmem clone (we don't use for portability reasons)
        while (1) {
-               char *next = memchr(data, pat[0], data_size);
+               const char *next = (const char *)memchr(data, pat[0], data_size);
                if (!next) return NULL;
                u32 left = data_size - (u32) (next-data);
                if (left<len_pat) return NULL;

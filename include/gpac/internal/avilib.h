@@ -28,6 +28,10 @@
 #ifndef _GF_AVILIB_H_
 #define _GF_AVILIB_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/tools.h>
 
 #ifndef GPAC_DISABLE_AVILIB
@@ -316,8 +320,8 @@ typedef struct
 avi_t* AVI_open_output_file(char * filename, u64 opendml_threshold);
 void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compressor);
 void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int mp3rate);
-int  AVI_write_frame(avi_t *AVI, u8 *data, int bytes, int keyframe);
-int  AVI_write_audio(avi_t *AVI, u8 *data, int bytes);
+int  AVI_write_frame(avi_t *AVI, const u8 *data, int bytes, int keyframe);
+int  AVI_write_audio(avi_t *AVI, const u8 *data, int bytes);
 int  AVI_close(avi_t *AVI);
 
 avi_t *AVI_open_input_file(char *filename, int getIndex);
@@ -422,5 +426,9 @@ struct AVIStreamHeader {
 };
 
 #endif /*GPAC_DISABLE_AVILIB*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_GF_AVILIB_H_*/

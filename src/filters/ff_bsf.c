@@ -149,7 +149,7 @@ static GF_Err ffbsf_initialize(GF_Filter *filter)
 static GF_Err ffbsf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_FFBSFCtx *ctx = (GF_FFBSFCtx *) gf_filter_get_udta(filter);
-	u32 codec;
+	GF_CodecID codec;
 	GF_Err e;
 	Bool check_reconf = GF_FALSE;
 	if (is_remove) {
@@ -164,9 +164,9 @@ static GF_Err ffbsf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!p) return GF_BAD_PARAM;
 
 	u32 ff_ctag;
-	codec = p->value.uint;
-	u32 cid = ffmpeg_codecid_from_gpac(codec, &ff_ctag);
-	if (cid == 0) return GF_FILTER_NOT_SUPPORTED;
+	codec = (GF_CodecID) p->value.uint;
+	enum AVCodecID cid = ffmpeg_codecid_from_gpac(codec, &ff_ctag);
+	if (cid == AV_CODEC_ID_NONE) return GF_FILTER_NOT_SUPPORTED;
 	//reevaluate if change of codec id
 	if (ctx->codec_id != codec) {
 		ctx->codec_id = codec;
@@ -198,7 +198,7 @@ retry:
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p) {
-		ffmpeg_extradata_from_gpac(codec, p->value.data.ptr, p->value.data.size, &ctx->bsfc->par_in->extradata, &ctx->bsfc->par_in->extradata_size);
+		ffmpeg_extradata_from_gpac(codec, p->value.data.ptr, p->value.data.size, &ctx->bsfc->par_in->extradata, (u32*)&ctx->bsfc->par_in->extradata_size);
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
@@ -304,7 +304,7 @@ static GF_Err ffbsf_process(GF_Filter *filter)
 			u32 size;
 			const u8 *data = gf_filter_pck_get_data(src, &size);
 			avpck->size = size;
-			avpck->data = av_malloc(size+8);
+			avpck->data = (u8*) av_malloc(size+8);
 			memcpy(avpck->data, data, size);
 			avpck->dts = gf_filter_pck_get_dts(src);
 			avpck->pts = gf_filter_pck_get_cts(src);
@@ -381,13 +381,13 @@ static void ffbsf_finalize(GF_Filter *filter)
 
 static GF_Err ffbsf_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	GF_FFBSFCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFBSFCtx *ctx = (GF_FFBSFCtx *)gf_filter_get_udta(filter);
 	return ffmpeg_update_arg("FFBSF", ctx->bsfc, &ctx->options, arg_name, arg_val);
 }
 
 static Bool ffbsf_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FFBSFCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFBSFCtx *ctx = (GF_FFBSFCtx *)gf_filter_get_udta(filter);
 	if (evt->base.type== GF_FEVT_STOP) {
 		if (ctx->bsfc) av_bsf_flush(ctx->bsfc);
 	}

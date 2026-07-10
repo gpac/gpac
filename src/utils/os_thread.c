@@ -340,7 +340,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 
 GF_Err gf_th_async_call(GF_Thread *t, u32 (*Run)(void *param), void *param)
 {
-	t->no_kill = 1;
+	t->no_kill = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Thread %s] async EM call\n", t->log_name));
 	emscripten_dispatch_to_thread_async_(t->threadH, EM_FUNC_SIG_II, Run, NULL, param);
 	return GF_OK;
@@ -867,7 +867,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	{
 		char semaName[40];
 		u64 add = (u64) tmp ^ gf_net_get_utc() ^ gf_rand();
-		sprintf(semaName,"GPAC_SEM"LLU, add);
+		sprintf(semaName,"GPAC_SEM" LLU, add);
 		tmp->SemName = gf_strdup(semaName);
 	}
 	sem_unlink(tmp->SemName);

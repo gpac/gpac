@@ -36,7 +36,7 @@
 	single step memory array
 	#define GF_LIST_ARRAY
 
-	multi-step memory array without gf_realloc on remove, using the GF_LIST_REALLOC macro
+(u8 *)multi-step memory array without gf_realloc on remove, using the GF_LIST_REALLOC macro
 	GF_LIST_ARRAY_GROW
 */
 
@@ -753,7 +753,7 @@ void *gf_list_enum(GF_List *ptr, u32 *pos)
 {
 	void *res;
 	if (!ptr || !pos) return NULL;
-	res = gf_list_get(ptr, *pos);
+	res = (void *)gf_list_get(ptr, *pos);
 	(*pos)++;
 	return res;
 }
@@ -764,7 +764,7 @@ GF_EXPORT
 void *gf_list_rev_enum(GF_List *ptr, u32 *pos) {
 	void *res;
 	if (!ptr || !pos) return NULL;
-	res = gf_list_get(ptr, gf_list_count (ptr) - *pos - 1 );
+	res = (void *)gf_list_get(ptr, gf_list_count (ptr) - *pos - 1 );
 	(*pos)++;
 	return res;
 }
@@ -779,14 +779,14 @@ GF_Err gf_list_swap(GF_List *l1, GF_List *l2)
 	if (l1 == l2) return GF_OK;
 
 	while (gf_list_count(l2)) {
-		void *ptr = gf_list_get(l2, 0);
+		void *ptr = (void *)gf_list_get(l2, 0);
 		e = gf_list_rem(l2, 0);
 		if (e) return e;
 		e = gf_list_add(l1, ptr);
 		if (e) return e;
 	}
 	while (count) {
-		void *ptr = gf_list_get(l1, 0);
+		void *ptr = (void *)gf_list_get(l1, 0);
 		e = gf_list_rem(l1, 0);
 		if (e) return e;
 		count--;
@@ -804,7 +804,7 @@ GF_Err gf_list_transfer(GF_List *dst, GF_List *src)
 	if (dst == src) return GF_OK;
 
 	while (gf_list_count(src)) {
-		void *ptr = gf_list_pop_front(src);
+		void *ptr = (void *)gf_list_pop_front(src);
 		if (!ptr) return GF_BAD_PARAM;
 		e = gf_list_add(dst, ptr);
 		if (e) return e;
@@ -819,7 +819,7 @@ GF_List* gf_list_clone(GF_List *ptr) {
 	void* item;
 	if (!ptr) return NULL;
 	new_list = gf_list_new();
-	while ((item = gf_list_enum(ptr, &i)))
+	while ((item = (void *)gf_list_enum(ptr, &i)))
 		gf_list_add(new_list, item);
 
 	return new_list;
@@ -835,7 +835,7 @@ void gf_list_reverse(GF_List *ptr) {
 	saved_order = gf_list_clone(ptr);
 	gf_list_reset(ptr);
 
-	while ((item = gf_list_enum(saved_order, &i))) {
+	while ((item = (void *)gf_list_enum(saved_order, &i))) {
 		gf_list_insert(ptr, item, 0);
 	}
 
@@ -848,7 +848,7 @@ void* gf_list_pop_front(GF_List *ptr) {
 	void * item;
 	if (!ptr) return NULL;
 
-	item = gf_list_get(ptr, 0);
+	item = (void *)gf_list_get(ptr, 0);
 	gf_list_rem(ptr, 0);
 
 	return item;
@@ -859,7 +859,7 @@ void* gf_list_pop_back(GF_List *ptr) {
 	void * item;
 	if (!ptr) return NULL;
 
-	item = gf_list_last(ptr);
+	item = (void *)gf_list_last(ptr);
 	gf_list_rem_last(ptr);
 
 	return item;

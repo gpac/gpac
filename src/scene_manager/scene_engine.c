@@ -81,14 +81,14 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 	if (!seng->bifsenc)
 		seng->bifsenc = gf_bifs_encoder_new(seng->ctx->scene_graph);
 
-	delete_bcfg = 0;
+	delete_bcfg = GF_FALSE;
 	/*inputctx is not properly setup, do it*/
 	if (!esd->decoderConfig->decoderSpecificInfo) {
 		bcfg = (GF_BIFSConfig*)gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);
 		bcfg->pixelMetrics = seng->ctx->is_pixel_metrics;
 		bcfg->pixelWidth = seng->ctx->scene_width;
 		bcfg->pixelHeight = seng->ctx->scene_height;
-		delete_bcfg = 1;
+		delete_bcfg = GF_TRUE;
 	}
 	/*regular case*/
 	else if (esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_BIFS_CFG_TAG) {
@@ -97,7 +97,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 	/*happens when loading from MP4 in which case BIFSc is not decoded*/
 	else {
 		bcfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
-		delete_bcfg = 1;
+		delete_bcfg = GF_TRUE;
 	}
 
 	/*NO CHANGE TO BIFSC otherwise the generated update will not match the input context
@@ -119,10 +119,10 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 	}
 
 	/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/
-	encode_names = 0;
+	encode_names = GF_FALSE;
 
 	/* The BIFS Config that is passed here should be the BIFSConfig from the IOD */
-	gf_bifs_encoder_new_stream(seng->bifsenc, esd->ESID, bcfg, encode_names, 0);
+	gf_bifs_encoder_new_stream(seng->bifsenc, esd->ESID, bcfg, encode_names, GF_FALSE);
 	if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 
 	gf_bifs_encoder_get_config(seng->bifsenc, esd->ESID, &data, &data_len);
@@ -132,7 +132,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 	esd->decoderConfig->decoderSpecificInfo->data = data;
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 
-	sc->dec_cfg = gf_malloc(sizeof(char)*data_len);
+	sc->dec_cfg = (u8 *)gf_malloc(data_len);
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 
@@ -175,7 +175,7 @@ static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_
 	esd->decoderConfig->decoderSpecificInfo->data = data;
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 
-	sc->dec_cfg = (char*)gf_malloc(sizeof(char)*data_len);
+	sc->dec_cfg = (u8 *)gf_malloc(data_len);
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 	return GF_OK;
@@ -200,7 +200,7 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 		iod = (GF_InitialObjectDescriptor *) seng->ctx->root_od;
 
 		i=0;
-		while ((sc = gf_list_enum(seng->ctx->streams, &i))) {
+		while ((sc = (GF_StreamContext *)gf_list_enum(seng->ctx->streams, &i))) {
 			if (sc->streamType != GF_STREAM_SCENE) continue;
 
 			if (!sc->ESID) sc->ESID = 1;
@@ -222,7 +222,7 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
 
 		j=0;
-		while ((esd = gf_list_enum(seng->ctx->root_od->ESDescriptors, &j))) {
+		while ((esd = (GF_ESD *)gf_list_enum(seng->ctx->root_od->ESDescriptors, &j))) {
 			if (sc->ESID==esd->ESID) {
 				break;
 			}
@@ -299,7 +299,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 #endif
 	u32 buffer_len;
 	const char *cache_dir;
-	char *dump_name;
+	const char *dump_name;
 	char *base_name = NULL;
 	char p_sep[2];
 
@@ -356,10 +356,10 @@ start:
 	}
 
 	if (commands && gf_list_count(commands)) {
-		e = gf_sm_dump_command_list(dumper, commands, 0, 0);
+		e = gf_sm_dump_command_list(dumper, commands, 0, GF_FALSE);
 	}
 	else {
-		e = gf_sm_dump_graph(dumper, 0, 0);
+		e = gf_sm_dump_graph(dumper, GF_FALSE, GF_FALSE);
 	}
 	gf_sm_dumper_del(dumper);
 
@@ -380,7 +380,7 @@ start:
 			e = GF_IO_ERR;
 			goto exit;
 		}
-		e = gf_sm_dump_graph(dumper, 0, 0);
+		e = gf_sm_dump_graph(dumper, GF_FALSE, GF_FALSE);
 		gf_sm_dumper_del(dumper);
 	}
 #endif
@@ -425,7 +425,7 @@ start:
 	if (compress_dims) {
 #ifndef GPAC_DISABLE_ZLIB
 		dims_header |= GF_DIMS_UNIT_C;
-		e = gf_gz_compress_payload_ex(&buffer, buffer_len, &buffer_len, 0, GF_FALSE, NULL, GF_TRUE);
+		e = gf_gz_compress_payload_ex(&buffer, buffer_len, &buffer_len, GF_FALSE, GF_FALSE, NULL, GF_TRUE);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("/ compressed (%d)", buffer_len));
 		if (e) goto exit;
 #else
@@ -469,31 +469,31 @@ exit:
 static Bool gf_sm_check_for_modif(GF_SceneEngine *seng, GF_AUContext *au)
 {
 	GF_Command *com;
-	Bool modified=0;
+	Bool modified= GF_FALSE;
 	u32 i=0;
 	/*au is marked as modified - this happens when commands are concatenated into the au*/
 	if (au->flags & GF_SM_AU_MODIFIED) {
 		au->flags &= ~GF_SM_AU_MODIFIED;
-		modified=1;
+		modified= GF_TRUE;
 	}
 	/*check each command*/
-	while (NULL != (com = gf_list_enum(au->commands, &i))) {
+	while (NULL != (com = (GF_Command *)gf_list_enum(au->commands, &i))) {
 		u32 j=0;
 		GF_CommandField *field;
 		if (!com->node) continue;
 		/*check root node (for SCENE_REPLACE) */
 		if (gf_node_dirty_get(com->node)) {
-			modified=1;
-			gf_node_dirty_reset(com->node, 1);
+			modified= GF_TRUE;
+			gf_node_dirty_reset(com->node, GF_TRUE);
 		}
 		/*check all command fields of type SFNODE or MFNODE*/
-		while (NULL != (field = gf_list_enum(com->command_fields, &j))) {
+		while (NULL != (field = (GF_CommandField *)gf_list_enum(com->command_fields, &j))) {
 			switch (field->fieldType) {
 			case GF_SG_VRML_SFNODE:
 				if (field->new_node) {
 					if (gf_node_dirty_get(field->new_node)) {
-						modified=1;
-						gf_node_dirty_reset(field->new_node, 1);
+						modified= GF_TRUE;
+						gf_node_dirty_reset(field->new_node, GF_TRUE);
 					}
 				}
 				break;
@@ -503,8 +503,8 @@ static Bool gf_sm_check_for_modif(GF_SceneEngine *seng, GF_AUContext *au)
 					child = field->node_list;
 					while (child) {
 						if (gf_node_dirty_get(child->node)) {
-							modified=1;
-							gf_node_dirty_reset(child->node, 1);
+							modified= GF_TRUE;
+							gf_node_dirty_reset(child->node, GF_TRUE);
 						}
 						child = child->next;
 					}
@@ -518,12 +518,12 @@ static Bool gf_sm_check_for_modif(GF_SceneEngine *seng, GF_AUContext *au)
 		if (au->owner->codec_id==GF_CODECID_DIMS) {
 			GF_Node *root = gf_sg_get_root_node(seng->ctx->scene_graph);
 			if (gf_node_dirty_get(root)) {
-				modified=1;
-				gf_node_dirty_reset(root, 1);
+				modified= GF_TRUE;
+				gf_node_dirty_reset(root, GF_TRUE);
 			}
 		} else {
 		}
-		seng->first_dims_sent = 1;
+		seng->first_dims_sent = GF_TRUE;
 	}
 	return modified;
 }
@@ -541,7 +541,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 
 	nb_streams = gf_list_count(seng->ctx->streams);
 	for (i=0; i<nb_streams; i++) {
-		GF_StreamContext *sc = gf_list_get(seng->ctx->streams, i);
+		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(seng->ctx->streams, i);
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 
 		count = gf_list_count(sc->AUs);
@@ -565,7 +565,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 
 #ifndef GPAC_DISABLE_LASER
 			case GF_CODECID_LASER:
-				e = gf_laser_encode_au(seng->lsrenc, sc->ESID, au->commands, 0, &data, &size);
+				e = gf_laser_encode_au(seng->lsrenc, sc->ESID, au->commands, GF_FALSE, &data, &size);
 				break;
 #endif
 			case GF_CODECID_DIMS:
@@ -605,7 +605,8 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 #ifdef GPAC_DISABLE_SCENE_DUMP
 	return GF_NOT_SUPPORTED;
 #else
-	u32	d_mode, do_enc;
+	GF_SceneDumpFormat d_mode;
+	u32 do_enc;
 	char szF[GF_MAX_PATH], *ext;
 	GF_Err	e;
 
@@ -613,7 +614,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 	ext = NULL;
 	if (ctxFileName) {
 		gf_strcpy(szF, ctxFileName);
-		ext = gf_file_ext_start(szF);
+		ext = (char *) gf_file_ext_start(szF);
 	}
 	d_mode = GF_SM_DUMP_BT;
 	do_enc = 0;
@@ -645,12 +646,12 @@ static GF_AUContext *gf_seng_create_new_au(GF_StreamContext *sc, u32 time)
 {
 	GF_AUContext *new_au, *last_au;
 	if (!sc) return NULL;
-	last_au = gf_list_last(sc->AUs);
+	last_au = (GF_AUContext *)gf_list_last(sc->AUs);
 	if (last_au && last_au->timing == time) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneEngine] Forcing new AU\n"));
 		time++;
 	}
-	new_au = gf_sm_stream_au_new(sc, time, 0, 0);
+	new_au = gf_sm_stream_au_new(sc, time, 0, GF_FALSE);
 	return new_au;
 }
 
@@ -670,19 +671,20 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 	seng->loader.force_es_id = ESID;
 
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
-	sc = gf_list_get(seng->ctx->streams, 0);
+	sc = (GF_StreamContext *)gf_list_get(seng->ctx->streams, 0);
 	if (sc && sc->codec_id == GF_CODECID_DIMS) {
 		gf_seng_create_new_au(sc, 0);
 	}
 
-	e = gf_sm_load_string(&seng->loader, auString, 0);
+	e = gf_sm_load_string(&seng->loader, auString, GF_FALSE);
 	if (e) goto exit;
 
 	i = 0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
-		sc->disable_aggregation = 0;
+		sc->disable_aggregation = GF_FALSE;
 	}
-	e = gf_sm_live_encode_scene_au(seng, callback, 0);
+	e = gf_sm_live_encode_scene_au(seng, callback, GF_FALSE);
+
 exit:
 	return e;
 }
@@ -707,7 +709,7 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 	sc = NULL;
 	nb_streams = gf_list_count(seng->ctx->streams);
 	for (i=0; i<nb_streams; i++) {
-		GF_StreamContext *tmp_sc = gf_list_get(seng->ctx->streams, i);
+		GF_StreamContext *tmp_sc = (GF_StreamContext *)gf_list_get(seng->ctx->streams, i);
 		if (tmp_sc->streamType != GF_STREAM_SCENE) continue;
 		sc = tmp_sc;
 		if (!ESID) break;
@@ -724,7 +726,7 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 	/* Removing the commands from the input list to avoid destruction
 	   and setting the RAP flag */
 	while (gf_list_count(commands)) {
-		GF_Command *com = gf_list_get(commands, 0);
+		GF_Command *com = (GF_Command *)gf_list_get(commands, 0);
 		gf_list_rem(commands, 0);
 		switch (com->tag) {
 #ifndef GPAC_DISABLE_VRML
@@ -752,7 +754,7 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 
 #ifndef GPAC_DISABLE_LASER
 	case GF_CODECID_LASER:
-		e = gf_laser_encode_au(seng->lsrenc, ESID, new_au->commands, 0, &data, &size);
+		e = gf_laser_encode_au(seng->lsrenc, ESID, new_au->commands, GF_FALSE, &data, &size);
 		break;
 #endif
 	case GF_CODECID_DIMS:
@@ -773,7 +775,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 	GF_Err e;
 	GF_StreamContext *sc;
 	u32 i;
-	Bool dims = 0;
+	Bool dims = GF_FALSE;
 
 	seng->loader.fileName = auFile;
 	seng->loader.ctx = seng->ctx;
@@ -786,15 +788,15 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 		sc->disable_aggregation = disable_aggregation;
 	}
 	/* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
-	sc = gf_list_get(seng->ctx->streams, 0);
+	sc = (GF_StreamContext *)gf_list_get(seng->ctx->streams, 0);
 	if (sc->codec_id == GF_CODECID_DIMS) {
-		dims = 1;
+		dims = GF_TRUE;
 		gf_seng_create_new_au(sc, 0);
 	}
 	seng->loader.flags |= GF_SM_LOAD_CONTEXT_READY;
 
 	if (dims) {
-		seng->loader.type |= GF_SM_LOAD_DIMS;
+		seng->loader.type = GF_SM_LOAD_DIMS;
 	} else {
 		seng->loader.flags |= GF_SM_LOAD_MPEG4_STRICT;
 	}
@@ -807,11 +809,12 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 
 	i = 0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
-		sc->disable_aggregation = 0;
+		sc->disable_aggregation = GF_FALSE;
 	}
 
-	e = gf_sm_live_encode_scene_au(seng, callback, 0);
+	e = gf_sm_live_encode_scene_au(seng, callback, GF_FALSE);
 	if (e) goto exit;
+
 exit:
 	return e;
 }
@@ -823,7 +826,7 @@ GF_Err gf_seng_encode_context(GF_SceneEngine *seng, gf_seng_callback callback)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot encode context. No seng provided\n"));
 		return GF_BAD_PARAM;
 	}
-	return gf_sm_live_encode_scene_au(seng, callback, 1);
+	return gf_sm_live_encode_scene_au(seng, callback, GF_TRUE);
 }
 
 GF_EXPORT
@@ -849,7 +852,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 GF_EXPORT
 GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const u8 **config, u32 *config_len, u32 *streamType, u32 *codec_id, u32 *timeScale)
 {
-	GF_StreamContext *sc = gf_list_get(seng->ctx->streams, idx);
+	GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(seng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
 	*ESID = sc->ESID;
 	*config = sc->dec_cfg;
@@ -924,7 +927,7 @@ static void gf_seng_on_node_modified(void *_seng, GF_SGNodeCbkType type, GF_Node
 }
 
 GF_EXPORT
-GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load_type, char *dump_path, Bool embed_resources)
+GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, GF_SceneManager_LoadType load_type, char *dump_path, Bool embed_resources)
 {
 	GF_SceneEngine *seng;
 	GF_Err e = GF_OK;
@@ -942,7 +945,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 	gf_sg_set_private(seng->sg, seng);
 	seng->dump_path = dump_path;
 	seng->ctx = gf_sm_new(seng->sg);
-	seng->owns_context = 1;
+	seng->owns_context = GF_TRUE;
 	memset(&(seng->loader), 0, sizeof(GF_SceneLoader));
 	seng->loader.ctx = seng->ctx;
 	seng->loader.type = load_type;
@@ -1062,7 +1065,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 			seng->loader.type = GF_SM_LOAD_BT;
 		}
 	}
-	e = gf_sm_load_string(&seng->loader, inputContext, 0);
+	e = gf_sm_load_string(&seng->loader, inputContext, GF_FALSE);
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
@@ -1103,7 +1106,7 @@ GF_Err gf_seng_get_stream_carousel_info(GF_SceneEngine *seng, u16 ESID, u32 *car
 	if (carousel_period) *carousel_period = (u32) -1;
 	if (aggregate_on_es_id) *aggregate_on_es_id = 0;
 
-	while (NULL != (sc = gf_list_enum(seng->ctx->streams, &i))) {
+	while (NULL != (sc = (GF_StreamContext *)gf_list_enum(seng->ctx->streams, &i))) {
 		if (sc->ESID==ESID) {
 			if (carousel_period) *carousel_period = sc->carousel_period;
 			if (aggregate_on_es_id) *aggregate_on_es_id = sc->aggregate_on_esid;
@@ -1132,11 +1135,11 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 	size = 0;
 	gf_odf_desc_write((GF_Descriptor *) seng->ctx->root_od, &buffer, &size);
 	size64 = size*2 + 3;
-	buf64 = gf_malloc(sizeof(char) * size64);
+	buf64 = (u8 *)gf_malloc(size64);
 	size64 = gf_base64_encode( buffer, size, buf64, size64);
 	buf64[size64] = 0;
 	gf_free(buffer);
-	return buf64;
+	return (char *) buf64;
 }
 
 GF_EXPORT

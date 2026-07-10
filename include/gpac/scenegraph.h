@@ -36,13 +36,13 @@ extern "C" {
 \file <gpac/scenegraph.h>
 \brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
 */
-	
-	
+
+
 /*!
 \addtogroup scene_grp Scene Graph
 \brief Scene graph management.
 */
-	
+
 /*!
 \addtogroup sscene Base Scenegraph
 \ingroup scene_grp
@@ -474,7 +474,7 @@ GF_Err gf_node_get_field(GF_Node *n, u32 FieldIndex, GF_FieldInfo *info);
 \param field filled with field info
 \return error if any
 */
-GF_Err gf_node_get_field_by_name(GF_Node *n, char *name, GF_FieldInfo *field);
+GF_Err gf_node_get_field_by_name(GF_Node *n, const char *name, GF_FieldInfo *field);
 
 /*! Scenegraph structure*/
 typedef struct __tag_scene_graph GF_SceneGraph;
@@ -578,7 +578,7 @@ GF_Node *gf_sg_find_node(GF_SceneGraph *sg, u32 nodeID);
 \param name name of the node to find
 \return node if found, NULL otherwise
 */
-GF_Node *gf_sg_find_node_by_name(GF_SceneGraph *sg, char *name);
+GF_Node *gf_sg_find_node_by_name(GF_SceneGraph *sg, const char *name);
 
 /*! signals node has been modified, indicating which field is modified
 \note this is exposed for BIFS codec and BIFS/VRML rendering, it should not be needed by other apps
@@ -637,7 +637,8 @@ void gf_node_init(GF_Node *n);
 \param deep clones children as well
 \return the cloned node
 */
-GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *id_suffix, Bool deep);
+GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, const
+					   char *id_suffix, Bool deep);
 
 /*! gets scene time for scene this node belongs too
 \param n the target node

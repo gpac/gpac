@@ -329,38 +329,41 @@ extern "C" {
 
 #ifndef GPAC_STANDALONE_RENDER_2D
 
-	/*interface query*/
-	GPAC_MODULE_EXPORT
-	const u32 *QueryInterfaces()
-	{
-		static u32 si [] = {
-			GF_VIDEO_OUTPUT_INTERFACE,
-			0
-		};
-		return si;
+GPAC_MODULE_EXPORT_START
+
+/*interface query*/
+GPAC_MODULE_EXPORT
+const u32 *QueryInterfaces()
+{
+	static u32 si [] = {
+		GF_VIDEO_OUTPUT_INTERFACE,
+		0
+	};
+	return si;
+}
+
+/*interface create*/
+GPAC_MODULE_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
+{
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewDektecVideoOutput();
+	return NULL;
+}
+
+/*interface destroy*/
+GPAC_MODULE_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce)
+{
+	switch (ifce->InterfaceType) {
+	case GF_VIDEO_OUTPUT_INTERFACE:
+		DeleteDektecVideoOutput((GF_VideoOutput *)ifce);
+		break;
 	}
+}
 
-	/*interface create*/
-	GPAC_MODULE_EXPORT
-	GF_BaseInterface *LoadInterface(u32 InterfaceType)
-	{
-		if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewDektecVideoOutput();
-		return NULL;
-	}
+GPAC_MODULE_EXPORT_END
 
-	/*interface destroy*/
-	GPAC_MODULE_EXPORT
-	void ShutdownInterface(GF_BaseInterface *ifce)
-	{
-		switch (ifce->InterfaceType) {
-		case GF_VIDEO_OUTPUT_INTERFACE:
-			DeleteDektecVideoOutput((GF_VideoOutput *)ifce);
-			break;
-		}
-	}
-
-
-	GPAC_MODULE_STATIC_DECLARATION( dektec_out )
+GPAC_MODULE_STATIC_DECLARATION( dektec_out )
 
 #endif
 

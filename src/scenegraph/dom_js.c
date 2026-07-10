@@ -520,7 +520,7 @@ static JSValue dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 	if (!n) return JS_NULL;
 	GF_SAFEALLOC(nl, DOMNodeList);
 	if (!nl) return GF_JS_EXCEPTION(c);
-	
+
 	nl->owner = n;
 	if (n->sgprivate->scenegraph->reference_count)
 		n->sgprivate->scenegraph->reference_count++;
@@ -533,7 +533,7 @@ static JSValue dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 
 static void dom_nodelist_finalize(JSRuntime *rt, JSValue obj)
 {
-	DOMNodeList *nl = JS_GetOpaque(obj, domNodeListClass.class_id);
+	DOMNodeList *nl = (DOMNodeList *)JS_GetOpaque(obj, domNodeListClass.class_id);
 	if (!nl) return;
 
 	if (nl->owner) {
@@ -967,7 +967,7 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 	if (do_init) {
 		/*node is a handler, create listener*/
 		if (parent && (n->sgprivate->tag==TAG_SVG_handler)) {
-			gf_dom_listener_build_ex(parent, 0, 0, n, NULL);
+			gf_dom_listener_build_ex(parent, GF_EVENT_UNDEFINED, 0, n, NULL);
 		}
 		gf_node_init(n);
 
@@ -1195,7 +1195,7 @@ static const char *node_lookup_namespace_by_tag(GF_Node *node, u32 tag)
 			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
 			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
 				char *xmlns = *(DOM_String *) datt->data;
-				u32 crc = gf_crc_32(xmlns, (u32) strlen(xmlns));
+				u32 crc = gf_crc_32((u8*)xmlns, (u32) strlen(xmlns));
 				if (tag==crc)
 					return xmlns;
 				if (!tag && !strcmp(datt->name, "xmlns"))
@@ -1237,6 +1237,7 @@ static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 static JSValue dom_node_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	u32 tag;
+	GF_NamespaceType tagns;
 	GF_Node *n;
 	GF_SceneGraph *sg = NULL;
 	GF_ParentNode *par;
@@ -1322,18 +1323,18 @@ static JSValue dom_node_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case NODE_JSPROPERTY_NAMESPACEURI:
 		if (!sg) {
 			const char *xmlns;
-			tag = gf_xml_get_element_namespace(n);
-			xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tag);
-			if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tag);
+			tagns = gf_xml_get_element_namespace(n);
+			xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tagns);
+			if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tagns);
 			return xmlns ? JS_NewString(c, xmlns) : JS_NULL;
 		}
 		return JS_NULL;
 	case NODE_JSPROPERTY_PREFIX:
-		if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
-		else tag = gf_xml_get_element_namespace(n);
+		if (sg) tagns = gf_sg_get_namespace_code(sg, NULL);
+		else tagns = gf_xml_get_element_namespace(n);
 
-		if (tag) {
-			char *xmlns = (char *)gf_sg_get_namespace_qname(sg ? sg : n->sgprivate->scenegraph, tag);
+		if (tagns) {
+			const char *xmlns = gf_sg_get_namespace_qname(sg ? sg : n->sgprivate->scenegraph, tagns);
 			if (xmlns) return JS_NewString(c, xmlns);
 		}
 		return JS_NULL;
@@ -1742,10 +1743,10 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 
 	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
-		u32 ns_code = 0;
+		GF_NamespaceType ns_code = GF_XMLNS_UNDEFINED;
 		if (ns) {
 			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, (char *) ns);
-			if (!ns_code) ns_code = gf_crc_32(ns, (u32) strlen(ns));
+			if (!ns_code) ns_code = (GF_NamespaceType) gf_crc_32((u8*)ns, (u32) strlen(ns));
 		}
 		else {
 			ns_code = gf_xml_get_element_namespace(n);
@@ -1801,7 +1802,7 @@ static JSValue xml_element_has_attribute(JSContext *c, JSValueConst obj, int arg
 	}
 	else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
-		u32 ns_code = 0;
+		GF_NamespaceType ns_code = GF_XMLNS_UNDEFINED;
 		if (ns) ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, (char *) ns);
 		else ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
 
@@ -1850,7 +1851,7 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 	else if (n->sgprivate->tag==TAG_DOMText) {
 		goto exit;
 	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
-		u32 ns_code = 0;
+		GF_NamespaceType ns_code = GF_XMLNS_UNDEFINED;
 		if (ns) ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, (char *) ns);
 		else if (!strchr(name, ':'))
 			ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
@@ -1864,7 +1865,7 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 				DOM_String *s;
 				if (prev) prev->next = att->next;
 				else node->attributes = att->next;
-				s = att->data;
+				s = (DOM_String *) att->data;
 				if (*s) gf_free(*s);
 				gf_free(s);
 				gf_free(att->name);
@@ -1889,7 +1890,7 @@ exit:
 	return JS_TRUE;
 }
 
-static void gf_dom_add_handler_listener(GF_Node *n, u32 evtType, char *handlerCode)
+static void gf_dom_add_handler_listener(GF_Node *n, GF_EventType evtType, char *handlerCode)
 {
 	/*check if we're modifying an existing listener*/
 	SVG_handlerElement *handler;
@@ -1960,7 +1961,7 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 	return;
 }
 
-void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
+static void gf_svg_set_attributeNS(GF_Node *n, GF_NamespaceType ns_code, char *name, char *val)
 {
 	GF_FieldInfo info;
 	u32 anim_value_type = 0;
@@ -2031,7 +2032,7 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 			if (!attname->type && attname->name) {
 				GF_Node *anim_target = gf_smil_anim_get_target(n);
 				if (anim_target) {
-					gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, attname->type, GF_FALSE, GF_FALSE, &attType);
+					gf_node_get_attribute_by_name((GF_Node *)anim_target, attname->name, (GF_NamespaceType)attname->type, GF_FALSE, GF_FALSE, &attType);
 					attname->type = attType.fieldType;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find target of the animation to parse attribute %s\n", attname->name));
@@ -2060,7 +2061,7 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 
 void gf_svg_set_attribute(GF_Node *n, char * ns, char *name, char *val)
 {
-	u32 ns_code = 0;
+	GF_NamespaceType ns_code = GF_XMLNS_UNDEFINED;
 	if (ns) {
 		ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
 	} else {
@@ -2087,7 +2088,7 @@ static JSValue xml_element_set_attribute(JSContext *c, JSValueConst obj, int arg
 	ns = NULL;
 	/*NS version*/
 	if (argc==3) {
-		char *sep;
+		const char *sep;
 		if (!JS_CHECK_STRING(argv[1]))
 			return GF_JS_EXCEPTION(c);
 		ns = JS_ToCString(c, argv[0]);
@@ -2115,7 +2116,7 @@ static JSValue xml_element_set_attribute(JSContext *c, JSValueConst obj, int arg
 		val = szVal;
 	} else if (JS_IsInteger(argv[idx])) {
 		u32 i;
-		JS_ToInt32(c, &i, argv[idx]);
+		JS_ToUint32(c, &i, argv[idx]);
 		sprintf(szVal, "%d", i);
 		val = szVal;
 	} else {
@@ -2127,7 +2128,7 @@ static JSValue xml_element_set_attribute(JSContext *c, JSValueConst obj, int arg
 
 	/* For on* attribute (e.g. onclick), we create a couple listener/handler elements on setting the attribute */
 	if ((name[0]=='o') && (name[1]=='n')) {
-		u32 evtType = gf_dom_event_type_by_name(name + 2);
+		GF_EventType evtType = gf_dom_event_type_by_name(name + 2);
 		if (evtType != GF_EVENT_UNKNOWN) {
 			gf_dom_add_handler_listener(n, evtType, (char *) val);
 			goto exit;
@@ -2201,10 +2202,10 @@ static JSValue xml_element_set_id(JSContext *c, JSValueConst obj, int argc, JSVa
 	if (argc==3) {
 		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		name = JS_ToCString(c, argv[1]);
-		is_id = JS_ToBool(c, argv[2]) ? GF_TRUE : GF_FALSE;
+		is_id = (Bool) JS_ToBool(c, argv[2]);
 	} else {
 		name = JS_ToCString(c, argv[0]);
-		is_id = JS_ToBool(c, argv[1]) ? GF_TRUE : GF_FALSE;
+		is_id = (Bool) JS_ToBool(c, argv[1]);
 	}
 	gf_node_get_name_and_id(n, &node_id);
 	if (node_id && is_id) {
@@ -2306,21 +2307,21 @@ static JSValue dom_text_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 
 static JSValue event_stop_propagation(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
+	GF_DOM_Event *evt = (GF_DOM_Event *)JS_GetOpaque(obj, domEventClass.class_id);
 	if (!evt) return GF_JS_EXCEPTION(c);
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
 	return JS_TRUE;
 }
 static JSValue event_stop_immediate_propagation(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
+	GF_DOM_Event *evt = (GF_DOM_Event *)JS_GetOpaque(obj, domEventClass.class_id);
 	if (!evt) return GF_JS_EXCEPTION(c);
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL_ALL;
 	return JS_TRUE;
 }
 static JSValue event_prevent_default(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
+	GF_DOM_Event *evt = (GF_DOM_Event *)JS_GetOpaque(obj, domEventClass.class_id);
 	if (!evt) return GF_JS_EXCEPTION(c);
 	evt->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
 	return JS_TRUE;
@@ -2328,7 +2329,7 @@ static JSValue event_prevent_default(JSContext *c, JSValueConst obj, int argc, J
 
 static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
-	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
+	GF_DOM_Event *evt = (GF_DOM_Event *)JS_GetOpaque(obj, domEventClass.class_id);
 	if (evt==NULL) return JS_TRUE;
 
 	switch (magic) {
@@ -2427,7 +2428,7 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case EVENT_JSPROPERTY_WHEELDELTA:
 		return JS_NewInt32(c, FIX2INT(evt->new_scale) );
 	case EVENT_JSPROPERTY_KEYIDENTIFIER:
-		return JS_NewString(c, gf_dom_get_key_name(evt->detail) );
+		return JS_NewString(c, gf_dom_get_key_name((GF_KeyCode)evt->detail) );
 	/*Mozilla keyChar, charCode: wrap up to same value*/
 	case EVENT_JSPROPERTY_KEYCHAR:
 	case EVENT_JSPROPERTY_CHARCODE:
@@ -2481,9 +2482,9 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 #define SETUP_JSCLASS(_class, _name, _proto_funcs, _construct, _finalize, _proto_class_id) \
 	if (! _class.class_id) {\
 		JS_NewClassID(&(_class.class_id)); \
-		_class.class.class_name = _name; \
-		_class.class.finalizer = _finalize;\
-		JS_NewClass(jsrt, _class.class_id, &(_class.class));\
+		_class.the_class.class_name = _name; \
+		_class.the_class.finalizer = _finalize;\
+		JS_NewClass(jsrt, _class.class_id, &(_class.the_class));\
 	}\
 	proto = JS_NewObjectClass(c, _proto_class_id ? _proto_class_id : _class.class_id);\
     	JS_SetPropertyFunctionList(c, proto, _proto_funcs, countof(_proto_funcs));\
@@ -2733,18 +2734,18 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c)
 
 	define_dom_exception(c, global);
 
-	domNodeClass.class.gc_mark = domElement_gc_mark;
+	domNodeClass.the_class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domNodeClass, "Node", node_Funcs, NULL, dom_node_finalize, 0);
 	JS_SetPropertyStr(c, proto, "ELEMENT_NODE", JS_NewInt32(c, 1) );
 	JS_SetPropertyStr(c, proto, "TEXT_NODE", JS_NewInt32(c, 3));
 	JS_SetPropertyStr(c, proto, "CDATA_SECTION_NODE", JS_NewInt32(c, 4));
 	JS_SetPropertyStr(c, proto, "DOCUMENT_NODE", JS_NewInt32(c, 9));
 
-	domDocumentClass.class.gc_mark = domDocument_gc_mark;
+	domDocumentClass.the_class.gc_mark = domDocument_gc_mark;
 	SETUP_JSCLASS(domDocumentClass, "Document", document_Funcs, NULL, dom_document_finalize, domNodeClass.class_id);
-	domElementClass.class.gc_mark = domElement_gc_mark;
+	domElementClass.the_class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domElementClass, "Element", element_Funcs, NULL, dom_node_finalize, domNodeClass.class_id);
-	domTextClass.class.gc_mark = domElement_gc_mark;
+	domTextClass.the_class.gc_mark = domElement_gc_mark;
 	SETUP_JSCLASS(domTextClass, "Text", text_Funcs, NULL, dom_node_finalize, domNodeClass.class_id);
 
 	SETUP_JSCLASS(domEventClass, "Event", event_Funcs, NULL, NULL, 0);
@@ -2852,7 +2853,7 @@ JSValue dom_js_define_event(JSContext *c)
 }
 GF_DOM_Event *dom_get_evt_private(JSValue v)
 {
-	return JS_GetOpaque(v, domEventClass.class_id);
+	return (GF_DOM_Event *)JS_GetOpaque(v, domEventClass.class_id);
 }
 
 JSValue gf_dom_new_event(JSContext *c)

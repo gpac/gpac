@@ -56,7 +56,7 @@ void Conditional_BufferReplaced(GF_BifsDecoder *codec, GF_Node *n)
 
 static void Conditional_execute(M_Conditional *node)
 {
-	char *buffer;
+	u8 *buffer;
 	u32 len;
 	GF_BitStream *bs;
 	GF_BifsDecoder *codec;
@@ -76,12 +76,12 @@ static void Conditional_execute(M_Conditional *node)
 	if (priv->codec->current_graph->pOwningProto) priv->codec->pCurrentProto = priv->codec->current_graph->pOwningProto->proto_interface;
 
 	/*set isActive - to clarify in the specs*/
-	node->isActive = 1;
+	node->isActive = GF_TRUE;
 	gf_node_event_out((GF_Node *)node, 3/*"isActive"*/);
 	if (!node->buffer.bufferSize) return;
 
 	/*we may replace ourselves*/
-	buffer = (char*)node->buffer.buffer;
+	buffer = (u8*)node->buffer.buffer;
 	len = node->buffer.bufferSize;
 	node->buffer.buffer = NULL;
 	node->buffer.bufferSize = 0;

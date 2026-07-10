@@ -50,13 +50,13 @@ GF_STATIC char *xml_translate_xml_string(char *str)
 	char *value;
 	u32 size, i, j;
 	if (!str || !strlen(str)) return NULL;
-	value = (char *)gf_malloc(sizeof(char) * 500);
+	value = (char *)gf_malloc(500);
 	size = 500;
 	i = j = 0;
 	while (str[i]) {
 		if (j+20 >= size) {
 			size += 500;
-			value = (char *)gf_realloc(value, sizeof(char)*size);
+			value = (char *)gf_realloc(value, size);
 		}
 		if (str[i] == '&') {
 			if (str[i+1]=='#') {
@@ -651,7 +651,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 	char *ent_name=NULL;
 	u32 i = 0;
 	XML_Entity *ent = (XML_Entity *)gf_list_last(parser->entities);
-	char *skip_chars = " \t\n\r";
+	const char *skip_chars = " \t\n\r";
 	i=0;
 	if (ent && ent->value) ent = NULL;
 	if (ent) skip_chars = NULL;
@@ -975,7 +975,7 @@ exit:
 		return GF_OK;
 }
 
-static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
+static GF_Err xml_sax_append_string(GF_SAXParser *parser, const char *string)
 {
 	u32 size = parser->line_size;
 	u32 nl_size = string ? (u32) strlen(string) : 0;
@@ -989,7 +989,7 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	{
 		parser->alloc_size = size+nl_size+1;
 		parser->alloc_size = 3 * parser->alloc_size / 2;
-		parser->buffer = (char*)gf_realloc(parser->buffer, sizeof(char) * parser->alloc_size);
+		parser->buffer = (char*)gf_realloc(parser->buffer, parser->alloc_size);
 		if (!parser->buffer ) return GF_OUT_OF_MEM;
 	}
 	memcpy(parser->buffer+size, string, sizeof(char)*nl_size);
@@ -1047,7 +1047,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 
 			entityEnd[0] = 0;
 			len = (u32) strlen(entityStart) + (u32) strlen(current) + 1;
-			name = (char*)gf_malloc(sizeof(char)*len);
+			name = (char*)gf_malloc(len);
 			sprintf(name, "%s%s;", entityStart+1, current);
 
 			ent = gf_xml_locate_entity(parser, name, &needs_text);
@@ -1122,7 +1122,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 	if (parser->unicode_type>1) {
 		const u16 *sptr = (const u16 *)string;
 		u32 len = 2 * gf_utf8_wcslen(sptr);
-		utf_conv = (char *)gf_malloc(sizeof(char)*(len+1));
+		utf_conv = (char *)gf_malloc(len+1);
 		len = gf_utf8_wcstombs(utf_conv, len, &sptr);
 		if (len == GF_UTF8_FAIL) {
 			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
@@ -1324,7 +1324,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Error loading BOM\n"));
 	}
 #else
-	gzInput = gf_gzopen(fileName, "rb");
+	gzInput = (gzFile) gf_gzopen(fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;
 	parser->gz_in = gzInput;
 	/*init SAX parser (unicode setup)*/
@@ -1428,7 +1428,7 @@ u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser)
 
 
 GF_EXPORT
-char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
+char *gf_xml_sax_peek_node(GF_SAXParser *parser, const char *att_name, const char *att_value, const char *substitute, const char *get_attr, const char *end_pattern, Bool *is_substitute)
 {
 	u32 state, att_len, alloc_size, _len;
 #ifdef NO_GZIP
@@ -1445,7 +1445,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 							if ( _len + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
 								alloc_size = 1 + (u32) strlen(__str);	\
 								if (!__is_copy) alloc_size += (u32) strlen(szLine); \
-								szLine = gf_realloc(szLine, alloc_size);	\
+								szLine = (char*)gf_realloc(szLine, alloc_size);	\
 							}\
 							if (__is_copy) { memmove(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
 							else gf_strlcat(szLine, __str, alloc_size); \
@@ -1459,9 +1459,9 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 
 	result = NULL;
 
-	szLine1 = gf_malloc(sizeof(char)*(XML_INPUT_SIZE+2));
+	szLine1 = (char*)gf_malloc(XML_INPUT_SIZE+2);
 	if (!szLine1) return NULL;
-	szLine2 = gf_malloc(sizeof(char)*(XML_INPUT_SIZE+2));
+	szLine2 = (char*)gf_malloc(XML_INPUT_SIZE+2);
 	if (!szLine2) {
 		gf_free(szLine1);
 		return NULL;
@@ -1478,7 +1478,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	att_len = (u32) strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	alloc_size = att_len;
-	szLine = (char *) gf_malloc(sizeof(char)*alloc_size);
+	szLine = (char *) gf_malloc(alloc_size);
 	if (!szLine) {
 		gf_free(szLine1);
 		gf_free(szLine2);
@@ -1753,7 +1753,7 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 		u32 j;
 		Bool dup=GF_FALSE;
 		for (j=0;j<i; j++) {
-			GF_XMLAttribute *p_att = gf_list_get(node->attributes, j);
+			GF_XMLAttribute *p_att = (GF_XMLAttribute *) gf_list_get(node->attributes, j);
 			if (!p_att) break;
 			if (!strcmp(p_att->name, in_att->name)) {
 				dup=GF_TRUE;
@@ -1831,7 +1831,7 @@ GF_DOMParser *gf_xml_dom_new()
 	if (!dom) return NULL;
 
 	dom->root_nodes = gf_list_new();
-	dom->keep_valid = 0;
+	dom->keep_valid = GF_FALSE;
 	return dom;
 }
 
@@ -1884,7 +1884,7 @@ GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser)
 		return NULL;
 	root = parser->root;
 	gf_list_del_item(parser->root_nodes, root);
-	parser->root = gf_list_get(parser->root_nodes, 0);
+	parser->root = (GF_XMLNode*)gf_list_get(parser->root_nodes, 0);
 	return root;
 }
 
@@ -1909,7 +1909,7 @@ GF_Err gf_xml_dom_parse(GF_DOMParser *dom, const char *file, gf_xml_sax_progress
 }
 
 GF_EXPORT
-GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
+GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, const char *string)
 {
 	GF_Err e;
 	gf_xml_dom_reset(dom, GF_TRUE);
@@ -1924,7 +1924,7 @@ GF_EXPORT
 GF_Err gf_xml_dom_enable_passthrough(GF_DOMParser *dom)
 {
 	if (!dom) return GF_BAD_PARAM;
-	dom->keep_valid = 1;
+	dom->keep_valid = GF_TRUE;
 	return GF_OK;
 }
 
@@ -1981,7 +1981,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 	if (tot_s >= (*alloc_size))                            \
 	{                                                      \
 		(*alloc_size) = MAX(tot_s, 2 * (*alloc_size)) + 1; \
-		(*str) = gf_realloc((*str), (*alloc_size));        \
+		(*str) = (char*)gf_realloc((*str), (*alloc_size));        \
 	}                                                      \
 	memcpy((*str) + (*size), v, vlen + 1);                 \
 	*size += vlen;
@@ -2068,7 +2068,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 	count = gf_list_count(node->content);
 	for (i=0; i<count; i++) {
 		GF_XMLNode *child = (GF_XMLNode*)gf_list_get(node->content, i);
-		gf_xml_dom_node_serialize(child, GF_FALSE, node->valid_content, str, alloc_size, size);
+		gf_xml_dom_node_serialize(child, GF_FALSE, node->valid_content ? GF_TRUE : GF_FALSE, str, alloc_size, size);
 	}
 	if (!content_only) {
 		SET_STRING("</");
@@ -2302,7 +2302,7 @@ GF_XMLNode *gf_xml_dom_node_clone(GF_XMLNode *node)
 
 	clone->attributes = gf_list_new();
 	i = 0;
-	while ((att = gf_list_enum(node->attributes, &i))) {
+	while ((att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &i))) {
 		GF_XMLAttribute *att_clone;
 		GF_SAFEALLOC(att_clone, GF_XMLAttribute);
 		if (!att_clone) {
@@ -2315,7 +2315,7 @@ GF_XMLNode *gf_xml_dom_node_clone(GF_XMLNode *node)
 	}
 	clone->content = gf_list_new();
 	i=0;
-	while ((child = gf_list_enum(node->content, &i))) {
+	while ((child = (GF_XMLNode*)gf_list_enum(node->content, &i))) {
 		GF_XMLNode *child_clone = gf_xml_dom_node_clone(child);
 		if (!child_clone) {
 			gf_xml_dom_node_del(clone);

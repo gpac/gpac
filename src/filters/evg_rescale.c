@@ -66,12 +66,12 @@ u64 gf_evg_stencil_get_pixel_wide_fast(GF_EVGStencil *st, s32 x, s32 y);
 
 static GF_Err evgs_process(GF_Filter *filter)
 {
-	const char *data;
+	const u8 *data;
 	u8 *output;
 	u32 isize;
 	GF_FilterPacket *dst_pck;
 	GF_FilterFrameInterface *frame_ifce;
-	EVGScaleCtx *ctx = gf_filter_get_udta(filter);
+	EVGScaleCtx *ctx = (EVGScaleCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -113,7 +113,7 @@ static GF_Err evgs_process(GF_Filter *filter)
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
 #define CHK_EXIT(_msg) if (e) {\
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[EVGS] "_msg": %s\n", gf_error_to_string(e) )); \
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[EVGS] " _msg ": %s\n", gf_error_to_string(e) )); \
 			gf_filter_pck_discard(dst_pck); \
 			gf_filter_pid_drop_packet(ctx->ipid); \
 			return e;\
@@ -178,7 +178,7 @@ static GF_Err evgs_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	u32 w, h, stride, stride_uv, ofmt;
 	GF_Fraction sar;
 	Bool fullrange=GF_FALSE;
-	EVGScaleCtx *ctx = gf_filter_get_udta(filter);
+	EVGScaleCtx *ctx = (EVGScaleCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -409,7 +409,7 @@ static GF_Err evgs_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 static GF_Err evgs_initialize(GF_Filter *filter)
 {
-	EVGScaleCtx *ctx = gf_filter_get_udta(filter);
+	EVGScaleCtx *ctx = (EVGScaleCtx *)gf_filter_get_udta(filter);
 
 	ctx->surf = gf_evg_surface_new(GF_TRUE);
 	if (!ctx->surf) return GF_OUT_OF_MEM;
@@ -432,7 +432,7 @@ static GF_Err evgs_initialize(GF_Filter *filter)
 }
 static void evgs_finalize(GF_Filter *filter)
 {
-	EVGScaleCtx *ctx = gf_filter_get_udta(filter);
+	EVGScaleCtx *ctx = (EVGScaleCtx *)gf_filter_get_udta(filter);
 	gf_evg_surface_delete(ctx->surf);
 	gf_evg_stencil_delete(ctx->tx);
 	gf_path_del(ctx->path);
@@ -443,7 +443,7 @@ static void evgs_finalize(GF_Filter *filter)
 static GF_Err evgs_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	const GF_PropertyValue *p;
-	EVGScaleCtx *ctx = gf_filter_get_udta(filter);
+	EVGScaleCtx *ctx = (EVGScaleCtx *)gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
 
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);

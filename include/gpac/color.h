@@ -40,7 +40,7 @@ extern "C" {
 \file <gpac/color.h>
 \brief Color conversion.
 */
-	
+
 /*!
 \addtogroup color_grp
 \brief Color tools

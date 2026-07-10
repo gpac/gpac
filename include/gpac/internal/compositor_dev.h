@@ -297,12 +297,12 @@ struct __tag_compositor
 	s32 frame_delay;
 	Bool fullscreen_postponed;
 	Bool sys_frames_pending;
-	
+
 	Bool amc, async;
 	u32 asr, ach, alayout, afmt, asize, avol, apan, abuf;
 	Double max_aspeed, max_vspeed;
 	u32 buffer, rbuffer, mbuffer, ntpsync;
-	
+
 	u32 ogl, mode2d;
 
 	s32 subtx, subty, subd, audd;
@@ -677,7 +677,7 @@ struct __tag_compositor
 #endif
 
 	Bool orientation_sensors_active;
-	
+
 	Bool texture_from_decoder_memory;
 
 	u32 networks_time;
@@ -771,7 +771,7 @@ typedef struct _time_node
 	void (*UpdateTimeNode)(struct _time_node *);
 	Bool is_registered, needs_unregister;
 	/*user data*/
-	void *udta;
+	GF_Node *udta;
 } GF_TimeNode;
 
 void gf_sc_register_time_node(GF_Compositor *sr, GF_TimeNode *tn);
@@ -977,8 +977,8 @@ struct _traversing_state
 	Bool immediate_draw;
 	//flag set when immediate_draw whn in defer mode, so that canvas is not erased in hybgl mode
 	Bool immediate_for_defer;
-	
-	
+
+
 	/*current subtree is part of a switched-off subtree (needed for audio)*/
 	Bool switched_off;
 	/*set by the traversed subtree to indicate no cull shall be performed*/
@@ -1058,8 +1058,8 @@ struct _traversing_state
 	Bool parent_is_use;
 
 	/*SVG text rendering state*/
-	Bool in_svg_text;
-	Bool in_svg_text_area;
+	u32 in_svg_text;
+	u32 in_svg_text_area;
 
 	/* current chunk & position of last placed text chunk*/
 	u32 chunk_index;
@@ -1181,7 +1181,7 @@ typedef struct _audiointerface
 {
 	/*fetch audio data for a given audio delay (~soundcard drift) - if delay is 0 sync should not be performed
 	(eg intermediate mix) */
-	u8 *(*FetchFrame) (void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms);
+	const u8 *(*FetchFrame) (void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms);
 	/*release a number of bytes in the indicated frame (ts)*/
 	void (*ReleaseFrame) (void *callback, u32 nb_bytes);
 	/*get media speed*/
@@ -1241,7 +1241,7 @@ Bool gf_mixer_is_eos(GF_AudioMixer *am);
 typedef struct _audio_render
 {
 	GF_Compositor *compositor;
-	
+
 	u32 max_bytes_out, samplerate, bytes_per_samp, nb_bytes_out, buffer_size, nb_buffers;
 	u64 current_time_sr, time_at_last_config_sr;
 	GF_FilterPid *aout;
@@ -1359,7 +1359,7 @@ Bool gf_sc_audio_check_url(GF_AudioInput *ai, MFURL *url);
 #define AUDIO_GROUP_NODE	\
 	GF_AudioInput output;		\
 	void (*add_source)(struct _audio_group *_this, GF_AudioInput *src);	\
- 
+
 typedef struct _audio_group
 {
 	AUDIO_GROUP_NODE
@@ -1566,10 +1566,10 @@ typedef struct __text_span
 GF_FontManager *gf_font_manager_new();
 void gf_font_manager_del(GF_FontManager *fm);
 
-GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
-GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only);
+GF_Font *gf_font_manager_set_font(GF_FontManager *fm, const char **alt_fonts, u32 nb_fonts, u32 styles);
+GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, const char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only);
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *lang, Bool fliped_text, u32 styles, GF_Node *user);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, const char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *lang, Bool fliped_text, u32 styles, GF_Node *user);
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 
 GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font);
@@ -1668,7 +1668,7 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 /*destroy service*/
 void gf_scene_ns_del(GF_SceneNamespace *ns, GF_Scene *scene);
 
-void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url, GF_SceneNamespace *parent_ns);
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, const char *serviceURL, char *parent_url, GF_SceneNamespace *parent_ns);
 
 
 
@@ -1718,7 +1718,7 @@ struct _gf_scene
 
 	/*callback to call to dispatch SVG MediaEvent - this is a pointer to function only because of linking issues
 	with static libgpac (avoids depending on QuickJS and OpenGL32 if not needed)*/
-	void (*on_media_event)(GF_Scene *scene, u32 type);
+	void (*on_media_event)(GF_Scene *scene, GF_EventType type);
 
 	/*duration of inline scene*/
 	u64 duration;
@@ -1853,7 +1853,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 //If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
 Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_buffering);
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queuing);
+void gf_scene_notify_event(GF_Scene *scene, GF_EventType event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queuing);
 
 void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene);
@@ -2171,7 +2171,7 @@ struct _od_manager
 	u32 action_type;
 	//delay in PID timescale
 	s64 timestamp_offset;
-	
+
 	Fixed set_speed;
 	Bool disable_buffer_at_next_play;
 	u32 last_ckdisc;
@@ -2217,7 +2217,7 @@ void gf_odm_del(GF_ObjectManager *ODMan);
 /*setup OD*/
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF_FilterPid *for_pid);
 
-void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url, Bool for_addon);
+void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, const char *remote_url, Bool for_addon);
 
 /*disconnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);

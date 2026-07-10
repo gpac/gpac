@@ -26,6 +26,10 @@
 #ifndef MPEG4_GROUPING_H
 #define MPEG4_GROUPING_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/internal/compositor_dev.h>
 
 enum
@@ -65,20 +69,20 @@ typedef struct
 	u32 cached_size;		\
 	/*number of objects in cache - for debug purposes only*/		\
 	u32 nb_objects;		\
- 
+
 
 #else
 
 #define GROUPING_NODE_STACK_2D		\
 	u32 flags;						\
 	GF_Rect bounds;					\
- 
+
 #endif
 
 #define GROUPING_MPEG4_STACK_2D		\
 	GROUPING_NODE_STACK_2D			\
 	GF_List *sensors;				\
- 
+
 typedef struct _mpeg4_group2d
 {
 	GROUPING_MPEG4_STACK_2D
@@ -116,7 +120,7 @@ void group_2d_destroy_svg(GF_Node *node, GroupingNode2D *group);
 #define GROUPING_NODE_STACK_3D	\
 	u32 flags;						\
 	GF_BBox bbox;				\
- 
+
 typedef struct _parent_node_3d
 {
 	GROUPING_NODE_STACK_3D
@@ -176,7 +180,7 @@ void parent_node_predestroy(ParentNode2D *gr);
 /*reset children list*/
 void parent_node_reset(ParentNode2D *gr);
 /*creates a new group for the given node. If the node is NULL, the previous group's node is used*/
-void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable);
+void parent_node_start_group(ParentNode2D *group, GF_Node *n, u32 discardable);
 /*sets the current group bounds*/
 void parent_node_end_group(ParentNode2D *group, GF_Rect *bounds);
 /*sets the current group bounds + font properties*/
@@ -191,6 +195,10 @@ void parent_node_child_traverse(ChildGroup *cg, GF_TraverseState *tr_state);
 /*updates the matrix (position assigned by caller) and traverse the given child. Do not traverse if the matrix is NULL*/
 void parent_node_child_traverse_matrix(ChildGroup *cg, GF_TraverseState *tr_state, GF_Matrix2D *mat2D);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*MPEG4_GROUPING_H*/
 

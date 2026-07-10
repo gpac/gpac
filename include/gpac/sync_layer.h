@@ -34,7 +34,7 @@ extern "C" {
 \file <gpac/sync_layer.h>
 \brief MPEG-4 Object Descriptor Framework Sync Layer.
 */
-	
+
 /*!
 \ingroup odf_grp
 \brief MPEG-4 Object Descriptor Framework  Sync Layer

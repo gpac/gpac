@@ -36,7 +36,7 @@ extern "C" {
 \file <gpac/events.h>
 \brief Event system used by GPAC playback.
  */
-	
+
 /*!
 \addtogroup evt_grp Event System
 \ingroup playback_grp
@@ -302,7 +302,7 @@ typedef struct
 		/* for filter status event, index of filter in session */
 		u32 filter_idx;
 	};
-	
+
 } GF_EventProgress;
 
 /*! Service connection event

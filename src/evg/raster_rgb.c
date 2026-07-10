@@ -166,7 +166,7 @@ void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EV
 		u32 len;
 		u32 *col;
 		len = spans[i].len;
-		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		col = (u32 *) surf->fill_run(surf->sten, rctx, &spans[i], y);
 		spanalpha = spans[i].coverage;
 		x = surf->pitch_x * spans[i].x;
 		while (len--) {
@@ -341,7 +341,7 @@ void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, E
 		u32 len;
 		u32 *col;
 		len = spans[i].len;
-		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		col = (u32 *) surf->fill_run(surf->sten, rctx, &spans[i], y);
 		spanalpha = spans[i].coverage;
 		x = surf->pitch_x * spans[i].x;
 		while (len--) {

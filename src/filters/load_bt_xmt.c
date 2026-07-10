@@ -157,7 +157,7 @@ static GF_Err CTXLoad_Setup(GF_Filter *filter, CTXLoadPriv *priv)
 
 GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	CTXLoadPriv *priv = gf_filter_get_udta(filter);
+	CTXLoadPriv *priv = (CTXLoadPriv *)gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
 
 	if (is_remove) {
@@ -261,7 +261,7 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
-	CTXLoadPriv *priv = gf_filter_get_udta(filter);
+	CTXLoadPriv *priv = (CTXLoadPriv *)gf_filter_get_udta(filter);
 	//check for scene attach
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
@@ -285,11 +285,11 @@ static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!priv->scene) {
-				GF_ObjectManager *odm = com->attach_scene.object_manager;
+				GF_ObjectManager *odm = (GF_ObjectManager *) com->attach_scene.object_manager;
 				priv->scene = odm->subscene ? odm->subscene : odm->parentscene;
 				gf_sg_set_node_callback(priv->scene->graph, CTXLoad_NodeCallback);
 
@@ -376,7 +376,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	Bool is_seek = GF_FALSE;
 	Bool is_start, is_end;
 	u32 min_next_time_ms = 0;
-	CTXLoadPriv *priv = gf_filter_get_udta(filter);
+	CTXLoadPriv *priv = (CTXLoadPriv *)gf_filter_get_udta(filter);
 
 	//not yet ready
 	if (!priv->scene) {
@@ -824,7 +824,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 static void ctxload_finalize(GF_Filter *filter)
 {
-	CTXLoadPriv *priv = gf_filter_get_udta(filter);
+	CTXLoadPriv *priv = (CTXLoadPriv *)gf_filter_get_udta(filter);
 
 	gf_sm_load_done(&priv->load);
 	if (priv->ctx) gf_sm_del(priv->ctx);
@@ -837,21 +837,21 @@ static void ctxload_finalize(GF_Filter *filter)
 }
 
 #include <gpac/utf.h>
-static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterProbeScore *score)
+static const char *ctxload_probe_data(const u8 *_probe_data, u32 size, GF_FilterProbeScore *score)
 {
 	const char *mime_type = NULL;
 	char *dst = NULL;
 	GF_Err e;
 	u32 probe_size=size;
-	char *res=NULL;
+	char *res=NULL, *probe_data;
 
 	/* check gzip magic header */
-	if ((size>2) && (probe_data[0] == 0x1f) && (probe_data[1] == 0x8b)) {
+	if ((size>2) && (_probe_data[0] == 0x1f) && (_probe_data[1] == 0x8b)) {
 		*score = GF_FPROBE_EXT_MATCH;
 		return "btz|bt.gz|xmt.gz|xmtz|wrl.gz|x3dv.gz|x3dvz|x3d.gz|x3dz";
 	}
 
-	e = gf_utf_get_string_from_bom(probe_data, size, &dst, &res, &probe_size);
+	e = gf_utf_get_string_from_bom(_probe_data, size, &dst, &res, &probe_size);
 	if (e) return NULL;
 	probe_data = res;
 
@@ -863,7 +863,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 
 	//for XML, strip doctype, <?xml and comments
 	while (1) {
-		char *search=NULL;
+		const char *search=NULL;
 		if (!strncmp(probe_data, "<!DOCTYPE", 9)) {
 			search = ">";
 		}
@@ -876,11 +876,11 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		} else {
 			break;
 		}
-		const char *res = gf_strmemstr(probe_data, probe_size, search);
-		if (!res) goto exit;
-		res += strlen(search);
-		probe_size -= (u32) (res - (char*)probe_data);
-		probe_data = res;
+		const char *loc_res = gf_strmemstr(probe_data, probe_size, search);
+		if (!loc_res) goto exit;
+		loc_res += strlen(search);
+		probe_size -= (u32) (loc_res - (char*)probe_data);
+		probe_data = (char *)loc_res;
 		while (probe_size && probe_data[0] && strchr("\n\r\t ", (char) probe_data[0])) {
 			probe_data ++;
 			probe_size--;
@@ -952,7 +952,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 			const char *next = gf_strmemstr(probe_data, probe_size, "\n");
 			if (!next) goto exit;
 			probe_size -= (u32) (next - (char*)probe_data);
-			probe_data = next;
+			probe_data = (char *)next;
 		}
 
 		if (!strncmp(probe_data, "InitialObjectDescriptor", strlen("InitialObjectDescriptor"))

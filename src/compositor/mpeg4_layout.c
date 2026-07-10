@@ -125,7 +125,7 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 			li->nb_children ++;
 		} else {
 			if ((cg->text_type==2) || (i && (cg->final.width + li->width> max_w))) {
-				if (cg->text_type==2) li->line_break = 1;
+				if (cg->text_type==2) li->line_break = GF_TRUE;
 				if (l->wrap) {
 					if (!li->ascent) {
 						li->ascent = li->height;
@@ -476,7 +476,7 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 	if (st->key_scroll) {
 		if (!st->is_scrolling) {
 			layout_setup_scroll_bounds(st, l);
-			st->is_scrolling = 1;
+			st->is_scrolling = GF_TRUE;
 		}
 
 		scrolled = st->last_scroll + INT2FIX(st->key_scroll);
@@ -492,7 +492,7 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 
 		if (st->start_scroll_type) {
 			st->start_time = time;
-			st->is_scrolling = 1;
+			st->is_scrolling = GF_TRUE;
 			st->prev_rate = st->scale_scroll;
 
 			/*continuous restart: use last scroll to update the start time. We must recompute scroll bounds
@@ -531,18 +531,18 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 	smooth = l->smoothScroll;
 	/*if the scroll is in the same direction as the layout, there is no notion of line or column to scroll
 	so move to smooth mode*/
-	if (!l->horizontal && l->scrollVertical) smooth = 1;
-	else if (l->horizontal && !l->scrollVertical) smooth = 1;
+	if (!l->horizontal && l->scrollVertical) smooth = GF_TRUE;
+	else if (l->horizontal && !l->scrollVertical) smooth = GF_TRUE;
 
 
-	stop_anim = 0;
+	stop_anim = GF_FALSE;
 	/*compute scroll diff for non-smooth mode*/
 	if (smooth) {
-		do_scroll = 1;
+		do_scroll = GF_TRUE;
 	} else {
 		Fixed dim;
 		scroll_diff = scrolled - st->last_scroll;
-		do_scroll = 0;
+		do_scroll = GF_FALSE;
 
 		nb_lines = gf_list_count(st->lines);
 		for (i=0; i < nb_lines; i++) {
@@ -555,13 +555,13 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 				if (st->scroll_min > st->scroll_len + scrolled) {
 					scrolled = st->scroll_min - st->scroll_len;
 				} else {
-					do_scroll = 1;
+					do_scroll = GF_TRUE;
 				}
 				break;
 			} else if (ABS(scroll_diff) >= dim) {
 //				if (scroll_diff<0) scroll_diff = -dim;
 //				else scroll_diff = dim;
-				do_scroll = 1;
+				do_scroll = GF_TRUE;
 				break;
 			}
 		}
@@ -569,11 +569,11 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 
 	scroll_diff = st->scroll_max - st->scroll_min;
 	if ((scroll_diff<0) && (scrolled<=scroll_diff)) {
-		stop_anim = 1;
+		stop_anim = GF_TRUE;
 		scrolled = scroll_diff;
 	}
 	else if ((scroll_diff>0) && (scrolled>=scroll_diff)) {
-		stop_anim = 1;
+		stop_anim = GF_TRUE;
 		scrolled = scroll_diff;
 	}
 
@@ -615,10 +615,10 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 {
 	Bool recompute_layout;
-	u32 i;
+	u32 i, mode_bckup;
 	ChildGroup *cg;
 	GF_IRect prev_clip;
-	Bool mode_bckup, had_clip=GF_FALSE;
+	Bool had_clip=GF_FALSE;
 	ParentNode2D *parent_bck;
 	GF_Rect prev_clipper;
 	M_Layout *l = (M_Layout *)node;
@@ -664,14 +664,14 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 		goto layout_exit;
 	}
 
-	recompute_layout = 0;
+	recompute_layout = GF_FALSE;
 	if (gf_node_dirty_get(node))
-		recompute_layout = 1;
+		recompute_layout = GF_TRUE;
 
 	/*setup clipping*/
 	prev_clip = tr_state->visual->top_clipper;
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
-		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 0);
+		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_FALSE);
 		if (tr_state->has_clip) {
 			tr_state->visual->top_clipper = gf_rect_pixelize(&tr_state->clipper);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
@@ -755,57 +755,57 @@ static Bool OnLayout(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Even
 	vertical = ((M_Layout *)sh->sensor)->scrollVertical;
 
 	if (!is_over) {
-		st->is_scrolling = 0;
+		st->is_scrolling = GF_FALSE;
 		st->key_scroll = 0;
-		return 0;
+		return GF_FALSE;
 	}
 	if (ev->type!=GF_EVENT_KEYDOWN) {
-		st->is_scrolling = 0;
+		st->is_scrolling = GF_FALSE;
 		st->key_scroll = 0;
-		return 0;
+		return GF_FALSE;
 	}
 
 	switch (ev->key.key_code) {
 	case GF_KEY_LEFT:
-		if (!st->keys_active) return 0;
+		if (!st->keys_active) return GF_FALSE;
 
-		if (vertical) return 0;
+		if (vertical) return GF_FALSE;
 		st->key_scroll = -1;
 		break;
 	case GF_KEY_RIGHT:
-		if (!st->keys_active) return 0;
+		if (!st->keys_active) return GF_FALSE;
 
-		if (vertical) return 0;
+		if (vertical) return GF_FALSE;
 		st->key_scroll = +1;
 		break;
 	case GF_KEY_UP:
-		if (!st->keys_active) return 0;
+		if (!st->keys_active) return GF_FALSE;
 
-		if (!vertical) return 0;
+		if (!vertical) return GF_FALSE;
 		st->key_scroll = +1;
 		break;
 	case GF_KEY_DOWN:
-		if (!st->keys_active) return 0;
+		if (!st->keys_active) return GF_FALSE;
 
-		if (!vertical) return 0;
+		if (!vertical) return GF_FALSE;
 		st->key_scroll = -1;
 		break;
 	case GF_KEY_ENTER:
-		st->keys_active = !st->keys_active;
+			st->keys_active = st->keys_active ? GF_FALSE : GF_TRUE;
 		break;
 	default:
 		st->key_scroll = 0;
-		return 0;
+		return GF_FALSE;
 	}
 	gf_sc_invalidate(compositor, NULL);
-	return 1;
+	return GF_TRUE;
 }
 
 static Bool layout_is_enabled(GF_Node *node)
 {
 	M_Layout *l = (M_Layout *)node;
-	if (node && (l->scrollRate != 0)) return 0;
-	return 1;
+	if (node && (l->scrollRate != 0)) return GF_FALSE;
+	return GF_TRUE;
 }
 
 void compositor_init_layout(GF_Compositor *compositor, GF_Node *node)
@@ -845,7 +845,7 @@ void compositor_layout_modified(GF_Compositor *compositor, GF_Node *node)
 	else if (((M_Layout*)node)->scrollRate) {
 		st->start_scroll_type = 2;
 	}
-	gf_node_dirty_set(node, GF_SG_NODE_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_NODE_DIRTY, GF_FALSE);
 	gf_sc_invalidate(compositor, NULL);
 }
 

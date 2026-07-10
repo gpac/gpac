@@ -75,29 +75,28 @@ typedef struct _s_accumulated_attributes {
 
 /********** playlist_element **********/
 
-GF_Err playlist_element_del(PlaylistElement * e);
+static void playlist_element_del(PlaylistElement * e);
 
-static GF_Err cleanup_list_of_elements(GF_List *list) {
-	GF_Err result = GF_OK;
+static void cleanup_list_of_elements(GF_List *list)
+{
 	if (list == NULL)
-		return result;
+		return;
 	while (gf_list_count(list)) {
 		PlaylistElement *pl = (PlaylistElement *) gf_list_get(list, 0);
 		if (pl)
-			result |= playlist_element_del(pl);
+			playlist_element_del(pl);
 		gf_list_rem(list, 0);
 	}
 	gf_list_del(list);
-	return result;
 }
 
 /**
  * Deletes an Playlist element
  */
-GF_Err playlist_element_del(PlaylistElement * e) {
-	GF_Err result = GF_OK;
+static void playlist_element_del(PlaylistElement * e)
+{
 	if (e == NULL)
-		return result;
+		return;
 	if (e->title) {
 		gf_free(e->title);
 	}
@@ -138,12 +137,11 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 		break;
 	case TYPE_PLAYLIST:
 		gf_assert(e->element.playlist.elements);
-		result |= cleanup_list_of_elements(e->element.playlist.elements);
+		cleanup_list_of_elements(e->element.playlist.elements);
 	default:
 		break;
 	}
 	gf_free(e);
-	return result;
 }
 
 /**
@@ -244,7 +242,7 @@ static GF_Err stream_del(Stream *stream) {
 		return e;
 	if (stream->variants) {
 		while (gf_list_count(stream->variants)) {
-			GF_List *l = gf_list_get(stream->variants, 0);
+			GF_List *l = (GF_List *)gf_list_get(stream->variants, 0);
 			cleanup_list_of_elements(l);
 			gf_list_rem(stream->variants, 0);
 		}
@@ -281,7 +279,7 @@ static Bool safe_start_equals(const char *attribute, const char *line) {
 	atlen = strlen(attribute);
 	if (len < atlen)
 		return GF_FALSE;
-	return (0 == strncmp(attribute, line, atlen));
+	return strncmp(attribute, line, atlen) ? GF_FALSE : GF_TRUE;
 }
 
 
@@ -305,7 +303,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 		return NULL;
 	if (!safe_start_equals(name, line))
 		return NULL;
-	ret = gf_calloc((num_attributes + 1), sizeof(char*));
+	ret = (char **)gf_calloc((num_attributes + 1), sizeof(char*));
 	if (!ret) return NULL;
 	if (!num_attributes) return ret;
 
@@ -324,7 +322,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 			} else {
 				if (!strncmp(&line[start+spaces], "\t", sz-spaces) || !strncmp(&line[start+spaces], "\n", sz-spaces)) {
 				} else {
-					ret[curr_attribute] = gf_malloc( (1+sz-spaces) * sizeof(char));
+					ret[curr_attribute] = (char *)gf_malloc(1+sz-spaces);
 					memcpy(ret[curr_attribute], &(line[start+spaces]), sz-spaces);
 					ret[curr_attribute][sz-spaces] = 0;
 
@@ -540,7 +538,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			else if (safe_start_equals("BYTERANGE=\"", val)) {
 				u64 begin, size;
 				val+=10;
-				if (sscanf(val, "\""LLU"@"LLU"\"", &size, &begin) == 2) {
+				if (sscanf(val, "\"" LLU "@" LLU "\"", &size, &begin) == 2) {
 					if (size) {
 						attributes->init_byte_range_start = begin;
 						attributes->init_byte_range_end = begin + size - 1;
@@ -630,7 +628,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		/* #EXT-X-BYTERANGE:<begin@end> */
 		if (ret[0]) {
 			u64 begin, size;
-			if (sscanf(ret[0], LLU"@"LLU, &size, &begin) == 2) {
+			if (sscanf(ret[0], LLU "@" LLU, &size, &begin) == 2) {
 				if (size) {
 					attributes->byte_range_start = begin;
 					attributes->byte_range_end = begin + size - 1;
@@ -833,9 +831,9 @@ GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist) {
 		return GF_OK;
 	gf_assert((*playlist)->streams);
 	while (gf_list_count((*playlist)->streams)) {
-		Stream *p = gf_list_get((*playlist)->streams, 0);
+		Stream *p = (struct s_stream *)gf_list_get((*playlist)->streams, 0);
 		while (p && gf_list_count(p->variants)) {
-			PlaylistElement *pl = gf_list_get(p->variants, 0);
+			PlaylistElement *pl = (struct s_playlistElement *)gf_list_get(p->variants, 0);
 			if (!pl) break;
 			playlist_element_del(pl);
 			gf_list_rem(p->variants, 0);
@@ -860,7 +858,7 @@ static Stream* master_playlist_find_matching_stream(const MasterPlaylist *pl, co
 	gf_assert(stream_id >= 0);
 	count = gf_list_count(pl->streams);
 	for (i=0; i<count; i++) {
-		Stream *cur = gf_list_get(pl->streams, i);
+		Stream *cur = (struct s_stream *)gf_list_get(pl->streams, i);
 		gf_assert(cur);
 		if (stream_id == cur->stream_id) {
 			/* We found the program */
@@ -927,7 +925,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 
 		if (!curr_playlist) {
 			for (i=0; i<(s32)count; i++) {
-				PlaylistElement *i_playlist_element = gf_list_get(stream->variants, i);
+				PlaylistElement *i_playlist_element = (struct s_playlistElement *)gf_list_get(stream->variants, i);
 				gf_assert(i_playlist_element);
 				if (stream->stream_id < MEDIA_TYPE_AUDIO) {
 					/* regular stream (EXT-X-STREAM-INF) */
@@ -952,7 +950,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				//gather codecs and bandwidth so that we can recompute them when generating the MPD
 				if (!curr_playlist->alt_bandwidths) {
 					curr_playlist->nb_alt_bandwidths = 1;
-					curr_playlist->alt_bandwidths = gf_malloc(sizeof(u32));
+					curr_playlist->alt_bandwidths = (u32 *)gf_malloc(sizeof(u32));
 					curr_playlist->alt_bandwidths[0] = curr_playlist->bandwidth;
 				}
 				char *codec = attribs->codecs;
@@ -970,7 +968,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					codec = sep+1;
 				}
 				gf_dynstrcat(&curr_playlist->audio_group, attribs->group_audio, ",");
-				curr_playlist->alt_bandwidths = gf_realloc(curr_playlist->alt_bandwidths, sizeof(u32)*(curr_playlist->nb_alt_bandwidths+1) );
+				curr_playlist->alt_bandwidths = (u32 *)gf_realloc(curr_playlist->alt_bandwidths, sizeof(u32)*(curr_playlist->nb_alt_bandwidths+1) );
 				curr_playlist->alt_bandwidths[curr_playlist->nb_alt_bandwidths] = attribs->bandwidth;
 				curr_playlist->nb_alt_bandwidths++;
 				return GF_OK;
@@ -1083,8 +1081,8 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	attribs->playlist_utc_timestamp = 0;
 	attribs->bandwidth = 0;
 	attribs->stream_id = 0;
-	attribs->is_default = 0;
-	attribs->is_autoselect = 0;
+	attribs->is_default = GF_FALSE;
+	attribs->is_autoselect = GF_FALSE;
 	if (attribs->codecs != NULL) {
 		gf_free(attribs->codecs);
 		attribs->codecs = NULL;
@@ -1247,7 +1245,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 					u32 size=0;
 					sep = strchr(br, ',');
 					if (sep) sep[0] = 0;
-					if (sscanf(br+10, "\"%u@"LLU"\"", &size, &start) != 2)
+					if (sscanf(br+10, "\"%u@" LLU "\"", &size, &start) != 2)
 						file = NULL;
 					attribs.byte_range_start = start;
 					attribs.byte_range_end = start + size - 1;
@@ -1358,10 +1356,10 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 
 	for (i=0; i<(int)gf_list_count((*playlist)->streams); i++) {
 		u32 j;
-		Stream *prog = gf_list_get((*playlist)->streams, i);
+		Stream *prog = (struct s_stream *)gf_list_get((*playlist)->streams, i);
 		prog->computed_duration = 0;
 		for (j=0; j<gf_list_count(prog->variants); j++) {
-			PlaylistElement *ple = gf_list_get(prog->variants, j);
+			PlaylistElement *ple = (struct s_playlistElement *)gf_list_get(prog->variants, j);
 			if (ple->element_type == TYPE_PLAYLIST) {
 				if (ple->element.playlist.computed_duration > prog->computed_duration)
 					prog->computed_duration = ple->element.playlist.computed_duration;

@@ -42,7 +42,7 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid;
 
-	u32 codecid;
+	GF_CodecID codecid;
 	u32 timescale;
 
 	GF_Fraction64 duration;
@@ -63,7 +63,7 @@ static void vttmx_write_cue(void *ctx, GF_WebVTTCue *cue);
 GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_WebVTTMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -78,7 +78,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
-	ctx->codecid = p->value.uint;
+	ctx->codecid = (GF_CodecID) p->value.uint;
 	ctx->ipid = pid;
 	ctx->first = GF_TRUE;
 
@@ -224,9 +224,9 @@ static void vttmx_flush_segment(GF_WebVTTMxCtx *ctx)
 
 GF_Err vttmx_process(GF_Filter *filter)
 {
-	GF_WebVTTMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
-	u8 *data;
+	const u8 *data;
 	u64 start_ts, end_ts;
 	u32 i, pck_size;
 	GF_List *cues;
@@ -259,7 +259,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 
 	start_ts = gf_filter_pck_get_cts(pck);
 	end_ts = start_ts + gf_filter_pck_get_duration(pck);
@@ -321,7 +321,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 
 static void vttmx_finalize(GF_Filter *filter)
 {
-	GF_WebVTTMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_WebVTTMxCtx *ctx = (GF_WebVTTMxCtx *)gf_filter_get_udta(filter);
 	if (ctx->cues_buffer) gf_free(ctx->cues_buffer);
 
 	if (ctx->parser) gf_webvtt_parser_del(ctx->parser);

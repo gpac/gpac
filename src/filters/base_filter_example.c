@@ -114,7 +114,7 @@ static GF_Err example_filter_update_arg(GF_Filter *filter, const char *arg_name,
 
 GF_Err example_filter_initialize(GF_Filter *filter)
 {
-	GF_BaseFilterExample *stack = gf_filter_get_udta(filter);
+	GF_BaseFilterExample *stack = (GF_BaseFilterExample *)gf_filter_get_udta(filter);
 	if (stack->opt2) {
 		//do something based on options
 

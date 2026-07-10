@@ -393,7 +393,7 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 
 	/*setup texture if needed*/
 	if (!txh->is_open && txurl->count) {
-		gf_sc_texture_play_from_to(txh, txurl, 0, -1, GF_FALSE, GF_FALSE);
+		gf_sc_texture_play_from_to(txh, txurl, GF_FALSE, -1, GF_FALSE, GF_FALSE);
 	}
 
 	gf_sc_texture_update_frame(txh, GF_FALSE);
@@ -598,7 +598,7 @@ void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node)
 			gf_sc_texture_stop(&st->txh);
 		}
 	}
-	gf_node_dirty_set(node, 0, GF_FALSE);
+	gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 	/*and force a redraw of next frame*/
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 }

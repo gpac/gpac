@@ -152,7 +152,7 @@ This is used to parse 'a:b.mp4:c' (expected result ':c...' and not ':b...') vs '
 \param assign_sep value of assignment operand character. If 0, only checks for colon, otherwise chec that no assign sep or colon is present before file extension, if present
 \return position of first colon, or NULL
 */
-char* gf_url_colon_suffix(const char* URL, char assign_sep);
+const char* gf_url_colon_suffix(const char* URL, char assign_sep);
 
 /*!
 \brief Extract resource name from URL
@@ -346,15 +346,6 @@ Gets diff in milliseconds between two NTP times  time and current time
 \return diff ntp_a minus ntp_b in milliseconds
  */
 s32 gf_net_ntp_diff_ms(u64 ntp_a, u64 ntp_b);
-
-/*!
-\brief error code description
-
-Returns text description of given errno code
-\param errnoval the error value to test
-\return its description
- */
-const char *gf_errno_str(int errnoval);
 
 
 /*!
@@ -665,7 +656,7 @@ Tests whether an IP address is a multicast one or not
 \param multi_ip_add the multicast IP address to test
 \return 1 if the address is a multicast one, 0 otherwise
  */
-u32 gf_sk_is_multicast_address(const char *multi_ip_add);
+Bool gf_sk_is_multicast_address(const char *multi_ip_add);
 
 /*!
 \brief gets socket handle

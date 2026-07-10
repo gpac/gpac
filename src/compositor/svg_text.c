@@ -194,7 +194,7 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 		}
 		if (nb_fonts==50) break;
 	}
-	font = gf_font_manager_set_font_ex(fm, fonts, nb_fonts, styles, check_only);
+	font = gf_font_manager_set_font_ex(fm, (const char**)fonts, nb_fonts, styles, check_only);
 	while (nb_fonts) {
 		gf_free(fonts[nb_fonts-1]);
 		nb_fonts--;
@@ -523,7 +523,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), GF_FALSE, atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1) ? GF_TRUE : GF_FALSE, (tr_state->count_y>1) ? GF_TRUE : GF_FALSE, GF_FALSE, atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
 	if (!span) return;
 
 	i=0;
@@ -562,7 +562,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 
 			gf_list_add(tr_state->x_anchors, entry);
 		} else { // (count_x == 0 && count_y == 0) otherwise increment last one
-			Fixed *prec_lw = gf_list_last(tr_state->x_anchors);
+			Fixed *prec_lw = (Fixed *)gf_list_last(tr_state->x_anchors);
 			(*prec_lw) += block_width;
 		}
 		//force counters to 0 for next spans/DOM texts
@@ -635,7 +635,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 	}
 
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), tr_state->count_rotate, atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1) ? GF_TRUE : GF_FALSE, (tr_state->count_y>1) ? GF_TRUE : GF_FALSE, tr_state->count_rotate ? GF_TRUE : GF_FALSE, atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
 	if (!span) return;
 
 	i=0;
@@ -779,7 +779,7 @@ static void svg_traverse_text_block(GF_Node *node, SVGAllAttributes *atts, GF_Tr
 		break;
 	case TAG_SVG_tspan:
 		/*mark tspan as dirty to force rebuild*/
-		gf_node_dirty_set(node, 0, GF_FALSE);
+		gf_node_dirty_set(node, GF_FALSE, GF_FALSE);
 		gf_node_traverse(node, tr_state);
 		break;
 	case TAG_SVG_switch:
@@ -882,7 +882,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE)
-			gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, 1, st->drawable);
+			gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, GF_TRUE, st->drawable);
 
 		/*and browse children*/
 		child = ((GF_ParentNode *) text)->children;
@@ -947,7 +947,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		/*apply justification of all blocks*/
 		imax=gf_list_count(tr_state->x_anchors);
 		for (i=0; i<imax; i++) {
-			Fixed *lw = gf_list_get(tr_state->x_anchors, i);
+			Fixed *lw = (Fixed *)gf_list_get(tr_state->x_anchors, i);
 			svg_apply_text_anchor(tr_state, lw);
 		}
 
@@ -996,7 +996,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		st->prev_anchor = *tr_state->svg_props->text_anchor;
 
 		while (gf_list_count(tr_state->x_anchors)) {
-			Fixed *f = gf_list_last(tr_state->x_anchors);
+			Fixed *f = (Fixed *)gf_list_last(tr_state->x_anchors);
 			gf_list_rem_last(tr_state->x_anchors);
 			gf_free(f);
 		}
@@ -1135,7 +1135,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		The result of the parent (text, textArea) will thus be wrong if we try to update the tspan. We therefore
 		keep the previous computed drawable, and invalidate the parent for next frame*/
 		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			gf_node_dirty_set(node, 0, GF_TRUE);
+			gf_node_dirty_set(node, GF_FALSE, GF_TRUE);
 			goto skip_changes;
 		}
 
@@ -1152,7 +1152,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 				svg_traverse_domtext(child->node, &atts, tr_state, st->spans, NULL);
 				break;
 			case TAG_SVG_tspan:
-				gf_node_dirty_set(child->node, 0, GF_FALSE);
+				gf_node_dirty_set(child->node, GF_FALSE, GF_FALSE);
 				gf_node_traverse(child->node, tr_state);
 				break;
 			case TAG_SVG_switch:
@@ -1365,7 +1365,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 					break;
 				case TAG_SVG_tspan:
 					/*mark tspan as dirty to force rebuild*/
-					gf_node_dirty_set(child->node, 0, GF_FALSE);
+					gf_node_dirty_set(child->node, GF_FALSE, GF_FALSE);
 					gf_node_traverse(child->node, tr_state);
 					break;
 				case TAG_SVG_switch:

@@ -134,7 +134,7 @@ static void clear_headers(char ***_hdrs, u32 *nb_hdrs)
 void cache_blob_del(GF_CacheBlob *b)
 {
 	if (!b) return;
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] Removing cache entry of %s (%s - range "LLU"-"LLU")\n", b->url, b->cache_name, b->start_range, b->end_range));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] Removing cache entry of %s (%s - range " LLU "-" LLU ")\n", b->url, b->cache_name, b->start_range, b->end_range));
 	gf_blob_unregister(&b->blob);
 	if (b->blob.data) gf_free(b->blob.data);
 	if (b->url) gf_free(b->url);
@@ -216,7 +216,7 @@ static GF_Err gf_dm_setup_cache(GF_DownloadSession *sess)
 	if (sess->cached_blobs) {
 		u32 i, count = gf_list_count(sess->cached_blobs);
 		for (i=0; i<count; i++) {
-			GF_CacheBlob *cb = gf_list_get(sess->cached_blobs, i);
+			GF_CacheBlob *cb = (GF_CacheBlob *)gf_list_get(sess->cached_blobs, i);
 			if (strcmp(cb->url, sess->req_url)) continue;
 			if (cb->start_range != sess->start_range) continue;
 			if (cb->end_range != sess->end_range) continue;
@@ -316,7 +316,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 			sess->user_io(sess->usr_cbk, &par);
 			if (!par.value) break;
 
-			sess->req_hdrs = gf_realloc(sess->req_hdrs, sizeof(char*) * (sess->nb_req_hdrs+2));
+			sess->req_hdrs = (char **)gf_realloc(sess->req_hdrs, sizeof(char *) (sess->nb_req_hdrs+2));
 			if (!sess->req_hdrs) {
 				if (e) *e = GF_OUT_OF_MEM;
 				gf_free(sess);
@@ -333,7 +333,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 
 		sess->req_body_size = par.size;
 		if (par.size && par.data) {
-			sess->req_body = gf_malloc(sizeof(u8)*par.size);
+			sess->req_body = (char *)gf_malloc(par.size);
 			if (!sess->req_body) {
 				gf_dm_sess_reset(sess);
 				gf_list_del(sess->cached_blobs);
@@ -595,11 +595,11 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		if (sess->start_range || sess->end_range) {
 			char szHdr[100];
 			if (sess->end_range)
-				sprintf(szHdr, "bytes="LLU"-"LLU, sess->start_range, sess->end_range);
+				sprintf(szHdr, "bytes=" LLU "-" LLU, sess->start_range, sess->end_range);
 			else
-				sprintf(szHdr, "bytes="LLU"-", sess->start_range);
+				sprintf(szHdr, "bytes=" LLU "-", sess->start_range);
 
-			sess->req_hdrs = gf_realloc(sess->req_hdrs, sizeof(char*) * (sess->nb_req_hdrs+2));
+			sess->req_hdrs = (char **)gf_realloc(sess->req_hdrs, sizeof(char *)*(sess->nb_req_hdrs+2));
 			if (!sess->req_hdrs) {
 				sess->state = 2;
 				return sess->last_error = GF_OUT_OF_MEM;
@@ -614,7 +614,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		sess->netio_status = GF_NETIO_CONNECTED;
 
 		if (sess->start_range || sess->end_range) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] Starting download of %s (%s - range "LLU"-"LLU")\n", sess->req_url, sess->active_cache ? sess->active_cache->cache_name : "no cache", sess->start_range, sess->end_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] Starting download of %s (%s - range " LLU "-" LLU ")\n", sess->req_url, sess->active_cache ? sess->active_cache->cache_name : "no cache", sess->start_range, sess->end_range));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] Starting download of %s (%s)\n", sess->req_url, sess->active_cache ? sess->active_cache->cache_name : "no cache"));
 		}
@@ -656,7 +656,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 
 		if (sess->active_cache) {
 			u32 nb_bytes= *read_size;
-			sess->active_cache->blob.data = gf_realloc(sess->active_cache->blob.data, sess->active_cache->blob.size + nb_bytes);
+			sess->active_cache->blob.data = (GF_CacheBlob *)gf_realloc(sess->active_cache->blob.data, sess->active_cache->blob.size + nb_bytes);
 			if (!sess->active_cache->blob.data) {
 				sess->active_cache->blob.flags |= GF_BLOB_CORRUPTED;
 			} else {
@@ -745,7 +745,7 @@ void gf_dm_sess_push_header(GF_DownloadSession *sess, const char *hdr, const cha
 		sscanf(value, LLU, &sess->total_size);
 	}
 
-	sess->rsp_hdrs = gf_realloc(sess->rsp_hdrs, sizeof(char*) * (sess->nb_rsp_hdrs+2));
+	sess->rsp_hdrs = (char *)gf_realloc(sess->rsp_hdrs, sizeof(char *) * (sess->nb_rsp_hdrs+2));
 	if (!sess->rsp_hdrs) return;
 
 	sess->rsp_hdrs[sess->nb_rsp_hdrs] = gf_strdup(hdr);

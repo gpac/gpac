@@ -364,7 +364,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Sending Command:\n%s\n", result));
 
 	//send buffer
-	e = gf_rtsp_send_data(sess, result, size);
+	e = gf_rtsp_send_data(sess, (u8* )result, size);
 	if (e)
 		goto exit;
 
@@ -442,7 +442,7 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 	u32 Size;
 
 	Size = sess->CurrentSize - sess->CurrentPos;
-	buffer = sess->tcp_buffer + sess->CurrentPos;
+	buffer = (char *)sess->tcp_buffer + sess->CurrentPos;
 
 	//by default the command is wrong ;)
 	com->StatusCode = NC_RTSP_Bad_Request;
@@ -474,7 +474,7 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 	return gf_rtsp_parse_header(buffer + ret, Size - ret, BodyStart, com, NULL);
 }
 
-char *RTSP_DEFINED_METHODS[] =
+const char *RTSP_DEFINED_METHODS[] =
 {
 	GF_RTSP_DESCRIBE,
 	GF_RTSP_SETUP,
@@ -511,7 +511,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 		u32 i=0;
 		Bool sync = GF_FALSE;
 		while (RTSP_DEFINED_METHODS[i]) {
-			if (!strncmp(sess->tcp_buffer+sess->CurrentPos, RTSP_DEFINED_METHODS[i], strlen(RTSP_DEFINED_METHODS[i]) ) ) {
+			if (!strncmp((char*)sess->tcp_buffer+sess->CurrentPos, RTSP_DEFINED_METHODS[i], strlen(RTSP_DEFINED_METHODS[i]) ) ) {
 				sync = GF_TRUE;
 				break;
 			}
@@ -548,7 +548,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
 		}
-		com->body = (char *) gf_malloc(sizeof(char) * (com->Content_Length));
+		com->body = (char *) gf_malloc(com->Content_Length);
 		memcpy(com->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, com->Content_Length);
 	}
 	//reset TCP buffer
@@ -557,9 +557,9 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 
 	if (!sess->CSeq && !sess->HTTP_Cookie //first request , cookie not set
 		&& (sess->tunnel_mode!=RTSP_HTTP_DISABLE) //not disabled
-		&& (!strncmp(sess->tcp_buffer, "GET ", 4) || !strncmp(sess->tcp_buffer, "POST ", 5))
+		&& (!strncmp((char *)sess->tcp_buffer, "GET ", 4) || !strncmp((char*)sess->tcp_buffer, "POST ", 5))
 	) {
-		char *sess_cookie = strstr(sess->tcp_buffer, "x-sessioncookie");
+		char *sess_cookie = strstr((char*)sess->tcp_buffer, "x-sessioncookie");
 		if (sess_cookie) sess_cookie = strchr(sess_cookie, ':');
 		if (sess_cookie) {
 			while (strchr(" :", sess_cookie[0]))
@@ -570,19 +570,19 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 				sess->HTTP_Cookie = gf_strdup(sess_cookie);
 				sep[0] = '\r';
 
-				if (!strncmp(sess->tcp_buffer, "GET ", 4)) {
+				if (!strncmp((char*)sess->tcp_buffer, "GET ", 4)) {
 					char szCom[501];
 					snprintf(szCom, 500, "HTTP/1.0 200 OK\r\nServer: %s\r\nCache-Control: no-store\r\nPragma: no-cache\r\nContent-Type: application/x-rtsp-tunnelled\r\n\r\n", sess->Server);
 					szCom[500] = 0;
 
 					GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Send reply %s\n", szCom));
 
-					e = gf_rtsp_send_data(sess, szCom, (u32) strlen(szCom));
+					e = gf_rtsp_send_data(sess,(u8*) szCom, (u32) strlen(szCom));
 					if (e && (e!= GF_IP_NETWORK_EMPTY)) return e;
 					return GF_IP_NETWORK_EMPTY;
 				}
 				//post
-				return GF_RTSP_TUNNEL_POST;
+				return (GF_Err) GF_RTSP_TUNNEL_POST;
 			}
 		}
 	}

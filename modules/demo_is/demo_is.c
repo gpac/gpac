@@ -65,6 +65,7 @@ static void DEV_Stop(struct __input_device *ifce)
 {
 }
 
+GPAC_MODULE_EXPORT_START
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
@@ -100,5 +101,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 		gf_free(bi);
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( demo_is )

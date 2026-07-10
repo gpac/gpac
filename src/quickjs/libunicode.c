@@ -410,7 +410,7 @@ int cr_realloc(CharRange *cr, int size)
 
     if (size > cr->size) {
         new_size = max_int(size, cr->size * 3 / 2);
-        new_buf = cr->realloc_func(cr->mem_opaque, cr->points,
+        new_buf = (uint32_t *) cr->realloc_func(cr->mem_opaque, cr->points,
                                    new_size * sizeof(cr->points[0]));
         if (!new_buf)
             return -1;
@@ -1204,7 +1204,7 @@ int unicode_normalize(uint32_t **pdst, const uint32_t *src, int src_len,
     }
     buf = (int *)dbuf->buf;
     buf_len = (int) ( dbuf->size / sizeof(int) );
-        
+
     sort_cc(buf, buf_len);
 
     if (buf_len <= 1 || (n_type & 1) != 0) {
@@ -1923,7 +1923,7 @@ static int unicode_sequence_prop1(int seq_prop_idx, UnicodeSequencePropCB *cb, v
 {
     int i, c, j;
     uint32_t seq[SEQ_MAX_LEN];
-    
+
     switch(seq_prop_idx) {
     case UNICODE_SEQUENCE_PROP_Basic_Emoji:
         if (unicode_prop1(cr, UNICODE_PROP_Basic_Emoji1) < 0)
@@ -1980,7 +1980,7 @@ static int unicode_sequence_prop1(int seq_prop_idx, UnicodeSequencePropCB *cb, v
             int len, code, pres, k, mod, mod_count, mod_pos[2], hc_pos, n_mod, n_hc, mod1;
             int mod_idx, hc_idx, i0, i1;
             const uint8_t *tab = unicode_rgi_emoji_zwj_sequence;
-            
+
             for(i = 0; i < countof(unicode_rgi_emoji_zwj_sequence);) {
                 len = tab[i++];
                 k = 0;
@@ -2038,7 +2038,7 @@ static int unicode_sequence_prop1(int seq_prop_idx, UnicodeSequencePropCB *cb, v
                     for(mod_idx = 0; mod_idx < n_mod; mod_idx++) {
                         if (hc_pos >= 0)
                             seq[hc_pos] = 0x1f9b0 + hc_idx;
-                        
+
                         switch(mod) {
                         case 1:
                             seq[mod_pos[0]] = 0x1f3fb + mod_idx;

@@ -124,7 +124,7 @@ void mcdec_init_media_format(GF_MCDecCtx *ctx, AMediaFormat *format)
 static void mcdec_reset_ps_list(GF_List *list)
 {
 	while (list && gf_list_count(list)) {
-		GF_NALUFFParam *slc = gf_list_get(list, 0);
+		GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(list, 0);
 		gf_free(slc->data);
 		gf_free(slc);
 		gf_list_rem(list, 0);
@@ -140,7 +140,7 @@ GF_Err mcdec_init_avc_dec(GF_MCDecCtx *ctx)
 	GF_NALUFFParam *pps = NULL;
 
 	for (i=0; i<gf_list_count(ctx->SPSs); i++) {
-		sps = gf_list_get(ctx->SPSs, i);
+		sps = (GF_NALUFFParam *)gf_list_get(ctx->SPSs, i);
 		if (ctx->active_sps<0) ctx->active_sps = sps->id;
 
 		if (sps->id==ctx->active_sps) break;
@@ -148,7 +148,7 @@ GF_Err mcdec_init_avc_dec(GF_MCDecCtx *ctx)
 	}
 	if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
 	for (i=0; i<gf_list_count(ctx->PPSs); i++) {
-		pps = gf_list_get(ctx->PPSs, i);
+		pps = (GF_NALUFFParam *)gf_list_get(ctx->PPSs, i);
 		if (ctx->active_pps<0) ctx->active_pps = pps->id;
 		if (pps->id==ctx->active_pps) break;
 		pps = NULL;
@@ -211,7 +211,7 @@ GF_Err mcdec_init_m4vp2_dec(GF_MCDecCtx *ctx)
 	GF_BitStream *bs;
 	u8 *dsi_data;
 	u32 dsi_size;
-	GF_FilterPid *ipid = gf_list_get(ctx->streams, 0);
+	GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, 0);
 	const GF_PropertyValue *dcd = gf_filter_pid_get_property(ipid, GF_PROP_PID_DECODER_CONFIG);
 
 	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
@@ -251,7 +251,7 @@ GF_Err mcdec_init_hevc_dec(GF_MCDecCtx *ctx)
 	GF_NALUFFParam *vps = NULL;
 
 	for (i=0; i<gf_list_count(ctx->SPSs); i++) {
-		sps = gf_list_get(ctx->SPSs, i);
+		sps = (GF_NALUFFParam *)gf_list_get(ctx->SPSs, i);
 		if (ctx->active_sps<0) ctx->active_sps = sps->id;
 
 		if (sps->id==ctx->active_sps) break;
@@ -259,14 +259,14 @@ GF_Err mcdec_init_hevc_dec(GF_MCDecCtx *ctx)
 	}
 	if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
 	for (i=0; i<gf_list_count(ctx->PPSs); i++) {
-		pps = gf_list_get(ctx->PPSs, i);
+		pps = (GF_NALUFFParam *)gf_list_get(ctx->PPSs, i);
 		if (ctx->active_pps<0) ctx->active_pps = pps->id;
 
 		if (pps->id==ctx->active_pps) break;
 		pps = NULL;
 	}
 	for (i=0; i<gf_list_count(ctx->VPSs); i++) {
-		vps = gf_list_get(ctx->VPSs, i);
+		vps = (GF_NALUFFParam *)gf_list_get(ctx->VPSs, i);
 		if (ctx->active_vps<0) ctx->active_vps = vps->id;
 
 		if (vps->id==ctx->active_vps) break;
@@ -376,7 +376,7 @@ static GF_Err mcdec_init_decoder(GF_MCDecCtx *ctx) {
 	}
 
 	if (ctx->disable_gl) {
-		ctx->surface_rendering = 0;
+		ctx->surface_rendering = GF_FALSE;
 	} else if (!ctx->window) {
 		if(mcdec_create_surface(ctx->tex_id, &ctx->window, &ctx->surface_rendering, &ctx->surfaceTex) != GF_OK)
 			return GF_BAD_PARAM;
@@ -446,7 +446,7 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u
 	}
 	count = gf_list_count(dest);
 	for (i = 0; i<count; i++) {
-		GF_NALUFFParam *a_slc = gf_list_get(dest, i);
+		GF_NALUFFParam *a_slc = (GF_NALUFFParam *)gf_list_get(dest, i);
 		if (a_slc->id != ps_id) continue;
 		//not same size or different content but same ID, remove old xPS
 		if ((a_slc->size != size) || memcmp(a_slc->data, data, size)) {
@@ -464,7 +464,7 @@ static void mcdec_register_avc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, u
 		GF_NALUFFParam *slc;
 		GF_SAFEALLOC(slc, GF_NALUFFParam);
 		if (!slc) return;
-		slc->data = gf_malloc(size);
+		slc->data = (u8 *)gf_malloc(size);
 		if (!slc->data) {
 			gf_free(slc);
 			return;
@@ -509,7 +509,7 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 
 	count = gf_list_count(dest);
 	for (i = 0; i<count; i++) {
-		GF_NALUFFParam *a_slc = gf_list_get(dest, i);
+		GF_NALUFFParam *a_slc = (GF_NALUFFParam *)gf_list_get(dest, i);
 		if (a_slc->id != ps_id) continue;
 		//not same size or different content but same ID, remove old xPS
 		if ((a_slc->size != size) || memcmp(a_slc->data, data, size)) {
@@ -527,7 +527,7 @@ static void mcdec_register_hevc_param_set(GF_MCDecCtx *ctx, u8 *data, u32 size, 
 		GF_NALUFFParam *slc;
 		GF_SAFEALLOC(slc, GF_NALUFFParam);
 		if (!slc) return;
-		slc->data = gf_malloc(size);
+		slc->data = (u8 *)gf_malloc(size);
 		if (!slc->data) {
 			gf_free(slc);
 			return;
@@ -552,7 +552,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	Bool do_reset=GF_FALSE;
 	u32 i;
 	GF_FilterPid *base_pid = NULL;
-	GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_MCDecCtx *ctx = (GF_MCDecCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		gf_list_del_item(ctx->streams, pid);
@@ -575,7 +575,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	codecid = p->value.uint;
 
-	base_pid = gf_list_get(ctx->streams, 0);
+	base_pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, 0);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (!p && base_pid && (base_pid != pid)) return GF_REQUIRES_NEW_INSTANCE;
 	else if (p) {
@@ -584,7 +584,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->codecid != GF_CODECID_HEVC) return GF_REQUIRES_NEW_INSTANCE;
 
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			GF_FilterPid *ipid = gf_list_get(ctx->streams, i);
+			GF_FilterPid *ipid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, i);
 			const GF_PropertyValue *p_dep;
 			if (ipid==pid) continue;
 
@@ -664,21 +664,21 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		cfg = gf_odf_avc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 		for (i = 0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
-			slc = gf_list_get(cfg->sequenceParameterSets, i);
+			slc = (GF_NALUFFParam *)gf_list_get(cfg->sequenceParameterSets, i);
 			slc->id = -1;
 			mcdec_register_avc_param_set(ctx, slc->data, slc->size, MCDEC_SPS);
 		}
 
 		for (i = 0; i<gf_list_count(cfg->pictureParameterSets); i++) {
-			slc = gf_list_get(cfg->pictureParameterSets, i);
+			slc = (GF_NALUFFParam *)gf_list_get(cfg->pictureParameterSets, i);
 			slc->id = -1;
 			mcdec_register_avc_param_set(ctx, slc->data, slc->size, MCDEC_PPS);
 		}
 		//activate first SPS/PPS by default
-		slc = gf_list_get(ctx->SPSs, 0);
+		slc = (GF_NALUFFParam *)gf_list_get(ctx->SPSs, 0);
 		if (slc) ctx->active_sps = slc->id;
 
-		slc = gf_list_get(ctx->PPSs, 0);
+		slc = (GF_NALUFFParam *)gf_list_get(ctx->PPSs, 0);
 		if (slc) ctx->active_pps = slc->id;
 
 		ctx->nalu_size_length = cfg->nal_unit_size;
@@ -717,13 +717,13 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 		}
 		//activate first VPS/SPS/PPS by default
-		sl = gf_list_get(ctx->VPSs, 0);
+		sl = (GF_NALUFFParam *)gf_list_get(ctx->VPSs, 0);
 		if (sl) ctx->active_vps = sl->id;
 
-		sl = gf_list_get(ctx->SPSs, 0);
+		sl = (GF_NALUFFParam *)gf_list_get(ctx->SPSs, 0);
 		if (sl) ctx->active_sps = sl->id;
 
-		sl = gf_list_get(ctx->PPSs, 0);
+		sl = (GF_NALUFFParam *)gf_list_get(ctx->PPSs, 0);
 		if (sl) ctx->active_pps = sl->id;
 
 		gf_odf_hevc_cfg_del(hvcc);
@@ -738,7 +738,7 @@ static void mcdec_write_ps(GF_BitStream *bs, GF_List *ps, s32 active_ps, Bool al
 	if (!all && (active_ps<0)) return;
 	count = gf_list_count(ps);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *sl = gf_list_get(ps, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ps, i);
 		if (all || (sl->id==active_ps)) {
 			gf_bs_write_u32(bs, 1);
 			gf_bs_write_data(bs, sl->data, sl->size);
@@ -877,7 +877,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 	u32 in_buffer_size, i, count, nb_eos;
 	u64 min_dts;
 	GF_Err e;
-	GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_MCDecCtx *ctx = (GF_MCDecCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_FilterPid *ref_pid = NULL;
 	u8 *dec_frame=NULL;
@@ -901,7 +901,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 	min_dts = 0;
 	for (i=0; i<count; i++) {
 		u64 dts;
-		GF_FilterPid *pid = gf_list_get(ctx->streams, i);
+		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(ctx->streams, i);
 
 		pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {
@@ -1044,7 +1044,7 @@ static GF_Err mcdec_process(GF_Filter *filter)
 					 break;
 				}
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] got output buffer CTS "LLU" (out EOS %d)\n", info.presentationTimeUs, ctx->outputEOS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MCDec] got output buffer CTS " LLU " (out EOS %d)\n", info.presentationTimeUs, ctx->outputEOS));
 
 			e = mcdec_send_frame(ctx, dec_frame, info.presentationTimeUs);
 			if (e) return e;
@@ -1130,7 +1130,7 @@ static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, u8 *frame_buffer, u64 cts)
 
 	if(ctx->outIndex < 0 || (!frame_buffer && !ctx->surface_rendering))  return GF_BAD_PARAM;
 
-	mc_frame = gf_list_pop_front(ctx->frames_res);
+	mc_frame = (GF_MCDecFrame *)gf_list_pop_front(ctx->frames_res);
 	if (!mc_frame) {
 		GF_SAFEALLOC(mc_frame, GF_MCDecFrame);
 		if (!mc_frame) return GF_OUT_OF_MEM;
@@ -1170,7 +1170,7 @@ static GF_Err mcdec_send_frame(GF_MCDecCtx *ctx, u8 *frame_buffer, u64 cts)
 
 GF_Err mcdec_initialize(GF_Filter *filter)
 {
-	GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_MCDecCtx *ctx = (GF_MCDecCtx *)gf_filter_get_udta(filter);
 	ctx->filter = filter;
 
 	ctx->frames_res = gf_list_new();
@@ -1189,7 +1189,7 @@ GF_Err mcdec_initialize(GF_Filter *filter)
 
 void mcdec_finalize(GF_Filter *filter)
 {
-	GF_MCDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_MCDecCtx *ctx = (GF_MCDecCtx *)gf_filter_get_udta(filter);
 
 	if (ctx->format && AMediaFormat_delete(ctx->format) != AMEDIA_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MCDec] AMediaFormat_delete failed\n"));
@@ -1218,7 +1218,7 @@ void mcdec_finalize(GF_Filter *filter)
 	gf_list_del(ctx->VPSs);
 
 	while (gf_list_count(ctx->frames_res) ) {
-		GF_MCDecFrame *f = gf_list_pop_back(ctx->frames_res);
+		GF_MCDecFrame *f = (GF_MCDecFrame *)gf_list_pop_back(ctx->frames_res);
 		gf_free(f);
 	}
 	gf_list_del(ctx->frames_res);

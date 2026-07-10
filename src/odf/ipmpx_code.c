@@ -87,7 +87,7 @@ GF_IPMPX_ByteArray *GF_IPMPX_GetByteArray(GF_BitStream *bs)
 	} while ( val & 0x80 );
 	if (!size) return NULL;
 	ba = (GF_IPMPX_ByteArray*)gf_malloc(sizeof(GF_IPMPX_ByteArray));
-	ba->data = (char*)gf_malloc(sizeof(char)*size);
+	ba->data = (u8 *)gf_malloc(size);
 	gf_bs_read_data(bs, ba->data, size);
 	ba->length = size;
 	return ba;
@@ -223,7 +223,7 @@ GF_Err GF_IPMPX_AUTH_Parse(GF_BitStream *bs, GF_IPMPX_Authentication **auth)
 		if (!p) return GF_OUT_OF_MEM;
 		p->tag = tag;
 		p->keyBodyLength = size;
-		p->keyBody = (char*)gf_malloc(sizeof(char)*size);
+		p->keyBody = (u8 *)gf_malloc(size);
 		gf_bs_read_data(bs, p->keyBody, size);
 		*auth = (GF_IPMPX_Authentication *)p;
 		return GF_OK;
@@ -590,7 +590,7 @@ static GF_Err ReadGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Data
 		tt->tag = GF_IPMPX_TRUSTED_TOOL_TAG;
 		nbTools--;
 		gf_list_add(p->TrustedTools, tt);
-		gf_bs_read_data(bs, (char*)tt->toolID, 16);
+		gf_bs_read_data(bs,tt->toolID, 16);
 		gf_bs_read_data(bs, tt->AuditDate, 5);
 		tt->trustSpecifications = gf_list_new();
 		nbSpec = gf_bs_read_int(bs, 16);
@@ -642,8 +642,8 @@ static GF_Err WriteGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Dat
 	gf_bs_write_int(bs, c1, 16);
 	for (i=0; i<c1; i++) {
 		GF_IPMPX_TrustedTool *tt = (GF_IPMPX_TrustedTool *)gf_list_get(p->TrustedTools, i);
-		gf_bs_write_data(bs, (char*)tt->toolID, 16);
-		gf_bs_write_data(bs, (char*)tt->AuditDate, 5);
+		gf_bs_write_data(bs,tt->toolID, 16);
+		gf_bs_write_data(bs,tt->AuditDate, 5);
 		c2 = gf_list_count(tt->trustSpecifications);
 		gf_bs_write_int(bs, c2, 16);
 
@@ -1331,7 +1331,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 
 		gf_list_add(p->SelEncBuffer, sb);
 		count--;
-		gf_bs_read_data(bs, (char*)sb->cipher_Id, 16);
+		gf_bs_read_data(bs,sb->cipher_Id, 16);
 		sb->syncBoundary = gf_bs_read_int(bs, 8);
 		is_block = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 7);
@@ -1426,7 +1426,7 @@ static GF_Err WriteGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_D
 	gf_bs_write_int(bs, count, 8);
 	for (i=0; i<count; i++) {
 		GF_IPMPX_SelEncBuffer *sb = (GF_IPMPX_SelEncBuffer *)gf_list_get(p->SelEncBuffer, i);
-		gf_bs_write_data(bs, (char*)sb->cipher_Id, 16);
+		gf_bs_write_data(bs,sb->cipher_Id, 16);
 		gf_bs_write_int(bs, sb->syncBoundary, 8);
 		gf_bs_write_int(bs, sb->Stream_Cipher_Specific_Init_Info ? 0 : 1, 1);
 		gf_bs_write_int(bs, 0, 7);
@@ -1505,7 +1505,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	case GF_IPMPX_WM_INSERT:
 	case GF_IPMPX_WM_REMARK:
 		p->wmPayloadLen = gf_bs_read_int(bs, 16);
-		p->wmPayload = (char*)gf_malloc(sizeof(u8) * p->wmPayloadLen);
+		p->wmPayload = (u8 *)gf_malloc(p->wmPayloadLen);
 		gf_bs_read_data(bs, p->wmPayload, p->wmPayloadLen);
 		break;
 	case GF_IPMPX_WM_EXTRACT:
@@ -1515,7 +1515,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 	}
 	if (has_opaque_data) {
 		p->opaqueDataSize = gf_bs_read_int(bs, 16);
-		p->opaqueData = (char*)gf_malloc(sizeof(u8) * p->opaqueDataSize);
+		p->opaqueData = (u8 *)gf_malloc(p->opaqueDataSize);
 		gf_bs_read_data(bs, p->opaqueData, p->opaqueDataSize);
 	}
 	return GF_OK;
@@ -1536,7 +1536,7 @@ static u32 SizeGF_IPMPX_WatermarkingInit(GF_IPMPX_Data *_p)
 		size += 2;
 		break;
 	}
-	if (p->opaqueData) size += p->opaqueDataSize + 2;
+	if (p->opaqueData) size += (u8 *)p->opaqueDataSize + 2;
 	return size;
 }
 static GF_Err WriteGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p)
@@ -1795,7 +1795,7 @@ GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag)
 
 	case GF_IPMPX_PARAM_DESCRIPTOR_ITEM_TAG:
 	{
-		GF_IPMPX_AUTH_KeyDescriptor *p = (GF_IPMPX_AUTH_KeyDescriptor *)gf_malloc(sizeof(GF_IPMPX_ParametricDescriptionItem));
+		GF_IPMPX_AUTH_KeyDescriptor *p = (GF_IPMPX_AUTH_KeyDescriptor *)gf_malloc(sizeof(GF_IPMPX_AUTH_KeyDescriptor));
 		if (!p) return NULL;
 		memset(p, 0, sizeof(GF_IPMPX_ParametricDescriptionItem));
 		p->tag = GF_IPMPX_PARAM_DESCRIPTOR_ITEM_TAG;

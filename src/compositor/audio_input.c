@@ -37,9 +37,9 @@ since the drift may be high on TS for example, where PTS-PCR>500ms is quite comm
 #define MIN_DRIFT_ADJUST	75
 
 
-static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_size, u32 audio_delay_ms)
+static const u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_size, u32 audio_delay_ms)
 {
-	char *frame;
+	u8 *frame;
 	u32 obj_time, ts;
 	s32 drift;
 	Fixed speed;
@@ -193,7 +193,7 @@ static Bool gf_audio_input_get_volume(void *callback, Fixed *vol)
 		u32 i;
 		for (i=0; i<GF_AUDIO_MIXER_MAX_CHANNELS; i++)
 			vol[i] = ai->intensity;
-			
+
 		return (ai->intensity==FIX_ONE) ? GF_FALSE : GF_TRUE;
 	}
 }
@@ -315,7 +315,7 @@ void gf_sc_audio_restart(GF_AudioInput *ai)
 GF_EXPORT
 Bool gf_sc_audio_check_url(GF_AudioInput *ai, MFURL *url)
 {
-	if (!ai->stream) return url->count;
+	if (!ai->stream) return url->count ? GF_TRUE : GF_FALSE;
 	return gf_mo_url_changed(ai->stream, url);
 }
 

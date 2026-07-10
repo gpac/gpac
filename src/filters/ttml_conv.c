@@ -52,7 +52,7 @@ typedef struct
 
 GF_Err ttmlconv_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	TTMLConvCtx *ctx = gf_filter_get_udta(filter);
+	TTMLConvCtx *ctx = (TTMLConvCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -87,7 +87,7 @@ GF_Err ttmlconv_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 //from filter writegen
 GF_XMLNode *ttml_get_body(GF_XMLNode *root);
-GF_XMLAttribute *ttml_get_attr(GF_XMLNode *node, char *name);
+GF_XMLAttribute *ttml_get_attr(GF_XMLNode *node, const char *name);
 
 //from filter txtin
 u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *ttml_fps_den, u32 *ttml_sfps);
@@ -104,7 +104,7 @@ static void ttmlconv_dump_node(TTMLConvCtx *ctx, GF_XMLNode *p, FILE *dump)
 	Bool needs_bold = GF_FALSE;
 	const char *needs_color = NULL;
 	i=0;
-	while ( (att = gf_list_enum(p->attributes, &i)) ) {
+	while ( (att = (GF_XMLAttribute *)gf_list_enum(p->attributes, &i)) ) {
 		const char *sep = strchr(att->name, ':');
 		const char *name  = sep ? sep+1 : att->name;
 		if (!name) continue;
@@ -125,7 +125,7 @@ static void ttmlconv_dump_node(TTMLConvCtx *ctx, GF_XMLNode *p, FILE *dump)
 	if (needs_underlined) fprintf(dump, "<u>");
 
 	i=0;
-	while ( (child = gf_list_enum(p->content, &i)) ) {
+	while ( (child = (GF_XMLNode *)gf_list_enum(p->content, &i)) ) {
 		if (child->type == GF_XML_TEXT_TYPE) {
 			fprintf(dump, "%s", child->name);
 			continue;
@@ -146,9 +146,9 @@ static void ttmlconv_dump_node(TTMLConvCtx *ctx, GF_XMLNode *p, FILE *dump)
 
 GF_Err ttmlconv_process(GF_Filter *filter)
 {
-	TTMLConvCtx *ctx = gf_filter_get_udta(filter);
+	TTMLConvCtx *ctx = (TTMLConvCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data;
+	const u8 *data;
 	u64 start_ts, end_ts;
 	u32 pck_size;
 	GF_Err e = GF_OK;
@@ -169,7 +169,7 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!data || !pck_size) {
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
@@ -205,7 +205,7 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 		txt_size = pck_size;
 	}
 	if (ctx->buf_alloc < txt_size + 2) {
-		ctx->buf = gf_realloc(ctx->buf, txt_size+2);
+		ctx->buf = (u8 *)gf_realloc(ctx->buf, txt_size+2);
 		if (!ctx->buf) return GF_OUT_OF_MEM;
 		ctx->buf_alloc = txt_size+2;
 	}
@@ -215,7 +215,7 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 
 	dom = gf_xml_dom_new();
 	if (!dom) return GF_OUT_OF_MEM;
-	e = gf_xml_dom_parse_string(dom, ctx->buf);
+	e = gf_xml_dom_parse_string(dom, (char *)ctx->buf);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ctx->buf));
 		goto exit;
@@ -228,14 +228,14 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 	body = ttml_get_body(root);
 	nb_children = body ? gf_list_count(body->content) : 0;
 	for (i=0; i<nb_children; i++) {
-		GF_XMLNode *div = gf_list_get(body->content, i);
+		GF_XMLNode *div = (GF_XMLNode *)gf_list_get(body->content, i);
 		if (div->type) continue;
 		if (strcmp(div->name, "div")) continue;
 
 //		div_reg = ttml_get_attr(div, "region");
 
 		j=0;
-		while ( (p = gf_list_enum(div->content, &j)) ) {
+		while ( (p = (GF_XMLNode *)gf_list_enum(div->content, &j)) ) {
 			if (p->type) continue;
 			if (strcmp(p->name, "p")) continue;
 
@@ -294,7 +294,7 @@ exit:
 
 static void ttmlconv_finalize(GF_Filter *filter)
 {
-	TTMLConvCtx *ctx = gf_filter_get_udta(filter);
+	TTMLConvCtx *ctx = (TTMLConvCtx *)gf_filter_get_udta(filter);
 	if (ctx->buf) gf_free(ctx->buf);
 }
 
@@ -335,7 +335,7 @@ const GF_FilterRegister *ttml2vtt_register(GF_FilterSession *session)
 
 static GF_Err ttmlconv2_initialize(GF_Filter *filter)
 {
-	TTMLConvCtx *ctx = gf_filter_get_udta(filter);
+	TTMLConvCtx *ctx = (TTMLConvCtx *)gf_filter_get_udta(filter);
 	ctx->srt_conv = GF_TRUE;
 	return GF_OK;
 }

@@ -41,7 +41,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
                                      void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
                                      void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
                                      void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-                                     void (*OnData)(void *cbk, u8 *data, u32 data_size, Bool is_head)
+                                     void (*OnData)(void *cbk, const u8 *data, u32 data_size, Bool is_head)
                                     )
 {
 	GP_RTPPacketizer *tmp;
@@ -84,7 +84,7 @@ void gf_rtp_builder_del(GP_RTPPacketizer *builder)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
+GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, const u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
 {
 	if (!builder) return GF_BAD_PARAM;
 
@@ -142,7 +142,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
                          u32 avgSize, u32 maxSize,
                          u32 avgTS, u32 maxDTS,
                          u32 IV_length, u32 KI_length,
-                         char *pref_mode)
+						 const char *pref_mode)
 {
 	u32 k, ismacrypt_flags;
 
@@ -437,8 +437,8 @@ void gf_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 		/*force flush if no provision for keyIndicator per AU*/
 		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? GF_FALSE : GF_TRUE;
 
-		if (!builder->key_indicator) builder->key_indicator = (char *) gf_malloc(sizeof(char)*builder->slMap.KI_length);
-		memcpy(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length);
+		if (!builder->key_indicator) builder->key_indicator = (u8 *) gf_malloc(builder->slMap.KI_length);
+		memcpy(builder->key_indicator, key_indicator, sizeof(u8)*builder->slMap.KI_length);
 	}
 	if (builder->IV != IV) {
 		builder->IV = IV;
@@ -582,9 +582,9 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 
 
 GF_EXPORT
-GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, char *dsi, u32 dsi_size)
+GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, u8 *dsi, u32 dsi_size)
 {
-	char buffer[100];
+	char str_buf[100];
 	u32 i;
 	Bool is_first = GF_TRUE;
 	GF_Err e = GF_OK;
@@ -597,20 +597,20 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 #define SDP_ADD_INT(_name, _val) {\
 		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL); \
 		gf_dynstrcat(out_sdp_line, _name, NULL);\
-		sprintf(buffer, "%d", _val);\
-		gf_dynstrcat(out_sdp_line, buffer, "=");\
-		is_first = 0;\
+		sprintf(str_buf, "%d", _val);\
+		gf_dynstrcat(out_sdp_line, str_buf, "=");\
+		is_first = GF_FALSE;\
 	}
 
 #define SDP_ADD_STR(_name, _val) {\
 		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL);\
 		gf_dynstrcat(out_sdp_line, _name, NULL);\
 		gf_dynstrcat(out_sdp_line, _val, "=");\
-		is_first = 0;\
+		is_first = GF_FALSE;\
 	}
 
-	sprintf(buffer, "a=fmtp:%d ", builder->PayloadType);
-	gf_dynstrcat(out_sdp_line, buffer, NULL);
+	sprintf(str_buf, "a=fmtp:%d ", builder->PayloadType);
+	gf_dynstrcat(out_sdp_line, str_buf, NULL);
 
 	/*mandatory fields*/
 	if (builder->slMap.PL_ID) SDP_ADD_INT("profile-level-id", builder->slMap.PL_ID);
@@ -624,12 +624,12 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 		}
 		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL);
 		gf_dynstrcat(out_sdp_line, "config=", NULL);
-		buffer[2]=0;
+		str_buf[2]=0;
 		for (i=0; i<dsi_size; i++) {
-			sprintf(buffer, "%02x", (unsigned char) dsi[i]);
-			gf_dynstrcat(out_sdp_line, buffer, NULL);
+			sprintf(str_buf, "%02x", (unsigned char) dsi[i]);
+			gf_dynstrcat(out_sdp_line, str_buf, NULL);
 		}
-		is_first = 0;
+		is_first = GF_FALSE;
 	}
 	if (!strcmp(payload_name, "MP4V-ES") || (builder->rtp_payt == GF_RTP_PAYT_LATM) ) {
 		e = GF_OK;

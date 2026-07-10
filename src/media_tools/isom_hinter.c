@@ -175,7 +175,7 @@ void MP4T_OnDataRef(void *cbk, u32 payload_size, u32 offset_from_orig)
 	                         NULL, 0);
 }
 
-void MP4T_OnData(void *cbk, u8 *data, u32 data_size, Bool is_header)
+void MP4T_OnData(void *cbk, const u8 *data, u32 data_size, Bool is_header)
 {
 	u8 at_begin;
 	GF_RTPHinter *tkHint = (GF_RTPHinter *)cbk;
@@ -201,7 +201,7 @@ void MP4T_OnNewPacket(void *cbk, GF_RTPHeader *header)
 	/*do we need a new sample*/
 	if (!tkHint->HintSample || (tkHint->RTPTime != header->TimeStamp)) {
 		/*close current sample*/
-		if (tkHint->HintSample) gf_isom_end_hint_sample(tkHint->file, tkHint->HintTrack, tkHint->SampleIsRAP);
+		if (tkHint->HintSample) gf_isom_end_hint_sample(tkHint->file, tkHint->HintTrack, tkHint->SampleIsRAP ? GF_TRUE : GF_FALSE);
 
 		/*start new sample: We use DTS as the sampling instant (RTP TS) to make sure
 		all packets are sent in order*/
@@ -229,7 +229,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	u8 OfficialPayloadID;
 	u32 TrackMediaSubType, TrackMediaType, hintType, nbEdts, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth, IV_length, KI_length;
 	const char *url, *urn;
-	char *mpeg4mode;
+	const char *mpeg4mode;
 	Bool is_crypted, has_mpeg4_mapping;
 	GF_RTPHinter *tmp;
 	GF_ESD *esd;
@@ -263,12 +263,12 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	streamType = 0;
 	mpeg4mode = NULL;
 	required_rate = 0;
-	is_crypted = 0;
+	is_crypted = GF_FALSE;
 	IV_length = KI_length = 0;
 	codecid = 0;
 	nb_ch = 0;
 	avc_nalu_size = 0;
-	has_mpeg4_mapping = 1;
+	has_mpeg4_mapping = GF_TRUE;
 	const_dur = 0;
 	bandwidth=0;
 	TrackMediaType = gf_isom_get_media_type(file, TrackNum);
@@ -289,7 +289,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		TrackMediaSubType = gf_isom_get_media_subtype(file, TrackNum, 1);
 		switch (TrackMediaSubType) {
 		case GF_ISOM_SUBTYPE_MPEG4_CRYP:
-			is_crypted = 1;
+			is_crypted = GF_TRUE;
 		case GF_ISOM_SUBTYPE_MPEG4:
 			esd = gf_isom_get_esd(file, TrackNum, 1);
 			hintType = GF_RTP_PAYT_MPEG4;
@@ -421,14 +421,14 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_AMR;
 			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 0;
+			has_mpeg4_mapping = GF_FALSE;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			required_rate = 16000;
 			hintType = GF_RTP_PAYT_AMR_WB;
 			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 0;
+			has_mpeg4_mapping = GF_FALSE;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
@@ -595,7 +595,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	tmp->nb_chan = nb_ch;
 
 	/*spatial scalability check*/
-	tmp->has_ctts = gf_isom_has_time_offset(file, TrackNum);
+	tmp->has_ctts = gf_isom_has_time_offset(file, TrackNum) ? GF_TRUE : GF_FALSE;
 
 	/*get sample info*/
 	gf_media_get_sample_average_infos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
@@ -784,7 +784,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			gf_free(samp->data);
 			samp->data = s->data;
 			samp->dataLength = s->dataLength;
-			gf_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, (char*)s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0);
+			gf_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, (char*)s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? GF_TRUE : GF_FALSE);
 			s->data = NULL;
 			s->dataLength = 0;
 			gf_isom_ismacryp_delete_sample(s);
@@ -804,7 +804,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		if (tkHint->avc_nalu_size) {
 			u32 v, size;
 			u32 remain = samp->dataLength;
-			char *ptr = samp->data;
+			const u8 *ptr = samp->data;
 
 			tkHint->rtp_p->sl_header.accessUnitStartFlag = 1;
 			tkHint->rtp_p->sl_header.accessUnitEndFlag = 0;
@@ -854,7 +854,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	//flush
 	gf_rtp_builder_process(tkHint->rtp_p, NULL, 0, 1, 0, 0, 0);
 
-	gf_isom_end_hint_sample(tkHint->file, tkHint->HintTrack, (u8) tkHint->SampleIsRAP);
+	gf_isom_end_hint_sample(tkHint->file, tkHint->HintTrack, tkHint->SampleIsRAP ? GF_TRUE : GF_FALSE);
 	return GF_OK;
 }
 
@@ -866,7 +866,7 @@ static u32 write_nalu_config_array(char **sdpLine, GF_List *nalus)
 	count = gf_list_count(nalus);
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(nalus, i);
-		b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
+		b64s = gf_base64_encode(sl->data, sl->size, (u8*)b64, 200);
 		b64[b64s]=0;
 		gf_dynstrcat(sdpLine, b64, NULL);
 		if (i+1<count) gf_dynstrcat(sdpLine, ",", NULL);
@@ -992,7 +992,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 				if (sdp_line) gf_free(sdp_line);
 				return GF_ISOM_INVALID_FILE;
 			}
-			len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
+			len = gf_base64_encode(tx3g, tx3g_len, (u8*)buffer, 2000);
 			gf_free(tx3g);
 			buffer[len] = 0;
 			if (i) gf_dynstrcat(&sdp_line, ", ", NULL);
@@ -1158,8 +1158,8 @@ Bool gf_hinter_can_embbed_data(u8 *data, u32 data_size, u32 streamType)
 	char data64[5000];
 	u32 size64;
 
-	size64 = gf_base64_encode(data, data_size, data64, 5000);
-	if (!size64) return 0;
+	size64 = gf_base64_encode(data, data_size, (u8*)data64, 5000);
+	if (!size64) return GF_FALSE;
 	switch (streamType) {
 	case GF_STREAM_OD:
 		size64 += (u32) strlen("data:application/mpeg4-od-au;base64,");
@@ -1172,8 +1172,8 @@ Bool gf_hinter_can_embbed_data(u8 *data, u32 data_size, u32 streamType)
 		size64 += (u32) strlen("data:application/mpeg4-es-au;base64,");
 		break;
 	}
-	if (size64>=255) return 0;
-	return 1;
+	if (size64>=255) return GF_FALSE;
+	return GF_TRUE;
 }
 
 
@@ -1219,10 +1219,10 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 			break;
 		}
 	}
-	remove_ocr = 0;
+	remove_ocr = GF_FALSE;
 	if (IOD_Profile == GF_SDP_IOD_ISMA_STRICT) {
 		IOD_Profile = GF_SDP_IOD_ISMA;
-		remove_ocr = 1;
+		remove_ocr = GF_TRUE;
 	}
 
 	/*if we want ISMA like iods, we need at least BIFS */
@@ -1235,7 +1235,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	/*rewrite an IOD with good SL config - embbed data if possible*/
 	if (IOD_Profile == GF_SDP_IOD_ISMA) {
 		GF_ESD *esd;
-		Bool is_ok = 1;
+		Bool is_ok = GF_TRUE;
 		while (gf_list_count(iod->ESDescriptors)) {
 			esd = (GF_ESD*)gf_list_get(iod->ESDescriptors, 0);
 			gf_odf_desc_del((GF_Descriptor *) esd);
@@ -1260,10 +1260,10 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 					gf_isom_set_extraction_slc(file, odT, 1, &slc);
 
 					u32 len_prfx = (u32) strlen("data:application/mpeg4-od-au;base64,");
-					esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
+					esd->URLString = (char *)gf_malloc(1 + len_prfx + samp->dataLength*3);
 					if (esd->URLString) {
 						gf_strlcpy(esd->URLString, "data:application/mpeg4-od-au;base64,", 1 + len_prfx + samp->dataLength);
-						size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
+						size64 = gf_base64_encode(samp->data, samp->dataLength, (u8*)esd->URLString+len_prfx, samp->dataLength*3);
 						esd->URLString[len_prfx + size64] = 0;
 					}
 					if (esd->decoderConfig) {
@@ -1273,7 +1273,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 					}
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] OD sample too large to be embedded in IOD - ISMA disabled\n"));
-					is_ok = 0;
+					is_ok = GF_FALSE;
 				}
 				gf_isom_sample_del(&samp);
 			}
@@ -1299,10 +1299,10 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				gf_isom_set_extraction_slc(file, sceneT, 1, &slc);
 				//encode in Base64 the sample
 				u32 len_prfx = (u32) strlen("data:application/mpeg4-bifs-au;base64,");
-				esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
+				esd->URLString = (char *)gf_malloc(1 + len_prfx + samp->dataLength*3);
 				if (esd->URLString) {
 					gf_strlcpy(esd->URLString, "data:application/mpeg4-bifs-au;base64,", 1 + len_prfx + samp->dataLength);
-					size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
+					size64 = gf_base64_encode(samp->data, samp->dataLength, (u8*)esd->URLString+len_prfx, samp->dataLength*3);
 					esd->URLString[len_prfx + size64] = 0;
 				}
 				if (esd->decoderConfig) {
@@ -1312,7 +1312,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				}
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Scene description sample too large to be embedded in IOD - ISMA disabled\n"));
-				is_ok = 0;
+				is_ok = GF_FALSE;
 			}
 			gf_isom_sample_del(&samp);
 		}
@@ -1357,10 +1357,10 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 
 	//encode in Base64 the iod
 	u32 len_prfx = (u32) strlen("a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
-	u8 *buf64 = gf_malloc(size*3+4+len_prfx);
+	char *buf64 = (char *)gf_malloc(size*3+4+len_prfx);
 	if (buf64) {
 		gf_strlcpy(buf64, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,", size*3+4+len_prfx);
-		size64 = gf_base64_encode(buffer, size, buf64+len_prfx, size*3);
+		size64 = gf_base64_encode(buffer, size, (u8*)buf64+len_prfx, size*3);
 		buf64[len_prfx + size64] = '"';
 		buf64[len_prfx + size64+1] = 0;
 		gf_isom_sdp_add_line(file, buf64);

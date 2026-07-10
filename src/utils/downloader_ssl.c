@@ -330,7 +330,7 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic)
 	if (ALPN_PROTOS[0]) {
 		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, ssl_select_next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-		SSL_CTX_set_alpn_protos(dm->ssl_ctx, ALPN_PROTOS, (u32) strlen(ALPN_PROTOS));
+		SSL_CTX_set_alpn_protos(dm->ssl_ctx,(u8 *)  ALPN_PROTOS, (u32) strlen(ALPN_PROTOS));
 #endif
 	}
 
@@ -382,7 +382,7 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned ch
 		switch (version) {
 		case NGTCP2_PROTO_VER_V1:
 		case NGTCP2_PROTO_VER_V2:
-			alpn = "\x2h3";
+			alpn = (u8*) "\x2h3";
 			alpnlen = 3;
 			break;
 		default:
@@ -391,7 +391,7 @@ static int alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned ch
 		}
 		const unsigned char *p, *end;
 		for (p = in, end = in + inlen; p + alpnlen <= end; p += *p + 1) {
-			if (!strncmp(alpn, p, alpnlen)) {
+			if (!memcmp(alpn, p, alpnlen)) {
 				*out = p + 1;
 				*outlen = *p;
 				return SSL_TLSEXT_ERR_OK;
@@ -578,12 +578,11 @@ void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic
 
 void gf_ssl_server_context_del(void *ssl_ctx)
 {
-	SSL_CTX_free(ssl_ctx);
+	SSL_CTX_free((SSL_CTX*)ssl_ctx);
 }
 void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 {
-	SSL *ssl;
-	ssl = SSL_new(ssl_ctx);
+	SSL *ssl = (SSL *)SSL_new((SSL_CTX *)ssl_ctx);
 	if (!ssl) {
 		*e = GF_IO_ERR;
 		return NULL;
@@ -607,16 +606,16 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 }
 void gf_ssl_del(void *ssl)
 {
-	if (ssl) SSL_free(ssl);
+	if (ssl) SSL_free((SSL *)ssl);
 }
 
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name)
 {
 	long vresult = SSL_get_verify_result(ssl);
-	Bool success = (vresult == X509_V_OK);
+	Bool success = (vresult == X509_V_OK) ? GF_TRUE : GF_FALSE;
 
 	if (!success) {
-		int level = GF_LOG_ERROR;
+		GF_LOG_Level level = GF_LOG_ERROR;
 		if (gf_opts_get_bool("core", "broken-cert")) {
 			success = GF_TRUE;
 			level = GF_LOG_WARNING;
@@ -662,7 +661,7 @@ GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *w
 	return GF_OK;
 }
 
-GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
+GF_Err gf_ssl_read_data(GF_DownloadSession *sess, u8 *data, u32 data_size, u32 *out_read)
 {
 	s32 size;
 	GF_Err e;
@@ -859,7 +858,7 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserC
 	gf_dynstrcat(&pass_buf, creds->username, NULL);
 	gf_dynstrcat(&pass_buf, password, ":");
 	if (!pass_buf) return GF_OUT_OF_MEM;
-	size = gf_base64_encode(pass_buf, (u32) strlen(pass_buf), range_buf, 1024);
+	size = gf_base64_encode((u8*)pass_buf, (u32) strlen(pass_buf), (u8*)range_buf, 1024);
 	gf_free(pass_buf);
 	range_buf[size] = 0;
 	gf_strcpy(creds->digest, range_buf);
@@ -892,7 +891,7 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserC
 		GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
 		gf_crypt_init(gfc, k, NULL);
 		gf_strcpy(szPATH, password);
-		gf_crypt_encrypt(gfc, szPATH, plen);
+		gf_crypt_encrypt(gfc, (u8*)szPATH, plen);
 		gf_crypt_close(gfc);
 		szPATH[plen] = 0;
 		gf_dynstrcat(&key, creds->username, NULL);
@@ -950,7 +949,7 @@ GF_UserCredentials* gf_user_credentials_find_for_site(GF_DownloadManager *dm, co
 
 			GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
 			gf_crypt_init(gfc, k, NULL);
-			gf_crypt_decrypt(gfc, szP, (u32) strlen(szP));
+			gf_crypt_decrypt(gfc, (u8*)szP, (u32) strlen(szP));
 			gf_crypt_close(gfc);
 			gf_user_credentials_save_digest(dm, cred, szP, GF_FALSE);
 			return cred;

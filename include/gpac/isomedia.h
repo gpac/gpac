@@ -2874,7 +2874,7 @@ if both average_bitrate and max_bitrate are 0, this removes any bitrate informat
 GF_Err gf_isom_update_bitrate_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size, Bool forced_for_mpeg4);
 
 
-/*! track clone flags*/
+/*! track clone flags values*/
 typedef enum
 {
 	/*! set this flag to keep data reference entries while cloning track*/
@@ -2885,7 +2885,10 @@ typedef enum
 	GF_ISOM_CLONE_TRACK_DROP_ID = 1<<2,
 	/*! reset media duration when cloning */
 	GF_ISOM_CLONE_RESET_DURATION = 1<<3
-} GF_ISOTrackCloneFlags;
+} GF_ISOTrackCloneFlagsValues;
+
+/*! track clone flags*/
+typedef u32 GF_ISOTrackCloneFlags;
 
 /*! clones a track. This clones everything except media data and sample info (DTS, CTS, RAPs, etc...), and also clones sample descriptions
 \param orig_file the source ISO file
@@ -3357,7 +3360,7 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sample
 \param size the size of the RVC configuration data; ignored if rvc_predefined is not 0
 \return error if any
 */
-GF_Err gf_isom_set_rvc_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, u8 *data, u32 size);
+GF_Err gf_isom_set_rvc_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u16 rvc_predefined, const char *mime, u8 *data, u32 size);
 
 
 /*! updates fields of given visual sample description - these fields are reserved in ISOBMFF, this should only be used for QT, see QTFF
@@ -3671,7 +3674,10 @@ typedef enum
 	GF_ISOM_NALU_EXTRACT_VDRD_FLAG = 1<<18,
 	/*! all extractors are skipped and only tile track data is kept*/
 	GF_ISOM_NALU_EXTRACT_TILE_ONLY = 1<<19
-} GF_ISONaluExtractMode;
+} GF_ISONaluExtractModeFlafs;
+
+/*! NALU extract modes*/
+typedef u32 GF_ISONaluExtractMode;
 
 /*! sets the NALU extraction mode for this track
 \param isom_file the target ISO file
@@ -4584,7 +4590,9 @@ typedef enum
 	GF_ISOM_SEGMENT_NO_ORDER_FLAG = 1,
 	/*! the segment contains a scalable layer of the last opened segment*/
 	GF_ISOM_SEGMENT_SCALABLE_FLAG = 1<<1,
-} GF_ISOSegOpenMode;
+} GF_ISOSegOpenFlags;
+
+typedef u32 GF_ISOSegOpenMode;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 
@@ -4873,7 +4881,10 @@ typedef enum
 	/*! use compact fragment syntax*/
 	GF_ISOM_FRAG_USE_COMPACT = 1<<1,
 #endif
-} GF_ISOStartFragmentFlags;
+} GF_ISOStartFragmentFlagValues;
+
+typedef u32 GF_ISOStartFragmentFlags;
+
 /*! starts a new movie fragment
 \param isom_file the target ISO file
 \param moof_first if GF_TRUE, the moof will be written before the mdat
@@ -5238,7 +5249,7 @@ GF_Err gf_isom_begin_hint_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 Hin
 \param IsRandomAccessPoint set to GF_TRUE if you want to indicate that this is a random access point in the stream
 \return error if any
 */
-GF_Err gf_isom_end_hint_sample(GF_ISOFile *isom_file, u32 trackNumber, u8 IsRandomAccessPoint);
+GF_Err gf_isom_end_hint_sample(GF_ISOFile *isom_file, u32 trackNumber, Bool IsRandomAccessPoint);
 
 
 /*!
@@ -5266,7 +5277,7 @@ to add small blocks of data (encrypted parts, specific headers, ...)
 \param AtBegin indicates if the blank chunk should be at the end or at the beginning of the hint packet
 \return error if any
 */
-GF_Err gf_isom_hint_direct_data(GF_ISOFile *isom_file, u32 trackNumber, u8 *data, u32 dataLength, u8 AtBegin);
+GF_Err gf_isom_hint_direct_data(GF_ISOFile *isom_file, u32 trackNumber, const u8 *data, u32 dataLength, u8 AtBegin);
 
 /*! adds a reference to some sample data in the packet
 \note if you want to reference a previous HintSample in the hintTrack, you will have to parse the sample yourself ...
@@ -5284,7 +5295,7 @@ GF_Err gf_isom_hint_direct_data(GF_ISOFile *isom_file, u32 trackNumber, u8 *data
 \param AtBegin indicates if the blank chunk should be at the end or at the beginning of the hint packet
 \return error if any
 */
-GF_Err gf_isom_hint_sample_data(GF_ISOFile *isom_file, u32 trackNumber, GF_ISOTrackID SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, u8 *extra_data, u8 AtBegin);
+GF_Err gf_isom_hint_sample_data(GF_ISOFile *isom_file, u32 trackNumber, GF_ISOTrackID SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, const u8 *extra_data, u8 AtBegin);
 
 
 /*! adds a reference to some stream description data in the packet (headers, ...)
@@ -5717,7 +5728,7 @@ handling UTF8 and UTF16 strings in a transparent manner
 \param text_len the size of the data to add
 \return error if any
 */
-GF_Err gf_isom_text_add_text(GF_TextSample *tx_samp, char *text_data, u32 text_len);
+GF_Err gf_isom_text_add_text(GF_TextSample *tx_samp, const char *text_data, u32 text_len);
 /*! appends style modifyer to sample
 \param tx_samp the target text sample
 \param rec the style record to add
@@ -6639,7 +6650,7 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *isom_file, Bool root_meta, u32 track_
 \param IsBinaryXML indicates if the content of the XML file is binary XML (BIM) or not
 \return error if any
 */
-GF_Err gf_isom_set_meta_xml(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, char *XMLFileName, unsigned char *data, u32 data_size, Bool IsBinaryXML);
+GF_Err gf_isom_set_meta_xml(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *XMLFileName, unsigned char *data, u32 data_size, Bool IsBinaryXML);
 
 /*! gets next available item ID in a meta
 \param isom_file the target ISO file
@@ -6666,7 +6677,7 @@ GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *isom_file, Bool root_meta, u32 
 \param image_props image properties information for image items
 \return error if any
 */
-GF_Err gf_isom_add_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *image_props);
+GF_Err gf_isom_add_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, Bool self_reference, const char *resource_path, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *image_props);
 
 /*! adds an item to a meta box from file (same as \ref gf_isom_add_meta_item but outputs the item's id in io_item_id)
 \param isom_file the target ISO file
@@ -6720,7 +6731,7 @@ typedef struct
 \param item_extent_refs list of item extend description, or NULL
 \return error if any
 */
-GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 *item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, char *data, u32 data_len, GF_List *item_extent_refs);
+GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, const char *item_name, u32 *item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, const u8 *data, u32 data_len, GF_List *item_extent_refs);
 
 /*! adds an item to a meta box as a reference to a sample
 \param isom_file the target ISO file
@@ -7487,7 +7498,7 @@ GF_Err gf_isom_set_sample_cenc_default_group(GF_ISOFile *isom_file, u32 trackNum
 \param sampleGroupDescriptionIndex is set to the sample group description index (optional, can be NULL)
 \return error if any
 */
-GF_Err gf_isom_add_sample_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex);
+GF_Err gf_isom_add_sample_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32 grouping_type, const u8 *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex);
 
 /*! removes a sample group description of the give grouping type, if found
 \param isom_file the target ISO file
@@ -7549,7 +7560,7 @@ GF_Err gf_isom_set_sample_references(GF_ISOFile *isom_file, u32 trackNumber, u32
 \param nb_refs number of references for this sample, may be 0 if none (IDR)
 \param refs IDs of samples this sample depends on. Do NOT modify
 \return error if any, GF_NOT_FOUND if no such info*/
-GF_Err gf_isom_get_sample_references(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *refID, u32 *nb_refs, const u32 **refs);
+GF_Err gf_isom_get_sample_references(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *refID, u32 *nb_refs, const s32 **refs);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*! sets sample references for fragmented mode

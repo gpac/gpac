@@ -227,7 +227,7 @@ void gf_modules_new(GF_Config *config)
 		return;
 	}
 
-	gpac_modules_static->no_unload = !gf_opts_get_bool("core", "mod-reload");
+	gpac_modules_static->no_unload = gf_opts_get_bool("core", "mod-reload") ? GF_FALSE : GF_TRUE;
 
 	opt = gf_opts_get_key("core", "version");
 	if (!opt || strcmp(opt, gf_gpac_version())) {
@@ -342,7 +342,7 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 		if (!strstr(opt, szKey)) {
 			//cleanup if version changed
 			szKey[3] = 0;
-			char *val = strstr(opt, szKey);
+			const char *val = strstr(opt, szKey);
 			if (val && !strncmp(val+4, ":yes", 4)) {
 				gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, NULL);
 			} else {
@@ -631,7 +631,7 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 Bool module_args_used = GF_FALSE;
 
 GF_EXPORT
-const char *gf_module_get_key(GF_BaseInterface *dr, char *key_name)
+const char *gf_module_get_key(GF_BaseInterface *dr, const char *key_name)
 {
 	if (!dr || !dr->module_name || !dr->args) return NULL;
 
@@ -653,7 +653,7 @@ const char *gf_module_get_key(GF_BaseInterface *dr, char *key_name)
 		const char *a = gf_sys_get_arg(i);
 		if (strncmp(a, "--", 2)) continue;
 		a+=2;
-		char *msep = strchr(a, '@');
+		const char *msep = strchr(a, '@');
 		if (msep) {
 			u32 mlen = (u32) (msep-a);
 			if (strncmp(dr->module_name, a, mlen)) continue;
@@ -674,7 +674,7 @@ const char *gf_module_get_key(GF_BaseInterface *dr, char *key_name)
 	return res;
 }
 GF_EXPORT
-Bool gf_module_get_bool(GF_BaseInterface *dr, char *key_name)
+Bool gf_module_get_bool(GF_BaseInterface *dr, const char *key_name)
 {
 	const char *res = gf_module_get_key(dr, key_name);
 	if (!res) return GF_FALSE;
@@ -682,11 +682,11 @@ Bool gf_module_get_bool(GF_BaseInterface *dr, char *key_name)
 	return GF_FALSE;
 }
 GF_EXPORT
-Bool gf_module_get_int(GF_BaseInterface *dr, char *key_name)
+Bool gf_module_get_int(GF_BaseInterface *dr, const char *key_name)
 {
 	const char *res = gf_module_get_key(dr, key_name);
-	if (!res) return 0;
-	if (!stricmp(res, "yes") || !stricmp(res, "true") || !strcmp(res, "1")) return atoi(res);
-	return 0;
+	if (!res) return GF_FALSE;
+	if (!stricmp(res, "yes") || !stricmp(res, "true") || !strcmp(res, "1")) return atoi(res) ? GF_TRUE : GF_FALSE;
+	return GF_FALSE;
 }
 

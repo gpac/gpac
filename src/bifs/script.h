@@ -26,6 +26,10 @@
 #ifndef _SFSCRIPT_H
 #define _SFSCRIPT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/internal/bifs_dev.h>
 
 #if !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_QJS)
@@ -108,5 +112,9 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 #endif
 
 #endif /* !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_QJS) */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

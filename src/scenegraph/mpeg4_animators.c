@@ -130,9 +130,9 @@ static void anurbs_init(anim_nurbs *nurbs, u32 type, u32 nCtrl, u32 nKnots, Fixe
 	nurbs->p = nurbs->nknots - nurbs->npoints - 1;
 	if ((nurbs->p<=0) || (nurbs->p >= nurbs->nknots -1)
 	        || ((nurbs->nweights>0) && (nurbs->npoints != nurbs->nweights)) ) {
-		nurbs->valid = 0;
+		nurbs->valid = GF_FALSE;
 	} else {
-		nurbs->valid = 1;
+		nurbs->valid = GF_TRUE;
 	}
 }
 
@@ -314,20 +314,20 @@ static void Animator_Update(AnimatorStack *stack, u32 keyValueType, u32 nCtrl, M
 
 static Bool anim_check_frac(Fixed frac, SFVec2f *fromTo)
 {
-	if (frac<0) return 0;
-	if (frac>FIX_ONE) return 0;
-	if (fromTo->x > fromTo->y) return 0;
+	if (frac<0) return GF_FALSE;
+	if (frac>FIX_ONE) return GF_FALSE;
+	if (fromTo->x > fromTo->y) return GF_FALSE;
 	/*not active*/
-	if (frac<fromTo->x) return 0;
-	if (frac>fromTo->y) return 0;
-	return 1;
+	if (frac<fromTo->x) return GF_FALSE;
+	if (frac>fromTo->y) return GF_FALSE;
+	return GF_TRUE;
 }
 
 static void PA_Update(M_PositionAnimator *pa, AnimatorStack *stack)
 {
 	u32 i;
 	GF_Vec d;
-	stack->is_dirty = 0;
+	stack->is_dirty = GF_FALSE;
 	stack->anim_type = pa->keyType;
 	/*if empty key and default anim switch to linear*/
 	if (!pa->key.count && !stack->anim_type) stack->anim_type = ANIM_LINEAR;
@@ -476,7 +476,7 @@ void PA_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &pa->keySpline)
 	    || (field->far_ptr == &pa->weight)
 	)
-		stack->is_dirty = 1;
+		stack->is_dirty = GF_TRUE;
 }
 void PA_Init(GF_Node *n)
 {
@@ -487,7 +487,7 @@ void PA_Init(GF_Node *n)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator stack\n"));
 		return;
 	}
-	stack->is_dirty = 1;
+	stack->is_dirty = GF_TRUE;
 	gf_node_set_private(n, stack);
 	gf_node_set_callback_function(n, Anim_Destroy);
 	sa->on_set_fraction = PA_SetFraction;
@@ -497,7 +497,7 @@ static void PA2D_Update(M_PositionAnimator2D *pa, AnimatorStack *stack)
 {
 	u32 i;
 	Fixed dx, dy;
-	stack->is_dirty = 0;
+	stack->is_dirty = GF_FALSE;
 	stack->anim_type = pa->keyType;
 	/*if empty key and default anim switch to linear*/
 	if (!pa->key.count && !stack->anim_type) stack->anim_type = ANIM_LINEAR;
@@ -642,7 +642,7 @@ void PA2D_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &pa->keySpline)
 	    || (field->far_ptr == &pa->weight)
 	)
-		stack->is_dirty = 1;
+		stack->is_dirty = GF_TRUE;
 }
 void PA2D_Init(GF_Node *n)
 {
@@ -653,7 +653,7 @@ void PA2D_Init(GF_Node *n)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator 2D stack\n"));
 		return;
 	}
-	stack->is_dirty = 1;
+	stack->is_dirty = GF_TRUE;
 	gf_node_set_private(n, stack);
 	gf_node_set_callback_function(n, Anim_Destroy);
 	sa->on_set_fraction = PA2D_SetFraction;
@@ -663,7 +663,7 @@ static void SA_Update(M_ScalarAnimator *sa, AnimatorStack *stack)
 {
 	u32 i;
 	Fixed len;
-	stack->is_dirty = 0;
+	stack->is_dirty = GF_FALSE;
 	stack->anim_type = sa->keyType;
 	/*if empty key and default anim switch to linear*/
 	if (!sa->key.count && !stack->anim_type) stack->anim_type = ANIM_LINEAR;
@@ -803,7 +803,7 @@ void SA_Modified(GF_Node *node, GF_FieldInfo *field)
 	    || (field->far_ptr == &sa->keySpline)
 	    || (field->far_ptr == &sa->weight)
 	)
-		stack->is_dirty = 1;
+		stack->is_dirty = GF_TRUE;
 }
 
 void SA_Init(GF_Node *n)
@@ -815,7 +815,7 @@ void SA_Init(GF_Node *n)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate scalar animator stack\n"));
 		return;
 	}
-	stack->is_dirty = 1;
+	stack->is_dirty = GF_TRUE;
 	gf_node_set_private(n, stack);
 	gf_node_set_callback_function(n, Anim_Destroy);
 	sa->on_set_fraction = SA_SetFraction;

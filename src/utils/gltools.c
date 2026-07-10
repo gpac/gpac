@@ -331,20 +331,20 @@ void gf_opengl_init()
 
 }
 
-static char *gl_shader_yuv_matrix = \
+static const char *gl_shader_yuv_matrix = \
 "uniform mat4 _gf_%s_mx;\n\
 ";
 
 
 #if 0 //old code
-static char *gl_shader_yuv_coefs = \
+static const char *gl_shader_yuv_coefs = \
 "const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
 const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
 const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
 const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
 ";
 
-static char *gl_shader_yuv_coefs_jpeg = \
+static const char *gl_shader_yuv_coefs_jpeg = \
 "const vec3 offset = vec3(0.0, -0.5, -0.5);\n\
 const vec3 R_mul = vec3(1,  0.000,  1.40200);\n\
 const vec3 G_mul = vec3(1, -0.34414, -0.71414);\n\
@@ -352,14 +352,14 @@ const vec3 B_mul = vec3(1,  1.77200,  0.000);\n\
 ";
 #endif
 
-static char *gl_shader_vars_yuv = \
+static const char *gl_shader_vars_yuv = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
 uniform sampler2D _gf_%s_3;\n\
 ";
 
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
-static char *gl_shader_fun_yuv_gles10 = \
+static const char *gl_shader_fun_yuv_gles10 = \
 "vec2 texc;\n\
 vec4 yuv, col;\n\
 texc = _gpacTexCoord.st;\n\
@@ -376,7 +376,7 @@ return yuv;\n\
 ";
 #endif
 
-static char *gl_shader_fun_yuv = \
+static const char *gl_shader_fun_yuv = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -390,7 +390,7 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_fun_yvu = \
+static const char *gl_shader_fun_yvu = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -402,14 +402,14 @@ yuv = _gf_%s_mx * yuv;\n\
 yuv.w = 1.0;\n\
 return yuv;\n\
 ";
-static char *gl_shader_vars_yuva = \
+static const char *gl_shader_vars_yuva = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
 uniform sampler2D _gf_%s_3;\n\
 uniform sampler2D _gf_%s_4;\n\
 ";
 
-static char *gl_shader_fun_yuva = \
+static const char *gl_shader_fun_yuva = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -422,12 +422,12 @@ yuv.w = texture2D(_gf_%s_4, texc).r;\n\
 return yuv;\n\
 ";
 
-static char *gl_shader_vars_nv12 = \
+static const char *gl_shader_vars_nv12 = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
 ";
 
-static char *gl_shader_fun_nv12 = \
+static const char *gl_shader_fun_nv12 = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -440,12 +440,12 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_vars_nv21 = \
+static const char *gl_shader_vars_nv21 = \
 "uniform sampler2D _gf_%s_1;\n\
 uniform sampler2D _gf_%s_2;\n\
 ";
 
-static char *gl_shader_fun_nv21 = \
+static const char *gl_shader_fun_nv21 = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -458,12 +458,12 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_vars_uyvu = \
+static const char *gl_shader_vars_uyvu = \
 "uniform sampler2D _gf_%s_1;\
 uniform float _gf_%s_width;\
 ";
 
-static char *gl_shader_fun_uyvy = \
+static const char *gl_shader_fun_uyvy = \
 "vec2 texc, t_texc;\
 vec4 yuv;\
 vec4 uyvy;\
@@ -485,7 +485,7 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_fun_vyuy = \
+static const char *gl_shader_fun_vyuy = \
 "vec2 texc, t_texc;\
 vec4 yuv;\
 vec4 vyuy;\
@@ -507,7 +507,7 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_fun_yuyv = \
+static const char *gl_shader_fun_yuyv = \
 "vec2 texc, t_texc;\
 vec4 yuv;\
 vec4 yvyu;\
@@ -528,7 +528,7 @@ yuv.w = 1.0;\n\
 return yuv;\n\
 ";
 
-static char *gl_shader_fun_yvyu = \
+static const char *gl_shader_fun_yvyu = \
 "vec2 texc, t_texc;\
 vec4 yuv;\
 vec4 yuyv;\
@@ -551,11 +551,11 @@ return yuv;\n\
 
 
 
-static char *gl_shader_vars_yuv4_pack = \
+static const char *gl_shader_vars_yuv4_pack = \
 "uniform sampler2D _gf_%s_1;\n\
 ";
 
-static char *gl_shader_fun_yuv4_pack = \
+static const char *gl_shader_fun_yuv4_pack = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -566,7 +566,7 @@ yuv.w = 1.0;\n\
 return yuv;\n\
 ";
 
-static char *gl_shader_fun_vyu4_pack = \
+static const char *gl_shader_fun_vyu4_pack = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
@@ -578,7 +578,7 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_fun_yuv4a_pack = \
+static const char *gl_shader_fun_yuv4a_pack = \
 "vec2 texc;\n\
 vec4 tex;\n\
 vec4 yuv;\n\
@@ -591,7 +591,7 @@ yuv.w = tex.a;\n\
 return yuv;\n\
 ";
 
-static char *gl_shader_fun_uyv4a_pack = \
+static const char *gl_shader_fun_uyv4a_pack = \
 "vec2 texc;\n\
 vec4 tex;\n\
 vec4 yuv;\n\
@@ -610,7 +610,7 @@ return yuv;\n\
 //U: 4 bit G + 6 bits R
 //
 //we do the maths for bit reading, we should add support for GLES3 shift operators as well (but no support in WebGL1)
-static char *gl_shader_fun_yuv4_10_pack = \
+static const char *gl_shader_fun_yuv4_10_pack = \
 "vec2 texc;\n\
 vec4 val;\n\
 int valr, valg, valb, vala, interm1, interm2;\n\
@@ -635,7 +635,7 @@ return yuv;\n\
 ";
 
 
-static char *gl_shader_vars_v210 = \
+static const char *gl_shader_vars_v210 = \
 "uniform sampler2D _gf_%s_1;\
 uniform float _gf_%s_width;\
 uniform float _gf_%s_gpu_width;\
@@ -654,7 +654,7 @@ uniform float _gf_%s_gpu_width;\
 //but the next pixel we need is 1/gpu_width after x
 //
 //we do the maths for bit reading, we should add support for GLES3 shift operators as well (but no support in WebGL1)
-static char *gl_shader_fun_v210 = \
+static const char *gl_shader_fun_v210 = \
 "vec2 texc;\n\
 vec4 yuv, yuv1, yuv2, val;\n\
 int x, off_x, dec_x, valr, valg, valb, vala, interm1, interm2;\n\
@@ -727,11 +727,11 @@ return yuv;\n\
 
 
 
-static char *gl_shader_vars_rgb = \
+static const char *gl_shader_vars_rgb = \
 "uniform sampler2D _gf_%s_1;\n\
 ";
 
-static char *gl_shader_fun_alphagrey = \
+static const char *gl_shader_fun_alphagrey = \
 "vec4 col, ocol;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
 ocol.r = ocol.g = ocol.b = col.a;\n\
@@ -739,7 +739,7 @@ ocol.a = col.r;\n\
 return ocol;\n\
 ";
 
-static char *gl_shader_fun_rgb332 = \
+static const char *gl_shader_fun_rgb332 = \
 "vec4 col, ocol;\n\
 float res, col_r, col_g, col_b;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
@@ -754,7 +754,7 @@ ocol.a = 1.0;\n\
 return ocol;\
 ";
 
-static char *gl_shader_fun_rgb444 = \
+static const char *gl_shader_fun_rgb444 = \
 "vec4 col, ocol;\n\
 float res, col_g, col_b;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
@@ -769,7 +769,7 @@ return ocol;\
 ";
 
 
-static char *gl_shader_fun_rgb555 = \
+static const char *gl_shader_fun_rgb555 = \
 "vec4 col, ocol;\n\
 float res, col_r, col_g1, col_g, col_b;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
@@ -787,7 +787,7 @@ ocol.a = 1.0;\n\
 return ocol;\
 ";
 
-static char *gl_shader_fun_rgb565 = \
+static const char *gl_shader_fun_rgb565 = \
 "vec4 col, ocol;\n\
 float res, col_r, col_g1, col_g, col_b;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
@@ -806,7 +806,7 @@ return ocol;\
 ";
 
 
-static char *gl_shader_fun_argb = \
+static const char *gl_shader_fun_argb = \
 "vec4 col, ocol;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
 ocol.r = col.g;\n\
@@ -816,7 +816,7 @@ ocol.a = col.r;\n\
 return ocol;\
 ";
 
-static char *gl_shader_fun_abgr = \
+static const char *gl_shader_fun_abgr = \
 "vec4 col, ocol;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
 ocol.r = col.a;\n\
@@ -827,7 +827,7 @@ return ocol;\
 ";
 
 
-static char *gl_shader_fun_bgra = \
+static const char *gl_shader_fun_bgra = \
 "vec4 col, ocol;\n\
 col = texture2D(_gf_%s_1, _gpacTexCoord.st);\n\
 ocol.r = col.b;\n\
@@ -838,11 +838,11 @@ return ocol;\
 ";
 
 
-static char *gl_shader_fun_rgb = \
+static const char *gl_shader_fun_rgb = \
 "return texture2D(_gf_%s_1, _gpacTexCoord.st);\
 ";
 
-static char *gl_shader_vars_externalOES = \
+static const char *gl_shader_vars_externalOES = \
 "uniform samplerExternalOES _gf_%s_1;\n\
 ";
 

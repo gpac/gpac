@@ -198,7 +198,7 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 		format_ex.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE);
 		format_ex.SubFormat = GPAC_KSDATAFORMAT_SUBTYPE_PCM;
 		format_ex.Samples.wValidBitsPerSample = gf_audio_fmt_bit_depth(*audioFormat);
-		
+
 		format_ex.dwChannelMask = 0;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_LEFT) format_ex.dwChannelMask |= SPEAKER_FRONT_LEFT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_RIGHT) format_ex.dwChannelMask |= SPEAKER_FRONT_RIGHT;

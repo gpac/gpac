@@ -68,7 +68,7 @@ void gf_sc_texture_destroy(GF_TextureHandler *txh)
 GF_EXPORT
 Bool gf_sc_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 {
-	if (!txh->stream) return url->count;
+	if (!txh->stream) return url->count ? GF_TRUE : GF_FALSE;
 	return gf_mo_url_changed(txh->stream, url);
 }
 
@@ -81,9 +81,9 @@ GF_Err gf_sc_texture_open(GF_TextureHandler *txh, MFURL *url, Bool lock_scene_ti
 	if (txh->tx_io) gf_sc_texture_release(txh);
 
 	/*get media object*/
-	txh->stream = gf_mo_register(txh->owner, url, lock_scene_timeline, 0);
+	txh->stream = gf_mo_register(txh->owner, url, lock_scene_timeline, GF_FALSE);
 	//consider the texture open to avoid repeatingly calling for open on bad URLs/OD
-	txh->is_open = 1;
+	txh->is_open = GF_TRUE;
 
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
@@ -100,7 +100,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 		e = gf_sc_texture_open(txh, url, lock_scene_timeline);
 		if (e != GF_OK) return e;
 	}
-	txh->is_open = 1;
+	txh->is_open = GF_TRUE;
 	txh->stream_finished = GF_FALSE;
 	/*request play*/
 	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
@@ -115,14 +115,14 @@ GF_EXPORT
 GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url)
 {
 	Double offset = 0;
-	Bool loop = 0;
+	Bool loop = GF_FALSE;
 
 	if (txh->compositor->play_state != GF_STATE_PLAYING) {
 		offset = gf_node_get_scene_time(txh->owner);
-		loop = /*gf_mo_get_loop(gf_mo_register(txh->owner, url, 0, 0), 0)*/ 1;
+		loop = /*gf_mo_get_loop(gf_mo_register(txh->owner, url, 0, 0), 0)*/ GF_TRUE;
 	}
 
-	return gf_sc_texture_play_from_to(txh, url, offset, -1, loop, 0);
+	return gf_sc_texture_play_from_to(txh, url, offset, -1, loop, GF_FALSE);
 }
 
 
@@ -141,7 +141,7 @@ void gf_sc_texture_stop_no_unregister(GF_TextureHandler *txh)
 	txh->data = NULL;
 	txh->frame_ifce = NULL;
 
-	txh->is_open = 0;
+	txh->is_open = GF_FALSE;
 }
 
 GF_EXPORT
@@ -160,7 +160,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 		txh->data = NULL;
 		txh->frame_ifce = NULL;
 	}
-	txh->is_open = 0;
+	txh->is_open = GF_FALSE;
 
 	/*and deassociate object*/
 	gf_mo_unregister(txh->owner, txh->stream);
@@ -189,11 +189,11 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 		gf_pixel_get_size_info(txh->pixelformat, txh->width, txh->height, NULL, NULL, NULL, &txh->nb_planes, NULL);
 
 		if (private_media) {
-			txh->transparent = 1;
+			txh->transparent = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_ARGB;
 			txh->flags |= GF_SR_TEXTURE_PRIVATE_MEDIA;
 		} else {
-			txh->transparent = 0;
+			txh->transparent = GF_FALSE;
 			switch (txh->pixelformat) {
 			case GF_PIXEL_ALPHAGREY:
 			case GF_PIXEL_GREYALPHA:
@@ -201,7 +201,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 			case GF_PIXEL_RGBA:
 			case GF_PIXEL_YUVA:
 			case GF_PIXEL_RGBDS:
-				txh->transparent = 1;
+				txh->transparent = GF_TRUE;
 				break;
 			}
 		}
@@ -212,7 +212,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
-	Bool needs_reload = 0;
+	Bool needs_reload = GF_FALSE;
 	u32 size, ts, push_time;
 	s32 ms_until_pres, ms_until_next;
 
@@ -238,7 +238,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	/*check init flag*/
 	if (txh->stream->config_changed) {
-		needs_reload = 1;
+		needs_reload = GF_TRUE;
 		txh->data = NULL;
 		if (txh->tx_io) {
 			gf_sc_texture_release(txh);
@@ -249,9 +249,9 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame_ifce, NULL);
 
 	if (txh->stream->config_changed) {
-		needs_reload = 1;
+		needs_reload = GF_TRUE;
 	} else if (txh->data && size && txh->size && (size != txh->size)) {
-		needs_reload = 1;
+		needs_reload = GF_TRUE;
 	}
 
 	if (needs_reload) {
@@ -259,7 +259,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
 		if (txh->tx_io) {
 			gf_sc_texture_release(txh);
-			txh->needs_refresh = 1;
+			txh->needs_refresh = GF_TRUE;
 		}
 		txh->flags &= ~GF_SR_TEXTURE_DISABLE_BLIT;
 
@@ -333,22 +333,22 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		txh->compositor->ms_until_next_frame = ms_until_next;
 
 	if (!txh->tx_io) {
-		setup_texture_object(txh, 0);
+		setup_texture_object(txh, GF_FALSE);
 	}
 
-	
-	
+
+
 	/*try to push texture on graphics but don't complain if failure*/
 	gf_sc_texture_set_data(txh);
 
-	txh->needs_refresh = 1;
+	txh->needs_refresh = GF_TRUE;
 	gf_sc_invalidate(txh->compositor, NULL);
 }
 
 GF_EXPORT
 void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 {
-	txh->needs_refresh = 0;
+	txh->needs_refresh = GF_FALSE;
 	if (!txh->stream) return;
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, (txh->needs_release==2) ? 3 :0);

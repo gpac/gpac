@@ -64,7 +64,7 @@ typedef struct
 	/*internal*/
 	GF_WebGLContextAttributes creation_attrs;
 	GF_WebGLContextAttributes actual_attrs;
-	GLint tex_id, depth_id, stencil_id, fbo_id;
+	GLuint tex_id, depth_id, stencil_id, fbo_id;
 	u32 width, height;
 
 	JSValue canvas;
@@ -93,7 +93,7 @@ typedef struct __wgl_object
 	JSValue obj; //object reference
 	JSClassID class_id; //object class
 	u32 tx_height; //for textures
-	u8 flip_y; //for textures
+	Bool flip_y; //for textures
 } GF_WebGLObject;
 
 
@@ -103,8 +103,8 @@ typedef struct _wgl_named_texture
 	char *tx_name;
 	GF_GLTextureWrapper tx;
 
-	u8 shader_attached;
-	u8 flip_y;
+	Bool shader_attached;
+	Bool flip_y;
 } GF_WebGLNamedTexture;
 
 Bool js_evg_get_texture_info(JSContext *ctx, JSValue this_obj, u32 *width, u32 *height, u32 *pixfmt, u8 **p_data, u32 *stride, u8 **p_u, u8 **p_v, u32 *stride_uv, u8 **p_a);
@@ -138,10 +138,10 @@ enum
 };
 
 
-#define WGL_GET_BOOL(_name, _jsval) _name = JS_ToBool(ctx, _jsval)
-#define WGL_GET_U32(_name, _jsval) if (JS_ToInt32(ctx, &_name, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE)
+#define WGL_GET_BOOL(_name, _jsval) _name = (Bool) JS_ToBool(ctx, _jsval)
+#define WGL_GET_U32(_name, _jsval) if (JS_ToUint32(ctx, &_name, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE)
 #define WGL_GET_S32(_name, _jsval) if (JS_ToInt32(ctx, &_name, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE)
-#define WGL_GET_U64(_name, _jsval) if (JS_ToInt64(ctx, &_name, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE)
+#define WGL_GET_U64(_name, _jsval) if (JS_ToUint64(ctx, &_name, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE)
 #define WGL_GET_S64(_name, _jsval) if (JS_ToInt64(ctx, &_name, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE)
 #define WGL_GET_S16(_name, _jsval) { s32 _v; if (JS_ToInt32(ctx, &_v, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE); _name = (s16) _v; }
 #define WGL_GET_U16(_name, _jsval) { s32 _v; if (JS_ToInt32(ctx, &_v, _jsval)) return js_throw_err(ctx, WGL_INVALID_VALUE); _name = (u16) _v; }
@@ -150,7 +150,7 @@ enum
 
 #define WGL_GET_GLID(_name, _jsval, _class_id) {\
 	if (!JS_IsNull(_jsval)) {\
-		GF_WebGLObject *_gl_obj = JS_GetOpaque(_jsval, _class_id);\
+		GF_WebGLObject *_gl_obj = (GF_WebGLObject *) JS_GetOpaque(_jsval, _class_id);\
 		if (!_gl_obj) return js_throw_err(ctx, WGL_INVALID_VALUE);\
 		if (_gl_obj->par_ctx != JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id)) return js_throw_err(ctx, WGL_INVALID_OPERATION);\
 		_name = _gl_obj->gl_id;\

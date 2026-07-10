@@ -48,7 +48,7 @@ static void animationstream_destroy(GF_Node *node, void *rs, Bool is_destroy)
 			gf_sc_unregister_time_node(st->compositor, &st->time_handle);
 		}
 		if (st->stream && as->isActive) {
-			gf_mo_set_flag(st->stream, GF_MO_DISPLAY_REMOVE, 1);
+			gf_mo_set_flag(st->stream, GF_MO_DISPLAY_REMOVE, GF_TRUE);
 			gf_mo_stop(&st->stream);
 		}
 		gf_sg_vrml_mf_reset(&st->current_url, GF_SG_VRML_MFURL);
@@ -62,12 +62,12 @@ static void animationstream_check_url(AnimationStreamStack *stack, M_AnimationSt
 	if (!stack->stream) {
 		gf_sg_vrml_mf_reset(&stack->current_url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_field_copy(&stack->current_url, &as->url, GF_SG_VRML_MFURL);
-		stack->stream = gf_mo_register((GF_Node *)as, &as->url, 0, 0);
+		stack->stream = gf_mo_register((GF_Node *)as, &as->url, GF_FALSE, GF_FALSE);
 		gf_sc_invalidate(stack->compositor, NULL);
 
 		/*if changed while playing trigger*/
 		if (as->isActive) {
-			gf_mo_play(stack->stream, 0, -1, 0);
+			gf_mo_play(stack->stream, 0, -1, GF_FALSE);
 			gf_mo_set_speed(stack->stream, as->speed);
 		}
 		return;
@@ -78,15 +78,15 @@ static void animationstream_check_url(AnimationStreamStack *stack, M_AnimationSt
 		gf_sg_vrml_field_copy(&stack->current_url, &as->url, GF_SG_VRML_MFURL);
 		/*if changed while playing stop old source*/
 		if (as->isActive) {
-			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
+			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, GF_TRUE);
 			gf_mo_stop(&stack->stream);
 		}
 		gf_mo_unregister((GF_Node *)as, stack->stream);
 
-		stack->stream = gf_mo_register((GF_Node *)as, &as->url, 0, 0);
+		stack->stream = gf_mo_register((GF_Node *)as, &as->url, GF_FALSE, GF_FALSE);
 		/*if changed while playing play new source*/
 		if (as->isActive) {
-			gf_mo_play(stack->stream, 0, -1, 0);
+			gf_mo_play(stack->stream, 0, -1, GF_FALSE);
 			gf_mo_set_speed(stack->stream, as->speed);
 		}
 		gf_sc_invalidate(stack->compositor, NULL);
@@ -105,10 +105,10 @@ static Bool animationstream_get_loop(AnimationStreamStack *stack, M_AnimationStr
 static void animationstream_activate(AnimationStreamStack *stack, M_AnimationStream *as)
 {
 	animationstream_check_url(stack, as);
-	as->isActive = 1;
+	as->isActive = GF_TRUE;
 	gf_node_event_out((GF_Node*)as, 6/*"isActive"*/);
 
-	gf_mo_play(stack->stream, 0, -1, 0);
+	gf_mo_play(stack->stream, 0, -1, GF_FALSE);
 	gf_mo_set_speed(stack->stream, as->speed);
 }
 
@@ -120,17 +120,17 @@ static void animationstream_deactivate(AnimationStreamStack *stack, M_AnimationS
 		if (!gf_list_count(stack->compositor->systems_pids))
 			no_redraw = GF_TRUE;
 	}
-	
+
 	if (as->isActive) {
-		as->isActive = 0;
+		as->isActive = GF_FALSE;
 		gf_node_event_out((GF_Node*)as, 6/*"isActive"*/);
 	}
 	if (stack->stream) {
 		if (gf_mo_url_changed(stack->stream, &as->url))
-			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
+			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, GF_TRUE);
 		gf_mo_stop(&stack->stream);
 	}
-	stack->time_handle.needs_unregister = 1;
+	stack->time_handle.needs_unregister = GF_TRUE;
 	if (!no_redraw)
 		gf_sc_invalidate(stack->compositor, NULL);
 }
@@ -139,13 +139,13 @@ static void animationstream_update_time(GF_TimeNode *st)
 {
 	Double time;
 	M_AnimationStream *as = (M_AnimationStream *)st->udta;
-	AnimationStreamStack *stack = (AnimationStreamStack *)gf_node_get_private(st->udta);
+	AnimationStreamStack *stack = (AnimationStreamStack *)gf_node_get_private((GF_Node*)st->udta);
 
 	/*not active, store start time and speed*/
 	if ( ! as->isActive) {
 		stack->start_time = as->startTime;
 	}
-	time = gf_node_get_scene_time(st->udta);
+	time = gf_node_get_scene_time((GF_Node*)st->udta);
 
 	if ((time < stack->start_time) || (stack->start_time < 0)) return;
 
@@ -207,7 +207,7 @@ void compositor_animationstream_modified(GF_Node *node)
 	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->compositor, &st->time_handle);
 	else
-		st->time_handle.needs_unregister = 0;
+		st->time_handle.needs_unregister = GF_FALSE;
 }
 
 #endif // !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)

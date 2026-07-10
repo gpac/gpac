@@ -141,15 +141,10 @@ typedef SSIZE_T ssize_t;
 #include "quickjs-libc.h"
 
 #ifdef GPAC_HAS_QJS
-void js_dump_error(JSContext *ctx);
-void js_dump_error_exc(JSContext *ctx, const JSValue exception_val);
+#include "../scenegraph/qjs_common.h"
 #define js_std_dump_error js_dump_error
 #define js_std_dump_error1 js_dump_error_exc
-
-//use our own loader
-JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque, JSValueConst attributes);
 #define js_module_loader qjs_module_loader
-
 #endif //GPAC_HAS_QJS
 
 #if !defined(PATH_MAX)
@@ -269,7 +264,7 @@ static JSValue js_printf_internal(JSContext *ctx,
     double double_arg;
     const char *string_arg;
     /* Use indirect call to dbuf_printf to prevent gcc warning */
-    int (*dbuf_printf_fun)(DynBuf *s, const char *fmt, ...) = (void*)dbuf_printf;
+    int (*dbuf_printf_fun)(DynBuf *s, const char *fmt, ...) = dbuf_printf;
 
     js_std_dbuf_init(ctx, &dbuf);
 
@@ -492,9 +487,9 @@ uint8_t *js_load_file(JSContext *ctx, size_t *pbuf_len, const char *filename)
     if (fseek(f, 0, SEEK_SET) < 0)
         goto fail;
     if (ctx)
-        buf = js_malloc(ctx, buf_len + 1);
+        buf = (uint8_t *)js_malloc(ctx, buf_len + 1);
     else
-        buf = malloc(buf_len + 1);
+        buf = (uint8_t *)malloc(buf_len + 1);
     if (!buf)
         goto fail;
     if (fread(buf, 1, buf_len, f) != buf_len) {
@@ -583,7 +578,7 @@ static JSModuleDef *js_module_loader_so(JSContext *ctx,
     if (!strchr(module_name, '/')) {
         /* must add a '/' so that the DLL is not searched in the
            system library paths */
-        filename = js_malloc(ctx, strlen(module_name) + 2 + 1);
+        filename = (char *)js_malloc(ctx, strlen(module_name) + 2 + 1);
         if (!filename)
             return NULL;
         memcpy(filename, "./", 2);
@@ -641,7 +636,7 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
     const char *module_name;
 
     assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
-    m = JS_VALUE_GET_PTR(func_val);
+    m = (struct JSModuleDef *)JS_VALUE_GET_PTR(func_val);
 
     module_name_atom = JS_GetModuleName(ctx, m);
     module_name = JS_AtomToCString(ctx, module_name_atom);
@@ -721,7 +716,7 @@ int js_module_check_attributes(JSContext *ctx, void *opaque,
     int ret;
     const char *cstr;
     size_t cstr_len;
-    
+
     if (JS_GetOwnPropertyNames(ctx, &tab, &len, attributes, JS_GPN_ENUM_ONLY | JS_GPN_STRING_MASK))
         return -1;
     ret = 0;
@@ -783,7 +778,7 @@ JSModuleDef *js_module_loader(JSContext *ctx,
 {
     JSModuleDef *m;
     int res;
-    
+
     if (has_suffix(module_name, ".so")) {
         m = js_module_loader_so(ctx, module_name);
     } else {
@@ -824,7 +819,7 @@ JSModuleDef *js_module_loader(JSContext *ctx,
             /* XXX: could propagate the exception */
             js_module_set_import_meta(ctx, func_val, TRUE, FALSE);
             /* the module is already referenced, so we must free it */
-            m = JS_VALUE_GET_PTR(func_val);
+            m = (struct JSModuleDef *)JS_VALUE_GET_PTR(func_val);
             JS_FreeValue(ctx, func_val);
         }
     }
@@ -979,7 +974,7 @@ static JSValue js_evalScript(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     const char *str;
     size_t len;
     JSValue ret;
@@ -1034,7 +1029,7 @@ typedef struct {
 
 static void js_std_file_finalizer(JSRuntime *rt, JSValue val)
 {
-    JSSTDFile *s = JS_GetOpaque(val, js_std_file_class_id);
+    JSSTDFile *s = (JSSTDFile *)JS_GetOpaque(val, js_std_file_class_id);
     if (s) {
         if (s->f && s->close_in_finalizer) {
             if (s->is_popen)
@@ -1086,7 +1081,7 @@ static JSValue js_new_std_file(JSContext *ctx, FILE *f,
     obj = JS_NewObjectClass(ctx, js_std_file_class_id);
     if (JS_IsException(obj))
         return obj;
-    s = js_mallocz(ctx, sizeof(*s));
+    s = (JSSTDFile *)js_mallocz(ctx, sizeof(*s));
     if (!s) {
         JS_FreeValue(ctx, obj);
         return JS_EXCEPTION;
@@ -1236,7 +1231,7 @@ static JSValue js_std_printf(JSContext *ctx, JSValueConst this_val,
 
 static FILE *js_std_file_get(JSContext *ctx, JSValueConst obj)
 {
-    JSSTDFile *s = JS_GetOpaque2(ctx, obj, js_std_file_class_id);
+    JSSTDFile *s = (JSSTDFile *)JS_GetOpaque2(ctx, obj, js_std_file_class_id);
     if (!s)
         return NULL;
     if (!s->f) {
@@ -1275,7 +1270,7 @@ static JSValue js_std_file_puts(JSContext *ctx, JSValueConst this_val,
 static JSValue js_std_file_close(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv)
 {
-    JSSTDFile *s = JS_GetOpaque2(ctx, this_val, js_std_file_class_id);
+    JSSTDFile *s = (JSSTDFile *)JS_GetOpaque2(ctx, this_val, js_std_file_class_id);
     int err;
     if (!s)
         return JS_EXCEPTION;
@@ -1300,7 +1295,7 @@ static JSValue js_std_file_printf(JSContext *ctx, JSValueConst this_val,
 
 static void js_print_value_write(void *opaque, const char *buf, size_t len)
 {
-    FILE *fo = opaque;
+    FILE *fo = (FILE *)opaque;
     fwrite(buf, 1, len, fo);
 }
 
@@ -1626,7 +1621,7 @@ static JSValue js_std_urlGet(JSContext *ctx, JSValueConst this_val,
     js_std_dbuf_init(ctx, data_buf);
     js_std_dbuf_init(ctx, header_buf);
 
-    buf = js_malloc(ctx, URL_GET_BUF_SIZE);
+    buf = (char *)js_malloc(ctx, URL_GET_BUF_SIZE);
     if (!buf)
         goto fail;
 
@@ -2086,7 +2081,7 @@ static JSValue js_os_rename(JSContext *ctx, JSValueConst this_val,
 
 static BOOL is_main_thread(JSRuntime *rt)
 {
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     return !ts->recv_pipe;
 }
 
@@ -2117,7 +2112,7 @@ static JSValue js_os_setReadHandler(JSContext *ctx, JSValueConst this_val,
                                     int argc, JSValueConst *argv, int magic)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     JSOSRWHandler *rh;
     int fd;
     JSValueConst func;
@@ -2141,7 +2136,7 @@ static JSValue js_os_setReadHandler(JSContext *ctx, JSValueConst this_val,
             return JS_ThrowTypeError(ctx, "not a function");
         rh = find_rh(ts, fd);
         if (!rh) {
-            rh = js_mallocz(ctx, sizeof(*rh));
+            rh = (JSOSRWHandler *)js_mallocz(ctx, sizeof(*rh));
             if (!rh)
                 return JS_EXCEPTION;
             rh->fd = fd;
@@ -2187,7 +2182,7 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
                             int argc, JSValueConst *argv)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     JSOSSignalHandler *sh;
     uint32_t sig_num;
     JSValueConst func;
@@ -2217,7 +2212,7 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
             return JS_ThrowTypeError(ctx, "not a function");
         sh = find_sh(ts, sig_num);
         if (!sh) {
-            sh = js_mallocz(ctx, sizeof(*sh));
+            sh = (JSOSSignalHandler *)js_mallocz(ctx, sizeof(*sh));
             if (!sh)
                 return JS_EXCEPTION;
             sh->sig_num = sig_num;
@@ -2292,7 +2287,7 @@ static JSValue js_os_setTimeout(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     int64_t delay;
     JSValueConst func;
     JSOSTimer *th;
@@ -2302,7 +2297,7 @@ static JSValue js_os_setTimeout(JSContext *ctx, JSValueConst this_val,
         return JS_ThrowTypeError(ctx, "not a function");
     if (JS_ToInt64(ctx, &delay, argv[1]))
         return JS_EXCEPTION;
-    th = js_mallocz(ctx, sizeof(*th));
+    th = (JSOSTimer *)js_mallocz(ctx, sizeof(*th));
     if (!th)
         return JS_EXCEPTION;
     th->timer_id = ts->next_timer_id;
@@ -2333,7 +2328,7 @@ static JSValue js_os_clearTimeout(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     JSOSTimer *th;
     int timer_id;
 
@@ -2351,7 +2346,7 @@ static JSValue js_os_sleepAsync(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     int64_t delay;
     JSOSTimer *th;
     JSValue promise, resolving_funcs[2];
@@ -2362,7 +2357,7 @@ static JSValue js_os_sleepAsync(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(promise))
         return JS_EXCEPTION;
 
-    th = js_mallocz(ctx, sizeof(*th));
+    th = (JSOSTimer *)js_mallocz(ctx, sizeof(*th));
     if (!th) {
         JS_FreeValue(ctx, promise);
         JS_FreeValue(ctx, resolving_funcs[0]);
@@ -2539,7 +2534,7 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
 static int js_os_poll(JSContext *ctx)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     int min_delay, count;
     int64_t cur_time, delay;
     JSOSRWHandler *rh;
@@ -2552,7 +2547,7 @@ static int js_os_poll(JSContext *ctx)
         list_empty(&ts->port_list)) {
         return -1; /* no more events */
     }
-    
+
     if (!list_empty(&ts->os_timers)) {
         cur_time = get_time_ms();
         min_delay = 10000;
@@ -2643,7 +2638,7 @@ static no_inline int js_poll_expand(JSThreadState *ts)
     struct pollfd *new_fds;
     int new_size = max_int(ts->poll_fds_size +
                            ts->poll_fds_size / 2, 16);
-    new_fds = realloc(ts->poll_fds, new_size * sizeof(struct pollfd));
+    new_fds = (struct pollfd *) realloc(ts->poll_fds, new_size * sizeof(struct pollfd));
     if (!new_fds)
         return -1;
     ts->poll_fds = new_fds;
@@ -2671,7 +2666,7 @@ static int js_poll_add_poll_fd(JSThreadState *ts, int *pnfds, int fd, int events
 static int js_os_poll(JSContext *ctx)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     int min_delay, nfds;
     int64_t cur_time, delay;
     JSOSRWHandler *rh;
@@ -3179,7 +3174,7 @@ static char **build_envp(JSContext *ctx, JSValueConst obj)
     if (JS_GetOwnPropertyNames(ctx, &tab, &len, obj,
                                JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) < 0)
         return NULL;
-    envp = js_mallocz(ctx, sizeof(envp[0]) * ((size_t)len + 1));
+    envp = (char **)js_mallocz(ctx, sizeof(envp[0]) * ((size_t)len + 1));
     if (!envp)
         goto fail;
     for(i = 0; i < len; i++) {
@@ -3197,7 +3192,7 @@ static char **build_envp(JSContext *ctx, JSValueConst obj)
         }
         key_len = strlen(key);
         str_len = strlen(str);
-        pair = js_malloc(ctx, key_len + str_len + 2);
+        pair = (char *)js_malloc(ctx, key_len + str_len + 2);
         if (!pair) {
             JS_FreeCString(ctx, key);
             JS_FreeCString(ctx, str);
@@ -3306,7 +3301,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     if (exec_argc < 1 || exec_argc > 65535) {
         return JS_ThrowTypeError(ctx, "invalid number of arguments");
     }
-    exec_argv = js_mallocz(ctx, sizeof(exec_argv[0]) * (exec_argc + 1));
+    exec_argv = (const char **)js_mallocz(ctx, sizeof(exec_argv[0]) * (exec_argc + 1));
     if (!exec_argv)
         return JS_EXCEPTION;
     for(i = 0; i < exec_argc; i++) {
@@ -3575,7 +3570,7 @@ static char *build_envp_win(JSContext *ctx, JSValueConst obj)
 		}
 		key_len = strlen(key);
 		str_len = strlen(str);
-		envp = js_realloc(ctx, envp, envp_len + key_len + str_len + 3);
+		envp = (char *)js_realloc(ctx, envp, envp_len + key_len + str_len + 3);
 		if (!envp) {
 			JS_FreeCString(ctx, key);
 			JS_FreeCString(ctx, str);
@@ -3917,7 +3912,7 @@ static int atomic_add_int(int *ptr, int v)
 static void *js_sab_alloc(void *opaque, size_t size)
 {
     JSSABHeader *sab;
-    sab = malloc(sizeof(JSSABHeader) + size);
+    sab = (JSSABHeader *)malloc(sizeof(JSSABHeader) + size);
     if (!sab)
         return NULL;
     sab->ref_count = 1;
@@ -3947,7 +3942,7 @@ static JSWorkerMessagePipe *js_new_message_pipe(void)
 {
     JSWorkerMessagePipe *ps;
 
-    ps = malloc(sizeof(*ps));
+    ps = (JSWorkerMessagePipe *)malloc(sizeof(*ps));
     if (!ps)
         return NULL;
     if (js_waker_init(&ps->waker)) {
@@ -4017,7 +4012,7 @@ static void js_free_port(JSRuntime *rt, JSWorkerMessageHandler *port)
 
 static void js_worker_finalizer(JSRuntime *rt, JSValue val)
 {
-    JSWorkerData *worker = JS_GetOpaque(val, js_worker_class_id);
+    JSWorkerData *worker = (JSWorkerData *)JS_GetOpaque(val, js_worker_class_id);
     if (worker) {
 		js_free_message_pipe(worker->recv_pipe);
         js_free_message_pipe(worker->send_pipe);
@@ -4035,7 +4030,7 @@ static void js_worker_finalizer(JSRuntime *rt, JSValue val)
 static void js_worker_mark(JSRuntime *rt, JSValueConst val,
                            JS_MarkFunc *mark_func)
 {
-    JSWorkerData *worker = JS_GetOpaque(val, js_worker_class_id);
+    JSWorkerData *worker = (JSWorkerData *) JS_GetOpaque(val, js_worker_class_id);
     if (worker) {
         JSWorkerMessageHandler *port = worker->msg_handler;
         if (port) {
@@ -4054,7 +4049,7 @@ static void js_std_free_handlers_ex(JSRuntime *rt, int no_free_ts);
 
 static unsigned int worker_func(void *opaque)
 {
-    WorkerFuncArgs *args = opaque;
+    WorkerFuncArgs *args = (WorkerFuncArgs *)opaque;
     JSRuntime *rt;
 	JSWorkerData *worker;
     JSThreadState *ts;
@@ -4072,7 +4067,7 @@ static unsigned int worker_func(void *opaque)
     JS_SetModuleLoaderFunc2(rt, NULL, js_module_loader, js_module_check_attributes, NULL);
 
     /* set the pipe to communicate with the parent */
-    ts = JS_GetRuntimeOpaque(rt);
+    ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     ts->recv_pipe = args->recv_pipe;
     ts->send_pipe = args->send_pipe;
 
@@ -4138,7 +4133,7 @@ static JSValue js_worker_ctor_internal(JSContext *ctx, JSValueConst new_target,
     JS_FreeValue(ctx, proto);
     if (JS_IsException(obj))
         goto fail;
-    s = js_mallocz(ctx, sizeof(*s));
+    s = (JSWorkerData *)js_mallocz(ctx, sizeof(*s));
     if (!s)
         goto fail;
     s->recv_pipe = js_dup_message_pipe(recv_pipe);
@@ -4182,7 +4177,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     if (!filename)
         goto fail;
 
-    args = malloc(sizeof(*args));
+    args = (WorkerFuncArgs *)malloc(sizeof(*args));
     if (!args)
         goto oom_fail;
     memset(args, 0, sizeof(*args));
@@ -4198,13 +4193,13 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
         goto oom_fail;
 
     args->strip_flags = JS_GetStripInfo(rt);
-    
+
     obj = js_worker_ctor_internal(ctx, new_target,
                                   args->send_pipe, args->recv_pipe);
     if (JS_IsException(obj))
         goto fail;
 
-    args->worker = JS_GetOpaque(obj, js_worker_class_id);
+    args->worker = (JSWorkerData *)JS_GetOpaque(obj, js_worker_class_id);
     args->worker->th = gf_th_new("gf_js_worker");
     if (!args->worker->th) {
         goto oom_fail;
@@ -4237,7 +4232,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
 static JSValue js_worker_postMessage(JSContext *ctx, JSValueConst this_val,
                                      int argc, JSValueConst *argv)
 {
-    JSWorkerData *worker = JS_GetOpaque2(ctx, this_val, js_worker_class_id);
+    JSWorkerData *worker = (JSWorkerData *)JS_GetOpaque2(ctx, this_val, js_worker_class_id);
     JSWorkerMessagePipe *ps;
     size_t data_len, sab_tab_len, i;
     uint8_t *data;
@@ -4253,21 +4248,21 @@ static JSValue js_worker_postMessage(JSContext *ctx, JSValueConst this_val,
     if (!data)
         return JS_EXCEPTION;
 
-    msg = malloc(sizeof(*msg));
+    msg = (JSWorkerMessage *)malloc(sizeof(*msg));
     if (!msg)
         goto fail;
     msg->data = NULL;
     msg->sab_tab = NULL;
 
     /* must reallocate because the allocator may be different */
-    msg->data = malloc(data_len);
+    msg->data = (uint8_t *)malloc(data_len);
     if (!msg->data)
         goto fail;
     memcpy(msg->data, data, data_len);
     msg->data_len = data_len;
 
     if (sab_tab_len > 0) {
-        msg->sab_tab = malloc(sizeof(msg->sab_tab[0]) * sab_tab_len);
+        msg->sab_tab = (uint8_t **)malloc(sizeof(msg->sab_tab[0]) * sab_tab_len);
         if (!msg->sab_tab)
             goto fail;
         memcpy(msg->sab_tab, sab_tab, sizeof(msg->sab_tab[0]) * sab_tab_len);
@@ -4306,8 +4301,8 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
                                    JSValueConst func)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
-    JSWorkerData *worker = JS_GetOpaque2(ctx, this_val, js_worker_class_id);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
+    JSWorkerData *worker = (JSWorkerData *)JS_GetOpaque2(ctx, this_val, js_worker_class_id);
     JSWorkerMessageHandler *port;
 
     if (!worker)
@@ -4323,7 +4318,7 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
         if (!JS_IsFunction(ctx, func))
             return JS_ThrowTypeError(ctx, "not a function");
         if (!port) {
-            port = js_mallocz(ctx, sizeof(*port));
+            port = (JSWorkerMessageHandler *)js_mallocz(ctx, sizeof(*port));
             if (!port)
                 return JS_EXCEPTION;
             port->recv_pipe = js_dup_message_pipe(worker->recv_pipe);
@@ -4339,7 +4334,7 @@ static JSValue js_worker_set_onmessage(JSContext *ctx, JSValueConst this_val,
 
 static JSValue js_worker_get_onmessage(JSContext *ctx, JSValueConst this_val)
 {
-    JSWorkerData *worker = JS_GetOpaque2(ctx, this_val, js_worker_class_id);
+    JSWorkerData *worker = (JSWorkerData *)JS_GetOpaque2(ctx, this_val, js_worker_class_id);
     JSWorkerMessageHandler *port;
     if (!worker)
         return JS_EXCEPTION;
@@ -4471,7 +4466,7 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
 #ifdef USE_WORKER
     {
         JSRuntime *rt = JS_GetRuntime(ctx);
-        JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+        JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
         JSValue proto, obj;
         /* Worker class */
         JS_NewClassID(&js_worker_class_id);
@@ -4520,7 +4515,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val,
 {
     int i;
     JSValueConst v;
-    
+
     for(i = 0; i < argc; i++) {
         if (i != 0)
             putchar(' ');
@@ -4590,7 +4585,7 @@ void js_std_init_handlers(JSRuntime *rt)
 {
     JSThreadState *ts;
 
-    ts = malloc(sizeof(*ts));
+    ts = (JSThreadState *)malloc(sizeof(*ts));
     if (!ts) {
         fprintf(stderr, "Could not allocate memory for the worker");
         exit(1);
@@ -4620,7 +4615,7 @@ void js_std_init_handlers(JSRuntime *rt)
 
 static void js_std_free_handlers_ex(JSRuntime *rt, int no_free_ts)
 {
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     struct list_head *el, *el1;
 
     list_for_each_safe(el, el1, &ts->os_rw_handlers) {
@@ -4715,14 +4710,14 @@ void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
                                       BOOL is_handled, void *opaque)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     JSRejectedPromiseEntry *rp;
 
     if (!is_handled) {
         /* add a new entry if needed */
         rp = find_rejected_promise(ctx, ts, promise);
         if (!rp) {
-            rp = malloc(sizeof(*rp));
+            rp = (JSRejectedPromiseEntry *)malloc(sizeof(*rp));
             if (rp) {
                 rp->promise = JS_DupValue(ctx, promise);
                 rp->reason = JS_DupValue(ctx, reason);
@@ -4748,7 +4743,7 @@ void js_std_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
 static void js_std_promise_rejection_check(JSContext *ctx)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
-    JSThreadState *ts = JS_GetRuntimeOpaque(rt);
+    JSThreadState *ts = (JSThreadState *)JS_GetRuntimeOpaque(rt);
     struct list_head *el;
 
     if (unlikely(!list_empty(&ts->rejected_promise_list))) {
@@ -4778,7 +4773,7 @@ void js_std_loop(JSContext *ctx)
         }
 
         js_std_promise_rejection_check(ctx);
-        
+
         if (!os_poll_func || os_poll_func(ctx))
             break;
     }
@@ -4865,7 +4860,7 @@ void js_std_eval_binary_json_module(JSContext *ctx,
 {
     JSValue obj;
     JSModuleDef *m;
-    
+
     obj = JS_ReadObject(ctx, buf, buf_len, 0);
     if (JS_IsException(obj))
         goto exception;

@@ -131,7 +131,7 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 		osize = 0;
 		txh->tx_io->conv_stride = 0;
 		gf_pixel_get_size_info(txh->tx_io->conv_format, txh->width, txh->height, &osize, &txh->tx_io->conv_stride, NULL, NULL, NULL);
-		txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, osize);
+		txh->tx_io->conv_data = (u8 *)gf_realloc(txh->tx_io->conv_data, osize);
 		txh->flags |= TX_CONV_8BITS;
 	}
 	return GF_OK;
@@ -167,7 +167,7 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 	}
 
 	if (txh->tx_io) {
-		gf_sc_lock(txh->compositor, 1);
+		gf_sc_lock(txh->compositor, GF_TRUE);
 
 		if (txh->tx_io->tx_raster) {
 			gf_evg_stencil_delete(txh->tx_io->tx_raster);
@@ -181,7 +181,7 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 		}
 		txh->tx_io = NULL;
 
-		gf_sc_lock(txh->compositor, 0);
+		gf_sc_lock(txh->compositor, GF_FALSE);
 	}
 }
 
@@ -334,7 +334,7 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 void tx_bind(GF_TextureHandler *txh)
 {
 	if (txh->tx_io )
-		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 0, 0);
+		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, GF_FALSE, 0);
 }
 
 void gf_sc_texture_disable(GF_TextureHandler *txh)
@@ -365,16 +365,16 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 #endif
 
 //	compositor->gl_caps.yuv_texture = 0;
-	if (!compositor->gl_caps.rect_texture) return 0;
-	if (compositor->rext) return 1;
+	if (!compositor->gl_caps.rect_texture) return GF_FALSE;
+	if (compositor->rext) return GF_TRUE;
 	/*this happens ONLY with text texturing*/
-	if (!txh->owner) return 0;
+	if (!txh->owner) return GF_FALSE;
 
 #ifndef GPAC_DISABLE_VRML
 	count = gf_node_get_parent_count(txh->owner);
 
 	/*background 2D can use RECT ext without pb*/
-	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_Background2D) return 1;
+	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_Background2D) return GF_TRUE;
 	/*if a bitmap is using the texture force using RECT*/
 	for (i=0; i<count; i++) {
 		GF_Node *n = gf_node_get_parent(txh->owner, i);
@@ -382,12 +382,12 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 			count = gf_node_get_parent_count(n);
 			for (j=0; j<count; j++) {
 				M_Shape *s = (M_Shape *) gf_node_get_parent(n, j);
-				if (s->geometry && (gf_node_get_tag((GF_Node *)s)==TAG_MPEG4_Shape) && (gf_node_get_tag(s->geometry)==TAG_MPEG4_Bitmap)) return 1;
+				if (s->geometry && (gf_node_get_tag((GF_Node *)s)==TAG_MPEG4_Shape) && (gf_node_get_tag(s->geometry)==TAG_MPEG4_Bitmap)) return GF_TRUE;
 			}
 		}
 	}
 #endif /*GPAC_DISABLE_VRML*/
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -403,13 +403,13 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	/*first setup, this will force recompute bounds in case used with bitmap - we could refine and only
 	invalidate for bitmaps only*/
 	if (txh->owner)
-		gf_node_dirty_set(txh->owner, 0, 1);
+		gf_node_dirty_set(txh->owner, GF_FALSE, GF_TRUE);
 
-	flip = (txh->tx_io->flags & TX_IS_FLIPPED);
+	flip = (txh->tx_io->flags & TX_IS_FLIPPED) ? GF_TRUE : GF_FALSE;
 #ifndef GPAC_USE_GLES2
 	npow_w = gf_get_next_pow2(txh->width);
 	npow_h = gf_get_next_pow2(txh->height);
-	is_pow2 = ((npow_w==txh->width) && (npow_h==txh->height)) ? 1 : 0;
+	is_pow2 = ((npow_w==txh->width) && (npow_h==txh->height)) ? GF_TRUE : GF_FALSE;
 #endif
 	txh->tx_io->flags = 0;
 	txh->tx_io->gl_type = GL_TEXTURE_2D;
@@ -460,7 +460,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		break;
 #ifndef GPAC_USE_GLES1X
 	case GF_PIXEL_ARGB:
-		if (!compositor->gl_caps.bgra_texture) return 0;
+		if (!compositor->gl_caps.bgra_texture) return GF_FALSE;
 		txh->tx_io->gl_format = GL_BGRA_EXT;
 		break;
 #endif
@@ -512,7 +512,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Unknown pixel format %s\n", gf_4cc_to_str(txh->pixelformat) ));
-		return 0;
+		return GF_FALSE;
 	}
 
 	if (flip) txh->tx_io->flags |= TX_IS_FLIPPED;
@@ -536,12 +536,12 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			stride = txh->tx_io->conv_stride;
 			pfmt = txh->tx_io->conv_format;
 		}
-		gf_gl_txw_setup(&txh->tx_io->tx, pfmt, txh->width, txh->height, stride, 0, GF_TRUE, txh->frame_ifce, full_range, cmx);
+		gf_gl_txw_setup(&txh->tx_io->tx, pfmt, txh->width, txh->height, stride, GF_FALSE, GF_TRUE, txh->frame_ifce, full_range, cmx);
 	}
-	return 1;
+	return GF_TRUE;
 }
 
-char *gf_sc_texture_get_data(GF_TextureHandler *txh, u32 *pix_format)
+u8 *gf_sc_texture_get_data(GF_TextureHandler *txh, u32 *pix_format)
 {
 	if (txh->tx_io->conv_data) {
 		*pix_format = txh->tx_io->conv_format;
@@ -559,18 +559,18 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 	u32 out_stride, i, j, bpp;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 
-	if (!txh->needs_refresh) return 1;
+	if (!txh->needs_refresh) return GF_TRUE;
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (!txh->compositor->shader_mode_disabled) {
 		txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
-		return 1;
+		return GF_TRUE;
 	}
 #endif
 
 	switch (txh->pixelformat) {
 	case GF_PIXEL_ARGB:
-		if (!compositor->gl_caps.bgra_texture) return 0;
+		if (!compositor->gl_caps.bgra_texture) return GF_FALSE;
 		goto common;
 
 	case GF_PIXEL_RGBD:
@@ -594,15 +594,15 @@ common:
 		txh->tx_io->conv_format = txh->pixelformat;
 		txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 
-		if (!(txh->tx_io->flags & TX_IS_RECT)) return 1;
-		if (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) return 1;
+		if (!(txh->tx_io->flags & TX_IS_RECT)) return GF_TRUE;
+		if (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) return GF_TRUE;
 		//FIXME - we really want to go for shaders on RGB as well to avoid this copy on rect ext ...
 
 		if (!txh->tx_io->conv_data) {
-			txh->tx_io->conv_data = gf_malloc(sizeof(char)*txh->stride*txh->height);
+			txh->tx_io->conv_data = (u8 *)gf_malloc(txh->stride*txh->height);
 			txh->tx_io->conv_format = txh->pixelformat;
 		}
-		if (!txh->tx_io->conv_data || txh->data) return 0;
+		if (!txh->tx_io->conv_data || txh->data) return GF_FALSE;
 		/*if texture is using RECT extension, flip image manually because
 				texture transforms are not supported in this case ...*/
 		for (i=0; i<txh->height; i++) {
@@ -610,7 +610,7 @@ common:
 		}
 
 		txh->tx_io->flags |= TX_IS_FLIPPED;
-		return 1;
+		return GF_TRUE;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YVU:
 	case GF_PIXEL_YUV_10:
@@ -635,19 +635,19 @@ common:
 		break;
 	default:
 		txh->tx_io->conv_format = 0;
-		return 0;
+		return GF_FALSE;
 	}
 	if (!txh->tx_io->conv_data) {
 		if (txh->tx_io->flags & TX_EMULE_POW2) {
 			/*convert video to a po of 2 WITHOUT SCALING VIDEO*/
 			txh->tx_io->conv_w = gf_get_next_pow2(txh->width);
 			txh->tx_io->conv_h = gf_get_next_pow2(txh->height);
-			txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * bpp * txh->tx_io->conv_w * txh->tx_io->conv_h);
+			txh->tx_io->conv_data = (u8 *)gf_malloc(bpp * txh->tx_io->conv_w * txh->tx_io->conv_h);
 			memset(txh->tx_io->conv_data , 0, sizeof(char) * bpp * txh->tx_io->conv_w * txh->tx_io->conv_h);
 			txh->tx_io->conv_wscale = INT2FIX(txh->width) / txh->tx_io->conv_w;
 			txh->tx_io->conv_hscale = INT2FIX(txh->height) / txh->tx_io->conv_h;
 		} else {
-			txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * bpp * txh->width * txh->height);
+			txh->tx_io->conv_data = (u8 *)gf_malloc(bpp * txh->width * txh->height);
 			memset(txh->tx_io->conv_data, 0, sizeof(char) * bpp * txh->width * txh->height);
 		}
 	}
@@ -659,7 +659,7 @@ common:
 	memset(&dst, 0, sizeof(GF_VideoSurface));
 	dst.width = src.width = txh->width;
 	dst.height = src.height = txh->height;
-	dst.is_hardware_memory = src.is_hardware_memory = 0;
+	dst.is_hardware_memory = src.is_hardware_memory = GF_FALSE;
 
 	src.pitch_x = 0;
 	src.pitch_y = txh->stride;
@@ -686,7 +686,7 @@ common:
 	case GF_PIXEL_BGRX:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB;
 		/*stretch and flip*/
-		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, !txh->is_flipped, NULL, NULL);
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, txh->is_flipped ? GF_FALSE : GF_TRUE, NULL, NULL);
 		if ( !txh->is_flipped)
 			txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
@@ -697,14 +697,14 @@ common:
 			dst.pixel_format = GF_PIXEL_RGB;
 			dst.pitch_y = 3*txh->width;
 			/*stretch YUV->RGB*/
-			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, GF_TRUE, NULL, NULL);
 			/*copy over Depth plane*/
 			memcpy(dst.video_buffer + 3*txh->width*txh->height, txh->data + 3*txh->stride*txh->height/2, txh->width*txh->height);
 		} else {
 			txh->tx_io->conv_format = GF_PIXEL_RGBD;
 			dst.pixel_format = GF_PIXEL_RGBD;
 			/*stretch*/
-			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, GF_FALSE, NULL, NULL);
 		}
 		txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
@@ -731,7 +731,7 @@ common:
 		break;
 	}
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
-	return 1;
+	return GF_TRUE;
 }
 
 #endif
@@ -739,25 +739,25 @@ common:
 Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Bool for2d)
 {
 #ifndef GPAC_DISABLE_3D
-	char *data;
+	u8 *data;
 	u32 pixel_format;
 	u32 push_time;
 #endif
 
 	if (for2d) {
-		Bool load_tx = 0;
-		if (!txh->data) return 0;
+		Bool load_tx = GF_FALSE;
+		if (!txh->data) return GF_FALSE;
 		if (!txh->tx_io) {
 			GF_SAFEALLOC(txh->tx_io, struct __texture_wrapper);
-			if (!txh->tx_io) return 0;
+			if (!txh->tx_io) return GF_FALSE;
 		}
 		if (!txh->tx_io->tx_raster) {
 			txh->tx_io->tx_raster = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
-			if (!txh->tx_io->tx_raster) return 0;
-			load_tx = 1;
+			if (!txh->tx_io->tx_raster) return GF_FALSE;
+			load_tx = GF_TRUE;
 		}
 		if (txh->tx_io->flags & TX_NEEDS_RASTER_LOAD) {
-			load_tx = 1;
+			load_tx = GF_TRUE;
 			txh->tx_io->flags &= ~TX_NEEDS_RASTER_LOAD;
 		}
 		if (load_tx) {
@@ -787,7 +787,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 						GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to fetch hardware texture data - try specifying `:drv=yes`\n"));
 					}
 				}
-				return 0;
+				return GF_FALSE;
 			}
 
 			if (!e)
@@ -796,19 +796,19 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			if (e != GF_OK) {
 				if (!txh->compositor->last_error)
 					txh->compositor->last_error = e;
-				return 0;
+				return GF_FALSE;
 			}
 			txh->compositor->last_error = GF_OK;
 		}
-		return 1;
+		return GF_TRUE;
 	}
 
 #ifndef GPAC_DISABLE_3D
 
-	if (! (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ) return 1;
+	if (! (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ) return GF_TRUE;
 
 	if (txh->tx_io->fbo_id) {
-		return 1;
+		return GF_TRUE;
 	}
 	GL_CHECK_ERR()
 
@@ -835,12 +835,12 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	/*in case the ID has been lost, resetup*/
 	if (!txh->tx_io->tx.nb_textures) {
 		/*force setup of image*/
-		txh->needs_refresh = 1;
+		txh->needs_refresh = GF_TRUE;
 		tx_setup_format(txh);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Allocating OpenGL texture\n"));
 	}
 	if (!txh->tx_io->gl_type)
-		return 0;
+		return GF_FALSE;
 
 	GL_CHECK_ERR()
 	tx_bind(txh);
@@ -848,7 +848,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 	txh->tx_io->flags &= ~TX_NEEDS_HW_LOAD;
 	data = gf_sc_texture_get_data(txh, &pixel_format);
-	if (!data) return 0;
+	if (!data) return GF_FALSE;
 
 	push_time = gf_sys_clock();
 
@@ -886,10 +886,10 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->tx.is_yuv ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->tx.pbo_state ? "yes" : "no"));
 	}
 #endif
-	return 1;
+	return GF_TRUE;
 
 #endif
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -992,7 +992,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 
 #ifndef GPAC_USE_GLES1X
 		/*obtain depthmap*/
-		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)gf_malloc(sizeof(char)*txh->width*txh->height);
+		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)gf_malloc(txh->width*txh->height);
 		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, txh->tx_io->depth_data);
 		/*	depth = alpha & 0xfe
 		    shape = plan alpha & 0x01 */
@@ -1019,7 +1019,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_FALSE);
 
 	/*flip image because of OpenGL*/
-	tmp = (char*)gf_malloc(sizeof(char)*txh->stride);
+	tmp = (char*)gf_malloc(txh->stride);
 	hy = txh->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(tmp, txh->data + i*txh->stride, txh->stride);
@@ -1045,7 +1045,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 #ifndef GPAC_DISABLE_3D
 	u32 nb_views=1;
 #endif
-	Bool ret = 0;
+	Bool ret = GF_FALSE;
 	gf_mx_init(*mx);
 
 #ifndef GPAC_DISABLE_3D
@@ -1061,7 +1061,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 
 		gf_mx_add_translation(mx, c_x / txh->width, c_y / txh->height, 0);
 		gf_mx_add_scale(mx, txh->stream->c_w / txh->width, txh->stream->c_h / txh->height, 1);
-		ret = 1;
+		ret = GF_TRUE;
 	}
 
 	if (!txh->compositor->dbgpack)
@@ -1070,7 +1070,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 #ifdef GPAC_CONFIG_ANDROID
 	if (txh->stream && txh->tx_io->gl_type == GL_TEXTURE_EXTERNAL_OES) {
 		gf_mx_copy(*mx, txh->tx_io->texcoordmatrix);
-		ret = 1;
+		ret = GF_TRUE;
 	}
 #endif // GPAC_CONFIG_ANDROID
 	if (nb_views>1 && !txh->frame_ifce) {
@@ -1078,7 +1078,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
-		ret = 1;
+		ret = GF_TRUE;
 	}
 
 	if (txh->stream && (txh->compositor->fpack==GF_3D_STEREO_TOP)) {
@@ -1086,7 +1086,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
-		ret = 1;
+		ret = GF_TRUE;
 	}
 #endif
 
@@ -1096,7 +1096,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		gf_mx_add_scale(mx, FIX_ONE, -FIX_ONE, FIX_ONE);
 		/*and translate it to handle repeatS/repeatT*/
 		gf_mx_add_translation(mx, 0, -FIX_ONE, 0);
-		ret = 1;
+		ret = GF_TRUE;
 	}
 
 	/*WATCHOUT: GL_TEXTURE_RECTANGLE coords are w, h not 1.0, 1.0 (but not with shaders, we do the txcoord conversion in the fragment shader*/
@@ -1104,7 +1104,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 #ifndef GPAC_DISABLE_3D
 		if (!for_picking && !txh->tx_io->tx.is_yuv) {
 			gf_mx_add_scale(mx, INT2FIX(txh->width), INT2FIX(txh->height), FIX_ONE);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 #endif
 	}
@@ -1113,7 +1113,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		gf_mx_add_scale(mx, txh->tx_io->conv_wscale, txh->tx_io->conv_hscale, FIX_ONE);
 		/*disable any texture transforms when emulating pow2 textures*/
 		tx_transform = NULL;
-		ret = 1;
+		ret = GF_TRUE;
 #endif
 	}
 
@@ -1142,7 +1142,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			} else {
 				gf_mx_from_mx2d(mx, &mat);
 			}
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		break;
 		case TAG_MPEG4_TransformMatrix2D:
@@ -1161,7 +1161,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			} else {
 				gf_mx_copy(*mx, tmp);
 			}
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		break;
 		default:
@@ -1182,8 +1182,8 @@ Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 	if (!txh->matteTexture) return txh->transparent;
 	matte = (M_MatteTexture *)txh->matteTexture;
 	if (!matte->operation.buffer) return txh->transparent;
-	if (matte->alphaSurface) return 1;
-	if (!strcmp(matte->operation.buffer, "COLOR_MATRIX")) return 1;
+	if (matte->alphaSurface) return GF_TRUE;
+	if (!strcmp(matte->operation.buffer, "COLOR_MATRIX")) return GF_TRUE;
 	return txh->transparent;
 #endif
 }
@@ -1228,7 +1228,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 	if (!txh->stream || txh->data || txh->frame_ifce) {
 		glGetError();
-		res = gf_sc_texture_push_image(txh, 0, 0);
+		res = gf_sc_texture_push_image(txh, GF_FALSE, GF_FALSE);
 		glGetError();
 		if (!res) return 0;
 	}
@@ -1239,11 +1239,11 @@ skip_push:
 
 	if (bounds && txh->compute_gradient_matrix) {
 		GF_Matrix2D mx2d;
-		txh->compute_gradient_matrix(txh, bounds, &mx2d, 1);
+		txh->compute_gradient_matrix(txh, bounds, &mx2d, GF_TRUE);
 		gf_mx_from_mx2d(&mx, &mx2d);
 		visual_3d_set_texture_matrix(root_visual, &mx);
 	}
-	else if (gf_sc_texture_get_transform(txh, tx_transform, &mx, 0)) {
+	else if (gf_sc_texture_get_transform(txh, tx_transform, &mx, GF_FALSE)) {
 		visual_3d_set_texture_matrix(root_visual, &mx);
 	} else {
 		visual_3d_set_texture_matrix(root_visual, NULL);
@@ -1259,7 +1259,7 @@ skip_push:
 	if (prog) {
 		glUseProgram(prog->prog);
 		GL_CHECK_ERR()
-		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 0, prog->prog);
+		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, GF_FALSE, prog->prog);
 	} else
 #endif
 	{
@@ -1281,7 +1281,7 @@ u32 gf_sc_texture_enable(GF_TextureHandler *txh, GF_Node *tx_transform)
 
 Bool gf_sc_texture_needs_reload(GF_TextureHandler *txh)
 {
-	return (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ? 1 : 0;
+	return (txh->tx_io->flags & TX_NEEDS_HW_LOAD) ? GF_TRUE : GF_FALSE;
 }
 
 

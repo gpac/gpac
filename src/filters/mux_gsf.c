@@ -159,7 +159,7 @@ static GFINLINE u32 gsfmx_get_header_size(GSFMxCtx *ctx, GSFStream *gst, Bool us
 	return hdr_size;
 }
 
-static void gsfmx_encrypt(GSFMxCtx *ctx, char *data, u32 nb_crypt_bytes)
+static void gsfmx_encrypt(GSFMxCtx *ctx, u8 *data, u32 nb_crypt_bytes)
 {
 #ifndef GPAC_DISABLE_CRYPTO
 	u32 clear_trail;
@@ -325,7 +325,7 @@ static void gsfmx_send_pid_eos(GSFMxCtx *ctx, GSFStream *gst, Bool is_eos)
 static Bool gsfmx_can_serialize_prop(const GF_PropertyValue *p, u32 prop_4cc)
 {
 	if (prop_4cc) {
-		u32 prop_type = gf_props_4cc_get_type(prop_4cc);
+		GF_PropType prop_type = gf_props_4cc_get_type(prop_4cc);
 		//prop_type can be 0 for unit test filters !!
 		if (prop_type
 			&& !gf_props_type_is_enum(prop_type)
@@ -407,7 +407,7 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 	case GF_PROP_NAME:
 		len = (u32) strlen(p->value.string);
 		gsfmx_write_vlen(ctx, len);
-		gf_bs_write_data(ctx->bs_w, p->value.string, len);
+		gf_bs_write_data(ctx->bs_w, (u8*)p->value.string, len);
 		break;
 
 	case GF_PROP_DATA:
@@ -426,7 +426,7 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 			const char *str = p->value.string_list.vals[i];
 			len = (u32) strlen(str);
 			gsfmx_write_vlen(ctx, len);
-			gf_bs_write_data(ctx->bs_w, str, len);
+			gf_bs_write_data(ctx->bs_w, (u8 *) str, len);
 		}
 		break;
 
@@ -533,7 +533,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 	//file, send mime, url, ext and streamtype
 	if (gst->is_file) {
 		const GF_PropertyValue *p;
-		GSFMxCtx *alias_ctx = gf_filter_pid_get_alias_udta(gst->pid);
+		GSFMxCtx *alias_ctx = (GSFMxCtx *) gf_filter_pid_get_alias_udta(gst->pid);
 		if (alias_ctx) {
 			force_fext = gf_file_ext_start(alias_ctx->dst);
 			if (force_fext) force_fext++;
@@ -650,7 +650,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 
 		len = (u32) strlen(prop_name);
 		gsfmx_write_vlen(ctx, len);
-		gf_bs_write_data(ctx->bs_w, prop_name, len);
+		gf_bs_write_data(ctx->bs_w, (u8 *) prop_name, len);
 
 		gf_bs_write_u8(ctx->bs_w, p->type);
 		gsfmx_write_prop(ctx, p);
@@ -698,7 +698,7 @@ static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx, Bool is_carousel
 	//header:magic
 	gsfmx_write_vlen(ctx, mlen);
 	if (ctx->magic) {
-		gf_bs_write_data(ctx->bs_w, ctx->magic, mlen);
+		gf_bs_write_data(ctx->bs_w, (u8*)ctx->magic, mlen);
 	}
 
 	gsfmx_send_packets(ctx, NULL, GFS_PCKTYPE_HDR, GF_FALSE, is_carousel_update ? GF_TRUE : GF_FALSE, 0, 0);
@@ -724,7 +724,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 {
 	u32 w=0, h=0, stride=0, stride_uv=0, pf=0;
 	u32 nb_planes=0, uv_height=0;
-	const char *data;
+	const u8 *data;
 	u32 frame_size, frame_hdr_size;
 	GF_FilterFrameInterface *frame_ifce=NULL;
 	u32 nb_4cc_props=0;
@@ -964,7 +964,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			if (!prop_name) prop_name = gf_4cc_to_str(prop_4cc);
 			len = (u32) strlen(prop_name);
 			gsfmx_write_vlen(ctx, len);
-			gf_bs_write_data(ctx->bs_w, prop_name, len);
+			gf_bs_write_data(ctx->bs_w, (u8 *) prop_name, len);
 
 			gf_bs_write_u8(ctx->bs_w, p->type);
 			gsfmx_write_prop(ctx, p);
@@ -1022,10 +1022,10 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GSFStream *gst=NULL;
 	const GF_PropertyValue *p;
-	GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = (GSFMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		gst = gf_filter_pid_get_udta(pid);
+		gst = (GSFStream *)gf_filter_pid_get_udta(pid);
 		if (!gst) return GF_OK;
 
 		gsfmx_send_pid_rem(ctx, gst);
@@ -1056,7 +1056,7 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 
-	gst = gf_filter_pid_get_udta(pid);
+	gst = (GSFStream *)gf_filter_pid_get_udta(pid);
 	if (!gst) {
 		GF_SAFEALLOC(gst, GSFStream);
 		if (!gst) return GF_OUT_OF_MEM;
@@ -1081,12 +1081,12 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 GF_Err gsfmx_process(GF_Filter *filter)
 {
-	GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = (GSFMxCtx *)gf_filter_get_udta(filter);
 	u32 i, nb_eos, count = gf_list_count(ctx->streams);
 
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
-		GSFStream *gst = gf_list_get(ctx->streams, i);
+		GSFStream *gst = (GSFStream *)gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(gst->pid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(gst->pid)) {
@@ -1106,7 +1106,7 @@ GF_Err gsfmx_process(GF_Filter *filter)
 		ctx->regenerate_tunein_info = GF_FALSE;
 		gsfmx_send_header(filter, ctx, GF_TRUE);
 		for (i=0; i<count; i++) {
-			GSFStream *gst = gf_list_get(ctx->streams, i);
+			GSFStream *gst = (GSFStream *)gf_list_get(ctx->streams, i);
 			gsfmx_send_pid_config(filter, ctx, gst, GF_FALSE, GF_TRUE);
 		}
 	}
@@ -1120,9 +1120,9 @@ GF_Err gsfmx_process(GF_Filter *filter)
 
 static Bool gsfmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = (GSFMxCtx *)gf_filter_get_udta(filter);
 	if (evt->base.type==GF_FEVT_INFO_UPDATE) {
-		GSFStream *gst = gf_filter_pid_get_udta(evt->base.on_pid);
+		GSFStream *gst = (GSFStream *)gf_filter_pid_get_udta(evt->base.on_pid);
 		if (gst)
 			gsfmx_send_pid_config(filter, ctx, gst, GF_TRUE, GF_FALSE);
 	}
@@ -1136,7 +1136,7 @@ static Bool gsfmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GF_Err gsfmx_initialize(GF_Filter *filter)
 {
-	GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = (GSFMxCtx *)gf_filter_get_udta(filter);
 	const char *ext = ctx->ext;
 
 	if (!ext && ctx->dst) {
@@ -1231,9 +1231,9 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 
 static void gsfmx_finalize(GF_Filter *filter)
 {
-	GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = (GSFMxCtx *)gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->streams)) {
-		GSFStream *gst = gf_list_pop_back(ctx->streams);
+		GSFStream *gst = (GSFStream *)gf_list_pop_back(ctx->streams);
 		gf_free(gst);
 	}
 	gf_list_del(ctx->streams);
@@ -1247,7 +1247,7 @@ static void gsfmx_finalize(GF_Filter *filter)
 
 static Bool gsfmx_use_alias(GF_Filter *filter, const char *url, const char *mime)
 {
-	GSFMxCtx *ctx = gf_filter_get_udta(filter);
+	GSFMxCtx *ctx = (GSFMxCtx *)gf_filter_get_udta(filter);
 	return ctx->filemode;
 }
 

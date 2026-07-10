@@ -27,6 +27,10 @@
 #ifndef _GF_BIFS_DEV_H_
 #define _GF_BIFS_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/bitstream.h>
@@ -210,7 +214,7 @@ GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID);
 		gf_bs_write_int(bs, val, nbBits);	\
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] %s\t\t%d\t\t%d\t\t%s\n", str, nbBits, val, com ? com : "") );	\
 	} \
- 
+
 GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fieldIndex);
 
 #endif /*GPAC_DISABLE_BIFS_ENC*/
@@ -237,6 +241,10 @@ u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version);
 
 
 #endif	/*GPAC_DISABLE_BIFS*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	//_GF_BIFS_DEV_H_
 

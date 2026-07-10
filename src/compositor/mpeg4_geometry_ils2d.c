@@ -49,13 +49,13 @@ static void ils2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 
 	pts = coord->point.vals;
 	if (ils2D->coordIndex.count > 0) {
-		started = 0;
+		started = GF_FALSE;
 		for (i=0; i < ils2D->coordIndex.count; i++) {
 			/*NO close on ILS2D*/
 			if (ils2D->coordIndex.vals[i] == -1) {
-				started = 0;
+				started = GF_FALSE;
 			} else if (!started) {
-				started = 1;
+				started = GF_TRUE;
 				gf_path_add_move_to(stack->path, pts[ils2D->coordIndex.vals[i]].x, pts[ils2D->coordIndex.vals[i]].y);
 			} else {
 				gf_path_add_line_to(stack->path, pts[ils2D->coordIndex.vals[i]].x, pts[ils2D->coordIndex.vals[i]].y);
@@ -256,7 +256,7 @@ static void TraverseILS2D(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
 			stack->mesh = new_mesh();
-			mesh_new_ils(stack->mesh, ils2D->coord, &ils2D->coordIndex, ils2D->color, &ils2D->colorIndex, ils2D->colorPerVertex, 0);
+			mesh_new_ils(stack->mesh, ils2D->coord, &ils2D->coordIndex, ils2D->color, &ils2D->colorIndex, ils2D->colorPerVertex, GF_FALSE);
 		}
 		if (ils2D->color) {
 			DrawAspect2D asp;

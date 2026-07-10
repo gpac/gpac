@@ -2,8 +2,8 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Romain Bouqueau, Jean Le Feuvre
-*			Copyright (c) 2014-2022 GPAC Licensing
-*			Copyright (c) 2016-2024 Telecom Paris
+*			Copyright (c) GPAC Licensing 2014-2022
+*			Copyright (c) Telecom Paris 2016-2024
 *					All rights reserved
 *
 *  This file is part of GPAC / Dektec SDI video output filter
@@ -58,7 +58,11 @@ static GF_FilterCapability DTOutCaps[3];
 #include <gpac/module.h>
 GF_FilterRegister DTOutRegister;
 
+
 #ifdef GPAC_HAS_DTAPI
+
+GPAC_MODULE_EXPORT_START
+
 GPAC_MODULE_EXPORT
 GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
 #else
@@ -121,3 +125,7 @@ const GF_FilterRegister *dtout_register(GF_FilterSession *session)
 #endif
 	return &DTOutRegister;
 }
+
+#ifdef GPAC_HAS_DTAPI
+GPAC_MODULE_EXPORT_END
+#endif

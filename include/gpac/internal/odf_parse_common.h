@@ -26,6 +26,10 @@
 
 #ifndef _GF_OD_PARSE_COMMON_H_
 #define _GF_OD_PARSE_COMMON_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <gpac/setup.h>
 
 #define GET_U8(field) { u32 d; if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u8) d; } else { ret += sscanf(val, "%u", &d); if (ret) field = (u8) d; }	}
@@ -47,6 +51,10 @@
 		}\
 	}
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* _GF_OD_PARSE_COMMON_H_  */
 

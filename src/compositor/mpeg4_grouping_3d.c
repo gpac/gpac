@@ -192,12 +192,12 @@ static void TraverseTransform(GF_Node *n, void *rs, Bool is_destroy)
 		gf_mx_init(st->mx);
 		if (tr->translation.x || tr->translation.y || tr->translation.z)
 			gf_mx_add_translation(&st->mx, tr->translation.x, tr->translation.y, tr->translation.z);
-		recenter = (tr->center.x || tr->center.y || tr->center.z) ? 1 : 0;
+		recenter = (tr->center.x || tr->center.y || tr->center.z) ? GF_TRUE : GF_FALSE;
 		if (recenter)
 			gf_mx_add_translation(&st->mx, tr->center.x, tr->center.y, tr->center.z);
 
 		if (tr->rotation.q) gf_mx_add_rotation(&st->mx, tr->rotation.q, tr->rotation.x, tr->rotation.y, tr->rotation.z);
-		scale_rot = (tr->scaleOrientation.q) ? 1 : 0;
+		scale_rot = (tr->scaleOrientation.q) ? GF_TRUE : GF_FALSE;
 		if (scale_rot)
 			gf_mx_add_rotation(&st->mx, tr->scaleOrientation.q, tr->scaleOrientation.x, tr->scaleOrientation.y, tr->scaleOrientation.z);
 		if ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE))
@@ -207,7 +207,7 @@ static void TraverseTransform(GF_Node *n, void *rs, Bool is_destroy)
 		if (recenter)
 			gf_mx_add_translation(&st->mx, -tr->center.x, -tr->center.y, -tr->center.z);
 
-		st->has_scale = ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE)) ? 1 : 0;
+		st->has_scale = ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE)) ? GF_TRUE : GF_FALSE;
 	}
 
 	gf_mx_copy(gf_mx_bckup, tr_state->model_matrix);
@@ -352,7 +352,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 	nb_children = gf_node_list_get_count(children);
 
 	if (!tr_state->camera) {
-		do_all = 1;
+		do_all = GF_TRUE;
 		which_child = 0;
 	} else {
 		/*can't cache the matrix here*/
@@ -369,13 +369,13 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 		if (which_child>=nb_children) which_child = nb_children-1;
 
 		/*check if we're traversing the same child or not for audio rendering*/
-		do_all = 0;
+		do_all = GF_FALSE;
 		if (gf_node_dirty_get(node)) {
 			gf_node_dirty_clear(node, 0);
-			do_all = 1;
+			do_all = GF_TRUE;
 		} else if ((s32) which_child != *prev_child) {
 			*prev_child = which_child;
-			do_all = 1;
+			do_all = GF_TRUE;
 		}
 	}
 
@@ -383,7 +383,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 		u32 i;
 		Bool prev_switch = tr_state->switched_off;
 		GF_ChildNodeItem *l = children;
-		tr_state->switched_off = 1;
+		tr_state->switched_off = GF_TRUE;
 		i=0;
 		while (l) {
 			if (i!=which_child) gf_node_traverse(l->node, rs);

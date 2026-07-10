@@ -812,6 +812,8 @@ u64 gf_memory_size(); /*gets memory allocated in bytes*/
 /*! reallocates memory, shall be freed using \ref gf_free*/
 #define gf_realloc(ptr1, size) gf_mem_realloc(ptr1, size, __FILE__, __LINE__)
 
+u64 gf_mem_get_stats(u32 *nb_allocs, u32 *nb_callocs, u32 *nb_reallocs, u32 *nb_free);
+
 #else
 
 /*! free memory allocated with gpac
@@ -848,6 +850,10 @@ void* gf_realloc(void *ptr, size_t size);
 #endif
 /*! @} */
 
+/*! free a string same as \ref gf_free, used for accessing gf_free in bindings
+\param url string or structure to free
+*/
+void gf_url_free(char *url);
 
 /*end GPAC memory tracking*/
 

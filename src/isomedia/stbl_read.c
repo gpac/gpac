@@ -286,14 +286,14 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, GF_ISOSAPType 
 	count2 = gf_list_count(stbl->sampleGroupsDescription);
 	for (i=0; i<count; i++) {
 		GF_SampleGroupDescriptionBox *sgdp = NULL;
-		Bool is_rap_group = 0;
+		Bool is_rap_group = GF_FALSE;
 		s32 roll_distance = 0;
 		u32 first_sample_in_entry, last_sample_in_entry;
-		GF_SampleGroupBox *sg = gf_list_get(stbl->sampleGroups, i);
+		GF_SampleGroupBox *sg = (GF_SampleGroupBox *)gf_list_get(stbl->sampleGroups, i);
 		switch (sg->grouping_type) {
 		case GF_ISOM_SAMPLE_GROUP_RAP:
 		case GF_ISOM_SAMPLE_GROUP_SYNC:
-			is_rap_group = 1;
+			is_rap_group = GF_TRUE;
 			break;
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
 			break;
@@ -301,7 +301,7 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, GF_ISOSAPType 
 			continue;
 		}
 		for (j=0; j<count2; j++) {
-			sgdp = gf_list_get(stbl->sampleGroupsDescription, j);
+			sgdp = (GF_SampleGroupDescriptionBox *)gf_list_get(stbl->sampleGroupsDescription, j);
 			if (sgdp->grouping_type==sg->grouping_type) break;
 			sgdp = NULL;
 		}
@@ -318,7 +318,7 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, GF_ISOSAPType 
 				continue;
 			}
 			if (!is_rap_group) {
-				GF_RollRecoveryEntry *entry = gf_list_get(sgdp->group_descriptions, sg->sample_entries[j].group_description_index - 1);
+				GF_RollRecoveryEntry *entry = (GF_RollRecoveryEntry *)gf_list_get(sgdp->group_descriptions, sg->sample_entries[j].group_description_index - 1);
 				roll_distance = entry ? entry->roll_distance : 0;
 			}
 

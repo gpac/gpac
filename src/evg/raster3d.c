@@ -255,7 +255,7 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 void evg_get_fragment(GF_EVGSurface *surf, EVGRasterCtx *rctx, Bool *is_transparent)
 {
 	if (!surf->frag_shader(surf->frag_shader_udta, &rctx->frag_param)) {
-		rctx->frag_param.frag_valid = 0;
+		rctx->frag_param.frag_valid = GF_EVG_FRAG_INVALID;
 		rctx->fill_col = 0;
 		rctx->fill_col_wide = 0;
 		return;
@@ -284,7 +284,7 @@ void evg_get_fragment(GF_EVGSurface *surf, EVGRasterCtx *rctx, Bool *is_transpar
 			rctx->fill_col_wide = GF_COLW_ARGB((u16) color.q*0xFFFF, (u16) color.x*0xFFFF, (u16) color.y*0xFFFF, (u16) color.z*0xFFFF);
 		}
 		if (is_transparent && (GF_COLW_A(rctx->fill_col_wide) <0xFFFF))
-			*is_transparent=1;
+			*is_transparent = GF_TRUE;
 	} else {
 		if ((rctx->frag_param.frag_valid==GF_EVG_FRAG_RGB_PACK) || (rctx->frag_param.frag_valid==GF_EVG_FRAG_YUV_PACK)) {
 			if (rctx->frag_param.color_pack_wide) {
@@ -305,7 +305,7 @@ void evg_get_fragment(GF_EVGSurface *surf, EVGRasterCtx *rctx, Bool *is_transpar
 			rctx->fill_col = GF_COL_ARGB(a, r, g, b);
 		}
 		if (is_transparent && (GF_COL_A(rctx->fill_col) <0xFF))
-			*is_transparent=1;
+			*is_transparent = GF_TRUE;
 	}
 
 	if (surf->not_8bits) {
@@ -353,7 +353,7 @@ static void push_patch_pixel(AAScanline *sl, s32 x, u32 col, u8 coverage, Float 
 
 	if (sl->pnum == sl->palloc) {
 		sl->palloc += AA_CELL_STEP_ALLOC;
-		sl->pixels = gf_realloc(sl->pixels, sizeof(PatchPixel) * sl->palloc);
+		sl->pixels = (PatchPixel *)gf_realloc(sl->pixels, sizeof(PatchPixel) * sl->palloc);
 	}
 	if (i==sl->pnum) {
 		pp = &sl->pixels[sl->pnum];
@@ -534,7 +534,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 	rctx->frag_param.screen_z = s3d->zw_factor * depth + s3d->zw_offset;
 	rctx->frag_param.depth = depth;
 	rctx->frag_param.color.q = 1.0;
-	rctx->frag_param.frag_valid = 0;
+	rctx->frag_param.frag_valid = GF_EVG_FRAG_INVALID;
 	/*perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3 - we already have store 1/q in the perspective divide step*/
 	rctx->frag_param.pbc1 = bc1 * surf->s_v1.q;
 	rctx->frag_param.pbc2 = bc2 * surf->s_v2.q;
@@ -767,7 +767,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 			vparam.prim_index = prim_index;
 		}
 		prim_index++;
-		
+
 #define GETVEC(_name, _idx)\
 		vx->x = vertices[_idx];\
 		vx->y = vertices[_idx+1];\
@@ -1309,7 +1309,7 @@ GF_Err gf_evg_surface_disable_early_depth(GF_EVGSurface *surf, Bool disable)
 {
 	if (!surf) return GF_BAD_PARAM;
 	if (!surf->ext3d) return GF_OK;
-	surf->ext3d->early_depth_test = !disable;
+	surf->ext3d->early_depth_test = disable ? GF_FALSE : GF_TRUE;
 	return GF_OK;
 }
 

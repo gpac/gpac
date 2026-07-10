@@ -27,6 +27,10 @@
 #ifndef _GF_MESH_H_
 #define _GF_MESH_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/scenegraph_vrml.h>
 #include <gpac/path2d.h>
 #include <gpac/mediaobject.h>
@@ -311,6 +315,10 @@ Same as TesselateFaceMesh + faces info to determine where are the polygons in th
 */
 void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *ptsPerFaces);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif		/*_GF_MESH_H_*/

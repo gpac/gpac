@@ -212,7 +212,7 @@ static void gf_inline_check_restart(GF_Scene *scene)
 void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene)
 {
 	gf_inline_check_restart(scene);
-	
+
 	if (scene->needs_restart) {
 		gf_sc_invalidate(scene->compositor, NULL);
 		return;
@@ -236,7 +236,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
 				from = (s64) (scene->root_od->media_ctrl->media_start * 1000);
 			}
 		}
-		gf_scene_restart_dynamic(scene, from, 0, 0);
+		gf_scene_restart_dynamic(scene, from, GF_FALSE, GF_FALSE);
 	} else {
 		/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes.
 		The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in
@@ -264,7 +264,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		mo = scene->root_od ? scene->root_od->mo : NULL;
 
 		gf_list_del_item(scene->attached_inlines, n);
-		
+
 		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK, GF_TRUE);
 		if (!mo) return;
 		gf_mo_event_target_remove_by_node(mo, n);
@@ -282,14 +282,14 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					if (gf_list_del_item(parent_scene->scene_objects, mo)>=0) {
 						gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
 						if (mo->odm) {
-							gf_odm_reset_media_control(mo->odm, 1);
+							gf_odm_reset_media_control(mo->odm, GF_TRUE);
 							mo->odm->mo = NULL;
 						}
 						gf_mo_del(mo);
 					}
 					gf_odm_disconnect(scene->root_od, 2);
 				} else {
-					gf_odm_stop(scene->root_od, 1);
+					gf_odm_stop(scene->root_od, GF_TRUE);
 					gf_scene_disconnect(scene->root_od->subscene, GF_TRUE);
 				}
 			}
@@ -312,7 +312,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 				if (!inl->url.vals[0].OD_ID && (!inl->url.vals[0].url || !strlen(inl->url.vals[0].url) ) ) {
 					gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 				} else {
-					gf_node_dirty_set(n, 0, GF_TRUE);
+					gf_node_dirty_set(n, GF_FALSE, GF_TRUE);
 				}
 			}
 			return;
@@ -324,7 +324,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		M_Inline *inl = (M_Inline *)n;
 		if (inl->url.count) {
 			/*just like protos, we must invalidate parent graph until attached*/
-			gf_node_dirty_set(n, 0, GF_TRUE);
+			gf_node_dirty_set(n, GF_FALSE, GF_TRUE);
 			//and request bew anim frame until attached
 			if (scene->object_attached)
 				gf_sc_invalidate(scene->compositor, NULL);
@@ -353,7 +353,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 		scene->needs_restart = 0;
 		gf_scene_mpeg4_inline_restart(scene);
-		gf_node_dirty_set(n, 0, GF_TRUE);
+		gf_node_dirty_set(n, GF_FALSE, GF_TRUE);
 		return;
 	}
 
@@ -383,7 +383,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	//this is a scene reset, destroy all proto links
 	if (!lib_url) {
 		while (gf_list_count(scene->extern_protos)) {
-			pl = gf_list_pop_back(scene->extern_protos);
+			pl = (GF_ProtoLink *)gf_list_pop_back(scene->extern_protos);
 			if (pl->mo) {
 				//proto link was not attached, manual discard
 				if (!pl->mo->odm) {
@@ -399,7 +399,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	if (!lib_url->count)
 		return NULL;
 
-	if (gf_inline_is_hardcoded_proto(scene->compositor, lib_url)) return (void *) GF_SG_INTERNAL_PROTO;
+	if (gf_inline_is_hardcoded_proto(scene->compositor, lib_url)) return (GF_SceneGraph *) GF_SG_INTERNAL_PROTO;
 
 	i=0;
 	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i))) {

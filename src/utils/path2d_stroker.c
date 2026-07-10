@@ -188,7 +188,7 @@ static s32 ft_stroke_border_grow(FT_StrokeBorder  border, u32 new_points)
 	if (new_max > border->max_points) {
 		u32 cur_max = new_max*2;
 		border->points = (GF_Point2D *) gf_realloc(border->points, sizeof(GF_Point2D)*cur_max);
-		border->tags = (u8 *) gf_realloc(border->tags, sizeof(u8)*cur_max);
+		border->tags = (u8 *) gf_realloc(border->tags, cur_max);
 		if (!border->points || !border->tags) return -1;
 		border->max_points = cur_max;
 	}
@@ -1354,7 +1354,7 @@ Do_Conic:
 Close:
 		if ( error ) goto Exit;
 
-		error = FT_Stroker_EndSubPath(stroker, closed_subpath);
+		error = FT_Stroker_EndSubPath(stroker, closed_subpath ? GF_TRUE : GF_FALSE);
 		if ( error )
 			goto Exit;
 
@@ -1465,8 +1465,8 @@ static GF_Err gf_path_mergedashes(GF_Path *gp, u32 start_contour_index)
 	gp->contours = (u32 *)gf_realloc(gp->contours, sizeof(u32)*gp->n_contours);
 
 	/*
-		gp->points = gf_realloc(gp->points, sizeof(GF_Point2D)*gp->n_points);
-		gp->tags = gf_realloc(gp->tags, sizeof(u8)*gp->n_points);
+		gp->points = (GF_Point2D *)gf_realloc(gp->points, sizeof(GF_Point2D)*gp->n_points);
+		gp->tags = (u8 *)gf_realloc(gp->tags, sizeof(u8)*gp->n_points);
 		gp->n_alloc_points = gp->n_points;
 	*/
 	return GF_OK;
@@ -1762,7 +1762,7 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 			if (nb_pt) {
 				FT_StrokeBorder sborder;
 				outline->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*nb_pt);
-				outline->tags = (u8 *) gf_malloc(sizeof(u8)*nb_pt);
+				outline->tags = (u8 *) gf_malloc(nb_pt);
 				outline->contours = (u32 *) gf_malloc(sizeof(u32)*nb_cnt);
 				outline->n_alloc_points = nb_pt;
 				sborder = &stroker.borders[0];

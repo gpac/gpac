@@ -145,7 +145,7 @@ static Bool compile_shader(u32 shader_id, const char *name, const char *source)
 	GLint is_compiled = 0;
 
 
-	if (!source || !shader_id) return 0;
+	if (!source || !shader_id) return GF_FALSE;
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
@@ -541,7 +541,7 @@ static int createTexture(AndroidContext *rc)
 
 static u32 find_pow_2(u32 num)
 {
-	u32 res = 1;
+	u32 res = GF_TRUE;
 	while (res < num)
 		res *= 2;
 	return res;
@@ -637,7 +637,7 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->texData;
-		vi->is_hardware_memory = 0;
+		vi->is_hardware_memory = GF_FALSE;
 		vi->pitch_x = NBPP;
 		vi->pitch_y = NBPP * rc->tex_width;
 		vi->pixel_format = RAW_OUT_PIXEL_FORMAT;
@@ -732,7 +732,7 @@ GF_VideoOutput *NewAndroidVideoOutput()
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "android", "gpac distribution")
 
-	pCtx = gf_malloc(sizeof(AndroidContext));
+	pCtx = (AndroidContext *)gf_malloc(sizeof(AndroidContext));
 	memset(pCtx, 0, sizeof(AndroidContext));
 
 	pCtx->texID = -1;
@@ -764,6 +764,8 @@ void DeleteAndroidVideoOutput(void *ifce)
 	gf_free(driv);
 }
 
+GPAC_MODULE_EXPORT_START
+
 /*interface query*/
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
@@ -791,5 +793,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( droid_vidgl )

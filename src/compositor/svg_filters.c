@@ -136,8 +136,8 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 					Fixed pN = p*N;
 					u32 k = FIX2INT(p*N);
 					if (k==N) k--;
-					vk = gf_list_get(table, k);
-					vk1 = gf_list_get(table, k+1);
+					vk = (struct __svg_number *)gf_list_get(table, k);
+					vk1 = (struct __svg_number *)gf_list_get(table, k+1);
 					p = 255 * ( vk->value + gf_mulfix( pN - INT2FIX(k), (vk1->value - vk->value)) );
 					ptr[0] = (u8) MIN(MAX(0, p), 255);
 					ptr += 4;
@@ -156,7 +156,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 						k++;
 					}
 					if (k) k--;
-					vk = gf_list_get(table, k);
+					vk = (struct __svg_number *)gf_list_get(table, k);
 					p = 255 * vk->value;
 					ptr[0] = (u8) MIN(MAX(0, p), 255);
 					ptr += 4;
@@ -200,7 +200,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	GF_Rect bounds, local_bounds, rc;
 	GF_Matrix2D backup;
 	SVGAllAttributes all_atts;
-	GF_FilterStack *st = gf_node_get_private(filter);
+	GF_FilterStack *st = (GF_FilterStack *)gf_node_get_private(filter);
 	gf_assert(tr_state->traversing_mode==TRAVERSE_SORT);
 
 	/*store the current transform matrix, create a new one for group_cache*/
@@ -241,11 +241,11 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) st->txh.pixelformat = GF_PIXEL_RGBA;
 #endif
-	st->txh.transparent = 1;
+	st->txh.transparent = GF_TRUE;
 
 	if (st->txh.stride * st->txh.height > st->alloc_size) {
 		st->alloc_size = st->txh.stride * st->txh.height;
-		st->data = (u8*)gf_realloc(st->data, sizeof(u8) * st->alloc_size);
+		st->data = (u8*)gf_realloc(st->data, st->alloc_size);
 	}
 	memset(st->data, 0x0, sizeof(char) * st->txh.stride * st->txh.height);
 	st->txh.data = (char *) st->data;
@@ -276,9 +276,9 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	        st->txh.pixelformat);
 
 	prev_flags = tr_state->immediate_draw;
-	tr_state->immediate_draw = 1;
+	tr_state->immediate_draw = GF_TRUE;
 	tr_state->traversing_mode = TRAVERSE_SORT;
-	tr_state->in_svg_filter = 1;
+	tr_state->in_svg_filter = GF_TRUE;
 
 	/*recompute the bounds with the final scaling used*/
 	scale_x = gf_divfix(bounds.width, local_bounds.width);
@@ -332,7 +332,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 
 
 	/*restore state and destroy whatever needs to be cleaned*/
-	tr_state->in_svg_filter = 0;
+	tr_state->in_svg_filter = GF_FALSE;
 	tr_state->immediate_draw = prev_flags;
 	gf_evg_surface_delete(offscreen_surface);
 	tr_state->visual->raster_surface = old_surf;
@@ -344,15 +344,15 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 #endif
 
 	/*update texture*/
-	st->txh.transparent = 1;
+	st->txh.transparent = GF_TRUE;
 	st->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	gf_sc_texture_set_data(&st->txh);
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d)
-		gf_sc_texture_push_image(&st->txh, 0, 0);
+		gf_sc_texture_push_image(&st->txh, GF_FALSE, GF_FALSE);
 	else
 #endif
-		gf_sc_texture_push_image(&st->txh, 0, 1);
+		gf_sc_texture_push_image(&st->txh, GF_FALSE, GF_TRUE);
 
 	ctx->flags |= CTX_NO_ANTIALIAS;
 	ctx->aspect.fill_color = 0;
@@ -405,7 +405,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 static void svg_traverse_filter(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
-	GF_FilterStack *st = gf_node_get_private(node);
+	GF_FilterStack *st = (GF_FilterStack *)gf_node_get_private(node);
 	if (is_destroy) {
 		drawable_del(st->drawable);
 		if (st->data) gf_free(st->data);

@@ -78,12 +78,12 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 	if (!strnicmp(src, "base64", 6)) {
 		src += 7;
 		size = (u32) strlen(src);
-		data = gf_malloc(sizeof(char) * size);
+		data = (u8 *)gf_malloc(size);
 		size = gf_base64_decode((u8 *)src, size, data, size);
 	} else if (is_string) {
 		data = (u8 *) src;
 		size = (u32) strlen(src);
-		is_box_array = 0;
+		is_box_array = GF_FALSE;
 	} else {
 		GF_Err e = gf_file_load_data(src, (u8 **) &data, &size);
 		if (e) return e;
@@ -113,12 +113,12 @@ extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
-GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
+GF_Err convert_file_info(const char *inName, TrackIdentifier *track_id)
 {
 	GF_Err e;
 	u32 i, cur=1;
 	Bool found;
-	GF_MediaImporter *import = gf_malloc(sizeof(GF_MediaImporter));
+	GF_MediaImporter *import = (GF_MediaImporter *)gf_malloc(sizeof(GF_MediaImporter));
 	if (!import) return GF_OUT_OF_MEM;
 	memset(import, 0, sizeof(GF_MediaImporter));
 	if (!track_id->type)
@@ -148,7 +148,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 	if (import->probe_duration) {
 		fprintf(stderr, "Duration: %g s\n", (Double) (import->probe_duration/1000.0));
 	}
-	found = 0;
+	found = GF_FALSE;
 	for (i=0; i<import->nb_tracks; i++) {
 		u32 stype = import->tk_info[i].stream_type;
 		switch (track_id->type) {
@@ -235,7 +235,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 		}
 
 		if (track_id->ID_or_num || (track_id->type>1)) {
-			found = 1;
+			found = GF_TRUE;
 			break;
 		}
 	}
@@ -287,13 +287,13 @@ static GF_Err set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_tra
 		gf_isom_set_sample_padding(file, track, 0);
 		gf_isom_has_padding_bits(file, track);
 		gf_isom_get_sample_padding_bits(file, track, 1, &NbBits);
-		gf_isom_keep_utc_times(file, 1);
+		gf_isom_keep_utc_times(file, GF_TRUE);
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		gf_isom_set_single_moof_mode(file, GF_TRUE);
 		gf_isom_reset_sample_count(NULL);
 		gf_isom_set_traf_mss_timeext(NULL, 0, 0, 0);
 		gf_isom_get_next_moof_number(NULL);
-		gf_isom_set_fragment_reference_time(NULL, 0, 0, 0, 0);
+		gf_isom_set_fragment_reference_time(NULL, GF_FALSE, 0, 0, GF_FALSE);
 #endif
 		//this one is not tested in master due to old-arch compat, to remove when we enable tests without old-arch
 		gf_isom_get_audio_layout(file, track, 1, &layout);
@@ -425,7 +425,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 		dovi->dv_bl_signal_compatibility_id = dv_compat_id;
 		dovi->force_dv = force_dv;
 		dovi->dv_md_compression = dv_md_compression;
-		dovi->rpu_present_flag = 1;
+		dovi->rpu_present_flag = GF_TRUE;
 		e = gf_isom_set_dolby_vision_profile(dest, track, 1, remove ? NULL : dovi);
 		gf_odf_dovi_cfg_del(dovi);
 		return e;
@@ -448,7 +448,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 
 	// This flag must always be set to 1 given the deprecation of certain profiles
 	// Dolby Vision Streams Within the ISO Base Media File Format specification version 2.6 section 2.2
-	_dovi.rpu_present_flag = 1;
+	_dovi.rpu_present_flag = GF_TRUE;
 
 	u32 w, h;
 	u32 codec_id = 0;
@@ -503,8 +503,8 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 				u32 nal_type = gf_bs_read_u8(bs);
 				nal_type = nal_type & 0x1F;
 				nal_size--;
-				if (nal_type == GF_AVC_NALU_DV_EL) _dovi.el_present_flag = 1;
-				else if (nal_type <= GF_AVC_NALU_IDR_SLICE) _dovi.bl_present_flag = 1;
+				if (nal_type == GF_AVC_NALU_DV_EL) _dovi.el_present_flag = GF_TRUE;
+				else if (nal_type <= GF_AVC_NALU_IDR_SLICE) _dovi.bl_present_flag = GF_TRUE;
 
 				gf_bs_skip_bytes(bs, nal_size-1);
 			} else if (codec_id==GF_CODECID_HEVC) {
@@ -513,8 +513,8 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 				u32 nal_type = gf_bs_read_int(bs, 6);
 				gf_bs_read_int(bs, 1);
 				nal_size--;
-				if (nal_type == GF_HEVC_NALU_DV_EL) _dovi.el_present_flag = 1;
-				else if (nal_type <= GF_HEVC_NALU_SLICE_CRA) _dovi.bl_present_flag = 1;
+				if (nal_type == GF_HEVC_NALU_DV_EL) _dovi.el_present_flag = GF_TRUE;
+				else if (nal_type <= GF_HEVC_NALU_SLICE_CRA) _dovi.bl_present_flag = GF_TRUE;
 
 				gf_bs_skip_bytes(bs, nal_size-1);
 			}
@@ -537,7 +537,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str, 
 					}
 					obu_size += obu_hdr_size;
 					if (obu_type<=OBU_TILE_LIST) {
-						_dovi.bl_present_flag = 1;
+						_dovi.bl_present_flag = GF_TRUE;
 					}
 					gf_bs_seek(bs, obu_start+obu_size);
 				#else
@@ -644,7 +644,7 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 				//adjust media duration based on media time
 				u64 media_t = media_time.num * media_ts / media_time.den;
 				if (media_dur<media_t) {
-					fprintf(stderr, "Media time "LLU" larger than duration "LLU", using last media frame\n", media_t, media_dur);
+					fprintf(stderr, "Media time " LLU " larger than duration " LLU ", using last media frame\n", media_t, media_dur);
 					media_t = media_dur;
 					media_dur = 0;
 				} else {
@@ -666,14 +666,14 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 				//clamp edit dur to available media time
 				if (gf_timestamp_greater(edur, movie_ts, media_dur, media_ts)) {
 					u64 ndur = gf_timestamp_rescale(media_dur, media_ts, movie_ts);
-					fprintf(stderr, "Clamping edit duration from "LLU"/%u to "LLU"/%u due to available media duration "LLU"/%u\n", edur, movie_ts, ndur, movie_ts, media_dur, media_ts);
+					fprintf(stderr, "Clamping edit duration from " LLU "/%u to " LLU "/%u due to available media duration " LLU "/%u\n", edur, movie_ts, ndur, movie_ts, media_dur, media_ts);
 					edur = ndur;
 				}
 
 				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edur, media_t, rate);
 			}
 			if (e==GF_EOS) {
-				fprintf(stderr, "Inserted empty edit before edit at start time "LLD"/"LLU"\n", movie_time.num, movie_time.den);
+				fprintf(stderr, "Inserted empty edit before edit at start time " LLD "/" LLU "\n", movie_time.num, movie_time.den);
 				e = GF_OK;
 			}
 			if (e) goto error;
@@ -696,13 +696,13 @@ static const char *videofmt_names[] = { "component", "pal", "ntsc", "secam", "ma
 static GF_Err apply_timestamps(GF_ISOFile *file, GF_ISOTrackID trackID, const char *timestamp_source);
 
 
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, char **mux_sid_if_first_pass, u32 tk_idx)
+GF_Err import_file(GF_ISOFile *dest, const char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, char **mux_sid_if_first_pass, u32 tk_idx)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, compat, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode, nb_tracks;
 	s32 par_d, par_n, prog_id, force_rate, moov_timescale;
 	s32 tw, th, tx, ty, tz, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_auxv,do_pict, do_all, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, rap_only, refs_only, force_par, rewrite_bs;
-	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc, do_disable;
+	Bool do_audio, do_video, do_auxv,do_pict, do_all, track_layout, text_layout, is_chap, is_chap_file, keep_handler, rap_only, refs_only, force_par, rewrite_bs;
+	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc, do_disable, chap_ref;
 	const char *szLan;
 	GF_Err e = GF_OK;
 	GF_Fraction delay;
@@ -733,7 +733,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 tc_fps_num=0, tc_fps_den=0, tc_h=0, tc_m=0, tc_s=0, tc_f=0, tc_frames_per_tick=0;
 	Bool tc_force_counter=GF_FALSE;
 	Bool tc_drop_frame = GF_FALSE;
-	char *ext_start;
+	const char *ext_start;
 	u32 xps_inband=0;
 	u64 source_magic=0;
 	char *opt_src = NULL;
@@ -750,7 +750,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	GF_Fraction last_sample_dur = {0,0};
 	s32 fullrange, videofmt, colorprim, colortfc, colormx;
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
-	GF_ISOMTrackFlagOp track_flags_mode=0;
+	GF_ISOMTrackFlagOp track_flags_mode = (GF_ISOMTrackFlagOp) 0;
 	u32 roll_change=0;
 	s32 roll = 0;
 	Bool src_is_isom = GF_FALSE;
@@ -764,6 +764,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 reorder_tk_ids_count = 0;
 	Bool has_non_extk_opt=GF_FALSE;
 	GF_MediaImporter *import = NULL;
+	char *frag;
+	char c_sep;
 
 	dv_profile[0] = 0;
 	dv_md_compression = 0;
@@ -772,7 +774,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	new_timescale = 1;
 	moov_timescale = 0;
 	rescale_num = rescale_den = 0;
-	text_layout = 0;
+	text_layout = GF_FALSE;
 	/*0: merge all
 	  1: split base and all SVC in two tracks
 	  2: split all base and SVC layers in dedicated tracks
@@ -783,7 +785,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		import_flags = 0;
 		fake_import = 1;
 	}
-	import = gf_malloc(sizeof(GF_MediaImporter));
+	import = (GF_MediaImporter *)gf_malloc(sizeof(GF_MediaImporter));
 	if (!import) {
 		e = GF_OUT_OF_MEM;
 		goto exit;
@@ -800,13 +802,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	}
 #endif
 
-	is_chap_file = 0;
+	is_chap_file = GF_FALSE;
 	handler = 0;
 	do_disable = 0;
 	chap_ref = 0;
-	is_chap = 0;
+	is_chap = GF_FALSE;
 	kinds = gf_list_new();
-	track_layout = 0;
+	track_layout = GF_FALSE;
 	szLan = NULL;
 	delay.num = delay.den = 0;
 	group = 0;
@@ -815,8 +817,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	fullrange = videofmt = colorprim = colortfc = colormx = -1;
 	split_tile_mode = 0;
 	temporal_mode = 0;
-	rap_only = 0;
-	refs_only = 0;
+	rap_only = GF_FALSE;
+	refs_only = GF_FALSE;
 	txt_flags = 0;
 	max_layer_id_plus_one = max_temporal_id_plus_one = 0;
 	force_rate = -1;
@@ -826,12 +828,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	force_par = rewrite_bs = GF_FALSE;
 
 	ext_start = gf_file_ext_start(final_name);
-	ext = strrchr(ext_start ? ext_start : final_name, '#');
-	if (!ext) ext = gf_url_colon_suffix(final_name, '=');
-	char c_sep = ext ? ext[0] : 0;
+	ext = (char *)strrchr(ext_start ? ext_start : final_name, '#');
+	if (!ext) ext = (char*)gf_url_colon_suffix(final_name, '=');
+	c_sep = ext ? ext[0] : 0;
 	if (ext) ext[0] = 0;
 
-	char *frag = strrchr(final_name, '#');
+	frag = strrchr(final_name, '#');
 	if (frag) frag[0] = 0;
 
  	if (!strlen(final_name) || !strcmp(final_name, "self")) {
@@ -846,7 +848,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	if (ext) ext[0] = c_sep;
 
 reparse_opts:
-	ext = gf_url_colon_suffix(final_name, '=');
+	ext = (char*)gf_url_colon_suffix(final_name, '=');
 
 #define GOTO_EXIT(_msg) if (e) { fail_msg = _msg; goto exit; }
 
@@ -857,7 +859,7 @@ reparse_opts:
 	handler_name = NULL;
 	rvc_config = NULL;
 	while (ext) {
-		char *ext2 = gf_url_colon_suffix(ext+1, '=');
+		char *ext2 = (char*)gf_url_colon_suffix(ext+1, '=');
 
 		if (ext2) ext2[0] = 0;
 
@@ -990,8 +992,8 @@ reparse_opts:
 				}
 			}
 		}
-		else if (!stricmp(ext+1, "rap")) rap_only = 1;
-		else if (!stricmp(ext+1, "refs")) refs_only = 1;
+		else if (!stricmp(ext+1, "rap")) rap_only = GF_TRUE;
+		else if (!stricmp(ext+1, "refs")) refs_only = GF_TRUE;
 		else if (!stricmp(ext+1, "trailing")) { CHECK_FAKEIMPORT("trailing") import_flags |= GF_IMPORT_KEEP_TRAILING; }
 		else if (!strnicmp(ext+1, "agg=", 4)) { CHECK_FAKEIMPORT("agg") frames_per_sample = parse_u32(ext+5, "agg"); }
 		else if (!stricmp(ext+1, "dref")) { CHECK_FAKEIMPORT("dref")  import_flags |= GF_IMPORT_USE_DATAREF; }
@@ -1075,16 +1077,16 @@ reparse_opts:
 		else if (!strnicmp(ext+1, "negctts", 7)) {
 			neg_ctts_mode = !strnicmp(ext+1, "negctts=no", 10) ? 2 : 1;
 		}
-		else if (!stricmp(ext+1, "chap")) is_chap = 1;
+		else if (!stricmp(ext+1, "chap")) is_chap = GF_TRUE;
 		else if (!strnicmp(ext+1, "chapter=", 8)) {
 			chapter_name = gf_strdup(ext+9);
 		}
 		else if (!strnicmp(ext+1, "chapfile=", 9)) {
 			chapter_name = gf_strdup(ext+10);
-			is_chap_file=1;
+			is_chap_file= GF_TRUE;
 		}
 		else if (!strnicmp(ext+1, "layout=", 7)) {
-			track_layout = 1;
+			track_layout = GF_TRUE;
 			if ( sscanf(ext+13, "%dx%dx%dx%dx%d", &tw, &th, &tx, &ty, &tz)==5) {
 			} else if ( sscanf(ext+13, "%dx%dx%dx%d", &tw, &th, &tx, &ty)==4) {
 				tz = 0;
@@ -1157,9 +1159,9 @@ reparse_opts:
 		else if (!strnicmp(ext+1, "size=", 5)) { CHECK_FAKEIMPORT("size") import->fontSize = parse_u32(ext+6, "size"); }
 		else if (!strnicmp(ext+1, "text_layout=", 12)) {
 			if ( sscanf(ext+13, "%dx%dx%dx%d", &txtw, &txth, &txtx, &txty)==4) {
-				text_layout = 1;
+				text_layout = GF_TRUE;
 			} else if ( sscanf(ext+8, "%dx%d", &txtw, &txth)==2) {
-				track_layout = 1;
+				track_layout = GF_TRUE;
 				txtx = txty = 0;
 			}
 		}
@@ -1294,7 +1296,7 @@ reparse_opts:
 					} else {
 						gf_fseek(f, 0, SEEK_END);
 						icc_size = (u32) gf_ftell(f);
-						icc_data = gf_malloc(sizeof(char)*icc_size);
+						icc_data = (u8 *)gf_malloc(icc_size);
 						gf_fseek(f, 0, SEEK_SET);
 						icc_size = (u32) gf_fread(icc_data, icc_size, f);
 						gf_fclose(f);
@@ -1488,26 +1490,26 @@ reparse_opts:
 	}
 
 	/*select switches for av containers import*/
-	do_audio = do_video = do_auxv = do_pict = 0;
+	do_audio = do_video = do_auxv = do_pict = GF_FALSE;
 	track_id = prog_id = 0;
-	do_all = 1;
+	do_all = GF_TRUE;
 
 	ext_start = gf_file_ext_start(final_name);
-	ext = strrchr(ext_start ? ext_start : final_name, '#');
+	ext = (char *)strrchr(ext_start ? ext_start : final_name, '#');
 	if (ext) ext[0] = 0;
 
 	if (fake_import && ext) {
 		ext++;
-		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
-		else if (!strnicmp(ext, "video", 5)) do_video = 1;
-		else if (!strnicmp(ext, "auxv", 4)) do_auxv = 1;
-		else if (!strnicmp(ext, "pict", 4)) do_pict = 1;
+		if (!strnicmp(ext, "audio", 5)) do_audio = GF_TRUE;
+		else if (!strnicmp(ext, "video", 5)) do_video = GF_TRUE;
+		else if (!strnicmp(ext, "auxv", 4)) do_auxv = GF_TRUE;
+		else if (!strnicmp(ext, "pict", 4)) do_pict = GF_TRUE;
 		else if (!strnicmp(ext, "trackID=", 8)) track_id = parse_u32(&ext[8], "trackID");
 		else track_id = parse_u32(ext, "ID");
 	}
 	else if (ext) {
 		ext++;
-		char *sep = gf_url_colon_suffix(ext, '=');
+		char *sep = (char*)gf_url_colon_suffix(ext, '=');
 		if (sep) sep[0] = 0;
 
 		//we have a fragment, we need to check if the track or the program is present in source
@@ -1516,24 +1518,24 @@ reparse_opts:
 		e = gf_media_import(import);
 		GOTO_EXIT("importing import");
 
-		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
-		else if (!strnicmp(ext, "video", 5)) do_video = 1;
-        else if (!strnicmp(ext, "auxv", 4)) do_auxv = 1;
-        else if (!strnicmp(ext, "pict", 4)) do_pict = 1;
+		if (!strnicmp(ext, "audio", 5)) do_audio = GF_TRUE;
+		else if (!strnicmp(ext, "video", 5)) do_video = GF_TRUE;
+        else if (!strnicmp(ext, "auxv", 4)) do_auxv = GF_TRUE;
+        else if (!strnicmp(ext, "pict", 4)) do_pict = GF_TRUE;
 		else if (!strnicmp(ext, "trackID=", 8)) track_id = parse_u32(&ext[8], "trackID");
 		else if (!strnicmp(ext, "PID=", 4)) track_id = parse_u32(&ext[4], "ID");
 		else if (!strnicmp(ext, "program=", 8)) {
 			for (i=0; i<import->nb_progs; i++) {
 				if (!stricmp(import->pg_info[i].name, ext+8)) {
 					prog_id = import->pg_info[i].number;
-					do_all = 0;
+					do_all = GF_FALSE;
 					break;
 				}
 			}
 		}
 		else if (!strnicmp(ext, "prog_id=", 8)) {
 			prog_id = parse_u32(ext+8, "prog_id");
-			do_all = 0;
+			do_all = GF_FALSE;
 		}
 		else track_id = parse_u32(ext, "ID");
 
@@ -1571,7 +1573,7 @@ reparse_opts:
 		}
 		if (sep) sep[0] = ':';
 	}
-	if (do_audio || do_video || do_auxv || do_pict || track_id) do_all = 0;
+	if (do_audio || do_video || do_auxv || do_pict || track_id) do_all = GF_FALSE;
 
 	if (track_layout || is_chap) {
 		u32 w, h, sw, sh, fw, fh;
@@ -1774,15 +1776,15 @@ reparse_opts:
 			tk_dur = gf_isom_get_track_duration(dest, track);
 			if (delay.num>0) {
 				//cast to s64, timescale*delay could be quite large before /1000
-				e |= gf_isom_append_edit(dest, track, ((s64) delay.num) * timescale / delay.den, 0, GF_ISOM_EDIT_EMPTY);
-				e |= gf_isom_append_edit(dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+				if (!e) e = gf_isom_append_edit(dest, track, ((s64) delay.num) * timescale / delay.den, 0, GF_ISOM_EDIT_EMPTY);
+				if (!e) e = gf_isom_append_edit(dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			} else {
 					//cast to s64, timescale*delay could be quite large before /1000
 				u64 to_skip = ((s64) -delay.num) * timescale / delay.den;
 				if (to_skip<tk_dur) {
 					//cast to s64, timescale*delay could be quite large before /1000
 					u64 media_time = ((s64) -delay.num) * gf_isom_get_media_timescale(dest, track) / delay.den;
-					e |= gf_isom_append_edit(dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
+					if (!e) e = gf_isom_append_edit(dest, track, tk_dur-to_skip, media_time, GF_ISOM_EDIT_NORMAL);
 				} else {
 					M4_LOG(GF_LOG_ERROR, ("Warning: request negative delay longer than track duration - ignoring\n"));
 				}
@@ -1823,7 +1825,7 @@ reparse_opts:
 			}
 
 			if (set_ccst) {
-				e = gf_isom_set_image_sequence_coding_constraints(dest, track, 1, GF_FALSE, GF_FALSE, GF_TRUE, 15);
+				e = gf_isom_set_image_sequence_coding_constraints(dest, track, GF_TRUE, GF_FALSE, GF_FALSE, GF_TRUE, 15);
 				GOTO_EXIT("setting image sequence constraints")
 			}
 		}
@@ -1896,7 +1898,7 @@ reparse_opts:
 			GOTO_EXIT("changing video PL")
 		}
 		if (gf_isom_get_mpeg4_subtype(dest, track, 1))
-			keep_sys_tracks = 1;
+			keep_sys_tracks = GF_TRUE;
 
 		//if moov timescale is <0 (auto mode) set it at import time
 		if (fake_import) {
@@ -1974,8 +1976,8 @@ reparse_opts:
 			e = gf_file_load_data(rvc_config, (u8 **) &data, &size);
 			GOTO_EXIT("loading RVC config file")
 
-			gf_gz_compress_payload_ex (&data, size, &size, 0, GF_FALSE, NULL, GF_TRUE);
-			e |= gf_isom_set_rvc_config(dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
+			gf_gz_compress_payload_ex (&data, size, &size, GF_FALSE, GF_FALSE, NULL, GF_TRUE);
+			if (!e) e = gf_isom_set_rvc_config(dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 			gf_free(data);
 			GOTO_EXIT("compressing and assigning RVC config")
 #endif
@@ -2061,7 +2063,7 @@ reparse_opts:
 		//if track order is required, gather track IDs - we cannot change directly track order since this impacts track number
 		//and would break this loop
 		if (set_tk_idx) {
-			reorder_tk_ids = gf_realloc(reorder_tk_ids, sizeof(u32)*(reorder_tk_ids_count+1));
+			reorder_tk_ids = (u32 *)gf_realloc(reorder_tk_ids, sizeof(u32)*(reorder_tk_ids_count+1));
 			reorder_tk_ids[reorder_tk_ids_count] = gf_isom_get_track_id(dest, track);
 			reorder_tk_ids_count++;
 		}
@@ -2137,10 +2139,10 @@ reparse_opts:
 
 	if (check_track_for_svc) {
 		if (svc_mode) {
-			e = gf_media_split_svc(dest, check_track_for_svc, (svc_mode==2) ? 1 : 0);
+			e = gf_media_split_svc(dest, check_track_for_svc, (svc_mode==2) ? GF_TRUE : GF_FALSE);
 			GOTO_EXIT("splitting SVC track")
 		} else {
-			e = gf_media_merge_svc(dest, check_track_for_svc, 1);
+			e = gf_media_merge_svc(dest, check_track_for_svc, GF_TRUE);
 			GOTO_EXIT("merging SVC/SHVC track")
 		}
 	}
@@ -2150,7 +2152,7 @@ reparse_opts:
 			GF_LHVCExtractoreMode xmode = GF_LHVC_EXTRACTORS_ON;
 			if (svc_mode==3) xmode = GF_LHVC_EXTRACTORS_OFF;
 			else if (svc_mode==4) xmode = GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND;
-			e = gf_media_split_lhvc(dest, check_track_for_lhvc, GF_FALSE, (svc_mode==1) ? 0 : 1, xmode );
+			e = gf_media_split_lhvc(dest, check_track_for_lhvc, GF_FALSE, (svc_mode==GF_TRUE) ? GF_FALSE : GF_TRUE, xmode);
 			GOTO_EXIT("splitting L-HEVC track")
 		} else {
 			//TODO - merge, temporal sublayers
@@ -2185,7 +2187,7 @@ reparse_opts:
 			e = gf_isom_last_error(dest);
 			GOTO_EXIT("creating TMCD track")
 		}
-		e = gf_isom_set_track_enabled(dest, tmcd_tk, 1);
+		e = gf_isom_set_track_enabled(dest, tmcd_tk, GF_TRUE);
 		if (e != GF_OK) {
 			GOTO_EXIT("enabling TMCD track")
 		}
@@ -2221,7 +2223,7 @@ reparse_opts:
 			u64 video_ref_dur = gf_isom_get_media_duration(dest, video_ref);
 			s64 ts_offset;
 			//see #3551, tmcd is not in composition time but in presentation time, remove any skip time included in gf_isom_get_media_duration
-			Bool has_edit_list = gf_isom_get_edit_list_type(dest, video_ref, &ts_offset) ? 1 : 0;
+			Bool has_edit_list = gf_isom_get_edit_list_type(dest, video_ref, &ts_offset) ? GF_TRUE : GF_FALSE;
 			if (!has_edit_list && (ts_offset<0)) {
 				video_ref_dur -= -ts_offset;
 			}
@@ -2312,7 +2314,7 @@ extern u32 do_flat;
 extern Bool do_frag, use_mfra;
 extern Double interleaving_time;
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, const char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
 {
 	Bool chunk_extraction, rap_split, split_until_end, use_splitrange=GF_TRUE;
 	GF_Err e;
@@ -2371,7 +2373,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	if (rap_split) {
 		gf_dynstrcat(&filter_args, ":xs=SAP", NULL);
 	} else if (split_size_kb) {
-		sprintf(szArgs, ":xs=S"LLU"k", split_size_kb);
+		sprintf(szArgs, ":xs=S" LLU "k", split_size_kb);
 		gf_dynstrcat(&filter_args, szArgs, NULL);
 	} else if (chunk_extraction) {
 		//we adjust end: start at the iframe at or after requested time and use xadjust (move end to next I-frame)
@@ -2398,7 +2400,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 			gf_dynstrcat(&xe_a, ":xe=", NULL);
 			while (1) {
 				char c;
-				char *next_t = strchr(split_range_str, ',');
+				char *next_t = (char *) strchr(split_range_str, ',');
 				if (next_t) next_t[0] = 0;
 				Bool is_time = GF_FALSE;
 
@@ -2518,7 +2520,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	}
 	else if (split_size_kb || split_dur) {
 		if (!strchr(szFile, '$') && (stricmp(szFile, "null") || !strcmp(szFile, "/dev/null")) ) {
-			char *sep = gf_file_ext_start(szFile);
+			char *sep = (char*)gf_file_ext_start(szFile);
 			if (sep) sep[0] = 0;
 			gf_strcat(szFile, "_$num$.mp4");
 			M4_LOG(GF_LOG_WARNING, ("Split by %s but output not a template, using %s as output\n", split_size_kb ? "size" : "duration", szFile));
@@ -2590,12 +2592,12 @@ static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 {
 	u32 j, k;
 	for (j=0; j<gf_list_count(src); j++) {
-		Bool found = 0;
-		GF_NALUFFParam *slc = gf_list_get(src, j);
+		Bool found = GF_FALSE;
+		GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(src, j);
 		for (k=0; k<gf_list_count(dst); k++) {
-			GF_NALUFFParam *slc_dst = gf_list_get(dst, k);
+			GF_NALUFFParam *slc_dst = (GF_NALUFFParam *)gf_list_get(dst, k);
 			if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
-				found = 1;
+				found = GF_TRUE;
 				break;
 			}
 		}
@@ -2651,7 +2653,7 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		if (!force_cat) {
 			//set inband config but keep param sets
-			gf_isom_avc_set_inband_config(dest, dst_tk, 1, GF_TRUE);
+			gf_isom_avc_set_inband_config(dest, dst_tk, GF_TRUE, GF_TRUE);
 		} else {
 			M4_LOG(GF_LOG_WARNING, ("WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id));
 		}
@@ -2685,9 +2687,9 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u
 		/*merge PS*/
 		for (i=0; i<gf_list_count(hevc_src->param_array); i++) {
 			u32 k;
-			GF_NALUFFParamArray *src_ar = gf_list_get(hevc_src->param_array, i);
+			GF_NALUFFParamArray *src_ar = (GF_NALUFFParamArray *)gf_list_get(hevc_src->param_array, i);
 			for (k=0; k<gf_list_count(hevc_dst->param_array); k++) {
-				GF_NALUFFParamArray *dst_ar = gf_list_get(hevc_dst->param_array, k);
+				GF_NALUFFParamArray *dst_ar = (GF_NALUFFParamArray *)gf_list_get(hevc_dst->param_array, k);
 				if (dst_ar->type==src_ar->type) {
 					if (!merge_parameter_set(src_ar->nalus, dst_ar->nalus, "SPS"))
 						dst_tk = 0;
@@ -2706,7 +2708,7 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		if (!force_cat) {
-			gf_isom_hevc_set_inband_config(dest, dst_tk, 1, GF_TRUE);
+			gf_isom_hevc_set_inband_config(dest, dst_tk, GF_TRUE, GF_TRUE);
 		} else {
 			M4_LOG(GF_LOG_WARNING, ("WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id));
 		}
@@ -2732,7 +2734,7 @@ static GF_Err rewrite_nal_size_field(GF_ISOSample *samp, u32 orig_nal_len, u32 d
 		remain -= orig_nal_len;
 		if (size > msize) {
 			msize = size;
-			buffer = (u8*)gf_realloc(buffer, sizeof(u8)*msize);
+			buffer = (u8*)gf_realloc(buffer, msize);
 			if (!buffer) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
@@ -2782,12 +2784,12 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		multi_cat = &multi_cat[1];
 	}
 
-	opts = gf_url_colon_suffix(fileName, '=');
+	opts = (char*)gf_url_colon_suffix(fileName, '=');
 	e = GF_OK;
 
 	/*if options are specified, re-import the file*/
 	if (opts) opts[0] = 0;
-	is_isom = gf_isom_probe_file(fileName);
+	is_isom = gf_isom_probe_file(fileName) ? GF_TRUE : GF_FALSE;
 
 	if (!is_isom || multi_cat) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, NULL);
@@ -2889,11 +2891,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	for (i=0; i<nb_tracks; i++) {
 		u64 last_DTS, dest_track_dur_before_cat;
 		u32 nb_edits = 0;
-		Bool merge_nal_video = 1;
-		Bool skip_lang_test = 1;
-		Bool use_ts_dur = 1;
-		Bool merge_edits = 0;
-		Bool new_track = 0;
+		Bool merge_nal_video = GF_TRUE;
+		Bool skip_lang_test = GF_TRUE;
+		Bool use_ts_dur = GF_TRUE;
+		Bool merge_edits = GF_FALSE;
+		Bool new_track = GF_FALSE;
 		u32 dst_tk_sample_entry = 0;
 		u32 orig_nal_len = 0;
 		u32 dst_nal_len = 0;
@@ -2908,7 +2910,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		case GF_ISOM_MEDIA_MPEG_SUBT:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_TIMECODE:
-			use_ts_dur = 0;
+			use_ts_dur = GF_FALSE;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
         case GF_ISOM_MEDIA_PICT:
@@ -2927,7 +2929,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		tk_id = gf_isom_get_track_original_id(orig, i+1);
 		if (!tk_id) {
 			tk_id = gf_isom_get_track_id(orig, i+1);
-			skip_lang_test = 0;
+			skip_lang_test = GF_FALSE;
 		}
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 
@@ -2956,7 +2958,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				if (subtype_dst != subtype_src) {
 					dst_tk_sample_entry = dst_tk;
 					dst_tk = 0;
-					merge_nal_video=0;
+					merge_nal_video= GF_FALSE;
 				}
 			}
 		}
@@ -3076,7 +3078,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			e = gf_isom_clone_track(orig, i+1, dest, 0, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
-			new_track = 1;
+			new_track = GF_TRUE;
 
 			if (align_timelines) {
 				u32 max_timescale = 0;
@@ -3129,13 +3131,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		if (nb_edits && (nb_edits == gf_isom_get_edits_count(dest, dst_tk)) ) {
 			u64 editTime, segmentDuration, mediaTime, dst_editTime, dst_segmentDuration, dst_mediaTime;
 			GF_ISOEditType dst_editMode, editMode;
-			merge_edits = 1;
+			merge_edits = GF_TRUE;
 			for (j=0; j<nb_edits; j++) {
 				gf_isom_get_edit(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
 				gf_isom_get_edit(dest, dst_tk, j+1, &dst_editTime, &dst_segmentDuration, &dst_mediaTime, &dst_editMode);
 
 				if (dst_editMode!=editMode) {
-					merge_edits=0;
+					merge_edits= GF_FALSE;
 					break;
 				}
 			}
@@ -3162,7 +3164,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
 			if (adjust_first_sample) {
 				samp->DTS++;
-				adjust_first_sample = 0;
+				adjust_first_sample = GF_FALSE;
 			}
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
@@ -3377,15 +3379,15 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	char szFileName[GF_MAX_PATH];
 	CATEnum *cat_enum = (CATEnum *)cbk;
 	len_rad1 = (u32) strlen(cat_enum->szRad1);
-	if (strnicmp(szName, cat_enum->szRad1, len_rad1)) return 0;
-	if (strlen(cat_enum->szRad2) && !strstr(szName + len_rad1, cat_enum->szRad2) ) return 0;
+	if (strnicmp(szName, cat_enum->szRad1, len_rad1)) return GF_FALSE;
+	if (strlen(cat_enum->szRad2) && !strstr(szName + len_rad1, cat_enum->szRad2) ) return GF_FALSE;
 
 	gf_strcpy(szFileName, szPath);
 	gf_strcat(szFileName, cat_enum->szOpt);
 
 	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
-	if (e) return 1;
-	return 0;
+	if (e) return GF_TRUE;
+	return GF_FALSE;
 }
 
 GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
@@ -3434,7 +3436,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	sep = NULL;
 	if (gf_sys_old_arch_compat()) sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
-	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2, '=');
+	if (!sep) sep = (char*)gf_url_colon_suffix(cat_enum.szRad2, '=');
 	gf_strcpy(cat_enum.szOpt, "");
 	if (sep) {
 		if (strlen(sep) >= sizeof(cat_enum.szOpt)) {
@@ -3444,7 +3446,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 		gf_strcpy(cat_enum.szOpt, sep);
 		sep[0] = 0;
 	}
-	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
+	return gf_enum_directory(cat_enum.szPath, GF_FALSE, cat_enumerate, &cat_enum, NULL);
 }
 
 GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
@@ -3493,7 +3495,7 @@ GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_F
 		MPEG-4 encoding
 */
 
-GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs)
+GF_Err EncodeFile(const char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs)
 {
 #ifdef GPAC_DISABLE_SMGR
 	return GF_NOT_SUPPORTED;
@@ -3571,22 +3573,22 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 				inf->field_ptr = &inf->new_node;
 				inf->fieldType = GF_SG_VRML_SFNODE;
 				gf_node_register(inf->new_node, NULL);
-				au = gf_list_get(stats->base_layer->AUs, 0);
+				au = (GF_AUContext *)gf_list_get(stats->base_layer->AUs, 0);
 				gf_list_insert(au->commands, com, 0);
-				qp->useEfficientCoding = 1;
-				qp->textureCoordinateQuant = 0;
+				qp->useEfficientCoding = GF_TRUE;
+				qp->textureCoordinateQuant = GF_FALSE;
 				if ((stats->count_2f+stats->count_2d) && opts->resolution) {
 					qp->position2DMin = stats->min_2d;
 					qp->position2DMax = stats->max_2d;
 					qp->position2DNbBits = opts->resolution;
-					qp->position2DQuant = 1;
+					qp->position2DQuant = GF_TRUE;
 				}
 				if ((stats->count_3f+stats->count_3d) &&  opts->resolution) {
 					qp->position3DMin = stats->min_3d;
 					qp->position3DMax = stats->max_3d;
 					qp->position3DNbBits = opts->resolution;
-					qp->position3DQuant = 1;
-					qp->textureCoordinateQuant = 1;
+					qp->position3DQuant = GF_TRUE;
+					qp->textureCoordinateQuant = GF_TRUE;
 				}
 				//float quantif is disabled since 2008, check if we want to re-enable it
 #if 0
@@ -3594,7 +3596,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 					qp->scaleMin = stats->min_fixed;
 					qp->scaleMax = stats->max_fixed;
 					qp->scaleNbBits = 2*opts->resolution;
-					qp->scaleQuant = 1;
+					qp->scaleQuant = GF_TRUE;
 				}
 #endif
 			}
@@ -3649,7 +3651,7 @@ static u32 GetNbBits(u32 MaxVal)
 }
 
 #ifndef GPAC_DISABLE_SMGR
-GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCallback)(GF_ISOSample *))
+GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, const char *bifsOutputFile, GF_Err (*AUCallback)(GF_ISOSample *))
 {
 	GF_Err			e;
 	u8 *data;
@@ -3678,7 +3680,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	if (!iod) {
 		count = 0;
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+			GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 			if (sc->streamType == GF_STREAM_OD) count++;
 		}
 		if (count>1) return GF_NOT_SUPPORTED;
@@ -3689,13 +3691,13 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		u32 nbb;
 		Bool delete_esd = GF_FALSE;
 		GF_ESD *esd = NULL;
-		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 
 		if (iod) {
 			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
-				esd = gf_list_get(iod->ESDescriptors, j);
+				esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, j);
 				if (esd->decoderConfig && esd->decoderConfig->streamType == GF_STREAM_SCENE) {
 					if (!sc->ESID) sc->ESID = esd->ESID;
 					if (sc->ESID == esd->ESID) {
@@ -3725,17 +3727,17 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		/*should NOT happen (means inputctx is not properly setup)*/
 		if (!esd->decoderConfig->decoderSpecificInfo) {
 			bcfg = (GF_BIFSConfig*)gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);
-			delete_bcfg = 1;
+			delete_bcfg = GF_TRUE;
 		}
 		/*regular retrieve from ctx*/
 		else if (esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_BIFS_CFG_TAG) {
 			bcfg = (GF_BIFSConfig *)esd->decoderConfig->decoderSpecificInfo;
-			delete_bcfg = 0;
+			delete_bcfg = GF_FALSE;
 		}
 		/*should not happen either (unless loading from MP4 in which case BIFSc is not decoded)*/
 		else {
 			bcfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
-			delete_bcfg = 1;
+			delete_bcfg = GF_TRUE;
 		}
 		/*NO CHANGE TO BIFSC otherwise the generated update will not match the input context*/
 		nbb = GetNbBits(ctx->max_node_id);
@@ -3751,10 +3753,10 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		if (bcfg->protoIDbits<nbb) M4_LOG(GF_LOG_WARNING, ("Warning: BIFSConfig.ProtoIDBits TOO SMALL\n"));
 
 		/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/
-		encode_names = 0;
+		encode_names = GF_FALSE;
 
 		/* The BIFS Config that is passed here should be the BIFSConfig from the IOD */
-		gf_bifs_encoder_new_stream(bifsenc, sc->ESID, bcfg, encode_names, 0);
+		gf_bifs_encoder_new_stream(bifsenc, sc->ESID, bcfg, encode_names, GF_FALSE);
 		if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 
 		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
@@ -3770,7 +3772,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifsenc, sc->ESID);
 
 		for (j=1; j<gf_list_count(sc->AUs); j++) {
-			au = gf_list_get(sc->AUs, j);
+			au = (GF_AUContext *)gf_list_get(sc->AUs, j);
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {
 				sprintf(szName, "%s-%02d-%02d.bifs", szRad, sc->ESID, j);
@@ -3798,7 +3800,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 \param outputContext: file name to dump the context after applying the new chunk to the input context
                    can be NULL, without .bt
  */
-GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext)
+GF_Err EncodeFileChunk(const char *chunkFile, const char *bifs, const char *inputContext, const char *outputContext)
 {
 #if defined(GPAC_DISABLE_SMGR) || defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)
 	M4_LOG(GF_LOG_WARNING, ("BIFS encoding is not supported in this build of GPAC\n"));
@@ -3878,7 +3880,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 			if (e) gf_isom_delete(mp4);
 			else gf_isom_close(mp4);
 		}
-		else e = gf_sm_dump(ctx, szF, GF_FALSE, d_mode);
+		else e = gf_sm_dump(ctx, szF, GF_FALSE, (GF_SceneDumpFormat) d_mode);
 	}
 
 exit:
@@ -3900,7 +3902,7 @@ exit:
 void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	char szCheck[100];
-	GF_List *imports = sax_cbck;
+	GF_List *imports = (GF_List *) sax_cbck;
 	u32 i=0;
 
 	/*do not process hyperlinks*/
@@ -3921,21 +3923,21 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path, GF_File
 {
 	WGTEnum *wgt = (WGTEnum *)cbck;
 
-	if (!strcmp(wgt->root_file, file_path)) return 0;
+	if (!strcmp(wgt->root_file, file_path)) return GF_FALSE;
 	//remove hidden files
-	if (file_path[0] == '.') return 0;
+	if (file_path[0] == '.') return GF_FALSE;
 	gf_list_add(wgt->imports, gf_strdup(file_path) );
-	return 0;
+	return GF_FALSE;
 }
 static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	if (!stricmp(file_name, "cvs") || !stricmp(file_name, ".svn") || !stricmp(file_name, ".git")) return GF_FALSE;
-	gf_enum_directory(file_path, 0, wgt_enum_files, cbck, NULL);
-	gf_enum_directory(file_path, 1, wgt_enum_dir, cbck, NULL);
+	gf_enum_directory(file_path, GF_FALSE, wgt_enum_files, cbck, NULL);
+	gf_enum_directory(file_path, GF_TRUE, wgt_enum_dir, cbck, NULL);
 	return GF_TRUE;
 }
 
-GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
+GF_ISOFile *package_file(const char *file_name, const char *fcc, Bool make_wgt)
 {
 	GF_ISOFile *file = NULL;
 	GF_Err e;
@@ -3968,8 +3970,8 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 	root_dir[0] = 0;
 	if (make_wgt) {
 		WGTEnum wgt;
-		char *sep = strrchr(file_name, '\\');
-		if (!sep) sep = strrchr(file_name, '/');
+		char *sep = (char *) strrchr(file_name, '\\');
+		if (!sep) sep = (char *) strrchr(file_name, '/');
 		if (sep) {
 			char c = sep[1];
 			sep[1]=0;
@@ -3981,13 +3983,13 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 		wgt.dir = root_dir;
 		wgt.root_file = file_name;
 		wgt.imports = imports;
-		gf_enum_directory(wgt.dir, 0, wgt_enum_files, &wgt, NULL);
-		gf_enum_directory(wgt.dir, 1, wgt_enum_dir, &wgt, NULL);
-		ascii = 1;
+		gf_enum_directory(wgt.dir, GF_FALSE, wgt_enum_files, &wgt, NULL);
+		gf_enum_directory(wgt.dir, GF_TRUE, wgt_enum_dir, &wgt, NULL);
+		ascii = GF_TRUE;
 	} else {
 		sax = gf_xml_sax_new(sax_node_start, NULL, NULL, imports);
 		e = gf_xml_sax_parse_file(sax, file_name, NULL);
-		ascii = !gf_xml_sax_binary_file(sax);
+		ascii = gf_xml_sax_binary_file(sax) ? GF_FALSE : GF_TRUE;
 		gf_xml_sax_del(sax);
 		if (e<0) goto exit;
 		e = GF_OK;
@@ -4012,7 +4014,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 	if (!make_wgt) {
 		count = gf_list_count(imports);
 		for (i=0; i<count; i++) {
-			char *item = gf_list_get(imports, i);
+			char *item = (char *)gf_list_get(imports, i);
 			char *res_url = NULL;
 
 			FILE *test = gf_fopen(item, "rb");
@@ -4053,27 +4055,28 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 		file = gf_isom_open("package", GF_ISOM_WRITE_EDIT, NULL);
 	}
 
-	e = gf_isom_set_meta_type(file, 1, 0, mtype);
+	e = gf_isom_set_meta_type(file, GF_TRUE, 0, mtype);
 	if (e) goto exit;
 	/*add self ref*/
 	if (isom_src) {
-		e = gf_isom_add_meta_item(file, 1, 0, 1, NULL, isom_src, 0, 0, NULL, NULL, NULL,  NULL, NULL);
+		e = gf_isom_add_meta_item(file, GF_TRUE, GF_FALSE, GF_TRUE, NULL, isom_src, 0, 0, NULL, NULL, NULL, NULL, NULL);
 		if (e) goto exit;
 	}
-	e = gf_isom_set_meta_xml(file, 1, 0, file_name, NULL, 0, !ascii);
+	e = gf_isom_set_meta_xml(file, GF_TRUE, 0, file_name, NULL, 0, ascii ? GF_FALSE : GF_TRUE);
 	if (e) goto exit;
 
 	skip_chars = (u32) strlen(root_dir);
 	count = gf_list_count(imports);
 	for (i=0; i<count; i++) {
-		char *ext, *mime, *encoding, *name, *itemurl;
-		char *item = gf_list_get(imports, i);
+		char *name, *itemurl;
+		const char *ext, *mime, *encoding;
+		char *item = (char *)gf_list_get(imports, i);
 
 		name = gf_strdup(item + skip_chars);
 
 		if (make_wgt) {
 			while (1) {
-				char *sep = strchr(name, '\\');
+				char *sep = (char *) strchr(name, '\\');
 				if (!sep) break;
 				sep[0] = '/';
 			}
@@ -4107,7 +4110,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 
 		itemurl = gf_url_concatenate(file_name, item);
 
-		e = gf_isom_add_meta_item(file, 1, 0, 0, itemurl ? itemurl : item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL,  NULL, NULL);
+		e = gf_isom_add_meta_item(file, GF_TRUE, GF_FALSE, GF_FALSE, itemurl ? itemurl : item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL, NULL, NULL);
 		gf_free(name);
 		gf_free(itemurl);
 		if (e) goto exit;
@@ -4115,7 +4118,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 
 exit:
 	while (gf_list_count(imports)) {
-		char *item = gf_list_last(imports);
+		char *item = (char *)gf_list_last(imports);
 		gf_list_rem_last(imports);
 		gf_free(item);
 	}
@@ -4170,7 +4173,7 @@ GF_Err apply_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 	}
 
 	i = 0;
-	while ((stream = gf_list_enum(root->content, &i))) {
+	while ((stream = (GF_XMLNode *)gf_list_enum(root->content, &i))) {
 		u32 j;
 		GF_XMLAttribute* att = NULL;
 		GF_XMLNode *box = NULL;
@@ -4180,7 +4183,7 @@ GF_Err apply_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 
 		if (!track) {
 			j = 0;
-			while ((att = gf_list_enum(stream->attributes, &j))) {
+			while ((att = (GF_XMLAttribute *)gf_list_enum(stream->attributes, &j))) {
 				if (!strcmp(att->name, "id")) {
 					u32 id = parse_u32(att->value, "id");
 					track = gf_isom_get_track_by_id(movie, id);
@@ -4193,14 +4196,14 @@ GF_Err apply_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 		}
 
 		j = 0;
-		while ((box = gf_list_enum(stream->content, &j))) {
+		while ((box = (GF_XMLNode *)gf_list_enum(stream->content, &j))) {
 			u32 k;
 
 			if (box->type != GF_XML_NODE_TYPE) continue;
 
 			if (!strcmp(box->name, "mdcv")) {
 				k = 0;
-				while ((att = gf_list_enum(box->attributes, &k))) {
+				while ((att = (GF_XMLAttribute *)gf_list_enum(box->attributes, &k))) {
 					if (!strcmp(att->name, "display_primaries_0_x")) mdcv.display_primaries[0].x = parse_u32(att->value, "display_primaries_0_x");
 					else if (!strcmp(att->name, "display_primaries_0_y")) mdcv.display_primaries[0].y = parse_u32(att->value, "display_primaries_0_y");
 					else if (!strcmp(att->name, "display_primaries_1_x")) mdcv.display_primaries[1].x = parse_u32(att->value, "display_primaries_1_x");
@@ -4215,7 +4218,7 @@ GF_Err apply_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 				}
 			} else if (!strcmp(box->name, "clli")) {
 				k = 0;
-				while ((att = gf_list_enum(box->attributes, &k))) {
+				while ((att = (GF_XMLAttribute *)gf_list_enum(box->attributes, &k))) {
 					if (!strcmp(att->name, "max_content_light_level")) clli.max_content_light_level = parse_u32(att->value, "max_content_light_level");
 					else if (!strcmp(att->name, "max_pic_average_light_level")) clli.max_pic_average_light_level = parse_u32(att->value, "max_pic_average_light_level");
 					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
@@ -4296,7 +4299,7 @@ static GF_Err apply_timestamps(GF_ISOFile *file, GF_ISOTrackID trackID, const ch
 		char *sep = strchr(szLine, ' ');
 		if (sep) {
 			use_dts = GF_TRUE;
-			sscanf(szLine, LLU" "LLU, &dts, &cts);
+			sscanf(szLine, LLU " " LLU, &dts, &cts);
 		} else {
 			sscanf(szLine, LLU, &cts);
 			dts = cts;

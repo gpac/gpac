@@ -65,7 +65,7 @@ typedef struct
 
 void gf_isdec_del(GF_BaseDecoder *plug);
 
-static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u32 inBufferLength);
+static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 inBufferLength);
 
 typedef struct
 {
@@ -122,7 +122,7 @@ static void isdev_dispatch_frame(struct __input_device *dev, const u8 *data, u32
 
 	/*get all decoders and send frame*/
 	i=0;
-	while ((is_ctx = gf_list_enum(priv->odm->parentscene->compositor->input_streams, &i))) {
+	while ((is_ctx = (GF_InputSensorCtx *)gf_list_enum(priv->odm->parentscene->compositor->input_streams, &i))) {
 		if (is_ctx->type==priv->type) {
 			IS_ProcessData(is_ctx, data, data_len);
 		}
@@ -134,7 +134,7 @@ static GF_InputSensorCtx *locate_is_ctx_for_odm(GF_Scene *scene, GF_ObjectManage
 	u32 i, count;
 	count = gf_list_count(scene->compositor->input_streams);
 	for (i=0; i<count; i++) {
-		GF_InputSensorCtx *is_ctx = gf_list_get(scene->compositor->input_streams, i);
+		GF_InputSensorCtx *is_ctx = (GF_InputSensorCtx *)gf_list_get(scene->compositor->input_streams, i);
 		if (is_ctx->odm == for_odm) return is_ctx;
 	}
 	return NULL;
@@ -177,7 +177,7 @@ GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd)
 	}
 	gf_bs_del(bs);
 	devName[i] = 0;
-	is_ctx->type = gf_crc_32(devName, len);
+	is_ctx->type = gf_crc_32((u8*)devName, len);
 	size = len + 1;
 
 	if (!stricmp(devName, "KeySensor")) {
@@ -200,7 +200,7 @@ GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd)
 
 		/*get escape chars if any specified*/
 		if (size<esd->decoderConfig->decoderSpecificInfo->dataLength) {
-			const char *src = esd->decoderConfig->decoderSpecificInfo->data + size;
+			const char *src = (char *)esd->decoderConfig->decoderSpecificInfo->data + size;
 			gf_utf8_mbstowcs(termSeq, esd->decoderConfig->decoderSpecificInfo->dataLength - size, &src);
 			is_ctx->termChar = termSeq[0];
 			is_ctx->delChar = termSeq[1];
@@ -266,7 +266,7 @@ void gf_input_sensor_delete(GF_ObjectManager *odm)
 
 
 
-static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u32 inBufferLength)
+static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const u8 *inBuffer, u32 inBufferLength)
 {
 	u32 i, j, count;
 	Double scene_time;
@@ -326,7 +326,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 				if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
 				if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
-				((SFString *)field->far_ptr)->buffer = (char*)gf_malloc(sizeof(char)*(length+1));
+				((SFString *)field->far_ptr)->buffer = (char*)gf_malloc(length+1);
 				if ( ((SFString *)field->far_ptr)->buffer) {
 					for (j=0; j<length; j++) {
 						((SFString *)field->far_ptr)->buffer[j] = gf_bs_read_int(bs, 8);
@@ -362,7 +362,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (len == GF_UTF8_FAIL) len = 1;
 			if (outText->buffer) gf_free(outText->buffer);
-			outText->buffer = (char*)gf_malloc(sizeof(char) * (len));
+			outText->buffer = (char*)gf_malloc(len);
 			memcpy(outText->buffer, tmp_utf8, sizeof(char) * (len-1) );
 			outText->buffer[len-1] = 0;
 			if (inText->buffer) gf_free(inText->buffer);
@@ -385,7 +385,7 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
 			if (inText->buffer) gf_free(inText->buffer);
-			inText->buffer = (char*)gf_malloc(sizeof(char) * (len+1));
+			inText->buffer = (char*)gf_malloc(len+1);
 			memcpy(inText->buffer, tmp_utf8, sizeof(char) * len);
 			inText->buffer[len] = 0;
 			field1->eventType = 1;
@@ -443,7 +443,7 @@ static void InputSensorUnregister(GF_Node *node, ISStack *st)
 	if (st->mo->num_open) gf_mo_stop(&st->mo);
 	st->mo = NULL;
 	if (st->registered) {
-		st->registered = 0;
+		st->registered = GF_FALSE;
 		if (is_ctx->io_dev && is_ctx->io_dev->Stop) is_ctx->io_dev->Stop(is_ctx->io_dev);
 	}
 }
@@ -465,15 +465,15 @@ static void InputSensorRegister(GF_Node *n)
 		gf_list_add(is_ctx->is_nodes, st);
 
 	/*start stream*/
-	gf_mo_play(st->mo, 0, -1, 0);
+	gf_mo_play(st->mo, 0, -1, GF_FALSE);
 
 	gf_sc_unqueue_node_traverse(is_ctx->odm->parentscene->compositor, n);
 
 	/*we want at least one sensor enabled*/
 	i=0;
-	while ((st = gf_list_enum(is_ctx->is_nodes, &i))) {
+	while ((st = (ISStack *)gf_list_enum(is_ctx->is_nodes, &i))) {
 		if (st->is->enabled) {
-			st->registered = 1;
+			st->registered = GF_TRUE;
 			if (is_ctx->io_dev && is_ctx->io_dev->Start) is_ctx->io_dev->Start(is_ctx->io_dev);
 			break;
 		}
@@ -493,7 +493,7 @@ static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(st);
 	} else if (!st->registered) {
 		/*get decoder object */
-		if (!st->mo) st->mo = gf_mo_register(node, &is->url, 0, 0);
+		if (!st->mo) st->mo = gf_mo_register(node, &is->url, GF_FALSE, GF_FALSE);
 		/*register with decoder*/
 		if (st->mo) InputSensorRegister(node);
 	}
@@ -521,7 +521,7 @@ void InputSensorModified(GF_Node *node)
 	GF_MediaObject *mo;
 	ISStack *st = (ISStack *)gf_node_get_private(node);
 
-	mo = gf_mo_register(node, &st->is->url, 0, 0);
+	mo = gf_mo_register(node, &st->is->url, GF_FALSE, GF_FALSE);
 	if ((mo!=st->mo) || !st->registered) {
 		if (mo!=st->mo) {
 			if (st->mo) InputSensorUnregister(node, st);
@@ -615,7 +615,7 @@ void gf_sc_input_sensor_mouse_input(GF_Compositor *compositor, GF_EventMouse *ev
 
 	/*get all IS Mouse decoders and send frame*/
 	i=0;
-	while ((is_ctx = gf_list_enum(compositor->input_streams, &i))) {
+	while ((is_ctx = (GF_InputSensorCtx *)gf_list_enum(compositor->input_streams, &i))) {
 		if (is_ctx->type==IS_Mouse) {
 			IS_ProcessData(is_ctx, buf, buf_size);
 		}
@@ -639,7 +639,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 	u32 shiftKeyDown, controlKeyDown, altKeyDown;
 	s32 keyPressed, keyReleased, actionKeyPressed, actionKeyReleased;
 
-	if (!gf_list_count(compositor->input_streams) && !gf_list_count(compositor->x3d_sensors)) return 0;
+	if (!gf_list_count(compositor->input_streams) && !gf_list_count(compositor->x3d_sensors)) return GF_FALSE;
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
@@ -768,7 +768,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 
 	/*get all IS keySensor decoders and send frame*/
 	i=0;
-	while ((is_ctx = gf_list_enum(compositor->input_streams, &i))) {
+	while ((is_ctx = (GF_InputSensorCtx *)gf_list_enum(compositor->input_streams, &i))) {
 		if (is_ctx->type==IS_KeySensor) {
 			IS_ProcessData(is_ctx, buf, buf_size);
 		}
@@ -783,7 +783,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 		char szStr[10];
 		const unsigned short *ptr;
 		if (gf_node_get_tag((GF_Node*)n) != TAG_X3D_KeySensor) continue;
-		if (!n->enabled) return 0;
+		if (!n->enabled) return GF_FALSE;
 
 		if (keyPressed) {
 			if (n->keyPress.buffer) gf_free(n->keyPress.buffer);
@@ -792,7 +792,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 			ptr = tc;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
-			n->keyPress.buffer = (char*)gf_malloc(sizeof(char) * (len+1));
+			n->keyPress.buffer = (char*)gf_malloc(len+1);
 			memcpy(n->keyPress.buffer, szStr, sizeof(char) * len);
 			n->keyPress.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyPress");
@@ -804,7 +804,7 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 			ptr = tc;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
 			if (len == GF_UTF8_FAIL) len = 0;
-			n->keyRelease.buffer = (char*)gf_malloc(sizeof(char) * (len+1));
+			n->keyRelease.buffer = (char*)gf_malloc(len+1);
 			memcpy(n->keyRelease.buffer, szStr, sizeof(char) * len);
 			n->keyRelease.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyRelease");
@@ -818,30 +818,30 @@ Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, 
 			gf_node_event_out_str((GF_Node *)n, "actionKeyRelease");
 		}
 		if (shiftKeyDown) {
-			n->shiftKey = (shiftKeyDown-1) ? 1 : 0;
+			n->shiftKey = (shiftKeyDown-1) ? GF_TRUE : GF_FALSE;
 			gf_node_event_out_str((GF_Node *)n, "shiftKey");
 		}
 		if (controlKeyDown) {
-			n->controlKey = (controlKeyDown-1) ? 1 : 0;
+			n->controlKey = (controlKeyDown-1) ? GF_TRUE : GF_FALSE;
 			gf_node_event_out_str((GF_Node *)n, "controlKey");
 		}
 		if (altKeyDown) {
-			n->altKey= (altKeyDown-1) ? 1 : 0;
+			n->altKey= (altKeyDown-1) ? GF_TRUE : GF_FALSE;
 			gf_node_event_out_str((GF_Node *)n, "altKey");
 		}
 		if (keyPressed || actionKeyPressed || (shiftKeyDown-1) || (controlKeyDown-1) || (altKeyDown-1)) {
 			if (!n->isActive) {
-				n->isActive = 1;
+				n->isActive = GF_TRUE;
 				gf_node_event_out_str((GF_Node *)n, "isActive");
 			}
 		} else if (n->isActive) {
-			n->isActive = 0;
+			n->isActive = GF_FALSE;
 			gf_node_event_out_str((GF_Node *)n, "isActive");
 		}
 	}
 #endif
 	/*with KeySensor, we don't know if the key will be consumed or not, assume it is*/
-	return 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -861,7 +861,7 @@ void gf_sc_input_sensor_string_input(GF_Compositor *compositor, u32 character)
 
 	/*get all IS StringSensor decoders and send frame*/
 	i=0;
-	while ((is_ctx = gf_list_enum(compositor->input_streams, &i))) {
+	while ((is_ctx = (GF_InputSensorCtx *)gf_list_enum(compositor->input_streams, &i))) {
 		if (is_ctx->type==IS_StringSensor) {
 			is_ctx->enteredText[is_ctx->text_len] = character;
 			is_ctx->text_len += 1;

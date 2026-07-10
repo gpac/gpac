@@ -37,18 +37,18 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 		res->x = ray->orig.x;
 		res->y = ray->orig.y;
 		res->z = 0;
-		return 1;
+		return GF_TRUE;
 	}
 	p.normal.x = p.normal.y = 0;
 	p.normal.z = FIX_ONE;
 	p.d = 0;
 	t2 = gf_vec_dot(p.normal, ray->dir);
-	if (t2 == 0) return 0;
+	if (t2 == 0) return GF_FALSE;
 	t = - gf_divfix(gf_vec_dot(p.normal, ray->orig) + p.d, t2);
-	if (t<0) return 0;
+	if (t<0) return GF_FALSE;
 	*res = gf_vec_scale(ray->dir, t);
 	gf_vec_add(*res, ray->orig, *res);
-	return 1;
+	return GF_TRUE;
 }
 
 #ifndef GPAC_DISABLE_VRML
@@ -132,8 +132,8 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 		/*if we're here we passed culler already*/
 		case TRAVERSE_DRAW_3D:
 			if (!tr_state->visual->type_3d && tr_state->visual->compositor->hybrid_opengl) {
-				tr_state->visual->compositor->root_visual_setup=0;
-				tr_state->visual->compositor->force_type_3d=1;
+				tr_state->visual->compositor->root_visual_setup = GF_FALSE;
+				tr_state->visual->compositor->force_type_3d = GF_TRUE;
 			}
 			gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 			break;
@@ -330,7 +330,7 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 
 	if (!tr_state->appear || ! ((M_Appearance *)tr_state->appear)->texture)
 		return GF_TRUE;
-	
+
 	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
 	if (!txh->stream) return GF_TRUE;
 
@@ -423,7 +423,7 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
 			stack->mesh = new_mesh();
-			mesh_new_rectangle(stack->mesh, ((M_Rectangle *) node)->size, NULL, 0);
+			mesh_new_rectangle(stack->mesh, ((M_Rectangle *) node)->size, NULL, GF_FALSE);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;
@@ -566,7 +566,7 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 			ct_orig = pts[ GET_IDX(cur_index) ];
 			ct_end = pts[ GET_IDX(cur_index+1) ];
 			end = pts[ GET_IDX(cur_index+2) ];
-			gf_path_add_arc_to(stack->path, end.x, end.y, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, (c2D->type.vals[i]==5) ? 1 : 0);
+			gf_path_add_arc_to(stack->path, end.x, end.y, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, (c2D->type.vals[i]==5) ? GF_TRUE : GF_FALSE);
 			cur_index += 3;
 			ct_orig = ct_end;
 			orig = end;

@@ -102,7 +102,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 						ext_vb.y = FLT2FIX(y);
 						ext_vb.width = FLT2FIX(w);
 						ext_vb.height = FLT2FIX(h);
-						ext_vb.is_set = 1;
+						ext_vb.is_set = GF_TRUE;
 						vb = &ext_vb;
 					}
 				}
@@ -134,7 +134,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					ext_vb.y = bounds_state.bounds.y-bounds_state.bounds.height;
 					ext_vb.width = bounds_state.bounds.width;
 					ext_vb.height = bounds_state.bounds.height;
-					ext_vb.is_set = 1;
+					ext_vb.is_set = GF_TRUE;
 					vb = &ext_vb;
 				}
 			}
@@ -152,7 +152,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 		ext_vb.y = 0;
 		ext_vb.width = doc_width;
 		ext_vb.height = doc_height;
-		ext_vb.is_set = 1;
+		ext_vb.is_set = GF_TRUE;
 		vb = &ext_vb;
 	}
 	if ((vb->width<=0) || (vb->height<=0) ) {
@@ -163,7 +163,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	stack->vp.y = vb->height;
 
 	/*setup default*/
-	par.defer = 0;
+	par.defer = GF_FALSE;
 	par.meetOrSlice = SVG_MEETORSLICE_MEET;
 	par.align = SVG_PRESERVEASPECTRATIO_XMIDYMID;
 
@@ -289,7 +289,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 	SVGAllAttributes all_atts;
-	stack = gf_node_get_private(node);
+	stack = (SVGsvgStack *)gf_node_get_private(node);
 
 	if (is_destroy) {
 		if (stack->svg_props) {
@@ -317,7 +317,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*enable or disable navigation*/
-	tr_state->visual->compositor->navigation_disabled = (all_atts.zoomAndPan && *all_atts.zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
+	tr_state->visual->compositor->navigation_disabled = (all_atts.zoomAndPan && *all_atts.zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? GF_TRUE : GF_FALSE;
 
 	if (compositor_svg_is_display_off(tr_state->svg_props)) {
 		memcpy(tr_state->svg_props, &backup_props, styling_size);
@@ -342,10 +342,10 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_dirty  & GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
 	gf_node_dirty_clear(node, 0);
 
-	send_resize = 0;
+	send_resize = GF_FALSE;
 	if ((stack->parent_vp.x != tr_state->vp_size.x) || (stack->parent_vp.y != tr_state->vp_size.y)) {
 		is_dirty = 1;
-		send_resize = 1;
+		send_resize = GF_TRUE;
 	}
 
 	if (is_dirty || tr_state->visual->compositor->recompute_ar) {
@@ -354,7 +354,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 	gf_mx2d_copy(tr_state->vb_transform, stack->viewbox_mx);
 
-	rootmost_svg = (stack->root_svg && !tr_state->parent_anim_atts) ? 1 : 0;
+	rootmost_svg = (stack->root_svg && !tr_state->parent_anim_atts) ? GF_TRUE : GF_FALSE;
 	if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		SVG_Paint *vp_fill = NULL;
 		Fixed vp_opacity;
@@ -372,12 +372,12 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		}
 
 		if (vp_fill && (vp_fill->type != SVG_PAINT_NONE) && vp_opacity) {
-			Bool col_dirty = 0;
+			Bool col_dirty = GF_FALSE;
 			viewport_color = GF_COL_ARGB_FIXED(vp_opacity, vp_fill->color.red, vp_fill->color.green, vp_fill->color.blue);
 
 			if (stack->prev_color != viewport_color) {
 				stack->prev_color = viewport_color;
-				col_dirty = 1;
+				col_dirty = GF_TRUE;
 			}
 
 			if (!rootmost_svg) {
@@ -407,7 +407,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			} else if (col_dirty) {
 				tr_state->visual->compositor->back_color = viewport_color;
 				/*invalidate the entire visual*/
-				tr_state->invalidate_all = 1;
+				tr_state->invalidate_all = GF_TRUE;
 			}
 		}
 	}
@@ -439,7 +439,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		gf_dom_event_fire(node, &evt);
 	}
 	if ((stack->vp.x != prev_vp.x) || (stack->vp.y != prev_vp.y)) {
-		GF_Scene *scene = node->sgprivate->scenegraph->userpriv;
+		GF_Scene *scene = (GF_Scene *)node->sgprivate->scenegraph->userpriv;
 
 		if (scene) {
 			GF_DOM_Event evt;
@@ -452,7 +452,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			evt.prev_translate.x = stack->vp.x;
 			evt.prev_translate.y = stack->vp.y;
 			evt.type = GF_EVENT_VP_RESIZE;
-			gf_scene_notify_event(scene, 0, NULL, &evt, GF_OK, GF_TRUE);
+			gf_scene_notify_event(scene, GF_EVENT_UNDEFINED, NULL, &evt, GF_OK, GF_TRUE);
 		}
 	}
 
@@ -491,7 +491,7 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 	}
 
 	root = gf_sg_get_root_node(gf_node_get_graph(node));
-	stack->root_svg = (root==node) ? 1 : 0;
+	stack->root_svg = (root==node) ? GF_TRUE : GF_FALSE;
 	if (stack->root_svg) {
 		GF_SAFEALLOC(stack->svg_props, SVGPropertiesPointers);
 		gf_svg_properties_init_pointers(stack->svg_props);
@@ -505,13 +505,13 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 Bool compositor_svg_get_viewport(GF_Node *n, GF_Rect *rc)
 {
 	SVGsvgStack *stack;
-	if (!n || (gf_node_get_tag(n) != TAG_SVG_svg)) return 0;
-	stack = gf_node_get_private(n);
+	if (!n || (gf_node_get_tag(n) != TAG_SVG_svg)) return GF_FALSE;
+	stack = (SVGsvgStack *)gf_node_get_private(n);
 	rc->width = stack->parent_vp.x;
 	rc->height = stack->parent_vp.y;
 	/*not supported yet*/
 	rc->x = rc->y = 0;
-	return 1;
+	return GF_TRUE;
 }
 
 typedef struct
@@ -537,7 +537,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	SVGAllAttributes all_atts;
 
 	if (is_destroy) {
-		SVGgStack *group = gf_node_get_private(node);
+		SVGgStack *group = (SVGgStack *)gf_node_get_private(node);
 #ifdef GF_SR_USE_VIDEO_CACHE
 		group_2d_destroy_svg(node, group);
 #else
@@ -554,7 +554,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	         || tr_state->traversing_mode == TRAVERSE_DRAW_3D
 #endif
 	) {
-		SVGgStack *group = gf_node_get_private(node);
+		SVGgStack *group = (SVGgStack *)gf_node_get_private(node);
 
 		//clip path on group
 		if (tr_state->ctx->appear) {
@@ -596,7 +596,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		Fixed scale, offset, dscale, doffset;
 #endif
 		Fixed opacity = FIX_ONE;
-		Bool clear = 0;
+		Bool clear = GF_FALSE;
 		SVGgStack *group;
 
 		if (!tr_state->in_svg_filter && all_atts.filter && all_atts.filter->iri.target) {
@@ -605,7 +605,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 			return;
 		}
-		group = gf_node_get_private(node);
+		group = (SVGgStack *)gf_node_get_private(node);
 
 		if (tr_state->parent_use_opacity) {
 			opacity = tr_state->parent_use_opacity->value;
@@ -616,7 +616,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		if (gf_node_dirty_get(node)&GF_SG_CHILD_DIRTY) {
 			drawable_reset_group_highlight(tr_state, node);
-			clear=1;
+			clear= GF_TRUE;
 		}
 
 #ifdef GF_SR_USE_DEPTH
@@ -635,16 +635,16 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		if (!tr_state->override_appearance && (opacity < FIX_ONE)) {
 			if (!group->cache) {
 				group->cache = group_cache_new(tr_state->visual->compositor, node);
-				group->cache->force_recompute = 1;
+				group->cache->force_recompute = GF_TRUE;
 			}
 			group->cache->opacity = opacity;
 			if (tr_state->visual->compositor->zoom_changed)
-				group->cache->force_recompute = 1;
+				group->cache->force_recompute = GF_TRUE;
 			group->flags |= GROUP_IS_CACHED | GROUP_PERMANENT_CACHE;
 #ifdef GF_SR_USE_VIDEO_CACHE
 			group_2d_cache_traverse(node, group, tr_state);
 #else
-			group_cache_traverse(node, group->cache, tr_state, group->cache->force_recompute, 0, 0);
+			group_cache_traverse(node, group->cache, tr_state, group->cache->force_recompute, GF_FALSE, GF_FALSE);
 #endif
 		} else {
 #ifdef GF_SR_USE_VIDEO_CACHE
@@ -657,10 +657,10 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 				GF_ChildNodeItem *child;
 				DrawableContext *first_ctx = tr_state->visual->cur_context;
 				u32 cache_too_small = 0;
-				Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? 1 : 0;
+				Bool skip_first_ctx = (first_ctx && first_ctx->drawable) ? GF_TRUE : GF_FALSE;
 				u32 traverse_time = gf_sys_clock();
 				u32 last_cache_idx = gf_list_count(tr_state->visual->compositor->cached_groups_queue);
-				tr_state->cache_too_small = 0;
+				tr_state->cache_too_small = GF_FALSE;
 
 				child = ((GF_ParentNode *)node)->children;
 				while (child) {
@@ -671,7 +671,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 				}
 
 				if (cache_too_small) {
-					tr_state->cache_too_small = 1;
+					tr_state->cache_too_small = GF_TRUE;
 				} else {
 					/*get the traversal time for each group*/
 					traverse_time = gf_sys_clock() - traverse_time;
@@ -765,7 +765,7 @@ static void svg_traverse_defs(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 
 	prev_flags = tr_state->switched_off;
-	tr_state->switched_off = 1;
+	tr_state->switched_off = GF_TRUE;
 	compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	tr_state->switched_off = prev_flags;
 
@@ -788,7 +788,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Matrix mx_3d;
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
-	s32 *selected_idx = gf_node_get_private(node);
+	s32 *selected_idx = (signed int *)gf_node_get_private(node);
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGAllAttributes all_atts;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
@@ -905,12 +905,12 @@ static void svg_a_set_view(GF_Node *handler, GF_Compositor *compositor, const ch
 {
 	gf_scene_set_fragment_uri(handler, url);
 	/*force recompute viewbox of root SVG - FIXME in full this should be the parent svg*/
-	gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, 0);
+	gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, GF_FALSE);
 
 	compositor->trans_x = compositor->trans_y = 0;
 	compositor->rotation = 0;
 	compositor->zoom = FIX_ONE;
-	compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
+	compositor_2d_set_user_transform(compositor, FIX_ONE, GF_FALSE, 0, GF_FALSE);
 	gf_sc_invalidate(compositor, NULL);
 }
 
@@ -937,7 +937,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 		if (all_atts.xlink_title) evt.navigate.to_url = *all_atts.xlink_title;
 		else if (all_atts.xlink_href->string) evt.navigate.to_url = all_atts.xlink_href->string;
 		else {
-			evt.navigate.to_url = gf_node_get_name(all_atts.xlink_href->target);
+			evt.navigate.to_url = gf_node_get_name((GF_Node*)all_atts.xlink_href->target);
 			if (!evt.navigate.to_url) evt.navigate.to_url = "document internal link";
 		}
 
@@ -978,7 +978,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 		return;
 	}
 	/*this is a time event*/
-	switch (gf_node_get_tag(all_atts.xlink_href->target)) {
+	switch (gf_node_get_tag((GF_Node*)all_atts.xlink_href->target)) {
 	case TAG_SVG_set:
 	case TAG_SVG_animate:
 	case TAG_SVG_animateColor:
@@ -988,11 +988,11 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 	case TAG_SVG_animation:
 	case TAG_SVG_video:
 	case TAG_SVG_audio:
-		gf_smil_timing_insert_clock(all_atts.xlink_href->target, 0, gf_node_get_scene_time((GF_Node *)handler) );
+		gf_smil_timing_insert_clock((GF_Node*)all_atts.xlink_href->target, GF_FALSE, gf_node_get_scene_time((GF_Node *)handler));
 		break;
 	default:
 		/*this is an implicit SVGView event*/
-		svg_a_set_view(handler, compositor, gf_node_get_name(all_atts.xlink_href->target));
+		svg_a_set_view(handler, compositor, gf_node_get_name((GF_Node*)all_atts.xlink_href->target));
 		break;
 	}
 }
@@ -1042,7 +1042,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	GF_Node *used_node;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	SVGAllAttributes all_atts;
-	SVGlinkStack *stack = gf_node_get_private(node);
+	SVGlinkStack *stack = (SVGlinkStack *)gf_node_get_private(node);
 	SFVec2f prev_vp;
 	SVG_Number *prev_opacity;
 
@@ -1079,12 +1079,12 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	gf_node_dirty_clear(node, 0);
 
 	/*locate the used node - this is done at each step to handle progressive loading*/
-	is_fragment = 0;
+	is_fragment = GF_FALSE;
 	used_node = NULL;
 	if (!stack->inline_sg && !stack->fragment_id && all_atts.xlink_href) {
 		if (all_atts.xlink_href->type == XMLRI_ELEMENTID) {
-			used_node = all_atts.xlink_href->target;
-			is_fragment = 1;
+			used_node = (GF_Node*)all_atts.xlink_href->target;
+			is_fragment = GF_TRUE;
 		} else if (stack->resource) {
 			stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
 			if (!is_foreign_object && all_atts.xlink_href->string) {
@@ -1095,7 +1095,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	if (!used_node && stack->inline_sg) {
 		if (stack->fragment_id) {
 			used_node = gf_sg_find_node_by_name(stack->inline_sg, (char *) stack->fragment_id+1);
-			is_fragment = 1;
+			is_fragment = GF_TRUE;
 		} else if (is_foreign_object) {
 			used_node = gf_sg_get_root_node(stack->inline_sg);
 		}
@@ -1120,7 +1120,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	prev_opacity = tr_state->parent_use_opacity;
 	tr_state->parent_use_opacity = all_atts.opacity;
 	parent_is_use = tr_state->parent_is_use;
-	tr_state->parent_is_use = is_foreign_object ? 0 : 1;
+	tr_state->parent_is_use = is_foreign_object ? GF_FALSE : GF_TRUE;
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
@@ -1167,7 +1167,7 @@ end:
 
 static void svg_traverse_use(GF_Node *node, void *rs, Bool is_destroy)
 {
-	svg_traverse_resource(node, rs, is_destroy, 0);
+	svg_traverse_resource(node, rs, is_destroy, GF_FALSE);
 }
 
 void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
@@ -1178,7 +1178,7 @@ void compositor_init_svg_use(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_use);
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 }
 
 
@@ -1201,10 +1201,10 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 		clipEnd = all_atts.clipEnd ? *all_atts.clipEnd : -1;
 
 		if (stack->needs_play) {
-			gf_mo_play(stack->resource, clipBegin, clipEnd, 0);
-			stack->needs_play = 0;
+			gf_mo_play(stack->resource, clipBegin, clipEnd, GF_FALSE);
+			stack->needs_play = GF_FALSE;
 		} else {
-			Bool primary = all_atts.gpac_useAsPrimary ? *all_atts.gpac_useAsPrimary : 1;
+			Bool primary = all_atts.gpac_useAsPrimary ? *all_atts.gpac_useAsPrimary : GF_TRUE;
 			new_res = gf_mo_load_xlink_resource(node, primary, clipBegin, clipEnd);
 			if (new_res != stack->resource) {
 				if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
@@ -1222,7 +1222,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 {
 	Bool reset_target = GF_FALSE;
 	GF_Node *node = gf_smil_get_element(rti);
-	SVGlinkStack *stack = gf_node_get_private(node);
+	SVGlinkStack *stack = (SVGlinkStack *)gf_node_get_private(node);
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		svg_animation_smil_update(node, stack, normalized_scene_time);
@@ -1230,7 +1230,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 	case SMIL_TIMING_EVAL_FREEZE:
 		if (stack->resource) {
 			gf_mo_stop(&stack->resource);
-			stack->needs_play = 1;
+			stack->needs_play = GF_TRUE;
 		}
 		break;
 	case SMIL_TIMING_EVAL_REMOVE:
@@ -1240,7 +1240,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 			stack->resource = NULL;
 			stack->fragment_id = NULL;
 			stack->inline_sg = NULL;
-			gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+			gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 		}
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
@@ -1276,7 +1276,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState*)rs;
 	GF_Matrix2D translate;
 	SVGPropertiesPointers *old_props;
-	SVGlinkStack *stack = gf_node_get_private(node);
+	SVGlinkStack *stack = (SVGlinkStack *)gf_node_get_private(node);
 
 	if (is_destroy) {
 		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
@@ -1390,12 +1390,12 @@ void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node)
 	gf_smil_set_evaluation_callback(node, svg_animation_smil_evaluate);
 
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 }
 
 void svg_pause_animation(GF_Node *n, Bool pause)
 {
-	SVGlinkStack *st =  gf_node_get_private(n);
+	SVGlinkStack *st =  (SVGlinkStack *)gf_node_get_private(n);
 	if (!st) return;
 	if (pause) gf_mo_pause(st->resource);
 	else gf_mo_resume(st->resource);
@@ -1403,7 +1403,7 @@ void svg_pause_animation(GF_Node *n, Bool pause)
 
 static void svg_traverse_foreign_object(GF_Node *node, void *rs, Bool is_destroy)
 {
-	svg_traverse_resource(node, rs, is_destroy, 1);
+	svg_traverse_resource(node, rs, is_destroy, GF_TRUE);
 }
 
 void compositor_init_svg_foreign_object(GF_Compositor *compositor, GF_Node *node)
@@ -1414,7 +1414,7 @@ void compositor_init_svg_foreign_object(GF_Compositor *compositor, GF_Node *node
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_foreign_object);
 	/*force first processing of xlink-href*/
-	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 }
 
 GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink)
@@ -1422,13 +1422,13 @@ GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink)
 	SVGlinkStack *stack;
 	switch (gf_node_get_tag(node)) {
 	case TAG_SVG_animation:
-		stack = gf_node_get_private(node);
+		stack = (SVGlinkStack *)gf_node_get_private(node);
 		return gf_sg_get_root_node(stack->inline_sg);
 	case TAG_SVG_use:
-		stack = gf_node_get_private(node);
+		stack = (SVGlinkStack *)gf_node_get_private(node);
 		if (stack && stack->fragment_id)
 			return gf_sg_find_node_by_name(stack->inline_sg, (char *) stack->fragment_id+1);
-		return xlink ? xlink->target : NULL;
+		return xlink ? (GF_Node *) xlink->target : NULL;
 	}
 	return NULL;
 }
@@ -1438,7 +1438,7 @@ GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node)
 {
 	SVGlinkStack *stack;
 	if (node->sgprivate->tag!=TAG_SVG_animation) return NULL;
-	stack = gf_node_get_private(node);
+	stack = (SVGlinkStack *)gf_node_get_private(node);
 	return stack->inline_sg;
 }
 #endif

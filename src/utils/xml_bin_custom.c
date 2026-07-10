@@ -138,15 +138,15 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		if (!strcmp(att->name, "segmentationEventId")) {
 			segmentationEventId = atoi(att->value);
 		} else if (!strcmp(att->name, "segmentationEventCancelIndicator")) {
-			segmentationEventCancelIndicator = atoi(att->value);
+			segmentationEventCancelIndicator = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "segmentationEventIdComplianceIndicator")) {
-			segmentationEventIdComplianceIndicator = atoi(att->value);
+			segmentationEventIdComplianceIndicator = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "webDeliveryAllowedFlag")) {
-			webDeliveryAllowedFlag = atoi(att->value);
+			webDeliveryAllowedFlag = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "noRegionalBlackoutFlag")) {
-			noRegionalBlackoutFlag = atoi(att->value);
+			noRegionalBlackoutFlag = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "archiveAllowedFlag")) {
-			archiveAllowedFlag = atoi(att->value);
+			archiveAllowedFlag = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "deviceRestrictions")) {
 			deviceRestrictions = atoi(att->value);
 		} else if (!strcmp(att->name, "segmentationTypeId")) {
@@ -156,11 +156,11 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		} else if (!strcmp(att->name, "segmentsExpected")) {
 			segmentsExpected = atoi(att->value);
 		} else if (!strcmp(att->name, "programSegmentationFlag")) {
-			programSegmentationFlag = atoi(att->value);
+			programSegmentationFlag = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "segmentationDurationFlag")) {
-			segmentationDurationFlag = atoi(att->value);
+			segmentationDurationFlag = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "deliveryNotRestrictedFlag")) {
-			deliveryNotRestrictedFlag = atoi(att->value);
+			deliveryNotRestrictedFlag = atoi(att->value) ? GF_TRUE : GF_FALSE;
 		} else if (!strcmp(att->name, "segmentationDuration")) {
 			segmentationDuration = atoi(att->value);
 		} else if (!strcmp(att->name, "subSegmentNum")) {
@@ -223,7 +223,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		if (node->type) continue;
 		if (!strcmp(node->name, "SegmentationUpid")) {
 			GF_XMLAttribute *attx = NULL;
-			while ((attx = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+			while ((attx = (GF_XMLAttribute *) gf_list_enum(root->attributes, &j))) {
 				if (!strcmp(attx->name, "segmentationUpidType")) {
 				gf_bs_write_u8(bs, segmentationTypeId);
 				gf_bs_write_u8(bs, segmentNum);
@@ -466,7 +466,7 @@ static void xml_emeb_parse(GF_XMLNode *root, GF_BitStream *bs)
 static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 {
 #ifndef GPAC_DISABLE_ISOM
-	int i = 0;
+	u32 i = 0;
 	GF_XMLAttribute *att = NULL;
 	GF_EventMessageBox *emib = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 
@@ -491,10 +491,10 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 			if (sscanf(att->value, "%u", &emib->event_id) != 1)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for event_id=\"%s\"\n", att->value));
 		} else if (!stricmp(att->name, "message_data")) {
-			u8 *ptr = att->value;
+			const char *ptr = (const char*)att->value;
 			if (!strnicmp(ptr, "0x", 2)) ptr +=2;
 			u32 len = (u32)strlen(ptr)/2;
-			emib->message_data = gf_malloc(len);
+			emib->message_data = (u8*)gf_malloc(len);
 			emib->message_data_size = len;
 			for (u32 i=0; i<len; ++i, ptr+=2) {
 				int val=0;
@@ -564,7 +564,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		Double val_double = 0;
 		Bool use_word128 = GF_FALSE;
 		Bool use_text = GF_FALSE;
-		Bool base64_prefix_bits = 0;
+		u32 base64_prefix_bits = 0;
 		Bool big_endian = GF_TRUE;
 		Bool has_float = GF_FALSE;
 		Bool has_double = GF_FALSE;
@@ -680,17 +680,17 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			if (nb_bits)
 				gf_bs_write_int(bs, len, nb_bits);
 
-			gf_bs_write_data(bs, szString, len);
+			gf_bs_write_data(bs, (u8*)szString, len);
 		} else if (szBase64) {
 			u32 len = (u32) strlen(szBase64);
-			char *data = (char *) gf_malloc(sizeof(char)*len);
+			u8 *data = (u8 *) gf_malloc(len);
 			u32 ret;
 			if (!data) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
 			}
 
-			ret = (u32) gf_base64_decode((char *)szBase64, len, data, len);
+			ret = (u32) gf_base64_decode((u8 *)szBase64, len, data, len);
 			if ((s32) ret >=0) {
 				gf_bs_write_int(bs, ret, nb_bits);
 				gf_bs_write_data(bs, data, ret);
@@ -708,7 +708,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				e = GF_BAD_PARAM;
 				goto exit;
 			}
-			char *data = (char *) gf_malloc(sizeof(char)*len/2);
+			u8 *data = (u8 *) gf_malloc(len/2);
 			if (!data) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
@@ -746,7 +746,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			}
 		} else if (szFile) {
 			u32 read, remain;
-			char block[1024];
+			u8 block[1024];
 			FILE *_tmp = NULL;
 			if (parent_url) {
 				char *f_url = gf_url_concatenate(parent_url, szFile);
@@ -785,7 +785,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			}
 			gf_fclose(_tmp);
 		} else if (use_word128) {
-			gf_bs_write_data(bs, (char *)word128, 16);
+			gf_bs_write_data(bs, word128, 16);
 		}
 
 		if ((enc_base64==1) || (enc_base64==3)) {
@@ -799,7 +799,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			if (bs_data) {
 				u8 *bs_data_out;
 				u32 res = 2*bs_data_size + 3;
-				bs_data_out = gf_malloc(sizeof(char) * res);
+				bs_data_out = (u8*)gf_malloc(res);
 				if (!bs_data_out) {
 					e = GF_OUT_OF_MEM;
 					goto exit;

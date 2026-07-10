@@ -414,7 +414,7 @@ static GF_Err BD_DecGlobalQuantizer(GF_BifsDecoder * codec, GF_BitStream *bs)
 	codec->scenegraph->global_qp = node;
 	gf_node_register(node, NULL);
 	codec->ActiveQP = (M_QuantizationParameter *) node;
-	codec->ActiveQP->isLocal = 0;
+	codec->ActiveQP->isLocal = GF_FALSE;
 	return GF_OK;
 }
 
@@ -1317,7 +1317,7 @@ exit:
 			u32 new_cmd_bufs = gf_list_count(codec->command_buffers);
 			while (nb_cmd_bufs < new_cmd_bufs) {
 				new_cmd_bufs--;
-				CommandBufferItem *cbi = gf_list_pop_back(codec->command_buffers);
+				CommandBufferItem *cbi = (CommandBufferItem *)gf_list_pop_back(codec->command_buffers);
 				gf_node_unregister(cbi->node, NULL);
 				gf_free(cbi);
 			}

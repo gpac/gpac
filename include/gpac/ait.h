@@ -13,7 +13,7 @@ extern "C" {
 \file <gpac/ait.h>
 \brief Specific extensions for handling AIT in MPEG-2 TS.
  */
-	
+
 #include <gpac/mpegts.h>
 #include <gpac/dsmcc.h>
 #include <string.h>

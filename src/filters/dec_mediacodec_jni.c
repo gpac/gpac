@@ -22,7 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
- 
+
 #include <gpac/tools.h>
 #include <gpac/constants.h>
 
@@ -98,7 +98,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	JNIEnv* env = NULL;
 	javaVM = vm;
-	
+
 	if ((*javaVM)->GetEnv(javaVM, (void**)&env, JNI_VERSION_1_2) != JNI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("GetEnv failed"));
 		return GF_BAD_PARAM;
@@ -142,13 +142,13 @@ GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surfa
 	jint res = 0;
 	jobject oSurface = NULL;
 	GF_Err ret = GF_BAD_PARAM;
-	
+
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	}
 	if (!env) goto create_surface_failed;
-	
+
 	// cache classes
 	if (!cSurfaceTexture) {
 		ctmp = (*env)->FindClass(env, "android/graphics/SurfaceTexture");
@@ -160,7 +160,7 @@ GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surfa
 		cSurface = (*env)->NewGlobalRef(env, ctmp);
 		if (!cSurface) goto create_surface_failed;
 	}
-	
+
 	// cache methods
 	if(!mSurfaceTexConstructor) {
 		mSurfaceTexConstructor = (*env)->GetMethodID(env, cSurfaceTexture, "<init>", "(I)V");
@@ -182,16 +182,16 @@ GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surfa
 		mGetTransformMatrix = (*env)->GetMethodID(env, cSurfaceTexture, "getTransformMatrix", "([F)V");
 		if(!mGetTransformMatrix) goto create_surface_failed;
 	}
-	
+
 	surfaceTex->texture_id = tex_id;
 	// create objects
 	otmp = (*env)->NewObject(env, cSurfaceTexture, mSurfaceTexConstructor, surfaceTex->texture_id);
 	surfaceTex->oSurfaceTex = (jobject) (*env)->NewGlobalRef(env,otmp);
 	if(!surfaceTex->oSurfaceTex) goto create_surface_failed;
-	
+
 	oSurface = (*env)->NewObject(env, cSurface, mSurfaceConstructor, surfaceTex->oSurfaceTex);
 	if(!oSurface) goto create_surface_failed;
-	
+
 	*window = ANativeWindow_fromSurface(env, oSurface);
 	*surface_rendering = (*window) ? GF_TRUE : GF_FALSE;
 	(*env)->CallVoidMethod(env, oSurface, mSurfaceRelease);
@@ -199,7 +199,7 @@ GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surfa
 		HandleJNIError(env);
 	}
 	ret = GF_OK;
-	
+
 create_surface_failed:
 	if(otmp)
 		 (*env)->DeleteLocalRef(env, otmp);
@@ -207,7 +207,7 @@ create_surface_failed:
 		 (*env)->DeleteLocalRef(env, ctmp);
 	 if(oSurface)
 		 (*env)->DeleteLocalRef(env, oSurface);
-	 
+
 	 return ret;
 }
 
@@ -337,7 +337,7 @@ GF_Err mcdec_update_surface(GF_MCDecSurfaceTexture surfaceTex)
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	}
 	if (!env) return GF_BAD_PARAM;
-	
+
 	(*env)->CallVoidMethod(env, surfaceTex.oSurfaceTex, mUpdateTexImage);
 	if ((*env)->ExceptionCheck(env)) {
 		HandleJNIError(env);
@@ -355,17 +355,17 @@ GF_Err mcdec_get_transform_matrix(GF_Matrix * mx, GF_MCDecSurfaceTexture surface
 	jsize len = 0;
 	jfloat *body;
 	GF_Err ret = GF_BAD_PARAM;
-	
+
 	//we must check this, as the calling thread is not always the decoder thread
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	}
 	if (!env) goto get_matrix_failed;
-	
+
 	texMx = (*env)->NewFloatArray(env, 16);
 	if (texMx == NULL) goto get_matrix_failed;
-	
+
 	(*env)->CallVoidMethod(env, surfaceTex.oSurfaceTex, mGetTransformMatrix,texMx);
 	if ((*env)->ExceptionCheck(env)) {
 		HandleJNIError(env);
@@ -380,14 +380,14 @@ GF_Err mcdec_get_transform_matrix(GF_Matrix * mx, GF_MCDecSurfaceTexture surface
 	for (i=0; i<len; i++) {
 		mx->m[i] = FLT2FIX(body[i]);
 	}
-	
+
 	(*env)->ReleaseFloatArrayElements(env, texMx, body, 0);
 	if ((*env)->ExceptionCheck(env)) {
 		HandleJNIError(env);
 		goto get_matrix_failed;
 	}
 	ret = GF_OK;
-	
+
 get_matrix_failed:
 	if(texMx)
 		(*env)->DeleteLocalRef(env, texMx);
@@ -398,13 +398,13 @@ GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture  surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
-	
+
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	} 
 	if (!env) return GF_BAD_PARAM;
-	
+
 	(*env)->DeleteGlobalRef(env, cSurface);
 	cSurface = NULL;
 	(*env)->DeleteGlobalRef(env, cSurfaceTexture);

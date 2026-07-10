@@ -60,9 +60,9 @@ static int h2_header_callback(nghttp2_session *session,
 
 			GF_SAFEALLOC(hdrp, GF_HTTPHeader);
 			if (hdrp) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id "LLD" got header %s: %s\n", sess->hmux_stream_id, name, value));
-				hdrp->name = gf_strdup(name);
-				hdrp->value = gf_strdup(value);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id " LLD " got header %s: %s\n", sess->hmux_stream_id, name, value));
+				hdrp->name = gf_strdup((char *)name);
+				hdrp->value = gf_strdup((char *)value);
 				gf_list_add(sess->headers, hdrp);
 			}
 		break;
@@ -127,9 +127,9 @@ static int h2_frame_recv_callback(nghttp2_session *session, const nghttp2_frame 
 		) {
 			sess->hmux_headers_seen = 1;
 			if (sess->server_mode) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID " LLD "\n", sess->hmux_stream_id));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID " LLD "\n", sess->hmux_stream_id));
 			}
 		}
 		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
@@ -179,12 +179,12 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 
 	if (sess->hmux_buf.size + len > sess->hmux_buf.alloc) {
 		sess->hmux_buf.alloc = sess->hmux_buf.size + (u32) len;
-		sess->hmux_buf.data = gf_realloc(sess->hmux_buf.data, sizeof(u8) * sess->hmux_buf.alloc);
+		sess->hmux_buf.data = (u8 *)gf_realloc(sess->hmux_buf.data, sess->hmux_buf.alloc);
 		if (!sess->hmux_buf.data)	return NGHTTP2_ERR_NOMEM;
 	}
 	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, len);
 	sess->hmux_buf.size += (u32) len;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id "LLD" received %d bytes (%d/%d total) - flags %d\n", sess->hmux_stream_id, len, sess->hmux_buf.size, sess->total_size, flags));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id " LLD " received %d bytes (%d/%d total) - flags %d\n", sess->hmux_stream_id, len, sess->hmux_buf.size, sess->total_size, flags));
 	return 0;
 }
 
@@ -286,7 +286,7 @@ ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t stream_id
 	if (!sess->hmux_send_data_len) {
 		sess->hmux_send_data = NULL;
 		if (!sess->local_buf_len && sess->hmux_is_eos) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send EOS for stream_id "LLD"\n", sess->hmux_stream_id));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send EOS for stream_id " LLD "\n", sess->hmux_stream_id));
 			*data_flags = NGHTTP2_DATA_FLAG_EOF;
 			sess->hmux_is_eos = 0;
 			return 0;
@@ -313,7 +313,7 @@ ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t stream_id
 
 static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame, const uint8_t *framehd, size_t length, nghttp2_data_source *source, void *user_data)
 {
-	char padding[256];
+	u8 padding[256];
 	ssize_t rv;
 
 	//ultimately we would like to use directly source->ptr but the session could have been destroyed and there is no way to tell nghttp2 to stop
@@ -369,7 +369,7 @@ err:
 static GF_Err h2_session_write(GF_DownloadSession *sess)
 {
 	gf_assert(sess->hmux_sess);
-	int rv = nghttp2_session_send(sess->hmux_sess->hmux_udta);
+	int rv = nghttp2_session_send((nghttp2_session *)sess->hmux_sess->hmux_udta);
 	if (rv != 0) {
 		if (sess->last_error != GF_IP_CONNECTION_CLOSED) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] session_send error :  %s\n", nghttp2_strerror(rv)));
@@ -387,25 +387,25 @@ static GF_Err h2_session_write(GF_DownloadSession *sess)
 
 static void h2_stream_reset(GF_DownloadSession *sess, Bool is_abort)
 {
-	nghttp2_submit_rst_stream(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, (int32_t) sess->hmux_stream_id, is_abort ? NGHTTP2_CANCEL : NGHTTP2_NO_ERROR);
+	nghttp2_submit_rst_stream((nghttp2_session *)sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, (int32_t) sess->hmux_stream_id, is_abort ? NGHTTP2_CANCEL : NGHTTP2_NO_ERROR);
 }
 
 static GF_Err h2_resume_stream(GF_DownloadSession *sess)
 {
 	sess->hmux_data_paused = 0;
-	nghttp2_session_resume_data(sess->hmux_sess->hmux_udta, (int32_t) sess->hmux_stream_id);
+	nghttp2_session_resume_data((nghttp2_session *)sess->hmux_sess->hmux_udta, (int32_t) sess->hmux_stream_id);
 	return GF_OK;
 }
 
 static void h2_destroy(struct _http_mux_session *hmux_sess)
 {
-	nghttp2_session_del(hmux_sess->hmux_udta);
+	nghttp2_session_del((nghttp2_session *)hmux_sess->hmux_udta);
 }
 
 static GF_Err h2_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_bytes)
 {
 	if (nb_bytes) {
-		ssize_t read_len = nghttp2_session_mem_recv(sess->hmux_sess->hmux_udta, data, nb_bytes);
+		ssize_t read_len = nghttp2_session_mem_recv((nghttp2_session *)sess->hmux_sess->hmux_udta, data, nb_bytes);
 		if (read_len < 0 ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error:  %s\n", nghttp2_strerror((int) read_len)));
 			return GF_IO_ERR;
@@ -436,7 +436,7 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 	nghttp2_nv *hdrs;
 
 	nb_hdrs = gf_list_count(sess->headers);
-	hdrs = gf_malloc(sizeof(nghttp2_nv) * (nb_hdrs + 4));
+	hdrs = (nghttp2_nv *)gf_malloc(sizeof(nghttp2_nv) * (nb_hdrs + 4));
 
 	NV_HDR(hdrs[0], ":method", req_name);
 	NV_HDR(hdrs[1], ":scheme", "https");
@@ -459,7 +459,7 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 	}
 
 	for (i=0; i<nb_hdrs; i++) {
-		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
+		GF_HTTPHeader *hdr = (GF_HTTPHeader *)gf_list_get(sess->headers, i);
 		NV_HDR(hdrs[4+i], hdr->name, hdr->value);
 	}
 #ifndef NDEBUG
@@ -471,13 +471,13 @@ GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const char *u
 #endif
 	sess->hmux_data_done = 0;
 	sess->hmux_headers_seen = 0;
-	sess->hmux_stream_id = nghttp2_submit_request(sess->hmux_sess->hmux_udta, NULL, hdrs, nb_hdrs+4,
+	sess->hmux_stream_id = nghttp2_submit_request((nghttp2_session *)sess->hmux_sess->hmux_udta, NULL, hdrs, nb_hdrs+4,
 		has_body ? (nghttp2_data_provider *)sess->hmux_priv : NULL, sess);
 	sess->hmux_ready_to_send = 0;
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send request (has_body %d) for new stream_id "LLD":\n", has_body, sess->hmux_stream_id));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send request (has_body %d) for new stream_id " LLD ":\n", has_body, sess->hmux_stream_id));
 		for (i=0; i<nb_hdrs+4; i++) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("\t%s: %s\n", hdrs[i].name, hdrs[i].value));
 		}
@@ -526,13 +526,13 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 		}
 	}
 
-	hdrs = gf_malloc(sizeof(nghttp2_nv) * (count + 1) );
+	hdrs = (nghttp2_nv *)gf_malloc(sizeof(nghttp2_nv) * (count + 1) );
 
 	sprintf(szFmt, "%d", reply_code);
 	NV_HDR(hdrs[0], ":status", szFmt);
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id "LLD" (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id " LLD " (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
 	for (i=0; i<count; i++) {
-		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
+		GF_HTTPHeader *hdr = (GF_HTTPHeader *)gf_list_get(sess->headers, i);
 		NV_HDR(hdrs[i+1], hdr->name, hdr->value)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("%s: %s\n", hdr->name, hdr->value));
 	}
@@ -540,7 +540,7 @@ GF_Err h2_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *respo
 
 	gf_mx_p(sess->mx);
 
-	int rv = nghttp2_submit_response(sess->hmux_sess->hmux_udta, (int32_t) sess->hmux_stream_id, hdrs, count+1, no_body ? NULL : sess->hmux_priv);
+	int rv = nghttp2_submit_response((nghttp2_session *)sess->hmux_sess->hmux_udta, (int32_t) sess->hmux_stream_id, hdrs, count+1, no_body ? NULL : (nghttp2_data_provider*)sess->hmux_priv);
 
 	gf_free(hdrs);
 
@@ -618,7 +618,7 @@ static GF_Err h2_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 		GF_SAFEALLOC(sess->hmux_priv, nghttp2_data_provider);
 		if (!sess->hmux_priv) return GF_OUT_OF_MEM;
 	}
-	nghttp2_data_provider *data_io = sess->hmux_priv;
+	nghttp2_data_provider *data_io = (nghttp2_data_provider *) sess->hmux_priv;
 	data_io->read_callback = h2_data_source_read_callback;
 	data_io->source.ptr = sess;
 	return GF_OK;
@@ -626,7 +626,7 @@ static GF_Err h2_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 
 static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf)
 {
-	char h2_flush[1024];
+	u8 h2_flush[1024];
 	u32 res;
 
 	while (sess->hmux_send_data) {
@@ -659,7 +659,7 @@ static void h2_flush_send_ex(GF_DownloadSession *sess, Bool flush_local_buf)
 		//stream will now block, no choice but do a local copy...
 		if (sess->local_buf_len + nb_bytes > sess->local_buf_alloc) {
 			sess->local_buf_alloc = sess->local_buf_len + nb_bytes;
-			sess->local_buf = gf_realloc(sess->local_buf, sess->local_buf_alloc);
+			sess->local_buf = (u8 *)gf_realloc(sess->local_buf, sess->local_buf_alloc);
 			if (!sess->local_buf) {
 				sess->status = GF_NETIO_STATE_ERROR;
 				SET_LAST_ERR(sess->last_error)
@@ -683,15 +683,15 @@ static GF_Err h2_data_pending(GF_DownloadSession *sess)
 }
 static void h2_close_session(GF_DownloadSession *sess)
 {
-	nghttp2_submit_shutdown_notice(sess->hmux_sess->hmux_udta);
+	nghttp2_submit_shutdown_notice((nghttp2_session *)sess->hmux_sess->hmux_udta);
 	h2_session_write(sess);
 
 #if 1
 	u64 in_time;
 	in_time = gf_sys_clock_high_res();
-	while (nghttp2_session_want_read(sess->hmux_sess->hmux_udta)) {
+	while (nghttp2_session_want_read((nghttp2_session *)sess->hmux_sess->hmux_udta)) {
 		u32 res;
-		char h2_flush[2024];
+		u8 h2_flush[2024];
 		GF_Err e;
 		if (gf_sys_clock_high_res() - in_time > 100000)
 			break;
@@ -764,7 +764,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	}
 	h2_opt_val = gf_opts_get_int("core", "hx-iwnd");
 	if (h2_opt_val) {
-		rv = nghttp2_session_set_local_window_size(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, 0 /* connection */, h2_opt_val);
+		rv = nghttp2_session_set_local_window_size((nghttp2_session *)sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, 0 /* connection */, h2_opt_val);
 		if (rv) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP/2] set_local_window_size(conn) failed: %d\n", rv));
 		}
@@ -803,7 +803,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	if (sess->server_mode) {
 		sess->hmux_stream_id = 1;
 		if (sess->h2_upgrade_settings) {
-			rv = nghttp2_session_upgrade2(sess->hmux_sess->hmux_udta, sess->h2_upgrade_settings, sess->h2_upgrade_settings_len, 0, sess);
+			rv = nghttp2_session_upgrade2((nghttp2_session *)sess->hmux_sess->hmux_udta, sess->h2_upgrade_settings, sess->h2_upgrade_settings_len, 0, sess);
 			gf_free(sess->h2_upgrade_settings);
 			sess->h2_upgrade_settings = NULL;
 
@@ -816,7 +816,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	}
 
 	/* client 24 bytes magic string will be sent by nghttp2 library */
-	rv = nghttp2_submit_settings(sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, init_settings, nb_settings);
+	rv = nghttp2_submit_settings((nghttp2_session *)sess->hmux_sess->hmux_udta, NGHTTP2_FLAG_NONE, init_settings, nb_settings);
 	if (rv != 0) {
 		sess->status = GF_NETIO_STATE_ERROR;
 		SET_LAST_ERR((rv==NGHTTP2_ERR_NOMEM) ? GF_OUT_OF_MEM : GF_SERVICE_ERROR)
@@ -866,14 +866,14 @@ GF_Err http2_do_upgrade(GF_DownloadSession *sess, const char *body, u32 body_len
 
 	h2_initialize_session(sess);
 	sess->hmux_stream_id = 1;
-	rv = nghttp2_session_upgrade2(sess->hmux_sess->hmux_udta, settings, settings_len, (sess->http_read_type==1) ? 1 : 0, sess);
+	rv = nghttp2_session_upgrade2((nghttp2_session *)sess->hmux_sess->hmux_udta, settings, settings_len, (sess->http_read_type==1) ? 1 : 0, sess);
 	if (rv < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_upgrade2 error: %s\n", nghttp2_strerror(rv)));
 		return GF_IP_NETWORK_FAILURE;
 	}
 	//push the body
 	if (body_len) {
-		rv = (int) nghttp2_session_mem_recv(sess->hmux_sess->hmux_udta, body, body_len);
+		rv = (int) nghttp2_session_mem_recv((nghttp2_session *)sess->hmux_sess->hmux_udta, (u8*)body, body_len);
 		if (rv < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error: %s\n", nghttp2_strerror(rv)));
 			return GF_IP_NETWORK_FAILURE;
@@ -903,7 +903,7 @@ GF_Err http2_check_upgrade(GF_DownloadSession *sess)
 							"Upgrade: h2c\r\n\r\n", NULL);
 
 	len = (u32) strlen(rsp_buf);
-	e = dm_sess_write(sess, rsp_buf, len);
+	e = dm_sess_write(sess, (u8 *)rsp_buf, len);
 
 	gf_free(rsp_buf);
 	h2_initialize_session(sess);

@@ -25,6 +25,10 @@
 #ifndef M3U8_PLAYLIST_H
 #define M3U8_PLAYLIST_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/tools.h>
 #include <gpac/list.h>
 
@@ -146,5 +150,9 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
  * Deletes the given MasterPlaylist and all of its sub elements
  */
 GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* M3U8_PLAYLIST_H */

@@ -123,30 +123,31 @@ static void live_session_callback(void *calling_object, u16 ESID, u8 *data, u32 
 			/*store carousel data*/
 			if (livesess->carousel_generation && rtpch->carousel_period) {
 				if (rtpch->carousel_alloc < size) {
-					rtpch->carousel_data = gf_realloc(rtpch->carousel_data, size);
+					rtpch->carousel_data = (u8 *)gf_realloc(rtpch->carousel_data, size);
 					rtpch->carousel_alloc = size;
 				}
 				memcpy(rtpch->carousel_data, data, size);
 				rtpch->carousel_size = size;
 				rtpch->carousel_ts = ts;
 				rtpch->time_at_carousel_store = gf_sys_clock();
-				fprintf(stderr, "\nStream %d: Storing new carousel TS "LLD", %d bytes\n", ESID, ts, size);
+				fprintf(stderr, "\nStream %d: Storing new carousel TS " LLD ", %d bytes\n", ESID, ts, size);
 			}
 			/*send data*/
 			else {
-				u32 critical = 0;
+				u32 critical = GF_FALSE;
 				Bool rap = rtpch->rap;
-				if (livesess->carousel_generation) rap = 1;
+				if (livesess->carousel_generation) rap = GF_TRUE;
 				ts += rtpch->timescale*((u64)gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
 				if (rtpch->critical) critical = rtpch->critical;
 				else if (livesess->critical) critical = 1;
 
 				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, critical);
 
-				fprintf(stderr, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
-				rtpch->rap = rtpch->critical = 0;
+				fprintf(stderr, "Stream %d: Sending update at TS " LLD ", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, critical);
+				rtpch->rap = GF_FALSE;
+				rtpch->critical = 0;
 
-				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0, 0, 0, 0);
+				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, GF_FALSE, 0, 0, 0, 0);
 			}
 			return;
 		}
@@ -161,38 +162,38 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 		if (ch->carousel_size) {
 			ts = ch->carousel_ts + ch->timescale * ( (ch->adjust_carousel_time ? (u64)gf_sys_clock() : ch->time_at_carousel_store) - ch->init_time + ch->ts_delta)/1000;
 
-			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
+			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, GF_TRUE, 0);
 			ch->last_carousel_time = now - livesess->start_time;
-			fprintf(stderr, "Stream %d: Sending carousel at TS "LLD", %d bytes\n", ch->ESID, ts, ch->carousel_size);
+			fprintf(stderr, "Stream %d: Sending carousel at TS " LLD ", %d bytes\n", ch->ESID, ts, ch->carousel_size);
 
 			if (ch->manual_rtcp) {
 				ts = ch->carousel_ts + ch->timescale * ( gf_sys_clock() - ch->init_time + ch->ts_delta)/1000;
-				gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts, 0, 0, 0);
+				gf_rtp_streamer_send_rtcp(ch->rtp, GF_TRUE, (u32) ts, 0, 0, 0);
 			}
 		}
 	} else {
 		u32 i=0;
-		while (NULL != (ch = gf_list_enum(livesess->streams, &i))) {
+		while (NULL != (ch = (RTPChannel *)gf_list_enum(livesess->streams, &i))) {
 			if (ch->carousel_size) {
 				if (ch->adjust_carousel_time) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
 				} else {
 					ts = ch->carousel_ts;
 				}
-				gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
+				gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, GF_TRUE, 0);
 				ch->last_carousel_time = now - livesess->start_time;
-				fprintf(stderr, "Stream %d: Sending carousel at TS "LLD"	, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+				fprintf(stderr, "Stream %d: Sending carousel at TS " LLD "	, %d bytes\n", ch->ESID, ts, ch->carousel_size);
 
 				if (ch->manual_rtcp) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
-					gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts, 0, 0, 0);
+					gf_rtp_streamer_send_rtcp(ch->rtp, GF_TRUE, (u32) ts, 0, 0, 0);
 				}
 			}
 		}
 	}
 }
 
-static Bool live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 path_mtu, u32 ttl, char *ifce_addr, char *sdp_name)
+static Bool live_session_setup(LiveSession *livesess, const char *ip, u16 port, u32 path_mtu, u32 ttl, const char *ifce_addr, const char *sdp_name)
 {
 	RTPChannel *rtpch;
 	u32 count = gf_seng_get_stream_count(livesess->seng);
@@ -225,21 +226,21 @@ static Bool live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		switch (st) {
 		case GF_STREAM_OD:
 		case GF_STREAM_SCENE:
-			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr,
+			rtpch->rtp = gf_rtp_streamer_new(st, (GF_CodecID) oti, ts, ip, port, path_mtu, ttl, ifce_addr,
 			             GP_RTP_PCK_SYSTEMS_CAROUSEL, config, config_len,
-			             96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, GF_FALSE);
+			             96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, GF_FALSE);
 
 			if (rtpch->rtp) {
 				gf_rtp_streamer_disable_auto_rtcp(rtpch->rtp);
-				rtpch->manual_rtcp = 1;
+				rtpch->manual_rtcp = GF_TRUE;
 			}
 			break;
 		default:
-			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, config, config_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE);
+			rtpch->rtp = gf_rtp_streamer_new(st, (GF_CodecID) oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, config, config_len, 96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE);
 			break;
 		}
 		rtpch->ESID = ESID;
-		rtpch->adjust_carousel_time = 1;
+		rtpch->adjust_carousel_time = GF_TRUE;
 		gf_list_add(livesess->streams, rtpch);
 
 		if (!rtpch->rtp)
@@ -266,7 +267,7 @@ void live_session_shutdown(LiveSession *livesess)
 
 	if (livesess->streams) {
 		while (gf_list_count(livesess->streams)) {
-			RTPChannel *rtpch = gf_list_get(livesess->streams, 0);
+			RTPChannel *rtpch = (RTPChannel *)gf_list_get(livesess->streams, 0);
 			gf_list_rem(livesess->streams, 0);
 			gf_rtp_streamer_del(rtpch->rtp);
 			if (rtpch->carousel_data) gf_free(rtpch->carousel_data);
@@ -284,11 +285,11 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 	/*locate our stream*/
 	if (esid) {
 		u32 i=0;
-		while ( (rtpch = gf_list_enum(livesess->streams, &i))) {
+		while ( (rtpch = (RTPChannel *)gf_list_enum(livesess->streams, &i))) {
 			if (rtpch->ESID == esid) break;
 		}
 	} else {
-		rtpch = gf_list_get(livesess->streams, 0);
+		rtpch = (RTPChannel *)gf_list_get(livesess->streams, 0);
 	}
 
 	/*TODO - set/reset the ESID for the parsers*/
@@ -319,7 +320,7 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 	}
 
 	if (force_rap) {
-		livesess->force_carousel = 1;
+		livesess->force_carousel = GF_TRUE;
 	}
 	return rtpch;
 }
@@ -332,7 +333,7 @@ int live_session(int argc, char **argv)
 	char *filename = NULL;
 	char *dst = NULL;
 	const char *ifce_addr = NULL;
-	char *sdp_name = "session.sdp";
+	const char *sdp_name = "session.sdp";
 	u16 dst_port = 7000;
 	u32 load_type=0;
 	u32 check;
@@ -342,7 +343,7 @@ int live_session(int argc, char **argv)
 	u64 last_src_modif, mod_time, runfor=0, start_time;
 	char *src_name = NULL;
 	Bool run, has_carousel, no_rap;
-	Bool udp = 0;
+	Bool udp = GF_FALSE;
 	u16 sk_port=0;
 	GF_Socket *sk = NULL;
 	LiveSession livesess;
@@ -355,9 +356,9 @@ int live_session(int argc, char **argv)
 	u32 period, ts_delta, signal_critical;
 	u16 es_id;
 	e = GF_OK;
-	aggregate_au = 1;
+	aggregate_au = GF_TRUE;
 	es_id = 0;
-	no_rap = 0;
+	no_rap = GF_FALSE;
 	gf_sys_init(GF_MemTrackerNone, NULL);
 
 	memset(&livesess, 0, sizeof(LiveSession));
@@ -375,16 +376,16 @@ int live_session(int argc, char **argv)
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_name = arg+5;
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = parse_u32(arg+5, "mtu");
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = parse_u32(arg+5, "ttl");
-		else if (!strnicmp(arg, "-no-rap", 7)) no_rap = 1;
+		else if (!strnicmp(arg, "-no-rap", 7)) no_rap = GF_TRUE;
 		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
 		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
 		else if (!strnicmp(arg, "-udp=", 5)) {
 			sk_port = parse_u32(arg+5, "udp");
-			udp = 1;
+			udp = GF_TRUE;
 		}
 		else if (!strnicmp(arg, "-tcp=", 5)) {
 			sk_port = parse_u32(arg+5, "tcp");
-			udp = 0;
+			udp = GF_FALSE;
 		}
 		else if (!stricmp(arg, "-run-for")) {
 			runfor = 1 + 1000 * parse_u32(argv[i+1], "run-for");
@@ -400,13 +401,13 @@ int live_session(int argc, char **argv)
 
 	if (dst_port && dst) livesess.streams = gf_list_new();
 
-	livesess.seng = gf_seng_init(&livesess, filename, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
+	livesess.seng = gf_seng_init(&livesess, filename, (GF_SceneManager_LoadType) load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? GF_TRUE : GF_FALSE);
 	if (!livesess.seng) {
 		M4_LOG(GF_LOG_ERROR, ("Cannot create scene engine\n"));
 		return 1;
 	}
 	if (livesess.streams) {
-		Bool res = live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, (char *) ifce_addr, sdp_name);
+		Bool res = live_session_setup(&livesess, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
 		if (!res) {
 			live_session_shutdown(&livesess);
 			if (update_buffer) gf_free(update_buffer);
@@ -416,7 +417,7 @@ int live_session(int argc, char **argv)
 		}
 	}
 
-	has_carousel = 0;
+	has_carousel = GF_FALSE;
 	last_src_modif = src_name ? gf_file_modification_time(src_name) : 0;
 
 	if (sk_port) {
@@ -449,28 +450,28 @@ int live_session(int argc, char **argv)
 			}
 
 			j=0;
-			while (NULL != (ch = gf_list_enum(livesess.streams, &j))) {
+			while (NULL != (ch = (RTPChannel *)gf_list_enum(livesess.streams, &j))) {
 				if (!id || (ch->ESID==id))
 					ch->carousel_period = period;
 			}
-			has_carousel = 1;
+			has_carousel = GF_TRUE;
 		}
 	}
 
 	i=0;
-	while (NULL != (ch = gf_list_enum(livesess.streams, &i))) {
+	while (NULL != (ch = (RTPChannel *)gf_list_enum(livesess.streams, &i))) {
 		if (ch->carousel_period) {
-			has_carousel = 1;
+			has_carousel = GF_TRUE;
 			break;
 		}
 	}
 
-	update_context = 0;
+	update_context = GF_FALSE;
 
 	if (has_carousel || !no_rap) {
-		livesess.carousel_generation = 1;
+		livesess.carousel_generation = GF_TRUE;
 		gf_seng_encode_context(livesess.seng, live_session_callback);
-		livesess.carousel_generation = 0;
+		livesess.carousel_generation = GF_FALSE;
 	}
 
 	live_session_send_carousel(&livesess, NULL);
@@ -479,8 +480,9 @@ int live_session(int argc, char **argv)
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		aggregate_on_stream = (u16) -1;
-		adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
-		aggregate_au = version_inc = 1;
+		adjust_carousel_time = force_rap = discard_pending = signal_rap = GF_FALSE;
+		signal_critical = 0;
+		aggregate_au = version_inc = GF_TRUE;
 		period = -1;
 		ts_delta = 0;
 		es_id = 0;
@@ -491,7 +493,7 @@ int live_session(int argc, char **argv)
 
 	start_time = gf_sys_clock_high_res();
 	check = 10;
-	run = 1;
+	run = GF_TRUE;
 	while (run) {
 		check--;
 		if (!check) {
@@ -500,7 +502,7 @@ int live_session(int argc, char **argv)
 				char c = gf_prompt_get_char();
 				switch (c) {
 				case 'q':
-					run=0;
+					run= GF_FALSE;
 					break;
 				case 'U':
 				case 'u':
@@ -513,12 +515,12 @@ int live_session(int argc, char **argv)
 					}
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
-					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szBuf, live_session_callback);
+					e = gf_seng_encode_from_string(livesess.seng, GF_FALSE, GF_FALSE, szBuf, live_session_callback);
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
-					livesess.critical = (c=='U') ? 1 : 0;
-					update_context = 1;
+					livesess.critical = (c=='U') ? GF_TRUE : GF_FALSE;
+					update_context = GF_TRUE;
 				}
 				break;
 				case 'E':
@@ -532,9 +534,9 @@ int live_session(int argc, char **argv)
 					}
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
-					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szBuf, live_session_callback);
+					e = gf_seng_encode_from_string(livesess.seng, GF_FALSE, GF_TRUE, szBuf, live_session_callback);
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
-					livesess.critical = (c=='E') ? 1 : 0;
+					livesess.critical = (c=='E') ? GF_TRUE : GF_FALSE;
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
 
@@ -554,9 +556,9 @@ int live_session(int argc, char **argv)
 				}
 				break;
 				case 'F':
-					update_context = 1;
+					update_context = GF_TRUE;
 				case 'f':
-					livesess.force_carousel = 1;
+					livesess.force_carousel = GF_TRUE;
 					break;
 				}
 				e = GF_OK;
@@ -581,8 +583,9 @@ int live_session(int argc, char **argv)
 				gf_fclose(srcf);
 
 				aggregate_on_stream = (u16) -1;
-				adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
-				aggregate_au = version_inc = 1;
+				adjust_carousel_time = force_rap = discard_pending = signal_rap = GF_FALSE;
+				signal_critical = 0;
+				aggregate_au = version_inc = GF_TRUE;
 				period = -1;
 				ts_delta = 0;
 				es_id = 0;
@@ -601,14 +604,13 @@ int live_session(int argc, char **argv)
 						else if (!strnicmp(flag, "period=", 7)) period = parse_u32(flag+7, "period");
 						else if (!strnicmp(flag, "ts=", 3)) ts_delta = parse_u32(flag+3, "ts");
 						else if (!strnicmp(flag, "carousel=", 9)) aggregate_on_stream = parse_u32(flag+9, "carousel");
-						else if (!strnicmp(flag, "restamp=", 8)) adjust_carousel_time = parse_u32(flag+8, "restamp");
-
-						else if (!strnicmp(flag, "discard=", 8)) discard_pending = parse_u32(flag+8, "discard");
-						else if (!strnicmp(flag, "aggregate=", 10)) aggregate_au = parse_u32(flag+10, "aggregate");
-						else if (!strnicmp(flag, "force_rap=", 10)) force_rap = parse_u32(flag+10, "force_rap");
-						else if (!strnicmp(flag, "rap=", 4)) signal_rap = parse_u32(flag+4, "rap");
+						else if (!strnicmp(flag, "restamp", 8)) adjust_carousel_time = GF_TRUE;
+						else if (!strnicmp(flag, "discard", 7)) discard_pending = GF_TRUE;
+						else if (!strnicmp(flag, "no_aggregate", 12)) aggregate_au = GF_FALSE;
+						else if (!strnicmp(flag, "force_rap", 9)) force_rap = GF_TRUE;
+						else if (!strnicmp(flag, "rap", 3)) signal_rap = GF_TRUE;
 						else if (!strnicmp(flag, "critical=", 9)) signal_critical = parse_u32(flag+9, "critical");
-						else if (!strnicmp(flag, "vers_inc=", 9)) version_inc = parse_u32(flag+9, "vers_inc");
+						else if (!strnicmp(flag, "no_vers_inc", 11)) version_inc = GF_FALSE;
 						if (sep) {
 							sep[0] = ' ';
 							flag = sep+1;
@@ -620,11 +622,11 @@ int live_session(int argc, char **argv)
 					set_broadcast_params(&livesess, es_id, period, ts_delta, aggregate_on_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
 				}
 
-				e = gf_seng_encode_from_file(livesess.seng, es_id, aggregate_au ? 0 : 1, src_name, live_session_callback);
+				e = gf_seng_encode_from_file(livesess.seng, es_id, aggregate_au ? GF_FALSE : GF_TRUE, src_name, live_session_callback);
 				if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 				e = gf_seng_aggregate_context(livesess.seng, 0);
 
-				update_context = no_rap ? 0 : 1;
+				update_context = no_rap ? GF_FALSE : GF_TRUE;
 			}
 		}
 
@@ -649,13 +651,13 @@ int live_session(int argc, char **argv)
 					es_id = gf_bs_read_u16(bs);
 					aggregate_on_stream = gf_bs_read_u16(bs);
 					if (aggregate_on_stream==0xFFFF) aggregate_on_stream = -1;
-					adjust_carousel_time = gf_bs_read_int(bs, 1);
-					force_rap = gf_bs_read_int(bs, 1);
-					aggregate_au = gf_bs_read_int(bs, 1);
-					discard_pending = gf_bs_read_int(bs, 1);
-					signal_rap = gf_bs_read_int(bs, 1);
-					signal_critical = gf_bs_read_int(bs, 1);
-					version_inc = gf_bs_read_int(bs, 1);
+					adjust_carousel_time = gf_bs_read_bool(bs);
+					force_rap = gf_bs_read_bool(bs);
+					aggregate_au = gf_bs_read_bool(bs);
+					discard_pending = gf_bs_read_bool(bs);
+					signal_rap = gf_bs_read_bool(bs);
+					signal_critical = gf_bs_read_bool(bs);
+					version_inc = gf_bs_read_bool(bs);
 					gf_bs_read_int(bs, 1);
 					period = gf_bs_read_u16(bs);
 					if (period==0xFFFF) period = -1;
@@ -677,7 +679,7 @@ int live_session(int argc, char **argv)
 				}
 
 				if (update_length && update_buffer_size <= update_length) {
-					update_buffer = gf_realloc(update_buffer, update_length+1);
+					update_buffer = (char *)gf_realloc(update_buffer, update_length+1);
 					update_buffer_size = update_length+1;
 				}
 				if (update_length && (bytes_read>hdr_length) ) {
@@ -691,10 +693,12 @@ int live_session(int argc, char **argv)
 					case GF_IP_NETWORK_EMPTY:
 						gf_sleep(10);
 						break;
-					case GF_OK:;
+					case GF_OK:
+					{
 						u32 to_copy = MIN(bytes_read, update_buffer_size-bytes_received);
 						memcpy(update_buffer+bytes_received, buffer, to_copy);
 						bytes_received += to_copy;
+					}
 						break;
 					default:
 						fprintf(stderr, "Error with UDP socket : %s\n", gf_error_to_string(e));
@@ -705,27 +709,27 @@ int live_session(int argc, char **argv)
 					update_buffer[update_length] = 0;
 
 				if (update_length) {
-					e = gf_seng_encode_from_string(livesess.seng, es_id, aggregate_au ? 0 : 1, update_buffer, live_session_callback);
+					e = gf_seng_encode_from_string(livesess.seng, es_id, aggregate_au ? GF_FALSE : GF_TRUE, update_buffer, live_session_callback);
 					if (e) {
 						M4_LOG(GF_LOG_ERROR, ("Processing command failed: %s\n", gf_error_to_string(e)));
 					}
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 
-					update_context = 1;
+					update_context = GF_TRUE;
 				}
 			}
 		}
 
 		if (update_context) {
-			livesess.carousel_generation=1;
+			livesess.carousel_generation = GF_TRUE;
 			e = gf_seng_encode_context(livesess.seng, live_session_callback	);
-			livesess.carousel_generation=0;
-			update_context = 0;
+			livesess.carousel_generation = GF_FALSE;
+			update_context = GF_FALSE;
 		}
 
 		if (livesess.force_carousel) {
 			live_session_send_carousel(&livesess, NULL);
-			livesess.force_carousel = 0;
+			livesess.force_carousel = GF_FALSE;
 			continue;
 		}
 

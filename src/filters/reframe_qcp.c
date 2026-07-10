@@ -68,7 +68,7 @@ typedef struct
 
 	Bool hdr_processed;
 
-	char *buffer;
+	u8 *buffer;
 	u32 buffer_alloc, buffer_size;
 
 	GF_BitStream *bs;
@@ -83,7 +83,7 @@ typedef struct
 
 GF_Err qcpdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_QCPDmxCtx *ctx = (GF_QCPDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -100,7 +100,7 @@ GF_Err qcpdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	return GF_OK;
 }
 
-static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *data, u32 size, GF_BitStream *file_bs);
+static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, const u8 *data, u32 size, GF_BitStream *file_bs);
 
 static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 {
@@ -110,7 +110,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 	GF_Err e;
 	u32 data_chunk_size = 0;
 	u64 duration, cur_dur;
-	char magic[4];
+	u8 magic[4];
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -151,7 +151,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 		gf_bs_read_data(bs, magic, 4);
 		chunk_size = gf_bs_read_u32_le(bs);
 
-		if (strncmp(magic, "data", 4)) {
+		if (memcmp(magic, "data", 4)) {
 			gf_bs_skip_bytes(bs, chunk_size);
 			if (chunk_size%2) gf_bs_skip_bytes(bs, 1);
 			continue;
@@ -198,7 +198,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 		if (cur_dur > ctx->index * ctx->sample_rate) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(QCPIdx)*ctx->index_alloc_size);
+			ctx->indexes = (QCPIdx *)gf_realloc(ctx->indexes, sizeof(QCPIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->sample_rate;
@@ -227,7 +227,7 @@ static Bool qcpdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
-	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_QCPDmxCtx *ctx = (GF_QCPDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -294,18 +294,18 @@ static const char *QCP_QCELP_GUID_2 = "\x42\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\
 static const char *QCP_EVRC_GUID = "\x8D\xD4\x89\xE6\x76\x90\xB5\x46\x91\xEF\x73\x6A\x51\x00\xCE\xB4";
 static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\x3C\x8C\xC7\x5F\x84";
 
-static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *data, u32 size, GF_BitStream *file_bs)
+static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, const u8 *data, u32 size, GF_BitStream *file_bs)
 {
-	char magic[12], GUID[17], name[81], fmt[162];
+	u8 magic[12], GUID[17], name[81], fmt[162];
 	u32 riff_size, chunk_size, i, avg_bps;
 	Bool has_pad;
 	const GF_PropertyValue *p;
 	GF_BitStream *bs;
 
-	bs = file_bs ? file_bs : gf_bs_new(data, size, GF_BITSTREAM_READ);
+	bs = file_bs ? file_bs : gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 
 	gf_bs_read_data(bs, magic, 4);
-	if (strnicmp(magic, "RIFF", 4)) {
+	if (memcmp(magic, "RIFF", 4)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[QCPDmx] Broken file: RIFF header not found\n"));
 		if (!file_bs) gf_bs_del(bs);
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -314,7 +314,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	gf_bs_read_data(bs, fmt, 162);
 	gf_bs_seek(bs, 8);
 	gf_bs_read_data(bs, magic, 4);
-	if (strnicmp(magic, "QLCM", 4)) {
+	if (memcmp(magic, "QLCM", 4) && memcmp(magic, "qlcm", 4)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[QCPDmx] Broken file: QLCM header not found\n"));
 		if (!file_bs) gf_bs_del(bs);
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -325,7 +325,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	}
 	/*fmt*/
 	gf_bs_read_data(bs, magic, 4);
-	if (strnicmp(magic, "fmt ", 4)) {
+	if (memcmp(magic, "FMT ", 4) && memcmp(magic, "fmt ", 4)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[QCPDmx] Broken file: FMT not found\n"));
 		if (!file_bs) gf_bs_del(bs);
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -365,11 +365,11 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	gf_bs_skip_bytes(bs, chunk_size);
 	if (has_pad) gf_bs_read_u8(bs);
 
-	if (!strncmp(GUID, QCP_QCELP_GUID_1, 16) || !strncmp(GUID, QCP_QCELP_GUID_2, 16)) {
+	if (!memcmp(GUID, QCP_QCELP_GUID_1, 16) || !memcmp(GUID, QCP_QCELP_GUID_2, 16)) {
 		ctx->codecid = GF_CODECID_QCELP;
-	} else if (!strncmp(GUID, QCP_EVRC_GUID, 16)) {
+	} else if (!memcmp(GUID, QCP_EVRC_GUID, 16)) {
 		ctx->codecid = GF_CODECID_EVRC;
-	} else if (!strncmp(GUID, QCP_SMV_GUID, 16)) {
+	} else if (!memcmp(GUID, QCP_SMV_GUID, 16)) {
 		ctx->codecid = GF_CODECID_SMV;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[QCPDmx] Unsupported codec GUID %s\n", GUID));
@@ -378,7 +378,7 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	}
 	/*vrat*/
 	gf_bs_read_data(bs, magic, 4);
-	if (strnicmp(magic, "vrat", 4)) {
+	if (memcmp(magic, "vrat", 4)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[QCPDmx] Broken file: VRAT not found\n"));
 		if (!file_bs) gf_bs_del(bs);
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -415,11 +415,11 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 
 GF_Err qcpdmx_process(GF_Filter *filter)
 {
-	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_QCPDmxCtx *ctx = (GF_QCPDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	u64 byte_offset;
-	u8 *data, *output;
-	u8 *start;
+	const u8 *data, *start;
+	u8 *output;
 	u32 pck_size, remain;
 	GF_Err e;
 	//update duration
@@ -441,7 +441,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -507,7 +507,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 			if (ctx->buffer_size + remain < 170) {
 				if (ctx->buffer_alloc < ctx->buffer_size + remain) {
 					ctx->buffer_alloc = ctx->buffer_size + remain;
-					ctx->buffer = gf_realloc(ctx->buffer, ctx->buffer_alloc);
+					ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->buffer_alloc);
 				}
 				memcpy(ctx->buffer + ctx->buffer_size, start, remain);
 				ctx->buffer_size += remain;
@@ -546,12 +546,12 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 		//load chunk tag
 		if (!ctx->data_chunk_remain) {
-			char magic[4];
+			u8 magic[4];
 			//load chunk
 			if (remain<8) {
 				if (ctx->buffer_alloc < ctx->buffer_size + 8) {
 					ctx->buffer_alloc = ctx->buffer_size + 8;
-					ctx->buffer = gf_realloc(ctx->buffer, ctx->buffer_alloc);
+					ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->buffer_alloc);
 				}
 				memcpy(ctx->buffer + ctx->buffer_size, start, remain);
 				ctx->buffer_size += remain;
@@ -580,7 +580,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 			ctx->buffer_size = 0;
 
 			//wait until we reach data chunk
-			if (strnicmp(magic, "data", 4)) {
+			if (memcmp(magic, "data", 4) && memcmp(magic, "DATA", 4)) {
 				ctx->skip_bytes = chunk_size;
 				if (has_pad) ctx->skip_bytes++;
 				continue;
@@ -673,7 +673,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 static void qcpdmx_finalize(GF_Filter *filter)
 {
-	GF_QCPDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_QCPDmxCtx *ctx = (GF_QCPDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->buffer) gf_free(ctx->buffer);
@@ -684,21 +684,21 @@ static const char *qcpdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 	if (size < 4)
 		return NULL;
 
-	char magic[5];
+	u8 magic[5];
 	Bool is_qcp = GF_TRUE;
-	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 
 	magic[4] = 0;
 	if (gf_bs_read_data(bs, magic, 4) != 4) {
 		is_qcp = GF_FALSE;
 	}
 	else {
-		if (strnicmp(magic, "RIFF", 4)) {
+		if (memcmp(magic, "RIFF", 4) && memcmp(magic, "riff", 4)) {
 			is_qcp = GF_FALSE;
 		} else {
 			/*riff_size = */gf_bs_read_u32_le(bs);
 			gf_bs_read_data(bs, magic, 4);
-			if (strnicmp(magic, "QLCM", 4)) {
+			if (memcmp(magic, "QLCM", 4) && memcmp(magic, "qlcm", 4)) {
 				is_qcp = GF_FALSE;
 			}
 		}

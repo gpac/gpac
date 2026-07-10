@@ -1156,15 +1156,43 @@ docxx() {
  dolog $@
 }
 
+cc_is_cpp=0
+
+cat > $TMPC << EOF
+#include <stdio.h>
+int main( void ) { return 0; }
+EOF
+if docc ; then
+    CFLAGS="$CFLAGS -Wall"
+else
+    echo "error: CC=$CC cannot compile a simple C program"
+    exit 1
+fi
+
+
+#check if CC is a c++ compiler
+cat > $TMPC << EOF
+#include <stdio.h>
+#ifdef __cplusplus
+#error "this is a c++ compiler"
+#endif
+int main( void ) { return 0; }
+EOF
+if docc ; then
+    cc_is_cpp=0
+else
+    cc_is_cpp=1
+fi
+
 #check GCC flags support
 cat > $TMPC << EOF
 #include <stdio.h>
 int main( void ) { return 0; }
 EOF
-CFLAGS="$CFLAGS -Wall"
-if docc -fno-strict-aliasing ; then
-    CFLAGS="$CFLAGS -fno-strict-aliasing"
-fi
+#commented out, we check for this
+#if docc -fno-strict-aliasing ; then
+#    CFLAGS="$CFLAGS -fno-strict-aliasing"
+#fi
 
 if test "$no_stack_prot" = "yes"; then
     if docc -fno-stack-protector ; then
@@ -1181,9 +1209,10 @@ if docc -fwrapv ; then
 fi
 
 CXXFLAGS="$CFLAGS"
-if docc -lz -Wno-pointer-sign ; then
-    CFLAGS="$CFLAGS -Wno-pointer-sign"
-fi
+#commented out, we check for this
+#if docc -lz -Wno-pointer-sign ; then
+#    CFLAGS="$CFLAGS -Wno-pointer-sign"
+#fi
 
 
 
@@ -2164,11 +2193,15 @@ if test "$debuginfo" = "no"; then
     CFLAGS="$CFLAGS -DNDEBUG"
 fi
 
-
-#set gnu90 once all packages have been chcked, otherwise we will use it in docxx
-if docc $CFLAGS -std=gnu99 ; then
-    CFLAGS="$CFLAGS -std=gnu99"
+if test "$cc_is_cpp" = "1" ; then
+    CFLAGS="$CFLAGS -Wno-c++11-narrowing -Wno-reorder -Wno-c99-designator -Wno-address-of-temporary"
 fi
+#else
+#set gnu90 once all packages have been chcked, otherwise we will use it in docxx
+#if docc $CFLAGS -std=gnu99 ; then
+#    CFLAGS="$CFLAGS -std=gnu99"
+#fi
+#fi
 
 
 #man dir
@@ -2642,8 +2675,9 @@ if test "$gprof_build" = "yes"; then
 fi
 
 #we add no deprecate by default on osx (due to opengl ...)
+#we commend -Wno-deprecated for now
 if test "$darwin" = "yes" ; then
-    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-missing-braces -Wno-typedef-redefinition -Wno-implicit-const-int-float-conversion  -Wno-unknown-warning-option"
+    CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-typedef-redefinition"
 else
     CFLAGS="$CFLAGS -Wno-deprecated -Wno-deprecated-declarations -Wno-int-in-bool-context"
 fi

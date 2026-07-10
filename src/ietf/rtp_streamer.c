@@ -44,11 +44,11 @@ struct __rtp_streamer
 	GF_RTPChannel *channel;
 
 	/* The current packet being formed */
-	char *buffer;
+	u8 *buffer;
 	u32 payload_len, buffer_alloc;
 
 	u32 in_timescale;
-	char rtcp_buf[RTCP_BUF_SIZE];
+	u8 rtcp_buf[RTCP_BUF_SIZE];
 
 	const char *netcap_id;
 	GF_Err last_err;
@@ -81,7 +81,7 @@ static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 	rtp->payload_len = 0;
 }
 
-static void rtp_stream_on_data(void *cbk, u8 *data, u32 data_size, Bool is_head)
+static void rtp_stream_on_data(void *cbk, const u8 *data, u32 data_size, Bool is_head)
 {
 	GF_RTPStreamer *rtp = (GF_RTPStreamer*)cbk;
 	if (!data ||!data_size) return;
@@ -116,7 +116,7 @@ GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTrans
 		return res;
 	}
 
-	res = gf_rtp_initialize(rtp->channel, 0, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
+	res = gf_rtp_initialize(rtp->channel, GF_FALSE, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
 	if (res !=0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot initialize RTP sockets: %s\n", gf_error_to_string(res) ));
 		return res;
@@ -136,9 +136,9 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 	memset(&tr, 0, sizeof(GF_RTSPTransport));
 
 	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? GF_FALSE : GF_TRUE;
-	tr.Profile="RTP/AVP";
+	tr.Profile = (char*)"RTP/AVP";
 	tr.destination = (char *)dest;
-	tr.source = "0.0.0.0";
+	tr.source = (char*)"0.0.0.0";
 	tr.IsRecord = GF_FALSE;
 	tr.Append = GF_FALSE;
 	tr.SSRC = rand();
@@ -159,7 +159,7 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 		return res;
 	}
 
-	res = gf_rtp_initialize(rtp->channel, 0, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
+	res = gf_rtp_initialize(rtp->channel, GF_FALSE, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
 	if (res !=0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot initialize RTP sockets: %s\n", gf_error_to_string(res) ));
 		return res;
@@ -175,14 +175,14 @@ GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for
 	u32 rtp_type, default_rtp_rate;
 	u8 OfficialPayloadType;
 	u32 required_rate, force_dts_delta, PL_ID;
-	char *mpeg4mode;
+	const char *mpeg4mode;
 	Bool has_mpeg4_mapping;
 	GF_Err e;
 
 	u32 timeScale = cfg->timeScale ? cfg->timeScale : 1000;
 	u32 flags = cfg->flags;
 	u32 streamType = cfg->streamType;
-	u32 codecid = cfg->codecid;
+	GF_CodecID codecid = cfg->codecid;
 	u32 PayloadType = cfg->PayloadType;
 	u32 maxDTSDelta = cfg->maxDTSDelta;
 	u32 max_ptime = cfg->max_ptime;
@@ -513,13 +513,13 @@ GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for
 	stream->netcap_id = cfg->netcap_id;
 
 	stream->buffer_alloc = cfg->MTU+12;
-	stream->buffer = (char*)gf_malloc(sizeof(char) * stream->buffer_alloc);
+	stream->buffer = (u8*)gf_malloc(stream->buffer_alloc);
 
 	return stream;
 }
 
 GF_EXPORT
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, GF_CodecID codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
         u32 flags, const u8 *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,
@@ -655,7 +655,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 	/*Text*/
 	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
 		char *sdp = NULL;
-		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, &sdp, tw, th, tx, ty, tl, width, height, (u8 *)dsi_enh);
+		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, &sdp, tw, th, tx, ty, tl, width, height, (char *)dsi_enh);
 		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
 		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
 		if (sdp) gf_free(sdp);
@@ -682,7 +682,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 				count = gf_list_count(avcc->sequenceParameterSets);
 				for (i=0; i<count; i++) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
-					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
+					b64s = gf_base64_encode(sl->data, sl->size, (u8*)b64, 200);
 					b64[b64s]=0;
 					gf_dynstrcat(out_sdp_buffer, b64, NULL);
 					if (i+1<count) gf_dynstrcat(out_sdp_buffer, ",", NULL);
@@ -691,7 +691,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 				count = gf_list_count(avcc->pictureParameterSets);
 				for (i=0; i<count; i++) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->pictureParameterSets, i);
-					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
+					b64s = gf_base64_encode(sl->data, sl->size, (u8*)b64, 200);
 					b64[b64s]=0;
 					gf_dynstrcat(out_sdp_buffer, b64, NULL);
 					if (i+1<count) gf_dynstrcat(out_sdp_buffer, ",", NULL);
@@ -745,7 +745,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 				}
 				for (j = 0; j < gf_list_count(ar->nalus); j++) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
-					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
+					b64s = gf_base64_encode(sl->data, sl->size, (u8*)b64, 200);
 					b64[b64s]=0;
 					if (j) gf_dynstrcat(out_sdp_buffer, ", ", NULL);
 					gf_dynstrcat(out_sdp_buffer, b64, NULL);
@@ -823,7 +823,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 
 
 GF_EXPORT
-char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64)
+char *gf_rtp_streamer_format_sdp_header(const char *app_name, const char *ip_dest, const char *session_name, const char *iod64)
 {
 	u64 size;
 	char *sdp, *tmp_fn = NULL;
@@ -841,7 +841,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 		gf_fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
 
 	size = gf_fsize(tmp);
-	sdp = (char*)gf_malloc(sizeof(char) * (size_t)(size+1));
+	sdp = (char*)gf_malloc((size_t)(size+1));
 	size = gf_fread(sdp, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);
@@ -853,11 +853,11 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 GF_EXPORT
 GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer)
 {
-	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE, out_sdp_buffer);
+	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, GF_FALSE, KMS_URI, 0, 0, 0, 0, 0, 0, 0, 0, GF_FALSE, out_sdp_buffer);
 }
 
 GF_EXPORT
-GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
+GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, const u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
 {
 	GF_Err e;
 	if (!rtp->channel) return data ? GF_BAD_PARAM : GF_EOS;

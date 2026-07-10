@@ -136,7 +136,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 	/*for gradients we must traverse the gradient stops to trigger animations, even if the
 	gradient is not marked as dirty*/
-	all_dirty = tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY);
+	all_dirty = (tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY)) ? GF_TRUE : GF_FALSE;
 	is_dirty = GF_FALSE;
 	if (gf_node_dirty_get(node)) {
 		is_dirty = all_dirty = GF_TRUE;
@@ -382,14 +382,14 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 
 	if (transparent) {
 		if (!txh->data) {
-			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			txh->data = (u8 *)gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		} else {
 			memset(txh->data, 0, sizeof(char)*txh->stride*txh->height);
 		}
 		e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 	} else {
 		if (!txh->data) {
-			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			txh->data = (u8 *)gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
 		e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -398,7 +398,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
 			transparent = GF_TRUE;
 			gf_free(txh->data);
-			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			txh->data = (u8 *)gf_malloc(GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 			e = gf_evg_stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB);
 		}
 	}
@@ -466,7 +466,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		/*back to RGBA texturing*/
 		txh->pixelformat = GF_PIXEL_RGBA;
 		for (i=0; i<txh->height; i++) {
-			char *data = txh->data + i*txh->stride;
+			u8 *data = txh->data + i*txh->stride;
 			for (j=0; j<txh->width; j++) {
 				u32 val = *(u32 *) &data[4*j];
 				data[4*j] = (val>>16) & 0xFF;
@@ -813,7 +813,7 @@ static void svg_traverse_clip_path(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Matrix2D mx_bck;
 	Bool is_first = GF_FALSE;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
-	SVGPropertiesPointers *svg_props = gf_node_get_private(node);
+	SVGPropertiesPointers *svg_props = (SVGPropertiesPointers *) gf_node_get_private(node);
 
 	if (is_destroy) {
 		gf_free(svg_props);

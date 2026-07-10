@@ -195,7 +195,7 @@ s32 vobsub_lang_name(u16 id)
 	return 0; /* Undefined - und */
 }
 
-char *vobsub_lang_id(char *name)
+const char *vobsub_lang_id(const char *name)
 {
 	s32 i, count;
 
@@ -256,7 +256,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 	char  strbuf[257];
 	char *str, *pos, *entry;
 	s32   line, id =-1, delay = 0;
-	Bool  error = 0;
+	Bool  error = GF_FALSE;
 
 	for (line = 0; !error && gf_fgets(strbuf, 256, file); line++)
 	{
@@ -266,12 +266,12 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 		if (line == 0)
 		{
-			char *buf = "VobSub index file, v";
+			const char *buf = "VobSub index file, v";
 
 			pos = strstr(str, buf);
 			if (pos == NULL || sscanf(pos + strlen(buf), "%d", version) != 1 || *version > VOBSUBIDXVER)
 			{
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 		}
@@ -304,7 +304,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			s32 w, h;
 			if (sscanf(str, "%dx%d", &w, &h) != 2)
 			{
-				error = 1;
+				error = GF_TRUE;
 			}
 			vobsub->width  = w;
 			vobsub->height = h;
@@ -320,7 +320,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			           (u32 *) &palette[8], (u32 *) &palette[9], (u32 *) &palette[10], (u32 *) &palette[11],
 			           (u32 *) &palette[12],(u32 *) &palette[13],(u32 *) &palette[14], (u32 *) &palette[15]) != 16)
 			{
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -339,7 +339,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 		}
 		else if (stricmp(entry, "id") == 0)
 		{
-			char *buf = "index:";
+			const char *buf = "index:";
 			s32   lang_id;
 
 			strlwr(str);
@@ -348,13 +348,13 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			pos = strstr(str, buf);
 			if (pos == NULL)
 			{
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
 			if (sscanf(pos + strlen(buf), "%d", &id) != 1 || id < 0 || id >= 32)
 			{
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -366,7 +366,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 				vobsub->langs[id].subpos = gf_list_new();
 			if (vobsub->langs[id].subpos == NULL)
 			{
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -384,7 +384,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			if (sscanf(pos, "%d%c%d%c%d%c%d", &hh, &c, &mm, &c, &ss, &c, &ms) != 7)
 			{
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -396,11 +396,11 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			s32         sign;
 			char        c;
 			s32         hh, mm, ss, ms;
-			char       *buf = "filepos:";
+			const char       *buf = "filepos:";
 
 			vspos = (vobsub_pos*)gf_calloc(1, sizeof(vobsub_pos));
 			if (vspos == NULL) {
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -410,7 +410,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			if (sscanf(str, "%d%c%d%c%d%c%d", &hh, &c, &mm, &c, &ss, &c, &ms) != 7)
 			{
 				gf_free(vspos);
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -420,14 +420,14 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			if (pos == NULL)
 			{
 				gf_free(vspos);
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
 			if (sscanf(pos + strlen(buf), LLX, &vspos->filepos) != 1)
 			{
 				gf_free(vspos);
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 
@@ -446,7 +446,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			if (gf_list_add(vobsub->langs[id].subpos, vspos) != GF_OK)
 			{
 				gf_free(vspos);
-				error = 1;
+				error = GF_TRUE;
 				continue;
 			}
 		}

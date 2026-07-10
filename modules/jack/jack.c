@@ -95,7 +95,7 @@ Jack_cleanup (JackContext * ctx)
 	ctx->currentBlockSize = 0;
 	memset (ctx->jackClientName, 0, MAX_JACK_CLIENT_NAME_SZ);
 	ctx->jack = NULL;
-	ctx->isActive = 0;
+	ctx->isActive = GF_FALSE;
 }
 
 /**
@@ -114,7 +114,7 @@ process_callback (jack_nframes_t nframes, void *arg)
 		// Should not happen
 		return 1;
 	}
-	ctx = dr->opaque;
+	ctx = (JackContext *)dr->opaque;
 	toRead = nframes * ctx->numChannels;
 	bytesToRead = toRead * ctx->bytesPerSample;
 	dr->FillBuffer (dr->audio_renderer, (void *) ctx->buffer,
@@ -160,7 +160,7 @@ onBufferSizeChanged (jack_nframes_t nframes, void *arg)
 		// Should not happen
 		return 1;
 	}
-	ctx = dr->opaque;
+	ctx = (JackContext *)dr->opaque;
 	realBuffSize = nframes * ctx->numChannels * sizeof (short);
 	if (ctx->buffer != NULL && ctx->bufferSz == realBuffSize)
 		return 0;
@@ -432,7 +432,7 @@ NewJackOutput ()
 		return NULL;
 	}
 	driv->opaque = ctx;
-	driv->SelfThreaded = 1;
+	driv->SelfThreaded = GF_TRUE;
 	driv->Setup = Jack_Setup;
 	driv->Shutdown = Jack_Shutdown;
 	driv->Configure = Jack_Configure;
@@ -475,6 +475,7 @@ DeleteJackOutput (void *ifce)
  * ********************************************************************
  * interface
  */
+GPAC_MODULE_EXPORT_START
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
@@ -502,5 +503,7 @@ void ShutdownInterface (GF_BaseInterface * ifce)
 	if (ifce->InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
 		DeleteJackOutput ((GF_AudioOutput *) ifce);
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( jack )

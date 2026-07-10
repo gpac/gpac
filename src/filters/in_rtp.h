@@ -26,6 +26,10 @@
 #ifndef _IN_RTP_H_
 #define _IN_RTP_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*module interface*/
 #include <gpac/filters.h>
 #include <gpac/constants.h>
@@ -173,11 +177,11 @@ struct _rtsp_session
 };
 
 /*creates new RTSP session handler*/
-GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control);
+GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, const char *session_control);
 /*disconnects and destroy RTSP session handler - if immediate_shutdown do not wait for response*/
 void rtpin_rtsp_del(GF_RTPInRTSP *sess);
 /*check session by control string*/
-GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control);
+GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, const char *control);
 
 void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess);
 
@@ -268,7 +272,7 @@ struct __rtpin_stream
 	char *control;
 
 	/*rtp receive buffer*/
-	char *buffer;
+	u8 *buffer;
 	/*set at play/seek stages to sync app NPT to RTP time (RTSP) or NTP to RTP (RTCP)
 	*/
 	u32 check_rtp_time;
@@ -329,9 +333,9 @@ GF_Err rtpin_rtsp_data_cbk(GF_RTSPSession *sess, void *cbck, u8 *buffer, u32 buf
 void rtpin_stream_ack_connect(GF_RTPInStream *stream, GF_Err e);
 
 /*locate RTP stream by channel or ES_ID or control*/
-GF_RTPInStream *rtpin_find_stream(GF_RTPIn *rtp, GF_FilterPid *opid, u32 ES_ID, char *es_control, Bool remove_stream);
+GF_RTPInStream *rtpin_find_stream(GF_RTPIn *rtp, GF_FilterPid *opid, u32 ES_ID, const char *es_control, Bool remove_stream);
 /*adds channel to session identified by session_control. If no session exists, the session is created if needed*/
-GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_control);
+GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, const char *session_control);
 /*removes stream from session*/
 void rtpin_remove_stream(GF_RTPIn *rtp, GF_RTPInStream *stream);
 /*reads input socket and process*/
@@ -382,16 +386,18 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 void rtpin_rtsp_teardown(GF_RTPInRTSP *sess, GF_RTPInStream *stream);
 
 
-void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size);
+void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, const u8 *pck, u32 size);
 
 void rtpin_satip_get_server_ip(const char *sURL, char Server[GF_MAX_PATH]);
 
 #ifdef GPAC_HAS_SSL
 void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
-GF_Err gf_rtsp_set_ssl_ctx(GF_RTSPSession *sess, void *ssl_CTX);
-Bool gf_rtsp_session_needs_ssl(GF_RTSPSession *sess);
 #endif
 
 #endif /*GPAC_DISABLE_STREAMING*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_IN_RTP_H_

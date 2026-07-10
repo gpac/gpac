@@ -86,7 +86,7 @@ typedef struct __input_device
 	/* interface declaration*/
 	GF_DECL_MODULE_INTERFACE
 
-	Bool (*RegisterDevice)(struct __input_device *, const char *urn, const char *dsi, u32 dsi_size, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
+	Bool (*RegisterDevice)(struct __input_device *, const char *urn, const u8 *dsi, u32 dsi_size, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
 	void (*Start)(struct __input_device *);
 	void (*Stop)(struct __input_device *);
 

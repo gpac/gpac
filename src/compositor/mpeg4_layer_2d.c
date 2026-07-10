@@ -108,7 +108,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->backgrounds = st->backs;
 	tr_state->viewpoints = st->views;
 	prev_layer = tr_state->is_layer;
-	tr_state->is_layer = 1;
+	tr_state->is_layer = GF_TRUE;
 #ifndef GPAC_DISABLE_3D
 	oldf = tr_state->fogs;
 	oldn = tr_state->navigations;
@@ -140,7 +140,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) {
 			gf_mx_copy(prev_layer_mx, tr_state->layer_matrix);
-			tr_state->layer_clipper = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 1);
+			tr_state->layer_clipper = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_TRUE);
 
 			gf_mx_copy(mx3d, tr_state->model_matrix);
 
@@ -346,7 +346,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*in case we missed bindables*/
 	if (st->first) {
-		st->first = 0;
+		st->first = GF_FALSE;
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
 	}
 }
@@ -362,7 +362,7 @@ void compositor_init_layer2d(GF_Compositor *compositor, GF_Node *node)
 
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();
-	stack->first = 1;
+	stack->first = GF_TRUE;
 
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseLayer2D);

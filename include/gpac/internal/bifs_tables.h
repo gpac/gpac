@@ -33,6 +33,10 @@
 #ifndef _NDT_H
 #define _NDT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/nodes_mpeg4.h>
 
 
@@ -830,6 +834,10 @@ u32 NDT_GetChildTable(u32 NodeTag);
 #endif /*GPAC_DISABLE_BIFS*/
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif		/*_NDT_H*/
 

@@ -619,7 +619,7 @@ Bool gf_dom_event_fire(GF_Node *node, GF_DOM_Event *event)
 	return gf_dom_event_fire_ex(node, event, NULL);
 }
 
-GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener)
+GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, GF_EventType event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener)
 {
 	SVG_Element *listener;
 	GF_FieldInfo info;

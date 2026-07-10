@@ -240,7 +240,7 @@ static void sha1_process(GF_SHA1Context *ctx, u8 data[64] )
 /*
  * SHA-1 process buffer
  */
-void gf_sha1_update(GF_SHA1Context *ctx, u8 *input, u32 ilen )
+void gf_sha1_update(GF_SHA1Context *ctx, const u8 *input, u32 ilen )
 {
 	s32 fill;
 	u32 left;
@@ -621,7 +621,7 @@ GF_SHA1Context *gf_sha1_starts()
 	return context;
 }
 
-void gf_sha1_update(GF_SHA1Context *context, u8 *message_array, u32 length )
+void gf_sha1_update(GF_SHA1Context *context, const u8 *message_array, u32 length )
 {
 	if (!length)
 	{
@@ -737,7 +737,7 @@ GF_Err gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
  * Output = SHA-1( input buffer )
  */
 GF_EXPORT
-void gf_sha1_csum( u8 *input, u32 ilen, u8 output[GF_SHA1_DIGEST_SIZE] )
+void gf_sha1_csum(const u8 *input, u32 ilen, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	GF_SHA1Context *ctx;
 

@@ -35,7 +35,7 @@ extern "C" {
 \file <gpac/dash.h>
 \brief DASH Client API. The DASH client can be used without GPAC player but requires at least the base utils (threads, lists, NTP timing). The HTTP interface used can be either GPAC's one or any other downloader.
 */
-	
+
 /*!
 \addtogroup dashc_grp DASH Client
 \ingroup media_grp

@@ -253,7 +253,7 @@ static GF_Err c2d_video_access_hybrid_opengl(GF_VisualManager *visual)
 
 	if ((compositor->hybgl_txh->width != compositor->vp_width) || (compositor->hybgl_txh->height != compositor->vp_height)) {
 		SFVec2f size;
-		compositor->hybgl_txh->data = (char*)gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);
+		compositor->hybgl_txh->data = (u8*)gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);
 
 		if (compositor->hybgl_txh->tx_io)
 			gf_sc_texture_release(compositor->hybgl_txh);
@@ -359,7 +359,7 @@ void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 Bac
 {
 	//visual not attached on main (direct video) visual, use texture bliting
 	if (!visual->is_attached && visual->compositor->video_out->Blit && (visual->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB)) {
-		char data[12];
+		u8 data[12];
 		GF_Err e;
 		GF_VideoSurface video_src;
 		GF_Window src_wnd, dst_wnd;
@@ -541,12 +541,12 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 	_v = FIX2INT(tmp);	\
 	tmp -= INT2FIX(_v);	\
 	if (tmp>99*FIX_ONE/100) { _v++; tmp = 0; }	\
-	if (ABS(tmp) > FIX_EPSILON) use_blit = 0;
+	if (ABS(tmp) > FIX_EPSILON) use_blit = GF_FALSE;
 #define CEILING(_v)	\
 	_v = FIX2INT(tmp);	\
 	tmp -= INT2FIX(_v);	\
 	if (tmp>0) { _v++; tmp = 0; }	\
-	if (ABS(tmp) > FIX_EPSILON) use_blit = 0;
+	if (ABS(tmp) > FIX_EPSILON) use_blit = GF_FALSE;
 #endif
 
 	use_blit = GF_TRUE;
@@ -721,7 +721,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		u32 stride;
 		if (!txh->frame_ifce->get_plane) return GF_FALSE;
 
-		e = txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &video_src.video_buffer, &video_src.pitch_y);
+		e = txh->frame_ifce->get_plane(txh->frame_ifce, 0, (const u8 **) &video_src.video_buffer, (u32 *) &video_src.pitch_y);
 		if (e) return GF_FALSE;
 		txh->frame_ifce->get_plane(txh->frame_ifce, 1, (const u8 **) video_src.u_ptr, &stride);
 		txh->frame_ifce->get_plane(txh->frame_ifce, 2, (const u8 **) video_src.v_ptr, &stride);

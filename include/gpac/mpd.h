@@ -25,6 +25,10 @@
 #ifndef _MPD_H_
 #define _MPD_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
@@ -835,7 +839,7 @@ typedef struct {
 /*! event streams entry - derived from emsg structure */
 typedef struct {
 	char *xmlns;
-	s64 presentation_time;
+	u64 presentation_time;
 	u32 duration;
 	u32 id;
 	u8 *message;
@@ -860,7 +864,7 @@ typedef struct {
 /*! MPD offering type*/
 typedef enum {
 	/*! content is statically available*/
-	GF_MPD_TYPE_STATIC,
+	GF_MPD_TYPE_STATIC=0,
 	/*! content is dynamically available*/
 	GF_MPD_TYPE_DYNAMIC,
 	/*! content is the last if a dynamical offering, converts MPD to static (GPAC internal)*/
@@ -1180,7 +1184,7 @@ struct _gf_file_get
 \param keep_files if GF_TRUE, will not delete any files downloaded in the conversion process
 \return error if any
 */
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files);
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, const char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files);
 
 /*! solves an m3u8 xlink on a representation, and fills the SegmentList accordingly
 \param rep the target representation
@@ -1235,7 +1239,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd);
 \param default_base_url the default URL of the smooth manifest
 \return error if any
 */
-GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default_base_url);
+GF_Err gf_mpd_smooth_to_mpd(const char * smooth_file, GF_MPD *mpd, const char *default_base_url);
 
 /*! get the number of base URLs for the given representation. This cumuluates all base URLs at MPD, period, AdaptationSet and Representation levels
 \param mpd the target MPD
@@ -1388,7 +1392,7 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 \param scheme_id scheme ID to look for
 \return descriptor if found, NUL otherwise
 */
-GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id);
+GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, const char *scheme_id);
 
 #endif /*GPAC_DISABLE_MPD*/
 
@@ -1401,5 +1405,9 @@ GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id);
 char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32 part_idx);
 
 /*! @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _MPD_H_

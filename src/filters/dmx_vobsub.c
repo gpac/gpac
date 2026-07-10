@@ -74,7 +74,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 {
 	u32 crc;
 	const GF_PropertyValue *p;
-	GF_VOBSubDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_VOBSubDmxCtx *ctx = (GF_VOBSubDmxCtx *)gf_filter_get_udta(filter);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 	if (!p) {
@@ -107,7 +107,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		GF_Err e;
 		Bool use_gfio = GF_FALSE;
 		char sURL[GF_MAX_PATH], *ext;
-		crc = gf_crc_32(p->value.string, (u32) strlen(p->value.string));
+		crc = gf_crc_32((u8*)p->value.string, (u32) strlen(p->value.string));
 		if (ctx->idx_file_crc == crc) return GF_OK;
 		ctx->idx_file_crc = crc;
 
@@ -125,12 +125,12 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		} else {
 			gf_strcpy(sURL, p->value.string);
 		}
-		ext = gf_file_ext_start(sURL);
+		ext = (char*)gf_file_ext_start(sURL);
 		if (ext) ext[0] = 0;
 		gf_strcat(sURL, ".sub");
 		if (use_gfio) {
 			GF_FileIO *gfio = gf_fileio_from_url(p->value.string);
-			char *base = gf_file_basename(sURL);
+			const char *base = gf_file_basename(sURL);
 			const char *new_url = gf_fileio_factory(gfio, base ? base : sURL);
 			if (new_url) {
 				gf_strcpy(sURL, new_url);
@@ -152,7 +152,7 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 
 static Bool vobsubdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_VOBSubDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_VOBSubDmxCtx *ctx = (GF_VOBSubDmxCtx *)gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -245,7 +245,7 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SUBPIC) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char*)&ctx->vobsub->palette[0][0], sizeof(ctx->vobsub->palette)) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(&ctx->vobsub->palette[0][0], sizeof(ctx->vobsub->palette)) );
 
 
 			gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->vobsub->width) );
@@ -270,7 +270,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 
 	unsigned char buf[0x800];
 
-	vslang = gf_filter_pid_get_udta(pid);
+	vslang = (vobsub_lang *)gf_filter_pid_get_udta(pid);
 	subpic = vslang->subpos;
 
 	count = gf_list_count(subpic);
@@ -369,7 +369,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 
 GF_Err vobsubdmx_process(GF_Filter *filter)
 {
-	GF_VOBSubDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_VOBSubDmxCtx *ctx = (GF_VOBSubDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	u32 pkt_size, i, count, nb_eos;
 	Bool start, end;
@@ -437,14 +437,14 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 
 static void vobsubdmx_finalize(GF_Filter *filter)
 {
-	GF_VOBSubDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_VOBSubDmxCtx *ctx = (GF_VOBSubDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->vobsub) vobsub_free(ctx->vobsub);
 	if (ctx->mdia) gf_fclose(ctx->mdia);
 }
 
 static const char * vobsubdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if (!strncmp(data, "# VobSub", 8)) {
+	if ((size>8) && !memcmp(data, "# VobSub", 8)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "text/vobsub";
 	}

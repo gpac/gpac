@@ -57,6 +57,7 @@ void SDLOUT_CloseSDL()
 	return;
 }
 
+GPAC_MODULE_EXPORT_START
 
 /*interface query*/
 GPAC_MODULE_EXPORT
@@ -92,5 +93,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( sdl_out )

@@ -14,7 +14,7 @@ static GF_FilterPacket* pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **dat
 {
 	GF_FilterPacket *pck;
 	GF_SAFEALLOC(pck, GF_FilterPacket);
-	pck->data = gf_malloc(data_size);
+	pck->data = (u8 *)gf_malloc(data_size);
 	pck->pck = pck;
 	pck->data_length = data_size;
 	*data = pck->data;
@@ -60,14 +60,14 @@ static GF_Err pck_send_default(GF_FilterPacket *pck)
 	static int calls = 0;
 	static const char* expected[] = { "G", "GP", "GP\n", "GP\nA", "GP\nA ", "GP\nA C", "GP\nA C ", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 ", "GP\nA C \n1 2" };
 	const int num_expected = sizeof(expected)/sizeof(const char*);
-	
+
 	if (!pck) {
 		assert_equal(calls, num_expected, "%d");
 		return GF_OK;
 	}
 	if (calls >= num_expected)
 		assert_true(0);
-	
+
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
 	assert_equal_str(data, expected[calls]);
@@ -131,7 +131,7 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 	}
 	if (calls >= num_expected)
 		assert_true(0);
-	
+
 	u32 size = 0;
 	const u8 *data = gf_filter_pck_get_data(pck, &size);
 	assert_equal_str(data, expected[calls]);

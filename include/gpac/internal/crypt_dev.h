@@ -42,10 +42,10 @@ struct _gf_crypt_context
 	void *context;
 
 	//ptr to encryption function
-	GF_Err(*_init_crypt) (GF_Crypt *ctx, void*, const void*);
+	GF_Err(*_init_crypt) (GF_Crypt *ctx, const u8*, const u8*);
 	void(*_deinit_crypt) (GF_Crypt *ctx);
 	void(*_end_crypt) (GF_Crypt *ctx);
-	void(*_set_key)(GF_Crypt *ctx, void*);
+	void(*_set_key)(GF_Crypt *ctx, const u8*);
 	GF_Err(*_crypt) (GF_Crypt *ctx, u8 *buffer, u32 size);
 	GF_Err(*_decrypt) (GF_Crypt*, u8 *buffer, u32 size);
 	GF_Err(*_set_state) (GF_Crypt*, const u8 *IV, u32 IV_size);

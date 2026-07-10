@@ -131,7 +131,7 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 	if (ctx->c && gf_filter_is_temporary(filter)) {
 		const AVCodec *codec = avcodec_find_decoder_by_name(ctx->c);
 		if (!codec) {
-			u32 codec_id = gf_codecid_parse(ctx->c);
+			GF_CodecID codec_id = gf_codecid_parse(ctx->c);
 			if (codec_id!=GF_CODECID_NONE) {
 				codec = avcodec_find_decoder(ffmpeg_codecid_from_gpac(codec_id, NULL) );
 			}
@@ -152,7 +152,7 @@ static void ffdec_finalize(GF_Filter *filter)
 	if (ctx->sws_ctx) sws_freeContext(ctx->sws_ctx);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
@@ -237,7 +237,7 @@ static void ffdec_copy_props(GF_FFDecodeCtx *ctx, GF_FilterPacket *from_packet)
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ctx->channel_layout ) );
 
 		if (ctx->decoder->sample_rate) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->decoder->sample_rate ) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT((u32) ctx->decoder->sample_rate ) );
 		}
 
 		if (ctx->sample_fmt) {
@@ -250,8 +250,8 @@ static void ffdec_copy_props(GF_FFDecodeCtx *ctx, GF_FilterPacket *from_packet)
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_SPARSE, &PROP_BOOL(GF_TRUE));
 		if (ctx->irc.width) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->irc.width));
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->irc.height));
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT((u32)ctx->irc.width));
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT((u32)ctx->irc.height));
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_X_INV, &PROP_SINT(ctx->irc.x));
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_Y_INV, &PROP_SINT(ctx->irc.y));
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGBA));
@@ -268,14 +268,15 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	AVFrame *frame;
 	u32 dst_stride[5];
 	u8 *dst_planes[5];
-	u32 pix_out;
+	enum AVPixelFormat pix_out;
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
 	u64 out_cts;
-	const char *data = NULL;
+	const u8 *data = NULL;
 	Bool seek_flag = GF_FALSE;
-	u32 i, count, ff_pfmt;
+	u32 i, count;
+	enum AVPixelFormat ff_pfmt;
 	u32 size=0, outsize, stride, stride_uv, uv_height, nb_planes;
 	u8 *out_buffer;
 	GF_FilterPacket *pck_src;
@@ -382,7 +383,7 @@ restart:
 	case AVERROR_EOF:
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to queue packet PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to queue packet PTS " LLU ": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
 		break;
 	}
 	gotpic = 0;
@@ -425,7 +426,7 @@ restart:
 			ctx->stride_uv = 0;
 			ctx->sar.num = ctx->sar.den = 0;
 			while (gf_list_count(ctx->src_packets)) {
-				GF_FilterPacket *ref_pck = gf_list_pop_back(ctx->src_packets);
+				GF_FilterPacket *ref_pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 				gf_filter_pck_unref(ref_pck);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfiguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
@@ -437,7 +438,7 @@ restart:
 	}
 
 	if (res < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS " LLU ": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
 		FF_RELEASE_PCK(pkt);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -475,7 +476,7 @@ restart:
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
 		u64 cts;
-		pck_src = gf_list_get(ctx->src_packets, i);
+		pck_src = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
 		cts = gf_filter_pck_get_cts(pck_src);
 		if (cts == frame->pts)
 			break;
@@ -604,7 +605,7 @@ restart:
 	                                   ctx->decoder->width, ctx->decoder->height, ff_pfmt,
 	                                   ctx->width, ctx->height, pix_out, SWS_BICUBIC, NULL, NULL, NULL);
 	if (ctx->sws_ctx) {
-		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, dst_planes, dst_stride);
+		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, dst_planes, (int*) dst_stride);
 	}
 
 
@@ -633,8 +634,8 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	s32 len;
 #endif
 	AVPacket *pkt;
-	s32 res, in_size, i;
-	u32 samples_to_trash, pck_timescale=0;
+	s32 res, i;
+	u32 in_size, samples_to_trash, pck_timescale=0;
 	u32 output_size, prev_afmt;
 	Bool is_eos=GF_FALSE;
 	u8 *data;
@@ -645,7 +646,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 decode_next:
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 	in_size = 0;
-	
+
 	if (ctx->reconfig_pending) {
 		pck = NULL;
 	} else if (!pck) {
@@ -717,7 +718,7 @@ decode_next:
 	case AVERROR_EOF:
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS " LLU ": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
 		break;
 	}
 
@@ -749,7 +750,7 @@ dispatch_next:
 			} else {
 				samples_to_trash = (u32) -ctx->delay;
 			}
-			
+
 			if (!samples_to_trash || (samples_to_trash > (u32) frame->nb_samples) ) {
 				frame->nb_samples = 0;
 				samples_to_trash = 0;
@@ -768,7 +769,7 @@ dispatch_next:
 #endif
 		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 		if (pkt->size && (res<0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS " LLU ": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
 			FF_RELEASE_PCK(pkt);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -839,7 +840,7 @@ dispatch_next:
 	case AV_SAMPLE_FMT_FLTP:
 	case AV_SAMPLE_FMT_DBLP:
 		for (i=0; (u32) i< ctx->channels; i++) {
-			char *inputChannel = frame->extended_data[i] + samples_to_trash * ctx->bytes_per_sample;
+			u8 *inputChannel = frame->extended_data[i] + samples_to_trash * ctx->bytes_per_sample;
 			memcpy(data, inputChannel, ctx->bytes_per_sample * (frame->nb_samples-samples_to_trash) );
 			data += ctx->bytes_per_sample * (frame->nb_samples-samples_to_trash);
 		}
@@ -853,7 +854,7 @@ dispatch_next:
 	//and use the first entry in src packets to match in order to copy the properties
 	//a nicer approach would be to count delay frames (number of frames used to initialize)
 	//and backmerge properties from the last packet in to the last-nb_init_frames
-	src_pck = gf_list_get(ctx->src_packets, 0);
+	src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, 0);
 
 	if (src_pck) {
 		pck_timescale = gf_filter_pck_get_timescale(src_pck);
@@ -903,7 +904,7 @@ dispatch_next:
 	}
 	//still some data to decode in packet, don't drop it
 	//todo: check if frame->pkt_pts or frame->pts is updated by ffmpeg, otherwise do it ourselves !
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested  - frame PTS was "LLU" - nb samples dec %d\n", frame->pkt_pts, frame->nb_samples));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested  - frame PTS was " LLU " - nb samples dec %d\n", frame->pkt_pts, frame->nb_samples));
 	ctx->nb_samples_already_in_frame += frame->nb_samples;
 	frame->nb_samples = 0;
 #else
@@ -936,7 +937,8 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 	AVPacket *pkt;
 	AVSubtitle subs;
 	s32 gotpic;
-	s32 len, in_size;
+	s32 len;
+	u32 in_size;
 	Bool is_eos=GF_FALSE;
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
@@ -977,7 +979,7 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 			gf_filter_pid_drop_packet(ctx->in_pid);
 		}
 		if (len<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(len) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS " LLU ": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
@@ -1017,8 +1019,8 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 		GF_FilterPacket *opck = gf_filter_pck_new_alloc(ctx->out_pid, 4*ctx->irc.width*ctx->irc.height, &output);
 		if (!opck) goto exit;
 
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->irc.width));
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->irc.height));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT((u32) ctx->irc.width));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT((u32) ctx->irc.height));
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_X_INV, &PROP_SINT(ctx->irc.x));
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_Y_INV, &PROP_SINT(ctx->irc.y));
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGBA));
@@ -1090,7 +1092,8 @@ static const GF_FilterCapability FFDecodeAnnexBCaps[] =
 static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
-	u32 type=0, gpac_codecid=0;
+	u32 type=0;
+	GF_CodecID gpac_codecid=GF_CODECID_NONE;
 	AVDictionary *options = NULL;
 	const GF_PropertyValue *prop;
 	const AVCodec *codec=NULL;
@@ -1122,7 +1125,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop) return GF_NOT_SUPPORTED;
-	gpac_codecid = prop->value.uint;
+	gpac_codecid = (GF_CodecID) prop->value.uint;
 	if (gpac_codecid==GF_CODECID_RAW)
 		return GF_NOT_SUPPORTED;
 
@@ -1148,7 +1151,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	ctx->channels = prop ? prop->value.uint : 0;
 
 	if (gpac_codecid==GF_CODECID_VVC) {
-		u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
+		enum AVCodecID codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
 		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
 		//first version of libvvdec+ffmpeg only supported annexB, request ufnalu adaptation filter
 		if (codec && codec->name && strstr(codec->name, "vvdec") && gf_opts_get_bool("core", "vvdec-annexb")) {
@@ -1168,7 +1171,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
 		if (prop && (prop->type==GF_PROP_POINTER)) {
-			ctx->decoder = prop->value.ptr;
+			ctx->decoder = (AVCodecContext *) prop->value.ptr;
 			if (!ctx->decoder) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
 				return GF_SERVICE_ERROR;
@@ -1178,7 +1181,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		} else if (prop && (prop->type==GF_PROP_UINT)) {
 			ctx->decoder = avcodec_alloc_context3(NULL);
 			if (! ctx->decoder) return GF_OUT_OF_MEM;
-			codec = avcodec_find_decoder(prop->value.uint);
+			codec = avcodec_find_decoder((enum AVCodecID) prop->value.uint);
 			ctx->owns_context = GF_TRUE;
 		}
 
@@ -1205,7 +1208,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	//we reconfigure the stream
 	else {
-		u32 codec_id, ff_codectag=0;
+		enum AVCodecID codec_id;
+		u32 ff_codectag=0;
 
 		if (!ctx->owns_context) {
 			ctx->decoder = NULL;
@@ -1238,6 +1242,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!codec_id) {
 			switch (gpac_codecid) {
 			case GF_CODECID_MVC: codec_id = AV_CODEC_ID_H264; break;
+			default:
+				break;
 			}
 
 		}
@@ -1322,7 +1328,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				dsi_size -= 8;
 			}
 		}
-		GF_Err e = ffmpeg_extradata_from_gpac(gpac_codecid, dsi, dsi_size, &ctx->decoder->extradata, &ctx->decoder->extradata_size);
+		GF_Err e = ffmpeg_extradata_from_gpac(gpac_codecid, dsi, dsi_size, &ctx->decoder->extradata, (u32*)&ctx->decoder->extradata_size);
 		if (e) return e;
 
 		//crc of GPAC DSI, not ffmpeg
@@ -1466,10 +1472,10 @@ reuse_codec_context:
 
 static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	GF_FFDecodeCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *)gf_filter_get_udta(filter);
 	//prevent any change on b option which can break some decoders
 	if (!strcmp(arg_name, "b")) {
-		gf_filter_report_meta_option(filter, "b", 1, NULL);
+		gf_filter_report_meta_option(filter, "b", GF_TRUE, NULL);
 		return GF_OK;
 	}
 	return ffmpeg_update_arg("FFDec", ctx->decoder, &ctx->options, arg_name, arg_val);
@@ -1480,12 +1486,12 @@ static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
 	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED) || (evt->base.type==GF_FEVT_RESUME)) {
-		ctx->drop_non_refs = evt->play.drop_non_ref;
+		ctx->drop_non_refs = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
 	}
 	//play request, detach all pending source packets and trigger a reconfig to start from a clean state
 	else if (evt->base.type==GF_FEVT_STOP) {
 		while (gf_list_count(ctx->src_packets)) {
-			GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 			gf_filter_pck_unref(pck);
 			//for video, this will reset the decoder
 			ctx->flush_done = GF_TRUE;

@@ -96,10 +96,10 @@ static void arc2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 		drawable_reset_path(stack);
 		if (gf_node_get_tag(node)==TAG_X3D_Arc2D) {
 			X_Arc2D *a = (X_Arc2D *) node;
-			gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, 0);
+			gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, GF_PATH2D_ARC_OPEN);
 		} else {
 			X_ArcClose2D *a = (X_ArcClose2D *) node;
-			gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, !stricmp(a->closureType.buffer, "PIE") ? 2 : 1);
+			gf_path_add_arc(stack->path, a->radius, a->startAngle, a->endAngle, !stricmp(a->closureType.buffer, "PIE") ? GF_PATH2D_ARC_PIE : GF_PATH2D_ARC_CLOSE);
 		}
 		gf_node_dirty_clear(node, 0);
 		drawable_mark_modified(stack, tr_state);
@@ -363,10 +363,10 @@ static void build_line_set(GF_Node *node, Drawable3D *stack, GF_TraverseState *t
 	stack->mesh->mesh_type = MESH_LINESET;
 
 	cols = NULL;
-	rgba_col = 0;
+	rgba_col = GF_FALSE;
 	if (p->color) {
 		if (gf_node_get_tag(p->color)==TAG_X3D_ColorRGBA) {
-			rgba_col = 1;
+			rgba_col = GF_TRUE;
 			cols = (GenMFField *) & ((X_ColorRGBA *) p->color)->color;
 		} else {
 			cols = (GenMFField *) & ((M_Color *) p->color)->color;
@@ -426,10 +426,10 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 	mesh_reset(mesh);
 
 	cols = NULL;
-	rgba_col = 0;
+	rgba_col = GF_FALSE;
 	if (_color) {
 		if (gf_node_get_tag(_color)==TAG_X3D_ColorRGBA) {
-			rgba_col = 1;
+			rgba_col = GF_TRUE;
 			cols = (GenMFField *) & ((X_ColorRGBA *) _color)->color;
 		} else {
 			cols = (GenMFField *) & ((M_Color *) _color)->color;
@@ -588,10 +588,10 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 	mesh_reset(mesh);
 
 	cols = NULL;
-	rgba_col = 0;
+	rgba_col = GF_FALSE;
 	if (_color) {
 		if (gf_node_get_tag(_color)==TAG_X3D_ColorRGBA) {
-			rgba_col = 1;
+			rgba_col = GF_TRUE;
 			cols = (GenMFField *) & ((X_ColorRGBA *) _color)->color;
 		} else {
 			cols = (GenMFField *) & ((M_Color *) _color)->color;
@@ -852,10 +852,10 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 	mesh_reset(mesh);
 
 	cols = NULL;
-	rgba_col = 0;
+	rgba_col = GF_FALSE;
 	if (_color) {
 		if (gf_node_get_tag(_color)==TAG_X3D_ColorRGBA) {
-			rgba_col = 1;
+			rgba_col = GF_TRUE;
 			cols = (GenMFField *) & ((X_ColorRGBA *) _color)->color;
 		} else {
 			cols = (GenMFField *) & ((M_Color *) _color)->color;

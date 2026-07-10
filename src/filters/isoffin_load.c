@@ -39,9 +39,9 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	GF_PropStringList names;
 	count = gf_isom_get_chapter_count(file, 0);
 	if (count) {
-		times.vals = gf_malloc(sizeof(u32)*count);
+		times.vals = (u32 *)gf_malloc(sizeof(u32)*count);
 		if (!times.vals) return;
-		names.vals = gf_malloc(sizeof(char *)*count);
+		names.vals = (char **)gf_malloc(sizeof(char *)*count);
 		if (!names.vals) {
 			gf_free(times.vals);
 			return;
@@ -82,9 +82,9 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	}
 	if (!chap_tk) return;
 
-	times.vals = gf_malloc(sizeof(u32)*count);
+	times.vals = (u32 *)gf_malloc(sizeof(u32)*count);
 	if (!times.vals) return;
-	names.vals = gf_malloc(sizeof(char *)*count);
+	names.vals = (char **)gf_malloc(sizeof(char *)*count);
 	if (!names.vals) {
 		gf_free(times.vals);
 		return;
@@ -120,7 +120,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 
 }
 
-static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, char *rname)
+static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, const char *rname)
 {
 	u32 nb_refs = gf_isom_get_reference_count(read->mov, ch->track, rtype);
 	if (nb_refs) {
@@ -128,7 +128,7 @@ static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, char *
 		GF_PropertyValue prop;
 		prop.type = GF_PROP_UINT_LIST;
 		prop.value.uint_list.nb_items = nb_refs;
-		prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_refs);
+		prop.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*nb_refs);
 		for (j=0; j<nb_refs; j++) {
 			u32 ref_tk;
 			gf_isom_get_reference(read->mov, ch->track, rtype, j+1, &ref_tk );
@@ -393,15 +393,15 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		if (!ch->has_edit_list && !use_sidx_dur && !ch->ts_offset) {
 			//no specific edit list type but edit present, use the duration in the edit
 			if (gf_isom_get_edits_count(read->mov, ch->track)) {
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->timescale));
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT((s64) ch->duration, read->timescale));
 			} else {
 				u64 dur = gf_isom_get_media_duration(read->mov, ch->track);
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->timescale));
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT((s64) dur, ch->timescale));
 			}
 		}
 		//otherwise trust track duration
 		else {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->timescale));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT((s64) ch->duration, read->timescale));
 		}
 		gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
 	}
@@ -421,7 +421,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		} else {
 			mdur /= sample_count;
 		}
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ch->timescale, (u32) mdur));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT((s32) ch->timescale, (u32) mdur));
 	}
 
 	Double track_dur = (Double) (s64) ch->duration;
@@ -443,9 +443,18 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(GF_FALSE) );
 	}
 
+	u32 cst_size, pass, idx, major_brand, max_size, media_pl, nb_udta, alt_grp;
+	GF_PropertyValue brands;
+	GF_Fraction64 moov_time;
+	u32 i, w, h;
+	s32 tx, ty;
+	s16 l;
+	const char *hdlr;
+	GF_PropertyValue kinds;
+
 	if (read->lightp) goto props_done;
 
-	u32 cst_size = gf_isom_get_constant_sample_size(read->mov, track);
+	cst_size = gf_isom_get_constant_sample_size(read->mov, track);
 	if (cst_size)
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(cst_size));
 
@@ -458,16 +467,15 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
 	}
 
-	GF_PropertyValue brands;
 	brands.type = GF_PROP_4CC_LIST;
-	u32 major_brand=0;
+	major_brand=0;
 	gf_isom_get_brand_info(read->mov, &major_brand, NULL, &brands.value.uint_list.nb_items);
 	brands.value.uint_list.vals = (u32 *) gf_isom_get_brands(read->mov);
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_BRANDS, &brands);
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MBRAND, &PROP_4CC(major_brand) );
 
 	//we cannot expose average size/dur in mem mode with fragmented files (sample_count=0)
- 	u32 max_size=0;
+ 	max_size=0;
  	if (sample_count) {
 		max_size = gf_isom_get_max_sample_size(read->mov, ch->track);
 		if (max_size) gf_filter_pid_set_property(pid, GF_PROP_PID_MAX_FRAME_SIZE, &PROP_UINT(max_size) );
@@ -486,7 +494,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 	}
 
 
-	u32 media_pl=0;
+	media_pl=0;
 	if (streamtype==GF_STREAM_VISUAL) {
 		media_pl = gf_isom_get_pl_indication(read->mov, GF_ISOM_PL_VISUAL);
 	} else if (streamtype==GF_STREAM_AUDIO) {
@@ -516,15 +524,11 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 	}
 #endif
 
-	GF_Fraction64 moov_time;
 	moov_time.num = gf_isom_get_duration(read->mov);
 	moov_time.den = gf_isom_get_timescale(read->mov);
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_MOVIE_TIME, &PROP_FRAC64(moov_time) );
 
 
-	u32 i, w, h;
-	s32 tx, ty;
-	s16 l;
 	if (read->extkmov)
 		gf_isom_get_track_layout_info(read->extkmov, read->extkid, &w, &h, &tx, &ty, &l);
 	else
@@ -564,13 +568,13 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 			e = gf_isom_text_get_encoded_tx3g(read->mov, ch->track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
 			if (e==GF_OK) {
 				char buffer[2000];
-				len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
+				len = gf_base64_encode(tx3g, tx3g_len, (u8*)buffer, 2000);
 				gf_free(tx3g);
 				buffer[len] = 0;
 
 				l1 = tx3g_config_sdp ? (u32) strlen(tx3g_config_sdp) : 0;
 				u32 blen = len+3+l1;
-				tx3g_config_sdp = gf_realloc(tx3g_config_sdp, blen);
+				tx3g_config_sdp = (char *)gf_realloc(tx3g_config_sdp, blen);
 				tx3g_config_sdp[l1] = 0;
 				if (i) gf_strlcat(tx3g_config_sdp, ", ", blen);
 				gf_strlcat(tx3g_config_sdp, buffer, blen);
@@ -578,12 +582,12 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		}
 		if (tx3g_config_sdp) {
 			u32 tx3g_config_len = (u32) strlen(tx3g_config_sdp)+1;
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(tx3g_config_sdp, tx3g_config_len) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY((u8*)tx3g_config_sdp, tx3g_config_len) );
 		}
 	}
 
-	u32 idx=0;
-	u32 pass = read->extkmov ? 0 : 1;
+	idx=0;
+	pass = read->extkmov ? 0 : 1;
 	while (1) {
 		u32 data_len, int_val2, flags;
 		u64 int_val;
@@ -691,8 +695,8 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		gf_filter_pid_set_property_str(ch->pid, "nodata", &PROP_BOOL(GF_TRUE) );
 
 
-	u32 nb_udta, alt_grp=0;
-	const char *hdlr = NULL;
+	alt_grp=0;
+	hdlr = NULL;
 	gf_isom_get_handler_name(read->mov, ch->track, &hdlr);
 	if (hdlr)
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_HANDLER, &PROP_STRING(hdlr));
@@ -748,7 +752,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 					if (!udta[udta_size-1]) {
 						gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(udta));
 					} else {
-						char *data = gf_malloc(udta_size+1);
+						char *data = (char *)gf_malloc(udta_size+1);
 						memcpy(data, udta, udta_size);
 						data[udta_size]=0;
 						gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(data));
@@ -760,11 +764,10 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 			}
 		}
 	}
-	GF_PropertyValue kinds;
 	kinds.type = GF_PROP_STRING_LIST;
 	kinds.value.string_list.nb_items = nb_udta = gf_isom_get_user_data_count(read->mov, ch->track, GF_ISOM_BOX_TYPE_KIND, NULL);
 	if (nb_udta) {
-		kinds.value.string_list.vals = gf_malloc(sizeof(char*)*nb_udta);
+		kinds.value.string_list.vals = (char **)gf_malloc(sizeof(char*)*nb_udta);
 		memset(kinds.value.string_list.vals, 0, sizeof(char*)*nb_udta);
 		for (i=0; i<nb_udta; i++) {
 			char *scheme=NULL, *val=NULL;
@@ -789,7 +792,7 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 		)
 			break;
 		sprintf(szTK, "tkgp_%s", gf_4cc_to_str(track_group_type));
-		gf_filter_pid_set_property_dyn(ch->pid, szTK, &PROP_SINT(track_group_id));
+		gf_filter_pid_set_property_dyn(ch->pid, szTK, &PROP_UINT(track_group_id));
 	}
 
 props_done:
@@ -799,7 +802,7 @@ props_done:
 		u64 start, end;
 		if (gf_isom_get_root_sidx_offsets(read->mov, &start, &end)) {
 			if (end)
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VOD_SIDX_RANGE, &PROP_FRAC64_INT(start , end));
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VOD_SIDX_RANGE, &PROP_FRAC64_INT((s64) start , end));
 		}
 #endif
 		if (!read->frag_type) {
@@ -813,7 +816,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 {
 	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, audio_fmt, pix_fmt;
 	GF_ESD *an_esd;
-	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc, *mime_cfg;
+	const char *mime, *encoding, *stxtcfg, *meta_namespace, *schemaloc, *mime_cfg;
 	GF_Language *lang_desc = NULL;
 	u8 *dsi = NULL, *enh_dsi = NULL;
 	u32 dsi_size = 0, enh_dsi_size = 0;
@@ -833,7 +836,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 
 	depends_on_id = avg_rate = max_rate = buffer_size = 0;
-	mime = encoding = stxtcfg = namespace = schemaloc = mime_cfg = NULL;
+	mime = encoding = stxtcfg = meta_namespace = schemaloc = mime_cfg = NULL;
 
 	if ( gf_isom_is_media_encrypted(read->mov, track, stsd_idx)) {
 		gf_isom_get_original_format_type(read->mov, track, stsd_idx, &m_subtype);
@@ -899,7 +902,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_isom_get_media_language(read->mov, track, &lang_desc->full_lang_code);
 		esid = gf_isom_get_track_id(read->mov, track);
 
-		if (!streamtype) streamtype = gf_codecid_type(m_subtype);
+		if (!streamtype) streamtype = gf_codecid_type((GF_CodecID) m_subtype);
 		codec_id = 0;
 
 		switch (m_subtype) {
@@ -913,11 +916,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			break;
 		case GF_ISOM_SUBTYPE_STPP:
 			codec_id = GF_CODECID_SUBS_XML;
-			gf_isom_xml_subtitle_get_description(read->mov, track, stsd_idx, &namespace, &schemaloc, &mime);
+			gf_isom_xml_subtitle_get_description(read->mov, track, stsd_idx, &meta_namespace, &schemaloc, &mime);
 			break;
 		case GF_ISOM_SUBTYPE_METX:
 			codec_id = GF_CODECID_META_XML;
-			gf_isom_xml_subtitle_get_description(read->mov, track, stsd_idx, &namespace, &schemaloc, &mime);
+			gf_isom_xml_subtitle_get_description(read->mov, track, stsd_idx, &meta_namespace, &schemaloc, &mime);
 			break;
 		case GF_ISOM_SUBTYPE_WVTT:
 			codec_id = GF_CODECID_WEBVTT;
@@ -1203,7 +1206,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			udesc = gf_isom_get_generic_sample_description(read->mov, track, stsd_idx);
 			if (udesc) {
 				if ((codec_id==GF_CODECID_FFV1) && (udesc->extension_buf_size>8)) {
-					dsi = gf_malloc(udesc->extension_buf_size-8);
+					dsi = (u8 *)gf_malloc(udesc->extension_buf_size-8);
 					if (dsi) memcpy(dsi, udesc->extension_buf+8, udesc->extension_buf_size-8);
 					dsi_size = udesc->extension_buf_size - 8;
 				} else if ((codec_id==GF_4CC('G','M','C','W')) && (udesc->extension_buf_size>=16)) {
@@ -1249,7 +1252,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		u32 tmcd_flags=0, tmcd_fps_num=0, tmcd_fps_den=0, tmcd_fpt=0;
 		gf_isom_get_tmcd_config(read->mov, track, stsd_idx, &tmcd_flags, &tmcd_fps_num, &tmcd_fps_den, &tmcd_fpt);
 		gf_filter_pid_set_property_str(ch->pid, "tmcd:flags", &PROP_UINT(tmcd_flags) );
-		gf_filter_pid_set_property_str(ch->pid, "tmcd:framerate", &PROP_FRAC_INT(tmcd_fps_num, tmcd_fps_den) );
+		gf_filter_pid_set_property_str(ch->pid, "tmcd:framerate", &PROP_FRAC_INT((s32) tmcd_fps_num, tmcd_fps_den) );
 		gf_filter_pid_set_property_str(ch->pid, "tmcd:frames_per_tick", &PROP_UINT(tmcd_fpt) );
 	}
 
@@ -1274,11 +1277,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	if (!read->lightp) {
 		if (srd_w && srd_h) {
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT((s32) srd_x, (s32) srd_y) );
 			if (base_tile_track) {
 				gf_isom_get_visual_info(read->mov, base_tile_track, stsd_idx, &w, &h);
 				if (w && h) {
-					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(w, h) );
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT((s32) w, (s32) h) );
 				}
 			}
 		} else {
@@ -1293,8 +1296,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				srd_w = gf_bs_read_u32(bs);
 				srd_h = gf_bs_read_u32(bs);
 				gf_bs_del(bs);
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(srd_w, srd_h) );
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT((s32) srd_x, (s32) srd_y) );
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT((s32) srd_w, (s32) srd_h) );
 			}
 			if (srdg) gf_free(srdg);
 		}
@@ -1467,7 +1470,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		gf_isom_get_pixel_aspect_ratio(read->mov, track, stsd_idx, &hspace, &vspace);
 		if (hspace != vspace)
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAR, &PROP_FRAC_INT(hspace, vspace) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAR, &PROP_FRAC_INT((s32)hspace, vspace) );
 
 		{
 			const u8 *icc;
@@ -1503,7 +1506,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				}
 				else if (yt3d.projection_type==GF_PROJ360_EQR) {
 					if (yt3d.top || yt3d.bottom || yt3d.left || yt3d.right)
-						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_EQR_CLAMP, &PROP_VEC4I_INT(yt3d.top, yt3d.bottom , yt3d.left , yt3d.right));
+						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_EQR_CLAMP, &PROP_VEC4I_INT((s32) yt3d.top, (s32) yt3d.bottom, (s32) yt3d.left, (s32) yt3d.right));
 					else
 						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_EQR_CLAMP, NULL);
 				}
@@ -1511,7 +1514,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROJECTION_TYPE, NULL);
 			}
 			if (yt3d.pose_present) {
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VR_POSE, &PROP_VEC3I_INT(yt3d.yaw, yt3d.pitch, yt3d.roll) );
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VR_POSE, &PROP_VEC3I_INT((s32) yt3d.yaw, (s32) yt3d.pitch, (s32) yt3d.roll) );
 			} else {
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VR_POSE, NULL);
 			}
@@ -1563,7 +1566,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				GF_PropertyValue prop;
 				prop.type = GF_PROP_UINT_LIST;
 				prop.value.uint_list.nb_items = nb_profiles;
-				prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_profiles);
+				prop.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32)*nb_profiles);
 				for (j=0; j<nb_profiles; j++)
 					prop.value.uint_list.vals[j] = prof_compat[j];
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES, &prop);
@@ -1591,10 +1594,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	if (mime) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime) );
 	if (encoding) gf_filter_pid_set_property_str(ch->pid, "meta:encoding", &PROP_STRING(encoding) );
-	if (namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(namespace) );
+	if (meta_namespace) gf_filter_pid_set_property_str(ch->pid, "meta:xmlns", &PROP_STRING(meta_namespace) );
 	if (schemaloc) gf_filter_pid_set_property_str(ch->pid, "meta:schemaloc", &PROP_STRING(schemaloc) );
 	if (mime_cfg) gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime_cfg) );
-	else if ((m_subtype==GF_ISOM_SUBTYPE_STPP) && namespace && strstr(namespace, "ns/ttml")) {
+	else if ((m_subtype==GF_ISOM_SUBTYPE_STPP) && meta_namespace && strstr(meta_namespace, "ns/ttml")) {
 		mime_cfg = "application/ttml+xml;codecs=im1t";
 		if (gf_isom_sample_has_subsamples(read->mov, track, 0, 0) )
 			mime_cfg = "application/ttml+xml;codecs=im1i";
@@ -1610,7 +1613,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	if (stxtcfg) {
 		//copy mem to make sure we have a null-terminated string
 		char *dupm = gf_strdup((char *)stxtcfg);
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dupm, (u32) strlen(stxtcfg) ));
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY((u8*)dupm, (u32) strlen(stxtcfg) ));
 	}
 
 
@@ -1649,7 +1652,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property_str(ch->pid, "dims:pathComponents", &PROP_UINT(dims.pathComponents));
 		gf_filter_pid_set_property_str(ch->pid, "dims:fullRequestHost", &PROP_BOOL(dims.fullRequestHost));
 		gf_filter_pid_set_property_str(ch->pid, "dims:streamType", &PROP_BOOL(dims.streamType));
-		gf_filter_pid_set_property_str(ch->pid, "dims:redundant", &PROP_BOOL(dims.containsRedundant));
+		gf_filter_pid_set_property_str(ch->pid, "dims:redundant", &PROP_BOOL(dims.containsRedundant ? GF_TRUE : GF_FALSE));
 		if (dims.content_script_types)
 			gf_filter_pid_set_property_str(ch->pid, "dims:scriptTypes", &PROP_STRING(dims.content_script_types));
 		if (dims.textEncoding)
@@ -1745,14 +1748,15 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 
 	if (streamtype==GF_STREAM_VISUAL) {
-		u32 cwn, cwd, chn, chd, cxn, cxd, cyn, cyd;
+		u32 cwn, cwd, chn, chd, cxd, cyd;
+		s32 cxn, cyn;
 		cwn=cwd=chn=chd=cxn=cxd=cyn=cyd=0;
 
 		gf_isom_get_clean_aperture(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1, &cwn, &cwd, &chn, &chd, &cxn, &cxd, &cyn, &cyd);
 
 		if (cwd && chd && cxd && cyd) {
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT(cwn, cwd) );
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_H, &PROP_FRAC_INT(chn, chd) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT((s32)cwn, cwd) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_H, &PROP_FRAC_INT((s32)chn, chd) );
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_X, &PROP_FRAC_INT(cxn, cxd) );
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_Y, &PROP_FRAC_INT(cyn, cyd) );
 		} else {
@@ -2052,7 +2056,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 
 		if (read->expart && !isom_contains_video) {
 			GF_FilterPid *cover_pid=NULL;
-			e = gf_filter_pid_raw_new(read->filter, NULL, NULL, NULL, NULL, (char *) tag, tlen, GF_FALSE, &cover_pid);
+			e = gf_filter_pid_raw_new(read->filter, NULL, NULL, NULL, NULL, tag, tlen, GF_FALSE, &cover_pid);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 			}
@@ -2179,10 +2183,10 @@ retry:
 	gf_filter_pid_set_property(pid, GF_PROP_PID_ROTATE, props.alpha ? &PROP_UINT(props.angle) : NULL);
 
 	if (props.clap_wden) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT(props.clap_wnum,props.clap_wden) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_H, &PROP_FRAC_INT(props.clap_hnum,props.clap_hden) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_X, &PROP_FRAC_INT(props.clap_honum,props.clap_hoden) );
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_Y, &PROP_FRAC_INT(props.clap_vonum,props.clap_voden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT((s32)props.clap_wnum,props.clap_wden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_H, &PROP_FRAC_INT((s32)props.clap_hnum,props.clap_hden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_X, &PROP_FRAC_INT((s32)props.clap_honum,props.clap_hoden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_Y, &PROP_FRAC_INT((s32)props.clap_vonum,props.clap_voden) );
 	} else {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_W, NULL);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_H, NULL);
@@ -2210,7 +2214,7 @@ retry:
 	}
 
 	if (item_codecid == GF_CODECID_HEVC_TILES) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(props.hOffset, props.vOffset) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT((s32)props.hOffset, (s32)props.vOffset) );
 
 		u32 base_id = gf_isom_meta_get_item_ref_id(read->mov, GF_TRUE, 0, item_id, GF_ISOM_REF_TBAS, 1);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, base_id ? &PROP_UINT(base_id) : NULL );

@@ -108,7 +108,7 @@ picked:
 
 	gf_list_reset(compositor->hit_use_stack);
 	compositor->hit_node = drawable->node;
-	compositor->hit_use_dom_events = 0;
+	compositor->hit_use_dom_events = GF_FALSE;
 	compositor->hit_normal.x = compositor->hit_normal.y = 0;
 	compositor->hit_normal.z = FIX_ONE;
 	compositor->hit_texcoords.x = gf_divfix(x - drawable->path->bbox.x, drawable->path->bbox.width);
@@ -157,7 +157,7 @@ Drawable *drawable_new()
 		/*allocate a default bounds container*/
 		GF_SAFEALLOC(tmp->dri->current_bounds, BoundInfo);
 	}
-	
+
 	if (!tmp->dri || !tmp->dri->current_bounds) {
 		if (tmp->dri) gf_free(tmp->dri);
 		gf_path_del(tmp->path);
@@ -202,7 +202,7 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor, Bool no_free)
 	dri = dr->dri;
 	while (dri) {
 		DRInfo *cur;
-		Bool is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : 0;
+		Bool is_reg = compositor ? gf_sc_visual_is_registered(compositor, dri->visual) : GF_FALSE;
 
 		bi = dri->current_bounds;
 		while (bi) {
@@ -364,9 +364,9 @@ Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 
 		if (dri->visual == on_visual) break;
 		dri = dri->next;
 	}
-	if (!dri) return 0;
+	if (!dri) return GF_FALSE;
 
-	was_drawn = (dri->current_bounds && dri->current_bounds->clip.width) ? 1 : 0;
+	was_drawn = (dri->current_bounds && dri->current_bounds->clip.width) ? GF_TRUE : GF_FALSE;
 
 	if (mode2d) {
 		/*permanent direct drawing mode, destroy previous bounds*/
@@ -409,7 +409,7 @@ Bool drawable_has_same_bounds(struct _drawable_context *ctx, GF_VisualManager *v
 		if (dri->visual == visual) break;
 		dri = dri->next;
 	}
-	if (!dri) return 0;
+	if (!dri) return GF_FALSE;
 
 	bi = dri->previous_bounds;
 	while (bi) {
@@ -426,11 +426,11 @@ Bool drawable_has_same_bounds(struct _drawable_context *ctx, GF_VisualManager *v
 		) {
 			/*remove*/
 			bi->clip.width = 0;
-			return 1;
+			return GF_TRUE;
 		}
 		bi = bi->next;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /*
@@ -447,18 +447,18 @@ Bool drawable_get_previous_bound(Drawable *drawable, GF_IRect *rc, GF_VisualMana
 		if (dri->visual == visual) break;
 		dri = dri->next;
 	}
-	if (!dri) return 0;
+	if (!dri) return GF_FALSE;
 
 	bi = dri->previous_bounds;
 	while (bi) {
 		if (bi->clip.width) {
 			*rc = bi->clip;
 			bi->clip.width = 0;
-			return 1;
+			return GF_TRUE;
 		}
 		bi = bi->next;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -498,13 +498,13 @@ void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual)
 {
 	DRInfo *dri;
 	Bool moved, need_redraw, drawn;
-	need_redraw = (ctx->flags & CTX_REDRAW_MASK) ? 1 : 0;
+	need_redraw = (ctx->flags & CTX_REDRAW_MASK) ? GF_TRUE : GF_FALSE;
 
-	drawn = 0;
+	drawn = GF_FALSE;
 	dri = ctx->drawable->dri;
 	while (dri) {
 		if (dri->visual==visual) {
-			if (dri->current_bounds && dri->current_bounds->clip.width) drawn = 1;
+			if (dri->current_bounds && dri->current_bounds->clip.width) drawn = GF_TRUE;
 			break;
 		}
 		dri = dri->next;
@@ -513,10 +513,10 @@ void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual)
 		ctx->drawable->flags |= DRAWABLE_DRAWN_ON_VISUAL;
 		/*node has been modified, do not check bounds, just assumed it moved*/
 		if (ctx->drawable->flags & DRAWABLE_HAS_CHANGED) {
-			moved = 1;
+			moved = GF_TRUE;
 		} else {
 			/*check if same bounds are used*/
-			moved = !drawable_has_same_bounds(ctx, visual);
+			moved = drawable_has_same_bounds(ctx, visual) ? GF_FALSE : GF_TRUE;
 		}
 
 		if (need_redraw || moved)
@@ -531,14 +531,14 @@ void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual)
 static Bool drawable_lineprops_dirty(GF_Node *node)
 {
 	LinePropStack *st = (LinePropStack *)gf_node_get_private(node);
-	if (!st) return 0;
+	if (!st) return GF_FALSE;
 
 	if (st->compositor->current_frame == st->last_mod_time) return st->is_dirty;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		gf_node_dirty_clear(node, 0);
-		st->is_dirty = 1;
+		st->is_dirty = GF_TRUE;
 	} else {
-		st->is_dirty = 0;
+		st->is_dirty = GF_FALSE;
 	}
 	st->last_mod_time = st->compositor->current_frame;
 	return st->is_dirty;
@@ -677,20 +677,20 @@ check_default:
 static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 {
 	/*if texture, cannot skip*/
-	if (ctx->aspect.fill_texture) return 0;
-	if (! GF_COL_A(ctx->aspect.fill_color) && !GF_COL_A(ctx->aspect.line_color) ) return 1;
+	if (ctx->aspect.fill_texture) return GF_FALSE;
+	if (! GF_COL_A(ctx->aspect.fill_color) && !GF_COL_A(ctx->aspect.line_color) ) return GF_TRUE;
 	if (ctx->aspect.pen_props.width == 0) {
-		if (skipFill) return 1;
-		if (!GF_COL_A(ctx->aspect.fill_color) ) return 1;
+		if (skipFill) return GF_TRUE;
+		if (!GF_COL_A(ctx->aspect.fill_color) ) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
 void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state)
 {
 #ifndef GPAC_DISABLE_3D
-	Bool texture_ready=0;
+	Bool texture_ready= GF_FALSE;
 #endif
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
@@ -714,7 +714,7 @@ void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_T
 			}
 			//wait until we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
 			if (ctx->aspect.fill_texture->compute_gradient_matrix || ctx->aspect.fill_texture->data)
-				texture_ready=1;
+				texture_ready= GF_TRUE;
 		}
 #endif
 	}
@@ -736,7 +736,7 @@ void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_T
 
 			//wait until we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
 			if (ctx->aspect.line_texture->compute_gradient_matrix || ctx->aspect.line_texture->data)
-				texture_ready=1;
+				texture_ready= GF_TRUE;
 		}
 #endif
 	}
@@ -791,12 +791,12 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	}
 
 	/*IndexedLineSet2D and PointSet2D ignores fill flag and texturing*/
-	skipFill = 0;
+	skipFill = GF_FALSE;
 	ctx->aspect.fill_texture = NULL;
 	switch (gf_node_get_tag(ctx->drawable->node) ) {
 #ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_IndexedLineSet2D:
-		skipFill = 1;
+		skipFill = GF_TRUE;
 		break;
 #endif
 	default:
@@ -832,7 +832,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
 {
 	/*if direct draw we can remove the context*/
-	Bool res = tr_state->immediate_draw ? 1 : 0;
+	Bool res = tr_state->immediate_draw ? GF_TRUE : GF_FALSE;
 	/*copy final transform, once all parent layout is done*/
 	gf_mx2d_copy(ctx->transform, tr_state->transform);
 
@@ -853,7 +853,7 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 		struct _drawable_store *it;
 		GF_SAFEALLOC(it, struct _drawable_store);
 		if (!it) {
-			return 0;
+			return GF_FALSE;
 		}
 		it->drawable = ctx->drawable;
 		if (tr_state->visual->last_prev_entry) {
@@ -870,7 +870,7 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 	if (res) {
 		/*if over an overlay we cannot remove the context and cannot draw directly*/
 		if (visual_2d_overlaps_overlay(tr_state->visual, ctx, tr_state))
-			return 0;
+			return GF_FALSE;
 
 		gf_assert(!tr_state->traversing_mode);
 		tr_state->traversing_mode = TRAVERSE_DRAW_2D;
@@ -915,7 +915,7 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 
 void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
 {
-	Bool can_remove = 0;
+	Bool can_remove = GF_FALSE;
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
 	GF_Node *appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
@@ -987,7 +987,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 
 void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds)
 {
-	drawable_finalize_sort_ex(ctx, tr_state, orig_bounds, 0);
+	drawable_finalize_sort_ex(ctx, tr_state, orig_bounds, GF_FALSE);
 }
 
 
@@ -1016,7 +1016,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	if (!hlight) return;
 
 	/*check if focus node has changed*/
-	prev_node = gf_node_get_private(hlight->node);
+	prev_node = (GF_Node *) gf_node_get_private(hlight->node);
 	if (prev_node != node) {
 		GF_Rect *bounds;
 		/*this is a grouping node, get its bounds*/
@@ -1067,7 +1067,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	}
 #endif
 	gf_mx2d_copy(hl_ctx->transform, tr_state->transform);
-	drawable_finalize_sort_ex(hl_ctx, tr_state, NULL, 1);
+	drawable_finalize_sort_ex(hl_ctx, tr_state, NULL, GF_TRUE);
 }
 
 
@@ -1159,7 +1159,7 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 
 	/*node changed or outline not build*/
 #ifndef GPAC_DISABLE_VRML
-	dirty = lp ? drawable_lineprops_dirty(lp) : 0;
+	dirty = lp ? drawable_lineprops_dirty(lp) : GF_FALSE;
 #endif
 
 	if (!si->outline
@@ -1302,14 +1302,14 @@ void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 
 Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {
-	return 0;
+	return GF_FALSE;
 }
 
 #else
 
 Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {
-	Bool ret = 0;
+	Bool ret = GF_FALSE;
 	SVGPropertiesPointers *props = tr_state->svg_props;
 	Fixed clamped_opacity = FIX_ONE;
 	Fixed clamped_solid_opacity = FIX_ONE;
@@ -1348,9 +1348,10 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 				SVGAllAttributes all_atts;
 				gf_svg_flatten_attributes((SVG_Element*)props->fill->iri.target, &all_atts);
 
-				gf_node_traverse(props->fill->iri.target, tr_state);
+				gf_node_traverse((GF_Node *)props->fill->iri.target, tr_state);
 
-				ret += compositor_svg_solid_color_dirty(tr_state->visual->compositor, props->fill->iri.target);
+				if (compositor_svg_solid_color_dirty(tr_state->visual->compositor, (GF_Node *)props->fill->iri.target))
+					ret = GF_TRUE;
 
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {
@@ -1408,9 +1409,10 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 				SVGAllAttributes all_atts;
 				gf_svg_flatten_attributes((SVG_Element*)props->stroke->iri.target, &all_atts);
 
-				gf_node_traverse(props->stroke->iri.target, tr_state);
+				gf_node_traverse((GF_Node*)props->stroke->iri.target, tr_state);
 
-				ret += compositor_svg_solid_color_dirty(tr_state->visual->compositor, props->stroke->iri.target);
+				if (compositor_svg_solid_color_dirty(tr_state->visual->compositor, (GF_Node*)props->stroke->iri.target))
+					ret = GF_TRUE;
 
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {
@@ -1464,23 +1466,23 @@ static Bool svg_appearance_flag_dirty(u32 flags)
 {
 #if 1
 	/* fill-related */
-	if (flags & GF_SG_SVG_FILL_DIRTY)				return 1;
-	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_FILLRULE_DIRTY)			return 1;
+	if (flags & GF_SG_SVG_FILL_DIRTY)				return GF_TRUE;
+	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return GF_TRUE;
+	if (flags & GF_SG_SVG_FILLRULE_DIRTY)			return GF_TRUE;
 
 	/* stroke-related */
-	if (flags & GF_SG_SVG_STROKE_DIRTY)				return 1;
-	if (flags & GF_SG_SVG_STROKEDASHARRAY_DIRTY)	return 1;
-	if (flags & GF_SG_SVG_STROKEDASHOFFSET_DIRTY)	return 1;
-	if (flags & GF_SG_SVG_STROKELINECAP_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_STROKELINEJOIN_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_STROKEMITERLIMIT_DIRTY)	return 1;
-	if (flags & GF_SG_SVG_STROKEOPACITY_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_STROKEWIDTH_DIRTY)		return 1;
-	if (flags & GF_SG_SVG_VECTOREFFECT_DIRTY)		return 1;
+	if (flags & GF_SG_SVG_STROKE_DIRTY)				return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKEDASHARRAY_DIRTY)	return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKEDASHOFFSET_DIRTY)	return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKELINECAP_DIRTY)		return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKELINEJOIN_DIRTY)		return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKEMITERLIMIT_DIRTY)	return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKEOPACITY_DIRTY)		return GF_TRUE;
+	if (flags & GF_SG_SVG_STROKEWIDTH_DIRTY)		return GF_TRUE;
+	if (flags & GF_SG_SVG_VECTOREFFECT_DIRTY)		return GF_TRUE;
 
 	/* gradients stops and solidcolor do not affect appearance directly */
-	return 0;
+	return GF_FALSE;
 #else
 	if (flags &
 	        (GF_SG_SVG_FILL_DIRTY | GF_SG_SVG_FILLOPACITY_DIRTY | GF_SG_SVG_FILLRULE_DIRTY
@@ -1489,8 +1491,8 @@ static Bool svg_appearance_flag_dirty(u32 flags)
 	         | GF_SG_SVG_STROKELINEJOIN_DIRTY | GF_SG_SVG_STROKEMITERLIMIT_DIRTY
 	         | GF_SG_SVG_STROKEOPACITY_DIRTY | GF_SG_SVG_STROKEWIDTH_DIRTY
 	         | GF_SG_SVG_VECTOREFFECT_DIRTY) )
-		return 1;
-	return 0;
+		return GF_TRUE;
+	return GF_FALSE;
 #endif
 }
 

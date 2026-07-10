@@ -128,17 +128,17 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			M_CacheTexture *ct = (M_CacheTexture *) node;
 			ct->data_len = length;
 			if (ct->data) gf_free(ct->data);
-			ct->data = (u8*)gf_malloc(sizeof(char)*length);
-			gf_bs_read_data(bs, (char*)ct->data, length);
+			ct->data = (u8*)gf_malloc(length);
+			gf_bs_read_data(bs, ct->data, length);
 		} else if (node && (node->sgprivate->tag==TAG_MPEG4_BitWrapper) ) {
 			M_BitWrapper *bw = (M_BitWrapper*) node;
 			if (bw->buffer.buffer) gf_free(bw->buffer.buffer);
 			bw->buffer_len = length;
-			bw->buffer.buffer = (char*)gf_malloc(sizeof(char)*length);
-			gf_bs_read_data(bs, (char*)bw->buffer.buffer, length);
+			bw->buffer.buffer = (char*)gf_malloc(length);
+			gf_bs_read_data(bs, (u8*)bw->buffer.buffer, length);
 		} else {
 			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
-			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(sizeof(char)*(length+1));
+			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(length+1);
 			memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 			for (i=0; i<length; i++) {
 				((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
@@ -161,7 +161,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 			buffer = NULL;
 			if (length) {
-				buffer = (char *)gf_malloc(sizeof(char)*(length+1));
+				buffer = (char *)gf_malloc(length+1);
 				memset(buffer, 0, length+1);
 				for (i=0; i<length; i++) buffer[i] = gf_bs_read_int(bs, 8);
 			}
@@ -192,7 +192,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		((SFImage *)field->far_ptr)->width = w;
 		((SFImage *)field->far_ptr)->height = h;
 		((SFImage *)field->far_ptr)->numComponents = length;
-		((SFImage *)field->far_ptr)->pixels = (unsigned char *)gf_malloc(sizeof(char)*size);
+		((SFImage *)field->far_ptr)->pixels = (unsigned char *)gf_malloc(sizeof(unsigned char)*size);
 		//WARNING: Buffers are NOT ALIGNED IN THE BITSTREAM
 		for (i=0; i<size; i++) {
 			((SFImage *)field->far_ptr)->pixels[i] = gf_bs_read_int(bs, 8);
@@ -219,7 +219,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 
 		sfcb->bufferSize = length;
 		if (length) {
-			sfcb->buffer = (unsigned char *)gf_malloc(sizeof(char)*(length));
+			sfcb->buffer = (u8 *)gf_malloc(length);
 			//WARNING Buffers are NOT ALIGNED IN THE BITSTREAM
 			for (i=0; i<length; i++) {
 				sfcb->buffer[i] = gf_bs_read_int(bs, 8);
@@ -345,14 +345,14 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 						qp_on = 1;
 						if (qp_local) qp_local = 2;
 						if (codec->force_keep_qp) {
-							e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+							e = gf_node_list_add_child_last((GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 						} else {
 							gf_node_register(new_node, NULL);
 							gf_node_unregister(new_node, node);
 						}
 					} else {
 						//this is generic MFNode container
-						e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+						e = gf_node_list_add_child_last((GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 					}
 
 				}
@@ -377,7 +377,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 				qp_local = 1;
 			} else {
 				//ask to get rid of QP and reactivate if we had a QP when entering
-				gf_bifs_dec_qp_remove(codec, initial_qp);
+				gf_bifs_dec_qp_remove(codec, initial_qp ? GF_TRUE : GF_FALSE);
 				qp_local = 0;
 				qp_on = 0;
 			}
@@ -388,7 +388,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 exit:
 	/*finally delete the QP if any (local or not) as we get out of this node
 	and reactivate previous one*/
-	if (qp_on) gf_bifs_dec_qp_remove(codec, initial_qp);
+	if (qp_on) gf_bifs_dec_qp_remove(codec, initial_qp ? GF_TRUE : GF_FALSE);
 	if (e) return e;
 
 	/*this is for QP 14*/
@@ -458,14 +458,14 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 					qp_on = 1;
 					if (qp_local) qp_local = 2;
 					if (codec->force_keep_qp) {
-						e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+						e = gf_node_list_add_child_last((GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 						if (e) goto exit;
 					} else {
 						gf_node_register(new_node, NULL);
 						gf_node_unregister(new_node, node);
 					}
 				} else {
-					e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+					e = gf_node_list_add_child_last((GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 					if (e) goto exit;
 				}
 			}
@@ -490,7 +490,7 @@ exit:
 //				qp_local = 1;
 		} else {
 			//ask to get rid of QP and reactivate if we had a QP when entering the node
-			gf_bifs_dec_qp_remove(codec, initial_qp);
+			gf_bifs_dec_qp_remove(codec, initial_qp ? GF_TRUE : GF_FALSE);
 //				qp_local = 0;
 		}
 	}
@@ -886,13 +886,13 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 					codec->LastError = GF_NON_COMPLIANT_BITSTREAM;
 					return NULL;
 				}
-				skip_init = 1;
+				skip_init = GF_TRUE;
 			} else {
 				if (gf_node_get_tag(new_node) != node_tag) {
 					codec->LastError = GF_NON_COMPLIANT_BITSTREAM;
 					return NULL;
 				}
-				skip_init = 1;
+				skip_init = GF_TRUE;
 			}
 		}
 	}
@@ -920,7 +920,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	else skip_init = GF_TRUE;
 
 	/*if coords were not stored for QP14 before coding this node, reset QP14 it when leaving*/
-	reset_qp14 = !codec->coord_stored;
+	reset_qp14 = codec->coord_stored ? GF_FALSE : GF_TRUE;
 
 	/*QP 14 is a special quant mode for IndexFace/Line(2D)Set to quantize the
 	coordonate(2D) child, based on the first field parsed

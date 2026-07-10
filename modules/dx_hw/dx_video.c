@@ -491,7 +491,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	}
 
 #ifndef GPAC_DISABLE_3D
-	dd->output_3d = 0;
+	dd->output_3d = GF_FALSE;
 #endif
 	GetWindowRect(dd->cur_hwnd, &rc);
 
@@ -807,6 +807,8 @@ static void DeleteVideoOutput(void *ifce)
 	gf_free(driv);
 }
 
+GPAC_MODULE_EXPORT_START
+
 /*interface query*/
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
@@ -839,5 +841,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( dx_out )

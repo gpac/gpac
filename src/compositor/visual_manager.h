@@ -26,6 +26,10 @@
 #ifndef _VISUAL_MANAGER_H_
 #define _VISUAL_MANAGER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "drawable.h"
 
 /*all 2D related functions and macro are locate there*/
@@ -285,6 +289,10 @@ void visual_reset_graphics(GF_VisualManager *visual);
 
 #ifndef GPAC_DISABLE_3D
 GF_GLProgInstance *visual_3d_check_program_exists(GF_VisualManager *root_visual, u32 flags, u32 pix_fmt);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif	/*_VISUAL_MANAGER_H_*/

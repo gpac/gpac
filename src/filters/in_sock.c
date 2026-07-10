@@ -78,7 +78,7 @@ typedef struct
 	Bool is_udp;
 	Bool is_stop;
 
-	char *buffer;
+	u8 *buffer;
 
 	GF_SockGroup *active_sockets;
 	u32 last_rcv_time;
@@ -91,7 +91,8 @@ typedef struct
 
 static GF_Err sockin_initialize(GF_Filter *filter)
 {
-	char *str, *url;
+	char *str;
+	const char *url;
 	u16 port;
 	u32 sock_type = 0;
 	GF_Err e = GF_OK;
@@ -135,9 +136,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 
 	/*setup port and src*/
 	port = ctx->port;
-	str = strrchr(url, ':');
+	str = (char *)strrchr(url, ':');
 	/*take care of IPv6 address*/
-	if (str && strchr(str, ']')) str = strchr(url, ':');
+	if (str && strchr(str, ']')) str = (char *)strchr(url, ':');
 	if (str) {
 		port = atoi(str+1);
 		str[0] = 0;
@@ -146,7 +147,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 
 	/*do we have a source ?*/
 	if (gf_sk_is_multicast_address(url)) {
-		e = gf_sk_setup_multicast_ex(ctx->sock_c.socket, url, port, 0, 0, ctx->ifce, (const char **)ctx->ssm.vals, ctx->ssm.nb_items, (const char **)ctx->ssmx.vals, ctx->ssmx.nb_items);
+		e = gf_sk_setup_multicast_ex(ctx->sock_c.socket, url, port, 0, GF_FALSE, ctx->ifce, (const char **)ctx->ssm.vals, ctx->ssm.nb_items, (const char **)ctx->ssmx.vals, ctx->ssmx.nb_items);
 		ctx->listen = GF_FALSE;
 	} else if ((sock_type==GF_SOCK_TYPE_UDP)
 #ifdef GPAC_HAS_SOCK_UN
@@ -193,13 +194,13 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 
 		gf_filter_prevent_blocking(filter, GF_TRUE);
 	}
-	gf_sk_set_buffer_size(ctx->sock_c.socket, 0, ctx->block_size);
+	gf_sk_set_buffer_size(ctx->sock_c.socket, GF_FALSE, ctx->block_size);
 	gf_sk_set_block_mode(ctx->sock_c.socket, (!ctx->is_udp && ctx->block) ? GF_FALSE : GF_TRUE);
 
 	if (!ctx->is_udp)
 		gf_filter_set_blocking(filter, GF_TRUE);
 
-	ctx->buffer = gf_malloc(ctx->block_size + 1);
+	ctx->buffer = (u8 *)gf_malloc(ctx->block_size + 1);
 	if (!ctx->buffer) return GF_OUT_OF_MEM;
 	//ext/mime given and not mpeg2, disable probe
 	if (ctx->ext && !strstr("ts|m2t|mts|dmb|trp", ctx->ext)) ctx->tsprobe = GF_FALSE;
@@ -231,7 +232,7 @@ static void sockin_finalize(GF_Filter *filter)
 
 	if (ctx->clients) {
 		while (gf_list_count(ctx->clients)) {
-			GF_SockInClient *sc = gf_list_pop_back(ctx->clients);
+			GF_SockInClient *sc = (GF_SockInClient *)gf_list_pop_back(ctx->clients);
 			sockin_client_reset(sc);
 			gf_free(sc);
 		}
@@ -257,10 +258,10 @@ static GF_FilterProbeScore sockin_probe_url(const char *url, const char *mime_ty
 static void sockin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
 	u32 size;
-	char *data;
+	u8 *data;
 	GF_SockInClient *sc = (GF_SockInClient *) gf_filter_pid_get_udta(pid);
 	sc->pck_out = GF_FALSE;
-	data = (char *) gf_filter_pck_get_data(pck, &size);
+	data = (u8*) gf_filter_pck_get_data(pck, &size);
 	if (data) {
 		data-=12;
 		gf_free(data);
@@ -399,11 +400,11 @@ refetch:
 
 #ifndef GPAC_DISABLE_STREAMING
 	if (sock_c->rtp_reorder) {
-		char *pck;
+		u8 *pck;
 		u16 seq_num = ((ctx->buffer[2] << 8) & 0xFF00) | (ctx->buffer[3] & 0xFF);
 		gf_rtp_reorderer_add(sock_c->rtp_reorder, (void *) ctx->buffer, nb_read, seq_num);
 
-		pck = (char *) gf_rtp_reorderer_get(sock_c->rtp_reorder, &nb_read, GF_FALSE, NULL);
+		pck = (u8 *) gf_rtp_reorderer_get(sock_c->rtp_reorder, &nb_read, GF_FALSE, NULL);
 		if (pck) {
 			dst_pck = gf_filter_pck_new_shared(sock_c->pid, pck+12, nb_read-12, sockin_rtp_destructor);
 			if (dst_pck) {
@@ -509,7 +510,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 		u64 sleep_for = 2*ctx->rcv_time_diff/3000;
 		if (sleep_for > ctx->mwait.y) sleep_for = ctx->mwait.y;
 		if (sleep_for < ctx->mwait.x) sleep_for = ctx->mwait.x;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SockIn] empty - sleeping for "LLU" ms\n", sleep_for ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[SockIn] empty - sleeping for " LLU " ms\n", sleep_for ));
 		gf_filter_ask_rt_reschedule(filter, (u32) (sleep_for*1000) );
 		return GF_OK;
 	}
@@ -517,7 +518,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 		ctx->is_stop = GF_TRUE;
 		if (ctx->sock_c.pid)
 			gf_filter_pid_set_eos(ctx->sock_c.pid);
-		return e<0 ? e : 0;
+		return e<0 ? e : GF_OK;
 	}
 	else if (e) {
 		return e;
@@ -541,7 +542,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 			if ((e==GF_OK) && new_conn) {
 				GF_SockInClient *sc=NULL;
 				if (ctx->ka) {
-					sc = gf_list_get(ctx->clients, 0);
+					sc = (GF_SockInClient *)gf_list_get(ctx->clients, 0);
 					if (sc && sc->socket) {
 						gf_sk_del(new_conn);
 						GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Rejecting connection since one client is already connected and keep-alive is enabled\n", sc->address));
@@ -559,7 +560,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 				sc->socket = new_conn;
 				gf_strcpy(sc->address, "unknown");
 				gf_sk_get_remote_address(new_conn, sc->address);
-				gf_sk_set_block_mode(new_conn, !ctx->block);
+				gf_sk_set_block_mode(new_conn, ctx->block ? GF_FALSE : GF_TRUE);
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Accepting new connection from %s\n", sc->address));
 				ctx->had_clients = GF_TRUE;
@@ -572,7 +573,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 
 	count = gf_list_count(ctx->clients);
 	for (i=0; i<count; i++) {
-		GF_SockInClient *sc = gf_list_get(ctx->clients, i);
+		GF_SockInClient *sc = (GF_SockInClient *)gf_list_get(ctx->clients, i);
 		if (!sc->socket) continue;
 
 		if (!gf_sk_group_sock_is_set(ctx->active_sockets, sc->socket, GF_SK_SELECT_READ)) continue;

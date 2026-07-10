@@ -135,13 +135,13 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		return GF_IO_ERR;
 	/* load the file */
 	p = NULL;
-	line = (char*)gf_malloc(sizeof(char)*line_alloc);
+	line = (char*)gf_malloc(line_alloc);
 	memset(line, 0, sizeof(char)*line_alloc);
 
 #define FLUSH_EMPTY_LINES \
 			if (k&& nb_empty_lines) {\
 				u32 klen = (u32) strlen(k->value)+1+nb_empty_lines;\
-				k->value = gf_realloc(k->value, sizeof(char)*klen);\
+				k->value = (char *)gf_realloc(k->value, klen); \
 				while (nb_empty_lines) {\
 					nb_empty_lines--;\
 					gf_strlcat(k->value, "\n", klen);\
@@ -160,7 +160,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		nb_pass = 1;
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
-			line = (char*)gf_realloc(line, sizeof(char)*line_alloc);
+			line = (char*)gf_realloc(line, line_alloc);
 			ret = gf_fgets(line+read, MAX_INI_LINE, file);
 			read = (u32) strlen(line);
 			nb_pass++;
@@ -246,7 +246,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			u32 l1 = (u32) strlen(k->value);
 			u32 l2 = (u32) strlen(line);
 			u32 asize = (l1 + l2 + 1 + nb_empty_lines) ;
-			k->value = gf_realloc(k->value, sizeof(char) * asize);
+			k->value = (char*)gf_realloc(k->value, asize);
 			l2 += l1 + nb_empty_lines;
 			while (nb_empty_lines) {
 				gf_strlcat(k->value, "\n", asize);

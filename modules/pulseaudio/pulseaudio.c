@@ -236,7 +236,7 @@ NewPulseAudioOutput ()
 	driv->opaque = ctx;
 	ctx->playback_handle = NULL;
 	ctx->errors = 0;
-	driv->SelfThreaded = 0;
+	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = PulseAudio_Setup;
 	driv->Shutdown = PulseAudio_Shutdown;
 	driv->Configure = PulseAudio_Configure;
@@ -262,6 +262,7 @@ DeletePulseAudioOutput (void *ifce)
 	}
 }
 
+GPAC_MODULE_EXPORT_START
 
 /*
  * ********************************************************************
@@ -291,5 +292,7 @@ void ShutdownInterface (GF_BaseInterface * ifce)
 	if (ifce->InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
 		DeletePulseAudioOutput ((GF_AudioOutput *) ifce);
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( pulseaudio )

@@ -144,7 +144,7 @@ typedef struct
 		if NULL for GF_NETIO_GET_HEADER, aborts headers query
 		for GF_NETIO_ICY_META, set to inband ICY metadata found
 	*/
-	char *value;
+	const char *value;
 	union {
 		/*message-dependend
 			for GF_NETIO_PARSE_REPLY, response code
@@ -339,7 +339,7 @@ Fetches data from the server. This will also performs connections and all needed
 \note this can only be used when the session is not threaded
 \return error if any
  */
-GF_Err gf_dm_sess_fetch_data(GF_DownloadSession * sess, char *buffer, u32 buffer_size, u32 *read_size);
+GF_Err gf_dm_sess_fetch_data(GF_DownloadSession * sess, u8 *buffer, u32 buffer_size, u32 *read_size);
 
 /*!
 \brief get mime type as lower case

@@ -61,7 +61,7 @@ typedef struct
 
 	Bool initial_play_done;
 
-	char *saf_data;
+	u8 *saf_data;
 	u32 alloc_size, saf_size;
 } GF_SAFDmxCtx;
 
@@ -84,7 +84,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 	GF_BitStream *bs;
 
 	if (ctx->alloc_size < ctx->saf_size + data_size) {
-		ctx->saf_data = (char*)gf_realloc(ctx->saf_data, sizeof(char)*(ctx->saf_size + data_size) );
+		ctx->saf_data = (u8*)gf_realloc(ctx->saf_data, (ctx->saf_size + data_size) );
 		ctx->alloc_size = ctx->saf_size + data_size;
 	}
 	//we could avoid a full copy of the buffer, but given how much SAF is used that's not very urgent ...
@@ -163,15 +163,15 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				}
 				if (type==7) {
 					u16 urlLen = gf_bs_read_u16(bs);
-					char *url_string = (char*)gf_malloc(sizeof(char)*(urlLen+1));
-					gf_bs_read_data(bs, url_string, urlLen);
+					char *url_string = (char*)gf_malloc(urlLen+1);
+					gf_bs_read_data(bs, (u8 *) url_string, urlLen);
 					url_string[urlLen] = 0;
 					au_size -= urlLen+2;
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_REMOTE_URL, &PROP_NAME(url_string));
 				}
 				if (au_size) {
-					char *dsi = (char*)gf_malloc(sizeof(char)*au_size);
-					gf_bs_read_data(bs, dsi, au_size);
+					u8 *dsi = (u8*)gf_malloc(au_size);
+					gf_bs_read_data(bs, (u8 *) dsi, au_size);
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, au_size) );
 				}
 				gf_list_add(ctx->streams, st);
@@ -279,7 +279,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 				gf_bs_read_u16(bs);
 				ts_res = gf_bs_read_u24(bs);
 				au_size -= 5;
-				si = gf_realloc(si, sizeof(StreamInfo)*(nb_streams+1));
+				si = (StreamInfo *)gf_realloc(si, sizeof(StreamInfo)*(nb_streams+1));
 				if (si) {
 					si[nb_streams].stream_id = stream_id;
 					si[nb_streams].ts_res = ts_res;
@@ -302,7 +302,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 		GF_SAFStream *st;
 		ctx->duration = dur;
 		i=0;
-		while ( (st = gf_list_enum(ctx->streams, &i)) ) {
+		while ( (st = (GF_SAFStream *)gf_list_enum(ctx->streams, &i)) ) {
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 		}
 	}
@@ -312,7 +312,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 GF_Err safdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i;
-	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_SAFDmxCtx *ctx = (GF_SAFDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		GF_SAFStream *st;
@@ -334,7 +334,7 @@ GF_Err safdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 static Bool safdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FilterEvent fevt;
-	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_SAFDmxCtx *ctx = (GF_SAFDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -390,11 +390,11 @@ static Bool safdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err safdmx_process(GF_Filter *filter)
 {
-	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_SAFDmxCtx *ctx = (GF_SAFDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_SAFStream *st;
 	u32 i=0, pkt_size;
-	const char *data;
+	const u8 *data;
 	u32 would_block = 0;
 
 	//update duration
@@ -402,7 +402,7 @@ GF_Err safdmx_process(GF_Filter *filter)
 
 	//check if all the streams are in block state, if so return.
 	//we need to check for all output since one pid could still be buffering
-	while ((st = gf_list_enum(ctx->streams, &i))) {
+	while ((st = (GF_SAFStream *)gf_list_enum(ctx->streams, &i))) {
 		if (st->opid && gf_filter_pid_would_block(st->opid))
 			would_block++;
 	}
@@ -422,14 +422,14 @@ GF_Err safdmx_process(GF_Filter *filter)
 
 GF_Err safdmx_initialize(GF_Filter *filter)
 {
-	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_SAFDmxCtx *ctx = (GF_SAFDmxCtx *)gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 	return GF_OK;
 }
 
 void safdmx_finalize(GF_Filter *filter)
 {
-	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_SAFDmxCtx *ctx = (GF_SAFDmxCtx *)gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
 		GF_SAFStream *st = (GF_SAFStream *)gf_list_last(ctx->streams);

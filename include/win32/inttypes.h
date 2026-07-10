@@ -1,6 +1,10 @@
 #ifndef _INTTYPES_H_
 #define _INTTYPES_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(_WIN32) && !defined(PRId64)
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
@@ -17,5 +21,9 @@ typedef signed __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 
 typedef int64_t ssize_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_INTTYPES_H_*/

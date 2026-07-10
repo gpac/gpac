@@ -214,9 +214,9 @@ GF_Err colr_box_read(GF_Box *s, GF_BitStream *bs)
 		p->precedence = gf_bs_read_u8(bs);
 		p->approx = gf_bs_read_u8(bs);
 		if (p->size) {
-			p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
+			p->opaque = (u8 *)gf_malloc((size_t)p->size);
 			p->opaque_size = (u32) p->size;
-			gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
+			gf_bs_read_data(bs,p->opaque, p->opaque_size);
 		}
 	} else {
 		ISOM_DECREASE_SIZE(p, 4);
@@ -236,9 +236,9 @@ GF_Err colr_box_read(GF_Box *s, GF_BitStream *bs)
 			p->matrix_coefficients = gf_bs_read_u16(bs);
 			break;
 		default:
-			p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
+			p->opaque = (u8 *)gf_malloc((size_t)p->size);
 			p->opaque_size = (u32) p->size;
-			gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
+			gf_bs_read_data(bs,p->opaque, p->opaque_size);
 			break;
 		}
 	}
@@ -258,7 +258,7 @@ GF_Err colr_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u8(bs, p->precedence);
 		gf_bs_write_u8(bs, p->approx);
 		if (p->opaque_size)
-			gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
+			gf_bs_write_data(bs,p->opaque, p->opaque_size);
 	} else {
 		switch (p->colour_type) {
 		case GF_ISOM_SUBTYPE_NCLX:
@@ -276,7 +276,7 @@ GF_Err colr_box_write(GF_Box *s, GF_BitStream *bs)
 			break;
 		default:
 			gf_bs_write_u32(bs, p->colour_type);
-			gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
+			gf_bs_write_data(bs,p->opaque, p->opaque_size);
 			break;
 		}
 	}
@@ -637,7 +637,7 @@ GF_Err ipma_box_read(GF_Box *s, GF_BitStream *bs)
 			entry->item_id = gf_bs_read_u32(bs);
 		}
 		entry->nb_associations = gf_bs_read_u8(bs);
-		entry->associations = gf_malloc(sizeof(GF_ItemPropertyAssociationSlot) * entry->nb_associations);
+		entry->associations = (GF_ItemPropertyAssociationSlot *)gf_malloc(sizeof(GF_ItemPropertyAssociationSlot) * entry->nb_associations);
 		if (!entry->associations) return GF_OUT_OF_MEM;
 		for (j = 0; j < entry->nb_associations; j++) {
 			if (p->flags & 1) {
@@ -774,7 +774,7 @@ GF_Err grptype_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->size) {
-		ptr->data = gf_malloc((u32) ptr->size);
+		ptr->data = (u8 *)gf_malloc((u32) ptr->size);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		ptr->data_len = (u32) ptr->size;
 		gf_bs_read_data(bs, ptr->data, ptr->data_len);
@@ -845,7 +845,7 @@ GF_Err auxc_box_read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_read_null_terminated_string(s, bs, s->size, &p->aux_urn);
 	if (e) return e;
 	p->data_size = (u32) p->size;
-	p->data = gf_malloc(sizeof(char) * p->data_size);
+	p->data = (u8 *)gf_malloc(p->data_size);
 	gf_bs_read_data(bs, p->data, p->data_size);
 	return GF_OK;
 }
@@ -860,7 +860,7 @@ GF_Err auxc_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	//with terminating 0
 	if (p->aux_urn)
-		gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) );
+		gf_bs_write_data(bs, (u8 *) p->aux_urn, (u32) strlen(p->aux_urn) );
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_data(bs, p->data, p->data_size);
 
@@ -907,7 +907,7 @@ GF_Err auxi_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	//with terminating 0
 	if (ptr->aux_track_type)
-		gf_bs_write_data(bs, ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) );
+		gf_bs_write_data(bs, (u8 *) ptr->aux_track_type, (u32) strlen(ptr->aux_track_type) );
 	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
@@ -1138,7 +1138,7 @@ GF_Err ienc_box_read(GF_Box *s, GF_BitStream *bs)
 	if (nb_keys * (sizeof(bin128)+1) > p->size)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	p->key_info_size = (u32) (3+p->size);
-	p->key_info = gf_malloc(sizeof(u8) * p->key_info_size);
+	p->key_info = (u8 *)gf_malloc(p->key_info_size);
 	if (!p->key_info) return GF_OUT_OF_MEM;
 	p->key_info[0] = 1;
 	p->key_info[1] = 0;
@@ -1378,7 +1378,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 	u32 item_type = 0;
 	GF_ImageItemProperties local_image_props;
 	GF_ImageItemProtection ipro, *orig_ipro = NULL;
-	Bool config_needed = 0;
+	Bool config_needed = GF_FALSE;
 	GF_Box *config_box = NULL;
 	Bool is_cenc = GF_FALSE;
 	Bool is_first = GF_TRUE;
@@ -1421,7 +1421,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		image_props->tile_mode = TILE_ITEM_NONE;
 		count = gf_isom_get_reference_count(movie, imported_track, GF_ISOM_REF_SABT);
 		for (i = 0; i < count; i++) {
-			u32 *tile_item_id = gf_malloc(sizeof(u32));
+			u32 *tile_item_id = (u32 *)gf_malloc(sizeof(u32));
 			if (!tile_item_id) return GF_OUT_OF_MEM;
 
 			*tile_item_id = item_id + i+1;
@@ -1460,7 +1460,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		if (tile_name) gf_free(tile_name);
 
 		for (i = 0; i < count; i++) {
-			u32 *tile_item_id = gf_list_get(tile_item_ids, i);
+			u32 *tile_item_id = (u32 *)gf_list_get(tile_item_ids, i);
 			gf_free(tile_item_id);
 		}
 		gf_list_del(tile_item_ids);
@@ -1585,7 +1585,7 @@ import_next_sample:
 			}
 		} else if ((image_props->time<0) || (image_props->step_time)) {
 			if (image_props->sample_num) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: imported sample %d (DTS "LLU") is not a sync sample (RAP %d size %d)\n", sample_number, sample->DTS, sample->IsRAP, sample->dataLength));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: imported sample %d (DTS " LLU ") is not a sync sample (RAP %d size %d)\n", sample_number, sample->DTS, sample->IsRAP, sample->dataLength));
 			} else if (image_props->step_time) {
 				gf_isom_sample_del(&sample);
 				e = GF_OK;
@@ -1633,7 +1633,7 @@ import_next_sample:
 		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(fsrc, imported_track, sample_desc_index);
 		if (! ((GF_AVCConfigurationBox *)config_box)->config) { e = GF_OUT_OF_MEM; goto exit; }
 		item_type = GF_ISOM_SUBTYPE_AVC_H264;
-		config_needed = 1;
+		config_needed = GF_TRUE;
 		num_channels = 3;
 		bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
 		bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
@@ -1645,7 +1645,7 @@ import_next_sample:
 		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(fsrc, imported_track, sample_desc_index);
 		if (! ((GF_AVCConfigurationBox *)config_box)->config) { e = GF_OUT_OF_MEM; goto exit; }
 		item_type = GF_ISOM_SUBTYPE_SVC_H264;
-		config_needed = 1;
+		config_needed = GF_TRUE;
 		num_channels = 3;
 		bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
 		bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
@@ -1657,7 +1657,7 @@ import_next_sample:
 		((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(fsrc, imported_track, sample_desc_index);
 		if (! ((GF_AVCConfigurationBox *)config_box)->config) { e = GF_OUT_OF_MEM; goto exit; }
 		item_type = GF_ISOM_SUBTYPE_MVC_H264;
-		config_needed = 1;
+		config_needed = GF_TRUE;
 		num_channels = 3;
 		bits_per_channel[0] = ((GF_AVCConfigurationBox *)config_box)->config->luma_bit_depth;
 		bits_per_channel[1] = ((GF_AVCConfigurationBox *)config_box)->config->chroma_bit_depth;
@@ -1680,7 +1680,7 @@ import_next_sample:
 		else {
 			item_type = GF_ISOM_SUBTYPE_HVC1;
 		}
-		config_needed = 1;
+		config_needed = GF_TRUE;
 		if (!((GF_HEVCConfigurationBox *)config_box)->config) {
 			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(fsrc, imported_track, sample_desc_index);
 			if (! ((GF_HEVCConfigurationBox *)config_box)->config) { e = GF_OUT_OF_MEM; goto exit; }
@@ -1699,7 +1699,7 @@ import_next_sample:
 			((GF_AV1ConfigurationBox *)config_box)->config = gf_isom_av1_config_get(fsrc, imported_track, sample_desc_index);
 			if (! ((GF_AV1ConfigurationBox *)config_box)->config) { e = GF_OUT_OF_MEM; goto exit; }
 			item_type = GF_ISOM_SUBTYPE_AV01;
-			config_needed = 1;
+			config_needed = GF_TRUE;
 			u8 depth = ((GF_AV1ConfigurationBox *)config_box)->config->high_bitdepth ? (((GF_AV1ConfigurationBox *)config_box)->config->twelve_bit ? 12 : 10 ) : 8;
 			if (((GF_AV1ConfigurationBox *)config_box)->config->monochrome) {
 				num_channels = 1;
@@ -1714,7 +1714,7 @@ import_next_sample:
 			}
 			// presence of OBU SH in config is not recommended and properties should be used instead of metadata OBUs
 			while (gf_list_count(((GF_AV1ConfigurationBox *)config_box)->config->obu_array)) {
-				GF_AV1_OBUArrayEntry *obu = gf_list_pop_back(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
+				GF_AV1_OBUArrayEntry *obu = (GF_AV1_OBUArrayEntry *)gf_list_pop_back(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
 				if (obu) {
 					if (obu->obu) gf_free(obu->obu);
 					gf_free(obu);
@@ -1738,7 +1738,7 @@ import_next_sample:
 		if (! ((GF_VVCConfigurationBox *)config_box)->config) { e = GF_OUT_OF_MEM; goto exit; }
 		item_type = GF_ISOM_SUBTYPE_VVC1;
 
-		config_needed = 1;
+		config_needed = GF_TRUE;
 		num_channels = 3;
 		bits_per_channel[0] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth;
 		bits_per_channel[1] = bits_per_channel[2] = bits_per_channel[0];
@@ -1965,7 +1965,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Auto grid can only be generated for images of the same size - try using `-add-derived-image type=grid`\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		imgs_ids = gf_realloc(imgs_ids, sizeof(u32) * (nb_imgs+1));
+		imgs_ids = (u32 *)gf_realloc(imgs_ids, sizeof(u32) * (nb_imgs+1));
 		if (!imgs_ids) return GF_OUT_OF_MEM;
 		imgs_ids[nb_imgs] = an_item_id;
 		nb_imgs++;

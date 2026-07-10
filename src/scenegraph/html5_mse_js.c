@@ -736,7 +736,7 @@ GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length)
 	GF_HTML_ArrayBuffer *ab = NULL;
 	GF_SAFEALLOC(ab, GF_HTML_ArrayBuffer);
 	if (!ab) return NULL;
-	
+
 	if (length > 0) {
 		ab->data = data;
 		ab->length = length;
@@ -804,7 +804,7 @@ static JSBool SMJS_FUNCTION(arraybuffer_constructor)
 		length = JSVAL_TO_INT(argv[0]);
 	}
 	if (length > 0) {
-		gf_arraybuffer_js_new(c, (char *)gf_malloc(length), length, NULL);
+(u8 *)gf_arraybuffer_js_new(c, (char *)gf_malloc(length), length, NULL);
 	}
 	return JS_TRUE;
 }

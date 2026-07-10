@@ -80,7 +80,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 			secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
 			t = *gf_gmtime(&secs);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp "LLU" matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ - NTP clock diff (local - remote): %d ms\n", trackID, timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, diff));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp " LLU " matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ - NTP clock diff (local - remote): %d ms\n", trackID, timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, diff));
 		}
 #endif
 		read->last_sender_ntp = ntp;
@@ -114,7 +114,7 @@ static void init_reader(ISOMChannel *ch)
 		ch->au_seq_num = ch->sample_num;
 	} else {
 		//if seek is disabled, get the next closest sample for this time; otherwise, get the previous RAP sample for this time
-		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
+		GF_ISOSearchMode mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
 
 		/*take care of seeking out of the track range*/
 		if (!ch->owner->frag_type && (ch->duration<=ch->start)) {
@@ -264,7 +264,7 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 			ch->crypt_byte_block = crypt_byte_block;
 			ch->skip_byte_block = skip_byte_block;
 
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(ch->skip_byte_block, ch->crypt_byte_block) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT((s32) ch->skip_byte_block, ch->crypt_byte_block) );
 		}
 		if (item_mkey)
 			key_info[0] = 0;
@@ -613,7 +613,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	ch->sap_3 = GF_FALSE;
 	ch->switch_frame = GF_FALSE;
-	ch->sap_4_type = 0;
+	ch->sap_4_type = GF_ISOM_SAMPLE_ROLL_NONE;
 	ch->roll = 0;
 
 	if (ch->sample) {
@@ -637,7 +637,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 
 		if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->sample->duration)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] End of Channel " LLD " (CTS " LLD ")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 			ch->sample = NULL;
 			ch->last_state = GF_EOS;
 			ch->playing = 2;
@@ -752,7 +752,7 @@ static s32 isor_ps_get_id(u8 nal_type, u8 *data, u32 size, Bool is_avc)
 static void isor_reset_seq_list(GF_List *list)
 {
    while (gf_list_count(list)) {
-		   GF_NALUFFParam *sl = gf_list_pop_back(list);
+		   GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_pop_back(list);
 		   gf_free(sl->data);
 		   gf_free(sl);
    }
@@ -769,14 +769,14 @@ static void isor_reset_all_ps(ISOMChannel *ch)
 	else if (ch->hvcc) {
 		count = gf_list_count(ch->hvcc->param_array);
 		for (i=0; i<count; i++) {
-			GF_NALUFFParamArray *hvca = gf_list_get(ch->hvcc->param_array, i);
+			GF_NALUFFParamArray *hvca = (GF_NALUFFParamArray *)gf_list_get(ch->hvcc->param_array, i);
 			isor_reset_seq_list(hvca->nalus);
 		}
 	}
 	else if (ch->vvcc) {
 		count = gf_list_count(ch->vvcc->param_array);
 		for (i=0; i<count; i++) {
-			GF_NALUFFParamArray *vvca = gf_list_get(ch->vvcc->param_array, i);
+			GF_NALUFFParamArray *vvca = (GF_NALUFFParamArray *)gf_list_get(ch->vvcc->param_array, i);
 			isor_reset_seq_list(vvca->nalus);
 		}
 	}
@@ -804,7 +804,7 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		GF_NALUFFParamArray *hvca=NULL;
 		count = gf_list_count(ch->hvcc->param_array);
 		for (i=0; i<count; i++) {
-			hvca = gf_list_get(ch->hvcc->param_array, i);
+			hvca = (GF_NALUFFParamArray *)gf_list_get(ch->hvcc->param_array, i);
 			if (hvca->type==nal_type) {
 				list = hvca->nalus;
 				break;
@@ -835,7 +835,7 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		GF_NALUFFParamArray *vvca=NULL;
 		count = gf_list_count(ch->vvcc->param_array);
 		for (i=0; i<count; i++) {
-			vvca = gf_list_get(ch->vvcc->param_array, i);
+			vvca = (GF_NALUFFParamArray *)gf_list_get(ch->vvcc->param_array, i);
 			if (vvca->type==nal_type) {
 				list = vvca->nalus;
 				break;
@@ -866,17 +866,17 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		}
 	}
 	//get ps
-	ps_id = 1 + isor_ps_get_id(nal_type, data, size, ch->avcc ? 1 : 0);
+	ps_id = 1 + isor_ps_get_id(nal_type, data, size, ch->avcc ? GF_TRUE : GF_FALSE);
 
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
-		sl = gf_list_get(list, i);
+		sl = (GF_NALUFFParam *)gf_list_get(list, i);
 		//ID not set yet, assign it and purge all previous PS in list with same ID
 		if (!sl->id) {
-			sl->id = 1 + isor_ps_get_id(nal_type, sl->data, sl->size, ch->avcc ? 1 : 0);
+			sl->id = 1 + isor_ps_get_id(nal_type, sl->data, sl->size, ch->avcc ? GF_TRUE : GF_FALSE);
 			u32 j;
 			for (j=0; j<i; j++) {
-				GF_NALUFFParam *prev_sl = gf_list_get(list, j);
+				GF_NALUFFParam *prev_sl = (GF_NALUFFParam *)gf_list_get(list, j);
 				if (prev_sl->id == sl->id) {
 					gf_list_rem(list, j);
 					gf_free(prev_sl->data);
@@ -902,10 +902,10 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		}
 		if (state == RESET_STATE_PPS) {
 			//PS modified, copy
-			sl->data = gf_realloc(sl->data, size);
+			sl->data = (u8 *)gf_realloc(sl->data, size);
 			memcpy(sl->data, data, size);
 			sl->size = size;
-			*needs_reset = 1;
+			*needs_reset = GF_TRUE;
 			ch->xps_mask |= state;
 			return;
 		}
@@ -919,19 +919,19 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 		}
 	}
 	ch->xps_mask |= state;
-	*needs_reset = 1;
+	*needs_reset = GF_TRUE;
 
 	if (list) {
 		if (!last_sl) {
 			GF_SAFEALLOC(sl, GF_NALUFFParam);
 			if (!sl) return;
-			sl->data = gf_malloc(sizeof(char)*size);
+			sl->data = (u8 *)gf_malloc(size);
 			memcpy(sl->data, data, size);
 			sl->size = size;
 			sl->id = ps_id;
 			gf_list_add(list, sl);
 		} else {
-			last_sl->data = gf_realloc(last_sl->data, size);
+			last_sl->data = (u8 *)gf_realloc(last_sl->data, size);
 			memcpy(last_sl->data, data, size);
 			last_sl->size = size;
 		}
@@ -1052,7 +1052,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	else if (ch->vvcc) nalu_len = ch->vvcc->nal_unit_size;
 
 	if (!nalu_len) return;
-	needs_reset = 0;
+	needs_reset = GF_FALSE;
 
 	pos = 0;
 

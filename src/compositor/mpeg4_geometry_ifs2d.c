@@ -53,13 +53,13 @@ static void ifs2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 	pts = coord->point.vals;
 
 	if (ci_count > 0) {
-		started = 0;
+		started = GF_FALSE;
 		for (i=0; i < ci_count; i++) {
 			if (ifs2D->coordIndex.vals[i] == -1) {
 				gf_path_close(stack->path);
-				started = 0;
+				started = GF_FALSE;
 			} else if (!started) {
-				started = 1;
+				started = GF_TRUE;
 				gf_path_add_move_to_vec(stack->path, &pts[ifs2D->coordIndex.vals[i]]);
 			} else {
 				gf_path_add_line_to_vec(stack->path, &pts[ifs2D->coordIndex.vals[i]]);
@@ -293,7 +293,7 @@ static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)
 			StrikeInfo2D *si = drawable_get_strikeinfo(tr_state->visual->compositor, stack, &asp, tr_state->appear, NULL, 0, tr_state);
 			if (!si->mesh_outline) {
 				si->mesh_outline = new_mesh();
-				mesh_new_ils(si->mesh_outline, ifs2D->coord, &ifs2D->coordIndex, ifs2D->color, &ifs2D->colorIndex, ifs2D->colorPerVertex, 1);
+				mesh_new_ils(si->mesh_outline, ifs2D->coord, &ifs2D->coordIndex, ifs2D->color, &ifs2D->colorIndex, ifs2D->colorPerVertex, GF_TRUE);
 			}
 			visual_3d_mesh_strike(tr_state, si->mesh_outline, asp.pen_props.width, asp.line_scale, asp.pen_props.dash);
 		} else {

@@ -95,7 +95,7 @@ GF_Err gf_odf_read_base_command(GF_BitStream *bs, GF_BaseODCom *bcRem, u32 gf_od
 	if (! bcRem) return GF_BAD_PARAM;
 
 	bcRem->dataSize = gf_odf_size_command;
-	bcRem->data = (char *) gf_malloc(sizeof(char) * bcRem->dataSize);
+	bcRem->data = (u8 *)gf_malloc(bcRem->dataSize);
 	if (! bcRem->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, bcRem->data, bcRem->dataSize);
 	return GF_OK;
@@ -523,7 +523,7 @@ GF_Err gf_odf_read_ipmp_remove(GF_BitStream *bs, GF_IPMPRemove *ipmpRem, u32 gf_
 	if (!gf_odf_size_command) return GF_OK;
 
 	ipmpRem->NbIPMPDs = gf_odf_size_command;
-	ipmpRem->IPMPDescID = (u8 *) gf_malloc(sizeof(u8) * ipmpRem->NbIPMPDs);
+	ipmpRem->IPMPDescID = (u8 *) gf_malloc(ipmpRem->NbIPMPDs);
 	if (! ipmpRem->IPMPDescID) return GF_OUT_OF_MEM;
 
 	for (i = 0; i < ipmpRem->NbIPMPDs; i++) {

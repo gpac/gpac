@@ -108,7 +108,7 @@ static void bs_split_svc_add_param(GF_List *ps_list, GF_NALUFFParam *sl)
 {
 	u32 i, count=gf_list_count(ps_list);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *p = gf_list_get(ps_list, i);
+		GF_NALUFFParam *p = (GF_NALUFFParam *)gf_list_get(ps_list, i);
 		if (p->id > sl->id) {
 			gf_list_insert(ps_list, sl, i);
 			return;
@@ -151,7 +151,7 @@ static void bs_split_check_svc_config(BSSplitIn *pctx, BSSplitOut *c_opid)
 
 #define CHECK_PARAM(_name, _id, _res)\
 	for (i=0; i<gf_list_count(_name); i++) {\
-		GF_NALUFFParam *sl = gf_list_get(_name, i);\
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(_name, i); \
 		if (sl->id == _id) { _res = GF_TRUE; break; }\
 	}
 
@@ -176,7 +176,7 @@ static void bs_split_check_svc_config(BSSplitIn *pctx, BSSplitOut *c_opid)
 	if (!sps_found) {
 rebrowse_sps:
 		for (i=0; i<gf_list_count(pctx->svcc->sequenceParameterSets); i++) {
-			GF_NALUFFParam *sl = gf_list_get(pctx->svcc->sequenceParameterSets, i);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(pctx->svcc->sequenceParameterSets, i);
 			if (sl->id == avc_sps_id) {
 				sps_found = GF_TRUE;
 				if (gf_list_find(c_opid->svcc->sequenceParameterSets, sl)<0)
@@ -191,7 +191,7 @@ rebrowse_sps:
 	}
 	if (!pps_found) {
 		for (i=0; i<gf_list_count(pctx->svcc->pictureParameterSets); i++) {
-			GF_NALUFFParam *sl = gf_list_get(pctx->svcc->pictureParameterSets, i);
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(pctx->svcc->pictureParameterSets, i);
 			if (sl->id == avc_pps_id) {
 				pps_found = GF_TRUE;
 				if (gf_list_find(c_opid->svcc->pictureParameterSets, sl)<0)
@@ -223,7 +223,7 @@ static void bs_split_update_hevc_linf(BSSplitIn *pctx, BSSplitOut *c_opid)
 	u32 min_lid = 0;
 	u32 min_tid = 0;
 	for (i=0; i<gf_list_count(pctx->opids); i++) {
-		BSSplitOut *an_out = gf_list_get(pctx->opids, i);
+		BSSplitOut *an_out = (BSSplitOut *)gf_list_get(pctx->opids, i);
 		if (an_out==c_opid) continue;
 		if (max_lid < an_out->max_layer_id) continue;
 		if (max_lid == an_out->max_layer_id) {
@@ -321,12 +321,12 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 	BSSplitOut *c_opid = NULL;
 	BSSplitOut *max_c_opid = NULL;
 	if (!layer_id && (temporal_id==1)) {
-		c_opid = gf_list_get(pctx->opids, 0);
+		c_opid = (BSSplitOut *)gf_list_get(pctx->opids, 0);
 		c_opid->is_base = GF_TRUE;
 	} else {
 		count = gf_list_count(pctx->opids);
 		for (i=0; i<count; i++) {
-			c_opid = gf_list_get(pctx->opids, i);
+			c_opid = (BSSplitOut *)gf_list_get(pctx->opids, i);
 			if ((c_opid->max_layer_id==99) && (c_opid->max_temporal_id==99))
 				max_c_opid = c_opid;
 
@@ -411,7 +411,7 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 
 	if (!c_opid) {
 		const GF_PropertyValue *p;
-		BSSplitOut *base_out = gf_list_last(pctx->opids);
+		BSSplitOut *base_out = (BSSplitOut *)gf_list_last(pctx->opids);
 		u32 base_id;
 		GF_SAFEALLOC(c_opid, BSSplitOut);
 		if (!c_opid) return NULL;
@@ -428,7 +428,7 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 		BSSplitOut *dep=NULL;
 		count = gf_list_count(pctx->opids);
 		for (i=count; i>1; i--) {
-			dep = gf_list_get(pctx->opids, i-2);
+			dep = (BSSplitOut *)gf_list_get(pctx->opids, i-2);
 			if ((dep->max_layer_id==layer_id) && (dep->max_temporal_id < temporal_id)) {
 				break;
 			}
@@ -436,7 +436,7 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 		}
 		if (!dep) {
 			for (i=count; i>1; i--) {
-				dep = gf_list_get(pctx->opids, i-2);
+				dep = (BSSplitOut *)gf_list_get(pctx->opids, i-2);
 				if (dep->max_layer_id<layer_id) {
 					break;
 				}
@@ -444,13 +444,13 @@ static BSSplitOut *bs_split_get_out_stream(BSSplitCtx *ctx, BSSplitIn *pctx, Boo
 			}
 		}
 		if (!dep)
-			dep = gf_list_get(pctx->opids, 0);
+			dep = (BSSplitOut *)gf_list_get(pctx->opids, 0);
 
 		c_opid->dep_id = dep->id;
 
 		//get first stream with same layer ID and set width/height
 		for (i=0; i<count-1; i++) {
-			dep = gf_list_get(pctx->opids, i);
+			dep = (BSSplitOut *)gf_list_get(pctx->opids, i);
 			if (dep->width && dep->height && (dep->max_layer_id == layer_id)) {
 				c_opid->width = dep->width;
 				c_opid->height = dep->height;
@@ -584,7 +584,7 @@ static GF_Err avc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 
 	//cleanup all svcc, they contain pointers to pctx->avcc andf pctx->svcc we are about to free
 	for (i=1; i<gf_list_count(pctx->opids); i++) {
-		c_opid = gf_list_get(pctx->opids, i);
+		c_opid = (BSSplitOut *)gf_list_get(pctx->opids, i);
 		if (c_opid->svcc) {
 			bs_split_svcc_del(c_opid->svcc);
 			c_opid->svcc = NULL;
@@ -598,7 +598,7 @@ static GF_Err avc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 	if (_list) {\
 		count = gf_list_count(_list);\
 		for (i=0; i<count; i++) {\
-			GF_NALUFFParam *sl = gf_list_get(_list, i);\
+			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(_list, i); \
 			gf_bs_reassign_buffer(pctx->r_bs, sl->data, sl->size);\
 			gf_bs_enable_emulation_byte_removal(pctx->r_bs, GF_TRUE);\
 			s32 res = gf_avc_parse_nalu(pctx->r_bs, pctx->avc_state);\
@@ -625,7 +625,7 @@ static GF_Err avc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 	}
 
 	//rewrite config of base
-	c_opid = gf_list_get(pctx->opids, 0);
+	c_opid = (BSSplitOut *)gf_list_get(pctx->opids, 0);
 	if (width && height) {
 		c_opid->width = width;
 		c_opid->height = height;
@@ -647,7 +647,7 @@ static GF_Err avc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 
 	//copy props on all defined pids
 	for (i=1; i<gf_list_count(pctx->opids); i++) {
-		c_opid = gf_list_get(pctx->opids, i);
+		c_opid = (BSSplitOut *)gf_list_get(pctx->opids, i);
 
 		bs_split_copy_props_base(ctx, c_opid, pctx->ipid, base_id);
 
@@ -713,14 +713,14 @@ restart:
 	param_array = vvcc ? vvcc->param_array : hvcc->param_array;
 	count = gf_list_count(param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParamArray *pa = gf_list_get(param_array, i);
+		GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(param_array, i);
 
 		u32 count2 = gf_list_count(pa->nalus);
 		for (j=0; j<count2; j++) {
 			GF_List *pa_out_list;
 			u32 layer_id=0, temporal_id=0;
 			GF_NALUFFParamArray *pa_out = NULL;
-			GF_NALUFFParam *nal = gf_list_get(pa->nalus, j);
+			GF_NALUFFParam *nal = (GF_NALUFFParam *)gf_list_get(pa->nalus, j);
 
 			if (is_vvc) {
 				layer_id = nal->data[0] & 0x3F;
@@ -743,7 +743,7 @@ restart:
 						return GF_OUT_OF_MEM;
 					}
 					memcpy(vvcc_out, vvcc, sizeof(GF_VVCConfig));
-					vvcc_out->general_constraint_info = gf_malloc(sizeof(u8)*vvcc_out->num_constraint_info);
+					vvcc_out->general_constraint_info = (u8 *)gf_malloc(vvcc_out->num_constraint_info);
 					if (!vvcc_out->general_constraint_info) {
 						gf_odf_vvc_cfg_del(vvcc);
 						return GF_OUT_OF_MEM;
@@ -776,7 +776,7 @@ restart:
 			}
 
 			for (u32 k=0; k<gf_list_count(pa_out_list); k++) {
-				pa_out = gf_list_get(pa_out_list, k);
+				pa_out = (GF_NALUFFParamArray *)gf_list_get(pa_out_list, k);
 				if (pa_out->type == pa->type) break;
 				pa_out = NULL;
 			}
@@ -798,7 +798,7 @@ restart:
 			GF_NALUFFParam *nal_out;
 			GF_SAFEALLOC(nal_out, GF_NALUFFParam);
 			nal_out->size = nal->size;
-			nal_out->data = gf_malloc(sizeof(u8) * nal->size);
+			nal_out->data = (u8 *)gf_malloc(nal->size);
 			memcpy(nal_out->data, nal->data, sizeof(u8) * nal->size);
 			gf_list_add(pa_out->nalus, nal_out);
 		}
@@ -838,7 +838,7 @@ restart:
 	for (i=0; i<count; i++) {
 		u32 max_w=0, max_h=0;
 		GF_List *orig_pa_list, *out_param_array;
-		BSSplitOut *c_opid = gf_list_get(pctx->opids, i);
+		BSSplitOut *c_opid = (BSSplitOut *)gf_list_get(pctx->opids, i);
 
 
 		if (vvcc) {
@@ -868,12 +868,12 @@ restart:
 
 		u32 count2 = gf_list_count(orig_pa_list);
 		for (j=0; j<count2; j++) {
-			GF_NALUFFParamArray *pa = gf_list_get(orig_pa_list, j);
+			GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(orig_pa_list, j);
 			GF_NALUFFParamArray *pa_out = NULL;
 			for (u32 k=0; k<gf_list_count(pa->nalus); k++) {
 				Bool do_add = GF_FALSE;
 				u32 layer_id=0, temporal_id=0;
-				GF_NALUFFParam *nal = gf_list_get(pa->nalus, k);
+				GF_NALUFFParam *nal = (GF_NALUFFParam *)gf_list_get(pa->nalus, k);
 				if (vvcc) {
 					layer_id = nal->data[0] & 0x3F;
 					temporal_id = (nal->data[1] & 0x7);
@@ -972,7 +972,7 @@ restart:
 
 		count2 = gf_list_count(out_param_array);
 		for (j=0; j<count2; j++) {
-			GF_NALUFFParamArray *pa = gf_list_get(out_param_array, j);
+			GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(out_param_array, j);
 			gf_list_del(pa->nalus);
 			gf_free(pa);
 		}
@@ -999,7 +999,7 @@ static GF_Err none_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 
 	count = gf_list_count(pctx->opids);
 	for (i=0; i<count; i++) {
-		BSSplitOut *c_opid = gf_list_get(pctx->opids, i);
+		BSSplitOut *c_opid = (BSSplitOut *)gf_list_get(pctx->opids, i);
 		gf_filter_pid_copy_properties(c_opid->opid, pctx->ipid);
 	}
 	return GF_OK;
@@ -1007,7 +1007,7 @@ static GF_Err none_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 
 static GF_Err none_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacket *pck)
 {
-	BSSplitOut *c_opid = gf_list_get(pctx->opids, 0);
+	BSSplitOut *c_opid = (BSSplitOut *)gf_list_get(pctx->opids, 0);
 	if (c_opid)
 		return gf_filter_pck_forward(pck, c_opid->opid);
 	return GF_OK;
@@ -1021,7 +1021,7 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 	Bool has_svc_prefix = GF_FALSE;
 	const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!data) {
-		BSSplitOut *c_opid = gf_list_get(pctx->opids, 0);
+		BSSplitOut *c_opid = (BSSplitOut *)gf_list_get(pctx->opids, 0);
 		if (c_opid)
 			return gf_filter_pck_forward(pck, c_opid->opid);
 		return GF_OK;
@@ -1226,7 +1226,7 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 
 	u32 i, count = gf_list_count(pctx->opids);
 	for (i=0; i<count; i++) {
-		BSSplitOut *c_opid = gf_list_get(pctx->opids, i);
+		BSSplitOut *c_opid = (BSSplitOut *)gf_list_get(pctx->opids, i);
 		if (c_opid->pck) {
 			gf_filter_pck_send(c_opid->pck);
 			c_opid->pck = NULL;
@@ -1253,7 +1253,7 @@ static void bs_split_reset_stream(GF_Filter *filter, BSSplitCtx *ctx, BSSplitIn 
 	if (!pctx) return;
 
 	while (gf_list_count(pctx->opids)) {
-		BSSplitOut *c_opid = gf_list_pop_back(pctx->opids);
+		BSSplitOut *c_opid = (BSSplitOut *)gf_list_pop_back(pctx->opids);
 		if (!is_finalize)
 			gf_filter_pid_remove(c_opid->opid);
 		bs_split_svcc_del(c_opid->svcc);
@@ -1288,7 +1288,7 @@ static GF_Err bs_split_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 {
 	const GF_PropertyValue *prop;
 	BSSplitCtx *ctx = (BSSplitCtx *) gf_filter_get_udta(filter);
-	BSSplitIn *pctx = gf_filter_pid_get_udta(pid);
+	BSSplitIn *pctx = (BSSplitIn *)gf_filter_pid_get_udta(pid);
 
 	//disconnect of src pid
 	if (is_remove) {
@@ -1372,7 +1372,7 @@ static GF_Err bs_split_process(GF_Filter *filter)
 		GF_FilterPacket *pck;
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
 		if (!pid) break;
-		pctx = gf_filter_pid_get_udta(pid);
+		pctx = (BSSplitIn *)gf_filter_pid_get_udta(pid);
 		if (!pctx) break;
 
 		while (1) {
@@ -1380,7 +1380,7 @@ static GF_Err bs_split_process(GF_Filter *filter)
 			if (!pck) {
 				if (gf_filter_pid_is_eos(pctx->ipid)) {
 					for (u32 j=0; j<gf_list_count(pctx->opids); j++) {
-						BSSplitOut *c_opid = gf_list_get(pctx->opids, j);
+						BSSplitOut *c_opid = (BSSplitOut *)gf_list_get(pctx->opids, j);
 						gf_filter_pid_set_eos(c_opid->opid);
 					}
 				}
@@ -1405,7 +1405,7 @@ static void bs_split_finalize(GF_Filter *filter)
 {
 	BSSplitCtx *ctx = (BSSplitCtx *) gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->pids)) {
-		BSSplitIn *pctx = gf_list_pop_back(ctx->pids);
+		BSSplitIn *pctx = (BSSplitIn *)gf_list_pop_back(ctx->pids);
 
 		bs_split_reset_stream(filter, ctx, pctx, GF_TRUE, GF_FALSE);
 	}

@@ -460,6 +460,17 @@ void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
  */
 void gf_route_dmx_get_repair_info(GF_ROUTEDmx *routedmx, u32 service_id, const char **base_uri, const char **repair_server);;
 
+/*! internal LCT object*/
+typedef struct __gf_lct_object GF_LCTObject;
+
+/*! retrieve a file info object from a handle to a LCT object (being) transfered
+ \param lct_obj opaque LCT handle,  set in blob.range_udta for route objects
+ \param finfo the object information to fill
+ \return GF_TRUE if success, GF_FALSE otherwise
+*/
+Bool gf_route_dmx_get_object_info(GF_LCTObject *lct_obj, GF_ROUTEEventFileInfo *finfo);
+
+
 /*! @} */
 #ifdef __cplusplus
 }

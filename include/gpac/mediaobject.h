@@ -36,7 +36,7 @@ extern "C" {
 \file <gpac/mediaobject.h>
 \brief Interface between compositor and decoding engine for media data access.
  */
-	
+
 /*!
 \addtogroup mobj_grp MediaObject
 \ingroup playback_grp
@@ -46,7 +46,7 @@ This section documents the API between the compositor of GPAC and the decoding e
 
 @{
  */
-	
+
 #include <gpac/filters.h>
 #include <gpac/scenegraph_vrml.h>
 
@@ -314,12 +314,12 @@ typedef struct
 	s32 srd_y;
 	s32 srd_w;
 	s32 srd_h;
-	
+
 	s32 srd_min_x;
 	s32 srd_min_y;
 	s32 srd_max_x;
 	s32 srd_max_y;
-	
+
 	u32 scene_width;
 	u32 scene_height;
 

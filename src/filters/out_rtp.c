@@ -101,13 +101,13 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		if (! *session_id) *session_id = gf_net_get_ntp_ts();
 		session_version = gf_net_get_ntp_ts();
 	}
-	gf_fprintf(sdp_out, "o=gpac "LLU" "LLU" IN IP%d %s\n", *session_id, session_version, gf_net_is_ipv6(ip) ? 6 : 4, ip);
+	gf_fprintf(sdp_out, "o=gpac " LLU " " LLU " IN IP%d %s\n", *session_id, session_version, gf_net_is_ipv6(ip) ? 6 : 4, ip);
 	gf_fprintf(sdp_out, "s=%s\n", sess_name);
 
 	if (info) {
 		gf_fprintf(sdp_out, "i=%s\n", info);
 	} else {
-		GF_RTPOutStream *stream = gf_list_get(streams, 0);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(streams, 0);
 		const char *src = gf_filter_pid_orig_src_args(stream->pid, GF_FALSE);
 		if (!src) src = gf_filter_pid_get_source_filter_name(stream->pid);
 		else {
@@ -142,7 +142,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		Bool disable_seek = GF_FALSE;
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
-			GF_RTPOutStream *stream = gf_list_get(streams, i);
+			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(streams, i);
 			if (!stream->rtp) continue;
 
 			p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DURATION);
@@ -161,11 +161,11 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 			gf_fprintf(sdp_out, "a=range:npt=0-%g\n", max_dur);
 		}
 	}
-	
+
 	if (base_pid_id) {
 		gf_fprintf(sdp_out, "a=group:DDP L%d", base_pid_id);
 		for (i = 0; i < count; i++) {
-			GF_RTPOutStream *st = gf_list_get(streams, i);
+			GF_RTPOutStream *st = (GF_RTPOutStream *)gf_list_get(streams, i);
 			if (st->depends_on == base_pid_id) {
 				gf_fprintf(sdp_out, " L%d", i+1);
 			}
@@ -176,8 +176,8 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	for (i=0; i<count; i++) {
 		char *sdp_media=NULL;
 		const char *KMS = NULL;
-		char *dsi = NULL;
-		char *dsi_enh = NULL;
+		u8 *dsi = NULL;
+		u8 *dsi_enh = NULL;
 		u32 w, h, tw, th;
 		s32 tx, ty;
 		s16 tl;
@@ -185,7 +185,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		u32 dsi_enh_len = 0;
 		u32 nb_chan = 0;
 		const GF_PropertyValue *p;
-		GF_RTPOutStream *stream = gf_list_get(streams, i);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(streams, i);
 		if (!stream->rtp) continue;
 
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DECODER_CONFIG);
@@ -252,7 +252,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 				while (dep) {
 					GF_RTPOutStream *base=NULL;
 					for (j=0; j<count; j++) {
-						base = gf_list_get(streams, j);
+						base = (GF_RTPOutStream *)gf_list_get(streams, j);
 						if (dep->depends_on == base->id) break;
 						base = NULL;
 					}
@@ -285,7 +285,7 @@ static Bool check_mime_ext(const char *string, const char *pattern)
 	gf_strcpy(szLwr, pattern);
 	strlwr(szLwr);
 	u32 len = (u32) strlen(szLwr);
-	char *sep = strstr(string, szLwr);
+	const char *sep = strstr(string, szLwr);
 	if (!sep) return GF_FALSE;
 	if (!sep[len] || (sep[len] == '|')) return GF_TRUE;
 	return GF_FALSE;
@@ -294,21 +294,22 @@ static Bool check_mime_ext(const char *string, const char *pattern)
 GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, const char *netcap_id)
 {
 	Bool disable_mpeg4 = GF_FALSE;
-	u32 flags, average_size, max_size, max_tsdelta, codecid, const_dur, nb_ch, samplerate, max_cts_offset, bandwidth, IV_length, KI_length, dsi_len, max_ptime, au_sn_len;
-	char *dsi;
+	u32 flags, average_size, max_size, max_tsdelta, const_dur, nb_ch, samplerate, max_cts_offset, bandwidth, IV_length, KI_length, dsi_len, max_ptime, au_sn_len;
+	GF_CodecID codecid;
+	u8 *dsi;
 	Bool is_crypted, is_enh_dsi = GF_FALSE;
 	const GF_PropertyValue *p;
 
 	*base_pid_id = 0;
 
 	dsi_len = samplerate = nb_ch = IV_length = KI_length = 0;
-	is_crypted = 0;
+	is_crypted = GF_FALSE;
 	dsi = NULL;
 	flags = 0;
 	max_ptime = au_sn_len = 0;
 
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_CODECID);
-	codecid = p ? p->value.uint : 0;
+	codecid = p ? (GF_CodecID) p->value.uint : GF_CODECID_NONE;
 	if (stream->codecid && (stream->codecid != codecid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Dynamic change of codec in RTP session not supported !\n"));
 		return GF_FILTER_NOT_SUPPORTED;
@@ -463,7 +464,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 					stream->vvcc = vvcc;
 					stream->hvcc = hvcc;
 					for (i=0; i<count; i++) {
-						GF_NALUFFParamArray *pa = gf_list_get(param_array, i);
+						GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(param_array, i);
 						if (!vpsa && (pa->type == vps_nut)) {
 							vpsa = pa;
 							gf_list_rem(param_array, i);
@@ -511,6 +512,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 			flags |= GP_RTP_PCK_USE_LATM_AAC;
 		if (!dsi)
 			return GF_NOT_READY;
+		break;
+	default:
 		break;
 	}
 
@@ -664,7 +667,7 @@ static u16 rtpout_check_next_port(GF_RTPOutCtx *ctx, u16 first_port)
 {
 	u32 i, count = gf_list_count(ctx->streams);
 	for (i=0;i<count; i++) {
-		GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(ctx->streams, i);
 		if (stream->port==first_port) {
 			return rtpout_check_next_port(ctx, (u16) (first_port+2) );
 		}
@@ -694,7 +697,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	const GF_PropertyValue *p;
 
 	if (is_remove) {
-		GF_RTPOutStream *t = gf_filter_pid_get_udta(pid);
+		GF_RTPOutStream *t = (GF_RTPOutStream *)gf_filter_pid_get_udta(pid);
 		if (t) {
 			if (ctx->active_stream==t) ctx->active_stream = NULL;
 			gf_list_del_item(ctx->streams, t);
@@ -706,7 +709,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 		return GF_OK;
 	}
-	stream = gf_filter_pid_get_udta(pid);
+	stream = (GF_RTPOutStream *)gf_filter_pid_get_udta(pid);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	streamType = p ? p->value.uint : 0;
@@ -834,7 +837,7 @@ static void rtpout_finalize(GF_Filter *filter)
 	GF_RTPOutCtx *ctx = (GF_RTPOutCtx *) gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		GF_RTPOutStream *tmp = gf_list_pop_back(ctx->streams);
+		GF_RTPOutStream *tmp = (GF_RTPOutStream *)gf_list_pop_back(ctx->streams);
 		rtpout_del_stream(tmp);
 	}
 	gf_list_del(ctx->streams);
@@ -846,8 +849,8 @@ static GF_Err rtpout_send_xps(GF_RTPOutStream *stream, GF_List *pslist, Bool *au
 	GF_Err e;
 	u32 i, count = gf_list_count(pslist);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *sl = gf_list_get(pslist, i);
-		e = gf_rtp_streamer_send_data(stream->rtp, (char *) sl->data, sl->size, pck_size, cts, dts, stream->current_sap ? 1 : 0, *au_start, GF_FALSE, stream->pck_num, duration, stream->sample_desc_index);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(pslist, i);
+		e = gf_rtp_streamer_send_data(stream->rtp, sl->data, sl->size, pck_size, cts, dts, stream->current_sap ? GF_TRUE : GF_FALSE, *au_start, GF_FALSE, stream->pck_num, duration, stream->sample_desc_index);
 		if (e) return e;
 		*au_start = GF_FALSE;
 	}
@@ -862,7 +865,7 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 
 	for (i=0; i<count; i++) {
 		u64 dts;
-		GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+		GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(stream->pid);
 		if (!pck) return GF_FALSE;
 
@@ -883,11 +886,11 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	}
 	ctx->sys_clock_at_init = gf_sys_clock_high_res();
 	ctx->microsec_ts_init = min_dts;
-	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP clock initialized - time origin set to "LLU" us (sys clock) / "LLU" us (media clock)\n", ctx->sys_clock_at_init, ctx->microsec_ts_init));
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP clock initialized - time origin set to " LLU " us (sys clock) / " LLU " us (media clock)\n", ctx->sys_clock_at_init, ctx->microsec_ts_init));
 	if (ctx->tso<0) {
 		gf_rand_init(GF_FALSE);
 		for (i=0; i<count; i++) {
-			GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(ctx->streams, i);
 			stream->rtp_ts_offset = gf_rand();
 			while (stream->rtp_ts_offset>0xFFFFFFF)
 				stream->rtp_ts_offset/=2;
@@ -900,7 +903,7 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 
 	if (ctx->runfor==0) {
 		for (i=0; i<count; i++) {
-			GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+			GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(ctx->streams, i);
 			gf_filter_pid_set_discard(stream->pid, GF_TRUE);
 		}
 	}
@@ -910,10 +913,10 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 
 static void rtpout_process_rtcp(void *cbk, u32 ssrc, u32 rtt_ms, u64 jitter_rtp_ts, u32 loss_rate)
 {
-	GF_RTPOutStream *stream = cbk;
+	GF_RTPOutStream *stream = (GF_RTPOutStream *)cbk;
 	if (ssrc) return;
 	u64 jitter_us = gf_timestamp_rescale(jitter_rtp_ts, stream->rtp_timescale, 1000000);
-	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTCP stats for PID %s: rtt %u ms jitter "LLU" us loss rate %d / 1000\n\n", gf_filter_pid_get_name(stream->pid), rtt_ms, jitter_us, loss_rate));
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTCP stats for PID %s: rtt %u ms jitter " LLU " us loss rate %d / 1000\n\n", gf_filter_pid_get_name(stream->pid), rtt_ms, jitter_us, loss_rate));
 
 	gf_filter_pid_set_rt_stats(stream->pid, rtt_ms, (u32) jitter_us, loss_rate);
 
@@ -930,7 +933,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	u32 duration, i, count;
 	s64 diff;
 	u64 clock;
-	const char *pck_data;
+	const u8 *pck_data;
 	u32 pck_size=0;
 	u32 dts, cts;
 
@@ -941,7 +944,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 		*active_min_ts_microsec = (u64) -1;
 		for (i=0; i<count; i++) {
-			stream = gf_list_get(streams, i);
+			stream = (GF_RTPOutStream *)gf_list_get(streams, i);
 			if (!stream->rtp) {
 				if (stream->state==RTPOUT_STREAM_STOP) nb_eos++;
 				continue;
@@ -961,7 +964,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 						if (!stream->bye_sent) {
 							stream->bye_sent = GF_TRUE;
 							if (stream->rtp) {
-								gf_rtp_streamer_send_au(stream->rtp, NULL, 0, 0, 0, GF_FALSE);
+								gf_rtp_streamer_send_au(stream->rtp, NULL, GF_FALSE, 0, 0, GF_FALSE);
 								gf_rtp_streamer_send_bye(stream->rtp);
 							}
 						}
@@ -991,7 +994,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 				if (stream->microsec_dts < microsec_ts_init) {
 					stream->microsec_dts = 0;
-					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d) has a timestamp "LLU" less than initial timestamp "LLU" - forcing to 0\n", i+1, stream->microsec_dts, microsec_ts_init));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d) has a timestamp " LLU " less than initial timestamp " LLU " - forcing to 0\n", i+1, stream->microsec_dts, microsec_ts_init));
 				} else {
 					stream->microsec_dts -= microsec_ts_init;
 				}
@@ -1020,7 +1023,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					return GF_EOS;
 
 				for (i=0; i<count; i++) {
-					stream = gf_list_get(streams, i);
+					stream = (GF_RTPOutStream *)gf_list_get(streams, i);
 					u64 dur = stream->current_dts + stream->current_duration - stream->min_dts;
 
 					dur = gf_timestamp_rescale(dur, stream->timescale, 1000000);
@@ -1037,7 +1040,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 				for (i=0; i<count; i++) {
 					GF_FilterEvent evt;
 					const GF_PropertyValue *p;
-					stream = gf_list_get(streams, i);
+					stream = (GF_RTPOutStream *)gf_list_get(streams, i);
 					p = gf_filter_pid_get_property(stream->pid, GF_PROP_NO_TS_LOOP);
 					if (!p || !p->value.boolean) {
 						u64 new_ts = gf_timestamp_rescale(max_dur, 1000000, stream->timescale);
@@ -1069,13 +1072,13 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		if (diff<=11000) repost_in = diff/3;
 		else repost_in = diff - 10000;
 		*repost_delay_us = (u32) repost_in;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d DTS "LLU") scheduled in "LLU" us, requesting filter reschedule in "LLU" us - clock "LLU" us\n", *active_stream_idx, stream->current_dts, diff, repost_in, clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d DTS " LLU ") scheduled in " LLU " us, requesting filter reschedule in " LLU " us - clock " LLU " us\n", *active_stream_idx, stream->current_dts, diff, repost_in, clock));
 		return GF_OK;
 	} else if (diff<=-2000) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") too late by %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, -diff, clock));
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS " LLU ") too late by %d us - clock " LLU " us\n", *active_stream_idx, stream->pck_num, stream->current_dts, -diff, clock));
 		*repost_delay_us=0;
 	} else if (diff>0){
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") ahead of %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, diff, clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS " LLU ") ahead of %d us - clock " LLU " us\n", *active_stream_idx, stream->pck_num, stream->current_dts, diff, clock));
 	}
 
 	/*send packets*/
@@ -1111,7 +1114,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] Sending RTP packets for stream %d pck %d/%d DTS "LLU" - CTS "LLU" - RTP TS "LLU" - size %d - SAP %d - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->nb_aus, stream->current_dts, stream->current_dts, cts, pck_size, stream->current_sap, clock) );
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] Sending RTP packets for stream %d pck %d/%d DTS " LLU " - CTS " LLU " - RTP TS " LLU " - size %d - SAP %d - clock " LLU " us\n", *active_stream_idx, stream->pck_num, stream->nb_aus, stream->current_dts, stream->current_dts, cts, pck_size, stream->current_sap, clock) );
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] Runtime %08u ms send stream %d pck %08u/%08u DTS %08u CTS %08u RTP-TS %08u size %08u SAP %d\r", (u32) (clock - sys_clock_at_init)/1000, *active_stream_idx, stream->pck_num, stream->nb_aus, (u32) stream->current_dts, (u32) stream->current_dts, (u32) cts, pck_size, stream->current_sap) );
 	}
@@ -1127,7 +1130,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		count = gf_list_count(streams);
 
 		for (i=0; i<count; i++) {
-			GF_RTPOutStream *astream = gf_list_get(streams, i);
+			GF_RTPOutStream *astream = (GF_RTPOutStream *)gf_list_get(streams, i);
 			if (!astream->selected || !astream->has_pck) break;
 
 			u32 ts = (u32) (astream->current_cts + astream->ts_offset + astream->rtp_ts_offset);
@@ -1141,9 +1144,9 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		Bool au_start, au_end;
 		u32 v, size;
 		u32 remain = pck_size;
-		const char *ptr = pck_data;
+		const u8 *ptr = pck_data;
 
-		au_start = 1;
+		au_start = GF_TRUE;
 		e = GF_OK;
 
 		if (stream->avcc && stream->current_sap) {
@@ -1158,7 +1161,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 			GF_List *ar_list = stream->vvcc ? stream->vvcc->param_array : stream->hvcc->param_array;
 			u32 nbps = gf_list_count(ar_list);
 			for (i=0; i<nbps; i++) {
-				GF_NALUFFParamArray *pa = gf_list_get(ar_list, i);
+				GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(ar_list, i);
 				if (!e)
 					e = rtpout_send_xps(stream, pa->nalus, &au_start, pck_size, cts, dts, duration);
 			}
@@ -1179,14 +1182,14 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 				break;
 			}
 			remain -= size;
-			au_end = remain ? 0 : 1;
+			au_end = remain ? GF_FALSE : GF_TRUE;
 
-			e = gf_rtp_streamer_send_data(stream->rtp, (char *) ptr, size, pck_size, cts, dts, stream->current_sap ? 1 : 0, au_start, au_end, stream->pck_num, duration, stream->sample_desc_index);
+			e = gf_rtp_streamer_send_data(stream->rtp, ptr, size, pck_size, cts, dts, stream->current_sap ? GF_TRUE : GF_FALSE, au_start, au_end, stream->pck_num, duration, stream->sample_desc_index);
 			ptr += size;
-			au_start = 0;
+			au_start = GF_FALSE;
 		}
 	} else {
-		e = gf_rtp_streamer_send_data(stream->rtp, (char *) pck_data, pck_size, pck_size, cts, dts, stream->current_sap ? 1 : 0, 1, 1, stream->pck_num, duration, stream->sample_desc_index);
+		e = gf_rtp_streamer_send_data(stream->rtp, pck_data, pck_size, pck_size, cts, dts, stream->current_sap ? GF_TRUE : GF_FALSE, GF_TRUE, GF_TRUE, stream->pck_num, duration, stream->sample_desc_index);
 	}
 	gf_filter_pid_drop_packet(stream->pid);
 	stream->has_pck = GF_FALSE;
@@ -1203,7 +1206,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
 	u32 repost_delay_us=0;
-	GF_RTPOutCtx *ctx = gf_filter_get_udta(filter);
+	GF_RTPOutCtx *ctx = (GF_RTPOutCtx *)gf_filter_get_udta(filter);
 
 	/*init session timeline - all sessions are sync'ed for packet scheduling purposes*/
 	if (!ctx->sys_clock_at_init) {
@@ -1217,7 +1220,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 		if ((s32) diff > ctx->runfor) {
 			u32 i, count = gf_list_count(ctx->streams);
 			for (i=0; i<count; i++) {
-				GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
+				GF_RTPOutStream *stream = (GF_RTPOutStream *)gf_list_get(ctx->streams, i);
 				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
 				stream->has_pck = GF_FALSE;
 			}
@@ -1318,7 +1321,7 @@ GF_FilterRegister RTPOutRegister = {
 	"The filter does not check for RTCP timeout and will run until all input PIDs reach end of stream.\n"
 	)
 	.private_size = sizeof(GF_RTPOutCtx),
-	.max_extra_pids = -1,
+	.max_extra_pids = (u32) -1,
 	.args = RTPOutArgs,
 	//dynamic redirect since RTP may be dynamically loaded when solving .sdp destinations
 	.flags = GF_FS_REG_DYNAMIC_REDIRECT | GF_FS_REG_TEMP_INIT,

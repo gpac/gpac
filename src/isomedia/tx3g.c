@@ -28,7 +28,7 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-static u32 rgb_48_to_32(char *val)
+static u32 rgb_48_to_32(u8 *val)
 {
 	u32 res = 0x0;
 	u32 i;
@@ -256,11 +256,11 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 /*blindly adds text - note we don't rely on terminaison characters to handle utf8 and utf16 data
 in the same way. It is the user responsibility to signal UTF16*/
 GF_EXPORT
-GF_Err gf_isom_text_add_text(GF_TextSample *samp, char *text_data, u32 text_len)
+GF_Err gf_isom_text_add_text(GF_TextSample *samp, const char *text_data, u32 text_len)
 {
 	if (!samp) return GF_BAD_PARAM;
 	if (!text_len) return GF_OK;
-	samp->text = (char*)gf_realloc(samp->text, sizeof(char) * (samp->len + text_len) );
+	samp->text = (char*)gf_realloc(samp->text, (samp->len + text_len) );
 	memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
 	samp->len += text_len;
 	return GF_OK;
@@ -277,7 +277,7 @@ GF_Err gf_isom_text_set_utf16_marker(GF_TextSample *samp)
 {
 	/*we MUST have an empty sample*/
 	if (!samp || samp->text) return GF_BAD_PARAM;
-	samp->text = (char*)gf_malloc(sizeof(char) * 2);
+	samp->text = (char*)gf_malloc(2);
 	if (!samp->text) return GF_OUT_OF_MEM;
 	samp->text[0] = (char) 0xFE;
 	samp->text[1] = (char) 0xFF;
@@ -444,7 +444,7 @@ GF_Err gf_isom_text_sample_write_bs(const GF_TextSample *samp, GF_BitStream *bs)
 	if (!samp) return GF_BAD_PARAM;
 
 	gf_bs_write_u16(bs, samp->len);
-	if (samp->len) gf_bs_write_data(bs, samp->text, samp->len);
+	if (samp->len) gf_bs_write_data(bs, (u8 *)samp->text, samp->len);
 
 	e = gpp_write_modifier(bs, (GF_Box *)samp->styles);
 	if (!e) e = gpp_write_modifier(bs, (GF_Box *)samp->highlight_color);
@@ -580,10 +580,10 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 		if (txt->horizontal_justification != desc->horiz_justif) continue;
 		if (txt->font_table->entry_count != desc->font_count) continue;
 
-		same_fonts = 1;
+		same_fonts = GF_TRUE;
 		for (j=0; j<desc->font_count; j++) {
-			if (txt->font_table->fonts[j].fontID != desc->fonts[j].fontID) same_fonts = 0;
-			else if (strcmp(desc->fonts[j].fontName, txt->font_table->fonts[j].fontName)) same_fonts = 0;
+			if (txt->font_table->fonts[j].fontID != desc->fonts[j].fontID) same_fonts = GF_FALSE;
+			else if (strcmp(desc->fonts[j].fontName, txt->font_table->fonts[j].fontName)) same_fonts = GF_FALSE;
 		}
 		if (same_fonts) {
 			*outDescIdx = i+1;
@@ -662,11 +662,11 @@ GF_TextSample *gf_isom_parse_text_sample(GF_BitStream *bs)
 	if (s->len) {
 		/*2 extra bytes for UTF-16 term char just in case (we don't know if a BOM marker is present or
 		not since this may be a sample carried over RTP*/
-		s->text = (char *) gf_malloc(sizeof(char)*(s->len+2) );
+		s->text = (char *) gf_malloc(s->len+2);
 		if (!s->text) return NULL;
 		s->text[s->len] = 0;
 		s->text[s->len+1] = 0;
-		gf_bs_read_data(bs, s->text, s->len);
+		gf_bs_read_data(bs, (u8 *)s->text, s->len);
 	}
 
 	while (gf_bs_available(bs)) {
@@ -814,7 +814,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *_a, GF_BitStream *bs, u32 
 			if (qt_fontname) {
 				u32 len = (u32) strlen(qt_fontname);
 				gf_bs_write_u8(bs, len);
-				gf_bs_write_data(bs, qt_fontname, len);
+				gf_bs_write_data(bs, (u8 *) qt_fontname, len);
 			} else {
 				gf_bs_write_u8(bs, 0);
 			}
@@ -823,7 +823,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *_a, GF_BitStream *bs, u32 
 			if (ttxt->font_table->fonts[j].fontName) {
 				u32 len = (u32) strlen(ttxt->font_table->fonts[j].fontName);
 				gf_bs_write_u8(bs, len);
-				gf_bs_write_data(bs, ttxt->font_table->fonts[j].fontName, len);
+				gf_bs_write_data(bs, (u8 *)ttxt->font_table->fonts[j].fontName, len);
 			} else {
 				gf_bs_write_u8(bs, 0);
 			}
@@ -864,11 +864,11 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	gf_bs_write_int(bs, 1, 1);	/*we will write sample desc*/
 
 	/*write v info if any visual track in this movie*/
-	has_v_info = 0;
+	has_v_info = GF_FALSE;
 	i=0;
 	while ((tk = (GF_TrackBox*)gf_list_enum(mdia->mediaTrack->moov->trackList, &i))) {
 		if (tk->Media->handler && (tk->Media->handler->handlerType == GF_ISOM_MEDIA_VISUAL)) {
-			has_v_info = 1;
+			has_v_info = GF_TRUE;
 		}
 	}
 	gf_bs_write_int(bs, has_v_info, 1);
@@ -909,7 +909,7 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 {
 	GF_BitStream *bs;
 	u32 pay_start, txt_size;
-	Bool is_utf_16 = 0;
+	Bool is_utf_16 = GF_FALSE;
 	if (!samp || !samp->data || !samp->dataLength) return GF_OK;
 
 	bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
@@ -921,7 +921,7 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 	if (txt_size>2) {
 		/*seems 3GP only accepts BE UTF-16 (no LE, no UTF32)*/
 		if (((u8) samp->data[2]==(u8) 0xFE) && ((u8)samp->data[3]==(u8) 0xFF)) {
-			is_utf_16 = 1;
+			is_utf_16 = GF_TRUE;
 			pay_start = 4;
 			txt_size -= 2;
 		}

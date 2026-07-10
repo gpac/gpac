@@ -39,10 +39,6 @@
 
 #ifdef GPAC_HAS_FFMPEG
 
-#if (LIBAVCODEC_VERSION_MAJOR>58)
-#include <libavutil/mastering_display_metadata.h>
-#endif
-
 
 typedef struct
 {
@@ -151,7 +147,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	nb_pids = gf_filter_get_ipid_count(filter);
 	for (i=0; i<nb_pids; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+		GF_FFMuxStream *st = (GF_FFMuxStream *)gf_filter_pid_get_udta(ipid);
 		if (!st) continue;
 
 		if ((st->in_scale.den == st->stream->time_base.den) && (st->in_scale.num == st->stream->time_base.num)) {
@@ -187,7 +183,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	u64 max_dur=0;
 	for (i=0; i<nb_pids; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+		GF_FFMuxStream *st = (GF_FFMuxStream *)gf_filter_pid_get_udta(ipid);
 
 		//get pid delay
 		const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DELAY);
@@ -217,9 +213,9 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 
 	if (chap_t) {
 		ctx->muxer->nb_chapters = chap_t->value.uint_list.nb_items;
-		ctx->muxer->chapters = av_malloc(sizeof(AVChapter*)* ctx->muxer->nb_chapters);
+		ctx->muxer->chapters = (AVChapter**) av_malloc(sizeof(AVChapter*)* ctx->muxer->nb_chapters);
 		for (i=0; i<ctx->muxer->nb_chapters; i++) {
-			AVChapter *ch = av_malloc(sizeof(AVChapter));
+			AVChapter *ch = (AVChapter *) av_malloc(sizeof(AVChapter));
 			memset(ch, 0, sizeof(AVChapter));
 			ctx->muxer->chapters[i] = ch;
 			ch->start = chap_t->value.uint_list.vals[i];
@@ -296,7 +292,7 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 	if (use_gfio) {
 		ctx->gfio = gf_fopen(dst, "wb");
 		if (!ctx->gfio) return GF_URL_ERROR;
-		ctx->avio_ctx_buffer = av_malloc(ctx->block_size);
+		ctx->avio_ctx_buffer = (u8*) av_malloc(ctx->block_size);
 		if (!ctx->avio_ctx_buffer) return GF_OUT_OF_MEM;
 
 		ctx->avio_ctx = avio_alloc_context(ctx->avio_ctx_buffer, ctx->block_size,
@@ -398,7 +394,7 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	if (!ofmt && !ctx->ffmt) {
 		u32 len;
 		char szProto[20];
-		char *proto = strstr(url, "://");
+		const char *proto = strstr(url, "://");
 		if (!proto)
 			return GF_FILTER_NOT_SUPPORTED;
 		szProto[19] = 0;
@@ -504,7 +500,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 
 			/*reassign stream*/
 			for (j=0; j<gf_list_count(ctx->streams); j++) {
-				GF_FFMuxStream *ast = gf_list_get(ctx->streams, j);
+				GF_FFMuxStream *ast = (GF_FFMuxStream *)gf_list_get(ctx->streams, j);
 				if (ast->stream == ctx->muxer->streams[i]) {
 					ast->stream = st;
 					break;
@@ -764,8 +760,8 @@ static GF_Err ffmx_process(GF_Filter *filter)
 					break;
 				}
 
-				int size = 0;
-				u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
+				u32 size = 0;
+				const u8 *data = (u8 *) gf_filter_pck_get_data(ipck, &size);
 				u32 to_write = size - ctx->pck_offset;
 				if ((s32) to_write > ctx->avio_ctx->buffer_size)
 					to_write = ctx->avio_ctx->buffer_size;
@@ -822,7 +818,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		for (i=0; i<nb_pids; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
-			GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+			GF_FFMuxStream *st = (GF_FFMuxStream *)gf_filter_pid_get_udta(ipid);
 			if (!st) continue;
 
 			if (!st->ready) {
@@ -868,7 +864,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 	nb_suspended = 0;
 	for (i=0; i<nb_pids; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+		GF_FFMuxStream *st = (GF_FFMuxStream *)gf_filter_pid_get_udta(ipid);
 		if (!st) continue;
 		if (st->in_seg_flush) {
 			nb_segs_done ++;
@@ -958,7 +954,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			pkt->duration = gf_filter_pck_get_duration(ipck);
 			sap = gf_filter_pck_get_sap(ipck);
 			if (sap==GF_FILTER_SAP_1) pkt->flags = AV_PKT_FLAG_KEY;
-			pkt->data = (u8 *) gf_filter_pck_get_data(ipck, &pkt->size);
+			pkt->data = (u8 *) gf_filter_pck_get_data(ipck, (u32*) &pkt->size);
 
 			if (st->ts_shift) {
 				pkt->dts = pkt->dts + st->ts_shift;
@@ -1014,7 +1010,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		ffmx_initialize_ex(filter, GF_TRUE);
 		for (i=0; i<nb_pids; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-			GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+			GF_FFMuxStream *st = (GF_FFMuxStream *)gf_filter_pid_get_udta(ipid);
 			if (!st) continue;
 			st->suspended = GF_FALSE;
 			st->stream = 0;
@@ -1028,7 +1024,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		ctx->dash_seg_num = 0;
 		for (i=0; i<nb_pids; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-			GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+			GF_FFMuxStream *st = (GF_FFMuxStream *)gf_filter_pid_get_udta(ipid);
 			if (!st) continue;
 			st->in_seg_flush = GF_FALSE;
 		}
@@ -1072,8 +1068,11 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	int res;
 	AVStream *avst;
 	Bool check_disc = GF_FALSE;
-	u32 streamtype, codec_id;
-	u32 ff_codec_id, ff_st, ff_codec_tag;
+	u32 streamtype;
+	GF_CodecID codec_id;
+	enum AVCodecID ff_codec_id;
+	enum AVMediaType ff_st;
+	u32 ff_codec_tag;
 	GF_Err e;
 	const GF_PropertyValue *p, *dsi;
 	GF_FFMuxStream *st;
@@ -1084,7 +1083,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		//one in one out, this is simple
 		return GF_OK;
 	}
-	st = gf_filter_pid_get_udta(pid);
+	st = (GF_FFMuxStream *)gf_filter_pid_get_udta(pid);
 	if (st) {
 		if (ctx->status >= FFMX_STATE_HDR_DONE)
 			check_disc = GF_TRUE;
@@ -1113,15 +1112,15 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Cannot use proto with non-file format (got %s)\n", gf_stream_type_name(streamtype)));
 			return GF_NOT_SUPPORTED;
 		}
-		ff_st = 0;
-		ff_codec_id = 0;
+		ff_st = AVMEDIA_TYPE_UNKNOWN;
+		ff_codec_id = AV_CODEC_ID_NONE;
 		check_disc = GF_FALSE;
 		goto setup_stream;
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
-	codec_id = p->value.uint;
+	codec_id = (GF_CodecID) p->value.uint;
 
 	stream_ready = GF_TRUE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -1217,7 +1216,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 	} else if (codec_id==GF_CODECID_FFMPEG) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
-		ff_codec_id = p ? p->value.uint : AV_CODEC_ID_NONE;
+		ff_codec_id = p ? (enum AVCodecID) p->value.uint : AV_CODEC_ID_NONE;
 	} else {
 		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
 	}
@@ -1381,7 +1380,7 @@ setup_stream:
 	avst->codecpar->codec_tag = ff_codec_tag;
 
 	if (dsi && dsi->value.data.ptr) {
-		e = ffmpeg_extradata_from_gpac(codec_id, dsi->value.data.ptr, dsi->value.data.size, &avst->codecpar->extradata, &avst->codecpar->extradata_size);
+		e = ffmpeg_extradata_from_gpac(codec_id, dsi->value.data.ptr, dsi->value.data.size, &avst->codecpar->extradata, (u32*)&avst->codecpar->extradata_size);
 		if (e) return e;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -1483,7 +1482,7 @@ setup_stream:
 	//remap our props to side data
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_MATRIX);
 	if (p && (p->type==GF_PROP_UINT_LIST) && (p->value.uint_list.nb_items==9)) {
-		u8 *data = av_malloc(sizeof(u32) * 9);
+		u8 *data = (u8 *) av_malloc(sizeof(u32) * 9);
 		if (data) {
 			memcpy(data, p->value.uint_list.vals, sizeof(u32)*9);
 #if (LIBAVFORMAT_VERSION_MAJOR < 62)
@@ -1500,7 +1499,7 @@ setup_stream:
 	//icc profile if any
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ICC_PROFILE);
 	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA))) {
-		u8 *data = av_malloc(p->value.data.size);
+		u8 *data = (u8 *) av_malloc(p->value.data.size);
 		if (data) {
 			memcpy(data, p->value.data.ptr, p->value.data.size);
 #if (LIBAVFORMAT_VERSION_MAJOR < 62)
@@ -1517,7 +1516,7 @@ setup_stream:
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CONTENT_LIGHT_LEVEL);
 	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA)) && (p->value.data.size==4)) {
 		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
-		AVContentLightMetadata *data = av_malloc(sizeof(AVContentLightMetadata));
+		AVContentLightMetadata *data = (AVContentLightMetadata *) av_malloc(sizeof(AVContentLightMetadata));
 		if (data) {
 			data->MaxCLL = gf_bs_read_u16(bs);
 			data->MaxFALL = gf_bs_read_u16(bs);
@@ -1539,7 +1538,7 @@ setup_stream:
 		const int chroma_den = 50000;
 		const int luma_den = 10000;
 		memset(mdcv, 0, sizeof(u8)*24);
-		AVMasteringDisplayMetadata *data = av_malloc(sizeof(AVMasteringDisplayMetadata));
+		AVMasteringDisplayMetadata *data = (AVMasteringDisplayMetadata *) av_malloc(sizeof(AVMasteringDisplayMetadata));
 		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
 		if (data) {
 			data->display_primaries[1][0].num = gf_bs_read_u16(bs);
@@ -1577,7 +1576,7 @@ setup_stream:
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
 	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA)) && (p->value.data.size==24)) {
 		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
-		Ref_FFAVDoviRecord *data = av_malloc(sizeof(Ref_FFAVDoviRecord));
+		Ref_FFAVDoviRecord *data = (Ref_FFAVDoviRecord *) av_malloc(sizeof(Ref_FFAVDoviRecord));
 		if (data) {
 			data->dv_version_major = gf_bs_read_u8(bs);
 			data->dv_version_minor = gf_bs_read_u8(bs);
@@ -1646,7 +1645,7 @@ static void ffmx_finalize(GF_Filter *filter)
 	if (ctx->options) av_dict_free(&ctx->options);
 	if (ctx->muxer)	avformat_free_context(ctx->muxer);
 	while (gf_list_count(ctx->streams)) {
-		GF_FFMuxStream *st = gf_list_pop_back(ctx->streams);
+		GF_FFMuxStream *st = (GF_FFMuxStream *)gf_list_pop_back(ctx->streams);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
@@ -1660,7 +1659,7 @@ static void ffmx_finalize(GF_Filter *filter)
 
 static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	GF_FFMuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *)gf_filter_get_udta(filter);
 	return ffmpeg_update_arg("FFMux", ctx->muxer, &ctx->options, arg_name, arg_val);
 }
 

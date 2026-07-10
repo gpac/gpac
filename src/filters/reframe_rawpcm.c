@@ -59,7 +59,7 @@ typedef struct
 GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_PCMReframeCtx *ctx = (GF_PCMReframeCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -131,7 +131,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		ctx->total_frames = p->value.longuint;
 		ctx->total_frames /= ctx->frame_size;
 
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(nb_frames, ctx->sr));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT((s64)nb_frames, ctx->sr));
 	}
 
 	return GF_OK;
@@ -141,7 +141,7 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 {
 	u32 nb_frames;
 	GF_FilterEvent fevt;
-	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_PCMReframeCtx *ctx = (GF_PCMReframeCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -223,10 +223,10 @@ void pcmreframe_flush_packet(GF_PCMReframeCtx *ctx)
 }
 GF_Err pcmreframe_process(GF_Filter *filter)
 {
-	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_PCMReframeCtx *ctx = (GF_PCMReframeCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	u64 byte_offset;
-	u8 *data;
+	const u8 *data;
 	u32 pck_size;
 
 	if (ctx->done) return GF_EOS;
@@ -248,7 +248,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	if (ctx->probe_wave==1) {
@@ -256,12 +256,12 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		Bool hdr_found = GF_FALSE;
 		GF_BitStream *bs;
 		if (ctx->probe_data) {
-			ctx->probe_data = gf_realloc(ctx->probe_data, ctx->probe_data_size+pck_size);
+			ctx->probe_data = (u8 *)gf_realloc(ctx->probe_data, ctx->probe_data_size+pck_size);
 			memcpy(ctx->probe_data + ctx->probe_data_size, data, pck_size);
 			ctx->probe_data_size += pck_size;
 			bs = gf_bs_new(ctx->probe_data, ctx->probe_data_size, GF_BITSTREAM_READ);
 		} else {
-			bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+			bs = gf_bs_new((u8*)data, pck_size, GF_BITSTREAM_READ);
 		}
 		u32 type = gf_bs_read_u32(bs);
 		if (type!=GF_4CC('R', 'I', 'F', 'F')) {
@@ -346,7 +346,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		}
 		if (gf_bs_is_overflow(bs)) {
 			if (!ctx->probe_data) {
-				ctx->probe_data = gf_malloc(pck_size);
+				ctx->probe_data = (u8 *)gf_malloc(pck_size);
 				memcpy(ctx->probe_data, data, pck_size);
 				ctx->probe_data_size = pck_size;
 			}
@@ -471,7 +471,7 @@ static const char *pcmreframe_probe_data(const u8 *data, u32 size, GF_FilterProb
 {
 	if (size<20) return NULL;
 
-	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	u32 code = gf_bs_read_u32(bs);
 	if (code == GF_4CC('R', 'I', 'F', 'F')) {
 		gf_bs_read_u32(bs);
@@ -490,7 +490,7 @@ static const char *pcmreframe_probe_data(const u8 *data, u32 size, GF_FilterProb
 
 static void pcmreframe_finalize(GF_Filter *filter)
 {
-	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
+	GF_PCMReframeCtx *ctx = (GF_PCMReframeCtx *)gf_filter_get_udta(filter);
 	if (ctx->out_pck) gf_filter_pck_discard(ctx->out_pck);
 	if (ctx->probe_data) gf_free(ctx->probe_data);
 }

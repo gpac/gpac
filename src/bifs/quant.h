@@ -27,6 +27,10 @@
 #ifndef __QUANTIZE_H
 #define __QUANTIZE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/internal/bifs_dev.h>
 
 #ifndef GPAC_DISABLE_BIFS
@@ -118,5 +122,9 @@ void gp_bifs_aa_dec_reset(GF_AADecoder *dec);
 
 
 #endif /*GPAC_DISABLE_BIFS*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

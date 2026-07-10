@@ -72,7 +72,7 @@ static void nalumx_write_ps_list(GF_NALUMxCtx *ctx, GF_BitStream *bs, GF_List *l
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *sl = gf_list_get(list, i);
+		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(list, i);
 		gf_bs_write_u32(bs, 1);
 		gf_bs_write_data(bs, sl->data, sl->size);
 		if (for_non_rap)
@@ -97,7 +97,7 @@ static GF_List *nalumx_get_hevc_ps(GF_HEVCConfig *cfg, u8 type)
 {
 	u32 i, count = gf_list_count(cfg->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParamArray *pa = gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(cfg->param_array, i);
 		if (pa->type == type) return pa->nalus;
 	}
 	return NULL;
@@ -106,13 +106,13 @@ static GF_List *nalumx_get_vvc_ps(GF_VVCConfig *cfg, u8 type)
 {
 	u32 i, count = gf_list_count(cfg->param_array);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParamArray *pa = gf_list_get(cfg->param_array, i);
+		GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(cfg->param_array, i);
 		if (pa->type == type) return pa->nalus;
 	}
 	return NULL;
 }
 
-static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, Bool for_non_rap)
+static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, const u8 *dsi, u32 dsi_len, const  u8 *dsi_enh, u32 dsi_enh_len, Bool for_non_rap)
 {
 	GF_BitStream *bs;
 	GF_AVCConfig *avcc = NULL;
@@ -233,7 +233,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	GF_Err e;
 	u32 crc, crc_enh, codecid;
 	const GF_PropertyValue *p, *dcd, *dcd_enh;
-	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NALUMxCtx *ctx = (GF_NALUMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -310,7 +310,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 }
 
 
-static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_size, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr, u32 *delim_flags, Bool *is_sap)
+static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, const u8 *data, u32 pos, u32 nal_size, Bool *has_nal_delim, u32 *out_temporal_id, u32 *out_layer_id, u8 *avc_hdr, u32 *delim_flags, Bool *is_sap)
 {
 	*is_sap = GF_FALSE;
 	Bool is_layer = GF_FALSE;
@@ -418,9 +418,10 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 
 GF_Err nalumx_process(GF_Filter *filter)
 {
-	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NALUMxCtx *ctx = (GF_NALUMxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 pck_size, size, sap=0, temporal_id, layer_id;
 	u8 avc_hdr;
 	u8 *dsi_buf = NULL;
@@ -458,7 +459,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 		ctx->nal_hdr_size = 4;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!pck_size || !data) {
 		//if output and packet properties, forward - this is required for sinks using packets for state signaling
 		//such as TS muxer in dash mode looking for EODS property
@@ -468,8 +469,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
-	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
-	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
+	if (!ctx->bs_r) ctx->bs_r = gf_bs_new((u8*)data, pck_size, GF_BITSTREAM_READ);
+	else gf_bs_reassign_buffer(ctx->bs_r, (u8*)data, pck_size);
 
 	size = 0;
 	temporal_id = layer_id = 0;
@@ -677,7 +678,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 
 static GF_Err nalumx_initialize(GF_Filter *filter)
 {
-	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NALUMxCtx *ctx = (GF_NALUMxCtx *)gf_filter_get_udta(filter);
 #ifdef GPAC_DISABLE_AV_PARSERS
 	if (ctx->delim)
 		ctx->delim=2;
@@ -691,7 +692,7 @@ static GF_Err nalumx_initialize(GF_Filter *filter)
 }
 static void nalumx_finalize(GF_Filter *filter)
 {
-	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_NALUMxCtx *ctx = (GF_NALUMxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->dsi) gf_free(ctx->dsi);

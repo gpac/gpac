@@ -44,7 +44,7 @@ void rtpin_stream_ack_connect(GF_RTPInStream *stream, GF_Err e)
 
 GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly)
 {
-	gf_rtp_depacketizer_reset(stream->depacketizer, !ResetOnly);
+	gf_rtp_depacketizer_reset(stream->depacketizer, ResetOnly ? GF_FALSE : GF_TRUE);
 
 	if (!ResetOnly) {
 		GF_Err e;
@@ -77,7 +77,7 @@ void rtpin_stream_reset_queue(GF_RTPInStream *stream)
 {
 	if (!stream->pck_queue) return;
 	while (gf_list_count(stream->pck_queue)) {
-		GF_FilterPacket *pck = gf_list_pop_back(stream->pck_queue);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(stream->pck_queue);
 		gf_filter_pck_discard(pck);
 	}
 }
@@ -114,7 +114,7 @@ static void rtpin_stream_queue_pck(GF_RTPInStream *stream, GF_FilterPacket *pck,
 	//with i,j,k >0
 	while (stream->first_in_rtp_pck) {
 		u64 prev_cts;
-		GF_FilterPacket *prev = gf_list_get(stream->pck_queue, 0);
+		GF_FilterPacket *prev = (struct __gf_filter_pck *)gf_list_get(stream->pck_queue, 0);
 		if (!prev) break;
 		prev_cts = gf_filter_pck_get_cts(prev);
 		if (prev_cts>cts) break;
@@ -125,12 +125,12 @@ static void rtpin_stream_queue_pck(GF_RTPInStream *stream, GF_FilterPacket *pck,
 	gf_list_add(stream->pck_queue, pck);
 	//flush if too high, in case we had a msimatch filtering out packets from a previous PLAY or we have TS loop
 	while (gf_list_count(stream->pck_queue)>30) {
-		GF_FilterPacket *prev = gf_list_pop_front(stream->pck_queue);
+		GF_FilterPacket *prev = (struct __gf_filter_pck *)gf_list_pop_front(stream->pck_queue);
 		gf_filter_pck_send(prev);
 	}
 }
 
-static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
+static void rtp_sl_packet_cbk(void *udta, const u8 *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
 {
 	u64 cts, dts;
 	s64 diff;
@@ -186,7 +186,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
 	if (!pck) return;
-	
+
 	memcpy(pck_data, payload, size);
 	if (hdr->decodingTimeStampFlag)
 		gf_filter_pck_set_dts(pck, hdr->decodingTimeStamp - stream->ts_offset);
@@ -220,7 +220,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 		stream->nb_ch = hdr->channels;
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(stream->nb_ch));
 	}
-	gf_filter_pck_set_framing(pck, hdr->accessUnitStartFlag, hdr->accessUnitEndFlag);
+	gf_filter_pck_set_framing(pck, hdr->accessUnitStartFlag ? GF_TRUE : GF_FALSE, hdr->accessUnitEndFlag ? GF_TRUE : GF_FALSE);
 
 	if (stream->depacketizer && stream->depacketizer->sl_map.config_updated) {
 		stream->depacketizer->sl_map.config_updated = 0;
@@ -255,7 +255,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	}
 
 	if (stream->rtp_ch->packet_loss)
-		gf_filter_pck_set_corrupted(pck, 1);
+		gf_filter_pck_set_corrupted(pck, GF_TRUE);
 
 #if 0 //not yet implemented
 	if (hdr->seekFlag)
@@ -279,13 +279,13 @@ GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, 
 	GF_SAFEALLOC(tmp, GF_RTPInStream);
 	if (!tmp) return NULL;
 	tmp->rtpin = rtp;
-	tmp->buffer = gf_malloc(sizeof(char) * rtp->block_size);
+	tmp->buffer = (u8 *)gf_malloc(rtp->block_size);
 
 	/*create an RTP channel*/
 	tmp->rtp_ch = gf_rtp_new_ex(gf_filter_get_netcap_id(rtp->filter));
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
-	trans.Profile = "RTP/AVP";
+	trans.Profile = (char *) "RTP/AVP";
 	trans.source = (char *) flow_ip;
 	if (for_satip) {
 		tmp->control = gf_strdup("*");
@@ -419,7 +419,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		GF_SAFEALLOC(tmp, GF_RTPInStream);
 		if (!tmp) return NULL;
 		tmp->rtpin = rtp;
-		tmp->buffer = gf_malloc(sizeof(char) * rtp->block_size);
+		tmp->buffer = (u8 *)gf_malloc(rtp->block_size);
 	}
 
 	/*create an RTP channel*/
@@ -480,15 +480,15 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	if (rvc_predef) {
 		tmp->depacketizer->sl_map.rvc_predef = rvc_predef ;
 	} else if (rvc_config_att) {
-		char *rvc_data=NULL;
+		u8 *rvc_data=NULL;
 		u32 rvc_size=0;
 		Bool is_gz = GF_FALSE;
 		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 31) && strstr(rvc_config_att, "base64") ) {
 			char *data = strchr(rvc_config_att, ',');
 			if (data) {
 				rvc_size = (u32) strlen(data) * 3 / 4 + 1;
-				rvc_data = (char*)gf_malloc(sizeof(char) * rvc_size);
-				rvc_size = gf_base64_decode(data, (u32) strlen(data), rvc_data, rvc_size);
+				rvc_data = (u8*)gf_malloc(rvc_size);
+				rvc_size = gf_base64_decode((u8*)data, (u32) strlen(data), rvc_data, rvc_size);
 				rvc_data[rvc_size] = 0;
 			}
 			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 34)) is_gz = GF_TRUE;
@@ -555,7 +555,7 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 }
 
 
-void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
+void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, const u8 *pck, u32 size)
 {
 	GF_Err e;
 	GF_RTPHeader hdr;
@@ -663,7 +663,7 @@ static void rtpin_adjust_sync(GF_RTPIn *ctx)
 	u64 max_ntp_us = 0;
 
 	for (i=0; i<count; i++) {
-		GF_RTPInStream *stream = gf_list_get(ctx->streams, i);
+		GF_RTPInStream *stream = (struct __rtpin_stream *)gf_list_get(ctx->streams, i);
 		if (!stream->rtcp_init) return;
 
 		if (max_ntp_us < stream->init_ntp_us) {
@@ -673,7 +673,7 @@ static void rtpin_adjust_sync(GF_RTPIn *ctx)
 
 	for (i=0; i<count; i++) {
 		s64 ntp_diff_us;
-		GF_RTPInStream *stream = gf_list_get(ctx->streams, i);
+		GF_RTPInStream *stream = (struct __rtpin_stream *)gf_list_get(ctx->streams, i);
 
 		ntp_diff_us = max_ntp_us;
 		ntp_diff_us -= stream->init_ntp_us;
@@ -682,7 +682,7 @@ static void rtpin_adjust_sync(GF_RTPIn *ctx)
 	}
 }
 
-static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size)
+static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, const u8 *pck, u32 size)
 {
 	Bool has_sr;
 	GF_Err e;
@@ -711,7 +711,7 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 		stream->init_ntp_us = ntp_clock_us - rtp_diff_us;
 
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] At %d Using Sender Report to map RTP TS %d to NTP clock "LLU" us - NTP origin "LLU"\n", gf_sys_clock(), stream->rtp_ch->last_SR_rtp_time, ntp_clock_us, stream->init_ntp_us));
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] At %d Using Sender Report to map RTP TS %d to NTP clock " LLU " us - NTP origin " LLU "\n", gf_sys_clock(), stream->rtp_ch->last_SR_rtp_time, ntp_clock_us, stream->init_ntp_us));
 
 		stream->rtcp_init = GF_TRUE;
 

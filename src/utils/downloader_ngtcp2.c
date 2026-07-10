@@ -176,7 +176,7 @@ static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *ra
 static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
 {
 	(void)conn;
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 
 	if (RAND_bytes(cid->data, (int)cidlen) != 1) {
 		return NGTCP2_ERR_CALLBACK_FAILURE;
@@ -209,7 +209,7 @@ static int ngq_get_new_connection_id(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t
 
 static int ngq_remove_connection_id(ngtcp2_conn *conn, const ngtcp2_cid *cid, void *user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	//client
 	if (!qc->serv_conn) return 0;
 
@@ -256,8 +256,8 @@ static nghttp3_ssize ngh3_data_source_read_callback(
   nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
   uint32_t *pflags, void *conn_user_data, void *stream_user_data)
 {
-	GF_DownloadSession *sess = stream_user_data;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 
 	if (!sess->hmux_is_eos && !sess->local_buf_len && !qr->second_local_buf_len
 	) {
@@ -272,7 +272,7 @@ static nghttp3_ssize ngh3_data_source_read_callback(
 			*pflags |= NGHTTP3_DATA_FLAG_EOF;
 			sess->hmux_is_eos = 0;
 			sess->hmux_data_done = 1;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLD" sending EOS\n", stream_id));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id " LLD " sending EOS\n", stream_id));
 
 			gf_free(qr->second_local_buf);
 			qr->second_local_buf = NULL;
@@ -293,7 +293,7 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 {
 	if (is_destroy) {
 		if (sess->hmux_priv) {
-			GF_QuicDataRead *qr = sess->hmux_priv;
+			GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 			if (qr->second_local_buf) gf_free(qr->second_local_buf);
 			gf_free(sess->hmux_priv);
 			sess->hmux_priv = NULL;
@@ -307,7 +307,7 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 		if (sess->log_name) gf_free(sess->log_name);
 		sess->log_name = gf_strdup("HTTP/3");
 	}
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 	qr->data_read.read_data = ngh3_data_source_read_callback;
 	return GF_OK;
 }
@@ -316,7 +316,7 @@ static int ngh3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *
                    size_t datalen, void *conn_user_data, void *stream_user_data)
 {
 	GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
-	GF_DownloadSession *sess = stream_user_data;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 
 	ngtcp2_conn_extend_max_stream_offset(qc->conn, stream_id, datalen);
 	ngtcp2_conn_extend_max_offset(qc->conn, datalen);
@@ -326,12 +326,12 @@ static int ngh3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *
 
 	if (sess->hmux_buf.size + datalen > sess->hmux_buf.alloc) {
 		sess->hmux_buf.alloc = sess->hmux_buf.size + (u32) datalen;
-		sess->hmux_buf.data = gf_realloc(sess->hmux_buf.data, sizeof(u8) * sess->hmux_buf.alloc);
+		sess->hmux_buf.data = (u8 *)gf_realloc(sess->hmux_buf.data, sess->hmux_buf.alloc);
 		if (!sess->hmux_buf.data) return NGHTTP3_ERR_NOMEM;
 	}
 	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, datalen);
 	sess->hmux_buf.size += (u32) datalen;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLD" received %d bytes (%d/%d total)\n", sess->hmux_stream_id, (u32) datalen, sess->hmux_buf.size, sess->total_size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id " LLD " received %d bytes (%d/%d total)\n", sess->hmux_stream_id, (u32) datalen, sess->hmux_buf.size, sess->total_size));
 	return 0;
 }
 
@@ -349,7 +349,7 @@ static int ngh3_begin_headers(nghttp3_conn *conn, int64_t stream_id, void *conn_
                        void *stream_user_data)
 {
 	GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
-	GF_DownloadSession *sess = stream_user_data;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 
 	if (!sess && (qc->hmux->net_sess->hmux_stream_id==-2)) {
 		sess = qc->hmux->net_sess;
@@ -386,7 +386,7 @@ static int ngh3_begin_headers(nghttp3_conn *conn, int64_t stream_id, void *conn_
 		sess->flags |= GF_NETIO_SESSION_USE_QUIC;
 	}
 
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 	qr->is_put = GF_FALSE;
 	gf_dm_sess_clear_headers(sess);
 	return 0;
@@ -396,14 +396,14 @@ static int ngh3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token
                      nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
                      void *conn_user_data, void *stream_user_data)
 {
-	GF_DownloadSession *sess = stream_user_data;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 	GF_HTTPHeader *hdrp;
 
 	GF_SAFEALLOC(hdrp, GF_HTTPHeader);
 	if (!hdrp) return NGHTTP3_ERR_NOMEM;
 	nghttp3_vec v = nghttp3_rcbuf_get_buf(name);
 
-	hdrp->name = gf_malloc(v.len+1);
+	hdrp->name = (char *)gf_malloc(v.len+1);
 	if (!hdrp->name) {
 		gf_free(hdrp);
 		return NGHTTP3_ERR_NOMEM;
@@ -412,7 +412,7 @@ static int ngh3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token
 	hdrp->name[v.len]=0;
 
 	v = nghttp3_rcbuf_get_buf(value);
-	hdrp->value = gf_malloc(v.len+1);
+	hdrp->value = (char *)gf_malloc(v.len+1);
 	if (!hdrp->value) {
 		gf_free(hdrp->name);
 		gf_free(hdrp);
@@ -421,11 +421,11 @@ static int ngh3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token
 	memcpy(hdrp->value,v.base,v.len+1);
 	hdrp->value[v.len]=0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLD" got header %s: %s\n", sess->hmux_stream_id, hdrp->name, hdrp->value));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id " LLD " got header %s: %s\n", sess->hmux_stream_id, hdrp->name, hdrp->value));
 	gf_list_add(sess->headers, hdrp);
 
 	if (!strcmp(hdrp->name, ":method") && (!stricmp(hdrp->value, "PUT") || !stricmp(hdrp->value, "POST"))) {
-		GF_QuicDataRead *qr = sess->hmux_priv;
+		GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 		qr->is_put = GF_TRUE;
 	}
 	return 0;
@@ -434,15 +434,15 @@ static int ngh3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token
 static int ngh3_end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
 	void *conn_user_data, void *stream_user_data)
 {
-	GF_DownloadSession *sess = stream_user_data;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 	sess->hmux_headers_seen = 1;
 	if (sess->server_mode) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID " LLD "\n", sess->hmux_stream_id));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID "LLD"\n", sess->hmux_stream_id));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID " LLD "\n", sess->hmux_stream_id));
 	}
 	if (fin && !sess->server_mode) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) data done\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id " LLU " (%s) data done\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
 		sess->hmux_data_done = 1;
 		sess->hmux_is_eos = 0;
 		sess->hmux_send_data = NULL;
@@ -497,12 +497,12 @@ static int ngh3_reset_stream(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 
 static int ngh3_end_stream(nghttp3_conn *conn, int64_t stream_id, void *conn_user_data, void *stream_user_data)
 {
-	GF_DownloadSession *sess = stream_user_data;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 	//session may have been detached once we detect EOS, ignore streamid mismatch
 	if (!sess || (sess->hmux_stream_id != stream_id))
 		return 0;
 
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 	if (sess->put_state) {
 		sess->put_state = 0;
 		sess->status = GF_NETIO_DATA_TRANSFERED;
@@ -518,7 +518,7 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	void *conn_user_data, void *stream_user_data)
 {
 	Bool do_retry = GF_FALSE;
-	GF_DownloadSession *sess = stream_user_data;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 
 	//session may have been detached once we detect EOS, ignore streamid mismatch
 	if (!sess|| (sess->hmux_stream_id != stream_id))
@@ -550,12 +550,12 @@ static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app
 	}
 
 	if (app_error_code!=NGHTTP3_H3_NO_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) closed with error_code=%d\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, app_error_code));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] stream_id " LLU " (%s) closed with error_code=%d\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, app_error_code));
 		sess->status = GF_NETIO_STATE_ERROR;
 		SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
 		sess->put_state = 0;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) closed (put state %d)\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, sess->put_state));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id " LLU " (%s) closed (put state %d)\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, sess->put_state));
 
 		if (sess->put_state) {
 			sess->put_state = 0;
@@ -574,8 +574,8 @@ static int ngh3_acked_stream_data(nghttp3_conn *conn, int64_t stream_id, uint64_
 	void *conn_user_data, void *stream_user_data)
 {
 	GF_QuicConnection *qc = (GF_QuicConnection *)conn_user_data;
-	GF_DownloadSession *sess = stream_user_data;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 
 	ngtcp2_conn_info ci;
 	ngtcp2_conn_get_conn_info(qc->conn, &ci);
@@ -628,6 +628,7 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 	}
 
 	nghttp3_callbacks callbacks = {
+		.acked_stream_data = ngh3_acked_stream_data,
 		.stream_close = ngh3_stream_close,
 		.recv_data = ngh3_recv_data,
 		.deferred_consume = ngh3_deferred_consume,
@@ -638,9 +639,8 @@ static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 		.recv_trailer = ngh3_recv_trailer,
 		.end_trailers = ngh3_end_trailers,
 		.stop_sending = ngh3_stop_sending,
-		.reset_stream = ngh3_reset_stream,
-		.acked_stream_data = ngh3_acked_stream_data,
-		.end_stream = ngh3_end_stream
+		.end_stream = ngh3_end_stream,
+		.reset_stream = ngh3_reset_stream
 	};
 
 	nghttp3_settings settings;
@@ -721,7 +721,7 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	nghttp3_nv *hdrs;
 
 	nb_hdrs = gf_list_count(sess->headers);
-	hdrs = gf_malloc(sizeof(nghttp3_nv) * (nb_hdrs + 4));
+	hdrs = (nghttp3_nv *)gf_malloc(sizeof(nghttp3_nv) * (nb_hdrs + 4));
 	if (!hdrs) return GF_OUT_OF_MEM;
 
 	NGH3_HDR(hdrs[0], ":method", req_name);
@@ -745,13 +745,13 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	}
 
 	for (i=0; i<nb_hdrs; i++) {
-		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
+		GF_HTTPHeader *hdr = (GF_HTTPHeader *)gf_list_get(sess->headers, i);
 		NGH3_HDR(hdrs[4+i], hdr->name, hdr->value);
 	}
 	GF_QuicDataRead *qr = NULL;
 
 	gf_assert((sess->hmux_stream_id<0) || sess->hmux_data_done);
-	qr = sess->hmux_priv;
+	qr = (GF_QuicDataRead *)sess->hmux_priv;
 	gf_assert(qr->local_buf_sent == qr->local_buf_ack);
 	qr=NULL;
 	if (has_body) {
@@ -778,7 +778,7 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 
 #ifndef GPAC_DISABLE_LOG
 	if (!e && gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_DEBUG)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] send request (has_body %d) for new stream_id "LLD":\n", has_body, sess->hmux_stream_id));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] send request (has_body %d) for new stream_id " LLD ":\n", has_body, sess->hmux_stream_id));
 		for (i=0; i<nb_hdrs+4; i++) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("\t%s: %s\n", hdrs[i].name, hdrs[i].value));
 		}
@@ -804,7 +804,7 @@ static GF_Err h3_data_pending(GF_DownloadSession *sess)
 	//always move pending data to local buffer
 	if (sess->hmux_send_data) {
 		gf_mx_p(sess->mx);
-		GF_QuicDataRead *qr = sess->hmux_priv;
+		GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 		Bool use_main = GF_FALSE;
 		if (!qr->second_local_buf_len) {
 			if (!sess->local_buf_alloc)
@@ -822,11 +822,12 @@ static GF_Err h3_data_pending(GF_DownloadSession *sess)
 		if (! *buf || *size + sess->hmux_send_data_len > *allocated) {
 			*allocated = *size + sess->hmux_send_data_len;
 			if (*allocated < SOCK_BUF_SIZE/2) *allocated = SOCK_BUF_SIZE/2;
-			*buf = gf_realloc(*buf, *allocated);
-			if (! *buf) {
+			u8 *rbuf = (u8 *)gf_realloc(*buf, *allocated);
+			if (! rbuf) {
 				gf_mx_v(sess->mx);
 				return GF_OUT_OF_MEM;
 			}
+			*buf = rbuf;
 		}
 		memcpy(*buf + *size, sess->hmux_send_data, sess->hmux_send_data_len);
 		*size += sess->hmux_send_data_len;
@@ -835,7 +836,7 @@ static GF_Err h3_data_pending(GF_DownloadSession *sess)
 		gf_mx_v(sess->mx);
 		if (sess->hmux_data_paused) {
 			sess->hmux_data_paused = 0;
-			GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+			GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 			nghttp3_conn_resume_stream(qc->http_conn, sess->hmux_stream_id);
 		}
 	}
@@ -869,13 +870,13 @@ static GF_Err h3_send_reply(GF_DownloadSession *sess, u32 reply_code, const char
 		}
 	}
 
-	hdrs = gf_malloc(sizeof(nghttp3_nv) * (count + 1) );
+	hdrs = (nghttp3_nv *)gf_malloc(sizeof(nghttp3_nv) * (count + 1) );
 
 	sprintf(szFmt, "%d", reply_code);
 	NGH3_HDR(hdrs[0], ":status", szFmt);
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/3] send reply for stream_id "LLD" (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/3] send reply for stream_id " LLD " (body %d) headers:\n:status: %s\n", sess->hmux_stream_id, !no_body, szFmt));
 	for (i=0; i<count; i++) {
-		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
+		GF_HTTPHeader *hdr = (GF_HTTPHeader *)gf_list_get(sess->headers, i);
 		NGH3_HDR(hdrs[i+1], hdr->name, hdr->value)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("%s: %s\n", hdr->name, hdr->value));
 	}
@@ -884,7 +885,7 @@ static GF_Err h3_send_reply(GF_DownloadSession *sess, u32 reply_code, const char
 	if (!no_body) {
 		if (!sess->hmux_priv)
 			h3_setup_session(sess, GF_FALSE);
-		qr = sess->hmux_priv;
+		qr = (GF_QuicDataRead *)sess->hmux_priv;
 		gf_assert(qr && qr->data_read.read_data);
 	}
 
@@ -914,7 +915,7 @@ static GF_Err h3_session_write_ex(GF_DownloadSession *sess, GF_QuicConnection *q
 	if (!qc) return GF_BAD_PARAM;
 	if (qc->serv_conn && qc->serv_conn->closed) {
 		sess->local_buf_len = 0;
-		GF_QuicDataRead *qr = sess->hmux_priv;
+		GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 		qr->second_local_buf_len = 0;
 		return GF_IP_CONNECTION_CLOSED;
 	}
@@ -1048,7 +1049,7 @@ static GF_Err h3_session_write(GF_DownloadSession *sess)
 
 static void h3_stream_reset(GF_DownloadSession *sess, Bool is_abort)
 {
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 	if (is_abort && qc->http_conn && (sess->hmux_stream_id>=0)) {
 		nghttp3_conn_close_stream(qc->http_conn, sess->hmux_stream_id, NGHTTP3_H3_REQUEST_INCOMPLETE);
 	}
@@ -1056,8 +1057,8 @@ static void h3_stream_reset(GF_DownloadSession *sess, Bool is_abort)
 
 static GF_Err h3_resume_stream(GF_DownloadSession *sess)
 {
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 	if (!qc->http_conn || (sess->hmux_stream_id<0) || (qc->serv_conn && qc->serv_conn->closed))
 		return GF_IP_CONNECTION_CLOSED;
 
@@ -1071,7 +1072,7 @@ static GF_Err h3_resume_stream(GF_DownloadSession *sess)
 
 static void h3_close(struct _http_mux_session *hmux)
 {
-	GF_QuicConnection *qc = hmux->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)hmux->hmux_udta;
 	if (!qc->conn || !hmux->net_sess || !hmux->net_sess->sock
 		|| ngtcp2_conn_in_closing_period(qc->conn)
 		|| ngtcp2_conn_in_draining_period(qc->conn)
@@ -1093,7 +1094,7 @@ static void h3_close(struct _http_mux_session *hmux)
 
 static void h3_destroy(struct _http_mux_session *hmux)
 {
-	GF_QuicConnection *qc = hmux->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)hmux->hmux_udta;
 	if (qc->http_conn)
 		nghttp3_conn_del(qc->http_conn);
 	ngtcp2_conn_del(qc->conn);
@@ -1108,7 +1109,7 @@ static void h3_destroy(struct _http_mux_session *hmux)
 
 static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 {
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 	if (qc->serv_conn && qc->serv_conn->closed)
 		return GF_IP_CONNECTION_CLOSED;
 
@@ -1129,7 +1130,7 @@ static GF_Err h3_async_flush(GF_DownloadSession *sess, Bool for_close)
 	h3_data_pending(sess);
 	gf_mx_v(sess->mx);
 
-	GF_QuicDataRead *qr = sess->hmux_priv;
+	GF_QuicDataRead *qr = (GF_QuicDataRead *)sess->hmux_priv;
 	if (for_close) {
 		if (qr->local_buf_sent>qr->local_buf_ack)
 			return GF_IP_NETWORK_EMPTY;
@@ -1185,12 +1186,12 @@ static GF_Err h3_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_
 }
 static ngtcp2_conn *ngq_get_conn(ngtcp2_crypto_conn_ref *conn_ref)
 {
-	GF_QuicConnection *qc = conn_ref->user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)conn_ref->user_data;
 	return qc->conn;
 }
 static int ngq_handshake_completed(ngtcp2_conn *conn, void *user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	if (qc->handshake_state<QUIC_HANDSHAKE_DONE) {
 		qc->handshake_state = QUIC_HANDSHAKE_DONE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[QUIC] Handshake done\n"));
@@ -1202,7 +1203,7 @@ int ngq_recv_stream_data(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id,
                      uint64_t offset, const uint8_t *data, size_t datalen,
                      void *user_data, void *stream_user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	if (!qc->http_conn) return -1;
 
 	int rv = nghttp3_conn_read_stream(qc->http_conn, stream_id, data, datalen, flags & NGTCP2_STREAM_DATA_FLAG_FIN);
@@ -1220,7 +1221,7 @@ static int ngq_acked_stream_data_offset(ngtcp2_conn *conn, int64_t stream_id,
                              uint64_t offset, uint64_t datalen, void *user_data,
                              void *stream_user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	int rv = nghttp3_conn_add_ack_offset(qc->http_conn, stream_id, datalen);
 	if (rv != 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_add_ack_offset error %s\n", nghttp3_strerror(rv) ));
@@ -1234,7 +1235,7 @@ int ngq_extend_max_stream_data(ngtcp2_conn *conn, int64_t stream_id,
                            uint64_t max_data, void *user_data,
                            void *stream_user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	int rv = nghttp3_conn_unblock_stream(qc->http_conn, stream_id);
 	if (rv != 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] nghttp3_conn_unblock_stream error %s\n", nghttp3_strerror(rv) ));
@@ -1246,7 +1247,7 @@ int ngq_extend_max_stream_data(ngtcp2_conn *conn, int64_t stream_id,
 
 static int ngq_recv_rx_key(ngtcp2_conn *conn, ngtcp2_encryption_level level, void *user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	if (level != NGTCP2_ENCRYPTION_LEVEL_1RTT) return 0;
 	if (qc->http_conn) return GF_OK;
 
@@ -1259,7 +1260,7 @@ static int ngq_stream_stop_sending(ngtcp2_conn *conn, int64_t stream_id,
                         uint64_t app_error_code, void *user_data,
                         void *stream_user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	if (!qc->http_conn) return 0;
 	int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
 	if (rv != 0) {
@@ -1275,8 +1276,8 @@ static int ngq_stream_close(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id
                  uint64_t app_error_code, void *user_data,
                  void *stream_user_data)
 {
-	GF_QuicConnection *qc = user_data;
-//	GF_DownloadSession *sess = stream_user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
+//	GF_DownloadSession *sess = (GF_DownloadSession *)stream_user_data;
 	if (!(flags & NGTCP2_STREAM_CLOSE_FLAG_APP_ERROR_CODE_SET)) {
 		app_error_code = NGHTTP3_H3_NO_ERROR;
 	}
@@ -1308,7 +1309,7 @@ int ngq_stream_reset(ngtcp2_conn *conn, int64_t stream_id, uint64_t final_size,
                  uint64_t app_error_code, void *user_data,
                  void *stream_user_data)
 {
-	GF_QuicConnection *qc = user_data;
+	GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	if (!qc->http_conn) return 0;
 
     int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
@@ -1321,7 +1322,7 @@ int ngq_stream_reset(ngtcp2_conn *conn, int64_t stream_id, uint64_t final_size,
 
 static int ngq_stream_open(ngtcp2_conn *conn, int64_t stream_id, void *user_data)
 {
-	//GF_QuicConnection *qc = user_data;
+	//GF_QuicConnection *qc = (GF_QuicConnection *)user_data;
 	if (!ngtcp2_is_bidi_stream(stream_id)) {
 		return 0;
 	}
@@ -1330,7 +1331,7 @@ static int ngq_stream_open(ngtcp2_conn *conn, int64_t stream_id, void *user_data
 
 static void h3_close_session(GF_DownloadSession *sess)
 {
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 	if (!qc->http_conn) return;
 	if (qc->serv_conn && qc->serv_conn->closed) return;
 
@@ -1343,10 +1344,18 @@ static void h3_close_session(GF_DownloadSession *sess)
 }
 
 static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_port,
-	const ngtcp2_pkt_hd *srv_hd, const ngtcp2_cid *srv_ocid, u32 token_type, ngtcp2_path *srv_path, GF_QuicServerConnection *qsc)
+	const ngtcp2_pkt_hd *srv_hd, const ngtcp2_cid *srv_ocid, ngtcp2_token_type token_type, ngtcp2_path *srv_path, GF_QuicServerConnection *qsc)
 {
 	GF_QuicConnection *ng_quic;
 	GF_Err e;
+	ngtcp2_callbacks callbacks = {0};
+	u32 h3_opt;
+	const char *h3_algo;
+	ngtcp2_cid scid;
+	ngtcp2_settings settings;
+	ngtcp2_transport_params params;
+	int rv;
+
 
 	if (!sess->server_mode && sess->dm && (!sess->dm->ssl_ctx || !sess->ssl)) {
 		gf_ssl_try_connect(sess, NULL);
@@ -1376,12 +1385,12 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 
 	if (sess->server_mode) {
 		u8 *buf;
-		buf = gf_malloc(sizeof(u8) * srv_path->local.addrlen);
+		buf = (u8 *)gf_malloc(srv_path->local.addrlen);
 		memcpy(buf, srv_path->local.addr, srv_path->local.addrlen);
 		ng_quic->path.local.addr = (ngtcp2_sockaddr *) buf;
 		ng_quic->path.local.addrlen = srv_path->local.addrlen;
 
-		buf = gf_malloc(sizeof(u8) * srv_path->remote.addrlen);
+		buf = (u8 *)gf_malloc(srv_path->remote.addrlen);
 		memcpy(buf, srv_path->remote.addr, srv_path->remote.addrlen);
 		ng_quic->path.remote.addr = (ngtcp2_sockaddr *) buf;
 		ng_quic->path.remote.addrlen = srv_path->remote.addrlen;
@@ -1419,27 +1428,25 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 
 
 	//setup callbacks
-	ngtcp2_callbacks callbacks = {
-		.handshake_completed = ngq_handshake_completed,
-		.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb,
-		.encrypt = ngtcp2_crypto_encrypt_cb,
-		.decrypt = ngtcp2_crypto_decrypt_cb,
-		.hp_mask = ngtcp2_crypto_hp_mask_cb,
-		.recv_stream_data = ngq_recv_stream_data,
-		.acked_stream_data_offset = ngq_acked_stream_data_offset,
-		.extend_max_local_streams_bidi = ngq_extend_max_local_streams_bidi,
-		.rand = ngq_rand_cb,
-		.extend_max_stream_data = ngq_extend_max_stream_data,
-		.update_key = ngtcp2_crypto_update_key_cb,
-		.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb,
-		.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb,
-		.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb,
-		.version_negotiation = ngtcp2_crypto_version_negotiation_cb,
-		.get_new_connection_id = ngq_get_new_connection_id,
-		.stream_close = ngq_stream_close,
-		.stream_reset = ngq_stream_reset,
-		.stream_stop_sending = ngq_stream_stop_sending,
-	};
+	callbacks.handshake_completed = ngq_handshake_completed;
+	callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb;
+	callbacks.encrypt = ngtcp2_crypto_encrypt_cb;
+	callbacks.decrypt = ngtcp2_crypto_decrypt_cb;
+	callbacks.hp_mask = ngtcp2_crypto_hp_mask_cb;
+	callbacks.recv_stream_data = ngq_recv_stream_data;
+	callbacks.acked_stream_data_offset = ngq_acked_stream_data_offset;
+	callbacks.extend_max_local_streams_bidi = ngq_extend_max_local_streams_bidi;
+	callbacks.rand = ngq_rand_cb;
+	callbacks.extend_max_stream_data = ngq_extend_max_stream_data;
+	callbacks.update_key = ngtcp2_crypto_update_key_cb;
+	callbacks.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb;
+	callbacks.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb;
+	callbacks.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb;
+	callbacks.version_negotiation = ngtcp2_crypto_version_negotiation_cb;
+	callbacks.get_new_connection_id = ngq_get_new_connection_id;
+	callbacks.stream_close = ngq_stream_close;
+	callbacks.stream_reset = ngq_stream_reset;
+	callbacks.stream_stop_sending = ngq_stream_stop_sending;
 
 	if (sess->server_mode) {
 	    callbacks.recv_client_initial = ngtcp2_crypto_recv_client_initial_cb;
@@ -1460,12 +1467,6 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 //    callbacks.recv_new_token = ::recv_new_token,
 //    callbacks.tls_early_data_rejected = ::early_data_rejected,
 	}
-
-
-	ngtcp2_cid scid;
-	ngtcp2_settings settings;
-	ngtcp2_transport_params params;
-	int rv;
 
 	if (sess->server_mode)
 		scid.datalen = NGTCP2_SV_SCIDLEN;
@@ -1496,12 +1497,12 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	settings.ack_thresh = gf_opts_get_int("core", "h3-ack-threshold");
 	settings.initial_pkt_num = 1;
 
-	u32 h3_opt = gf_opts_get_int("core", "h3-mwnd");
+	h3_opt = gf_opts_get_int("core", "h3-mwnd");
 	if (h3_opt) settings.max_window = h3_opt;
 	h3_opt = gf_opts_get_int("core", "h3-st-mwnd");
 	if (h3_opt) settings.max_stream_window = h3_opt;
 
-	const char *h3_algo = gf_opts_get_key("temp", "h3-algo");
+	h3_algo = gf_opts_get_key("temp", "h3-algo");
 	if (h3_algo) {
 		if (!strcmp(h3_algo, "bbr")) {
 			settings.cc_algo = NGTCP2_CC_ALGO_BBR;
@@ -1627,7 +1628,7 @@ err:
 GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 {
 	if (!sess->hmux_sess) {
-		GF_Err e = h3_initialize(sess, server, server_port, NULL, NULL, 0, NULL, NULL);
+		GF_Err e = h3_initialize(sess, server, server_port, NULL, NULL, NGTCP2_TOKEN_TYPE_UNKNOWN, NULL, NULL);
 		if (e) return e;
 
 		return GF_IP_NETWORK_EMPTY;
@@ -1636,10 +1637,10 @@ GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 		return GF_IP_CONNECTION_CLOSED;
 
 	u32 res;
-	GF_Err e = gf_dm_read_data(sess, sess->http_buf, sess->http_buf_size, &res);
+	GF_Err e = gf_dm_read_data(sess, (u8*)sess->http_buf, sess->http_buf_size, &res);
 	if (e) return e;
 
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 	if (qc->handshake_state==QUIC_HANDSHAKE_ERROR)
 		return GF_IP_CONNECTION_FAILURE;
 	if (qc->handshake_state<QUIC_HANDSHAKE_DONE) return GF_IP_NETWORK_EMPTY;
@@ -1690,7 +1691,7 @@ GF_Err gf_dm_quic_server_new(GF_DownloadManager *dm, void *ssl_ctx, GF_QuicServe
 	gf_sha256_csum(buf, 50, tmp->secret);
 	tmp->stateless_reset_count = NGTCP2_STATELESS_RESET_BURST;
 
-	tmp->ssl_ctx = ssl_ctx;
+	tmp->ssl_ctx = (SSL_CTX *)ssl_ctx;
 	tmp->dm = dm;
 	tmp->accept_conn = accept_conn;
 	tmp->udta = udta;
@@ -1859,7 +1860,7 @@ Bool quic_start_closing_period(GF_QuicConnection *qc)
 	return GF_TRUE;
 }
 
-static int quic_send_conn_close(GF_QuicConnection *qc)
+static GF_Err quic_send_conn_close(GF_QuicConnection *qc)
 {
 	assert(qc->serv_conn && qc->serv_conn->closebuf_len);
 	assert(qc->conn);
@@ -1889,7 +1890,7 @@ static void detach_connection(GF_QuicServerConnection *c)
 {
 	u32 i;
 	for (i=0;i<MAC_CONN_ID;i++)
-		c->conn_ids[i].associated = 0;
+		c->conn_ids[i].associated = GF_FALSE;
 
 	//freeing the connection is done later
 }
@@ -2056,7 +2057,7 @@ static GF_Err gf_quic_create_connection(GF_QuicServer *qs, GF_QuicServerConnecti
 
 
 	e = h3_initialize(sess, NULL, 0, &hd, pocid, token_type, &path, c);
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 	if (e) {
 		gf_list_del_item(qs->connections, c);
 		qc->serv_conn = NULL;
@@ -2119,7 +2120,7 @@ restart:
 	qc = NULL;
 	u32 i, count = gf_list_count(qs->connections);
 	for (i=0; i<count; i++) {
-		qc = gf_list_get(qs->connections, i);
+		qc = (GF_QuicServerConnection *)gf_list_get(qs->connections, i);
 		u32 j;
 		ConnIDInfo *ci=NULL;
 		for (j=0; j<MAC_CONN_ID; j++) {
@@ -2143,7 +2144,7 @@ restart:
 		goto restart;
 	}
 
-	GF_QuicConnection *q = qc->hmux->hmux_udta;
+	GF_QuicConnection *q = (GF_QuicConnection *) qc->hmux->hmux_udta;
 	if (ngtcp2_conn_in_closing_period(q->conn)) {
 		if (quic_send_conn_close(q) != 0) {
 			detach_connection(qc);
@@ -2177,9 +2178,9 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 
 	u32 i, count = gf_list_count(qs->connections);
 	for (i=0; i<count; i++) {
-		GF_QuicServerConnection *qc = gf_list_get(qs->connections, i);
+		GF_QuicServerConnection *qc = (GF_QuicServerConnection *)gf_list_get(qs->connections, i);
 		if (qc->close_period_end && (qc->close_period_end>gf_sys_clock_high_res()) ) {
-			GF_QuicConnection *qcpriv = qc->hmux->hmux_udta;
+			GF_QuicConnection *qcpriv = (GF_QuicConnection *)qc->hmux->hmux_udta;
 			if (ngtcp2_conn_in_closing_period(qcpriv->conn)) {
 				continue;
 			}
@@ -2188,7 +2189,7 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 			continue;
 		}
 		if (qc->drain_period_end && (qc->drain_period_end>gf_sys_clock_high_res()) ) {
-			GF_QuicConnection *qcpriv = qc->hmux->hmux_udta;
+			GF_QuicConnection *qcpriv = (GF_QuicConnection *)qc->hmux->hmux_udta;
 			if (ngtcp2_conn_in_draining_period(qcpriv->conn)) {
 				continue;
 			}
@@ -2207,7 +2208,7 @@ GF_Err gf_dm_quic_verify(GF_QuicServer *qs)
 
 GF_Err h3_check_sess(GF_DownloadSession *sess)
 {
-	GF_QuicConnection *qc = sess->hmux_sess->hmux_udta;
+	GF_QuicConnection *qc = (GF_QuicConnection *)sess->hmux_sess->hmux_udta;
 	if (qc->serv_conn && qc->serv_conn->closed)
 		return GF_IP_CONNECTION_CLOSED;
 	return GF_IP_NETWORK_EMPTY;

@@ -135,7 +135,7 @@ GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clock_id, u16 ES
 
 void gf_clock_reset(GF_Clock *ck)
 {
-	ck->clock_init = 0;
+	ck->clock_init = GF_FALSE;
 	ck->audio_delay = 0;
 	ck->speed_set_time = 0;
 	//do NOT reset buffering flag, because RESET scene called only
@@ -143,7 +143,7 @@ void gf_clock_reset(GF_Clock *ck)
 	//have signaled buffering on this clock
 	ck->init_timestamp = 0;
 	ck->start_time = 0;
-	ck->has_seen_eos = 0;
+	ck->has_seen_eos = GF_FALSE;
 	ck->has_media_time_shift = GF_FALSE;
 	//do NOT reset media timestamp mapping once the clock is init
 	//if discontinuities are found the media time mapping will be adjusted then
@@ -156,7 +156,7 @@ void gf_clock_set_time(GF_Clock *ck, u64 ref_TS, u32 timescale)
 		u64 real_ts_ms = gf_timestamp_rescale(ref_TS, timescale, 1000);
 		ck->init_ts_loops = (u32) (real_ts_ms / 0xFFFFFFFFUL);
 		ck->init_timestamp = (u32) (real_ts_ms % 0xFFFFFFFFUL);
-		ck->clock_init = 1;
+		ck->clock_init = GF_TRUE;
 		ck->audio_delay = 0;
 		/*update starttime and pausetime even in pause mode*/
 		ck->pause_time = ck->start_time = gf_sc_get_clock(ck->compositor);
@@ -257,8 +257,8 @@ u32 gf_clock_elapsed_time(GF_Clock *ck)
 
 Bool gf_clock_is_started(GF_Clock *ck)
 {
-	if (!ck || !ck->clock_init || ck->nb_buffering || ck->nb_paused) return 0;
-	return 1;
+	if (!ck || !ck->clock_init || ck->nb_buffering || ck->nb_paused) return GF_FALSE;
+	return GF_TRUE;
 }
 
 /*buffering scene protected by a mutex because it may be triggered by composition memory (audio or visual threads)*/

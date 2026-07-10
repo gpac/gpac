@@ -50,7 +50,7 @@ typedef struct
 	GF_AudioInterface input_ai;
 	Bool passthrough;
 	u32 timescale;
-	const char *data;
+	const u8 *data;
 	u32 size, bytes_consumed;
 	Fixed speed;
 	GF_FilterPacket *in_pck;
@@ -59,7 +59,7 @@ typedef struct
 } GF_ResampleCtx;
 
 
-static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
+static const u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u32 audio_delay_ms)
 {
 	u32 sample_offset;
 	GF_ResampleCtx *ctx = (GF_ResampleCtx *) callback;
@@ -89,7 +89,7 @@ static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u
 		*planar_stride = ctx->size / ctx->input_ai.chan;
 		sample_offset /= ctx->input_ai.chan;
 	}
-	return (char*)ctx->data + sample_offset;
+	return ctx->data + sample_offset;
 }
 
 static void resample_release_frame(void *callback, u32 nb_bytes)
@@ -134,7 +134,7 @@ static Bool resample_get_channel_volume(void *callback, Fixed *vol)
 
 static GF_Err resample_initialize(GF_Filter *filter)
 {
-	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *)gf_filter_get_udta(filter);
 	ctx->mixer = gf_mixer_new(NULL);
 	if (!ctx->mixer) return GF_OUT_OF_MEM;
 
@@ -151,7 +151,7 @@ static GF_Err resample_initialize(GF_Filter *filter)
 
 static void resample_finalize(GF_Filter *filter)
 {
-	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *)gf_filter_get_udta(filter);
 	if (ctx->mixer) gf_mixer_del(ctx->mixer);
 	if (ctx->in_pck && ctx->ipid) gf_filter_pid_drop_packet(ctx->ipid);
 }
@@ -179,7 +179,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	const GF_PropertyValue *p;
 	u32 sr, nb_ch, afmt;
 	u64 ch_cfg;
-	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *)gf_filter_get_udta(filter);
 	if (is_remove) {
 		if (ctx->opid) {
 			gf_mixer_remove_input(ctx->mixer, &ctx->input_ai);
@@ -286,7 +286,7 @@ static GF_Err resample_process(GF_Filter *filter)
 	u8 *output;
 	u32 osize, written;
 	GF_FilterPacket *dstpck;
-	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *)gf_filter_get_udta(filter);
 	u32 bps, bytes_per_samp;
 	if (!ctx->ipid) return GF_OK;
 
@@ -304,9 +304,9 @@ static GF_Err resample_process(GF_Filter *filter)
 							gf_filter_pid_set_eos(ctx->opid);
 						return GF_EOS;
 					}
-					ctx->input_ai.is_eos = 1;
+					ctx->input_ai.is_eos = GF_TRUE;
 				} else {
-					ctx->input_ai.is_eos = 0;
+					ctx->input_ai.is_eos = GF_FALSE;
 					return GF_OK;
 				}
 			} else {
@@ -390,9 +390,9 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	u64 ch_cfg;
 	GF_Err e;
 	const GF_PropertyValue *p;
-	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *)gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
-		
+
 	sr = ctx->freq;
 	p = gf_filter_pid_caps_query(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) sr = p->value.uint;
@@ -454,7 +454,7 @@ static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED) )
 		&& evt->play.speed
 	) {
-		GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
+		GF_ResampleCtx *ctx = (GF_ResampleCtx *)gf_filter_get_udta(filter);
 		if (!ctx->ipid) return GF_TRUE;
 		ctx->speed = FLT2FIX(evt->play.speed);
 		if (ctx->speed<0) ctx->speed = -ctx->speed;

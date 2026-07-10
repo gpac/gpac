@@ -96,7 +96,7 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 	u32 str_val_len = 0;
 	const char *v = value;
 	while (1) {
-		char *sep = strchr(v, list_sep_char);
+		const char *sep = strchr(v, list_sep_char);
 		if (!sep) break;
 		nb_items++;
 		v = sep+1;
@@ -104,7 +104,7 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 	if (!strcmp(scode, "%s"))
 		is_string = GF_TRUE;
 	else
-		p->value.data.ptr = gf_malloc(nb_items*size);
+		p->value.data.ptr = (u8 *)gf_malloc(nb_items*size);
 
 	u32 res = 0;
 	if (is_string || p->value.data.ptr) {
@@ -113,7 +113,7 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 		nb_items = 0;
 		while (1) {
 			u32 lres;
-			char *sep = strchr(v, list_sep_char);
+			char *sep = (char *) strchr(v, list_sep_char);
 			if (sep) sep[0] = 0;
 
 			if (!strcmp(prefix, "u8@")) {
@@ -128,7 +128,7 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 			} else if (is_string) {
 				//copy also the trailing 0
 				u32 slen = 1 + (u32) strlen(v);
-				str_val = gf_realloc(str_val, str_val_len+slen);
+				str_val = (char *)gf_realloc(str_val, str_val_len+slen);
 				memcpy(str_val+str_val_len, str_val, slen);
 				str_val_len += slen;
 				lres = 1;
@@ -144,7 +144,7 @@ static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const cha
 		gf_free(vdup);
 	}
 	if (str_val)
-		p->value.data.ptr = str_val;
+		p->value.data.ptr = (u8*)str_val;
 
 	if (res==nb_items) {
 		p->value.data.size = str_val ? str_val_len : (nb_items*size);
@@ -186,15 +186,15 @@ static Bool parse_time(const char *str, u64 *val)
 }
 
 GF_EXPORT
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
+GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
 	u64 tval;
-	char *unit_sep=NULL;
+	const char *unit_sep=NULL;
 	s32 unit = 0;
 	memset(&p, 0, sizeof(GF_PropertyValue));
 	p.value.data.size=0;
-	p.type=type;
+	p.type = type;
 	if (!name) name="";
 
 	unit_sep = NULL;
@@ -330,7 +330,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		if (value && !strcmp(value, "+I")) p.value.longsint = 0x7FFFFFFFFFFFFFFFUL;
 		else if (value && !strcmp(value, "-I")) p.value.longsint = 0x8000000000000000UL;
 		else if (parse_time(value, &tval)) p.value.longsint = (s64) tval;
-		else if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
+		else if (!value || (sscanf(value, LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		} else if (unit) {
@@ -340,7 +340,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_LUINT:
 		if (value && !strcmp(value, "+I")) p.value.longuint = 0xFFFFFFFFFFFFFFFFUL;
 		else if (parse_time(value, &tval)) p.value.longuint = (u64) tval;
-		else if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
+		else if (!value || (sscanf(value, LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
 		} else if (unit) {
@@ -501,7 +501,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", value+5));
 			} else {
-				p.value.string = data;
+				p.value.string = (char *)data;
 			}
 		} else if (value && !strnicmp(value, "bxml@", 5) ) {
 			GF_Err e;
@@ -538,7 +538,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			u32 i;
 			value += 2;
 			p.value.data.size = (u32) strlen(value) / 2;
-			p.value.data.ptr = gf_malloc(sizeof(char)*p.value.data.size);
+			p.value.data.ptr = (u8 *)gf_malloc(p.value.data.size);
 			for (i=0; i<p.value.data.size; i++) {
 				char szV[3];
 				u32 res;
@@ -577,8 +577,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 		} else if (!strnicmp(value, "b64@", 4) ) {
 			u8 *b64 = (u8 *)value + 5;
-			u32 size = (u32) strlen(b64);
-			p.value.data.ptr = gf_malloc(sizeof(char) * size);
+			u32 size = (u32) strlen((char *)b64);
+			p.value.data.ptr = (u8 *)gf_malloc(size);
 			if (p.value.data.ptr) {
 				p.value.data.size = gf_base64_decode((u8 *)b64, size, p.value.data.ptr, size);
 				if (!p.value.data.size) {
@@ -618,7 +618,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		} else {
 			p.value.data.size = (u32) strlen(value);
 			if (p.value.data.size)
-				p.value.data.ptr = gf_strdup(value);
+				p.value.data.ptr = (u8 *)gf_strdup(value);
 			else
 				p.value.data.ptr = NULL;
 			p.type = GF_PROP_DATA;
@@ -638,7 +638,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		while (v) {
 			u32 len=0;
 			char *nv;
-			char *sep = strchr(v, list_sep_char);
+			char *sep = (char *) strchr(v, list_sep_char);
 			while (sep && sep[1] == list_sep_char) {
 				// skip doubled separator
 				size_t len = strlen(sep+1);
@@ -665,7 +665,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			else
 				len = (u32) (sep - v);
 
-			nv = gf_malloc(sizeof(char)*(len+1));
+			nv = (char *)gf_malloc(len+1);
 			memcpy(nv, v, sizeof(char)*len);
 			nv[len] = 0;
 			if (!strnicmp(nv, "file@", 5) ) {
@@ -675,13 +675,13 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", nv+5));
 				} else {
-					p.value.string_list.vals = gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
-					p.value.string_list.vals[p.value.string_list.nb_items] = data;
+					p.value.string_list.vals = (char **)gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
+					p.value.string_list.vals[p.value.string_list.nb_items] = (char *)data;
 					p.value.string_list.nb_items++;
 				}
 				gf_free(nv);
 			} else {
-				p.value.string_list.vals = gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
+				p.value.string_list.vals = (char **)gf_realloc(p.value.string_list.vals, sizeof(char *) * (p.value.string_list.nb_items+1));
 				p.value.string_list.vals[p.value.string_list.nb_items] = nv;
 				p.value.string_list.nb_items++;
 			}
@@ -695,12 +695,12 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_SINT_LIST:
 	case GF_PROP_VEC2I_LIST:
 	{
-		char *v = (char *) value;
+		const char *v = (char *) value;
 		if (!list_sep_char) list_sep_char = ',';
 		while (v && v[0]) {
 			char szV[100];
 			u32 len=0;
-			char *sep = strchr(v, list_sep_char);
+			const char *sep = strchr(v, list_sep_char);
 			if (sep) {
 				len = (u32) (sep - v);
 			}
@@ -715,7 +715,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for uint arg %s[%d] - using 0\n", value, name, p.value.uint_list.nb_items));
 					val_uint = 0;
 				}
-				p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
+				p.value.uint_list.vals = (u32 *)gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
 				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
 			} else if (p.type == GF_PROP_4CC_LIST) {
 				u32 val_uint = gf_4cc_parse(szV);
@@ -723,7 +723,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for 4CC arg %s[%d] - using 0\n", value, name, p.value.uint_list.nb_items));
 					val_uint = 0;
 				}
-				p.value.uint_list.vals = gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
+				p.value.uint_list.vals = (u32 *)gf_realloc(p.value.uint_list.vals, (p.value.uint_list.nb_items+1) * sizeof(u32));
 				p.value.uint_list.vals[p.value.uint_list.nb_items] = val_uint;
 			} else if (p.type == GF_PROP_SINT_LIST) {
 				s32 val_int;
@@ -731,7 +731,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for sint arg %s[%d] - using 0\n", value, name, p.value.sint_list.nb_items));
 					val_int = 0;
 				}
-				p.value.sint_list.vals = gf_realloc(p.value.sint_list.vals, (p.value.sint_list.nb_items+1) * sizeof(u32));
+				p.value.sint_list.vals = (s32 *)gf_realloc(p.value.sint_list.vals, (p.value.sint_list.nb_items+1) * sizeof(s32));
 				p.value.sint_list.vals[p.value.sint_list.nb_items] = val_int;
 			} else {
 				s32 v1=0, v2=0;
@@ -741,7 +741,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 					}
 					v1 = v2 = 0;
 				}
-				p.value.v2i_list.vals = gf_realloc(p.value.v2i_list.vals, (p.value.v2i_list.nb_items+1) * sizeof(GF_PropVec2i));
+				p.value.v2i_list.vals = (GF_PropVec2i *)gf_realloc(p.value.v2i_list.vals, (p.value.v2i_list.nb_items+1) * sizeof(GF_PropVec2i));
 				p.value.v2i_list.vals[p.value.v2i_list.nb_items].x = v1;
 				p.value.v2i_list.vals[p.value.v2i_list.nb_items].y = v2;
 			}
@@ -767,7 +767,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	return p;
 }
 
-u32 gf_props_get_base_type(u32 type)
+GF_PropType gf_props_get_base_type(GF_PropType type)
 {
 	switch (type) {
 	case GF_PROP_STRING:
@@ -955,9 +955,7 @@ GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 
 GF_PropertyMap * gf_props_new(GF_Filter *filter)
 {
-	GF_PropertyMap *map;
-
-	map = gf_fq_pop(filter->session->prop_maps_reservoir);
+	GF_PropertyMap *map = (GF_PropertyMap *) gf_fq_pop(filter->session->prop_maps_reservoir);
 
 	if (!map) {
 		GF_SAFEALLOC(map, GF_PropertyMap);
@@ -1058,7 +1056,7 @@ void gf_propmap_del(void *pmap)
 #if GF_PROPS_HASHTABLE_SIZE
 	gf_free(pamp);
 #else
-	GF_PropertyMap *map = pmap;
+	GF_PropertyMap *map = (GF_PropertyMap *)pmap;
 	gf_list_del(map->properties);
 	gf_free(map);
 #endif
@@ -1111,7 +1109,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 	if (map->hash_table[hash]) {
 		u32 i, count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
-			GF_PropertyEntry *prop = gf_list_get(map->hash_table[hash], i);
+			GF_PropertyEntry *prop = (struct __gf_prop_entry *)gf_list_get(map->hash_table[hash], i);
 			if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 				gf_list_rem(map->hash_table[hash], i);
 				gf_props_del_property(prop);
@@ -1122,7 +1120,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 #else
 	u32 i, count = gf_list_count(map->properties);
 	for (i=0; i<count; i++) {
-		GF_PropertyEntry *prop = gf_list_get(map->properties, i);
+		GF_PropertyEntry *prop = (struct __gf_prop_entry *)gf_list_get(map->properties, i);
 		if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 			gf_list_rem(map->properties, i);
 			gf_props_del_property(prop);
@@ -1138,7 +1136,7 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 {
 	GF_List *l;
 
-	l = gf_fq_pop(map->session->prop_maps_list_reservoir);
+	l = (GF_List *)gf_fq_pop(map->session->prop_maps_list_reservoir);
 
 	if (!l) l = gf_list_new();
 	return l;
@@ -1147,9 +1145,8 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 
 static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue *value, Bool is_old_prop)
 {
-	char *src_ptr;
 	//remember source pointer
-	src_ptr = prop->prop.value.data.ptr;
+	u8 *src_ptr = prop->prop.value.data.ptr;
 
 	if (is_old_prop) {
 		gf_props_reset_single(&prop->prop);
@@ -1169,7 +1166,7 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 		prop->prop.value.data.ptr = src_ptr;
 		if (prop->alloc_size < value->value.data.size) {
 			prop->alloc_size = value->value.data.size;
-			prop->prop.value.data.ptr = gf_realloc(prop->prop.value.data.ptr, sizeof(char) * value->value.data.size);
+			prop->prop.value.data.ptr = (u8 *)gf_realloc(prop->prop.value.data.ptr, value->value.data.size);
 			if (!prop->prop.value.data.ptr) {
 				prop->alloc_size = 0;
 				return GF_OUT_OF_MEM;
@@ -1189,7 +1186,7 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 		else if (prop->prop.type == GF_PROP_4CC_LIST) it_size = sizeof(u32);
 		else if (prop->prop.type == GF_PROP_SINT_LIST) it_size = sizeof(s32);
 		else if (prop->prop.type == GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
-		prop->prop.value.uint_list.vals = gf_malloc(it_size * value->value.uint_list.nb_items);
+		prop->prop.value.uint_list.vals = (u32 *)gf_malloc(it_size * value->value.uint_list.nb_items);
 		if (!value->value.uint_list.nb_items) return GF_OUT_OF_MEM;
 		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
 		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
@@ -1198,7 +1195,7 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 		u32 i;
 		prop->prop.type = GF_PROP_STRING_LIST;
 		prop->prop.value.string_list.nb_items = value->value.string_list.nb_items;
-		prop->prop.value.string_list.vals = gf_malloc(sizeof(char*)*value->value.string_list.nb_items);
+		prop->prop.value.string_list.vals = (char **)gf_malloc(sizeof(char*)*value->value.string_list.nb_items);
 		if (!prop->prop.value.string_list.vals) return GF_OUT_OF_MEM;
 		memset(prop->prop.value.string_list.vals, 0, sizeof(char*)*value->value.string_list.nb_items);
 		for (i=0; i<prop->prop.value.string_list.nb_items; i++) {
@@ -1211,7 +1208,7 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 	return GF_OK;
 }
 
-GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
+GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, const char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_PropertyEntry *prop;
 	GF_Err e;
@@ -1233,7 +1230,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		if (count) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries before insertion:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, gf_list_count(map->hash_table[hash]) ));
 			for (i=0; i<count; i++) {
-				GF_PropertyEntry *prop_c = gf_list_get(map->hash_table[hash], i);
+				GF_PropertyEntry *prop_c = (struct __gf_prop_entry *)gf_list_get(map->hash_table[hash], i);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
 				gf_assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
 			}
@@ -1241,9 +1238,9 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 	}
 #endif
 	if ((value->type == GF_PROP_DATA) && value->value.data.ptr) {
-		prop = gf_fq_pop(map->session->prop_maps_entry_data_alloc_reservoir);
+		prop = (GF_PropertyEntry*)gf_fq_pop(map->session->prop_maps_entry_data_alloc_reservoir);
 	} else {
-		prop = gf_fq_pop(map->session->prop_maps_entry_reservoir);
+		prop = (GF_PropertyEntry*)gf_fq_pop(map->session->prop_maps_entry_reservoir);
 	}
 
 	if (!prop) {
@@ -1274,7 +1271,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 
 }
 
-GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
+GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, const char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_Err e;
 	u32 hash = gf_props_hash_djb2(p4cc, name ? name : dyn_name);
@@ -1297,7 +1294,7 @@ const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 pro
 	if (map->hash_table[hash] ) {
 		count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
-			GF_PropertyEntry *p = gf_list_get(map->hash_table[hash], i);
+			GF_PropertyEntry *p = (struct __gf_prop_entry *)gf_list_get(map->hash_table[hash], i);
 
 			if ((prop_4cc && (p->p4cc==prop_4cc)) || (p->pname && name && !strcmp(p->pname, name)) ) {
 				res = p;
@@ -1314,7 +1311,7 @@ const GF_PropertyEntry *gf_props_get_property_entry(GF_PropertyMap *map, u32 pro
 		len = 0;
 	}
 	for (i=0; i<count; i++) {
-		GF_PropertyEntry *p = gf_list_get(map->properties, i);
+		GF_PropertyEntry *p = (struct __gf_prop_entry *)gf_list_get(map->properties, i);
 		if (!p) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Concurrent read/write access to property map, cannot query property now\n"));
 			return NULL;
@@ -1371,7 +1368,7 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 #endif
 			count = gf_list_count(list);
 			for (i=0; i<count; i++) {
-				GF_PropertyEntry *prop = gf_list_get(list, i);
+				GF_PropertyEntry *prop = (struct __gf_prop_entry *)gf_list_get(list, i);
 				gf_assert(prop->reference_count);
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
@@ -1421,7 +1418,7 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 				idx -= count;
 				continue;
 			}
-			pe = gf_list_get(props->hash_table[i], idx);
+			pe = (struct __gf_prop_entry *)gf_list_get(props->hash_table[i], idx);
 			if (!pe) {
 				*io_idx = nb_items;
 				return NULL;
@@ -1440,7 +1437,7 @@ const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_id
 		*io_idx = count;
 		return NULL;
 	}
-	pe = gf_list_get(props->properties, idx);
+	pe = (struct __gf_prop_entry *)gf_list_get(props->properties, idx);
 	if (!pe) {
 		*io_idx = count;
 		return NULL;
@@ -1966,11 +1963,11 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc)
 }
 
 GF_EXPORT
-u32 gf_props_4cc_get_type(u32 prop_4cc)
+GF_PropType gf_props_4cc_get_type(u32 prop_4cc)
 {
 	u32 i;
 	for (i=0; i<gf_num_props; i++) {
-		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].data_type;
+		if (GF_BuiltInProps[i].type==prop_4cc) return (GF_PropType) GF_BuiltInProps[i].data_type;
 	}
 	return GF_PROP_FORBIDDEN;
 }
@@ -2063,10 +2060,10 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		sprintf(dump, "%s", gf_4cc_to_str(att->value.uint) );
 		break;
 	case GF_PROP_LSINT:
-		sprintf(dump, ""LLD, att->value.longsint);
+		sprintf(dump, LLD, att->value.longsint);
 		break;
 	case GF_PROP_LUINT:
-		sprintf(dump, ""LLU, att->value.longuint);
+		sprintf(dump, LLU, att->value.longuint);
 		break;
 	case GF_PROP_FRACTION:
 		//reduce fraction
@@ -2081,7 +2078,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		if (!no_reduce && att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
 			sprintf(dump, LLD, att->value.lfrac.num / att->value.lfrac.den);
 		} else {
-			sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);
+			sprintf(dump, LLD "/" LLU, att->value.lfrac.num, att->value.lfrac.den);
 		}
 		break;
 	case GF_PROP_BOOL:
@@ -2204,7 +2201,7 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 	case GF_PROP_PID_ORIG_STREAM_TYPE:
 		return gf_stream_type_name(att->value.uint);
 	case GF_PROP_PID_CODECID:
-		return gf_codecid_name(att->value.uint);
+		return gf_codecid_name((GF_CodecID) att->value.uint);
 
 	case GF_PROP_PID_PLAYBACK_MODE:
 		if (att->value.uint == GF_PLAYBACK_MODE_SEEK) return "seek";
@@ -2241,7 +2238,7 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		if (name) return name;
 		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
 	}
-	
+
 	case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
 		//for tx3d SDP config only
 		if (gf_utf8_is_legal(att->value.data.ptr, att->value.data.size))
@@ -2249,7 +2246,7 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		//fallthrough
 	default:
 		if (att->type==GF_PROP_UINT) {
-			u32 type = gf_props_4cc_get_type(p4cc);
+			GF_PropType type = gf_props_4cc_get_type(p4cc);
 			if (gf_props_type_is_enum(type))
 				return gf_props_enum_name(type, att->value.uint);
 		}

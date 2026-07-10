@@ -486,7 +486,7 @@ void gf_mem_enable_tracker(unsigned int mem_track_type)
 	}
 }
 
-size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free)
+u64 gf_mem_get_stats(u32 *nb_allocs, u32 *nb_callocs, u32 *nb_reallocs, u32 *nb_free)
 {
 	if (nb_allocs) (*nb_allocs) = nb_calls_alloc;
 	if (nb_callocs) (*nb_callocs) = nb_calls_calloc;
@@ -541,7 +541,7 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, unsigned int size
 
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 	if (gf_mem_backtrace_enabled) {
-		element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
+		element->backtrace_stack = (char*) MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
 		if (!element->backtrace_stack) {
 			gf_memory_log(GF_MEMORY_WARNING, ("[Mem] Fail to register backtrace of allocation\n"));
 			element->backtrace_stack = NULL;
@@ -554,7 +554,7 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, unsigned int size
 #endif
 
 	u32 alen = (u32) strlen(filename);
-	element->filename = MALLOC(alen + 1);
+	element->filename = (char*) MALLOC(alen + 1);
 	if (element->filename)
 		memcpy(element->filename, filename, alen + 1);
 
@@ -838,14 +838,14 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 	va_start(vl, fmt);
 	vsnprintf(msg, 1024, fmt, vl);
 	msg[1024] = 0;
-	GF_LOG(level, GF_LOG_MEMORY, (msg));
+	GF_LOG((GF_LOG_Level)level, GF_LOG_MEMORY, (msg));
 	va_end(vl);
 }
 
 /*prints allocations sum-up*/
 static void print_memory_size()
 {
-	GF_LOG(gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
+	GF_LOG(gpac_nb_alloc_blocs ? GF_LOG_ERROR : GF_LOG_INFO, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
 }
 
 GF_EXPORT
@@ -863,7 +863,7 @@ void gf_memory_print()
 		gf_assert(!gpac_allocations_lock);
 		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized, some file handles are not closed.\n");
 	} else {
-		int i=0;
+		u32 i=0;
 		gf_assert(gpac_allocations_lock);
 		const char *enum_open_handles(u32 *idx);
 		u32 nb_handles = gf_file_handles_count();

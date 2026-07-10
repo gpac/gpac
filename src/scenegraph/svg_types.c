@@ -42,12 +42,12 @@ Bool gf_svg_is_animation_tag(u32 tag)
 	        tag == TAG_SVG_animateTransform ||
 	        tag == TAG_SVG_animateMotion ||
 	        tag == TAG_SVG_discard
-	       ) ? 1 : 0;
+	       ) ? GF_TRUE : GF_FALSE;
 }
 
 Bool gf_svg_is_timing_tag(u32 tag)
 {
-	if (gf_svg_is_animation_tag(tag)) return 1;
+	if (gf_svg_is_animation_tag(tag)) return GF_TRUE;
 	else return (tag == TAG_SVG_animation ||
 		             tag == TAG_SVG_audio ||
 		             tag == TAG_LSR_conditional ||
@@ -89,10 +89,10 @@ void gf_svg_node_del(GF_Node *node)
 	/*if this is a handler with a UserPrivate, this is a handler with an implicit listener
 	(eg handler with ev:event=""). Destroy the associated listener*/
 	if (p->sgprivate->tag==TAG_SVG_handler) {
-		GF_Node *listener = p->sgprivate->UserPrivate;
+		GF_Node *listener = (GF_Node *)p->sgprivate->UserPrivate;
 		if (listener && (listener->sgprivate->tag==TAG_SVG_listener)) {
 			GF_FieldInfo info;
-			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 0, 0, &info) == GF_OK) {
+			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, GF_FALSE, GF_FALSE, &info) == GF_OK) {
 				XMLRI *iri = (XMLRI *)info.far_ptr;
 				if (iri->target) {
 					gf_assert(iri->target==p);
@@ -137,18 +137,18 @@ Bool gf_svg_node_init(GF_Node *node)
 	case TAG_SVG_script:
 		if (node->sgprivate->scenegraph->script_load)
 			node->sgprivate->scenegraph->script_load(node);
-		return 1;
+		return GF_TRUE;
 
 	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->script_load)
 			node->sgprivate->scenegraph->script_load(node);
 		if (node->sgprivate->scenegraph->script_action)
 			((SVG_handlerElement*)node)->handle_event = gf_sg_handle_dom_event;
-		return 1;
+		return GF_TRUE;
 	case TAG_LSR_conditional:
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
-		return 1;
+		return GF_TRUE;
 	case TAG_SVG_animateMotion:
 	case TAG_SVG_set:
 	case TAG_SVG_animate:
@@ -157,27 +157,27 @@ Bool gf_svg_node_init(GF_Node *node)
 		gf_smil_anim_init_node(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
-		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
+		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? GF_TRUE : GF_FALSE;
 	case TAG_SVG_audio:
 	case TAG_SVG_video:
 	case TAG_LSR_updates:
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
-		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
+		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? GF_TRUE : GF_FALSE;
 	case TAG_SVG_animation:
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
-		return 0;
+		return GF_FALSE;
 	/*discard is implemented as a special animation element */
 	case TAG_SVG_discard:
 		gf_smil_anim_init_discard(node);
 		gf_smil_setup_events(node);
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
@@ -191,16 +191,16 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_animateTransform:
 	case TAG_LSR_conditional:
 		gf_smil_timing_modified(node, field);
-		return 1;
+		return GF_TRUE;
 	case TAG_SVG_animation:
 	case TAG_SVG_audio:
 	case TAG_SVG_video:
 	case TAG_LSR_updates:
 		gf_smil_timing_modified(node, field);
 		/*used by compositors*/
-		return 0;
+		return GF_FALSE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -451,7 +451,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_Points_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
-			void *n = gf_list_last(l);
+			void *n = (void *)gf_list_last(l);
 			gf_list_rem_last(l);
 			gf_free(n);
 		}
@@ -487,7 +487,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case DOM_StringList_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
-			char *n = gf_list_last(l);
+			char *n = (char *)gf_list_last(l);
 			gf_list_rem_last(l);
 			gf_free(n);
 		}
@@ -497,7 +497,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case XMLRI_List_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
-			XMLRI *r = gf_list_last(l);
+			XMLRI *r = (XMLRI *)gf_list_last(l);
 			gf_list_rem_last(l);
 			if (r->string) gf_free(r->string);
 			gf_free(r);

@@ -52,6 +52,7 @@ This section documents the MPEG-4 OD, OCI and IPMPX functions of the GPAC framew
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
 #include <gpac/sync_layer.h>
+#include <gpac/constants.h>
 
 /*! Tags for MPEG-4 systems descriptors */
 enum
@@ -1056,7 +1057,7 @@ typedef struct
 typedef struct
 {
 	u64 obu_length;
-	int obu_type; /*ObuType*/
+	ObuType obu_type;
 	u8 *obu;
 } GF_AV1_OBUArrayEntry;
 
@@ -1102,8 +1103,8 @@ typedef struct
 	u8* codec_initdata;
 
 	/* parsing state information - not used for vpcC*/
-	int RefFrameWidth[VP9_NUM_REF_FRAMES];
-	int RefFrameHeight[VP9_NUM_REF_FRAMES];
+	u32 RefFrameWidth[VP9_NUM_REF_FRAMES];
+	u32 RefFrameHeight[VP9_NUM_REF_FRAMES];
 } GF_VPConfig;
 
 /*! DolbyVision config dvcC/dvvC */
@@ -1374,7 +1375,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg);
 \param dsi_size encoded AVC decoder specific info size
 \return the decoded AVC config
  */
-GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size);
+GF_AVCConfig *gf_odf_avc_cfg_read(const u8 *dsi, u32 dsi_size);
 /*! writes GF_AVCConfig
 \param cfg the AVC config to encode
 \param outData encoded dsi buffer - it is the caller responsibility to free this
@@ -1441,7 +1442,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
 \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
 \return the decoded HEVC config
  */
-GF_HEVCConfig *gf_odf_hevc_cfg_read(u8 *dsi, u32 dsi_size, Bool is_lhvc);
+GF_HEVCConfig *gf_odf_hevc_cfg_read(const u8 *dsi, u32 dsi_size, Bool is_lhvc);
 
 
 /*! VVC config constructor
@@ -1478,7 +1479,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs);
 \param dsi_size encoded VVC decoder specific info size
 \return the decoded VVC config
  */
-GF_VVCConfig *gf_odf_vvc_cfg_read(u8 *dsi, u32 dsi_size);
+GF_VVCConfig *gf_odf_vvc_cfg_read(const u8 *dsi, u32 dsi_size);
 
 /*! AV1 config constructor
 \return the created AV1 config*/
@@ -1953,7 +1954,7 @@ typedef struct
 	 * which includes only the partial header size and the payload.
 	 */
 	u64 obu_length;
-	int obu_type;  /* IamfObuType */
+	IamfObuType obu_type;
 	u8* raw_obu_bytes;
 } GF_IamfObu;
 

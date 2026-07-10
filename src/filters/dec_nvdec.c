@@ -211,7 +211,7 @@ Bool load_inactive_dec(NVDecCtx *ctx)
 		gf_mx_p(global_inst_mutex);
 		count = gf_list_count(global_unactive_decoders);
 		for (i=0; i<count; i++) {
-			NVDecInstance *inst = gf_list_get(global_unactive_decoders, i);
+			NVDecInstance *inst = (NVDecInstance *)gf_list_get(global_unactive_decoders, i);
 			if ((inst->width==ctx->width) && (inst->height==ctx->height) && (inst->bpp_luma == ctx->bpp_luma )
 				&& (inst->bpp_chroma == ctx->bpp_chroma ) && (inst->codec_type == ctx->codec_type) && (inst->chroma_fmt == ctx->chroma_fmt )
 				) {
@@ -239,7 +239,7 @@ Bool load_inactive_dec(NVDecCtx *ctx)
 				return GF_TRUE;
 			}
 		} else {
-			ctx->dec_inst = gf_list_pop_back(global_unactive_decoders);
+			ctx->dec_inst = (NVDecInstance *)gf_list_pop_back(global_unactive_decoders);
 		}
 		gf_mx_v(global_inst_mutex);
 	}
@@ -320,7 +320,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	}
 	ctx->needs_resetup = 1;
 	while (gf_list_count(ctx->frames)) {
-		NVDecFrame *f = gf_list_pop_front(ctx->frames);
+		NVDecFrame *f = (NVDecFrame *)gf_list_pop_front(ctx->frames);
 		nvdec_flush_frame(ctx, f);
 	}
 	ctx->needs_resetup = 0;
@@ -417,9 +417,9 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	NVDecFrame *f;
 	NVDecInstance *inst = (NVDecInstance *)pUserData;
 	NVDecCtx *ctx = (NVDecCtx *)inst->ctx;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS "LLU" ready for display, queuing it\n", pPicParams->picture_index, pPicParams->timestamp) );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS " LLU " ready for display, queuing it\n", pPicParams->picture_index, pPicParams->timestamp) );
 
-	f = gf_list_pop_back(ctx->frames_res);
+	f = (NVDecFrame *)gf_list_pop_back(ctx->frames_res);
 	if (!f) {
 		GF_SAFEALLOC(f, NVDecFrame);
 		if (!f) return 0;
@@ -429,7 +429,7 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	f->ctx = ctx;
 	count = gf_list_count(ctx->frames);
 	for (i=0; i<count; i++) {
-		NVDecFrame *af = gf_list_get(ctx->frames, i);
+		NVDecFrame *af = (NVDecFrame *)gf_list_get(ctx->frames, i);
 		if (af->frame_info.timestamp > f->frame_info.timestamp) {
 			gf_list_insert(ctx->frames, f, i);
 			return 1;
@@ -444,7 +444,7 @@ static void nvdec_store_paramlist(GF_BitStream *bs, GF_List *psl)
 	u32 i, count;
 	count = gf_list_count(psl);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *slc = gf_list_get(psl, i);
+		GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(psl, i);
 		gf_bs_write_u32(bs, 1);
 		gf_bs_write_data(bs, slc->data, slc->size);
 	}
@@ -464,7 +464,7 @@ static void nvdec_store_xps(NVDecCtx *ctx, GF_AVCConfig *avc_cfg, GF_HEVCConfig 
 		ctx->nal_size_length = hevc_cfg->nal_unit_size;
 		count = gf_list_count(hevc_cfg->param_array);
 		for (i=0; i<count; i++) {
-			GF_NALUFFParamArray *pa = gf_list_get(hevc_cfg->param_array, i);
+			GF_NALUFFParamArray *pa = (GF_NALUFFParamArray *)gf_list_get(hevc_cfg->param_array, i);
 			nvdec_store_paramlist(bs, pa->nalus);
 		}
 		gf_odf_hevc_cfg_del(hevc_cfg);
@@ -765,13 +765,13 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	NVDecCtx *ctx = (NVDecCtx *)gf_filter_get_udta(filter);
 	if (evt->base.type == GF_FEVT_PLAY) {
 		while (gf_list_count(ctx->frames)) {
-			NVDecFrame *f = gf_list_pop_back(ctx->frames);
+			NVDecFrame *f = (NVDecFrame *)gf_list_pop_back(ctx->frames);
 			gf_list_add(ctx->frames_res, f);
 		}
 	}
 	else if (evt->base.type == GF_FEVT_STOP) {
 		while (gf_list_count(ctx->frames)) {
-			NVDecFrame *f = gf_list_pop_back(ctx->frames);
+			NVDecFrame *f = (NVDecFrame *)gf_list_pop_back(ctx->frames);
 			gf_list_add(ctx->frames_res, f);
 		}
 		if (ctx->unload == DEC_UNLOAD_REUSE) {
@@ -846,7 +846,7 @@ static GF_Err nvdec_send_hw_frame(NVDecCtx *ctx, NVDecFrame *f);
 static void nvdec_reset_pcks(NVDecCtx *ctx)
 {
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 }
@@ -857,7 +857,7 @@ static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket
 	GF_FilterPacket *src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i = 0; i<count; i++) {
-		src_pck = gf_list_get(ctx->src_packets, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == f->frame_info.timestamp) {
 			gf_filter_pck_merge_properties(src_pck, dst_pck);
 			gf_filter_pck_set_dependency_flags(dst_pck, 0);
@@ -896,7 +896,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res)));
 			}
 #endif
-			f = gf_list_pop_front(ctx->frames);
+			f = (NVDecFrame *)gf_list_pop_front(ctx->frames);
 			e = nvdec_flush_frame(ctx, f);
 			cuCtxPopCurrent(NULL);
 			return e;
@@ -1031,7 +1031,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	if (ipck)
 		gf_filter_pid_drop_packet(ctx->ipid);
 
-	f = gf_list_pop_front(ctx->frames);
+	f = (NVDecFrame *)gf_list_pop_front(ctx->frames);
 	if (!f) {
 #ifndef EMUL_NV_DLL
 		cuCtxPopCurrent(NULL);
@@ -1348,7 +1348,7 @@ GF_Err nvframe_get_frame(GF_FilterFrameInterface *frame, u32 plane_idx, const u8
 
 		if (ctx->out_size > ctx->single_frame_data_alloc) {
 			ctx->single_frame_data_alloc = ctx->out_size;
-			ctx->single_frame_data = gf_realloc(ctx->single_frame_data, ctx->out_size);
+			ctx->single_frame_data = (u8 *)gf_realloc(ctx->single_frame_data, ctx->out_size);
 		}
 		f->y_mapped = GF_TRUE;
 
@@ -1450,7 +1450,7 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx, NVDecFrame *f)
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &f->gframe, nvframe_release);
 	if (!dst_pck) return GF_OUT_OF_MEM;
-	
+
 	nvdec_merge_pck_props(ctx, f, dst_pck);
 	if (gf_filter_pck_get_seek_flag(dst_pck)) {
 		gf_filter_pck_discard(dst_pck);
@@ -1513,7 +1513,7 @@ static void init_cuda_sdk()
 
 static GF_Err nvdec_initialize(GF_Filter *filter)
 {
-	NVDecCtx *ctx = gf_filter_get_udta(filter);
+	NVDecCtx *ctx = (NVDecCtx *)gf_filter_get_udta(filter);
 
 	ctx->frames = gf_list_new();
 	ctx->frames_res = gf_list_new();
@@ -1523,14 +1523,14 @@ static GF_Err nvdec_initialize(GF_Filter *filter)
 
 static void nvdec_finalize(GF_Filter *filter)
 {
-	NVDecCtx *ctx = gf_filter_get_udta(filter);
+	NVDecCtx *ctx = (NVDecCtx *)gf_filter_get_udta(filter);
 
 	nvdec_reset_pcks(ctx);
 	gf_list_del(ctx->src_packets);
 
 	if (!global_nb_loaded_nvdec && global_unactive_decoders) {
 		while (gf_list_count(global_unactive_decoders)) {
-			NVDecInstance *inst = gf_list_pop_back(global_unactive_decoders);
+			NVDecInstance *inst = (NVDecInstance *)gf_list_pop_back(global_unactive_decoders);
 			nvdec_destroy_decoder(inst);
 			if (inst->cu_parser) cuvidDestroyVideoParser(inst->cu_parser);
 			gf_free(inst);

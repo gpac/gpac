@@ -50,7 +50,7 @@
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
-	
+
 	a52_state_t *codec;
 	sample_t* samples;
 
@@ -64,7 +64,7 @@ typedef struct
 
 static GF_Err a52dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_A52DecCtx *ctx = gf_filter_get_udta(filter);
+	GF_A52DecCtx *ctx = (GF_A52DecCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		if (ctx->opid) {
@@ -109,7 +109,7 @@ static GF_Err a52dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 static void a52dec_finalize(GF_Filter *filter)
 {
-	GF_A52DecCtx *ctx = gf_filter_get_udta(filter);
+	GF_A52DecCtx *ctx = (GF_A52DecCtx *)gf_filter_get_udta(filter);
 	if (ctx->codec) a52_free(ctx->codec);
 }
 
@@ -195,7 +195,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	u32 sample_rate, flags;
 	u8 num_channels;
 	sample_t level;
-	GF_A52DecCtx *ctx = gf_filter_get_udta(filter);
+	GF_A52DecCtx *ctx = (GF_A52DecCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 

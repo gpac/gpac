@@ -69,7 +69,7 @@ typedef struct
 
 	GF_DownloadSession *sess;
 
-	char *block;
+	u8 *block;
 	u32 pck_out;
 	Bool is_end;
 	u64 nb_read, file_size;
@@ -108,7 +108,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!ctx->dm) return GF_SERVICE_ERROR;
 
-	ctx->block = gf_malloc(ctx->block_size +1);
+	ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
 	if (ctx->cache==GF_HTTPIN_STORE_MEM)
@@ -236,7 +236,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	//we only check PLAY for full_file_only hint
 	case GF_FEVT_PLAY:
-		ctx->full_file_only = evt->play.full_file_only;
+			ctx->full_file_only = evt->play.full_file_only ? GF_TRUE : GF_FALSE;
 		if (ctx->pid) {
 			gf_filter_pid_set_info_str(ctx->pid, "aborted", NULL);
 		}
@@ -273,7 +273,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_fseek(ctx->cached, ctx->nb_read, SEEK_SET);
 			} else if (ctx->sess) {
 				gf_dm_sess_abort(ctx->sess);
-				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, 0, GF_TRUE);
+				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, GF_FALSE, GF_TRUE);
 			}
 			ctx->range.den = 0;
 			ctx->range.num = ctx->nb_read;
@@ -338,7 +338,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_filter_pid_set_eos(ctx->pid);
 			return GF_TRUE;
 		}
-		ctx->prev_was_init_segment = evt->seek.is_init_segment;
+			ctx->prev_was_init_segment = evt->seek.is_init_segment ? GF_TRUE : GF_FALSE;
 
 		//abort type
 		if (evt->seek.start_offset == (u64) -1) {
@@ -357,7 +357,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->sess) {
 			if ((ctx->cache==GF_HTTPIN_STORE_MEM) && evt->seek.is_init_segment)
 				gf_dm_sess_force_memory_mode(ctx->sess, 2);
-			e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration);
+			e = gf_dm_sess_setup_from_url(ctx->sess, ctx->src, evt->seek.skip_cache_expiration ? GF_TRUE : GF_FALSE);
 		} else {
 			u32 flags;
 
@@ -667,7 +667,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 
-		sprintf(szStatus, "prog="LLD"/"LLD" pc=%02.02f r_rate=%u kbps", (s64) bytes_done, (s64) ctx->file_size, ((Double)bytes_done*100.0)/ctx->file_size, bytes_per_sec*8/1000);
+		sprintf(szStatus, "prog=" LLD "/" LLD " pc=%02.02f r_rate=%u kbps", (s64) bytes_done, (s64) ctx->file_size, ((Double)bytes_done*100.0)/ctx->file_size, bytes_per_sec*8/1000);
 		gf_filter_update_status(filter, (u32) (bytes_done*10000/ctx->file_size), szStatus);
 	}
 

@@ -190,7 +190,7 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 
 	/*register global QP*/
 	codec->ActiveQP = (M_QuantizationParameter *) node;
-	codec->ActiveQP->isLocal = 0;
+	codec->ActiveQP->isLocal = GF_FALSE;
 	codec->scenegraph->global_qp = node;
 
 	/*register TWICE: once for the command, and for the scenegraph globalQP*/
@@ -1010,7 +1010,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 			codec->current_graph = gf_node_get_graph(cbi->node);
 			e = GF_OK;
 			if (cbi->cb->bufferSize) {
-				bs = gf_bs_new((char*)cbi->cb->buffer, cbi->cb->bufferSize, GF_BITSTREAM_READ);
+				bs = gf_bs_new(cbi->cb->buffer, cbi->cb->bufferSize, GF_BITSTREAM_READ);
 				gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);
 				e = BM_ParseCommand(codec, bs, cbi->cb->commandList);
 				gf_bs_del(bs);

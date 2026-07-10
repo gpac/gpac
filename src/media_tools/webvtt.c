@@ -81,7 +81,7 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent)
 				a = gf_isom_box_new(type);
 			}
 			if (a) {
-				char* str = ((GF_StringBox *)a)->string = gf_malloc(len + 1);
+				char* str = ((GF_StringBox *)a)->string = (char *)gf_malloc(len + 1);
 				memcpy(str, string, len);
 				str[len] = '\0';
 			}
@@ -142,7 +142,7 @@ GF_Err boxstring_box_read(GF_Box *s, GF_BitStream *bs)
 	if (s->size > GF_UINT_MAX-1) return GF_ISOM_INVALID_FILE;
 	box->string = (char *)gf_malloc((u32)(s->size+1));
 	if (!box->string) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, box->string, (u32)(s->size));
+	gf_bs_read_data(bs, (u8 *) box->string, (u32)(s->size));
 	box->string[(u32)(s->size)] = 0;
 	return GF_OK;
 }
@@ -208,7 +208,7 @@ GF_Err boxstring_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	if (box->string) {
-		gf_bs_write_data(bs, box->string, (u32)(box->size-8));
+		gf_bs_write_data(bs, (u8 *) box->string, (u32)(box->size-8));
 	}
 	return GF_OK;
 }
@@ -356,7 +356,7 @@ u32 gf_isom_webvtt_cues_count(void *s)
 
 GF_Err boxstring_box_dump(GF_Box *a, FILE * trace)
 {
-	char *szName;
+	const char *szName;
 	GF_StringBox *sbox = (GF_StringBox *)a;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_VTTC_CONFIG:
@@ -437,7 +437,7 @@ struct _webvtt_parser {
 
 	u64  last_duration;
 	void *user;
-	GF_Err (*report_message)(void *, GF_Err, char *, const char *);
+	GF_Err (*report_message)(void *, GF_Err, const char *, const char *);
 	void (*on_header_parsed)(void *, const char *);
 	void (*on_sample_parsed)(void *, GF_WebVTTSample *);
 	void (*on_cue_read)(void *, GF_WebVTTCue *);
@@ -512,7 +512,7 @@ static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCueProperty
 	}
 	if (*prop) {
 		len = (u32) strlen(*prop);
-		(*prop) = (char*)gf_realloc((*prop), sizeof(char) * (len + text_len + 1) );
+		(*prop) = (char*)gf_realloc((*prop), (len + text_len + 1) );
 		memcpy((*prop) + len, text_data, text_len);
 		(*prop)[len+text_len] = 0;
 	} else {
@@ -581,7 +581,7 @@ GF_WebVTTParser *gf_webvtt_parser_new()
 extern s32 gf_text_get_utf_type(FILE *in_src);
 
 GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, FILE **vtt_file, s32 unicode_type, Bool is_srt,
-                             void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
+                             void *user, GF_Err (*report_message)(void *, GF_Err, const char *, const char *),
                              void (*on_sample_parsed)(void *, GF_WebVTTSample *),
                              void (*on_header_parsed)(void *, const char *))
 {
@@ -1122,7 +1122,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		case WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD:
 			if ((is_resume==1) && !cue) {
 				GF_WebVTTSample *sample = (GF_WebVTTSample *)gf_list_last(parser->samples);
-				cue = sample ? gf_list_last(sample->cues) : NULL;
+				cue = sample ? (GF_WebVTTCue *)gf_list_last(sample->cues) : NULL;
 				is_resume = 2;
 			}
 			if (sOK && len) {
@@ -1516,7 +1516,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 	GF_Box *box = NULL;
 
 	if (box_mode) {
-		gf_fprintf(dump, "<WebVTTSample decodingTimeStamp=\""LLU"\" compositionTimeStamp=\""LLD"\" RAP=\"%d\" dataLength=\"%d\" >\n", iso_sample->DTS, (s64)iso_sample->DTS + iso_sample->CTS_Offset, iso_sample->IsRAP, iso_sample->dataLength);
+		gf_fprintf(dump, "<WebVTTSample decodingTimeStamp=\"" LLU "\" compositionTimeStamp=\"" LLD "\" RAP=\"%d\" dataLength=\"%d\" >\n", iso_sample->DTS, (s64)iso_sample->DTS + iso_sample->CTS_Offset, iso_sample->IsRAP, iso_sample->dataLength);
 	}
 	bs = gf_bs_new(iso_sample->data, iso_sample->dataLength, GF_BITSTREAM_READ);
 	if (!bs) return GF_OUT_OF_MEM;
@@ -1635,7 +1635,7 @@ static GF_Err gf_webvtt_dump_cues(FILE *dump, GF_List *cues)
 
 GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp)
 {
-	gf_fprintf(stdout, "NOTE New WebVTT Sample ("LLD"-"LLD")\n\n", samp->start, samp->end);
+	gf_fprintf(stdout, "NOTE New WebVTT Sample (" LLD "-" LLD ")\n\n", samp->start, samp->end);
 	return gf_webvtt_dump_cues(dump, samp->cues);
 }
 #endif

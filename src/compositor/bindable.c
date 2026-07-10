@@ -159,7 +159,7 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 	gf_node_event_out_str(bindable, "isBound");
 	if (has_bind_time) gf_node_event_out_str(bindable, "bindTime");
 	/*force invalidate of the bindable stack's owner*/
-	gf_node_dirty_set(bindable, 0, GF_TRUE);
+	gf_node_dirty_set(bindable, GF_FALSE, GF_TRUE);
 }
 
 
@@ -285,7 +285,7 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list, GF_List *for_sta
 		}
 	}
 	/*force invalidate of the bindable stack's owner*/
-	gf_node_dirty_set(bindable, 0, GF_TRUE);
+	gf_node_dirty_set(bindable, GF_FALSE, GF_TRUE);
 	/*and redraw scene*/
 	gf_sc_invalidate(gf_sc_get_compositor(bindable), NULL);
 }

@@ -118,7 +118,7 @@ static GF_Err Anchor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Anchor_get_field_index_by_name(char *name)
+static s32 Anchor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -217,7 +217,7 @@ static GF_Err Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Appearance_get_field_index_by_name(char *name)
+static s32 Appearance_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("material", name)) return 0;
 	if (!strcmp("texture", name)) return 1;
@@ -292,7 +292,7 @@ static GF_Err Arc2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Arc2D_get_field_index_by_name(char *name)
+static s32 Arc2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("endAngle", name)) return 0;
 	if (!strcmp("radius", name)) return 1;
@@ -375,7 +375,7 @@ static GF_Err ArcClose2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ArcClose2D_get_field_index_by_name(char *name)
+static s32 ArcClose2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("closureType", name)) return 0;
 	if (!strcmp("endAngle", name)) return 1;
@@ -509,7 +509,7 @@ static GF_Err AudioClip_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 AudioClip_get_field_index_by_name(char *name)
+static s32 AudioClip_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("description", name)) return 0;
 	if (!strcmp("loop", name)) return 1;
@@ -667,7 +667,7 @@ static GF_Err Background_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Background_get_field_index_by_name(char *name)
+static s32 Background_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("groundAngle", name)) return 1;
@@ -767,7 +767,7 @@ static GF_Err Billboard_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Billboard_get_field_index_by_name(char *name)
+static s32 Billboard_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -852,7 +852,7 @@ static GF_Err BooleanFilter_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BooleanFilter_get_field_index_by_name(char *name)
+static s32 BooleanFilter_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_boolean", name)) return 0;
 	if (!strcmp("inputFalse", name)) return 1;
@@ -949,7 +949,7 @@ static GF_Err BooleanSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BooleanSequencer_get_field_index_by_name(char *name)
+static s32 BooleanSequencer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("next", name)) return 0;
 	if (!strcmp("previous", name)) return 1;
@@ -1020,7 +1020,7 @@ static GF_Err BooleanToggle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BooleanToggle_get_field_index_by_name(char *name)
+static s32 BooleanToggle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_boolean", name)) return 0;
 	if (!strcmp("toggle", name)) return 1;
@@ -1087,7 +1087,7 @@ static GF_Err BooleanTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 BooleanTrigger_get_field_index_by_name(char *name)
+static s32 BooleanTrigger_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_triggerTime", name)) return 0;
 	if (!strcmp("triggerTrue", name)) return 1;
@@ -1147,7 +1147,7 @@ static GF_Err Box_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Box_get_field_index_by_name(char *name)
+static s32 Box_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("size", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1209,7 +1209,7 @@ static GF_Err Circle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Circle2D_get_field_index_by_name(char *name)
+static s32 Circle2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1313,7 +1313,7 @@ static GF_Err Collision_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Collision_get_field_index_by_name(char *name)
+static s32 Collision_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -1336,7 +1336,7 @@ static GF_Node *Collision_Create()
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -1381,7 +1381,7 @@ static GF_Err Color_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Color_get_field_index_by_name(char *name)
+static s32 Color_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1461,7 +1461,7 @@ static GF_Err ColorInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ColorInterpolator_get_field_index_by_name(char *name)
+static s32 ColorInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -1524,7 +1524,7 @@ static GF_Err ColorRGBA_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ColorRGBA_get_field_index_by_name(char *name)
+static s32 ColorRGBA_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1601,7 +1601,7 @@ static GF_Err Cone_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Cone_get_field_index_by_name(char *name)
+static s32 Cone_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bottomRadius", name)) return 0;
 	if (!strcmp("height", name)) return 1;
@@ -1622,8 +1622,8 @@ static GF_Node *Cone_Create()
 	/*default field values*/
 	p->bottomRadius = FLT2FIX(1);
 	p->height = FLT2FIX(2);
-	p->side = 1;
-	p->bottom = 1;
+	p->side = GF_TRUE;
+	p->bottom = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -1685,7 +1685,7 @@ static GF_Err Contour2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Contour2D_get_field_index_by_name(char *name)
+static s32 Contour2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -1748,7 +1748,7 @@ static GF_Err ContourPolyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ContourPolyline2D_get_field_index_by_name(char *name)
+static s32 ContourPolyline2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1808,7 +1808,7 @@ static GF_Err Coordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Coordinate_get_field_index_by_name(char *name)
+static s32 Coordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1868,7 +1868,7 @@ static GF_Err CoordinateDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 CoordinateDouble_get_field_index_by_name(char *name)
+static s32 CoordinateDouble_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -1928,7 +1928,7 @@ static GF_Err Coordinate2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Coordinate2D_get_field_index_by_name(char *name)
+static s32 Coordinate2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -2009,7 +2009,7 @@ static GF_Err CoordinateInterpolator_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 CoordinateInterpolator_get_field_index_by_name(char *name)
+static s32 CoordinateInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -2093,7 +2093,7 @@ static GF_Err CoordinateInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *in
 }
 
 
-static s32 CoordinateInterpolator2D_get_field_index_by_name(char *name)
+static s32 CoordinateInterpolator2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -2179,7 +2179,7 @@ static GF_Err Cylinder_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Cylinder_get_field_index_by_name(char *name)
+static s32 Cylinder_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("bottom", name)) return 0;
 	if (!strcmp("height", name)) return 1;
@@ -2199,11 +2199,11 @@ static GF_Node *Cylinder_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_Cylinder);
 
 	/*default field values*/
-	p->bottom = 1;
+	p->bottom = GF_TRUE;
 	p->height = FLT2FIX(2);
 	p->radius = FLT2FIX(1);
-	p->side = 1;
-	p->top = 1;
+	p->side = GF_TRUE;
+	p->top = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -2308,7 +2308,7 @@ static GF_Err CylinderSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 CylinderSensor_get_field_index_by_name(char *name)
+static s32 CylinderSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("diskAngle", name)) return 1;
@@ -2334,9 +2334,9 @@ static GF_Node *CylinderSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_CylinderSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
+	p->autoOffset = GF_TRUE;
 	p->diskAngle = FLT2FIX(0.2617);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->maxAngle = FLT2FIX(-1);
 	p->minAngle = FLT2FIX(0);
 	p->offset = FLT2FIX(0);
@@ -2407,7 +2407,7 @@ static GF_Err DirectionalLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 DirectionalLight_get_field_index_by_name(char *name)
+static s32 DirectionalLight_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -2435,7 +2435,7 @@ static GF_Node *DirectionalLight_Create()
 	p->direction.y = FLT2FIX(0);
 	p->direction.z = FLT2FIX(-1);
 	p->intensity = FLT2FIX(1);
-	p->on = 1;
+	p->on = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -2485,7 +2485,7 @@ static GF_Err Disk2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Disk2D_get_field_index_by_name(char *name)
+static s32 Disk2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("innerRadius", name)) return 0;
 	if (!strcmp("outerRadius", name)) return 1;
@@ -2634,7 +2634,7 @@ static GF_Err ElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ElevationGrid_get_field_index_by_name(char *name)
+static s32 ElevationGrid_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_height", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -2663,11 +2663,11 @@ static GF_Node *ElevationGrid_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_ElevationGrid);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	p->xDimension = 0;
 	p->xSpacing = FLT2FIX(1.0);
 	p->zDimension = 0;
@@ -3242,7 +3242,7 @@ static GF_Err EspduTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 EspduTransform_get_field_index_by_name(char *name)
+static s32 EspduTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -3545,7 +3545,7 @@ static GF_Err Extrusion_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Extrusion_get_field_index_by_name(char *name)
+static s32 Extrusion_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_crossSection", name)) return 0;
 	if (!strcmp("set_orientation", name)) return 1;
@@ -3574,9 +3574,9 @@ static GF_Node *Extrusion_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_Extrusion);
 
 	/*default field values*/
-	p->beginCap = 1;
-	p->ccw = 1;
-	p->convex = 1;
+	p->beginCap = GF_TRUE;
+	p->ccw = GF_TRUE;
+	p->convex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
 	p->crossSection.vals = (SFVec2f*) gf_malloc(sizeof(SFVec2f)*5);
 	p->crossSection.count = 5;
@@ -3590,7 +3590,7 @@ static GF_Node *Extrusion_Create()
 	p->crossSection.vals[3].y = FLT2FIX(1);
 	p->crossSection.vals[4].x = FLT2FIX(1);
 	p->crossSection.vals[4].y = FLT2FIX(1);
-	p->endCap = 1;
+	p->endCap = GF_TRUE;
 	p->orientation.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*1);
 	p->orientation.count = 1;
 	p->orientation.vals[0].x = FLT2FIX(0);
@@ -3601,7 +3601,7 @@ static GF_Node *Extrusion_Create()
 	p->scale.count = 1;
 	p->scale.vals[0].x = FLT2FIX(1);
 	p->scale.vals[0].y = FLT2FIX(1);
-	p->solid = 1;
+	p->solid = GF_TRUE;
 	p->spine.vals = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*2);
 	p->spine.count = 2;
 	p->spine.vals[0].x = FLT2FIX(0);
@@ -3663,7 +3663,7 @@ static GF_Err FillProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FillProperties_get_field_index_by_name(char *name)
+static s32 FillProperties_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("filled", name)) return 0;
 	if (!strcmp("hatchColor", name)) return 1;
@@ -3681,11 +3681,11 @@ static GF_Node *FillProperties_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_FillProperties);
 
 	/*default field values*/
-	p->filled = 1;
+	p->filled = GF_TRUE;
 	p->hatchColor.red = FLT2FIX(1);
 	p->hatchColor.green = FLT2FIX(1);
 	p->hatchColor.blue = FLT2FIX(1);
-	p->hatched = 1;
+	p->hatched = GF_TRUE;
 	p->hatchStyle = 1;
 	return (GF_Node *)p;
 }
@@ -3762,7 +3762,7 @@ static GF_Err Fog_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Fog_get_field_index_by_name(char *name)
+static s32 Fog_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("fogType", name)) return 1;
@@ -3883,7 +3883,7 @@ static GF_Err FontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 FontStyle_get_field_index_by_name(char *name)
+static s32 FontStyle_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("family", name)) return 0;
 	if (!strcmp("horizontal", name)) return 1;
@@ -3907,18 +3907,18 @@ static GF_Node *FontStyle_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_FontStyle);
 
 	/*default field values*/
-	p->family.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->family.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->family.count = 1;
 	p->family.vals[0] = gf_strdup("SERIF");
-	p->horizontal = 1;
-	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
+	p->horizontal = GF_TRUE;
+	p->justify.vals = (char**)gf_malloc(sizeof(char *)*1);
 	p->justify.count = 1;
 	p->justify.vals[0] = gf_strdup("BEGIN");
-	p->leftToRight = 1;
+	p->leftToRight = GF_TRUE;
 	p->size = FLT2FIX(1.0);
 	p->spacing = FLT2FIX(1.0);
 	p->style.buffer = gf_strdup("PLAIN");
-	p->topToBottom = 1;
+	p->topToBottom = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -3978,7 +3978,7 @@ static GF_Err GeoCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoCoordinate_get_field_index_by_name(char *name)
+static s32 GeoCoordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("geoOrigin", name)) return 1;
@@ -3996,7 +3996,7 @@ static GF_Node *GeoCoordinate_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_GeoCoordinate);
 
 	/*default field values*/
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4158,7 +4158,7 @@ static GF_Err GeoElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoElevationGrid_get_field_index_by_name(char *name)
+static s32 GeoElevationGrid_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_height", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -4192,16 +4192,16 @@ static GF_Node *GeoElevationGrid_Create()
 
 	/*default field values*/
 	p->yScale = FLT2FIX(1.0);
-	p->ccw = 1;
-	p->colorPerVertex = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
 	p->geoGridOrigin.buffer = gf_strdup("0 0 0");
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	p->xDimension = 0;
 	p->xSpacing = (SFDouble) 1.0;
 	p->zDimension = 0;
@@ -4288,7 +4288,7 @@ static GF_Err GeoLocation_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoLocation_get_field_index_by_name(char *name)
+static s32 GeoLocation_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -4313,7 +4313,7 @@ static GF_Node *GeoLocation_Create()
 	p->geoCoords.x = (SFDouble) 0;
 	p->geoCoords.y = (SFDouble) 0;
 	p->geoCoords.z = (SFDouble) 0;
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4432,7 +4432,7 @@ static GF_Err GeoLOD_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoLOD_get_field_index_by_name(char *name)
+static s32 GeoLOD_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("child1Url", name)) return 1;
@@ -4461,7 +4461,7 @@ static GF_Node *GeoLOD_Create()
 	p->center.x = (SFDouble) 0;
 	p->center.y = (SFDouble) 0;
 	p->center.z = (SFDouble) 0;
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4525,7 +4525,7 @@ static GF_Err GeoMetadata_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoMetadata_get_field_index_by_name(char *name)
+static s32 GeoMetadata_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("data", name)) return 0;
 	if (!strcmp("summary", name)) return 1;
@@ -4599,7 +4599,7 @@ static GF_Err GeoOrigin_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoOrigin_get_field_index_by_name(char *name)
+static s32 GeoOrigin_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("geoCoords", name)) return 0;
 	if (!strcmp("geoSystem", name)) return 1;
@@ -4620,7 +4620,7 @@ static GF_Node *GeoOrigin_Create()
 	p->geoCoords.x = (SFDouble) 0;
 	p->geoCoords.y = (SFDouble) 0;
 	p->geoCoords.z = (SFDouble) 0;
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4709,7 +4709,7 @@ static GF_Err GeoPositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 }
 
 
-static s32 GeoPositionInterpolator_get_field_index_by_name(char *name)
+static s32 GeoPositionInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -4731,7 +4731,7 @@ static GF_Node *GeoPositionInterpolator_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_GeoPositionInterpolator);
 
 	/*default field values*/
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -4835,7 +4835,7 @@ static GF_Err GeoTouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoTouchSensor_get_field_index_by_name(char *name)
+static s32 GeoTouchSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("enabled", name)) return 0;
 	if (!strcmp("geoOrigin", name)) return 1;
@@ -4860,8 +4860,8 @@ static GF_Node *GeoTouchSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_GeoTouchSensor);
 
 	/*default field values*/
-	p->enabled = 1;
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->enabled = GF_TRUE;
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -5002,7 +5002,7 @@ static GF_Err GeoViewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 GeoViewpoint_get_field_index_by_name(char *name)
+static s32 GeoViewpoint_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("set_orientation", name)) return 1;
@@ -5033,13 +5033,13 @@ static GF_Node *GeoViewpoint_Create()
 
 	/*default field values*/
 	p->fieldOfView = FLT2FIX(0.785398);
-	p->headlight = 1;
-	p->jump = 1;
-	p->navType.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->headlight = GF_TRUE;
+	p->jump = GF_TRUE;
+	p->navType.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->navType.count = 2;
 	p->navType.vals[0] = gf_strdup("EXAMINE");
 	p->navType.vals[1] = gf_strdup("ANY");
-	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->geoSystem.count = 2;
 	p->geoSystem.vals[0] = gf_strdup("GD");
 	p->geoSystem.vals[1] = gf_strdup("WE");
@@ -5112,7 +5112,7 @@ static GF_Err Group_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Group_get_field_index_by_name(char *name)
+static s32 Group_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -5195,7 +5195,7 @@ static GF_Err HAnimDisplacer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 HAnimDisplacer_get_field_index_by_name(char *name)
+static s32 HAnimDisplacer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("coordIndex", name)) return 0;
 	if (!strcmp("displacements", name)) return 1;
@@ -5367,7 +5367,7 @@ static GF_Err HAnimHumanoid_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 HAnimHumanoid_get_field_index_by_name(char *name)
+static s32 HAnimHumanoid_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("info", name)) return 1;
@@ -5562,7 +5562,7 @@ static GF_Err HAnimJoint_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 HAnimJoint_get_field_index_by_name(char *name)
+static s32 HAnimJoint_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -5723,7 +5723,7 @@ static GF_Err HAnimSegment_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 HAnimSegment_get_field_index_by_name(char *name)
+static s32 HAnimSegment_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -5861,7 +5861,7 @@ static GF_Err HAnimSite_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 HAnimSite_get_field_index_by_name(char *name)
+static s32 HAnimSite_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -5959,7 +5959,7 @@ static GF_Err ImageTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ImageTexture_get_field_index_by_name(char *name)
+static s32 ImageTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("repeatS", name)) return 1;
@@ -5977,8 +5977,8 @@ static GF_Node *ImageTexture_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_ImageTexture);
 
 	/*default field values*/
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6144,7 +6144,7 @@ static GF_Err IndexedFaceSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedFaceSet_get_field_index_by_name(char *name)
+static s32 IndexedFaceSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -6177,12 +6177,12 @@ static GF_Node *IndexedFaceSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedFaceSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->convex = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->convex = GF_TRUE;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6272,7 +6272,7 @@ static GF_Err IndexedLineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedLineSet_get_field_index_by_name(char *name)
+static s32 IndexedLineSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_colorIndex", name)) return 0;
 	if (!strcmp("set_coordIndex", name)) return 1;
@@ -6294,7 +6294,7 @@ static GF_Node *IndexedLineSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedLineSet);
 
 	/*default field values*/
-	p->colorPerVertex = 1;
+	p->colorPerVertex = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6403,7 +6403,7 @@ static GF_Err IndexedTriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedTriangleFanSet_get_field_index_by_name(char *name)
+static s32 IndexedTriangleFanSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_index", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -6428,10 +6428,10 @@ static GF_Node *IndexedTriangleFanSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleFanSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6540,7 +6540,7 @@ static GF_Err IndexedTriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IndexedTriangleSet_get_field_index_by_name(char *name)
+static s32 IndexedTriangleSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_index", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -6565,10 +6565,10 @@ static GF_Node *IndexedTriangleSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6677,7 +6677,7 @@ static GF_Err IndexedTriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *inf
 }
 
 
-static s32 IndexedTriangleStripSet_get_field_index_by_name(char *name)
+static s32 IndexedTriangleStripSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_index", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -6703,9 +6703,9 @@ static GF_Node *IndexedTriangleStripSet_Create()
 
 	/*default field values*/
 	p->creaseAngle = FLT2FIX(0);
-	p->ccw = 1;
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6756,7 +6756,7 @@ static GF_Err Inline_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Inline_get_field_index_by_name(char *name)
+static s32 Inline_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -6773,7 +6773,7 @@ static GF_Node *Inline_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_Inline);
 
 	/*default field values*/
-	p->load = 1;
+	p->load = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -6852,7 +6852,7 @@ static GF_Err IntegerSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IntegerSequencer_get_field_index_by_name(char *name)
+static s32 IntegerSequencer_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("next", name)) return 0;
 	if (!strcmp("previous", name)) return 1;
@@ -6929,7 +6929,7 @@ static GF_Err IntegerTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 IntegerTrigger_get_field_index_by_name(char *name)
+static s32 IntegerTrigger_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_boolean", name)) return 0;
 	if (!strcmp("integerKey", name)) return 1;
@@ -7041,7 +7041,7 @@ static GF_Err KeySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 KeySensor_get_field_index_by_name(char *name)
+static s32 KeySensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("enabled", name)) return 0;
 	if (!strcmp("actionKeyPress", name)) return 1;
@@ -7065,7 +7065,7 @@ static GF_Node *KeySensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_KeySensor);
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -7121,7 +7121,7 @@ static GF_Err LineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LineProperties_get_field_index_by_name(char *name)
+static s32 LineProperties_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("applied", name)) return 0;
 	if (!strcmp("linetype", name)) return 1;
@@ -7139,7 +7139,7 @@ static GF_Node *LineProperties_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_LineProperties);
 
 	/*default field values*/
-	p->applied = 1;
+	p->applied = GF_TRUE;
 	p->linetype = 1;
 	p->linewidthScaleFactor = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -7202,7 +7202,7 @@ static GF_Err LineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LineSet_get_field_index_by_name(char *name)
+static s32 LineSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -7301,7 +7301,7 @@ static GF_Err LoadSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LoadSensor_get_field_index_by_name(char *name)
+static s32 LoadSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("enabled", name)) return 0;
 	if (!strcmp("timeOut", name)) return 1;
@@ -7323,7 +7323,7 @@ static GF_Node *LoadSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_LoadSensor);
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->timeOut = 0;
 	return (GF_Node *)p;
 }
@@ -7399,7 +7399,7 @@ static GF_Err LOD_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 LOD_get_field_index_by_name(char *name)
+static s32 LOD_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -7496,7 +7496,7 @@ static GF_Err Material_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Material_get_field_index_by_name(char *name)
+static s32 Material_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("diffuseColor", name)) return 1;
@@ -7587,7 +7587,7 @@ static GF_Err MetadataDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MetadataDouble_get_field_index_by_name(char *name)
+static s32 MetadataDouble_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("name", name)) return 0;
 	if (!strcmp("reference", name)) return 1;
@@ -7663,7 +7663,7 @@ static GF_Err MetadataFloat_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MetadataFloat_get_field_index_by_name(char *name)
+static s32 MetadataFloat_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("name", name)) return 0;
 	if (!strcmp("reference", name)) return 1;
@@ -7739,7 +7739,7 @@ static GF_Err MetadataInteger_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MetadataInteger_get_field_index_by_name(char *name)
+static s32 MetadataInteger_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("name", name)) return 0;
 	if (!strcmp("reference", name)) return 1;
@@ -7816,7 +7816,7 @@ static GF_Err MetadataSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MetadataSet_get_field_index_by_name(char *name)
+static s32 MetadataSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("name", name)) return 0;
 	if (!strcmp("reference", name)) return 1;
@@ -7892,7 +7892,7 @@ static GF_Err MetadataString_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MetadataString_get_field_index_by_name(char *name)
+static s32 MetadataString_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("name", name)) return 0;
 	if (!strcmp("reference", name)) return 1;
@@ -8026,7 +8026,7 @@ static GF_Err MovieTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MovieTexture_get_field_index_by_name(char *name)
+static s32 MovieTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("loop", name)) return 0;
 	if (!strcmp("speed", name)) return 1;
@@ -8057,8 +8057,8 @@ static GF_Node *MovieTexture_Create()
 	p->speed = FLT2FIX(1.0);
 	p->startTime = 0;
 	p->stopTime = 0;
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	p->resumeTime = 0;
 	p->pauseTime = 0;
 	return (GF_Node *)p;
@@ -8139,7 +8139,7 @@ static GF_Err MultiTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MultiTexture_get_field_index_by_name(char *name)
+static s32 MultiTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("alpha", name)) return 0;
 	if (!strcmp("color", name)) return 1;
@@ -8209,7 +8209,7 @@ static GF_Err MultiTextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 MultiTextureCoordinate_get_field_index_by_name(char *name)
+static s32 MultiTextureCoordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("texCoord", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -8270,7 +8270,7 @@ static GF_Err MultiTextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 MultiTextureTransform_get_field_index_by_name(char *name)
+static s32 MultiTextureTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("textureTransform", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -8381,7 +8381,7 @@ static GF_Err NavigationInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NavigationInfo_get_field_index_by_name(char *name)
+static s32 NavigationInfo_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("avatarSize", name)) return 1;
@@ -8410,14 +8410,14 @@ static GF_Node *NavigationInfo_Create()
 	p->avatarSize.vals[0] = FLT2FIX(0.25);
 	p->avatarSize.vals[1] = FLT2FIX(1.6);
 	p->avatarSize.vals[2] = FLT2FIX(0.75);
-	p->headlight = 1;
+	p->headlight = GF_TRUE;
 	p->speed = FLT2FIX(1.0);
-	p->type.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->type.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->type.count = 2;
 	p->type.vals[0] = gf_strdup("WALK");
 	p->type.vals[1] = gf_strdup("ANY");
 	p->visibilityLimit = FLT2FIX(0.0);
-	p->transitionType.vals = (char**)gf_malloc(sizeof(SFString)*2);
+	p->transitionType.vals = (char**)gf_malloc(sizeof(char *)*2);
 	p->transitionType.count = 2;
 	p->transitionType.vals[0] = gf_strdup("WALK");
 	p->transitionType.vals[1] = gf_strdup("ANY");
@@ -8465,7 +8465,7 @@ static GF_Err Normal_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Normal_get_field_index_by_name(char *name)
+static s32 Normal_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("vector", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -8546,7 +8546,7 @@ static GF_Err NormalInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NormalInterpolator_get_field_index_by_name(char *name)
+static s32 NormalInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -8641,7 +8641,7 @@ static GF_Err NurbsCurve_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsCurve_get_field_index_by_name(char *name)
+static s32 NurbsCurve_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("controlPoint", name)) return 0;
 	if (!strcmp("tessellation", name)) return 1;
@@ -8740,7 +8740,7 @@ static GF_Err NurbsCurve2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsCurve2D_get_field_index_by_name(char *name)
+static s32 NurbsCurve2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("controlPoint", name)) return 0;
 	if (!strcmp("tessellation", name)) return 1;
@@ -8841,7 +8841,7 @@ static GF_Err NurbsOrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo
 }
 
 
-static s32 NurbsOrientationInterpolator_get_field_index_by_name(char *name)
+static s32 NurbsOrientationInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("controlPoints", name)) return 1;
@@ -8991,7 +8991,7 @@ static GF_Err NurbsPatchSurface_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsPatchSurface_get_field_index_by_name(char *name)
+static s32 NurbsPatchSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("controlPoint", name)) return 0;
 	if (!strcmp("texCoord", name)) return 1;
@@ -9022,7 +9022,7 @@ static GF_Node *NurbsPatchSurface_Create()
 	/*default field values*/
 	p->uTessellation = 0;
 	p->vTessellation = 0;
-	p->solid = 1;
+	p->solid = GF_TRUE;
 	p->uDimension = 0;
 	p->uOrder = 3;
 	p->vDimension = 0;
@@ -9105,7 +9105,7 @@ static GF_Err NurbsPositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *i
 }
 
 
-static s32 NurbsPositionInterpolator_get_field_index_by_name(char *name)
+static s32 NurbsPositionInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("controlPoints", name)) return 1;
@@ -9196,7 +9196,7 @@ static GF_Err NurbsSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsSet_get_field_index_by_name(char *name)
+static s32 NurbsSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addGeometry", name)) return 0;
 	if (!strcmp("removeGeometry", name)) return 1;
@@ -9325,7 +9325,7 @@ static GF_Err NurbsSurfaceInterpolator_get_field(GF_Node *node, GF_FieldInfo *in
 }
 
 
-static s32 NurbsSurfaceInterpolator_get_field_index_by_name(char *name)
+static s32 NurbsSurfaceInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("controlPoints", name)) return 1;
@@ -9420,7 +9420,7 @@ static GF_Err NurbsSweptSurface_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsSweptSurface_get_field_index_by_name(char *name)
+static s32 NurbsSweptSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("crossSectionCurve", name)) return 0;
 	if (!strcmp("trajectoryCurve", name)) return 1;
@@ -9439,8 +9439,8 @@ static GF_Node *NurbsSweptSurface_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsSweptSurface);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -9506,7 +9506,7 @@ static GF_Err NurbsSwungSurface_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsSwungSurface_get_field_index_by_name(char *name)
+static s32 NurbsSwungSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("profileCurve", name)) return 0;
 	if (!strcmp("trajectoryCurve", name)) return 1;
@@ -9525,8 +9525,8 @@ static GF_Node *NurbsSwungSurface_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsSwungSurface);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -9616,7 +9616,7 @@ static GF_Err NurbsTextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 NurbsTextureCoordinate_get_field_index_by_name(char *name)
+static s32 NurbsTextureCoordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("controlPoint", name)) return 0;
 	if (!strcmp("weight", name)) return 1;
@@ -9797,7 +9797,7 @@ static GF_Err NurbsTrimmedSurface_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 NurbsTrimmedSurface_get_field_index_by_name(char *name)
+static s32 NurbsTrimmedSurface_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addTrimmingContour", name)) return 0;
 	if (!strcmp("removeTrimmingContour", name)) return 1;
@@ -9831,7 +9831,7 @@ static GF_Node *NurbsTrimmedSurface_Create()
 	/*default field values*/
 	p->uTessellation = 0;
 	p->vTessellation = 0;
-	p->solid = 1;
+	p->solid = GF_TRUE;
 	p->uDimension = 0;
 	p->uOrder = 3;
 	p->vDimension = 0;
@@ -9900,7 +9900,7 @@ static GF_Err OrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 }
 
 
-static s32 OrientationInterpolator_get_field_index_by_name(char *name)
+static s32 OrientationInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -9975,7 +9975,7 @@ static GF_Err PixelTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PixelTexture_get_field_index_by_name(char *name)
+static s32 PixelTexture_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("image", name)) return 0;
 	if (!strcmp("repeatS", name)) return 1;
@@ -9993,8 +9993,8 @@ static GF_Node *PixelTexture_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_PixelTexture);
 
 	/*default field values*/
-	p->repeatS = 1;
-	p->repeatT = 1;
+	p->repeatS = GF_TRUE;
+	p->repeatT = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -10093,7 +10093,7 @@ static GF_Err PlaneSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PlaneSensor_get_field_index_by_name(char *name)
+static s32 PlaneSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -10118,8 +10118,8 @@ static GF_Node *PlaneSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_PlaneSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
-	p->enabled = 1;
+	p->autoOffset = GF_TRUE;
+	p->enabled = GF_TRUE;
 	p->maxPosition.x = FLT2FIX(-1);
 	p->maxPosition.y = FLT2FIX(-1);
 	p->minPosition.x = FLT2FIX(0);
@@ -10206,7 +10206,7 @@ static GF_Err PointLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointLight_get_field_index_by_name(char *name)
+static s32 PointLight_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("attenuation", name)) return 1;
@@ -10239,7 +10239,7 @@ static GF_Node *PointLight_Create()
 	p->location.x = FLT2FIX(0);
 	p->location.y = FLT2FIX(0);
 	p->location.z = FLT2FIX(0);
-	p->on = 1;
+	p->on = GF_TRUE;
 	p->radius = FLT2FIX(100);
 	return (GF_Node *)p;
 }
@@ -10294,7 +10294,7 @@ static GF_Err PointSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PointSet_get_field_index_by_name(char *name)
+static s32 PointSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -10355,7 +10355,7 @@ static GF_Err Polyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Polyline2D_get_field_index_by_name(char *name)
+static s32 Polyline2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("lineSegments", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -10415,7 +10415,7 @@ static GF_Err Polypoint2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Polypoint2D_get_field_index_by_name(char *name)
+static s32 Polypoint2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -10495,7 +10495,7 @@ static GF_Err PositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 PositionInterpolator_get_field_index_by_name(char *name)
+static s32 PositionInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -10578,7 +10578,7 @@ static GF_Err PositionInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *info
 }
 
 
-static s32 PositionInterpolator2D_get_field_index_by_name(char *name)
+static s32 PositionInterpolator2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -10688,7 +10688,7 @@ static GF_Err ProximitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ProximitySensor_get_field_index_by_name(char *name)
+static s32 ProximitySensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("size", name)) return 1;
@@ -10718,7 +10718,7 @@ static GF_Node *ProximitySensor_Create()
 	p->size.x = FLT2FIX(0);
 	p->size.y = FLT2FIX(0);
 	p->size.z = FLT2FIX(0);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -10909,7 +10909,7 @@ static GF_Err ReceiverPdu_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ReceiverPdu_get_field_index_by_name(char *name)
+static s32 ReceiverPdu_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("address", name)) return 0;
 	if (!strcmp("applicationID", name)) return 1;
@@ -11009,7 +11009,7 @@ static GF_Err Rectangle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Rectangle2D_get_field_index_by_name(char *name)
+static s32 Rectangle2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("size", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -11091,7 +11091,7 @@ static GF_Err ScalarInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 ScalarInterpolator_get_field_index_by_name(char *name)
+static s32 ScalarInterpolator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_fraction", name)) return 0;
 	if (!strcmp("key", name)) return 1;
@@ -11171,7 +11171,7 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 
 //unused
 #if 0
-static s32 Script_get_field_index_by_name(char *name)
+static s32 Script_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("directOutput", name)) return 1;
@@ -11242,7 +11242,7 @@ static GF_Err Shape_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Shape_get_field_index_by_name(char *name)
+static s32 Shape_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("appearance", name)) return 0;
 	if (!strcmp("geometry", name)) return 1;
@@ -11450,7 +11450,7 @@ static GF_Err SignalPdu_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SignalPdu_get_field_index_by_name(char *name)
+static s32 SignalPdu_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("address", name)) return 0;
 	if (!strcmp("applicationID", name)) return 1;
@@ -11605,7 +11605,7 @@ static GF_Err Sound_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Sound_get_field_index_by_name(char *name)
+static s32 Sound_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("direction", name)) return 0;
 	if (!strcmp("intensity", name)) return 1;
@@ -11642,7 +11642,7 @@ static GF_Node *Sound_Create()
 	p->minBack = FLT2FIX(1);
 	p->minFront = FLT2FIX(1);
 	p->priority = FLT2FIX(0);
-	p->spatialize = 1;
+	p->spatialize = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -11686,7 +11686,7 @@ static GF_Err Sphere_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Sphere_get_field_index_by_name(char *name)
+static s32 Sphere_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -11789,7 +11789,7 @@ static GF_Err SphereSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SphereSensor_get_field_index_by_name(char *name)
+static s32 SphereSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("autoOffset", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -11812,8 +11812,8 @@ static GF_Node *SphereSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_SphereSensor);
 
 	/*default field values*/
-	p->autoOffset = 1;
-	p->enabled = 1;
+	p->autoOffset = GF_TRUE;
+	p->enabled = GF_TRUE;
 	p->offset.x = FLT2FIX(0);
 	p->offset.y = FLT2FIX(1);
 	p->offset.z = FLT2FIX(0);
@@ -11915,7 +11915,7 @@ static GF_Err SpotLight_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 SpotLight_get_field_index_by_name(char *name)
+static s32 SpotLight_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("ambientIntensity", name)) return 0;
 	if (!strcmp("attenuation", name)) return 1;
@@ -11956,7 +11956,7 @@ static GF_Node *SpotLight_Create()
 	p->location.x = FLT2FIX(0);
 	p->location.y = FLT2FIX(0);
 	p->location.z = FLT2FIX(0);
-	p->on = 1;
+	p->on = GF_TRUE;
 	p->radius = FLT2FIX(100);
 	return (GF_Node *)p;
 }
@@ -12003,7 +12003,7 @@ static GF_Err StaticGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 StaticGroup_get_field_index_by_name(char *name)
+static s32 StaticGroup_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("children", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -12089,7 +12089,7 @@ static GF_Err StringSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 StringSensor_get_field_index_by_name(char *name)
+static s32 StringSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("deletionAllowed", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -12109,8 +12109,8 @@ static GF_Node *StringSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_StringSensor);
 
 	/*default field values*/
-	p->deletionAllowed = 1;
-	p->enabled = 1;
+	p->deletionAllowed = GF_TRUE;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -12178,7 +12178,7 @@ static GF_Err Switch_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Switch_get_field_index_by_name(char *name)
+static s32 Switch_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -12264,7 +12264,7 @@ static GF_Err Text_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Text_get_field_index_by_name(char *name)
+static s32 Text_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("string", name)) return 0;
 	if (!strcmp("length", name)) return 1;
@@ -12423,7 +12423,7 @@ static GF_Err TextureBackground_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TextureBackground_get_field_index_by_name(char *name)
+static s32 TextureBackground_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("groundAngle", name)) return 1;
@@ -12504,7 +12504,7 @@ static GF_Err TextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TextureCoordinate_get_field_index_by_name(char *name)
+static s32 TextureCoordinate_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -12571,7 +12571,7 @@ static GF_Err TextureCoordinateGenerator_get_field(GF_Node *node, GF_FieldInfo *
 }
 
 
-static s32 TextureCoordinateGenerator_get_field_index_by_name(char *name)
+static s32 TextureCoordinateGenerator_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("mode", name)) return 0;
 	if (!strcmp("parameter", name)) return 1;
@@ -12650,7 +12650,7 @@ static GF_Err TextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TextureTransform_get_field_index_by_name(char *name)
+static s32 TextureTransform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("rotation", name)) return 1;
@@ -12791,7 +12791,7 @@ static GF_Err TimeSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TimeSensor_get_field_index_by_name(char *name)
+static s32 TimeSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("cycleInterval", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -12820,7 +12820,7 @@ static GF_Node *TimeSensor_Create()
 
 	/*default field values*/
 	p->cycleInterval = 1;
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->startTime = 0;
 	p->stopTime = 0;
 	p->pauseTime = 0;
@@ -12875,7 +12875,7 @@ static GF_Err TimeTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TimeTrigger_get_field_index_by_name(char *name)
+static s32 TimeTrigger_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_boolean", name)) return 0;
 	if (!strcmp("triggerTime", name)) return 1;
@@ -12978,7 +12978,7 @@ static GF_Err TouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TouchSensor_get_field_index_by_name(char *name)
+static s32 TouchSensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("enabled", name)) return 0;
 	if (!strcmp("hitNormal_changed", name)) return 1;
@@ -13001,7 +13001,7 @@ static GF_Node *TouchSensor_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TouchSensor);
 
 	/*default field values*/
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -13093,7 +13093,7 @@ static GF_Err Transform_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Transform_get_field_index_by_name(char *name)
+static s32 Transform_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("addChildren", name)) return 0;
 	if (!strcmp("removeChildren", name)) return 1;
@@ -13420,7 +13420,7 @@ static GF_Err TransmitterPdu_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TransmitterPdu_get_field_index_by_name(char *name)
+static s32 TransmitterPdu_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("address", name)) return 0;
 	if (!strcmp("antennaLocation", name)) return 1;
@@ -13613,7 +13613,7 @@ static GF_Err TriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TriangleFanSet_get_field_index_by_name(char *name)
+static s32 TriangleFanSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -13637,10 +13637,10 @@ static GF_Node *TriangleFanSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleFanSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -13734,7 +13734,7 @@ static GF_Err TriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TriangleSet_get_field_index_by_name(char *name)
+static s32 TriangleSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -13757,10 +13757,10 @@ static GF_Node *TriangleSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -13805,7 +13805,7 @@ static GF_Err TriangleSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TriangleSet2D_get_field_index_by_name(char *name)
+static s32 TriangleSet2D_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("vertices", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
@@ -13921,7 +13921,7 @@ static GF_Err TriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 TriangleStripSet_get_field_index_by_name(char *name)
+static s32 TriangleStripSet_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
@@ -13945,10 +13945,10 @@ static GF_Node *TriangleStripSet_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleStripSet);
 
 	/*default field values*/
-	p->ccw = 1;
-	p->colorPerVertex = 1;
-	p->normalPerVertex = 1;
-	p->solid = 1;
+	p->ccw = GF_TRUE;
+	p->colorPerVertex = GF_TRUE;
+	p->normalPerVertex = GF_TRUE;
+	p->solid = GF_TRUE;
 	return (GF_Node *)p;
 }
 
@@ -14042,7 +14042,7 @@ static GF_Err Viewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 Viewpoint_get_field_index_by_name(char *name)
+static s32 Viewpoint_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("set_bind", name)) return 0;
 	if (!strcmp("fieldOfView", name)) return 1;
@@ -14067,7 +14067,7 @@ static GF_Node *Viewpoint_Create()
 
 	/*default field values*/
 	p->fieldOfView = FLT2FIX(0.785398);
-	p->jump = 1;
+	p->jump = GF_TRUE;
 	p->orientation.x = FLT2FIX(0);
 	p->orientation.y = FLT2FIX(0);
 	p->orientation.z = FLT2FIX(1);
@@ -14151,7 +14151,7 @@ static GF_Err VisibilitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 VisibilitySensor_get_field_index_by_name(char *name)
+static s32 VisibilitySensor_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("center", name)) return 0;
 	if (!strcmp("enabled", name)) return 1;
@@ -14175,7 +14175,7 @@ static GF_Node *VisibilitySensor_Create()
 	p->center.x = FLT2FIX(0);
 	p->center.y = FLT2FIX(0);
 	p->center.z = FLT2FIX(0);
-	p->enabled = 1;
+	p->enabled = GF_TRUE;
 	p->size.x = FLT2FIX(0);
 	p->size.y = FLT2FIX(0);
 	p->size.z = FLT2FIX(0);
@@ -14230,7 +14230,7 @@ static GF_Err WorldInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
-static s32 WorldInfo_get_field_index_by_name(char *name)
+static s32 WorldInfo_get_field_index_by_name(const char *name)
 {
 	if (!strcmp("info", name)) return 0;
 	if (!strcmp("title", name)) return 1;
@@ -15840,7 +15840,7 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	return 0;
 }
 
-s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name)
+s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, const char *name)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_X3D_Anchor:
@@ -16268,7 +16268,7 @@ Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 {
 	const u32 *types;
 	u32 count, i;
-	if (!NodeTag) return 0;
+	if (!NodeTag) return GF_FALSE;
 	types = NULL;
 	switch (NDT_Tag) {
 	case NDT_SFWorldNode:
@@ -16392,12 +16392,12 @@ Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 		count = SFNurbsSurfaceNode_X3D_Count;
 		break;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 	for(i=0; i<count; i++) {
-		if (types[i]==NodeTag) return 1;
+		if (types[i]==NodeTag) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 #endif /*GPAC_DISABLE_X3D*/
 

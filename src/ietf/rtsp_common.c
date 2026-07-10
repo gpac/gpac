@@ -72,7 +72,7 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 
 	*body_start = *body_size = 0;
 
-	buffer = sess->tcp_buffer + sess->CurrentPos;
+	buffer = (char*)sess->tcp_buffer + sess->CurrentPos;
 	if (!skip_tunnel && (sess->tunnel_mode==RTSP_HTTP_SERVER)) {
 		start = gf_token_find(buffer, 0, sess->CurrentSize - sess->CurrentPos, "=");
 		if (start<=0) return;
@@ -163,7 +163,7 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	res = sess->CurrentSize - sess->CurrentPos;
 	if (!res) return gf_rtsp_fill_buffer(sess);
 
-	ptr = (char *)gf_malloc(sizeof(char) * res);
+	ptr = (char *)gf_malloc(res);
 	memcpy(ptr, sess->tcp_buffer + sess->CurrentPos, res);
 	memcpy(sess->tcp_buffer, ptr, res);
 	gf_free(ptr);
@@ -200,7 +200,7 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 }
 
 
-GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer)
+GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 {
 	Bool IsFirst;
 	char buf[100], param_name[100], param_val[100];
@@ -281,7 +281,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer)
 
 
 
-GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
+GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
 {
 	char LineBuffer[1024];
 	char HeaderBuf[100], ValBuf[1024], temp[400];

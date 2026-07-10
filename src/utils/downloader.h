@@ -26,6 +26,10 @@
 #ifndef _DOWNLOADER_H_
 #define _DOWNLOADER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/tools.h>
 
 //regular downloader
@@ -85,7 +89,7 @@ typedef SSIZE_T ssize_t;
 #define SESSION_RETRY_SSL	8
 
 #include <gpac/revision.h>
-#define GF_DOWNLOAD_AGENT_NAME		"GPAC/"GPAC_VERSION "-rev" GPAC_GIT_REVISION
+#define GF_DOWNLOAD_AGENT_NAME		"GPAC/" GPAC_VERSION "-rev" GPAC_GIT_REVISION
 
 #define GF_DOWNLOAD_BUFFER_SIZE		50000
 #define GF_DOWNLOAD_BUFFER_SIZE_LIMIT_RATE		GF_DOWNLOAD_BUFFER_SIZE/20
@@ -265,7 +269,7 @@ struct __gf_download_session
 	enum REQUEST_TYPE http_read_type;
 
 	GF_Err last_error;
-	char *init_data;
+	u8 *init_data;
 	u32 init_data_size;
 	Bool server_only_understand_get;
 	/* True if cache file must be stored on disk */
@@ -365,8 +369,8 @@ struct __gf_download_session
 
 #define PUSH_HDR(_name, _value) {\
 		GF_SAFEALLOC(hdr, GF_HTTPHeader)\
-		hdr->name = gf_strdup(_name);\
-		hdr->value = gf_strdup(_value);\
+		hdr->name = gf_strdup((char *)_name);\
+		hdr->value = gf_strdup((char *)_value);\
 		gf_list_add(sess->headers, hdr);\
 	}
 
@@ -476,7 +480,7 @@ void gf_cache_remove_entry_from_session(GF_DownloadSession * sess);
 
 
 void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload);
-GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
+GF_Err gf_dm_read_data(GF_DownloadSession *sess, u8 *data, u32 data_size, u32 *out_read);
 GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
 GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
 GF_Err gf_dm_sess_flush_close(GF_DownloadSession *sess);
@@ -551,7 +555,7 @@ GF_Err curl_process_reply(GF_DownloadSession *sess, u32 *ContentLength);
 void *gf_dm_ssl_init(GF_DownloadManager *dm, Bool no_quic);
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
 void gf_dm_sess_server_setup_ssl(GF_DownloadSession *sess);
-GF_Err gf_ssl_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read);
+GF_Err gf_ssl_read_data(GF_DownloadSession *sess, u8 *data, u32 data_size, u32 *out_read);
 
 typedef enum
 {
@@ -601,6 +605,9 @@ void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
 void *gf_ssl_server_context_new(const char *cert, const char *key, Bool for_quic);
 void gf_ssl_server_context_del(void *ssl_server_ctx);
 Bool gf_ssl_init_lib();
+void gf_ssl_del(void *ssl);
+Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
+void gf_dm_http_format_date(u64 time, char szDate[200], Bool for_listing);
 
 #endif
 
@@ -683,5 +690,9 @@ struct __gf_download_session
 
 
 #endif // GPAC_CONFIG_EMSCRIPTEN
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_DOWNLOADER_H_

@@ -27,6 +27,10 @@
 #ifndef NODES_STACKS_H
 #define NODES_STACKS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
@@ -357,6 +361,10 @@ typedef struct
 #endif
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*NODES_STACKS_H*/
 

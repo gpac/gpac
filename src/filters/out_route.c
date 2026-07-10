@@ -204,7 +204,7 @@ typedef struct
 	//0: not manifest, 1: MPD, 2: HLS
 	u32 manifest_type;
 	//DASH template if any
-	char *template;
+	char *base_template;
 	//raw file
 	Bool raw_file;
 	//template uses no '/'
@@ -410,7 +410,7 @@ void routeout_remove_pid(ROUTEPid *rpid, Bool is_rem)
 	if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
 	if (rpid->hld_child_pl) gf_free(rpid->hld_child_pl);
 	if (rpid->hld_child_pl_name) gf_free(rpid->hld_child_pl_name);
-	if (rpid->template) gf_free(rpid->template);
+	if (rpid->base_template) gf_free(rpid->base_template);
 	if (rpid->seg_name) gf_free(rpid->seg_name);
 
 	if (rpid->current_pck)
@@ -421,13 +421,13 @@ void routeout_remove_pid(ROUTEPid *rpid, Bool is_rem)
 void routeout_delete_service(ROUTEService *serv)
 {
 	while (gf_list_count(serv->pids)) {
-		ROUTEPid *rpid = gf_list_pop_back(serv->pids);
+		ROUTEPid *rpid = (ROUTEPid *)gf_list_pop_back(serv->pids);
 		routeout_remove_pid(rpid, GF_TRUE);
 	}
 	gf_list_del(serv->pids);
 
 	while (gf_list_count(serv->rlcts)) {
-		ROUTELCT *rlct = gf_list_pop_back(serv->rlcts);
+		ROUTELCT *rlct = (ROUTELCT *)gf_list_pop_back(serv->rlcts);
 		gf_sk_del(rlct->sock);
 		gf_free(rlct->ip);
 		gf_free(rlct);
@@ -465,7 +465,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	GF_ROUTEOutCtx *ctx = (GF_ROUTEOutCtx *) gf_filter_get_udta(filter);
 	ROUTEPid *rpid;
 
-	rpid = gf_filter_pid_get_udta(pid);
+	rpid = (ROUTEPid *)gf_filter_pid_get_udta(pid);
 	if (is_remove) {
 		if (rpid) routeout_remove_pid(rpid, GF_FALSE);
 		ctx->check_pending = GF_TRUE;
@@ -491,15 +491,15 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					return GF_BAD_PARAM;
 				}
 
-				if (!rpid->template || strcmp(rpid->template, p->value.string)) {
-					if (rpid->template) gf_free(rpid->template);
-					rpid->template = gf_strdup(p->value.string);
+				if (!rpid->base_template || strcmp(rpid->base_template, p->value.string)) {
+					if (rpid->base_template) gf_free(rpid->base_template);
+					rpid->base_template = gf_strdup(p->value.string);
 					rpid->route->needs_reconfig = GF_TRUE;
-					rpid->use_basename = (strchr(rpid->template, '/')==NULL) ? GF_TRUE : GF_FALSE;
+					rpid->use_basename = (strchr(rpid->base_template, '/')==NULL) ? GF_TRUE : GF_FALSE;
 				}
-			} else if (rpid->template) {
-				gf_free(rpid->template);
-				rpid->template = NULL;
+			} else if (rpid->base_template) {
+				gf_free(rpid->base_template);
+				rpid->base_template = NULL;
 				rpid->route->needs_reconfig = GF_TRUE;
 			}
 		}
@@ -525,7 +525,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	rserv = NULL;
 	for (i=0; i<gf_list_count(ctx->services); i++) {
-		rserv = gf_list_get(ctx->services, i);
+		rserv = (ROUTEService *)gf_list_get(ctx->services, i);
 		if (service_id == rserv->service_id) {
 			//throw warning if same manifest type is detected
 			if (rserv->manifest_type && (manifest_type==rserv->manifest_type)) {
@@ -645,7 +645,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				gf_filter_abort(filter);
 				return GF_BAD_PARAM;
 			}
-			rpid->template = gf_strdup(p->value.string);
+			rpid->base_template = gf_strdup(p->value.string);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Segment file PID detected but no template assigned, assuming raw file upload!\n", rserv->log_name));
 			rpid->raw_file = GF_TRUE;
@@ -677,7 +677,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		else if (ctx->splitlct && rpid->stream_type) {
 			for (i=0; i<gf_list_count(rserv->pids); i++) {
 				u32 astreamtype;
-				ROUTEPid *apid = gf_list_get(rserv->pids, i);
+				ROUTEPid *apid = (ROUTEPid *)gf_list_get(rserv->pids, i);
 				if (apid->manifest_type) continue;
 				if (apid == rpid) continue;
 				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
@@ -760,10 +760,10 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 static GF_Err routeout_initialize(GF_Filter *filter)
 {
-	char *base_name;
+	const char *base_name;
 	Bool is_atsc = GF_TRUE;
 	u32 proto_offset = 0;
-	char *ext=NULL;
+	const char *ext=NULL;
 	GF_ROUTEOutCtx *ctx = (GF_ROUTEOutCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->dst) return GF_BAD_PARAM;
@@ -884,7 +884,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		ctx->dvb_mabr_tsi = 1;
 	}
 
-	ctx->lct_buffer = gf_malloc(sizeof(u8) * ctx->mtu);
+	ctx->lct_buffer = (u8 *)gf_malloc(ctx->mtu);
 	ctx->clock_init = gf_sys_clock_high_res();
 	ctx->clock_stats = ctx->clock_init;
 	ctx->lct_bs = gf_bs_new(ctx->lct_buffer, ctx->mtu, GF_BITSTREAM_WRITE);
@@ -918,7 +918,7 @@ static void routeout_finalize(GF_Filter *filter)
 	ctx = (GF_ROUTEOutCtx *) gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->services)) {
-		routeout_delete_service(gf_list_pop_back(ctx->services));
+		routeout_delete_service((ROUTEService *)gf_list_pop_back(ctx->services));
 	}
 	gf_list_del(ctx->services);
 	if (ctx->sock_atsc_lls)
@@ -971,7 +971,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	//check no changes in init segment or in manifests
 	for (i=0; i<count; i++) {
 		const GF_PropertyValue *p;
-		ROUTEPid *rpid = gf_list_get(serv->pids, i);
+		ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, i);
 
 		//raw file, nothing to check
 		if (rpid->raw_file) {
@@ -994,7 +994,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					//whenever init seg changes, bump stsid version
 					if (crc != rpid->init_seg_crc) {
 						if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
-						rpid->init_seg_data = gf_malloc(len);
+						rpid->init_seg_data = (u8 *)gf_malloc(len);
 						memcpy(rpid->init_seg_data, data, len);
 						rpid->init_seg_size = len;
 						rpid->init_seg_crc = crc;
@@ -1066,7 +1066,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				u32 k;
 				ROUTEPid *media_pid = NULL;
 				for (k=0; k<count; k++) {
-					media_pid = gf_list_get(serv->pids, k);
+					media_pid = (ROUTEPid *)gf_list_get(serv->pids, k);
 					if (media_pid->hls_ref_id == p->value.longuint)
 						break;
 					media_pid = NULL;
@@ -1081,7 +1081,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				crc = gf_crc_32(data, len);
 				if (crc != media_pid->hld_child_pl_crc) {
 					if (media_pid->hld_child_pl) gf_free(media_pid->hld_child_pl);
-					media_pid->hld_child_pl = gf_malloc(len+1);
+					media_pid->hld_child_pl = (char *)gf_malloc(len+1);
 					memcpy(media_pid->hld_child_pl, data, len);
 					media_pid->hld_child_pl[len] = 0;
 					media_pid->hld_child_pl_crc = crc;
@@ -1132,7 +1132,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				if (man_crc != *manifest_crc) {
 					*manifest_crc = man_crc;
 					if (*manifest) gf_free(*manifest);
-					(*manifest) = gf_malloc(man_size+1);
+					(*manifest) = (char *)gf_malloc(man_size+1);
 					memcpy(*manifest, man_data, man_size);
 					(*manifest) [man_size] = 0;
 					(*manifest_version) ++;
@@ -1186,7 +1186,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					serv->service_base_uri = gf_strdup("tag:mabr.gpac.io.2025.services.");
 					char szTmp[100];
 					char *name = *manifest_url ? *manifest_url : *manifest_name;
-					sprintf(szTmp, "%u", gf_crc_32(name, (u32) strlen(name)) );
+					sprintf(szTmp, "%u", gf_crc_32((u8*)name, (u32) strlen(name)) );
 					gf_dynstrcat(&serv->service_base_uri, szTmp, NULL);
 				}
 			}
@@ -1246,7 +1246,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		serv->stsid_version++;
 
 		for (i=0; i<nb_pids; i++) {
-			ROUTEPid *rpid = gf_list_get(serv->pids, i);
+			ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, i);
 			if (rpid->manifest_type) continue;
 			rpid->clock_at_first_pck = 0;
 		}
@@ -1255,15 +1255,15 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	//ATSC3: mbms enveloppe, service description, astcROUTE bundle
 	if (ctx->sock_atsc_lls) {
 		const GF_PropertyValue *p;
-		char *service_name;
+		const char *service_name;
 		ROUTEPid *rpid;
 		u32 service_id = serv->service_id;
 		if (!service_id) {
 			service_id = 1;
 		}
-		gf_dynstrcat(&payload_text, "Content-Type: multipart/related; type=\"application/mbms-envelope+xml\"; boundary=\""MULTIPART_BOUNDARY"\"\r\n\r\n", NULL);
+		gf_dynstrcat(&payload_text, "Content-Type: multipart/related; type=\"application/mbms-envelope+xml\"; boundary=\"" MULTIPART_BOUNDARY "\"\r\n\r\n", NULL);
 
-		gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"\r\nContent-Type: application/mbms-envelope+xml\r\nContent-Location: envelope.xml\r\n\r\n", NULL);
+		gf_dynstrcat(&payload_text, "--" MULTIPART_BOUNDARY "\r\nContent-Type: application/mbms-envelope+xml\r\nContent-Location: envelope.xml\r\n\r\n", NULL);
 
 		//dump usd first, then S-TSID then manifest
 		gf_dynstrcat(&payload_text,
@@ -1304,14 +1304,14 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 		gf_dynstrcat(&payload_text, "</metadataEnvelope>\n\r\n", NULL);
 
-		gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"\r\nContent-Type: ", NULL);
+		gf_dynstrcat(&payload_text, "--" MULTIPART_BOUNDARY "\r\nContent-Type: ", NULL);
 		if (ctx->korean)
 			gf_dynstrcat(&payload_text, "application/mbms-user-service-description+xml", NULL);
 		else
 			gf_dynstrcat(&payload_text, "application/route-usd+xml", NULL);
 		gf_dynstrcat(&payload_text, "\r\nContent-Location: usbd.xml\r\n\r\n", NULL);
 
-		rpid = gf_list_get(serv->pids, 0);
+		rpid = (ROUTEPid *)gf_list_get(serv->pids, 0);
 		GF_PropertyEntry *pe=NULL;
 		p = gf_filter_pid_get_info(rpid->pid, GF_PROP_PID_SERVICE_NAME, &pe);
 		if (p && p->value.string)
@@ -1331,7 +1331,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		gf_filter_release_property(pe);
 
 		for (i=0;i<nb_pids; i++) {
-			rpid = gf_list_get(serv->pids, i);
+			rpid = (ROUTEPid *)gf_list_get(serv->pids, i);
 			if (rpid->manifest_type) continue;
 			//set template
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
@@ -1364,11 +1364,11 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		else
 			gf_dynstrcat(&payload_text, "application/route-s-tsid+xml", NULL);
 
-		gf_dynstrcat(&payload_text, "\"; boundary=\""MULTIPART_BOUNDARY"\"\r\n\r\n", NULL);
+		gf_dynstrcat(&payload_text, "\"; boundary=\"" MULTIPART_BOUNDARY "\"\r\n\r\n", NULL);
 	}
 
 	if (serv->manifest) {
-		gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"\r\nContent-Type: ", NULL);
+		gf_dynstrcat(&payload_text, "--" MULTIPART_BOUNDARY "\r\nContent-Type: ", NULL);
 		gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
 		gf_dynstrcat(&payload_text, "\r\nContent-Location: ", NULL);
 		gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
@@ -1377,7 +1377,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		gf_dynstrcat(&payload_text, "\r\n\r\n", NULL);
 	}
 
-	gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"\r\nContent-Type: ", NULL);
+	gf_dynstrcat(&payload_text, "--" MULTIPART_BOUNDARY "\r\nContent-Type: ", NULL);
 	if (ctx->korean)
 		gf_dynstrcat(&payload_text, "application/s-tsid", NULL);
 	else
@@ -1388,7 +1388,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		"<S-TSID xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/S-TSID/1.0/\" xmlns:afdt=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/ATSC-FDT/1.0/\" xmlns:fdt=\"urn:ietf:params:xml:ns:fdt\">\n", NULL);
 
 	for (j=0; j<gf_list_count(serv->rlcts); j++) {
-		ROUTELCT *rlct = gf_list_get(serv->rlcts, j);
+		ROUTELCT *rlct = (ROUTELCT *)gf_list_get(serv->rlcts, j);
 		Bool has_rs_hdr=GF_FALSE;
 
 		const char *src_ip = ctx->ifce_ip;
@@ -1401,7 +1401,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 		for (i=0; i<nb_pids; i++) {
 			const GF_PropertyValue *p;
-			ROUTEPid *rpid = gf_list_get(serv->pids, i);
+			ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, i);
 			if (rpid->manifest_type) continue;
 			if (rpid->rlct != rlct) continue;
 
@@ -1439,7 +1439,8 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
 			if (p) {
-				char *sep, *sep2, *key = "$Number";
+				char *sep, *sep2;
+				const char *key = "$Number";
 				gf_strcpy(temp, p->value.string);
 				sep = strstr(temp, "$Number");
 				sep2 = strstr(temp, "$Time");
@@ -1577,7 +1578,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 	gf_dynstrcat(&payload_text, "</S-TSID>\n\r\n", NULL);
 
-	gf_dynstrcat(&payload_text, "--"MULTIPART_BOUNDARY"--\n", NULL);
+	gf_dynstrcat(&payload_text, "--" MULTIPART_BOUNDARY "--\n", NULL);
 
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updated Manifest+S-TSID bundle to:\n%s\n", serv->log_name, payload_text));
@@ -1587,8 +1588,8 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	serv->stsid_bundle_size = 1 + (u32) strlen(payload_text);
 	if(!ctx->nozip) {
 		//compress and store as final payload
-		gf_gz_compress_payload_ex(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size, 0, GF_FALSE, NULL, GF_TRUE);
-		
+		gf_gz_compress_payload_ex(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size, GF_FALSE, GF_FALSE, NULL, GF_TRUE);
+
 		serv->stsid_bundle_toi = 0x80000000; //compressed
 	}
 	if (manifest_updated) serv->stsid_bundle_toi |= (1<<18);
@@ -1608,7 +1609,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 #include <gpac/base_coding.h>
 
-static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEService *serv, char *url, char *mime, const u8 *data, u32 size, u32 TOI)
+static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEService *serv, const char *url, const char *mime, const u8 *data, u32 size, u32 TOI)
 {
 	char tmp[100];
 	gf_dynstrcat(payload, "<File FEC-OTI-FEC-Encoding-ID=\"0\" FEC-OTI-Maximum-Source-Block-Length=\"65535\" Content-Length=\"", NULL);
@@ -1641,7 +1642,7 @@ static void inject_fdt_file_desc(GF_ROUTEOutCtx *ctx, char **payload, ROUTEServi
 	if (ctx->csum && data) {
 		u8 digest[GF_MD5_DIGEST_SIZE];
 		gf_md5_csum(data, size, digest);
-		u32 db64_len = gf_base64_encode(digest, GF_MD5_DIGEST_SIZE, tmp, 100);
+		u32 db64_len = gf_base64_encode(digest, GF_MD5_DIGEST_SIZE, (u8*)tmp, 100);
 		tmp[db64_len]=0;
 		gf_dynstrcat(payload, " Content-MD5=\"", NULL);
 		gf_dynstrcat(payload, tmp, NULL);
@@ -1669,7 +1670,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
-		ROUTEService *serv = gf_list_get(ctx->services, i);
+		ROUTEService *serv = (ROUTEService *)gf_list_get(ctx->services, i);
 		if (!serv->use_flute || ctx->use_inband) continue;
 		//inject manifest
 		if (serv->manifest && serv->manifest_type) {
@@ -1678,7 +1679,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				serv->manifest_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name, serv->manifest_mime, serv->manifest, len, serv->manifest_toi);
+			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name, serv->manifest_mime, (u8 *) serv->manifest, len, serv->manifest_toi);
 
 			//inject alt manifest
 			if (serv->manifest_alt) {
@@ -1687,19 +1688,19 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					serv->manifest_alt_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime, serv->manifest_alt, len, serv->manifest_alt_toi);
+				inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime, (u8 *) serv->manifest_alt, len, serv->manifest_alt_toi);
 			}
 		}
 
 		//inject init segs and HLS variant or RAW info
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
-			ROUTEPid *pid = gf_list_get(serv->pids, j);
+			ROUTEPid *pid = (ROUTEPid *)gf_list_get(serv->pids, j);
 			if (pid->raw_file) {
 				if (!pid->current_toi || !pid->full_frame_size)
 					continue;
 
-				char *mime;
+				const char *mime;
 				const GF_PropertyValue *p = gf_filter_pid_get_property(pid->pid, GF_PROP_PID_MIME);
 				if (p && p->value.string && strcmp(p->value.string, "*")) {
 					mime = p->value.string;
@@ -1722,7 +1723,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					pid->hls_child_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi);
+				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", (u8*)pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi);
 			}
 		}
 	}
@@ -1732,7 +1733,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updated Bootstrap FDT info to:\n%s\n", ctx->log_name, payload));
 	if (ctx->dvb_mabr_fdt) gf_free(ctx->dvb_mabr_fdt);
-	ctx->dvb_mabr_fdt = payload;
+	ctx->dvb_mabr_fdt = (u8 *)payload;
 	ctx->dvb_mabr_fdt_len = (u32) strlen(payload);
 	ctx->last_dvb_mabr_clock = 0;
 	ctx->dvb_mabr_fdt_instance_id = (ctx->dvb_mabr_fdt_instance_id+1) % 0xFFFFF;
@@ -1744,11 +1745,11 @@ static void update_error_simulation_state(GF_ROUTEOutCtx *ctx) {
 	Double p = (gf_rand() % (100 * ERRSIM_ACCURACY)) / (Double)ERRSIM_ACCURACY;
 	Double t = ctx->state_is_error ? ctx->errsim.y : ctx->errsim.x;
 	if (p < t)
-		ctx->state_is_error = !ctx->state_is_error;
+		ctx->state_is_error = ctx->state_is_error ? GF_FALSE : GF_TRUE;
 #undef ERRSIM_ACCURACY
 }
 
-u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute, Bool can_set_close)
+u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, const u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute, Bool can_set_close)
 {
 	u32 max_size = ctx->mtu;
 	u32 send_payl_size;
@@ -1907,7 +1908,7 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	return send_payl_size;
 }
 
-static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socket *sock, u32 tsi, u32 toi, u8 *payload, u32 size, u32 codepoint, u32 fdt_instance_id, Bool is_flute)
+static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socket *sock, u32 tsi, u32 toi, const u8 *payload, u32 size, u32 codepoint, u32 fdt_instance_id, Bool is_flute)
 {
 	u32 offset=0;
 	while (offset<size) {
@@ -1944,7 +1945,7 @@ retry:
 #if 0
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
-				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes="LLU"", gf_file_basename(ctx->szFileName), ctx->nb_write);
+				snprintf(szStatus, 1024, "done info=\"%s\" s_bytes=" LLU "", gf_file_basename(ctx->szFileName), ctx->nb_write);
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 #endif
@@ -2017,7 +2018,7 @@ retry:
 			rpid->route->needs_reconfig = GF_TRUE;
 			rpid->current_toi = 0;
 			if (rpid->init_seg_data) gf_free(rpid->init_seg_data);
-			rpid->init_seg_data = gf_malloc(rpid->pck_size);
+			rpid->init_seg_data = (u8 *)gf_malloc(rpid->pck_size);
 			memcpy(rpid->init_seg_data, rpid->pck_data, rpid->pck_size);
 			rpid->init_seg_size = rpid->pck_size;
 			rpid->init_seg_sent = GF_FALSE;
@@ -2061,13 +2062,13 @@ retry:
 		gf_assert(start && end);
 
 		if (rpid->seg_name) gf_free(rpid->seg_name);
-		rpid->seg_name = "unknown";
+		rpid->seg_name = (char*)"unknown";
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_NAME);
 		if (p)
 			rpid->seg_name = p->value.string;
 		else {
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
-			if (p) rpid->seg_name = gf_file_basename(p->value.string);
+			if (p) rpid->seg_name = (char*)gf_file_basename(p->value.string);
 		}
 		rpid->seg_name = gf_strdup(rpid->seg_name);
 
@@ -2086,7 +2087,7 @@ retry:
 			rpid->current_dur_us /= p->value.frac.den;
 		}
 		if (rpid->carousel_time_us && (rpid->current_dur_us>rpid->carousel_time_us)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Requested upload time of file "LLU" is greater than its carousel time "LLU", adjusting carousel\n", rpid->route->log_name, rpid->current_dur_us, rpid->carousel_time_us));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Requested upload time of file " LLU " is greater than its carousel time " LLU ", adjusting carousel\n", rpid->route->log_name, rpid->current_dur_us, rpid->carousel_time_us));
 			rpid->carousel_time_us = rpid->current_dur_us;
 		}
 		rpid->clock_at_pck = rpid->current_cts_us = rpid->cts_us_at_frame_start = ctx->clock;
@@ -2119,7 +2120,7 @@ retry:
 			if (!rpid->current_toi) rpid->current_toi = 1;
 		} else if (p || in_error) {
 			if (p && p->value.lfrac.num >= ROUTE_INIT_TOI) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] MPD Time "LLU" greater than 32 bits, cannot map on TOI - aborting\n", rpid->route->log_name, p->value.lfrac.num));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] MPD Time " LLU " greater than 32 bits, cannot map on TOI - aborting\n", rpid->route->log_name, p->value.lfrac.num));
 				in_error = GF_TRUE;
 			}
 			if (in_error) {
@@ -2128,7 +2129,7 @@ retry:
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, NULL);
 				rpid->route->is_done = GF_TRUE;
 				for (i=0; i<gf_list_count(rpid->route->pids); i++) {
-					ROUTEPid *r_pid = gf_list_get(rpid->route->pids, i);
+					ROUTEPid *r_pid = (ROUTEPid *)gf_list_get(rpid->route->pids, i);
 					gf_filter_pid_set_discard(r_pid->pid, GF_TRUE);
 					evt.base.on_pid = r_pid->pid;
 					gf_filter_pid_send_event(r_pid->pid, &evt);
@@ -2220,7 +2221,7 @@ retry:
 		} else {
 			frag_time = 0;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Missing timing for fragment %d of segment %s - timing estimated from bitrate: TS "LLU" ("LLU" in segment) dur "LLU"\n", rpid->route->log_name, rpid->frag_idx, rpid->seg_name, ts, frag_time, pck_dur));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Missing timing for fragment %d of segment %s - timing estimated from bitrate: TS " LLU " (" LLU " in segment) dur " LLU "\n", rpid->route->log_name, rpid->frag_idx, rpid->seg_name, ts, frag_time, pck_dur));
 	}
 
 	if (ts!=GF_FILTER_NO_TS) {
@@ -2239,7 +2240,7 @@ retry:
 			rpid->clock_at_frame_start = ctx->clock;
 			rpid->cts_us_at_frame_start = rpid->current_cts_us;
 			rpid->cts_at_frame_start = ts;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Segment %s init send time to "LLU" CTS "LLU" us source TS "LLU"/%u\n", rpid->route->log_name, rpid->seg_name, rpid->cts_us_at_frame_start, rpid->current_cts_us, ts, rpid->timescale));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Segment %s init send time to " LLU " CTS " LLU " us source TS " LLU "/%u\n", rpid->route->log_name, rpid->seg_name, rpid->cts_us_at_frame_start, rpid->current_cts_us, ts, rpid->timescale));
 		}
 
 		rpid->current_dur_us = pck_dur;
@@ -2249,9 +2250,9 @@ retry:
 		}
 		rpid->current_dur_us = gf_timestamp_rescale(rpid->current_dur_us, rpid->timescale, 1000000);
 	} else if (start && end) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing timing on segment %s, using previous fragment timing CTS "LLU" duration "LLU" us\nSomething could be wrong in demux chain, will not be able to regulate correctly\n", rpid->route->log_name, rpid->seg_name, rpid->current_cts_us-rpid->clock_at_first_pck, rpid->current_dur_us));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing timing on segment %s, using previous fragment timing CTS " LLU " duration " LLU " us\nSomething could be wrong in demux chain, will not be able to regulate correctly\n", rpid->route->log_name, rpid->seg_name, rpid->current_cts_us-rpid->clock_at_first_pck, rpid->current_dur_us));
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing timing on fragment %d of segment %s, using previous fragment timing CTS "LLU" duration "LLU" us\nSomething could be wrong in demux chain, will not be able to regulate correctly\n", rpid->route->log_name, rpid->frag_idx, rpid->seg_name, rpid->current_cts_us-rpid->clock_at_first_pck, rpid->current_dur_us));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing timing on fragment %d of segment %s, using previous fragment timing CTS " LLU " duration " LLU " us\nSomething could be wrong in demux chain, will not be able to regulate correctly\n", rpid->route->log_name, rpid->frag_idx, rpid->seg_name, rpid->current_cts_us-rpid->clock_at_first_pck, rpid->current_dur_us));
 	}
 
 	rpid->res_size += rpid->pck_size;
@@ -2269,7 +2270,7 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 			ctx->next_toi_avail++;
 		}
 		inject_fdt_file_desc(ctx, payload, serv, serv->manifest_name, serv->manifest_mime,
-			serv->manifest, len, serv->manifest_toi);
+			(u8*)serv->manifest, len, serv->manifest_toi);
 
 		if (serv->manifest_alt) {
 			len = (u32) strlen(serv->manifest_alt);
@@ -2278,21 +2279,21 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 				ctx->next_toi_avail++;
 			}
 			inject_fdt_file_desc(ctx, payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime,
-				serv->manifest_alt, len, serv->manifest_alt_toi);
+				(u8*)serv->manifest_alt, len, serv->manifest_alt_toi);
 		}
 	}
 
 	//inject init segs and HLS variant or RAW info
 	u32 j, nb_pids = gf_list_count(serv->pids);
 	for (j=0; j<nb_pids; j++) {
-		ROUTEPid *pid = gf_list_get(serv->pids, j);
+		ROUTEPid *pid = (ROUTEPid *)gf_list_get(serv->pids, j);
 		if (pid->tsi != rpid->tsi) continue;
 
 		if (pid->raw_file) {
 			if (!pid->current_toi || !pid->full_frame_size)
 				continue;
 
-			char *mime;
+			const char *mime;
 			const GF_PropertyValue *p = gf_filter_pid_get_property(pid->pid, GF_PROP_PID_MIME);
 			if (p && p->value.string && strcmp(p->value.string, "*")) {
 				mime = p->value.string;
@@ -2315,7 +2316,7 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 				pid->hls_child_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi);
+			inject_fdt_file_desc(ctx, payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", (u8*)pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi);
 		}
 	}
 }
@@ -2359,7 +2360,7 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 
 	if (payload) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Sending FDT for segment %s:\n%s\n", serv->log_name, seg_name, payload));
-		routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, 0, payload, (u32) strlen(payload), 0, rpid->fdt_instance_id, GF_TRUE);
+		routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, 0, (u8*)payload, (u32) strlen(payload), 0, rpid->fdt_instance_id, GF_TRUE);
 		gf_free(payload);
 		rpid->fdt_instance_id = (rpid->fdt_instance_id+1) % 0xFFFFF;
 	}
@@ -2386,7 +2387,7 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 	nb_done = 0;
 	count = gf_list_count(serv->pids);
 	for (i=0; i<count; i++) {
-		ROUTEPid *rpid = gf_list_get(serv->pids, i);
+		ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, i);
 		Bool send_hls_child = rpid->update_hls_child_pl;
 		if (rpid->manifest_type) {
 			nb_done++;
@@ -2460,11 +2461,11 @@ next_packet:
 
 					//always send manifest before init
 					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s (TOI %u PID type %u)\n", serv->log_name, serv->manifest_name, serv->manifest_toi, rpid->stream_type));
-					routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+					routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, (u8*)serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
 
 					if (serv->manifest_alt) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
-						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
+						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, (u8*)serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
 					}
 					init_toi = rpid->init_toi;
 				}
@@ -2499,10 +2500,10 @@ next_packet:
 				GF_Socket *hls_sock = ctx->use_inband ? rpid->rlct->sock : ctx->sock_dvb_mabr;
 				u32 hls_tsi = ctx->use_inband ? rpid->tsi : ctx->dvb_mabr_tsi;
 
-				routeout_send_file(ctx, serv, hls_sock, hls_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
+				routeout_send_file(ctx, serv, hls_sock, hls_tsi, rpid->hls_child_toi, (u8 *)rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
 			} else {
 				//we use codepoint 1 (NRT - file mode) for subplaylists
-				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1-rpid->hld_child_pl_version, rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
+				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1-rpid->hld_child_pl_version, (u8*)rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
 			}
 
 			if (ctx->reporting_on) {
@@ -2567,7 +2568,7 @@ next_packet:
 		if (rpid->pck_offset == rpid->pck_size) {
 			//print fragment push info except if single fragment
 			if (rpid->frag_idx || !rpid->full_frame_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] pushed fragment %s#%d (%d bytes) in "LLU" us - target push "LLU" us\n", rpid->route->log_name, rpid->seg_name, rpid->frag_idx+1, rpid->pck_size, ctx->clock - rpid->clock_at_pck, rpid->current_dur_us));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] pushed fragment %s#%d (%d bytes) in " LLU " us - target push " LLU " us\n", rpid->route->log_name, rpid->seg_name, rpid->frag_idx+1, rpid->pck_size, ctx->clock - rpid->clock_at_pck, rpid->current_dur_us));
 			}
 #ifndef GPAC_DISABLE_LOG
 			//print full object push info
@@ -2598,7 +2599,7 @@ next_packet:
 				else
 					snprintf(szFInfo, 100, "%s%s (%d bytes)", szSID, rpid->seg_name, rpid->full_frame_size);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us%s\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur, szDelay));
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in " LLU " us - target push " LLU " us%s\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur, szDelay));
 
 				//real-time stream, check we are not out of sync
 				if (!rpid->raw_file) {
@@ -2607,18 +2608,18 @@ next_packet:
 
 					//if segment clock time is greater than clock, we've been pushing too fast
 					if (seg_clock > ctx->clock) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Segment %s pushed early by "LLU" us\n", rpid->route->log_name, rpid->seg_name, seg_clock - ctx->clock));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Segment %s pushed early by " LLU " us\n", rpid->route->log_name, rpid->seg_name, seg_clock - ctx->clock));
 					}
 					//otherwise we've been pushing too slowly
 					else if (ctx->clock > 1000 + seg_clock) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Segment %s pushed too late by "LLU" us (target push duration %u us)\n", rpid->route->log_name, rpid->seg_name, ctx->clock - seg_clock, target_push_dur));
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Segment %s pushed too late by " LLU " us (target push duration %u us)\n", rpid->route->log_name, rpid->seg_name, ctx->clock - seg_clock, target_push_dur));
 					}
 
 					if (rpid->pck_dur_at_frame_start && ctx->llmode) {
 						u64 seg_rate = gf_timestamp_rescale(rpid->full_frame_size * 8, rpid->pck_dur_at_frame_start, rpid->timescale);
 
 						if (seg_rate > rpid->bitrate) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Segment %s rate "LLU" but stream rate "LLU", updating bitrate\n", rpid->route->log_name, rpid->seg_name, seg_rate, rpid->bitrate));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Segment %s rate " LLU " but stream rate " LLU ", updating bitrate\n", rpid->route->log_name, rpid->seg_name, seg_rate, rpid->bitrate));
 							rpid->bitrate = (u32) seg_rate;
 						}
 					}
@@ -2690,7 +2691,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updating ATSC3 LLS.SysTime:\n%s\n", ctx->log_name, payload_text));
 		len = (u32) strlen(payload_text);
 		comp_size = 2*len;
-		payload = gf_malloc(sizeof(char)*(comp_size+4));
+		payload = (u8 *)gf_malloc(comp_size+4);
 		pay_start = payload + 4;
 		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
 		gf_free(payload_text);
@@ -2721,12 +2722,12 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			const char *src_ip, *service_name, *hidden, *hideInESG, *configuration;
 			char szIP[GF_MAX_IP_NAME_LEN];
 			ROUTEPid *rpid;
-			ROUTEService *serv = gf_list_get(ctx->services, i);
+			ROUTEService *serv = (ROUTEService *)gf_list_get(ctx->services, i);
 
 			u32 sid = serv->service_id;
 			if (!sid) sid = 1;
 
-			rpid = gf_list_get(serv->pids, 0);
+			rpid = (ROUTEPid *)gf_list_get(serv->pids, 0);
 
 			GF_PropertyEntry *pe=NULL;
 			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3ShortServiceName");
@@ -2786,7 +2787,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 
 		len = (u32) strlen(payload_text);
 		comp_size = 2*len;
-		payload = gf_malloc(sizeof(char)*(comp_size+4));
+		payload = (u8 *)gf_malloc(comp_size+4);
 		pay_start = payload + 4;
 		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
 		gf_free(payload_text);
@@ -2819,7 +2820,7 @@ static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Boo
 	u32 carousel_us = ctx->carousel;
 	u32 j, nb_pids=gf_list_count(serv->pids);
 	for (j=0;j<nb_pids; j++) {
-		ROUTEPid *rpid = gf_list_get(serv->pids, j);
+		ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, j);
 		carousel_size += rpid->init_seg_size;
 		if (rpid->hld_child_pl)
 			carousel_size += (u32) strlen(rpid->hld_child_pl);
@@ -2875,7 +2876,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	gf_dynstrcat(&payload_text, ">\n", NULL);
 
 	for (i=0; i<count; i++) {
-		ROUTEService *serv = gf_list_get(ctx->services, i);
+		ROUTEService *serv = (ROUTEService *)gf_list_get(ctx->services, i);
 		//not ready
 		if (!serv->manifest_mime && serv->dash_mode) {
 			gf_free(payload_text);
@@ -2906,7 +2907,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "</MediaTransportSessionIdentifier>\n</EndpointAddress>\n", NULL);
 
 		u32 tot_rate = 0;
-		char *carousel_text = mabr_get_carousel_info(ctx, serv, serv->dash_mode, &tot_rate);
+		char *carousel_text = mabr_get_carousel_info(ctx, serv, serv->dash_mode ? GF_TRUE : GF_FALSE, &tot_rate);
 
 		//add bitrate info
 		sprintf(tmp, "<BitRate average=\"%u\" maximum=\"%u\"/>\n", tot_rate, tot_rate);
@@ -2925,7 +2926,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		u32 k;
 		const GF_PropertyValue *p;
 		ROUTEPid *rpid;
-		ROUTEService *serv = gf_list_get(ctx->services, i);
+		ROUTEService *serv = (ROUTEService *)gf_list_get(ctx->services, i);
 		if (!serv->manifest_mime && serv->dash_mode) continue;
 
 		u32 sid = serv->service_id;
@@ -2935,7 +2936,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		Bool skip_source_repair = GF_FALSE;
 		Bool use_repair = GF_FALSE;
 
-		rpid = gf_list_get(serv->pids, 0);
+		rpid = (ROUTEPid *)gf_list_get(serv->pids, 0);
 		gf_dynstrcat(&payload_text, "<MulticastSession serviceIdentifier=\"", NULL);
 		gf_dynstrcat(&payload_text, serv->service_name, NULL);
 		gf_dynstrcat(&payload_text, "\"", NULL);
@@ -3059,7 +3060,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
-			ROUTEPid *rpid = gf_list_get(serv->pids, j);
+			ROUTEPid *rpid = (ROUTEPid *)gf_list_get(serv->pids, j);
 			if (rpid->manifest_type) continue;
 
 			gf_dynstrcat(&payload_text, "<MulticastTransportSession sessionIdleTimeout=\"60000\" transportSecurity=\"", NULL);
@@ -3225,7 +3226,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updated MulticastGatewayConfiguration to:\n%s\n", ctx->log_name, payload_text));
 
-	ctx->dvb_mabr_config = payload_text;
+	ctx->dvb_mabr_config = (u8*)payload_text;
 	ctx->dvb_mabr_config_len = (u32) strlen(payload_text);
 	//we need a new TOI since config changed
 	ctx->dvb_mabr_config_toi = 0;
@@ -3321,7 +3322,7 @@ static GF_Err routeout_process(GF_Filter *filter)
 	//check all our services are ready
 	count = gf_list_count(ctx->services);
 	for (i=0; i<count; i++) {
-		ROUTEService *serv = gf_list_get(ctx->services, i);
+		ROUTEService *serv = (ROUTEService *)gf_list_get(ctx->services, i);
 		if (serv->is_done) continue;
 		e = routeout_check_service_updates(ctx, serv);
 		if (!serv->service_ready || (e==GF_NOT_READY)) {
@@ -3334,9 +3335,10 @@ static GF_Err routeout_process(GF_Filter *filter)
 	}
 
 	for (i=0; i<count; i++) {
-		ROUTEService *serv = gf_list_get(ctx->services, i);
+		ROUTEService *serv = (ROUTEService *)gf_list_get(ctx->services, i);
 		if (!serv->is_done) {
-			e |= routeout_process_service(ctx, serv);
+			GF_Err loc_e = routeout_process_service(ctx, serv);
+			if (loc_e) e = loc_e;
 			if (!serv->is_done)
 				all_serv_done = GF_FALSE;
 		}
@@ -3348,7 +3350,7 @@ static GF_Err routeout_process(GF_Filter *filter)
 
 	if (ctx->clock - ctx->clock_stats >= 1000000) {
 		u64 rate = ctx->bytes_sent * 8 * 1000 / (ctx->clock - ctx->clock_stats);
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Mux rate "LLU" kbps\n", ctx->log_name, rate));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Mux rate " LLU " kbps\n", ctx->log_name, rate));
 		if (ctx->reporting_on) {
 			u32 progress = 0;
 			char szStatus[200];
@@ -3356,9 +3358,9 @@ static GF_Err routeout_process(GF_Filter *filter)
 				progress = (u32) (10000*ctx->total_bytes / ctx->total_size);
 
 			if (ctx->sock_atsc_lls) {
-				snprintf(szStatus, 200, "s_rate="LLU" kbps nb_services=%d active_resources=%d prog=%.02f %%", rate, count, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate=" LLU " kbps nb_services=%d active_resources=%d prog=%.02f %%", rate, count, ctx->nb_resources, ((Double)progress) / 100);
 			} else {
-				snprintf(szStatus, 200, "s_rate="LLU" kbps active_resources=%d prog=%.02f %%", rate, ctx->nb_resources, ((Double)progress) / 100);
+				snprintf(szStatus, 200, "s_rate=" LLU " kbps active_resources=%d prog=%.02f %%", rate, ctx->nb_resources, ((Double)progress) / 100);
 			}
 			gf_filter_update_status(filter, 0, szStatus);
 		}
@@ -3575,7 +3577,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
-	.max_extra_pids = -1,
+	.max_extra_pids = (u32) -1,
 	.args = ROUTEOutArgs,
 	SETCAPS(ROUTEOutCaps),
 	.probe_url = routeout_probe_url,

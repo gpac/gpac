@@ -45,14 +45,14 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 		svg_props->audio_level->value = FIX_ONE;
 		svg_props->computed_audio_level = FIX_ONE;
 	}
-	
+
 	GF_SAFEALLOC(svg_props->color, SVG_Paint);
 	if (svg_props->color) {
 		svg_props->color->type = SVG_PAINT_COLOR;
 		svg_props->color->color.type = SVG_COLOR_RGBCOLOR;
 		/* svg_props->color->red, green, blue set to zero, so initial value for color property is black */
 	}
-	
+
 	GF_SAFEALLOC(svg_props->color_rendering, SVG_RenderingHint);
 	if (svg_props->color_rendering) *svg_props->color_rendering = SVG_RENDERINGHINT_AUTO;
 
@@ -140,7 +140,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 		svg_props->stroke->color.type = SVG_COLOR_RGBCOLOR;
 		/* svg_props->stroke->color.red, green, blue set to zero, so initial value for stroke color is black */
 	}
-	
+
 	GF_SAFEALLOC(svg_props->stroke_dasharray, SVG_StrokeDashArray);
 	if (svg_props->stroke_dasharray) svg_props->stroke_dasharray->type = SVG_STROKEDASHARRAY_NONE;
 
@@ -149,7 +149,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 		svg_props->stroke_dashoffset->type = SVG_NUMBER_VALUE;
 		svg_props->stroke_dashoffset->value = 0;
 	}
-	
+
 	GF_SAFEALLOC(svg_props->stroke_linecap, SVG_StrokeLineCap);
 	if (svg_props->stroke_linecap) *svg_props->stroke_linecap = SVG_STROKELINECAP_BUTT;
 
@@ -352,7 +352,7 @@ Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 			if (att->data == target_attribute->far_ptr) break;
 			att = att->next;
 		}
-		if (!att) return 0;
+		if (!att) return GF_FALSE;
 		switch (att->tag) {
 		case TAG_SVG_ATT_audio_level:
 		case TAG_SVG_ATT_color:
@@ -391,82 +391,82 @@ Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute)
 		case TAG_SVG_ATT_viewport_fill:
 		case TAG_SVG_ATT_viewport_fill_opacity:
 		case TAG_SVG_ATT_visibility:
-			return 1;
+			return GF_TRUE;
 		default:
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	else {
-		return 0;
+		return GF_FALSE;
 	}
 }
 
 /* TODO: Check that all possibly inherited types are treated */
 Bool gf_svg_is_inherit(GF_FieldInfo *a)
 {
-	if (!a->far_ptr) return 1;
+	if (!a->far_ptr) return GF_TRUE;
 
 	switch (a->fieldType) {
 	case SVG_Color_datatype:
-		return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_INHERIT);
+			return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_Paint_datatype:
-		return (((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_INHERIT);
+		return (((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_FontSize_datatype:
 	case SVG_Number_datatype:
-		return (((SVG_Number *)a->far_ptr)->type == SVG_NUMBER_INHERIT);
+		return (((SVG_Number *)a->far_ptr)->type == SVG_NUMBER_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_RenderingHint_datatype:
-		return (*((SVG_RenderingHint *)a->far_ptr) == SVG_RENDERINGHINT_INHERIT);
+		return (*((SVG_RenderingHint *)a->far_ptr) == SVG_RENDERINGHINT_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_Display_datatype:
-		return (*((SVG_Display *)a->far_ptr) == SVG_DISPLAY_INHERIT);
+		return (*((SVG_Display *)a->far_ptr) == SVG_DISPLAY_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_DisplayAlign_datatype:
-		return (*((SVG_DisplayAlign *)a->far_ptr) == SVG_DISPLAYALIGN_INHERIT);
+		return (*((SVG_DisplayAlign *)a->far_ptr) == SVG_DISPLAYALIGN_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_TextAlign_datatype:
-		return (*((SVG_TextAlign *)a->far_ptr) == SVG_TEXTALIGN_INHERIT);
+		return (*((SVG_TextAlign *)a->far_ptr) == SVG_TEXTALIGN_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_FillRule_datatype:
-		return (*((SVG_FillRule *)a->far_ptr) == SVG_FILLRULE_INHERIT);
+		return (*((SVG_FillRule *)a->far_ptr) == SVG_FILLRULE_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_FontFamily_datatype:
-		return (((SVG_FontFamily *)a->far_ptr)->type == SVG_FONTFAMILY_INHERIT);
+		return (((SVG_FontFamily *)a->far_ptr)->type == SVG_FONTFAMILY_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_FontStyle_datatype:
-		return (*((SVG_FontStyle *)a->far_ptr) == SVG_FONTSTYLE_INHERIT);
+		return (*((SVG_FontStyle *)a->far_ptr) == SVG_FONTSTYLE_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_FontWeight_datatype:
-		return (*((SVG_FontWeight *)a->far_ptr) == SVG_FONTWEIGHT_INHERIT);
+		return (*((SVG_FontWeight *)a->far_ptr) == SVG_FONTWEIGHT_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_PointerEvents_datatype:
-		return (*((SVG_PointerEvents *)a->far_ptr) == SVG_POINTEREVENTS_INHERIT);
+		return (*((SVG_PointerEvents *)a->far_ptr) == SVG_POINTEREVENTS_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_StrokeDashArray_datatype:
-		return (((SVG_StrokeDashArray *)a->far_ptr)->type == SVG_STROKEDASHARRAY_INHERIT);
+		return (((SVG_StrokeDashArray *)a->far_ptr)->type == SVG_STROKEDASHARRAY_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_StrokeLineCap_datatype:
-		return (*((SVG_StrokeLineCap *)a->far_ptr) == SVG_STROKELINECAP_INHERIT);
+		return (*((SVG_StrokeLineCap *)a->far_ptr) == SVG_STROKELINECAP_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_StrokeLineJoin_datatype:
-		return (*((SVG_StrokeLineJoin *)a->far_ptr) == SVG_STROKELINEJOIN_INHERIT);
+		return (*((SVG_StrokeLineJoin *)a->far_ptr) == SVG_STROKELINEJOIN_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_TextAnchor_datatype:
-		return (*((SVG_TextAnchor *)a->far_ptr) == SVG_TEXTANCHOR_INHERIT);
+		return (*((SVG_TextAnchor *)a->far_ptr) == SVG_TEXTANCHOR_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_VectorEffect_datatype:
-		return (*((SVG_VectorEffect *)a->far_ptr) == SVG_VECTOREFFECT_INHERIT);
+		return (*((SVG_VectorEffect *)a->far_ptr) == SVG_VECTOREFFECT_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_Visibility_datatype:
-		return (*((SVG_Visibility *)a->far_ptr) == SVG_VISIBILITY_INHERIT);
+		return (*((SVG_Visibility *)a->far_ptr) == SVG_VISIBILITY_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	case SVG_Overflow_datatype:
-		return (*((SVG_Overflow *)a->far_ptr) == SVG_OVERFLOW_INHERIT);
+		return (*((SVG_Overflow *)a->far_ptr) == SVG_OVERFLOW_INHERIT) ? GF_TRUE : GF_FALSE;
 		break;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 

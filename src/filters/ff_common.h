@@ -23,7 +23,14 @@
  *
  */
 
-#define JPEGLIB_H
+#ifndef _FF_COMMON_H_
+#define _FF_COMMON_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <gpac/filters.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
@@ -37,6 +44,15 @@
 #endif
 #include <libswscale/swscale.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/avstring.h>
+#include <libavutil/intreadwrite.h>
+
+#if (LIBAVCODEC_VERSION_MAJOR>58)
+#include <libavutil/mastering_display_metadata.h>
+#else
+#define FFMPEG_NO_DOVI
+#endif
+
 
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 #define AVFMT_URL(_mux) _mux->filename
@@ -64,13 +80,19 @@
 #include <libavcodec/bsf.h>
 #endif
 
+#ifndef FFMPEG_DISABLE_AVFILTER
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersrc.h>
+#include <libavfilter/buffersink.h>
+#endif
+
 #if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) < AV_VERSION_INT(59, 0, 0)
 #define FFMPEG_OLD_CHLAYOUT
 #endif
 
 
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
-void ffmpeg_setup_logs(u32 log_class);
+void ffmpeg_setup_logs(GF_LOG_Tool log_class);
 
 enum{
 	FF_REG_TYPE_DEMUX=0,
@@ -93,14 +115,15 @@ u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range);
 //check if FF pixfmt is an old format fullrange
 Bool ffmpeg_pixfmt_is_fullrange(u32 pfmt);
 
-u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt);
+enum AVSampleFormat ffmpeg_audio_fmt_from_gpac(u32 sfmt);
 u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt);
-u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag);
-u32 ffmpeg_codecid_to_gpac(u32 codec_id);
+enum AVCodecID ffmpeg_codecid_from_gpac(GF_CodecID codec_id, u32 *ff_codectag);
+GF_CodecID ffmpeg_codecid_to_gpac(enum AVCodecID codec_id);
+
 u32 ffmpeg_codecid_to_gpac_audio_fmt(u32 codec_id);
 
-u32 ffmpeg_stream_type_from_gpac(u32 streamtype);
-u32 ffmpeg_stream_type_to_gpac(u32 streamtype);
+enum AVMediaType ffmpeg_stream_type_from_gpac(u32 streamtype);
+u32 ffmpeg_stream_type_to_gpac(enum AVMediaType streamtype);
 
 void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx);
 void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx);
@@ -125,16 +148,24 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 
 #if (LIBAVCODEC_VERSION_MAJOR > 56)
 /*fills codecpar from pid properties. This assumes the codecpar was properly initialized.
-codec_id, codec_type, and extradata are NOT set by this function
-*/
+ codec_id, codec_type, and extradata are NOT set by this function
+ */
 GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar, u32 ffmpeg_timescale);
 
 /*sets pid properties from codecpar:
-codec_id, codec_type, and extradata are NOT set by this function
-*/
+ codec_id, codec_type, and extradata are NOT set by this function
+ */
 GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid, u32 ffmpeg_timescale);
 #endif
 
 GF_Err ffmpeg_update_arg(const char *log_name, void *ctx, AVDictionary **options, const char *arg_name, const GF_PropertyValue *arg_val);
 
 void ffmpeg_check_threads(GF_Filter *filter, AVDictionary *options, AVCodecContext *codecctx);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif //_FF_COMMON_H_
+

@@ -42,11 +42,11 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid_nhnt, *opid_mdia, *opid_info;
 
-	u32 codecid;
+	GF_CodecID codecid;
 	u32 streamtype;
 	u32 oti;
 
-	const char *dcfg;
+	const u8 *dcfg;
 	u32 dcfg_size;
 
 	GF_Fraction64 duration;
@@ -78,7 +78,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 		gf_strcpy(fileName, "dump");
 	}
 
-	name = gf_file_ext_start(fileName);
+	name = (char*)gf_file_ext_start(fileName);
 	if (name) {
 		name[0] = 0;
 	}
@@ -103,7 +103,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid_mdia, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
 
 	if (!ctx->exporter) {
-		name = gf_file_ext_start(fileName);
+		name = (char*)gf_file_ext_start(fileName);
 		if (name) name[0] = 0;
 		gf_strcat(fileName, ".media");
 		if (gfio) {
@@ -124,7 +124,7 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid_info, GF_PROP_PID_MIME, &PROP_STRING("application/x-nhnt") );
 
 		if (!ctx->exporter) {
-			name = gf_file_ext_start(fileName);
+			name = (char*)gf_file_ext_start(fileName);
 			if (name) name[0] = 0;
 			gf_strcat(fileName, ".info");
 			if (gfio) {
@@ -145,10 +145,11 @@ GF_Err nhntdump_config_side_streams(GF_Filter *filter, GF_NHNTDumpCtx *ctx)
 
 GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	u32 cid, chan, sr, bps, w, h;
+	GF_CodecID cid;
+	u32 chan, sr, bps, w, h;
 	const char *name;
 	const GF_PropertyValue *p;
-	GF_NHNTDumpCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDumpCtx *ctx = (GF_NHNTDumpCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -171,7 +172,7 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
-	cid = p->value.uint;
+	cid = (GF_CodecID) p->value.uint;
 
 	if (ctx->codecid == cid) {
 		return GF_OK;
@@ -236,7 +237,7 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 GF_Err nhntdump_process(GF_Filter *filter)
 {
-	GF_NHNTDumpCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDumpCtx *ctx = (GF_NHNTDumpCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *output;
 	u32 size, pck_size;
@@ -269,7 +270,7 @@ GF_Err nhntdump_process(GF_Filter *filter)
 
 		/*write header*/
 		/*'NHnt' format*/
-		gf_bs_write_data(ctx->bs, ctx->large ? "NHnl" : "NHnt", 4);
+		gf_bs_write_data(ctx->bs, (u8*)(ctx->large ? "NHnl" : "NHnt"), 4);
 		/*version 1*/
 		gf_bs_write_u8(ctx->bs, 0);
 		/*streamType*/
@@ -366,7 +367,7 @@ GF_Err nhntdump_process(GF_Filter *filter)
 
 static void nhntdump_finalize(GF_Filter *filter)
 {
-	GF_NHNTDumpCtx *ctx = gf_filter_get_udta(filter);
+	GF_NHNTDumpCtx *ctx = (GF_NHNTDumpCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 }
 

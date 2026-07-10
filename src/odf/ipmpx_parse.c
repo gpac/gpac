@@ -151,7 +151,7 @@ void GF_IPMPX_ParseBinData(char *val, u8 **out_data, u32 *out_data_size)
 
 	if (val[0] != '%') {
 		len = *out_data_size = (u32) strlen(val);
-		*out_data = (char*)gf_malloc(sizeof(char) * len);
+		*out_data = (char*)gf_malloc(len);
 		memcpy(*out_data, val, sizeof(char) * len);
 		return;
 	}
@@ -159,7 +159,7 @@ void GF_IPMPX_ParseBinData(char *val, u8 **out_data, u32 *out_data_size)
 	len = (u32) strlen(val) / 3;
 	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
-	*out_data = (char*)gf_malloc(sizeof(char) * len);
+	*out_data = (char*)gf_malloc(len);
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -639,20 +639,20 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 	GF_IPMPX_ByteArray **dest;
 	d = (GF_IPMPX_ByteArray*)gf_malloc(sizeof(GF_IPMPX_ByteArray));
 	d->length = (u32) strlen(str);
-	d->data = (char*)gf_malloc(sizeof(char)*d->length);
+	d->data = (u8 *)gf_malloc(d->length);
 	memcpy(d->data, str, d->length);
 
 	dest = NULL;
 	switch (p->tag) {
 	case GF_IPMPX_KEY_DATA_TAG:
 		if (!stricmp(field, "keyBody")) dest = & ((GF_IPMPX_KeyData*)p)->keyBody;
-		else if (!stricmp(field, "opaqueData")) dest = & ((GF_IPMPX_KeyData*)p)->OpaqueData;
+		else if (!stricmp(field, "opaqueData")) dest = (GF_IPMPX_ByteArray **)& ((GF_IPMPX_KeyData*)p)->OpaqueData;
 		break;
 	case GF_IPMPX_RIGHTS_DATA_TAG:
 		if (!stricmp(field, "rightsInfo")) dest = & ((GF_IPMPX_RightsData*)p)->rightsInfo;
 		break;
 	case GF_IPMPX_OPAQUE_DATA_TAG:
-		if (!stricmp(field, "opaqueData")) dest = & ((GF_IPMPX_OpaqueData*)p)->opaqueData;
+		if (!stricmp(field, "opaqueData")) dest = (GF_IPMPX_ByteArray **)& ((GF_IPMPX_OpaqueData*)p)->opaqueData;
 		break;
 	case GF_IPMPX_SECURE_CONTAINER_TAG:
 		if (!stricmp(field, "encryptedData")) dest = & ((GF_IPMPX_SecureContainer*)p)->encryptedData;
@@ -663,7 +663,7 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 		break;
 	case GF_IPMPX_MUTUAL_AUTHENTICATION_TAG:
 		if (!stricmp(field, "AuthenticationData")) dest = & ((GF_IPMPX_MutualAuthentication*)p)->AuthenticationData;
-		else if (!stricmp(field, "opaque")) dest = & ((GF_IPMPX_MutualAuthentication*)p)->opaque;
+		else if (!stricmp(field, "opaque")) dest = (GF_IPMPX_ByteArray **)& ((GF_IPMPX_MutualAuthentication*)p)->opaque;
 		else if (!stricmp(field, "authCodes")) dest = & ((GF_IPMPX_MutualAuthentication*)p)->authCodes;
 		else if (!stricmp(field, "certificates")) {
 			gf_list_add(((GF_IPMPX_MutualAuthentication*)p)->certificates, d);
@@ -681,12 +681,12 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 		else if (!stricmp(field, "addedData")) dest = & ((GF_IPMPX_ParametricDescriptionItem*)p)->addedData;
 		break;
 	case GF_IPMPX_TOOL_API_CONFIG_TAG:
-		if (!stricmp(field, "opaqueData")) dest = & ((GF_IPMPX_ToolAPI_Config*)p)->opaqueData;
+		if (!stricmp(field, "opaqueData")) dest = (GF_IPMPX_ByteArray **)& ((GF_IPMPX_ToolAPI_Config*)p)->opaqueData;
 		break;
 	case GF_IPMPX_AUDIO_WM_SEND_TAG:
 	case GF_IPMPX_VIDEO_WM_SEND_TAG:
 		if (!stricmp(field, "payload")) dest = & ((GF_IPMPX_SendWatermark *)p)->payload;
-		else if (!stricmp(field, "opaqueData")) dest = & ((GF_IPMPX_SendWatermark*)p)->opaqueData;
+		else if (!stricmp(field, "opaqueData")) dest = (GF_IPMPX_ByteArray **)& ((GF_IPMPX_SendWatermark*)p)->opaqueData;
 		break;
 	case GF_IPMPX_SEL_ENC_BUFFER_TAG:
 		if (!stricmp(field, "StreamCipher")) dest = & ((GF_IPMPX_SelEncBuffer*)p)->Stream_Cipher_Specific_Init_Info;

@@ -147,7 +147,7 @@ typedef struct
 	GF_FilterPacket *mpd_pck_ref;
 
 	GF_DASHBaseURLControlMode keep_burl; // Option to control <BaseURL>
-	char *relative_url; // Relative string to inject before <BaseURL> if keep_base_url is set to inject
+	const char *relative_url; // Relative string to inject before <BaseURL> if keep_base_url is set to inject
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -192,7 +192,7 @@ typedef struct
 	u32 seg_discard_state;
 	u32 nb_pending;
 
-	char *template;
+	char *base_template;
 
 	const char *hls_key_uri;
 	bin128 hls_key_IV;
@@ -213,9 +213,9 @@ static void dashdmx_set_string_list_prop(GF_FilterPacket *ref, u32 prop_name, GF
 
 	v.type = GF_PROP_STRING_LIST;
 	v.value.string_list.nb_items = count = gf_list_count(list);
-	v.value.string_list.vals = gf_malloc(sizeof(char *) * count);
+	v.value.string_list.vals = (char **)gf_malloc(sizeof(char *) * count);
 	for (i=0; i<count;i++) {
-		v.value.string_list.vals[i] = gf_list_pop_front(list);
+		v.value.string_list.vals[i] = (char *)gf_list_pop_front(list);
 	}
 	gf_list_del(list);
 	*str_list = NULL;
@@ -227,7 +227,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 {
 	GF_FilterPacket *dst_pck;
 	Bool do_map_time = GF_FALSE;
-	Bool seek_flag = 0;
+	Bool seek_flag = GF_FALSE;
 	u64 cts, dts;
 
 	if (ctx->forward) {
@@ -245,7 +245,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			}
 			if (!ref) return;
 
-			group->signal_seg_name = 0;
+			group->signal_seg_name = GF_FALSE;
 			gf_filter_pck_get_framing(in_pck, NULL, &is_end);
 			gf_filter_pid_drop_packet(in_pid);
 			if (gf_filter_pid_is_eos(in_pid))
@@ -380,7 +380,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			u64 pto;
 			u32 mpd_timescale;
 			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &mpd_timescale);
-			group->pto_setup = 1;
+			group->pto_setup = GF_TRUE;
 			do_map_time = GF_TRUE;
 
 			//we are forwarding segment boundaries and potentially rebuilding manifest based on the source time
@@ -415,7 +415,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 					&& (gf_dash_group_next_seg_info(ctx->dash, group->idx, 0, NULL, &seg_number, NULL, NULL, NULL) == GF_OK)
 					&& (seg_number<=1)
 				) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] First packet decode timestamp "LLU" but PTO is 0 - broken period timing, will not clamp\n", dts));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] First packet decode timestamp " LLU " but PTO is 0 - broken period timing, will not clamp\n", dts));
 					group->max_cts_in_period = 0;
 				}
 			}
@@ -466,16 +466,16 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				if ( (s64) _dts > (s64) scale_max_cts) {
 					flags = gf_filter_pid_get_udta_flags(out_pid);
 					if (!(flags & FLAG_TIME_OVERFLOW)) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp "LLU" larger than max CTS in period "LLU" - dropping all further packets\n", adj_cts, scale_max_cts));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp " LLU " larger than max CTS in period " LLU " - dropping all further packets\n", adj_cts, scale_max_cts));
 						gf_filter_pid_set_udta_flags(out_pid, flags | FLAG_TIME_OVERFLOW);
 					}
 					gf_filter_pid_drop_packet(in_pid);
 					return;
 				}
 				//otherwise, packet may be required for decoding future frames, mark as drop
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - forcing seek flag\n", adj_cts, scale_max_cts));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp " LLU " larger than max CTS in period " LLU " - forcing seek flag\n", adj_cts, scale_max_cts));
 
-				seek_flag = 1;
+				seek_flag = GF_TRUE;
 			}
 		}
 
@@ -484,18 +484,18 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			if ((s64) dts >= scale_pto)
 				dts -= scale_pto;
 			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", dts, scale_pto));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet DTS " LLU " less than PTO " LLU " - forcing DTS to 0\n", dts, scale_pto));
 				dts = 0;
-				seek_flag = 1;
+				seek_flag = GF_TRUE;
 			}
 		}
 		if (cts!=GF_FILTER_NO_TS) {
 			if ((s64) cts >= scale_pto)
 				cts -= scale_pto;
 			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", cts, scale_pto));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet CTS " LLU " less than PTO " LLU " - forcing CTS to 0\n", cts, scale_pto));
 				cts = 0;
-				seek_flag = 1;
+				seek_flag = GF_TRUE;
 			}
 		}
 		dts += scale_timesdisc_offset;
@@ -634,7 +634,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	if (start_range || end_range) {
 		char szRange[500];
 		if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
-		snprintf(szRange, 500, "range="LLU"-"LLU, start_range, end_range);
+		snprintf(szRange, 500, "range=" LLU "-" LLU, start_range, end_range);
 		gf_dynstrcat(&sURL, szRange, szSep);
 	}
 	if (ctx->forward>DFWD_FILE) {
@@ -983,7 +983,7 @@ void dashdmx_js_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 			u32 k=0, nb_segs=gf_list_count(qinfo.seg_urls);
 			JSValue seg_sizes = JS_NewArray(ctx->js_ctx);
 			for (k=0; k<nb_segs; k++) {
-				GF_MPD_SegmentURL *surl = gf_list_get((GF_List *) qinfo.seg_urls, k);
+				GF_MPD_SegmentURL *surl = (GF_MPD_SegmentURL *)gf_list_get((GF_List *) qinfo.seg_urls, k);
 				u64 size = (1 + surl->media_range->end_range - surl->media_range->start_range);
 				JS_SetPropertyUint32(ctx->js_ctx, seg_sizes, k, JS_NewInt64(ctx->js_ctx, size) );
 			}
@@ -1013,7 +1013,7 @@ static void dashdmx_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 #endif
 }
 
-void process_base_url(char *manifest_payload, u32 manifest_payload_len, GF_DASHBaseURLControlMode keep_base_url, const char *relative_url)
+static void process_base_url(char *manifest_payload, u32 manifest_payload_len, GF_DASHBaseURLControlMode keep_base_url, const char *relative_url)
 {
 	if (keep_base_url == BURL_KEEP) {
 		// Do nothing, keep BaseURL as is
@@ -1068,7 +1068,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 
 
 		// Process <BaseURL> based on the keep_base_url option
-		process_base_url(manifest_payload,manifest_payload_len, ctx->keep_burl, ctx->relative_url);
+		process_base_url((char *) manifest_payload,manifest_payload_len, ctx->keep_burl, ctx->relative_url);
 
 		if ((ctx->forward==DFWD_FILE) && ctx->output_mpd_pid) {
 			//for routeout
@@ -1100,7 +1100,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 
 			} else {
 				if (ctx->manifest_payload) gf_free(ctx->manifest_payload);
-				ctx->manifest_payload = manifest_payload;
+				ctx->manifest_payload = (char *) manifest_payload;
 				manifest_payload = NULL;
 			}
 		}
@@ -1160,7 +1160,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 
 			//these are not used in the test suite (require decoding)
-			gf_dash_group_set_codec_stat(ctx->dash, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE);
+			gf_dash_group_set_codec_stat(ctx->dash, GF_FALSE, 0, 0, 0, 0, GF_FALSE, GF_FALSE);
 			gf_dash_group_set_buffer_levels(ctx->dash, 0, 0, 0, 0);
 
 			//these are not used in the test suite (require JS)
@@ -1267,13 +1267,13 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	/*for all running services, stop service*/
 	if (dash_evt==GF_DASH_EVENT_DESTROY_PLAYBACK) {
 		for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
-			GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
+			GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, i);
 			if (!group) continue;
 			if (group->seg_filter_src) {
 				gf_filter_remove_src(ctx->filter, group->seg_filter_src);
 				group->seg_filter_src = NULL;
 			}
-			if (group->template) gf_free(group->template);
+			if (group->base_template) gf_free(group->base_template);
 			if (group->current_url) gf_free(group->current_url);
 			gf_free(group);
 			gf_dash_set_group_udta(ctx->dash, i, NULL);
@@ -1296,7 +1296,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		return GF_OK;
 	}
 	if (dash_evt==GF_DASH_EVENT_ABORT_DOWNLOAD) {
-		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
+		GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, group_idx);
 		if (group) {
 			GF_FilterEvent evt;
 			GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH,  NULL);
@@ -1310,11 +1310,11 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	if (dash_evt==GF_DASH_EVENT_QUALITY_SWITCH) {
 		if (group_idx<0) return GF_OK;
 
-		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
+		GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, group_idx);
 
 		if (!group) {
 			s32 dep_group_idx = gf_dash_group_has_dependent_group(ctx->dash, group_idx);
-			group = gf_dash_get_group_udta(ctx->dash, dep_group_idx);
+			group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, dep_group_idx);
 		}
 		//do not notify HAS status (selected qualities & co) right away, we are still potentially processing packets from previous segment(s)
 		if (group)
@@ -1332,7 +1332,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			GF_DASHQualityInfo qinfo;
 			gf_dash_group_get_quality_info(ctx->dash, group_idx, i, &qinfo);
 			sel_evt.dash_select.rep_id = qinfo.hls_variant_url ? qinfo.hls_variant_url : qinfo.ID;
-			sel_evt.dash_select.select_type = qinfo.is_selected ? 0 : (qinfo.disabled ? 2 : 1);
+			sel_evt.dash_select.select_type = qinfo.is_selected ? GF_QUALITY_SELECTED : (qinfo.disabled ? GF_QUALITY_DISABLED : GF_QUALITY_UNSELECTED);
 			gf_filter_pid_send_event(ctx->mpd_pid, &sel_evt);
 		}
 		return GF_OK;
@@ -1354,7 +1354,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	}
 
 	if (dash_evt==GF_DASH_EVENT_CODEC_STAT_QUERY) {
-		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
+		GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, group_idx);
 		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 			if (gf_filter_pid_get_udta(opid) == group) {
@@ -1456,7 +1456,7 @@ static s32 dashdmx_group_idx_from_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *src_pid)
 	s32 i;
 
 	for (i=0; (u32) i < gf_dash_get_group_count(ctx->dash); i++) {
-		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
+		GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, i);
 		if (!group) continue;
 		if (gf_filter_pid_is_filter_in_parents(src_pid, group->seg_filter_src))
 			return i;
@@ -1470,7 +1470,7 @@ static GF_FilterPid *dashdmx_opid_from_group(GF_DASHDmxCtx *ctx, GF_DASHGroup *g
 
 	for (i=0; (u32) i < gf_filter_get_opid_count(ctx->filter); i++) {
 		GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i );
-		GF_DASHGroup *g = gf_filter_pid_get_udta( opid );
+		GF_DASHGroup *g = (GF_DASHGroup *)gf_filter_pid_get_udta( opid );
 		if (g == group) return opid;
 	}
 	return NULL;
@@ -1671,7 +1671,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	dur = gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx);
 	if ((s32) dur > 0)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_DEPTH, &PROP_FRAC_INT(1000*dur, 1000) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_DEPTH, &PROP_FRAC_INT(1000*(s32) dur, 1000) );
 
 
 	if (ctx->use_bmin==BMIN_MPD) {
@@ -1737,7 +1737,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		}
 		dashdm_format_qinfo(&qdesc, &qinfo);
 
-		qualities.value.string_list.vals = gf_realloc(qualities.value.string_list.vals, sizeof(char *) * (qualities.value.string_list.nb_items+1));
+		qualities.value.string_list.vals = (char **)gf_realloc(qualities.value.string_list.vals, sizeof(char *) * (qualities.value.string_list.nb_items+1));
 
 		qualities.value.string_list.vals[qualities.value.string_list.nb_items] = qdesc;
 		qualities.value.string_list.nb_items++;
@@ -1751,7 +1751,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		memset(&srd_deps, 0, sizeof(GF_PropertyValue));
 		srd_deps.type = GF_PROP_STRING_LIST;
 		srd_deps.value.string_list.nb_items = group->nb_group_deps;
-		srd_deps.value.string_list.vals = gf_malloc(sizeof(char *) * group->nb_group_deps);
+		srd_deps.value.string_list.vals = (char **)gf_malloc(sizeof(char *) * group->nb_group_deps);
 
 		for (i=0; i<group->nb_group_deps; i++) {
 			char szSRDInf[1024];
@@ -1760,12 +1760,12 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			u32 g_idx = gf_dash_get_dependent_group_index(ctx->dash, group_idx, i);
 			szSRDInf[0] = 0;
 			if (gf_dash_group_get_srd_info(ctx->dash, g_idx, NULL,
-					&srd.value.vec4i.x,
-					&srd.value.vec4i.y,
-					&srd.value.vec4i.z,
-					&srd.value.vec4i.w,
-					&srdref.value.vec2i.x,
-					&srdref.value.vec2i.y)
+				(u32*) &srd.value.vec4i.x,
+				(u32*) &srd.value.vec4i.y,
+				(u32*) &srd.value.vec4i.z,
+				(u32*) &srd.value.vec4i.w,
+				(u32*) &srdref.value.vec2i.x,
+				(u32*) &srdref.value.vec2i.y)
 			) {
 				sprintf(szSRDInf, "%dx%dx%dx%d@%dx%d", srd.value.vec4i.x, srd.value.vec4i.y, srd.value.vec4i.z, srd.value.vec4i.w, srdref.value.vec2i.x, srdref.value.vec2i.y);
 			}
@@ -1775,7 +1775,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			deps_q.type = GF_PROP_STRING_LIST;
 			nb_q = gf_dash_group_get_num_qualities(ctx->dash, g_idx);
 			deps_q.value.string_list.nb_items = nb_q;
-			deps_q.value.string_list.vals = gf_malloc(sizeof(char *) * nb_q);
+			deps_q.value.string_list.vals = (char **)gf_malloc(sizeof(char *) * nb_q);
 
 			for (k=0; k<nb_q; k++) {
 				char *qdesc = NULL;
@@ -1858,12 +1858,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	srd.type = GF_PROP_VEC4I;
 	srdref.type = GF_PROP_VEC2I;
 	if (gf_dash_group_get_srd_info(ctx->dash, group_idx, NULL,
-			&srd.value.vec4i.x,
-			&srd.value.vec4i.y,
-			&srd.value.vec4i.z,
-			&srd.value.vec4i.w,
-			&srdref.value.vec2i.x,
-			&srdref.value.vec2i.y)) {
+		(u32*) &srd.value.vec4i.x,
+		(u32*) &srd.value.vec4i.y,
+		(u32*) &srd.value.vec4i.z,
+		(u32*) &srd.value.vec4i.w,
+		(u32*) &srdref.value.vec2i.x,
+		(u32*) &srdref.value.vec2i.y)
+	) {
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD, &srd);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD_REF, &srdref);
@@ -1885,7 +1886,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 					i++;
 					if (!strcmp(desc_scheme, "urn:gpac:video:merge:2023") && desc_value) {
 						gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_HEVC_MERGE));
-						gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC_MERGEABLE, &PROP_UINT(atoi(desc_value) ));
+						gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC_MERGEABLE, &PROP_UINT((u32) atoi(desc_value) ));
 						break;
 					}
 				}
@@ -1946,7 +1947,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
 
 		gf_dash_group_get_segment_duration(ctx->dash, group->idx, &dur, &timescale);
-		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT((s32)dur, timescale) );
 
 		gf_dash_group_next_seg_info(ctx->dash, group->idx, group->current_dependent_rep_idx, NULL, NULL, NULL, NULL, &str);
 		if (str) {
@@ -1967,13 +1968,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	s32 gf_dash_get_base_group_index(GF_DashClient *dash, u32 idx);
 	s32 dep_group = 1 + gf_dash_get_base_group_index(ctx->dash, group->idx);
-	gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DEP_GROUP, (dep_group > 0) ? &PROP_UINT(dep_group) : NULL );
+	gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DEP_GROUP, (dep_group > 0) ? &PROP_UINT((u32)dep_group) : NULL );
 
 	str = gf_dash_get_period_id(ctx->dash);
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, str ? &PROP_STRING(str) : NULL );
 
 	s32 asid = gf_dash_group_get_as_id(ctx->dash, group->idx);
-	gf_filter_pid_set_property(opid, GF_PROP_PID_AS_ID, (asid>=0) ? &PROP_UINT(asid) : NULL );
+	gf_filter_pid_set_property(opid, GF_PROP_PID_AS_ID, (asid>=0) ? &PROP_UINT((u32)asid) : NULL );
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -1991,7 +1992,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			u32 i;
 			for (i=0; i<gf_filter_get_opid_count(filter); i++) {
 				opid = gf_filter_get_opid(filter, i);
-				group = gf_filter_pid_get_udta(opid);
+				group = (GF_DASHGroup *)gf_filter_pid_get_udta(opid);
 				if (group && group->seg_filter_src) {
 					gf_filter_remove_src(filter, group->seg_filter_src);
 				}
@@ -1999,7 +2000,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_dash_close(ctx->dash);
 			ctx->mpd_pid = NULL;
 		} else {
-			opid = gf_filter_pid_get_udta(pid);
+			opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 			if (opid) {
 				if (!ctx->mpd_pid) {
 					gf_filter_pid_remove(opid);
@@ -2118,13 +2119,13 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Failed to locate adaptation set for input pid\n"));
 		return GF_SERVICE_ERROR;
 	}
-	group = gf_dash_get_group_udta(ctx->dash, group_idx);
+	group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, group_idx);
 
 	//initial configure
-	opid = gf_filter_pid_get_udta(pid);
+	opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 	if (opid == NULL) {
 		u32 run_status;
-		group = gf_dash_get_group_udta(ctx->dash, group_idx);
+		group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, group_idx);
 		if (!group) return GF_SERVICE_ERROR;
 		//for now we declare every component from the input source
 		opid = dashdmx_create_output_pid(ctx, pid, &run_status, group);
@@ -2499,7 +2500,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_agressive_adaptation(ctx->dash, ctx->aggressive);
 	gf_dash_enable_single_range_llhls(ctx->dash, ctx->llhls_merge);
 	gf_dash_debug_groups(ctx->dash, ctx->debug_as.vals, ctx->debug_as.nb_items);
-	gf_dash_disable_speed_adaptation(ctx->dash, !ctx->speedadapt);
+	gf_dash_disable_speed_adaptation(ctx->dash, ctx->speedadapt ? GF_FALSE : GF_TRUE);
 	gf_dash_ignore_xlink(ctx->dash, ctx->noxlink);
 	gf_dash_set_period_xlink_query_string(ctx->dash, ctx->query);
 	gf_dash_set_low_latency_mode(ctx->dash, ctx->lowlat);
@@ -2599,10 +2600,10 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			GF_DASHTileAdaptationMode tile_mode = fevt->quality_switch.set_tile_mode_plus_one - 1;
 			gf_dash_set_tile_adaptation_mode(ctx->dash, tile_mode, 100);
 		} else if (fevt->quality_switch.q_idx < 0) {
-			gf_dash_set_automatic_switching(ctx->dash, 1);
+			gf_dash_set_automatic_switching(ctx->dash, GF_TRUE);
 		} else if (fevt->base.on_pid) {
 			s32 idx;
-			group = gf_filter_pid_get_udta(fevt->base.on_pid);
+			group = (GF_DASHGroup *)gf_filter_pid_get_udta(fevt->base.on_pid);
 			if (!group) return GF_TRUE;
 			idx = group->idx;
 
@@ -2616,7 +2617,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 				if (idx==-1) return GF_TRUE;
 			}
 
-			gf_dash_set_automatic_switching(ctx->dash, 0);
+			gf_dash_set_automatic_switching(ctx->dash, GF_FALSE);
 			gf_dash_group_select_quality(ctx->dash, idx, NULL, fevt->quality_switch.q_idx);
 		} else {
 			gf_dash_switch_quality(ctx->dash, fevt->quality_switch.up);
@@ -2631,10 +2632,10 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		//check if we want that in other forward mode
 		if (ctx->forward==DFWD_FILE) {
 			for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
-				group = gf_dash_get_group_udta(ctx->dash, i);
-				if (!group || !group->template) continue;
+				group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, i);
+				if (!group || !group->base_template) continue;
 
-				if (!strncmp(group->template, fevt->file_del.url, strlen(group->template) )) {
+				if (!strncmp(group->base_template, fevt->file_del.url, strlen(group->base_template) )) {
 					GF_FilterPid *pid = dashdmx_opid_from_group(ctx, group);
 					if (pid) {
 						GF_FilterEvent evt;
@@ -2657,7 +2658,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 	if (fevt->base.on_pid == ctx->output_mpd_pid) {
 		return GF_TRUE;
 	}
-	group = gf_filter_pid_get_udta(fevt->base.on_pid);
+	group = (GF_DASHGroup *)gf_filter_pid_get_udta(fevt->base.on_pid);
 	if (!group) return GF_TRUE;
 	count = gf_filter_get_ipid_count(filter);
 	ipid = NULL;
@@ -2669,7 +2670,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 	switch (fevt->base.type) {
 	case GF_FEVT_VISIBILITY_HINT:
-		group = gf_filter_pid_get_udta(fevt->base.on_pid);
+		group = (GF_DASHGroup *)gf_filter_pid_get_udta(fevt->base.on_pid);
 		if (!group) return GF_TRUE;
 
 		gf_dash_group_set_visible_rect(ctx->dash, group->idx, fevt->visibility_hint.min_x, fevt->visibility_hint.max_x, fevt->visibility_hint.min_y, fevt->visibility_hint.max_y, fevt->visibility_hint.is_gaze);
@@ -2693,12 +2694,12 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 				if (src_evt.play.start_range < 0) src_evt.play.start_range = 0;
 			}
 
-			group->is_timestamp_based = 1;
-			group->pto_setup = 0;
+			group->is_timestamp_based = GF_TRUE;
+			group->pto_setup = GF_FALSE;
 			ctx->media_start_range = fevt->play.start_range;
 		} else {
-			group->is_timestamp_based = 0;
-			group->pto_setup = 0;
+			group->is_timestamp_based = GF_FALSE;
+			group->pto_setup = GF_FALSE;
 			if (fevt->play.start_range<0) src_evt.play.start_range = 0;
 			//in m3u8, we need also media start time for mapping time
 			if (gf_dash_is_m3u8(ctx->dash))
@@ -2762,7 +2763,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		src_evt.play.forced_dash_segment_switch = gf_dash_group_segment_switch_forced(ctx->dash, group->idx);
 
 		gf_dash_group_select(ctx->dash, group->idx, GF_TRUE);
-		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 0);
+		gf_dash_set_group_done(ctx->dash, (u32) group->idx, GF_FALSE);
 
 		//adjust start range from MPD time to media time
 		if (gf_dash_is_dynamic_mpd(ctx->dash) && ctx->noseek) {
@@ -2797,7 +2798,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		if (group->nb_pending)
 			return GF_TRUE;
 
-		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
+		gf_dash_set_group_done(ctx->dash, (u32) group->idx, GF_TRUE);
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
 		//group was playing, force stop on source filter (to discard any non-processed data)
 		//we need this because SOURCE_SWITCH event is sent directly on source filter
@@ -2860,7 +2861,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 
 		sel = gf_dash_group_get_active_quality(ctx->dash, group->idx);
 		if (sel>=0) {
-			gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT(sel) );
+			gf_filter_pid_set_property_str(opid, "has:selected", &PROP_UINT((u32)sel) );
 		}
 		gf_filter_pid_set_property_str(opid, "has:auto", &PROP_UINT(gf_dash_get_automatic_switching(ctx->dash) ) );
 		gf_filter_pid_set_property_str(opid, "has:tilemode", &PROP_UINT(gf_dash_get_tile_adaptation_mode(ctx->dash) ) );
@@ -2872,7 +2873,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 			memset(&deps_sel, 0, sizeof(GF_PropertyValue));
 			deps_sel.type = GF_PROP_SINT_LIST;
 			deps_sel.value.sint_list.nb_items = group->nb_group_deps;
-			deps_sel.value.sint_list.vals = gf_malloc(sizeof(char *) * group->nb_group_deps);
+			deps_sel.value.sint_list.vals = (s32 *)gf_malloc(sizeof(s32) * group->nb_group_deps);
 
 			for (k=0; k<group->nb_group_deps; k++) {
 				u32 g_idx = gf_dash_get_dependent_group_index(ctx->dash, group->idx, k);
@@ -2902,14 +2903,14 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				if (q.codec)
 					gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 			}
-			if (group->template) gf_free(group->template);
-			group->template = gf_dash_group_get_template(ctx->dash, group->idx, &segment_timeline_timescale, &init_seg, &hls_variant);
-			if (!group->template) {
+			if (group->base_template) gf_free(group->base_template);
+			group->base_template = gf_dash_group_get_template(ctx->dash, group->idx, &segment_timeline_timescale, &init_seg, &hls_variant);
+			if (!group->base_template) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", dash_url ));
 				gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, NULL);
 			} else {
-				gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(group->template) );
-				char *sep = strchr(group->template, '$');
+				gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(group->base_template) );
+				char *sep = strchr(group->base_template, '$');
 				if (sep) sep[0] = 0;
 				gf_filter_pid_set_property_str(opid, "source_template", &PROP_BOOL(GF_TRUE) );
 				gf_filter_pid_set_property_str(opid, "stl_timescale", segment_timeline_timescale ? &PROP_UINT(segment_timeline_timescale) : NULL);
@@ -2925,7 +2926,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				u32 dur, timescale;
 
 				gf_dash_group_get_segment_duration(ctx->dash, group->idx, &dur, &timescale);
-				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT((s32)dur, timescale) );
 			}
 		}
 		const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
@@ -3064,7 +3065,7 @@ fetch_next:
 		u32 i;
 		for (i=0; i < gf_filter_get_opid_count(ctx->filter); i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i );
-			GF_DASHGroup *g = gf_filter_pid_get_udta( opid );
+			GF_DASHGroup *g = (GF_DASHGroup *)gf_filter_pid_get_udta( opid );
 			if (g != group) continue;
 			if (gf_filter_pid_would_block(opid)) {
 				group->seg_was_not_ready = GF_TRUE;
@@ -3185,7 +3186,7 @@ fetch_next:
 		else
 			dep_rep_idx = group->current_dependent_rep_idx;
 
-		gf_dash_group_store_stats(ctx->dash, group->idx, dep_rep_idx, 0, 0, 0, 0);
+		gf_dash_group_store_stats(ctx->dash, group->idx, dep_rep_idx, GF_FALSE, 0, GF_FALSE, 0);
 		if (!group->seg_discard_state)
 			group->seg_discard_state = 1;
 		goto fetch_next;
@@ -3261,7 +3262,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	//reset group states and update stats
 	count = gf_dash_get_group_count(ctx->dash);
 	for (i=0; i<count; i++) {
-		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
+		GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, i);
 		if (!group) continue;
 		group->nb_eos = 0;
 		if (group->eos_detected) check_eos = GF_TRUE;
@@ -3328,8 +3329,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		GF_FilterPid *opid;
 		GF_DASHGroup *group;
 		if (ipid == ctx->mpd_pid) continue;
-		opid = gf_filter_pid_get_udta(ipid);
-		group = gf_filter_pid_get_udta(opid);
+		opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+		group = (GF_DASHGroup *)gf_filter_pid_get_udta(opid);
 
 		if (!group || group->nb_pending) {
 			inputs_fetched = 0;
@@ -3361,10 +3362,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						//check all pids in this group, postpone segment switch if blocking
 						for (j=0; j<count; j++) {
 							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, j);
-							GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
+							GF_FilterPid *an_opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(an_ipid);
 							GF_DASHGroup *agroup;
 							if (an_ipid == ctx->mpd_pid) continue;
-							agroup = gf_filter_pid_get_udta(an_opid);
+							agroup = (GF_DASHGroup *)gf_filter_pid_get_udta(an_opid);
 							if (!agroup || (agroup != group)) continue;
 
 							if (gf_filter_pid_would_block(an_opid)) {
@@ -3383,10 +3384,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							const GF_PropertyValue *p;
 							GF_PropertyEntry *pe=NULL;
 							GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, j);
-							GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
+							GF_FilterPid *an_opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(an_ipid);
 							GF_DASHGroup *agroup;
 							if (an_ipid == ctx->mpd_pid) continue;
-							agroup = gf_filter_pid_get_udta(an_opid);
+							agroup = (GF_DASHGroup *)gf_filter_pid_get_udta(an_opid);
 							if (!agroup || (agroup != group)) continue;
 
 							if (gf_filter_pid_is_eos(an_ipid) || group->force_seg_switch) {
@@ -3424,10 +3425,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					u32 j;
 					for (j=0; j<count && group->in_error; j++) {
 						GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, j);
-						GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
+						GF_FilterPid *an_opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(an_ipid);
 						GF_DASHGroup *agroup;
 						if (an_ipid == ctx->mpd_pid) continue;
-						agroup = gf_filter_pid_get_udta(an_opid);
+						agroup = (GF_DASHGroup *)gf_filter_pid_get_udta(an_opid);
 						if (!agroup || (agroup != group)) continue;
 
 						gf_filter_pid_clear_eos(an_ipid, GF_TRUE);
@@ -3494,8 +3495,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				GF_FilterPid *opid;
 				GF_DASHGroup *group;
 				if (ipid == ctx->mpd_pid) continue;
-				opid = gf_filter_pid_get_udta(ipid);
-				group = gf_filter_pid_get_udta(opid);
+				opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+				group = (GF_DASHGroup *)gf_filter_pid_get_udta(opid);
 				if (!group) continue;
 				if (!group->is_playing && group->eos_detected) continue;
 				groups_done=GF_FALSE;
@@ -3509,8 +3510,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			GF_FilterPid *opid;
 			GF_DASHGroup *group;
 			if (ipid == ctx->mpd_pid) continue;
-			opid = gf_filter_pid_get_udta(ipid);
-			group = gf_filter_pid_get_udta(opid);
+			opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
+			group = (GF_DASHGroup *)gf_filter_pid_get_udta(opid);
 			//reset in progress
 			if (!group) {
 				all_groups_done = GF_FALSE;
@@ -3540,7 +3541,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			}
 			if (!gf_dash_get_period_switch_status(ctx->dash)) {
 				for (i=0; i<count; i++) {
-					GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, i);
+					GF_DASHGroup *group = (GF_DASHGroup *) gf_dash_get_group_udta(ctx->dash, i);
 					if (!group) continue;
 					group->nb_eos = 0;
 					group->eos_detected = GF_FALSE;
@@ -3562,14 +3563,14 @@ GF_Err dashdmx_process(GF_Filter *filter)
 static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	char *d = (char *)data;
-	char *res_ghix, *res_dash, *res_m3u, *res_smooth;
+	const char *res_ghix, *res_dash, *res_m3u, *res_smooth;
 	char last_c = d[size-1];
 	d[size-1] = 0;
-	res_ghix = strstr(data, "<GHIX ");
-	res_dash = strstr(data, "<MPD ");
-	if (!res_dash) res_dash = strstr(data, "<Period ");
-	res_m3u = strstr(data, "#EXTM3U");
-	res_smooth = strstr(data, "<SmoothStreamingMedia");
+	res_ghix = strstr((char*)data, "<GHIX ");
+	res_dash = strstr((char*)data, "<MPD ");
+	if (!res_dash) res_dash = strstr((char*)data, "<Period ");
+	res_m3u = strstr((char*)data, "#EXTM3U");
+	res_smooth = strstr((char*)data, "<SmoothStreamingMedia");
 	d[size-1] = last_c;
 
 	if (res_ghix) {
@@ -3836,7 +3837,6 @@ static s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_
 	return ctx->on_download_monitor(ctx->rt_udta, group_idx, &stats);
 }
 #endif // GPAC_DISABLE_DASHIN
-
 
 GF_EXPORT
 GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,

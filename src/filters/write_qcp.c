@@ -42,7 +42,7 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid;
 
-	u32 codecid;
+	GF_CodecID codecid;
 	Bool first;
 
 	GF_Fraction64 duration;
@@ -68,7 +68,7 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 sr, chan, bps;
 	const GF_PropertyValue *p;
-	GF_QCPMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_QCPMxCtx *ctx = (GF_QCPMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -83,7 +83,7 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
-	ctx->codecid = p->value.uint;
+	ctx->codecid = (GF_CodecID) p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (!p) return GF_NOT_SUPPORTED;
@@ -212,18 +212,18 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 
 	bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 
-	gf_bs_write_data(bs, "RIFF", 4);
+	gf_bs_write_data(bs, (u8*)"RIFF", 4);
 	gf_bs_write_u32_le(bs, tot_size);
-	gf_bs_write_data(bs, "QLCM", 4);
-	gf_bs_write_data(bs, "fmt ", 4);
+	gf_bs_write_data(bs, (u8*)"QLCM", 4);
+	gf_bs_write_data(bs, (u8*)"fmt ", 4);
 	gf_bs_write_u32_le(bs, 150);/*fmt chunk size*/
 	gf_bs_write_u8(bs, 1);
 	gf_bs_write_u8(bs, 0);
-	gf_bs_write_data(bs, ctx->GUID, 16);
+	gf_bs_write_data(bs, (u8*)ctx->GUID, 16);
 	gf_bs_write_u16_le(bs, 1);
 	memset(szName, 0, 80);
 	gf_strcpy(szName, (ctx->qcp_type==1) ? "QCELP-GPACExport" : ((ctx->qcp_type==2) ? "SMV-GPACExport" : "EVRC-GPACExport"));
-	gf_bs_write_data(bs, szName, 80);
+	gf_bs_write_data(bs, (u8*)szName, 80);
 	gf_bs_write_u16_le(bs, avg_rate);
 	gf_bs_write_u16_le(bs, sample_size);
 	gf_bs_write_u16_le(bs, block_size);
@@ -240,12 +240,12 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 		}
 	}
 	memset(szName, 0, 80);
-	gf_bs_write_data(bs, szName, 20);/*reserved*/
-	gf_bs_write_data(bs, "vrat", 4);
+	gf_bs_write_data(bs, (u8*)szName, 20);/*reserved*/
+	gf_bs_write_data(bs, (u8*)"vrat", 4);
 	gf_bs_write_u32_le(bs, 8);/*vrat chunk size*/
 	gf_bs_write_u32_le(bs, ctx->rt_cnt);
 	gf_bs_write_u32_le(bs, frame_count);
-	gf_bs_write_data(bs, "data", 4);
+	gf_bs_write_data(bs, (u8*)"data", 4);
 	gf_bs_write_u32_le(bs, data_size);/*data chunk size*/
 
 	ctx->needs_rate_byte = needs_rate_octet ? 1 : 0;
@@ -268,9 +268,10 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 
 GF_Err qcpmx_process(GF_Filter *filter)
 {
-	GF_QCPMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_QCPMxCtx *ctx = (GF_QCPMxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 pck_size, size;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -299,7 +300,7 @@ GF_Err qcpmx_process(GF_Filter *filter)
 		qcpmx_send_header(ctx, ctx->data_size, ctx->nb_frames);
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 
 	size = pck_size;
 	ctx->data_size += pck_size;

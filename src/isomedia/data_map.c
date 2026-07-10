@@ -96,13 +96,13 @@ static Bool IsLargeFile(char *path)
 	FILE *stream;
 	s64 size;
 	stream = gf_fopen(path, "rb");
-	if (!stream) return 0;
+	if (!stream) return GF_FALSE;
 	size = gf_fsize(stream);
 	gf_fclose(stream);
-	if (size == -1L) return 0;
-	if (size > 0xFFFFFFFF) return 1;
+	if (size == -1L) return GF_FALSE;
+	if (size > 0xFFFFFFFF) return GF_TRUE;
 #endif
-	return 0;
+	return GF_FALSE;
 }
 #endif
 
@@ -148,7 +148,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		return GF_OK;
 	}
 
-	extern_file = !gf_url_is_local(location);
+	extern_file = gf_url_is_local(location) ? GF_FALSE : GF_TRUE;
 
 	if (mode == GF_ISOM_DATA_MAP_EDIT) {
 		//we need a local file for edition!!!
@@ -270,7 +270,7 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 			location = mdia->mediaTrack->moov->mov->override_dref_url;
 			parent_path = NULL;
 		}
-		
+
 		e = gf_isom_datamap_new(location, parent_path, GF_ISOM_DATA_MAP_READ, & mdia->information->dataHandler);
 		if (e) return (e==GF_URL_ERROR) ? GF_ISOM_UNKNOWN_DATA_REF : e;
 	}
@@ -313,7 +313,7 @@ void gf_isom_datamap_flush(GF_DataMap *map)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 u64 FDM_GetTotalOffset(GF_FileDataMap *ptr);
-GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize);
+GF_Err FDM_AddData(GF_FileDataMap *ptr, u8 *data, u32 dataSize);
 
 u64 gf_isom_datamap_get_offset(GF_DataMap *map)
 {
@@ -451,7 +451,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		} else {
 			if (!strcmp(sPath, "std")) {
 				tmp->stream = stdout;
-				tmp->is_stdout = 1;
+				tmp->is_stdout = GF_TRUE;
 			}
 #ifdef GPAC_HAS_FD
 			if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
@@ -477,7 +477,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		} else {
 			if (!strcmp(sPath, "std")) {
 				tmp->stream = stdout;
-				tmp->is_stdout = 1;
+				tmp->is_stdout = GF_TRUE;
 			}
 
 			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "a+b");
@@ -572,7 +572,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 			bytesRead = 0;
 		}
 	}
-	ptr->last_acces_was_read = 1;
+	ptr->last_acces_was_read = GF_TRUE;
 
 	if (ptr->blob) {
 		gf_mx_v(ptr->blob->mx);
@@ -628,7 +628,7 @@ Bool gf_isom_datamap_top_level_box_avail(GF_DataMap *map)
 #endif
 
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -644,7 +644,7 @@ u64 FDM_GetTotalOffset(GF_FileDataMap *ptr)
 	return gf_bs_get_size(ptr->bs);
 }
 
-GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
+GF_Err FDM_AddData(GF_FileDataMap *ptr, u8 *data, u32 dataSize)
 {
 	u32 ret;
 	u64 orig;
@@ -655,7 +655,7 @@ GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
 	/*last access was read, seek to end of file*/
 	if (ptr->last_acces_was_read) {
 		gf_bs_seek(ptr->bs, orig);
-		ptr->last_acces_was_read = 0;
+		ptr->last_acces_was_read = GF_FALSE;
 	}
 	//OK, write our stuff to the datamap...
 	//we don't use bs here cause we want to know more about what has been written

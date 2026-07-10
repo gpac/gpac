@@ -130,7 +130,7 @@ static u32 gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool s
 	if (!same_pts) pck.flags |= GF_M2TS_PES_PCK_AU_START;
 	pck.DTS = pes->DTS;
 	pck.PTS = pes->PTS;
-	pck.data = (char *)data;
+	pck.data = (u8 *)data;
 	pck.data_len = data_len;
 	pck.stream = pes;
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
@@ -163,7 +163,7 @@ static u32 gf_m2ts_reframe_add_prop(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.flags = 0;
 	pck.DTS = pes->DTS;
 	pck.PTS = pes->PTS;
-	pck.data = (char *)data;
+	pck.data = (u8 *)data;
 	pck.data_len = data_len;
 	pck.stream = pes;
 	pck.stream->stream_type = pes->stream_type;
@@ -171,7 +171,7 @@ static u32 gf_m2ts_reframe_add_prop(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	return 0;
 }
 
-static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_check)
+static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, const u8 *data, u32 size, Bool simple_check)
 {
 	u32 i=0;
 	/*if first byte is sync assume we're sync*/
@@ -182,7 +182,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_c
 		if ((data[i]==0x47) && (data[i+188]==0x47))
 			break;
 		if ((data[i]==0x47) && (data[i+192]==0x47)) {
-			ts->prefix_present = 1;
+			ts->prefix_present = GF_TRUE;
 			break;
 		}
 		i++;
@@ -222,7 +222,7 @@ static void gf_m2ts_reset_sections(GF_List *sections)
 
 	count = gf_list_count(sections);
 	while (count) {
-		GF_M2TS_Section *section = gf_list_get(sections, 0);
+		GF_M2TS_Section *section = (GF_M2TS_Section *)gf_list_get(sections, 0);
 		gf_list_rem(sections, 0);
 		if (section->data) gf_free(section->data);
 		gf_free(section);
@@ -245,7 +245,7 @@ static void gf_m2ts_section_filter_reset(GF_M2TS_SectionFilter *sf)
 	}
 	sf->cc = -1;
 	sf->length = sf->received = 0;
-	sf->demux_restarted = 1;
+	sf->demux_restarted = GF_TRUE;
 
 }
 static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
@@ -394,7 +394,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		u32 status, section_start, i;
 		GF_M2TS_Table *t, *prev_t;
 		unsigned char *data;
-		Bool section_valid = 0;
+		Bool section_valid = GF_FALSE;
 
 		status = 0;
 		/*parse header*/
@@ -426,7 +426,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			}
 		}
 
-		has_syntax_indicator = (data[1] & 0x80) ? 1 : 0;
+		has_syntax_indicator = (data[1] & 0x80) ? GF_TRUE : GF_FALSE;
 		if (has_syntax_indicator) {
 			if (sec->length < 5) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] M2TS Table parsing error, length %d is too small\n", sec->length) );
@@ -467,7 +467,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			} else {
 				/*remove crc32*/
 				sec->length -= 4;
-				if (gf_m2ts_crc32_check((char *)data, sec->length)) {
+				if (gf_m2ts_crc32_check(data, sec->length)) {
 					s32 cur_sec_num;
 					t->version_number = (data[5] >> 1) & 0x1f;
 					if (t->last_section_number && t->section_number && (t->version_number != t->last_version_number)) {
@@ -485,12 +485,12 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 					if (!sec->process_individual && t->section_number + 1 != cur_sec_num) {
 						/* TODO - Check how to handle sections when the first complete section does
 						   not have its sec num 0 */
-						section_valid = 0;
+						section_valid = GF_FALSE;
 						if (t->is_init) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted table (lost section %d)\n", cur_sec_num ? cur_sec_num-1 : 31) );
 						}
 					} else {
-						section_valid = 1;
+						section_valid = GF_TRUE;
 						t->section_number = cur_sec_num;
 					}
 				} else {
@@ -498,7 +498,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 				}
 			}
 		} else {
-			section_valid = 1;
+			section_valid = GF_TRUE;
 			section_start = 3;
 		}
 		/*process section*/
@@ -511,7 +511,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 				return;
 			}
 			section->data_size = sec->length - section_start;
-			section->data = (unsigned char*)gf_malloc(sizeof(unsigned char)*section->data_size);
+			section->data = (u8 *)gf_malloc(section->data_size);
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
 			gf_list_add(t->sections, section);
 
@@ -543,7 +543,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 				table_size = 0;
 				for (i=0; i<gf_list_count(t->sections); i++) {
-					GF_M2TS_Section *a_sec = gf_list_get(t->sections, i);
+					GF_M2TS_Section *a_sec = (GF_M2TS_Section *)gf_list_get(t->sections, i);
 					table_size += a_sec->data_size;
 				}
 				if (t->is_repeat) {
@@ -605,12 +605,12 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 	case GF_M2TS_TABLE_ID_MPE_FEC:
 	case GF_M2TS_TABLE_ID_DSM_CC_DOWNLOAD_DATA_MESSAGE:
 	case GF_M2TS_TABLE_ID_DSM_CC_UN_MESSAGE:
-		return 1;
+		return GF_TRUE;
 	default:
 		if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX)
-			return 1;
+			return GF_TRUE;
 		else
-			return 0;
+			return GF_FALSE;
 	}
 }
 
@@ -625,11 +625,11 @@ static u32 gf_m2ts_get_section_length(char byte0, char byte1, char byte2)
 	return length;
 }
 
-static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size)
+static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses, GF_M2TS_Header *hdr, const u8 *data, u32 data_size)
 {
 	u32 payload_size = data_size;
 	u8 expect_cc = (sec->cc<0) ? hdr->continuity_counter : (sec->cc + 1) & 0xf;
-	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
+	Bool disc = (expect_cc == hdr->continuity_counter) ? GF_FALSE : GF_TRUE;
 	sec->cc = expect_cc;
 
 	/*may happen if hdr->adaptation_field=2 no payload in TS packet*/
@@ -654,7 +654,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 				sec->length = gf_m2ts_get_section_length(sec->section[0], data[1], data[2]);
 			else /* (sec->received == 2)  */
 				sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], data[1]);
-			sec->section = (char*)gf_realloc(sec->section, sizeof(char)*sec->length);
+			sec->section = (u8 *)gf_realloc(sec->section, sec->length);
 		}
 
 		if (sec->length && (sec->received < sec->length) && (data_size >= (u32) (1 + sec->length - sec->received))) {
@@ -673,7 +673,7 @@ aggregated_section:
 
 		if (sec->section) gf_free(sec->section);
 		sec->length = sec->received = 0;
-		sec->section = (char*)gf_malloc(sizeof(char)*data_size);
+		sec->section = (u8 *)gf_malloc(data_size);
 		memcpy(sec->section, data, sizeof(char)*data_size);
 		sec->received = data_size;
 	} else if (disc) {
@@ -690,7 +690,7 @@ aggregated_section:
 		if (sec->length) {
 			memcpy(sec->section + sec->received, data, sizeof(char)*data_size);
 		} else {
-			sec->section = (char*)gf_realloc(sec->section, sizeof(char)*(sec->received+data_size));
+			sec->section = (u8 *)gf_realloc(sec->section, (sec->received+data_size));
 			memcpy(sec->section + sec->received, data, sizeof(char)*data_size);
 		}
 		sec->received += data_size;
@@ -698,7 +698,7 @@ aggregated_section:
 	/*alloc final buffer*/
 	if (!sec->length && (sec->received >= 3)) {
 		sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], sec->section[2]);
-		sec->section = (char*)gf_realloc(sec->section, sizeof(char)*sec->length);
+		sec->section = (u8 *)gf_realloc(sec->section, sec->length);
 
 		if (sec->received > sec->length) {
 			data_size -= sec->received - sec->length;
@@ -803,7 +803,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n", descs_size));
 					return;
 				}
-				sdt->provider = (char*)gf_malloc(sizeof(char)*(ulen+1));
+				sdt->provider = (char*)gf_malloc(ulen+1);
 				memcpy(sdt->provider, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->provider[ulen] = 0;
 
@@ -824,7 +824,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 					return;
 				}
 
-				sdt->service = (char*)gf_malloc(sizeof(char)*(ulen+1));
+				sdt->service = (char*)gf_malloc(ulen+1);
 				memcpy(sdt->service, data+pos+d_pos, sizeof(char)*ulen);
 				sdt->service[ulen] = 0;
 				d_pos += ulen;
@@ -863,7 +863,7 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	nb_sections = gf_list_count(sections);
 	for (i=0; i<nb_sections; i++) {
 		section = (GF_M2TS_Section *)gf_list_get(sections, i);
-		sl_pck.data = (char *)section->data;
+		sl_pck.data = section->data;
 		sl_pck.data_len = section->data_size;
 		sl_pck.stream = (GF_M2TS_ES *)es;
 		sl_pck.version_number = version_number;
@@ -1070,13 +1070,13 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 		size += 4;
 	}
 	d->service_id = gf_bs_read_u8(bs);
-	d->locator_record_flag = (gf_bs_read_int(bs, 1) ? GF_TRUE : GF_FALSE);
+	d->locator_record_flag = (gf_bs_read_bool(bs));
 	d->carriage_flag = (enum metadata_carriage)gf_bs_read_int(bs, 2);
 	gf_bs_read_int(bs, 5); /*reserved */
 	size += 2;
 	if (d->locator_record_flag) {
 		d->locator_length = gf_bs_read_u8(bs);
-		d->locator_data = (char *)gf_malloc(d->locator_length);
+		d->locator_data = (u8 *)gf_malloc(d->locator_length);
 		size += 1 + d->locator_length;
 		gf_bs_read_data(bs, d->locator_data, d->locator_length);
 	}
@@ -1091,7 +1091,7 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 	}
 	if (length > size) {
 		d->data_size = length-size;
-		d->data = (char *)gf_malloc(d->data_size);
+		d->data = (u8 *)gf_malloc(d->data_size);
 		gf_bs_read_data(bs, d->data, d->data_size);
 	}
 	return d;
@@ -1126,24 +1126,24 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 	}
 	d->service_id = gf_bs_read_u8(bs);
 	d->decoder_config_flags = gf_bs_read_int(bs, 3);
-	d->dsmcc_flag = (gf_bs_read_int(bs, 1) ? GF_TRUE : GF_FALSE);
+	d->dsmcc_flag = (gf_bs_read_bool(bs));
 	gf_bs_read_int(bs, 4); /* reserved */
 	//size += 2;
 	if (d->dsmcc_flag) {
 		d->service_id_record_length = gf_bs_read_u8(bs);
-		d->service_id_record = (char *)gf_malloc(d->service_id_record_length);
+		d->service_id_record = (u8 *)gf_malloc(d->service_id_record_length);
 		//size += 1 + d->service_id_record_length;
 		gf_bs_read_data(bs, d->service_id_record, d->service_id_record_length);
 	}
 	if (d->decoder_config_flags == 1) {
 		d->decoder_config_length = gf_bs_read_u8(bs);
-		d->decoder_config = (char *)gf_malloc(d->decoder_config_length);
+		d->decoder_config = (u8 *)gf_malloc(d->decoder_config_length);
 		//size += 1 + d->decoder_config_length;
 		gf_bs_read_data(bs, d->decoder_config, d->decoder_config_length);
 	}
 	if (d->decoder_config_flags == 3) {
 		d->decoder_config_id_length = gf_bs_read_u8(bs);
-		d->decoder_config_id = (char *)gf_malloc(d->decoder_config_id_length);
+		d->decoder_config_id = (u8 *)gf_malloc(d->decoder_config_id_length);
 		//size += 1 + d->decoder_config_id_length;
 		gf_bs_read_data(bs, d->decoder_config_id, d->decoder_config_id_length);
 	}
@@ -1180,7 +1180,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	}
 
 	if (pmt->sec->demux_restarted) {
-		pmt->sec->demux_restarted = 0;
+		pmt->sec->demux_restarted = GF_FALSE;
 		return;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PMT Found or updated\n"));
@@ -1222,7 +1222,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				if ((len>2) && (len - 2 <= info_length) && (data_size>8) && (data_size-8 > (u32)len-2)) {
 					u32 size;
 					GF_BitStream *iod_bs;
-					iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
+					iod_bs = gf_bs_new(data+8, len-2, GF_BITSTREAM_READ);
 					if (pmt->program->pmt_iod) gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
 					pmt->program->pmt_iod = NULL;
 					e = gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
@@ -1253,7 +1253,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				if (data_size <= 8 || data_size-6 < (u32)len)
 					break;
 
-				metadatapd_bs = gf_bs_new((char *)data+6, len, GF_BITSTREAM_READ);
+				metadatapd_bs = gf_bs_new(data+6, len, GF_BITSTREAM_READ);
 				metapd = gf_m2ts_read_metadata_pointer_descriptor(metadatapd_bs, len);
 				gf_bs_del(metadatapd_bs);
 				if (metapd->application_format_identifier == GF_M2TS_META_ID3 &&
@@ -1289,7 +1289,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		GF_M2TS_PES *pes = NULL;
 		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es = NULL;
-		Bool inherit_pcr = 0;
+		Bool inherit_pcr = GF_FALSE;
 		Bool pmt_pid_reused = GF_FALSE;
 		u32 pid, stream_type, reg_desc_format;
 
@@ -1386,7 +1386,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_VVC_TEMPORAL:
 		case GF_M2TS_VIDEO_VC1:
 		case GF_M2TS_HLS_AVC_CRYPT:
-			inherit_pcr = 1;
+			inherit_pcr = GF_TRUE;
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
 		case GF_M2TS_AUDIO_AAC:
@@ -1442,11 +1442,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if (stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 				/*MPEG-4 sections need to be fully checked: if one section is lost, this means we lost
 				one SL packet in the AU so we must wait for the complete section again*/
-				ses->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section, 0);
+				ses->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section, GF_FALSE);
 				/*create OD container*/
 				if (!pmt->program->additional_ods) {
 					pmt->program->additional_ods = gf_list_new();
-					ts->has_4on2 = 1;
+					ts->has_4on2 = GF_TRUE;
 				}
 			}
 			break;
@@ -1480,7 +1480,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type DSM CC user private sections on pid %d \n", pid));
 			}
 			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
-			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+			ses->sec = gf_m2ts_section_filter_new(NULL, GF_TRUE);
 			//ses->sec->service_id = pmt->program->number;
 			break;
 
@@ -1491,7 +1491,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				es = gf_dvb_mpe_section_new();
 				if (es->flags & GF_M2TS_ES_IS_SECTION) {
 					/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
-					((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 1);
+					((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, GF_TRUE);
 				}
 #endif
 				break;
@@ -1600,7 +1600,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							if ((len>12) && (es->flags & GF_M2TS_ES_IS_PES)) {
 								pes = (GF_M2TS_PES*)es;
 								pes->gpac_meta_dsi_size = len-4;
-								pes->gpac_meta_dsi = gf_realloc(pes->gpac_meta_dsi, pes->gpac_meta_dsi_size);
+								pes->gpac_meta_dsi = (u8 *)gf_realloc(pes->gpac_meta_dsi, pes->gpac_meta_dsi_size);
 								if (pes->gpac_meta_dsi)
 									memcpy(pes->gpac_meta_dsi, data+6, pes->gpac_meta_dsi_size);
 							}
@@ -1618,7 +1618,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					if (len>=2) {
 						u32 id = data[2]<<8 | data[3];
 						if ((id == 0xB) && ses && !ses->sec) {
-							ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+							ses->sec = gf_m2ts_section_filter_new(NULL, GF_TRUE);
 						}
 					}
 					break;
@@ -1652,7 +1652,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
 					if (pes && (len>=4)) {
 						u8 hierarchy_embedded_layer_index;
-						GF_BitStream *hbs = gf_bs_new((const char *)data, data_size, GF_BITSTREAM_READ);
+						GF_BitStream *hbs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 						/*u32 skip = */gf_bs_read_int(hbs, 16);
 						/*u8 res1 = */gf_bs_read_int(hbs, 1);
 						/*u8 temp_scal = */gf_bs_read_int(hbs, 1);
@@ -1675,7 +1675,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				{
 					GF_BitStream *metadatad_bs;
 					GF_M2TS_MetadataDescriptor *metad;
-					metadatad_bs = gf_bs_new((char *)data+2, len, GF_BITSTREAM_READ);
+					metadatad_bs = gf_bs_new(data+2, len, GF_BITSTREAM_READ);
 					metad = gf_m2ts_read_metadata_descriptor(metadatad_bs, len);
 					gf_bs_del(metadatad_bs);
 					if (metad->application_format_identifier == GF_M2TS_META_ID3 &&
@@ -1717,7 +1717,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 				case GF_M2TS_DOLBY_VISION_DESCRIPTOR:
 					if (pes && (len>=5)) {
-						GF_BitStream *hbs = gf_bs_new((const char *)data+2, len, GF_BITSTREAM_READ);
+						GF_BitStream *hbs = gf_bs_new(data+2, len, GF_BITSTREAM_READ);
 						pes->dv_info[0] = gf_bs_read_u8(hbs);
 						pes->dv_info[1] = gf_bs_read_u8(hbs);
 						pes->dv_info[2] = gf_bs_read_u8(hbs);
@@ -1933,7 +1933,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 
 	if (!(status&GF_M2TS_TABLE_UPDATE) && gf_list_count(ts->programs)) {
 		if (ts->pat->demux_restarted) {
-			ts->pat->demux_restarted = 0;
+			ts->pat->demux_restarted = GF_FALSE;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Multiple different PAT on single TS found, ignoring new PAT declaration (table id %d - extended table id %d)\n", table_id, ex_table_id));
 		}
@@ -1948,7 +1948,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		data += 4;
 		if (number==0) {
 			if (!ts->nit) {
-				ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
+				ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, GF_FALSE);
 			}
 		} else if (!pid) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Broken PAT found reserved PID 0, ignoring\n", pid));
@@ -1973,7 +1973,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			pmt->pid = prog->pmt_pid;
 			pmt->program = prog;
 			ts->ess[pmt->pid] = (GF_M2TS_ES *)pmt;
-			pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt, 0);
+			pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt, GF_FALSE);
 		}
 	}
 
@@ -2139,9 +2139,9 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	/*u32 has_timecode = */gf_bs_read_int(bs, 2);
 
 	memset(&pes->temi_tc, 0, sizeof(GF_M2TS_TemiTimecodeDescriptor));
-	pes->temi_tc.force_reload = gf_bs_read_int(bs, 1);
-	pes->temi_tc.is_paused = gf_bs_read_int(bs, 1);
-	pes->temi_tc.is_discontinuity = gf_bs_read_int(bs, 1);
+	pes->temi_tc.force_reload = gf_bs_read_bool(bs);
+	pes->temi_tc.is_paused = gf_bs_read_bool(bs);
+	pes->temi_tc.is_discontinuity = gf_bs_read_bool(bs);
 	gf_bs_read_int(bs, 7);
 	pes->temi_tc.timeline_id = gf_bs_read_int(bs, 8);
 	if (has_timestamp) {
@@ -2211,13 +2211,13 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 					if ((pes->stream_type==GF_M2TS_AUDIO_TRUEHD) || (pes->stream_type==GF_M2TS_AUDIO_EC3)) {
 						same_pts = GF_FALSE;
 					} else if (!pes->is_resume) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS " LLU " for two consecutive PES packets \n", pes->pid, pes->PTS));
 					}
 				}
 #ifndef GPAC_DISABLE_LOG
 				/*FIXME - this test should only be done for non bi-directionally coded media
 				else if (pesh.PTS < pes->PTS) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - PTS "LLU" less than previous packet PTS "LLU"\n", pes->pid, pesh.PTS, pes->PTS) );
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - PTS " LLU " less than previous packet PTS " LLU "\n", pes->pid, pesh.PTS, pes->PTS) );
 				}
 				*/
 #endif
@@ -2227,12 +2227,12 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 				if (!pes->is_resume && pes->before_last_pes_start_pn && (pesh.DTS == pes->DTS)) {
 					if ((pes->stream_type==GF_M2TS_AUDIO_TRUEHD) || (pes->stream_type==GF_M2TS_AUDIO_EC3)) {
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS " LLU " for two consecutive PES packets \n", pes->pid, pes->DTS));
 					}
 				}
 				if (pesh.DTS < pes->DTS) {
 					if (GF_M2TS_MAX_PCR_90K + pesh.DTS < pes->DTS) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS " LLU " less than previous DTS " LLU "\n", pes->pid, pesh.DTS, pes->DTS));
 					}
 				}
 #endif
@@ -2265,7 +2265,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SL Packet in PES for %d - ES ID %d\n", pes->pid, pes->mpeg4_es_id));
 
 			if (pes->pck_data_len > len) {
-				sl_pck.data = (char *)pes->pck_data + len;
+				sl_pck.data = pes->pck_data + len;
 				sl_pck.data_len = pes->pck_data_len - len;
 				sl_pck.stream = (GF_M2TS_ES *)pes;
 				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
@@ -2319,7 +2319,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			pes->prev_data = NULL;
 			pes->prev_data_len = 0;
 			if (remain) {
-				pes->prev_data = gf_malloc(sizeof(char)*remain);
+				pes->prev_data = (u8 *)gf_malloc(remain);
 				if (pes->pck_data_len >= remain)
 					memcpy(pes->prev_data, pes->pck_data + pes->pck_data_len - remain, remain);
 				pes->prev_data_len = remain;
@@ -2336,14 +2336,14 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 exit:
 	pes->pck_data_len = 0;
 	pes->pes_len = 0;
-	pes->rap = 0;
+	pes->rap = GF_FALSE;
 }
 
-static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
+static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, const u8 *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
 	u8 expect_cc;
-	Bool disc=0;
-	Bool flush_pes = 0;
+	Bool disc= GF_FALSE;
+	Bool flush_pes = GF_FALSE;
 
 	/*duplicated packet, NOT A DISCONTINUITY, we should discard the packet - however we may encounter this configuration in DASH at segment boundaries.
 	If payload start is set, ignore duplication*/
@@ -2355,14 +2355,14 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	} else {
 		expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
 		if (expect_cc != hdr->continuity_counter)
-			disc = 1;
+			disc = GF_TRUE;
 	}
 	pes->cc = hdr->continuity_counter;
 
 	if (disc) {
 		if (pes->flags & GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY) {
 			pes->flags &= ~GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY;
-			disc = 0;
+			disc = GF_FALSE;
 		}
 		if (disc) {
 			if (hdr->payload_start) {
@@ -2384,7 +2384,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	if (!pes->reframe) return;
 
 	if (hdr->payload_start) {
-		flush_pes = 1;
+		flush_pes = GF_TRUE;
 		pes->before_last_pat_pn = pes->last_pat_packet_number;
 		pes->before_last_pes_start_pn = pes->pes_start_packet_number;
 
@@ -2405,7 +2405,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pes->pck_data_len += data_size;
 		/*force discard*/
 		data_size = 0;
-		flush_pes = 1;
+		flush_pes = GF_TRUE;
 	}
 
 	/*PES first fragment: flush previous packet*/
@@ -2426,7 +2426,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	memcpy(pes->pck_data + pes->pck_data_len, data, data_size);
 	pes->pck_data_len += data_size;
 
-	if (paf && paf->random_access_indicator) pes->rap = 1;
+	if (paf && paf->random_access_indicator) pes->rap = GF_TRUE;
 	if (hdr->payload_start && !pes->pes_len && (pes->pck_data_len>=6)) {
 		pes->pes_len = (pes->pck_data[4]<<8) | pes->pck_data[5];
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Got PES packet len %d\n", pes->pid, pes->pes_len));
@@ -2449,9 +2449,9 @@ void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts, Bool no_force_flush)
 }
 
 
-static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, u8 *data, u32 size, u32 pid)
+static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, const u8 *data, u32 size, u32 pid)
 {
-	unsigned char *af_extension;
+	const u8 *af_extension;
 	paf->discontinuity_indicator = (data[0] & 0x80) ? 1 : 0;
 	paf->random_access_indicator = (data[0] & 0x40) ? 1 : 0;
 	paf->priority_indicator = (data[0] & 0x20) ? 1 : 0;
@@ -2490,10 +2490,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 			return;
 		}
 		afext_bytes = af_extension[0];
-		ltw_flag = (af_extension[1] & 0x80) ? 1 : 0;
-		pwr_flag = (af_extension[1] & 0x40) ? 1 : 0;
-		seamless_flag = (af_extension[1] & 0x20) ? 1 : 0;
-		af_desc_not_present = (af_extension[1] & 0x10) ? 1 : 0;
+		ltw_flag = (af_extension[1] & 0x80) ? GF_TRUE : GF_FALSE;
+		pwr_flag = (af_extension[1] & 0x40) ? GF_TRUE : GF_FALSE;
+		seamless_flag = (af_extension[1] & 0x20) ? GF_TRUE : GF_FALSE;
+		af_desc_not_present = (af_extension[1] & 0x10) ? GF_TRUE : GF_FALSE;
 		af_extension += 2;
 		if (!afext_bytes) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
@@ -2532,14 +2532,14 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 			}
 			while (afext_bytes) {
 				GF_BitStream *bs;
-				char *desc;
+				u8 *desc;
 				u8 desc_tag = af_extension[0];
 				u8 desc_len = af_extension[1];
 				if (!desc_len || (u32) desc_len+2 > afext_bytes) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Descriptor found (tag %d) size is %d but only %d bytes available\n", pid, desc_tag, desc_len, afext_bytes));
 					break;
 				}
-				desc = (char *) af_extension+2;
+				desc = (u8 *) af_extension+2;
 
 				bs = gf_bs_new(desc, desc_len, GF_BITSTREAM_READ);
 				switch (desc_tag) {
@@ -2550,10 +2550,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					GF_M2TS_TemiLocationDescriptor temi_loc;
 					memset(&temi_loc, 0, sizeof(GF_M2TS_TemiLocationDescriptor) );
 					temi_loc.pid = pid;
-					temi_loc.reload_external = gf_bs_read_int(bs, 1);
-					temi_loc.is_announce = gf_bs_read_int(bs, 1);
-					temi_loc.is_splicing = gf_bs_read_int(bs, 1);
-					use_base_temi_url = gf_bs_read_int(bs, 1);
+					temi_loc.reload_external = gf_bs_read_bool(bs);
+					temi_loc.is_announce = gf_bs_read_bool(bs);
+					temi_loc.is_splicing = gf_bs_read_bool(bs);
+					use_base_temi_url = gf_bs_read_bool(bs);
 					gf_bs_read_int(bs, 5); //reserved
 					temi_loc.timeline_id = gf_bs_read_int(bs, 7);
 					if (temi_loc.is_announce) {
@@ -2580,7 +2580,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 							break;
 						}
 						_url = URL + scheme_len;
-						gf_bs_read_data(bs, _url, url_len);
+						gf_bs_read_data(bs, (u8 *) _url, url_len);
 						_url[MIN(url_len, GF_ARRAY_LENGTH(URL)-1-scheme_len)] = 0;
 					}
 					temi_loc.external_URL = URL;
@@ -2597,7 +2597,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 							gf_m2ts_store_temi(ts, pes);
 
 						if (pes->temi_tc_desc_alloc_size < desc_len) {
-							pes->temi_tc_desc = gf_realloc(pes->temi_tc_desc, desc_len);
+							pes->temi_tc_desc = (u8 *)gf_realloc(pes->temi_tc_desc, desc_len);
 							pes->temi_tc_desc_alloc_size = desc_len;
 						}
 						memcpy(pes->temi_tc_desc, desc, desc_len);
@@ -2616,12 +2616,12 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		}
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Adaptation Field found: Discontinuity %d - RAP %d - PCR: "LLD"\n", pid, paf->discontinuity_indicator, paf->random_access_indicator, paf->PCR_flag ? paf->PCR_base * 300 + paf->PCR_ext : 0));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Adaptation Field found: Discontinuity %d - RAP %d - PCR: " LLD "\n", pid, paf->discontinuity_indicator, paf->random_access_indicator, paf->PCR_flag ? paf->PCR_base * 300 + paf->PCR_ext : 0));
 }
 
 static void gf_m2ts_reset_parsers_for_program_ex(GF_M2TS_Demuxer *ts, GF_M2TS_Program *prog, Bool keep_pcr);
 
-static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
+static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, const u8 *data)
 {
 	GF_M2TS_ES *es;
 	GF_M2TS_Header hdr;
@@ -2799,7 +2799,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			else if (es->flags & GF_M2TS_ES_IS_PES) cc = ((GF_M2TS_PES*)es)->cc;
 			else if (((GF_M2TS_SECTION_ES*)es)->sec) cc = ((GF_M2TS_SECTION_ES*)es)->sec->cc;
 
-			discontinuity = paf->discontinuity_indicator;
+			discontinuity = paf->discontinuity_indicator ? GF_TRUE : GF_FALSE;
 			if ((cc>=0) && es->program->before_last_pcr_value) {
 				//no increment of CC if AF only packet
 				if (hdr.adaptation_field == 2) {
@@ -2824,9 +2824,9 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				pcr_diff = es->program->last_pcr_value;
 				pcr_diff -= es->program->before_last_pcr_value;
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" ("LLU" at 90kHz) - PCR diff is %d us\n", hdr.pid, es->program->last_pcr_value, es->program->last_pcr_value/300, (s32) (pcr_diff)/27 ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found " LLU " (" LLU " at 90kHz) - PCR diff is %d us\n", hdr.pid, es->program->last_pcr_value, es->program->last_pcr_value/300, (s32) (pcr_diff)/27 ));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" ("LLU" at 90kHz)\n", hdr.pid, es->program->last_pcr_value, es->program->last_pcr_value/300));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found " LLU " (" LLU " at 90kHz)\n", hdr.pid, es->program->last_pcr_value, es->program->last_pcr_value/300));
 			}
 
 			pck.PTS = es->program->last_pcr_value;
@@ -2858,7 +2858,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				s64 diff_in_us = (s64) (pcr_diff) / 27;
 				//if less than 200 ms before PCR loop at the last PCR, this is a PCR loop
 				if (GF_M2TS_MAX_PCR - es->program->before_last_pcr_value < 5400000 /*2*2700000*/) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR loop found from "LLU" to "LLU" \n", hdr.pid, es->program->before_last_pcr_value, es->program->last_pcr_value));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR loop found from " LLU " to " LLU " \n", hdr.pid, es->program->before_last_pcr_value, es->program->last_pcr_value));
 
 					es->program->pcr_base_offset += GF_M2TS_MAX_PCR;
 					//do not adjust PCR
@@ -2866,7 +2866,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d new PCR, without discontinuity signaled, is less than previously received PCR (diff %d us) but not too large, trying to ignore discontinuity\n", hdr.pid, diff_in_us));
 					adjust_pcr = GF_TRUE;
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" is less than previously received PCR "LLU" (PCR diff %g sec) but no discontinuity signaled\n", hdr.pid, es->program->last_pcr_value, es->program->before_last_pcr_value, (GF_M2TS_MAX_PCR - es->program->before_last_pcr_value + es->program->last_pcr_value) / 27000000.0));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found " LLU " is less than previously received PCR " LLU " (PCR diff %g sec) but no discontinuity signaled\n", hdr.pid, es->program->last_pcr_value, es->program->before_last_pcr_value, (GF_M2TS_MAX_PCR - es->program->before_last_pcr_value + es->program->last_pcr_value) / 27000000.0));
 
 					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 					adjust_pcr = GF_TRUE;
@@ -2921,11 +2921,11 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 }
 
 GF_EXPORT
-GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
+GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, const u8 *data, u32 data_size)
 {
 	GF_Err e=GF_OK;
 	u32 pos, pck_size;
-	Bool is_align = 1;
+	Bool is_align = GF_TRUE;
 
 	if (ts->buffer_size) {
 		//we are sync, copy remaining bytes
@@ -2935,7 +2935,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 
 			if (ts->alloc_size < 200) {
 				ts->alloc_size = 200;
-				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+				ts->buffer = (u8 *)gf_realloc(ts->buffer, ts->alloc_size);
 			}
 			copy_size = pck_size - ts->buffer_size;
 			if (copy_size > data_size) {
@@ -2944,7 +2944,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 				return GF_OK;
 			}
 			memcpy(ts->buffer + ts->buffer_size, data, copy_size);
-			e |= gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer);
+			e = gf_m2ts_process_packet(ts, ts->buffer);
 			gf_assert(data_size >= copy_size);
 			data += copy_size;
 			data_size = data_size - copy_size;
@@ -2953,11 +2953,11 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 		else {
 			if (ts->alloc_size < ts->buffer_size+data_size) {
 				ts->alloc_size = ts->buffer_size+data_size;
-				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+				ts->buffer = (u8 *)gf_realloc(ts->buffer, ts->alloc_size);
 			}
 			memcpy(ts->buffer + ts->buffer_size, data, sizeof(char)*data_size);
 			ts->buffer_size += data_size;
-			is_align = 0;
+			is_align = GF_FALSE;
 			data = ts->buffer;
 			data_size = ts->buffer_size;
 		}
@@ -2968,7 +2968,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 	if (pos==data_size) {
 		if (is_align && data_size) {
 			if (ts->alloc_size<data_size) {
-				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*data_size);
+				ts->buffer = (u8 *)gf_realloc(ts->buffer, data_size);
 				ts->alloc_size = data_size;
 			}
 			memcpy(ts->buffer, data, sizeof(char)*data_size);
@@ -2993,7 +2993,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 
 				if (ts->alloc_size < s) {
 					ts->alloc_size = s;
-					ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+					ts->buffer = (u8 *)gf_realloc(ts->buffer, ts->alloc_size);
 				}
 				memcpy(ts->buffer, data, sizeof(char)*ts->buffer_size);
 			} else {
@@ -3004,7 +3004,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 		/*process*/
 		GF_Err pck_e = gf_m2ts_process_packet(ts, (unsigned char *)data + pos);
 		if (pck_e==GF_NOT_SUPPORTED) pck_e = GF_OK;
-		e |= pck_e;
+		if (pck_e) e = pck_e;
 
 		pos += pck_size;
 	}
@@ -3262,12 +3262,12 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->programs = gf_list_new();
 	ts->SDTs = gf_list_new();
 
-	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat, 0);
-	ts->cat = gf_m2ts_section_filter_new(gf_m2ts_process_cat, 0);
-	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt, 1);
-	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
-	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
-	ts->tdt_tot = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot, 1);
+	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat, GF_FALSE);
+	ts->cat = gf_m2ts_section_filter_new(gf_m2ts_process_cat, GF_FALSE);
+	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt, GF_TRUE);
+	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, GF_FALSE);
+	ts->eit = gf_m2ts_section_filter_new(NULL, GF_TRUE);
+	ts->tdt_tot = gf_m2ts_section_filter_new(gf_m2ts_process_tdt_tot, GF_TRUE);
 
 #ifdef GPAC_ENABLE_MPE
 	gf_dvb_mpe_init(ts);
@@ -3286,7 +3286,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 	GF_Err e;
 
 	ts->dsmcc_controler = gf_list_new();
-	ts->process_dmscc = 1;
+	ts->process_dmscc = GF_TRUE;
 
 	gf_strcpy(temp_dir, gf_get_default_cache_directory() );
 	length = (u32) strlen(temp_dir);
@@ -3294,7 +3294,7 @@ void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 		temp_dir[length-1] = 0;
 	}
 
-	ts->dsmcc_root_dir = (char*)gf_calloc(strlen(temp_dir)+strlen("CarouselData")+2,sizeof(char));
+	ts->dsmcc_root_dir = (char*)gf_calloc(strlen(temp_dir)+strlen("CarouselData")+2,1);
 	sprintf(ts->dsmcc_root_dir,"%s%cCarouselData",temp_dir,GF_PATH_SEPARATOR);
 	e = gf_mkdir(ts->dsmcc_root_dir);
 	if(e) {
@@ -3392,13 +3392,12 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 
 //20 packets max
 #define M2TS_PROBE_SIZE	188*20
-static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
+static Bool gf_m2ts_probe_buffer(const u8 *buf, u32 size)
 {
 	GF_Err e;
 	GF_M2TS_Demuxer *ts;
-	u32 lt;
 
-	lt = gf_log_get_tool_level(GF_LOG_CONTAINER);
+	GF_LOG_Level lt = gf_log_get_tool_level(GF_LOG_CONTAINER);
 	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_QUIET);
 
 	ts = gf_m2ts_demux_new();
@@ -3434,7 +3433,7 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 GF_EXPORT
 Bool gf_m2ts_probe_file(const char *fileName)
 {
-	char buf[M2TS_PROBE_SIZE];
+	u8 buf[M2TS_PROBE_SIZE];
 	u32 size;
 
 	if (!strncmp(fileName, "gmem://", 7)) {
@@ -3447,10 +3446,10 @@ Bool gf_m2ts_probe_file(const char *fileName)
         gf_blob_release(fileName);
 	} else {
 		FILE *t = gf_fopen(fileName, "rb");
-		if (!t) return 0;
+		if (!t) return GF_FALSE;
 		size = (u32) gf_fread(buf, M2TS_PROBE_SIZE, t);
 		gf_fclose(t);
-		if ((s32) size <= 0) return 0;
+		if ((s32) size <= 0) return GF_FALSE;
 	}
 	return gf_m2ts_probe_buffer(buf, size);
 }
@@ -3461,7 +3460,7 @@ Bool gf_m2ts_probe_data(const u8 *data, u32 size)
 	size /= 188;
 	size *= 188;
 	if (!size) return GF_FALSE;
-	return gf_m2ts_probe_buffer((char *) data, size);
+	return gf_m2ts_probe_buffer(data, size);
 }
 
 
@@ -3544,8 +3543,8 @@ GF_Err gf_m2ts_restamp(u8 *buffer, u32 size, s64 ts_shift, u8 is_pes[GF_M2TS_MAX
 				done+=188;
 				continue;
 			}
-			has_pts = (pesh[7]&0x80);
-			has_dts = has_pts ? (pesh[7]&0x40) : 0;
+			has_pts = (pesh[7] & 0x80) ? GF_TRUE : GF_FALSE;
+			has_dts = (has_pts && (pesh[7]&0x40)) ? GF_TRUE : GF_FALSE;
 
 			if (has_pts) {
 				u64 PTS;

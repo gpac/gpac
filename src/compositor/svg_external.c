@@ -42,12 +42,12 @@ GF_Err gf_sc_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 	SFURL *sfurl = NULL;
 	GF_FieldInfo info;
 	XMLRI *iri;
-	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
+	GF_Scene *scene = (GF_Scene *) gf_sg_get_private(gf_node_get_graph(node));
 	if (!scene) return GF_BAD_PARAM;
 
 	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 
-	e = gf_node_get_attribute_by_tag(node, TAG_XLINK_ATT_href, 0, 0, &info);
+	e = gf_node_get_attribute_by_tag(node, TAG_XLINK_ATT_href, GF_FALSE, GF_FALSE, &info);
 	if (e) return e;
 
 	iri = (XMLRI*)info.far_ptr;
@@ -79,7 +79,7 @@ GF_Err gf_sc_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync, Bool primary_resource)
 {
 	MFURL url;
-	Bool lock_timelines = 0;
+	Bool lock_timelines = GF_FALSE;
 	GF_MediaObject *mo;
 	GF_SceneGraph *graph = gf_node_get_graph(elt);
 	GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
@@ -89,7 +89,7 @@ static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlin
 		switch ((syncp->syncBehavior?*syncp->syncBehavior:SMIL_SYNCBEHAVIOR_DEFAULT)) {
 		case SMIL_SYNCBEHAVIOR_LOCKED:
 		case SMIL_SYNCBEHAVIOR_CANSLIP:
-			lock_timelines = 1;
+			lock_timelines = GF_TRUE;
 			break;
 		case SMIL_SYNCBEHAVIOR_DEFAULT:
 		{
@@ -98,7 +98,7 @@ static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlin
 				switch ((syncp->syncBehaviorDefault ? *syncp->syncBehaviorDefault : SMIL_SYNCBEHAVIOR_LOCKED)) {
 				case SMIL_SYNCBEHAVIOR_LOCKED:
 				case SMIL_SYNCBEHAVIOR_CANSLIP:
-					lock_timelines = 1;
+					lock_timelines = GF_TRUE;
 					break;
 				default:
 					break;
@@ -122,7 +122,7 @@ static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlin
 	gf_sg_vrml_mf_reset(&url, GF_SG_VRML_MFURL);
 
 	if (!mo || !mo->odm) return NULL;
-	mo->odm->subscene->secondary_resource = primary_resource ? 0 : 1;
+	mo->odm->subscene->secondary_resource = primary_resource ? GF_FALSE : GF_TRUE;
 	return mo->odm->subscene;
 }
 
@@ -133,7 +133,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	SVGAllAttributes all_atts;
 	XLinkAttributesPointers xlinkp;
 	SMILSyncAttributesPointers syncp;
-	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
+	GF_Scene *scene = (GF_Scene *) gf_sg_get_private(gf_node_get_graph(node));
 	if (!scene) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
@@ -156,11 +156,11 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	if (xlinkp.href->type == XMLRI_ELEMENTID) return NULL;
 //	else if (xlinkp.href->string && (xlinkp.href->string[0]=='#')) return NULL;
 
-	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, primary_resource ? 1 : 0, primary_resource);
+	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, primary_resource ? GF_TRUE : GF_FALSE, primary_resource);
 	if (!new_resource) return NULL;
 
 	/*play*/
-	gf_mo_play(new_resource->root_od->mo, 0, -1, 0);
+	gf_mo_play(new_resource->root_od->mo, 0, -1, GF_FALSE);
 
 	return new_resource->root_od->mo;
 }

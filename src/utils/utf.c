@@ -687,10 +687,10 @@ GF_Err gf_utf_get_string_from_bom(const u8 *data, u32 size, char **out_ptr, char
 	}
 
 	if (size%2) size--;
-	u16 *str_wc = gf_malloc(size+2);
+	u16 *str_wc = (u16*)gf_malloc(size+2);
 	if (!str_wc) return GF_OUT_OF_MEM;
 	u16 *srcwc;
-	char *dst = gf_malloc(size+2);
+	char *dst = (char*)gf_malloc(size+2);
 	if (!dst) {
 		gf_free(str_wc);
 		return GF_OUT_OF_MEM;

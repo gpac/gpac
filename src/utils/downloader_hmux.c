@@ -58,7 +58,7 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 		gf_mx_del(sess->mx);
 		gf_free(hmux_sess);
 	} else {
-		GF_DownloadSession *asess = gf_list_get(hmux_sess->sessions, 0);
+		GF_DownloadSession *asess = (GF_DownloadSession *)gf_list_get(hmux_sess->sessions, 0);
 		gf_assert(asess->hmux_sess == hmux_sess);
 
 		hmux_sess->net_sess = asess;
@@ -95,7 +95,7 @@ GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_re
 
 	nb_sess = gf_list_count(hmux_sess->sessions);
 	for (i=0;i<nb_sess; i++) {
-		GF_DownloadSession *s = gf_list_get(hmux_sess->sessions, i);
+		GF_DownloadSession *s = (GF_DownloadSession *)gf_list_get(hmux_sess->sessions, i);
 		if (s->hmux_stream_id == stream_id)
 			return s;
 
@@ -180,7 +180,7 @@ GF_Err hmux_send_payload(GF_DownloadSession *sess, u8 *data, u32 size)
 
 	gf_mx_p(sess->mx);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] Sending %d bytes on stream_id "LLD"\n", sess->log_name, size, sess->hmux_stream_id));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[%s] Sending %d bytes on stream_id " LLD "\n", sess->log_name, size, sess->hmux_stream_id));
 
 	assert(sess->hmux_send_data==NULL);
 	sess->hmux_send_data = data;

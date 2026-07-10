@@ -57,21 +57,21 @@ void gf_crypt_close(GF_Crypt *td)
 }
 
 GF_EXPORT
-GF_Err gf_crypt_set_key(GF_Crypt *td, void *key)
+GF_Err gf_crypt_set_key(GF_Crypt *td, u8 *key)
 {
 	td->_set_key(td, key);
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_crypt_set_IV(GF_Crypt *td, const void *iv, u32 size)
+GF_Err gf_crypt_set_IV(GF_Crypt *td, const u8 *iv, u32 size)
 {
 	if (!td) return GF_BAD_PARAM;
-	return td->_set_state(td, (void *)iv, size);
+	return td->_set_state(td, (u8 *)iv, size);
 }
 
 GF_EXPORT
-GF_Err gf_crypt_get_IV(GF_Crypt *td, void *iv, u32 *size)
+GF_Err gf_crypt_get_IV(GF_Crypt *td, u8 *iv, u32 *size)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_get_state(td, iv, size);
@@ -79,7 +79,7 @@ GF_Err gf_crypt_get_IV(GF_Crypt *td, void *iv, u32 *size)
 
 
 GF_EXPORT
-GF_Err gf_crypt_init(GF_Crypt *td, void *key, const void *IV)
+GF_Err gf_crypt_init(GF_Crypt *td, u8 *key, const u8 *IV)
 {
 	GF_Err e;
 
@@ -91,14 +91,14 @@ GF_Err gf_crypt_init(GF_Crypt *td, void *key, const void *IV)
 }
 
 GF_EXPORT
-GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, u32 len)
+GF_Err gf_crypt_encrypt(GF_Crypt *td, u8 *plaintext, u32 len)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_crypt(td, plaintext, len);
 }
 
 GF_EXPORT
-GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, u32 len)
+GF_Err gf_crypt_decrypt(GF_Crypt *td, u8 *ciphertext, u32 len)
 {
 	if (!td) return GF_BAD_PARAM;
 	if (!len) return GF_OK;

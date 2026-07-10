@@ -73,7 +73,7 @@ Constructs a bitstream from a buffer (read or write mode)
 \note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsibility to ensure it
  *	does not write more than possible.
  */
-GF_BitStream *gf_bs_new(const u8 *buffer, u64 size, u32 mode);
+GF_BitStream *gf_bs_new(u8 *buffer, u64 size, u32 mode);
 
 /*!
 \brief bitstream reassignment
@@ -259,7 +259,14 @@ Reads an integer coded on 16 bits in little-endian order.
 \return the integer value read.
  */
 u16 gf_bs_read_u16_le(GF_BitStream *bs);
+/*!
+\brief boolean reading
 
+Reads an bool on 1 bit.
+\param bs the target bitstream
+\return the boolean read.
+ */
+Bool gf_bs_read_bool(GF_BitStream *bs);
 
 /*!
 \brief variable length integer reading

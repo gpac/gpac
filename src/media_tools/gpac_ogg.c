@@ -54,7 +54,7 @@ static u32 mask[]=
 #ifdef GPAC_CONFIG_WIN32
 void oggpack_writeinit(oggpack_buffer *b) {
 	memset(b,0,sizeof(*b));
-	b->ptr = b->buffer = (unsigned char *)gf_malloc(BUFFER_INCREMENT);
+	b->ptr = b->buffer = (u8 *)gf_malloc(BUFFER_INCREMENT);
 	b->buffer[0]='\0';
 	b->storage=BUFFER_INCREMENT;
 }
@@ -100,7 +100,7 @@ void oggpackB_writetrunc(oggpack_buffer *b,s32 bits) {
 /* Takes only up to 32 bits. */
 void oggpack_write(oggpack_buffer *b,u32 value,s32 bits) {
 	if(b->endbyte+4>=b->storage) {
-		b->buffer = (unsigned char *)gf_realloc(b->buffer,b->storage+BUFFER_INCREMENT);
+		b->buffer = (u8 *)gf_realloc(b->buffer,b->storage+BUFFER_INCREMENT);
 		b->storage+=BUFFER_INCREMENT;
 		b->ptr=b->buffer+b->endbyte;
 	}
@@ -137,7 +137,7 @@ void oggpack_write(oggpack_buffer *b,u32 value,s32 bits) {
 /* Takes only up to 32 bits. */
 void oggpackB_write(oggpack_buffer *b,u32 value,s32 bits) {
 	if(b->endbyte+4>=b->storage) {
-		b->buffer = (unsigned char *)gf_realloc(b->buffer,b->storage+BUFFER_INCREMENT);
+		b->buffer = (u8 *)gf_realloc(b->buffer,b->storage+BUFFER_INCREMENT);
 		b->storage+=BUFFER_INCREMENT;
 		b->ptr=b->buffer+b->endbyte;
 	}
@@ -201,7 +201,7 @@ static void oggpack_writecopy_helper(oggpack_buffer *b,
 		/* aligned block copy */
 		if(b->endbyte+bytes+1>=b->storage) {
 			b->storage=b->endbyte+bytes+BUFFER_INCREMENT;
-			b->buffer = (unsigned char *)gf_realloc(b->buffer,b->storage);
+			b->buffer = (u8 *)gf_realloc(b->buffer,b->storage);
 			b->ptr=b->buffer+b->endbyte;
 		}
 
@@ -688,11 +688,11 @@ s32 ogg_stream_init(ogg_stream_state *os,s32 serialno) {
 	if(os) {
 		memset(os,0,sizeof(*os));
 		os->body_storage=16*1024;
-		os->body_data = (unsigned char *)gf_malloc(os->body_storage*sizeof(*os->body_data));
+		os->body_data = (unsigned char *)gf_malloc(os->body_storage*sizeof(unsigned char));
 
 		os->lacing_storage=1024;
-		os->lacing_vals=(s32 *)gf_malloc(os->lacing_storage*sizeof(*os->lacing_vals));
-		os->granule_vals=(s64*)gf_malloc(os->lacing_storage*sizeof(*os->granule_vals));
+		os->lacing_vals=(s32 *)gf_malloc(os->lacing_storage*sizeof(s32));
+		os->granule_vals=(s64*)gf_malloc(os->lacing_storage*sizeof(s64));
 
 		os->serialno=serialno;
 
@@ -731,15 +731,15 @@ s32 ogg_stream_destroy(ogg_stream_state *os) {
 static void _os_body_expand(ogg_stream_state *os,s32 needed) {
 	if(os->body_storage<=os->body_fill+needed) {
 		os->body_storage+=(needed+1024);
-		os->body_data = (unsigned char *)gf_realloc(os->body_data,os->body_storage*sizeof(*os->body_data));
+		os->body_data = (unsigned char *)gf_realloc(os->body_data,os->body_storage*sizeof(unsigned char));
 	}
 }
 
 static void _os_lacing_expand(ogg_stream_state *os,s32 needed) {
 	if(os->lacing_storage<=os->lacing_fill+needed) {
 		os->lacing_storage+=(needed+32);
-		os->lacing_vals=(s32*)gf_realloc(os->lacing_vals,os->lacing_storage*sizeof(*os->lacing_vals));
-		os->granule_vals=(s64*)gf_realloc(os->granule_vals,os->lacing_storage*sizeof(*os->granule_vals));
+		os->lacing_vals=(s32*)gf_realloc(os->lacing_vals,os->lacing_storage*sizeof(s32));
+		os->granule_vals=(s64*)gf_realloc(os->granule_vals,os->lacing_storage*sizeof(s64));
 	}
 }
 
@@ -1025,14 +1025,14 @@ u8 *ogg_sync_buffer(ogg_sync_state *oy, s32 size) {
 		s32 newsize=size+oy->fill+4096; /* an extra page to be nice */
 
 		if(oy->data)
-			oy->data = (unsigned char *)gf_realloc(oy->data,newsize);
+			oy->data = (u8 *)gf_realloc(oy->data,newsize);
 		else
-			oy->data = (unsigned char *)gf_malloc(newsize);
+			oy->data = (u8 *)gf_malloc(newsize);
 		oy->storage=newsize;
 	}
 
 	/* expose a segment at least as large as requested at the fill mark */
-	return((char *)oy->data+oy->fill);
+	return((u8 *)oy->data+oy->fill);
 }
 
 s32 ogg_sync_wrote(ogg_sync_state *oy, s32 bytes) {

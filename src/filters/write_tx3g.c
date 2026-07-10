@@ -45,7 +45,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	GF_BitStream *bs_r;
-	u32 codecid;
+	GF_CodecID codecid;
 
 	GF_Fraction64 duration;
 	s64 delay;
@@ -65,7 +65,7 @@ GF_Err tx3gmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 {
 	GF_Err e;
 	const GF_PropertyValue *p;
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -80,7 +80,7 @@ GF_Err tx3gmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
-	ctx->codecid = p->value.uint;
+	ctx->codecid = (GF_CodecID) p->value.uint;
 
 	//decoder config may be not ready yet
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
@@ -188,7 +188,7 @@ static void tx3gmx_write_config(TX3GMxCtx *ctx)
 	GF_Tx3gSampleEntryBox samp_ent;
 	GF_FontTableBox font_ent;
 	const GF_PropertyValue *p;
-	GF_TextSampleDescriptor *ent = gf_list_get(ctx->cfg->sample_descriptions, 0);
+	GF_TextSampleDescriptor *ent = (GF_TextSampleDescriptor *)gf_list_get(ctx->cfg->sample_descriptions, 0);
 
 	tx3gmx_get_stsd(ent, &samp_ent, &font_ent);
 
@@ -212,7 +212,7 @@ static void tx3gmx_write_config(TX3GMxCtx *ctx)
 	gf_fprintf(dump, "</TextStreamHeader>\n");
 
 	u32 size = (u32) gf_ftell(dump);
-	u8 *dsi = gf_malloc(size);
+	u8 *dsi = (u8 *)gf_malloc(size);
 	if (dsi) {
 		gf_fseek(dump, 0, SEEK_SET);
 		gf_fread(dsi, size, dump);
@@ -270,11 +270,12 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 
 	if (!txt || !txt->len) {
 		gf_fprintf(dump, "></p>\n");
-		goto exit;
+		gf_fprintf(dump, "  </div>\n </body>\n</tt>");
+		return GF_OK;
 	}
 
 	u32 styles, char_num, new_styles, color, new_color;
-	u16 *utf16Line = gf_malloc(sizeof(u16) * 4*txt->len);
+	u16 *utf16Line = (u16 *)gf_malloc(sizeof(u16) * 4*txt->len);
 	if (!utf16Line) return GF_OUT_OF_MEM;
 	Bool has_span = GF_FALSE;
 
@@ -302,11 +303,11 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 		}
 	}
 	if (single_style) {
-		Bool needs_bold = (new_styles & GF_TXT_STYLE_BOLD);
-		Bool needs_italic = (new_styles & GF_TXT_STYLE_ITALIC);
-		Bool needs_underlined = (new_styles & GF_TXT_STYLE_UNDERLINED);
-		Bool needs_strikethrough = (new_styles & GF_TXT_STYLE_STRIKETHROUGH);
-		Bool needs_color = (new_color != txtd->default_style.text_color);
+		Bool needs_bold = (new_styles & GF_TXT_STYLE_BOLD) ? GF_TRUE : GF_FALSE;
+		Bool needs_italic = (new_styles & GF_TXT_STYLE_ITALIC) ? GF_TRUE : GF_FALSE;
+		Bool needs_underlined = (new_styles & GF_TXT_STYLE_UNDERLINED) ? GF_TRUE : GF_FALSE;
+		Bool needs_strikethrough = (new_styles & GF_TXT_STYLE_STRIKETHROUGH) ? GF_TRUE : GF_FALSE;
+		Bool needs_color = (new_color != txtd->default_style.text_color) ? GF_TRUE : GF_FALSE;
 		if (needs_bold || needs_italic || needs_underlined || needs_strikethrough || needs_color) {
 			if (needs_italic) gf_fprintf(dump, " tts:fontStyle=\"italic\"");
 			if (needs_bold) gf_fprintf(dump, " tts:fontWeight=\"bold\"");
@@ -418,17 +419,16 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 	gf_fprintf(dump, "</p>\n");
 	gf_free(utf16Line);
 
-
-exit:
 	gf_fprintf(dump, "  </div>\n </body>\n</tt>");
 	return GF_OK;
 }
 
 GF_Err tx3gmx_process(GF_Filter *filter)
 {
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u64 start_ts, end_ts, o_start_ts;
 	u32 pck_size, timescale;
 	Bool forced = GF_FALSE;
@@ -443,7 +443,7 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (pck_size<=1) {
 		//0-size packet can be EODS in dash mode, send it
 		if (!pck_size && ctx->dash_mode) {
@@ -516,7 +516,7 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 		if (ctx->dump_type) {
 			ctx->cur_frame++;
 
-			GF_TextSampleDescriptor *ent = gf_list_get(ctx->cfg->sample_descriptions, sample_index-1);
+			GF_TextSampleDescriptor *ent = (GF_TextSampleDescriptor *)gf_list_get(ctx->cfg->sample_descriptions, sample_index-1);
 			if (ent) {
 				GF_Tx3gSampleEntryBox txtd;
 				GF_FontTableBox font_ent;
@@ -580,14 +580,14 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 
 static GF_Err tx3gmx_initialize(GF_Filter *filter)
 {
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
-	ctx->bs_r = gf_bs_new((char *) "", 1, GF_BITSTREAM_READ);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
+	ctx->bs_r = gf_bs_new((u8 *) "", 1, GF_BITSTREAM_READ);
 	return GF_OK;
 }
 
 static void tx3gmx_finalize(GF_Filter *filter)
 {
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
 	if (ctx->cfg) gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
 	gf_bs_del(ctx->bs_r);
 }
@@ -645,7 +645,7 @@ static const GF_FilterCapability TX3G2SRTCaps[] =
 
 static GF_Err tx3g2srt_initialize(GF_Filter *filter)
 {
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
 	tx3gmx_initialize(filter);
 	ctx->dump_type=1;
 	return GF_OK;
@@ -685,7 +685,7 @@ static const GF_FilterCapability TX3G2VTTCaps[] =
 
 static GF_Err tx3g2vtt_initialize(GF_Filter *filter)
 {
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
 	tx3gmx_initialize(filter);
 	ctx->dump_type=2;
 	return GF_OK;
@@ -724,7 +724,7 @@ static const GF_FilterCapability TX3G2TTMLCaps[] =
 
 static GF_Err tx3g2ttml_initialize(GF_Filter *filter)
 {
-	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
+	TX3GMxCtx *ctx = (TX3GMxCtx *)gf_filter_get_udta(filter);
 	tx3gmx_initialize(filter);
 	ctx->dump_type=3;
 	return GF_OK;

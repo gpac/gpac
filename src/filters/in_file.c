@@ -62,7 +62,7 @@ typedef struct
 	Bool is_null;
 	Bool full_file_only;
 	Bool do_reconfigure;
-	char *block;
+	u8 *block;
 	u32 is_random;
 	Bool cached_set;
 	Bool no_failure;
@@ -72,7 +72,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 	FILE *old_file = NULL;
-	char *ext_start = NULL;
+	const char *ext_start = NULL;
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
 	char *src, *path;
@@ -125,7 +125,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 		if (!ctx->block_size) ctx->block_size = 5000;
 		while (ctx->block_size % 4) ctx->block_size++;
-		ctx->block = gf_malloc(ctx->block_size +1);
+		ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
 		return GF_OK;
 	}
 
@@ -146,9 +146,9 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 	//strip any fragment identifier
 	ext_start = gf_file_ext_start(ctx->src);
-	frag_par = strchr(ext_start ? ext_start : ctx->src, '#');
+	frag_par = (char *)strchr(ext_start ? ext_start : ctx->src, '#');
 	if (frag_par) frag_par[0] = 0;
-	cgi_par = strchr(ctx->src, '?');
+	cgi_par = (char *)strchr(ctx->src, '?');
 	if (cgi_par) cgi_par[0] = 0;
 
 	src = (char *) ctx->src;
@@ -251,7 +251,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 			if (ctx->file_size>500000000) ctx->block_size = 1000000;
 			else ctx->block_size = 5000;
 		}
-		ctx->block = gf_malloc(ctx->block_size +1);
+		ctx->block = (u8 *)gf_malloc(ctx->block_size +1);
 	}
 	return GF_OK;
 }
@@ -278,7 +278,7 @@ static void filein_finalize(GF_Filter *filter)
 
 static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
 {
-	char *ext_start = NULL;
+	const char *ext_start = NULL;
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
 	char *src = (char *) url;
@@ -308,9 +308,9 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 
 	//strip any fragment identifier
 	ext_start = gf_file_ext_start(url);
-	frag_par = strchr(ext_start ? ext_start : url, '#');
+	frag_par = (char *)strchr(ext_start ? ext_start : url, '#');
 	if (frag_par) frag_par[0] = 0;
-	cgi_par = strchr(url, '?');
+	cgi_par = (char *)strchr(url, '?');
 	if (cgi_par) cgi_par[0] = 0;
 
 	res = gf_file_exists(src);
@@ -332,7 +332,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 	case GF_FEVT_PLAY_HINT:
-		ctx->full_file_only = evt->play.full_file_only;
+			ctx->full_file_only = evt->play.full_file_only ? GF_TRUE : GF_FALSE;
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		//stop sending data
@@ -343,11 +343,11 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->is_random)
 			return GF_TRUE;
 		if (ctx->file_size && (evt->seek.start_offset >= ctx->file_size)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Seek request outside of file %s range ("LLU" vs size "LLU")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileIn] Seek request outside of file %s range (" LLU " vs size " LLU ")\n", ctx->src, evt->seek.start_offset, ctx->file_size));
 			return GF_TRUE;
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to seek source to range "LLU"-"LLU"\n", evt->seek.start_offset, evt->seek.end_offset));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to seek source to range " LLU "-" LLU "\n", evt->seek.start_offset, evt->seek.end_offset));
 		ctx->is_end = GF_FALSE;
 
 		if (gf_fileio_check(ctx->file)) {
@@ -375,13 +375,13 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->range.den = ctx->end_pos;
 		if (evt->seek.hint_block_size > ctx->block_size) {
 			ctx->block_size = evt->seek.hint_block_size;
-			ctx->block = gf_realloc(ctx->block, ctx->block_size+1);
+			ctx->block = (u8 *)gf_realloc(ctx->block, ctx->block_size+1);
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		if (ctx->is_random)
 			return GF_TRUE;
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to switch source to %s (range "LLU"-"LLU")\n", evt->seek.source_switch ? evt->seek.source_switch : "self", evt->seek.start_offset, evt->seek.end_offset));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to switch source to %s (range " LLU "-" LLU ")\n", evt->seek.source_switch ? evt->seek.source_switch : "self", evt->seek.start_offset, evt->seek.end_offset));
 		gf_fatal_assert(ctx->is_end);
 		ctx->range.num = evt->seek.start_offset;
 		ctx->range.den = evt->seek.end_offset;
@@ -458,7 +458,7 @@ static GF_Err filein_process(GF_Filter *filter)
 
 		if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
 			char szStatus[1024];
-			sprintf(szStatus, "done info=\"dispatch canceled\" prog="LLD"/"LLD"", (s64) ctx->file_pos, (s64) ctx->file_size);
+			sprintf(szStatus, "done info=\"dispatch canceled\" prog=" LLD "/" LLD "", (s64) ctx->file_pos, (s64) ctx->file_size);
 			gf_filter_update_status(filter, 10000, szStatus);
 		}
 		return GF_OK;
@@ -587,7 +587,7 @@ static GF_Err filein_process(GF_Filter *filter)
 					if (ctx->file_size>500000000) ctx->block_size = 1000000;
 					else ctx->block_size = 5000;
 				}
-				ctx->block = gf_realloc(ctx->block, ctx->block_size +1);
+				ctx->block = (u8 *)gf_realloc(ctx->block, ctx->block_size +1);
 			}
 		}
 
@@ -603,7 +603,7 @@ static GF_Err filein_process(GF_Filter *filter)
 					probe_size = (u32) ctx->file_size;
 
 				ctx->block_size = probe_size;
-				ctx->block = gf_realloc(ctx->block, ctx->block_size+1);
+				ctx->block = (u8 *)gf_realloc(ctx->block, ctx->block_size+1);
 #ifdef GPAC_HAS_FD
 				if (ctx->fd>=0) {
 					nb_read += (u32) read(ctx->fd, ctx->block + nb_read, probe_size-nb_read);
@@ -650,10 +650,10 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (!nb_read) {
 #ifdef GPAC_HAS_FD
 		if (ctx->fd>=0) {
-			is_eof = (ctx->file_pos==ctx->file_size);
+			is_eof = (ctx->file_pos==ctx->file_size) ? GF_TRUE : GF_FALSE;
 		} else
 #endif
-			is_eof = gf_feof(ctx->file);
+			is_eof = gf_feof(ctx->file) ? GF_TRUE : GF_FALSE;
 
 		if (is_eof) {
 			//force EOF if filesize is 0
@@ -706,7 +706,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 
-		snprintf(szStatus, sizeof(szStatus), "prog="LLD"/"LLD" pc=%02.02f", (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
+		snprintf(szStatus, sizeof(szStatus), "prog=" LLD "/" LLD " pc=%02.02f", (s64) ctx->file_pos, (s64) ctx->file_size, ((Double)ctx->file_pos*100.0)/ctx->file_size);
 		gf_filter_update_status(filter, (u32) (ctx->file_pos*10000/ctx->file_size), szStatus);
 	}
 

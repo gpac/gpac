@@ -41,7 +41,7 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 
 	u32 stream_id = 0;
 	if (post_pone) *post_pone = GF_FALSE;
-	
+
 	if (iri->type==XMLRI_STREAMID) {
 		stream_id = iri->lsr_stream_id;
 	} else if (!iri->string) {
@@ -413,12 +413,12 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 					//reset scene graph but prevent object stop/start
 					u32 i, count = gf_list_count(mo->odm->parentscene->scene_objects);
 					for (i=0; i<count; i++) {
-						GF_MediaObject *an_mo = gf_list_get(mo->odm->parentscene->scene_objects, i);
+						GF_MediaObject *an_mo = (GF_MediaObject *)gf_list_get(mo->odm->parentscene->scene_objects, i);
 						an_mo->num_open++;
 					}
 					gf_sg_reset(mo->odm->parentscene->graph);
 					for (i=0; i<count; i++) {
-						GF_MediaObject *an_mo = gf_list_get(mo->odm->parentscene->scene_objects, i);
+						GF_MediaObject *an_mo = (GF_MediaObject *)gf_list_get(mo->odm->parentscene->scene_objects, i);
 						an_mo->num_open--;
 					}
 					gf_scene_regenerate(mo->odm->parentscene);
@@ -505,7 +505,7 @@ static u32 convert_ts_to_ms(GF_MediaObject *mo, u64 ts, u32 timescale, Bool *dis
 	}
 
 	ts = gf_timestamp_to_clocktime(ts, timescale);
-	
+
 	//if addon, translate back into main content timing
 	if (mo->odm->parentscene && mo->odm->parentscene->root_od->addon) {
 		if (!mo->odm->parentscene->root_od->addon->timeline_ready) {
@@ -536,17 +536,19 @@ static void check_temi(GF_MediaObject *mo)
 		if (!strncmp(pname, "temi_l:", 7)) {
 			GF_AssociatedContentLocation temi_l;
 			u8 *data = p->value.data.ptr;
-			u32 len = (u32) strlen(data);
+			u32 len = (u32) strlen((char *)data);
 			memset(&temi_l, 0, sizeof(GF_AssociatedContentLocation));
 			temi_l.timeline_id = atoi(pname+7);
-			temi_l.is_announce = (data[len+1] & 0x80) ? GF_TRUE : GF_FALSE;
-			temi_l.is_splicing = (data[len+1] & 0x40) ? GF_TRUE : GF_FALSE;
-			temi_l.reload_external = (data[len+1] & 0x20) ? GF_TRUE : GF_FALSE;
-			if (temi_l.is_announce) {
+			if (p->value.data.size >= len+2) {
+				temi_l.is_announce = (data[len+1] & 0x80) ? GF_TRUE : GF_FALSE;
+				temi_l.is_splicing = (data[len+1] & 0x40) ? GF_TRUE : GF_FALSE;
+				temi_l.reload_external = (data[len+1] & 0x20) ? GF_TRUE : GF_FALSE;
+			}
+			if (temi_l.is_announce && (p->value.data.size >= len+10)) {
 				temi_l.activation_countdown.den = GF_4CC(data[len+2], data[len+3], data[len+4], data[len+5]);
 				temi_l.activation_countdown.num = GF_4CC(data[len+6], data[len+7], data[len+8], data[len+9]);
 			}
-			temi_l.external_URL = data;
+			temi_l.external_URL = (char *)data;
 
 			gf_scene_register_associated_media(mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene, &temi_l);
 			continue;
@@ -560,9 +562,9 @@ static void check_temi(GF_MediaObject *mo)
 			temi_t.media_timescale = gf_bs_read_u32(bs);
 			temi_t.media_timestamp = gf_bs_read_u64(bs);
 			temi_t.media_pts = gf_bs_read_u64(bs);
-			temi_t.force_reload = gf_bs_read_int(bs, 1);
-			temi_t.is_paused = gf_bs_read_int(bs, 1);
-			temi_t.is_discontinuity = gf_bs_read_int(bs, 1);
+			temi_t.force_reload = gf_bs_read_bool(bs);
+			temi_t.is_paused = gf_bs_read_bool(bs);
+			temi_t.is_discontinuity = gf_bs_read_bool(bs);
 			temi_t.ntp = gf_bs_read_int(bs, 1);
 			gf_bs_read_int(bs, 4);
 			if (temi_t.ntp)
@@ -878,7 +880,7 @@ retry:
 		}
 	}
 
-	mo->frame = (char *) gf_filter_pck_get_data(mo->pck, &mo->size);
+	mo->frame = (u8 *) gf_filter_pck_get_data(mo->pck, &mo->size);
 	mo->framesize = mo->size - mo->RenderedLength;
 
 	if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
@@ -937,7 +939,7 @@ retry:
 			mediasensor_update_timing(mo->odm, GF_FALSE);
 #endif
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %u) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->ID, mo->odm->scene_ns->url, gf_clock_time(mo->odm->ck), pck_ts_ms, mo->framesize, mo->timestamp, gf_filter_pid_get_packet_count(mo->odm->pid), gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %u) - %d unit in CB - UTC " LLU " ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->ID, mo->odm->scene_ns->url, gf_clock_time(mo->odm->ck), pck_ts_ms, mo->framesize, mo->timestamp, gf_filter_pid_get_packet_count(mo->odm->pid), gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 
 		v = gf_filter_pck_get_property(mo->pck, GF_PROP_PCK_SENDER_NTP);
 		if (v) {
@@ -1048,7 +1050,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		mo->RenderedLength = 0;
 
 		if (!mo->pck) return;
-		
+
 		if (drop_mode==3)
 			drop_mode=0;
 		else if (gf_filter_pck_is_blocking_ref(mo->pck) )
@@ -1334,7 +1336,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	if (!mo) return (url ? GF_TRUE : GF_FALSE);
 	od_id = gf_mo_get_od_id(url);
 	if ( (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) && (od_id == GF_MEDIA_EXTERNAL_ID)) {
-		ret = !gf_mo_is_same_url(mo, url, NULL, 0);
+		ret = gf_mo_is_same_url(mo, url, NULL, 0) ? GF_FALSE : GF_TRUE;
 	} else {
 		ret = (mo->OD_ID == od_id) ? GF_FALSE : GF_TRUE;
 	}
@@ -1359,7 +1361,7 @@ void gf_mo_resume(GF_MediaObject *mo)
 {
 #ifndef GPAC_DISABLE_VRML
 	if (!mo || !mo->num_open || !mo->odm) return;
-	mediacontrol_resume(mo->odm, 0);
+	mediacontrol_resume(mo->odm, GF_FALSE);
 #endif
 }
 
@@ -1719,7 +1721,7 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	vr_info->srd_max_y = scene->srd_max_y;
 	vr_info->is_tiled_srd = scene->is_tiled_srd;
 	vr_info->has_full_coverage = (scene->srd_type==2) ? GF_TRUE : GF_FALSE;
-	
+
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
 	if (mo->srd_w && mo->srd_h) return GF_TRUE;
@@ -1756,7 +1758,7 @@ void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y
 		mo->view_max_x = max_x;
 		mo->view_min_y = min_y;
 		mo->view_max_y = max_y;
-		
+
 		evt.visibility_hint.min_x = min_x;
 		evt.visibility_hint.max_x = max_x;
 		evt.visibility_hint.min_y = min_y;

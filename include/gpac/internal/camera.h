@@ -26,6 +26,10 @@
 #ifndef _CAMERA_H_
 #define _CAMERA_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#include <gpac/internal/compositor_dev.h>
 #include <gpac/scenegraph_vrml.h>
 
@@ -190,6 +194,10 @@ SFVec3f camera_get_pos_dir(GF_Camera *cam);
 SFVec3f camera_get_target_dir(GF_Camera *cam);
 SFVec3f camera_get_right_dir(GF_Camera *cam);
 void camera_set_2d(GF_Camera *cam);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

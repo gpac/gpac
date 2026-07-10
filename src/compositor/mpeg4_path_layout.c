@@ -91,13 +91,13 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 		if (gr->iter) gf_path_iterator_del(gr->iter);
 		gr->iter = NULL;
 
-		int_bck = tr_state->switched_off;
+		Bool bool_bck = tr_state->switched_off;
 		mode_bckup = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
-		tr_state->switched_off = 1;
+		tr_state->switched_off = GF_TRUE;
 		gf_node_traverse((GF_Node *)pl->geometry, tr_state);
 		tr_state->traversing_mode = mode_bckup;
-		tr_state->switched_off = int_bck;
+		tr_state->switched_off = bool_bck;
 	}
 
 	if (!gr->iter) {
@@ -228,7 +228,7 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 
 			break;
 		}
-		res = gf_path_iterator_get_transform(gr->iter, offset, (Bool) (pl->wrapMode==2), &mx2d, 1, length_after_point);
+		res = gf_path_iterator_get_transform(gr->iter, offset, (Bool) (pl->wrapMode==2), &mx2d, GF_TRUE, length_after_point);
 		if (!res) break;
 
 		parent_node_child_traverse_matrix(cg, (GF_TraverseState *)rs, &mx2d);
@@ -273,7 +273,7 @@ void compositor_init_path_layout(GF_Compositor *compositor, GF_Node *node)
 	PathLayoutStack *stack;
 	GF_SAFEALLOC(stack, PathLayoutStack);
 	if (!stack) return;
-	
+
 	parent_node_setup((ParentNode2D*)stack);
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraversePathLayout);

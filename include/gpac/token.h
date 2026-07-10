@@ -105,7 +105,7 @@ Locates a word in a string
 \param charsep set of separators to use. If NULL, function acts as strstr
 \return first occurence of word, or NULL if none
  */
-const char *gf_token_find_word(const char *in_str, const char *word, char *charsep);
+const char *gf_token_find_word(const char *in_str, const char *word, const char *charsep);
 
 /*! @} */
 

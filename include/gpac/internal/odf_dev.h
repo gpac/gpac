@@ -27,6 +27,10 @@
 #ifndef _GF_OD_DEV_H_
 #define _GF_OD_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/mpeg4_odf.h>
 
 /*read-write OD formatted strings*/
@@ -359,6 +363,10 @@ GF_Err gf_odf_dump_esd_remove(GF_ESDRemove *com, FILE *trace, u32 indent, Bool X
 GF_Err gf_odf_dump_ipmp_update(GF_IPMPUpdate *com, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_ipmp_remove(GF_IPMPRemove *com, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_base_command(GF_BaseODCom *com, FILE *trace, u32 indent, Bool XMTDump);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_GF_OD_DEV_H_*/
 

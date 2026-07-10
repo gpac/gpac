@@ -159,21 +159,21 @@ static Bool bit_out_psc_layer(GF_AADecoder *dec)
 	}
 
 	if (dec->zero_run == AAM_ZEROMAX) {
-		if (!v) return 0;
+		if (!v) return GF_FALSE;
 		v = gf_bs_read_int(dec->bs, 1) ? 1 : 0;
 		dec->zero_run = 0;
 		dec->read_bits++;
 		dec->used_bits++;
 	}
 	dec->Bit = v;
-	dec->needs_flush = 1;
+	dec->needs_flush = GF_TRUE;
 
 	if (!dec->Bit)
 		dec->zero_run++;
 	else
 		dec->zero_run = 0;
 
-	return 1;
+	return GF_TRUE;
 }
 
 void gp_bifs_aa_dec_resync(GF_AADecoder *dec)
@@ -185,7 +185,7 @@ void gp_bifs_aa_dec_resync(GF_AADecoder *dec)
 	//spec: rewind = dec->read_bits - 1 - (dec->used_bits+1);
 	if (dec->skip_bits < rewind) gf_bs_rewind_bits(dec->bs, rewind - dec->skip_bits);
 
-	dec->needs_flush = 0;
+	dec->needs_flush = GF_FALSE;
 	dec->code_value = 0;
 	dec->low = 0;
 	dec->high = AAM_TOP;
@@ -210,7 +210,7 @@ void gp_bifs_aa_dec_resync_bit(GF_AADecoder *dec)
 	if (dec->needs_flush && (dec->skip_bits < 16))
 		gf_bs_rewind_bits(dec->bs, 16 - dec->skip_bits);
 
-	dec->needs_flush = 0;
+	dec->needs_flush = GF_FALSE;
 }
 
 s32 gp_bifs_aa_dec_get_bit(GF_AADecoder *dec)

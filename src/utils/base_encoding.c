@@ -78,7 +78,7 @@ static const unsigned char index_64[128] = {
 #define char64(c)  ((c > 127) ? (char) 0xff : index_64[(c)])
 
 /*denoise input*/
-u32 load_block(char *in, u32 size, u32 pos, char *out)
+u32 load_block(u8 *in, u32 size, u32 pos, char *out)
 {
 	u32 i, len;
 	u8 c;
@@ -187,7 +187,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 {
 	z_stream stream;
 	int err;
-	char *dest = (char *)gf_malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
+	char *dest = (char *)gf_malloc(data_len*ZLIB_COMPRESS_SAFE);
 	stream.next_in = (Bytef*)(*data) + data_offset;
 	stream.avail_in = (uInt)data_len - data_offset;
 	stream.next_out = ( Bytef*)dest;
@@ -229,7 +229,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 
 	if (*max_size < stream.total_out) {
 		*max_size = data_len*ZLIB_COMPRESS_SAFE;
-		*data = (char*)gf_realloc(*data, *max_size * sizeof(char));
+		*data = (u8*)gf_realloc(*data, *max_size);
 	}
 
 	memcpy((*data) , dest, sizeof(char)*stream.total_out);
@@ -243,7 +243,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 GF_EXPORT
 GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
-	return gf_gz_compress_payload_ex(data, data_len, max_size, 0, GF_FALSE, NULL, GF_FALSE);
+	return gf_gz_compress_payload_ex(data, data_len, max_size, GF_FALSE, GF_FALSE, NULL, GF_FALSE);
 }
 
 GF_EXPORT
@@ -256,7 +256,7 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 	u32 size = 4096;
 
 	if (! *uncompressed_data) {
-		*uncompressed_data = (char*)gf_malloc(sizeof(char)*4096);
+		*uncompressed_data = (u8*)gf_malloc(4096);
 		if (!*uncompressed_data) return GF_OUT_OF_MEM;
 	} else {
 		owns_buffer = GF_FALSE;
@@ -297,7 +297,7 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 			else
 				size *= 2;
 
-			*uncompressed_data = (char*)gf_realloc(*uncompressed_data, sizeof(char)*(size+1));
+			*uncompressed_data = (u8*)gf_realloc(*uncompressed_data, (size+1));
 			if (!*uncompressed_data) return GF_OUT_OF_MEM;
 			d_stream.avail_out = (u32) (size - d_stream.total_out);
 			d_stream.next_out = (Bytef*) ( *uncompressed_data + d_stream.total_out);
@@ -372,7 +372,7 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 
 	block_size = data_len*LZMA_COMPRESS_SAFE;
 	if (block_size < 64) block_size = 64;
-	char *dest = (char *)gf_malloc(sizeof(char)*block_size);
+	char *dest = (char *)gf_malloc(block_size);
 
 
 	strm.next_in = (const uint8_t *) (*data);
@@ -393,7 +393,7 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 
 	if (*max_size < comp_size) {
 		*max_size = block_size;
-		*data = (char*)gf_realloc(*data, block_size * sizeof(char));
+		*data = (char*)gf_realloc(*data, block_size);
 	}
 
 	memcpy((*data) , dest, sizeof(char) * comp_size);
@@ -415,7 +415,7 @@ GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 	u32 block_size = 4096;
 	u32 done = 0;
 	u32 alloc_size = 0;
-	u8 *block = gf_malloc(4096);
+	u8 *block = (u8 *)gf_malloc(4096);
 	if (!block) return GF_OUT_OF_MEM;
 	u8 *dst_buffer = NULL;
 
@@ -440,7 +440,7 @@ GF_Err gf_lz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 
 			if (done + uncomp_size > alloc_size) {
 				alloc_size = done + uncomp_size;
-				dst_buffer = gf_realloc(dst_buffer, alloc_size);
+				dst_buffer = (u8 *)gf_realloc(dst_buffer, alloc_size);
 				*out_size = alloc_size;
 			}
 			memcpy(dst_buffer + done, block, uncomp_size);

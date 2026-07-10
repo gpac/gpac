@@ -253,10 +253,10 @@ static JSValue wgl_clearStencil(JSContext *ctx, JSValueConst this_val, int argc,
 static JSValue wgl_colorMask(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSValue ret_val_js = JS_UNDEFINED;
-	Bool red = 0;
-	Bool green = 0;
-	Bool blue = 0;
-	Bool alpha = 0;
+	Bool red = GF_FALSE;
+	Bool green = GF_FALSE;
+	Bool blue = GF_FALSE;
+	Bool alpha = GF_FALSE;
 	WGL_CHECK_CONTEXT
 	if (argc<4) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_BOOL(red, argv[0]);
@@ -387,7 +387,7 @@ static JSValue wgl_createBuffer(JSContext *ctx, JSValueConst this_val, int argc,
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
 	if (!wglo) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
-	wglo->par_ctx = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	wglo->par_ctx = (GF_WebGLContext *)JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	glGenBuffers(1, &wglo->gl_id);
 	ret_val_js = JS_NewObjectClass(ctx, WebGLBuffer_class_id);
 	JS_SetOpaque(ret_val_js, wglo);
@@ -404,7 +404,7 @@ static JSValue wgl_createFramebuffer(JSContext *ctx, JSValueConst this_val, int 
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
 	if (!wglo) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
-	wglo->par_ctx = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	wglo->par_ctx = (GF_WebGLContext *)JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	glGenFramebuffers(1, &wglo->gl_id);
 	ret_val_js = JS_NewObjectClass(ctx, WebGLFramebuffer_class_id);
 	JS_SetOpaque(ret_val_js, wglo);
@@ -421,7 +421,7 @@ static JSValue wgl_createProgram(JSContext *ctx, JSValueConst this_val, int argc
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
 	if (!wglo) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
-	wglo->par_ctx = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	wglo->par_ctx = (GF_WebGLContext *)JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	wglo->gl_id = glCreateProgram();
 	ret_val_js = JS_NewObjectClass(ctx, WebGLProgram_class_id);
 	JS_SetOpaque(ret_val_js, wglo);
@@ -438,7 +438,7 @@ static JSValue wgl_createRenderbuffer(JSContext *ctx, JSValueConst this_val, int
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
 	if (!wglo) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
-	wglo->par_ctx = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	wglo->par_ctx = (GF_WebGLContext *)JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	glGenRenderbuffers(1, &wglo->gl_id);
 	ret_val_js = JS_NewObjectClass(ctx, WebGLRenderbuffer_class_id);
 	JS_SetOpaque(ret_val_js, wglo);
@@ -458,7 +458,7 @@ static JSValue wgl_createShader(JSContext *ctx, JSValueConst this_val, int argc,
 	GF_WebGLObject *wglo;
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
 	if (!wglo) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
-	wglo->par_ctx = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	wglo->par_ctx = (GF_WebGLContext *)JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	wglo->gl_id = glCreateShader(type);
 	ret_val_js = JS_NewObjectClass(ctx, WebGLShader_class_id);
 	JS_SetOpaque(ret_val_js, wglo);
@@ -490,7 +490,7 @@ static JSValue wgl_deleteBuffer(JSContext *ctx, JSValueConst this_val, int argc,
 	WGL_GET_GLID(buffer, argv[0], WebGLBuffer_class_id);
 	glDeleteBuffers(1, &buffer);
 	{
-	GF_WebGLObject *glo = JS_GetOpaque(argv[0], WebGLBuffer_class_id);
+	GF_WebGLObject *glo = (GF_WebGLObject *)JS_GetOpaque(argv[0], WebGLBuffer_class_id);
 	if (glo) {
 	glo->gl_id=0;
 	JS_FreeValue(ctx, glo->obj);
@@ -512,7 +512,7 @@ static JSValue wgl_deleteFramebuffer(JSContext *ctx, JSValueConst this_val, int 
 	WGL_GET_GLID(framebuffer, argv[0], WebGLFramebuffer_class_id);
 	glDeleteFramebuffers(1, &framebuffer);
 	{
-	GF_WebGLObject *glo = JS_GetOpaque(argv[0], WebGLFramebuffer_class_id);
+	GF_WebGLObject *glo = (GF_WebGLObject *)JS_GetOpaque(argv[0], WebGLFramebuffer_class_id);
 	if (glo) {
 	glo->gl_id=0;
 	JS_FreeValue(ctx, glo->obj);
@@ -534,7 +534,7 @@ static JSValue wgl_deleteProgram(JSContext *ctx, JSValueConst this_val, int argc
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
 	glDeleteProgram(program);
 	{
-	GF_WebGLObject *glo = JS_GetOpaque(argv[0], WebGLProgram_class_id);
+	GF_WebGLObject *glo = (GF_WebGLObject *)JS_GetOpaque(argv[0], WebGLProgram_class_id);
 	if (glo) {
 	glo->gl_id=0;
 	JS_FreeValue(ctx, glo->obj);
@@ -556,7 +556,7 @@ static JSValue wgl_deleteRenderbuffer(JSContext *ctx, JSValueConst this_val, int
 	WGL_GET_GLID(renderbuffer, argv[0], WebGLRenderbuffer_class_id);
 	glDeleteRenderbuffers(1, &renderbuffer);
 	{
-	GF_WebGLObject *glo = JS_GetOpaque(argv[0], WebGLRenderbuffer_class_id);
+	GF_WebGLObject *glo = (GF_WebGLObject *)JS_GetOpaque(argv[0], WebGLRenderbuffer_class_id);
 	if (glo) {
 	glo->gl_id=0;
 	JS_FreeValue(ctx, glo->obj);
@@ -578,7 +578,7 @@ static JSValue wgl_deleteShader(JSContext *ctx, JSValueConst this_val, int argc,
 	WGL_GET_GLID(shader, argv[0], WebGLShader_class_id);
 	glDeleteShader(shader);
 	{
-	GF_WebGLObject *glo = JS_GetOpaque(argv[0], WebGLShader_class_id);
+	GF_WebGLObject *glo = (GF_WebGLObject *)JS_GetOpaque(argv[0], WebGLShader_class_id);
 	if (glo) {
 	glo->gl_id=0;
 	JS_FreeValue(ctx, glo->obj);
@@ -600,7 +600,7 @@ static JSValue wgl_deleteTexture(JSContext *ctx, JSValueConst this_val, int argc
 	WGL_GET_GLID(texture, argv[0], WebGLTexture_class_id);
 	glDeleteTextures(1, &texture);
 	{
-	GF_WebGLObject *glo = JS_GetOpaque(argv[0], WebGLTexture_class_id);
+	GF_WebGLObject *glo = (GF_WebGLObject *)JS_GetOpaque(argv[0], WebGLTexture_class_id);
 	if (glo) {
 	glo->gl_id=0;
 	JS_FreeValue(ctx, glo->obj);
@@ -627,7 +627,7 @@ static JSValue wgl_depthFunc(JSContext *ctx, JSValueConst this_val, int argc, JS
 static JSValue wgl_depthMask(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSValue ret_val_js = JS_UNDEFINED;
-	Bool flag = 0;
+	Bool flag = GF_FALSE;
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_BOOL(flag, argv[0]);
@@ -848,7 +848,7 @@ static JSValue wgl_getAttachedShaders(JSContext *ctx, JSValueConst this_val, int
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
-	return webgl_getAttachedShaders(ctx, JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id), program);
+	return webgl_getAttachedShaders(ctx, (GF_WebGLContext *)JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id), program);
 }
 
 static JSValue wgl_getAttribLocation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -924,8 +924,8 @@ static JSValue wgl_isBuffer(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(buffer, argv[0], WebGLBuffer_class_id);
-	Bool ret_val = 0;
-	ret_val = glIsBuffer(buffer);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsBuffer(buffer);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -935,8 +935,8 @@ static JSValue wgl_isEnabled(JSContext *ctx, JSValueConst this_val, int argc, JS
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_U32(cap, argv[0]);
-	Bool ret_val = 0;
-	ret_val = glIsEnabled(cap);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsEnabled(cap);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -946,8 +946,8 @@ static JSValue wgl_isFramebuffer(JSContext *ctx, JSValueConst this_val, int argc
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(framebuffer, argv[0], WebGLFramebuffer_class_id);
-	Bool ret_val = 0;
-	ret_val = glIsFramebuffer(framebuffer);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsFramebuffer(framebuffer);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -957,8 +957,8 @@ static JSValue wgl_isProgram(JSContext *ctx, JSValueConst this_val, int argc, JS
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(program, argv[0], WebGLProgram_class_id);
-	Bool ret_val = 0;
-	ret_val = glIsProgram(program);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsProgram(program);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -968,8 +968,8 @@ static JSValue wgl_isRenderbuffer(JSContext *ctx, JSValueConst this_val, int arg
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(renderbuffer, argv[0], WebGLRenderbuffer_class_id);
-	Bool ret_val = 0;
-	ret_val = glIsRenderbuffer(renderbuffer);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsRenderbuffer(renderbuffer);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -979,8 +979,8 @@ static JSValue wgl_isShader(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(shader, argv[0], WebGLShader_class_id);
-	Bool ret_val = 0;
-	ret_val = glIsShader(shader);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsShader(shader);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -990,8 +990,8 @@ static JSValue wgl_isTexture(JSContext *ctx, JSValueConst this_val, int argc, JS
 	WGL_CHECK_CONTEXT
 	if (argc<1) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(texture, argv[0], WebGLTexture_class_id);
-	Bool ret_val = 0;
-	ret_val = glIsTexture(texture);
+	Bool ret_val = GF_FALSE;
+	ret_val = (Bool) glIsTexture(texture);
 	return JS_NewBool(ctx, ret_val);
 }
 
@@ -1055,7 +1055,7 @@ static JSValue wgl_sampleCoverage(JSContext *ctx, JSValueConst this_val, int arg
 {
 	JSValue ret_val_js = JS_UNDEFINED;
 	Float value = 0;
-	Bool invert = 0;
+	Bool invert = GF_FALSE;
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_FLOAT_CLAMP(value, argv[0]);
@@ -1489,7 +1489,7 @@ static JSValue wgl_uniformMatrix2fv(JSContext *ctx, JSValueConst this_val, int a
 {
 	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint location = 0;
-	Bool transpose = 0;
+	Bool transpose = GF_FALSE;
 	Float * value = NULL;
 	u32 value_size = 0;
 	WGL_CHECK_CONTEXT
@@ -1508,7 +1508,7 @@ static JSValue wgl_uniformMatrix3fv(JSContext *ctx, JSValueConst this_val, int a
 {
 	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint location = 0;
-	Bool transpose = 0;
+	Bool transpose = GF_FALSE;
 	Float * value = NULL;
 	u32 value_size = 0;
 	WGL_CHECK_CONTEXT
@@ -1527,7 +1527,7 @@ static JSValue wgl_uniformMatrix4fv(JSContext *ctx, JSValueConst this_val, int a
 {
 	JSValue ret_val_js = JS_UNDEFINED;
 	GLuint location = 0;
-	Bool transpose = 0;
+	Bool transpose = GF_FALSE;
 	Float * value = NULL;
 	u32 value_size = 0;
 	WGL_CHECK_CONTEXT
@@ -1677,7 +1677,7 @@ static JSValue wgl_vertexAttribPointer(JSContext *ctx, JSValueConst this_val, in
 	u32 indx = 0;
 	s32 size = 0;
 	u32 type = 0;
-	Bool normalized = 0;
+	Bool normalized = GF_FALSE;
 	u32 stride = 0;
 	u64 offset = 0;
 	WGL_CHECK_CONTEXT

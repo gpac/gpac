@@ -5,7 +5,7 @@ unittest(gf_sys_word_match)
 {
     // Test exact match scenario
     assert_true(gf_sys_word_match("abc", "abc"));
-    
+
     // Test short orig, longer dst scenario
     assert_true(gf_sys_word_match("abc", "abcd"));
 

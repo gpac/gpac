@@ -48,6 +48,7 @@ This section documents the RTP streamer object of the GPAC framework.
 
 
 #include <gpac/ietf.h>
+#include <gpac/constants.h>
 
 #if !defined(GPAC_DISABLE_STREAMING)
 
@@ -87,7 +88,7 @@ Constructs a new RTP file streamer
 \param for_rtsp indicates this is an RTP channel in an RTSP session, RTP channel will not be created, use \ref gf_rtp_streamer_init_rtsp
 \return a new RTP streamer, or NULL of error or not supported
  */
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, GF_CodecID codecid, u32 timeScale,
         const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
         u32 flags, const u8 *dsi, u32 dsi_len,
         u32 PayloadType, u32 sample_rate, u32 nb_ch,
@@ -100,7 +101,7 @@ typedef struct
 	//! type of the stream (GF_STREAM_* as defined in <gpac/constants.h>
 	u32 streamType;
 	//! codec ID for the stream (GF_CODEC_* as defined in <gpac/constants.h>)
-	u32 codecid;
+	GF_CodecID codecid;
 	//! unit to express timestamps of access units
 	u32 timeScale;
 	//! IP address of the destination
@@ -245,7 +246,7 @@ GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, u8 *data, u32 size, 
 \param sampleDescriptionIndex indicates the ISOBMFF sampleDescriptionIndex for this AU (needed for 3GPP timed text)
 \return error if any
 */
-GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *streamer, u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 duration, u32 sampleDescriptionIndex);
+GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *streamer, const u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 duration, u32 sampleDescriptionIndex);
 
 /*! formats a generic SDP header
 \param app_name application name, may be NULL
@@ -254,7 +255,7 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *streamer, u8 *data, u32 size, u
 \param iod64 base64 encoded MPEG-4 IOD, may be NULL
 \return the SDP header - shall be destroyed by caller
 */
-char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64);
+char *gf_rtp_streamer_format_sdp_header(const char *app_name, const char *ip_dest, const char *session_name, const char *iod64);
 
 /*! disables RTCP keepalive
 \param streamer the target RTP streamer

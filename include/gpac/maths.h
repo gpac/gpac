@@ -679,7 +679,7 @@ typedef struct __matrix
 	Fixed __mag = gf_quat_len(v);	\
 	(v).x = gf_divfix((v).x, __mag); (v).y = gf_divfix((v).y, __mag); (v).z = gf_divfix((v).z, __mag); (v).q = gf_divfix((v).q, __mag);	\
 	}	\
- 
+
 /*!\brief quaternion to rotation
 
 Transforms a quaternion to a Rotation, expressed as a 4 dimension vector with x,y,z for axis and q for rotation angle

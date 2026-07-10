@@ -409,7 +409,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 					break;
 				}
 			}
-			if (is_whitelist) match = !match;
+			if (is_whitelist) match = match ? GF_FALSE : GF_TRUE;
 			if (match) continue;
 		}
 
@@ -435,7 +435,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 						break;
 					}
 				}
-				if (is_whitelist) match = !match;
+				if (is_whitelist) match = match ? GF_FALSE : GF_TRUE;
 				if (match) {
 					if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
 					continue;

@@ -235,7 +235,7 @@ static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st, Bool do_fre
 {
 	if (st->pck_queue) {
 		while (gf_list_count(st->pck_queue)) {
-			GF_FilterPacket *pck = gf_list_pop_front(st->pck_queue);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_front(st->pck_queue);
 			gf_filter_pck_unref(pck);
 		}
 		if (do_free)
@@ -277,8 +277,8 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 {
 	u32 i;
 	const GF_PropertyValue *p;
-	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
-	RTStream *st = gf_filter_pid_get_udta(pid);
+	GF_ReframerCtx *ctx = (GF_ReframerCtx *)gf_filter_get_udta(filter);
+	RTStream *st = (RTStream *)gf_filter_pid_get_udta(pid);
 
 	if (is_remove) {
 		if (st) {
@@ -527,7 +527,7 @@ static Bool reframer_parse_date(GF_ReframerCtx *ctx, char *date, GF_Fraction64 *
 		if (is_dur)
 			*is_dur = GF_TRUE;
 
-		if (sscanf(date+1, LLD"/"LLU, &value->num, &value->den)==2) {
+		if (sscanf(date+1, LLD "/" LLU, &value->num, &value->den)==2) {
 			return GF_TRUE;
 		}
 		if (strchr(date+1, '.')) {
@@ -737,7 +737,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 		}
 		count = gf_list_count(ctx->streams);
 		for (i=0; i<count; i++) {
-			RTStream *st = gf_list_get(ctx->streams, i);
+			RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 			if (ctx->rt) {
 				st->cts_us_at_init = 0;
 				st->sys_clock_at_init = 0;
@@ -762,7 +762,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (ctx->cur_range_idx && (ctx->cur_range_idx <= ctx->props.nb_items)) {
 		count = gf_list_count(ctx->streams);
 		for (i=0; i<count; i++) {
-			RTStream *st = gf_list_get(ctx->streams, i);
+			RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 
 			reframer_push_props(ctx, st);
 			gf_filter_pid_push_properties(st->opid, ctx->props.vals[ctx->cur_range_idx-1], GF_FALSE, GF_FALSE);
@@ -778,7 +778,7 @@ range_done:
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
 		GF_FilterEvent evt;
-		RTStream *st = gf_list_get(ctx->streams, i);
+		RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 		gf_filter_pid_set_discard(st->ipid, GF_TRUE);
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, st->ipid);
 		gf_filter_pid_send_event(st->ipid, &evt);
@@ -860,7 +860,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				ctx->nb_align_pending = 0;
 				u32 i;
 				for (i=0; i<gf_list_count(ctx->streams); i++) {
-					RTStream *ast = gf_list_get(ctx->streams, i);
+					RTStream *ast = (RTStream *)gf_list_get(ctx->streams, i);
 					//reset last cts, and increment nb_align_pending for all playing streams
 					ast->cts_us_at_init = 0;
 					if (ast->in_eos) continue;
@@ -895,7 +895,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				if (clock + RT_PRECISION_US >= diff) {
 					do_send = GF_TRUE;
 					if (clock > diff) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Reframer] Sending packet "LLU" us too late (clock diff "LLU" - CTS diff "LLU")\n", 1000+clock - diff, clock, diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Reframer] Sending packet " LLU " us too late (clock diff " LLU " - CTS diff " LLU ")\n", 1000+clock - diff, clock, diff));
 					}
 				} else {
 					diff -= clock;
@@ -961,7 +961,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			}
 			if (is_ts_disc) {
 				st->ts_disc_idx++;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Detected time discontinuity on pid %s (timestamps: old "LLU", new "LLU")\n", gf_filter_pid_get_name(st->ipid), st->last_ts_sent, ts));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Detected time discontinuity on pid %s (timestamps: old " LLU ", new " LLU ")\n", gf_filter_pid_get_name(st->ipid), st->last_ts_sent, ts));
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIME_DISCONTINUITY, &PROP_UINT(st->ts_disc_idx));
 
 				//reset real-time regulation
@@ -1091,7 +1091,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 					if (ctx->cur_end.den) {
 						end_t = ctx->cur_end.num;
 						end_t /= ctx->cur_end.den;
-						sprintf(szFileSuf, LLU"-"LLU, start_t, end_t);
+						sprintf(szFileSuf, LLU "-" LLU, start_t, end_t);
 					} else {
 						sprintf(szFileSuf, LLU, start_t);
 					}
@@ -1122,7 +1122,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				if (ctx->cur_end.den) {
 					end_t = ctx->cur_end.num * 1000;
 					end_t /= ctx->cur_end.den;
-					sprintf(szFileSuf, LLU"-"LLU, start_t, end_t);
+					sprintf(szFileSuf, LLU "-" LLU, start_t, end_t);
 				} else {
 					sprintf(szFileSuf, LLU, start_t);
 				}
@@ -1245,7 +1245,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				u32 seg_nframes = st->segdur.num * fps.num / (st->segdur.den * fps.den);
 				assert(ctx->ts_tc_offset.den == st->timescale);
 				u32 diff_nframes = (cts - ctx->ts_tc_offset.num - ctx->cur_start.num) * fps.num / (st->timescale * fps.den);
-				Bool is_seg_boundary = diff_nframes % seg_nframes == 0;
+				Bool is_seg_boundary = (diff_nframes % seg_nframes == 0) ? GF_TRUE : GF_FALSE;
 
 				//fallback, check if other tracks are currently sending
 				if (!is_seg_boundary && ctx->wait_seg_boundary_ts.den>0) {
@@ -1390,7 +1390,7 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 		} else if (ctx->last_utc_time_s!=1) {
 			ctx->last_utc_time_s = 1;
 			if (gf_filter_reporting_enabled(filter)) {
-				gf_filter_update_status(filter, 0, "");
+				gf_filter_update_status(filter, 0, (char*)"");
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("                                                     \r"));
 			}
@@ -1449,7 +1449,7 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 		if (!after) {
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
-				sprintf(szStatus, "wait info=\"packet time "LLU"/%u waiting for range start "LLU"/"LLU"\"", ts, st->timescale, ctx->cur_start.num, ctx->cur_start.den);
+				sprintf(szStatus, "wait info=\"packet time " LLU "/%u waiting for range start " LLU "/" LLU "\"", ts, st->timescale, ctx->cur_start.num, ctx->cur_start.den);
 				gf_filter_update_status(filter, 0, szStatus);
 			}
 			return 0;
@@ -1469,7 +1469,7 @@ void reframer_purge_queues(GF_ReframerCtx *ctx, u64 ts, u32 timescale)
 {
 	u32 i, count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
-		RTStream *st = gf_list_get(ctx->streams, i);
+		RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 		u64 ts_rescale = ts;
 		if (st->reinsert_single_pck)
 			continue;
@@ -1479,7 +1479,7 @@ void reframer_purge_queues(GF_ReframerCtx *ctx, u64 ts, u32 timescale)
 			ts_rescale /= timescale;
 		}
 		while (1) {
-			GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, 0);
 			if (!pck) break;
 			u64 dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS)
@@ -1507,19 +1507,19 @@ static void reframer_dump_mem(GF_ReframerCtx *ctx, char *status)
 	//check all streams have reached min ts
 	for (i=0; i<count; i++) {
 		u32 j, nb_pck;
-		RTStream *st = gf_list_get(ctx->streams, i);
+		RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 		nb_pck = gf_list_count(st->pck_queue);
 
 		for (j=0; j<nb_pck; j++) {
 			u32 size;
-			GF_FilterPacket *pck = gf_list_get(st->pck_queue, j);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, j);
 			gf_filter_pck_get_data(pck, &size);
 			mem_size += size;
 			if (gf_filter_pck_get_sap(pck)) mem_saps++;
 			mem_pck++;
 		}
 	}
-	fprintf(stderr, "%s, mem state: %d pck "LLU" KB %d saps\n", status, mem_pck, mem_size/1000, mem_saps);
+	fprintf(stderr, "%s, mem state: %d pck " LLU " KB %d saps\n", status, mem_pck, mem_size/1000, mem_saps);
 }
 #endif
 
@@ -1544,7 +1544,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			u32 j, nb_pck, nb_sap;
 			u64 last_sap_ts=0;
 			u64 before_last_sap_ts=0;
-			RTStream *st = gf_list_get(ctx->streams, i);
+			RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 			nb_pck = gf_list_count(st->pck_queue);
 			nb_sap = 0;
 			if (st->in_eos) {
@@ -1560,9 +1560,9 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 				GF_FilterPacket *pck;
 				//size split, reverse walk the packet list
 				if (size_split) {
-					pck = gf_list_get(st->pck_queue, nb_pck - j - 1);
+					pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, nb_pck - j - 1);
 				} else {
-					pck = gf_list_get(st->pck_queue, j);
+					pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, j);
 				}
 				if (!st->is_raw && !gf_filter_pck_get_sap(pck) ) {
 					continue;
@@ -1635,11 +1635,11 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			for (i=0; i<count; i++) {
 				u64 ts;
 				GF_FilterPacket *pck;
-				RTStream *st = gf_list_get(ctx->streams, i);
+				RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 				if (!st->in_eos)
 					return;
 
-				pck = gf_list_last(st->pck_queue);
+				pck = (struct __gf_filter_pck *)gf_list_last(st->pck_queue);
 				if (!pck) continue;
 				u32 dur = gf_filter_pck_get_duration(pck);
 				if (!dur) dur=1;
@@ -1677,12 +1677,12 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		for (i=0; i<count; i++) {
 			u64 ts;
 			GF_FilterPacket *pck;
-			RTStream *st = gf_list_get(ctx->streams, i);
+			RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 			if (st->range_start_computed==2) continue;
 			if (st->reinsert_single_pck) continue;
 			//do not check for timestamp if in EOS, implicitly flush the range
 			if (st->in_eos) continue;
-			pck = gf_list_last(st->pck_queue);
+			pck = (struct __gf_filter_pck *)gf_list_last(st->pck_queue);
 			if (!pck) continue;
 			ts = gf_filter_pck_get_dts(pck);
 			if (ts==GF_FILTER_NO_TS)
@@ -1706,13 +1706,13 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		for (i=0; i<count; i++) {
 			u32 j, nb_pck;
 			Bool found=GF_FALSE;
-			RTStream *st = gf_list_get(ctx->streams, i);
+			RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 			nb_pck = gf_list_count(st->pck_queue);
 
 			for (j=0; j<nb_pck; j++) {
 				u64 ts;
 				u32 size;
-				GF_FilterPacket *pck = gf_list_get(st->pck_queue, j);
+				GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, j);
 
 				ts = gf_filter_pck_get_dts(pck);
 				if (ts==GF_FILTER_NO_TS)
@@ -1758,8 +1758,8 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 					if (!ctx->cumulated_size) {
 						for (i=0; i<count; i++) {
 							u64 ts;
-							RTStream *st = gf_list_get(ctx->streams, i);
-							GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
+							RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
+							GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, 0);
 							st->range_end_reached_ts = 0;
 							st->first_pck_sent = GF_FALSE;
 
@@ -1824,7 +1824,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		} else {
 			ctx->est_file_size = cumulated_size;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Reframer] split computed using %s estimation of file size ("LLU")\n", use_prev ? "previous" : "current", ctx->est_file_size));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Reframer] split computed using %s estimation of file size (" LLU ")\n", use_prev ? "previous" : "current", ctx->est_file_size));
 		ctx->prev_min_ts_computed = 0;
 		ctx->prev_min_ts_scale = 0;
 		ctx->flush_samples = GF_FALSE;
@@ -1834,8 +1834,8 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 	ctx->in_range = GF_TRUE;
 	for (i=0; i<count; i++) {
 		u64 ts;
-		RTStream *st = gf_list_get(ctx->streams, i);
-		GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
+		RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, 0);
 		st->range_end_reached_ts = (ctx->min_ts_computed * st->timescale);
 		if (ctx->min_ts_scale)
 			st->range_end_reached_ts /= ctx->min_ts_scale;
@@ -1866,7 +1866,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 
 GF_Err reframer_process(GF_Filter *filter)
 {
-	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframerCtx *ctx = (GF_ReframerCtx *)gf_filter_get_udta(filter);
 	u32 i, nb_eos, nb_end_of_range, count = gf_filter_get_ipid_count(filter);
 
 	if (ctx->eos_state) {
@@ -1916,7 +1916,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 		for (i=0; i<count; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-			RTStream *st = gf_filter_pid_get_udta(ipid);
+			RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 			st->fetch_done = GF_FALSE;
 			if (ctx->cur_start_valid && ctx->cur_end_valid)
 				continue;
@@ -1977,7 +1977,7 @@ GF_Err reframer_process(GF_Filter *filter)
 				GF_TimeCode *tc = tc_list[tc_idx];
 				GF_Fraction64 *frac = ts_list[tc_idx];
 				u64 cur_ts, target_ts;
-				Bool use_tc_as_utc = (ctx->utc_ref == UTCREF_TC);
+				Bool use_tc_as_utc = (ctx->utc_ref == UTCREF_TC) ? GF_TRUE : GF_FALSE;
 
 				if (use_tc_as_utc) {
 					//convert timecode to UTC: timecode don't contain the day so consider today
@@ -1998,7 +1998,11 @@ GF_Err reframer_process(GF_Filter *filter)
 				}
 
 				// Common logic for both modes
-				Bool tc_out_of_bounds = use_tc_as_utc ? (target_ts < cur_ts) : gf_timecode_less_or_equal(tc, pck_tc);
+				Bool tc_out_of_bounds;
+				if (use_tc_as_utc)
+					tc_out_of_bounds = (target_ts < cur_ts) ? GF_TRUE : GF_FALSE;
+				else
+					tc_out_of_bounds = gf_timecode_less_or_equal(tc, pck_tc);
 
 				if (tc_out_of_bounds) {
 					// Start from the first frame since timecode is out-of-bounds
@@ -2037,7 +2041,7 @@ refetch_streams:
 			Bool drop_input = GF_TRUE;
 			GF_FilterPacket *pck;
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-			RTStream *st = gf_filter_pid_get_udta(ipid);
+			RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 
 			if (st->fetch_done) continue;
 
@@ -2434,7 +2438,7 @@ refetch_streams:
 			Bool purge_all = GF_FALSE;
 			for (i=0; i<count; i++) {
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-				RTStream *st = gf_filter_pid_get_udta(ipid);
+				RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 				if (!st->is_playing) continue;
 				gf_assert(st->range_start_computed || st->in_eos);
 				//eos and no packets queued
@@ -2483,7 +2487,7 @@ refetch_streams:
 						char tcBuf[100];
 						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] All streams in end of stream for desired start range %s\n", gf_format_timecode(ctx->cur_start_tc, tcBuf)));
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] All streams in end of stream for desired start range "LLD"/"LLU"\n", ctx->cur_start.num, ctx->cur_start.den));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] All streams in end of stream for desired start range " LLD "/" LLU "\n", ctx->cur_start.num, ctx->cur_start.den));
 					}
 				}
 				ctx->eos_state = 1;
@@ -2499,11 +2503,11 @@ refetch_streams:
 			for (i=0; i<count; i++) {
 				Bool start_found = GF_FALSE;
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-				RTStream *st = gf_filter_pid_get_udta(ipid);
+				RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 				if (!st->is_playing) continue;
 
 				while (gf_list_count(st->pck_queue)) {
-					GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
+					GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, 0);
 					if (!purge_all) {
 						u32 is_start = 0;
 						u64 ts, ots, check_ts;
@@ -2603,7 +2607,7 @@ refetch_streams:
 			ctx->nb_video_frames_since_start = 0;
 			for (i=0; i<count; i++) {
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-				RTStream *st = gf_filter_pid_get_udta(ipid);
+				RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 				//reset start range computed
 				st->range_start_computed = 0;
 
@@ -2673,9 +2677,9 @@ refetch_streams:
 					}
 				}
 				new_times.nb_items = last_chap_idx - first_chap_idx;
-				new_times.vals = gf_malloc(sizeof(u32)*new_times.nb_items);
+				new_times.vals = (u32 *)gf_malloc(sizeof(u32)*new_times.nb_items);
 				new_names.nb_items = new_times.nb_items;
-				new_names.vals = gf_malloc(sizeof(char *)*new_names.nb_items);
+				new_names.vals = (char **)gf_malloc(sizeof(char *)*new_names.nb_items);
 				u32 k=0;
 				for (i=first_chap_idx; i<last_chap_idx; i++) {
 					s64 time = chap_times->value.uint_list.vals[i];
@@ -2689,7 +2693,7 @@ refetch_streams:
 				//set chapter properties
 				for (i=0; i<count; i++) {
 					GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-					RTStream *st = gf_filter_pid_get_udta(ipid);
+					RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 
 					ch.type = GF_PROP_UINT_LIST;
 					ch.value.uint_list = new_times;
@@ -2717,7 +2721,7 @@ refetch_streams:
 	nb_end_of_range = 0;
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		RTStream *st = gf_filter_pid_get_udta(ipid);
+		RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 
 		while (1) {
 			Bool forward = GF_TRUE;
@@ -2726,7 +2730,7 @@ refetch_streams:
 
 			//dequeue packet
 			if (ctx->range_type && (ctx->range_type!=RANGE_DONE) ) {
-				pck = gf_list_get(st->pck_queue, 0);
+				pck = (struct __gf_filter_pck *)gf_list_get(st->pck_queue, 0);
 				pck_is_ref = GF_TRUE;
 
 				if (pck && !ctx->is_range_extraction && st->range_end_reached_ts) {
@@ -2851,7 +2855,7 @@ load_next_range:
 		nb_eos=0;
 		for (i=0; i<count; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-			RTStream *st = gf_filter_pid_get_udta(ipid);
+			RTStream *st = (RTStream *)gf_filter_pid_get_udta(ipid);
 			//we reinsert the same PCK, so the ts_at_range_start_plus is always the packet cts
 			//we therefore need to compute the ts at and as the target end time minus the target start time
 			if (st->reinsert_single_pck && ctx->cur_start.den) {
@@ -2964,7 +2968,7 @@ static const GF_FilterCapability ReframerCaps_RAW_V[] =
 static GF_Err reframer_initialize(GF_Filter *filter)
 {
 	GF_Err e;
-	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframerCtx *ctx = (GF_ReframerCtx *)gf_filter_get_udta(filter);
 
 	ctx->streams = gf_list_new();
 	ctx->seekable = GF_TRUE;
@@ -2978,7 +2982,7 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 	if ((ctx->xs.nb_items==0) && (ctx->xe.nb_items)) {
 		if (ctx->xe.nb_items==1) {
 			ctx->xs.nb_items = 1;
-			ctx->xs.vals = gf_malloc(sizeof(char *));
+			ctx->xs.vals = (char **)gf_malloc(sizeof(char *));
 			ctx->xs.vals[0] = gf_strdup("0");
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] Multiple `xe` set but no `xs`, cannot extract range\n"));
@@ -3012,11 +3016,11 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 
 static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframerCtx *ctx = (GF_ReframerCtx *)gf_filter_get_udta(filter);
 	GF_FilterEvent fevt;
 	RTStream *st;
 	if (!evt->base.on_pid) return GF_FALSE;
-	st = gf_filter_pid_get_udta(evt->base.on_pid);
+	st = (RTStream *)gf_filter_pid_get_udta(evt->base.on_pid);
 	if (!st) return GF_TRUE;
 	//if we have a PID, we always cancel the event and forward the same event to the associated input pid
 	fevt = *evt;
@@ -3060,7 +3064,7 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			u32 ipid_count = gf_filter_get_ipid_count(filter);
 			for (u32 i=0; i<ipid_count; i++) {
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-				RTStream *ist = gf_filter_pid_get_udta(ipid);
+				RTStream *ist = (RTStream *)gf_filter_pid_get_udta(ipid);
 				if (ist && ist->wait_seg_boundary==WAIT_SEG_BOUNDARY_NONE) {
 					ist->wait_seg_boundary = WAIT_SEG_BOUNDARY_ACTIVE;
 					ist->segdur = evt->transport_hints.seg_duration;
@@ -3075,10 +3079,10 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static void reframer_finalize(GF_Filter *filter)
 {
-	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
+	GF_ReframerCtx *ctx = (GF_ReframerCtx *)gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		RTStream *st = gf_list_pop_back(ctx->streams);
+		RTStream *st = (RTStream *)gf_list_pop_back(ctx->streams);
 		reframer_reset_stream(ctx, st, GF_TRUE);
 	}
 	gf_list_del(ctx->streams);
@@ -3092,10 +3096,10 @@ static GF_Err reframer_update_arg(GF_Filter *filter, const char *arg_name, const
 {
 	//for real-time control, reset clock
 	if (!strcmp(arg_name, "rt") || !strcmp(arg_name, "speed")) {
-		GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
+		GF_ReframerCtx *ctx = (GF_ReframerCtx *)gf_filter_get_udta(filter);
 		u32 i, count = gf_list_count(ctx->streams);
 		for (i=0;i<count;i++) {
-			RTStream *st = gf_list_get(ctx->streams, i);
+			RTStream *st = (RTStream *)gf_list_get(ctx->streams, i);
 			st->cts_us_at_init = 0;
 			st->sys_clock_at_init = 0;
 		}

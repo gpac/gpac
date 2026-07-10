@@ -35,7 +35,7 @@ extern "C" {
 \file <gpac/crypt_tools.h>
 \brief Utility tools for ISMA and Common Encryption.
 */
-	
+
 /*!
 \addtogroup crypt_grp
 \ingroup media_grp
@@ -190,7 +190,7 @@ typedef struct
 	/*! CENC extensions - TODO, we could extend the support to allow per key patterns and selective encryption modes
 	and also add support for multiple keys in ISMA ?*/
 	/*! default encryption state for samples*/
-	u32 IsEncrypted;
+	Bool IsEncrypted;
 	/*! number of defined keys*/
 	u32 nb_keys;
 	/*! keys defined*/

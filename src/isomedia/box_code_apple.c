@@ -160,7 +160,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 		ptr->data->dataSize = gf_bs_read_u16(bs);
 		gf_bs_read_u16(bs);
 
-		ptr->data->data = (char *) gf_malloc(sizeof(char)*(ptr->data->dataSize + 1));
+		ptr->data->data = (u8 *) gf_malloc(ptr->data->dataSize + 1);
 		if (!ptr->data->data) return GF_OUT_OF_MEM;
 
 		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
@@ -423,7 +423,7 @@ GF_Err databox_box_read(GF_Box *s,GF_BitStream *bs)
 
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
-		ptr->data = (char*)gf_malloc(ptr->dataSize * sizeof(ptr->data[0]) + 1);
+		ptr->data = (u8 *)gf_malloc(ptr->dataSize + 1);
 		if (!ptr->data) return GF_OUT_OF_MEM;
 		ptr->data[ptr->dataSize] = 0;
 		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
@@ -820,9 +820,9 @@ GF_Err tcmi_box_read(GF_Box *s, GF_BitStream *bs)
 	if (len > ptr->size)
 		len = (u32) ptr->size;
 	if (len) {
-		ptr->font = gf_malloc(len+1);
+		ptr->font = (char *) gf_malloc(len+1);
 		if (!ptr->font) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->font, len);
+		gf_bs_read_data(bs, (u8 *)ptr->font, len);
 		ptr->size -= len;
 		ptr->font[len]=0;
 	}
@@ -863,7 +863,7 @@ GF_Err tcmi_box_write(GF_Box *s, GF_BitStream *bs)
 	len = ptr->font ? (u32) strlen(ptr->font) : 0;
 	gf_bs_write_u8(bs, len);
 	if (ptr->font)
-		gf_bs_write_data(bs, ptr->font, len);
+		gf_bs_write_data(bs, (u8 *)ptr->font, len);
 
 	return GF_OK;
 }
@@ -1034,7 +1034,7 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size / 20 < ptr->num_audio_description)
 		return GF_ISOM_INVALID_FILE;
 
-	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
+	ptr->audio_descs = (GF_AudioChannelDescription *)gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);
 	if (!ptr->audio_descs) return GF_OUT_OF_MEM;
 
 	for (i=0; i<ptr->num_audio_description; i++) {
@@ -1053,9 +1053,9 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (ptr->size<10000) {
 		ptr->ext_data_size = (u32) ptr->size;
-		ptr->ext_data = gf_malloc(sizeof(u8) * ptr->ext_data_size);
+		ptr->ext_data = (u8 *) gf_malloc(ptr->ext_data_size);
 		if (!ptr->ext_data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, (char *)ptr->ext_data, (u32) ptr->size);
+		gf_bs_read_data(bs, ptr->ext_data, (u32) ptr->size);
 		ptr->size = 0;
 	}
 	return GF_OK;
@@ -1165,7 +1165,7 @@ void keys_box_del(GF_Box *s)
 	GF_MetaKeysBox *ptr = (GF_MetaKeysBox *)s;
 	if (ptr == NULL) return;
 	while (gf_list_count(ptr->keys)) {
-		GF_MetaKey *k = gf_list_pop_back(ptr->keys);
+		GF_MetaKey *k = (GF_MetaKey *)gf_list_pop_back(ptr->keys);
 		if (k->data) gf_free(k->data);
 		gf_free(k);
 	}
@@ -1192,7 +1192,7 @@ GF_Err keys_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_list_add(ptr->keys, k);
 		k->ns = ns;
 		k->size = ksize-8;
-		k->data = gf_malloc(k->size+1);
+		k->data = (u8 *)gf_malloc(k->size+1);
 		if (!k->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, k->data, k->size);
 		k->data[k->size]=0;
@@ -1220,7 +1220,7 @@ GF_Err keys_box_write(GF_Box *s, GF_BitStream *bs)
 	nb_keys = gf_list_count(ptr->keys);
 	gf_bs_write_u32(bs, nb_keys);
 	for (i=0; i<nb_keys; i++) {
-		GF_MetaKey *k = gf_list_get(ptr->keys, i);
+		GF_MetaKey *k = (GF_MetaKey *) gf_list_get(ptr->keys, i);
 		gf_bs_write_u32(bs, k->size+8);
 		gf_bs_write_u32(bs, k->ns);
 		if (k->data)
@@ -1237,7 +1237,7 @@ GF_Err keys_box_size(GF_Box *s)
 	ptr->size += 4;
 	nb_keys = gf_list_count(ptr->keys);
 	for (i=0; i<nb_keys; i++) {
-		GF_MetaKey *k = gf_list_get(ptr->keys, i);
+		GF_MetaKey *k = (GF_MetaKey *) gf_list_get(ptr->keys, i);
 		if (!k->data) k->size = 0;
 		ptr->size += 8 + k->size;
 	}

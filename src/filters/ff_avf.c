@@ -29,9 +29,6 @@
 
 #include "ff_common.h"
 #include <gpac/network.h>
-#include <libavfilter/avfilter.h>
-#include <libavfilter/buffersrc.h>
-#include <libavfilter/buffersink.h>
 
 #if (LIBAVFILTER_VERSION_MAJOR < 7)
 #undef GPAC_HAS_FFMPEG
@@ -48,7 +45,7 @@ typedef struct
 	u32 timescale, width, height, sr, nb_ch, bps, bpp;
 	GF_Fraction fps;
 	Bool planar;
-	u32 pfmt; //ffmpeg pixel or audio format
+	int pfmt; //ffmpeg pixel or audio format
 	u64 ch_layout; //ffmpeg channel layout
 	GF_Fraction sar;
 	u32 stride, stride_uv, nb_planes;
@@ -119,8 +116,8 @@ static GF_Err ffavf_setup_input(GF_FFAVFilterCtx *ctx, GF_FFAVPid *avpid)
 	} else {
 		avf = avfilter_get_by_name("abuffer");
 		snprintf(args, sizeof(args),
-			   "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x"LLU,
-			   1, avpid->timescale, avpid->sr, av_get_sample_fmt_name(avpid->pfmt), avpid->ch_layout);
+			   "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x" LLU,
+			   1, avpid->timescale, avpid->sr, av_get_sample_fmt_name((enum AVSampleFormat) avpid->pfmt), avpid->ch_layout);
 	}
 	//destroy filter (will remove from graph)
 	if (avpid->io_filter_ctx) avfilter_free(avpid->io_filter_ctx);
@@ -158,7 +155,7 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 		Bool is_video = i<ctx->nb_v_out ? GF_TRUE : GF_FALSE;
 
 		for (k=0; k<gf_list_count(ctx->opids); k++) {
-			opid = gf_list_get(ctx->opids, k);
+			opid = (GF_FFAVPid *)gf_list_get(ctx->opids, k);
 			if (opid->is_video && is_video) break;
 			if (!opid->is_video && !is_video) break;
 			opid = NULL;
@@ -279,7 +276,7 @@ static GF_Err ffavf_reconfigure_graph(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 
 	count = gf_list_count(ctx->ipids);
 	for (i=0; i<count; i++) {
-		GF_FFAVPid *ipid = gf_list_get(ctx->ipids, i);
+		GF_FFAVPid *ipid = (GF_FFAVPid *)gf_list_get(ctx->ipids, i);
 		e = ffavf_setup_input(ctx, ipid);
 		if (e) break;
 	}
@@ -442,7 +439,7 @@ static GF_Err ffavf_setup_filter(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 
 	//wait until we have one packet on each input
 	for (i=0; i<count; i++) {
-		GF_FFAVPid *pid_ctx = gf_list_get(ctx->ipids, i);
+		GF_FFAVPid *pid_ctx = (GF_FFAVPid *)gf_list_get(ctx->ipids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid_ctx->io_pid);
 		if (!pck) return GF_OK;
 	}
@@ -453,7 +450,7 @@ static GF_Err ffavf_setup_filter(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 	io = inputs;
 	for (i=0; i<count; i++) {
 		char szName[20];
-		GF_FFAVPid *pid_ctx = gf_list_get(ctx->ipids, i);
+		GF_FFAVPid *pid_ctx = (GF_FFAVPid *)gf_list_get(ctx->ipids, i);
 
 		if (count==1)
 			io->name = av_strdup("in");
@@ -503,7 +500,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	u32 i, count, nb_eos;
 	GF_FFAVFilterCtx *ctx = (GF_FFAVFilterCtx *) gf_filter_get_udta(filter);
-	Bool can_merge_props = gf_list_count(ctx->opids) == 1 && gf_list_count(ctx->ipids) == 1;
+	Bool can_merge_props = (gf_list_count(ctx->opids) == 1 && gf_list_count(ctx->ipids) == 1) ? GF_TRUE : GF_FALSE;
 
 	if (ctx->in_error)
 		return ctx->in_error;
@@ -531,7 +528,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 		const u8 *data;
 		u32 data_size;
 		Bool frame_ok = GF_FALSE;
-		GF_FFAVPid *ipid = gf_list_get(ctx->ipids, i);
+		GF_FFAVPid *ipid = (GF_FFAVPid *)gf_list_get(ctx->ipids, i);
 		GF_FilterPacket *pck;
 		pck = gf_filter_pid_get_packet(ipid->io_pid);
 
@@ -578,7 +575,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			if (fifce->get_plane) {
 				frame_ok = GF_TRUE;
 				for (j=0; j<ipid->nb_planes; j++) {
-					e = fifce->get_plane(fifce, j, (const u8 **) &ctx->frame->data[j], &ctx->frame->linesize[j]);
+					e = fifce->get_plane(fifce, j, (const u8 **) &ctx->frame->data[j], (u32*) &ctx->frame->linesize[j]);
 					if (e) {
 						frame_ok = GF_FALSE;
 						break;
@@ -645,7 +642,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 	//pull output
 	count = gf_list_count(ctx->opids);
 	for (i=0; i<count; i++) {
-		GF_FFAVPid *opid = gf_list_get(ctx->opids, i);
+		GF_FFAVPid *opid = (GF_FFAVPid *)gf_list_get(ctx->opids, i);
 		if (!nb_eos && gf_filter_pid_would_block(opid->io_pid)) {
 			continue;
 		}
@@ -684,7 +681,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 			//ensure out_size is correct
 			if (update_props) {
-				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac(frame->format, GF_FALSE);
+				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac((enum AVPixelFormat)frame->format, GF_FALSE);
 				opid->pfmt = frame->format;
 				opid->width = frame->width;
 				opid->height = frame->height;
@@ -712,7 +709,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 			//merge properties from source if any
 			if (gf_list_count(ctx->src_packets) && can_merge_props) {
-				GF_FilterPacket *src_pck = gf_list_pop_front(ctx->src_packets);
+				GF_FilterPacket *src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
 				if (src_pck) {
 					gf_filter_pck_merge_properties(src_pck, pck);
 					gf_filter_pck_unref(src_pck);
@@ -721,26 +718,26 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 			//update properties
 			if (update_props) {
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, &PROP_UINT(frame->width));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(frame->height));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, &PROP_UINT((u32) frame->width));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, &PROP_UINT((u32) frame->height));
 				if (ffmpeg_pixfmt_is_fullrange(frame->format)) {
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
 				} else {
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, NULL);
 				}
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(opid->gf_pfmt));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE, &PROP_UINT(frame->linesize[0]));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE, &PROP_UINT((u32) frame->linesize[0]));
 				if (frame->linesize[1])
-					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(frame->linesize[1]));
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, &PROP_UINT((u32) frame->linesize[1]));
 				else
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, NULL);
 
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32) opid->io_filter_ctx->inputs[0]->time_base.den) );
 				AVRational fps = av_buffersink_get_frame_rate(opid->io_filter_ctx);
 				if (fps.num && fps.den) {
-					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(fps.num, fps.den));
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(fps.num, (u32) fps.den));
 				} else {
-					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, opid->io_filter_ctx->inputs[0]->time_base.num));
+					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, (u32) opid->io_filter_ctx->inputs[0]->time_base.num));
 				}
 
 				if (ctx->nb_a_out+ctx->nb_v_out>1) {
@@ -808,7 +805,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 
 			//merge properties from source if any
 			if (gf_list_count(ctx->src_packets) && can_merge_props) {
-				GF_FilterPacket *src_pck = gf_list_pop_front(ctx->src_packets);
+				GF_FilterPacket *src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
 				if (src_pck) {
 					gf_filter_pck_merge_properties(src_pck, pck);
 					gf_filter_pck_unref(src_pck);
@@ -824,12 +821,12 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				u64 ff_ch_layout = (frame->ch_layout.order>=AV_CHANNEL_ORDER_CUSTOM) ? 0 : frame->ch_layout.u.mask;
 #endif
 				u64 gpac_ch_layout = ffmpeg_channel_layout_to_gpac(ff_ch_layout);
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(frame->sample_rate));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT((u32) frame->sample_rate));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(gpac_ch_layout));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 				opid->gf_pfmt = ffmpeg_audio_fmt_to_gpac(frame->format);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(opid->gf_pfmt));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32) opid->io_filter_ctx->inputs[0]->time_base.den) );
 
 				opid->sr = frame->sample_rate;
 				opid->ch_layout = ff_ch_layout;
@@ -883,7 +880,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!p) return GF_BAD_PARAM;
 	streamtype = p->value.uint;
 
-	pid_ctx = gf_filter_pid_get_udta(pid);
+	pid_ctx = (GF_FFAVPid *)gf_filter_pid_get_udta(pid);
 
 	if (is_remove) {
 		if (pid_ctx) {
@@ -892,7 +889,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			if (!ctx->nb_inputs) {
 				ffavf_reset_graph(ctx);
 				while (gf_list_count(ctx->opids)) {
-					GF_FFAVPid *opid = gf_list_pop_back(ctx->opids);
+					GF_FFAVPid *opid = (GF_FFAVPid *)gf_list_pop_back(ctx->opids);
 					//io_filter_ctx is destroyed while resetting the graph
 					gf_filter_pid_remove(opid->io_pid);
 					gf_free(opid);
@@ -1056,19 +1053,19 @@ static void ffavf_finalize(GF_Filter *filter)
 
 	ffavf_reset_graph(ctx);
 	while (gf_list_count(ctx->ipids)) {
-		GF_FFAVPid *ipid = gf_list_pop_back(ctx->ipids);
+		GF_FFAVPid *ipid = (GF_FFAVPid *)gf_list_pop_back(ctx->ipids);
 		//io_filter_ctx is destroyed while resetting the graph
 		gf_free(ipid);
 	}
 	gf_list_del(ctx->ipids);
 	while (gf_list_count(ctx->opids)) {
-		GF_FFAVPid *opid = gf_list_pop_back(ctx->opids);
+		GF_FFAVPid *opid = (GF_FFAVPid *)gf_list_pop_back(ctx->opids);
 		//io_filter_ctx is destroyed while resetting the graph
 		gf_free(opid);
 	}
 	gf_list_del(ctx->opids);
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
@@ -1081,7 +1078,7 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	int ret;
 	char *arg_value;
 
-	GF_FFAVFilterCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFAVFilterCtx *ctx = (GF_FFAVFilterCtx *)gf_filter_get_udta(filter);
 
 	if (!strcmp(arg_name, "f")) {
 		if (ctx->filter_graph) {
@@ -1110,10 +1107,10 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	}
 
 	if (ctx->filter_graph) {
-		char *arg = (char *) arg_name;
+		const char *arg = (char *) arg_name;
 		char szTargetName[101];
 		char szCommandRes[1025];
-		char *target = strchr(arg_name, gf_filter_get_sep(filter, GF_FS_SEP_FRAG));
+		const char *target = strchr(arg_name, gf_filter_get_sep(filter, GF_FS_SEP_FRAG));
 		if (target) {
 			u32 len = (u32) (target - arg_name);
 			if (len>=100) len=100;
@@ -1136,7 +1133,7 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 static Bool ffavf_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FFAVFilterCtx *ctx = gf_filter_get_udta(filter);
+	GF_FFAVFilterCtx *ctx = (GF_FFAVFilterCtx *) gf_filter_get_udta(filter);
 
 	if (evt->base.type == GF_FEVT_PLAY) {
 		if (!ctx->nb_playing && !ctx->nb_inputs) ctx->done = GF_FALSE;

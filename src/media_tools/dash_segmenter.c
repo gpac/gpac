@@ -572,7 +572,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		o_sep_ext = sep_ext;
 		sep_ext+=5;
 	} else {
-		sep_ext = gf_url_colon_suffix(dasher->mpd_name, '=');
+		sep_ext = (char *)gf_url_colon_suffix(dasher->mpd_name, '=');
 		if (sep_ext) {
 			if (sep_ext[1] == '\\') sep_ext = strchr(sep_ext+1, ':');
 			else if (sep_ext[1]=='/') {
@@ -593,153 +593,162 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 	e = gf_dynstrcat(&args, szArg, ":");
 
-	if (sep_ext)
-		e |= gf_dynstrcat(&args, sep_ext+1, ":");
+	if (sep_ext && !e)
+		e = gf_dynstrcat(&args, sep_ext+1, ":");
 
-	if (dasher->single_segment) e |= gf_dynstrcat(&args, "sseg", ":");
-	if (dasher->single_file) e |= gf_dynstrcat(&args, "sfile", ":");
-	if (dasher->use_url_template) e |= gf_dynstrcat(&args, "tpl", ":");
-	if (dasher->use_segment_timeline) e |= gf_dynstrcat(&args, "stl", ":");
-	if (dasher->dash_mode) {
-		e |= gf_dynstrcat(&args, (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) ? "dynlast" : "dynamic", ":");
+	if (dasher->single_segment && !e) e = gf_dynstrcat(&args, "sseg", ":");
+	if (dasher->single_file && !e) e = gf_dynstrcat(&args, "sfile", ":");
+	if (dasher->use_url_template && !e) e = gf_dynstrcat(&args, "tpl", ":");
+	if (dasher->use_segment_timeline && !e) e = gf_dynstrcat(&args, "stl", ":");
+	if (dasher->dash_mode && !e) {
+		e = gf_dynstrcat(&args, (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) ? "dynlast" : "dynamic", ":");
 		//make dasher reschedule by default for MP4Box
-		if (dasher->dash_state || dasher->sub_duration)
-			e |= gf_dynstrcat(&args, "reschedule", ":");
+		if ((dasher->dash_state || dasher->sub_duration) && !e)
+			e = gf_dynstrcat(&args, "reschedule", ":");
 	}
-	if (dasher->disable_segment_alignment) e |= gf_dynstrcat(&args, "!align", ":");
-	if (dasher->enable_mix_codecs) e |= gf_dynstrcat(&args, "mix_codecs", ":");
-	if (dasher->insert_utc) e |= gf_dynstrcat(&args, "ntp=yes", ":");
-	if (dasher->enable_sar_mix) e |= gf_dynstrcat(&args, "no_sar", ":");
-	//forcep not mapped
-	switch (dasher->bitstream_switching_mode) {
-	case GF_DASH_BSMODE_DEFAULT:
-		break;
-	case GF_DASH_BSMODE_NONE:
-		e |= gf_dynstrcat(&args, "bs_switch=off", ":");
-		break;
-	case GF_DASH_BSMODE_INBAND:
-		e |= gf_dynstrcat(&args, "bs_switch=inband", ":");
-		break;
-	case GF_DASH_BSMODE_INBAND_PPS:
-		e |= gf_dynstrcat(&args, "bs_switch=pps", ":");
-		break;
-	case GF_DASH_BSMODE_BOTH:
-		e |= gf_dynstrcat(&args, "bs_switch=both", ":");
-		break;
-	case GF_DASH_BSMODE_MERGED:
-		e |= gf_dynstrcat(&args, "bs_switch=on", ":");
-		break;
-	case GF_DASH_BSMODE_MULTIPLE_ENTRIES:
-		e |= gf_dynstrcat(&args, "bs_switch=multi", ":");
-		break;
-	case GF_DASH_BSMODE_SINGLE:
-		e |= gf_dynstrcat(&args, "bs_switch=force", ":");
-		break;
+	if (dasher->disable_segment_alignment && !e) e = gf_dynstrcat(&args, "!align", ":");
+	if (dasher->enable_mix_codecs && !e) e = gf_dynstrcat(&args, "mix_codecs", ":");
+	if (dasher->insert_utc && !e) e = gf_dynstrcat(&args, "ntp=yes", ":");
+	if (dasher->enable_sar_mix && !e) e = gf_dynstrcat(&args, "no_sar", ":");
+	if (!e) {
+		//forcep not mapped
+		switch (dasher->bitstream_switching_mode) {
+			case GF_DASH_BSMODE_DEFAULT:
+				break;
+			case GF_DASH_BSMODE_NONE:
+				e = gf_dynstrcat(&args, "bs_switch=off", ":");
+				break;
+			case GF_DASH_BSMODE_INBAND:
+				e = gf_dynstrcat(&args, "bs_switch=inband", ":");
+				break;
+			case GF_DASH_BSMODE_INBAND_PPS:
+				e = gf_dynstrcat(&args, "bs_switch=pps", ":");
+				break;
+			case GF_DASH_BSMODE_BOTH:
+				e = gf_dynstrcat(&args, "bs_switch=both", ":");
+				break;
+			case GF_DASH_BSMODE_MERGED:
+				e = gf_dynstrcat(&args, "bs_switch=on", ":");
+				break;
+			case GF_DASH_BSMODE_MULTIPLE_ENTRIES:
+				e = gf_dynstrcat(&args, "bs_switch=multi", ":");
+				break;
+			case GF_DASH_BSMODE_SINGLE:
+				e = gf_dynstrcat(&args, "bs_switch=force", ":");
+				break;
+		}
 	}
 
-	if (dasher->seg_rad_name) {
+	if (dasher->seg_rad_name && !e) {
 		sprintf(szArg, "template=%s", dasher->seg_rad_name);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->seg_ext) {
+	if (dasher->seg_ext && !e) {
 		sprintf(szArg, "segext=%s", dasher->seg_ext);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->seg_init_ext) {
+	if (dasher->seg_init_ext && !e) {
 		sprintf(szArg, "initext=%s", dasher->seg_init_ext);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->ast_offset_ms) {
+	if (dasher->ast_offset_ms && !e) {
 		sprintf(szArg, "asto=%d", -dasher->ast_offset_ms);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
 
-	if (!dasher->skip_profile) {
+	if (!dasher->skip_profile && !e) {
 		switch (dasher->profile) {
 		case GF_DASH_PROFILE_AUTO:
 			break;
 		case GF_DASH_PROFILE_LIVE:
-			e |= gf_dynstrcat(&args, "profile=live", ":");
+			e = gf_dynstrcat(&args, "profile=live", ":");
 			break;
 		case GF_DASH_PROFILE_ONDEMAND:
-			e |= gf_dynstrcat(&args, "profile=onDemand", ":");
+			e = gf_dynstrcat(&args, "profile=onDemand", ":");
 			break;
 		case GF_DASH_PROFILE_MAIN:
-			e |= gf_dynstrcat(&args, "profile=main", ":");
+			e = gf_dynstrcat(&args, "profile=main", ":");
 			break;
 		case GF_DASH_PROFILE_FULL:
-			e |= gf_dynstrcat(&args, "profile=full", ":");
-			if (!dasher->segments_start_with_rap) e |= gf_dynstrcat(&args, "!sap", ":");
+			e = gf_dynstrcat(&args, "profile=full", ":");
+			if (!dasher->segments_start_with_rap && !e) e = gf_dynstrcat(&args, "!sap", ":");
 			break;
 		case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
-			e |= gf_dynstrcat(&args, "profile=hbbtv1.5.live", ":");
+			e = gf_dynstrcat(&args, "profile=hbbtv1.5.live", ":");
 			break;
 		case GF_DASH_PROFILE_AVC264_LIVE:
-			e |= gf_dynstrcat(&args, "profile=dashavc264.live", ":");
+			e = gf_dynstrcat(&args, "profile=dashavc264.live", ":");
 			break;
 		case GF_DASH_PROFILE_AVC264_ONDEMAND:
-			e |= gf_dynstrcat(&args, "profile=dashavc264.onDemand", ":");
+			e = gf_dynstrcat(&args, "profile=dashavc264.onDemand", ":");
 			break;
 		case GF_DASH_PROFILE_DASHIF_LL:
-			e |= gf_dynstrcat(&args, "profile=dashif.ll", ":");
+			e = gf_dynstrcat(&args, "profile=dashif.ll", ":");
 			break;
 		}
 	}
-	if (dasher->cp_location_mode==GF_DASH_CPMODE_REPRESENTATION) e |= gf_dynstrcat(&args, "cp=rep", ":");
-	else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) e |= gf_dynstrcat(&args, "cp=both", ":");
+	if (!e) {
+		if (dasher->cp_location_mode==GF_DASH_CPMODE_REPRESENTATION) e = gf_dynstrcat(&args, "cp=rep", ":");
+		else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) e = gf_dynstrcat(&args, "cp=both", ":");
+	}
 
-	if (dasher->min_buffer_time) {
+	if (dasher->min_buffer_time && !e) {
 		sprintf(szArg, "buf=%d", dasher->min_buffer_time);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->dash_scale != 1000) {
+	if ((dasher->dash_scale != 1000) && !e) {
 		sprintf(szArg, "timescale=%d", dasher->dash_scale);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (!dasher->check_duration) e |= gf_dynstrcat(&args, "!check_dur", ":");
+	if (!dasher->check_duration && !e) e = gf_dynstrcat(&args, "!check_dur", ":");
 	//skip_seg not exposed
 
 
 
-	if (dasher->dash_mode >= GF_DASH_DYNAMIC) {
-		if (dasher->time_shift_depth<0) e |= gf_dynstrcat(&args, "tsb=-1", ":");
+	if ((dasher->dash_mode >= GF_DASH_DYNAMIC) && !e) {
+		if (dasher->time_shift_depth<0)
+			e = gf_dynstrcat(&args, "tsb=-1", ":");
 		else {
 			sprintf(szArg, "tsb=%u", (u32) dasher->time_shift_depth);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
 		if (dasher->utc_start_date) {
 			sprintf(szArg, "ast=%s", dasher->utc_start_date);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (dasher->mpd_update_time) {
 			sprintf(szArg, "refresh=%g", dasher->mpd_update_time);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		else {
 			sprintf(szArg, "refresh=-%g", dasher->mpd_live_duration);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 	}
-	if (dasher->sub_duration) {
+	if (dasher->sub_duration && !e) {
 		//subdur is in seconds in dasher filter
 		sprintf(szArg, "subdur=%g", dasher->sub_duration/dasher->dash_scale);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->dash_state) {
+	if (dasher->dash_state && !e) {
 		sprintf(szArg, "state=%s", dasher->dash_state);
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (! dasher->disable_loop && dasher->dash_state) e |= gf_dynstrcat(&args, "loop", ":");
-	if (dasher->hls_clock) e |= gf_dynstrcat(&args, "hlsc", ":");
+	if (! dasher->disable_loop && dasher->dash_state && !e)
+		e = gf_dynstrcat(&args, "loop", ":");
+	if (dasher->hls_clock && !e)
+		e = gf_dynstrcat(&args, "hlsc", ":");
 
 	//the rest is not yet exposed through the old api, but can be set through output file name
 
-	if (dasher->dash_mode>=GF_DASH_DYNAMIC) {
-	 	sprintf(szArg, "_p_gentime=%p", &dasher->next_gen_ntp_ms);
-	 	e |= gf_dynstrcat(&args, szArg, ":");
-	 	sprintf(szArg, "_p_mpdtime=%p", &dasher->mpd_time_ms);
-	 	e |= gf_dynstrcat(&args, szArg, ":");
+	if ((dasher->dash_mode>=GF_DASH_DYNAMIC)  && !e) {
+		sprintf(szArg, "_p_gentime=%p", &dasher->next_gen_ntp_ms);
+		e = gf_dynstrcat(&args, szArg, ":");
+		if (!e) {
+			sprintf(szArg, "_p_mpdtime=%p", &dasher->mpd_time_ms);
+			e = gf_dynstrcat(&args, szArg, ":");
+		}
 	}
 
 	//append ISOBMFF options
@@ -747,55 +756,59 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		Double diff = dasher->fragment_duration;
 		diff -= dasher->segment_duration;
 		if (diff<0) diff = -diff;
-		if (diff > 0.01) {
+		if ((diff > 0.01) && !e) {
 			if (dasher->fragment_duration == (u32) dasher->fragment_duration) {
 				sprintf(szArg, "cdur=%u/%u", (u32) dasher->fragment_duration, dasher->dash_scale);
 			} else {
 				sprintf(szArg, "cdur=%g", dasher->fragment_duration/dasher->dash_scale);
 			}
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 	}
-	if (dasher->segment_marker_4cc) {
+	if (dasher->segment_marker_4cc && !e) {
 		sprintf(szArg, "m4cc=%s", gf_4cc_to_str(dasher->segment_marker_4cc) );
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->daisy_chain_sidx) e |= gf_dynstrcat(&args, "chain_sidx", ":");
-	if (dasher->use_ssix) e |= gf_dynstrcat(&args, "ssix", ":");
-	if (dasher->initial_moof_sn) {
+	if (dasher->daisy_chain_sidx && !e)
+		e = gf_dynstrcat(&args, "chain_sidx", ":");
+	if (dasher->use_ssix && !e)
+		e = gf_dynstrcat(&args, "ssix", ":");
+	if (dasher->initial_moof_sn && !e) {
 		sprintf(szArg, "msn=%d", dasher->initial_moof_sn );
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->initial_tfdt) {
-		sprintf(szArg, "tfdt="LLU"", dasher->initial_tfdt );
-		e |= gf_dynstrcat(&args, szArg, ":");
+	if (dasher->initial_tfdt && !e) {
+		sprintf(szArg, "tfdt=" LLU "", dasher->initial_tfdt );
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->no_fragments_defaults) e |= gf_dynstrcat(&args, "nofragdef", ":");
-	if (dasher->single_traf_per_moof) e |= gf_dynstrcat(&args, "straf", ":");
-	if (dasher->single_trun_per_traf) e |= gf_dynstrcat(&args, "strun", ":");
-	switch (dasher->pssh_mode) {
-	case GF_DASH_PSSH_MOOV:
-		e |= gf_dynstrcat(&args, "pssh=v", ":");
-		break;
-	case GF_DASH_PSSH_MOOV_MPD:
-		e |= gf_dynstrcat(&args, "pssh=mv", ":");
-		break;
-	case GF_DASH_PSSH_MOOF:
-		e |= gf_dynstrcat(&args, "pssh=f", ":");
-		break;
-	case GF_DASH_PSSH_MOOF_MPD:
-		e |= gf_dynstrcat(&args, "pssh=mf", ":");
-		break;
-	case GF_DASH_PSSH_MPD:
-		e |= gf_dynstrcat(&args, "pssh=m", ":");
-		break;
-	case GF_DASH_PSSH_NONE:
-		e |= gf_dynstrcat(&args, "pssh=n", ":");
-		break;
+	if (dasher->no_fragments_defaults && !e) e = gf_dynstrcat(&args, "nofragdef", ":");
+	if (dasher->single_traf_per_moof && !e) e = gf_dynstrcat(&args, "straf", ":");
+	if (dasher->single_trun_per_traf && !e) e = gf_dynstrcat(&args, "strun", ":");
+	if (!e) {
+		switch (dasher->pssh_mode) {
+			case GF_DASH_PSSH_MOOV:
+				e = gf_dynstrcat(&args, "pssh=v", ":");
+				break;
+			case GF_DASH_PSSH_MOOV_MPD:
+				e = gf_dynstrcat(&args, "pssh=mv", ":");
+				break;
+			case GF_DASH_PSSH_MOOF:
+				e = gf_dynstrcat(&args, "pssh=f", ":");
+				break;
+			case GF_DASH_PSSH_MOOF_MPD:
+				e = gf_dynstrcat(&args, "pssh=mf", ":");
+				break;
+			case GF_DASH_PSSH_MPD:
+				e = gf_dynstrcat(&args, "pssh=m", ":");
+				break;
+			case GF_DASH_PSSH_NONE:
+				e = gf_dynstrcat(&args, "pssh=n", ":");
+				break;
+		}
 	}
 
 
-	if (dasher->samplegroups_in_traf) e |= gf_dynstrcat(&args, "sgpd_traf", ":");
+	if (dasher->samplegroups_in_traf && !e) e = gf_dynstrcat(&args, "sgpd_traf", ":");
 	//if llhls or asto is specified in manifest name or globally, disable subsegs_per_sidx
 	if (sep_ext && !dasher->subsegs_per_sidx && (
 		strstr(sep_ext+1, "llhls")
@@ -803,69 +816,69 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		|| gf_sys_find_global_arg("llhls")
 		|| gf_sys_find_global_arg("asto")
 	)) {
-		dasher->enable_sidx = 0;
+		dasher->enable_sidx = GF_FALSE;
 	}
 
-	if (dasher->enable_sidx) {
+	if (dasher->enable_sidx && !e) {
 		sprintf(szArg, "subs_sidx=%d", dasher->subsegs_per_sidx );
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
 
-	if (dasher->fragments_start_with_rap) e |= gf_dynstrcat(&args, "sfrag", ":");
+	if (dasher->fragments_start_with_rap && !e) e = gf_dynstrcat(&args, "sfrag", ":");
 
-	if (dasher->cues_file) {
+	if (dasher->cues_file && !e) {
 		sprintf(szArg, "cues=%s", dasher->cues_file );
-		e |= gf_dynstrcat(&args, szArg, ":");
+		e = gf_dynstrcat(&args, szArg, ":");
 	}
-	if (dasher->strict_cues) e |= gf_dynstrcat(&args, "strict_cues", ":");
+	if (dasher->strict_cues && !e) e = gf_dynstrcat(&args, "strict_cues", ":");
 
-	if (dasher->mvex_after_traks) e |= gf_dynstrcat(&args, "mvex", ":");
-	if (dasher->sdtp_in_traf==1) e |= gf_dynstrcat(&args, "sdtp_traf=sdtp", ":");
-	else if (dasher->sdtp_in_traf==2) e |= gf_dynstrcat(&args, "sdtp_traf=both", ":");
+	if (dasher->mvex_after_traks && !e) e = gf_dynstrcat(&args, "mvex", ":");
+	if ((dasher->sdtp_in_traf==1) && !e) e = gf_dynstrcat(&args, "sdtp_traf=sdtp", ":");
+	else if ((dasher->sdtp_in_traf==2) && !e) e = gf_dynstrcat(&args, "sdtp_traf=both", ":");
 
-	if (dasher->split_mode==GF_DASH_SPLIT_CLOSEST)
-		e |= gf_dynstrcat(&args, "sbound=closest", ":");
-	else if (dasher->split_mode==GF_DASH_SPLIT_IN)
-		e |= gf_dynstrcat(&args, "sbound=in", ":");
+	if ((dasher->split_mode==GF_DASH_SPLIT_CLOSEST) && !e)
+		e = gf_dynstrcat(&args, "sbound=closest", ":");
+	else if ((dasher->split_mode==GF_DASH_SPLIT_IN) && !e)
+		e = gf_dynstrcat(&args, "sbound=in", ":");
 
-	if (dasher->merge_last_seg)
-		e |= gf_dynstrcat(&args, "last_seg_merge", ":");
+	if (dasher->merge_last_seg && !e)
+		e = gf_dynstrcat(&args, "last_seg_merge", ":");
 
-	if (dasher->keep_utc)
-		e |= gf_dynstrcat(&args, "keep_utc", ":");
+	if (dasher->keep_utc && !e)
+		e = gf_dynstrcat(&args, "keep_utc", ":");
 
 	//finally append profiles/info/etc with double separators as these may contain ':'
-	if (dasher->dash_profile_extension) {
+	if (dasher->dash_profile_extension && !e) {
 		sprintf(szArg, "profX=%s", dasher->dash_profile_extension);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->title) {
+	if (dasher->title && !e) {
 		sprintf(szArg, "title=%s", dasher->title);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->sourceInfo) {
+	if (dasher->sourceInfo && !e) {
 		sprintf(szArg, "source=%s", dasher->sourceInfo);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->moreInfoURL) {
+	if (dasher->moreInfoURL && !e) {
 		sprintf(szArg, "info=%s", dasher->moreInfoURL);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->copyright) {
+	if (dasher->copyright && !e) {
 		sprintf(szArg, "cprt=%s", dasher->copyright);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->lang) {
+	if (dasher->lang && !e) {
 		sprintf(szArg, "lang=%s", dasher->lang);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->locations) {
+	if (dasher->locations && !e) {
 		sprintf(szArg, "location=%s", dasher->locations);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
-	if (dasher->base_urls) {
+	if (dasher->base_urls && !e) {
 		sprintf(szArg, "base=%s", dasher->base_urls);
-		e |= gf_dynstrcat(&args, szArg, "::");
+		e = gf_dynstrcat(&args, szArg, "::");
 	}
 
 	dasher->dash_mode_changed = GF_FALSE;
@@ -893,7 +906,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	count = gf_list_count(dasher->inputs);
 
 	for (i=0; i<count; i++) {
-		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+		GF_DashSegmenterInput *di = (GF_DashSegmenterInput *)gf_list_get(dasher->inputs, i);
 		if (di->periodID || (di->period_duration.num && di->period_duration.den) || di->xlink) {
 			multi_period = GF_TRUE;
 		}
@@ -904,13 +917,13 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		for (i=0; i<count; i++) {
 			u32 j;
 			GF_DashSegmenterInput *a_di = NULL;
-			GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+			GF_DashSegmenterInput *di = (GF_DashSegmenterInput *)gf_list_get(dasher->inputs, i);
 			if (!di->periodID) {
 				di->period_order = 0;
 				continue;
 			}
 			for (j=0; j<count; j++) {
-				a_di = gf_list_get(dasher->inputs, j);
+				a_di = (GF_DashSegmenterInput *)gf_list_get(dasher->inputs, j);
 				if ((a_di != di) && a_di->periodID && !strcmp(a_di->periodID, di->periodID))
 					break;
 				a_di = NULL;
@@ -924,7 +937,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 	}
 	for (i=0; i<count; i++) {
-		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+		GF_DashSegmenterInput *di = (GF_DashSegmenterInput *)gf_list_get(dasher->inputs, i);
 		if (di->filter_chain) {
 			use_filter_chains = GF_TRUE;
 			break;
@@ -938,7 +951,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		GF_Filter *rt = NULL;
 		const char *url = NULL;
 		char *frag=NULL;
-		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
+		GF_DashSegmenterInput *di = (GF_DashSegmenterInput *)gf_list_get(dasher->inputs, i);
 
 		if (dasher->real_time) {
 			rt = gf_fs_load_filter(dasher->fsess, "reframer:rt=sync", NULL);
@@ -947,7 +960,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			url = di->file_name;
 
 		if (url) {
-			frag = strrchr(di->file_name, '#');
+			frag = (char *)strrchr(di->file_name, '#');
 			if (frag) frag[0] = 0;
 		}
 
@@ -956,7 +969,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		e = gf_dynstrcat(&args, "smode=splitx", ":");
 
 		szSourceID[0] = 0;
-		if (frag) {
+		if (frag && !e) {
 			char *frag_val;
 			u32 fID = 0;
 			if (!strncmp(frag+1, "trackID=", 8)) frag_val = frag + 9;
@@ -975,137 +988,143 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			if (fID || !strcmp(frag_val, "audio") || !strcmp(frag_val, "video") || (strlen(frag_val)==4)) {
 				//we set tkid for demuxers able to fetch specific tracks (eg isobmf)
 				sprintf(szArg, "tkid=%s", frag_val);
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			}
-		} else if (di->track_id) {
+		} else if (di->track_id && !e) {
 			sprintf(szSourceID, "PID=%d", di->track_id);
 			//we set tkid for isobmf
 			sprintf(szArg, "tkid=%d", di->track_id);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		if (szSourceID[0]) source_id = szSourceID;
 
-		if (di->source_opts) {
-			e |= gf_dynstrcat(&args, di->source_opts, ":");
+		if (di->source_opts && !e) {
+			e = gf_dynstrcat(&args, di->source_opts, ":");
 		}
 
 		//set all args
-		if (!use_filter_chains && di->representationID && strcmp(di->representationID, "NULL")) {
+		if (!use_filter_chains && di->representationID && strcmp(di->representationID, "NULL") && !e) {
 			sprintf(szArg, "#Representation=%s", di->representationID );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->periodID) {
+		if (di->periodID && !e) {
 			sprintf(szArg, "#Period=%s", di->periodID );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->asID)  {
+		if (di->asID && !e)  {
 			sprintf(szArg, "#ASID=%d", di->asID );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 		//period start as negative to keep declaration order
-		if (multi_period && di->period_order) {
+		if (multi_period && di->period_order && !e) {
 			sprintf(szArg, "#PStart=-%d", di->period_order);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
-		if (di->period_duration.num && di->period_duration.den) {
+		if (di->period_duration.num && di->period_duration.den && !e) {
 			if (di->period_duration.den==1)
 				sprintf(szArg, "#PDur=%d", di->period_duration.num );
 			else
 				sprintf(szArg, "#PDur=%d/%u", di->period_duration.num, di->period_duration.den );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
-		if (di->dash_duration.num && di->dash_duration.den) {
+		if (di->dash_duration.num && di->dash_duration.den && !e) {
 			if (di->dash_duration.den==1)
 				sprintf(szArg, "#DashDur=%d", di->dash_duration.num );
 			else
 				sprintf(szArg, "#DashDur=%d/%u", di->dash_duration.num, di->dash_duration.den);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (url && di->media_duration.num && di->media_duration.den) {
-			sprintf(szArg, "#ClampDur="LLU"/"LLD"", di->media_duration.num, di->media_duration.den );
-			e |= gf_dynstrcat(&args, szArg, ":");
+		if (url && di->media_duration.num && di->media_duration.den && !e) {
+			sprintf(szArg, "#ClampDur=" LLU "/" LLD "", di->media_duration.num, di->media_duration.den );
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
-		if (di->xlink) {
+		if (di->xlink && !e) {
 			sprintf(szArg, "#xlink=%s", di->xlink );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->bandwidth)  {
+		if (di->bandwidth && !e)  {
 			sprintf(szArg, "#Bitrate=%d", di->bandwidth );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 			sprintf(szArg, "#Maxrate=%d", di->bandwidth );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			if (!e) e = gf_dynstrcat(&args, szArg, ":");
 		}
 
 		for (j=0;j<di->nb_baseURL; j++) {
+			if (e) break;
 			if (!j) {
 				sprintf(szArg, "#BUrl=%s", di->baseURL[j] );
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			} else {
-				e |= gf_dynstrcat(&args, di->baseURL[j], ",");
+				e = gf_dynstrcat(&args, di->baseURL[j], ",");
 			}
 		}
 		for (j=0;j<di->nb_roles; j++) {
+			if (e) break;
 			if (!j) {
 				sprintf(szArg, "#Role=%s", di->roles[j] );
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			} else {
-				e |= gf_dynstrcat(&args, di->roles[j], ",");
+				e = gf_dynstrcat(&args, di->roles[j], ",");
 			}
 		}
 
 		for (j=0;j<di->nb_rep_descs; j++) {
+			if (e) break;
 			if (!j) {
 				sprintf(szArg, "#RDesc=%s", di->rep_descs[j] );
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			} else {
-				e |= gf_dynstrcat(&args, di->rep_descs[j], ",");
+				e = gf_dynstrcat(&args, di->rep_descs[j], ",");
 			}
 		}
 
 		for (j=0;j<di->nb_p_descs; j++) {
+			if (e) break;
 			if (!j) {
 				sprintf(szArg, "#PDesc=%s", di->p_descs[j] );
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			} else {
-				e |= gf_dynstrcat(&args, di->p_descs[j], ",");
+				e = gf_dynstrcat(&args, di->p_descs[j], ",");
 			}
 		}
 
 		for (j=0;j<di->nb_as_descs; j++) {
+			if (e) break;
 			if (!j) {
 				sprintf(szArg, "#ASDesc=%s", di->as_descs[j] );
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			} else {
-				e |= gf_dynstrcat(&args, di->as_descs[j], ",");
+				e = gf_dynstrcat(&args, di->as_descs[j], ",");
 			}
 		}
 
 		for (j=0;j<di->nb_as_c_descs; j++) {
+			if (e) break;
 			if (!j) {
 				sprintf(szArg, "#ASCDesc=%s", di->as_c_descs[j] );
-				e |= gf_dynstrcat(&args, szArg, ":");
+				e = gf_dynstrcat(&args, szArg, ":");
 			} else {
-				e |= gf_dynstrcat(&args, di->as_c_descs[j], ",");
+				e = gf_dynstrcat(&args, di->as_c_descs[j], ",");
 			}
 		}
 
-		if (di->startNumber) {
+		if (di->startNumber && !e) {
 			sprintf(szArg, "#StartNumber=%d", di->startNumber );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->seg_template) {
+		if (di->seg_template && !e) {
 			sprintf(szArg, "#Template=%s", di->seg_template );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->hls_pl) {
+		if (di->hls_pl && !e) {
 			sprintf(szArg, "#HLSPL=%s", di->hls_pl );
-			e |= gf_dynstrcat(&args, szArg, ":");
+			e = gf_dynstrcat(&args, szArg, ":");
 		}
 
-		if (di->sscale) e |= gf_dynstrcat(&args, "#SingleScale=true", ":");
+		if (di->sscale && !e) e = gf_dynstrcat(&args, "#SingleScale=true", ":");
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to setup source arguments for %s\n", di->file_name));
@@ -1213,7 +1232,7 @@ GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32
 		u32 i=0;
 		e = GF_NON_COMPLIANT_BITSTREAM;
 		//extract "gpac:next_gen_time" but don't load a full MPD, not needed
-		while (root && (att = gf_list_enum(root->attributes, &i))) {
+		while (root && (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
 			if (!strcmp(att->name, "gpac:next_gen_time")) {
 				sscanf(att->value, LLU, &next_gen_ntp);
 				e = GF_OK;

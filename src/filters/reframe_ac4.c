@@ -69,7 +69,7 @@ typedef struct
 GF_Err ac4dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_AC4DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4DmxCtx *ctx = (GF_AC4DmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -113,7 +113,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	GF_AC4Config hdr = {0};
+	GF_AC4Config hdr;
 	u64 duration, rate;
 	u32 sample_rate = 0;
 	const GF_PropertyValue *p;
@@ -141,6 +141,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration = 0;
+	memset(&hdr, 0, sizeof(GF_AC4Config));
 
 	// duration
 	while (gf_ac4_parser_bs(bs, &hdr, GF_FALSE, GF_FALSE)) {
@@ -150,7 +151,7 @@ static void ac4dmx_check_dur(GF_Filter *filter, GF_AC4DmxCtx *ctx)
 		if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 		else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 
-		ctx->indexes = gf_realloc(ctx->indexes, sizeof(AC4Idx)*ctx->index_alloc_size);
+		ctx->indexes = (AC4Idx *)gf_realloc(ctx->indexes, sizeof(AC4Idx)*ctx->index_alloc_size);
 		ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs) + hdr.header_size;
 		ctx->indexes[ctx->index_size].duration = (Double) duration;
 		ctx->indexes[ctx->index_size].duration /= hdr.sample_rate;
@@ -247,7 +248,7 @@ static Bool ac4dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_AC4DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4DmxCtx *ctx = (GF_AC4DmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	if (evt->base.type == GF_FEVT_PLAY) {
@@ -307,7 +308,7 @@ static Bool ac4dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err ac4dmx_process(GF_Filter *filter)
 {
-	GF_AC4DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4DmxCtx *ctx = (GF_AC4DmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *output;
 	u8 *start;
@@ -359,7 +360,7 @@ restart:
 		// copy to ctx->ac4_buffer
 		if (ctx->ac4_buffer_size + pck_size > ctx->ac4_buffer_alloc) {
 			ctx->ac4_buffer_alloc = ctx->ac4_buffer_size + pck_size;
-			ctx->ac4_buffer = gf_realloc(ctx->ac4_buffer, ctx->ac4_buffer_alloc);
+			ctx->ac4_buffer = (u8 *)gf_realloc(ctx->ac4_buffer, ctx->ac4_buffer_alloc);
 		}
 		memcpy(ctx->ac4_buffer + ctx->ac4_buffer_size, data, pck_size);
 		ctx->ac4_buffer_size += pck_size;
@@ -526,7 +527,7 @@ restart:
 
 static void ac4dmx_finalize(GF_Filter *filter)
 {
-	GF_AC4DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC4DmxCtx *ctx = (GF_AC4DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->ac4_buffer) gf_free(ctx->ac4_buffer);
 	if (ctx->indexes) gf_free(ctx->indexes);
@@ -539,12 +540,13 @@ static const char *ac4dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 {
 	u32 nb_frames = 0, sync_framesize = 0, pos = 0;
 	u32 nb_broken_frames = GF_FALSE;
-	GF_AC4Config ahdr = {0};
+	GF_AC4Config ahdr;
+	memset(&ahdr, 0, sizeof(GF_AC4Config));
 
-	u32 lt = gf_log_get_tool_level(GF_LOG_CODING);
+	GF_LOG_Level lt = gf_log_get_tool_level(GF_LOG_CODING);
 	gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
 
-	GF_BitStream *bs = gf_bs_new(_data, _size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)_data, _size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs) && nb_frames <= 4) {
 		Bool bytes_lost=GF_FALSE;
 		if (!gf_ac4_parser_bs(bs, &ahdr, GF_TRUE, GF_FALSE)) {

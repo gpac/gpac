@@ -53,6 +53,9 @@ static u32 gf_bs_read_int_log_idx3(GF_BitStream *bs, u32 nBits, const char *fnam
 #define gf_bs_read_int_log_idx(_bs, _nBits, _fname, _idx) gf_bs_read_int_log_idx3(_bs, _nBits, _fname, _idx, -1, -1)
 #define gf_bs_read_int_log_idx2(_bs, _nBits, _fname, _idx1, _idx2) gf_bs_read_int_log_idx3(_bs, _nBits, _fname, (s32) _idx1, (s32) _idx2, -1)
 
+#define gf_bs_read_bool_log(_bs, _fname) gf_bs_read_int_log_idx3(_bs, 1, _fname, -1, -1, -1) ? GF_TRUE : GF_FALSE
+#define gf_bs_read_bool_log_idx(_bs, _fname, _idx) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, _idx, -1, -1)
+#define gf_bs_read_bool_log_idx2(_bs, _fname, _idx1, _idx2) (Bool) gf_bs_read_int_log_idx3(_bs, 1, _fname, (s32) _idx1, (s32) _idx2, -1)
 
 #else
 
@@ -266,13 +269,13 @@ struct __tag_m4v_parser
 };
 
 GF_EXPORT
-GF_M4VParser *gf_m4v_parser_new(u8 *data, u64 data_size, Bool mpeg12video)
+GF_M4VParser *gf_m4v_parser_new(const u8 *data, u64 data_size, Bool mpeg12video)
 {
 	GF_M4VParser *tmp;
 	if (!data || !data_size) return NULL;
 	GF_SAFEALLOC(tmp, GF_M4VParser);
 	if (!tmp) return NULL;
-	tmp->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	tmp->bs = gf_bs_new((u8*)data, data_size, GF_BITSTREAM_READ);
 	tmp->mpeg12 = mpeg12video;
 	return tmp;
 }
@@ -303,7 +306,7 @@ void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v)
 GF_EXPORT
 void gf_m4v_parser_set_inspect(GF_M4VParser *m4v)
 {
-	if (m4v) m4v->step_mode = 1;
+	if (m4v) m4v->step_mode = GF_TRUE;
 }
 GF_EXPORT
 u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v)
@@ -316,7 +319,7 @@ u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v)
 s32 M4V_LoadObject(GF_M4VParser *m4v)
 {
 	u32 v, bpos, found;
-	char m4v_cache[M4V_CACHE_SIZE];
+	u8 m4v_cache[M4V_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	if (!m4v) return 0;
 	if (m4v->force_next_obj_type) {
@@ -372,7 +375,7 @@ void gf_m4v_rewrite_pl(u8 **o_data, u32 *o_dataLen, u8 PL)
 		pos++;
 	}
 	/*emulate VOS at beggining*/
-	(*o_data) = (char *)gf_malloc(sizeof(char)*(dataLen + 5));
+	(*o_data) = (u8 *)gf_malloc(dataLen + 5);
 	(*o_data)[0] = 0;
 	(*o_data)[1] = 0;
 	(*o_data)[2] = 1;
@@ -417,7 +420,7 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 		switch (o_type) {
 		case M2V_SEQ_START_CODE:
 			dsi->RAP_stream = 1;
-			gf_bs_read_data(m4v->bs, (char *)p, 4);
+			gf_bs_read_data(m4v->bs,p, 4);
 			dsi->width = (p[0] << 4) | ((p[1] >> 4) & 0xf);
 			dsi->height = ((p[1] & 0xf) << 8) | p[2];
 
@@ -485,11 +488,11 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			}
 			break;
 		case M2V_EXT_START_CODE:
-			gf_bs_read_data(m4v->bs, (char *)p, 4);
+			gf_bs_read_data(m4v->bs,p, 4);
 			ext_type = ((p[0] >> 4) & 0xf);
 			if (ext_type == 1) {
 				dsi->VideoPL = (p[0]&0xf) | ((p[1] >> 4) & 0xf);
-				dsi->progresive = (p[1] & 0x8) ? 1 : 0;
+				dsi->progresive = (p[1] & 0x8) ? GF_TRUE : GF_FALSE;
 				dsi->chroma_fmt = (p[1]>>1) & 0x3;
 				dsi->height = ((p[1] & 0x1) << 13) | ((p[2] & 0x80) << 5) | (dsi->height & 0x0fff);
 				dsi->width = (((p[2] >> 5) & 0x3) << 12) | (dsi->width & 0x0fff);
@@ -583,7 +586,7 @@ static void gf_m4v_parse_vol(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 		gf_bs_read_int(m4v->bs, 1); //marker bit
 		dsi->height = gf_bs_read_int(m4v->bs, 13);
 		gf_bs_read_int(m4v->bs, 1); //marker bit
-		dsi->progresive = !gf_bs_read_int(m4v->bs, 1);
+		dsi->progresive = gf_bs_read_int(m4v->bs, 1) ? GF_FALSE : GF_TRUE;
 	} else {
 		dsi->width = dsi->height = 0;
 	}
@@ -674,7 +677,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 				firstObj = 0;
 			}
 			hasVOP = 1;
-			*is_coded = 1;
+			*is_coded = GF_TRUE;
 
 			/*val = */gf_bs_read_u8(m4v->bs);
 			val = gf_bs_read_u8(m4v->bs);
@@ -726,7 +729,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi
 	*size = 0;
 	firstObj = 1;
 	hasVOP = 0;
-	*is_coded = 0;
+	*is_coded = GF_FALSE;
 	m4v->current_object_type = (u32)-1;
 	*frame_type = 0;
 	*start = 0;
@@ -774,7 +777,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi
 			/*marker*/
 			gf_bs_read_int(m4v->bs, 1);
 			/*coded*/
-			*is_coded = gf_bs_read_int(m4v->bs, 1);
+			*is_coded = gf_bs_read_bool(m4v->bs);
 			gf_bs_align(m4v->bs);
 			break;
 		case M4V_GOV_START_CODE:
@@ -830,9 +833,9 @@ GF_Err gf_m4v_rewrite_par(u8 **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 	u64 start, end, size;
 	GF_BitStream *mod;
 	GF_M4VParser *m4v;
-	Bool go = 1;
+	Bool go = GF_TRUE;
 
-	m4v = gf_m4v_parser_new(*o_data, *o_dataLen, 0);
+	m4v = gf_m4v_parser_new(*o_data, *o_dataLen, GF_FALSE);
 	mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	start = 0;
@@ -877,8 +880,8 @@ GF_Err gf_m4v_rewrite_par(u8 **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 			else {
 				gf_bs_write_int(mod, 0x0, 4);
 			}
-		case -1:
-			go = 0;
+		case (u32) -1:
+			go = GF_FALSE;
 			break;
 		default:
 			break;
@@ -905,18 +908,18 @@ u64 gf_m4v_get_object_start(GF_M4VParser *m4v)
 #if 0 //unused
 Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v)
 {
-	return ((s32)m4v->current_object_type == -1) ? 0 : 1;
+	return ((s32)m4v->current_object_type == -1) ? GF_FALSE : GF_TRUE;
 }
 #endif
 
 
 GF_EXPORT
-GF_Err gf_m4v_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
+GF_Err gf_m4v_get_config(const u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 {
 	GF_Err e;
 	GF_M4VParser *vparse;
 	if (!rawdsi || !rawdsi_size) return GF_NON_COMPLIANT_BITSTREAM;
-	vparse = gf_m4v_parser_new(rawdsi, rawdsi_size, 0);
+	vparse = gf_m4v_parser_new(rawdsi, rawdsi_size, GF_FALSE);
 	e = gf_m4v_parse_config(vparse, dsi);
 	dsi->next_object_start = (u32)vparse->current_object_start;
 	gf_m4v_parser_del(vparse);
@@ -924,7 +927,7 @@ GF_Err gf_m4v_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 }
 
 GF_EXPORT
-GF_Err gf_mpegv12_get_config(u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
+GF_Err gf_mpegv12_get_config(const u8 *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 {
 	GF_Err e;
 	GF_M4VParser *vparse;
@@ -1125,7 +1128,7 @@ GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *
 {
 	u32 i;
 
-	cfg->program_config_element_present = 1;
+	cfg->program_config_element_present = GF_TRUE;
 	cfg->cpe_channels = 0;
 
 	cfg->element_instance_tag = gf_bs_read_int_log(bs, 4, "element_instance_tag");
@@ -1137,18 +1140,18 @@ GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *
 	cfg->num_lfe_channel_elements = gf_bs_read_int_log(bs, 2, "num_lfe_channel_elements");
 	cfg->num_assoc_data_elements = gf_bs_read_int_log(bs, 3, "num_assoc_data_elements");
 	cfg->num_valid_cc_elements = gf_bs_read_int_log(bs, 4, "num_valid_cc_elements");
-	cfg->mono_mixdown_present = (Bool)gf_bs_read_int_log(bs, 1, "mono_mixdown_present");
+	cfg->mono_mixdown_present = (Bool)gf_bs_read_bool_log(bs, "mono_mixdown_present");
 	if (cfg->mono_mixdown_present) {
 		cfg->mono_mixdown_element_number = gf_bs_read_int_log(bs, 4, "mono_mixdown_element_number");
 	}
-	cfg->stereo_mixdown_present = gf_bs_read_int_log(bs, 1, "stereo_mixdown_present");
+	cfg->stereo_mixdown_present = gf_bs_read_bool_log(bs, "stereo_mixdown_present");
 	if (cfg->stereo_mixdown_present) {
 		cfg->stereo_mixdown_element_number = gf_bs_read_int_log(bs, 4, "stereo_mixdown_element_number");
 	}
-	cfg->matrix_mixdown_idx_present = gf_bs_read_int_log(bs, 1, "matrix_mixdown_idx_present");
+	cfg->matrix_mixdown_idx_present = gf_bs_read_bool_log(bs, "matrix_mixdown_idx_present");
 	if (cfg->matrix_mixdown_idx_present) {
 		cfg->matrix_mixdown_idx = gf_bs_read_int_log(bs, 2, "matrix_mixdown_idx");
-		cfg->pseudo_surround_enable = gf_bs_read_int_log(bs, 1, "pseudo_surround_enable");
+		cfg->pseudo_surround_enable = gf_bs_read_bool_log(bs, "pseudo_surround_enable");
 	}
 	for (i = 0; i < cfg->num_front_channel_elements; i++) {
 		cfg->front_element_is_cpe[i] = gf_bs_read_int_log_idx(bs, 1, "front_element_is_cpe", i);
@@ -1179,7 +1182,7 @@ GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *
 	gf_bs_align(bs);
 	cfg->comment_field_bytes = gf_bs_read_int_log(bs, 8, "comment_field_bytes");
 	if (gf_bs_available(bs) < cfg->comment_field_bytes) return GF_NON_COMPLIANT_BITSTREAM;
-	gf_bs_read_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
+	gf_bs_read_data(bs,cfg->comments, cfg->comment_field_bytes);
 
 	cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
 	cfg->nb_chan += cfg->cpe_channels;
@@ -1213,7 +1216,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	audio_obj_type = cfg->base_object_type;
 	if (cfg->base_object_type == 5 || cfg->base_object_type == 29) {
 		if (cfg->base_object_type == 29) {
-			cfg->has_ps = 1;
+			cfg->has_ps = GF_TRUE;
 			cfg->nb_chan = 1;
 		}
 		cfg->has_sbr = GF_TRUE;
@@ -1250,10 +1253,10 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	case 42:
 	{
 		Bool ext_flag;
-		gf_bs_read_int_log(bs, 1, "frame_length_flag");
-		if (gf_bs_read_int_log(bs, 1, "depends_on_core_coder"))
+		gf_bs_read_bool_log(bs, "frame_length_flag");
+		if (gf_bs_read_bool_log(bs, "depends_on_core_coder"))
 			gf_bs_read_int_log(bs, 14, "delay");
-		ext_flag = gf_bs_read_int_log(bs, 1, "extension_flag");
+		ext_flag = gf_bs_read_bool_log(bs, "extension_flag");
 
 		if (!cfg->chan_cfg) {
 			GF_Err e = gf_m4a_parse_program_config_element(bs, cfg);
@@ -1273,11 +1276,11 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 				|| (cfg->base_object_type == 20)
 				|| (cfg->base_object_type == 23)
 			) {
-				gf_bs_read_int_log(bs, 1, "aacSectionDataResilienceFlag");
-				gf_bs_read_int_log(bs, 1, "aacScalefactorDataResilienceFlag");
-				gf_bs_read_int_log(bs, 1, "aacSpectralDataResilienceFlag");
+				gf_bs_read_bool_log(bs, "aacSectionDataResilienceFlag");
+				gf_bs_read_bool_log(bs, "aacScalefactorDataResilienceFlag");
+				gf_bs_read_bool_log(bs, "aacSpectralDataResilienceFlag");
 			}
-			gf_bs_read_int_log(bs, 1, "extensionFlag3");
+			gf_bs_read_bool_log(bs, "extensionFlag3");
 		}
 	}
 	break;
@@ -1299,7 +1302,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		if ((epConfig == 2) || (epConfig == 3)) {
 		}
 		if (epConfig == 3) {
-			gf_bs_read_int_log(bs, 1, "directMapping");
+			gf_bs_read_bool_log(bs, "directMapping");
 		}
 	}
 	break;
@@ -1311,7 +1314,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			if (sync == 0x2b7) {
 				gf_bs_read_int_log(bs, 11, "syncExtensionType");
 				cfg->sbr_object_type = gf_bs_read_int_log(bs, 5, "extensionAudioObjectType ");
-				cfg->has_sbr = gf_bs_read_int_log(bs, 1, "sbrPresentFlag");
+				cfg->has_sbr = gf_bs_read_bool_log(bs, "sbrPresentFlag");
 				if (cfg->has_sbr) {
 					cfg->sbr_sr_index = gf_bs_read_int_log(bs, 4, "extensionSamplingFrequencyIndex");
 					if (cfg->sbr_sr_index == 0x0F) {
@@ -1324,7 +1327,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			}
 			else if (sync == 0x548) {
 				gf_bs_read_int_log(bs, 11, "syncExtensionType");
-				cfg->has_ps = gf_bs_read_int_log(bs, 1, "hasParametricStereo");
+				cfg->has_ps = gf_bs_read_bool_log(bs, "hasParametricStereo");
 				if (cfg->has_ps)
 					cfg->nb_chan = 1;
 			}
@@ -1421,7 +1424,7 @@ GF_Err gf_m4a_write_program_config_element_bs(GF_BitStream *bs, GF_M4ADecSpecInf
 	}
 	gf_bs_align(bs);
 	gf_bs_write_int(bs, cfg->comment_field_bytes, 8);
-	gf_bs_write_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
+	gf_bs_write_data(bs,cfg->comments, cfg->comment_field_bytes);
 	return GF_OK;
 }
 
@@ -1469,10 +1472,10 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 
 	if (cfg->base_object_type == 5 || cfg->base_object_type == 29) {
 		if (cfg->base_object_type == 29) {
-			cfg->has_ps = 1;
+			cfg->has_ps = GF_TRUE;
 			cfg->nb_chan = 1;
 		}
-		cfg->has_sbr = 1;
+		cfg->has_sbr = GF_TRUE;
 		gf_bs_write_int(bs, cfg->sbr_sr_index, 4);
 		if (cfg->sbr_sr_index == 0x0F) {
 			gf_bs_write_int(bs, cfg->sbr_sr, 24);
@@ -1535,7 +1538,7 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, u8 **dsi, u32 *dsi_size)
 static u32 av1_read_ns(GF_BitStream *bs, u32 n, const char *fname)
 {
 	u32 v, res;
-	Bool extra_bit;
+	u32 extra_bit;
 	int w = (u32)(log(n) / log(2)) + 1;
 	u32 m = (1 << w) - n;
 	gf_assert(w < 32);
@@ -1546,7 +1549,7 @@ static u32 av1_read_ns(GF_BitStream *bs, u32 n, const char *fname)
 		}
 		return v;
 	}
-	extra_bit = gf_bs_read_int(bs, 1);
+	extra_bit = gf_bs_read_bool(bs); 
 	res = (v << 1) - m + extra_bit;
 	if (fname) {
 		gf_bs_log(bs, w, fname, res);
@@ -1556,10 +1559,10 @@ static u32 av1_read_ns(GF_BitStream *bs, u32 n, const char *fname)
 
 static void av1_color_config(GF_BitStream *bs, AV1State *state)
 {
-	state->config->high_bitdepth = gf_bs_read_int_log(bs, 1, "high_bitdepth");
+	state->config->high_bitdepth = gf_bs_read_bool_log(bs, "high_bitdepth");
 	state->bit_depth = 8;
 	if (state->config->seq_profile == 2 && state->config->high_bitdepth) {
-		state->config->twelve_bit = gf_bs_read_int_log(bs, 1, "twelve_bit");
+		state->config->twelve_bit = gf_bs_read_bool_log(bs, "twelve_bit");
 		state->bit_depth = state->config->twelve_bit ? 12 : 10;
 	}
 	else if (state->config->seq_profile <= 2) {
@@ -1571,10 +1574,10 @@ static void av1_color_config(GF_BitStream *bs, AV1State *state)
 		state->config->monochrome = GF_FALSE;
 	}
 	else {
-		state->config->monochrome = gf_bs_read_int_log(bs, 1, "monochrome");
+		state->config->monochrome = gf_bs_read_bool_log(bs, "monochrome");
 	}
 	/*NumPlanes = mono_chrome ? 1 : 3;*/
-	state->color_description_present_flag = gf_bs_read_int_log(bs, 1, "color_description_present_flag");
+	state->color_description_present_flag = gf_bs_read_bool_log(bs, "color_description_present_flag");
 	if (state->color_description_present_flag) {
 		state->color_primaries = gf_bs_read_int_log(bs, 8, "color_primaries");
 		state->transfer_characteristics = gf_bs_read_int_log(bs, 8, "transfer_characteristics");
@@ -1586,11 +1589,11 @@ static void av1_color_config(GF_BitStream *bs, AV1State *state)
 		state->matrix_coefficients = 2/*MC_UNSPECIFIED*/;
 	}
 	if (state->config->monochrome) {
-		state->color_range = gf_bs_read_int_log(bs, 1, "color_range");
+		state->color_range = gf_bs_read_bool_log(bs, "color_range");
 		state->config->chroma_subsampling_x = GF_TRUE;
 		state->config->chroma_subsampling_y = GF_TRUE;
 		state->config->chroma_sample_position = 0/*CSP_UNKNOWN*/;
-		state->separate_uv_delta_q = 0;
+		state->separate_uv_delta_q = GF_FALSE;
 		return;
 	}
 	else if (state->color_primaries == 0/*CP_BT_709*/ &&
@@ -1604,7 +1607,7 @@ static void av1_color_config(GF_BitStream *bs, AV1State *state)
 		state->config->chroma_subsampling_x = GF_FALSE;
 		state->config->chroma_subsampling_y = GF_FALSE;
 
-		state->color_range = gf_bs_read_int_log(bs, 1, "color_range");
+		state->color_range = gf_bs_read_bool_log(bs, "color_range");
 		if (state->config->seq_profile == 0) {
 			state->config->chroma_subsampling_x = GF_TRUE;
 			state->config->chroma_subsampling_y = GF_TRUE;
@@ -1615,9 +1618,9 @@ static void av1_color_config(GF_BitStream *bs, AV1State *state)
 		}
 		else {
 			if (state->bit_depth == 12) {
-				state->config->chroma_subsampling_x = gf_bs_read_int_log(bs, 1, "chroma_subsampling_x");
+				state->config->chroma_subsampling_x = gf_bs_read_bool_log(bs, "chroma_subsampling_x");
 				if (state->config->chroma_subsampling_x)
-					state->config->chroma_subsampling_y = gf_bs_read_int_log(bs, 1, "chroma_subsampling_y");
+					state->config->chroma_subsampling_y = gf_bs_read_bool_log(bs, "chroma_subsampling_y");
 				else
 					state->config->chroma_subsampling_y = GF_FALSE;
 			}
@@ -1630,7 +1633,7 @@ static void av1_color_config(GF_BitStream *bs, AV1State *state)
 			state->config->chroma_sample_position = gf_bs_read_int_log(bs, 2, "chroma_sample_position");
 		}
 	}
-	state->separate_uv_delta_q = gf_bs_read_int_log(bs, 1, "separate_uv_delta_q");
+	state->separate_uv_delta_q = gf_bs_read_bool_log(bs, "separate_uv_delta_q");
 }
 
 
@@ -1639,7 +1642,7 @@ static u32 av1_uvlc(GF_BitStream *bs, const char *fname)
 	u32 res;
 	u8 leadingZeros = 0;
 	while (1) {
-		Bool done = gf_bs_read_int(bs, 1);
+		u32 done = gf_bs_read_bool(bs); 
 		if (done)
 			break;
 		leadingZeros++;
@@ -1663,7 +1666,7 @@ static void timing_info(GF_BitStream *bs, AV1State *state) {
 	if (time_scale == 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] time_scale must be greater than 0.\n"));
 	}
-	state->equal_picture_interval = gf_bs_read_int_log(bs, 1, "equal_picture_interval");
+	state->equal_picture_interval = gf_bs_read_bool_log(bs, "equal_picture_interval");
 	if (state->equal_picture_interval) {
 		u32 num_ticks_per_picture_minus_1 = av1_uvlc(bs, "num_ticks_per_picture_minus_1");
 		state->tb_num = time_scale;
@@ -1686,7 +1689,7 @@ static void operating_parameters_info(GF_BitStream *bs, const u8 idx, const u8 b
 	const u8 n = buffer_delay_length_minus_1 + 1;
 	gf_bs_read_int_log(bs, n, "decoder_buffer_delay");
 	gf_bs_read_int_log(bs, n, "encoder_buffer_delay");
-	gf_bs_read_int_log(bs, 1, "low_delay_mode_flag");
+	gf_bs_read_bool_log(bs, "low_delay_mode_flag");
 }
 
 static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
@@ -1694,8 +1697,8 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	u8 buffer_delay_length_minus_1 = 0;
 	state->frame_state.seen_seq_header = GF_TRUE;
 	state->config->seq_profile = gf_bs_read_int_log(bs, 3, "seq_profile");
-	state->still_picture = gf_bs_read_int_log(bs, 1, "still_picture");
-	state->reduced_still_picture_header = gf_bs_read_int_log(bs, 1, "reduced_still_picture_header");
+	state->still_picture = gf_bs_read_bool_log(bs, "still_picture");
+	state->reduced_still_picture_header = gf_bs_read_bool_log(bs, "reduced_still_picture_header");
 	if (state->reduced_still_picture_header) {
 		//timing_info_present_flag = GF_FALSE;
 		//initial_display_delay_present_flag = GF_FALSE;
@@ -1705,10 +1708,10 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	else {
 		u8 i = 0;
 		Bool initial_display_delay_present_flag;
-		Bool timing_info_present_flag = gf_bs_read_int_log(bs, 1, "timing_info_present_flag");
+		Bool timing_info_present_flag = gf_bs_read_bool_log(bs, "timing_info_present_flag");
 		if (timing_info_present_flag) {
 			timing_info(bs, state);
-			state->decoder_model_info_present_flag = gf_bs_read_int_log(bs, 1, "decoder_model_info_present_flag");
+			state->decoder_model_info_present_flag = gf_bs_read_bool_log(bs, "decoder_model_info_present_flag");
 			if (state->decoder_model_info_present_flag) {
 				decoder_model_info(state, bs);
 			}
@@ -1716,7 +1719,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		else {
 			state->decoder_model_info_present_flag = GF_FALSE;
 		}
-		initial_display_delay_present_flag = gf_bs_read_int_log(bs, 1, "initial_display_delay_present_flag");
+		initial_display_delay_present_flag = gf_bs_read_bool_log(bs, "initial_display_delay_present_flag");
 		state->operating_points_count = 1 + gf_bs_read_int_log(bs, 5, "operating_points_count_minus1");
 		for (i = 0; i < state->operating_points_count; i++) {
 			u8 seq_level_idx_i, seq_tier = 0;
@@ -1729,7 +1732,7 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 			if (seq_level_idx_i > 7) {
 				seq_tier = gf_bs_read_int_log_idx(bs, 1, "seq_tier", i);
 			}
-			if (i == 0) state->config->seq_tier_0 = seq_tier;
+			if (i == 0) state->config->seq_tier_0 = seq_tier ? GF_TRUE : GF_FALSE;
 
 			if (state->decoder_model_info_present_flag) {
 				state->decoder_model_present_for_this_op[i] = gf_bs_read_int_log_idx(bs, 1, "decoder_model_present_for_this_op", i);
@@ -1771,22 +1774,22 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	state->sequence_height = state->height;
 	state->frame_id_numbers_present_flag = GF_FALSE;
 	if (!state->reduced_still_picture_header) {
-		state->frame_id_numbers_present_flag = gf_bs_read_int_log(bs, 1, "frame_id_numbers_present_flag");
+		state->frame_id_numbers_present_flag = gf_bs_read_bool_log(bs, "frame_id_numbers_present_flag");
 	}
 	if (state->frame_id_numbers_present_flag) {
 		state->delta_frame_id_length_minus_2 = gf_bs_read_int_log(bs, 4, "delta_frame_id_length_minus2");
 		state->additional_frame_id_length_minus_1 = gf_bs_read_int_log(bs, 3, "additional_frame_id_length_minus1");
 	}
-	state->use_128x128_superblock = gf_bs_read_int_log(bs, 1, "use_128x128_superblock");
-	gf_bs_read_int_log(bs, 1, "enable_filter_intra");
-	gf_bs_read_int_log(bs, 1, "enable_intra_edge_filter");
+	state->use_128x128_superblock = gf_bs_read_bool_log(bs, "use_128x128_superblock");
+	gf_bs_read_bool_log(bs, "enable_filter_intra");
+	gf_bs_read_bool_log(bs, "enable_intra_edge_filter");
 	if (state->reduced_still_picture_header) {
 		/*enable_interintra_compound = 0;
 		enable_masked_compound = 0;
 		enable_dual_filter = 0;
 		enable_jnt_comp = 0;
 		enable_ref_frame_mvs = 0;*/
-		state->enable_warped_motion = 0;
+		state->enable_warped_motion = GF_FALSE;
 		state->enable_order_hint = GF_FALSE;
 		state->OrderHintBits = 0;
 		state->seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
@@ -1794,36 +1797,36 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	}
 	else {
 		Bool seq_choose_screen_content_tools;
-		gf_bs_read_int_log(bs, 1, "enable_interintra_compound");
-		gf_bs_read_int_log(bs, 1, "enable_masked_compound");
-		state->enable_warped_motion = gf_bs_read_int_log(bs, 1, "enable_warped_motion");
-		gf_bs_read_int_log(bs, 1, "enable_dual_filter");
-		state->enable_order_hint = gf_bs_read_int_log(bs, 1, "enable_order_hint");
+		gf_bs_read_bool_log(bs, "enable_interintra_compound");
+		gf_bs_read_bool_log(bs, "enable_masked_compound");
+		state->enable_warped_motion = gf_bs_read_bool_log(bs, "enable_warped_motion");
+		gf_bs_read_bool_log(bs, "enable_dual_filter");
+		state->enable_order_hint = gf_bs_read_bool_log(bs, "enable_order_hint");
 		if (state->enable_order_hint) {
-			gf_bs_read_int_log(bs, 1, "enable_jnt_comp");
-			state->enable_ref_frame_mvs = gf_bs_read_int_log(bs, 1, "enable_ref_frame_mvs");
+			gf_bs_read_bool_log(bs, "enable_jnt_comp");
+			state->enable_ref_frame_mvs = gf_bs_read_bool_log(bs, "enable_ref_frame_mvs");
 		}
 		else {
 			/*enable_jnt_comp =  0*/;
 			/*enable_ref_frame_mvs = 0*/;
 		}
-		seq_choose_screen_content_tools = gf_bs_read_int_log(bs, 1, "seq_choose_screen_content_tools");
+		seq_choose_screen_content_tools = gf_bs_read_bool_log(bs, "seq_choose_screen_content_tools");
 		state->seq_force_screen_content_tools = 0;
 		if (seq_choose_screen_content_tools) {
 			state->seq_force_screen_content_tools = 2/*SELECT_SCREEN_CONTENT_TOOLS*/;
 		}
 		else {
-			state->seq_force_screen_content_tools = gf_bs_read_int_log(bs, 1, "seq_force_screen_content_tools");
+			state->seq_force_screen_content_tools = gf_bs_read_bool_log(bs, "seq_force_screen_content_tools");
 		}
 
 		state->seq_force_integer_mv = 0;
 		if (state->seq_force_screen_content_tools > 0) {
-			const Bool seq_choose_integer_mv = gf_bs_read_int_log(bs, 1, "seq_choose_integer_mv");
+			const Bool seq_choose_integer_mv = gf_bs_read_bool_log(bs, "seq_choose_integer_mv");
 			if (seq_choose_integer_mv) {
 				state->seq_force_integer_mv = 2/*SELECT_INTEGER_MV*/;
 			}
 			else {
-				state->seq_force_integer_mv = gf_bs_read_int_log(bs, 1, "seq_force_integer_mv");
+				state->seq_force_integer_mv = gf_bs_read_bool_log(bs, "seq_force_integer_mv");
 			}
 		}
 		else {
@@ -1838,11 +1841,11 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 		}
 	}
 
-	state->enable_superres = gf_bs_read_int_log(bs, 1, "enable_superres");
-	state->enable_cdef = gf_bs_read_int_log(bs, 1, "enable_cdef");
-	state->enable_restoration = gf_bs_read_int_log(bs, 1, "enable_restoration");
+	state->enable_superres = gf_bs_read_bool_log(bs, "enable_superres");
+	state->enable_cdef = gf_bs_read_bool_log(bs, "enable_cdef");
+	state->enable_restoration = gf_bs_read_bool_log(bs, "enable_restoration");
 	av1_color_config(bs, state);
-	state->film_grain_params_present = gf_bs_read_int_log(bs, 1, "film_grain_params_present");
+	state->film_grain_params_present = gf_bs_read_bool_log(bs, "film_grain_params_present");
 }
 
 
@@ -1871,7 +1874,7 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	}
 
 	if (gf_bs_available(bs) < IVF_FILE_HEADER_SIZE) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Not enough bytes available ("LLU").\n", gf_bs_available(bs)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IVF] Not enough bytes available (" LLU ").\n", gf_bs_available(bs)));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1961,7 +1964,7 @@ GF_Err gf_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_fr
 	}
 	frame_sizes[0] = 0;
 	for (i = 0; i < *num_frames_in_superframe; ++i) {
-		gf_bs_read_data(bs, (char*)(frame_sizes + i), bytes_per_framesize);
+		gf_bs_read_data(bs, (u8 *) (frame_sizes + i), bytes_per_framesize);
 	}
 
 exit:
@@ -2010,25 +2013,25 @@ static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 	VP9_color_space color_space;
 
 	if (vp9_cfg->profile >= 2) {
-		Bool ten_or_twelve_bit = gf_bs_read_int_log(bs, 1, "ten_or_twelve_bit");
+		Bool ten_or_twelve_bit = gf_bs_read_bool_log(bs, "ten_or_twelve_bit");
 		vp9_cfg->bit_depth = ten_or_twelve_bit ? 12 : 10;
 	}
 	else {
 		vp9_cfg->bit_depth = 8;
 	}
 
-	color_space = gf_bs_read_int_log(bs, 3, "color_space");
+	color_space = (VP9_color_space) gf_bs_read_int_log(bs, 3, "color_space");
 	vp9_cfg->colour_primaries = VP9_CS_to_23001_8_colour_primaries[color_space];
 	vp9_cfg->transfer_characteristics = VP9_CS_to_23001_8_transfer_characteristics[color_space];
 	vp9_cfg->matrix_coefficients = VP9_CS_to_23001_8_matrix_coefficients[color_space];
 	if (color_space != CS_RGB) {
-		vp9_cfg->video_fullRange_flag = gf_bs_read_int_log(bs, 1, "video_fullRange_flag");
+		vp9_cfg->video_fullRange_flag = gf_bs_read_bool_log(bs, "video_fullRange_flag");
 		if (vp9_cfg->profile == 1 || vp9_cfg->profile == 3) {
 			u8 subsampling_x, subsampling_y, subsampling_xy_to_chroma_subsampling[2][2] = { {3, 0}, {2, 0} };
-			subsampling_x = gf_bs_read_int_log(bs, 1, "subsampling_x");
-			subsampling_y = gf_bs_read_int_log(bs, 1, "subsampling_x");
+			subsampling_x = gf_bs_read_bool_log(bs, "subsampling_x");
+			subsampling_y = gf_bs_read_bool_log(bs, "subsampling_x");
 			vp9_cfg->chroma_subsampling = subsampling_xy_to_chroma_subsampling[subsampling_x][subsampling_y];
-			Bool reserved_zero = gf_bs_read_int_log(bs, 1, "reserved_zero");
+			u32 reserved_zero = gf_bs_read_bool_log(bs, "reserved_zero");
 			if (reserved_zero) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VP9] color config reserved zero (1) is not zero.\n"));
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -2042,7 +2045,7 @@ static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 		vp9_cfg->video_fullRange_flag = GF_TRUE;
 		if (vp9_cfg->profile == 1 || vp9_cfg->profile == 3) {
 			vp9_cfg->chroma_subsampling = 3;
-			Bool reserved_zero = gf_bs_read_int_log(bs, 1, "reserved_zero");
+			u32 reserved_zero = gf_bs_read_bool_log(bs, "reserved_zero");
 			if (reserved_zero) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VP9] color config reserved zero (2) is not zero.\n"));
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -2053,7 +2056,7 @@ static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 	return GF_OK;
 }
 
-static void vp9_compute_image_size(int FrameWidth, int FrameHeight, int *Sb64Cols, int *Sb64Rows)
+static void vp9_compute_image_size(u32 FrameWidth, u32 FrameHeight, u32 *Sb64Cols, u32 *Sb64Rows)
 {
 	int MiCols = (FrameWidth + 7) >> 3;
 	int MiRows = (FrameHeight + 7) >> 3;
@@ -2061,7 +2064,7 @@ static void vp9_compute_image_size(int FrameWidth, int FrameHeight, int *Sb64Col
 	*Sb64Rows = (MiRows + 7) >> 3;
 }
 
-static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight, int *Sb64Cols, int *Sb64Rows)
+static void vp9_frame_size(GF_BitStream *bs, u32 *FrameWidth, u32 *FrameHeight, u32 *Sb64Cols, u32 *Sb64Rows)
 {
 	int frame_width_minus_1 = gf_bs_read_int_log(bs, 16, "frame_width_minus_1");
 	int frame_height_minus_1 = gf_bs_read_int_log(bs, 16, "frame_height_minus_1");
@@ -2074,9 +2077,9 @@ static void vp9_frame_size(GF_BitStream *bs, int *FrameWidth, int *FrameHeight, 
 	vp9_compute_image_size(*FrameWidth, *FrameHeight, Sb64Cols, Sb64Rows);
 }
 
-static void vp9_render_size(GF_BitStream *bs, int FrameWidth, int FrameHeight, int *renderWidth, int *renderHeight)
+static void vp9_render_size(GF_BitStream *bs, u32 FrameWidth, u32 FrameHeight, u32 *renderWidth, u32 *renderHeight)
 {
-	Bool render_and_frame_size_different = gf_bs_read_int_log(bs, 1, "render_and_frame_size_different");
+	Bool render_and_frame_size_different = gf_bs_read_bool_log(bs, "render_and_frame_size_different");
 	if (render_and_frame_size_different == 1) {
 		int render_width_minus_1 = gf_bs_read_int_log(bs, 16, "render_width_minus_1");
 		int render_height_minus_1 = gf_bs_read_int_log(bs, 16, "render_height_minus_1");
@@ -2091,7 +2094,7 @@ static void vp9_render_size(GF_BitStream *bs, int FrameWidth, int FrameHeight, i
 
 static s64 vp9_s(GF_BitStream *bs, int n, const char *fname, u32 idx) {
 	s64 value = gf_bs_read_int(bs, n);
-	Bool sign = gf_bs_read_int(bs, 1);
+	Bool sign = gf_bs_read_bool(bs);
 	if (sign) value = -value;
 	gf_bs_log_idx(bs, n+1, fname, value, idx, -1, -1);
 	return value;
@@ -2101,27 +2104,28 @@ static void vp9_loop_filter_params(GF_BitStream *bs)
 {
 	/*loop_filter_level = */gf_bs_read_int_log(bs, 6, "loop_filter_level");
 	/*loop_filter_sharpness = */gf_bs_read_int_log(bs, 3, "loop_filter_sharpness");
-	Bool loop_filter_delta_enabled = gf_bs_read_int_log(bs, 1, "loop_filter_delta_enabled");
+	Bool loop_filter_delta_enabled = gf_bs_read_bool_log(bs, "loop_filter_delta_enabled");
 	if (loop_filter_delta_enabled == 1) {
-		Bool loop_filter_delta_update = gf_bs_read_int_log(bs, 1, "loop_filter_delta_update");
+		Bool loop_filter_delta_update = gf_bs_read_bool_log(bs, "loop_filter_delta_update");
 		if (loop_filter_delta_update == GF_TRUE) {
 			int i;
 			for (i = 0; i < 4; i++) {
-				Bool update_ref_delta = gf_bs_read_int_log_idx(bs, 1, "update_ref_delta", i);
-				if (update_ref_delta == GF_TRUE)
+				u32 update_ref_delta = gf_bs_read_int_log_idx(bs, 1, "update_ref_delta", i);
+				if (update_ref_delta == 1)
 					vp9_s(bs, 6, "loop_filter_ref_deltas", i);
 			}
 			for (i = 0; i < 2; i++) {
-				Bool update_mode_delta = gf_bs_read_int_log_idx(bs, 1, "update_mode_delta", i);
-				if (update_mode_delta == GF_TRUE)
+				u32 update_mode_delta = gf_bs_read_int_log_idx(bs, 1, "update_mode_delta", i);
+				if (update_mode_delta == 1)
 					vp9_s(bs, 6, "loop_filter_mode_deltas", i);
 			}
 		}
 	}
 }
 
-static void vp9_delta_q(GF_BitStream *bs) {
-	Bool delta_coded = gf_bs_read_int_log(bs, 1, "delta_coded");
+static void vp9_delta_q(GF_BitStream *bs)
+{
+	Bool delta_coded = gf_bs_read_bool_log(bs, "delta_coded");
 	if (delta_coded) {
 		gf_bs_read_int_log(bs, 4, "delta_q");
 	}
@@ -2145,7 +2149,7 @@ static const int segmentation_feature_signed[VP9_SEG_LVL_MAX] = { 1, 1, 0, 0 };
 
 static void vp9_read_prob(GF_BitStream *bs)
 {
-	Bool prob_coded = gf_bs_read_int_log(bs, 1, "prob_coded");
+	Bool prob_coded = gf_bs_read_bool_log(bs, "prob_coded");
 	if (prob_coded) {
 		gf_bs_read_int_log(bs, 8, "prob");
 	}
@@ -2153,35 +2157,35 @@ static void vp9_read_prob(GF_BitStream *bs)
 
 static void vp9_segmentation_params(GF_BitStream *bs)
 {
-	Bool segmentation_enabled = gf_bs_read_int_log(bs, 1, "segmentation_enabled");
+	Bool segmentation_enabled = gf_bs_read_bool_log(bs, "segmentation_enabled");
 	if (segmentation_enabled == 1) {
 		int i;
-		Bool segmentation_update_map = gf_bs_read_int_log(bs, 1, "segmentation_update_map");
+		Bool segmentation_update_map = gf_bs_read_bool_log(bs, "segmentation_update_map");
 		if (segmentation_update_map) {
 			for (i = 0; i < 7; i++) {
 				vp9_read_prob(bs);
 			}
-			Bool segmentation_temporal_update = gf_bs_read_int_log(bs, 1, "segmentation_temporal_update");
+			Bool segmentation_temporal_update = gf_bs_read_bool_log(bs, "segmentation_temporal_update");
 			for (i = 0; i < 3; i++) {
 				if (segmentation_temporal_update) {
 					vp9_read_prob(bs);
 				}
 			}
 		}
-		Bool segmentation_update_data = gf_bs_read_int_log(bs, 1, "segmentation_update_data");
+		Bool segmentation_update_data = gf_bs_read_bool_log(bs, "segmentation_update_data");
 		if (segmentation_update_data == 1) {
-			/*segmentation_abs_or_delta_update =*/ gf_bs_read_int_log(bs, 1, "segmentation_abs_or_delta_update");
+			/*segmentation_abs_or_delta_update =*/ gf_bs_read_bool_log(bs, "segmentation_abs_or_delta_update");
 			for (i = 0; i < VP9_MAX_SEGMENTS; i++) {
 				int j;
 				for (j = 0; j < VP9_SEG_LVL_MAX; j++) {
 					/*feature_value = 0*/
-					Bool feature_enabled = gf_bs_read_int_log(bs, 1, "feature_enabled");
+					Bool feature_enabled = gf_bs_read_bool_log(bs, "feature_enabled");
 					/*FeatureEnabled[i][j] = feature_enabled*/
 					if (feature_enabled) {
 						int bits_to_read = segmentation_feature_bits[j];
 						/*feature_value =*/ gf_bs_read_int_log(bs, bits_to_read, "feature_value");
 						if (segmentation_feature_signed[j] == 1) {
-							/*Bool feature_sign = */gf_bs_read_int_log(bs, 1, "feature_sign");
+							/*Bool feature_sign = */gf_bs_read_bool_log(bs, "feature_sign");
 							/*if (feature_sign == 1)
 								feature_value *= -1*/
 						}
@@ -2211,31 +2215,30 @@ static int calc_max_log2_tile_cols(int Sb64Cols) {
 
 static void vp9_tile_info(GF_BitStream *bs, int Sb64Cols)
 {
-	Bool tile_rows_log2;
+	u32 tile_rows_log2;
 	int minLog2TileCols = calc_min_log2_tile_cols(Sb64Cols);
 	int maxLog2TileCols = calc_max_log2_tile_cols(Sb64Cols);
 	int tile_cols_log2 = minLog2TileCols;
 	while (tile_cols_log2 < maxLog2TileCols) {
-		Bool increment_tile_cols_log2 = gf_bs_read_int_log(bs, 1, "increment_tile_cols_log2");
+		Bool increment_tile_cols_log2 = gf_bs_read_bool_log(bs, "increment_tile_cols_log2");
 		if (increment_tile_cols_log2)
 			tile_cols_log2++;
 		else
 			break;
 	}
-	tile_rows_log2 = gf_bs_read_int_log(bs, 1, "tile_rows_log2");
+	tile_rows_log2 = gf_bs_read_bool_log(bs, "tile_rows_log2");
 	if (tile_rows_log2) {
-		/*Bool increment_tile_rows_log2 = */gf_bs_read_int_log(bs, 1, "increment_tile_rows_log2");
+		/*Bool increment_tile_rows_log2 = */gf_bs_read_bool_log(bs, "increment_tile_rows_log2");
 		//tile_rows_log2 += increment_tile_rows_log2;
 	}
 }
 
-static void vp9_frame_size_with_refs(GF_BitStream *bs, u8 refresh_frame_flags, u8 * ref_frame_idx, int * RefFrameWidth, int *RefFrameHeight,
-	int *FrameWidth, int *FrameHeight, int *RenderWidth, int *RenderHeight, int *Sb64Cols, int *Sb64Rows)
+static void vp9_frame_size_with_refs(GF_BitStream *bs, u8 refresh_frame_flags, u8 * ref_frame_idx, u32 * RefFrameWidth, u32 *RefFrameHeight, u32 *FrameWidth, u32 *FrameHeight, u32 *RenderWidth, u32 *RenderHeight, u32 *Sb64Cols, u32 *Sb64Rows)
 {
 	Bool found_ref;
 	int i;
 	for (i = 0; i < 3; i++) {
-		found_ref = gf_bs_read_int_log(bs, 1, "found_ref");
+		found_ref = gf_bs_read_bool_log(bs, "found_ref");
 		if (found_ref) {
 			*FrameWidth  = RefFrameWidth [ref_frame_idx[i]];
 			*FrameHeight = RefFrameHeight[ref_frame_idx[i]];
@@ -2254,7 +2257,7 @@ static void vp9_frame_size_with_refs(GF_BitStream *bs, u8 refresh_frame_flags, u
 
 static void vp9_read_interpolation_filter(GF_BitStream *bs)
 {
-	Bool is_filter_switchable = gf_bs_read_int_log(bs, 1, "is_filter_switchable");
+	Bool is_filter_switchable = gf_bs_read_bool_log(bs, "is_filter_switchable");
 	if (!is_filter_switchable) {
 		/*raw_interpolation_filter = */gf_bs_read_int_log(bs, 2, "raw_interpolation_filter");
 	}
@@ -2265,9 +2268,10 @@ static void vp9_read_interpolation_filter(GF_BitStream *bs)
 
 GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_frame, u32 *FrameWidth, u32 *FrameHeight, u32 *renderWidth, u32 *renderHeight)
 {
-	Bool FrameIsIntra = GF_FALSE, profile_low_bit, profile_high_bit, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
+	Bool FrameIsIntra = GF_FALSE, show_existing_frame = GF_FALSE, frame_type = GF_FALSE, show_frame = GF_FALSE, error_resilient_mode = GF_FALSE;
+	u32 profile_low_bit, profile_high_bit;
 	/*u8 frame_context_idx = 0, reset_frame_context = 0, frame_marker = 0*/;
-	int Sb64Cols = 0, Sb64Rows = 0, i;
+	u32 Sb64Cols = 0, Sb64Rows = 0, i;
 	u8 refresh_frame_flags = 0;
 
 	if (!bs || !key_frame || !vp9_cfg)
@@ -2275,26 +2279,26 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 
 	/*uncompressed header*/
 	/*frame_marker = */gf_bs_read_int_log(bs, 2, "frame_marker");
-	profile_low_bit = gf_bs_read_int_log(bs, 1, "profile_low_bit");
-	profile_high_bit = gf_bs_read_int_log(bs, 1, "profile_high_bit");
+	profile_low_bit = gf_bs_read_bool_log(bs, "profile_low_bit");
+	profile_high_bit = gf_bs_read_bool_log(bs, "profile_high_bit");
 	vp9_cfg->profile = (profile_high_bit << 1) + profile_low_bit;
 	if (vp9_cfg->profile == 3) {
-		Bool reserved_zero = gf_bs_read_int_log(bs, 1, "reserved_zero");
+		u32 reserved_zero = gf_bs_read_bool_log(bs, "reserved_zero");
 		if (reserved_zero) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VP9] uncompressed header reserved zero is not zero.\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
 
-	show_existing_frame = gf_bs_read_int_log(bs, 1, "show_existing_frame");
+	show_existing_frame = gf_bs_read_bool_log(bs, "show_existing_frame");
 	if (show_existing_frame == GF_TRUE) {
 		/*frame_to_show_map_idx = */gf_bs_read_int_log(bs, 3, "frame_to_show_map_idx");
 		return GF_OK;
 	}
 
-	frame_type = gf_bs_read_int_log(bs, 1, "frame_type");
-	show_frame = gf_bs_read_int_log(bs, 1, "show_frame");
-	error_resilient_mode = gf_bs_read_int_log(bs, 1, "error_resilient_mode");
+	frame_type = gf_bs_read_bool_log(bs, "frame_type");
+	show_frame = gf_bs_read_bool_log(bs, "show_frame");
+	error_resilient_mode = gf_bs_read_bool_log(bs, "error_resilient_mode");
 	if (frame_type == VP9_KEY_FRAME) {
 		if (!vp9_frame_sync_code(bs))
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -2311,7 +2315,7 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 		*key_frame = GF_FALSE;
 
 		if (show_frame == GF_FALSE) {
-			intra_only = gf_bs_read_int_log(bs, 1, "intra_only");
+			intra_only = gf_bs_read_bool_log(bs, "intra_only");
 		}
 		FrameIsIntra = intra_only;
 
@@ -2347,14 +2351,14 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 				/*ref_frame_sign_bias[LAST_FRAME + i] = */gf_bs_read_int_log_idx(bs, 1, "ref_frame_sign_bias", i);
 			}
 			vp9_frame_size_with_refs(bs, refresh_frame_flags, ref_frame_idx, vp9_cfg->RefFrameWidth, vp9_cfg->RefFrameHeight, FrameWidth, FrameHeight, renderWidth, renderHeight, &Sb64Cols, &Sb64Rows);
-			/*allow_high_precision_mv = */gf_bs_read_int_log(bs, 1, "allow_high_precision_mv");
+			/*allow_high_precision_mv = */gf_bs_read_bool_log(bs, "allow_high_precision_mv");
 			vp9_read_interpolation_filter(bs);
 		}
 	}
 
 	if (error_resilient_mode == 0) {
-		/*refresh_frame_context = */gf_bs_read_int_log(bs, 1, "refresh_frame_context");
-		/*frame_parallel_decoding_mode = */gf_bs_read_int_log(bs, 1, "frame_parallel_decoding_mode");
+		/*refresh_frame_context = */gf_bs_read_bool_log(bs, "refresh_frame_context");
+		/*frame_parallel_decoding_mode = */gf_bs_read_bool_log(bs, "frame_parallel_decoding_mode");
 	}
 
 	/*frame_context_idx = */gf_bs_read_int_log(bs, 2, "frame_context_idx");
@@ -2418,14 +2422,14 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 	if (gf_bs_bits_available(bs) < 8)
 		return GF_BUFFER_TOO_SMALL;
 
-	Bool forbidden = gf_bs_read_int(bs, 1);
+	Bool forbidden = gf_bs_read_bool(bs);
 	if (forbidden) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	*obu_type = gf_bs_read_int(bs, 4);
-	*obu_extension_flag = gf_bs_read_int(bs, 1);
-	*obu_has_size_field = gf_bs_read_int(bs, 1);
+	*obu_type = (ObuType) gf_bs_read_int(bs, 4);
+	*obu_extension_flag = gf_bs_read_bool(bs);
+	*obu_has_size_field = gf_bs_read_bool(bs);
 	if (gf_bs_read_int(bs, 1) /*obu_reserved_1bit*/) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -2497,7 +2501,7 @@ static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
 
 Bool iamf_is_audio_frame_obu(IamfObuType obu_type)
 {
-	return OBU_IAMF_AUDIO_FRAME <= obu_type && obu_type <= OBU_IAMF_AUDIO_FRAME_ID17;
+	return (OBU_IAMF_AUDIO_FRAME <= obu_type && obu_type <= OBU_IAMF_AUDIO_FRAME_ID17) ? GF_TRUE : GF_FALSE;
 }
 
 Bool iamf_is_temporal_unit_obu(IamfObuType obu_type)
@@ -2567,8 +2571,8 @@ u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value)
 #define OBU_BLOCK_SIZE 4096
 static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list, AV1State *state)
 {
-	char block[OBU_BLOCK_SIZE];
-	Bool has_size_field = 0, obu_extension_flag = 0;
+	u8 block[OBU_BLOCK_SIZE];
+	Bool has_size_field = GF_FALSE, obu_extension_flag = GF_FALSE;
 	u8 temporal_id, spatial_id;
 	GF_AV1_OBUArrayEntry *a = NULL;
 
@@ -2595,7 +2599,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 
 	if (has_size_field) {
 		if (a) {
-			a->obu = gf_malloc((size_t)obu_length);
+			a->obu = (u8 *)gf_malloc((size_t)obu_length);
 			gf_bs_read_data(bs, a->obu, (u32)obu_length);
 			a->obu_length = obu_length;
 		}
@@ -2617,7 +2621,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		const u64 obu_size = obu_length - hdr_size;
 
 		if (a) {
-			a->obu = gf_malloc((size_t)obu_length + leb_size);
+			a->obu = (u8 *)gf_malloc((size_t)obu_length + leb_size);
 			a->obu_length = obu_length + leb_size;
 			for (i = 0; i < hdr_size; ++i) {
 				a->obu[i] = gf_bs_read_u8(bs);
@@ -2722,11 +2726,11 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 		if (e)
 			return e;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", state->obu_type, obu_size, pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size=" LLU " at position " LLU ".\n", state->obu_type, obu_size, pos));
 
 
 		if (obu_size != gf_bs_get_position(bs) - pos) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] OBU (Section 5) frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] OBU (Section 5) frame size " LLU " different from consumed bytes " LLU ".\n", obu_size, gf_bs_get_position(bs) - pos));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
@@ -2743,7 +2747,7 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		}
 		first_obu = GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Section5 OBU detected (size "LLU")\n", obu_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Section5 OBU detected (size " LLU ")\n", obu_size));
 		av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
 	}
 
@@ -2832,7 +2836,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B temporal unit detected (size "LLU") ***** \n", sz));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B temporal unit detected (size " LLU ") ***** \n", sz));
 	while (sz > 0) {
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
@@ -2841,10 +2845,10 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 			return GF_BUFFER_TOO_SMALL;
 		}
 		if (sz < Leb128Bytes + frame_unit_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B sz("LLU") < Leb128Bytes("LLU") + frame_unit_size("LLU")\n", sz, Leb128Bytes, frame_unit_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B sz(" LLU ") < Leb128Bytes(" LLU ") + frame_unit_size(" LLU ")\n", sz, Leb128Bytes, frame_unit_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B frame unit detected (size "LLU")\n", frame_unit_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B frame unit detected (size " LLU ")\n", frame_unit_size));
 		sz -= Leb128Bytes + frame_unit_size;
 
 		while (frame_unit_size > 0) {
@@ -2854,26 +2858,26 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 				return GF_BUFFER_TOO_SMALL;
 			}
 			if (frame_unit_size < Leb128Bytes + obu_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size(" LLU ") < Leb128Bytes(" LLU ") + obu_length(" LLU ")\n", frame_unit_size, Leb128Bytes, obu_size));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B OBU detected (size "LLU")\n", obu_size));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Annex B OBU detected (size " LLU ")\n", obu_size));
 			pos = gf_bs_get_position(bs);
 			frame_unit_size -= Leb128Bytes;
 
 			e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 			if (e) return e;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] AnnexB: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", state->obu_type, obu_size, pos));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] AnnexB: parsed AV1 OBU type=%u size=" LLU " at position " LLU ".\n", state->obu_type, obu_size, pos));
 
 
 			if (obu_size != gf_bs_get_position(bs) - pos) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Annex B frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Annex B frame size " LLU " different from consumed bytes " LLU ".\n", obu_size, gf_bs_get_position(bs) - pos));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 
 			av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
 			if (frame_unit_size < obu_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < OBU size ("LLU")\n", frame_unit_size, obu_size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size(" LLU ") < OBU size (" LLU ")\n", frame_unit_size, obu_size));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			frame_unit_size -= obu_size;
@@ -2881,7 +2885,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	}
 	gf_assert(sz == 0);
 	if (tusize != gf_bs_get_position(bs) - tupos) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Annex B TU size "LLU" different from consumed bytes "LLU".\n", tusize, gf_bs_get_position(bs) - tupos));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Annex B TU size " LLU " different from consumed bytes " LLU ".\n", tusize, gf_bs_get_position(bs) - tupos));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return GF_OK;
@@ -2894,7 +2898,7 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 	if (gf_bs_available(bs)<12) return GF_EOS;
 	e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts_ignored);
 	if (e) return e;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF: frame detected (size "LLU", PTS "LLU")\n", frame_size, pts_ignored));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF: frame detected (size " LLU ", PTS " LLU ")\n", frame_size, pts_ignored));
 
 	if (gf_bs_available(bs) < frame_size) return GF_EOS;
 
@@ -2904,10 +2908,10 @@ GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state)
 		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 		if (e != GF_OK)
 			return e;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF: parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", state->obu_type, obu_size, pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] IVF: parsed AV1 OBU type=%u size=" LLU " at position " LLU ".\n", state->obu_type, obu_size, pos));
 
 		if (obu_size != gf_bs_get_position(bs) - pos) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] IVF frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] IVF frame size " LLU " different from consumed bytes " LLU ".\n", obu_size, gf_bs_get_position(bs) - pos));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
@@ -2966,12 +2970,12 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 	u32 maxLog2tileCols = aom_av1_tile_log2(1, MIN(sbCols, AV1_MAX_TILE_COLS));
 	u32 maxLog2tileRows = aom_av1_tile_log2(1, MIN(sbRows, AV1_MAX_TILE_ROWS));
 	u32 minLog2Tiles = MAX(minLog2tileCols, aom_av1_tile_log2(maxTileAreaSb, sbRows * sbCols));
-	Bool uniform_tile_spacing_flag = gf_bs_read_int_log(bs, 1, "uniform_tile_spacing_flag");
+	Bool uniform_tile_spacing_flag = gf_bs_read_bool_log(bs, "uniform_tile_spacing_flag");
 	if (uniform_tile_spacing_flag) {
 		u32 startSb, tileWidthSb, tileHeightSb, minLog2tileRows;
 		state->tileColsLog2 = minLog2tileCols;
 		while (state->tileColsLog2 < maxLog2tileCols) {
-			Bool increment_tile_cols_log2 = gf_bs_read_int_log(bs, 1, "increment_tile_cols_log2");
+			Bool increment_tile_cols_log2 = gf_bs_read_bool_log(bs, "increment_tile_cols_log2");
 			if (increment_tile_cols_log2 == 1)
 				state->tileColsLog2++;
 			else
@@ -2987,7 +2991,7 @@ static void av1_parse_tile_info(GF_BitStream *bs, AV1State *state)
 		minLog2tileRows = MAX((int)(minLog2Tiles - state->tileColsLog2), 0);
 		state->tileRowsLog2 = minLog2tileRows;
 		while (state->tileRowsLog2 < maxLog2tileRows) {
-			Bool increment_tile_rows_log2 = gf_bs_read_int_log(bs, 1, "increment_tile_rows_log2");
+			Bool increment_tile_rows_log2 = gf_bs_read_bool_log(bs, "increment_tile_rows_log2");
 			if (increment_tile_rows_log2 == 1)
 				state->tileRowsLog2++;
 			else
@@ -3048,7 +3052,7 @@ static void superres_params(GF_BitStream *bs, AV1State *state)
 	Bool use_superres;
 
 	if (state->enable_superres) {
-		use_superres = gf_bs_read_int_log(bs, 1, "use_superres");
+		use_superres = gf_bs_read_bool_log(bs, "use_superres");
 	}
 	else {
 		use_superres = GF_FALSE;
@@ -3084,7 +3088,7 @@ static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_ov
 
 static void av1_render_size(GF_BitStream *bs)
 {
-	Bool render_and_frame_size_different = gf_bs_read_int_log(bs, 1, "render_and_frame_size_different_flag");
+	Bool render_and_frame_size_different = gf_bs_read_bool_log(bs, "render_and_frame_size_different_flag");
 	if (render_and_frame_size_different == GF_TRUE) {
 		gf_bs_read_int_log(bs, 16, "render_width_minus_1");
 		gf_bs_read_int_log(bs, 16, "render_height_minus_1");
@@ -3099,7 +3103,7 @@ static void av1_render_size(GF_BitStream *bs)
 
 static void read_interpolation_filter(GF_BitStream *bs)
 {
-	Bool is_filter_switchable = gf_bs_read_int_log(bs, 1, "is_filter_switchable");
+	Bool is_filter_switchable = gf_bs_read_bool_log(bs, "is_filter_switchable");
 	if (!is_filter_switchable) {
 		/*interpolation_filter =*/ gf_bs_read_int_log(bs, 2, "interpolation_filter");
 	}
@@ -3107,7 +3111,7 @@ static void read_interpolation_filter(GF_BitStream *bs)
 
 static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag, s8 *ref_frame_idx)
 {
-	Bool found_ref = GF_FALSE;
+	u32 found_ref = 0;
 	u32 i = 0;
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 		found_ref = gf_bs_read_int_log_idx(bs, 1, "found_ref", i);
@@ -3130,7 +3134,7 @@ static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_s
 
 static s32 av1_delta_q(GF_BitStream *bs, const char *name_flag, const char *name)
 {
-	Bool delta_coded = gf_bs_read_int_log(bs, 1, name_flag);
+	Bool delta_coded = gf_bs_read_bool_log(bs, name_flag);
 	s32 delta_q = 0;
 	if (delta_coded) {
 		u32 signMask = 1 << (7 - 1);
@@ -3206,7 +3210,7 @@ static u32 av1_decode_subexp(GF_BitStream *bs, s32 numSyms)
 			return subexp_final_bits + mk;
 		}
 		else {
-			s32 subexp_more_bits = gf_bs_read_int(bs, 1);
+			s32 subexp_more_bits = gf_bs_read_bool(bs); 
 			if (subexp_more_bits) {
 				i++;
 				mk += a;
@@ -3489,7 +3493,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		frame_state->show_existing_frame = 0;
 	}
 	else {
-		frame_state->show_existing_frame = gf_bs_read_int_log(bs, 1, "show_existing_frame");
+		frame_state->show_existing_frame = gf_bs_read_bool_log(bs, "show_existing_frame");
 		if (frame_state->show_existing_frame == GF_TRUE) {
 			frame_state->frame_to_show_map_idx = gf_bs_read_int_log(bs, 3, "frame_to_show_map_idx");
 			frame_state->frame_type = state->RefFrameType[frame_state->frame_to_show_map_idx];
@@ -3511,11 +3515,11 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}*/
 			return;
 		}
-		frame_state->frame_type = gf_bs_read_int_log(bs, 2, "frame_type");
-		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME);
-		frame_state->show_frame = gf_bs_read_int_log(bs, 1, "show_frame");
+		frame_state->frame_type = (AV1FrameType) gf_bs_read_int_log(bs, 2, "frame_type");
+		FrameIsIntra = (frame_state->frame_type == AV1_INTRA_ONLY_FRAME || frame_state->frame_type == AV1_KEY_FRAME) ? GF_TRUE : GF_FALSE;
+		frame_state->show_frame = gf_bs_read_bool_log(bs, "show_frame");
 		if (frame_state->is_first_frame) {
-			frame_state->key_frame = frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header;
+			frame_state->key_frame = (frame_state->seen_seq_header && frame_state->show_frame && frame_state->frame_type == AV1_KEY_FRAME && frame_state->seen_frame_header) ? GF_TRUE : GF_FALSE;
 		}
 		if (frame_state->frame_type == AV1_SWITCH_FRAME) {
 			frame_state->switch_frame = GF_TRUE;
@@ -3528,12 +3532,12 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 
 		}
 		else {
-			showable_frame = gf_bs_read_int_log(bs, 1, "showable_frame");
+			showable_frame = gf_bs_read_bool_log(bs, "showable_frame");
 		}
 		if (frame_state->frame_type == AV1_SWITCH_FRAME || (frame_state->frame_type == AV1_KEY_FRAME && frame_state->show_frame))
 			error_resilient_mode = GF_TRUE;
 		else
-			error_resilient_mode = gf_bs_read_int_log(bs, 1, "error_resilient_mode");
+			error_resilient_mode = gf_bs_read_bool_log(bs, "error_resilient_mode");
 	}
 
 	if ((frame_state->frame_type == AV1_KEY_FRAME) && frame_state->show_frame) {
@@ -3547,26 +3551,26 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		}
 	}
 
-	disable_cdf_update = gf_bs_read_int_log(bs, 1, "disable_cdf_update");
+	disable_cdf_update = gf_bs_read_bool_log(bs, "disable_cdf_update");
 	if (state->seq_force_screen_content_tools == 2/*SELECT_SCREEN_CONTENT_TOOLS*/) {
-		allow_screen_content_tools = gf_bs_read_int_log(bs, 1, "allow_screen_content_tools");
+		allow_screen_content_tools = gf_bs_read_bool_log(bs, "allow_screen_content_tools");
 	}
 	else {
-		allow_screen_content_tools = state->seq_force_screen_content_tools;
+		allow_screen_content_tools = state->seq_force_screen_content_tools ? GF_TRUE : GF_FALSE;
 	}
 	if (allow_screen_content_tools) {
 		if (state->seq_force_integer_mv == 2/*SELECT_INTEGER_MV*/) {
-			force_integer_mv = gf_bs_read_int_log(bs, 1, "force_integer_mv");
+			force_integer_mv = gf_bs_read_bool_log(bs, "force_integer_mv");
 		}
 		else {
-			force_integer_mv = state->seq_force_integer_mv;
+			force_integer_mv = state->seq_force_integer_mv ? GF_TRUE : GF_FALSE;
 		}
 	}
 	else {
-		force_integer_mv = 0;
+		force_integer_mv = GF_FALSE;
 	}
 	if (FrameIsIntra) {
-		force_integer_mv = 1;
+		force_integer_mv = GF_TRUE;
 	}
 	if (state->frame_id_numbers_present_flag) {
 		gf_bs_read_int_log(bs, idLen, "current_frame_id");
@@ -3576,7 +3580,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	else if (state->reduced_still_picture_header)
 		frame_size_override_flag = GF_FALSE;
 	else
-		frame_size_override_flag = gf_bs_read_int_log(bs, 1, "frame_size_override_flag");
+		frame_size_override_flag = gf_bs_read_bool_log(bs, "frame_size_override_flag");
 
 	frame_state->order_hint = gf_bs_read_int_log(bs, state->OrderHintBits, "order_hint");
 	if (FrameIsIntra || error_resilient_mode) {
@@ -3587,7 +3591,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	}
 
 	if (state->decoder_model_info_present_flag) {
-		u8 buffer_removal_time_present_flag = gf_bs_read_int_log(bs, 1, "buffer_removal_time_present_flag");
+		u8 buffer_removal_time_present_flag = gf_bs_read_bool_log(bs, "buffer_removal_time_present_flag");
 		if (buffer_removal_time_present_flag) {
 			u32 opNum;
 			for (opNum = 0; opNum < state->operating_points_count; opNum++) {
@@ -3627,7 +3631,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		av1_frame_size(bs, state, frame_size_override_flag);
 		av1_render_size(bs);
 		if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
-			allow_intrabc = gf_bs_read_int_log(bs, 1, "allow_intrabc");
+			allow_intrabc = gf_bs_read_bool_log(bs, "allow_intrabc");
 		}
 	}
 	else {
@@ -3635,14 +3639,14 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			av1_frame_size(bs, state, frame_size_override_flag);
 			av1_render_size(bs);
 			if (allow_screen_content_tools && state->UpscaledWidth == state->width) {
-				allow_intrabc = gf_bs_read_int_log(bs, 1, "allow_intrabc");
+				allow_intrabc = gf_bs_read_bool_log(bs, "allow_intrabc");
 			}
 		}
 		else {
 			u32 i = 0;
 			Bool frame_refs_short_signaling = GF_FALSE;
 			if (state->enable_order_hint) {
-				frame_refs_short_signaling = gf_bs_read_int_log(bs, 1, "frame_refs_short_signaling");
+				frame_refs_short_signaling = gf_bs_read_bool_log(bs, "frame_refs_short_signaling");
 				if (frame_refs_short_signaling) {
 					u8 last_frame_idx = gf_bs_read_int_log(bs, 3, "last_frame_idx");
 					u8 gold_frame_idx = gf_bs_read_int_log(bs, 3, "gold_frame_idx");
@@ -3669,14 +3673,14 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 			frame_state->allow_high_precision_mv = 0;
 			if (!force_integer_mv) {
-				frame_state->allow_high_precision_mv = gf_bs_read_int_log(bs, 1, "allow_high_precision_mv");
+				frame_state->allow_high_precision_mv = gf_bs_read_bool_log(bs, "allow_high_precision_mv");
 			}
 
 			read_interpolation_filter(bs);
 
-			gf_bs_read_int_log(bs, 1, "is_motion_mode_switchable");
+			gf_bs_read_bool_log(bs, "is_motion_mode_switchable");
 			if (!(error_resilient_mode || !state->enable_ref_frame_mvs)) {
-				gf_bs_read_int_log(bs, 1, "use_ref_frame_mvs");
+				gf_bs_read_bool_log(bs, "use_ref_frame_mvs");
 			}
 		}
 	}
@@ -3701,7 +3705,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	}
 
 	if (!(state->reduced_still_picture_header || disable_cdf_update))
-		gf_bs_read_int_log(bs, 1, "disable_frame_end_update_cdf");
+		gf_bs_read_bool_log(bs, "disable_frame_end_update_cdf");
 
 	if (primary_ref_frame == AV1_PRIMARY_REF_NONE) {
 		//init_non_coeff_cdfs();
@@ -3723,7 +3727,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!state->config || !state->config->monochrome) {
 		u8 diff_uv_delta = 0;
 		if (state->separate_uv_delta_q)
-			diff_uv_delta = gf_bs_read_int_log(bs, 1, "diff_uv_delta");
+			diff_uv_delta = gf_bs_read_bool_log(bs, "diff_uv_delta");
 
 		DeltaQUDc = av1_delta_q(bs, "DeltaQUDc_coded", "DeltaQUDc");
 		DeltaQUAc = av1_delta_q(bs, "DeltaQUAc_coded", "DeltaQUAc");
@@ -3732,7 +3736,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			DeltaQVAc = av1_delta_q(bs, "DeltaQVAc_coded", "DeltaQVAc");
 		}
 	}
-	if (gf_bs_read_int_log(bs, 1, "using_qmatrix")) {
+	if (gf_bs_read_bool_log(bs, "using_qmatrix")) {
 		gf_bs_read_int_log(bs, 4, "qm_y");
 		gf_bs_read_int_log(bs, 4, "qm_u");
 		if (state->separate_uv_delta_q) {
@@ -3744,15 +3748,15 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	s32 seg_features_SEG_LVL_ALT_Q[8] = { 0,0,0,0,0,0,0,0 };
 
 	//segmentation_params( ):
-	u8 segmentation_enabled = gf_bs_read_int_log(bs, 1, "segmentation_enabled");
+	Bool segmentation_enabled = gf_bs_read_bool_log(bs, "segmentation_enabled");
 	if (segmentation_enabled) {
 		/*u8 segmentation_temporal_update = 0;*/
-		u8 segmentation_update_data = 1;
+		u8 segmentation_update_data = GF_TRUE;
 		if (primary_ref_frame != AV1_PRIMARY_REF_NONE) {
-			u8 segmentation_update_map = gf_bs_read_int_log(bs, 1, "segmentation_update_map");
+			u8 segmentation_update_map = gf_bs_read_bool_log(bs, "segmentation_update_map");
 			if (segmentation_update_map == 1)
-				gf_bs_read_int_log(bs, 1, "segmentation_temporal_update");
-			segmentation_update_data = gf_bs_read_int_log(bs, 1, "segmentation_update_data");
+				gf_bs_read_bool_log(bs, "segmentation_temporal_update");
+			segmentation_update_data = gf_bs_read_bool_log(bs, "segmentation_update_data");
 		}
 		if (segmentation_update_data == 1) {
 			u32 i, j;
@@ -3782,7 +3786,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	/*u8 delta_q_res = 0;*/
 	u8 delta_q_present = 0;
 	if (base_q_idx > 0) {
-		delta_q_present = gf_bs_read_int_log(bs, 1, "delta_q_present");
+		delta_q_present = gf_bs_read_bool_log(bs, "delta_q_present");
 	}
 	if (delta_q_present) {
 		gf_bs_read_int_log(bs, 2, "delta_q_res");
@@ -3794,11 +3798,11 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	u8 delta_lf_multi = 0;*/
 	if (delta_q_present) {
 		if (!allow_intrabc) {
-			delta_lf_present = gf_bs_read_int_log(bs, 1, "delta_lf_present");
+			delta_lf_present = gf_bs_read_bool_log(bs, "delta_lf_present");
 		}
 		if (delta_lf_present) {
 			gf_bs_read_int_log(bs, 2, "delta_lf_res");
-			gf_bs_read_int_log(bs, 1, "delta_lf_multi");
+			gf_bs_read_bool_log(bs, "delta_lf_multi");
 		}
 	}
 
@@ -3806,11 +3810,11 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	u8 CodedLossless = 1;
 	for (idx = 0; idx < 8; idx++) {
 		u8 qindex = av1_get_qindex(GF_TRUE, idx, base_q_idx, delta_q_present, 0/*CurrentQIndex always ignored at this level of parsin*/, segmentation_enabled, seg_features_SEG_LVL_ALT_Q_enabled, seg_features_SEG_LVL_ALT_Q);
-		Bool LosslessArray = (qindex == 0) && (DeltaQYDc == 0) && (DeltaQUAc == 0) && (DeltaQUDc == 0) && (DeltaQVAc == 0) && (DeltaQVDc == 0);
+		Bool LosslessArray = ((qindex == 0) && (DeltaQYDc == 0) && (DeltaQUAc == 0) && (DeltaQUDc == 0) && (DeltaQVAc == 0) && (DeltaQVDc == 0)) ? GF_TRUE : GF_FALSE;
 		if (!LosslessArray)
 			CodedLossless = 0;
 	}
-	Bool AllLossless = CodedLossless && (state->width == state->UpscaledWidth);
+	Bool AllLossless = (CodedLossless && (state->width == state->UpscaledWidth)) ? GF_TRUE : GF_FALSE;
 
 	//loop_filter_params():
 	if (!CodedLossless && !allow_intrabc) {
@@ -3823,9 +3827,9 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 			}
 		}
 		gf_bs_read_int_log(bs, 3, "loop_filter_sharpness");
-		u8 loop_filter_delta_enabled = gf_bs_read_int_log(bs, 1, "loop_filter_delta_enabled");
+		u8 loop_filter_delta_enabled = gf_bs_read_bool_log(bs, "loop_filter_delta_enabled");
 		if (loop_filter_delta_enabled == 1) {
-			u8 loop_filter_delta_update = gf_bs_read_int_log(bs, 1, "loop_filter_delta_update");
+			u8 loop_filter_delta_update = gf_bs_read_bool_log(bs, "loop_filter_delta_update");
 			if (loop_filter_delta_update) {
 				u32 i;
 				for (i = 0; i < 8/*TOTAL_REFS_PER_FRAME*/; i++) {
@@ -3875,17 +3879,17 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		}
 		if (UsesLr) {
 			if (state->use_128x128_superblock) {
-				gf_bs_read_int_log(bs, 1, "lr_unit_shift_minus_1");
+				gf_bs_read_bool_log(bs, "lr_unit_shift_minus_1");
 			}
 			else {
-				u8 lr_unit_shift = gf_bs_read_int_log(bs, 1, "lr_unit_shift");
+				u8 lr_unit_shift = gf_bs_read_bool_log(bs, "lr_unit_shift");
 				if (lr_unit_shift) {
-					gf_bs_read_int_log(bs, 1, "lr_unit_extra_shift");
+					gf_bs_read_bool_log(bs, "lr_unit_extra_shift");
 					//lr_unit_shift += lr_unit_extra_shift;
 				}
 			}
 			if (state->config->chroma_subsampling_x && state->config->chroma_subsampling_y && usesChromaLr) {
-				gf_bs_read_int_log(bs, 1, "lr_uv_shift");
+				gf_bs_read_bool_log(bs, "lr_uv_shift");
 			}
 		}
 	}
@@ -3893,7 +3897,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (CodedLossless == 1) {
 	}
 	else {
-		gf_bs_read_int_log(bs, 1, "tx_mode_select");
+		gf_bs_read_bool_log(bs, "tx_mode_select");
 	}
 
 	//frame_reference_mode( ):
@@ -3901,7 +3905,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (FrameIsIntra) {
 	}
 	else {
-		reference_select = gf_bs_read_int_log(bs, 1, "reference_select");
+		reference_select = gf_bs_read_bool_log(bs, "reference_select");
 	}
 
 	//skip_mode_params( ):
@@ -3960,7 +3964,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		}
 	}
 	if (skipModeAllowed) {
-		gf_bs_read_int_log(bs, 1, "skip_mode_present");
+		gf_bs_read_bool_log(bs, "skip_mode_present");
 	}
 
 
@@ -3968,10 +3972,10 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 
 	}
 	else {
-		gf_bs_read_int_log(bs, 1, "allow_warped_motion");
+		gf_bs_read_bool_log(bs, "allow_warped_motion");
 	}
 
-	gf_bs_read_int_log(bs, 1, "reduced_tx");
+	gf_bs_read_bool_log(bs, "reduced_tx");
 
 	//global_motion_params( )
 	u32 ref;
@@ -3985,14 +3989,14 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		u32 refs;
 		for (refs = AV1_LAST_FRAME; refs <= AV1_ALTREF_FRAME; refs++) {
 			u8 type = AV1_GMC_IDENTITY;
-			Bool is_global = gf_bs_read_int_log_idx(bs, 1, "is_global", refs);
+			u32 is_global = gf_bs_read_int_log_idx(bs, 1, "is_global", refs);
 			if (is_global) {
-				Bool is_rot_zoom = gf_bs_read_int_log_idx(bs, 1, "is_rot_zoom", refs);
+				u32 is_rot_zoom = gf_bs_read_int_log_idx(bs, 1, "is_rot_zoom", refs);
 				if (is_rot_zoom) {
 					type = AV1_GMC_ROTZOOM;
 				}
 				else {
-					Bool is_trans = gf_bs_read_int_log_idx(bs, 1, "is_translation", refs);
+					u32 is_trans = gf_bs_read_int_log_idx(bs, 1, "is_translation", refs);
 					type = is_trans ? AV1_GMC_TRANSLATION : AV1_GMC_AFFINE;
 
 				}
@@ -4022,12 +4026,12 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!state->film_grain_params_present || (!state->frame_state.show_frame && !showable_frame)) {
 	}
 	else {
-		u8 apply_grain = gf_bs_read_int_log(bs, 1, "apply_grain");
+		u8 apply_grain = gf_bs_read_bool_log(bs, "apply_grain");
 		if (apply_grain) {
 			gf_bs_read_int_log(bs, 16, "grain_seed");
 			u8 update_grain = 1;
 			if (state->frame_state.frame_type == AV1_INTER_FRAME) {
-				update_grain = gf_bs_read_int_log(bs, 1, "update_grain");
+				update_grain = gf_bs_read_bool_log(bs, "update_grain");
 			}
 			if (!update_grain) {
 				gf_bs_read_int_log(bs, 3, "film_grain_params_ref_idx");
@@ -4040,7 +4044,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 				}
 				u8 chroma_scaling_from_luma = 0;
 				if (!state->config->monochrome)
-					chroma_scaling_from_luma = gf_bs_read_int_log(bs, 1, "chroma_scaling_from_luma");
+					chroma_scaling_from_luma = gf_bs_read_bool_log(bs, "chroma_scaling_from_luma");
 
 				u8 num_cb_points = 0;
 				u8 num_cr_points = 0;
@@ -4092,8 +4096,8 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 					gf_bs_read_int_log(bs, 8, "cr_luma_mult");
 					gf_bs_read_int_log(bs, 9, "cr_offset");
 				}
-				gf_bs_read_int_log(bs, 1, "overlap_flag");
-				gf_bs_read_int_log(bs, 1, "clip_to_restricted_range");
+				gf_bs_read_bool_log(bs, "overlap_flag");
+				gf_bs_read_bool_log(bs, "clip_to_restricted_range");
 			}
 		}
 	}
@@ -4251,7 +4255,7 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 	Bool tile_start_and_end_present_flag = GF_FALSE;
 	GF_Err e = GF_OK;
 	if (numTiles > 1)
-		tile_start_and_end_present_flag = gf_bs_read_int_log(bs, 1, "tile_start_and_end_present_flag");
+		tile_start_and_end_present_flag = gf_bs_read_bool_log(bs, "tile_start_and_end_present_flag");
 
 	if (numTiles == 1 || !tile_start_and_end_present_flag) {
 		tg_start = 0;
@@ -4276,7 +4280,7 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 		u32 tile_start_offset, tile_size;
 		/*u32 tileRow = TileNum / state->tileCols;
 		u32 tileCol = TileNum % state->tileCols;*/
-		Bool lastTile = TileNum == tg_end;
+		Bool lastTile = TileNum == tg_end ? GF_TRUE : GF_FALSE;
 		u64 pos = gf_bs_get_position(bs);
 		if (lastTile) {
 			tile_start_offset = (u32)(pos - obu_start);
@@ -4345,12 +4349,12 @@ static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
 	AVCSeiPicTiming *pt = &sei->pic_timing;
 	pt->num_clock_ts = 1;
 	AVCSeiPicTimingTimecode *tc = &pt->timecodes[0];
-	tc->clock_timestamp_flag = 1;
+	tc->clock_timestamp_flag = GF_TRUE;
 
 	tc->counting_type = gf_bs_read_int_log(bs, 5, "counting_type");
-	Bool full_timestamp_flag = gf_bs_read_int_log(bs, 1, "full_timestamp_flag");
-	gf_bs_read_int_log(bs, 1, "discontinuity_flag");
-	tc->cnt_dropped_flag = gf_bs_read_int_log(bs, 1, "cnt_dropped_flag");
+	Bool full_timestamp_flag = gf_bs_read_bool_log(bs, "full_timestamp_flag");
+	gf_bs_read_bool_log(bs, "discontinuity_flag");
+	tc->cnt_dropped_flag = gf_bs_read_bool_log(bs, "cnt_dropped_flag");
 	tc->n_frames = gf_bs_read_int_log(bs, 9, "n_frames");
 
 	if (full_timestamp_flag) {
@@ -4358,13 +4362,13 @@ static void av1_parse_timecode_obu(GF_SEIInfo *sei, GF_BitStream *bs)
 		tc->minutes = gf_bs_read_int_log(bs, 6, "minutes_value");
 		tc->hours = gf_bs_read_int_log(bs, 5, "hours_value");
 	} else {
-		Bool seconds_flag = gf_bs_read_int_log(bs, 1, "seconds_flag");
+		Bool seconds_flag = gf_bs_read_bool_log(bs, "seconds_flag");
 		if (seconds_flag) {
 			tc->seconds = gf_bs_read_int_log(bs, 6, "seconds_value");
-			Bool minutes_flag = gf_bs_read_int_log(bs, 1, "minutes_flag");
+			Bool minutes_flag = gf_bs_read_bool_log(bs, "minutes_flag");
 			if (minutes_flag) {
 				tc->minutes = gf_bs_read_int_log(bs, 6, "minutes_value");
-				Bool hours_flag = gf_bs_read_int_log(bs, 1, "hours_flag");
+				Bool hours_flag = gf_bs_read_bool_log(bs, "hours_flag");
 				if (hours_flag) {
 					tc->hours = gf_bs_read_int_log(bs, 5, "hours_value");
 				}
@@ -4443,7 +4447,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 
 	gf_bs_mark_overflow(bs, GF_TRUE);
 
-	state->obu_extension_flag = state->obu_has_size_field = 0;
+	state->obu_extension_flag = state->obu_has_size_field = GF_FALSE;
 	state->temporal_id = state->spatial_id = 0;
 	state->frame_state.uncompressed_header_bytes = 0;
 	e = gf_av1_parse_obu_header(bs, obu_type, &state->obu_extension_flag, &state->obu_has_size_field, &state->temporal_id, &state->spatial_id);
@@ -4460,7 +4464,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 			*obu_size = *obu_size - 1 - state->obu_extension_flag;
 		}
 		else {
-			GF_LOG(state->config ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] computed OBU size "LLD" (input value = "LLU"). Skipping.\n", *obu_size - 1 - state->obu_extension_flag, *obu_size));
+			GF_LOG(state->config ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] computed OBU size " LLD " (input value = " LLU "). Skipping.\n", *obu_size - 1 - state->obu_extension_flag, *obu_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
@@ -4481,7 +4485,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		u32 inTemporalLayer = (state->OperatingPointIdc >> state->temporal_id) & 1;
 		u32 inSpatialLayer = (state->OperatingPointIdc >> (state->spatial_id + 8)) & 1;
 		if (!inTemporalLayer || !inSpatialLayer) {
-			*obu_type = -1;
+			*obu_type = OBU_RESERVED_0;
 			gf_bs_seek(bs, pos + *obu_size);
 			return GF_OK;
 		}
@@ -4556,7 +4560,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] unknown OBU type %u (size "LLU"). Skipping.\n", *obu_type, *obu_size));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] unknown OBU type %u (size " LLU "). Skipping.\n", *obu_type, *obu_size));
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 	}
@@ -4623,8 +4627,8 @@ GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_fra
 	gf_bs_read_int(bs, 4);
 	prores_frame->alpha_channel_type = gf_bs_read_int(bs, 4);
 	gf_bs_read_int(bs, 14);
-	prores_frame->load_luma_quant_matrix = gf_bs_read_int(bs, 1);
-	prores_frame->load_chroma_quant_matrix = gf_bs_read_int(bs, 1);
+	prores_frame->load_luma_quant_matrix = gf_bs_read_bool(bs); 
+	prores_frame->load_chroma_quant_matrix = gf_bs_read_bool(bs); 
 	if (prores_frame->load_luma_quant_matrix) {
 		for (i=0; i<8; i++) {
 			for (j=0; j<8; j++) {
@@ -4706,9 +4710,9 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 	u8 leb128_size;
 	int i;
 
-	*obu_type = gf_bs_read_int(bs, 5);
+	*obu_type = (IamfObuType) gf_bs_read_int(bs, 5);
 
-	obu_redundant_copy = gf_bs_read_int(bs, 1);
+	obu_redundant_copy = gf_bs_read_bool(bs);
 	if (obu_redundant_copy) {
 		if (iamf_is_temporal_unit_obu(*obu_type)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_redundant_copy set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
@@ -4716,14 +4720,14 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 		}
 	}
 
-	obu_trimming_status_flag = gf_bs_read_int(bs, 1);
+	obu_trimming_status_flag = gf_bs_read_bool(bs); 
 	if (obu_trimming_status_flag) {
 		if (!iamf_is_audio_frame_obu(*obu_type)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
-	obu_extension_flag = gf_bs_read_int(bs, 1);
+	obu_extension_flag = gf_bs_read_bool(bs); 
 
 
 	/* gpac's `obu_size` includes the header and payload, which is different
@@ -4765,7 +4769,7 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 
 static Bool iamf_is_profile_supported(u8 profile)
 {
-	return profile == 0 || profile == 1 || profile == 2;
+	return (profile == 0 || profile == 1 || profile == 2) ? GF_TRUE : GF_FALSE;
 }
 
 static GF_Err iamf_parse_iamf_sequence_header(GF_BitStream *bs, IAMFState *state)
@@ -4800,7 +4804,7 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		state->sample_size = 16;
 		break;
 	case GF_4CC('f', 'L', 'a', 'C'):
-		gf_bs_read_int_log(bs, 1, "last_metadata_block_flag");
+		gf_bs_read_bool_log(bs, "last_metadata_block_flag");
 		gf_bs_read_int_log(bs, 7, "block_type");
 		gf_bs_read_int_log(bs, 24, "block_length");
 		gf_bs_read_int_log(bs, 16, "minimum_block_size");
@@ -4881,7 +4885,7 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 	IamfObuType obu_type;
 	u64 obu_size;
 
-	obu_type = gf_bs_peek_bits(bs, 5, 0);
+	obu_type = (IamfObuType) gf_bs_peek_bits(bs, 5, 0);
 	if (obu_type != OBU_IAMF_SEQUENCE_HEADER) {
 		return GF_FALSE;
 	}
@@ -4896,7 +4900,7 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 
 	e = iamf_parse_iamf_sequence_header(bs, NULL);
 	gf_bs_seek(bs, start);
-	return !e;
+	return e ? GF_FALSE : GF_TRUE;
 }
 
 GF_EXPORT
@@ -4992,7 +4996,7 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 	gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL, NULL);
 	gf_bs_seek(bs, pos);
 
-	a->raw_obu_bytes = gf_malloc((size_t)obu_size);
+	a->raw_obu_bytes = (u8 *)gf_malloc((size_t)obu_size);
 	gf_bs_read_data(bs, a->raw_obu_bytes, (u32)obu_size);
 	a->obu_length = obu_size;
 
@@ -5493,7 +5497,7 @@ u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 id
 		if (nb_lead>=32) {
 			break;
 		}
-		code = gf_bs_read_int(bs, 1);
+		code = gf_bs_read_bool(bs); 
 		bits++;
 	}
 
@@ -5746,7 +5750,7 @@ u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
 
 	while (cur) {
 		u32 v, bpos;
-		u8 *next_zero = memchr(cur, 0, avail);
+		u8 *next_zero = (u8*)memchr(cur, 0, avail);
 		if (!next_zero) return data_len;
 
 		v = 0xffffff00;
@@ -5785,9 +5789,9 @@ Bool gf_avc_slice_is_intra(AVCState *avc)
 	case GF_AVC_TYPE2_I:
 	case GF_AVC_TYPE_SI:
 	case GF_AVC_TYPE2_SI:
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -5797,10 +5801,10 @@ Bool gf_avc_slice_is_IDR(AVCState *avc)
 	if (avc->sei.recovery_point.valid)
 	{
 		avc->sei.recovery_point.valid = 0;
-		return 1;
+		return GF_TRUE;
 	}
 	if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE)
-		return 0;
+		return GF_FALSE;
 	return gf_avc_slice_is_intra(avc);
 }
 #endif
@@ -5863,7 +5867,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 	}
 
 	if (!nal_hdr) {
-		gf_bs_read_int_log(bs, 1, "forbidden_zero_bit");
+		gf_bs_read_bool_log(bs, "forbidden_zero_bit");
 		gf_bs_read_int_log(bs, 2, "nal_ref_idc");
 		gf_bs_read_int_log(bs, 5, "nal_unit_type");
 	}
@@ -5906,7 +5910,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		chroma_format_idc = gf_bs_read_ue_log(bs, "chroma_format_idc");
 		sps->ChromaArrayType = chroma_format_idc;
 		if (chroma_format_idc == 3) {
-			separate_colour_plane_flag = gf_bs_read_int_log(bs, 1, "separate_colour_plane_flag");
+			separate_colour_plane_flag = gf_bs_read_bool_log(bs, "separate_colour_plane_flag");
 			/*
 			Depending on the value of separate_colour_plane_flag, the value of the variable ChromaArrayType is assigned as follows.
 			\96	If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
@@ -5916,9 +5920,9 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		}
 		luma_bd = gf_bs_read_ue_log(bs, "luma_bit_depth");
 		chroma_bd = gf_bs_read_ue_log(bs, "chroma_bit_depth");
-		/*qpprime_y_zero_transform_bypass_flag = */ gf_bs_read_int_log(bs, 1, "qpprime_y_zero_transform_bypass_flag");
+		/*qpprime_y_zero_transform_bypass_flag = */ gf_bs_read_bool_log(bs, "qpprime_y_zero_transform_bypass_flag");
 		/*seq_scaling_matrix_present_flag*/
-		if (gf_bs_read_int_log(bs, 1, "seq_scaling_matrix_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "seq_scaling_matrix_present_flag")) {
 			u32 k;
 			for (k = 0; k < 8; k++) {
 				if (gf_bs_read_int_log_idx(bs, 1, "seq_scaling_list_present_flag", k)) {
@@ -5962,7 +5966,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		}
 	}
 	else if (sps->poc_type == 1) {
-		sps->delta_pic_order_always_zero_flag = gf_bs_read_int_log(bs, 1, "delta_pic_order_always_zero_flag");
+		sps->delta_pic_order_always_zero_flag = gf_bs_read_bool_log(bs, "delta_pic_order_always_zero_flag");
 		sps->offset_for_non_ref_pic = gf_bs_read_se_log(bs, "offset_for_non_ref_pic");
 		sps->offset_for_top_to_bottom_field = gf_bs_read_se_log(bs, "offset_for_top_to_bottom_field");
 		sps->poc_cycle_length = gf_bs_read_ue_log(bs, "poc_cycle_length");
@@ -5977,7 +5981,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		AVC_SPS_BROKEN
 	}
 	sps->max_num_ref_frames = gf_bs_read_ue_log(bs, "max_num_ref_frames");
-	sps->gaps_in_frame_num_value_allowed_flag = gf_bs_read_int_log(bs, 1, "gaps_in_frame_num_value_allowed_flag");
+	sps->gaps_in_frame_num_value_allowed_flag = gf_bs_read_bool_log(bs, "gaps_in_frame_num_value_allowed_flag");
 	mb_width = gf_bs_read_ue_log(bs, "pic_width_in_mbs_minus1") + 1;
 	mb_height = gf_bs_read_ue_log(bs, "pic_height_in_map_units_minus1") + 1;
 	//5.1 level max frame size in MBs is 36864, we set our limit at 16k x 16x pixels (eg 1 M MBs) for fuzzed stream detection
@@ -5985,15 +5989,15 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		AVC_SPS_BROKEN
 	}
 
-	sps->frame_mbs_only_flag = gf_bs_read_int_log(bs, 1, "frame_mbs_only_flag");
+	sps->frame_mbs_only_flag = gf_bs_read_bool_log(bs, "frame_mbs_only_flag");
 
 	sps->width = mb_width * 16;
 	sps->height = (2 - sps->frame_mbs_only_flag) * mb_height * 16;
 
-	if (!sps->frame_mbs_only_flag) sps->mb_adaptive_frame_field_flag = gf_bs_read_int_log(bs, 1, "mb_adaptive_frame_field_flag");
-	gf_bs_read_int_log(bs, 1, "direct_8x8_inference_flag");
+	if (!sps->frame_mbs_only_flag) sps->mb_adaptive_frame_field_flag = gf_bs_read_bool_log(bs, "mb_adaptive_frame_field_flag");
+	gf_bs_read_bool_log(bs, "direct_8x8_inference_flag");
 
-	if (gf_bs_read_int_log(bs, 1, "frame_cropping_flag")) {
+	if (gf_bs_read_bool_log(bs, "frame_cropping_flag")) {
 		int CropUnitX, CropUnitY, SubWidthC = -1, SubHeightC = -1;
 
 		if (chroma_format_idc == 1) {
@@ -6037,9 +6041,9 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		*vui_flag_pos = (u32)gf_bs_get_bit_offset(bs);
 	}
 	/*vui_parameters_present_flag*/
-	sps->vui_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vui_parameters_present_flag");
+	sps->vui_parameters_present_flag = gf_bs_read_bool_log(bs, "vui_parameters_present_flag");
 	if (sps->vui_parameters_present_flag) {
-		sps->vui.aspect_ratio_info_present_flag = gf_bs_read_int_log(bs, 1, "aspect_ratio_info_present_flag");
+		sps->vui.aspect_ratio_info_present_flag = gf_bs_read_bool_log(bs, "aspect_ratio_info_present_flag");
 		if (sps->vui.aspect_ratio_info_present_flag) {
 			s32 aspect_ratio_idc = gf_bs_read_int_log(bs, 8, "aspect_ratio_idc");
 			if (aspect_ratio_idc == 255) {
@@ -6054,9 +6058,9 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] Unknown aspect_ratio_idc: your video may have a wrong aspect ratio. Contact the GPAC team!\n"));
 			}
 		}
-		sps->vui.overscan_info_present_flag = gf_bs_read_int_log(bs, 1, "overscan_info_present_flag");
+		sps->vui.overscan_info_present_flag = gf_bs_read_bool_log(bs, "overscan_info_present_flag");
 		if (sps->vui.overscan_info_present_flag)
-			gf_bs_read_int_log(bs, 1, "overscan_appropriate_flag");
+			gf_bs_read_bool_log(bs, "overscan_appropriate_flag");
 
 		/* default values */
 		sps->vui.video_format = 5;
@@ -6067,11 +6071,11 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		sps->vui.chroma_sample_loc_type_top_field = sps->vui.chroma_sample_loc_type_bottom_field = 0;
 
 		/* now read values if possible */
-		sps->vui.video_signal_type_present_flag = gf_bs_read_int_log(bs, 1, "video_signal_type_present_flag");
+		sps->vui.video_signal_type_present_flag = gf_bs_read_bool_log(bs, "video_signal_type_present_flag");
 		if (sps->vui.video_signal_type_present_flag) {
 			sps->vui.video_format = gf_bs_read_int_log(bs, 3, "video_format");
-			sps->vui.video_full_range_flag = gf_bs_read_int_log(bs, 1, "video_full_range_flag");
-			sps->vui.colour_description_present_flag = gf_bs_read_int_log(bs, 1, "colour_description_present_flag");
+			sps->vui.video_full_range_flag = gf_bs_read_bool_log(bs, "video_full_range_flag");
+			sps->vui.colour_description_present_flag = gf_bs_read_bool_log(bs, "colour_description_present_flag");
 			if (sps->vui.colour_description_present_flag) {
 				sps->vui.colour_primaries = gf_bs_read_int_log(bs, 8, "colour_primaries");
 				sps->vui.transfer_characteristics = gf_bs_read_int_log(bs, 8, "transfer_characteristics");
@@ -6079,33 +6083,33 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 			}
 		}
 
-		sps->vui.chroma_location_info_present_flag = gf_bs_read_int_log(bs, 1, "chroma_location_info_present_flag");
+		sps->vui.chroma_location_info_present_flag = gf_bs_read_bool_log(bs, "chroma_location_info_present_flag");
 		if (sps->vui.chroma_location_info_present_flag) {
 			sps->vui.chroma_sample_loc_type_top_field = gf_bs_read_ue_log(bs, "chroma_sample_location_type_top_field");
 			sps->vui.chroma_sample_loc_type_bottom_field = gf_bs_read_ue_log(bs, "chroma_sample_location_type_bottom_field");
 		}
 
-		sps->vui.timing_info_present_flag = gf_bs_read_int_log(bs, 1, "timing_info_present_flag");
+		sps->vui.timing_info_present_flag = gf_bs_read_bool_log(bs, "timing_info_present_flag");
 		if (sps->vui.timing_info_present_flag) {
 			sps->vui.num_units_in_tick = gf_bs_read_int_log(bs, 32, "num_units_in_tick");
 			sps->vui.time_scale = gf_bs_read_int_log(bs, 32, "time_scale");
-			sps->vui.fixed_frame_rate_flag = gf_bs_read_int_log(bs, 1, "fixed_frame_rate_flag");
+			sps->vui.fixed_frame_rate_flag = gf_bs_read_bool_log(bs, "fixed_frame_rate_flag");
 		}
 
-		sps->vui.nal_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "nal_hrd_parameters_present_flag");
+		sps->vui.nal_hrd_parameters_present_flag = gf_bs_read_bool_log(bs, "nal_hrd_parameters_present_flag");
 		if (sps->vui.nal_hrd_parameters_present_flag)
 			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0)
 				AVC_SPS_BROKEN
 
-		sps->vui.vcl_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vcl_hrd_parameters_present_flag");
+		sps->vui.vcl_hrd_parameters_present_flag = gf_bs_read_bool_log(bs, "vcl_hrd_parameters_present_flag");
 		if (sps->vui.vcl_hrd_parameters_present_flag)
 			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0)
 				AVC_SPS_BROKEN
 
 		if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag)
-			sps->vui.low_delay_hrd_flag = gf_bs_read_int_log(bs, 1, "low_delay_hrd_flag");
+			sps->vui.low_delay_hrd_flag = gf_bs_read_bool_log(bs, "low_delay_hrd_flag");
 
-		sps->vui.pic_struct_present_flag = gf_bs_read_int_log(bs, 1, "pic_struct_present_flag");
+		sps->vui.pic_struct_present_flag = gf_bs_read_bool_log(bs, "pic_struct_present_flag");
 	}
 	/*end of seq_parameter_set_data*/
 
@@ -6114,17 +6118,17 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 			u8 extended_spatial_scalability_idc;
 			/*parsing seq_parameter_set_svc_extension*/
 
-			gf_bs_read_int_log(bs, 1, "inter_layer_deblocking_filter_control_present_flag");
+			gf_bs_read_bool_log(bs, "inter_layer_deblocking_filter_control_present_flag");
 			extended_spatial_scalability_idc = gf_bs_read_int_log(bs, 2, "extended_spatial_scalability_idc");
 			if (sps->ChromaArrayType == 1 || sps->ChromaArrayType == 2) {
-				gf_bs_read_int_log(bs, 1, "chroma_phase_x_plus1_flag");
+				gf_bs_read_bool_log(bs, "chroma_phase_x_plus1_flag");
 			}
 			if (sps->ChromaArrayType == 1) {
 				gf_bs_read_int_log(bs, 2, "chroma_phase_y_plus1");
 			}
 			if (extended_spatial_scalability_idc == 1) {
 				if (sps->ChromaArrayType > 0) {
-					gf_bs_read_int_log(bs, 1, "seq_ref_layer_chroma_phase_x_plus1_flag");
+					gf_bs_read_bool_log(bs, "seq_ref_layer_chroma_phase_x_plus1_flag");
 					gf_bs_read_int_log(bs, 2, "seq_ref_layer_chroma_phase_y_plus1");
 				}
 				gf_bs_read_se_log(bs, "seq_scaled_ref_layer_left_offset");
@@ -6132,12 +6136,12 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 				gf_bs_read_se_log(bs, "seq_scaled_ref_layer_right_offset");
 				gf_bs_read_se_log(bs, "seq_scaled_ref_layer_bottom_offset");
 			}
-			if (gf_bs_read_int_log(bs, 1, "seq_tcoeff_level_prediction_flag")) {
-				gf_bs_read_int_log(bs, 1, "adaptive_tcoeff_level_prediction_flag");
+			if (gf_bs_read_bool_log(bs, "seq_tcoeff_level_prediction_flag")) {
+				gf_bs_read_bool_log(bs, "adaptive_tcoeff_level_prediction_flag");
 			}
-			gf_bs_read_int_log(bs, 1, "slice_header_restriction_flag");
+			gf_bs_read_bool_log(bs, "slice_header_restriction_flag");
 
-			if (gf_bs_read_int_log(bs, 1, "svc_vui_parameters_present")) {
+			if (gf_bs_read_bool_log(bs, "svc_vui_parameters_present")) {
 				u32 vui_ext_num_entries_minus1 = gf_bs_read_ue_log(bs, "vui_ext_num_entries_minus1");
 
 				for (i = 0; i <= vui_ext_num_entries_minus1; i++) {
@@ -6145,24 +6149,24 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 					gf_bs_read_int_log(bs, 3, "vui_ext_dependency_id");
 					gf_bs_read_int_log(bs, 4, "vui_ext_quality_id");
 					gf_bs_read_int_log(bs, 3, "vui_ext_temporal_id");
-					vui_ext_timing_info_present_flag = gf_bs_read_int_log(bs, 1, "vui_ext_timing_info_present_flag");
+					vui_ext_timing_info_present_flag = gf_bs_read_bool_log(bs, "vui_ext_timing_info_present_flag");
 					if (vui_ext_timing_info_present_flag) {
 						gf_bs_read_int_log(bs, 32, "vui_ext_num_units_in_tick");
 						gf_bs_read_int_log(bs, 32, "vui_ext_time_scale");
-						gf_bs_read_int_log(bs, 1, "vui_ext_fixed_frame_rate_flag");
+						gf_bs_read_bool_log(bs, "vui_ext_fixed_frame_rate_flag");
 					}
-					vui_ext_nal_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vui_ext_nal_hrd_parameters_present_flag");
+					vui_ext_nal_hrd_parameters_present_flag = gf_bs_read_bool_log(bs, "vui_ext_nal_hrd_parameters_present_flag");
 					if (vui_ext_nal_hrd_parameters_present_flag) {
 						//hrd_parameters( )
 					}
-					vui_ext_vcl_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vui_ext_vcl_hrd_parameters_present_flag");
+					vui_ext_vcl_hrd_parameters_present_flag = gf_bs_read_bool_log(bs, "vui_ext_vcl_hrd_parameters_present_flag");
 					if (vui_ext_vcl_hrd_parameters_present_flag) {
 						//hrd_parameters( )
 					}
 					if (vui_ext_nal_hrd_parameters_present_flag || vui_ext_vcl_hrd_parameters_present_flag) {
-						gf_bs_read_int_log(bs, 1, "vui_ext_low_delay_hrd_flag");
+						gf_bs_read_bool_log(bs, "vui_ext_low_delay_hrd_flag");
 					}
-					gf_bs_read_int_log(bs, 1, "vui_ext_pic_struct_present_flag");
+					gf_bs_read_bool_log(bs, "vui_ext_pic_struct_present_flag");
 				}
 			}
 		}
@@ -6171,7 +6175,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 			return sps_id;
 		}
 
-		if (gf_bs_read_int_log(bs, 1, "additional_extension2")) {
+		if (gf_bs_read_bool_log(bs, "additional_extension2")) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] skipping parsing end of Subset SPS (additional_extension2)\n"));
 			return sps_id;
 		}
@@ -6192,19 +6196,19 @@ s32 gf_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_
 {
 	s32 sps_id = -1;
 	GF_BitStream *bs;
-	char *sps_data_without_emulation_bytes = NULL;
+	u8 *sps_data_without_emulation_bytes = NULL;
 	u32 sps_data_without_emulation_bytes_size = 0;
 
 	if (vui_flag_pos) {
 		/*SPS still contains emulation bytes*/
-		sps_data_without_emulation_bytes = gf_malloc(sps_size * sizeof(char));
+		sps_data_without_emulation_bytes = (u8 *)gf_malloc(sps_size);
 		sps_data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
 		bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 
 		*vui_flag_pos = 0;
 	}
 	else {
-		bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8*)sps_data, sps_size, GF_BITSTREAM_READ);
 	}
 
 	if (!bs) {
@@ -6233,7 +6237,7 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	if (!nal_hdr) {
-		gf_bs_read_int_log(bs, 1, "forbidden_zero_bit");
+		gf_bs_read_bool_log(bs, "forbidden_zero_bit");
 		gf_bs_read_int_log(bs, 2, "nal_ref_idc");
 		gf_bs_read_int_log(bs, 5, "nal_unit_type");
 	}
@@ -6257,8 +6261,8 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	}
 	avc->pps_active_idx = pps->id; /*set active sps*/
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
-	pps->entropy_coding_mode_flag = gf_bs_read_int_log(bs, 1, "entropy_coding_mode_flag");
-	pps->pic_order_present = gf_bs_read_int_log(bs, 1, "pic_order_present");
+	pps->entropy_coding_mode_flag = gf_bs_read_bool_log(bs, "entropy_coding_mode_flag");
+	pps->pic_order_present = gf_bs_read_bool_log(bs, "pic_order_present");
 	pps->slice_group_count = gf_bs_read_ue_log(bs, "slice_group_count_minus1") + 1;
 	if (pps->slice_group_count > 1) {
 		u32 iGroup;
@@ -6274,7 +6278,7 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 			}
 		}
 		else if (pps->mb_slice_group_map_type == 3 || pps->mb_slice_group_map_type == 4 || pps->mb_slice_group_map_type == 5) {
-			gf_bs_read_int_log(bs, 1, "slice_group_change_direction_flag");
+			gf_bs_read_bool_log(bs, "slice_group_change_direction_flag");
 			gf_bs_read_ue_log(bs, "slice_group_change_rate_minus1");
 		}
 		else if (pps->mb_slice_group_map_type == 6) {
@@ -6292,14 +6296,14 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	if ((pps->ref_count[0] > 32) || (pps->ref_count[1] > 32)) goto exit;
 	*/
 
-	pps->weighted_pred_flag = gf_bs_read_int_log(bs, 1, "weighted_pred_flag");
+	pps->weighted_pred_flag = gf_bs_read_bool_log(bs, "weighted_pred_flag");
 	gf_bs_read_int_log(bs, 2, "weighted_bipred_idc");
 	gf_bs_read_se_log(bs, "init_qp_minus26");
 	gf_bs_read_se_log(bs, "init_qs_minus26");
 	gf_bs_read_se_log(bs, "chroma_qp_index_offset");
-	pps->deblocking_filter_control_present_flag = gf_bs_read_int_log(bs, 1, "deblocking_filter_control_present_flag");
-	gf_bs_read_int_log(bs, 1, "constrained_intra_pred");
-	pps->redundant_pic_cnt_present = gf_bs_read_int_log(bs, 1, "redundant_pic_cnt_present");
+	pps->deblocking_filter_control_present_flag = gf_bs_read_bool_log(bs, "deblocking_filter_control_present_flag");
+	gf_bs_read_bool_log(bs, "constrained_intra_pred");
+	pps->redundant_pic_cnt_present = gf_bs_read_bool_log(bs, "redundant_pic_cnt_present");
 
 	if (gf_bs_is_overflow(bs))
 		AVC_PPS_BROKEN
@@ -6319,7 +6323,7 @@ s32 gf_avc_read_pps(const u8 *pps_data, u32 pps_size, AVCState *avc)
 	s32 pps_id;
 
 	/*PPS still contains emulation bytes*/
-	bs = gf_bs_new(pps_data, pps_size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)pps_data, pps_size, GF_BITSTREAM_READ);
 	if (!bs) {
 		return -1;
 	}
@@ -6346,23 +6350,23 @@ s32 gf_avc_read_sps_ext(const char *spse_data, u32 spse_size)
 
 static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHeader)
 {
-	gf_bs_read_int_log(bs, 1, "reserved_one_bit");
-	NalHeader->idr_pic_flag = gf_bs_read_int_log(bs, 1, "idr_flag");
+	gf_bs_read_bool_log(bs, "reserved_one_bit");
+	NalHeader->idr_pic_flag = gf_bs_read_bool_log(bs, "idr_flag");
 	NalHeader->priority_id = gf_bs_read_int_log(bs, 6, "priority_id");
-	gf_bs_read_int_log(bs, 1, "no_inter_layer_pred_flag");
+	gf_bs_read_bool_log(bs, "no_inter_layer_pred_flag");
 	NalHeader->dependency_id = gf_bs_read_int_log(bs, 3, "DependencyId");
 	NalHeader->quality_id = gf_bs_read_int_log(bs, 4, "quality_id");
 	NalHeader->temporal_id = gf_bs_read_int_log(bs, 3, "temporal_id");
-	gf_bs_read_int_log(bs, 1, "use_ref_base_pic_flag");
-	gf_bs_read_int_log(bs, 1, "discardable_flag");
-	gf_bs_read_int_log(bs, 1, "output_flag");
+	gf_bs_read_bool_log(bs, "use_ref_base_pic_flag");
+	gf_bs_read_bool_log(bs, "discardable_flag");
+	gf_bs_read_bool_log(bs, "output_flag");
 	gf_bs_read_int_log(bs, 2, "reserved_three_2bits");
 	return 1;
 }
 
 static void avc_ref_pic_list_modification(GF_BitStream *bs, u32 slice_type, Bool is_mvc) {
 	if (slice_type % 5 != 2 && slice_type % 5 != 4) {
-		if (gf_bs_read_int_log(bs, 1, "ref_pic_list_modification_flag_l0")) {
+		if (gf_bs_read_bool_log(bs, "ref_pic_list_modification_flag_l0")) {
 			u32 idx=0, modification_of_pic_nums_idc;
 			do {
 				modification_of_pic_nums_idc = gf_bs_read_ue_log_idx(bs, "modification_of_pic_nums_idc", idx);
@@ -6380,7 +6384,7 @@ static void avc_ref_pic_list_modification(GF_BitStream *bs, u32 slice_type, Bool
 		}
 	}
 	if (slice_type % 5 == 1) {
-		if (gf_bs_read_int_log(bs, 1, "ref_pic_list_modification_flag_l1")) {
+		if (gf_bs_read_bool_log(bs, "ref_pic_list_modification_flag_l1")) {
 			u32 idx=0, modification_of_pic_nums_idc;
 			do {
 				modification_of_pic_nums_idc = gf_bs_read_ue_log_idx(bs, "modification_of_pic_nums_idc", idx);
@@ -6438,11 +6442,11 @@ static void avc_pred_weight_table(GF_BitStream *bs, u32 slice_type, u32 ChromaAr
 
 static void dec_ref_pic_marking(GF_BitStream *bs, Bool IdrPicFlag) {
 	if (IdrPicFlag) {
-		gf_bs_read_int_log(bs, 1, "no_output_of_prior_pics_flag");
-		gf_bs_read_int_log(bs, 1, "long_term_reference_flag");
+		gf_bs_read_bool_log(bs, "no_output_of_prior_pics_flag");
+		gf_bs_read_bool_log(bs, "long_term_reference_flag");
 	}
 	else {
-		if (gf_bs_read_int_log(bs, 1, "adaptive_ref_pic_marking_mode_flag")) {
+		if (gf_bs_read_bool_log(bs, "adaptive_ref_pic_marking_mode_flag")) {
 			u32 idx=0, memory_management_control_operation;
 			do {
 				memory_management_control_operation = gf_bs_read_ue_log_idx(bs, "memory_management_control_operation", idx);
@@ -6484,9 +6488,9 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	si->field_pic_flag = 0;
 	si->bottom_field_flag = 0;
 	if (!si->sps->frame_mbs_only_flag) {
-		si->field_pic_flag = gf_bs_read_int_log(bs, 1, "field_pic_flag");
+		si->field_pic_flag = gf_bs_read_bool_log(bs, "field_pic_flag");
 		if (si->field_pic_flag)
-			si->bottom_field_flag = gf_bs_read_int_log(bs, 1, "bottom_field_flag");
+			si->bottom_field_flag = gf_bs_read_bool_log(bs, "bottom_field_flag");
 	}
 
 	if ((si->nal_unit_type == GF_AVC_NALU_IDR_SLICE) || svc_idr_flag)
@@ -6509,14 +6513,14 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	}
 
 	if (si->slice_type % 5 == GF_AVC_TYPE_B) {
-		gf_bs_read_int_log(bs, 1, "direct_spatial_mv_pred_flag");
+		gf_bs_read_bool_log(bs, "direct_spatial_mv_pred_flag");
 	}
 
 	num_ref_idx_l0_active_minus1 = si->pps->num_ref_idx_l0_default_active_minus1;
 	num_ref_idx_l1_active_minus1 = si->pps->num_ref_idx_l1_default_active_minus1;
 
 	if (si->slice_type % 5 == GF_AVC_TYPE_P || si->slice_type % 5 == GF_AVC_TYPE_SP || si->slice_type % 5 == GF_AVC_TYPE_B) {
-		Bool num_ref_idx_active_override_flag = gf_bs_read_int_log(bs, 1, "num_ref_idx_active_override_flag");
+		Bool num_ref_idx_active_override_flag = gf_bs_read_bool_log(bs, "num_ref_idx_active_override_flag");
 		if (num_ref_idx_active_override_flag) {
 			num_ref_idx_l0_active_minus1 = gf_bs_read_ue_log(bs, "num_ref_idx_l0_active_minus1");
 			if (si->slice_type % 5 == GF_AVC_TYPE_B) {
@@ -6537,7 +6541,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	}
 
 	if (si->nal_ref_idc != 0) {
-		dec_ref_pic_marking(bs, (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE));
+		dec_ref_pic_marking(bs, (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE) ? GF_TRUE : GF_FALSE);
 	}
 
 	if (si->pps->entropy_coding_mode_flag && si->slice_type % 5 != GF_AVC_TYPE_I && si->slice_type % 5 != GF_AVC_TYPE_SI) {
@@ -6547,7 +6551,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	/*slice_qp_delta = */gf_bs_read_se(bs);
 	if (si->slice_type % 5 == GF_AVC_TYPE_SP || si->slice_type % 5 == GF_AVC_TYPE_SI) {
 		if (si->slice_type % 5 == GF_AVC_TYPE_SP) {
-			gf_bs_read_int_log(bs, 1, "sp_for_switch_flag");
+			gf_bs_read_bool_log(bs, "sp_for_switch_flag");
 		}
 		gf_bs_read_se_log(bs, "slice_qs_delta");
 	}
@@ -6595,8 +6599,8 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 		/*s->picture_structure= PICT_FRAME;*/
 	}
 	else {
-		si->field_pic_flag = gf_bs_read_int_log(bs, 1, "field_pic_flag");
-		if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_int_log(bs, 1, "bottom_field_flag");
+		si->field_pic_flag = gf_bs_read_bool_log(bs, "field_pic_flag");
+		if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_bool_log(bs, "bottom_field_flag");
 	}
 	if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE || si->svc_nalhdr.idr_pic_flag)
 		si->idr_pic_id = gf_bs_read_ue_log(bs, "idr_pic_id");
@@ -6624,8 +6628,8 @@ static s32 avc_parse_recovery_point_sei(GF_BitStream *bs, AVCState *avc)
 	AVCSeiRecoveryPoint *rp = &avc->sei.recovery_point;
 
 	rp->frame_cnt = gf_bs_read_ue_log(bs, "frame_cnt");
-	rp->exact_match_flag = gf_bs_read_int_log(bs, 1, "exact_match_flag");
-	rp->broken_link_flag = gf_bs_read_int_log(bs, 1, "broken_link_flag");
+	rp->exact_match_flag = gf_bs_read_bool_log(bs, "exact_match_flag");
+	rp->broken_link_flag = gf_bs_read_bool_log(bs, "broken_link_flag");
 	rp->changing_slice_group_idc = gf_bs_read_int_log(bs, 2, "changing_slice_group_idc");
 	rp->valid = 1;
 
@@ -6660,16 +6664,16 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 		pt->num_clock_ts = NumClockTS[pt->pic_struct];
 		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
-			Bool clock_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i);
+			Bool clock_timestamp_flag = gf_bs_read_bool_log_idx(bs, "clock_timestamp_flag", i);
 			if (clock_timestamp_flag) {
 				AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
 				tc->clock_timestamp_flag = clock_timestamp_flag;
 				gf_bs_read_int_log_idx(bs, 2, "ct_type", i);
-				Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "unit_field_based_flag", i);
+				Bool unit_field_based_flag = gf_bs_read_bool_log_idx(bs, "unit_field_based_flag", i);
 				tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
-				Bool full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
+				Bool full_timestamp_flag = gf_bs_read_bool_log_idx(bs, "full_timestamp_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
-				tc->cnt_dropped_flag = gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
+				tc->cnt_dropped_flag = gf_bs_read_bool_log_idx(bs, "cnt_dropped_flag", i);
 				tc->n_frames = gf_bs_read_int_log_idx(bs, 8, "n_frames", i);
 				if (full_timestamp_flag) {
 					tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
@@ -6708,15 +6712,15 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 
 	pt->num_clock_ts = gf_bs_read_int(bs, 2);
 	for (int i = 0; i < pt->num_clock_ts; i++) {
-		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
+		Bool clock_timestamp_flag = gf_bs_read_bool(bs); 
 		if (clock_timestamp_flag) {
 			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
 			tc->clock_timestamp_flag = clock_timestamp_flag;
-			Bool unit_field_based_flag = gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
+			Bool unit_field_based_flag = gf_bs_read_bool_log_idx(bs, "units_field_based_flag", i);
 			tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
-			Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
+			Bool full_timestamp_flag = gf_bs_read_bool(bs); 
 			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
-			tc->cnt_dropped_flag = gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
+			tc->cnt_dropped_flag = gf_bs_read_bool_log_idx(bs, "cnt_dropped_flag", i);
 
 			tc->n_frames = gf_bs_read_int(bs, 9);
 			if (full_timestamp_flag) {
@@ -6880,7 +6884,7 @@ static void avc_compute_poc(AVCSliceInfo *si)
 GF_EXPORT
 s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 {
-	u8 idr_flag;
+	Bool idr_flag;
 	s32 slice, ret;
 	u32 nal_hdr;
 	AVCSliceInfo n_state;
@@ -6896,7 +6900,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 	avc->last_nal_type_parsed = n_state.nal_unit_type = nal_hdr & 0x1F;
 	n_state.nal_ref_idc = (nal_hdr >> 5) & 0x3;
 
-	idr_flag = 0;
+	idr_flag = GF_FALSE;
 
 	switch (n_state.nal_unit_type) {
 	case GF_AVC_NALU_ACCESS_UNIT:
@@ -7076,7 +7080,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
-		Bool do_copy;
+		u32 do_copy;
 		ptype = 0;
 		while (1) {
 			u8 v = gf_bs_read_int(bs, 8);
@@ -7092,7 +7096,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		}
 
 		//check if we need to copy this SEI
-		do_copy = GF_TRUE;
+		do_copy = 1;
 		if (sei_filter) {
 			do_copy = !sei_filter->is_whitelist;
 			do_copy &= (sei_filter->seis.nb_items > 0); // if no SEI type specified, drop all
@@ -7103,7 +7107,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 				}
 			}
 			if (sei_filter->extra_filter == - (s32)ptype)
-				do_copy = GF_FALSE;
+				do_copy = 0;
 		}
 
 		start = (u32)gf_bs_get_position(bs);
@@ -7261,10 +7265,10 @@ static void hevc_parse_hrd_parameters(GF_BitStream *bs, Bool commonInfPresentFla
 	Bool sub_pic_hrd_params_present_flag = GF_FALSE;
 
 	if (commonInfPresentFlag) {
-		nal_hrd_parameters_present_flag = gf_bs_read_int_log_idx(bs, 1, "nal_hrd_parameters_present_flag", idx);
-		vcl_hrd_parameters_present_flag = gf_bs_read_int_log_idx(bs, 1, "vcl_hrd_parameters_present_flag", idx);
+		nal_hrd_parameters_present_flag = gf_bs_read_bool_log_idx(bs, "nal_hrd_parameters_present_flag", idx);
+		vcl_hrd_parameters_present_flag = gf_bs_read_bool_log_idx(bs, "vcl_hrd_parameters_present_flag", idx);
 		if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
-			sub_pic_hrd_params_present_flag = gf_bs_read_int_log_idx(bs, 1, "sub_pic_hrd_params_present_flag", idx);
+			sub_pic_hrd_params_present_flag = gf_bs_read_bool_log_idx(bs, "sub_pic_hrd_params_present_flag", idx);
 			if (sub_pic_hrd_params_present_flag) {
 				gf_bs_read_int_log_idx(bs, 8, "tick_divisor_minus2", idx);
 				gf_bs_read_int_log_idx(bs, 5, "du_cpb_removal_delay_increment_length_minus1", idx);
@@ -7282,17 +7286,17 @@ static void hevc_parse_hrd_parameters(GF_BitStream *bs, Bool commonInfPresentFla
 		}
 	}
 	for (i = 0; i <= maxNumSubLayersMinus1; i++) {
-		Bool fixed_pic_rate_general_flag_i = gf_bs_read_int_log_idx(bs, 1, "fixed_pic_rate_general_flag", idx);
+		Bool fixed_pic_rate_general_flag_i = gf_bs_read_bool_log_idx(bs, "fixed_pic_rate_general_flag", idx);
 		Bool fixed_pic_rate_within_cvs_flag_i = GF_TRUE;
 		Bool low_delay_hrd_flag_i = GF_FALSE;
 		u32 cpb_cnt_minus1_i = 0;
 		if (!fixed_pic_rate_general_flag_i) {
-			fixed_pic_rate_within_cvs_flag_i = gf_bs_read_int_log_idx(bs, 1, "fixed_pic_rate_within_cvs_flag", idx);
+			fixed_pic_rate_within_cvs_flag_i = gf_bs_read_bool_log_idx(bs, "fixed_pic_rate_within_cvs_flag", idx);
 		}
 		if (fixed_pic_rate_within_cvs_flag_i)
 			gf_bs_read_ue_log_idx(bs, "elemental_duration_in_tc_minus1", idx);
 		else
-			low_delay_hrd_flag_i = gf_bs_read_int_log_idx(bs, 1, "low_delay_hrd_flag", idx);
+			low_delay_hrd_flag_i = gf_bs_read_bool_log_idx(bs, "low_delay_hrd_flag", idx);
 		if (!low_delay_hrd_flag_i) {
 			cpb_cnt_minus1_i = gf_bs_read_ue_log_idx(bs, "cpb_cnt_minus1", idx);
 		}
@@ -7308,13 +7312,13 @@ static void hevc_parse_hrd_parameters(GF_BitStream *bs, Bool commonInfPresentFla
 static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, GF_BitStream *mod, GF_CodecID codec)
 {
 	/* VUI present flag*/
-	Bool vui_present_flag = gf_bs_read_int(orig, 1);
+	Bool vui_present_flag = gf_bs_read_bool(orig);
 
 	/*setup default values*/
-	Bool aspect_ratio_info_present_flag = 0;
+	Bool aspect_ratio_info_present_flag = GF_FALSE;
 	s32 aspect_ratio_idc = -1;
 	u32 ar_n=0, ar_d=0;
-	Bool overscan_info_present_flag = 0;
+	Bool overscan_info_present_flag = GF_FALSE;
 	u32 overscan_info = 0;
 	u32 video_signal_type_present_flag = 0;
 	u32 video_format = 5;
@@ -7342,14 +7346,14 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	Bool poc_proportional_to_timing_flag = GF_FALSE;
 	u32 vui_num_ticks_poc_diff_one_minus1 = 0;
 	//VVC
-	Bool progressive_source_flag = 1;
-	Bool interlaced_source_flag = 0;
-	Bool non_packed_constraint_flag = 0;
-	Bool non_projected_constraint_flag = 0;
-	Bool aspect_ratio_constant_flag = 1;
+	Bool progressive_source_flag = GF_TRUE;
+	Bool interlaced_source_flag = GF_FALSE;
+	Bool non_packed_constraint_flag = GF_FALSE;
+	Bool non_projected_constraint_flag = GF_FALSE;
+	Bool aspect_ratio_constant_flag = GF_TRUE;
 	u32 vui_start_pos = 0;
 	u32 orig_vvc_payload_size = 0;
-	Bool vui_chroma_loc_info_present_flag = 0;
+	Bool vui_chroma_loc_info_present_flag = GF_FALSE;
 	u32 chroma_loc1=0, chroma_loc2 = 0;
 	u32 final_vvc_payload_size = 8; //4 first bits + 4 flags (ar, overscan and colour desc, chroma pos)
 	u32 mod_vui_start_pos = 0;
@@ -7362,16 +7366,16 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			gf_bs_align(orig);
 			vui_start_pos = gf_bs_get_bit_offset(orig);
 
-			progressive_source_flag = gf_bs_read_int(orig, 1);
-			interlaced_source_flag = gf_bs_read_int(orig, 1);
-			non_packed_constraint_flag = gf_bs_read_int(orig, 1);
-			non_projected_constraint_flag = gf_bs_read_int(orig, 1);
+			progressive_source_flag = gf_bs_read_bool(orig);
+			interlaced_source_flag = gf_bs_read_bool(orig);
+			non_packed_constraint_flag = gf_bs_read_bool(orig);
+			non_projected_constraint_flag = gf_bs_read_bool(orig);
 		}
-		aspect_ratio_info_present_flag = gf_bs_read_int(orig, 1);
+		aspect_ratio_info_present_flag = gf_bs_read_bool(orig);
 
 		if (aspect_ratio_info_present_flag) {
 			if (codec == GF_CODECID_VVC) {
-				aspect_ratio_constant_flag = gf_bs_read_int(orig, 1);
+				aspect_ratio_constant_flag = gf_bs_read_bool(orig);
 			}
 			aspect_ratio_idc = gf_bs_read_int(orig, 8); /*aspect_ratio_idc*/
 			if (aspect_ratio_idc == 255) {
@@ -7381,7 +7385,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 
 		/*overscan_info_present_flag */
-		overscan_info_present_flag = gf_bs_read_int(orig, 1);
+		overscan_info_present_flag = gf_bs_read_bool(orig);
 		if(overscan_info_present_flag) {
 			overscan_info = gf_bs_read_int(orig, 1);
 		}
@@ -7409,7 +7413,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 
 		if (codec == GF_CODECID_VVC) {
-			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
+			vui_chroma_loc_info_present_flag = gf_bs_read_bool(orig);
 			if (vui_chroma_loc_info_present_flag) {
 				if (progressive_source_flag && !interlaced_source_flag) {
 					chroma_loc1 = gf_bs_read_ue(orig);
@@ -7420,17 +7424,17 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			}
 			//LAST bit read for VVC
 		} else { //AVC, HEVC
-			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
+			vui_chroma_loc_info_present_flag = gf_bs_read_bool(orig);
 			if (vui_chroma_loc_info_present_flag) {
 				chroma_loc1 = gf_bs_read_ue(orig); //chroma_sample_loc_type_top_field
 				chroma_loc2 = gf_bs_read_ue(orig); //chroma_sample_loc_type_bottom_field
 			}
 
 			if (codec == GF_CODECID_HEVC) {
-				neutral_chroma_indication_flag = gf_bs_read_int(orig, 1);
-				field_seq_flag = gf_bs_read_int(orig, 1);
-				frame_field_info_present_flag = gf_bs_read_int(orig, 1);
-				default_display_window_flag = gf_bs_read_int(orig, 1);
+				neutral_chroma_indication_flag = gf_bs_read_bool(orig);
+				field_seq_flag = gf_bs_read_bool(orig);
+				frame_field_info_present_flag = gf_bs_read_bool(orig);
+				default_display_window_flag = gf_bs_read_bool(orig);
 				if (default_display_window_flag) {
 					def_disp_win_left_offset = gf_bs_read_ue(orig);
 					def_disp_win_right_offset = gf_bs_read_ue(orig);
@@ -7439,14 +7443,14 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				}
 			}
 
-			timing_info_present_flag = gf_bs_read_int(orig, 1);
+			timing_info_present_flag = gf_bs_read_bool(orig);
 			if (timing_info_present_flag) {
 				num_units_in_tick = gf_bs_read_int(orig, 32);
 				time_scale = gf_bs_read_int(orig, 32);
 				if (codec == GF_CODECID_AVC) {
-					fixed_frame_rate_flag = gf_bs_read_int(orig, 1);
+					fixed_frame_rate_flag = gf_bs_read_bool(orig);
 				} else if (codec == GF_CODECID_HEVC) {
-					poc_proportional_to_timing_flag = gf_bs_read_int(orig, 1);
+					poc_proportional_to_timing_flag = gf_bs_read_bool(orig);
 					if (poc_proportional_to_timing_flag)
 						/*vui_num_ticks_poc_diff_one_minus1 = */gf_bs_read_ue(orig);
 					if (/*vui_hrd_parameters_present_flag = */gf_bs_read_int(orig, 1))
@@ -7464,11 +7468,11 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	}
 	//remove par
 	else if ((vui_info->ar_num==0) || (vui_info->ar_den==0)) {
-		aspect_ratio_info_present_flag = 0;
+		aspect_ratio_info_present_flag = GF_FALSE;
 	}
 	//set par
 	else {
-		aspect_ratio_info_present_flag = 1;
+		aspect_ratio_info_present_flag = GF_TRUE;
 	}
 
 	//add par size
@@ -7526,7 +7530,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	}
 	//remove VUI timing
 	if (vui_info->remove_vui_timing_info)
-		timing_info_present_flag = 0;
+		timing_info_present_flag = GF_FALSE;
 
 	//always rewrite VUI
 	gf_bs_write_int(mod, 1, 1);
@@ -7620,7 +7624,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 					u32 val = gf_bs_peek_bits(orig, nb_bits, 0);
 					u32 bit_pos = 1<<(nb_bits-1);
 					if (val == bit_pos)
-						more_data_in_payload = 0;
+						more_data_in_payload = GF_FALSE;
 				}
 			}
 			if (more_data_in_payload) {
@@ -7688,7 +7692,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	if (codec == GF_CODECID_AVC) {
 		if (vui_present_flag) {
 			AVC_HRD hrd;
-			Bool nal_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+			Bool nal_hrd_parameters_present_flag = gf_bs_read_bool(orig);
 			gf_bs_write_int(mod, nal_hrd_parameters_present_flag, 1);
 			if (nal_hrd_parameters_present_flag) {
 				u32 pos_bp = gf_bs_get_bit_position(orig);
@@ -7708,7 +7712,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				}
 			}
 
-			Bool vcl_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+			Bool vcl_hrd_parameters_present_flag = gf_bs_read_bool(orig);
 			gf_bs_write_int(mod, vcl_hrd_parameters_present_flag, 1);
 			if (vcl_hrd_parameters_present_flag) {
 				u32 pos_bp = gf_bs_get_bit_position(orig);
@@ -7783,7 +7787,7 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 		}
 
 		/*SPS still contains emulation bytes*/
-		no_emulation_buf = gf_malloc((slc->size - 1) * sizeof(char));
+		no_emulation_buf = (u8 *)gf_malloc(slc->size - 1);
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data + 1, no_emulation_buf, slc->size - 1);
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
@@ -7813,7 +7817,7 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 		gf_bs_get_content(mod, &no_emulation_buf, &flag);
 		emulation_bytes = gf_media_nalu_emulation_bytes_add_count(no_emulation_buf, flag);
 		if (flag+emulation_bytes+1>slc->size)
-			slc->data = (char*)gf_realloc(slc->data, flag+emulation_bytes+1);
+			slc->data = (u8 *)gf_realloc(slc->data, flag+emulation_bytes+1);
 		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data + 1, flag) + 1;
 
 		gf_bs_del(mod);
@@ -7939,9 +7943,9 @@ Bool gf_hevc_slice_is_IDR(HEVCState *hevc)
 static Bool hevc_parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 idx_rps)
 {
 	u32 i;
-	Bool inter_ref_pic_set_prediction_flag = 0;
+	Bool inter_ref_pic_set_prediction_flag = GF_FALSE;
 	if (idx_rps != 0)
-		inter_ref_pic_set_prediction_flag = gf_bs_read_int_log_idx(bs, 1, "inter_ref_pic_set_prediction_flag", idx_rps);
+		inter_ref_pic_set_prediction_flag = gf_bs_read_bool_log_idx(bs, "inter_ref_pic_set_prediction_flag", idx_rps);
 
 	if (inter_ref_pic_set_prediction_flag) {
 		HEVC_ReferencePictureSets *ref_ps, *rps;
@@ -8082,7 +8086,7 @@ parse_weights:
 static void hevc_ref_pic_lists_modification(GF_BitStream *bs, HEVC_ReferencePictureSets *rps, u32 slice_type, u32 num_ref_idx_l0_active, u32 num_ref_idx_l1_active, u32 NumPicTotalCurr)
 {
 	u32 i;
-	rps->modif_flag_l0 = gf_bs_read_int_log(bs, 1, "ref_pic_list_modification_flag_l0");
+	rps->modif_flag_l0 = gf_bs_read_bool_log(bs, "ref_pic_list_modification_flag_l0");
 	u32 nb_bits = 1, val=NumPicTotalCurr-1;
 	while ( val >>= 1) nb_bits++;
 
@@ -8092,7 +8096,7 @@ static void hevc_ref_pic_lists_modification(GF_BitStream *bs, HEVC_ReferencePict
 		}
 	}
 	if (slice_type == GF_HEVC_SLICE_TYPE_B) {
-		rps->modif_flag_l1 = gf_bs_read_int_log(bs, 1, "ref_pic_list_modification_flag_l1");
+		rps->modif_flag_l1 = gf_bs_read_bool_log(bs, "ref_pic_list_modification_flag_l1");
 		if (rps->modif_flag_l1) {
 			for (i=0; i<MIN(num_ref_idx_l1_active, GF_ARRAY_LENGTH(rps->modif_idx_l1)); i++) {
 				rps->modif_idx_l1[i] = gf_bs_read_int(bs, nb_bits);
@@ -8111,7 +8115,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	Bool RapPicFlag = GF_FALSE;
 	Bool IDRPicFlag = GF_FALSE;
 	u64 bs_start_offset = gf_bs_get_position(bs)-2;
-	si->first_slice_segment_in_pic_flag = gf_bs_read_int_log(bs, 1, "first_slice_segment_in_pic_flag");
+	si->first_slice_segment_in_pic_flag = gf_bs_read_bool_log(bs, "first_slice_segment_in_pic_flag");
 
 	switch (si->nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
@@ -8128,7 +8132,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	}
 
 	if (RapPicFlag) {
-		gf_bs_read_int_log(bs, 1, "no_output_of_prior_pics_flag");
+		gf_bs_read_bool_log(bs, "no_output_of_prior_pics_flag");
 	}
 
 	pps_id = gf_bs_read_ue_log(bs, "pps_id");
@@ -8142,7 +8146,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	si->num_ref_idx_l0_active = si->num_ref_idx_l1_active = 0;
 
 	if (!si->first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
-		si->dependent_slice_segment_flag = gf_bs_read_int_log(bs, 1, "dependent_slice_segment_flag");
+		si->dependent_slice_segment_flag = gf_bs_read_bool_log(bs, "dependent_slice_segment_flag");
 	}
 	else {
 		si->dependent_slice_segment_flag = GF_FALSE;
@@ -8156,11 +8160,11 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	}
 
 	if (!si->dependent_slice_segment_flag) {
-		Bool deblocking_filter_override_flag = 0;
-		Bool slice_temporal_mvp_enabled_flag = 0;
-		Bool slice_sao_luma_flag = 0;
-		Bool slice_sao_chroma_flag = 0;
-		Bool slice_deblocking_filter_disabled_flag = 0;
+		Bool deblocking_filter_override_flag = GF_FALSE;
+		Bool slice_temporal_mvp_enabled_flag = GF_FALSE;
+		Bool slice_sao_luma_flag = GF_FALSE;
+		Bool slice_sao_chroma_flag = GF_FALSE;
+		Bool slice_deblocking_filter_disabled_flag = GF_FALSE;
 		si->st_rps = NULL;
 		si->nb_reference_pocs = 0;
 		si->nb_lt_ref_pics = 0;
@@ -8171,7 +8175,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 		si->slice_type = gf_bs_read_ue_log(bs, "slice_type");
 
 		if (pps->output_flag_present_flag)
-			gf_bs_read_int_log(bs, 1, "pic_output_flag");
+			gf_bs_read_bool_log(bs, "pic_output_flag");
 
 		if (sps->separate_colour_plane_flag == 1)
 			gf_bs_read_int_log(bs, 2, "colour_plane_id");
@@ -8190,7 +8194,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			if (!hevc->full_slice_header_parse) return 0;
 
 			u32 st_ref_idx = 0;
-			if (gf_bs_read_int_log(bs, 1, "short_term_ref_pic_set_sps_flag") == 0) {
+			if (gf_bs_read_bool_log(bs, "short_term_ref_pic_set_sps_flag") == 0) {
 				Bool ret = hevc_parse_short_term_ref_pic_set(bs, sps, sps->num_short_term_ref_pic_sets);
 				if (!ret)
 					return -1;
@@ -8240,7 +8244,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				}
 			}
 			if (sps->temporal_mvp_enable_flag)
-				slice_temporal_mvp_enabled_flag = gf_bs_read_int_log(bs, 1, "slice_temporal_mvp_enabled_flag");
+				slice_temporal_mvp_enabled_flag = gf_bs_read_bool_log(bs, "slice_temporal_mvp_enabled_flag");
 		}
 
 		u32 NumActiveRefLayerPics = 0;
@@ -8270,7 +8274,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			&& !vps->default_ref_layers_active_flag
 			&& (vps->num_direct_ref_layers[si->layer_id]>0)
 		) {
-			Bool inter_layer_pred_enabled_flag = gf_bs_read_int_log(bs, 1, "inter_layer_pred_enabled_flag");
+			Bool inter_layer_pred_enabled_flag = gf_bs_read_bool_log(bs, "inter_layer_pred_enabled_flag");
 			if (inter_layer_pred_enabled_flag && (vps->num_direct_ref_layers[si->layer_id] > 1) ) {
 				if (!vps->max_one_active_ref_layer_flag) {
 					u32 nb_bits = 1, val = vps->num_direct_ref_layers[si->layer_id]; //+1 - 1 for ceil(log2)
@@ -8293,9 +8297,9 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 		if (sps->sample_adaptive_offset_enabled_flag) {
 			u32 ChromaArrayType = sps->separate_colour_plane_flag ? 0 : sps->chroma_format_idc;
-			slice_sao_luma_flag = gf_bs_read_int_log(bs, 1, "slice_sao_luma_flag");
+			slice_sao_luma_flag = gf_bs_read_bool_log(bs, "slice_sao_luma_flag");
 			if (ChromaArrayType != 0)
-				slice_sao_chroma_flag = gf_bs_read_int_log(bs, 1, "slice_sao_chroma_flag");
+				slice_sao_chroma_flag = gf_bs_read_bool_log(bs, "slice_sao_chroma_flag");
 		}
 
 		if (si->slice_type == GF_HEVC_SLICE_TYPE_P || si->slice_type == GF_HEVC_SLICE_TYPE_B) {
@@ -8305,7 +8309,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 				si->num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
 
-			if (gf_bs_read_int_log(bs, 1, "num_ref_idx_active_override_flag")) {
+			if (gf_bs_read_bool_log(bs, "num_ref_idx_active_override_flag")) {
 				si->num_ref_idx_l0_active = 1 + gf_bs_read_ue_log(bs, "num_ref_idx_l0_active");
 				if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 					si->num_ref_idx_l1_active = 1 + gf_bs_read_ue_log(bs, "num_ref_idx_l1_active");
@@ -8334,15 +8338,15 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			}
 
 			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
-				gf_bs_read_int_log(bs, 1, "mvd_l1_zero_flag");
+				gf_bs_read_bool_log(bs, "mvd_l1_zero_flag");
 			if (pps->cabac_init_present_flag)
-				gf_bs_read_int_log(bs, 1, "cabac_init_flag");
+				gf_bs_read_bool_log(bs, "cabac_init_flag");
 
 			if (slice_temporal_mvp_enabled_flag) {
 				// When collocated_from_l0_flag is not present, it is inferred to be equal to 1.
-				Bool collocated_from_l0_flag = 1;
+				Bool collocated_from_l0_flag = GF_TRUE;
 				if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
-					collocated_from_l0_flag = gf_bs_read_int_log(bs, 1, "collocated_from_l0_flag");
+					collocated_from_l0_flag = gf_bs_read_bool_log(bs, "collocated_from_l0_flag");
 
 				if ((collocated_from_l0_flag && (si->num_ref_idx_l0_active > 1))
 					|| (!collocated_from_l0_flag && (si->num_ref_idx_l1_active > 1))
@@ -8366,11 +8370,11 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			gf_bs_read_se_log(bs, "slice_cr_qp_offset");
 		}
 		if (pps->deblocking_filter_override_enabled_flag) {
-			deblocking_filter_override_flag = gf_bs_read_int_log(bs, 1, "deblocking_filter_override_flag");
+			deblocking_filter_override_flag = gf_bs_read_bool_log(bs, "deblocking_filter_override_flag");
 		}
 
 		if (deblocking_filter_override_flag) {
-			slice_deblocking_filter_disabled_flag = gf_bs_read_int_log(bs, 1, "slice_deblocking_filter_disabled_flag");
+			slice_deblocking_filter_disabled_flag = gf_bs_read_bool_log(bs, "slice_deblocking_filter_disabled_flag");
 			if (!slice_deblocking_filter_disabled_flag) {
 				gf_bs_read_se_log(bs, "slice_beta_offset_div2");
 				gf_bs_read_se_log(bs, "slice_tc_offset_div2");
@@ -8379,7 +8383,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 		if (pps->loop_filter_across_slices_enabled_flag
 			&& (slice_sao_luma_flag || slice_sao_chroma_flag || !slice_deblocking_filter_disabled_flag)
 		) {
-			gf_bs_read_int_log(bs, 1, "slice_loop_filter_across_slices_enabled_flag");
+			gf_bs_read_bool_log(bs, "slice_loop_filter_across_slices_enabled_flag");
 		}
 	}
 	//dependent slice segment
@@ -8426,7 +8430,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 	si->header_size_bits = (gf_bs_get_position(bs) - 1 - bs_start_offset) * 8 + gf_bs_get_bit_position(bs); // av_parser.c modified on 16 jan. 2019
 
-	if (gf_bs_read_int_log(bs, 1, "byte_align") == 0) {
+	if (gf_bs_read_bool_log(bs, "byte_align") == 0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Error parsing slice header: byte_align not found at end of header NALU type %u!\n"));
 	}
 
@@ -8586,7 +8590,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
 		u32 consumed, nb_zeros;
-		Bool do_copy;
+		u32 do_copy;
 		ptype = 0;
 		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
 			gf_bs_read_int(bs, 8);
@@ -8601,7 +8605,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 		psize += gf_bs_read_int(bs, 8);
 
 		//check if we need to copy this SEI
-		do_copy = GF_TRUE;
+		do_copy = 1;
 		if (sei_filter) {
 			do_copy = !sei_filter->is_whitelist;
 			do_copy &= (sei_filter->seis.nb_items > 0); // if no SEI type specified, drop all
@@ -8612,7 +8616,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 				}
 			}
 			if (sei_filter->extra_filter == -(s32)ptype)
-				do_copy = GF_FALSE;
+				do_copy = 0;
 		}
 
 		start = gf_bs_get_position(bs);
@@ -8709,7 +8713,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 	return nal_size;
 }
 
-static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
+static void gf_hevc_vvc_parse_sei(u8 *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
 {
 	u32 ptype, psize, hdr, i;
 	u64 start;
@@ -8812,12 +8816,12 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 	gf_bs_del(bs);
 }
 
-void gf_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
+void gf_hevc_parse_sei(u8 *buffer, u32 nal_size, HEVCState *hevc)
 {
 	gf_hevc_vvc_parse_sei(buffer, nal_size, hevc, NULL);
 }
 
-u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter)
+u32 gf_hevc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter)
 {
 	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, GF_TRUE, sei_filter);
 }
@@ -8856,7 +8860,7 @@ static void hevc_compute_poc(HEVCSliceInfo *si)
 static Bool hevc_parse_nal_header(GF_BitStream *bs, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	u32 val;
-	val = gf_bs_read_int_log(bs, 1, "forbidden_zero");
+	val = gf_bs_read_bool_log(bs, "forbidden_zero");
 	if (val) return GF_FALSE;
 
 	val = gf_bs_read_int_log(bs, 6, "nuh_type");
@@ -8884,16 +8888,16 @@ void hevc_profile_tier_level(GF_BitStream *bs, Bool ProfilePresentFlag, u8 MaxNu
 
 		ptl->profile_compatibility_flag = gf_bs_read_int_log_idx(bs, 32, "profile_compatibility_flag", idx);
 
-		ptl->general_progressive_source_flag = gf_bs_read_int_log_idx(bs, 1, "general_progressive_source_flag", idx);
-		ptl->general_interlaced_source_flag = gf_bs_read_int_log_idx(bs, 1, "general_interlaced_source_flag", idx);
-		ptl->general_non_packed_constraint_flag = gf_bs_read_int_log_idx(bs, 1, "general_non_packed_constraint_flag", idx);
-		ptl->general_frame_only_constraint_flag = gf_bs_read_int_log_idx(bs, 1, "general_frame_only_constraint_flag", idx);
+		ptl->general_progressive_source_flag = gf_bs_read_bool_log_idx(bs, "general_progressive_source_flag", idx);
+		ptl->general_interlaced_source_flag = gf_bs_read_bool_log_idx(bs, "general_interlaced_source_flag", idx);
+		ptl->general_non_packed_constraint_flag = gf_bs_read_bool_log_idx(bs, "general_non_packed_constraint_flag", idx);
+		ptl->general_frame_only_constraint_flag = gf_bs_read_bool_log_idx(bs, "general_frame_only_constraint_flag", idx);
 		ptl->general_reserved_44bits = gf_bs_read_long_int(bs, 44);
 	}
 	ptl->level_idc = gf_bs_read_int_log(bs, 8, "level_idc");
 	for (i = 0; i < MaxNumSubLayersMinus1; i++) {
-		ptl->sub_ptl[i].profile_present_flag = gf_bs_read_int_log_idx2(bs, 1, "profile_present_flag", idx, i);
-		ptl->sub_ptl[i].level_present_flag = gf_bs_read_int_log_idx2(bs, 1, "level_present_flag", idx, i);
+		ptl->sub_ptl[i].profile_present_flag = gf_bs_read_bool_log_idx2(bs, "profile_present_flag", idx, i);
+		ptl->sub_ptl[i].level_present_flag = gf_bs_read_bool_log_idx2(bs, "level_present_flag", idx, i);
 	}
 	if (MaxNumSubLayersMinus1 > 0) {
 		for (i = MaxNumSubLayersMinus1; i < 8; i++) {
@@ -8904,7 +8908,7 @@ void hevc_profile_tier_level(GF_BitStream *bs, Bool ProfilePresentFlag, u8 MaxNu
 	for (i = 0; i < MaxNumSubLayersMinus1; i++) {
 		if (ptl->sub_ptl[i].profile_present_flag) {
 			ptl->sub_ptl[i].profile_space = gf_bs_read_int_log_idx2(bs, 2, "sublayer_profile_space", idx, i);
-			ptl->sub_ptl[i].tier_flag = gf_bs_read_int_log_idx2(bs, 1, "sublayer_tier_flag", idx, i);
+			ptl->sub_ptl[i].tier_flag = gf_bs_read_bool_log_idx2(bs, "sublayer_tier_flag", idx, i);
 			ptl->sub_ptl[i].profile_idc = gf_bs_read_int_log_idx2(bs, 5, "sublayer_profile_idc", idx, i);
 			ptl->sub_ptl[i].profile_compatibility_flag = gf_bs_read_int_log_idx2(bs, 32, "sublayer_profile_compatibility_flag", idx, i);
 			/*ptl->sub_ptl[i].progressive_source_flag =*/ gf_bs_read_int_log_idx2(bs, 1, "sublayer_progressive_source_flag", idx, i);
@@ -8995,13 +8999,13 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	//	u8 tree_partition_layer_id[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 	//	u8 id_ref_layers[64][MAX_LHVC_LAYERS];
 	u8 layer_id_in_list_flag[64];
-	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS] = {0};
+	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS] = {{GF_FALSE}};
 
-	vps->vps_extension_found = 1;
+	vps->vps_extension_found = GF_TRUE;
 	if ((vps->max_layers > 1) && vps->base_layer_internal_flag)
-		hevc_profile_tier_level(bs, 0, vps->max_sub_layers - 1, &vps->ext_ptl[0], 0);
+		hevc_profile_tier_level(bs, GF_FALSE, vps->max_sub_layers - 1, &vps->ext_ptl[0], 0);
 
-	splitting_flag = gf_bs_read_int_log(bs, 1, "splitting_flag");
+	splitting_flag = gf_bs_read_bool_log(bs, "splitting_flag");
 	num_scalability_types = 0;
 	for (i = 0; i < 16; i++) {
 		vps->scalability_mask[i] = gf_bs_read_int_log_idx(bs, 1, "scalability_mask", i);
@@ -9033,7 +9037,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		}
 	}
 
-	vps_nuh_layer_id_present_flag = gf_bs_read_int_log(bs, 1, "vps_nuh_layer_id_present_flag");
+	vps_nuh_layer_id_present_flag = gf_bs_read_bool_log(bs, "vps_nuh_layer_id_present_flag");
 	vps->layer_id_in_nuh[0] = 0;
 	vps->layer_id_in_vps[0] = 0;
 	for (i = 1; i < vps->max_layers; i++) {
@@ -9181,7 +9185,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		}
 
 
-	if (gf_bs_read_int_log(bs, 1, "vps_sub_layers_max_minus1_present_flag")) {
+	if (gf_bs_read_bool_log(bs, "vps_sub_layers_max_minus1_present_flag")) {
 		for (i = 0; i < vps->max_layers; i++) {
 			vps->sub_layers_vps_max_minus1[i] = gf_bs_read_int_log_idx(bs, 3, "sub_layers_vps_max_minus1", i);
 		}
@@ -9191,7 +9195,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		}
 	}
 
-	if (gf_bs_read_int_log(bs, 1, "max_tid_ref_present_flag")) {
+	if (gf_bs_read_bool_log(bs, "max_tid_ref_present_flag")) {
 		for (i = 0; i < (vps->max_layers - 1); i++) {
 			for (j = i + 1; j < vps->max_layers; j++) {
 				if (vps->direct_dependency_flag[j][i])
@@ -9199,7 +9203,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 			}
 		}
 	}
-	vps->default_ref_layers_active_flag = gf_bs_read_int_log(bs, 1, "default_ref_layers_active_flag");
+	vps->default_ref_layers_active_flag = gf_bs_read_bool_log(bs, "default_ref_layers_active_flag");
 
 	vps->num_profile_tier_level = 1 + gf_bs_read_ue_log(bs, "num_profile_tier_level");
 	if (vps->num_profile_tier_level > MAX_LHVC_LAYERS) {
@@ -9209,7 +9213,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	}
 
 	for (i = vps->base_layer_internal_flag ? 2 : 1; i < vps->num_profile_tier_level; i++) {
-		Bool vps_profile_present_flag = gf_bs_read_int_log_idx(bs, 1, "vps_profile_present_flag", i);
+		Bool vps_profile_present_flag = gf_bs_read_bool_log_idx(bs, "vps_profile_present_flag", i);
 		hevc_profile_tier_level(bs, vps_profile_present_flag, vps->max_sub_layers - 1, &vps->ext_ptl[i - 1], i-1);
 	}
 
@@ -9230,7 +9234,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	}
 
 	layer_set_idx_for_ols_minus1[0] = 1;
-	vps->output_layer_flag[0][0] = 1;
+	vps->output_layer_flag[0][0] = GF_TRUE;
 
 	for (i = 0; i < vps->num_output_layer_sets; i++) {
 		if ((NumLayerSets > 2) && (i >= NumLayerSets)) {
@@ -9245,7 +9249,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 
 		if ((i > (vps->num_layer_sets - 1)) || (default_output_layer_idc == 2)) {
 			for (j = 0; j < vps->num_layers_in_id_list[ols_ids_to_ls_idx]; j++)
-				vps->output_layer_flag[i][j] = gf_bs_read_int_log_idx2(bs, 1, "output_layer_flag", i, j);
+				vps->output_layer_flag[i][j] = gf_bs_read_bool_log_idx2(bs, "output_layer_flag", i, j);
 		}
 
 		if ((default_output_layer_idc == 0) || (default_output_layer_idc == 1)) {
@@ -9302,7 +9306,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 			}
 		}
 		if (nb_output_layers_in_output_layer_set[i] == 1 && ols_highest_output_layer_id[i] > 0)
-			vps->alt_output_layer_flag[i] = gf_bs_read_int_log_idx(bs, 1, "alt_output_layer_flag", i);
+			vps->alt_output_layer_flag[i] = gf_bs_read_bool_log_idx(bs, "alt_output_layer_flag", i);
 	}
 
 	vps->num_rep_formats = 1 + gf_bs_read_ue_log(bs, "num_rep_formats_minus1");
@@ -9316,7 +9320,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		lhvc_parse_rep_format(&vps->rep_formats[i], bs, i);
 	}
 	if (vps->num_rep_formats > 1)
-		rep_format_idx_present_flag = gf_bs_read_int_log(bs, 1, "rep_format_idx_present_flag");
+		rep_format_idx_present_flag = gf_bs_read_bool_log(bs, "rep_format_idx_present_flag");
 	else
 		rep_format_idx_present_flag = 0;
 
@@ -9332,7 +9336,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 			vps->rep_format_idx[i] = i < vps->num_rep_formats - 1 ? i : vps->num_rep_formats - 1;
 		}
 	}
-	vps->max_one_active_ref_layer_flag = gf_bs_read_int_log(bs, 1, "max_one_active_ref_layer_flag");
+	vps->max_one_active_ref_layer_flag = gf_bs_read_bool_log(bs, "max_one_active_ref_layer_flag");
 	//TODO - we don't use the rest ...
 
 	return GF_TRUE;
@@ -9363,19 +9367,19 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 		vps->state = 1;
 	}
 
-	vps->base_layer_internal_flag = gf_bs_read_int_log(bs, 1, "base_layer_internal_flag");
-	vps->base_layer_available_flag = gf_bs_read_int_log(bs, 1, "base_layer_available_flag");
+	vps->base_layer_internal_flag = gf_bs_read_bool_log(bs, "base_layer_internal_flag");
+	vps->base_layer_available_flag = gf_bs_read_bool_log(bs, "base_layer_available_flag");
 	vps->max_layers = 1 + gf_bs_read_int_log(bs, 6, "max_layers_minus1");
 	if (vps->max_layers > MAX_LHVC_LAYERS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] %d layers in VPS but only %d supported in GPAC\n", vps->max_layers, MAX_LHVC_LAYERS));
 		HEVC_VPS_BROKEN
 	}
 	vps->max_sub_layers = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1") + 1;
-	vps->temporal_id_nesting = gf_bs_read_int_log(bs, 1, "temporal_id_nesting");
+	vps->temporal_id_nesting = gf_bs_read_bool_log(bs, "temporal_id_nesting");
 	gf_bs_read_int_log(bs, 16, "vps_reserved_ffff_16bits");
-	hevc_profile_tier_level(bs, 1, vps->max_sub_layers - 1, &vps->ptl, 0);
+	hevc_profile_tier_level(bs, GF_TRUE, vps->max_sub_layers - 1, &vps->ptl, 0);
 
-	vps_sub_layer_ordering_info_present_flag = gf_bs_read_int_log(bs, 1, "vps_sub_layer_ordering_info_present_flag");
+	vps_sub_layer_ordering_info_present_flag = gf_bs_read_bool_log(bs, "vps_sub_layer_ordering_info_present_flag");
 	for (i = (vps_sub_layer_ordering_info_present_flag ? 0 : vps->max_sub_layers - 1); i < vps->max_sub_layers; i++) {
 		gf_bs_read_ue_log_idx(bs, "vps_max_dec_pic_buffering_minus1", i);
 		gf_bs_read_ue_log_idx(bs, "vps_max_num_reorder_pics", i);
@@ -9409,12 +9413,12 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 		}
 		vps->num_layers_in_id_list[i] = n;
 	}
-	if (gf_bs_read_int_log(bs, 1, "vps_timing_info_present_flag")) {
+	if (gf_bs_read_bool_log(bs, "vps_timing_info_present_flag")) {
 		u32 vps_num_hrd_parameters;
 
 		gf_bs_read_int_log(bs, 32, "vps_num_units_in_tick");
 		gf_bs_read_int_log(bs, 32, "vps_time_scale");
-		if (gf_bs_read_int_log(bs, 1, "vps_poc_proportional_to_timing_flag")) {
+		if (gf_bs_read_bool_log(bs, "vps_poc_proportional_to_timing_flag")) {
 			gf_bs_read_ue_log(bs, "vps_num_ticks_poc_diff_one_minus1");
 		}
 
@@ -9429,7 +9433,7 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 			Bool cprms_present_flag = GF_TRUE;
 			gf_bs_read_ue_log_idx(bs, "hrd_layer_set_idx", i);
 			if (i > 0)
-				cprms_present_flag = gf_bs_read_int_log(bs, 1, "cprms_present_flag");
+				cprms_present_flag = gf_bs_read_bool_log(bs, "cprms_present_flag");
 			hevc_parse_hrd_parameters(bs, cprms_present_flag, vps->max_sub_layers - 1, i);
 		}
 	}
@@ -9437,7 +9441,7 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 		return vps_id;
 	}
 
-	vps_extension_flag = gf_bs_read_int_log(bs, 1, "vps_extension_flag");
+	vps_extension_flag = gf_bs_read_bool_log(bs, "vps_extension_flag");
 	if (vps_extension_flag) {
 		Bool res;
 		gf_bs_align(bs);
@@ -9446,10 +9450,10 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Failed to parse VPS extensions\n"));
 			HEVC_VPS_BROKEN
 		}
-		if (gf_bs_read_int_log(bs, 1, "vps_extension2_flag")) {
+		if (gf_bs_read_bool_log(bs, "vps_extension2_flag")) {
 #if 0
 			while (gf_bs_available(bs)) {
-				/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
+				/*vps_extension_data_flag */ gf_bs_read_bool(bs); 
 			}
 #endif
 
@@ -9462,7 +9466,7 @@ GF_EXPORT
 s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extensions)
 {
 	GF_BitStream *bs;
-	char *data_without_emulation_bytes = NULL;
+	u8 *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0;
 	s32 vps_id = -1;
 
@@ -9474,7 +9478,7 @@ s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extens
 	}
 	//when removing VPS ext, we have to get the full buffer without emulation prevention bytes becuase we do a bit-by-bit copy of the vps
 	else {
-		data_without_emulation_bytes = gf_malloc((*size) * sizeof(char));
+		data_without_emulation_bytes = (u8 *)gf_malloc(*size);
 		data_without_emulation_bytes_size = gf_media_nalu_remove_emulation_bytes(data, data_without_emulation_bytes, (*size));
 		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	}
@@ -9499,7 +9503,7 @@ s32 gf_hevc_read_vps_ex(u8 *data, u32 *size, HEVCState *hevc, Bool remove_extens
 		gf_bs_write_u16(w_bs, gf_bs_read_u16(bs) );
 		bit_pos -= 48;
 		while (bit_pos) {
-			u32 v = gf_bs_read_int(bs, 1);
+			u32 v = gf_bs_read_bool(bs); 
 			gf_bs_write_int(w_bs, v, 1);
 			bit_pos--;
 		}
@@ -9608,10 +9612,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		sps_ext_or_max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "sps_ext_or_max_sub_layers_minus1");
 		max_sub_layers_minus1 = sps_ext_or_max_sub_layers_minus1 == 7 ? hevc->vps[vps_id].max_sub_layers - 1 : sps_ext_or_max_sub_layers_minus1;
 	}
-	multiLayerExtSpsFlag = (layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7);
+	multiLayerExtSpsFlag = ((layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7)) ? GF_TRUE : GF_FALSE;
 	if (!multiLayerExtSpsFlag) {
-		gf_bs_read_int_log(bs, 1, "temporal_id_nesting_flag");
-		hevc_profile_tier_level(bs, 1, max_sub_layers_minus1, &ptl, 0);
+		gf_bs_read_bool_log(bs, "temporal_id_nesting_flag");
+		hevc_profile_tier_level(bs, GF_TRUE, max_sub_layers_minus1, &ptl, 0);
 	}
 
 	sps_id = gf_bs_read_ue_log(bs, "sps_id");
@@ -9638,7 +9642,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 
 	//sps_rep_format_idx = 0;
 	if (multiLayerExtSpsFlag) {
-		sps->update_rep_format_flag = gf_bs_read_int_log(bs, 1, "update_rep_format_flag");
+		sps->update_rep_format_flag = gf_bs_read_bool_log(bs, "update_rep_format_flag");
 		if (sps->update_rep_format_flag) {
 			sps->rep_format_idx = gf_bs_read_int_log(bs, 8, "rep_format_idx");
 		} else {
@@ -9657,7 +9661,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		sps->chroma_format_idc = vps->rep_formats[sps->rep_format_idx].chroma_format_idc;
 		sps->bit_depth_luma = vps->rep_formats[sps->rep_format_idx].bit_depth_luma;
 		sps->bit_depth_chroma = vps->rep_formats[sps->rep_format_idx].bit_depth_chroma;
-		sps->separate_colour_plane_flag = vps->rep_formats[sps->rep_format_idx].separate_colour_plane_flag;
+		sps->separate_colour_plane_flag = vps->rep_formats[sps->rep_format_idx].separate_colour_plane_flag ? GF_TRUE : GF_FALSE;
 
 		//TODO this is crude ...
 		sps->ptl = vps->ext_ptl[0];
@@ -9665,10 +9669,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	else {
 		sps->chroma_format_idc = gf_bs_read_ue_log(bs, "chroma_format_idc");
 		if (sps->chroma_format_idc == 3)
-			sps->separate_colour_plane_flag = gf_bs_read_int_log(bs, 1, "separate_colour_plane_flag");
+			sps->separate_colour_plane_flag = gf_bs_read_bool_log(bs, "separate_colour_plane_flag");
 		sps->width = gf_bs_read_ue_log(bs, "width");
 		sps->height = gf_bs_read_ue_log(bs, "height");
-		if ((sps->cw_flag = gf_bs_read_int_log(bs, 1, "conformance_window_flag"))) {
+		if ((sps->cw_flag = gf_bs_read_bool_log(bs, "conformance_window_flag"))) {
 			u32 SubWidthC, SubHeightC;
 
 			if (sps->chroma_format_idc == 1) {
@@ -9701,7 +9705,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	}
 
 	if (!multiLayerExtSpsFlag) {
-		sps->sub_layer_ordering_info_present_flag = gf_bs_read_int_log(bs, 1, "sub_layer_ordering_info_present_flag");
+		sps->sub_layer_ordering_info_present_flag = gf_bs_read_bool_log(bs, "sub_layer_ordering_info_present_flag");
 		for (i = sps->sub_layer_ordering_info_present_flag ? 0 : sps->max_sub_layers_minus1; i <= sps->max_sub_layers_minus1; i++) {
 			gf_bs_read_ue_log_idx(bs, "max_dec_pic_buffering", i);
 			gf_bs_read_ue_log_idx(bs, "num_reorder_pics", i);
@@ -9744,31 +9748,31 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			HEVC_SPS_BROKEN
 	}
 
-	sps->scaling_list_enable_flag = gf_bs_read_int_log(bs, 1, "scaling_list_enable_flag");
+	sps->scaling_list_enable_flag = gf_bs_read_bool_log(bs, "scaling_list_enable_flag");
 	if (sps->scaling_list_enable_flag) {
 		sps->infer_scaling_list_flag = 0;
 		sps->scaling_list_ref_layer_id = 0;
 		if (multiLayerExtSpsFlag) {
-			sps->infer_scaling_list_flag = gf_bs_read_int_log(bs, 1, "infer_scaling_list_flag");
+			sps->infer_scaling_list_flag = gf_bs_read_bool_log(bs, "infer_scaling_list_flag");
 		}
 		if (sps->infer_scaling_list_flag) {
 			sps->scaling_list_ref_layer_id = gf_bs_read_int_log(bs, 6, "scaling_list_ref_layer_id");
 		}
 		else {
-			sps->scaling_list_data_present_flag = gf_bs_read_int_log(bs, 1, "scaling_list_data_present_flag");
+			sps->scaling_list_data_present_flag = gf_bs_read_bool_log(bs, "scaling_list_data_present_flag");
 			if (sps->scaling_list_data_present_flag) {
 				hevc_scaling_list_data(bs);
 			}
 		}
 	}
-	sps->asymmetric_motion_partitions_enabled_flag = gf_bs_read_int_log(bs, 1, "asymmetric_motion_partitions_enabled_flag");
-	sps->sample_adaptive_offset_enabled_flag = gf_bs_read_int_log(bs, 1, "sample_adaptive_offset_enabled_flag");
-	if ( (sps->pcm_enabled_flag = gf_bs_read_int_log(bs, 1, "pcm_enabled_flag")) ) {
+	sps->asymmetric_motion_partitions_enabled_flag = gf_bs_read_bool_log(bs, "asymmetric_motion_partitions_enabled_flag");
+	sps->sample_adaptive_offset_enabled_flag = gf_bs_read_bool_log(bs, "sample_adaptive_offset_enabled_flag");
+	if ( (sps->pcm_enabled_flag = gf_bs_read_bool_log(bs, "pcm_enabled_flag")) ) {
 		sps->pcm_sample_bit_depth_luma_minus1 = gf_bs_read_int_log(bs, 4, "pcm_sample_bit_depth_luma_minus1");
 		sps->pcm_sample_bit_depth_chroma_minus1 = gf_bs_read_int_log(bs, 4, "pcm_sample_bit_depth_chroma_minus1");
 		sps->log2_min_pcm_luma_coding_block_size_minus3 = gf_bs_read_ue_log(bs, "log2_min_pcm_luma_coding_block_size_minus3");
 		sps->log2_diff_max_min_pcm_luma_coding_block_size = gf_bs_read_ue_log(bs, "log2_diff_max_min_pcm_luma_coding_block_size");
-		sps->pcm_loop_filter_disable_flag = gf_bs_read_int_log(bs, 1, "pcm_loop_filter_disable_flag");
+		sps->pcm_loop_filter_disable_flag = gf_bs_read_bool_log(bs, "pcm_loop_filter_disable_flag");
 	}
 	sps->num_short_term_ref_pic_sets = gf_bs_read_ue_log(bs, "num_short_term_ref_pic_sets");
 	if (sps->num_short_term_ref_pic_sets > 64) {
@@ -9784,7 +9788,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			HEVC_SPS_BROKEN
 		}
 	}
-	sps->long_term_ref_pics_present_flag = gf_bs_read_int_log(bs, 1, "long_term_ref_pics_present_flag");
+	sps->long_term_ref_pics_present_flag = gf_bs_read_bool_log(bs, "long_term_ref_pics_present_flag");
 	if (sps->long_term_ref_pics_present_flag) {
 		sps->num_long_term_ref_pic_sps = gf_bs_read_ue_log(bs, "num_long_term_ref_pic_sps");
 		for (i = 0; i < sps->num_long_term_ref_pic_sps; i++) {
@@ -9792,14 +9796,14 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			gf_bs_read_int_log_idx(bs, 1, "used_by_curr_pic_lt_sps_flag", i);
 		}
 	}
-	sps->temporal_mvp_enable_flag = gf_bs_read_int_log(bs, 1, "temporal_mvp_enable_flag");
-	sps->strong_intra_smoothing_enable_flag = gf_bs_read_int_log(bs, 1, "strong_intra_smoothing_enable_flag");
+	sps->temporal_mvp_enable_flag = gf_bs_read_bool_log(bs, "temporal_mvp_enable_flag");
+	sps->strong_intra_smoothing_enable_flag = gf_bs_read_bool_log(bs, "strong_intra_smoothing_enable_flag");
 
 	if (vui_flag_pos)
 		*vui_flag_pos = (u32)gf_bs_get_bit_offset(bs);
 
-	if ((sps->vui_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vui_parameters_present_flag")) ) {
-		sps->aspect_ratio_info_present_flag = gf_bs_read_int_log(bs, 1, "aspect_ratio_info_present_flag");
+	if ((sps->vui_parameters_present_flag = gf_bs_read_bool_log(bs, "vui_parameters_present_flag")) ) {
+		sps->aspect_ratio_info_present_flag = gf_bs_read_bool_log(bs, "aspect_ratio_info_present_flag");
 		if (sps->aspect_ratio_info_present_flag) {
 			sps->sar_idc = gf_bs_read_int_log(bs, 8, "aspect_ratio_idc");
 			if (sps->sar_idc == 255) {
@@ -9812,53 +9816,53 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			}
 		}
 
-		if ((sps->overscan_info_present = gf_bs_read_int_log(bs, 1, "overscan_info_present")))
-			sps->overscan_appropriate = gf_bs_read_int_log(bs, 1, "overscan_appropriate");
+		if ((sps->overscan_info_present = gf_bs_read_bool_log(bs, "overscan_info_present")))
+			sps->overscan_appropriate = gf_bs_read_bool_log(bs, "overscan_appropriate");
 
-		sps->video_signal_type_present_flag = gf_bs_read_int_log(bs, 1, "video_signal_type_present_flag");
+		sps->video_signal_type_present_flag = gf_bs_read_bool_log(bs, "video_signal_type_present_flag");
 		if (sps->video_signal_type_present_flag) {
 			sps->video_format = gf_bs_read_int_log(bs, 3, "video_format");
-			sps->video_full_range_flag = gf_bs_read_int_log(bs, 1, "video_full_range_flag");
-			if ((sps->colour_description_present_flag = gf_bs_read_int_log(bs, 1, "colour_description_present_flag"))) {
+			sps->video_full_range_flag = gf_bs_read_bool_log(bs, "video_full_range_flag");
+			if ((sps->colour_description_present_flag = gf_bs_read_bool_log(bs, "colour_description_present_flag"))) {
 				sps->colour_primaries = gf_bs_read_int_log(bs, 8, "colour_primaries");
 				sps->transfer_characteristic = gf_bs_read_int_log(bs, 8, "transfer_characteristic");
 				sps->matrix_coeffs = gf_bs_read_int_log(bs, 8, "matrix_coefficients");
 			}
 		}
 
-		if ((sps->chroma_loc_info_present_flag = gf_bs_read_int_log(bs, 1, "chroma_loc_info_present_flag"))) {
+		if ((sps->chroma_loc_info_present_flag = gf_bs_read_bool_log(bs, "chroma_loc_info_present_flag"))) {
 			sps->chroma_sample_loc_type_top_field = gf_bs_read_ue_log(bs, "chroma_sample_loc_type_top_field");
 			sps->chroma_sample_loc_type_bottom_field = gf_bs_read_ue_log(bs, "chroma_sample_loc_type_bottom_field");
 		}
 
-		sps->neutral_chroma_indication_flag = gf_bs_read_int_log(bs, 1, "neutral_chroma_indication_flag");
-		sps->field_seq_flag = gf_bs_read_int_log(bs, 1, "field_seq_flag");
-		sps->frame_field_info_present_flag = gf_bs_read_int_log(bs, 1, "frame_field_info_present_flag");
+		sps->neutral_chroma_indication_flag = gf_bs_read_bool_log(bs, "neutral_chroma_indication_flag");
+		sps->field_seq_flag = gf_bs_read_bool_log(bs, "field_seq_flag");
+		sps->frame_field_info_present_flag = gf_bs_read_bool_log(bs, "frame_field_info_present_flag");
 
-		if ((sps->default_display_window_flag = gf_bs_read_int_log(bs, 1, "default_display_window_flag"))) {
+		if ((sps->default_display_window_flag = gf_bs_read_bool_log(bs, "default_display_window_flag"))) {
 			sps->left_offset = gf_bs_read_ue_log(bs, "display_window_left_offset");
 			sps->right_offset = gf_bs_read_ue_log(bs, "display_window_right_offset");
 			sps->top_offset = gf_bs_read_ue_log(bs, "display_window_top_offset");
 			sps->bottom_offset = gf_bs_read_ue_log(bs, "display_window_bottom_offset");
 		}
 
-		sps->has_timing_info = gf_bs_read_int_log(bs, 1, "has_timing_info");
+		sps->has_timing_info = gf_bs_read_bool_log(bs, "has_timing_info");
 		if (sps->has_timing_info) {
 			sps->num_units_in_tick = gf_bs_read_int_log(bs, 32, "num_units_in_tick");
 			sps->time_scale = gf_bs_read_int_log(bs, 32, "time_scale");
-			sps->poc_proportional_to_timing_flag = gf_bs_read_int_log(bs, 1, "poc_proportional_to_timing_flag");
+			sps->poc_proportional_to_timing_flag = gf_bs_read_bool_log(bs, "poc_proportional_to_timing_flag");
 			if (sps->poc_proportional_to_timing_flag)
 				sps->num_ticks_poc_diff_one_minus1 = gf_bs_read_ue_log(bs, "num_ticks_poc_diff_one_minus1");
-			if ((sps->hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "hrd_parameters_present_flag"))) {
+			if ((sps->hrd_parameters_present_flag = gf_bs_read_bool_log(bs, "hrd_parameters_present_flag"))) {
 				//				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[HEVC] HRD param parsing not implemented\n"));
 				return sps_id;
 			}
 		}
 
-		if (gf_bs_read_int_log(bs, 1, "bitstream_restriction_flag")) {
-			gf_bs_read_int_log(bs, 1, "tiles_fixed_structure_flag");
-			gf_bs_read_int_log(bs, 1, "motion_vectors_over_pic_boundaries_flag");
-			gf_bs_read_int_log(bs, 1, "restricted_ref_pic_lists_flag");
+		if (gf_bs_read_bool_log(bs, "bitstream_restriction_flag")) {
+			gf_bs_read_bool_log(bs, "tiles_fixed_structure_flag");
+			gf_bs_read_bool_log(bs, "motion_vectors_over_pic_boundaries_flag");
+			gf_bs_read_bool_log(bs, "restricted_ref_pic_lists_flag");
 			gf_bs_read_ue_log(bs, "min_spatial_segmentation_idc");
 			gf_bs_read_ue_log(bs, "max_bytes_per_pic_denom");
 			gf_bs_read_ue_log(bs, "max_bits_per_min_cu_denom");
@@ -9867,10 +9871,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		}
 	}
 
-	if (gf_bs_read_int_log(bs, 1, "sps_extension_flag")) {
+	if (gf_bs_read_bool_log(bs, "sps_extension_flag")) {
 #if 0
 		while (gf_bs_available(bs)) {
-			/*sps_extension_data_flag */ gf_bs_read_int(bs, 1);
+			/*sps_extension_data_flag */ gf_bs_read_bool(bs); 
 		}
 #endif
 
@@ -9881,7 +9885,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 }
 
 GF_EXPORT
-s32 gf_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 *vui_flag_pos)
+s32 gf_hevc_read_sps_ex(u8 *data, u32 size, HEVCState *hevc, u32 *vui_flag_pos)
 {
 	GF_BitStream *bs;
 	s32 sps_id = -1;
@@ -9927,7 +9931,7 @@ static void hevc_color_map_octants(GF_BitStream *bs, u32 cm_octant_depth, u32 Oc
 	u32 i, j, c, k, n, m;
 	Bool split_octant_flag=GF_FALSE;
 	if ( inpDepth < cm_octant_depth )
-		split_octant_flag = gf_bs_read_int_log(bs, 1, "split_octant_flag");
+		split_octant_flag = gf_bs_read_bool_log(bs, "split_octant_flag");
 	if (split_octant_flag) {
 		for (k=0; k<2; k++) {
 			for (m=0; m<2; m++) {
@@ -9979,28 +9983,28 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		HEVC_PPS_BROKEN
 	}
 	hevc->sps_active_idx = pps->sps_id; /*set active sps*/
-	pps->dependent_slice_segments_enabled_flag = gf_bs_read_int_log(bs, 1, "dependent_slice_segments_enabled_flag");
+	pps->dependent_slice_segments_enabled_flag = gf_bs_read_bool_log(bs, "dependent_slice_segments_enabled_flag");
 
-	pps->output_flag_present_flag = gf_bs_read_int_log(bs, 1, "output_flag_present_flag");
+	pps->output_flag_present_flag = gf_bs_read_bool_log(bs, "output_flag_present_flag");
 	pps->num_extra_slice_header_bits = gf_bs_read_int_log(bs, 3, "num_extra_slice_header_bits");
-	pps->sign_data_hiding_flag = gf_bs_read_int_log(bs, 1, "sign_data_hiding_flag");
-	pps->cabac_init_present_flag = gf_bs_read_int_log(bs, 1, "cabac_init_present_flag");
+	pps->sign_data_hiding_flag = gf_bs_read_bool_log(bs, "sign_data_hiding_flag");
+	pps->cabac_init_present_flag = gf_bs_read_bool_log(bs, "cabac_init_present_flag");
 	pps->num_ref_idx_l0_default_active = 1 + gf_bs_read_ue_log(bs, "num_ref_idx_l0_default_active");
 	pps->num_ref_idx_l1_default_active = 1 + gf_bs_read_ue_log(bs, "num_ref_idx_l1_default_active");
 	pps->pic_init_qp_minus26 = gf_bs_read_se_log(bs, "pic_init_qp_minus26");
-	pps->constrained_intra_pred_flag = gf_bs_read_int_log(bs, 1, "constrained_intra_pred_flag");
-	pps->transform_skip_enabled_flag = gf_bs_read_int_log(bs, 1, "transform_skip_enabled_flag");
-	if ((pps->cu_qp_delta_enabled_flag = gf_bs_read_int_log(bs, 1, "cu_qp_delta_enabled_flag")))
+	pps->constrained_intra_pred_flag = gf_bs_read_bool_log(bs, "constrained_intra_pred_flag");
+	pps->transform_skip_enabled_flag = gf_bs_read_bool_log(bs, "transform_skip_enabled_flag");
+	if ((pps->cu_qp_delta_enabled_flag = gf_bs_read_bool_log(bs, "cu_qp_delta_enabled_flag")))
 		pps->diff_cu_qp_delta_depth = gf_bs_read_ue_log(bs, "diff_cu_qp_delta_depth");
 
 	pps->pic_cb_qp_offset = gf_bs_read_se_log(bs, "pic_cb_qp_offset");
 	pps->pic_cr_qp_offset = gf_bs_read_se_log(bs, "pic_cr_qp_offset");
-	pps->slice_chroma_qp_offsets_present_flag = gf_bs_read_int_log(bs, 1, "slice_chroma_qp_offsets_present_flag");
-	pps->weighted_pred_flag = gf_bs_read_int_log(bs, 1, "weighted_pred_flag");
-	pps->weighted_bipred_flag = gf_bs_read_int_log(bs, 1, "weighted_bipred_flag");
-	pps->transquant_bypass_enable_flag = gf_bs_read_int_log(bs, 1, "transquant_bypass_enable_flag");
-	pps->tiles_enabled_flag = gf_bs_read_int_log(bs, 1, "tiles_enabled_flag");
-	pps->entropy_coding_sync_enabled_flag = gf_bs_read_int_log(bs, 1, "entropy_coding_sync_enabled_flag");
+	pps->slice_chroma_qp_offsets_present_flag = gf_bs_read_bool_log(bs, "slice_chroma_qp_offsets_present_flag");
+	pps->weighted_pred_flag = gf_bs_read_bool_log(bs, "weighted_pred_flag");
+	pps->weighted_bipred_flag = gf_bs_read_bool_log(bs, "weighted_bipred_flag");
+	pps->transquant_bypass_enable_flag = gf_bs_read_bool_log(bs, "transquant_bypass_enable_flag");
+	pps->tiles_enabled_flag = gf_bs_read_bool_log(bs, "tiles_enabled_flag");
+	pps->entropy_coding_sync_enabled_flag = gf_bs_read_bool_log(bs, "entropy_coding_sync_enabled_flag");
 	if (pps->tiles_enabled_flag) {
 		pps->num_tile_columns = 1 + gf_bs_read_ue_log(bs, "num_tile_columns_minus1");
 		if (pps->num_tile_columns > 22) {
@@ -10012,7 +10016,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_rows %u\n", pps->num_tile_rows));
 			HEVC_PPS_BROKEN
 		}
-		pps->uniform_spacing_flag = gf_bs_read_int_log(bs, 1, "uniform_spacing_flag");
+		pps->uniform_spacing_flag = gf_bs_read_bool_log(bs, "uniform_spacing_flag");
 		if (!pps->uniform_spacing_flag) {
 			for (i = 0; i < pps->num_tile_columns - 1; i++) {
 				pps->column_width[i] = 1 + gf_bs_read_ue_log_idx(bs, "column_width_minus1", i);
@@ -10021,39 +10025,39 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 				pps->row_height[i] = 1 + gf_bs_read_ue_log_idx(bs, "row_height_minus1", i);
 			}
 		}
-		pps->loop_filter_across_tiles_enabled_flag = gf_bs_read_int_log(bs, 1, "loop_filter_across_tiles_enabled_flag");
+		pps->loop_filter_across_tiles_enabled_flag = gf_bs_read_bool_log(bs, "loop_filter_across_tiles_enabled_flag");
 	}
-	pps->loop_filter_across_slices_enabled_flag = gf_bs_read_int_log(bs, 1, "loop_filter_across_slices_enabled_flag");
-	if ((pps->deblocking_filter_control_present_flag = gf_bs_read_int_log(bs, 1, "deblocking_filter_control_present_flag"))) {
-		pps->deblocking_filter_override_enabled_flag = gf_bs_read_int_log(bs, 1, "deblocking_filter_override_enabled_flag");
-		if (! (pps->pic_disable_deblocking_filter_flag = gf_bs_read_int_log(bs, 1, "pic_disable_deblocking_filter_flag"))) {
+	pps->loop_filter_across_slices_enabled_flag = gf_bs_read_bool_log(bs, "loop_filter_across_slices_enabled_flag");
+	if ((pps->deblocking_filter_control_present_flag = gf_bs_read_bool_log(bs, "deblocking_filter_control_present_flag"))) {
+		pps->deblocking_filter_override_enabled_flag = gf_bs_read_bool_log(bs, "deblocking_filter_override_enabled_flag");
+		if (! (pps->pic_disable_deblocking_filter_flag = gf_bs_read_bool_log(bs, "pic_disable_deblocking_filter_flag"))) {
 			pps->beta_offset_div2 = gf_bs_read_se_log(bs, "beta_offset_div2");
 			pps->tc_offset_div2 = gf_bs_read_se_log(bs, "tc_offset_div2");
 		}
 	}
-	if ((pps->pic_scaling_list_data_present_flag = gf_bs_read_int_log(bs, 1, "pic_scaling_list_data_present_flag"))) {
+	if ((pps->pic_scaling_list_data_present_flag = gf_bs_read_bool_log(bs, "pic_scaling_list_data_present_flag"))) {
 		hevc_scaling_list_data(bs);
 	}
-	pps->lists_modification_present_flag = gf_bs_read_int_log(bs, 1, "lists_modification_present_flag");
+	pps->lists_modification_present_flag = gf_bs_read_bool_log(bs, "lists_modification_present_flag");
 	pps->log2_parallel_merge_level_minus2 = gf_bs_read_ue_log(bs, "log2_parallel_merge_level_minus2");
-	pps->slice_segment_header_extension_present_flag = gf_bs_read_int_log(bs, 1, "slice_segment_header_extension_present_flag");
+	pps->slice_segment_header_extension_present_flag = gf_bs_read_bool_log(bs, "slice_segment_header_extension_present_flag");
 
 	u8 pps_range_extension_flag=0;
 	u8 pps_multilayer_extension_flag=0;
 	u8 pps_3d_extension_flag=0;
 	u8 pps_scc_extension_flag=0;
-	if (gf_bs_read_int_log(bs, 1, "pps_extension_flag")) {
-		pps_range_extension_flag = gf_bs_read_int_log(bs, 1, "pps_range_extension_flag");
-		pps_multilayer_extension_flag = gf_bs_read_int_log(bs, 1, "pps_multilayer_extension_flag");
-		pps_3d_extension_flag = gf_bs_read_int_log(bs, 1, "pps_3d_extension_flag");
-		pps_scc_extension_flag = gf_bs_read_int_log(bs, 1, "pps_scc_extension_flag");
+	if (gf_bs_read_bool_log(bs, "pps_extension_flag")) {
+		pps_range_extension_flag = gf_bs_read_bool_log(bs, "pps_range_extension_flag");
+		pps_multilayer_extension_flag = gf_bs_read_bool_log(bs, "pps_multilayer_extension_flag");
+		pps_3d_extension_flag = gf_bs_read_bool_log(bs, "pps_3d_extension_flag");
+		pps_scc_extension_flag = gf_bs_read_bool_log(bs, "pps_scc_extension_flag");
 		gf_bs_read_int_log(bs, 4, "pps_extension_4bits");
 	}
 	if (pps_range_extension_flag) {
 		if (pps->transform_skip_enabled_flag)
 			gf_bs_read_ue_log(bs, "log2_max_transform_skip_block_size_minus2");
-		gf_bs_read_int_log(bs, 1, "cross_component_prediction_enabled_flag");
-		u8 flag = gf_bs_read_int_log(bs, 1, "chroma_qp_offset_list_enabled_flag");
+		gf_bs_read_bool_log(bs, "cross_component_prediction_enabled_flag");
+		u8 flag = gf_bs_read_bool_log(bs, "chroma_qp_offset_list_enabled_flag");
 		if (flag) {
 			gf_bs_read_ue_log(bs, "diff_cu_chroma_qp_offset_depth");
 			u32 nb_chroma = 1 + gf_bs_read_ue_log(bs, "chroma_qp_offset_list_len_minus1");
@@ -10066,8 +10070,8 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		gf_bs_read_ue_log(bs, "log2_sao_offset_scale_chroma");
 	}
 	if (pps_multilayer_extension_flag ) {
-		gf_bs_read_int_log(bs, 1, "poc_reset_info_present_flag");
-		if (gf_bs_read_int_log(bs, 1, "pps_infer_scaling_list_flag")) {
+		gf_bs_read_bool_log(bs, "poc_reset_info_present_flag");
+		if (gf_bs_read_bool_log(bs, "pps_infer_scaling_list_flag")) {
 			gf_bs_read_int_log(bs, 6, "pps_scaling_list_ref_layer_id");
 		}
 		u32 nb_refs = gf_bs_read_ue_log(bs, "num_ref_loc_offsets");
@@ -10092,7 +10096,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 				gf_bs_read_ue_log_idx(bs, "phase_ver_chroma_plus8", i);
 			}
 		}
-		if (gf_bs_read_int_log(bs, 1, "colour_mapping_enabled_flag")) {
+		if (gf_bs_read_bool_log(bs, "colour_mapping_enabled_flag")) {
 			u32 nb_vals = gf_bs_read_ue_log(bs, "num_cm_ref_layers_minus1");
 			for (i=0; i<nb_vals; i++) {
 				gf_bs_read_int_log_idx(bs, 6, "cm_ref_layer_id", i);
@@ -10119,14 +10123,14 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		}
 	}
 	if (pps_3d_extension_flag) {
-		if (gf_bs_read_int_log(bs, 1, "dlts_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "dlts_present_flag")) {
 			u32 pps_depth_layers = 1 + gf_bs_read_int_log(bs, 6, "pps_depth_layers_minus1");
 			u32 pps_bit_depth_for_depth_layers = 8 + gf_bs_read_int_log(bs, 4, "pps_bit_depth_for_depth_layers_minus8");
 			for (i=0; i<pps_depth_layers; i++) {
 				if (gf_bs_read_int_log_idx(bs, 1, "dlt_flag", i)) {
 					Bool flag_resent = GF_FALSE;
 					if (!gf_bs_read_int_log_idx(bs, 1, "dlt_pred_flag", i)) {
-						flag_resent = gf_bs_read_int_log_idx(bs, 1, "dlt_val_flags_present_flag", i);
+						flag_resent = gf_bs_read_bool_log_idx(bs, "dlt_val_flags_present_flag", i);
 					}
 					if (flag_resent) {
 						u32 j, depthMaxValue = (1 << (pps_bit_depth_for_depth_layers) ) - 1;
@@ -10165,17 +10169,17 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		}
 	}
 	if (pps_scc_extension_flag) {
-		pps->curr_pic_ref_enabled_flag = gf_bs_read_int_log(bs, 1, "pps_curr_pic_ref_enabled_flag");
-		if (gf_bs_read_int_log(bs, 1, "residual_adaptive_colour_transform_enabled_flag")) {
-			gf_bs_read_int_log(bs, 1, "pps_slice_act_qp_offsets_present_flag");
+		pps->curr_pic_ref_enabled_flag = gf_bs_read_bool_log(bs, "pps_curr_pic_ref_enabled_flag");
+		if (gf_bs_read_bool_log(bs, "residual_adaptive_colour_transform_enabled_flag")) {
+			gf_bs_read_bool_log(bs, "pps_slice_act_qp_offsets_present_flag");
 			gf_bs_read_se_log(bs, "pps_act_y_qp_offset_plus5");
 			gf_bs_read_se_log(bs, "pps_act_cb_qp_offset_plus5");
 			gf_bs_read_se_log(bs, "pps_act_cr_qp_offset_plus3");
 		}
-		if (gf_bs_read_int_log(bs, 1, "pps_palette_predictor_initializers_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "pps_palette_predictor_initializers_present_flag")) {
 			u32 pps_num_palette_predictor_initializers = gf_bs_read_ue_log(bs, "pps_num_palette_predictor_initializers");
 			if (pps_num_palette_predictor_initializers>0) {
-				Bool mono_flag = gf_bs_read_int_log(bs, 1, "monochrome_palette_flag");
+				Bool mono_flag = gf_bs_read_bool_log(bs, "monochrome_palette_flag");
 				u32 luma_bpp = 8 + gf_bs_read_ue_log(bs, "luma_bit_depth_entry");
 				u32 chroma_bpp = 0;
 				if (!mono_flag)
@@ -10326,7 +10330,7 @@ s32 gf_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, 
 }
 
 GF_EXPORT
-s32 gf_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
+s32 gf_hevc_parse_nalu(const u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	GF_BitStream *bs = NULL;
 	s32 ret = -1;
@@ -10345,7 +10349,7 @@ s32 gf_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u
 		return -1;
 	}
 
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	if (!bs) return -1;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
@@ -10388,7 +10392,7 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 		u32 no_emulation_buf_size, emulation_bytes;
 
 		/*SPS may still contains emulation bytes*/
-		no_emulation_buf = gf_malloc((slc->size) * sizeof(char));
+		no_emulation_buf = (u8 *)gf_malloc(slc->size);
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
 		idx = gf_hevc_read_sps_ex(no_emulation_buf, no_emulation_buf_size, hvc_state, &bit_offset);
@@ -10424,7 +10428,7 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 		gf_bs_get_content(mod, &no_emulation_buf, &no_emulation_buf_size);
 		emulation_bytes = gf_media_nalu_emulation_bytes_add_count(no_emulation_buf, no_emulation_buf_size);
 		if (no_emulation_buf_size + emulation_bytes > slc->size)
-			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
+			slc->data = (u8 *)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
 
 		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
 
@@ -10595,7 +10599,7 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_p
 	(*pos) = AC3_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	bs = gf_bs_new(buf + *pos, buflen, GF_BITSTREAM_READ);
 	ret = gf_ac3_parser_bs(bs, hdr, full_parse);
 	gf_bs_del(bs);
 
@@ -10664,7 +10668,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 	if (ac3_mod & 0x4) gf_bs_read_int_log(bs, 2, "surmixlev");
 	if (ac3_mod == 0x2) gf_bs_read_int_log(bs, 2, "dsurmod");
 
-	if (gf_bs_read_int_log(bs, 1, "lfeon")) {
+	if (gf_bs_read_bool_log(bs, "lfeon")) {
 		hdr->streams[0].channels += 1;
 		hdr->streams[0].lfon = 1;
 	}
@@ -10855,7 +10859,7 @@ next_block:
 		//main independent: "All Enhanced AC-3 bit streams shall contain an independent substream assigned substream ID 0.
 		// The independent substream assigned substream ID 0 shall be the first substream present in the bit stream."
 		if (!substreamid)
-			main_indep_found = 1;
+			main_indep_found = GF_TRUE;
 		if (cur_main_id != substreamid)
 			nb_blocks_main=0;
 		cur_main_id = substreamid;
@@ -10903,22 +10907,22 @@ next_block:
 	}
 
 	acmod = gf_bs_read_int_log(bs, 3, "acmod");
-	lfon = gf_bs_read_int_log(bs, 1, "lfon");
+	lfon = gf_bs_read_bool_log(bs, "lfon");
 	bsid = gf_bs_read_int_log(bs, 5, "bsid");
 
 	gf_bs_read_int_log(bs, 5, "dialnorm");
-	if (gf_bs_read_int_log(bs, 1, "compre")) {
+	if (gf_bs_read_bool_log(bs, "compre")) {
 		gf_bs_read_int_log(bs, 8, "compr");
 	}
 	if (acmod==0) {
 		gf_bs_read_int_log(bs, 5, "dialnorm2");
-		if (gf_bs_read_int_log(bs, 1, "compr2e")) {
+		if (gf_bs_read_bool_log(bs, "compr2e")) {
 			gf_bs_read_int_log(bs, 8, "compr2");
 		}
 	}
 	chanmap = 0;
 	if (strmtyp==0x1) {
-		if (gf_bs_read_int_log(bs, 1, "chanmape")) {
+		if (gf_bs_read_bool_log(bs, "chanmape")) {
 			chanmap = gf_bs_read_int_log(bs, 16, "chanmap");
 		}
 	}
@@ -10983,7 +10987,7 @@ next_block:
 				u32 mixdeflen = gf_bs_read_int(bs, 5);
 				mixdeflen = 8 * (mixdeflen + 2);
 				while (mixdeflen) {
-					gf_bs_read_int(bs, 1);
+					gf_bs_read_bool(bs); 
 					mixdeflen--;
 				}
 			}
@@ -11023,16 +11027,16 @@ next_block:
 			//audprodi2e
 			if (gf_bs_read_int(bs, 1)) gf_bs_read_int(bs, 8);
 		}
-		if (fscod < 0x3)  gf_bs_read_int(bs, 1);
+		if (fscod < 0x3)  gf_bs_read_bool(bs); 
 	}
-	if ((strmtyp == 0) && (numblkscod != 0x3)) gf_bs_read_int(bs, 1);
+	if ((strmtyp == 0) && (numblkscod != 0x3)) gf_bs_read_bool(bs); 
 	if (strmtyp == 0x2) {
 		u32 blkid=0;
 		if (numblkscod == 0x3) blkid=1;
-		else blkid = gf_bs_read_int(bs, 1);
+		else blkid = gf_bs_read_bool(bs); 
 		if (blkid) gf_bs_read_int(bs, 6);
 	}
-	u8 addbsie = gf_bs_read_int(bs, 1);
+	u8 addbsie = gf_bs_read_bool(bs); 
 	if (addbsie) {
 		u32 addbsil = gf_bs_read_int(bs, 6) + 1;
 		//we only use the first 2 bytes - cf 8.3 of ETSI 103 420 V1.2.1
@@ -11079,7 +11083,7 @@ Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_
 	(*pos) = AC3_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen-*pos, GF_BITSTREAM_READ);
+	bs = gf_bs_new(buf + *pos, buflen-*pos, GF_BITSTREAM_READ);
 	ret = gf_eac3_parser_internal(bs, hdr, full_parse);
 	gf_bs_del(bs);
 	return ret;
@@ -11090,16 +11094,16 @@ Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_
 u32 gf_id3_read_size(GF_BitStream *bs)
 {
 	u32 size = 0;
-	gf_bs_read_int(bs, 1);
+	gf_bs_read_bool(bs); 
 	size |= gf_bs_read_int(bs, 7);
 	size<<=7;
-	gf_bs_read_int(bs, 1);
+	gf_bs_read_bool(bs); 
 	size |= gf_bs_read_int(bs, 7);
 	size<<=7;
-	gf_bs_read_int(bs, 1);
+	gf_bs_read_bool(bs); 
 	size |= gf_bs_read_int(bs, 7);
 	size<<=7;
-	gf_bs_read_int(bs, 1);
+	gf_bs_read_bool(bs); 
 	size |= gf_bs_read_int(bs, 7);
 	return size;
 }
@@ -11132,7 +11136,7 @@ static u32 vorbis_book_maptype1_quantvals(u32 entries, u32 dim)
 
 static u32 ilog(u32 v, Bool dec)
 {
-	u32 ret = 0;
+	u32 ret = GF_FALSE;
 	if (dec && v) --v;
 	while (v) {
 		ret++;
@@ -11392,7 +11396,7 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 	}
 	nb_modes += 1;
 	for (i = 0; i < nb_modes; i++) {
-		vp->mode_flag[i] = oggpack_read(&opb, 1);
+		vp->mode_flag[i] = (Bool) oggpack_read(&opb, 1);
 		oggpack_read(&opb, 16);
 		oggpack_read(&opb, 16);
 		oggpack_read(&opb, 8);
@@ -11430,7 +11434,7 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length)
 
 Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 {
-	char tag[9];
+	u8 tag[9];
 	GF_BitStream *bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
 	gf_bs_read_data(bs, tag, 8);
 	tag[8]=0;
@@ -11454,7 +11458,7 @@ Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 	if (ocfg->ChannelMappingFamily != 0) {
 		ocfg->StreamCount = gf_bs_read_u8(bs);
 		ocfg->CoupledCount = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *) ocfg->ChannelMapping, ocfg->OutputChannelCount);
+		gf_bs_read_data(bs,ocfg->ChannelMapping, ocfg->OutputChannelCount);
 	}
 	gf_bs_del(bs);
 	return GF_TRUE;
@@ -11491,7 +11495,7 @@ u32 gf_opus_check_frame(GF_OpusConfig *ocfg, u8 *data, u32 data_length)
 }
 
 /* return nb bytes read */
-static u8 gf_opus_read_length(u8 *data, u32 data_length, u32 offset, u16 *read_length) {
+static u8 gf_opus_read_length(const u8 *data, u32 data_length, u32 offset, u16 *read_length) {
 	if (!data || !data_length || !read_length) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Cannot read Opus length value\n"));
 		return 0;
@@ -11514,7 +11518,7 @@ static u8 gf_opus_read_length(u8 *data, u32 data_length, u32 offset, u16 *read_l
 }
 
 GF_EXPORT
-u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header)
+u8 gf_opus_parse_packet_header(const u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header)
 {
 	u32 i;
 	u32 nb_read_bytes;
@@ -11905,8 +11909,8 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 				if (idx==0x1f)
 					gf_bs_read_int(bs, 24);
 				/*idx = */gf_bs_read_int(bs, 3);
-				gf_bs_read_int(bs, 1);
-				gf_bs_read_int(bs, 1);
+				gf_bs_read_bool(bs); 
+				gf_bs_read_bool(bs); 
 
 				//speaker config
 				idx = gf_bs_read_int(bs, 2);
@@ -11923,13 +11927,13 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 }
 
 GF_EXPORT
-void gf_vvc_parse_sei(char *buffer, u32 nal_size, VVCState *vvc)
+void gf_vvc_parse_sei(u8 *buffer, u32 nal_size, VVCState *vvc)
 {
 	gf_hevc_vvc_parse_sei(buffer, nal_size, NULL, vvc);
 }
 
 GF_EXPORT
-u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter)
+u32 gf_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter)
 {
 	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, GF_FALSE, sei_filter);
 }
@@ -11937,9 +11941,9 @@ u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Fil
 static Bool vvc_parse_nal_header(GF_BitStream *bs, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	u32 val;
-	val = gf_bs_read_int_log(bs, 1, "forbidden_zero");
+	val = gf_bs_read_bool_log(bs, "forbidden_zero");
 	if (val) return GF_FALSE;
-	val = gf_bs_read_int_log(bs, 1, "reserved_zero");
+	val = gf_bs_read_bool_log(bs, "reserved_zero");
 	if (val) return GF_FALSE;
 
 	val = gf_bs_read_int_log(bs, 6, "layerID");
@@ -12009,7 +12013,7 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 	u32 i, j;
 	s32 vps_id;
 	VVC_VPS *vps;
-	Bool vps_default_ptl_dpb_hrd_max_tid_flag=0;
+	Bool vps_default_ptl_dpb_hrd_max_tid_flag= GF_FALSE;
 
 	//nalu header already parsed
 	vps_id = gf_bs_read_int_log(bs, 4, "vps_id");
@@ -12031,20 +12035,20 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 	vps->max_sub_layers = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1") + 1;
 
 	if ((vps->max_layers>1) && (vps->max_sub_layers>1))
-		vps_default_ptl_dpb_hrd_max_tid_flag = gf_bs_read_int_log(bs, 1, "vps_default_ptl_dpb_hrd_max_tid_flag");
+		vps_default_ptl_dpb_hrd_max_tid_flag = gf_bs_read_bool_log(bs, "vps_default_ptl_dpb_hrd_max_tid_flag");
 
 	if (vps->max_layers>1)
-		vps->all_layers_independent = gf_bs_read_int_log(bs, 1, "all_layers_independent");
+		vps->all_layers_independent = gf_bs_read_bool_log(bs, "all_layers_independent");
 
 	for (i=0; i<vps->max_layers; i++) {
 		u32 layer_id = gf_bs_read_int_log_idx(bs, 6, "layer_id", i);
 		if (layer_id>vps->max_layer_id) vps->max_layer_id = layer_id;
 		if (i && !vps->all_layers_independent) {
-			Bool layer_indep = gf_bs_read_int_log_idx(bs, 1, "layer_independent", i);
+			Bool layer_indep = gf_bs_read_bool_log_idx(bs, "layer_independent", i);
 			if (!layer_indep) {
-				Bool vps_max_tid_ref_present_flag = gf_bs_read_int_log_idx(bs, 1, "vps_max_tid_ref_present_flag", i);
+				Bool vps_max_tid_ref_present_flag = gf_bs_read_bool_log_idx(bs, "vps_max_tid_ref_present_flag", i);
 				for (j=0; j<i; j++) {
-					Bool vps_direct_ref_layer_flag = gf_bs_read_int_log_idx2(bs, 1, "vps_direct_ref_layer_flag", i, j);
+					Bool vps_direct_ref_layer_flag = gf_bs_read_bool_log_idx2(bs, "vps_direct_ref_layer_flag", i, j);
 					if (vps_max_tid_ref_present_flag && vps_direct_ref_layer_flag) {
 						gf_bs_read_int_log_idx2(bs, 3, "vps_max_tid_il_ref_pics_plus1", i, j);
 					}
@@ -12055,7 +12059,7 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 	vps->num_ptl = 1;
 	if (vps->max_layers > 1) {
 		if (vps->all_layers_independent) {
-			vps->each_layer_is_ols = gf_bs_read_int_log(bs, 1, "each_layer_is_ols");
+			vps->each_layer_is_ols = gf_bs_read_bool_log(bs, "each_layer_is_ols");
 		}
 		if (!vps->each_layer_is_ols) {
 			u32 vps_ols_mode_idc = 2;
@@ -12118,15 +12122,15 @@ static s32 vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 lis
 		rpl->ltrp_in_header_flag = gf_bs_read_int_log_idx2(bs, 1, "ltrp_in_header_flag", listIdx, rplsIdx);
 	}
 	for (i=0; i < rpl->num_ref_entries; i++) {
-		Bool inter_layer_ref_pic_flag = 0;
+		Bool inter_layer_ref_pic_flag = GF_FALSE;
 		if (sps->inter_layer_prediction_enabled_flag) {
-			inter_layer_ref_pic_flag = gf_bs_read_int_log_idx3(bs, 1, "inter_layer_ref_pic_flag", listIdx, rplsIdx, i);
+			inter_layer_ref_pic_flag = (Bool) gf_bs_read_int_log_idx3(bs, 1, "inter_layer_ref_pic_flag", listIdx, rplsIdx, i);
 		}
 		if (!inter_layer_ref_pic_flag) {
 			s32 AbsDeltaPocSt;
-			Bool st_ref_pic_flag = 1;
+			Bool st_ref_pic_flag = GF_TRUE;
 			if (sps->long_term_ref_pics_flag) {
-				st_ref_pic_flag = gf_bs_read_int_log_idx3(bs, 1, "st_ref_pic_flag", listIdx, rplsIdx, i);
+				st_ref_pic_flag = (Bool) gf_bs_read_int_log_idx3(bs, 1, "st_ref_pic_flag", listIdx, rplsIdx, i);
 			}
 			if (st_ref_pic_flag) {
 				u32 abs_delta_poc_st = gf_bs_read_ue_log_idx3(bs, "abs_delta_poc_st", listIdx, rplsIdx, i);
@@ -12172,15 +12176,15 @@ static s32 vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 lis
 
 static void vvc_parse_general_timing_hrd_parameters(GF_BitStream *bs, VVC_SPS *sps, VVC_VPS *vps, Bool *general_nal_hrd_params_present_flag, Bool *general_vcl_hrd_params_present_flag, Bool *general_du_hrd_params_present_flag, u32 *hrd_cpb_cnt_minus1)
 {
-	sps->has_timing_info = 1;
+	sps->has_timing_info = GF_TRUE;
 	sps->num_units_in_tick = gf_bs_read_int_log(bs, 32, "num_units_in_tick");
 	sps->time_scale = gf_bs_read_int_log(bs, 32, "timescale");
 	*general_du_hrd_params_present_flag = GF_FALSE;
-	*general_nal_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_nal_hrd_params_present_flag");
-	*general_vcl_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_vcl_hrd_params_present_flag");
+	*general_nal_hrd_params_present_flag = gf_bs_read_bool_log(bs, "general_nal_hrd_params_present_flag");
+	*general_vcl_hrd_params_present_flag = gf_bs_read_bool_log(bs, "general_vcl_hrd_params_present_flag");
 	if (*general_nal_hrd_params_present_flag || *general_vcl_hrd_params_present_flag) {
-		gf_bs_read_int_log(bs, 1, "general_same_pic_timing_in_all_ols_flag");
-		*general_du_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_du_hrd_params_present_flag");
+		gf_bs_read_bool_log(bs, "general_same_pic_timing_in_all_ols_flag");
+		*general_du_hrd_params_present_flag = gf_bs_read_bool_log(bs, "general_du_hrd_params_present_flag");
 		if (*general_du_hrd_params_present_flag)
 			gf_bs_read_int_log(bs, 8, "tick_divisor_minus2");
 		gf_bs_read_int_log(bs, 4, "bit_rate_scale");
@@ -12211,7 +12215,7 @@ static void vvc_parse_ols_timing_hrd_parameters(GF_BitStream *bs, u32 firstSubLa
 	for (i=firstSubLayer; i<=MaxSubLayersVal; i++) {
 		Bool fixed_pic_rate_within_cvs_flag = GF_TRUE;
 		if (! gf_bs_read_int_log_idx(bs, 1, "fixed_pic_rate_general_flag", i)) {
-			fixed_pic_rate_within_cvs_flag = gf_bs_read_int_log_idx(bs, 1, "fixed_pic_rate_within_cvs_flag", i);
+			fixed_pic_rate_within_cvs_flag = gf_bs_read_bool_log_idx(bs, "fixed_pic_rate_within_cvs_flag", i);
 		}
 		if (fixed_pic_rate_within_cvs_flag) {
 			gf_bs_read_ue_log(bs, "elemental_duration_in_tc_minus1");
@@ -12264,7 +12268,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		vvc->vps[0].state = 1;
 		vvc->vps[0].num_ptl = 1;
 		vvc->vps[0].max_layers = 1;
-		vvc->vps[0].all_layers_independent = 1;
+		vvc->vps[0].all_layers_independent = GF_TRUE;
 	}
 
 	sps = &vvc->sps[sps_id];
@@ -12278,7 +12282,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	sps->log2_ctu_size = 5 + gf_bs_read_int_log(bs, 2, "log2_ctu_size_minus5");
 	CtbSizeY = 1<<sps->log2_ctu_size;
 
-	sps_ptl_dpb_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "sps_ptl_dpb_hrd_params_present_flag");
+	sps_ptl_dpb_hrd_params_present_flag = gf_bs_read_bool_log(bs, "sps_ptl_dpb_hrd_params_present_flag");
 	if (sps_ptl_dpb_hrd_params_present_flag) {
 		VVC_ProfileTierLevel ptl, *p_ptl;
 		if (sps->vps_id) {
@@ -12291,13 +12295,13 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		p_ptl->ptl_max_tid = sps->max_sublayers-1;
 		vvc_profile_tier_level(bs, p_ptl, 0);
 	}
-	sps->gdr_enabled = gf_bs_read_int_log(bs, 1, "gdr_enabled");
-	sps->ref_pic_resampling = gf_bs_read_int_log(bs, 1, "ref_pic_resampling");
+	sps->gdr_enabled = gf_bs_read_bool_log(bs, "gdr_enabled");
+	sps->ref_pic_resampling = gf_bs_read_bool_log(bs, "ref_pic_resampling");
 	if (sps->ref_pic_resampling)
-		sps->res_change_in_clvs = gf_bs_read_int_log(bs, 1, "res_change_in_clvs");
+		sps->res_change_in_clvs = gf_bs_read_bool_log(bs, "res_change_in_clvs");
 	sps->width = gf_bs_read_ue_log(bs, "width");
 	sps->height = gf_bs_read_ue_log(bs, "height");
-	sps->conf_window = gf_bs_read_int_log(bs, 1, "conformance_window_present_flag");
+	sps->conf_window = gf_bs_read_bool_log(bs, "conformance_window_present_flag");
 	if (sps->conf_window) {
 		u32 SubWidthC, SubHeightC;
 		sps->cw_left = gf_bs_read_ue_log(bs, "conformance_window_left");
@@ -12323,7 +12327,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 	}
 
-	sps->subpic_info_present = gf_bs_read_int_log(bs, 1, "subpic_info_present");
+	sps->subpic_info_present = gf_bs_read_bool_log(bs, "subpic_info_present");
 	if (sps->subpic_info_present) {
 		sps->nb_subpics = 1 + gf_bs_read_ue_log(bs, "nb_subpics_minus1");
 		if (sps->nb_subpics>1000) VVC_SPS_BROKEN
@@ -12334,8 +12338,8 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 
 		if (sps->nb_subpics>1) {
 			u32 tmpWidthBits, tmpHeightBits;
-			sps->independent_subpic_flags = gf_bs_read_int_log(bs, 1, "independent_subpic_flags");
-			sps->subpic_same_size = gf_bs_read_int_log(bs, 1, "subpic_same_size");
+			sps->independent_subpic_flags = gf_bs_read_bool_log(bs, "independent_subpic_flags");
+			sps->subpic_same_size = gf_bs_read_bool_log(bs, "subpic_same_size");
 
 			tmpWidthBits = vvc_ceillog2((sps->width + CtbSizeY-1) / CtbSizeY);
 			tmpHeightBits = vvc_ceillog2((sps->height + CtbSizeY-1) / CtbSizeY);
@@ -12357,16 +12361,16 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 					sp->h = sps->subpics[0].h;
 				}
 				if (!sps->independent_subpic_flags) {
-					gf_bs_read_int_log(bs, 1, "subpic_treated_as_pic_flag");
-					gf_bs_read_int_log(bs, 1, "loop_filter_across_subpic_enabled_flag");
+					gf_bs_read_bool_log(bs, "subpic_treated_as_pic_flag");
+					gf_bs_read_bool_log(bs, "loop_filter_across_subpic_enabled_flag");
 				}
 			}
 		}
 		//coded even if nb_subpics<=1
 		sps->subpicid_len = gf_bs_read_ue_log(bs, "subpic_id_len_minus1") + 1;
-		sps->subpicid_mapping_explicit = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_explicitly_signalled_flag");
+		sps->subpicid_mapping_explicit = gf_bs_read_bool_log(bs, "subpic_id_mapping_explicitly_signalled_flag");
 		if (sps->subpicid_mapping_explicit) {
-			sps->subpicid_mapping_present = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_present_flag");
+			sps->subpicid_mapping_present = gf_bs_read_bool_log(bs, "subpic_id_mapping_present_flag");
 			if (sps->subpicid_mapping_present) {
 				for (i=0; i<sps->nb_subpics; i++) {
 					VVC_SubpicInfo *sp = &sps->subpics[i];
@@ -12378,10 +12382,10 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		sps->nb_subpics = 1;
 	}
 	sps->bitdepth = gf_bs_read_ue_log(bs, "bitdepth_minus8") + 8;
-	sps->entropy_coding_sync_enabled_flag = gf_bs_read_int_log(bs, 1, "entropy_coding_sync_enabled_flag");
-	sps->entry_point_offsets_present_flag = gf_bs_read_int_log(bs, 1, "entry_point_offsets_present_flag");
+	sps->entropy_coding_sync_enabled_flag = gf_bs_read_bool_log(bs, "entropy_coding_sync_enabled_flag");
+	sps->entry_point_offsets_present_flag = gf_bs_read_bool_log(bs, "entry_point_offsets_present_flag");
 	sps->log2_max_poc_lsb = 4 + gf_bs_read_int_log(bs, 4, "log2_max_poc_lsb_minus4");
-	if ((sps->poc_msb_cycle_flag = gf_bs_read_int_log(bs, 1, "poc_msb_cycle_flag")))
+	if ((sps->poc_msb_cycle_flag = gf_bs_read_bool_log(bs, "poc_msb_cycle_flag")))
 		sps->poc_msb_cycle_len = 1 + gf_bs_read_ue_log(bs, "poc_msb_cycle_len_minus1");
 
 	u8 sps_num_extra_ph_bits = 8 * gf_bs_read_int_log(bs, 2, "sps_num_extra_ph_bytes");
@@ -12398,7 +12402,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	if (sps_ptl_dpb_hrd_params_present_flag) {
 		u8 sps_sublayer_dpb_params_flag = 0;
 		if (sps->max_sublayers>1) {
-			sps_sublayer_dpb_params_flag = gf_bs_read_int_log(bs, 1, "sps_sublayer_dpb_params_flag");
+			sps_sublayer_dpb_params_flag = gf_bs_read_bool_log(bs, "sps_sublayer_dpb_params_flag");
 		}
 		for (i=(sps_sublayer_dpb_params_flag ? 0 : sps->max_sublayers-1); i < sps->max_sublayers; i++ ) {
 			gf_bs_read_ue_log_idx(bs, "dpb_max_dec_pic_buffering_minus1", i);
@@ -12407,7 +12411,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		}
 	}
 	gf_bs_read_ue_log(bs, "sps_log2_min_luma_coding_block_size_minus2");
-	sps->partition_constraints_override_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_partition_constraints_override_enabled_flag");
+	sps->partition_constraints_override_enabled_flag = gf_bs_read_bool_log(bs, "sps_partition_constraints_override_enabled_flag");
 	gf_bs_read_ue_log(bs, "sps_log2_min_luma_coding_block_size_minus2");
 	u8 sps_max_mtt_hierarchy_depth_intra_slice_luma = gf_bs_read_ue_log(bs, "sps_max_mtt_hierarchy_depth_intra_slice_luma");
 	if (sps_max_mtt_hierarchy_depth_intra_slice_luma != 0) {
@@ -12416,7 +12420,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	}
 	u8 sps_qtbtt_dual_tree_intra_flag = 0;
 	if (sps->chroma_format_idc) {
-		sps_qtbtt_dual_tree_intra_flag = gf_bs_read_int_log(bs, 1, "sps_qtbtt_dual_tree_intra_flag");
+		sps_qtbtt_dual_tree_intra_flag = gf_bs_read_bool_log(bs, "sps_qtbtt_dual_tree_intra_flag");
 	}
 	if (sps_qtbtt_dual_tree_intra_flag) {
 		gf_bs_read_ue_log(bs, "sps_log2_diff_min_qt_min_cb_intra_slice_chroma");
@@ -12435,23 +12439,23 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	}
 	u8 max_luma_transform_size_64_flag = 0;
 	if (CtbSizeY > 32) {
-		max_luma_transform_size_64_flag = gf_bs_read_int_log(bs, 1, "sps_max_luma_transform_size_64_flag");
+		max_luma_transform_size_64_flag = gf_bs_read_bool_log(bs, "sps_max_luma_transform_size_64_flag");
 	}
-	sps->transform_skip_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_transform_skip_enabled_flag");
+	sps->transform_skip_enabled_flag = gf_bs_read_bool_log(bs, "sps_transform_skip_enabled_flag");
 
 	if (sps->transform_skip_enabled_flag) {
 		gf_bs_read_ue_log(bs, "sps_log2_transform_skip_max_size_minus2");
-		gf_bs_read_int_log(bs, 1, "sps_bdpcm_enabled_flag");
+		gf_bs_read_bool_log(bs, "sps_bdpcm_enabled_flag");
 	}
-	if (gf_bs_read_int_log(bs, 1, "sps_mts_enabled_flag")) {
-		gf_bs_read_int_log(bs, 1, "sps_explicit_mts_intra_enabled_flag");
-		gf_bs_read_int_log(bs, 1, "sps_explicit_mts_inter_enabled_flag");
+	if (gf_bs_read_bool_log(bs, "sps_mts_enabled_flag")) {
+		gf_bs_read_bool_log(bs, "sps_explicit_mts_intra_enabled_flag");
+		gf_bs_read_bool_log(bs, "sps_explicit_mts_inter_enabled_flag");
 	}
-	Bool lfnst_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_lfnst_enabled_flag");
+	Bool lfnst_enabled_flag = gf_bs_read_bool_log(bs, "sps_lfnst_enabled_flag");
 	sps->joint_cbcr_enabled_flag = 0;
 	if (sps->chroma_format_idc) {
-		sps->joint_cbcr_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_joint_cbcr_enabled_flag");
-		u8 sps_same_qp_table_for_chroma_flag = gf_bs_read_int_log(bs, 1, "sps_same_qp_table_for_chroma_flag");
+		sps->joint_cbcr_enabled_flag = gf_bs_read_bool_log(bs, "sps_joint_cbcr_enabled_flag");
+		u8 sps_same_qp_table_for_chroma_flag = gf_bs_read_bool_log(bs, "sps_same_qp_table_for_chroma_flag");
 		u32 numQpTables = sps_same_qp_table_for_chroma_flag ? 1 : (sps->joint_cbcr_enabled_flag ? 3 : 2);
 		for (i=0; i<numQpTables; i++) {
 			gf_bs_read_se_log_idx(bs, "sps_qp_table_start_minus26", i);
@@ -12466,19 +12470,19 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 			}
 		}
 	}
-	sps->sao_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_sao_enabled_flag");
-	sps->alf_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_alf_enabled_flag");
+	sps->sao_enabled_flag = gf_bs_read_bool_log(bs, "sps_sao_enabled_flag");
+	sps->alf_enabled_flag = gf_bs_read_bool_log(bs, "sps_alf_enabled_flag");
 	if (sps->alf_enabled_flag && sps->chroma_format_idc) {
-		sps->ccalf_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_ccalf_enabled_flag");
+		sps->ccalf_enabled_flag = gf_bs_read_bool_log(bs, "sps_ccalf_enabled_flag");
 	}
-	sps->lmcs_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_lmcs_enabled_flag");
-	sps->weighted_pred_flag = gf_bs_read_int_log(bs, 1, "sps_weighted_pred_flag");
-	sps->weighted_bipred_flag = gf_bs_read_int_log(bs, 1, "sps_weighted_bipred_flag");
-	sps->long_term_ref_pics_flag = gf_bs_read_int_log(bs, 1, "sps_long_term_ref_pics_flag");
+	sps->lmcs_enabled_flag = gf_bs_read_bool_log(bs, "sps_lmcs_enabled_flag");
+	sps->weighted_pred_flag = gf_bs_read_bool_log(bs, "sps_weighted_pred_flag");
+	sps->weighted_bipred_flag = gf_bs_read_bool_log(bs, "sps_weighted_bipred_flag");
+	sps->long_term_ref_pics_flag = gf_bs_read_bool_log(bs, "sps_long_term_ref_pics_flag");
 	if (sps->vps_id>0)
-		sps->inter_layer_prediction_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_inter_layer_prediction_enabled_flag");
-	sps->idr_rpl_present_flag = gf_bs_read_int_log(bs, 1, "sps_idr_rpl_present_flag");
-	u32 sps_rpl1_same_as_rpl0 = gf_bs_read_int_log(bs, 1, "sps_rpl1_same_as_rpl0_flag") ? 1: 2;
+		sps->inter_layer_prediction_enabled_flag = gf_bs_read_bool_log(bs, "sps_inter_layer_prediction_enabled_flag");
+	sps->idr_rpl_present_flag = gf_bs_read_bool_log(bs, "sps_idr_rpl_present_flag");
+	u32 sps_rpl1_same_as_rpl0 = (gf_bs_read_bool_log(bs, "sps_rpl1_same_as_rpl0_flag")) ? 1 : 2;
 	for (i=0; i<sps_rpl1_same_as_rpl0; i++) {
 		u32 j;
 		sps->num_ref_pic_lists[i] = gf_bs_read_ue_log_idx(bs, "sps_num_ref_pic_lists", i);
@@ -12489,72 +12493,72 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 			if (res<0) VVC_SPS_BROKEN
 		}
 	}
-	gf_bs_read_int_log(bs, 1, "sps_ref_wraparound_enabled_flag");
-	sps->temporal_mvp_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_temporal_mvp_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_ref_wraparound_enabled_flag");
+	sps->temporal_mvp_enabled_flag = gf_bs_read_bool_log(bs, "sps_temporal_mvp_enabled_flag");
 	if (sps->temporal_mvp_enabled_flag) {
-		gf_bs_read_int_log(bs, 1, "sps_sbtmvp_enabled_flag");
+		gf_bs_read_bool_log(bs, "sps_sbtmvp_enabled_flag");
 	}
-	Bool amvr_enabled = gf_bs_read_int_log(bs, 1, "sps_amvr_enabled_flag");
+	Bool amvr_enabled = gf_bs_read_bool_log(bs, "sps_amvr_enabled_flag");
 	sps->bdof_control_present_in_ph_flag = 0;
-	if (gf_bs_read_int_log(bs, 1, "sps_bdof_enabled_flag")) {
-		sps->bdof_control_present_in_ph_flag = gf_bs_read_int_log(bs, 1, "sps_bdof_control_present_in_ph_flag");
+	if (gf_bs_read_bool_log(bs, "sps_bdof_enabled_flag")) {
+		sps->bdof_control_present_in_ph_flag = gf_bs_read_bool_log(bs, "sps_bdof_control_present_in_ph_flag");
 	}
-	gf_bs_read_int_log(bs, 1, "sps_smvd_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_smvd_enabled_flag");
 	sps->dmvr_control_present_in_ph_flag = 0;
-	if (gf_bs_read_int_log(bs, 1, "sps_dmvr_enabled_flag")) {
-		sps->dmvr_control_present_in_ph_flag = gf_bs_read_int_log(bs, 1, "sps_dmvr_control_present_in_ph_flag");
+	if (gf_bs_read_bool_log(bs, "sps_dmvr_enabled_flag")) {
+		sps->dmvr_control_present_in_ph_flag = gf_bs_read_bool_log(bs, "sps_dmvr_control_present_in_ph_flag");
 	}
 	sps->mmvd_fullpel_only_enabled_flag = 0;
-	if (gf_bs_read_int_log(bs, 1, "sps_mmvd_enabled_flag")) {
-		sps->mmvd_fullpel_only_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_mmvd_fullpel_only_enabled_flag");
+	if (gf_bs_read_bool_log(bs, "sps_mmvd_enabled_flag")) {
+		sps->mmvd_fullpel_only_enabled_flag = gf_bs_read_bool_log(bs, "sps_mmvd_fullpel_only_enabled_flag");
 	}
 	u32 MaxNumMergeCand  = 6 - gf_bs_read_ue_log(bs, "sps_six_minus_max_num_merge_cand");
 
 	sps->prof_control_present_in_ph_flag = 0;
-	gf_bs_read_int_log(bs, 1, "sps_sbt_enabled_flag");
-	if (gf_bs_read_int_log(bs, 1, "sps_affine_enabled_flag")) {
+	gf_bs_read_bool_log(bs, "sps_sbt_enabled_flag");
+	if (gf_bs_read_bool_log(bs, "sps_affine_enabled_flag")) {
 		gf_bs_read_ue_log(bs, "sps_five_minus_max_num_subblock_merge_cand");
-		gf_bs_read_int_log(bs, 1, "sps_6param_affine_enabled_flag");
+		gf_bs_read_bool_log(bs, "sps_6param_affine_enabled_flag");
 		if (amvr_enabled) {
-			gf_bs_read_int_log(bs, 1, "sps_affine_amvr_enabled_flag");
+			gf_bs_read_bool_log(bs, "sps_affine_amvr_enabled_flag");
 		}
-		if (gf_bs_read_int_log(bs, 1, "sps_affine_prof_enabled_flag")) {
-			sps->prof_control_present_in_ph_flag = gf_bs_read_int_log(bs, 1, "sps_prof_control_present_in_ph_flag");
+		if (gf_bs_read_bool_log(bs, "sps_affine_prof_enabled_flag")) {
+			sps->prof_control_present_in_ph_flag = gf_bs_read_bool_log(bs, "sps_prof_control_present_in_ph_flag");
 		}
 	}
 
-	gf_bs_read_int_log(bs, 1, "sps_bcw_enabled_flag");
-	gf_bs_read_int_log(bs, 1, "sps_ciip_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_bcw_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_ciip_enabled_flag");
 	if (MaxNumMergeCand >= 2) {
-		Bool gpm_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_gpm_enabled_flag");
+		Bool gpm_enabled_flag = gf_bs_read_bool_log(bs, "sps_gpm_enabled_flag");
 		if (gpm_enabled_flag && (MaxNumMergeCand >= 3)) {
 			gf_bs_read_ue_log(bs, "sps_max_num_merge_cand_minus_max_num_gpm_cand");
 		}
 	}
 	gf_bs_read_ue_log(bs, "sps_log2_parallel_merge_level_minus2");
 
-	gf_bs_read_int_log(bs, 1, "sps_isp_enabled_flag");
-	gf_bs_read_int_log(bs, 1, "sps_mrl_enabled_flag");
-	gf_bs_read_int_log(bs, 1, "sps_mip_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_isp_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_mrl_enabled_flag");
+	gf_bs_read_bool_log(bs, "sps_mip_enabled_flag");
 	if (sps->chroma_format_idc != 0) {
-		gf_bs_read_int_log(bs, 1, "sps_cclm_enabled_flag");
+		gf_bs_read_bool_log(bs, "sps_cclm_enabled_flag");
 	}
 	if (sps->chroma_format_idc == 1) {
-		gf_bs_read_int_log(bs, 1, "sps_chroma_horizontal_collocated_flag");
-		gf_bs_read_int_log(bs, 1, "sps_chroma_vertical_collocated_flag");
+		gf_bs_read_bool_log(bs, "sps_chroma_horizontal_collocated_flag");
+		gf_bs_read_bool_log(bs, "sps_chroma_vertical_collocated_flag");
 	}
 	Bool act_enabled_flag = GF_FALSE;
-	Bool palette_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_palette_enabled_flag");
+	Bool palette_enabled_flag = gf_bs_read_bool_log(bs, "sps_palette_enabled_flag");
 	if ((sps->chroma_format_idc == 3) && !max_luma_transform_size_64_flag) {
-		act_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_act_enabled_flag");
+		act_enabled_flag = gf_bs_read_bool_log(bs, "sps_act_enabled_flag");
 	}
 	if (sps->transform_skip_enabled_flag || palette_enabled_flag) {
 		gf_bs_read_ue_log(bs, "sps_min_qp_prime_ts");
 	}
-	if (gf_bs_read_int_log(bs, 1, "sps_ibc_enabled_flag")) {
+	if (gf_bs_read_bool_log(bs, "sps_ibc_enabled_flag")) {
 		gf_bs_read_ue_log(bs, "sps_six_minus_max_num_ibc_merge_cand");
 	}
-	if (gf_bs_read_int_log(bs, 1, "sps_ladf_enabled_flag")) {
+	if (gf_bs_read_bool_log(bs, "sps_ladf_enabled_flag")) {
 		u32 num_ladf_intervals_minus2 = gf_bs_read_int_log(bs, 2, "sps_num_ladf_intervals_minus2");
 		gf_bs_read_se_log(bs, "sps_ladf_lowest_interval_qp_offset");
 		for (i=0; i<num_ladf_intervals_minus2+1; i++) {
@@ -12562,22 +12566,22 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 			gf_bs_read_ue_log_idx(bs, "sps_ladf_delta_threshold_minus1", i);
 		}
 	}
-	sps->explicit_scaling_list_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_explicit_scaling_list_enabled_flag");
+	sps->explicit_scaling_list_enabled_flag = gf_bs_read_bool_log(bs, "sps_explicit_scaling_list_enabled_flag");
 	if (lfnst_enabled_flag && sps->explicit_scaling_list_enabled_flag) {
-		gf_bs_read_int_log(bs, 1, "sps_scaling_matrix_for_lfnst_disabled_flag");
+		gf_bs_read_bool_log(bs, "sps_scaling_matrix_for_lfnst_disabled_flag");
 	}
-	Bool scaling_matrix_for_alternative_colour_space_disabled_flag = 0;
+	Bool scaling_matrix_for_alternative_colour_space_disabled_flag = GF_FALSE;
 	if (act_enabled_flag && sps->explicit_scaling_list_enabled_flag) {
-		scaling_matrix_for_alternative_colour_space_disabled_flag = gf_bs_read_int_log(bs, 1, "sps_scaling_matrix_for_alternative_colour_space_disabled_flag");
+		scaling_matrix_for_alternative_colour_space_disabled_flag = gf_bs_read_bool_log(bs, "sps_scaling_matrix_for_alternative_colour_space_disabled_flag");
 	}
 	if (scaling_matrix_for_alternative_colour_space_disabled_flag) {
-		gf_bs_read_int_log(bs, 1, "sps_scaling_matrix_designated_colour_space_flag");
+		gf_bs_read_bool_log(bs, "sps_scaling_matrix_designated_colour_space_flag");
 	}
-	sps->dep_quant_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_dep_quant_enabled_flag");
-	sps->sign_data_hiding_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_sign_data_hiding_enabled_flag");
-	sps->virtual_boundaries_enabled_flag = gf_bs_read_int_log(bs, 1, "sps_virtual_boundaries_enabled_flag");
+	sps->dep_quant_enabled_flag = gf_bs_read_bool_log(bs, "sps_dep_quant_enabled_flag");
+	sps->sign_data_hiding_enabled_flag = gf_bs_read_bool_log(bs, "sps_sign_data_hiding_enabled_flag");
+	sps->virtual_boundaries_enabled_flag = gf_bs_read_bool_log(bs, "sps_virtual_boundaries_enabled_flag");
 	if (sps->virtual_boundaries_enabled_flag) {
-		sps->virtual_boundaries_present_flag = gf_bs_read_int_log(bs, 1, "sps_virtual_boundaries_present_flag");
+		sps->virtual_boundaries_present_flag = gf_bs_read_bool_log(bs, "sps_virtual_boundaries_present_flag");
 		if (sps->virtual_boundaries_present_flag) {
 			u32 num_virtual_boundaries = gf_bs_read_ue_log(bs, "sps_num_ver_virtual_boundaries");
 			if (num_virtual_boundaries > MAX_SPS_VIRTUAL_BOUNDARIES) {
@@ -12599,13 +12603,13 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	}
 
 	if (sps_ptl_dpb_hrd_params_present_flag) {
-		if (gf_bs_read_int_log(bs, 1, "sps_timing_hrd_params_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "sps_timing_hrd_params_present_flag")) {
 			Bool general_nal_hrd_params_present_flag, general_vcl_hrd_params_present_flag, general_du_hrd_params_present_flag;
 			u32 hrd_cpb_cnt_minus1=0;
 			u32 sublayer_cpb_params_present_flag = 0;
 			vvc_parse_general_timing_hrd_parameters(bs, sps, NULL, &general_nal_hrd_params_present_flag, &general_vcl_hrd_params_present_flag, &general_du_hrd_params_present_flag, &hrd_cpb_cnt_minus1);
 			if (sps->max_sublayers > 1) {
-				sublayer_cpb_params_present_flag = gf_bs_read_int_log(bs, 1, "sps_sublayer_cpb_params_present_flag");
+				sublayer_cpb_params_present_flag = gf_bs_read_bool_log(bs, "sps_sublayer_cpb_params_present_flag");
 			}
 			u32 firstSubLayer = sublayer_cpb_params_present_flag ? 0 : sps->max_sublayers - 1;
 			vvc_parse_ols_timing_hrd_parameters(bs, firstSubLayer, sps->max_sublayers-1, general_nal_hrd_params_present_flag, general_vcl_hrd_params_present_flag, general_du_hrd_params_present_flag, hrd_cpb_cnt_minus1);
@@ -12613,42 +12617,42 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		}
 	}
 
-	gf_bs_read_int_log(bs, 1, "sps_field_seq_flag");
+	gf_bs_read_bool_log(bs, "sps_field_seq_flag");
 	if (vui_flag_pos) {
 		*vui_flag_pos = (u32)gf_bs_get_bit_offset(bs);
 	}
 	//all this to get to VUI !!!
-	if (gf_bs_read_int_log(bs, 1, "sps_vui_parameters_present_flag")) {
+	if (gf_bs_read_bool_log(bs, "sps_vui_parameters_present_flag")) {
 		gf_bs_read_ue_log(bs, "sps_vui_payload_size_minus1");
 		while (!gf_bs_is_align(bs)) {
-			gf_bs_read_int_log(bs, 1, "sps_vui_alignment_zero_bit");
+			gf_bs_read_bool_log(bs, "sps_vui_alignment_zero_bit");
 		}
 		//vui parameters
-		Bool vui_progressive_source_flag = gf_bs_read_int_log(bs, 1, "vui_progressive_source_flag");
-		Bool vui_interlaced_source_flag = gf_bs_read_int_log(bs, 1, "vui_interlaced_source_flag");
-		gf_bs_read_int_log(bs, 1, "vui_non_packed_constraint_flag");
-		gf_bs_read_int_log(bs, 1, "vui_non_projected_constraint_flag");
-		sps->aspect_ratio_info_present_flag = gf_bs_read_int_log(bs, 1, "vui_aspect_ratio_info_present_flag");
+		Bool vui_progressive_source_flag = gf_bs_read_bool_log(bs, "vui_progressive_source_flag");
+		Bool vui_interlaced_source_flag = gf_bs_read_bool_log(bs, "vui_interlaced_source_flag");
+		gf_bs_read_bool_log(bs, "vui_non_packed_constraint_flag");
+		gf_bs_read_bool_log(bs, "vui_non_projected_constraint_flag");
+		sps->aspect_ratio_info_present_flag = gf_bs_read_bool_log(bs, "vui_aspect_ratio_info_present_flag");
 		if (sps->aspect_ratio_info_present_flag) {
-			gf_bs_read_int_log(bs, 1, "vui_aspect_ratio_constant_flag");
+			gf_bs_read_bool_log(bs, "vui_aspect_ratio_constant_flag");
 			sps->sar_idc = gf_bs_read_int_log(bs, 8, "vui_aspect_ratio_idc");
 			if (sps->sar_idc== 0xFF) {
 				sps->sar_width = gf_bs_read_int_log(bs, 16, "vui_sar_width");
 				sps->sar_height = gf_bs_read_int_log(bs, 16, "vui_sar_height");
 			}
 		}
-		sps->overscan_info_present_flag = gf_bs_read_int_log(bs, 1, "vui_overscan_info_present_flag");
+		sps->overscan_info_present_flag = gf_bs_read_bool_log(bs, "vui_overscan_info_present_flag");
 		if (sps->overscan_info_present_flag) {
-			gf_bs_read_int_log(bs, 1, "vui_overscan_appropriate_flag");
+			gf_bs_read_bool_log(bs, "vui_overscan_appropriate_flag");
 		}
-		sps->colour_description_present_flag = gf_bs_read_int_log(bs, 1, "vui_colour_description_present_flag");
+		sps->colour_description_present_flag = gf_bs_read_bool_log(bs, "vui_colour_description_present_flag");
 		if (sps->colour_description_present_flag) {
 			sps->colour_primaries = gf_bs_read_int_log(bs, 8, "vui_colour_primaries");
 			sps->transfer_characteristics = gf_bs_read_int_log(bs, 8, "vui_transfer_characteristics");
 			sps->matrix_coefficients = gf_bs_read_int_log(bs, 8, "vui_matrix_coeffs");
-			sps->video_full_range_flag = gf_bs_read_int_log(bs, 1, "vui_full_range_flag");
+			sps->video_full_range_flag = gf_bs_read_bool_log(bs, "vui_full_range_flag");
 		}
-		if (gf_bs_read_int_log(bs, 1, " vui_chroma_loc_info_present_flag")) {
+		if (gf_bs_read_bool_log(bs, " vui_chroma_loc_info_present_flag")) {
 			if (vui_progressive_source_flag && !vui_interlaced_source_flag) {
 				gf_bs_read_ue_log(bs, "vui_chroma_sample_loc_type_frame");
 			} else {
@@ -12696,10 +12700,10 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		VVC_PPS_BROKEN
 	}
 	vvc->sps_active_idx = pps->sps_id; /*set active sps*/
-	pps->mixed_nal_types = gf_bs_read_int_log(bs, 1, "mixed_nal_types");
+	pps->mixed_nal_types = gf_bs_read_bool_log(bs, "mixed_nal_types");
 	pps->width = gf_bs_read_ue_log(bs, "width");
 	pps->height = gf_bs_read_ue_log(bs, "height");
-	pps->conf_window = gf_bs_read_int_log(bs, 1, "conformance_window_flag");
+	pps->conf_window = gf_bs_read_bool_log(bs, "conformance_window_flag");
 	if (pps->conf_window) {
 		pps->cw_left = gf_bs_read_ue_log(bs, "conf_win_left_offset");
 		pps->cw_right = gf_bs_read_ue_log(bs, "conf_win_right_offset");
@@ -12707,15 +12711,15 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		pps->cw_bottom = gf_bs_read_ue_log(bs, "conf_win_bottom_offset");
 	}
 	//scaling window
-	if (gf_bs_read_int_log(bs, 1, "scaling_window_explicit_signaling_flag")) {
+	if (gf_bs_read_bool_log(bs, "scaling_window_explicit_signaling_flag")) {
 		gf_bs_read_se_log(bs, "scaling_win_left_offset");
 		gf_bs_read_se_log(bs, "scaling_win_right_offset");
 		gf_bs_read_se_log(bs, "scaling_win_top_offset");
 		gf_bs_read_se_log(bs, "scaling_win_bottom_offset");
 	}
-	pps->output_flag_present_flag = gf_bs_read_int_log(bs, 1, "output_flag_present_flag");
-	pps->no_pic_partition_flag = gf_bs_read_int_log(bs, 1, "no_pic_partition_flag");
-	pps->subpic_id_mapping_present_flag = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_present_flag");
+	pps->output_flag_present_flag = gf_bs_read_bool_log(bs, "output_flag_present_flag");
+	pps->no_pic_partition_flag = gf_bs_read_bool_log(bs, "no_pic_partition_flag");
+	pps->subpic_id_mapping_present_flag = gf_bs_read_bool_log(bs, "subpic_id_mapping_present_flag");
 
 	VVC_SPS *sps = &vvc->sps[pps->sps_id];
 	memcpy(pps->subpics, sps->subpics, sizeof(VVC_SubpicInfo)*sps->nb_subpics);
@@ -12829,12 +12833,12 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		pps->num_tiles_in_pic = pps->num_tile_cols * pps->num_tile_rows;
 		pps->slice_address_len = vvc_ceillog2(pps->num_tiles_in_pic);
 		if (pps->num_tiles_in_pic > 1) {
-			gf_bs_read_int_log(bs, 1, "pps_loop_filter_across_tiles_enabled_flag");
-			pps->rect_slice_flag = gf_bs_read_int_log(bs, 1, "pps_rect_slice_flag");
+			gf_bs_read_bool_log(bs, "pps_loop_filter_across_tiles_enabled_flag");
+			pps->rect_slice_flag = gf_bs_read_bool_log(bs, "pps_rect_slice_flag");
 		}
 
 		if (pps->rect_slice_flag) {
-			pps->single_slice_per_subpic_flag = gf_bs_read_int_log(bs, 1, "pps_single_slice_per_subpic_flag");
+			pps->single_slice_per_subpic_flag = gf_bs_read_bool_log(bs, "pps_single_slice_per_subpic_flag");
 			pps->num_slices_in_pic = pps_num_subpics;
 		}
 
@@ -12842,7 +12846,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 			pps->num_slices_in_pic = 1 + gf_bs_read_ue_log(bs, "pps_num_slices_in_pic_minus1");
 			u8 tile_idx_delta_present_flag = 0;
 			if (pps->num_slices_in_pic > 1) {
-				tile_idx_delta_present_flag = gf_bs_read_int_log(bs, 1, "pps_tile_idx_delta_present_flag");
+				tile_idx_delta_present_flag = gf_bs_read_bool_log(bs, "pps_tile_idx_delta_present_flag");
 			}
 			for (i=0; i<pps->num_slices_in_pic-1; i++) {
 				//TODO FIXME we assume single slice per tile
@@ -12878,7 +12882,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 			}
 		}
 		if (!pps->rect_slice_flag || pps->single_slice_per_subpic_flag || (pps->num_slices_in_pic > 1)) {
-			gf_bs_read_int_log(bs, 1, "pps_loop_filter_across_slices_enabled_flag");
+			gf_bs_read_bool_log(bs, "pps_loop_filter_across_slices_enabled_flag");
 		}
 	}
 
@@ -12890,29 +12894,29 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		}
 	}
 
-	pps->cabac_init_present_flag = gf_bs_read_int_log(bs, 1, "pps_cabac_init_present_flag");
+	pps->cabac_init_present_flag = gf_bs_read_bool_log(bs, "pps_cabac_init_present_flag");
 	for (i=0; i<2; i++) {
 		pps->num_ref_idx_default_active[i] = 1 + gf_bs_read_ue_log_idx(bs, "pps_num_ref_idx_default_active_minus1", i);
 	}
-	pps->rpl1_idx_present_flag = gf_bs_read_int_log(bs, 1, "pps_rpl1_idx_present_flag");
-	pps->weighted_pred_flag = gf_bs_read_int_log(bs, 1, "pps_weighted_pred_flag");
-	pps->weighted_bipred_flag = gf_bs_read_int_log(bs, 1, "pps_weighted_bipred_flag");
-	if (gf_bs_read_int_log(bs, 1, "pps_ref_wraparound_enabled_flag")) {
+	pps->rpl1_idx_present_flag = gf_bs_read_bool_log(bs, "pps_rpl1_idx_present_flag");
+	pps->weighted_pred_flag = gf_bs_read_bool_log(bs, "pps_weighted_pred_flag");
+	pps->weighted_bipred_flag = gf_bs_read_bool_log(bs, "pps_weighted_bipred_flag");
+	if (gf_bs_read_bool_log(bs, "pps_ref_wraparound_enabled_flag")) {
 		gf_bs_read_ue_log(bs, "pps_pic_width_minus_wraparound_offset");
 	}
 	gf_bs_read_se_log(bs, "pps_init_qp_minus26");
-	pps->cu_qp_delta_enabled_flag = gf_bs_read_int_log(bs, 1, "pps_cu_qp_delta_enabled_flag");
+	pps->cu_qp_delta_enabled_flag = gf_bs_read_bool_log(bs, "pps_cu_qp_delta_enabled_flag");
 	pps->slice_chroma_qp_offsets_present_flag = 0;
-	pps->chroma_tool_offsets_present_flag = gf_bs_read_int_log(bs, 1, "pps_chroma_tool_offsets_present_flag");
+	pps->chroma_tool_offsets_present_flag = gf_bs_read_bool_log(bs, "pps_chroma_tool_offsets_present_flag");
 	if (pps->chroma_tool_offsets_present_flag) {
 		gf_bs_read_se_log(bs, "pps_cb_qp_offset");
 		gf_bs_read_se_log(bs, "pps_cr_qp_offset");
-		u8 joint_cbcr_qp_offset_present_flag = gf_bs_read_int_log(bs, 1, "pps_joint_cbcr_qp_offset_present_flag");
+		u8 joint_cbcr_qp_offset_present_flag = gf_bs_read_bool_log(bs, "pps_joint_cbcr_qp_offset_present_flag");
 		if (joint_cbcr_qp_offset_present_flag) {
 			gf_bs_read_se_log(bs, "pps_joint_cbcr_qp_offset_value");
 		}
-		pps->slice_chroma_qp_offsets_present_flag = gf_bs_read_int_log(bs, 1, "pps_slice_chroma_qp_offsets_present_flag");
-		pps->cu_chroma_qp_offset_list_enabled_flag = gf_bs_read_int_log(bs, 1, "pps_cu_chroma_qp_offset_list_enabled_flag");
+		pps->slice_chroma_qp_offsets_present_flag = gf_bs_read_bool_log(bs, "pps_slice_chroma_qp_offsets_present_flag");
+		pps->cu_chroma_qp_offset_list_enabled_flag = gf_bs_read_bool_log(bs, "pps_cu_chroma_qp_offset_list_enabled_flag");
 		if (pps->cu_chroma_qp_offset_list_enabled_flag) {
 			u32 pps_chroma_qp_offset_list_len = 1 + gf_bs_read_ue_log(bs, "pps_chroma_qp_offset_list_len_minus1");
 			for (i=0; i<pps_chroma_qp_offset_list_len; i++) {
@@ -12928,12 +12932,12 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 	pps->dbf_info_in_ph_flag = 0;
 	pps->deblocking_filter_disabled_flag = 0;
 	pps->deblocking_filter_override_enabled_flag = 0;
-	if (gf_bs_read_int_log(bs, 1, "pps_deblocking_filter_control_present_flag")) {
-		pps->deblocking_filter_override_enabled_flag = gf_bs_read_int_log(bs, 1, "pps_deblocking_filter_override_enabled_flag");
-		pps->deblocking_filter_disabled_flag = gf_bs_read_int_log(bs, 1, "pps_deblocking_filter_disabled_flag");
+	if (gf_bs_read_bool_log(bs, "pps_deblocking_filter_control_present_flag")) {
+		pps->deblocking_filter_override_enabled_flag = gf_bs_read_bool_log(bs, "pps_deblocking_filter_override_enabled_flag");
+		pps->deblocking_filter_disabled_flag = gf_bs_read_bool_log(bs, "pps_deblocking_filter_disabled_flag");
 
 		if (!pps->no_pic_partition_flag && pps->deblocking_filter_override_enabled_flag) {
-			pps->dbf_info_in_ph_flag = gf_bs_read_int_log(bs, 1, "pps_dbf_info_in_ph_flag");
+			pps->dbf_info_in_ph_flag = gf_bs_read_bool_log(bs, "pps_dbf_info_in_ph_flag");
 		}
 		if (!pps->deblocking_filter_disabled_flag) {
 			gf_bs_read_se_log(bs, "pps_luma_beta_offset_div2");
@@ -12950,19 +12954,19 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 	pps->qp_delta_info_in_ph_flag = 0;
 	pps->sao_info_in_ph_flag = 0;
 	if (!pps->no_pic_partition_flag) {
-		pps->rpl_info_in_ph_flag = gf_bs_read_int_log(bs, 1, "pps_rpl_info_in_ph_flag");
-		pps->sao_info_in_ph_flag = gf_bs_read_int_log(bs, 1, "pps_sao_info_in_ph_flag");
-		pps->alf_info_in_ph_flag = gf_bs_read_int_log(bs, 1, "pps_alf_info_in_ph_flag");
+		pps->rpl_info_in_ph_flag = gf_bs_read_bool_log(bs, "pps_rpl_info_in_ph_flag");
+		pps->sao_info_in_ph_flag = gf_bs_read_bool_log(bs, "pps_sao_info_in_ph_flag");
+		pps->alf_info_in_ph_flag = gf_bs_read_bool_log(bs, "pps_alf_info_in_ph_flag");
 		if ( (pps->weighted_pred_flag || pps->weighted_bipred_flag) && pps->rpl_info_in_ph_flag) {
-			pps->wp_info_in_ph_flag = gf_bs_read_int_log(bs, 1, "pps_wp_info_in_ph_flag");
+			pps->wp_info_in_ph_flag = gf_bs_read_bool_log(bs, "pps_wp_info_in_ph_flag");
 		}
-		pps->qp_delta_info_in_ph_flag = gf_bs_read_int_log(bs, 1, "pps_qp_delta_info_in_ph_flag");
+		pps->qp_delta_info_in_ph_flag = gf_bs_read_bool_log(bs, "pps_qp_delta_info_in_ph_flag");
 	}
-	pps->picture_header_extension_present_flag = gf_bs_read_int_log(bs, 1, "pps_picture_header_extension_present_flag");
-	pps->slice_header_extension_present_flag = gf_bs_read_int_log(bs, 1, "pps_slice_header_extension_present_flag");
+	pps->picture_header_extension_present_flag = gf_bs_read_bool_log(bs, "pps_picture_header_extension_present_flag");
+	pps->slice_header_extension_present_flag = gf_bs_read_bool_log(bs, "pps_slice_header_extension_present_flag");
 
 	//TODO
-	if (gf_bs_read_int_log(bs, 1, "pps_extension_flag")) {
+	if (gf_bs_read_bool_log(bs, "pps_extension_flag")) {
 		//while ( more_rbsp_data()) bit(1);
 	}
 	//rbsp_trailing_bits()
@@ -13131,14 +13135,14 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 
 	si->nb_lt_or_il_pics = si->nb_reference_pocs = 0;
 
-	si->irap_or_gdr_pic = gf_bs_read_int_log(bs, 1, "irap_or_gdr_pic");
-	si->non_ref_pic = gf_bs_read_int_log(bs, 1, "non_ref_pic");
+	si->irap_or_gdr_pic = gf_bs_read_bool_log(bs, "irap_or_gdr_pic");
+	si->non_ref_pic = gf_bs_read_bool_log(bs, "non_ref_pic");
 	if (si->irap_or_gdr_pic)
-		si->gdr_pic = gf_bs_read_int_log(bs, 1, "gdr_pic");
+		si->gdr_pic = gf_bs_read_bool_log(bs, "gdr_pic");
 
 	si->intra_slice_allowed_flag = 1;
-	if ((si->inter_slice_allowed_flag = gf_bs_read_int_log(bs, 1, "inter_slice_allowed_flag")))
-		si->intra_slice_allowed_flag = gf_bs_read_int_log(bs, 1, "intra_slice_allowed_flag");
+	if ((si->inter_slice_allowed_flag = gf_bs_read_bool_log(bs, "inter_slice_allowed_flag")))
+		si->intra_slice_allowed_flag = gf_bs_read_bool_log(bs, "intra_slice_allowed_flag");
 
 	pps_id = gf_bs_read_ue_log(bs, "pps_id");
 	if ((pps_id<0) || (pps_id >= 64))
@@ -13156,30 +13160,30 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 	gf_bs_read_int_log(bs, si->sps->ph_num_extra_bits, "ph_extra_bits");
 
 	if (si->sps->poc_msb_cycle_flag) {
-		if ( (si->poc_msb_cycle_present_flag = gf_bs_read_int_log(bs, 1, "poc_msb_cycle_present_flag"))) {
+		if ( (si->poc_msb_cycle_present_flag = gf_bs_read_bool_log(bs, "poc_msb_cycle_present_flag"))) {
 			si->poc_msb_cycle = gf_bs_read_int_log(bs, si->sps->poc_msb_cycle_len, "poc_msb_cycle");
 		}
 	}
 
 	if (si->sps->alf_enabled_flag && si->pps->alf_info_in_ph_flag ) {
-		if (gf_bs_read_int_log(bs, 1, "ph_alf_enabled_flag")) {
+		if (gf_bs_read_bool_log(bs, "ph_alf_enabled_flag")) {
 			u32 i, nb_aps_id = gf_bs_read_int_log(bs, 3, "ph_num_alf_aps_ids_luma");
 			for (i=0; i<nb_aps_id; i++) {
 				gf_bs_read_int_log_idx(bs, 3, "ph_alf_aps_id_luma", i);
 			}
 			u8 alf_cb_enabled_flag = 0, alf_cr_enabled_flag=0;
 			if (si->sps->chroma_format_idc) {
-				alf_cb_enabled_flag = gf_bs_read_int_log(bs, 1, "ph_alf_cb_enabled_flag");
-				alf_cr_enabled_flag = gf_bs_read_int_log(bs, 1, "ph_alf_cr_enabled_flag");
+				alf_cb_enabled_flag = gf_bs_read_bool_log(bs, "ph_alf_cb_enabled_flag");
+				alf_cr_enabled_flag = gf_bs_read_bool_log(bs, "ph_alf_cr_enabled_flag");
 			}
 			if (alf_cb_enabled_flag || alf_cr_enabled_flag) {
 				gf_bs_read_int_log(bs, 3, "ph_alf_aps_id_chroma");
 			}
 			if (si->sps->ccalf_enabled_flag ) {
-				if (gf_bs_read_int_log(bs, 1, "ph_alf_cc_cb_enabled_flag")) {
+				if (gf_bs_read_bool_log(bs, "ph_alf_cc_cb_enabled_flag")) {
 					gf_bs_read_int_log(bs, 3, "ph_alf_cc_cb_aps_id");
 				}
-				if (gf_bs_read_int_log(bs, 1, "ph_alf_cc_cr_enabled_flag")) {
+				if (gf_bs_read_bool_log(bs, "ph_alf_cc_cr_enabled_flag")) {
 					gf_bs_read_int_log(bs, 3, "ph_alf_cc_cr_aps_id");
 				}
 			}
@@ -13187,23 +13191,23 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 	}
 	si->lmcs_enabled_flag = 0;
 	if (si->sps->lmcs_enabled_flag) {
-		si->lmcs_enabled_flag = gf_bs_read_int_log(bs, 1, "ph_lmcs_enabled_flag");
+		si->lmcs_enabled_flag = gf_bs_read_bool_log(bs, "ph_lmcs_enabled_flag");
 		if (si->lmcs_enabled_flag) {
 			gf_bs_read_int_log(bs, 2, "ph_lmcs_aps_id");
 			if (si->sps->chroma_format_idc) {
-				gf_bs_read_int_log(bs, 1, "ph_chroma_residual_scale_flag");
+				gf_bs_read_bool_log(bs, "ph_chroma_residual_scale_flag");
 			}
 		}
 	}
 	si->explicit_scaling_list_enabled_flag = 0;
 	if (si->sps->explicit_scaling_list_enabled_flag) {
-		si->explicit_scaling_list_enabled_flag = gf_bs_read_int_log(bs, 1, "ph_explicit_scaling_list_enabled_flag");
+		si->explicit_scaling_list_enabled_flag = gf_bs_read_bool_log(bs, "ph_explicit_scaling_list_enabled_flag");
 		if (si->explicit_scaling_list_enabled_flag) {
 			gf_bs_read_int_log(bs, 3, "ph_scaling_list_aps_id");
 		}
 	}
 	if (si->sps->virtual_boundaries_enabled_flag && !si->sps->virtual_boundaries_present_flag) {
-		if (gf_bs_read_int_log(bs, 1, "ph_virtual_boundaries_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "ph_virtual_boundaries_present_flag")) {
 			u32 i, nb_virt_boundaries = gf_bs_read_ue_log(bs, "ph_num_ver_virtual_boundaries");
 			for (i=0; i<nb_virt_boundaries; i++) {
 				gf_bs_read_ue_log_idx(bs, "ph_virtual_boundary_pos_x_minus1", i);
@@ -13215,7 +13219,7 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 		}
 	}
 	if (si->pps->output_flag_present_flag && !si->non_ref_pic) {
-		gf_bs_read_int_log(bs, 1, "ph_pic_output_flag");
+		gf_bs_read_bool_log(bs, "ph_pic_output_flag");
 	}
 	if (si->pps->rpl_info_in_ph_flag) {
 		s32 res = vvc_parse_ref_pic_lists(bs, si, GF_TRUE);
@@ -13223,7 +13227,7 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 	}
 	u8 partition_constraints_override_flag = 0;
 	if (si->sps->partition_constraints_override_enabled_flag) {
-		partition_constraints_override_flag = gf_bs_read_int_log(bs, 1, "ph_partition_constraints_override_flag");
+		partition_constraints_override_flag = gf_bs_read_bool_log(bs, "ph_partition_constraints_override_flag");
 	}
 	if (si->intra_slice_allowed_flag) {
 		if (partition_constraints_override_flag) {
@@ -13258,11 +13262,11 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 			gf_bs_read_ue_log(bs, "ph_cu_chroma_qp_offset_subdiv_inter_slice");
 		}
 		if (si->sps->temporal_mvp_enabled_flag) {
-			si->temporal_mvp_enabled_flag = gf_bs_read_int_log(bs, 1, "ph_temporal_mvp_enabled_flag");
+			si->temporal_mvp_enabled_flag = gf_bs_read_bool_log(bs, "ph_temporal_mvp_enabled_flag");
 			if (si->temporal_mvp_enabled_flag && si->pps->rpl_info_in_ph_flag) {
-				u8 collocated_from_l0_flag = 1;
+				u8 collocated_from_l0_flag = GF_TRUE;
 				if (si->ph_rpl[1].num_ref_entries>0)
-					collocated_from_l0_flag = gf_bs_read_int_log(bs, 1, "ph_collocated_from_l0_flag");
+					collocated_from_l0_flag = gf_bs_read_bool_log(bs, "ph_collocated_from_l0_flag");
 
 				if ( (collocated_from_l0_flag && si->ph_rpl[0].num_ref_entries > 1)
 					|| (!collocated_from_l0_flag && si->ph_rpl[1].num_ref_entries > 1)
@@ -13272,7 +13276,7 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 			}
 		}
 		if (si->sps->mmvd_fullpel_only_enabled_flag) {
-			gf_bs_read_int_log(bs, 1, "ph_mmvd_fullpel_only_flag");
+			gf_bs_read_bool_log(bs, "ph_mmvd_fullpel_only_flag");
 		}
 		u8 presenceFlag = 0;
 		if (!si->pps->rpl_info_in_ph_flag) {
@@ -13282,14 +13286,14 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 			presenceFlag = 1;
 		}
 		if (presenceFlag) {
-			gf_bs_read_int_log(bs, 1, "ph_mvd_l1_zero_flag");
+			gf_bs_read_bool_log(bs, "ph_mvd_l1_zero_flag");
 			if (si->sps->bdof_control_present_in_ph_flag)
-				gf_bs_read_int_log(bs, 1, "ph_bdof_disabled_flag");
+				gf_bs_read_bool_log(bs, "ph_bdof_disabled_flag");
 			if (si->sps->dmvr_control_present_in_ph_flag)
-				gf_bs_read_int_log(bs, 1, "ph_dmvr_disabled_flag");
+				gf_bs_read_bool_log(bs, "ph_dmvr_disabled_flag");
 		}
 		if (si->sps->prof_control_present_in_ph_flag)
-			gf_bs_read_int_log(bs, 1, "ph_prof_disabled_flag");
+			gf_bs_read_bool_log(bs, "ph_prof_disabled_flag");
 
 		if ( (si->pps->weighted_pred_flag || si->pps->weighted_bipred_flag) && si->pps->wp_info_in_ph_flag) {
 			s32 res = vvc_pred_weight_table(bs, vvc, si, si->pps, si->sps, NULL);
@@ -13300,20 +13304,20 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 		gf_bs_read_se_log(bs, "ph_qp_delta");
 	}
 	if (si->sps->joint_cbcr_enabled_flag) {
-		gf_bs_read_int_log(bs, 1, "ph_joint_cbcr_sign_flag");
+		gf_bs_read_bool_log(bs, "ph_joint_cbcr_sign_flag");
 	}
 	if (si->sps->sao_enabled_flag && si->pps->sao_info_in_ph_flag) {
-		gf_bs_read_int_log(bs, 1, "ph_sao_luma_enabled_flag");
+		gf_bs_read_bool_log(bs, "ph_sao_luma_enabled_flag");
 		if (si->sps->chroma_format_idc)
-			gf_bs_read_int_log(bs, 1, "ph_sao_chroma_enabled_flag");
+			gf_bs_read_bool_log(bs, "ph_sao_chroma_enabled_flag");
 	}
 	if (si->pps->dbf_info_in_ph_flag) {
-		if (gf_bs_read_int_log(bs, 1, "ph_deblocking_params_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "ph_deblocking_params_present_flag")) {
 			//defaults to 0
 			u8 deblocking_filter_disabled_flag = 0;
 
 			if (!si->pps->deblocking_filter_disabled_flag) {
-				deblocking_filter_disabled_flag = gf_bs_read_int_log(bs, 1, "deblocking_filter_disabled_flag");
+				deblocking_filter_disabled_flag = gf_bs_read_bool_log(bs, "deblocking_filter_disabled_flag");
 			}
 			if (!deblocking_filter_disabled_flag) {
 				gf_bs_read_se_log(bs, "ph_luma_beta_offset_div2");
@@ -13490,7 +13494,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 {
 	u32 i, subpic_id=0, slice_address=0, num_tiles_in_slice=1;
 
-	si->picture_header_in_slice_header_flag = gf_bs_read_int_log(bs, 1, "picture_header_in_slice_header_flag");
+	si->picture_header_in_slice_header_flag = gf_bs_read_bool_log(bs, "picture_header_in_slice_header_flag");
 	if (si->picture_header_in_slice_header_flag) {
 		s32 res = vvc_parse_picture_header(bs, vvc, si);
 		if (res<0) return res;
@@ -13552,11 +13556,11 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 	case GF_VVC_NALU_SLICE_IDR_N_LP:
 	case GF_VVC_NALU_SLICE_CRA:
 	case GF_VVC_NALU_SLICE_GDR:
-		gf_bs_read_int_log(bs, 1, "sh_no_output_of_prior_pics_flag");
+		gf_bs_read_bool_log(bs, "sh_no_output_of_prior_pics_flag");
 		break;
 	}
 	if (si->sps->alf_enabled_flag && !si->pps->alf_info_in_ph_flag) {
-		if (gf_bs_read_int_log(bs, 1, "sh_alf_enabled_flag")) {
+		if (gf_bs_read_bool_log(bs, "sh_alf_enabled_flag")) {
 			u32 nb_vals = gf_bs_read_int_log(bs, 3, "sh_num_alf_aps_ids_luma");
 			for (i=0; i<nb_vals; i++) {
 				gf_bs_read_int_log(bs, 3, "sh_alf_aps_id_luma");
@@ -13564,24 +13568,24 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 			u8 sh_alf_cb_enabled_flag = 0;
 			u8 sh_alf_cr_enabled_flag = 0;
 			if (si->sps->chroma_format_idc) {
-				sh_alf_cb_enabled_flag = gf_bs_read_int_log(bs, 1, "sh_alf_cb_enabled_flag");
-				sh_alf_cr_enabled_flag = gf_bs_read_int_log(bs, 1, "sh_alf_cr_enabled_flag");
+				sh_alf_cb_enabled_flag = gf_bs_read_bool_log(bs, "sh_alf_cb_enabled_flag");
+				sh_alf_cr_enabled_flag = gf_bs_read_bool_log(bs, "sh_alf_cr_enabled_flag");
 			}
 			if (sh_alf_cb_enabled_flag || sh_alf_cr_enabled_flag) {
 				gf_bs_read_int_log(bs, 3, "sh_alf_aps_id_chroma");
 			}
 			if (si->sps->ccalf_enabled_flag) {
-				if (gf_bs_read_int_log(bs, 1, "sh_alf_cc_cb_enabled_flag")) {
+				if (gf_bs_read_bool_log(bs, "sh_alf_cc_cb_enabled_flag")) {
 					gf_bs_read_int_log(bs, 3, "sh_alf_cc_cb_aps_id");
 				}
-				if (gf_bs_read_int_log(bs, 1, "sh_alf_cc_cr_enabled_flag")) {
+				if (gf_bs_read_bool_log(bs, "sh_alf_cc_cr_enabled_flag")) {
 					gf_bs_read_int_log(bs, 3, "sh_alf_cc_cr_aps_id");
 				}
 			}
 		}
 	}
 	if (si->lmcs_enabled_flag && !si->picture_header_in_slice_header_flag) {
-		gf_bs_read_int_log(bs, 1, "sh_lmcs_used_flag");
+		gf_bs_read_bool_log(bs, "sh_lmcs_used_flag");
 	}
 	if (si->explicit_scaling_list_enabled_flag && !si->picture_header_in_slice_header_flag) {
 		gf_bs_read_int_log(bs, 3, "sh_explicit_scaling_list_used_flag");
@@ -13608,7 +13612,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		((si->slice_type != GF_VVC_SLICE_TYPE_I) && (si->rpl[0].num_ref_entries > 1) )
 		|| ((si->slice_type == GF_VVC_SLICE_TYPE_B) && (si->rpl[1].num_ref_entries > 1))
 	) {
-		if (gf_bs_read_int_log(bs, 1, "sh_num_ref_idx_active_override_flag")) {
+		if (gf_bs_read_bool_log(bs, "sh_num_ref_idx_active_override_flag")) {
 			//L0
 			u32 nb_active = 0;
 			if (si->rpl[0].num_ref_entries>1) {
@@ -13648,12 +13652,12 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 
 	if (si->slice_type != GF_VVC_SLICE_TYPE_I) {
 		if (si->pps->cabac_init_present_flag)
-			gf_bs_read_int_log(bs, 1, "sh_cabac_init_flag");
+			gf_bs_read_bool_log(bs, "sh_cabac_init_flag");
 
 		if (si->temporal_mvp_enabled_flag && !si->pps->rpl_info_in_ph_flag) {
 			u8 collocated_from_l0_flag = 0;
 			if (si->slice_type == GF_VVC_SLICE_TYPE_B) {
-				collocated_from_l0_flag = gf_bs_read_int_log(bs, 1, "sh_collocated_from_l0_flag");
+				collocated_from_l0_flag = gf_bs_read_bool_log(bs, "sh_collocated_from_l0_flag");
 			} else {
 				//(sh_slice_type is equal to P), the value of sh_collocated_from_l0_flag is inferred to be equal to 1
 				collocated_from_l0_flag = 1;
@@ -13684,18 +13688,18 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 			gf_bs_read_se_log(bs, "sh_joint_cbcr_qp_offset");
 	}
 	if (si->pps->cu_chroma_qp_offset_list_enabled_flag)
-		gf_bs_read_int_log(bs, 1, "sh_cu_chroma_qp_offset_enabled_flag");
+		gf_bs_read_bool_log(bs, "sh_cu_chroma_qp_offset_enabled_flag");
 	if (si->sps->sao_enabled_flag && !si->pps->sao_info_in_ph_flag) {
-		gf_bs_read_int_log(bs, 1, "sh_sao_luma_used_flag");
+		gf_bs_read_bool_log(bs, "sh_sao_luma_used_flag");
 		if (si->sps->chroma_format_idc)
-			gf_bs_read_int_log(bs, 1, "sh_sao_chroma_used_flag");
+			gf_bs_read_bool_log(bs, "sh_sao_chroma_used_flag");
 	}
 
 	if (si->pps->deblocking_filter_override_enabled_flag && !si->pps->dbf_info_in_ph_flag) {
-		if (gf_bs_read_int_log(bs, 1, "sh_deblocking_params_present_flag")) {
+		if (gf_bs_read_bool_log(bs, "sh_deblocking_params_present_flag")) {
 			u8 deblocking_params_disabled_flag=0;
 			if (!si->pps->deblocking_filter_disabled_flag) {
-				deblocking_params_disabled_flag = gf_bs_read_int_log(bs, 1, "sh_deblocking_filter_disabled_flag");
+				deblocking_params_disabled_flag = gf_bs_read_bool_log(bs, "sh_deblocking_filter_disabled_flag");
 			}
 
 			if (!deblocking_params_disabled_flag) {
@@ -13713,21 +13717,21 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 
 	u8 dep_quant_used_flag = 0;
 	if (si->sps->dep_quant_enabled_flag) {
-		dep_quant_used_flag = gf_bs_read_int_log(bs, 1, "sh_dep_quant_used_flag");
+		dep_quant_used_flag = gf_bs_read_bool_log(bs, "sh_dep_quant_used_flag");
 	}
 	u8 sign_data_hiding_used_flag = 0;
 	if (si->sps->sign_data_hiding_enabled_flag && !dep_quant_used_flag) {
-		sign_data_hiding_used_flag = gf_bs_read_int_log(bs, 1, "sh_sign_data_hiding_used_flag");
+		sign_data_hiding_used_flag = gf_bs_read_bool_log(bs, "sh_sign_data_hiding_used_flag");
 	}
 	u8 ts_residual_coding_disabled_flag = 0;
 	if (si->sps->transform_skip_enabled_flag && !dep_quant_used_flag && !sign_data_hiding_used_flag) {
-		ts_residual_coding_disabled_flag = gf_bs_read_int_log(bs, 1, "sh_ts_residual_coding_disabled_flag");
+		ts_residual_coding_disabled_flag = gf_bs_read_bool_log(bs, "sh_ts_residual_coding_disabled_flag");
 	}
 	if (!ts_residual_coding_disabled_flag && si->sps->ts_residual_coding_rice_present_in_sh_flag) {
 		gf_bs_read_int_log(bs, 3, "sh_ts_residual_coding_rice_idx_minus1");
 	}
 	if (si->sps->reverse_last_sig_coeff_enabled_flag) {
-		gf_bs_read_int_log(bs, 1, "sh_reverse_last_sig_coeff_flag");
+		gf_bs_read_bool_log(bs, "sh_reverse_last_sig_coeff_flag");
 	}
 	if (si->pps->slice_header_extension_present_flag) {
 		u32 j=0, slice_header_extension_length = gf_bs_read_ue_log(bs, "sh_slice_header_extension_length");
@@ -13758,7 +13762,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 	}
 
-	u8 align_bit = gf_bs_read_int(bs, 1);
+	u8 align_bit = gf_bs_read_bool(bs); 
 	if (align_bit != 1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] Align bit at end of slice header not set to 1 !\n"));
 		//return error only for strict mdoe
@@ -13960,7 +13964,7 @@ s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 
 }
 
 GF_EXPORT
-s32 gf_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
+s32 gf_vvc_parse_nalu(const u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	GF_BitStream *bs = NULL;
 	s32 ret;
@@ -13973,7 +13977,7 @@ s32 gf_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *
 		if (temporal_id) (*temporal_id) = (data[1] & 0x7);
 		return -1;
 	}
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	if (!bs) return -1;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
@@ -14032,7 +14036,7 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		u8 nal_unit_type, temporal_id, layer_id;
 
 		/*SPS may still contains emulation bytes*/
-		no_emulation_buf = gf_malloc((slc->size) * sizeof(char));
+		no_emulation_buf = (u8 *)gf_malloc(slc->size);
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
@@ -14073,7 +14077,7 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		gf_bs_get_content(mod, &no_emulation_buf, &no_emulation_buf_size);
 		emulation_bytes = gf_media_nalu_emulation_bytes_add_count(no_emulation_buf, no_emulation_buf_size);
 		if (no_emulation_buf_size + emulation_bytes > slc->size)
-			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
+			slc->data = (u8 *)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
 
 		slc->size = gf_media_nalu_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
 
@@ -14188,30 +14192,30 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	GF_BitStream *bs;
 	u8 level=0, interlace=0;
 	u8 profile=12;
-	u8 *sqhdr = memchr(seq_hdr+1, 0x0F, seq_hdr_len);
+	u8 *sqhdr = (u8 *) memchr(seq_hdr+1, 0x0F, seq_hdr_len);
 	if (sqhdr) {
 		u32 skip = (u32) (sqhdr - seq_hdr);
 		seq_hdr+=skip;
 		seq_hdr_len-=skip;
 		if (seq_hdr_len > 1) {
-			bs = gf_bs_new(seq_hdr+1, seq_hdr_len-1, GF_BITSTREAM_READ);
+			bs = gf_bs_new((u8*)seq_hdr+1, seq_hdr_len-1, GF_BITSTREAM_READ);
 			profile = gf_bs_read_int(bs, 2);
 			if (profile==3) {
 				level = gf_bs_read_int(bs, 3);
 				/*cfmt*/gf_bs_read_int(bs, 2);
 				/*fps*/gf_bs_read_int(bs, 3);
 				/*btrt*/gf_bs_read_int(bs, 5);
-				gf_bs_read_int(bs, 1);
+				gf_bs_read_bool(bs); 
 				/*mw*/gf_bs_read_int(bs, 12);
 				/*mh*/gf_bs_read_int(bs, 12);
-				/*bcast*/gf_bs_read_int(bs, 1);
-				interlace = gf_bs_read_int(bs, 1);
+				/*bcast*/gf_bs_read_bool(bs); 
+				interlace = gf_bs_read_bool(bs); 
 			}
 			gf_bs_del(bs);
 		}
 	}
 	*dsi_size = seq_hdr_len+7;
-	*dsi = gf_malloc(seq_hdr_len+7);
+	*dsi = (u8 *)gf_malloc(seq_hdr_len+7);
 	if (! (*dsi) ) return  GF_OUT_OF_MEM;
 
 	bs = gf_bs_new(*dsi, *dsi_size, GF_BITSTREAM_WRITE);
@@ -14239,11 +14243,11 @@ void gf_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type)
 	if (!hevccfg) return;
 
 	for (i = 0; i < gf_list_count(hevccfg->param_array); i++) {
-		GF_NALUFFParamArray* ar = gf_list_get(hevccfg->param_array, i);
+		GF_NALUFFParamArray* ar = (GF_NALUFFParamArray *)gf_list_get(hevccfg->param_array, i);
 		if (ar->type != nal_type) continue;
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
 			u8 ntype, tid, lid;
-			GF_NALUFFParam* sl = gf_list_get(ar->nalus, j);
+			GF_NALUFFParam* sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			gf_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
 		}
 	}
@@ -14255,11 +14259,11 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 	if (!vvccfg) return;
 
 	for (i = 0; i < gf_list_count(vvccfg->param_array); i++) {
-		GF_NALUFFParamArray* ar = gf_list_get(vvccfg->param_array, i);
+		GF_NALUFFParamArray* ar = (GF_NALUFFParamArray *)gf_list_get(vvccfg->param_array, i);
 		if (ar->type != nal_type) continue;
 		for (j = 0; j < gf_list_count(ar->nalus); j++) {
 			u8 ntype, tid, lid;
-			GF_NALUFFParam* sl = gf_list_get(ar->nalus, j);
+			GF_NALUFFParam* sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 			gf_vvc_parse_nalu(sl->data, sl->size, vvc, &ntype, &tid, &lid);
 		}
 	}
@@ -14410,7 +14414,7 @@ static u32 gf_ac4_variable_bits(GF_BitStream *bs, int bits)
 	u32 b_moreBits = 0;
 	do{
 		value += gf_bs_read_int(bs, bits);
-		b_moreBits = gf_bs_read_int(bs, 1);
+		b_moreBits = gf_bs_read_bool(bs); 
 		if (b_moreBits == 1) {
 			value <<= bits;
 			value += (1<<bits);
@@ -14427,8 +14431,8 @@ static Bool gf_ac4_frame_rate_multiply_info(GF_BitStream *bs, GF_AC4Presentation
 		case 3:
 		case 4:
 			// The value of dsi_frame_rate_multiply_info is defined by ETSI TS 103 190-1 V1.3.1 (2018-02) E.4
-			if (gf_bs_read_int_log(bs, 1, "b_multiplier")) {
-				multiplier_bit = gf_bs_read_int_log(bs, 1, "multiplier_bit");
+			if (gf_bs_read_bool_log(bs, "b_multiplier")) {
+				multiplier_bit = gf_bs_read_bool_log(bs, "multiplier_bit");
 				pinfo->dsi_frame_rate_multiply_info = (multiplier_bit == 0)? 1: 2;
 			} else {
 				pinfo->dsi_frame_rate_multiply_info = 0;
@@ -14439,7 +14443,7 @@ static Bool gf_ac4_frame_rate_multiply_info(GF_BitStream *bs, GF_AC4Presentation
 		case 7:
 		case 8:
 		case 9:
-			if (gf_bs_read_int_log(bs, 1, "b_multiplier")) {
+			if (gf_bs_read_bool_log(bs, "b_multiplier")) {
 				pinfo->dsi_frame_rate_multiply_info = 1;
 			} else {
 				pinfo->dsi_frame_rate_multiply_info = 0;
@@ -14517,7 +14521,7 @@ static Bool gf_ac4_emdf_info(GF_BitStream *bs, u32 *emdf_version, u32 *key_id)
 		*key_id += gf_ac4_variable_bits(bs, 3);
 	}
 
-	if (gf_bs_read_int_log(bs, 1, "b_emdf_payloads_substream_info")) {
+	if (gf_bs_read_bool_log(bs, "b_emdf_payloads_substream_info")) {
 		gf_ac4_emdf_payloads_substream_info(bs);
 	}
 	gf_ac4_emdf_protection(bs);
@@ -14534,7 +14538,7 @@ static Bool gf_ac4_frame_rate_fractions_info(GF_BitStream *bs, GF_AC4Presentatio
 		case 7:
 		case 8:
 		case 9:
-			if (gf_bs_read_int_log(bs, 1, "b_frame_rate_fraction")) {
+			if (gf_bs_read_bool_log(bs, "b_frame_rate_fraction")) {
 				// frame_rate_fraction = 2;
 				pinfo->dsi_frame_rate_fraction_info = 1;
 			}
@@ -14542,8 +14546,8 @@ static Bool gf_ac4_frame_rate_fractions_info(GF_BitStream *bs, GF_AC4Presentatio
 		case 10:
 		case 11:
 		case 12:
-			if (gf_bs_read_int_log(bs, 1, "b_frame_rate_fraction")) {
-				if (gf_bs_read_int_log(bs, 1, "b_frame_rate_fraction_is_4") == 1) {
+			if (gf_bs_read_bool_log(bs, "b_frame_rate_fraction")) {
+				if (gf_bs_read_bool_log(bs, "b_frame_rate_fraction_is_4") == 1) {
 					// frame_rate_fraction = 4;
 					pinfo->dsi_frame_rate_fraction_info = 2;
 				} else {
@@ -14558,17 +14562,17 @@ static Bool gf_ac4_frame_rate_fractions_info(GF_BitStream *bs, GF_AC4Presentatio
 	return GF_TRUE;
 }
 
-static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
+static u32 gf_ac4_get_channel_mode(GF_BitStream *bs,
 									u32 presentation_version,
 									u8 *dolby_atmos_indicator)
 {
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.2.7.2 Table 78
 	u32 channel_mode_code = 0;
-	channel_mode_code = gf_bs_read_int(bs, 1);
+	channel_mode_code = gf_bs_read_bool(bs); 
 	if (channel_mode_code == 0) {   // Mono 0b0
 		return AC4_CH_MODE_MONO;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs); 
 	if (channel_mode_code == 2) {   // Stereo  0b10
 		return AC4_CH_MODE_STEREO;
 	}
@@ -14606,14 +14610,14 @@ static Bool gf_ac4_get_channel_mode(GF_BitStream *bs,
 		case 125:                   // 7.1: 3/2/2.1 0b1111101
 			return AC4_CH_MODE_71_322;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs); 
 	switch (channel_mode_code) {
 		case 252:                   // 7.0.4 0b11111100
 			return AC4_CH_MODE_7_0_4;
 		case 253:                   // 7.1.4 0b11111101
 			return AC4_CH_MODE_7_1_4;
 	}
-	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_int(bs, 1);
+	channel_mode_code = (channel_mode_code << 1) | gf_bs_read_bool(bs); 
 	switch (channel_mode_code) {
 		case 508:                   // 9.0.4 0b111111100
 			return AC4_CH_MODE_9_0_4;
@@ -14632,9 +14636,9 @@ static Bool gf_ac4_dsi_sf_mutiplier(GF_BitStream *bs, GF_AC4SubStream* substream
 {
 	if (fs_index == 1) {
 		// ETSI TS 103 190-2 V1.2.1 (2018-02) E.9.3
-		if (gf_bs_read_int_log(bs, 1, "b_sf_multiplier")) {
+		if (gf_bs_read_bool_log(bs, "b_sf_multiplier")) {
 			// 96 kHz or 192 kHz
-			substream->dsi_sf_multiplier = gf_bs_read_int_log(bs, 1, "sf_multiplier") + 1;
+			substream->dsi_sf_multiplier = gf_bs_read_bool_log(bs, "sf_multiplier") + 1;
 		} else {
 			// 48 kHz
 			substream->dsi_sf_multiplier = 0;
@@ -14697,8 +14701,8 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 	mask = AC4_SPEAKER_GROUP_INDEX_MASK_BY_CH_MODE[substream->ch_mode];
 
 	if (gf_compare_ch_mode(substream->ch_mode, ch1, ch1_n)) {
-		substream->b_4_back_channels_present = gf_bs_read_int_log(bs, 1, "b_4_back_channels_present");
-		substream->b_centre_present = gf_bs_read_int_log(bs, 1, "b_centre_present");
+		substream->b_4_back_channels_present = gf_bs_read_bool_log(bs, "b_4_back_channels_present");
+		substream->b_centre_present = gf_bs_read_bool_log(bs, "b_centre_present");
 		substream->top_channels_present = gf_bs_read_int_log(bs, 2, "top_channels_present");
 
 		if (!substream->b_4_back_channels_present) {
@@ -14728,16 +14732,16 @@ static Bool gf_ac4_substream_info_chan(GF_BitStream *bs,
 
 	gf_ac4_dsi_sf_mutiplier(bs, substream, fs_index);
 
-	substream->b_substream_bitrate_indicator = gf_bs_read_int_log(bs, 1, "b_bitrate_info");
+	substream->b_substream_bitrate_indicator = gf_bs_read_bool_log(bs, "b_bitrate_info");
 	if (substream->b_substream_bitrate_indicator) {
 		gf_ac4_bitreate_indicator(bs, substream);
 	}
 
 	if (gf_compare_ch_mode(substream->ch_mode, ch2, ch2_n)) {
-		gf_bs_read_int_log(bs, 1, "add_ch_base");
+		gf_bs_read_bool_log(bs, "add_ch_base");
 	}
 	for (i = 0; i < frame_rate_factor; i++) {
-		gf_bs_read_int_log(bs, 1, "b_audio_ndot");
+		gf_bs_read_bool_log(bs, "b_audio_ndot");
 	}
 
 	gf_ac4_substream_index_info(bs, b_substreams_present);
@@ -14757,7 +14761,7 @@ static Bool gf_ac4_hsf_ext_substream_info(GF_BitStream *bs, u8 b_substreams_pres
 
 static Bool gf_ac4_oamd_substream_info(GF_BitStream *bs, u8 b_substreams_present)
 {
-	gf_bs_read_int_log(bs, 1, "b_oamd_ndot");
+	gf_bs_read_bool_log(bs, "b_oamd_ndot");
 	if (b_substreams_present == 1) {
 		if (gf_bs_read_int_log(bs, 2, "substream_index") == 3) {
 			gf_ac4_variable_bits(bs, 2);
@@ -14831,8 +14835,8 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 	u32 bed_ch_bits, n_bed_signals, b, isf_config, bed_chan_assign_code;
 	u32 nonstd_bed_channel_assignment_mask, bed_num, std_bed_channel_assignment_mask;
 
-	if (gf_bs_read_int_log(bs, 1, "b_dyn_objects_only") == 0) {
-		if (gf_bs_read_int_log(bs, 1, "b_isf")) {
+	if (gf_bs_read_bool_log(bs, "b_dyn_objects_only") == 0) {
+		if (gf_bs_read_bool_log(bs, "b_isf")) {
 			isf_config = gf_bs_read_int_log(bs, 3, "isf_config");
 
 			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
@@ -14843,7 +14847,7 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 				}
 			}
 		} else {
-			if (gf_bs_read_int_log(bs, 1, "b_ch_assign_code")) {
+			if (gf_bs_read_bool_log(bs, "b_ch_assign_code")) {
 				bed_chan_assign_code = gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
 
 				// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
@@ -14854,8 +14858,8 @@ static Bool gf_ac4_bed_dyn_obj_assignment(GF_BitStream *bs,
 					}
 				}
 			} else {
-				if (gf_bs_read_int_log(bs, 1, "b_chan_assign_mask")) {
-					if (gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment")) {
+				if (gf_bs_read_bool_log(bs, "b_chan_assign_mask")) {
+					if (gf_bs_read_bool_log(bs, "b_nonstd_bed_channel_assignment")) {
 						nonstd_bed_channel_assignment_mask = gf_bs_read_int_log(bs, 17, "nonstd_bed_channel_assignment_mask");
 
 						// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12 and Table E.8
@@ -14921,18 +14925,18 @@ static Bool gf_ac4_trim(GF_BitStream *bs)
 	u32 i;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.2.8.9
-	if (gf_bs_read_int_log(bs, 1, "b_trim_present")) {
+	if (gf_bs_read_bool_log(bs, "b_trim_present")) {
 		gf_bs_read_int_log(bs, 2, "warp_mode");
 		gf_bs_read_int_log(bs, 2, "reserved");
 		if (gf_bs_read_int_log(bs, 2, "global_trim_mode") == 0b10) {
 			for (i = 0; i < NUM_TRIM_CONFIGS; i++) {
-				if (gf_bs_read_int_log(bs, 1, "b_default_trim") == 0) {
-					if (gf_bs_read_int_log(bs, 1, "b_disable_trim") == 0) {
-						trim_balance_presence[0] = gf_bs_read_int_log(bs, 1, "trim_balance_presence[0]");
-						trim_balance_presence[1] = gf_bs_read_int_log(bs, 1, "trim_balance_presence[1]");
-						trim_balance_presence[2] = gf_bs_read_int_log(bs, 1, "trim_balance_presence[2]");
-						trim_balance_presence[3] = gf_bs_read_int_log(bs, 1, "trim_balance_presence[3]");
-						trim_balance_presence[4] = gf_bs_read_int_log(bs, 1, "trim_balance_presence[4]");
+				if (gf_bs_read_bool_log(bs, "b_default_trim") == 0) {
+					if (gf_bs_read_bool_log(bs, "b_disable_trim") == 0) {
+						trim_balance_presence[0] = gf_bs_read_bool_log(bs, "trim_balance_presence[0]");
+						trim_balance_presence[1] = gf_bs_read_bool_log(bs, "trim_balance_presence[1]");
+						trim_balance_presence[2] = gf_bs_read_bool_log(bs, "trim_balance_presence[2]");
+						trim_balance_presence[3] = gf_bs_read_bool_log(bs, "trim_balance_presence[3]");
+						trim_balance_presence[4] = gf_bs_read_bool_log(bs, "trim_balance_presence[4]");
 
 						if (trim_balance_presence[4]) {
 							gf_bs_read_int_log(bs, 4, "trim_centre");
@@ -14944,11 +14948,11 @@ static Bool gf_ac4_trim(GF_BitStream *bs)
 							gf_bs_read_int_log(bs, 4, "trim_height");
 						}
 						if (trim_balance_presence[1]) {
-							gf_bs_read_int_log(bs, 1, "bal3D_Y_sign_tb_code");
+							gf_bs_read_bool_log(bs, "bal3D_Y_sign_tb_code");
 							gf_bs_read_int_log(bs, 4, "bal3D_Y_amount_tb");
 						}
 						if (trim_balance_presence[0]) {
-							gf_bs_read_int_log(bs, 1, "bal3D_Y_sign_lis_code");
+							gf_bs_read_bool_log(bs, "bal3D_Y_sign_lis_code");
 							gf_bs_read_int_log(bs, 4, "bal3D_Y_amount_lis");
 						}
 					}
@@ -14961,11 +14965,11 @@ static Bool gf_ac4_trim(GF_BitStream *bs)
 
 static Bool gf_ac4_tool_t2_to_f_s_b(GF_BitStream *bs)
 {
-	if (gf_bs_read_int_log(bs, 1, "b_top_to_front") == 1) {
+	if (gf_bs_read_bool_log(bs, "b_top_to_front") == 1) {
 		gf_bs_read_int_log(bs, 3, "gain_t2a_code");
 		// gain_t2b_code = 7;
 	} else {
-		if (gf_bs_read_int_log(bs, 1, "b_top_to_side") == 1) {
+		if (gf_bs_read_bool_log(bs, "b_top_to_side") == 1) {
 			gf_bs_read_int_log(bs, 3, "gain_t2b_code");
 		} else {
 			gf_bs_read_int_log(bs, 3, "gain_t2c_code");
@@ -14977,7 +14981,7 @@ static Bool gf_ac4_tool_t2_to_f_s_b(GF_BitStream *bs)
 
 static Bool gf_ac4_tool_t2_to_f_s(GF_BitStream *bs)
 {
-	if (gf_bs_read_int_log(bs, 1, "b_top_to_front") == 1) {
+	if (gf_bs_read_bool_log(bs, "b_top_to_front") == 1) {
 		gf_bs_read_int_log(bs, 3, "gain_t2a_code");
 		// gain_t2b_code = 7;
 	} else {
@@ -14988,11 +14992,11 @@ static Bool gf_ac4_tool_t2_to_f_s(GF_BitStream *bs)
 
 static Bool gf_ac4_tool_tb_to_f_s_b(GF_BitStream *bs)
 {
-	if (gf_bs_read_int_log(bs, 1, "b_top_back_to_front") == 1) {
+	if (gf_bs_read_bool_log(bs, "b_top_back_to_front") == 1) {
 		gf_bs_read_int_log(bs, 3, "gain_t2d_code");
 		// gain_t2e_code = 7;
 	} else {
-		if (gf_bs_read_int_log(bs, 1, "b_top_back_to_side") == 1) {
+		if (gf_bs_read_bool_log(bs, "b_top_back_to_side") == 1) {
 			gf_bs_read_int_log(bs, 3, "gain_t2e_code");
 		} else {
 			gf_bs_read_int_log(bs, 3, "gain_t2f_code");
@@ -15004,7 +15008,7 @@ static Bool gf_ac4_tool_tb_to_f_s_b(GF_BitStream *bs)
 
 static Bool gf_ac4_tool_tb_to_f_s(GF_BitStream *bs)
 {
-	if (gf_bs_read_int_log(bs, 1, "b_top_back_to_front") == 1) {
+	if (gf_bs_read_bool_log(bs, "b_top_back_to_front") == 1) {
 		gf_bs_read_int_log(bs, 3, "gain_t2d_code");
 		// gain_t2e_code = 7;
 	} else {
@@ -15015,11 +15019,11 @@ static Bool gf_ac4_tool_tb_to_f_s(GF_BitStream *bs)
 
 static Bool gf_ac4_tool_tf_to_f_s_b(GF_BitStream *bs)
 {
-	if (gf_bs_read_int_log(bs, 1, "b_top_front_to_front") == 1) {
+	if (gf_bs_read_bool_log(bs, "b_top_front_to_front") == 1) {
 		gf_bs_read_int_log(bs, 3, "gain_t2a_code");
 		// gain_t2b_code = 7;
 	} else {
-		if (gf_bs_read_int_log(bs, 1, "b_top_front_to_side") == 1) {
+		if (gf_bs_read_bool_log(bs, "b_top_front_to_side") == 1) {
 			gf_bs_read_int_log(bs, 3, "gain_t2b_code");
 		} else {
 			gf_bs_read_int_log(bs, 3, "gain_t2c_code");
@@ -15031,7 +15035,7 @@ static Bool gf_ac4_tool_tf_to_f_s_b(GF_BitStream *bs)
 
 static Bool gf_ac4_tool_tf_to_f_s(GF_BitStream *bs)
 {
-	if (gf_bs_read_int_log(bs, 1, "b_top_front_to_front") == 1) {
+	if (gf_bs_read_bool_log(bs, "b_top_front_to_front") == 1) {
 		gf_bs_read_int_log(bs, 3, "gain_t2a_code");
 		// gain_t2b_code = 7;
 	} else {
@@ -15044,11 +15048,11 @@ static Bool gf_ac4_stereo_dmx_coeff(GF_BitStream *bs)
 {
 	gf_bs_read_int_log(bs, 3, "loro_centre_mixgain");
 	gf_bs_read_int_log(bs, 3, "loro_surround_mixgain");
-	if (gf_bs_read_int_log(bs, 1, "b_ltrt_mixinfo")) {
+	if (gf_bs_read_bool_log(bs, "b_ltrt_mixinfo")) {
 		gf_bs_read_int_log(bs, 3, "ltrt_centre_mixgain");
 		gf_bs_read_int_log(bs, 3, "ltrt_surround_mixgain");
 	}
-	if (gf_bs_read_int_log(bs, 1, "b_lfe_mixinfo")) {
+	if (gf_bs_read_bool_log(bs, "b_lfe_mixinfo")) {
 		gf_bs_read_int_log(bs, 5, "lfe_mixgain");
 	}
 	gf_bs_read_int_log(bs, 2, "preferred_dmx_method");
@@ -15060,45 +15064,45 @@ static Bool gf_ac4_bed_render_info(GF_BitStream *bs)
 	u8 b_tb_ch_present, b_tf_ch_present;
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.2.8.8
-	if (gf_bs_read_int_log(bs, 1, "b_bed_render_info")) {
-		if (gf_bs_read_int_log(bs, 1, "b_stereo_dmx_coeff")) {
+	if (gf_bs_read_bool_log(bs, "b_bed_render_info")) {
+		if (gf_bs_read_bool_log(bs, "b_stereo_dmx_coeff")) {
 			gf_ac4_stereo_dmx_coeff(bs);
 		}
-		if (gf_bs_read_int_log(bs, 1, "b_cdmx_data_present")) {
-			if (gf_bs_read_int_log(bs, 1, "b_cdmx_w_to_f")) {
+		if (gf_bs_read_bool_log(bs, "b_cdmx_data_present")) {
+			if (gf_bs_read_bool_log(bs, "b_cdmx_w_to_f")) {
 				gf_bs_read_int_log(bs, 3, "gain_w_to_f_code");
 			}
-			if (gf_bs_read_int_log(bs, 1, "b_cdmx_b4_to_b2")) {
+			if (gf_bs_read_bool_log(bs, "b_cdmx_b4_to_b2")) {
 				gf_bs_read_int_log(bs, 3, "gain_b4_to_b2_code");
 			}
-			if (gf_bs_read_int_log(bs, 1, "b_tm_ch_present")) {
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_t2_to_f_s_b")) {
+			if (gf_bs_read_bool_log(bs, "b_tm_ch_present")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_t2_to_f_s_b")) {
 					gf_ac4_tool_t2_to_f_s_b(bs);
 				}
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_t2_to_f_s")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_t2_to_f_s")) {
 					gf_ac4_tool_t2_to_f_s(bs);
 				}
 			}
-			b_tb_ch_present = gf_bs_read_int_log(bs, 1, "b_tb_ch_present");
+			b_tb_ch_present = gf_bs_read_bool_log(bs, "b_tb_ch_present");
 			if (b_tb_ch_present) {
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_tb_to_f_s_b")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_tb_to_f_s_b")) {
 					gf_ac4_tool_tb_to_f_s_b(bs);
 				}
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_tb_to_f_s")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_tb_to_f_s")) {
 					gf_ac4_tool_tb_to_f_s(bs);
 				}
 			}
-			b_tf_ch_present = gf_bs_read_int_log(bs, 1, "b_tf_ch_present");
+			b_tf_ch_present = gf_bs_read_bool_log(bs, "b_tf_ch_present");
 			if (b_tf_ch_present) {
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_tf_to_f_s_b")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_tf_to_f_s_b")) {
 					gf_ac4_tool_tf_to_f_s_b(bs);
 				}
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_tf_to_f_s")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_tf_to_f_s")) {
 					gf_ac4_tool_tf_to_f_s(bs);
 				}
 			}
 			if (b_tb_ch_present || b_tf_ch_present) {
-				if (gf_bs_read_int_log(bs, 1, "b_cdmx_tfb_to_tm")) {
+				if (gf_bs_read_bool_log(bs, "b_cdmx_tfb_to_tm")) {
 					gf_bs_read_int_log(bs, 3, "gain_tfb_to_tm_code");
 				}
 			}
@@ -15112,12 +15116,12 @@ static Bool gf_ac4_oamd_common_data(GF_BitStream *bs)
 	u32 add_data_bytes, bits_used = 0;
 	u64 pos;
 
-	if (gf_bs_read_int_log(bs, 1, "b_default_screen_size_ratio") == 0) {
+	if (gf_bs_read_bool_log(bs, "b_default_screen_size_ratio") == 0) {
 		gf_bs_read_int_log(bs, 5, "master_screen_size_ratio_code");
 	}
-	gf_bs_read_int_log(bs, 1, "b_bed_object_chan_distribute");
-	if (gf_bs_read_int_log(bs, 1, "b_additional_data")) {
-		add_data_bytes = gf_bs_read_int_log(bs, 1, "add_data_bytes_minus1") + 1;
+	gf_bs_read_bool_log(bs, "b_bed_object_chan_distribute");
+	if (gf_bs_read_bool_log(bs, "b_additional_data")) {
+		add_data_bytes = gf_bs_read_bool_log(bs, "add_data_bytes_minus1") + 1;
 		if (add_data_bytes == 2) {
 			add_data_bytes += gf_ac4_variable_bits(bs, 2);
 		}
@@ -15144,8 +15148,8 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 {
 	u32 i, n_fullband_dmx_signals, n_fullband_upmix_signals;
 
-	substream->b_lfe = gf_bs_read_int_log(bs, 1, "b_lfe");
-	substream->b_static_dmx = gf_bs_read_int_log(bs, 1, "b_static_dmx");
+	substream->b_lfe = gf_bs_read_bool_log(bs, "b_lfe");
+	substream->b_static_dmx = gf_bs_read_bool_log(bs, "b_static_dmx");
 	if (substream->b_static_dmx) {
 		n_fullband_dmx_signals = 5;
 
@@ -15165,7 +15169,7 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 		}
 	}
 
-	if (gf_bs_read_int_log(bs, 1, "b_oamd_common_data_present")) {
+	if (gf_bs_read_bool_log(bs, "b_oamd_common_data_present")) {
 		gf_ac4_oamd_common_data(bs);
 	}
 
@@ -15179,18 +15183,18 @@ static Bool gf_ac4_substream_info_ajoc(GF_BitStream *bs,
 	gf_ac4_bed_dyn_obj_assignment(bs, substream, n_fullband_upmix_signals, GF_TRUE);
 
 	if (fs_index == 1) {
-		if (gf_bs_read_int_log(bs, 1, "b_sf_multiplier")) {
-			gf_bs_read_int_log(bs, 1, "sf_multiplier");
+		if (gf_bs_read_bool_log(bs, "b_sf_multiplier")) {
+			gf_bs_read_bool_log(bs, "sf_multiplier");
 		}
 	}
 
-	substream->b_substream_bitrate_indicator = gf_bs_read_int_log(bs, 1, "b_bitrate_info");
+	substream->b_substream_bitrate_indicator = gf_bs_read_bool_log(bs, "b_bitrate_info");
 	if (substream->b_substream_bitrate_indicator) {
 		gf_ac4_bitreate_indicator(bs, substream);
 	}
 
 	for (i = 0; i < frame_rate_factor; i++) {
-		gf_bs_read_int_log(bs, 1, "b_audio_ndot");
+		gf_bs_read_bool_log(bs, "b_audio_ndot");
 	}
 
 	gf_ac4_substream_index_info(bs, b_substreams_present);
@@ -15228,8 +15232,8 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 		}
 	}
 
-	if (gf_bs_read_int_log(bs, 1, "b_dynamic_objects")) {
-		substream->b_lfe = gf_bs_read_int_log(bs, 1, "b_lfe");
+	if (gf_bs_read_bool_log(bs, "b_dynamic_objects")) {
+		substream->b_lfe = gf_bs_read_bool_log(bs, "b_lfe");
 
 		// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12
 		substream->b_substream_contains_dynamic_objects = 1;
@@ -15239,12 +15243,12 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 			*channel_count += 1;
 		}
 	} else {
-		if (gf_bs_read_int_log(bs, 1, "b_bed_objects")) {
-			if (gf_bs_read_int_log(bs, 1, "b_bed_start")) {
-				if (gf_bs_read_int_log(bs, 1, "b_ch_assign_code")) {
+		if (gf_bs_read_bool_log(bs, "b_bed_objects")) {
+			if (gf_bs_read_bool_log(bs, "b_bed_start")) {
+				if (gf_bs_read_bool_log(bs, "b_ch_assign_code")) {
 					gf_bs_read_int_log(bs, 3, "bed_chan_assign_code");
 				} else {
-					if (gf_bs_read_int_log(bs, 1, "b_nonstd_bed_channel_assignment")) {
+					if (gf_bs_read_bool_log(bs, "b_nonstd_bed_channel_assignment")) {
 						gf_bs_read_int_log(bs, 17, "nonstd_bed_channel_assignment_mask");
 					} else {
 						gf_bs_read_int_log(bs, 10, "std_bed_channel_assignment_mask");
@@ -15255,8 +15259,8 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 			// ETSI TS 103 190-2 V1.2.1 (2018-02) E.11.12
 			substream->b_substream_contains_bed_objects = 1;
 		} else {
-			if (gf_bs_read_int_log(bs, 1, "b_isf")) {
-				if (gf_bs_read_int_log(bs, 1, "b_isf_start")) {
+			if (gf_bs_read_bool_log(bs, "b_isf")) {
+				if (gf_bs_read_bool_log(bs, "b_isf_start")) {
 					gf_bs_read_int_log(bs, 3, "isf_config");
 				}
 
@@ -15273,13 +15277,13 @@ static Bool gf_ac4_substream_info_obj(GF_BitStream *bs,
 
 	gf_ac4_dsi_sf_mutiplier(bs, substream, fs_index);
 
-	substream->b_substream_bitrate_indicator = gf_bs_read_int_log(bs, 1, "b_bitrate_info");
+	substream->b_substream_bitrate_indicator = gf_bs_read_bool_log(bs, "b_bitrate_info");
 	if (substream->b_substream_bitrate_indicator) {
 		gf_ac4_bitreate_indicator(bs, substream);
 	}
 
 	for (i = 0; i < frame_rate_factor; i++) {
-		gf_bs_read_int_log(bs, 1, "b_audio_ndot");
+		gf_bs_read_bool_log(bs, "b_audio_ndot");
 	}
 
 	gf_ac4_substream_index_info(bs, b_substreams_present);
@@ -15292,10 +15296,10 @@ static Bool gf_ac4_content_type(GF_BitStream *bs, GF_AC4SubStreamGroupV1* ginfo)
 	u32 i;
 
 	ginfo->content_classifier = gf_bs_read_int_log(bs, 3, "content_classifier");
-	ginfo->b_language_indicator = gf_bs_read_int_log(bs, 1, "b_language_indicator");
+	ginfo->b_language_indicator = gf_bs_read_bool_log(bs, "b_language_indicator");
 	if (ginfo->b_language_indicator == 1) {
-		if (gf_bs_read_int_log(bs, 1, "b_serialized_language_tag")) {
-			gf_bs_read_int_log(bs, 1, "b_start_tag");
+		if (gf_bs_read_bool_log(bs, "b_serialized_language_tag")) {
+			gf_bs_read_bool_log(bs, "b_start_tag");
 			gf_bs_read_int_log(bs, 16, "language_tag_chunk");
 		} else {
 			ginfo->n_language_tag_bytes = gf_bs_read_int_log(bs, 6, "language_tag_chunk");
@@ -15321,9 +15325,9 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 	u32 i, local_channel_count;
 	GF_AC4SubStream* substream;
 
-	ginfo->b_substreams_present = gf_bs_read_int_log(bs, 1, "b_substreams_present");
-	ginfo->b_hsf_ext = gf_bs_read_int_log(bs, 1, "b_hsf_ext");
-	if (gf_bs_read_int_log(bs, 1, "b_single_substream")) {
+	ginfo->b_substreams_present = gf_bs_read_bool_log(bs, "b_substreams_present");
+	ginfo->b_hsf_ext = gf_bs_read_bool_log(bs, "b_hsf_ext");
+	if (gf_bs_read_bool_log(bs, "b_single_substream")) {
 		ginfo->n_lf_substreams = 1;
 	} else {
 		ginfo->n_lf_substreams = gf_bs_read_int_log(bs, 2, "n_lf_substreams_minus2") + 2;
@@ -15335,7 +15339,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 	// calloc space for substream
 	ginfo->substreams = gf_list_new();
 
-	ginfo->b_channel_coded = gf_bs_read_int_log(bs, 1, "b_channel_coded");
+	ginfo->b_channel_coded = gf_bs_read_bool_log(bs, "b_channel_coded");
 	if (ginfo->b_channel_coded) {
 		for (i = 0; i < ginfo->n_lf_substreams; i++) {
 			if (bitstream_version == 1) {
@@ -15367,7 +15371,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 		// indicate whether there is a non-channel based substream
 		*b_obj_or_ajoc = 1;
 
-		if (gf_bs_read_int_log(bs, 1, "b_oamd_substream")) {
+		if (gf_bs_read_bool_log(bs, "b_oamd_substream")) {
 			gf_ac4_oamd_substream_info(bs, ginfo->b_substreams_present);
 		}
 
@@ -15380,7 +15384,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 			GF_SAFEALLOC(substream, GF_AC4SubStream);
 			local_channel_count = 0;
 
-			substream->b_ajoc = gf_bs_read_int_log(bs, 1, "b_ajoc");
+			substream->b_ajoc = gf_bs_read_bool_log(bs, "b_ajoc");
 			if (substream->b_ajoc) {
 				gf_ac4_substream_info_ajoc(bs,
 										   substream,
@@ -15414,7 +15418,7 @@ static Bool gf_ac4_substream_group_info(GF_BitStream *bs,
 		}
 	}
 
-	ginfo->b_content_type = gf_bs_read_int_log(bs, 1, "b_content_type");
+	ginfo->b_content_type = gf_bs_read_bool_log(bs, "b_content_type");
 	if (ginfo->b_content_type) {
 		gf_ac4_content_type(bs, ginfo);
 	}
@@ -15442,7 +15446,7 @@ static Bool gf_ac4_presentation_config_ext_info(GF_BitStream *bs,
 	u32 i;
 
 	pinfo->n_skip_bytes = gf_bs_read_int_log(bs, 5, "n_skip_bytes");
-	if (gf_bs_read_int_log(bs, 1, "b_more_skip_bytes")) {
+	if (gf_bs_read_bool_log(bs, "b_more_skip_bytes")) {
 		pinfo->n_skip_bytes += gf_ac4_variable_bits(bs, 2) << 5;
 	}
 	if (bitstream_version == 1 && pinfo->presentation_config == 7) {
@@ -15457,8 +15461,8 @@ static Bool gf_ac4_presentation_config_ext_info(GF_BitStream *bs,
 static Bool gf_ac4_presentation_substream_info(GF_BitStream *bs)
 {
 	u32 substream_index;
-	gf_bs_read_int_log(bs, 1, "b_alternative");
-	gf_bs_read_int_log(bs, 1, "b_pres_ndot");
+	gf_bs_read_bool_log(bs, "b_alternative");
+	gf_bs_read_bool_log(bs, "b_pres_ndot");
 	substream_index = gf_bs_read_int_log(bs, 2, "substream_index");
 	if (substream_index == 3) {
 		substream_index += gf_ac4_variable_bits(bs, 2);
@@ -15491,7 +15495,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 	GF_List *substream_group_indexes = gf_list_new();
 	u32 emdf_version, key_id;
 
-	b_single_substream_group = gf_bs_read_int_log(bs, 1, "b_single_substream_group");
+	b_single_substream_group = gf_bs_read_bool_log(bs, "b_single_substream_group");
 	if (b_single_substream_group != 1) {
 		pinfo->presentation_config = gf_bs_read_int_log(bs, 3, "presentation_config");
 		if (pinfo->presentation_config == 7) {
@@ -15517,7 +15521,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		if (bitstream_version != 1) {
 			pinfo->mdcompat = gf_bs_read_int_log(bs, 3, "mdcompat");
 		}
-		pinfo->b_presentation_id = gf_bs_read_int_log(bs, 1, "b_presentation_id");
+		pinfo->b_presentation_id = gf_bs_read_bool_log(bs, "b_presentation_id");
 		if (pinfo->b_presentation_id) {
 			pinfo->presentation_id = gf_ac4_variable_bits(bs, 2);
 		}
@@ -15528,9 +15532,9 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 		pinfo->presentation_emdf_version = emdf_version;
 		pinfo->presentation_key_id = key_id;
 
-		pinfo->b_presentation_filter = gf_bs_read_int_log(bs, 1, "b_presentation_filter");
+		pinfo->b_presentation_filter = gf_bs_read_bool_log(bs, "b_presentation_filter");
 		if (pinfo->b_presentation_filter) {
-			pinfo->b_enable_presentation = gf_bs_read_int_log(bs, 1, "b_enable_presentation");
+			pinfo->b_enable_presentation = gf_bs_read_bool_log(bs, "b_enable_presentation");
 		}
 
 		if (b_single_substream_group == 1) {
@@ -15538,7 +15542,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 			pinfo->n_substream_groups = 1;
 		}
 		else {
-			pinfo->b_multi_pid = gf_bs_read_int_log(bs, 1, "b_multi_pid");
+			pinfo->b_multi_pid = gf_bs_read_bool_log(bs, "b_multi_pid");
 			switch (pinfo->presentation_config) {
 				case 0:
 					/* Music and Effects + Dialogue */
@@ -15577,7 +15581,7 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 					break;
 				case 5:
 					/* Arbitrary number of roles and substream groups */
-					pinfo->n_substream_groups = gf_bs_read_int_log(bs, 1, "n_substream_groups_minus2") + 2;
+					pinfo->n_substream_groups = gf_bs_read_bool_log(bs, "n_substream_groups_minus2") + 2;
 					if (pinfo->n_substream_groups == 5) {
 						pinfo->n_substream_groups += gf_ac4_variable_bits(bs, 2);
 					}
@@ -15593,12 +15597,12 @@ static Bool gf_ac4_presentation_v1_info(GF_BitStream *bs,
 					break;
 			}
 		}
-		pinfo->b_pre_virtualized = gf_bs_read_int_log(bs, 1, "b_pre_virtualized");
+		pinfo->b_pre_virtualized = gf_bs_read_bool_log(bs, "b_pre_virtualized");
 		// IMS shall set b_pre_virtualized = 1 based on Dolby AC-4 in MPEG-DASH for Broadcast Services Specification
 		if (pinfo->presentation_version == 2) {
 			pinfo->b_pre_virtualized  = 1;
 		}
-		pinfo->b_add_emdf_substreams = gf_bs_read_int_log(bs, 1, "b_add_emdf_substreams");
+		pinfo->b_add_emdf_substreams = gf_bs_read_bool_log(bs, "b_add_emdf_substreams");
 		gf_ac4_presentation_substream_info(bs);
 	}
 	if (pinfo->b_add_emdf_substreams) {
@@ -15627,13 +15631,13 @@ static GF_AC4PresentationV1* gf_ac4_get_presentation_by_substreamgroup(GF_AC4Str
 	GF_AC4PresentationV1 *p;
 
 	for(i = 0; i < stream->n_presentations; i++) {
-		p = gf_list_get(stream->presentations, i);
+		p = (GF_AC4PresentationV1 *)gf_list_get(stream->presentations, i);
 		if (!p) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC4] presentation %u/%u is NULL: ignoring\n", i, stream->n_presentations));
 			continue;
 		}
 		for (j = 0; j < p->n_substream_groups; j++) {
-			x = gf_list_get(p->substream_group_indexs, j);
+			x = (u32 *)gf_list_get(p->substream_group_indexs, j);
 			if(x && idx == *x) {
 				return p;
 			}
@@ -15739,10 +15743,10 @@ static s32 gf_ac4_presentation_ch_mode(GF_AC4PresentationV1 *p)
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.27 Table 91
 	for (i = 0; i < p->n_substream_groups; i++){
-		group = gf_list_get(p->substream_groups, i);
+		group = (GF_AC4SubStreamGroupV1 *)gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
+			substream = (GF_AC4SubStream *)gf_list_get(group->substreams, j);
 			if (!substream) continue;
 			if (group->b_channel_coded){
 				pres_ch_mode = gf_ac4_cfg_super_set(pres_ch_mode, substream->ch_mode);
@@ -15766,10 +15770,10 @@ static u32 gf_ac4_presentation_channel_mask_v1(GF_AC4PresentationV1 *p)
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.14
 	for (i = 0; i < p->n_substream_groups; i++){
-		group = gf_list_get(p->substream_groups, i);
+		group = (GF_AC4SubStreamGroupV1 *)gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
+			substream = (GF_AC4SubStream *)gf_list_get(group->substreams, j);
 			if (group->b_channel_coded){
 				channel_mask |= substream->dsi_substream_channel_mask;
 			}else {
@@ -15798,10 +15802,10 @@ static u8 gf_ac4_pres_b_4_back_channels_present(GF_AC4PresentationV1 *p)
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) E.10.12
 	for (i = 0; i < p->n_substream_groups; i ++){
-		group = gf_list_get(p->substream_groups, i);
+		group = (GF_AC4SubStreamGroupV1 *)gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
+			substream = (GF_AC4SubStream *)gf_list_get(group->substreams, j);
 			mask |= substream->b_4_back_channels_present;
 		}
 	}
@@ -15817,10 +15821,10 @@ static u8 gf_ac4_pres_top_channel_pairs(GF_AC4PresentationV1 *p)
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) 6.3.3.1.30 Table 94
 	for (i = 0; i < p->n_substream_groups; i ++){
-		group = gf_list_get(p->substream_groups, i);
+		group = (GF_AC4SubStreamGroupV1 *)gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
+			substream = (GF_AC4SubStream *)gf_list_get(group->substreams, j);
 			if (tmp_pres_top_channel_pairs < substream->top_channels_present) {
 				tmp_pres_top_channel_pairs = substream->top_channels_present;
 			}
@@ -15872,10 +15876,10 @@ static s32 gf_ac4_get_b_presentation_core_differs(GF_AC4PresentationV1 *p, s32 p
 
 	// ETSI TS 103 190-2 V1.2.1 (2018-02) Table 93
 	for (i = 0; i < p->n_substream_groups; i ++){
-		group = gf_list_get(p->substream_groups, i);
+		group = (GF_AC4SubStreamGroupV1 *)gf_list_get(p->substream_groups, i);
 		if (!group) continue;
 		for (j = 0; j < group->n_lf_substreams; j++){
-			substream = gf_list_get(group->substreams, j);
+			substream = (GF_AC4SubStream *)gf_list_get(group->substreams, j);
 			if (!substream) continue;
 			if (group->b_channel_coded){
 				ch_mode_core = gf_ac4_get_ch_mode_core(group->b_channel_coded,
@@ -15921,13 +15925,13 @@ static Bool gf_ac4_substream_index_table(GF_BitStream *bs, GF_AC4Config* hdr)
         n_substreams = gf_ac4_variable_bits(bs, 2) + 4;
     }
     if (n_substreams == 1) {
-        b_size_present = gf_bs_read_int_log(bs, 1, "b_size_present");
+        b_size_present = gf_bs_read_bool_log(bs, "b_size_present");
     } else {
         b_size_present = 1;
     }
     if (b_size_present) {
         for (s = 0; s < n_substreams && gf_bs_available(bs); s++) {
-            b_more_bits = gf_bs_read_int_log(bs, 1, "b_more_bits");
+            b_more_bits = gf_bs_read_bool_log(bs, "b_more_bits");
             /*substream_size = */gf_bs_read_int_log(bs, 10, "substream_size");
             if (b_more_bits) {
                 //substream_size += (gf_ac4_variable_bits(bs, 2) << 10);
@@ -15963,7 +15967,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 	}
 
 	gf_bs_read_int_log(bs, 10, "sequence_counter");
-	if (gf_bs_read_int_log(bs, 1, "b_wait_frames")) {
+	if (gf_bs_read_bool_log(bs, "b_wait_frames")) {
 		wait_frames = gf_bs_read_int_log(bs, 3, "wait_frames");
 		if (wait_frames > 0) {
 			gf_bs_read_int_log(bs, 2, "reserved");
@@ -15971,13 +15975,13 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 	} else {
 		wait_frames = -1;
 	}
-	fs_index = gf_bs_read_int_log(bs, 1, "fs_index");
+	fs_index = gf_bs_read_bool_log(bs, "fs_index");
 	frame_rate_index = gf_bs_read_int_log(bs, 4, "frame_rate_index");
-	b_iframe_global = gf_bs_read_int_log(bs, 1, "b_iframe_global");
-	if (gf_bs_read_int_log(bs, 1, "b_single_presentation") == 1){
+	b_iframe_global = gf_bs_read_bool_log(bs, "b_iframe_global");
+	if (gf_bs_read_bool_log(bs, "b_single_presentation") == 1){
 		n_presentations = 1;
 	} else {
-		if (gf_bs_read_int_log(bs, 1, "b_more_presentations") == 1){
+		if (gf_bs_read_bool_log(bs, "b_more_presentations") == 1){
 			n_presentations = gf_ac4_variable_bits(bs, 2) + 2;
 		} else {
 			n_presentations = 0;
@@ -15985,7 +15989,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 	}
 
 	payload_base = 0;
-	if (gf_bs_read_int_log(bs, 1, "b_payload_base") == 1){
+	if (gf_bs_read_bool_log(bs, "b_payload_base") == 1){
 		payload_base = gf_bs_read_int_log(bs, 5, "payload_base_minus1") + 1;
 		if (payload_base == 0x20){
 			payload_base += gf_ac4_variable_bits(bs, 3);
@@ -16007,10 +16011,10 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		*/
 		return GF_TRUE;
 	} else {
-		b_program_id = gf_bs_read_int_log(bs, 1, "b_program_id");
+		b_program_id = gf_bs_read_bool_log(bs, "b_program_id");
 		if (b_program_id == 1) {
 			short_program_id = gf_bs_read_int_log(bs, 16, "short_program_id");
-			b_program_uuid_present = gf_bs_read_int_log(bs, 1, "b_program_uuid_present");
+			b_program_uuid_present = gf_bs_read_bool_log(bs, "b_program_uuid_present");
 			if (b_program_uuid_present == 1){
 				for (i = 0; i < 16; i++){
 					program_uuid[i] = gf_bs_read_int_log(bs, 8, "program_uuid");
@@ -16113,7 +16117,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 			p->substream_groups = gf_list_new();
 
 			for (j = 0; j < p->n_substream_groups; j++) {
-				idx = gf_list_get(p->substream_group_indexs, j);
+				idx = (unsigned int *)gf_list_get(p->substream_group_indexs, j);
 				if (!idx) continue;
 				group = (GF_AC4SubStreamGroupV1*)gf_list_get(temp_groups, *idx);
 				if (group) {
@@ -16156,7 +16160,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 
 			// free auxiliary information substream_group_indexs
 			for (j = 0; j < gf_list_count(p->substream_group_indexs); j++) {
-				idx = gf_list_get(p->substream_group_indexs, j);
+				idx = (unsigned int *)gf_list_get(p->substream_group_indexs, j);
 				gf_free(idx);
 			}
 			gf_list_del(p->substream_group_indexs);
@@ -16180,7 +16184,7 @@ static Bool gf_ac4_raw_frame(GF_BitStream *bs, GF_AC4Config* hdr, Bool full_pars
 		while ((group = (GF_AC4SubStreamGroupV1*)gf_list_pop_back(temp_groups))) {
 			if (group->substreams) {
 				for (int s = 0; s < gf_list_count(group->substreams); s++) {
-					GF_AC4SubStream* subs = gf_list_get(group->substreams, s);
+					GF_AC4SubStream* subs = (GF_AC4SubStream *)gf_list_get(group->substreams, s);
 					gf_free(subs);
 				}
 				gf_list_del(group->substreams);
@@ -16251,7 +16255,7 @@ Bool gf_ac4_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC4Config *hdr, Bool full_p
 	(*pos) = AC4_FindSyncCode(buf, buflen);
 	if (*pos >= buflen) return GF_FALSE;
 
-	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	bs = gf_bs_new(buf + *pos, buflen, GF_BITSTREAM_READ);
 	ret = gf_ac4_parser_bs(bs, hdr, full_parse, start_from_toc);
 	gf_bs_del(bs);
 

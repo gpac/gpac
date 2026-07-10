@@ -178,7 +178,7 @@ j2k_restart:
 					IPR = gf_bs_read_u8(bs);
 					*/
 					if (dsi && jp2h_size) {
-						*dsi = gf_malloc(sizeof(char)*jp2h_size);
+						*dsi = (u8 *)gf_malloc(jp2h_size);
 						gf_bs_seek(bs, jp2h_start);
 						gf_bs_read_data(bs, *dsi, jp2h_size);
 						*dsi_len = jp2h_size;
@@ -283,12 +283,12 @@ static void gf_jpeg_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 #define JPEG_MAX_SCAN_BLOCK_HEIGHT		16
 
 GF_EXPORT
-GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
+GF_Err gf_img_jpeg_dec(const u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size, u32 dst_nb_comp)
 {
 	s32 i, j, scans, k;
 	u32 stride;
-	char *scan_line, *ptr, *tmp;
-	char *lines[JPEG_MAX_SCAN_BLOCK_HEIGHT];
+	u8 *scan_line, *ptr, *tmp;
+	u8 *lines[JPEG_MAX_SCAN_BLOCK_HEIGHT];
 	JPGErr jper;
 	JPGCtx jpx;
 
@@ -325,7 +325,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 	jpx.skip = 0;
 	jpx.src.next_input_byte = (JOCTET *) jpg;
 	jpx.src.bytes_in_buffer = jpg_size;
-	jpx.cinfo.src = (void *) &jpx.src;
+	jpx.cinfo.src = &jpx.src;
 
 	/*read header*/
 	do {
@@ -374,7 +374,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 	}
 
 	/*read scanlines (the scan is not one line by one line so alloc a placeholder for block scaning) */
-	scan_line = gf_malloc(sizeof(char) * stride * jpx.cinfo.rec_outbuf_height);
+	scan_line = (u8 *)gf_malloc(stride * jpx.cinfo.rec_outbuf_height);
 	for (i = 0; i<jpx.cinfo.rec_outbuf_height; i++) {
 		lines[i] = scan_line + i * stride;
 	}
@@ -427,7 +427,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 
 typedef struct
 {
-	char *buffer;
+	u8 *buffer;
 	u32 pos;
 	u32 size;
 	png_byte **rows;
@@ -453,7 +453,7 @@ static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 
 
 GF_EXPORT
-GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
+GF_Err gf_img_png_dec(const u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_struct *png_ptr;
@@ -467,7 +467,7 @@ GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Wrong signature\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	udta.buffer = png;
+	udta.buffer = (u8*) png;
 	udta.size = png_size;
 	udta.pos = 0;
 	udta.rows=NULL;
@@ -543,7 +543,7 @@ GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel
 
 	/*read*/
 	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
-	udta.rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
+	udta.rows = (png_byte **) gf_malloc(sizeof(png_byte *) * png_get_image_height(png_ptr, info_ptr));
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
 		udta.rows[i] = (png_bytep)dst + i*stride;
 	}
@@ -569,7 +569,7 @@ void gf_png_flush(png_structp png)
 
 /* write a png file */
 GF_EXPORT
-GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(const u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_color_8 sig_bit;
@@ -691,7 +691,7 @@ GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_for
 		png_set_bgr(png_ptr);
 		break;
 	}
-	row_pointers = gf_malloc(sizeof(png_bytep)*height);
+	row_pointers = (png_bytep *)gf_malloc(sizeof(png_bytep)*height);
 	for (k = 0; k < (s32)height; k++)
 		row_pointers[k] = (png_bytep) data + k*stride;
 
@@ -707,12 +707,12 @@ GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_for
 
 #else
 GF_EXPORT
-GF_Err gf_img_png_dec(u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
+GF_Err gf_img_png_dec(const u8 *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, u8 *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }
 GF_EXPORT
-GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(const u8 *data, u32 width, u32 height, s32 stride, u32 pixel_format, u8 *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }

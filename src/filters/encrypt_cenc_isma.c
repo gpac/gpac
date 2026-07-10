@@ -60,7 +60,7 @@ typedef enum {
 typedef struct
 {
 	GF_Crypt *crypt;
-	char IV[16];
+	u8 IV[16];
 	bin128 key;
 	u32 IV_size;
 } CENC_MKey;
@@ -85,7 +85,7 @@ typedef struct
 	u32 nb_keys;
 	CENC_MKey *keys;
 	Bool multi_key;
-	u32 codec_id;
+	GF_CodecID codec_id;
 
 	u32 nb_pck;
 
@@ -205,6 +205,8 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing NALU length size, assuming 4\n") );
 		}
 		break;
+	default:
+		break;
 	}
 
 	if (!scheme_uri || !strlen(scheme_uri)) scheme_uri = "urn:gpac:isma:encryption_scheme";
@@ -258,13 +260,14 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMACrypt] Encrypting stream %s - KMS: %s%s\n", gf_filter_pid_get_name(cstr->ipid), cstr->tci->KMS_URI, cstr->tci->sel_enc_type ? " - Selective Encryption" : ""));
 
 	if (!stricmp(kms_uri, "self")) {
-		char Data[100], d64[100];
+		u8 data[100];
+		char d64[100];
 		u32 size_b64;
-		memcpy(Data, cstr->tci->keys[0].key, sizeof(char)*16);
-		memcpy(Data+16, cstr->tci->keys[0].IV, sizeof(char)*8);
-		size_b64 = gf_base64_encode(Data, 24, d64, 100);
+		memcpy(data, cstr->tci->keys[0].key, sizeof(char)*16);
+		memcpy(data+16, cstr->tci->keys[0].IV, sizeof(char)*8);
+		size_b64 = gf_base64_encode(data, 24, (u8*)d64, 100);
 		d64[size_b64] = 0;
-		cstr->tci->KMS_URI = gf_realloc(cstr->tci->KMS_URI, size_b64+6);
+		cstr->tci->KMS_URI = (char *)gf_realloc(cstr->tci->KMS_URI, size_b64+6);
 		gf_strlcpy(cstr->tci->KMS_URI, "(key)", size_b64+6);
 		gf_strlcat(cstr->tci->KMS_URI, d64, size_b64+6);
 		kms_uri = cstr->tci->KMS_URI;
@@ -286,7 +289,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 
 			sprintf(szSTR, "PreviewRange:%d", cstr->tci->sel_enc_range);
 			len = (u32) strlen(szSTR) + ( cstr->tci->TextualHeaders ? (u32) strlen(cstr->tci->TextualHeaders) : 0 ) + 1;
-			szPreview = gf_malloc(sizeof(char) * len);
+			szPreview = (char *)gf_malloc(len);
 			gf_strlcpy(szPreview, cstr->tci->TextualHeaders ? cstr->tci->TextualHeaders : "", len);
 			gf_strlcat(szPreview, szSTR, len);
 
@@ -372,7 +375,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 		gf_odf_codec_get_au(cod, &samp->data, &samp->dataLength);
 		ipmpdU = NULL;
 		gf_odf_codec_del(cod);
-		gf_isom_update_sample(mp4, i+1, 1, samp, 1);
+		gf_isom_update_sample(mp4, i+1, 1, samp, GF_TRUE);
 		gf_isom_sample_del(&samp);
 
 		if (tci->ipmp_type==2) {
@@ -403,7 +406,7 @@ static GF_Err adobe_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	memcpy(cstr->keys[0].key, cstr->tci->keys[0].key, 16);
 
 	if (cstr->tci->metadata)
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA(cstr->tci->metadata, (u32) strlen(cstr->tci->metadata) ) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((u8*)cstr->tci->metadata, (u32) strlen(cstr->tci->metadata) ) );
 
 	cstr->is_adobe = GF_TRUE;
 
@@ -436,7 +439,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 
 	if (cstr->pssh_templates) {
 		while (gf_list_count(cstr->pssh_templates)) {
-			GF_XMLNode *n = gf_list_pop_back(cstr->pssh_templates);
+			GF_XMLNode *n = (GF_XMLNode *)gf_list_pop_back(cstr->pssh_templates);
 			gf_xml_dom_node_del(n);
 		}
 		gf_list_del(cstr->pssh_templates);
@@ -524,7 +527,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			btype = 0;
 		}
 
-		gf_bs_read_data(bs, (char *)systemID, 16);
+		gf_bs_read_data(bs,systemID, 16);
 		if (version) {
 			KID_count = gf_bs_read_u32(bs);
 			if (KID_count*16 > gf_bs_available(bs)) {
@@ -542,7 +545,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 				break;
 			}
 			for (j = 0; j < KID_count; j++) {
-				gf_bs_read_data(bs, (char *)KIDs[j], 16);
+				gf_bs_read_data(bs,KIDs[j], 16);
 			}
 		}
 		else {
@@ -563,7 +566,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		else
 			len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
 
-		data = (char *)gf_malloc(len*sizeof(char));
+		data = (u8 *)gf_malloc(len);
 		if (!data) {
 			e = GF_OUT_OF_MEM;
 			if (specInfo) gf_free(specInfo);
@@ -699,7 +702,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	if (is_reinit) {
 		const GF_PropertyValue *p2;
 		Bool allow_saes=GF_FALSE;
-		u32 cenc_codec = CENC_FULL_SAMPLE;
+		CENCCodecMode cenc_codec = CENC_FULL_SAMPLE;
 		cstr->nalu_size_length = 0;
 
 		//get CENC media type
@@ -733,6 +736,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		case GF_CODECID_AC4:
 			cenc_codec = CENC_AC4;
 			break;
+		default:
+			break;
 		}
 		if (cstr->is_saes && !allow_saes) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCCrypt] HLS Sample-AES not supported for codec %s\n", gf_codecid_name(cstr->codec_id) ));
@@ -759,13 +764,13 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			case CENC_AV1:
 				GF_SAFEALLOC(cstr->av1_state, AV1State);
 				if (!cstr->av1_state) return GF_OUT_OF_MEM;
-				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
+				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = (OBURange *)gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
 				if (!cstr->av1_vpx_ranges) return GF_OUT_OF_MEM;
 				break;
 			case CENC_VPX:
-				if (!cstr->vpx_frame_sizes) cstr->vpx_frame_sizes = gf_malloc(sizeof(u32) * VP9_MAX_FRAMES_IN_SUPERFRAME);
+				if (!cstr->vpx_frame_sizes) cstr->vpx_frame_sizes = (u32 *)gf_malloc(sizeof(u32) * VP9_MAX_FRAMES_IN_SUPERFRAME);
 				if (!cstr->vpx_frame_sizes) return GF_OUT_OF_MEM;
-				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
+				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = (OBURange *)gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
 				if (!cstr->av1_vpx_ranges) return GF_OUT_OF_MEM;
 				break;
 			case CENC_AC4:
@@ -775,6 +780,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				if (!cstr->ac4_state->config) return GF_OUT_OF_MEM;
 				break;
 #endif
+			default:
+				break;
 			}
 		}
 		//if crypt is init for stream and no codec change, don't reinit
@@ -814,11 +821,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (avccfg) {
 				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
-					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, i);
 					gf_avc_read_sps(slc->data, slc->size, cstr->avc_state, 0, NULL);
 				}
 				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
-					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
+					GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avccfg->pictureParameterSets, i);
 					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
 				}
 				gf_odf_avc_cfg_del(avccfg);
@@ -827,11 +834,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			avccfg = dsi_enh ? gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size) : NULL;
 			if (avccfg) {
 				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
-					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
+					GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, i);
 					gf_avc_read_sps(slc->data, slc->size, cstr->avc_state, 0, NULL);
 				}
 				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
-					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
+					GF_NALUFFParam *slc = (GF_NALUFFParam *)gf_list_get(avccfg->pictureParameterSets, i);
 					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
 				}
 				gf_odf_avc_cfg_del(avccfg);
@@ -1016,7 +1023,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		} else {
 			cstr->nb_keys = 1;
 		}
-		cstr->keys = gf_malloc(sizeof(CENC_MKey) * cstr->nb_keys);
+		cstr->keys = (CENC_MKey *)gf_malloc(sizeof(CENC_MKey) * cstr->nb_keys);
 		if (!cstr->keys) return GF_OUT_OF_MEM;
 		memset(cstr->keys, 0, sizeof(CENC_MKey) * cstr->nb_keys);
 	}
@@ -1040,6 +1047,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				switch (cstr->codec_id) {
 				case GF_CODECID_USAC:
 					cstr->rap_roll = GF_TRUE;
+					break;
+				default:
 					break;
 				}
 			}
@@ -1139,7 +1148,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 
 	if (cstr->skip_byte_block || cstr->crypt_byte_block) {
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->skip_byte_block, cstr->crypt_byte_block ) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT((s32)cstr->skip_byte_block, cstr->crypt_byte_block ) );
 	} else {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
 	}
@@ -1170,7 +1179,7 @@ static void cenc_free_pid_context(GF_CENCStream *cstr)
 	cenc_pid_reset_codec_states(cstr);
 	if (cstr->pssh_templates) {
 		while (gf_list_count(cstr->pssh_templates)) {
-			GF_XMLNode *n = gf_list_pop_back(cstr->pssh_templates);
+			GF_XMLNode *n = (GF_XMLNode *)gf_list_pop_back(cstr->pssh_templates);
 			gf_xml_dom_node_del(n);
 		}
 		gf_list_del(cstr->pssh_templates);
@@ -1211,7 +1220,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	Bool force_clear = GF_FALSE;
 
 	if (is_remove) {
-		cstr = gf_filter_pid_get_udta(pid);
+		cstr = (GF_CENCStream *)gf_filter_pid_get_udta(pid);
 		if (cstr) {
 			gf_list_del_item(ctx->streams, cstr);
 			if (cstr->opid)
@@ -1246,7 +1255,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		count = gf_list_count(cinfo->tcis);
 		for (i=0; i<count; i++) {
-			tci = gf_list_get(cinfo->tcis, i);
+			tci = (GF_TrackCryptInfo *)gf_list_get(cinfo->tcis, i);
 			if (prop && tci->trackID && (tci->trackID==prop->value.uint)) break;
 			if (!tci_any && !tci->trackID) tci_any = tci;
 			if ((cinfo != ctx->cinfo) && !tci_any) tci_any = tci;
@@ -1260,7 +1269,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (!tci) {
 		if (cinfo) {
-			cstr = gf_filter_pid_get_udta(pid);
+			cstr = (GF_CENCStream *)gf_filter_pid_get_udta(pid);
 			if (!cstr || !cstr->warned_clear) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in DRM config file, PID %s will not be crypted\n", gf_filter_pid_get_name((pid))) );
 			}
@@ -1286,7 +1295,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	}
 
-	cstr = gf_filter_pid_get_udta(pid);
+	cstr = (GF_CENCStream *)gf_filter_pid_get_udta(pid);
 	if (!cstr) {
 		GF_SAFEALLOC(cstr, GF_CENCStream);
 		if (!cstr) return GF_OUT_OF_MEM;
@@ -1312,7 +1321,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (tci && tci->rand_keys) {
 		if (!tci->nb_keys) {
-			tci->keys = gf_realloc(tci->keys, sizeof(GF_CryptKeyInfo));
+			tci->keys = (GF_CryptKeyInfo *)gf_realloc(tci->keys, sizeof(GF_CryptKeyInfo));
 			memset(&tci->keys[0], 0, sizeof(GF_CryptKeyInfo));
 		}
 		tci->nb_keys = 1;
@@ -1334,7 +1343,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_copy_properties(cstr->opid, pid);
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (prop) cstr->codec_id = prop->value.uint;
+	if (prop) cstr->codec_id = (GF_CodecID) prop->value.uint;
 
 	if (cstr->tci) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
@@ -1383,13 +1392,13 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				break;
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Multi-key not possible with scheme %s, ignoring\n", gf_4cc_to_str(scheme_type) ));
-				cstr->multi_key = 0;
+				cstr->multi_key = GF_FALSE;
 				break;
 			}
 		}
 		if (!cstr->multi_key) {
 			cstr->nb_keys = 1;
-			cstr->keys = gf_malloc(sizeof(CENC_MKey) * cstr->nb_keys);
+			cstr->keys = (CENC_MKey *)gf_malloc(sizeof(CENC_MKey) * cstr->nb_keys);
 			if (!cstr->keys) return GF_OUT_OF_MEM;
 			memset(cstr->keys, 0, sizeof(CENC_MKey) * cstr->nb_keys);
 		}
@@ -1450,7 +1459,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		break;
 	/*random every sel_freq samples*/
 	case GF_CRYPT_SELENC_RAND_RANGE:
-		if (! (cstr->nb_pck % cstr->tci->sel_enc_range) ) cstr->has_crypted_pck = 0;
+		if (! (cstr->nb_pck % cstr->tci->sel_enc_range) ) cstr->has_crypted_pck = GF_FALSE;
 		if (! cstr->has_crypted_pck) {
 			rand = gf_rand();
 			if (!(rand % cstr->tci->sel_enc_range)) flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
@@ -1458,7 +1467,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			if (!(flags & GF_ISOM_ISMA_IS_ENCRYPTED) && !( (1+cstr->nb_pck) % cstr->tci->sel_enc_range)) {
 				flags |= GF_ISOM_ISMA_IS_ENCRYPTED;
 			}
-			cstr->has_crypted_pck = (flags & GF_ISOM_ISMA_IS_ENCRYPTED);
+			cstr->has_crypted_pck = (flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? GF_TRUE : GF_FALSE;
 		}
 		break;
 	/*every sel_freq samples*/
@@ -1510,7 +1519,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		/*resync IV*/
 		if (!cstr->prev_pck_encrypted) {
-			char IV[17];
+			u8 IV[17];
 			u64 count;
 			u32 remain;
 			GF_BitStream *bs;
@@ -1527,7 +1536,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 
 			/*decrypt remain bytes*/
 			if (remain) {
-				char dummy[20];
+				u8 dummy[20];
 				gf_crypt_decrypt(cstr->keys[0].crypt, dummy, remain);
 			}
 		}
@@ -1551,7 +1560,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		if (cstr->isma_IV_size) gf_bs_write_long_int(ctx->bs_w, (s64) cstr->BSO, 8*cstr->isma_IV_size);
 		//not yet implemented
-//		if (cstr->KI_length) gf_bs_write_data(ctx->bs_w, (char*) key_indicator, cstr->KI_length);
+//		if (cstr->KI_length) gf_bs_write_data(ctx->bs_w,key_indicator, cstr->KI_length);
 	}
 
 	cstr->BSO += size;
@@ -1640,7 +1649,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 
 /*Common Encryption*/
-static void increase_counter(char *x, int x_size) {
+static void increase_counter(u8 *x, u8 x_size) {
 	register int i;
 
 	for (i=x_size-1; i>=0; i--) {
@@ -1656,9 +1665,9 @@ static void increase_counter(char *x, int x_size) {
 	return;
 }
 
-static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
+static void cenc_resync_IV(GF_Crypt *mc, u8 IV[16], u8 IV_size)
 {
-	char next_IV[17];
+	u8 next_IV[17];
 	u32 size = 17;
 
 	gf_crypt_get_IV(mc, (u8 *) next_IV, &size);
@@ -1848,7 +1857,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
 
-	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+	if (!ctx->bs_r) ctx->bs_r = gf_bs_new((u8*)data, pck_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
 
 	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1873,7 +1882,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 		if (cstr->use_subsamples) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-			ObuType obut = 0;
+			ObuType obut = OBU_RESERVED_0;
 			u32 num_frames_in_superframe = 0, superframe_index_size = 0;
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
@@ -1915,14 +1924,14 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				//we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP: {
-					Bool encrypt = cstr->av1_state->frame_state.nb_tiles_in_obu ? GF_TRUE : GF_FALSE;
+					u32 do_encrypt = cstr->av1_state->frame_state.nb_tiles_in_obu ? 1 : 0;
 
 					//scalable ID filtering
 					GF_CryptKeyInfo *ki = &cstr->tci->keys[cstr->kidx];
-					encrypt &= (!ki->spatial_id_plus_one  || ki->spatial_id_plus_one -1 == cstr->av1_state->spatial_id )
+					do_encrypt &= (!ki->spatial_id_plus_one  || ki->spatial_id_plus_one -1 == cstr->av1_state->spatial_id )
 					        && (!ki->temporal_id_plus_one || ki->temporal_id_plus_one-1 == cstr->av1_state->temporal_id);
 
-					if (!encrypt) {
+					if (!do_encrypt) {
 						clear_bytes = (u32) obu_size;
 					} else {
 						nb_ranges = cstr->av1_state->frame_state.nb_tiles_in_obu;
@@ -1981,7 +1990,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					u64 pos2 = gf_bs_get_position(ctx->bs_r);
 					e = gf_vp9_parse_sample(ctx->bs_r, cstr->vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
 					if (e) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Error parsing VP9 frame at DTS " LLU "\n", gf_filter_pck_get_dts(pck) ));
 						return e;
 					}
 
@@ -1991,7 +2000,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					gf_bs_seek(ctx->bs_r, pos2 + cstr->vpx_frame_sizes[i]);
 				}
 				if (gf_bs_get_position(ctx->bs_r) + superframe_index_size != pos + pck_size) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Inconsistent VP9 size %u (parsed "LLU") at DTS "LLU". Re-import raw VP9/IVF for more details.\n",
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Inconsistent VP9 size %u (parsed " LLU ") at DTS " LLU ". Re-import raw VP9/IVF for more details.\n",
 						pck_size, gf_bs_get_position(ctx->bs_r) + superframe_index_size - pos, gf_filter_pck_get_dts(pck)));
 				}
 				gf_bs_seek(ctx->bs_r, pos);
@@ -2373,7 +2382,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		if (epb_add_count) {
 			u32 w_pos = 0;
 			u8 *dst_nal;
-			u8 *old_output = gf_malloc(sizeof(u8) * pck_size);
+			u8 *old_output = (u8 *)gf_malloc(pck_size);
 			memcpy(old_output, output, sizeof(u8) * pck_size);
 			gf_filter_pck_expand(dst_pck, epb_add_count, &output, NULL, NULL);
 			gf_bs_reassign_buffer(ctx->bs_r, old_output, pck_size);
@@ -2424,17 +2433,17 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				gf_strcat(szKID, szTmp);
 			}
 			i=0;
-			while ((pssh_tpl = gf_list_enum(cstr->pssh_templates, &i))) {
+			while ((pssh_tpl = (GF_XMLNode *)gf_list_enum(cstr->pssh_templates, &i))) {
 				u32 j=0;
 				GF_XMLNode *bs_node;
 				char szCryptKey[33];
 				u32 pssh_version=1;
-				u32 crypt_mode=GF_CBC;
+				GF_CRYPTO_MODE crypt_mode=GF_CBC;
 				char *key_att_backup = NULL;
 				char *kid_att_backup = NULL;
 				Bool valid=GF_TRUE;
 				GF_XMLAttribute *att, *sys_att=NULL, *key_val = NULL, *key_att = NULL, *kid_att = NULL, *iv_val=NULL;
-				while ((att = gf_list_enum(pssh_tpl->attributes, &j))) {
+				while ((att = (GF_XMLAttribute *)gf_list_enum(pssh_tpl->attributes, &j))) {
 					if (!stricmp(att->name, "system")) {
 						sys_att = att;
 					}
@@ -2465,10 +2474,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 
 				j=0;
-				while ((bs_node = gf_list_enum(pssh_tpl->content, &j))) {
+				while ((bs_node = (GF_XMLNode *)gf_list_enum(pssh_tpl->content, &j))) {
 					u32 k=0;
 					if (strcmp(bs_node->name, "BS")) continue;
-					while ((att = gf_list_enum(bs_node->attributes, &k))) {
+					while ((att = (GF_XMLAttribute *)gf_list_enum(bs_node->attributes, &k))) {
 						if (stricmp(att->name, "ID128")) continue;
 						if (!stricmp(att->value, "KEY"))
 							key_att = att;
@@ -2570,7 +2579,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		return GF_OK;
 	}
 
-	if (!ctx->bs_w) ctx->bs_w = gf_bs_new((char *) &sap, 1, GF_BITSTREAM_WRITE);
+	if (!ctx->bs_w) ctx->bs_w = gf_bs_new((u8 *) &sap, 1, GF_BITSTREAM_WRITE);
 
 	switch (cstr->tci->sel_enc_type) {
 	case GF_CRYPT_SELENC_RAP:
@@ -2771,7 +2780,7 @@ static GF_Err cenc_enc_process(GF_Filter *filter)
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
 		GF_Err e = GF_OK;
-		GF_CENCStream *cstr = gf_list_get(ctx->streams, i);
+		GF_CENCStream *cstr = (GF_CENCStream *)gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(cstr->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(cstr->ipid)) {
@@ -2824,7 +2833,7 @@ static void cenc_enc_finalize(GF_Filter *filter)
 	GF_CENCEncCtx *ctx = (GF_CENCEncCtx *)gf_filter_get_udta(filter);
 	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
 	while (gf_list_count(ctx->streams)) {
-		GF_CENCStream *s = gf_list_pop_back(ctx->streams);
+		GF_CENCStream *s = (GF_CENCStream *)gf_list_pop_back(ctx->streams);
 		num_block_crypted+=s->num_block_crypted;
 		cenc_free_pid_context(s);
 	}
@@ -2832,7 +2841,7 @@ static void cenc_enc_finalize(GF_Filter *filter)
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bk_stats) {
-		fprintf(stdout, "16-byte Blocks encrypted "LLU"\n", num_block_crypted);
+		fprintf(stdout, "16-byte Blocks encrypted " LLU "\n", num_block_crypted);
 	}
 }
 
@@ -2868,7 +2877,7 @@ GF_FilterRegister CENCEncRegister = {
 	"If no DRM config file is defined for a given PID, this PID will not be encrypted, or an error will be thrown if [-allc]() is specified.\n"
 	)
 	.private_size = sizeof(GF_CENCEncCtx),
-	.max_extra_pids=-1,
+	.max_extra_pids=(u32) -1,
 	//encryptor shall be explicitly loaded
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.args = GF_CENCEncArgs,

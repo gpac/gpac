@@ -60,12 +60,12 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 		return;
 	}
 
-	isDurDefined = (timingp->dur && timingp->dur->type == SMIL_DURATION_DEFINED);
-	isMediaDuration = (timingp->dur && (timingp->dur->type == SMIL_DURATION_MEDIA) && (rti->media_duration>=0) );
-	isRepeatCountDefined = (timingp->repeatCount && timingp->repeatCount->type == SMIL_REPEATCOUNT_DEFINED);
-	isRepeatCountIndefinite = (timingp->repeatCount && timingp->repeatCount->type == SMIL_REPEATCOUNT_INDEFINITE);
-	isRepeatDurDefined = (timingp->repeatDur && timingp->repeatDur->type == SMIL_DURATION_DEFINED);
-	isRepeatDurIndefinite = (timingp->repeatDur && timingp->repeatDur->type == SMIL_DURATION_INDEFINITE);
+	isDurDefined = (timingp->dur && timingp->dur->type == SMIL_DURATION_DEFINED) ? GF_TRUE : GF_FALSE;
+	isMediaDuration = (timingp->dur && (timingp->dur->type == SMIL_DURATION_MEDIA) && (rti->media_duration>=0) ) ? GF_TRUE : GF_FALSE;
+	isRepeatCountDefined = (timingp->repeatCount && timingp->repeatCount->type == SMIL_REPEATCOUNT_DEFINED) ? GF_TRUE : GF_FALSE;
+	isRepeatCountIndefinite = (timingp->repeatCount && timingp->repeatCount->type == SMIL_REPEATCOUNT_INDEFINITE) ? GF_TRUE : GF_FALSE;
+	isRepeatDurDefined = (timingp->repeatDur && timingp->repeatDur->type == SMIL_DURATION_DEFINED) ? GF_TRUE : GF_FALSE;
+	isRepeatDurIndefinite = (timingp->repeatDur && timingp->repeatDur->type == SMIL_DURATION_INDEFINITE) ? GF_TRUE : GF_FALSE;
 
 	/* Step 1: Computing active duration using repeatDur and repeatCount */
 	if (isDurDefined || isMediaDuration) {
@@ -114,13 +114,13 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 	   to ensure that they have greater priority than the end attribute
 	   see (animate-elem-223-t.svg) */
 	/* Step 3: clamp the active duration with min and max */
-	clamp_active_duration = 1;
+	clamp_active_duration = GF_TRUE;
 	/* testing for presence of min and max because some elements may not have them: eg SVG audio */
-	isMinDefined = (timingp->min && timingp->min->type == SMIL_DURATION_DEFINED);
-	isMaxDefined = (timingp->max && timingp->max->type == SMIL_DURATION_DEFINED);
+	isMinDefined = (timingp->min && timingp->min->type == SMIL_DURATION_DEFINED) ? GF_TRUE : GF_FALSE;
+	isMaxDefined = (timingp->max && timingp->max->type == SMIL_DURATION_DEFINED) ? GF_TRUE : GF_FALSE;
 	if (isMinDefined && isMaxDefined &&
 	        timingp->max->clock_value < timingp->min->clock_value) {
-		clamp_active_duration = 0;
+		clamp_active_duration = GF_FALSE;
 	}
 	if (clamp_active_duration) {
 		if (isMinDefined) {
@@ -134,7 +134,7 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 				  and then is frozen or not shown depending on the value of the fill attribute.
 				  (cf animate-elem-222-t.svg)*/
 				interval->active_duration = timingp->min->clock_value;
-				interval->min_active = 1;
+				interval->min_active = GF_TRUE;
 			}
 		}
 		if (isMaxDefined) {
@@ -200,7 +200,7 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 {
 	u32 i, count;
 	if (!rti || !rti->current_interval) return;
-	
+
 	memset(rti->current_interval, 0, sizeof(SMIL_Interval));
 	rti->current_interval->begin = -1;
 	count = (rti->timingp->begin ? gf_list_count(*rti->timingp->begin) : 0);
@@ -234,14 +234,14 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 	}
 
 	gf_smil_timing_compute_active_duration(rti, rti->current_interval);
-	gf_smil_timing_print_interval(rti, 1, rti->current_interval);
+	gf_smil_timing_print_interval(rti, GF_TRUE, rti->current_interval);
 }
 
 static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, Bool current, SMIL_Interval *interval, Double scene_time)
 {
 	u32 i, count;
 	if (!interval) return GF_FALSE;
-	
+
 	memset(interval, 0, sizeof(SMIL_Interval));
 	interval->begin = -1;
 
@@ -263,13 +263,13 @@ static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, Bool current,
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			interval->begin = -1;
 			interval->end = -1;
-			return 0;
+			return GF_FALSE;
 		}
 		gf_smil_timing_compute_active_duration(rti, interval);
 		gf_smil_timing_print_interval(rti, current, interval);
-		return 1;
+		return GF_TRUE;
 	} else {
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -289,9 +289,9 @@ static Bool gf_smil_timing_add_to_sg(GF_SceneGraph *sg, SMIL_Timing_RTI *rti)
 			if (cur_rti->current_interval->begin > rti->current_interval->begin) break;
 		}
 		gf_list_insert(sg->smil_timed_elements, rti, i);
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /* when a timed element restarts, since the list of timed elements in the scene graph,
@@ -325,7 +325,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)timed_elt;
 
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
-	e->timingp = gf_malloc(sizeof(SMILTimingAttributesPointers));
+	e->timingp = (SMILTimingAttributesPointers *)gf_malloc(sizeof(SMILTimingAttributesPointers));
 	e->timingp->begin		= all_atts.begin;
 	e->timingp->clipBegin	= all_atts.clipBegin;
 	e->timingp->clipEnd		= all_atts.clipEnd;
@@ -350,7 +350,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		TODO: Check if this should work with the animation element */
 		if (!e->timingp->dur) {
 			GF_FieldInfo info;
-			gf_node_get_attribute_by_tag((GF_Node *)e, TAG_SVG_ATT_dur, 1, 0, &info);
+			gf_node_get_attribute_by_tag((GF_Node *)e, TAG_SVG_ATT_dur, GF_TRUE, GF_FALSE, &info);
 			e->timingp->dur = (SMIL_Duration *)info.far_ptr;
 			e->timingp->dur->type = SMIL_DURATION_MEDIA;
 		}
@@ -370,7 +370,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
 	rti->evaluate = gf_smil_timing_null_timed_function;
 	rti->scene_time = -1;
-	rti->force_reevaluation = 0;
+	rti->force_reevaluation = GF_FALSE;
 	rti->media_duration = -1;
 
 	GF_SAFEALLOC(rti->current_interval, SMIL_Interval);
@@ -384,7 +384,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL timing next interval\n"));
 		return;
 	}
-	gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->current_interval->begin);
+	gf_smil_timing_get_next_interval(rti, GF_FALSE, rti->next_interval, rti->current_interval->begin);
 
 	/* Now that the runtime info for this timed element is initialized, we can tell the scene graph that it can start
 	   notifying the scene time to this element. Because of the 'animation' element, we can have many scene graphs
@@ -400,11 +400,11 @@ static void gf_smil_timing_reset_time_list(GF_List *times)
 	GF_DOMEventTarget *evt;
 	u32 i;
 	for (i=0; i<gf_list_count(times); i++) {
-		SMIL_Time *t = gf_list_get(times, i);
+		SMIL_Time *t = (SMIL_Time *)gf_list_get(times, i);
 		if (!t->listener) continue;
 
 		/*detach the listener from the observed node*/
-		evt = t->listener->sgprivate->UserPrivate;
+		evt = (GF_DOMEventTarget *)t->listener->sgprivate->UserPrivate;
 		t->listener->sgprivate->UserPrivate = NULL;
 		gf_dom_listener_del(t->listener, evt);
 
@@ -441,8 +441,8 @@ GF_EXPORT
 Bool gf_smil_timing_is_active(GF_Node *node)
 {
 	SMILTimingAttributesPointers *timingp = ((SVGTimedAnimBaseElement *)node)->timingp;
-	if (!timingp || !timingp->runtime) return 0;
-	return (timingp->runtime->status == SMIL_STATUS_ACTIVE);
+	if (!timingp || !timingp->runtime) return GF_FALSE;
+	return (timingp->runtime->status == SMIL_STATUS_ACTIVE) ? GF_TRUE : GF_FALSE;
 }
 
 Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
@@ -451,7 +451,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 	u32 active_count, i;
 	s32 ret;
 	Bool do_loop;
-	if (!sg) return 0;
+	if (!sg) return GF_FALSE;
 
 	active_count = 0;
 
@@ -466,7 +466,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 	   this might modify other timed elements or the element itself
 	   in which case it will be added to the list of modified elements */
 	i = 0;
-	do_loop = 1;
+	do_loop = GF_TRUE;
 	while(do_loop && (rti = (SMIL_Timing_RTI *)gf_list_enum(sg->smil_timed_elements, &i))) {
 		ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
 		switch (ret) {
@@ -480,7 +480,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 			/* special return value, -2 means that the tested timed element is waiting to begin
 			   Assuming that the timed elements are sorted by begin order,
 			   the next ones don't need to be checked */
-			do_loop = 0;
+			do_loop = GF_FALSE;
 			break;
 		case -3:
 			/* special case for animation elements which do not need to be notified anymore,
@@ -503,7 +503,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 	   because of the start/end/repeat of the previous notifications */
 	while (gf_list_count(sg->modified_smil_timed_elements)) {
 		/* first remove the modified smil timed element */
-		rti = gf_list_get(sg->modified_smil_timed_elements, 0);
+		rti = (struct _smil_timing_rti *)gf_list_get(sg->modified_smil_timed_elements, 0);
 		gf_list_rem(sg->modified_smil_timed_elements, 0);
 
 		/* then remove it in the list of non modified (if it was there) */
@@ -513,7 +513,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 		gf_smil_timing_add_to_sg(sg, rti);
 
 		/* finally again notify this timed element */
-		rti->force_reevaluation = 1;
+		rti->force_reevaluation = GF_TRUE;
 		ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
 		switch (ret) {
 		case -1:
@@ -534,7 +534,7 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 		}
 
 	}
-	return (active_count>0);
+	return (active_count>0) ? GF_TRUE : GF_FALSE;
 }
 
 /* evaluation function for the discard element
@@ -549,33 +549,33 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 	SMILTimingAttributesPointers *timingp = (SMILTimingAttributesPointers *)rti->timingp;
 	GF_Node *target;
 
-	if (!timingp) return 0;
+	if (!timingp) return GF_FALSE;
 
-	target = tb->xlinkp->href ? tb->xlinkp->href->target : NULL;
+	target = tb->xlinkp->href ? (GF_Node *)tb->xlinkp->href->target : NULL;
 
 	begin = (timingp->begin ? (SMIL_Time *)gf_list_get(*timingp->begin, 0) : NULL);
 
-	if (!begin) return 0;
-	if (!GF_SMIL_TIME_IS_CLOCK(begin->type) ) return 0;
+	if (!begin) return GF_FALSE;
+	if (!GF_SMIL_TIME_IS_CLOCK(begin->type) ) return GF_FALSE;
 
-	if (begin->clock > scene_time) return 0;
+	if (begin->clock > scene_time) return GF_FALSE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SVG Composer] discarding element %s at time %f\n", target ? gf_node_get_log_name(target) : "None", scene_time));
 
-	gf_smil_mark_modified(rti, 1);
+	gf_smil_mark_modified(rti, GF_TRUE);
 
 	/*this takes care of cases where discard is a child of its target*/
 	gf_node_register(rti->timed_elt, NULL);
 	nb_inst = gf_node_get_num_instances(rti->timed_elt);
-	if (target) gf_node_replace(target, NULL, 0);
+	if (target) gf_node_replace(target, NULL, GF_FALSE);
 	if (nb_inst == gf_node_get_num_instances(rti->timed_elt)) {
 		gf_node_unregister(rti->timed_elt, NULL);
 		/*after this the stack may be free'd*/
-		gf_node_replace(rti->timed_elt, NULL, 0);
+		gf_node_replace(rti->timed_elt, NULL, GF_FALSE);
 	} else {
 		gf_node_unregister(rti->timed_elt, NULL);
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 /* Animations are applied in their begin order first and then in document order.
@@ -603,7 +603,7 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double in_scene_time)
 	s32 ret = 0;
 	GF_DOM_Event evt;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
-	Bool force_end = 0;
+	Bool force_end = GF_FALSE;
 
 	if (!timingp) return 0;
 
@@ -611,7 +611,7 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double in_scene_time)
 	   animations are paused and we don't need to evaluate it again unless the force_reevaluation flag is set */
 	if ((rti->scene_time == in_scene_time) && (rti->force_reevaluation == 0)) return 0;
 	if (!rti->paused) rti->scene_time = in_scene_time;
-	rti->force_reevaluation = 0;
+	rti->force_reevaluation = GF_FALSE;
 
 	/* for fraction events, in all cases we indicate that the scene needs redraw */
 	if (rti->evaluate_status == SMIL_TIMING_EVAL_FRACTION)
@@ -696,11 +696,11 @@ force_end:
 
 				if (rti->next_interval->begin != -1 && rti->next_interval->begin < rti->scene_time) {
 					*rti->current_interval = *rti->next_interval;
-					gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->scene_time);
+					gf_smil_timing_get_next_interval(rti, GF_FALSE, rti->next_interval, rti->scene_time);
 
 					/* mark that this element has been modified and
 					   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
-					gf_smil_mark_modified(rti, 0);
+					gf_smil_mark_modified(rti, GF_FALSE);
 
 					/* if this is animation, reinserting the animation in the list of animations
 					   that targets this attribute, so that it is the last one */
@@ -760,21 +760,21 @@ force_end:
 			/* Check changes in begin or end attributes */
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Checking for restart when not active\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			if (rti->next_interval->begin != -1) {
-				Bool restart_timing = 0;
+				Bool restart_timing = GF_FALSE;
 				/*next interval is right now*/
 				if (rti->next_interval->begin == rti->current_interval->begin+rti->current_interval->active_duration)
-					restart_timing = 1;
+					restart_timing = GF_TRUE;
 
 				/*switch intervals*/
 				if (rti->next_interval->begin >= rti->current_interval->begin+rti->current_interval->active_duration) {
 					*rti->current_interval = *rti->next_interval;
 
-					gf_smil_timing_print_interval(rti, 1, rti->current_interval);
-					gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->scene_time);
+					gf_smil_timing_print_interval(rti, GF_TRUE, rti->current_interval);
+					gf_smil_timing_get_next_interval(rti, GF_FALSE, rti->next_interval, rti->scene_time);
 
 					/* mark that this element has been modified and
 					   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
-					gf_smil_mark_modified(rti, 0);
+					gf_smil_mark_modified(rti, GF_FALSE);
 				} else {
 					rti->next_interval->begin = -1;
 				}
@@ -866,7 +866,7 @@ end:
 		(see The rule to apply to compute the active duration of an element with min or max specified) */
 		if ((activeTime >= rti->current_interval->repeat_duration) && rti->current_interval->min_active) {
 			/* freeze the normalized simple time */
-			if (force_end) *force_end = 1;
+			if (force_end) *force_end = GF_TRUE;
 			if (rti->timingp->fill && *(rti->timingp->fill) == SMIL_FILL_FREEZE) {
 				if (rti->current_interval->repeat_duration == rti->current_interval->simple_duration) {
 					return FIX_ONE;
@@ -910,7 +910,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Modification\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 	if (rti->current_interval->begin == -1) {
-		gf_smil_timing_get_next_interval(rti, 1, rti->current_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
+		gf_smil_timing_get_next_interval(rti, GF_TRUE, rti->current_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
 	} else {
 		/* we don't have the right to modify the end of an element if it's not in unresolved state */
 		if (rti->current_interval->end == -1) gf_smil_timing_get_interval_end(rti, rti->current_interval);
@@ -924,13 +924,13 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 		}
 
 		gf_smil_timing_compute_active_duration(rti, rti->current_interval);
-		gf_smil_timing_print_interval(rti, 1, rti->current_interval);
+		gf_smil_timing_print_interval(rti, GF_TRUE, rti->current_interval);
 	}
-	gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
+	gf_smil_timing_get_next_interval(rti, GF_FALSE, rti->next_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
 
 	/* mark that this element has been modified and
 	   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
-	gf_smil_mark_modified(rti, 0);
+	gf_smil_mark_modified(rti, GF_FALSE);
 }
 
 
@@ -971,16 +971,16 @@ Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element,
 		GF_SAFEALLOC(t, SMIL_Time);
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL time for discard\n"));
-			return 0;
+			return GF_FALSE;
 		}
 		t->clock = 0;
 		t->type = GF_SMIL_TIME_CLOCK;
 		gf_list_add(smil_times, t);
-		return 1;
+		return GF_TRUE;
 	}
 
-	if (done!=count) return 0;
-	return 1;
+	if (done!=count) return GF_FALSE;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -1031,7 +1031,7 @@ void gf_smil_timing_pause(GF_Node *node)
 {
 	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
-		if (rti->status<=SMIL_STATUS_ACTIVE) rti->paused = 1;
+		if (rti->status<=SMIL_STATUS_ACTIVE) rti->paused = GF_TRUE;
 	}
 }
 
@@ -1039,7 +1039,7 @@ void gf_smil_timing_resume(GF_Node *node)
 {
 	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
-		rti->paused = 0;
+		rti->paused = GF_FALSE;
 	}
 }
 

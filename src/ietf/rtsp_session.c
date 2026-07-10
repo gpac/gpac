@@ -40,9 +40,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess);
 #include <openssl/x509v3.h>
 #include <openssl/rand.h>
 
-void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void gf_ssl_del(void *ssl);
-Bool gf_ssl_check_cert(SSL *ssl, const char *server_name);
+#include "../utils/downloader.h"
 
 #endif
 
@@ -260,7 +258,7 @@ u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 			gf_sk_del(sess->http);
 			sess->http = NULL;
 			if (sess->tunnel_mode<RTSP_HTTP_DISABLE)
-				sess->tunnel_mode = 0;
+				sess->tunnel_mode = RTSP_HTTP_NONE;
 		}
 		sess->tunnel_state = 0;
 #ifdef GPAC_HAS_SSL
@@ -341,7 +339,7 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 GF_Err gf_rtsp_set_ssl_ctx(GF_RTSPSession *sess, void *ssl_CTX)
 {
 	if (!sess) return GF_BAD_PARAM;
-	sess->ssl_ctx = ssl_CTX;
+	sess->ssl_ctx = (SSL_CTX*)ssl_CTX;
 	return GF_OK;
 }
 #endif
@@ -369,7 +367,7 @@ char *gf_rtsp_get_last_request(GF_RTSPSession *sess)
 //check whether the url contains server and service name
 //no thread protection as this is const throughout the session
 GF_EXPORT
-Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url)
+Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, const char *url)
 {
 	if (!sess) return GF_FALSE;
 	if (!strstr(url, sess->Server)) return GF_FALSE;
@@ -460,7 +458,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 			SSL_set_alpn_protos(sess->ssl, NULL, 0);
 		}
 
-		sess->ssl_connect_pending = 0;
+		sess->ssl_connect_pending = GF_FALSE;
 		int ret = SSL_connect(sess->ssl);
 		if (ret<=0) {
 			ret = SSL_get_error(sess->ssl, ret);
@@ -472,7 +470,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 				return GF_IP_CONNECTION_FAILURE;
 			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
-				sess->ssl_connect_pending = 1;
+				sess->ssl_connect_pending = GF_TRUE;
 				return GF_IP_NETWORK_EMPTY;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
@@ -508,7 +506,7 @@ GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size)
 
 	//RTSP requests on HTTP are base 64 encoded
 	if (sess->tunnel_mode==RTSP_HTTP_CLIENT) {
-		char *buf64 = gf_malloc(sizeof(char)*Size*2);
+		u8 *buf64 = (u8*)gf_malloc(Size*2);
 		if (!buf64) return GF_OUT_OF_MEM;
 		Size64 = gf_base64_encode(buffer, Size, buf64, Size*2);
 		//send on http connection
@@ -545,7 +543,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 	u8 InterID;
 	u16 paySize;
 	u32 res, Size;
-	char *buffer;
+	u8 *buffer;
 
 	if (!sess) return GF_SERVICE_ERROR;
 
@@ -559,7 +557,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 		return gf_rtsp_refill_buffer(sess);
 
 	//break if we get RTSP response on the wire
-	if (!strncmp(buffer, "RTSP", 4) || !strncmp(buffer, "HTTP", 4))
+	if (!strncmp((char*)buffer, "RTSP", 4) || !strncmp((char*)buffer, "HTTP", 4))
 		return GF_EOS;
 
 	//new packet
@@ -591,7 +589,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 			sess->payloadSize = paySize;
 			sess->pck_start = Size-4;
 			if (sess->rtsp_pck_size < paySize) {
-				sess->rtsp_pck_buf = (char *)gf_realloc(sess->rtsp_pck_buf, sizeof(char)*paySize);
+				sess->rtsp_pck_buf = (u8 *)gf_realloc(sess->rtsp_pck_buf, paySize);
 				sess->rtsp_pck_size = paySize;
 			}
 			memcpy(sess->rtsp_pck_buf, buffer+4, Size-4);
@@ -695,7 +693,7 @@ GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess, gf_rtsp_interleave_
 		if (!sess->rtsp_pck_buf)
 			sess->pck_start = 0;
 		sess->rtsp_pck_size = RTSP_PCK_SIZE;
-		sess->rtsp_pck_buf = (char *)gf_realloc(sess->rtsp_pck_buf, sizeof(char)*sess->rtsp_pck_size);
+		sess->rtsp_pck_buf = (u8 *)gf_realloc(sess->rtsp_pck_buf, sess->rtsp_pck_size);
 	}
 	return GF_OK;
 }
@@ -706,7 +704,7 @@ GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 	if (!sess) return GF_BAD_PARAM;
 	if (sess->SockBufferSize >= BufferSize) return GF_OK;
 	sess->SockBufferSize = BufferSize;
-	sess->tcp_buffer = gf_realloc(sess->tcp_buffer, (BufferSize+1));
+	sess->tcp_buffer = (u8*)gf_realloc(sess->tcp_buffer, (BufferSize+1));
 	return GF_OK;
 }
 
@@ -776,7 +774,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 		if (!sess->HTTP_Cookie) {
 			char szBuf[30];
 			u32 r = gf_rand();
-			snprintf(szBuf, 29, "GPAC_%x_"LLX, r, gf_sys_clock_high_res() );
+			snprintf(szBuf, 29, "GPAC_%x_" LLX, r, gf_sys_clock_high_res() );
 			szBuf[29]=0;
 			sess->HTTP_Cookie = gf_strdup(szBuf);
 			if (!sess->HTTP_Cookie) return GF_OUT_OF_MEM;
@@ -799,13 +797,13 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Sending %s", buffer));
 
 		//	send it - we assume this will fit the socket buffer
-		e = rstp_do_write_sock(sess, sess->connection, buffer, (u32) strlen(buffer), NULL);
+		e = rstp_do_write_sock(sess, sess->connection, (u8*) buffer, (u32) strlen(buffer), NULL);
 		if (e) return e;
 	}
 
 	if (sess->tunnel_state == 1) {
 		//	2. wait for "HTTP/1.0 200 OK"
-		e = gf_rstp_do_read_sock(sess, sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, &size);
+		e = gf_rstp_do_read_sock(sess, sess->connection, (u8*)buffer, GF_RTSP_DEFAULT_BUFFER, &size);
 		if (e) {
 			if ((e==GF_IP_NETWORK_EMPTY) && (sess->timeout_in < gf_sys_clock()))
 				e = GF_IP_CONNECTION_FAILURE;
@@ -816,7 +814,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Got reply %s", buffer));
 
 		//get HTTP/1.0 200 OK
-		if (strncmp(buffer, HTTP10_RSP_OK, strlen(HTTP10_RSP_OK)) && strncmp(buffer, HTTP11_RSP_OK, strlen(HTTP11_RSP_OK))) {
+		if (strncmp((char*)buffer, HTTP10_RSP_OK, strlen(HTTP10_RSP_OK)) && strncmp(buffer, HTTP11_RSP_OK, strlen(HTTP11_RSP_OK))) {
 			sess->tunnel_state = 0;
 			return GF_REMOTE_SERVICE_ERROR;
 		}
@@ -854,7 +852,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 			SSL_set_alpn_protos(sess->ssl_http, NULL, 0);
 		}
 
-		sess->ssl_connect_pending = 0;
+		sess->ssl_connect_pending = GF_FALSE;
 		int ret = SSL_connect(sess->ssl_http);
 		if (ret<=0) {
 			ret = SSL_get_error(sess->ssl_http, ret);
@@ -866,7 +864,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 				return GF_IP_CONNECTION_FAILURE;
 			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
-				sess->ssl_connect_pending = 1;
+				sess->ssl_connect_pending = GF_TRUE;
 				return GF_IP_NETWORK_EMPTY;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %d\n", ret));
@@ -897,7 +895,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 	sess->tunnel_state = 0;
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Sending request %s", buffer));
 	//	send it, no need to wait for answer
-	return rstp_do_write_sock(sess, sess->http, buffer, (u32) strlen(buffer), NULL);
+	return rstp_do_write_sock(sess, sess->http, (u8*)buffer, (u32) strlen(buffer), NULL);
 }
 
 /*server-side RTSP sockets*/
@@ -925,7 +923,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 
 #ifdef GPAC_HAS_SSL
 	if (ssl_ctx) {
-		ssl = gf_ssl_new(ssl_ctx, new_conn, &e);
+		ssl = (SSL *)gf_ssl_new(ssl_ctx, new_conn, &e);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[SSL] Failed to create TLS session: %s\n", gf_error_to_string(e) ));
 			gf_sk_del(new_conn);
@@ -959,7 +957,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 	sess->Port = port;
 	sess->ConnectionType = fam;
 #ifdef GPAC_HAS_SSL
-	sess->ssl_ctx = ssl_ctx;
+	sess->ssl_ctx = (SSL_CTX*)ssl_ctx;
 	sess->ssl = ssl;
 #endif
 	const char *name = gf_opts_get_key("core", "user-agent");
@@ -1071,7 +1069,7 @@ static GF_Err gf_rtsp_write_sock(GF_RTSPSession *sess, u8 *data, u32 len)
 	remain = len - written;
 	if (sess->async_buf_size + remain > sess->async_buf_alloc) {
 		sess->async_buf_alloc = sess->async_buf_size+remain;
-		sess->async_buf = gf_realloc(sess->async_buf, sess->async_buf_alloc);
+		sess->async_buf = (u8 *) gf_realloc(sess->async_buf, sess->async_buf_alloc);
 		if (!sess->async_buf) return GF_OUT_OF_MEM;
 	}
 	memcpy(sess->async_buf + sess->async_buf_size, data+written, remain);
@@ -1083,7 +1081,7 @@ GF_EXPORT
 GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck, u32 pck_size)
 {
 	GF_Err e;
-	char streamID[4];
+	u8 streamID[4];
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
 
 	streamID[0] = '$';
@@ -1092,7 +1090,8 @@ GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck,
 	streamID[3] = pck_size & 0xFF;
 
 	e = gf_rtsp_write_sock(sess, streamID, 4);
-	e |= gf_rtsp_write_sock(sess, pck, pck_size);
+	if (!e)
+		e = gf_rtsp_write_sock(sess, pck, pck_size);
 	return e;
 }
 
@@ -1135,7 +1134,7 @@ GF_Err gf_rtsp_merge_tunnel(GF_RTSPSession *sess, GF_RTSPSession *post_sess)
 		u32 remain = post_sess->CurrentSize - post_sess->CurrentPos;
 		if (sess->CurrentSize + remain > sess->SockBufferSize) {
 			sess->SockBufferSize = sess->CurrentSize + remain;
-			sess->tcp_buffer = gf_realloc(sess->tcp_buffer, sess->SockBufferSize);
+			sess->tcp_buffer = (u8*) gf_realloc(sess->tcp_buffer, sess->SockBufferSize);
 			if (!sess->tcp_buffer) return GF_OUT_OF_MEM;
 		}
 		memcpy(sess->tcp_buffer+sess->CurrentPos, buf, remain);

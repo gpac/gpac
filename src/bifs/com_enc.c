@@ -226,7 +226,7 @@ static GF_Err BE_GlobalQuantizer(GF_BifsEncoder * codec, GF_Command *com, GF_Bit
 	GF_CommandField *inf;
 	if (!gf_list_count(com->command_fields)) return GF_OK;
 	inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
-	if (inf->new_node) ((M_QuantizationParameter *)inf->new_node)->isLocal = 0;
+	if (inf->new_node) ((M_QuantizationParameter *)inf->new_node)->isLocal = GF_FALSE;
 	e = gf_bifs_enc_node(codec, inf->new_node, NDT_SFWorldNode, bs, NULL);
 	if (e) return e;
 
@@ -244,7 +244,7 @@ static GF_Err BE_GlobalQuantizer(GF_BifsEncoder * codec, GF_Command *com, GF_Bit
 	codec->scene_graph->global_qp = inf->new_node;
 	gf_node_register(inf->new_node, NULL);
 	codec->ActiveQP = (M_QuantizationParameter *) inf->new_node;
-	codec->ActiveQP->isLocal = 0;
+	codec->ActiveQP->isLocal = GF_FALSE;
 	return GF_OK;
 }
 

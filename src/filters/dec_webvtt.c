@@ -142,7 +142,7 @@ void vttd_setup_scene(GF_VTTDec *ctx)
 	n = root = gf_node_new(ctx->scenegraph, TAG_SVG_svg);
 	gf_node_register(root, NULL);
 	gf_sg_set_root_node(ctx->scenegraph, root);
-	gf_node_get_attribute_by_name(n, "xmlns", 0, GF_TRUE, GF_FALSE, &info);
+	gf_node_get_attribute_by_name(n, "xmlns", GF_XMLNS_UNDEFINED, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(n, &info, "http://www.w3.org/2000/svg", 0);
 	vttd_update_size_info(ctx);
 	gf_node_init(n);
@@ -218,7 +218,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		((GF_StringBox *)b)->string = NULL;
 		gf_isom_box_del(b);
 	} else {
-		ctx->dsi = gf_malloc( p->value.data.size + 1);
+		ctx->dsi = (char *)gf_malloc( p->value.data.size + 1);
 		memcpy(ctx->dsi, p->value.data.ptr, p->value.data.size);
 		ctx->dsi[p->value.data.size] = 0;
 	}
@@ -248,7 +248,7 @@ static void vttd_toggle_display(GF_VTTDec *ctx)
 
 static Bool vttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
-	GF_VTTDec *ctx = gf_filter_get_udta(filter);
+	GF_VTTDec *ctx = (GF_VTTDec *)gf_filter_get_udta(filter);
 
 	//check for scene attach
 	switch (com->base.type) {
@@ -276,7 +276,7 @@ static Bool vttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	}
 	if (ctx->opid != com->attach_scene.on_pid) return GF_TRUE;
 
-	ctx->odm = com->attach_scene.object_manager;
+	ctx->odm = (GF_ObjectManager *)com->attach_scene.object_manager;
 	ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 	/*timedtext cannot be a root scene object*/
@@ -289,8 +289,6 @@ static Bool vttd_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	 }
 	 return GF_TRUE;
 }
-
-void js_dump_error(JSContext *ctx);
 
 JSContext *vtt_script_get_context(GF_VTTDec *ctx, GF_SceneGraph *sg)
 {
@@ -412,7 +410,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	GF_FilterPacket *pck;
 	GF_List *cues;
-	const char *pck_data;
+	const u8 *pck_data;
 	u64 cts;
 	u32 pck_size;
 	GF_VTTDec *ctx = (GF_VTTDec *) gf_filter_get_udta(filter);
@@ -504,14 +502,14 @@ static GF_Err vttd_process(GF_Filter *filter)
 
 static GF_Err vtt_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
 {
-	GF_VTTDec *ctx = gf_filter_get_udta(filter);
+	GF_VTTDec *ctx = (GF_VTTDec *)gf_filter_get_udta(filter);
 	ctx->update_args = GF_TRUE;
 	return GF_OK;
 }
 
 static GF_Err vttd_initialize(GF_Filter *filter)
 {
-	GF_VTTDec *ctx = gf_filter_get_udta(filter);
+	GF_VTTDec *ctx = (GF_VTTDec *)gf_filter_get_udta(filter);
 
 	if (!ctx->script) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTTDec] WebVTT JS renderer script not set\n"));

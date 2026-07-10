@@ -62,7 +62,7 @@ static GF_Err compose_process(GF_Filter *filter)
 		if (!ctx->root_scene) {
 			ctx->reload_state = 0;
 			if (ctx->reload_url) {
-				gf_sc_connect_from_time(ctx, ctx->reload_url, 0, 0, 0, NULL);
+				gf_sc_connect_from_time(ctx, ctx->reload_url, GF_FALSE, 0, GF_FALSE, NULL);
 				gf_free(ctx->reload_url);
 				ctx->reload_url = NULL;
 			}
@@ -79,8 +79,8 @@ static GF_Err compose_process(GF_Filter *filter)
 	for (i=0; i<nb_sys_streams_active; i++) {
 		GF_FilterPacket *pck;
 		GF_Err e;
-		GF_FilterPid *pid = gf_list_get(ctx->systems_pids, i);
-		GF_ObjectManager *odm = gf_filter_pid_get_udta(pid);
+		GF_FilterPid *pid = (struct __gf_filter_pid *)gf_list_get(ctx->systems_pids, i);
+		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(pid);
 
 		assert (odm);
 
@@ -191,7 +191,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	}
 
 	//player mode
-	
+
 	//quit event seen or session is ending, do not flush, just abort and return last error
 	if (ctx->check_eos_state || gf_filter_end_of_session(filter)) {
 		gf_filter_abort(filter);
@@ -242,7 +242,7 @@ static void compositor_setup_vout(GF_Compositor *ctx)
 	if (ctx->timescale)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	else
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT((u32)ctx->fps.num) );
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt ? ctx->opfmt : GF_PIXEL_RGB) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->output_width) );
@@ -267,7 +267,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	Bool was_dyn_scene = GF_FALSE;
 	if (is_remove) {
 		u32 ID=0;
-		odm = gf_filter_pid_get_udta(pid);
+		odm = (struct _od_manager *)gf_filter_pid_get_udta(pid);
 		//already disconnected
 		if (!odm) return GF_OK;
 		ID = odm->ID;
@@ -309,7 +309,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (!prop) return GF_NOT_SUPPORTED;
 	codecid = prop->value.uint;
 
-	odm = gf_filter_pid_get_udta(pid);
+	odm = (struct _od_manager *)gf_filter_pid_get_udta(pid);
 
 	//in filter mode, check we can handle creating a canvas from input video format. If not, negotiate a supported format
 	if (!ctx->player) {
@@ -383,7 +383,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		const char *service_url = "unknown";
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 		if (p) service_url = p->value.string;
-		
+
 		ctx->root_scene = gf_scene_new(ctx, NULL);
 		ctx->root_scene->root_od = gf_odm_new();
 		ctx->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->root_scene, ctx->root_scene->root_od, service_url, NULL);
@@ -428,7 +428,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//browse all scene namespaces and figure out our parent scene
 	count = gf_list_count(top_scene->namespaces);
 	for (i=0; i<count; i++) {
-		GF_SceneNamespace *sns = gf_list_get(top_scene->namespaces, i);
+		GF_SceneNamespace *sns = (GF_SceneNamespace *)gf_list_get(top_scene->namespaces, i);
 		if (!sns->source_filter) {
 			if (sns->connect_ack && sns->owner && !def_scene) {
 				def_scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
@@ -441,7 +441,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
 				u32 j;
 				for (j=0; j<gf_list_count(sns->owner->parentscene->scene_objects); j++) {
-					GF_MediaObject *mo = gf_list_get(sns->owner->parentscene->scene_objects, j);
+					GF_MediaObject *mo = (GF_MediaObject *)gf_list_get(sns->owner->parentscene->scene_objects, j);
 					if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) continue;
 					if (mo->OD_ID != sns->owner->ID) continue;
 
@@ -528,7 +528,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		new_sns = gf_scene_ns_new(ctx->root_scene, ctx->root_scene->root_od, service_url, NULL);
 
 		for (i=0; i<gf_list_count(scene->resources); i++) {
-			GF_ObjectManager *anodm = gf_list_get(scene->resources, i);
+			GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(scene->resources, i);
 
 			if (new_sns && (anodm->scene_ns == scene->root_od->scene_ns) && (scene->root_od->scene_ns->owner==scene->root_od)) {
 				scene->root_od->scene_ns->owner = anodm;
@@ -551,7 +551,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (was_dyn_scene != scene->is_dynamic_scene) {
 		for (i=0; i<gf_list_count(scene->resources); i++) {
-			GF_ObjectManager *anodm = gf_list_get(scene->resources, i);
+			GF_ObjectManager *anodm = (struct _od_manager *)gf_list_get(scene->resources, i);
 			if (anodm->mo)
 				anodm->flags |= GF_ODM_PASSTHROUGH;
 		}
@@ -639,7 +639,7 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 				}
 			}
 		}
-		
+
 		w = h = 0;
 		p = gf_filter_pid_caps_query(pid, GF_PROP_PID_WIDTH);
 		if (p) w = p->value.uint;
@@ -700,7 +700,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 	case GF_FEVT_BUFFER_REQ:
 		return GF_TRUE;
-		
+
 	case GF_FEVT_INFO_UPDATE:
 	{
 		u32 bps=0;
@@ -730,7 +730,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (p) down_size = p->value.longuint;
 
 		if (bps && down_size && tot_size)  {
-			GF_ObjectManager *odm = gf_filter_pid_get_udta(evt->base.on_pid);
+			GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(evt->base.on_pid);
 			if ((down_size!=odm->last_filesize_signaled) || (down_size != tot_size)) {
 				odm->last_filesize_signaled = down_size;
 				gf_odm_service_media_event_with_download(odm, GF_EVENT_MEDIA_PROGRESS, down_size, tot_size, bps/8, 0, 0);
@@ -741,12 +741,12 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 
 	case GF_FEVT_USER:
-		return gf_sc_user_event(gf_filter_get_udta(filter), (GF_Event *) &evt->user_event.event);
+		return gf_sc_user_event((GF_Compositor *)gf_filter_get_udta(filter), (GF_Event *) &evt->user_event.event);
 
 	//handle play for non-player mode, dynamic scenes only
 	case GF_FEVT_PLAY:
 	{
-		GF_Compositor *compositor = gf_filter_get_udta(filter);
+		GF_Compositor *compositor = (GF_Compositor *)gf_filter_get_udta(filter);
 		s32 diff = (s32) (evt->play.start_range*1000);
 		diff -= (s32) gf_sc_get_time_in_ms(compositor);
 		if (!compositor->player && compositor->root_scene->is_dynamic_scene && !evt->play.initial_broadcast_play
@@ -759,16 +759,16 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	//handle stop for non-player mode, dynamic scenes only
 	case GF_FEVT_STOP:
 	{
-		GF_Compositor *compositor = gf_filter_get_udta(filter);
+		GF_Compositor *compositor = (GF_Compositor *)gf_filter_get_udta(filter);
 		if (!compositor->player && !evt->play.initial_broadcast_play) {
 			if (compositor->root_scene->is_dynamic_scene) {
 				u32 i, count = gf_list_count(compositor->root_scene->resources);
 				for (i=0; i<count; i++) {
-					GF_ObjectManager *odm = gf_list_get(compositor->root_scene->resources, i);
+					GF_ObjectManager *odm = (struct _od_manager *)gf_list_get(compositor->root_scene->resources, i);
 					gf_odm_stop(odm, GF_TRUE);
 				}
 			} else {
-				gf_odm_stop(compositor->root_scene->root_od, 1);
+				gf_odm_stop(compositor->root_scene->root_od, GF_TRUE);
 			}
 		}
 	}
@@ -783,14 +783,14 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GF_Err compose_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	GF_Compositor *compositor = gf_filter_get_udta(filter);
+	GF_Compositor *compositor = (GF_Compositor *)gf_filter_get_udta(filter);
 	compositor->reload_config = GF_TRUE;
 	return GF_OK;
 }
 
 static void compose_finalize(GF_Filter *filter)
 {
-	GF_Compositor *ctx = gf_filter_get_udta(filter);
+	GF_Compositor *ctx = (GF_Compositor *)gf_filter_get_udta(filter);
 
 	if (ctx) {
 		gf_sc_set_scene(ctx, NULL);
@@ -822,7 +822,7 @@ static GF_Err compose_initialize(GF_Filter *filter)
 {
 	GF_Err e;
 	GF_FilterSessionCaps sess_caps;
-	GF_Compositor *ctx = gf_filter_get_udta(filter);
+	GF_Compositor *ctx = (GF_Compositor *)gf_filter_get_udta(filter);
 
 	ctx->filter = filter;
 
@@ -909,14 +909,14 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	if (ctx->player==2) {
 		const char *gui_path = gf_opts_get_key("core", "startup-file");
 		if (gui_path) {
-			gf_sc_connect_from_time(ctx, gui_path, 0, 0, 0, NULL);
+			gf_sc_connect_from_time(ctx, gui_path, GF_FALSE, 0, GF_FALSE, NULL);
 			if (ctx->src)
 				gf_opts_set_key("temp", "gui_load_urls", ctx->src);
 		}
 	}
 	//src set, connect it (whether player mode or not)
 	else if (ctx->src) {
-		gf_sc_connect_from_time(ctx, ctx->src, 0, 0, 0, NULL);
+		gf_sc_connect_from_time(ctx, ctx->src, GF_FALSE, 0, GF_FALSE, NULL);
 	}
 
 	gf_opts_set_key("temp", "compositor", "yes");

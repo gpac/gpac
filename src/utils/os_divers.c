@@ -26,6 +26,7 @@
 #include <gpac/tools.h>
 #include <gpac/network.h>
 #include <gpac/config_file.h>
+#include <gpac/main.h>
 
 #if defined(_WIN32_WCE)
 
@@ -476,7 +477,7 @@ char * my_str_lwr(char *str)
 
 Bool gf_prompt_has_input()
 {
-	return 0;
+	return GF_FALSE;
 }
 char gf_prompt_get_char() {
 	return 0;
@@ -967,7 +968,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			Bool use_sep = GF_FALSE;
 			Bool bool_value = GF_TRUE;
 			char szArg[1024];
-			char *arg_val;
+			const char *arg_val;
 			const char *arg = argv[i];
 			if (!arg) continue;
 
@@ -1041,7 +1042,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				if (!arg_val) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("[core] Missing value for argument -netcap, ignoring\n"));
 				} else {
-					GF_Err gf_netcap_setup(char *rules);
+					GF_Err gf_netcap_setup(const char *rules);
 					e = gf_netcap_setup(arg_val);
 					if (e) return e;
 				}
@@ -1089,7 +1090,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 	{
 		gpac_argc = (u32) argc;
 		gpac_argv = argv;
-		gpac_argv_state = gf_realloc(gpac_argv_state, sizeof(Bool) * argc);
+		gpac_argv_state = (Bool *) gf_realloc(gpac_argv_state, sizeof(Bool) * argc);
 		for (i=0; i<argc; i++) {
 			gpac_argv_state[i] = GF_FALSE;
 			if (!strncmp(argv[i], "-p", 2)) gpac_argv_state[i] = GF_TRUE;
@@ -1416,13 +1417,13 @@ static void gf_sys_refresh_cache()
 			continue;
 		}
 
-		force_delete = 0;
+		force_delete = GF_FALSE;
 		if (file && gf_file_exists(file)) {
-			force_delete = 1;
+			force_delete = GF_TRUE;
 		}
 		sscanf(opt, "%u", &exp);
 		gf_net_get_ntp(&sec, &frac);
-		if (exp && (exp<sec)) force_delete=1;
+		if (exp && (exp<sec)) force_delete = GF_TRUE;
 
 		if (force_delete) {
 			if (file) gf_file_delete(file);
@@ -1949,18 +1950,18 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	entry_time = gf_sys_clock();
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
-		return 0;
+		return GF_FALSE;
 	}
 
 	mib[0] = CTL_HW;
 	mib[1] = HW_PAGESIZE;
 	length = sizeof(pagesize);
 	if (sysctl(mib, 2, &pagesize, &length, NULL, 0) < 0) {
-		return 0;
+		return GF_FALSE;
 	}
 
 	if (host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count) != KERN_SUCCESS) {
-		return 0;
+		return GF_FALSE;
 	}
 
 	the_rti.physical_memory = (vmstat.wire_count + vmstat.active_count + vmstat.inactive_count + vmstat.free_count)* pagesize;
@@ -1979,13 +1980,13 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	error = task_for_pid(mach_task_self(), the_rti.pid, &task);
 	if (error) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get process task for PID %d: error %d\n", the_rti.pid, error));
-		return 0;
+		return GF_FALSE;
 	}
 
 	error = task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&ti, &size);
 	if (error) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get process task info (PID %d): error %d\n", the_rti.pid, error));
-		return 0;
+		return GF_FALSE;
 	}
 
 	percent = 0;
@@ -2006,7 +2007,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	error = task_threads(task, &thread_table, &table_size);
 	if (error != KERN_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] Cannot get threads task for PID %d: error %d\n", the_rti.pid, error));
-		return 0;
+		return GF_FALSE;
 	}
 	thi = &thi_data;
 	for (i = 0; i != table_size; ++i) {
@@ -2056,7 +2057,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	last_cpu_idle_time = 0;
 	last_update_time = entry_time;
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
-	return 1;
+	return GF_TRUE;
 }
 
 //ios
@@ -2258,7 +2259,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		if (f) {
 			while (gf_fgets(line, 1024, f) != NULL) {
 				if (!strnicmp(line, "VmRSS:", 7)) {
-					sscanf(line, "VmRSS: "LLD" kB", &the_rti.process_memory);
+					sscanf(line, "VmRSS: " LLD " kB", &the_rti.process_memory);
 					the_rti.process_memory *= 1024;
 				}
 			}
@@ -2470,7 +2471,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	char * pidfile;
 	int flags;
 	int status;
-	pidfile = gf_malloc(strlen(dir)+strlen(prefix)+strlen(resourceName)+1);
+	pidfile = (char *)gf_malloc(strlen(dir)+strlen(prefix)+strlen(resourceName)+1);
 	gf_strcpy(pidfile, dir);
 	gf_strcat(pidfile, prefix);
 	/* Use only valid names for file */
@@ -2521,7 +2522,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	/* Write the PID */
 	{
 		int sz = 100;
-		char * buf = gf_malloc( sz );
+		char * buf = (char *)gf_malloc( sz );
 		sz = snprintf(buf, sz, "%ld\n", (long) getpid());
 		if (write(fd, buf, sz) != sz) {
 			gf_free(buf);
@@ -2530,7 +2531,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 	}
 	sync();
 	{
-		GF_GlobalLock * lock = gf_malloc( sizeof(GF_GlobalLock));
+		GF_GlobalLock * lock = (GF_GlobalLock *)gf_malloc( sizeof(GF_GlobalLock));
 		lock->resourceName = gf_strdup(resourceName);
 		lock->pidFile = pidfile;
 		lock->fd = fd;
@@ -2555,7 +2556,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 	unsigned short sWResourceName[MAX_PATH];
 #endif
 	DWORD lastErr;
-	GF_GlobalLock *lock = gf_malloc(sizeof(GF_GlobalLock));
+	GF_GlobalLock *lock = (GF_GlobalLock *)gf_malloc(sizeof(GF_GlobalLock));
 	lock->resourceName = gf_strdup(resourceName);
 
 	/*first ensure mutex is created*/
@@ -3128,7 +3129,7 @@ GF_Err gf_file_load_data_filep(FILE *file, u8 **out_data, u32 *out_size)
 	}
 
 	/* First, read the dump in a buffer */
-	*out_data = gf_malloc((size_t)(fsize+1) * sizeof(char));
+	*out_data = (u8 *)gf_malloc((size_t)(fsize+1));
 	if (! *out_data) {
 		return GF_OUT_OF_MEM;
 	}
@@ -3235,7 +3236,7 @@ GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 		GF_Err e = gf_file_load_data(lockname, &data, &size);
 		if (!data || !size || e!=GF_OK) continue;
 
-		sscanf(data, "%u", &pid);
+		sscanf((const char *)data, "%u", &pid);
 		gf_free(data);
 		//already locked by ourselves
 		if (pid == gf_sys_get_process_id()) return GF_LOCKFILE_REUSE;
@@ -3253,26 +3254,26 @@ GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 GF_EXPORT
 int gf_getch()
 {
-	struct termios old;
-	struct termios new;
+	struct termios old_tios;
+	struct termios new_tios;
 	int rc;
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) return 0;
 #endif
 
-	if (tcgetattr(0, &old) == -1) {
+	if (tcgetattr(0, &old_tios) == -1) {
 		return -1;
 	}
-	new = old;
-	new.c_lflag &= ~(ICANON | ECHO | ISIG);
-	new.c_cc[VMIN] = 1;
-	new.c_cc[VTIME] = 0;
-	if (tcsetattr(0, TCSANOW, &new) == -1) {
+	new_tios = old_tios;
+	new_tios.c_lflag &= ~(ICANON | ECHO | ISIG);
+	new_tios.c_cc[VMIN] = 1;
+	new_tios.c_cc[VTIME] = 0;
+	if (tcsetattr(0, TCSANOW, &new_tios) == -1) {
 		return -1;
 	}
 	rc = getchar();
-	(void) tcsetattr(0, TCSANOW, &old);
+	(void) tcsetattr(0, TCSANOW, &old_tios);
 	return rc;
 }
 #else

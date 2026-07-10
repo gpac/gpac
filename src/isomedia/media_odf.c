@@ -95,7 +95,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 
 				//create our OD...
 				if (desc->tag == GF_ODF_ISOM_IOD_TAG) {
-					od = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_InitialObjectDescriptor));
+					od = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_ObjectDescriptor));
 				} else {
 					od = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_ObjectDescriptor));
 				}
@@ -185,7 +185,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdR2->ODID = esdR->ODID;
 			esdR2->NbESDs = esdR->NbESDs;
 			//alloc our stuff
-			esdR2->ES_ID = (unsigned short*)gf_malloc(sizeof(u32) * esdR->NbESDs);
+			esdR2->ES_ID = (unsigned short*)gf_malloc(sizeof(unsigned short) * esdR->NbESDs);
 			if (!esdR2->ES_ID) {
 				e = GF_OUT_OF_MEM;
 				goto err_exit;
@@ -202,10 +202,10 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 					esdR2->ES_ID[i - skipped] = mpod->trackIDs[esdR->ES_ID[i] - 1];
 				}
 			}
-			//gf_realloc...
+
 			if (skipped && (skipped != esdR2->NbESDs) ) {
 				esdR2->NbESDs -= skipped;
-				esdR2->ES_ID = (unsigned short*)gf_realloc(esdR2->ES_ID, sizeof(u32) * esdR2->NbESDs);
+				esdR2->ES_ID = (unsigned short*)gf_realloc(esdR2->ES_ID, sizeof(unsigned short) * esdR2->NbESDs);
 			}
 			gf_odf_com_del((GF_ODCom **)&esdR);
 			gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdR2);
@@ -317,7 +317,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 					if (!isom_od) return GF_OUT_OF_MEM;
 					isom_od->tag = GF_ODF_ISOM_OD_TAG;
 				} else {
-					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomInitialObjectDescriptor));
+					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomObjectDescriptor));
 					if (!isom_od) return GF_OUT_OF_MEM;
 					isom_od->tag = GF_ODF_ISOM_IOD_TAG;
 					//copy PL
@@ -399,7 +399,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 			esdR2->NbESDs = esdR->NbESDs;
 			if (esdR->NbESDs) {
 				//alloc our stuff
-				esdR2->ES_ID = (unsigned short*)gf_malloc(sizeof(u32) * esdR->NbESDs);
+				esdR2->ES_ID = (unsigned short*)gf_malloc(sizeof(unsigned short) * esdR->NbESDs);
 				if (!esdR2->ES_ID) {
 					e = GF_OUT_OF_MEM;
 					goto err_exit;

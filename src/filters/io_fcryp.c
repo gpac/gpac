@@ -158,7 +158,7 @@ static void cryptfile_finalize(GF_Filter *filter)
 
 	if (ctx->keys) {
 		while (gf_list_count(ctx->keys)) {
-			KeyInfo *ki = gf_list_pop_front(ctx->keys);
+			KeyInfo *ki = (KeyInfo *)gf_list_pop_front(ctx->keys);
 			gf_free(ki);
 		}
 		gf_list_del(ctx->keys);
@@ -521,7 +521,7 @@ static GF_Err cryptfout_process(GF_Filter *filter)
 	}
 
 	if (start) {
-		KeyInfo *ki = gf_list_pop_front(ctx->keys);
+		KeyInfo *ki = (KeyInfo *)gf_list_pop_front(ctx->keys);
 
 		if (ctx->remain || !ctx->file_done) {
 			pad = 16 - (ctx->remain % 16);
@@ -616,7 +616,7 @@ static GF_Err cryptfout_process(GF_Filter *filter)
 
 	pck_out = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 	if (!pck_out) return GF_OUT_OF_MEM;
-	
+
 	if (ctx->remain)
 		memcpy(output, ctx->store, ctx->remain);
 	memcpy(output+ctx->remain, data, osize - ctx->remain - pad);

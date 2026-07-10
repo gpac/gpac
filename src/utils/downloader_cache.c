@@ -59,12 +59,14 @@ static const char * CACHE_SECTION_KEY_INWRITE = "InWrite";
 static const char * CACHE_SECTION_KEY_TODELETE = "ToDelete";
 static const char * CACHE_SECTION_USERS = "users";
 
-enum CacheValid
+typedef enum
 {
 	CORRUPTED = 1,
 	DELETED = 1<<1,
 	IN_PROGRESS = 1<<2,
-};
+} CacheValidFlags;
+
+typedef u32 CacheValid;
 
 /**
 * This opaque structure handles the data from the cache
@@ -98,7 +100,7 @@ struct __DownloadedCacheEntryStruct
 	// Bytes written during this cache session
 	u32 written_in_cache;
 	// Flag indicating whether we have to revalidate
-	enum CacheValid   flags;
+	CacheValid flags;
 	//pointer to write session
 	const GF_DownloadSession * write_session;
 	//list of read sessions
@@ -212,7 +214,7 @@ static Bool gather_cache_files(void *cbck, char *item_name, char *item_path, GF_
 
 	count = gf_list_count(gci->files);
 	for (i=0; i<count; i++) {
-		CacheInfo *a_ci = gf_list_get(gci->files, i);
+		CacheInfo *a_ci = (CacheInfo *)gf_list_get(gci->files, i);
 		//sort by nb hits first
 		if (ci->nb_hit<a_ci->nb_hit) {
 			gf_list_insert(gci->files, ci, i);
@@ -240,7 +242,7 @@ static Bool gather_cache_files(void *cbck, char *item_name, char *item_path, GF_
 		}
 	}
 	gf_list_add(gci->files, ci);
-	return 0;
+	return GF_FALSE;
 }
 
 u64 gf_cache_cleanup(const char * directory, u64 max_size)
@@ -256,7 +258,7 @@ u64 gf_cache_cleanup(const char * directory, u64 max_size)
 	u64 cache_size = gci.tot_size;
 
 	while (gf_list_count(gci.files)) {
-		CacheInfo *ci = gf_list_pop_back(gci.files);
+		CacheInfo *ci = (CacheInfo *)gf_list_pop_back(gci.files);
 		if (cache_size>max_size) {
 			if (cache_size>ci->size) cache_size -= ci->size;
 			else cache_size = 0;
@@ -413,7 +415,7 @@ GF_Err gf_cache_flush_disk_cache ( const DownloadedCacheEntry entry, Bool succes
 	gf_cfg_set_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_URL, entry->url);
 
 	if (entry->range_start || entry->range_end) {
-		sprintf(buff, LLD"-"LLD, entry->range_start, entry->range_end);
+		sprintf(buff, LLD "-" LLD, entry->range_start, entry->range_end);
 		gf_cfg_set_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_RANGE, buff);
 	}
 
@@ -471,7 +473,7 @@ static void gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry
 	keyValue = gf_cfg_get_key(cfg, CACHE_SECTION_NAME, CACHE_SECTION_KEY_RANGE);
 	if (keyValue) {
 		u64 s, e;
-		sscanf(keyValue, LLD"-"LLD, &s, &e);
+		sscanf(keyValue, LLD "-" LLD, &s, &e);
 		/*mark as corrupted if not same range (we don't support this for the time being ...*/
 		if ((s!=entry->range_start) || (e!=entry->range_end)) {
 			entry->flags |= CORRUPTED;
@@ -539,7 +541,7 @@ DownloadedCacheEntry gf_cache_create_entry(const char * cache_directory, const c
 	tmp[0] = '\0';
 	/*generate hash of the full url*/
 	if (start_range && end_range) {
-		snprintf(tmp, GF_MAX_PATH, "%s_"LLD"-"LLD, url, start_range, end_range );
+		snprintf(tmp, GF_MAX_PATH, "%s_" LLD "-" LLD, url, start_range, end_range );
 	} else {
 		gf_strcpy ( tmp, url );
 	}
@@ -796,7 +798,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		if (!entry->mem_allocated || (entry->mem_allocated < entry->contentLength)) {
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
 			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
-			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
+			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (entry->mem_allocated + 2) );
 		}
 		entry->cache_blob.data = entry->mem_storage;
 		entry->cache_blob.size = entry->contentLength;
@@ -845,7 +847,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	CHECK_ENTRY;
 
 	if (!data || (!entry->writeFilePtr && !entry->mem_storage) || sess != entry->write_session) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE, ("Incorrect parameter : data=%p, writeFilePtr=%p mem_storage=%p at "__FILE__"\n", data, entry->writeFilePtr, entry->mem_storage));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CACHE, ("Incorrect parameter : data=%p, writeFilePtr=%p mem_storage=%p at " __FILE__ "\n", data, entry->writeFilePtr, entry->mem_storage));
 		return GF_BAD_PARAM;
 	}
 
@@ -1286,8 +1288,8 @@ static DownloadedCacheEntry gf_cache_find_entry_by_url(GF_DownloadSession * sess
 		gf_assert( url );
 
 		if (!strncmp(url, "http://gmcast/", 14)) {
-			char *sep_1 = strchr(url+14, '/');
-			char *sep_2 = strchr(sess->orig_url+14, '/');
+			const char *sep_1 = strchr(url+14, '/');
+			const char *sep_2 = strchr(sess->orig_url+14, '/');
 			if (!sep_1 || !sep_2 || strcmp(sep_1, sep_2))
 				continue;
 		} else if (strcmp(url, sess->orig_url)) continue;
@@ -1548,7 +1550,7 @@ DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *s
 
 	gf_mx_p(dm->cache_mx );
 	if (blob)
-		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[CACHE] Pushing %s to cache "LLU" bytes (done %s)\n", szURL, blob->size, (blob->flags & GF_BLOB_IN_TRANSFER) ? "no" : "yes"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE, ("[CACHE] Pushing %s to cache " LLU " bytes (done %s)\n", szURL, blob->size, (blob->flags & GF_BLOB_IN_TRANSFER) ? "no" : "yes"));
 	count = gf_list_count(dm->cache_entries);
 	for (i = 0 ; i < count; i++) {
 		const char * url;
@@ -1626,7 +1628,7 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 	res = gf_cache_set_headers(entry, headers);
 	count = gf_list_count(dm->all_sessions);
 	for (i=0; i<count; i++) {
-		GF_DownloadSession *sess = gf_list_get(dm->all_sessions, i);
+		GF_DownloadSession *sess = (GF_DownloadSession *)gf_list_get(dm->all_sessions, i);
 		if (sess->cache_entry != entry) continue;
 		gf_dm_sess_reload_cached_headers(sess);
 	}

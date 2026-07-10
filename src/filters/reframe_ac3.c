@@ -81,7 +81,7 @@ typedef struct
 GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC3DmxCtx *ctx = (GF_AC3DmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -178,7 +178,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		if (cur_dur > ctx->index * sr) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AC3Idx)*ctx->index_alloc_size);
+			ctx->indexes = (AC3Idx *)gf_realloc(ctx->indexes, sizeof(AC3Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs);
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= sr;
@@ -268,7 +268,7 @@ static Bool ac3dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC3DmxCtx *ctx = (GF_AC3DmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -338,7 +338,7 @@ static GFINLINE void ac3dmx_update_cts(GF_AC3DmxCtx *ctx)
 
 GF_Err ac3dmx_process(GF_Filter *filter)
 {
-	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC3DmxCtx *ctx = (GF_AC3DmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *output;
 	u8 *start;
@@ -398,7 +398,7 @@ restart:
 
 		if (ctx->ac3_buffer_size + pck_size > ctx->ac3_buffer_alloc) {
 			ctx->ac3_buffer_alloc = ctx->ac3_buffer_size + pck_size;
-			ctx->ac3_buffer = gf_realloc(ctx->ac3_buffer, ctx->ac3_buffer_alloc);
+			ctx->ac3_buffer = (u8 *)gf_realloc(ctx->ac3_buffer, ctx->ac3_buffer_alloc);
 		}
 		memcpy(ctx->ac3_buffer + ctx->ac3_buffer_size, data, pck_size);
 		ctx->ac3_buffer_size += pck_size;
@@ -554,7 +554,7 @@ restart:
 
 static void ac3dmx_finalize(GF_Filter *filter)
 {
-	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AC3DmxCtx *ctx = (GF_AC3DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->ac3_buffer) gf_free(ctx->ac3_buffer);
 	if (ctx->indexes) gf_free(ctx->indexes);
@@ -603,7 +603,7 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	data = _data;
 	size = _size;
 	nb_frames = 0;
-	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		ahdr.sample_rate = 0;
 		if (!gf_eac3_parser_bs(bs, &ahdr, GF_FALSE)) {

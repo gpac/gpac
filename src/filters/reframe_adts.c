@@ -194,7 +194,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 GF_Err adts_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSDmxCtx *ctx = (GF_ADTSDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -274,7 +274,7 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(ADTSIdx)*ctx->index_alloc_size);
+			ctx->indexes = (ADTSIdx *)gf_realloc(ctx->indexes, sizeof(ADTSIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = gf_bs_get_position(bs) - hdr.hdr_size;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= GF_M4ASampleRates[sr_idx];
@@ -475,7 +475,7 @@ static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSDmxCtx *ctx = (GF_ADTSDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -556,10 +556,10 @@ static GFINLINE void adts_dmx_update_cts(GF_ADTSDmxCtx *ctx)
 
 GF_Err adts_dmx_process(GF_Filter *filter)
 {
-	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSDmxCtx *ctx = (GF_ADTSDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	u8 *data, *output;
-	u8 *start;
+	u8 *output;
+	const u8 *data, *start;
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts;
 
@@ -590,7 +590,7 @@ restart:
 
 	prev_pck_size = ctx->adts_buffer_size;
 	if (pck && !ctx->resume_from) {
-		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+		data = gf_filter_pck_get_data(pck, &pck_size);
 		if (!pck_size) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
@@ -610,7 +610,7 @@ restart:
 
 		if (ctx->adts_buffer_size + pck_size > ctx->adts_buffer_alloc) {
 			ctx->adts_buffer_alloc = ctx->adts_buffer_size + pck_size;
-			ctx->adts_buffer = gf_realloc(ctx->adts_buffer, ctx->adts_buffer_alloc);
+			ctx->adts_buffer = (u8 *)gf_realloc(ctx->adts_buffer, ctx->adts_buffer_alloc);
 		}
 		memcpy(ctx->adts_buffer + ctx->adts_buffer_size, data, pck_size);
 		ctx->adts_buffer_size += pck_size;
@@ -653,7 +653,7 @@ restart:
 
 				bytes_to_drop = 10;
 				if (ctx->id3_buffer_alloc < ctx->tag_size+10) {
-					ctx->id3_buffer = gf_realloc(ctx->id3_buffer, ctx->tag_size+10);
+					ctx->id3_buffer = (u8 *)gf_realloc(ctx->id3_buffer, ctx->tag_size+10);
 					ctx->id3_buffer_alloc = ctx->tag_size+10;
 				}
 				memcpy(ctx->id3_buffer, start, 10);
@@ -680,7 +680,7 @@ restart:
 
 		}
 
-		sync = memchr(start, 0xFF, remain);
+		sync = (u8*)memchr(start, 0xFF, remain);
 		sync_pos = (u32) (sync ? sync - start : remain);
 
 		//couldn't find sync byte in this packet
@@ -710,7 +710,7 @@ restart:
 		//if (ctx->mpeg4)
 		//we deprecate old MPEG-2 signaling for AAC in ISOBMFF, as it is not well supported anyway and we don't write adif_header as
 		//supposed to be for these types
-		ctx->hdr.is_mp2 = 0;
+		ctx->hdr.is_mp2 = GF_FALSE;
 
 		gf_bs_read_int(ctx->bs, 2);
 		ctx->hdr.no_crc = (Bool)gf_bs_read_int(ctx->bs, 1);
@@ -908,7 +908,7 @@ drop_byte:
 
 static void adts_dmx_finalize(GF_Filter *filter)
 {
-	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_ADTSDmxCtx *ctx = (GF_ADTSDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->adts_buffer) gf_free(ctx->adts_buffer);
@@ -940,7 +940,7 @@ static const char *adts_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		}
 	}
 
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	memset(&prev_hdr, 0, sizeof(ADTSHeader));
 	while (gf_bs_available(bs)) {
 		ADTSHeader hdr;

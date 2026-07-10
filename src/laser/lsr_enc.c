@@ -38,7 +38,7 @@
 	gf_assert(_str);\
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
- 
+
 static void lsr_write_group_content(GF_LASeRCodec *lsr, SVG_Element *elt, Bool skip_object_content);
 static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *comList, SVG_Element *script, Bool first_implicit);
 static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool reset_encoding_context);
@@ -260,7 +260,7 @@ static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_tot, val));
 }
 
-static void lsr_write_extension(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
+static void lsr_write_extension(GF_LASeRCodec *lsr, u8 *data, u32 len, const char *name)
 {
 	if (!len) len = (u32) strlen(name);
 	lsr_write_vluimsbf5(lsr, len, name);
@@ -378,12 +378,12 @@ static void lsr_write_line_increment_type(GF_LASeRCodec *lsr, SVG_Number *li, co
 	}
 }
 
-static void lsr_write_byte_align_string(GF_LASeRCodec *lsr, char *str, const char *name)
+static void lsr_write_byte_align_string(GF_LASeRCodec *lsr, const char *str, const char *name)
 {
 	u32 len = str ? (u32) strlen(str) : 0;
 	gf_bs_align(lsr->bs);
 	lsr_write_vluimsbf8(lsr, len, "len");
-	if (len) gf_bs_write_data(lsr->bs, str, len);
+	if (len) gf_bs_write_data(lsr->bs, (u8*)str, len);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%s\n", name, 8*len, str ? str : ""));
 }
 static void lsr_write_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool is_iri)
@@ -434,7 +434,7 @@ static void lsr_write_any_uri(GF_LASeRCodec *lsr, XMLRI *iri, const char *name)
 			len = (u32) strlen(sep+1);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "hasData");
 			lsr_write_vluimsbf5(lsr, len, "len");
-			gf_bs_write_data(lsr->bs, sep+1, len);
+			gf_bs_write_data(lsr->bs, (u8*)sep+1, len);
 		}
 	}
 	GF_LSR_WRITE_INT(lsr, (iri->type==XMLRI_ELEMENTID) ? 1 : 0, 1, "hasID");
@@ -484,7 +484,7 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 
 		default:
 			GF_LSR_WRITE_INT(lsr, 3, 2, "enum");
-			lsr_write_extension(lsr, "ERROR", 5, "colorExType0");
+			lsr_write_extension(lsr, (u8*)"ERROR", 5, "colorExType0");
 			break;
 		}
 	}
@@ -519,13 +519,13 @@ static void lsr_write_private_attr_container(GF_LASeRCodec *lsr, u32 index, cons
 static Bool lsr_float_list_equal(GF_List *l1, GF_List *l2)
 {
 	u32 i, count = gf_list_count(l1);
-	if (count != gf_list_count(l2)) return 0;
+	if (count != gf_list_count(l2)) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		Fixed *v1 = (Fixed *)gf_list_get(l1, i);
 		Fixed *v2 = (Fixed *)gf_list_get(l2, i);
-		if (*v1 != *v2) return 0;
+		if (*v1 != *v2) return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 }
 #endif /*GPAC_UNUSED_FUNC*/
 
@@ -558,7 +558,7 @@ static void lsr_write_private_attributes(GF_LASeRCodec *lsr, SVG_Element *elt)
 #endif /*GPAC_UNUSED_FUNC*/
 	}
 }
-static void lsr_write_string_attribute(GF_LASeRCodec *lsr, char *class_attr, char *name)
+static void lsr_write_string_attribute(GF_LASeRCodec *lsr, char *class_attr, const char *name)
 {
 	if (class_attr) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, name);
@@ -743,7 +743,7 @@ u32 dom_to_lsr_key(u32 dom_k)
 		return 100;
 	}
 }
-static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
+static void lsr_write_event_type(GF_LASeRCodec *lsr, GF_EventType evtType, u32 evtParam)
 {
 	u32 force_string = 0;
 	switch (evtType) {
@@ -760,6 +760,8 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 	case GF_EVENT_REPEAT:
 		force_string = 1;
 		break;
+	default:
+		break;
 	}
 
 	if (force_string) {
@@ -767,7 +769,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 		if (evtParam) {
 			if (force_string==2) {
-				sprintf(szName, "%s(%s)", gf_dom_event_get_name(evtType), gf_dom_get_key_name(evtParam) );
+				sprintf(szName, "%s(%s)", gf_dom_event_get_name(evtType), gf_dom_get_key_name((GF_KeyCode)evtParam) );
 			} else {
 				sprintf(szName, "%s(%d)", gf_dom_event_get_name(evtType), evtParam);
 			}
@@ -890,6 +892,8 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		case GF_EVENT_SHORT_ACCESSKEY:
 			lsr_write_vluimsbf5(lsr, dom_to_lsr_key(evtParam), "keyCode");
 			break;
+		default:
+			break;
 		}
 	}
 }
@@ -982,7 +986,7 @@ static void lsr_write_duration_ex(GF_LASeRCodec *lsr, SMIL_Duration *v, const ch
 		GF_LSR_WRITE_INT(lsr, v->type, 2, "time");
 	}
 }
-#define lsr_write_duration(a, b, c) lsr_write_duration_ex(a, b, c, 1)
+#define lsr_write_duration(a, b, c) lsr_write_duration_ex(a, b, c, GF_TRUE)
 
 static void lsr_write_focus(GF_LASeRCodec *lsr, SVG_Focus *foc, const char *name)
 {
@@ -1071,7 +1075,7 @@ static Bool lsr_elt_has_same_base(GF_LASeRCodec *lsr, SVGAllAttributes *atts, SV
 		break;
 	}
 
-	return gf_lsr_same_rare(atts, &base_atts);
+	return gf_lsr_same_rare(atts, &base_atts) ? GF_TRUE : GF_FALSE;
 }
 
 static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
@@ -1114,7 +1118,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 				GF_List *l = *(GF_List **)att->data;
 				u32 str_len = 0;
 				for (i=0; i<gf_list_count(l); i++) {
-					char *st = gf_list_get(l, i);
+					char *st = (char *)gf_list_get(l, i);
 					str_len += (u32) strlen(st);
 					if (i) str_len += 1;
 				}
@@ -1285,7 +1289,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 		{
 			GF_List *l = *(GF_List **)att->data;
 			u32 j, tot_count, count = gf_list_count(l);
-			u8 *vals = (u8*)gf_malloc(sizeof(u8)*count);
+			u8 *vals = (u8*)gf_malloc(count);
 			tot_count = 0;
 			for (i=0; i<count; i++) {
 				char *ext;
@@ -1617,7 +1621,7 @@ static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_ty
 
 	/*locate field - checkme, this may not work since anim is not setup...*/
 	gf_assert(anim_type->name || anim_type->tag);
-	if (!anim_type->tag) anim_type->tag = gf_xml_get_attribute_tag((GF_Node*)iri->target, anim_type->name, 0);
+	if (!anim_type->tag) anim_type->tag = gf_xml_get_attribute_tag((GF_Node*)iri->target, anim_type->name, (GF_NamespaceType)0);
 	if (!anim_type->type) anim_type->type = gf_xml_get_attribute_type(anim_type->tag);
 	a_type = gf_lsr_anim_type_from_attribute(anim_type->tag);
 	if (a_type<0) {
@@ -1795,7 +1799,7 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 				u8 value = 0;
 				if (n->type==SVG_NUMBER_INHERIT) value=1;
 				/*fixe me spec is not clear here regarding what values should be used ...*/
-				
+
 				GF_LSR_WRITE_INT(lsr, 1, 1, "escapeFlag");
 				GF_LSR_WRITE_INT(lsr, value, 2, "escapeEnum");
 				return;
@@ -1975,7 +1979,7 @@ static void lsr_write_anim_values(GF_LASeRCodec *lsr, SMIL_AnimateValues *anims,
 		GF_LSR_WRITE_INT(lsr, type, 4, "type");
 		lsr_write_vluimsbf5(lsr, count, "count");
 		for (i=0; i<count; i++) {
-			void *att = gf_list_get(anims->values, i);
+			void *att = (void *)gf_list_get(anims->values, i);
 			lsr_write_an_anim_value(lsr, att, type, anims->type, 0, "a_value");
 		}
 	}
@@ -2580,7 +2584,7 @@ static void lsr_write_conditional(GF_LASeRCodec *lsr, SVG_Element *elt)
 
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt);
-	lsr_write_smil_times(lsr, atts.begin, "begin", 1);
+	lsr_write_smil_times(lsr, atts.begin, "begin", GF_TRUE);
 	GF_LSR_WRITE_INT(lsr, (atts.externalResourcesRequired && *atts.externalResourcesRequired) ? 1 : 0, 1, "externalResourcesRequired");
 	GF_LSR_WRITE_INT(lsr, (atts.lsr_enabled && *atts.lsr_enabled) ? 1 : 0, 1, "enabled");
 	lsr_write_any_attribute(lsr, elt, GF_TRUE);
@@ -2867,7 +2871,7 @@ static void lsr_write_polygon(GF_LASeRCodec *lsr, SVG_Element *elt, Bool is_poly
 		lsr_write_any_attribute(lsr, elt, GF_TRUE);
 		lsr->prev_polygon = elt;
 	}
-	lsr_write_group_content(lsr, elt, same_type);
+	lsr_write_group_content(lsr, elt, same_type ? GF_TRUE : GF_FALSE);
 }
 static void lsr_write_radialGradient(GF_LASeRCodec *lsr, SVG_Element *elt)
 {
@@ -2925,7 +2929,7 @@ static void lsr_write_rect(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
 		lsr_write_any_attribute(lsr, elt, GF_TRUE);
 		lsr->prev_rect = elt;
 	}
-	lsr_write_group_content(lsr, elt, same_type);
+	lsr_write_group_content(lsr, elt, same_type ? GF_TRUE : GF_FALSE);
 }
 
 static void lsr_write_rectClip(GF_LASeRCodec *lsr, SVG_Element *elt)
@@ -3125,7 +3129,7 @@ static void lsr_write_switch(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_stroke(lsr, (SVG_Element*)elt, &atts);
 	GF_LSR_WRITE_INT(lsr, (atts.externalResourcesRequired && *atts.externalResourcesRequired) ? 1 : 0, 1, "externalResourcesRequired");
 	lsr_write_any_attribute(lsr, elt, GF_TRUE);
-	lsr_write_group_content(lsr, elt, 0);
+	lsr_write_group_content(lsr, elt, GF_FALSE);
 }
 
 static void lsr_write_text(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
@@ -3135,7 +3139,7 @@ static void lsr_write_text(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
 	SVGAllAttributes atts;
 	gf_svg_flatten_attributes(elt, &atts);
 
-	if (!ommit_tag && lsr_elt_has_same_base(lsr, &atts, lsr->prev_text, &same_fill, NULL, 0) ) {
+	if (!ommit_tag && lsr_elt_has_same_base(lsr, &atts, lsr->prev_text, &same_fill, NULL, GF_FALSE) ) {
 		if (!same_fill) {
 			/*sametextfillType*/
 			GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_sametextfill, 6, "ch4");
@@ -3164,7 +3168,7 @@ static void lsr_write_text(GF_LASeRCodec *lsr, SVG_Element *elt, Bool ommit_tag)
 		lsr_write_any_attribute(lsr, elt, GF_TRUE);
 		lsr->prev_text = elt;
 	}
-	lsr_write_group_content(lsr, elt, same_type);
+	lsr_write_group_content(lsr, elt, same_type ?  GF_TRUE : GF_FALSE);
 }
 
 static void lsr_write_tspan(GF_LASeRCodec *lsr, SVG_Element *elt)
@@ -3317,9 +3321,11 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVG_Element *elt)
 	lsr_write_group_content(lsr, elt, GF_FALSE);
 }
 
-static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *parent, void *node)
+static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *parent, void *_node)
 {
-	u32 tag = gf_node_get_tag((GF_Node*)node);
+	u32 tag = gf_node_get_tag((GF_Node*)_node);
+	SVG_Element *node = (SVG_Element *)_node;
+
 
 	switch(tag) {
 	case TAG_SVG_a:
@@ -3373,7 +3379,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 
 	case TAG_SVG_g:
 		/*type is written in encoding fct for sameg handling*/
-		lsr_write_g(lsr, node, 0);
+		lsr_write_g(lsr, node, GF_FALSE);
 		break;
 	case TAG_SVG_image:
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_image, 6, "ch4");
@@ -3381,7 +3387,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		break;
 	case TAG_SVG_line:
 		/*type is written in encoding fct for sameline handling*/
-		lsr_write_line(lsr, node, 0);
+		lsr_write_line(lsr, node, GF_FALSE);
 		break;
 	case TAG_SVG_linearGradient:
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_linearGradient, 6, "ch4");
@@ -3397,15 +3403,15 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		break;
 	case TAG_SVG_path:
 		/*type is written in encoding fct for samepath handling*/
-		lsr_write_path(lsr, node, 0);
+		lsr_write_path(lsr, node, GF_FALSE);
 		break;
 	case TAG_SVG_polygon:
 		/*type is written in encoding fct for samepolygon handling*/
-		lsr_write_polygon(lsr, node, 0, 0);
+		lsr_write_polygon(lsr, node, GF_FALSE, GF_FALSE);
 		break;
 	case TAG_SVG_polyline:
 		/*type is written in encoding fct for samepolyline handling*/
-		lsr_write_polygon(lsr, node, 1, 0);
+		lsr_write_polygon(lsr, node, GF_TRUE, GF_FALSE);
 		break;
 	case TAG_SVG_radialGradient:
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_radialGradient, 6, "ch4");
@@ -3413,7 +3419,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		break;
 	case TAG_SVG_rect:
 		/*type is written in encoding fct for samepolyline handling*/
-		lsr_write_rect(lsr, node, 0);
+		lsr_write_rect(lsr, node, GF_FALSE);
 		break;
 	case TAG_SVG_script:
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_script, 6, "ch4");
@@ -3433,7 +3439,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		break;
 	case TAG_SVG_text:
 		/*type is written in encoding fct for sametext handling*/
-		lsr_write_text(lsr, node, 0);
+		lsr_write_text(lsr, node, GF_FALSE);
 		break;
 	case TAG_SVG_title:
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_title, 6, "ch4");
@@ -3445,7 +3451,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 		break;
 	case TAG_SVG_use:
 		/*type is written in encoding fct for sameuse handling*/
-		lsr_write_use(lsr, node, 0);
+		lsr_write_use(lsr, node, GF_FALSE);
 		break;
 	case TAG_SVG_video:
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_video, 6, "ch4");
@@ -3495,9 +3501,10 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *paren
 	}
 }
 
-static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *parent, void *node)
+static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *parent, void *_node)
 {
-	u32 tag = gf_node_get_tag((GF_Node*)node);
+	u32 tag = gf_node_get_tag((GF_Node*)_node);
+	SVG_Element *node = (SVG_Element *)_node;
 
 	if (tag==TAG_LSR_conditional) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4");
@@ -3568,7 +3575,7 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 			break;
 		case TAG_SVG_g:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_g, 6, "ch6");
-			lsr_write_g(lsr, node, 1);
+			lsr_write_g(lsr, node, GF_TRUE);
 			break;
 		case TAG_SVG_image:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_image, 6, "ch6");
@@ -3576,7 +3583,7 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 			break;
 		case TAG_SVG_line:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_line, 6, "ch6");
-			lsr_write_line(lsr, node, 1);
+			lsr_write_line(lsr, node, GF_TRUE);
 			break;
 		case TAG_SVG_linearGradient:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_linearGradient, 6, "ch6");
@@ -3592,15 +3599,15 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 			break;
 		case TAG_SVG_path:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_path, 6, "ch6");
-			lsr_write_path(lsr, node, 1);
+			lsr_write_path(lsr, node, GF_TRUE);
 			break;
 		case TAG_SVG_polygon:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_polygon, 6, "ch6");
-			lsr_write_polygon(lsr, node, 0, 1);
+			lsr_write_polygon(lsr, node, GF_FALSE, GF_TRUE);
 			break;
 		case TAG_SVG_polyline:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_polyline, 6, "ch6");
-			lsr_write_polygon(lsr, node, 1, 1);
+			lsr_write_polygon(lsr, node, GF_TRUE, GF_TRUE);
 			break;
 		case TAG_SVG_radialGradient:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_radialGradient, 6, "ch6");
@@ -3608,7 +3615,7 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 			break;
 		case TAG_SVG_rect:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_rect, 6, "ch6");
-			lsr_write_rect(lsr, node, 1);
+			lsr_write_rect(lsr, node, GF_TRUE);
 			break;
 		case TAG_SVG_script:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_script, 6, "ch6");
@@ -3632,7 +3639,7 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 			break;
 		case TAG_SVG_text:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_text, 6, "ch6");
-			lsr_write_text(lsr, node, 1);
+			lsr_write_text(lsr, node, GF_TRUE);
 			break;
 		case TAG_SVG_title:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_title, 6, "ch6");
@@ -3644,7 +3651,7 @@ static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVG_Element *pare
 			break;
 		case TAG_SVG_use:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_use, 6, "ch6");
-			lsr_write_use(lsr, node, 1);
+			lsr_write_use(lsr, node, GF_TRUE);
 			break;
 		case TAG_SVG_video:
 			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL_video, 6, "ch6");
@@ -3842,7 +3849,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			} else if (((XMLRI*)val)->target) {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefault");
 				GF_LSR_WRITE_INT(lsr, 0, 1, "isEscape");
-				lsr_write_vluimsbf5(lsr, gf_node_get_id( ((XMLRI*)val)->target) - 1, "ID");
+				lsr_write_vluimsbf5(lsr, gf_node_get_id( (GF_Node*) ((XMLRI*)val)->target) - 1, "ID");
 			} else {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "isDefault");
 			}
@@ -3857,7 +3864,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fie
 			} else {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "isDefault");
 				GF_LSR_WRITE_INT(lsr, 0, 1, "isEscape");
-				lsr_write_vluimsbf5(lsr, gf_node_get_id( ((SVG_Focus*)val)->target.target) - 1, "ID");
+				lsr_write_vluimsbf5(lsr, gf_node_get_id((GF_Node*) ((SVG_Focus*)val)->target.target) - 1, "ID");
 			}
 			break;
 
@@ -4060,7 +4067,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 		case GF_SG_LSR_REFRESH_SCENE:
 			GF_LSR_WRITE_INT(lsr, (com->tag==GF_SG_LSR_REFRESH_SCENE) ? LSR_UPDATE_REFRESH_SCENE : LSR_UPDATE_NEW_SCENE, 4, "ch4");
 			if (com->tag==GF_SG_LSR_REFRESH_SCENE) lsr_write_vluimsbf5(lsr, /*refresh scene time*/0, "time");
-			lsr_write_any_attribute(lsr, NULL, 1);
+			lsr_write_any_attribute(lsr, NULL, GF_TRUE);
 			lsr_write_svg(lsr, (SVG_Element*)com->node);
 			break;
 		case GF_SG_LSR_REPLACE:
@@ -4089,7 +4096,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 				lsr_write_vluimsbf5(lsr, (u32) field->pos, "index");
 			}
 			lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
-			lsr_write_any_attribute(lsr, NULL, 1);
+			lsr_write_any_attribute(lsr, NULL, GF_TRUE);
 			break;
 		case GF_SG_LSR_RESTORE:
 			return GF_NOT_SUPPORTED;
@@ -4110,7 +4117,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 			}
 
 			/*FIXME in the spec, way too obscur*/
-			lsr_write_event_type(lsr, com->send_event_name, com->send_event_integer);
+			lsr_write_event_type(lsr, (GF_EventType) com->send_event_name, com->send_event_integer);
 
 			if (detail && com->send_event_integer) {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "has_intvalue");
@@ -4124,8 +4131,8 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 				|| (com->send_event_name==GF_EVENT_MOUSEOVER)
 			) {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "has_pointvalue");
-				lsr_write_coordinate(lsr, INT2FIX(com->send_event_x), 0, "x");
-				lsr_write_coordinate(lsr, INT2FIX(com->send_event_y), 0, "y");
+				lsr_write_coordinate(lsr, INT2FIX(com->send_event_x), GF_FALSE, "x");
+				lsr_write_coordinate(lsr, INT2FIX(com->send_event_y), GF_FALSE, "y");
 			} else {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "has_pointvalue");
 			}
@@ -4135,7 +4142,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 				lsr_write_byte_align_string(lsr, com->send_event_string, "stringvalue");
 			} else if (!detail && com->send_event_integer) {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "has_stringvalue");
-				lsr_write_byte_align_string(lsr, (char *)gf_dom_get_key_name(com->send_event_integer), "stringvalue");
+				lsr_write_byte_align_string(lsr, gf_dom_get_key_name((GF_KeyCode)com->send_event_integer), "stringvalue");
 			} else {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "has_stringvalue");
 			}
@@ -4215,12 +4222,12 @@ static void lsr_check_font_index(GF_LASeRCodec *lsr, SVG_FontFamily *font)
 {
 	u32 count, i;
 	if (font && (font->type == SVG_FONTFAMILY_VALUE) && font->value) {
-		Bool found = 0;
+		Bool found = GF_FALSE;
 		count = gf_list_count(lsr->font_table);
 		for (i=0; i<count; i++) {
 			char *ff = (char *)gf_list_get(lsr->font_table, i);
 			if (!strcmp(ff, font->value)) {
-				found = 1;
+				found = GF_TRUE;
 				break;
 			}
 		}
@@ -4243,10 +4250,10 @@ static void lsr_check_font_and_color(GF_LASeRCodec *lsr, SVG_Element *elt)
 	while (att) {
 		switch (att->data_type) {
 		case SVG_Paint_datatype:
-			lsr_check_col_index(lsr, NULL, att->data);
+			lsr_check_col_index(lsr, NULL, (SVG_Paint *)att->data);
 			break;
 		case SVG_FontFamily_datatype:
-			lsr_check_font_index(lsr, att->data);
+			lsr_check_font_index(lsr, (SVG_FontFamily*)att->data);
 			break;
 		case SMIL_AttributeName_datatype:
 		{
@@ -4270,16 +4277,16 @@ static void lsr_check_font_and_color(GF_LASeRCodec *lsr, SVG_Element *elt)
 		while (att) {
 			switch (att->data_type) {
 			case SMIL_AnimateValue_datatype:
-				if (check_anim_font) lsr_check_font_index(lsr, ((SMIL_AnimateValue*)att->data)->value);
-				else if (check_anim_col == 1) lsr_check_col_index(lsr, NULL, ((SMIL_AnimateValue*)att->data)->value);
-				else if (check_anim_col == 2) lsr_check_col_index(lsr, ((SMIL_AnimateValue*)att->data)->value, NULL);
+				if (check_anim_font) lsr_check_font_index(lsr, (SVG_FontFamily*) ((SMIL_AnimateValue*)att->data)->value);
+				else if (check_anim_col == 1) lsr_check_col_index(lsr, NULL, (SVG_Paint*) ((SMIL_AnimateValue*)att->data)->value);
+				else if (check_anim_col == 2) lsr_check_col_index(lsr, (SVG_Color*) ((SMIL_AnimateValue*)att->data)->value, NULL);
 				break;
 			case SMIL_AnimateValues_datatype:
 			{
 				SMIL_AnimateValues *vals = (SMIL_AnimateValues*)att->data;
 				count = gf_list_count(vals->values);
 				for (i=0; i<count; i++) {
-					if (check_anim_font) lsr_check_font_index(lsr, (SVG_FontFamily*)gf_list_get(vals->values, i));
+					if (check_anim_font) lsr_check_font_index(lsr, (SVG_FontFamily*) (SVG_FontFamily*)gf_list_get(vals->values, i));
 					else if (check_anim_col == 1) lsr_check_col_index(lsr, NULL, (SVG_Paint*)gf_list_get(vals->values, i) );
 					else if (check_anim_col == 2) lsr_check_col_index(lsr, (SVG_Color*)gf_list_get(vals->values, i), NULL);
 				}
@@ -4298,7 +4305,7 @@ check_children:
 			count = gf_list_count(up->updates);
 			for (i=0; i<count; i++) {
 				u32 j, c2;
-				GF_Command *com = gf_list_get(up->updates, i);
+				GF_Command *com = (GF_Command *)gf_list_get(up->updates, i);
 				c2 = gf_list_count(com->command_fields);
 				for (j=0; j<c2; j++) {
 					GF_CommandField *field = (GF_CommandField *)gf_list_get(com->command_fields, j);
@@ -4441,10 +4448,10 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 	if (!com_list) {
 		lsr_write_vluimsbf5(lsr, 0, "occ0");
 		GF_LSR_WRITE_INT(lsr, 4, 4, "ch4");
-		lsr_write_any_attribute(lsr, NULL, 1);
+		lsr_write_any_attribute(lsr, NULL, GF_TRUE);
 		lsr_write_svg(lsr, (SVG_Element *)gf_sg_get_root_node(lsr->sg) );
 	} else {
-		GF_Err e = lsr_write_command_list(lsr, com_list, NULL, 1);
+		GF_Err e = lsr_write_command_list(lsr, com_list, NULL, GF_TRUE);
 		if (e) return e;
 	}
 	GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");

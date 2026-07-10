@@ -72,7 +72,7 @@ typedef struct
 	u32 nb_i, nb_p, nb_b, nb_frames, max_b;
 
 	u32 bytes_in_header;
-	char *hdr_store;
+	u8 *hdr_store;
 	u32 hdr_store_size, hdr_store_alloc;
 
 	Bool is_playing;
@@ -95,7 +95,7 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 {
 	Bool was_mpeg12;
 	const GF_PropertyValue *p;
-	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MPGVidDmxCtx *ctx = (GF_MPGVidDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -260,7 +260,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		if (!probe_size && pos && (ftype==1) && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
+			ctx->indexes = (MPGVidIdx *)gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = pos;
 			ctx->indexes[ctx->index_size].start_time = (Double) (duration-ctx->cur_fps.den);
 			ctx->indexes[ctx->index_size].start_time /= ctx->cur_fps.num;
@@ -310,7 +310,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 
 		for (i=0; i<count; i++) {
 			u64 cts;
-			GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
+			GF_FilterPacket *q_pck = (struct __gf_filter_pck *)gf_list_get(ctx->pck_queue, i);
 			u8 carousel = gf_filter_pck_get_carousel_version(q_pck);
 			if (!carousel) {
 				gf_filter_pck_send(q_pck);
@@ -344,7 +344,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 	gf_list_add(ctx->pck_queue, pck);
 }
 
-static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vosh_size, u8 *data)
+static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vosh_size, const u8 *data)
 {
 	Bool flush_after = GF_FALSE;
 	if (!ctx->opid) {
@@ -422,21 +422,21 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 
 	if (vosh_size) {
 		u32 i;
-		char * dcfg = gf_malloc(sizeof(char)*vosh_size);
+		u8 * dcfg = (u8 *)gf_malloc(vosh_size);
 		memcpy(dcfg, data, sizeof(char)*vosh_size);
 
 		/*remove packed flag if any (VOSH user data)*/
 		ctx->is_packed = ctx->is_vfr = ctx->forced_packed = GF_FALSE;
 		i=0;
 		while (1) {
-			char *frame = dcfg;
+			u8 *frame = dcfg;
 			while ((i+3<vosh_size)  && ((frame[i]!=0) || (frame[i+1]!=0) || (frame[i+2]!=1))) i++;
 			if (i+4>=vosh_size) break;
-			if (i+8 < vosh_size && strncmp(frame+i+4, "DivX", 4)) {
+			if (i+8 < vosh_size && memcmp(frame+i+4, "DivX", 4)) {
 				i += 4;
 				continue;
 			}
-			frame = memchr(dcfg + i + 4, 'p', vosh_size - i - 4);
+			frame = (u8*)memchr(dcfg + i + 4, 'p', vosh_size - i - 4);
 			if (frame) {
 				ctx->forced_packed = GF_TRUE;
 				frame[0] = 'n';
@@ -465,7 +465,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 	u32 i;
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
-	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MPGVidDmxCtx *ctx = (GF_MPGVidDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -524,7 +524,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		ctx->src_pck = NULL;
 		if (ctx->pck_queue) {
 			while (gf_list_count(ctx->pck_queue)) {
-				GF_FilterPacket *pck=gf_list_pop_front(ctx->pck_queue);
+				GF_FilterPacket *pck=(struct __gf_filter_pck *)gf_list_pop_front(ctx->pck_queue);
 				gf_filter_pck_discard(pck);
 			}
 		}
@@ -565,7 +565,7 @@ static GFINLINE void mpgviddmx_update_time(GF_MPGVidDmxCtx *ctx)
 }
 
 
-static s32 mpgviddmx_next_start_code(u8 *data, u32 size)
+static s32 mpgviddmx_next_start_code(const u8 *data, u32 size)
 {
 	u32 v, bpos, found;
 	s64 start, end;
@@ -596,14 +596,13 @@ static s32 mpgviddmx_next_start_code(u8 *data, u32 size)
 
 GF_Err mpgviddmx_process(GF_Filter *filter)
 {
-	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MPGVidDmxCtx *ctx = (GF_MPGVidDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
 	s64 vosh_start = -1;
 	s64 vosh_end = -1;
 	GF_Err e;
-	char *data;
-	u8 *start;
+	const u8 *data, *start;
 	u32 pck_size;
 	s32 remain;
 
@@ -624,7 +623,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -672,7 +671,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	if (!ctx->resume_from && ctx->hdr_store_size) {
 		if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {
 			ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;
-			ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+			ctx->hdr_store = (u8 *)gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
 		}
 		memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);
 		if (byte_offset != GF_FILTER_NO_BO) {
@@ -704,7 +703,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	}
 
 	if (!ctx->bs) {
-		ctx->bs = gf_bs_new(start, remain, GF_BITSTREAM_READ);
+		ctx->bs = gf_bs_new((u8*)start, remain, GF_BITSTREAM_READ);
 	} else {
 		gf_bs_reassign_buffer(ctx->bs, start, remain);
 	}
@@ -913,7 +912,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					} else {
 						if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
 							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
-							ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+							ctx->hdr_store = (u8 *)gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
 						}
 						memmove(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 						ctx->hdr_store_size += pck_size - (u32) vosh_start;
@@ -961,7 +960,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					} else {
 						if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
 							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
-							ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+							ctx->hdr_store = (u8 *)gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
 						}
 						memmove(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 						ctx->hdr_store_size += pck_size - (u32) vosh_start;
@@ -1229,23 +1228,23 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 
 static GF_Err mpgviddmx_initialize(GF_Filter *filter)
 {
-	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MPGVidDmxCtx *ctx = (GF_MPGVidDmxCtx *)gf_filter_get_udta(filter);
 	ctx->hdr_store_size = 0;
 	ctx->hdr_store_alloc = MIN_HDR_STORE;
-	ctx->hdr_store = gf_malloc(sizeof(char)*ctx->hdr_store_alloc);
+	ctx->hdr_store = (u8 *)gf_malloc(ctx->hdr_store_alloc);
 	return GF_OK;
 }
 
 static void mpgviddmx_finalize(GF_Filter *filter)
 {
-	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MPGVidDmxCtx *ctx = (GF_MPGVidDmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->vparser) gf_m4v_parser_del_no_bs(ctx->vparser);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->hdr_store) gf_free(ctx->hdr_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
-			GF_FilterPacket *pck = gf_list_pop_back(ctx->pck_queue);
+			GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->pck_queue);
 			gf_filter_pck_discard(pck);
 		}
 		gf_list_del(ctx->pck_queue);
@@ -1275,7 +1274,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	GF_M4VDecSpecInfo dsi;
 
 	memset(&dsi, 0, sizeof(GF_M4VDecSpecInfo));
-	parser = gf_m4v_parser_new((char*)data, size, GF_FALSE);
+	parser = gf_m4v_parser_new(data, size, GF_FALSE);
 	nb_frames = 0;
 	while (1) {
 		u32 otype;
@@ -1308,7 +1307,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 			//special case if the only frame we have is not coded
 			if (otype == M4V_VOP_START_CODE) {
 				if (!nb_frames) nb_frames++;
-				is_coded = 1;
+				is_coded = GF_TRUE;
 			}
 
 			if (is_coded) nb_frames++;
@@ -1325,7 +1324,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	}
 
 	memset(&dsi, 0, sizeof(GF_M4VDecSpecInfo));
-	parser = gf_m4v_parser_new((char*)data, size, GF_TRUE);
+	parser = gf_m4v_parser_new(data, size, GF_TRUE);
 	nb_frames = 0;
 	while (1) {
 		ftype = 0;

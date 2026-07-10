@@ -203,7 +203,7 @@ static no_inline limb_t mp_div1norm(limb_t *tabr, const limb_t *taba, limb_t n,
 static __maybe_unused void mpb_dump(const char *str, const mpb_t *a)
 {
     int i;
-    
+
     printf("%s= 0x", str);
     for(i = a->len - 1; i >= 0; i--) {
         printf("%08x", a->tab[i]);
@@ -302,7 +302,7 @@ enum {
 static int mpb_get_bit(const mpb_t *r, int k)
 {
     int l;
-    
+
     l = (unsigned)k / LIMB_BITS;
     k = k & (LIMB_BITS - 1);
     if (l >= r->len)
@@ -337,7 +337,7 @@ static void mpb_shr_round(mpb_t *r, int shift, int rnd_mode)
     } else {
         limb_t bit1, bit2;
         int k, add_one;
-        
+
         switch(rnd_mode) {
         default:
         case JS_RNDZ:
@@ -514,7 +514,7 @@ static void build_mul_log2_radix_table(void)
 static void mul_log2_radix_test(void)
 {
     int radix, i, ref, r;
-    
+
     for(radix = 2; radix <= 36; radix++) {
         for(i = -2048; i <= 2047; i++) {
             ref = (int)floor((double)i / log2(radix));
@@ -593,7 +593,7 @@ size_t u32toa(char *buf, uint32_t n)
 {
     char buf1[10], *q;
     size_t len;
-    
+
     q = buf1 + sizeof(buf1);
     do {
         *--q = n % 10 + '0';
@@ -623,7 +623,7 @@ size_t u64toa(char *buf, uint64_t n)
         uint64_t n1;
         char *q = buf;
         uint32_t n2;
-        
+
         n1 = n / 1000000000;
         n %= 1000000000;
         if (n1 >= 0x100000000) {
@@ -756,7 +756,7 @@ static const int16_t min_exponent[JS_RADIX_MAX - 1] = {
 void build_tables(void)
 {
     int r, j, radix, n, col, i;
-    
+
     /* radix_base_table */
     for(radix = 2; radix <= 36; radix++) {
         r = 1;
@@ -901,7 +901,7 @@ static int mul_pow(mpb_t *a, int radix1, int radix_shift, int f, BOOL is_int, in
         d = digits_per_limb_table[radix1 - 2];
         if (f >= 0) {
             limb_t h, b;
-            
+
             b = 0;
             n0 = 0;
             while (f != 0) {
@@ -919,7 +919,7 @@ static int mul_pow(mpb_t *a, int radix1, int radix_shift, int f, BOOL is_int, in
         } else {
             int extra_bits, l, shift;
             limb_t r, rem, b, b_inv;
-            
+
             f = -f;
             l = (f + d - 1) / d; /* high bound for the number of limbs (XXX: make it better) */
             e_offset += l * LIMB_BITS;
@@ -933,7 +933,7 @@ static int mul_pow(mpb_t *a, int radix1, int radix_shift, int f, BOOL is_int, in
             }
             e_offset += extra_bits;
             mpb_shr_round(a, -(l * LIMB_BITS + extra_bits), JS_RNDZ);
-            
+
             b = 0;
             b_inv = 0;
             shift = 0;
@@ -1116,8 +1116,8 @@ int js_dtoa(char *buf, double d, int radix, int n_digits, int flags,
     mpb_t *tmp1, *mant_max;
     int fmt = flags & JS_DTOA_FORMAT_MASK;
 
-    tmp1 = dtoa_malloc(&mptr, sizeof(mpb_t) + sizeof(limb_t) * DBIGNUM_LEN_MAX);
-    mant_max = dtoa_malloc(&mptr, sizeof(mpb_t) + sizeof(limb_t) * MANT_LEN_MAX);
+    tmp1 = (mpb_t *) dtoa_malloc(&mptr, sizeof(mpb_t) + sizeof(limb_t) * DBIGNUM_LEN_MAX);
+    mant_max = (mpb_t *) dtoa_malloc(&mptr, sizeof(mpb_t) + sizeof(limb_t) * MANT_LEN_MAX);
     assert((mptr - tmp_mem->mem) <= sizeof(JSDTOATempMem) / sizeof(mptr[0]));
 
     radix_shift = ctz32(radix);
@@ -1178,11 +1178,11 @@ int js_dtoa(char *buf, double d, int radix, int n_digits, int flags,
         goto done;
     }
 #endif
-    
+
     /* this choice of E implies F=round(x*B^(P-E) is such as: 
        B^(P-1) <= F < 2.B^P. */
     E = 1 + mul_log2_radix(e - 1, radix);
-    
+
     if (fmt == JS_DTOA_FORMAT_FREE) {
         int P_max, E0, e1, E_found, P_found;
         uint64_t m1, mant_found, mant, mant_max1;
@@ -1268,7 +1268,7 @@ int js_dtoa(char *buf, double d, int radix, int n_digits, int flags,
         mant_max->tab[0] = 1;
         pow_shift = mul_pow(mant_max, radix1, radix_shift, P, FALSE, 0);
         mpb_shr_round(mant_max, pow_shift, JS_RNDZ);
-        
+
         for(;;) {
             /* fixed and frac are rounded using RNDNA */
             mul_pow_round(tmp1, m, e - 53, radix1, radix_shift, P - E, JS_RNDNA);
@@ -1366,7 +1366,7 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
     BOOL is_bin_exp, is_zero, expn_overflow;
     uint64_t m, a;
 
-    tmp0 = dtoa_malloc(&mptr, sizeof(mpb_t) + sizeof(limb_t) * DBIGNUM_LEN_MAX);
+    tmp0 = (mpb_t *)dtoa_malloc(&mptr, sizeof(mpb_t) + sizeof(limb_t) * DBIGNUM_LEN_MAX);
     assert((mptr - tmp_mem->mem) <= sizeof(JSATODTempMem) / sizeof(mptr[0]));
     /* optional separator between digits */
     sep = (flags & JS_ATOD_ACCEPT_UNDERSCORES) ? '_' : 256;
@@ -1383,7 +1383,7 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
     } else {
         p_start = p;
     }
-    
+
     if (p[0] == '0') {
         if ((p[1] == 'x' || p[1] == 'X') &&
             (radix == 0 || radix == 16)) {
@@ -1459,7 +1459,7 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
         p++;
         pos++;
     }
-    
+
     sig_pos = pos;
     for(;;) {
         limb_t c;
@@ -1505,13 +1505,13 @@ double js_atod(const char *str, const char **pnext, int radix, int flags,
             dot_pos = pos;
         expn_offset = sig_pos + digit_count - dot_pos;
     }
-    
+
     /* Use the extra digits for rounding if the base is a power of
        two. Otherwise they are just truncated. */
     if (radix_bits != 0 && extra_digits != 0) {
         tmp0->tab[0] |= 1;
     }
-    
+
     /* parse the exponent, if any */
     expn = 0;
     expn_overflow = FALSE;

@@ -37,8 +37,8 @@
 //gpac is loaded with gui but uses event proc (ios only for now)
 #define LOAD_GUI_CBK	4
 
-u32 get_u32(char *val, char *log_name);
-s32 get_s32(char *val, char *log_name);
+u32 get_u32(const char *val, const char *log_name);
+s32 get_s32(const char *val, const char *log_name);
 
 
 void load_compositor(GF_Filter *f);

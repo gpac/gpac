@@ -201,7 +201,7 @@ exit:
 
 
 /*locate channel - if requested remove from session*/
-GF_RTPInStream *rtpin_find_stream(GF_RTPIn *rtp, GF_FilterPid *opid, u32 ES_ID, char *es_control, Bool remove_stream)
+GF_RTPInStream *rtpin_find_stream(GF_RTPIn *rtp, GF_FilterPid *opid, u32 ES_ID, const char *es_control, Bool remove_stream)
 {
 	u32 i=0;
 	GF_RTPInStream *st;
@@ -210,7 +210,7 @@ GF_RTPInStream *rtpin_find_stream(GF_RTPIn *rtp, GF_FilterPid *opid, u32 ES_ID, 
 		if (opid && (st->opid==opid)) goto found;
 		if (ES_ID && (st->ES_ID==ES_ID)) goto found;
 		if (es_control && st->control) {
-			char *ctrl_start = strstr(es_control, st->control);
+			const char *ctrl_start = strstr(es_control, st->control);
 			if (ctrl_start && !strcmp(ctrl_start, st->control)) goto found;
 		}
 	}
@@ -222,7 +222,7 @@ found:
 }
 
 /*locate session by control*/
-GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control)
+GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, const char *control)
 {
 	if (!control) return NULL;
 
@@ -233,7 +233,7 @@ GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control)
 	return NULL;
 }
 
-GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
+GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, const char *session_control)
 {
 	char *szCtrl, *szExt;
 	GF_RTPInRTSP *tmp;
@@ -248,7 +248,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 
 	/*little fix: some servers don't understand DESCRIBE URL/trackID=, so remove the trackID...*/
 	szCtrl = gf_strdup(session_control);
-	szExt = szCtrl ? gf_file_ext_start(szCtrl) : NULL;
+	szExt = szCtrl ? (char*)gf_file_ext_start(szCtrl) : NULL;
 	if (szExt) {
 		szExt = strchr(szExt, '/');
 		if (szExt) {
@@ -279,7 +279,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 	return tmp;
 }
 
-GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_control)
+GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, const char *session_control)
 {
 	Bool has_aggregated_control;
 	char *service_name;

@@ -84,7 +84,7 @@ typedef struct
 
 static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
 
-void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *data, u32 size, u64 pcr_plus_one)
+void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, const u8 *data, u32 size, u64 pcr_plus_one)
 {
 	u8 *buffer;
 	GF_FilterPacket *pck;
@@ -118,7 +118,7 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 			}
 		}
 		if (stream->init_pck) {
-			gf_filter_pck_set_framing(stream->init_pck, !stream->start_sent, GF_FALSE);
+			gf_filter_pck_set_framing(stream->init_pck, stream->start_sent ? GF_FALSE : GF_TRUE, GF_FALSE);
 			stream->start_sent = GF_TRUE;
 			gf_filter_pck_set_dts(stream->init_pck, stream->last_pcr_plus_one-1);
 			gf_filter_pck_set_cts(stream->init_pck, stream->last_pcr_plus_one-1);
@@ -146,7 +146,7 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 		u32 osize = size * stream->nb_pck;
 		pck = gf_filter_pck_new_alloc(stream->opid, osize, &buffer);
 		if (pck) {
-			gf_filter_pck_set_framing(pck, !stream->start_sent, GF_FALSE);
+			gf_filter_pck_set_framing(pck, stream->start_sent ? GF_FALSE : GF_TRUE, GF_FALSE);
 			stream->start_sent = GF_TRUE;
 			memcpy(buffer, stream->pck_buffer, osize);
 
@@ -163,7 +163,7 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &buffer);
 	if (pck) {
-		gf_filter_pck_set_framing(pck, !stream->start_sent, GF_FALSE);
+		gf_filter_pck_set_framing(pck, stream->start_sent ? GF_FALSE : GF_TRUE, GF_FALSE);
 		stream->start_sent = GF_TRUE;
 		memcpy(buffer, data, size);
 		if (pcr_plus_one) stream->last_pcr_plus_one = pcr_plus_one;
@@ -179,7 +179,7 @@ void m2tssplit_flush(GF_M2TSSplitCtx *ctx)
 {
 	u32 i;
 	for (i=0; i<gf_list_count(ctx->streams); i++ ) {
-		GF_M2TSSplit_SPTS *stream = gf_list_get(ctx->streams, i);
+		GF_M2TSSplit_SPTS *stream = (GF_M2TSSplit_SPTS *)gf_list_get(ctx->streams, i);
 		if (!stream->opid) continue;
 		if (stream->nb_pck)
 			m2tssplit_send_packet(ctx, stream, NULL, 0, 0);
@@ -203,7 +203,7 @@ static void m2tssplit_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type,
 	M2TSDurProber *prober = (M2TSDurProber *) ts->user;
 
 	if (evt_type != GF_M2TS_EVT_PCK) return;
-	GF_M2TS_TSPCK *tspck = param;
+	GF_M2TS_TSPCK *tspck = (GF_M2TS_TSPCK *)param;
 	if (!tspck->pcr_plus_one || prober->abort) return;
 	if (prober->first_pcr_pid && (prober->first_pcr_pid != tspck->pid)) return;
 
@@ -244,7 +244,7 @@ void m2ts_split_estimate_duration(GF_M2TSSplitCtx *ctx, GF_FilterPid *pid)
 	ctx->dmx->user = &prober;
 	ctx->dmx->on_event = m2tssplit_on_event_duration_probe;
 	while (!gf_feof(stream)) {
-		char buf[1880];
+		u8 buf[1880];
 		u32 nb_read = (u32) gf_fread(buf, 1880, stream);
 		gf_m2ts_process_data(ctx->dmx, buf, nb_read);
 		if (prober.abort) break;
@@ -270,13 +270,13 @@ void m2ts_split_estimate_duration(GF_M2TSSplitCtx *ctx, GF_FilterPid *pid)
 
 GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
 		m2tssplit_flush(ctx);
 		while (gf_list_count(ctx->streams) ) {
-			GF_M2TSSplit_SPTS *st = gf_list_pop_back(ctx->streams);
+			GF_M2TSSplit_SPTS *st = (GF_M2TSSplit_SPTS *)gf_list_pop_back(ctx->streams);
 			if (st->opid) gf_filter_pid_remove(st->opid);
 			if (st->pck_buffer) gf_free(st->pck_buffer);
 			gf_free(st);
@@ -295,7 +295,7 @@ GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		GF_SAFEALLOC(stream, GF_M2TSSplit_SPTS);
 		if (!stream) return GF_OUT_OF_MEM;
 		if (ctx->nb_pack)
-			stream->pck_buffer = gf_malloc(sizeof(char) * ctx->nb_pack * (ctx->dmx->prefix_present ? 192 : 188) );
+			stream->pck_buffer = (u8 *)gf_malloc(ctx->nb_pack * (ctx->dmx->prefix_present ? 192 : 188) );
 
 		gf_list_add(ctx->streams, stream);
 
@@ -316,7 +316,7 @@ static Bool m2tssplit_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 	u64 file_pos;
 	u32 i;
 	GF_FilterEvent fevt;
-	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -354,7 +354,7 @@ static Bool m2tssplit_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 		//reset streams
 		for (i=0;i<gf_list_count(ctx->streams); i++) {
-			GF_M2TSSplit_SPTS *st = gf_list_get(ctx->streams, i);
+			GF_M2TSSplit_SPTS *st = (GF_M2TSSplit_SPTS *)gf_list_get(ctx->streams, i);
 			st->nb_pck = 0;
 			//reset clock otherwise we would dispatch first packets before PCR with the previous PCR
 			st->last_pcr_plus_one = 0;
@@ -376,11 +376,11 @@ static Bool m2tssplit_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 			if (new_pack==ctx->nb_pack) return GF_TRUE;
 
 			for (i=0;i<gf_list_count(ctx->streams); i++) {
-				GF_M2TSSplit_SPTS *st = gf_list_get(ctx->streams, i);
+				GF_M2TSSplit_SPTS *st = (GF_M2TSSplit_SPTS *)gf_list_get(ctx->streams, i);
 				if (st->nb_pck>=new_pack)
 					m2tssplit_send_packet(ctx, st, NULL, 0, 0);
 
-				st->pck_buffer = gf_realloc(st->pck_buffer, new_pack * (ctx->dmx->prefix_present ? 192 : 188) );
+				st->pck_buffer = (u8 *)gf_realloc(st->pck_buffer, new_pack * (ctx->dmx->prefix_present ? 192 : 188) );
 			}
 			ctx->nb_pack = new_pack;
 		}
@@ -393,7 +393,7 @@ static Bool m2tssplit_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 GF_Err m2tssplit_process(GF_Filter *filter)
 {
-	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	const u8 *data;
 	u32 data_size;
@@ -422,21 +422,21 @@ GF_Err m2tssplit_process(GF_Filter *filter)
 static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 {
 	u32 i;
-	GF_M2TSSplitCtx *ctx = ts->user;
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)ts->user;
 
 	if ((evt_type==GF_M2TS_EVT_PAT_FOUND) || (evt_type==GF_M2TS_EVT_PAT_UPDATE)) {
 		//todo, purge previous programs if PMT PID changes
 		for (i=0; i<gf_list_count(ctx->dmx->programs); i++) {
-			GF_M2TS_SectionInfo *sinfo = par;
+			GF_M2TS_SectionInfo *sinfo = (GF_M2TS_SectionInfo *)par;
 			GF_M2TSSplit_SPTS *stream=NULL;
 			u32 j, pck_size, tot_len=188, crc, offset=5, mux_id;
 			u8 *buffer;
 			Bool first_pck=GF_FALSE;
-			GF_M2TS_Program *prog = gf_list_get(ctx->dmx->programs, i);
+			GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ctx->dmx->programs, i);
 			gf_assert(prog->pmt_pid);
 
 			for (j=0; j<gf_list_count(ctx->streams); j++) {
-				stream = gf_list_get(ctx->streams, j);
+				stream = (GF_M2TSSplit_SPTS *)gf_list_get(ctx->streams, j);
 				if (stream->pmt_pid==prog->pmt_pid)
 					break;
 				stream = NULL;
@@ -448,7 +448,7 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 				first_pck = GF_TRUE;
 				prog->user = stream;
 				if (ctx->nb_pack)
-					stream->pck_buffer = gf_malloc(sizeof(char) * ctx->nb_pack * (ctx->dmx->prefix_present ? 192 : 188) );
+					stream->pck_buffer = (u8 *)gf_malloc(ctx->nb_pack * (ctx->dmx->prefix_present ? 192 : 188) );
 
 				gf_list_add(ctx->streams, stream);
 
@@ -530,8 +530,8 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 	if (evt_type==GF_M2TS_EVT_PAT_REPEAT) {
 		for (i=0; i<gf_list_count(ctx->dmx->programs); i++) {
 			u8 *buffer;
-			GF_M2TS_Program *prog = gf_list_get(ctx->dmx->programs, i);
-			GF_M2TSSplit_SPTS *stream = prog->user;
+			GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ctx->dmx->programs, i);
+			GF_M2TSSplit_SPTS *stream = (GF_M2TSSplit_SPTS *)prog->user;
 			if (!stream) continue;
 			if (!stream->opid) continue;
 
@@ -545,11 +545,11 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 		return;
 	}
 	if ((evt_type==GF_M2TS_EVT_PMT_FOUND) || (evt_type==GF_M2TS_EVT_PMT_UPDATE)) {
-		GF_M2TS_Program *prog = par;
-		GF_M2TSSplit_SPTS *stream = prog->user;
+		GF_M2TS_Program *prog = (GF_M2TS_Program *)par;
+		GF_M2TSSplit_SPTS *stream = (GF_M2TSSplit_SPTS *)prog->user;
 		u32 known_streams = 0;
 		for (i=0; i<gf_list_count(prog->streams); i++) {
-			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+			GF_M2TS_ES *es = (struct tag_m2ts_es *)gf_list_get(prog->streams, i);
 			switch (es->stream_type) {
 			case GF_M2TS_VIDEO_MPEG1:
 			case GF_M2TS_VIDEO_MPEG2:
@@ -614,13 +614,13 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 	}
 
 	if (evt_type==GF_M2TS_EVT_PCK) {
-		GF_M2TS_TSPCK *tspck = par;
+		GF_M2TS_TSPCK *tspck = (GF_M2TS_TSPCK *)par;
 		Bool do_fwd;
 		GF_M2TSSplit_SPTS *stream;
 		if (ctx->out)
 			stream = ctx->out;
 		else
-			stream = tspck->stream ? tspck->stream->program->user : NULL;
+			stream = tspck->stream ? (GF_M2TSSplit_SPTS *)tspck->stream->program->user : NULL;
 
 		if (ctx->gendts && tspck->pcr_plus_one) {
 			if (!stream->pcr_id)
@@ -635,7 +635,7 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 				return;
 
 			if (ctx->dmx->prefix_present) {
-				u8 *data = tspck->data;
+				const u8 *data = tspck->data;
 				data -= 4;
 				m2tssplit_send_packet(ctx, stream, data, 192, tspck->pcr_plus_one);
 			} else {
@@ -666,11 +666,11 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 		if (do_fwd) {
 			u32 count = gf_list_count(ctx->streams);
 			for (i=0; i<count; i++) {
-				stream = gf_list_get(ctx->streams, i);
+				stream = (GF_M2TSSplit_SPTS *)gf_list_get(ctx->streams, i);
 				if (!stream->opid) continue;
 
 				if (ctx->dmx->prefix_present) {
-					u8 *data = tspck->data;
+					const u8 *data = tspck->data;
 					data -= 4;
 					m2tssplit_send_packet(ctx, stream, data, 192, 0);
 				} else {
@@ -683,7 +683,7 @@ static void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *pa
 
 GF_Err m2tssplit_initialize(GF_Filter *filter)
 {
-	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 	ctx->dmx = gf_m2ts_demux_new();
 	ctx->dmx->on_event = m2tssplit_on_event;
@@ -701,10 +701,10 @@ GF_Err m2tssplit_initialize(GF_Filter *filter)
 
 void m2tssplit_finalize(GF_Filter *filter)
 {
-	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		GF_M2TSSplit_SPTS *st = gf_list_pop_back(ctx->streams);
+		GF_M2TSSplit_SPTS *st = (GF_M2TSSplit_SPTS *)gf_list_pop_back(ctx->streams);
 		if (st->pck_buffer) gf_free(st->pck_buffer);
 		gf_free(st);
 	}
@@ -780,7 +780,7 @@ GF_Err m2ts_gendts_initialize(GF_Filter *filter)
 {
 	GF_Err e = m2tssplit_initialize(filter);
 	if (e) return e;
-	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
+	GF_M2TSSplitCtx *ctx = (GF_M2TSSplitCtx *)gf_filter_get_udta(filter);
 	ctx->gendts = GF_TRUE;
 	ctx->dmx->raw_mode = GF_M2TS_RAW_FORWARD;
 	return GF_OK;

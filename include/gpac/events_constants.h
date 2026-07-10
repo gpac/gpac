@@ -27,11 +27,15 @@
 #ifndef _GF_EVENTS_CONSTANTS_H_
 #define _GF_EVENTS_CONSTANTS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*!
 \file <gpac/events_constants.h>
 \brief Constants for event system used by GPAC playback.
  */
-	
+
 /*!
 \addtogroup evt_grp
 \ingroup playback_grp
@@ -47,6 +51,7 @@
 	If the associated struct in \ref GF_Event is not indicated, no structure is used
 */
 typedef enum {
+	GF_EVENT_UNDEFINED = 0,
 	/*
 		Mouse events, MUST be first in list
 		DO NOT CHANGE ORDER of mouse and key events
@@ -753,7 +758,32 @@ enum
 };
 #endif
 
+#ifndef GPAC_DISABLE_SVG
+const char *gf_dom_get_friendly_name(GF_KeyCode key_identifier);
 
+/*! gets event type by name
+\param name the event name
+\return the event type*/
+GF_EventType gf_dom_event_type_by_name(const char *name);
+/*! gets event name by type
+\param type the event type
+\return the event name*/
+const char *gf_dom_event_get_name(GF_EventType type);
+
+/*! gets key name by type
+\param key_identifier the key type
+\return the key name*/
+const char *gf_dom_get_key_name(GF_KeyCode key_identifier);
+/*! gets key type by name
+\param key_name the key name
+\return the key type*/
+GF_KeyCode gf_dom_get_key_type(char *key_name);
+
+#endif
 /*! @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -70,28 +70,28 @@ static Bool PathExtrusion_GetNode(GF_Node *node, PathExtrusion *path_ext)
 {
 	GF_FieldInfo field;
 	memset(path_ext, 0, sizeof(PathExtrusion));
-	
+
 	CHECK_FIELD("PathExtrusion", 0, GF_SG_VRML_SFNODE);
 	path_ext->geometry = * (GF_Node **) field.far_ptr;
-	
+
 	CHECK_FIELD("PathExtrusion", 1, GF_SG_VRML_MFVEC3F);
 	path_ext->spine = (MFVec3f *) field.far_ptr;
 
 	CHECK_FIELD("PathExtrusion", 2, GF_SG_VRML_SFBOOL);
 	path_ext->beginCap = *(SFBool *) field.far_ptr;
-	
+
 	CHECK_FIELD("PathExtrusion", 3, GF_SG_VRML_SFBOOL);
 	path_ext->endCap = *(SFBool *) field.far_ptr;
-	
+
 	CHECK_FIELD("PathExtrusion", 4, GF_SG_VRML_SFFLOAT);
 	path_ext->creaseAngle = *(SFFloat *) field.far_ptr;
-	
+
 	CHECK_FIELD("PathExtrusion", 5, GF_SG_VRML_MFROTATION);
 	path_ext->orientation = (MFRotation *) field.far_ptr;
-	
+
 	CHECK_FIELD("PathExtrusion", 6, GF_SG_VRML_MFVEC2F);
 	path_ext->scale = (MFVec2f *) field.far_ptr;
-	
+
 	CHECK_FIELD("PathExtrusion", 7, GF_SG_VRML_SFBOOL);
 	path_ext->txAlongSpine = *(SFBool *) field.far_ptr;
 	return GF_TRUE;
@@ -174,31 +174,31 @@ static Bool PlanarExtrusion_GetNode(GF_Node *node, PlanarExtrusion *path_ext)
 
 	CHECK_FIELD("PlanarExtrusion", 0, GF_SG_VRML_SFNODE);
 	path_ext->geometry = * (GF_Node **) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 1, GF_SG_VRML_SFNODE);
 	path_ext->spine = * (GF_Node **) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 2, GF_SG_VRML_SFBOOL);
 	path_ext->beginCap = *(SFBool *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 3, GF_SG_VRML_SFBOOL);
 	path_ext->endCap = *(SFBool *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 4, GF_SG_VRML_SFFLOAT);
 	path_ext->creaseAngle = *(SFFloat *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 5, GF_SG_VRML_MFFLOAT);
 	path_ext->orientationKeys = (MFFloat *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 6, GF_SG_VRML_MFROTATION);
 	path_ext->orientation = (MFRotation *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 7, GF_SG_VRML_MFFLOAT);
 	path_ext->scaleKeys = (MFFloat *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 8, GF_SG_VRML_MFVEC2F);
 	path_ext->scale = (MFVec2f *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlanarExtrusion", 9, GF_SG_VRML_SFBOOL);
 	path_ext->txAlongSpine = *(SFBool *) field.far_ptr;
 
@@ -406,7 +406,7 @@ static Bool PlaneClipper_GetNode(GF_Node *node, PlaneClipper *pc)
 
 	CHECK_FIELD("PlaneClipper", 1, GF_SG_VRML_SFFLOAT);
 	pc->plane.d = * (SFFloat *) field.far_ptr;
-	
+
 	CHECK_FIELD("PlaneClipper", 2, GF_SG_VRML_MFNODE);
 	pc->children = *(GF_ChildNodeItem **) field.far_ptr;
 	return GF_TRUE;
@@ -514,7 +514,7 @@ static Bool OffscreenGroup_GetNode(GF_Node *node, OffscreenGroup *og)
 
 	CHECK_FIELD("OffscreenGroup", 2, GF_SG_VRML_SFFLOAT);
 	og->opacity = * (SFFloat *) field.far_ptr;
-	
+
 	return GF_TRUE;
 }
 
@@ -567,7 +567,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 					stack->detached = GF_TRUE;
 				}
 				if (gf_node_get_field(node, 3, &field) == GF_OK) {
-					*(SFBool *) field.far_ptr = 1;
+					*(SFBool *) field.far_ptr = GF_TRUE;
 					//gf_node_event_out(node, 3);
 				}
 			}
@@ -1170,7 +1170,7 @@ void compositor_init_test_sensor(GF_Compositor *compositor, GF_Node *node)
 typedef struct
 {
     BASE_NODE
-    
+
     Fixed intensity;
 } CustomTexture;
 
@@ -1187,18 +1187,18 @@ static Bool CustomTexture_GetNode(GF_Node *node, CustomTexture *tx)
     GF_FieldInfo field;
     memset(tx, 0, sizeof(CustomTexture));
     tx->sgprivate = node->sgprivate;
-    
+
     CHECK_FIELD("CustomTexture", 0, GF_SG_VRML_SFFLOAT);
 	if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return GF_FALSE;
     tx->intensity = *(SFFloat *)field.far_ptr;
-    
+
     return GF_TRUE;
 }
 
 static void TraverseCustomTexture(GF_Node *node, void *rs, Bool is_destroy)
 {
     CustomTextureStack *stack = (CustomTextureStack *)gf_node_get_private(node);
-    
+
     if (is_destroy) {
         //release texture object
         gf_sc_texture_destroy(&stack->txh);
@@ -1216,7 +1216,7 @@ static void CustomTexture_update(GF_TextureHandler *txh)
 #ifndef GPAC_DISABLE_3D
     u8 data[16];
 #endif
-    CustomTextureStack *stack = gf_node_get_private(txh->owner);
+    CustomTextureStack *stack = (CustomTextureStack *)gf_node_get_private(txh->owner);
     //alloc texture
     if (!txh->tx_io) {
         //allocate texture
@@ -1224,23 +1224,23 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         if (!txh->tx_io) return;
     }
     if (stack->disabled) return;
-    
+
 #ifndef GPAC_DISABLE_3D
     //texture not setup, do it
     if (! gf_sc_texture_get_gl_id(txh)) {
-        
+
         //setup some defaults (these two vars are used to setup internal texture format)
         //in our case we only want to test OpenGL so no need to fill in the texture width/height stride
         //since we will upload ourselves the texture
-        txh->transparent = 0;
+        txh->transparent = GF_FALSE;
         txh->pixelformat = GF_PIXEL_RGB;
 
         //signaling we modified associated data (even if no data in our case) to mark texture as dirty
         gf_sc_texture_set_data(txh);
-        
+
         //trigger HW setup of the texture
         gf_sc_texture_push_image(txh, GF_FALSE, GF_FALSE);
-        
+
         //OK we have a valid textureID
         stack->gl_id = gf_sc_texture_get_gl_id(txh);
     }
@@ -1257,12 +1257,12 @@ static void CustomTexture_update(GF_TextureHandler *txh)
     data[4] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
     data[8] = (u8) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
     //last pixel black
-    
+
     glBindTexture( GL_TEXTURE_2D, stack->gl_id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    
+
 #endif
- 
+
 }
 
 void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
@@ -1287,7 +1287,7 @@ void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
         //register texture object
         gf_sc_texture_setup(&stack->txh, compositor, node);
         stack->txh.update_texture_fcnt = CustomTexture_update;
-    
+
     } else {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unable to initialize custom texture\n"));
     }
@@ -1311,7 +1311,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!tr_state->appear || ! ((M_Appearance *)tr_state->appear)->texture)
 		return;
-	
+
 	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
 	if (!txh->stream) return;
 
@@ -1350,8 +1350,8 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			mesh_was_reset = GF_TRUE;
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		}
-		
-		
+
+
 		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
 			Bool visible = GF_FALSE;
 #ifndef GPAC_DISABLE_LOG
@@ -1433,7 +1433,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 						if (txh->stream->odm) {
 							txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
 							txh->stream->odm->flags |= GF_ODM_TILED_SHARED_CLOCK;
-							gf_sc_texture_play_from_to(txh, NULL, -1, -1, 1, 0);
+							gf_sc_texture_play_from_to(txh, NULL, -1, -1, GF_TRUE, GF_FALSE);
 						}
 					}
 
@@ -1495,7 +1495,7 @@ static void TraverseVRHUD(GF_Node *node, void *rs, Bool is_destroy)
 	u32 mode, i, cull_bck;
 	Fixed angle_yaw/*, angle_pitch*/;
 	SFVec3f axis;
-	GF_Node *subtree = gf_node_get_private(node);
+	GF_Node *subtree = (GF_Node *)gf_node_get_private(node);
 	if (is_destroy) return;
 
 	if (!tr_state->camera) return;
@@ -1811,7 +1811,7 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 	for (i=0; i<proto_url->count; i++) {
 		const char *url = proto_url->vals[0].url;
         if (!url) continue;
-        
+
 #ifndef GPAC_DISABLE_3D
 		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
 			compositor_init_path_extrusion(compositor, node);
@@ -1908,19 +1908,19 @@ Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri)
 
 GF_TextureHandler *gf_sc_hardcoded_proto_get_texture_handler(GF_Node *n)
 {
-    
+
     MFURL *proto_url;
     GF_Proto *proto;
     u32 i;
-    
+
     proto = gf_node_get_proto(n);
     if (!proto) return NULL;
     proto_url = gf_sg_proto_get_extern_url(proto);
-    
+
     for (i=0; i<proto_url->count; i++) {
         const char *url = proto_url->vals[0].url;
         if (!strcmp(url, "urn:inet:gpac:builtin:CustomTexture")) {
-            CustomTextureStack *stack = gf_node_get_private(n);
+            CustomTextureStack *stack = (CustomTextureStack *) gf_node_get_private(n);
             if (stack) return &stack->txh;
         }
     }

@@ -635,7 +635,7 @@ typedef struct tag_m2ts_metadata_pointer_descriptor {
 	u8 service_id;
 	Bool locator_record_flag;
 	u32 locator_length;
-	char *locator_data;
+	u8 *locator_data;
 	enum metadata_carriage carriage_flag;
 	u16 program_number;
 	u16 ts_location;
@@ -840,7 +840,7 @@ typedef struct tag_m2ts_metadata_descriptor {
 	u8 decoder_config_flags;
 	Bool dsmcc_flag;
 	u8 service_id_record_length;
-	char *service_id_record;
+	u8 *service_id_record;
 	u8 decoder_config_length;
 	u8 *decoder_config;
 	u8 decoder_config_id_length;
@@ -1101,7 +1101,7 @@ typedef struct
 typedef struct
 {
 	/*packet start (first byte is TS sync marker)*/
-	u8 *data;
+	const u8 *data;
 	/*packet PID*/
 	u32 pid;
 	/*parent stream if any/already declared*/
@@ -1274,7 +1274,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode);
 \param data_size size of the date to process
 \return error if any
 */
-GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *demux, u8 *data, u32 data_size);
+GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *demux, const u8 *data, u32 data_size);
 
 /*! initializes DSM-CC object carousel reception
 \param demux the target MPEG-2 TS demultiplexer
@@ -1507,7 +1507,7 @@ typedef struct __elementary_stream_ifce
 	/*! MPEG-4 ST*/
 	u8 stream_type;
 	/*! codec ID*/
-	u32 codecid;
+	GF_CodecID codecid;
 	/*! packed 3-char language code (4CC with last byte ' ')*/
 	u32 lang;
 	/*! media timescale*/
@@ -1882,9 +1882,9 @@ struct __m2ts_mux {
 	/*! PCR update rate in milliseconds*/
 	u32 pcr_update_ms;
 	/*! destination TS packet*/
-	char dst_pck[188];
+	u8 dst_pck[188];
 	/*! destination NULL TS packet*/
-	char null_pck[188];
+	u8 null_pck[188];
 
 	/*! multiplexer time, incremented each time a packet is sent
 	  used to monitor the sending of muxer related data (PAT, ...) */

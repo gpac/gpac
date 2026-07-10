@@ -40,7 +40,7 @@ FILE *fdopen(int, const char *);
 #endif
 
 #ifndef STDC
-//extern voidp  gf_malloc OF((uInt size));
+(u8 *)//extern voidp  gf_malloc OF((uInt size));
 //extern void   free   OF((voidpf ptr));
 #endif
 

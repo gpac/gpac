@@ -68,7 +68,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 	GF_CryptInfo *info = (GF_CryptInfo *)sax_cbck;
 
 	if (!strcmp(node_name, "OMATextHeader")) {
-		info->in_text_header = 1;
+		info->in_text_header = GF_TRUE;
 		return;
 	}
 	if (!strcmp(node_name, "GPACDRM")) {
@@ -92,12 +92,12 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			return;
 		}
 		//by default track is encrypted
-		tkc->IsEncrypted = 1;
+		tkc->IsEncrypted = GF_TRUE;
 		tkc->sai_saved_box_type = GF_ISOM_BOX_TYPE_SENC;
 		tkc->scheme_type = info->def_crypt_type;
 
 		//allocate a key to store the default values in single-key mode
-		tkc->keys = gf_malloc(sizeof(GF_CryptKeyInfo));
+		tkc->keys = (GF_CryptKeyInfo *)gf_malloc(sizeof(GF_CryptKeyInfo));
 		if (!tkc->keys) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] Cannot allocate key IDs\n"));
 			gf_free(tkc);
@@ -110,7 +110,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
 			if (!stricmp(att->name, "trackID") || !stricmp(att->name, "ID")) {
-				if (!strcmp(att->value, "*")) info->has_common_key = 1;
+				if (!strcmp(att->value, "*")) info->has_common_key = GF_TRUE;
 				else {
 					tkc->trackID = atoi(att->value);
 					has_common_key = GF_FALSE;
@@ -219,9 +219,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "IsEncrypted")) {
 				if (!stricmp(att->value, "1"))
-					tkc->IsEncrypted = 1;
+					tkc->IsEncrypted = GF_TRUE;
 				else
-					tkc->IsEncrypted = 0;
+					tkc->IsEncrypted = GF_FALSE;
 			}
 			else if (!stricmp(att->name, "IV_size") && (tkc->scheme_type != GF_CRYPT_TYPE_CBCS)) {
 				tkc->keys[0].IV_size = atoi(att->value);
@@ -285,8 +285,8 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "metadata")) {
 				u32 l = 2 * (u32) strlen(att->value) + 3;
-				tkc->metadata = gf_malloc(sizeof(char) * l);
-				l = gf_base64_encode(att->value, (u32) strlen(att->value), tkc->metadata, l);
+				tkc->metadata = (char *)gf_malloc(l);
+				l = gf_base64_encode((u8*)att->value, (u32) strlen(att->value), (u8*)tkc->metadata, l);
 				tkc->metadata[l] = 0;
 			}
 			else if (!stricmp(att->name, "crypt_byte_block")) {
@@ -397,7 +397,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 		if (tkc->scheme_type==GF_CRYPT_TYPE_PIFF) {
 			tkc->sai_saved_box_type = GF_ISOM_BOX_UUID_PSEC;
 		}
-		if (has_common_key) info->has_common_key = 1;
+		if (has_common_key) info->has_common_key = GF_TRUE;
 
 		if ((tkc->keys[0].IV_size != 0) && (tkc->keys[0].IV_size != 8) && (tkc->keys[0].IV_size != 16)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[CENC] wrong IV size %d for AES-128, using 16\n", (u32) tkc->keys[0].IV_size));
@@ -524,7 +524,7 @@ static void cryptinfo_node_end(void *sax_cbck, const char *node_name, const char
 {
 	GF_CryptInfo *info = (GF_CryptInfo *)sax_cbck;
 	if (!strcmp(node_name, "OMATextHeader")) {
-		info->in_text_header = 0;
+		info->in_text_header = GF_FALSE;
 		return;
 	}
 }
@@ -541,7 +541,7 @@ static void cryptinfo_text(void *sax_cbck, const char *text, Bool is_cdata)
 	len = (u32) strlen(text);
 	len2 = tkc->TextualHeaders ? (u32) strlen(tkc->TextualHeaders) : 0;
 
-	tkc->TextualHeaders = gf_realloc(tkc->TextualHeaders, sizeof(char) * (len+len2+1));
+	tkc->TextualHeaders = (char *)gf_realloc(tkc->TextualHeaders, (len+len2+1));
 	if (!len2) gf_strlcpy(tkc->TextualHeaders, "", len+len2+1);
 	gf_strlcat(tkc->TextualHeaders, text, len+len2+1);
 }
@@ -821,7 +821,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	if (gf_isom_has_keep_utc_times(mp4))
 		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
-	arg_dst = gf_url_colon_suffix(dst_file, '=');
+	arg_dst = (char*)gf_url_colon_suffix(dst_file, '=');
 	if (arg_dst) {
 		gf_dynstrcat(&szArgs, arg_dst, NULL);
 		arg_dst[0]=0;

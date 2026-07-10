@@ -214,8 +214,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				pre_processing_pos = gf_bs_get_position(bs);
 				name_descriptor->ISO_639_language_code = gf_bs_read_int(bs,24);
 				name_descriptor->application_name_length = gf_bs_read_int(bs,8);
-				name_descriptor->application_name_char = (char*) gf_calloc(name_descriptor->application_name_length+1,sizeof(char));
-				gf_bs_read_data(bs,name_descriptor->application_name_char,name_descriptor->application_name_length);
+				name_descriptor->application_name_char = (char*) gf_calloc(name_descriptor->application_name_length+1,1);
+				gf_bs_read_data(bs, (u8 *)name_descriptor->application_name_char,name_descriptor->application_name_length);
 				name_descriptor->application_name_char[name_descriptor->application_name_length] = 0 ;
 				if (pre_processing_pos+name_descriptor->descriptor_length != gf_bs_get_position(bs)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),name_descriptor->descriptor_length));
@@ -269,15 +269,15 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 
 					Transport_http_selector_byte->URL_base_length = gf_bs_read_int(bs,8);
 
-					Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length+1,sizeof(char));
-					gf_bs_read_data(bs,Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
+					Transport_http_selector_byte->URL_base_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_base_length+1,1);
+					gf_bs_read_data(bs, (u8 *)Transport_http_selector_byte->URL_base_byte ,(u32)(Transport_http_selector_byte->URL_base_length));
 					Transport_http_selector_byte->URL_base_byte[Transport_http_selector_byte->URL_base_length] = 0;
 					Transport_http_selector_byte->URL_extension_count = gf_bs_read_int(bs,8);
 					if (Transport_http_selector_byte->URL_extension_count) {
 						Transport_http_selector_byte->URL_extentions = (GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION*) gf_calloc(Transport_http_selector_byte->URL_extension_count,sizeof(GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION));
 						for (i=0; i < Transport_http_selector_byte->URL_extension_count; i++) {
 							Transport_http_selector_byte->URL_extentions[i].URL_extension_length = gf_bs_read_int(bs,8);
-							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length+1,sizeof(char));
+							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte = (char*)gf_calloc(Transport_http_selector_byte->URL_extentions[i].URL_extension_length+1,1);
 							gf_bs_read_data(bs,Transport_http_selector_byte->URL_extentions[i].URL_extension_byte,(u32)(Transport_http_selector_byte->URL_extentions[i].URL_extension_length));
 							Transport_http_selector_byte->URL_extentions[i].URL_extension_byte[Transport_http_selector_byte->URL_extentions[i].URL_extension_length] = 0;
 						}
@@ -323,8 +323,8 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 				Simple_application_location->descriptor_tag = temp_descriptor_tag;
 				Simple_application_location->descriptor_length = gf_bs_read_int(bs,8);
 				pre_processing_pos = gf_bs_get_position(bs);
-				Simple_application_location->initial_path_bytes = (char*)gf_calloc(Simple_application_location->descriptor_length+1,sizeof(char));
-				gf_bs_read_data(bs,Simple_application_location->initial_path_bytes ,(u32)(Simple_application_location->descriptor_length));
+				Simple_application_location->initial_path_bytes = (char*)gf_calloc(Simple_application_location->descriptor_length+1,1);
+				gf_bs_read_data(bs, (u8 *)Simple_application_location->initial_path_bytes ,(u32)(Simple_application_location->descriptor_length));
 				Simple_application_location->initial_path_bytes[Simple_application_location->descriptor_length] = 0;
 				if (pre_processing_pos+Simple_application_location->descriptor_length != gf_bs_get_position(bs)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[Process AIT] Descriptor data processed length error. Difference between byte shifting %d and descriptor length %d \n",(gf_bs_get_position(bs) -  pre_processing_pos),Simple_application_location->descriptor_length));
@@ -377,7 +377,7 @@ static GF_Err gf_m2ts_decode_ait(GF_M2TS_AIT *ait, char  *data, u32 data_size, u
 					for (i=0; i<boundary_descriptor->boundary_extension_count; i++) {
 						boundary_descriptor->boundary_extension_info[i].boundary_extension_length = gf_bs_read_int(bs,8);
 						if (boundary_descriptor->boundary_extension_info[i].boundary_extension_length > 0) {
-							boundary_descriptor->boundary_extension_info[i].boundary_extension_byte = (char*)gf_calloc(boundary_descriptor->boundary_extension_info[i].boundary_extension_length+1,sizeof(char));
+							boundary_descriptor->boundary_extension_info[i].boundary_extension_byte = (char*)gf_calloc(boundary_descriptor->boundary_extension_info[i].boundary_extension_length+1,1);
 							gf_bs_read_data(bs,boundary_descriptor->boundary_extension_info[i].boundary_extension_byte ,(u32)(boundary_descriptor->boundary_extension_info[i].boundary_extension_length));
 							boundary_descriptor->boundary_extension_info[i].boundary_extension_byte[boundary_descriptor->boundary_extension_info[i].boundary_extension_length] = 0;
 						}
@@ -462,7 +462,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 		GF_M2TS_AIT_APPLICATION_DECODE* application_decoded;
 		GF_SAFEALLOC(Application,GF_M2TS_AIT_APPLICATION);
 		if (!Application) break;
-		
+
 		gf_list_add(ChanAppInfo->Application,Application);
 		Application->http_url = NULL;
 		Application->carousel_url = NULL;
@@ -471,8 +471,8 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 		nb_app_desc = gf_list_count(application_decoded->application_descriptors);
 		Application->application_control_code = application_decoded->application_control_code;
 		Application->application_id = application_decoded->application_id;
-		Application->broadband = 0;
-		Application->broadcast = 0;
+		Application->broadband = GF_FALSE;
+		Application->broadcast = GF_FALSE;
 		ChanAppInfo->version_number = ait->version_number;
 
 		k=0;
@@ -504,7 +504,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 					GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE* Carousel_selector_byte = (GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
 					if(ts->process_dmscc) {
 						GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord = gf_m2ts_get_dmscc_overlord(ts->dsmcc_controler,ait->service_id);
-						Application->broadcast = 1;
+						Application->broadcast = GF_TRUE;
 						if(!dsmcc_overlord) {
 							char app_url[1024], char_service_id[128];
 
@@ -514,7 +514,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 							dsmcc_overlord = gf_m2ts_init_dsmcc_overlord(ait->service_id);
 							dsmcc_overlord->application_id = Application->application_id;
 							sprintf(char_service_id,"%d",dsmcc_overlord->service_id);
-							dsmcc_overlord->root_dir = (char*)gf_calloc(strlen(ts->dsmcc_root_dir)+2+strlen(char_service_id),sizeof(char));
+							dsmcc_overlord->root_dir = (char*)gf_calloc(strlen(ts->dsmcc_root_dir)+2+strlen(char_service_id),1);
 							sprintf(dsmcc_overlord->root_dir,"%s%c%s",ts->dsmcc_root_dir,GF_PATH_SEPARATOR,char_service_id);
 							e = gf_mkdir(dsmcc_overlord->root_dir);
 							if(e) {
@@ -539,7 +539,7 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 				{
 					GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE* Transport_http_selector_byte = (GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE*)protocol_descriptor->selector_byte;
 					url_base = Transport_http_selector_byte->URL_base_byte;
-					Application->broadband = 1;
+					Application->broadband = GF_TRUE;
 				}
 				default:
 				{
@@ -565,10 +565,10 @@ static void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT* ait) {
 
 			if((url_base != NULL) && ( url_appli_path != NULL)) {
 				u32 url_length = (strlen(url_base)+strlen(url_appli_path));
-				Application->http_url = (char*)gf_calloc(url_length + 1,sizeof(char));
+				Application->http_url = (char*)gf_calloc(url_length + 1,1);
 				sprintf(Application->http_url,"%s%s",url_base,url_appli_path);
 				Application->http_url[url_length]=0;
-				Application->url_received = 1;
+				Application->url_received = GF_TRUE;
 				url_base = NULL;
 				url_appli_path = NULL;
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Process AIT] SERVICE ID %d  URL %s  \n",ChanAppInfo->service_id,Application->http_url));
@@ -596,10 +596,10 @@ static Bool gf_m2ts_is_dmscc_app(GF_M2TS_CHANNEL_APPLICATION_INFO* ChanAppInfo) 
 	for(i=0; i<nb_app; i++) {
 		GF_M2TS_AIT_APPLICATION* Application = (GF_M2TS_AIT_APPLICATION*)gf_list_get(ChanAppInfo->Application,i);
 		if(Application->broadband) {
-			return 1;
+			return GF_TRUE;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -635,16 +635,16 @@ static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* dat
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Process AIT] AIT ait_list_version number %d, ait->version_number %d \n",ChanAppInfo->version_number,version_number));
 				if(ChanAppInfo->version_number >= version_number) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Process AIT] AIT already received, abording processing \n"));
-					return 1;
+					return GF_TRUE;
 				} else {
 					while(ChanAppInfo->nb_application != 0) {
-						GF_M2TS_AIT_APPLICATION* Application = gf_list_get(ChanAppInfo->Application,0);
+						GF_M2TS_AIT_APPLICATION* Application = (GF_M2TS_AIT_APPLICATION *)gf_list_get(ChanAppInfo->Application,0);
 						gf_m2ts_free_ait_application(Application);
 						gf_list_rem(ChanAppInfo->Application,0);
 						ChanAppInfo->nb_application = gf_list_count(ChanAppInfo->Application);
 					}
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Process AIT] Discard old applications - New AIT received \n"));
-					return 0;
+					return GF_FALSE;
 				}
 			}
 		}
@@ -652,7 +652,7 @@ static Bool check_ait_already_received(GF_List* ChannelAppList,u32 pid,char* dat
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Process AIT] No AIT received \n"));
 	}
 
-	return 0;
+	return GF_FALSE;
 }
 
 static void gf_ait_destroy(GF_M2TS_AIT* ait)
@@ -672,7 +672,7 @@ static void gf_ait_destroy(GF_M2TS_AIT* ait)
 	/* delete the applications and their descriptors */
 	app_numb = gf_list_count(ait->application_decoded);
 	while(app_numb != 0) {
-		GF_M2TS_AIT_APPLICATION_DECODE* application = gf_list_get(ait->application_decoded,0);
+		GF_M2TS_AIT_APPLICATION_DECODE* application = (GF_M2TS_AIT_APPLICATION_DECODE *)gf_list_get(ait->application_decoded,0);
 		gf_ait_application_decode_destroy(application);
 		gf_list_rem(ait->application_decoded,0);
 		app_numb = gf_list_count(ait->application_decoded);

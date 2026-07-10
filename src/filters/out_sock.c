@@ -110,7 +110,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	GF_Err e;
 	char *str, *url;
 	u16 port;
-	char *ext;
+	const char *ext;
 	u32 sock_type = 0;
 	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
 
@@ -235,7 +235,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		return e;
 	}
 	ctx->sg = gf_sk_group_new();
-	gf_sk_set_buffer_size(ctx->socket, 0, ctx->sockbuf);
+	gf_sk_set_buffer_size(ctx->socket, GF_FALSE, ctx->sockbuf);
 	if (!ctx->listen) {
 		gf_sk_group_register(ctx->sg, ctx->socket);
 	}
@@ -248,7 +248,7 @@ static void sockout_finalize(GF_Filter *filter)
 	GF_SockOutCtx *ctx = (GF_SockOutCtx *) gf_filter_get_udta(filter);
 	if (ctx->clients) {
 		while (gf_list_count(ctx->clients)) {
-			GF_SockOutClient *sc = gf_list_pop_back(ctx->clients);
+			GF_SockOutClient *sc = (GF_SockOutClient *)gf_list_pop_back(ctx->clients);
 			if (sc->socket) gf_sk_del(sc->socket);
 			gf_free(sc);
 		}
@@ -266,7 +266,7 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	const GF_PropertyValue *p;
 	u32 w, h, stride, stride_uv, pf;
 	u32 nb_planes, uv_height;
-	const char *pck_data;
+	const u8 *pck_data;
 	u32 pck_size;
 	GF_FilterFrameInterface *hwf=NULL;
 	if (!dst_sock) return GF_OK;
@@ -351,7 +351,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 			return GF_OK;
 		} else if (gf_filter_reporting_enabled(filter)) {
 			char szMsg[200];
-			snprintf(szMsg, 199, "s_rate="LLU" kbps", ctx->nb_bytes_sent*8*1000/now);
+			snprintf(szMsg, 199, "s_rate=" LLU " kbps", ctx->nb_bytes_sent*8*1000/now);
 			szMsg[199] = 0;
 			gf_filter_update_status(filter, 0, szMsg);
 		}
@@ -365,7 +365,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 			GF_SockOutClient *sc;
 			GF_SAFEALLOC(sc, GF_SockOutClient);
 			if (!sc) return GF_OUT_OF_MEM;
-			
+
 			sc->socket = new_conn;
 			gf_strcpy(sc->address, "unknown");
 			gf_sk_get_remote_address(new_conn, sc->address);
@@ -475,7 +475,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 		ctx->pck_pending = GF_FALSE;
 
 		for (i=0; i<nb_clients; i++) {
-			GF_SockOutClient *sc = gf_list_get(ctx->clients, i);
+			GF_SockOutClient *sc = (GF_SockOutClient *)gf_list_get(ctx->clients, i);
 			if (!sc->socket) continue;
 
 			if (!gf_sk_group_sock_is_set(ctx->sg, sc->socket, GF_SK_SELECT_WRITE))

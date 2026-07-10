@@ -61,7 +61,7 @@ typedef struct __validation_module
 	char *xvs_filename;
 	GF_DOMParser *xvs_parser;
 	GF_XMLNode *xvs_node;
-    Bool xvs_result;
+    u32 xvs_result;
     Bool owns_root;
 
 	/* test sequence */
@@ -100,7 +100,7 @@ static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char 
 	att->value = (char*)gf_malloc(100);
 	sprintf(att->value, "%d", scene_time);
 	gf_list_add(snap_node->attributes, att);
-	
+
 	att = (GF_XMLAttribute *) gf_malloc(sizeof(GF_XMLAttribute));
 	if (!att) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Failed to allocate snapshot\n"));
@@ -127,7 +127,7 @@ static char *validator_get_snapshot_name(GF_Validator *validator, Bool is_refere
 	char *name = validator->test_filename ? validator->test_filename : validator->xvs_filename;
 	char *dot;
 	char dumpname[GF_MAX_PATH];
-	dot = gf_file_ext_start(name);
+	dot = (char*)gf_file_ext_start(name);
 	dot[0] = 0;
 	sprintf(dumpname, "%s-%s-%03d.png", name, (is_reference?"reference":"newest"), number);
 	dot[0] = '.';
@@ -148,7 +148,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error dumping screen buffer %s\n", gf_error_to_string(e)));
 	} else {
 		u32 dst_size = fb.width*fb.height*3;
-		char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
+		u8 *dst = (u8*)gf_malloc(dst_size);
 		if (!dst) e = GF_OUT_OF_MEM;
 
 		if (!e)
@@ -175,15 +175,15 @@ static char *validator_create_snapshot(GF_Validator *validator)
 	return dumpname;
 }
 
-static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
+static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *width, u32 *height, u32 *pixel_format, u8 **dst, u32 *dst_size)
 {
 	u32 fsize, codecid;
-	char *data;
+	u8 *data;
 	GF_Err e;
 
 	codecid = 0;
 	if (!hint_codecid || ! *hint_codecid) {
-		char *ext = gf_file_ext_start(png_filename);
+		const char *ext = gf_file_ext_start(png_filename);
 		if (!ext) return GF_NOT_SUPPORTED;
 		if (!stricmp(ext, ".png")) codecid = GF_CODECID_PNG;
 		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) codecid = GF_CODECID_JPEG;
@@ -200,7 +200,7 @@ static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *wid
 #ifdef GPAC_HAS_JPEG
 		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
 		if (*dst_size) {
-			*dst = gf_malloc(*dst_size);
+			*dst = (u8 *)gf_malloc(*dst_size);
 			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, *dst, dst_size, 0);
 		}
 #endif
@@ -208,7 +208,7 @@ static GF_Err validator_file_dec(char *png_filename, u32 *hint_codecid, u32 *wid
 #ifdef GPAC_HAS_PNG
 		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);
 		if (*dst_size) {
-			*dst = gf_malloc(*dst_size);
+			*dst = (u8 *)gf_malloc(*dst_size);
 			return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);
 		}
 #endif
@@ -221,7 +221,7 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 	char *ref_name, *new_name;
 	u32 ref_width, ref_height, ref_pixel_format, ref_data_size;
 	u32 new_width, new_height, new_pixel_format, new_data_size;
-	char *ref_data=NULL, *new_data=NULL;
+	u8 *ref_data=NULL, *new_data=NULL;
 	Bool result = GF_FALSE;
 	GF_Err e;
 	u32 i;
@@ -353,7 +353,7 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_TEXTINPUT:
 #ifndef GPAC_DISABLE_SVG
-		evt_node->name = gf_strdup(gf_dom_event_get_name(event->type));
+		evt_node->name = gf_strdup(gf_dom_event_get_name((GF_EventType)event->type));
 #endif
 		break;
 	}
@@ -475,7 +475,7 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 		}
 		att->name = gf_strdup("key_identifier");
 #ifndef GPAC_DISABLE_SVG
-		att->value = gf_strdup(gf_dom_get_key_name(event->key.key_code));
+		att->value = gf_strdup(gf_dom_get_key_name((GF_KeyCode)event->key.key_code));
 #endif
 		gf_list_add(evt_node->attributes, att);
 		if (event->key.flags & GF_KEY_MOD_SHIFT) {
@@ -639,10 +639,10 @@ static void validator_xvl_close(GF_Validator *validator)
 			char result_filename[GF_MAX_PATH];
 			char *dot;
 			xvl_content = gf_xml_dom_serialize(validator->xvl_node, GF_FALSE, GF_FALSE);
-			dot = gf_file_ext_start(validator->xvl_filename);
-			dot[0] = 0;
+			dot = (char *) gf_file_ext_start(validator->xvl_filename);
+			if (dot) dot[0] = 0;
 			sprintf(result_filename, "%s-result.xml", validator->xvl_filename);
-			dot[0] = '.';
+			if (dot) dot[0] = '.';
 			xvl_fp = gf_fopen(result_filename, "wt");
 			gf_fwrite(xvl_content, strlen(xvl_content), xvl_fp);
 			gf_fclose(xvl_fp);
@@ -699,9 +699,9 @@ static Bool validator_xvs_open(GF_Validator *validator)
 			GF_SAFEALLOC(validator->xvs_node, GF_XMLNode);
 			if (!validator->xvs_node) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Failed to allocate root node\n"));
-				return 0;
+				return GF_FALSE;
 			}
-			
+
 			validator->xvs_node->name = gf_strdup("TestValidationScript");
 			validator->xvs_node->attributes = gf_list_new();
             validator->xvs_node->content = gf_list_new();
@@ -766,7 +766,7 @@ static Bool validator_xvs_open(GF_Validator *validator)
 		node->name = gf_strdup("\n");
 		gf_list_add(validator->xvs_node->content, node);
 	} else {
-		validator->xvs_result = GF_TRUE;
+		validator->xvs_result = 1;
 	}
 	return GF_TRUE;
 }
@@ -779,7 +779,7 @@ static void validator_xvs_close(GF_Validator *validator)
 			char *xvs_content;
 			GF_XMLAttribute *att_file = NULL;
 			u32 att_index = 0;
-            
+
             if (!validator->trace_mode) {
 				GF_XMLAttribute *att;
                 while (1) {
@@ -871,7 +871,7 @@ static void validator_test_open(GF_Validator *validator)
 //deprecated		gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 		if (validator->is_recording)
 			validator->snapshot_next_frame = GF_TRUE;
-		gf_sc_connect_from_time(validator->compositor, filename, 0, 0, 0, NULL);
+		gf_sc_connect_from_time(validator->compositor, filename, GF_FALSE, 0, GF_FALSE, NULL);
 
 	}
 //	validator->ck = validator->compositor->root_scene->scene_codec ? validator->compositor->root_scene->scene_codec->ck : validator->compositor->root_scene->dyn_ck;
@@ -1118,7 +1118,8 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 				char *snap_name = validator_create_snapshot(validator);
 				gf_free(snap_name);
 				res = validator_compare_snapshots(validator);
-				validator->xvs_result &= res;
+				if (res)
+					validator->xvs_result ++;
 				validator->next_event_snapshot = GF_FALSE;
 #endif
 			} else {
@@ -1189,6 +1190,8 @@ void validator_delete(GF_BaseInterface *ifce)
 	gf_free(dr);
 }
 
+GPAC_MODULE_EXPORT_START
+
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
@@ -1215,6 +1218,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
+
 
 GPAC_MODULE_STATIC_DECLARATION( validator )
 

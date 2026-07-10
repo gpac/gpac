@@ -723,7 +723,7 @@ process_reply:
 		if (sess->flags & RTSP_AGG_CONTROL) {
 			count = gf_list_count(sess->rtpin->streams);
 			for (i=0; i<count; i++) {
-				stream = gf_list_get(sess->rtpin->streams, i);
+				stream = (struct __rtpin_stream *)gf_list_get(sess->rtpin->streams, i);
 				if (stream->rtsp == sess)
 					stream->flags |= RTP_EOS;
 			}
@@ -950,7 +950,7 @@ void rtpin_rtsp_teardown_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err
 	//reset all pending commands
 	u32 i, count = gf_list_count(sess->rtsp_commands);
 	for (i=0; i<count; i++) {
-		GF_RTSPCommand *acom = gf_list_get(sess->rtsp_commands, i);
+		GF_RTSPCommand *acom = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, i);
 		acom->Session = NULL;
 	}
 }

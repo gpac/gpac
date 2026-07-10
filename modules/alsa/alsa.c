@@ -195,7 +195,7 @@ static GF_Err ALSA_Configure(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels
 	ctx->delay = (ctx->buf_size*1000) / (sr*ctx->block_align);
 
 	/*allocate a single buffer*/
-	ctx->wav_buf = gf_malloc(ctx->buf_size*sizeof(char));
+	ctx->wav_buf = (char *)gf_malloc(ctx->buf_size);
 	if(!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buf_size*sizeof(char));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] Setup %d ch @ %d hz - %d periods of %d us - total buffer size %d - overall delay %d ms\n", ctx->nb_ch, sr, nb_bufs, period_time, ctx->buf_size, ctx->delay));
@@ -322,7 +322,7 @@ void *NewALSAOutput()
 		return NULL;
 	}
 	driv->opaque = ctx;
-	driv->SelfThreaded = 0;
+	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = ALSA_Setup;
 	driv->Shutdown = ALSA_Shutdown;
 	driv->Configure = ALSA_Configure;
@@ -345,6 +345,7 @@ void DeleteALSAOutput(void *ifce)
 }
 
 
+GPAC_MODULE_EXPORT_START
 /*
  * ********************************************************************
  * interface
@@ -373,5 +374,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	if (ifce->InterfaceType==GF_AUDIO_OUTPUT_INTERFACE)
 		DeleteALSAOutput((GF_AudioOutput*)ifce);
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( alsa )

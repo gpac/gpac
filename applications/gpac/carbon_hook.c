@@ -28,6 +28,7 @@
 #endif
 
 #include <gpac/setup.h>
+#include <gpac/tools.h>
 
 #ifndef GPAC_DISABLE_COMPOSITOR
 
@@ -35,8 +36,6 @@
 void carbon_remove_hook(void);
 void carbon_set_hook(void);
 void gpac_open_urls(const char *urls);
-
-int gf_dynstrcat(char **str, const char *to_append, const char *sep);
 
 static AEEventHandlerUPP open_doc_UPP;
 
@@ -46,7 +45,7 @@ void carbon_remove_hook()
 	DisposeAEEventHandlerUPP(open_doc_UPP);
 }
 
-static pascal OSErr sdl_ae_open_doc(const AppleEvent *ae_event, AppleEvent *ae_reply, long ae_ref_count)
+static pascal OSErr sdl_ae_open_doc(const AppleEvent *ae_event, AppleEvent *ae_reply, SRefCon ae_ref_count)
 {
 	char path[4096];
 	OSErr err;

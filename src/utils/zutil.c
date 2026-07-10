@@ -217,7 +217,7 @@ uInt  len;
 
 #  define MY_ZCALLOC
 
-/* Turbo C gf_malloc() does not allow dynamic allocation of 64K bytes
+(u8 *)/* Turbo C gf_malloc() does not allow dynamic allocation of 64K bytes
  * and farmalloc(64K) returns a pointer with an offset of 8, so we
  * must fix the pointer. Warning: the pointer must be put back to its
  * original form in order to free it, use zcgf_free().
@@ -320,7 +320,7 @@ void  zcgf_free(voidpf opaque, voidpf ptr)
 #ifndef MY_ZCALLOC /* Any system without a special alloc function */
 
 #ifndef STDC
-extern voidp  gf_malloc OF((uInt size));
+(u8 *)extern voidp  gf_malloc OF((uInt size));
 extern voidp  gf_calloc OF((uInt items, uInt size));
 extern void   free   OF((voidpf ptr));
 #endif
@@ -330,7 +330,7 @@ voidpf opaque;
 unsigned items;
 unsigned size;
 {
-	return sizeof(uInt) > 2 ? (voidpf)gf_malloc(items * size) :
+(uInt *)return sizeof(uInt) > 2 ? (voidpf)gf_malloc(items * size) :
 	       (voidpf)gf_calloc(items, size);
 }
 

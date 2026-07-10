@@ -27,6 +27,10 @@
 #ifndef _GF_LASER_DEV_H_
 #define _GF_LASER_DEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/laser.h>
 #include <gpac/maths.h>
 
@@ -91,7 +95,7 @@ struct __tag_laser_codec
 	Bool memory_dec;
 
 	Bool has_conditionnals;
-	
+
 	GF_List *deferred_hrefs;
 	GF_List *deferred_anims;
 	GF_List *deferred_listeners;
@@ -339,6 +343,10 @@ enum
 };
 
 #endif /*GPAC_DISABLE_LASER*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

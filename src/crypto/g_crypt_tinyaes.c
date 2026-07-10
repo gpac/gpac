@@ -42,7 +42,7 @@ GF_Err gf_crypt_init_tinyaes_cbc(GF_Crypt* td, void *key, const void *iv)
 		td->context = ctx;
 	}
 
-	
+
 	if (iv != NULL) {
 		AES_init_ctx_iv(ctx, key, iv);
 	} else {

@@ -37,7 +37,13 @@
 #  pragma comment(lib, "OpenSVCDecoder")
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
+#ifdef __cplusplus
+}
+#endif
 
 #define SVC_MAX_STREAMS 3
 
@@ -271,7 +277,7 @@ retry:
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->streams[0].ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	
+
 	if (ctx->width) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
@@ -316,7 +322,8 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	u32 i, count, idx, nalu_size, sc_size, nb_eos=0;
 	u8 *ptr;
 	u32 data_size;
-	u8 *data;
+	const u8 *data;
+	u8 *output;
 	Bool has_pic = GF_FALSE;
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck, *src_pck, *pck_ref = NULL;
@@ -327,7 +334,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 			if (nb_eos) nb_eos++;
 			continue;
 		}
-		
+
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid)) nb_eos++;
@@ -341,7 +348,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
 
-		data = (char *) gf_filter_pck_get_data(pck, &data_size);
+		data = gf_filter_pck_get_data(pck, &data_size);
 		//TODO: this is a clock signaling, for now just trash ..
 		if (!data) {
 			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
@@ -369,7 +376,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	src_pck = NULL;
 	for (i=0; i<count; i++) {
 		u64 acts;
-		src_pck = gf_list_get(ctx->src_packets, i);
+		src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
 		acts = gf_filter_pck_get_cts(src_pck);
 		if (acts==min_cts) {
 			gf_filter_pck_unref(pck_ref);
@@ -414,13 +421,13 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 			continue;
 		}
 
-		data = (char *) gf_filter_pck_get_data(pck, &data_size);
+		data = gf_filter_pck_get_data(pck, &data_size);
 
 		maxDqIdInAU = GetDqIdMax((unsigned char *) data, data_size, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
 		if (ctx->MaxDqId <= (s32) maxDqIdInAU) {
 			ctx->MaxDqId = (s32) maxDqIdInAU;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenSVC] decode from stream %s - DTS "LLU" PTS "LLU" size %d - max DQID %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), dts, cts, data_size, maxDqIdInAU) );
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenSVC] decode from stream %s - DTS " LLU " PTS " LLU " size %d - max DQID %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), dts, cts, data_size, maxDqIdInAU) );
 
 
 		//we are asked to use a lower quality
@@ -473,11 +480,11 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 				switch (ptr[0] & 0x1F) {
 				case GF_AVC_NALU_SEQ_PARAM:
 				case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-					gf_avc_get_sps_info((char *)ptr, nalu_size, &sps_id, NULL, NULL, NULL, NULL);
+					gf_avc_get_sps_info(ptr, nalu_size, &sps_id, NULL, NULL, NULL, NULL);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVCDec] PID %s: SPS id=\"%d\" code=\"%d\" size=\"%d\"\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), sps_id, ptr[0] & 0x1F, nalu_size));
 					break;
 				case GF_AVC_NALU_PIC_PARAM:
-					gf_avc_get_pps_info((char *)ptr, nalu_size, &pps_id, &sps_id);
+					gf_avc_get_pps_info(ptr, nalu_size, &pps_id, &sps_id);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] PID %s: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), pps_id, ptr[0] & 0x1F, nalu_size, sps_id));
 					break;
 				case GF_AVC_NALU_VDRD:
@@ -531,19 +538,19 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV) );
 	}
 
-	src_pck = gf_list_pop_front(ctx->src_packets);
+	src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
 
 	if (src_pck && gf_filter_pck_get_seek_flag(src_pck)) {
 		gf_filter_pck_unref(src_pck);
 		return GF_OK;
 	}
 
-	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
-	memcpy(data, pic.pY[0], ctx->stride*ctx->height);
-	memcpy(data + ctx->stride * ctx->height, pic.pU[0], ctx->stride*ctx->height/4);
-	memcpy(data + 5*ctx->stride * ctx->height/4, pic.pV[0], ctx->stride*ctx->height/4);
+	memcpy(output, pic.pY[0], ctx->stride*ctx->height);
+	memcpy(output + ctx->stride * ctx->height, pic.pU[0], ctx->stride*ctx->height/4);
+	memcpy(output + 5*ctx->stride * ctx->height/4, pic.pV[0], ctx->stride*ctx->height/4);
 
 	if (src_pck) {
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
@@ -552,7 +559,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	}
 	gf_filter_pck_set_dts(dst_pck, gf_filter_pck_get_cts(dst_pck));
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] decoded out frame PTS "LLU"\n", gf_filter_pck_get_cts(dst_pck) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] decoded out frame PTS " LLU "\n", gf_filter_pck_get_cts(dst_pck) ));
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }
@@ -569,7 +576,7 @@ static void osvcdec_finalize(GF_Filter *filter)
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 	if (ctx->codec) SVCDecoder_close(ctx->codec);
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);

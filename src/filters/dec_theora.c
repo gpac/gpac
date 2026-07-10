@@ -58,7 +58,7 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	const GF_PropertyValue *p;
 	ogg_packet oggpacket;
 	GF_BitStream *bs;
-	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_TheoraDecCtx *ctx = (GF_TheoraDecCtx *)gf_filter_get_udta(filter);
 
 
 	if (is_remove) {
@@ -75,7 +75,7 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
 		u32 ex_crc;
-		if (strncmp(&p->value.data.ptr[3], "theora", 6)) return GF_NON_COMPLIANT_BITSTREAM;
+		if (strncmp((char *) &p->value.data.ptr[3], "theora", 6)) return GF_NON_COMPLIANT_BITSTREAM;
 		ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		if (ctx->cfg_crc == ex_crc) return GF_OK;
 		ctx->cfg_crc = ex_crc;
@@ -110,7 +110,7 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	while (gf_bs_available(bs)) {
 		GF_Err e = GF_OK;
 		oggpacket.bytes = gf_bs_read_u16(bs);
-		oggpacket.packet = gf_malloc(sizeof(char) * oggpacket.bytes);
+		oggpacket.packet = (u8 *)gf_malloc(oggpacket.bytes);
 		gf_bs_read_data(bs, oggpacket.packet, oggpacket.bytes);
 		if (theora_decode_header(&ctx->ti, &ctx->tc, &oggpacket) < 0 ) {
 			e = GF_NON_COMPLIANT_BITSTREAM;
@@ -135,7 +135,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	u8 *buffer;
 	u8 *pYO, *pUO, *pVO;
 	u8 *pYD, *pUD, *pVD;
-	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_TheoraDecCtx *ctx = (GF_TheoraDecCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck, *src_pck, *pck_ref;
 	Bool is_seek;
 
@@ -150,7 +150,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	if (pck) {
 		u64 cts = gf_filter_pck_get_cts(pck);
 		u32 psize;
-		op.packet = (char *) gf_filter_pck_get_data(pck, &psize);
+		op.packet = (u8*)gf_filter_pck_get_data(pck, &psize);
 		op.bytes = psize;
 
 
@@ -161,7 +161,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		src_pck = NULL;
 		for (i=0; i<count; i++) {
 			u64 acts;
-			src_pck = gf_list_get(ctx->src_packets, i);
+			src_pck = (struct __gf_filter_pck *)gf_list_get(ctx->src_packets, i);
 			acts = gf_filter_pck_get_cts(src_pck);
 			if (acts==cts) {
 				gf_filter_pck_unref(pck_ref);
@@ -187,7 +187,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	}
 
 	if (theora_decode_packetin(&ctx->td, &op) != 0) {
-		src_pck = gf_list_pop_front(ctx->src_packets);
+		src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
 		gf_filter_pck_unref(src_pck);
 		if (pck) {
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -221,7 +221,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ti.width));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->ti.height));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->ti.width));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ctx->ti.fps_numerator, ctx->ti.fps_denominator) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC_INT((s32) ctx->ti.fps_numerator, ctx->ti.fps_denominator) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(pix_fmt) );
 	}
 
@@ -265,7 +265,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		pVO += yuv.uv_stride;
 	}
 
-	src_pck = gf_list_pop_front(ctx->src_packets);
+	src_pck = (struct __gf_filter_pck *)gf_list_pop_front(ctx->src_packets);
 	if (src_pck) {
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		is_seek = gf_filter_pck_get_seek_flag(src_pck);
@@ -275,7 +275,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		gf_filter_pck_unref(src_pck);
 		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 	} else {
-		is_seek = 0;
+		is_seek = GF_FALSE;
 		gf_filter_pck_set_cts(dst_pck, ctx->next_cts);
 	}
 
@@ -290,20 +290,20 @@ static GF_Err theoradec_process(GF_Filter *filter)
 
 static GF_Err theoradec_initialize(GF_Filter *filter)
 {
-	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_TheoraDecCtx *ctx = (GF_TheoraDecCtx *)gf_filter_get_udta(filter);
 	ctx->src_packets = gf_list_new();
 	return GF_OK;
 }
 static void theoradec_finalize(GF_Filter *filter)
 {
-	GF_TheoraDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_TheoraDecCtx *ctx = (GF_TheoraDecCtx *)gf_filter_get_udta(filter);
 
 	theora_clear(&ctx->td);
 	theora_info_clear(&ctx->ti);
 	theora_comment_clear(&ctx->tc);
 
 	while (gf_list_count(ctx->src_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_back(ctx->src_packets);
+		GF_FilterPacket *pck = (struct __gf_filter_pck *)gf_list_pop_back(ctx->src_packets);
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);

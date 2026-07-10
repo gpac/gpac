@@ -94,7 +94,7 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #else
 	sprintf(n, "encjpg:%d", JPEG_LIB_VERSION);
 #endif
-	
+
 	gf_filter_set_name(filter, n);
 
 	//some props may not be set yet
@@ -211,11 +211,11 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	struct jpeg_compress_struct cinfo;
 	GF_FilterPacket *pck = NULL;
-	char *in_data;
+	const u8 *in_data;
 	GF_FilterFrameInterface *frame_ifce = NULL;
 	u32 size, stride, stride_uv;
     u32 i, j;
-    u8 *pY, *pU, *pV;
+    const u8 *pY, *pU, *pV;
     JSAMPROW y[16],cb[16],cr[16];
     JSAMPARRAY block[3];
 
@@ -233,7 +233,7 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 	}
 	if (ctx->in_fmt_negotiate) return GF_OK;
 
-	in_data = (char *) gf_filter_pck_get_data(pck, &size);
+	in_data = gf_filter_pck_get_data(pck, &size);
 	if (!in_data) {
 		frame_ifce = gf_filter_pck_get_frame_interface(pck);
 		if (!frame_ifce || !frame_ifce->get_plane) {
@@ -331,10 +331,10 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 
 	for (j=0; j<ctx->height; j+=16) {
 		for (i=0;i<16;i++) {
-			y[i] = pY + stride*(i+j);
+			y[i] = (JSAMPROW) pY + stride*(i+j);
 			if (i%2 == 0) {
-				cb[i/2] = pU + stride_uv*((i+j)/2);
-				cr[i/2] = pV + stride_uv*((i+j)/2);
+				cb[i/2] = (JSAMPROW) pU + stride_uv*((i+j)/2);
+				cr[i/2] =  (JSAMPROW) pV + stride_uv*((i+j)/2);
 			}
 		}
 		jpeg_write_raw_data (&cinfo, block, 16);

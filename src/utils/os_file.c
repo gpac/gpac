@@ -24,6 +24,7 @@
  */
 
 #include <gpac/tools.h>
+#include <gpac/network.h>
 #include <gpac/utf.h>
 
 #if defined(_WIN32_WCE)
@@ -205,14 +206,14 @@ GF_Err gf_fileio_register_delete_proc(gfio_delete_proc del_proc)
 
 	if (!gfio_delete_handlers) gfio_delete_handlers = gf_list_new();
 	if (!gfio_delete_handlers) return GF_OUT_OF_MEM;
-	if (gf_list_find(gfio_delete_handlers, del_proc)>=0) return GF_BAD_PARAM;
-	return gf_list_add(gfio_delete_handlers, del_proc);
+	if (gf_list_find(gfio_delete_handlers, (void*)del_proc)>=0) return GF_BAD_PARAM;
+	return gf_list_add(gfio_delete_handlers, (void*)del_proc);
 }
 GF_EXPORT
 void gf_fileio_unregister_delete_proc(gfio_delete_proc del_proc)
 {
 	if (!del_proc || !gfio_delete_handlers) return;
-	gf_list_del_item(gfio_delete_handlers, del_proc);
+	gf_list_del_item(gfio_delete_handlers, (void*)del_proc);
 	if (!gf_list_count(gfio_delete_handlers)) {
 		gf_list_del(gfio_delete_handlers);
 		gfio_delete_handlers = NULL;
@@ -230,7 +231,7 @@ GF_Err gf_fileio_file_delete(const char *fileName, const char *parent_gfio)
 
 	u32 i, count=gf_list_count(gfio_delete_handlers);
 	for (i=0; i<count; i++) {
-		gfio_delete_proc del_proc = gf_list_get(gfio_delete_handlers, i);
+		gfio_delete_proc del_proc = (gfio_delete_proc)gf_list_get(gfio_delete_handlers, i);
 		GF_Err ret = del_proc(fileName, parent_gfio);
 		if (ret==GF_EOS) continue;
 		return ret;
@@ -534,14 +535,14 @@ const char *enum_open_handles(u32 *idx)
 		gf_mx_v(logs_mx);
 		return NULL;
 	}
-	h = gf_list_get(gpac_open_files, *idx);
+	h = (GF_FileHandle *)gf_list_get(gpac_open_files, *idx);
 	(*idx)++;
 	gf_mx_v(logs_mx);
 	return h->url;
 }
 #endif
 
-static void gf_register_file_handle(char *filename, FILE *ptr, Bool is_temp_file)
+static void gf_register_file_handle(const char *filename, FILE *ptr, Bool is_temp_file)
 {
 	if (is_temp_file
 #ifdef GPAC_MEMORY_TRACKING
@@ -556,7 +557,7 @@ static void gf_register_file_handle(char *filename, FILE *ptr, Bool is_temp_file
 			h->ptr = ptr;
 			if (is_temp_file) {
 				h->is_temp = GF_TRUE;
-				h->url = filename;
+				h->url = (char*)filename;
 			} else {
 				h->url = gf_strdup(filename);
 			}
@@ -580,7 +581,7 @@ static Bool gf_unregister_file_handle(FILE *ptr)
 	gf_mx_p(logs_mx);
 	count = gf_list_count(gpac_open_files);
 	for (i=0; i<count; i++) {
-		GF_FileHandle *h = gf_list_get(gpac_open_files, i);
+		GF_FileHandle *h = (GF_FileHandle *)gf_list_get(gpac_open_files, i);
 		if (h->ptr != ptr) continue;
 
 		if (h->is_temp) {
@@ -745,7 +746,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		u32 len;
 		char *drives, *volume;
 		len = GetLogicalDriveStrings(0, NULL);
-		drives = (char*)gf_malloc(sizeof(char)*(len+1));
+		drives = (char*)gf_malloc(len+1);
 		drives[0]=0;
 		GetLogicalDriveStrings(len, drives);
 		len = (u32) strlen(drives);
@@ -862,6 +863,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 		memset(&file_info, 0, sizeof(GF_FileEnumInfo) );
 
+		Bool done = GF_FALSE;
+		struct tm _t;
 
 #if defined (_WIN32_WCE)
 		if (!wcscmp(FindData.cFileName, _T(".") )) goto next;
@@ -908,7 +911,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #else
 			char ext[30];
 			char *sep = strrchr(the_file->d_name, '.');
-			char *found_ext;
+			const char *found_ext;
 			u32 ext_len;
 			if (!sep) goto next;
 			gf_strcpy(ext, sep+1);
@@ -951,7 +954,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 		file_info.size = st.st_size;
 
-		struct tm _t = * gf_gmtime(& st.st_mtime);
+		_t = * gf_gmtime(& st.st_mtime);
 		file_info.last_modified = mktime(&_t);
 		file_info.last_modified *= 1000000;
 #if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_IOS)
@@ -982,7 +985,6 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		}
 #endif
 
-		Bool done = GF_FALSE;
 #ifdef WIN32
 		mbs_file = gf_wcs_to_utf8(file);
 		mbs_item_path = gf_wcs_to_utf8(item_path);
@@ -1055,7 +1057,7 @@ struct __gf_file_io
 	Bool main_th;
 	GF_FileIOCacheState cache_state;
 	u32 bytes_per_sec;
-	u32 write_state;
+	GF_FileIOWriteState write_state;
 
 	u32 printf_alloc;
 	u8* printf_buf;
@@ -1114,7 +1116,7 @@ typedef struct
 
 static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_error)
 {
-	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio_ref);
+	GF_FileIOBlob *blob = (GF_FileIOBlob *) gf_fileio_get_udta(fileio_ref);
 	if (!strcmp(mode, "close") || !strcmp(mode, "unref")) {
 		if (blob->nb_ref) blob->nb_ref--;
 		blob->pos = 0;
@@ -1138,7 +1140,7 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 		return NULL;
 	}
 	if (!strcmp(mode, "probe")) {
-		u32 crc = gf_crc_32(url, (u32) strlen(url) );
+		u32 crc = gf_crc_32((const u8*)url, (u32) strlen(url) );
 		*out_error = (crc==blob->url_crc) ? GF_OK : GF_URL_ERROR;
 		return NULL;
 	}
@@ -1154,7 +1156,7 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 	}
 	//if already in use, we must allocate a new gfio otherwise read position would get shared across FILE streams !
 	fileio_ref = gf_fileio_from_mem(blob->URL, blob->data, blob->size);
-	blob = gf_fileio_get_udta(fileio_ref);
+	blob =  (GF_FileIOBlob *) gf_fileio_get_udta(fileio_ref);
 	//remember we forced a new gfio, it will have to be unregistered upon close
 	blob->sub_open = GF_TRUE;
 	*out_error = fileio_ref ? GF_OK : GF_IO_ERR;
@@ -1163,7 +1165,7 @@ static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const c
 
 static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
-	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	GF_FileIOBlob *blob =  (GF_FileIOBlob *) gf_fileio_get_udta(fileio);
 	if (whence==SEEK_END)
 		blob->pos = blob->size;
 	else if (whence==SEEK_SET) {
@@ -1185,7 +1187,7 @@ static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 }
 static u32 gfio_blob_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
-	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	GF_FileIOBlob *blob =  (GF_FileIOBlob *) gf_fileio_get_udta(fileio);
 	if (bytes + blob->pos > blob->size)
 		bytes = blob->size - blob->pos;
 	if (bytes) {
@@ -1197,24 +1199,24 @@ static u32 gfio_blob_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 }
 static s64 gfio_blob_tell(GF_FileIO *fileio)
 {
-	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	GF_FileIOBlob *blob =  (GF_FileIOBlob *) gf_fileio_get_udta(fileio);
 	return (s64) blob->pos;
 }
 static Bool gfio_blob_eof(GF_FileIO *fileio)
 {
-	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	GF_FileIOBlob *blob =  (GF_FileIOBlob *) gf_fileio_get_udta(fileio);
 	if (blob->pos==blob->size) return GF_TRUE;
 	return GF_FALSE;
 }
 
 static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
 {
-	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
-	char *buf = blob->data + blob->pos;
+	GF_FileIOBlob *blob =  (GF_FileIOBlob *) gf_fileio_get_udta(fileio);
+	char *buf = (char*)blob->data + blob->pos;
 	u32 len = blob->size - blob->pos;
 	if (!len) return NULL;
 
-	char *next = memchr(buf, '\n', len);
+	char *next = (char *) memchr(buf, '\n', len);
 	if (next) {
 		len = (u32) (next - buf);
 		if (len + blob->pos<blob->size) len++;
@@ -1229,7 +1231,7 @@ static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
 GF_List *allocated_gfios = NULL;
 
 GF_EXPORT
-GF_FileIO *gf_fileio_new(char *url, void *udta,
+GF_FileIO *gf_fileio_new(const char *url, void *udta,
 	gfio_open_proc open,
 	gfio_seek_proc seek,
 	gfio_read_proc read,
@@ -1358,9 +1360,9 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args)
 
 	if (len>=gfio->printf_alloc) {
 		gfio->printf_alloc = len+1;
-		gfio->printf_buf = gf_realloc(gfio->printf_buf, gfio->printf_alloc);
+		gfio->printf_buf = (u8 *)gf_realloc(gfio->printf_buf, gfio->printf_alloc);
 	}
-	vsnprintf(gfio->printf_buf, len, format, args);
+	vsnprintf((char *)gfio->printf_buf, len, format, args);
 	gfio->printf_buf[len] = 0;
 	return gfio->write(gfio, gfio->printf_buf, len+1);
 }
@@ -1571,7 +1573,7 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	}
 	res->gets = gfio_blob_gets;
 	if (file_name)
-		gfio_blob->url_crc = gf_crc_32(file_name, (u32) strlen(file_name) );
+		gfio_blob->url_crc = gf_crc_32((const u8*)file_name, (u32) strlen(file_name) );
 	return res;
 }
 
@@ -1591,7 +1593,7 @@ GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
 	}
 	res->gets = gfio_blob_gets;
 	if (URL)
-		gfio_blob->url_crc = gf_crc_32(URL, (u32) strlen(URL) );
+		gfio_blob->url_crc = gf_crc_32((const u8*)URL, (u32) strlen(URL) );
 	gf_fopen(gf_fileio_url(res), "r");
 	return res;
 }
@@ -1835,7 +1837,7 @@ size_t gf_fread(void *ptr, size_t nbytes, FILE *stream)
 {
 	size_t result;
 	if (gf_fileio_check(stream)) {
-		return (size_t) gf_fileio_read((GF_FileIO *)stream, ptr, (u32) nbytes);
+		return (size_t) gf_fileio_read((GF_FileIO *)stream, (u8*)ptr, (u32) nbytes);
 	}
 	if (!stream) return 0;
 	result = fread(ptr, 1, nbytes, stream);
@@ -2013,9 +2015,9 @@ u64 gf_fd_fsize(int fd)
   * Returns a pointer to the start of a filepath basename
  **/
 GF_EXPORT
-char* gf_file_basename(const char* filename)
+const char* gf_file_basename(const char* filename)
 {
-	char* lastPathPart = NULL;
+	const char* lastPathPart = NULL;
 	if (filename) {
 		lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
 #if GF_PATH_SEPARATOR != '/'
@@ -2040,9 +2042,9 @@ char* gf_file_basename(const char* filename)
   * Returns a pointer to the start of a filepath extension or null
  **/
 GF_EXPORT
-char* gf_file_ext_start(const char* filename)
+const char* gf_file_ext_start(const char* filename)
 {
-	char* basename;
+	const char* basename;
 
 	if (filename && !strncmp(filename, "gfio://", 7)) {
 		GF_FileIO *gfio = gf_fileio_from_url(filename);
@@ -2051,11 +2053,11 @@ char* gf_file_ext_start(const char* filename)
 	basename = gf_file_basename(filename);
 
 	if (basename) {
-		char *ext = strrchr(basename, '.');
+		char *ext = (char*) strrchr(basename, '.');
 		if (!ext) return NULL;
 		if (!strcmp(ext, ".gz")) {
 			ext[0] = 0;
-			char *ext2 = strrchr(basename, '.');
+			char *ext2 = (char*)strrchr(basename, '.');
 			ext[0] = '.';
 			if (ext2) return ext2;
 		}
@@ -2072,9 +2074,9 @@ char* gf_file_ext_start(const char* filename)
 
 
 GF_EXPORT
-char* gf_url_colon_suffix(const char *path, char assign_sep)
+const char* gf_url_colon_suffix(const char *path, char assign_sep)
 {
-	char *sep = strchr(path, ':');
+	const char *sep = strchr(path, ':');
 	if (!sep) return NULL;
 
 	//handle Z:\ and Z:/
@@ -2087,7 +2089,7 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 
 	//handle "\\foo\Z:\bar"
 	if ((path[0] == '\\') && (path[1] == '\\')) {
-		char *next = strchr(path+2, '\\');
+		const char *next = strchr(path+2, '\\');
 		if (next) next = strchr(next + 1, '\\');
 		if (next)
 			return gf_url_colon_suffix(next + 1, assign_sep);
@@ -2096,7 +2098,8 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 
 	//handle PROTO://ADD:PORT/
 	if ((sep[1]=='/') && (sep[2]=='/')) {
-		char *next_colon, *next_slash, *userpass;
+		const char *next_colon, *userpass;
+		char *next_slash;
 		sep++;
 		//skip all // (eg PROTO://////////////mytest/)
 		while (sep[0]=='/')
@@ -2111,7 +2114,7 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 		}
 		//find closest : or /, if : is before / consider this is a port or an IPv6 address and check next : after /
 		next_colon = strchr(sep, ':');
-		next_slash = strchr(sep, '/');
+		next_slash = (char*)strchr(sep, '/');
 		userpass = strchr(sep, '@');
 		//if ':' is before '@' with '@' before next '/', consider this is `user:pass@SERVER`
 		if (userpass && next_colon && next_slash && (userpass<next_slash) && (userpass>next_colon))
@@ -2142,8 +2145,8 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 	}
 
 	if (sep && assign_sep) {
-		char *file_ext = strchr(path, '.');
-		char *assign = strchr(path, assign_sep);
+		const char *file_ext = strchr(path, '.');
+		const char *assign = strchr(path, assign_sep);
 		if (assign && assign>file_ext) assign = NULL;
 		if (assign) file_ext = NULL;
 		if (file_ext && (file_ext>sep)) {
@@ -2154,7 +2157,7 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 				return gf_url_colon_suffix(assign + 1, 0);
 			}
 			if ((assign[1] == '\\') && (assign[2] == '\\')) {
-				char *next = strchr(assign + 3, '\\');
+				const char *next = strchr(assign + 3, '\\');
 				if (next) next = strchr(next+1, '\\');
 				if (next && (next>sep))
 					return gf_url_colon_suffix(next, 0);

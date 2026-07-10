@@ -381,7 +381,7 @@ void gf_odf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, const u8
 	//reset the input header
 	memset(Header, 0, sizeof(GF_SLHeader));
 
-	bs = gf_bs_new(PDU, PDULength, GF_BITSTREAM_READ);
+	bs = gf_bs_new((u8*)PDU, PDULength, GF_BITSTREAM_READ);
 	if (!bs) return;
 
 	if (slConfig->useAccessUnitStartFlag) Header->accessUnitStartFlag = gf_bs_read_int(bs, 1);

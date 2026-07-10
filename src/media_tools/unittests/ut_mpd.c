@@ -29,12 +29,12 @@ unittest(mpd_event_streams)
 	e = gf_mpd_init_from_dom(gf_xml_dom_get_root(dom), mpd, NULL);
 	assert_true(e == GF_OK);
 
-	GF_List *evts = ((GF_MPD_Period *)gf_list_get(mpd->periods, 0))->event_streams;
+	GF_List *evts = ((GF_MPD_Period *)(GF_List *)gf_list_get(mpd->periods, 0))->event_streams;
 	assert_equal(gf_list_count(evts), 1, "%u");
-	GF_MPD_EventStream *es = gf_list_get(evts, 0);
+	GF_MPD_EventStream *es = (GF_MPD_EventStream *)gf_list_get(evts, 0);
 	assert_equal(gf_list_count(es->entries), 2, "%u");
 
-    GF_MPD_EventStreamEntry *entry = gf_list_get(es->entries, 1);
+    GF_MPD_EventStreamEntry *entry = (GF_MPD_EventStreamEntry *)gf_list_get(es->entries, 1);
     assert_equal(entry->presentation_time, (s64)1765533732480, LLD);
     assert_equal(entry->duration, 38400, "%u");
     assert_equal(entry->id, 14596013, "%u");
@@ -42,7 +42,7 @@ unittest(mpd_event_streams)
 
 	{
 		u32 sz = 2*entry->message_size+3;
-		u8 *b64 = gf_malloc(sizeof(char)*sz);
+		u8 *b64 = (u8 *)gf_malloc(sz);
 		assert_true(b64 != NULL);
 		sz = gf_base64_encode((u8*)entry->message, entry->message_size, b64, sz);
 		b64[sz] = 0;

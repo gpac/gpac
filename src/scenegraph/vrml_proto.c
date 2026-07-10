@@ -32,7 +32,7 @@
 #ifndef GPAC_DISABLE_VRML
 
 GF_EXPORT
-GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool unregistered)
+GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, const char *name, Bool unregistered)
 {
 	GF_Proto *tmp;
 	if (!inScene) return NULL;
@@ -198,7 +198,7 @@ GF_Err gf_sg_proto_add_node_code(GF_Proto *proto, GF_Node *pNode)
 }
 
 GF_EXPORT
-GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, char *fieldName)
+GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, const char *fieldName)
 {
 	GF_ProtoFieldInterface *ptr;
 	u32 i=0;
@@ -209,7 +209,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_find_by_name(GF_Proto *proto, char *fi
 }
 
 GF_EXPORT
-GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u32 eventType, char *fieldName)
+GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u32 eventType, const char *fieldName)
 {
 	GF_ProtoFieldInterface *tmp;
 
@@ -340,7 +340,7 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 	return GF_OK;
 }
 
-s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name)
+s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, const char *name)
 {
 	u32 i;
 	GF_Proto *__proto=NULL;
@@ -363,7 +363,7 @@ s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *na
 }
 
 
-GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id_suffix)
+GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, const char *inst_id_suffix)
 {
 	u32 i, count, id;
 	char *szNodeName;
@@ -416,10 +416,10 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 
 	count = gf_node_get_field_count(orig);
 
-	is_script = 0;
-	if (orig->sgprivate->tag==TAG_MPEG4_Script) is_script = 1;
+	is_script = GF_FALSE;
+	if (orig->sgprivate->tag==TAG_MPEG4_Script) is_script = GF_TRUE;
 #ifndef GPAC_DISABLE_X3D
-	else if (orig->sgprivate->tag==TAG_X3D_Script) is_script = 1;
+	else if (orig->sgprivate->tag==TAG_X3D_Script) is_script = GF_TRUE;
 #endif
 
 	if (is_script) gf_sg_script_prepare_clone(node, orig);
@@ -445,14 +445,14 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		/*duplicate it*/
 		switch (field.fieldType) {
 		case GF_SG_VRML_SFNODE:
-			child = gf_node_clone(inScene, (* ((GF_Node **) field_orig.far_ptr)), node, inst_id_suffix, 1);
+			child = gf_node_clone(inScene, (* ((GF_Node **) field_orig.far_ptr)), node, inst_id_suffix, GF_TRUE);
 			*((GF_Node **) field.far_ptr) = child;
 			break;
 		case GF_SG_VRML_MFNODE:
 			last = NULL;
 			list = *( (GF_ChildNodeItem **) field_orig.far_ptr);
 			while (list) {
-				child = gf_node_clone(inScene, list->node, node, inst_id_suffix, 1);
+				child = gf_node_clone(inScene, list->node, node, inst_id_suffix, GF_TRUE);
 				gf_node_list_add_child_last((GF_ChildNodeItem **) field.far_ptr, child, &last);
 				list = list->next;
 			}
@@ -532,16 +532,16 @@ static Bool is_same_proto(GF_Proto *extern_proto, GF_Proto *proto)
 {
 	u32 i, count;
 	/*VRML allows external protos to have more fields defined that the externProto referencing them*/
-	if (gf_list_count(extern_proto->proto_fields) > gf_list_count(proto->proto_fields)) return 0;
+	if (gf_list_count(extern_proto->proto_fields) > gf_list_count(proto->proto_fields)) return GF_FALSE;
 	count = gf_list_count(extern_proto->proto_fields);
 	for (i=0; i<count; i++) {
 		GF_ProtoFieldInterface *pf1 = (GF_ProtoFieldInterface*)gf_list_get(extern_proto->proto_fields, i);
 		GF_ProtoFieldInterface *pf2 = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
-		if (pf1->EventType != pf2->EventType) return 0;
-		if (pf1->FieldType != pf2->FieldType) return 0;
+		if (pf1->EventType != pf2->EventType) return GF_FALSE;
+		if (pf1->FieldType != pf2->FieldType) return GF_FALSE;
 		/*note we don't check names since we're not sure both protos use name coding (MPEG4 only)*/
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_proto)
@@ -652,7 +652,7 @@ void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 	i=0;
 	while ((orig = (GF_Node*)gf_list_enum(proto->node_code, &i))) {
 		/*node is cloned in the new scenegraph and its parent is NULL */
-		node = gf_node_clone(proto_node->sgprivate->scenegraph, orig, NULL, "", 1);
+		node = gf_node_clone(proto_node->sgprivate->scenegraph, orig, NULL, "", GF_TRUE);
 		gf_assert(node);
 
 		/*assign first rendering node*/
@@ -1235,9 +1235,9 @@ Bool gf_sg_proto_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType
 
 		}
 		*QT13_bits = proto_field->NumBits;
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -1285,8 +1285,8 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 	GF_Route *r;
 	GF_ProtoInstance *inst;
 	GF_FieldInfo inf;
-	if (node->sgprivate->tag != TAG_ProtoNode) return 0;
-	if (field->fieldType != GF_SG_VRML_SFTIME) return 0;
+	if (node->sgprivate->tag != TAG_ProtoNode) return GF_FALSE;
+	if (field->fieldType != GF_SG_VRML_SFTIME) return GF_FALSE;
 
 	inst = (GF_ProtoInstance *) node;
 	/*check in interface if this is ISed */
@@ -1303,9 +1303,9 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 			return gf_sg_proto_field_is_sftime_offset(r->ToNode, &inf);
 		}
 		/*IS to a startTime/stopTime field*/
-		if (!stricmp(inf.name, "startTime") || !stricmp(inf.name, "stopTime")) return 1;
+		if (!stricmp(inf.name, "startTime") || !stricmp(inf.name, "stopTime")) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -1319,9 +1319,9 @@ GF_Err gf_node_proto_set_grouping(GF_Node *node)
 GF_EXPORT
 Bool gf_node_proto_is_grouping(GF_Node *node)
 {
-	if (!node || (node->sgprivate->tag!=TAG_ProtoNode)) return 0;
-	if ( ((GF_ProtoInstance *)node)->flags & GF_SG_PROTO_IS_GROUPING) return 1;
-	return 0;
+	if (!node || (node->sgprivate->tag!=TAG_ProtoNode)) return GF_FALSE;
+	if ( ((GF_ProtoInstance *)node)->flags & GF_SG_PROTO_IS_GROUPING) return GF_TRUE;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -1344,11 +1344,11 @@ GF_Node *gf_node_get_proto_parent(GF_Node *node)
 
 Bool gf_node_is_proto_root(GF_Node *node)
 {
-	if (!node) return 0;
-	if (!node->sgprivate->scenegraph->pOwningProto) return 0;
+	if (!node) return GF_FALSE;
+	if (!node->sgprivate->scenegraph->pOwningProto) return GF_FALSE;
 
-	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return 1;
-	return 0;
+	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return GF_TRUE;
+	return GF_FALSE;
 }
 #endif
 

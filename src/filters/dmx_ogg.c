@@ -171,7 +171,7 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 
 		info->streamType = GF_STREAM_VISUAL;
 		info->type = GF_CODECID_THEORA;
-		bs = gf_bs_new((char *) oggpacket->packet, oggpacket->bytes, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8 *) oggpacket->packet, oggpacket->bytes, GF_BITSTREAM_READ);
 		gf_bs_read_int(bs, 56);
 		gf_bs_read_int(bs, 8); /* major version num */
 		gf_bs_read_int(bs, 8); /* minor version num */
@@ -356,7 +356,7 @@ static GF_Err oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *
 GF_Err oggdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i;
-	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_OGGDmxCtx *ctx = (GF_OGGDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		GF_OGGStream *st;
@@ -416,7 +416,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	while (1) {
 		char buf[2000];
 		while (ogg_sync_pageout(&oy, &oggpage) != 1 ) {
-			char *buffer;
+			u8 *buffer;
 			u32 bytes;
 
 			if (gf_feof(stream))
@@ -455,14 +455,14 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 						the_info.num_init_headers--;
 						gf_vorbis_parse_header(&vp, oggpacket.packet, oggpacket.bytes);
 					} else {
-						recompute_ts += gf_vorbis_check_frame(&vp, (char *) oggpacket.packet, oggpacket.bytes);
+						recompute_ts += gf_vorbis_check_frame(&vp, oggpacket.packet, oggpacket.bytes);
 					}
 				} else if (the_info.type==GF_CODECID_OPUS) {
 					if (the_info.num_init_headers) {
 						the_info.num_init_headers--;
 						gf_opus_parse_header(&op, oggpacket.packet, oggpacket.bytes);
 					} else {
-						recompute_ts += gf_opus_check_frame(&op, (char *) oggpacket.packet, oggpacket.bytes);
+						recompute_ts += gf_opus_check_frame(&op, oggpacket.packet, oggpacket.bytes);
 					}
 
 				} else if ((oggpacket.granulepos>=0) && ((u64) oggpacket.granulepos>max_gran) ) {
@@ -498,7 +498,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			u32 i=0;
 			GF_OGGStream *st;
 			ctx->duration = dur;
-			while ( (st = gf_list_enum(ctx->streams, &i)) ) {
+			while ( (st = (GF_OGGStream *)gf_list_enum(ctx->streams, &i)) ) {
 				if (st->opid)
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 			}
@@ -512,7 +512,7 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	GF_OGGStream *st;
 	GF_FilterEvent fevt;
-	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_OGGDmxCtx *ctx = (GF_OGGDmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -546,7 +546,7 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		ctx->seek_file = GF_TRUE;
 		i=0;
-		while ((st = gf_list_enum(ctx->streams, &i)) ) {
+		while ((st = (GF_OGGStream *)gf_list_enum(ctx->streams, &i)) ) {
 			if (st->info.sample_rate) {
 				st->recomputed_ts = (u32) (ctx->start_range * st->info.sample_rate);
 			} else {
@@ -569,7 +569,7 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		//cancel event if we didn't get all stream headers yet not last stream
 		i=0;
-		while ((st = gf_list_enum(ctx->streams, &i))) {
+		while ((st = (GF_OGGStream *)gf_list_enum(ctx->streams, &i))) {
 			if (!st->got_headers) return GF_TRUE;
 		}
 		return GF_FALSE;
@@ -584,16 +584,22 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
-static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, u8 *data_b64)
+static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, char *data_b64)
 {
 	u32 skip=0;
+	GF_OGGDmxCtx *ctx;
+	GF_Err e;
+	const char *name;
+	u32 img_size, type, mlen;
+	u8 *out_buffer;
+	GF_FilterPacket *dst_pck;
 	u32 osize = (u32) strlen(data_b64);
-	u8 *output = gf_malloc(sizeof(u8) * osize);
-	osize = gf_base64_decode(data_b64, (u32) strlen(data_b64), output, osize);
+	u8 *output = (u8 *)gf_malloc(osize);
+	osize = gf_base64_decode((u8*)data_b64, (u32) strlen(data_b64), output, osize);
 	if ((s32) osize == -1 || osize < 8) goto exit;
 
-	u32 type = GF_4CC(output[0], output[1], output[2], output[3]);
-	u32 mlen = GF_4CC(output[4], output[5], output[6], output[7]);
+	type = GF_4CC(output[0], output[1], output[2], output[3]);
+	mlen = GF_4CC(output[4], output[5], output[6], output[7]);
 	skip = 8 + mlen;
 	if (skip > osize) goto exit;
 	//skip desc
@@ -605,20 +611,18 @@ static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, u8 *data_b
 	skip += 4 * 4;
 	if (skip > osize) goto exit;
 
-	u32 img_size = GF_4CC(output[skip], output[skip+1], output[skip+2], output[skip+3]);
+	img_size = GF_4CC(output[skip], output[skip+1], output[skip+2], output[skip+3]);
 	skip += 4;
 	if (skip + img_size > osize) goto exit;
 
 	if (type==3) {
-		GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
+		ctx = (GF_OGGDmxCtx *)gf_filter_get_udta(filter);
 		if (ctx->expart) {
-			GF_Err e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, output + skip, img_size, GF_FALSE, &ctx->art_opid);
+			e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, output + skip, img_size, GF_FALSE, &ctx->art_opid);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGGDmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 			}
 			if (ctx->art_opid) {
-				u8 *out_buffer;
-				GF_FilterPacket *dst_pck;
 				gf_filter_pid_set_name(ctx->art_opid, "CoverArt");
 				gf_filter_pid_set_property(ctx->art_opid, GF_PROP_PID_COVER_ART, &PROP_BOOL(GF_TRUE));
 				dst_pck = gf_filter_pck_new_alloc(ctx->art_opid, img_size, &out_buffer);
@@ -634,7 +638,7 @@ static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, u8 *data_b
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_COVER_ART, &PROP_DATA(output + skip, img_size) );
 		}
 	} else {
-		const char *name = "cover_art";
+		name = "cover_art";
 		switch (type) {
 		case 4: name = "cover_back"; break;
 		case 5: name = "cover_leaflet"; break;
@@ -661,12 +665,16 @@ exit:
 	gf_free(output);
 }
 
-static void oggdmx_parse_tags(GF_Filter *filter, GF_OGGStream *st, u8 *data, u32 size)
+static void oggdmx_parse_tags(GF_Filter *filter, GF_OGGStream *st, const u8 *_data, u32 size)
 {
 	u32 num_comments = 0;
+	u8 *end = (u8 *) memchr(_data, 0, size);
+	if (!end || (end - _data >= size)) return;
+	char *data = (char *)_data;
+
 	while (size > 4) {
 		char sep;
-		u32 t_size = GF_4CC(data[3], data[2], data[1], data[0]);
+		u32 t_size = GF_4CC((u8)data[3], (u8)data[2], (u8)data[1], (u8)data[0]);
 		size -= 4;
 		data += 4;
 		if (size < t_size) return;
@@ -676,11 +684,11 @@ static void oggdmx_parse_tags(GF_Filter *filter, GF_OGGStream *st, u8 *data, u32
 			gf_filter_pid_set_property_str(st->opid, "tool", &PROP_STRING(data));
 		}
 		else {
-			char *sep_tag = strchr(data, '=');
+			char *sep_tag = (char *)strchr(data, '=');
 			if (sep_tag) {
 				char *name;
 				sep_tag[0] = 0;
-				s32 tag_idx = gf_itags_find_by_name( data );
+				s32 tag_idx = gf_itags_find_by_name(data );
 				if (tag_idx>=0) {
 					name = (char *) gf_itags_get_name(tag_idx);
 					gf_filter_pid_set_property_str(st->opid, name, &PROP_STRING(sep_tag+1));
@@ -723,7 +731,7 @@ static void oggdmx_parse_tags(GF_Filter *filter, GF_OGGStream *st, u8 *data, u32
 GF_Err oggdmx_process(GF_Filter *filter)
 {
 	ogg_page oggpage;
-	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_OGGDmxCtx *ctx = (GF_OGGDmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_OGGStream *st;
 	s64 granulepos_init = -1;
@@ -741,7 +749,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 		u32 would_block = 0;
 		//check if all the streams are in block state, if so return.
 		//we need to check for all output since one pid could still be buffering
-		while ((st = gf_list_enum(ctx->streams, &i))) {
+		while ((st = (GF_OGGStream *)gf_list_enum(ctx->streams, &i))) {
 			if (st->got_headers && gf_filter_pid_would_block(st->opid))
 				would_block++;
 		}
@@ -754,14 +762,15 @@ GF_Err oggdmx_process(GF_Filter *filter)
 
 		if (ogg_sync_pageout(&ctx->oy, &oggpage ) != 1 ) {
 			u32 pck_size;
-			char *data, *buffer;
+			const u8 *data;
+			u8 *buffer;
 
 			pck = gf_filter_pid_get_packet(ctx->ipid);
 			if (!pck) {
 				if (gf_filter_pid_is_eos(ctx->ipid)) oggdmx_signal_eos(ctx);
 				return GF_OK;
 			}
-			data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+			data = gf_filter_pck_get_data(pck, &pck_size);
 			buffer = ogg_sync_buffer(&ctx->oy, pck_size);
 			memcpy(buffer, data, pck_size);
 			if (ogg_sync_wrote(&ctx->oy, pck_size) >= 0) {
@@ -796,7 +805,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 
 				switch (st->info.type) {
 				case GF_CODECID_VORBIS:
-					res = gf_vorbis_parse_header(st->vorbis_parser, (char *) oggpacket.packet, oggpacket.bytes);
+					res = gf_vorbis_parse_header(st->vorbis_parser, oggpacket.packet, oggpacket.bytes);
 					if (!res) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to parse Vorbis header\n"));
 					} else {
@@ -804,7 +813,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					}
 					break;
 				case GF_CODECID_OPUS:
-					res = gf_opus_parse_header(st->opus_cfg, (char *) oggpacket.packet, oggpacket.bytes);
+					res = gf_opus_parse_header(st->opus_cfg, oggpacket.packet, oggpacket.bytes);
 					if (!res) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to parse Opus header\n"));
 					}
@@ -817,7 +826,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				if (add_page) {
 					if (!st->dsi_bs) st->dsi_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 					gf_bs_write_u16(st->dsi_bs, oggpacket.bytes);
-					gf_bs_write_data(st->dsi_bs, (char *) oggpacket.packet, oggpacket.bytes);
+					gf_bs_write_data(st->dsi_bs,oggpacket.packet, oggpacket.bytes);
 				}
 
 				st->parse_headers--;
@@ -854,13 +863,13 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					u32 block_size = 0;
 
 					if (st->info.type==GF_CODECID_VORBIS) {
-						block_size = gf_vorbis_check_frame(st->vorbis_parser, (char *) oggpacket.packet, oggpacket.bytes);
+						block_size = gf_vorbis_check_frame(st->vorbis_parser, oggpacket.packet, oggpacket.bytes);
 						if (!block_size) continue;
 					}
 					else if (st->info.type==GF_CODECID_OPUS) {
-						block_size = gf_opus_check_frame(st->opus_cfg, (char *) oggpacket.packet, oggpacket.bytes);
+						block_size = gf_opus_check_frame(st->opus_cfg, oggpacket.packet, oggpacket.bytes);
 						if (!block_size) {
-							if ((oggpacket.bytes>8) && !strnicmp(oggpacket.packet, "OpusTags", 8)) {
+							if ((oggpacket.bytes>8) && !memcmp(oggpacket.packet, "OpusTags", 8)) {
 								oggdmx_parse_tags(filter, st, oggpacket.packet + 8, oggpacket.bytes - 8);
 							}
 							continue;
@@ -904,7 +913,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 
 static GF_Err oggdmx_initialize(GF_Filter *filter)
 {
-	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_OGGDmxCtx *ctx = (GF_OGGDmxCtx *)gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 	ogg_sync_init(&ctx->oy);
 	return GF_OK;
@@ -912,7 +921,7 @@ static GF_Err oggdmx_initialize(GF_Filter *filter)
 
 static void oggdmx_finalize(GF_Filter *filter)
 {
-	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_OGGDmxCtx *ctx = (GF_OGGDmxCtx *)gf_filter_get_udta(filter);
 
 	/*just in case something went wrong*/
 	while (gf_list_count(ctx->streams)) {
@@ -930,7 +939,7 @@ static void oggdmx_finalize(GF_Filter *filter)
 
 static const char *oggdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	if (!strncmp(data, "OggS", 4)) {
+	if ((size>4) && !memcmp(data, "OggS", 4)) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "video/ogg";
 	}

@@ -41,7 +41,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	u32 crc;
-	char *dsi;
+	u8 *dsi;
 	u32 dsi_size;
 
 	Bool is_vc1;
@@ -52,7 +52,7 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 crc;
 	const GF_PropertyValue *dcd;
-	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M4VMxCtx *ctx = (GF_M4VMxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -101,9 +101,10 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 GF_Err m4vmx_process(GF_Filter *filter)
 {
-	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M4VMxCtx *ctx = (GF_M4VMxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
-	u8 *data, *output;
+	const u8 *data;
+	u8 *output;
 	u32 pck_size, size, sap_type;
 	u8 inject_startcode=0;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -115,7 +116,7 @@ GF_Err m4vmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!pck_size) {
 		//if output and packet properties, forward - this is required for sinks using packets for state signaling
 		//such as TS muxer in dash mode looking for EODS property
@@ -234,7 +235,7 @@ static GF_Err vc1mx_initialize(GF_Filter *filter)
 #ifdef GPAC_ENABLE_COVERAGE
 	if (!filter) return GF_OK;
 #endif
-	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
+	GF_M4VMxCtx *ctx = (GF_M4VMxCtx *)gf_filter_get_udta(filter);
 	if (ctx) ctx->is_vc1 = GF_TRUE;
 	return GF_OK;
 }

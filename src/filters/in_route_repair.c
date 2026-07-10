@@ -182,13 +182,13 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 {
 	u8 *data = finfo->blob->data;
 	u32 size = finfo->blob->size;
-	u32 partial_status = GF_LCTO_PARTIAL_NONE;
+	GF_LCTObjectPartial partial_status = GF_LCTO_PARTIAL_NONE;
 	u32 pos = 0;
 	u32 prev_moof_pos = 0;
 	u32 prev_mdat_pos = 0;
 	u32 last_box_size = 0;
 	u32 nb_patches = 0;
-	Bool was_partial = finfo->partial!=GF_LCTO_PARTIAL_NONE;
+	Bool was_partial = (finfo->partial!=GF_LCTO_PARTIAL_NONE) ? GF_TRUE : GF_FALSE;
 	u32 patch_first_range_size = 0;
 
 	if (repair_start_only) {
@@ -475,7 +475,7 @@ exit:
 
 static RouteRepairRange *queue_repair_range(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, u32 start_range, u32 end_range)
 {
-	RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+	RouteRepairRange *rr = (RouteRepairRange *)gf_list_pop_back(ctx->seg_range_reservoir);
 	if (!rr) {
 		GF_SAFEALLOC(rr, RouteRepairRange);
 		if (!rr) {
@@ -578,10 +578,10 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	if (!ctx->minrecv || (finfo->total_size && (nb_bytes_ok * 100 < finfo->total_size * ctx->minrecv))) {
 		RouteRepairRange *rr;
 		while (gf_list_count(rsi->ranges)>1) {
-			rr = gf_list_pop_back(rsi->ranges);
+			rr = (RouteRepairRange *)gf_list_pop_back(rsi->ranges);
 			gf_free(rr);
 		}
-		rr = gf_list_get(rsi->ranges, 0);
+		rr = (RouteRepairRange *)gf_list_get(rsi->ranges, 0);
 		memset(rr, 0, sizeof(RouteRepairRange));
 		rr->br_start = 0;
 		rr->br_end = 0;
@@ -604,7 +604,7 @@ static u32 get_dependent_samples(GF_List *sample_deps, SampleDepInfo *for_sample
 
 	nb_deps = 0;
 	for (i=0;i<count;i++) {
-		SampleDepInfo *sd = gf_list_get(sample_deps, i);
+		SampleDepInfo *sd = (SampleDepInfo *)gf_list_get(sample_deps, i);
 		if (sd == for_sample) continue;
 		if (sd->drop) continue;
 		if (sd->gop_id != ref_sample->gop_id) continue;
@@ -635,7 +635,7 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	u32 i;
 	char szBlobPath[100];
 
-	GF_Err e = gf_isom_open_progressive_ex("isobmff://4cc=none", 0, 0, 0, &file, &BytesMissing, NULL);
+	GF_Err e = gf_isom_open_progressive_ex("isobmff://4cc=none", GF_FALSE, 0, GF_FALSE, &file, &BytesMissing, NULL);
 	if (e) return;
 
 	sprintf(szBlobPath, "gmem://%p", rsi->finfo.blob);
@@ -645,7 +645,7 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 		return;
 	}
 	u32 ID, nb_refs, count;
-	const u32 *refs;
+	const s32 *refs;
 	count = gf_isom_get_sample_count(file, 1);
 	if (gf_isom_get_sample_references(file, 1, 1, &ID, &nb_refs, &refs)!=GF_OK) {
 		gf_isom_delete(file);
@@ -660,12 +660,12 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 
 	for (i=0; i<count; i++) {
 		u64 offset;
-		SampleDepInfo *r = gf_list_pop_back(ctx->sample_deps_reservoir);
+		SampleDepInfo *r = (SampleDepInfo *)gf_list_pop_back(ctx->sample_deps_reservoir);
 		if (!r) {
 			GF_SAFEALLOC(r, SampleDepInfo);
 			if (!r) continue;
 		} else {
-			u32 *refs = r->refs;
+			s32 *refs = r->refs;
 			u32 alloc_refs = r->nb_refs_alloc;
 			memset(r, 0, sizeof(SampleDepInfo));
 			r->nb_refs_alloc = alloc_refs;
@@ -689,20 +689,20 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 		}
 		if (refs && (r->nb_refs>0)) {
 			if (r->nb_refs_alloc < r->nb_refs) {
-				r->refs = gf_realloc(r->refs, sizeof(u32)*r->nb_refs);
+				r->refs = (s32 *)gf_realloc(r->refs, sizeof(s32)*r->nb_refs);
 				r->nb_refs_alloc = r->nb_refs;
 				if (!r->refs) {
 					r->nb_refs = -1;
 					continue;
 				}
 			}
-			memcpy(r->refs, refs, sizeof(u32)*r->nb_refs);
+			memcpy(r->refs, refs, sizeof(s32)*r->nb_refs);
 		}
 	}
 	gf_isom_delete(file);
 
 	for (i=0; i<count; i++) {
-		SampleDepInfo *r = gf_list_get(rsi->sample_deps, i);
+		SampleDepInfo *r = (SampleDepInfo *)gf_list_get(rsi->sample_deps, i);
 		update_num_dependent_samples(rsi->sample_deps, r);
 		if (r->num_direct_dependencies > rsi->max_dep_per_sample)
 			rsi->max_dep_per_sample = r->num_direct_dependencies;
@@ -710,10 +710,10 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	//sort by decreasing number of indirect dependencies - the first items will be the most important ones to fix
 	GF_List *res = gf_list_new();
 	for (i=0; i<count; i++) {
-		SampleDepInfo *r = gf_list_get(rsi->sample_deps, i);
+		SampleDepInfo *r = (SampleDepInfo *)gf_list_get(rsi->sample_deps, i);
 		u32 j, scount = gf_list_count(res);
 		for (j=0; j<scount; j++) {
-			SampleDepInfo *elt = gf_list_get(res, j);
+			SampleDepInfo *elt = (SampleDepInfo *)gf_list_get(res, j);
 			//note that we currently don't sort by gops, so if 2 gops in the segment the intra from both GOPs will be patched first
 			//we could further optimize this especially in playback modes
 			if (elt->nb_refs > r->nb_refs) {
@@ -734,7 +734,7 @@ static void routein_repair_get_isobmf_deps(ROUTEInCtx *ctx, RepairSegmentInfo *r
 	rsi->sample_deps = res;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Sample dependencies:\n"));
 	for (i=0; i<count; i++) {
-		SampleDepInfo *r = gf_list_get(rsi->sample_deps, i);
+		SampleDepInfo *r = (SampleDepInfo *)gf_list_get(rsi->sample_deps, i);
 		u32 j;
 		for (j=0; j<rsi->finfo.nb_frags; j++) {
 			GF_LCTFragInfo *frag = &rsi->finfo.frags[j];
@@ -758,7 +758,7 @@ static void drop_sample_ref(GF_List *sample_deps, SampleDepInfo *ref, Bool prima
 	ref->drop |= SAMPLE_DROP;
 	if (!primary) ref->drop |= SAMPLE_DROP_DEP;
 	for (i=0; i<count; i++) {
-		SampleDepInfo *sdi = gf_list_get(sample_deps, i);
+		SampleDepInfo *sdi = (SampleDepInfo *)gf_list_get(sample_deps, i);
 		if (sdi->gop_id != ref->gop_id) continue;
 		for (j=0; j<sdi->nb_refs; j++) {
 			if (sdi->refs[j] == ref->sample_id) {
@@ -977,7 +977,7 @@ static void route_repair_build_ranges_isobmf(ROUTEInCtx *ctx, RepairSegmentInfo 
 	SampleDepInfo *sdi = NULL;
 	count = gf_list_count(rsi->sample_deps);
 	for (i=0; i<count; i++) {
-		sdi = gf_list_get(rsi->sample_deps, i);
+		sdi = (SampleDepInfo *)gf_list_get(rsi->sample_deps, i);
 		if (sdi->valid || sdi->drop) {
 			sdi = NULL;
 			continue;
@@ -1062,7 +1062,7 @@ static void route_repair_build_ranges_isobmf(ROUTEInCtx *ctx, RepairSegmentInfo 
 	gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, 0, rsi->finfo.total_size);
 
 	for (i=0; i<count; i++) {
-		sdi = gf_list_get(rsi->sample_deps, i);
+		sdi = (SampleDepInfo *)gf_list_get(rsi->sample_deps, i);
 		u8 drop = sdi->drop;
 		gf_assert(!drop || (rsi->tsio->bytes_sent <= sdi->start_range));
 
@@ -1086,7 +1086,7 @@ static void route_repair_build_ranges_isobmf(ROUTEInCtx *ctx, RepairSegmentInfo 
 				rsi->nb_errors++;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("\tSample %d (GID %u): DTS "LLU": valid %u - dropped: %u\n", sdi->sample_id, sdi->gop_id, sdi->dts, sdi->valid, sdi->drop));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("\tSample %d (GID %u): DTS " LLU ": valid %u - dropped: %u\n", sdi->sample_id, sdi->gop_id, sdi->dts, sdi->valid, sdi->drop));
 	}
 	rsi->isox_state = REPAIR_ISO_STATUS_DONE;
 	gf_mx_p(rsi->finfo.blob->mx);
@@ -1254,14 +1254,12 @@ u32 routein_get_max_dispatch_len(GF_ROUTEEventFileInfo *finfo)
 	return max_len;
 }
 
-Bool gf_route_dmx_get_object_info(void *lct_obj, GF_ROUTEEventFileInfo *finfo);
-
 static GF_BlobRangeStatus routein_check_blob_range(GF_Blob *blob, Bool check_when_complete, u64 start_offset, u32 *io_size)
 {
 	u32 i, size;
 	GF_ROUTEEventFileInfo finfo;
 	assert(io_size);
-	if (!gf_route_dmx_get_object_info(blob->range_udta, &finfo))
+	if (!gf_route_dmx_get_object_info((GF_LCTObject*)blob->range_udta, &finfo))
 		return GF_BLOB_RANGE_CORRUPTED;
 
 	//blob completed, do not check byte ranges
@@ -1435,7 +1433,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	//check if not already queued (for when we will allow repair mid-segments)
 	count = gf_list_count(ctx->seg_repair_queue);
 	for (i=0; i<count; i++) {
-		RepairSegmentInfo *rsi = gf_list_get(ctx->seg_repair_queue, i);
+		RepairSegmentInfo *rsi = (struct _route_repair_seg_info *)gf_list_get(ctx->seg_repair_queue, i);
 		if (!rsi->done && (rsi->finfo.tsi==finfo->tsi) && (rsi->finfo.toi==finfo->toi)) {
 			//remember event type (fragment or segment)
 			rsi->evt = evt;
@@ -1446,7 +1444,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	}
 
 	//queue up our repair
-	RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
+	RepairSegmentInfo *rsi = (struct _route_repair_seg_info *)gf_list_pop_back(ctx->seg_repair_reservoir);
 	if (!rsi) {
 		GF_SAFEALLOC(rsi, RepairSegmentInfo);
 		rsi->ranges = gf_list_new();
@@ -1521,7 +1519,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		Bool found=GF_FALSE;
 		count = gf_list_count(rsi->tsio->pending_repairs);
 		for (i=0; i<count; i++) {
-			RepairSegmentInfo *a_rsi = gf_list_get(rsi->tsio->pending_repairs, i);
+			RepairSegmentInfo *a_rsi = (struct _route_repair_seg_info *)gf_list_get(rsi->tsio->pending_repairs, i);
 			if (finfo->start_time < a_rsi->finfo.start_time) {
 				gf_list_insert(rsi->tsio->pending_repairs, rsi, i);
 				found = GF_TRUE;
@@ -1538,7 +1536,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	//inject by start time
 	count = gf_list_count(ctx->seg_repair_queue);
 	for (i=0; i<count; i++) {
-		RepairSegmentInfo *a_rsi = gf_list_get(ctx->seg_repair_queue, i);
+		RepairSegmentInfo *a_rsi = (struct _route_repair_seg_info *)gf_list_get(ctx->seg_repair_queue, i);
 		if (finfo->start_time < a_rsi->finfo.start_time) {
 			gf_list_insert(ctx->seg_repair_queue, rsi, i);
 			return;
@@ -1552,6 +1550,8 @@ static void repair_session_dequeue(ROUTEInCtx *ctx, RepairSegmentInfo *rsi)
 {
 	Bool unprotect;
 	TSI_Output *tsio;
+	GF_List *bck;
+	u32 repair;
 
 restart:
 	unprotect=GF_FALSE;
@@ -1572,7 +1572,7 @@ restart:
 			switch (rsi->evt) {
 			case GF_ROUTE_EVT_DYN_SEG:
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] File %s still has error, doing a final local repair\n", rsi->finfo.filename));
-				u32 repair = ctx->repair;
+				repair = ctx->repair;
 				ctx->repair = ROUTEIN_REPAIR_STRICT;
 				routein_repair_local(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_FALSE);
 				ctx->repair = repair;
@@ -1604,7 +1604,7 @@ restart:
 			tsio->flags_progress &= ~TSIO_REPAIR_SCHEDULED;
 	}
 
-	GF_List *bck = rsi->ranges;
+	bck = rsi->ranges;
 	if (rsi->filename) gf_free(rsi->filename);
 	if (rsi->sample_deps) {
 		if (!ctx->sample_deps_reservoir) ctx->sample_deps_reservoir = gf_list_new();
@@ -1620,7 +1620,7 @@ restart:
 
 	if (!tsio) return;
 	//get next in list, if existing and done or if removed, dequeue
-	rsi = gf_list_get(tsio->pending_repairs, 0);
+	rsi = (struct _route_repair_seg_info *)gf_list_get(tsio->pending_repairs, 0);
 	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)))
 		goto restart;
 }
@@ -1763,7 +1763,7 @@ restart:
 		count = gf_list_count(ctx->seg_repair_queue);
 		for (i=0; i<count;i++) {
 			u32 j, nb_ranges;
-			rsi = gf_list_get(ctx->seg_repair_queue, i);
+			rsi = (struct _route_repair_seg_info *)gf_list_get(ctx->seg_repair_queue, i);
 			//over or no longer active
 			if (rsi->done || rsi->removed) continue;
 
@@ -1780,10 +1780,10 @@ restart:
 
 			//if TSIO, always dequeue in order
 			if (rsi->tsio) {
-				rr = gf_list_get(rsi->ranges, 0);
+				rr = (RouteRepairRange *)gf_list_get(rsi->ranges, 0);
 			} else {
 				for (j=0; j<nb_ranges; j++) {
-					rr = gf_list_get(rsi->ranges, j);
+					rr = (RouteRepairRange *)gf_list_get(rsi->ranges, j);
 					//todo check priority
 					if (rr) break;
 				}
@@ -1816,7 +1816,7 @@ restart:
 		Bool has_repair_server = GF_FALSE;
 
 		for (i=0; i< gf_list_count(ctx->repair_servers); i++) {
-			repair_server = gf_list_get(ctx->repair_servers, i);
+			repair_server = (RouteRepairServer *)gf_list_get(ctx->repair_servers, i);
 			if (repair_server->url && repair_server_url && !strcmp(repair_server->url, repair_server_url))
 				has_repair_server = GF_TRUE;
 			if (!repair_server->url || !repair_server->accept_ranges) {
@@ -1836,7 +1836,7 @@ restart:
 				filename_start = rsi->finfo.filename + repair_base_uri_len+1;
 			}
 			if (!filename_start) {
-				char *sep = strstr(rsi->finfo.filename, "://");
+				const char *sep = strstr(rsi->finfo.filename, "://");
 				if (sep) {
 					filename_start = rsi->finfo.filename;
 				} else {
@@ -1889,7 +1889,7 @@ restart:
 				start_r -= 1;
 				rr->is_open = 1;
 			}
-			gf_dm_sess_set_range(rsess->dld, start_r, 0, GF_TRUE);
+			gf_dm_sess_set_range(rsess->dld, start_r, GF_FALSE, GF_TRUE);
 			//current_si->finfo.total_size can be 0 or not, as we may have resolved the file size in a previous request
 
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s open byte range %u- with local total size %u - nb frags %u - %u queued ranges\n", url, start_r, rsess->current_si->finfo.total_size, rsess->current_si->finfo.nb_frags, gf_list_count(rsess->current_si->ranges) ));
@@ -2068,7 +2068,7 @@ void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filen
 {
 	u32 i, count = gf_list_count(ctx->seg_repair_queue);
 	for (i=0; i<count; i++) {
-		RepairSegmentInfo *rsi = gf_list_get(ctx->seg_repair_queue, i);
+		RepairSegmentInfo *rsi = (struct _route_repair_seg_info *)gf_list_get(ctx->seg_repair_queue, i);
 		if (!rsi->done && (rsi->service_id==service_id) && !strcmp(rsi->finfo.filename, filename)) {
 			//we don't cancel sessions now, this should be done in session_done
 			if (is_delete) {

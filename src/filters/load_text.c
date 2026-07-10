@@ -293,7 +293,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 	*fmt = GF_TXTIN_MODE_NONE;
 	if ((line[0]=='{') && strstr(line, "}{")) *fmt = GF_TXTIN_MODE_SUB;
 	else if (line[0] == '<') {
-		char *ext = gf_file_ext_start(filename);
+		const char *ext = gf_file_ext_start(filename);
 		if (ext && !strnicmp(ext, ".ttxt", 5)) *fmt = GF_TXTIN_MODE_TTXT;
 		else if (ext && !strnicmp(ext, ".ttml", 5)) *fmt = GF_TXTIN_MODE_TTML;
 		ext = strstr(line, "?>");
@@ -537,7 +537,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	if ((ctx->fmt == GF_TXTIN_MODE_TTXT) || (ctx->fmt == GF_TXTIN_MODE_TEXML)) {
 		u32 i=0;
 		GF_XMLNode *node, *root = gf_xml_dom_get_root(ctx->parser);
-		while ((node = gf_list_enum(root->content, &i))) {
+		while ((node = (GF_XMLNode *)gf_list_enum(root->content, &i))) {
 			u32 j;
 			u64 duration;
 			GF_XMLAttribute *att;
@@ -581,9 +581,9 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 		u32 i=0, k=0;
 		GF_XMLNode *div_node;
 
-		while ((div_node = gf_list_enum(ctx->div_nodes_list, &k))) {
+		while ((div_node = (GF_XMLNode *)gf_list_enum(ctx->div_nodes_list, &k))) {
 			GF_XMLNode *node;
-			while ((node = gf_list_enum(div_node->content, &i))) {
+			while ((node = (GF_XMLNode *)gf_list_enum(div_node->content, &i))) {
 				GF_XMLNode *p_node;
 				GF_XMLAttribute *att;
 				u32 h, m, s, ms, p_idx=0;
@@ -776,8 +776,8 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	char szText[2048];
 
 	len = (u32)(strlen(szLine)/2)*2+2;
-	uniLine = gf_malloc(sizeof(u16)*len);
-	uniText = gf_malloc(sizeof(u16)*len);
+	uniLine = (u16 *)gf_malloc(sizeof(u16)*len);
+	uniText = (u16 *)gf_malloc(sizeof(u16)*len);
 
 	len = gf_utf8_mbstowcs(uniLine, len+1, (const char **) &ptr);
 	if (len == GF_UTF8_FAIL) {
@@ -790,7 +790,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 
 	i=j=0;
 	rem_styles = 0;
-	rem_color = 0;
+	rem_color = GF_FALSE;
 	while (i<len) {
 		u32 font_style = 0;
 		u32 style_nb_chars = 0;
@@ -884,7 +884,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 				rem_styles = 0;
 				if (rem_color) {
 					ctx->style.text_color = ctx->default_color;
-					rem_color = 0;
+					rem_color = GF_FALSE;
 				}
 			}
 			if (*set_start_c && (ctx->style.startCharOffset != j)) {
@@ -959,7 +959,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 			case 'f':
 			case 'F':
 				if (font_style) {
-					rem_color = 1;
+					rem_color = GF_TRUE;
 					*set_end_c = GF_TRUE;
 					ctx->style.endCharOffset = *char_l + j;
 				}
@@ -976,7 +976,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 			ctx->style.style_flags &= ~rem_styles;
 			rem_styles = 0;
 			ctx->style.text_color = ctx->default_color;
-			rem_color = 0;
+			rem_color = GF_FALSE;
 		}
 
 		uniText[j] = uniLine[i];
@@ -1144,7 +1144,7 @@ force_line:
 				ctx->start = timestamp;
 			}
 			if (ctx->start < ctx->end) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts "LLD" ms is before end of previous one "LLD" ms - adjusting time stamps\n", ctx->curLine, ctx->start, ctx->end));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d - starts " LLD " ms is before end of previous one " LLD " ms - adjusting time stamps\n", ctx->curLine, ctx->start, ctx->end));
 				ctx->start = ctx->end;
 			}
 			timestamp = (3600*eh + 60*em + es)*1000 + ems;
@@ -1160,7 +1160,7 @@ force_line:
 			ctx->style.style_flags = 0;
 			ctx->state = 2;
 			if (ctx->end <= ctx->prev_end) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end "LLD" is at or before previous end "LLD" - removing\n", ctx->curLine, ctx->end, ctx->prev_end));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Overlapping SRT frame %d end " LLD " is at or before previous end " LLD " - removing\n", ctx->curLine, ctx->end, ctx->prev_end));
 				ctx->start = ctx->end;
 				ctx->state = 3;
 			}
@@ -1217,7 +1217,7 @@ typedef struct {
 
 #ifndef GPAC_DISABLE_VTT
 
-static GF_Err gf_webvtt_import_report(void *user, GF_Err e, char *message, const char *line)
+static GF_Err gf_webvtt_import_report(void *user, GF_Err e, const char *message, const char *line)
 {
 	GF_LOG(e ? GF_LOG_WARNING : GF_LOG_INFO, GF_LOG_PARSER, ("[TXTIn] WebVTT line \"%s\": %s\n", line, message) );
 	return e;
@@ -1232,7 +1232,7 @@ static void gf_webvtt_import_header(void *user, const char *config)
 		if ((len<=7) && !strncmp(config, "WEBVTT", 6)) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8 *) "WEBVTT", 7) );
 		} else {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (u32) (1+strlen(config)) ) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8*)config, (u32) (1+strlen(config)) ) );
 		}
 		ctx->hdr_parsed = GF_TRUE;
 		gf_webvtt_parser_suspend(ctx->vttparser);
@@ -1294,7 +1294,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	GF_Err e;
 	u32 ID, OCR_ES_ID, file_size, w, h;
 	Bool is_srt;
-	char *ext;
+	const char *ext;
 
 	if (!ctx->pid_framed && !ctx->src)
 		ctx->src = gf_fopen(ctx->file_name, "rb");
@@ -1624,13 +1624,13 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval
 	if (end==-1) return GF_OK;
 
 	if (end < begin) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] invalid timings: \"begin\"="LLD" , \"end\"="LLD". Abort.\n", begin, end));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] invalid timings: \"begin\"=" LLD " , \"end\"=" LLD ". Abort.\n", begin, end));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	interval = NULL;
 	for (i=0; i<gf_list_count(ctx->intervals); i++) {
-		interval = gf_list_get(ctx->intervals, i);
+		interval = (TTMLInterval *)gf_list_get(ctx->intervals, i);
 
 		//generate a single sample for the input, merge interval
 		if (! ctx->ttml_split) {
@@ -1673,7 +1673,7 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval
 	*out_interval = interval;
 
 	for (i=0; i<gf_list_count(ctx->intervals); i++) {
-		TTMLInterval *an_interval = gf_list_get(ctx->intervals, i);
+		TTMLInterval *an_interval = (TTMLInterval *)gf_list_get(ctx->intervals, i);
 		if (an_interval->begin > interval->begin) {
 			return gf_list_insert(ctx->intervals, interval, i);
 		}
@@ -1684,10 +1684,10 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval
 static void ttml_reset_intervals(GF_TXTIn *ctx)
 {
 	while (gf_list_count(ctx->intervals)) {
-		TTMLInterval *ival = gf_list_pop_back(ctx->intervals);
+		TTMLInterval *ival = (TTMLInterval *)gf_list_pop_back(ctx->intervals);
 		if (ival->resources) {
 			while (gf_list_count(ival->resources)) {
-				TTMLRes *ires = gf_list_pop_back(ival->resources);
+				TTMLRes *ires = (TTMLRes *)gf_list_pop_back(ival->resources);
 				if (!ires->global) {
 					gf_free(ires->data);
 					gf_free(ires);
@@ -1815,12 +1815,12 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 	while ( (child = (GF_XMLNode*) gf_list_enum(node->content, &i))) {
 		if (child->type) {
 			if (!is_data) continue;
-			u8 *data = child->name;
+			char *data = child->name;
 			u32 ilen = (u32) strlen(data);
 			f_size = 3*ilen/4;
-			f_data = gf_malloc(sizeof(u8) * f_size);
+			f_data = (u8 *)gf_malloc(f_size);
 
-			f_size = gf_base64_decode(data, ilen, f_data, f_size);
+			f_size = gf_base64_decode((u8*)data, ilen, f_data, f_size);
 
 			e = ttml_push_res(ctx, interval, f_data, f_size);
 			if (e) return e;
@@ -1914,7 +1914,7 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	nb_divs = gf_list_count(ctx->div_nodes_list);
 	for (i=0; i<nb_divs; i++) {
 		u32 nb_children;
-		GF_XMLNode *div_node = gf_list_get(ctx->div_nodes_list, i);
+		GF_XMLNode *div_node = (GF_XMLNode *)gf_list_get(ctx->div_nodes_list, i);
 		nb_children = gf_list_count(div_node->content);
 
 		for (k=0; k<nb_children; k++) {
@@ -1991,8 +1991,8 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
 		for (k=0; k<gf_list_count(ctx->intervals); k++) {
-			TTMLInterval *ival = gf_list_get(ctx->intervals, k);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
+			TTMLInterval *ival = (TTMLInterval *)gf_list_get(ctx->intervals, k);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: " LLU "-" LLU "\n", k+1, ival->begin, ival->end));
 		}
 	}
 #endif
@@ -2202,7 +2202,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	if (e) return e;
 
 	if (ctx->has_images) {
-		char *mime_cfg = "application/ttml+xml;codecs=im1i";
+		const char *mime_cfg = "application/ttml+xml;codecs=im1i";
 		gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_cfg) );
 	} else {
 		gf_filter_pid_set_property_str(ctx->opid, "meta:mime", NULL);
@@ -2241,7 +2241,7 @@ static GF_Err ttml_send_empty_sample(GF_TXTIn *ctx, u64 sample_start, u64 sample
 	ctx->root_working_copy->content = bck;
 	if (!samp_text) return GF_OUT_OF_MEM;
 
-	char *txt_str = ttxt_parse_string(samp_text, GF_TRUE);
+	const char *txt_str = ttxt_parse_string(samp_text, GF_TRUE);
 	if (!txt_str) txt_str = "";
 	u32 txt_len = (u32) strlen(txt_str);
 	u8 *pck_data;
@@ -2291,9 +2291,9 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		ctx->current_tt_interval = 0;
 	}
 
-	interval = gf_list_get(ctx->intervals, ctx->current_tt_interval);
+	interval = (TTMLInterval *)gf_list_get(ctx->intervals, ctx->current_tt_interval);
 	if (!interval) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] last_sample_duration="LLU", last_sample_end="LLU"\n", ctx->last_sample_duration, ctx->end));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] last_sample_duration=" LLU ", last_sample_end=" LLU "\n", ctx->last_sample_duration, ctx->end));
 
 		gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT((u32) ctx->last_sample_duration) );
 		gf_filter_pid_set_eos(ctx->opid);
@@ -2309,10 +2309,10 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 	nb_div_nodes = gf_list_count(ctx->div_nodes_list);
 	for (k=0; k<nb_div_nodes; k++) {
 		Bool has_content = GF_FALSE;
-		GF_XMLNode *div_node = gf_list_get(ctx->div_nodes_list, k);
+		GF_XMLNode *div_node = (GF_XMLNode *)gf_list_get(ctx->div_nodes_list, k);
 		u32 nb_children = gf_list_count(div_node->content);
 
-		GF_XMLNode *copy_div_node = gf_list_get(ctx->body_node->content, k);
+		GF_XMLNode *copy_div_node = (GF_XMLNode *)gf_list_get(ctx->body_node->content, k);
 
 		for (i=0; i < nb_children; i++) {
 			GF_XMLNode *p_node;
@@ -2424,7 +2424,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		samp_text = gf_xml_dom_serialize_root((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
 
 		for (k=0; k<nb_div_nodes; k++) {
-			GF_XMLNode *copy_div_node = gf_list_get(ctx->body_node->content, k);
+			GF_XMLNode *copy_div_node = (GF_XMLNode *)gf_list_get(ctx->body_node->content, k);
 			if (!copy_div_node->type)
 				gf_list_reset(copy_div_node->content);
 		}
@@ -2436,11 +2436,11 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		Bool skip_pck = GF_FALSE;
 		u32 txt_len;
 		u32 res_len = 0;
-		char *txt_str;
+		const char *txt_str;
 
 
 		if (interval->begin < (s64) ctx->end) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] Error computing overlapped intervals! \"begin\" is "LLD" , last \"end\" was "LLD". Abort.\n", interval->begin, ctx->end));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] Error computing overlapped intervals! \"begin\" is " LLD " , last \"end\" was " LLD ". Abort.\n", interval->begin, ctx->end));
 			e = GF_NOT_SUPPORTED;
 			goto exit;
 		}
@@ -2450,7 +2450,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		txt_len = (u32) strlen(txt_str);
 
 		for (i=0; i<nb_res_interval; i++) {
-			TTMLRes *res = gf_list_get(emb_resources, i);
+			TTMLRes *res = (TTMLRes *)gf_list_get(emb_resources, i);
 			res_len += res->size;
 		}
 
@@ -2480,7 +2480,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		ctx->last_sample_duration = interval->end - interval->begin;
 
 		ctx->end = interval->end;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", interval->begin, interval->end, interval->end - ctx->end, ctx->last_sample_duration, ctx->end));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin=" LLD ", ts_end=" LLD ", last_sample_duration=" LLU " (real duration: " LLU "), last_sample_end=" LLU "\n", interval->begin, interval->end, interval->end - ctx->end, ctx->last_sample_duration, ctx->end));
 
 		if (!skip_pck) {
 			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+res_len, &pck_data);
@@ -2521,7 +2521,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 
 				pck_data += txt_len;
 				for (i=0; i<nb_res_interval; i++) {
-					TTMLRes *res = gf_list_get(emb_resources, i);
+					TTMLRes *res = (TTMLRes *)gf_list_get(emb_resources, i);
 					memcpy(pck_data, res->data, res->size);
 					pck_data += res->size;
 
@@ -2542,7 +2542,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		gf_free(samp_text);
 		samp_text = NULL;
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] empty sample (begin="LLD", end="LLD"). Skip.\n", interval->begin, interval->end));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] empty sample (begin=" LLD ", end=" LLD "). Skip.\n", interval->begin, interval->end));
 	}
 
 	return GF_OK;
@@ -2593,7 +2593,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const u8 *data, u32 length, Boo
 
 	if (isHeader) {
 		if (!ctx->hdr_parsed) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)data, (u32) ( strlen(data)+1 ) )  );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8*)data, (u32) ( strlen((char*)data)+1 ) )  );
 			ctx->hdr_parsed = GF_TRUE;
 		}
 	} else if (!ctx->seek_state) {
@@ -3008,7 +3008,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 				if (start_p[i+1] == '\\') {
 					u32 style = 0;
 					u32 color=0;
-					Bool is_end = 0;
+					Bool is_end = GF_FALSE;
 					if (start_p[i+2] == 'i') style = 1;
 					else if (start_p[i+2] == 'b') style = 2;
 					else if (start_p[i+2] == 'u') style = 3;
@@ -3208,7 +3208,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (!strcmp(node->name, "TextStreamHeader")) {
 			GF_XMLNode *sdesc;
-			s32 w, h, tx, ty, layer;
+			u32 w, h, tx, ty, layer;
 			u32 tref_id;
 			GF_XMLAttribute *att;
 			w = ctx->width;
@@ -3348,7 +3348,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid Timed Text file - text stream header not found or empty\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	dcd = gf_list_get(ctx->text_descs, 0);
+	dcd = (struct __gf_prop_val *)gf_list_get(ctx->text_descs, 0);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, dcd);
 	ctx->last_desc_idx = 1;
 
@@ -3526,7 +3526,7 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPack
 		if (descIndex != ctx->last_desc_idx) {
 			GF_PropertyValue *dcd;
 			ctx->last_desc_idx = descIndex;
-			dcd = gf_list_get(ctx->text_descs, descIndex-1);
+			dcd = (struct __gf_prop_val *)gf_list_get(ctx->text_descs, descIndex-1);
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, dcd);
 		}
 
@@ -3904,7 +3904,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 				gf_odf_tx3g_write(&td, &dsi, &dsi_len);
 				stsd_idx = 0;
 				for (k=0; ctx->text_descs && k<gf_list_count(ctx->text_descs); k++) {
-					GF_PropertyValue *d = gf_list_get(ctx->text_descs, k);
+					GF_PropertyValue *d = (struct __gf_prop_val *)gf_list_get(ctx->text_descs, k);
 					if (d->value.data.size != dsi_len) continue;
 					if (! memcmp(d->value.data.ptr, dsi, dsi_len)) {
 						stsd_idx = k+1;
@@ -3926,7 +3926,7 @@ static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 				}
 				if (stsd_idx != ctx->last_desc_idx) {
 					ctx->last_desc_idx = stsd_idx;
-					GF_PropertyValue *d = gf_list_get(ctx->text_descs, stsd_idx-1);
+					GF_PropertyValue *d = (struct __gf_prop_val *)gf_list_get(ctx->text_descs, stsd_idx-1);
 					gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, d);
 				}
 
@@ -4134,7 +4134,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 static GF_Err txtin_process(GF_Filter *filter)
 {
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_Err e;
 	u32 size=0;
@@ -4214,7 +4214,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 		if (data && size) {
 			if (size+ctx->tmp_blob.size >= ctx->tmp_buf_alloc) {
 				ctx->tmp_buf_alloc = size+ctx->tmp_blob.size+1;
-				ctx->tmp_blob.data = gf_realloc(ctx->tmp_blob.data, ctx->tmp_buf_alloc);
+				ctx->tmp_blob.data = (u8 *)gf_realloc(ctx->tmp_blob.data, ctx->tmp_buf_alloc);
 				if (!ctx->tmp_blob.data) {
 					if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OUT_OF_MEM;
@@ -4331,7 +4331,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	GF_Err e;
 	u32 codec_id=0;
 	const char *src = NULL;
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
 
 	if (is_remove) {
@@ -4547,8 +4547,8 @@ force_format:
 #endif
 	case GF_TXTIN_MODE_SIMPLE:
 		ctx->text_process = txtin_process_simple;
-		if (ctx->stxtmod==STXT_MODE_TX3G) gen_ttxt_dsi = 1;
-		else if (ctx->stxtmod==STXT_MODE_VTT) gen_webvtt_dsi = 1;
+		if (ctx->stxtmod==STXT_MODE_TX3G) gen_ttxt_dsi = GF_TRUE;
+		else if (ctx->stxtmod==STXT_MODE_VTT) gen_webvtt_dsi = GF_TRUE;
 		break;
 	case GF_TXTIN_MODE_PROBE:
 		break;
@@ -4579,7 +4579,7 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 }
 static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 	if (ctx->pid_framed) return GF_FALSE;
 
 	switch (evt->base.type) {
@@ -4616,8 +4616,8 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 GF_Err txtin_initialize(GF_Filter *filter)
 {
-	char data[1];
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	u8 data[1];
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
 	ctx->has_forced = 2;
 	//WEBVTT name used for backward compatibility with old :webvtt option
@@ -4627,7 +4627,7 @@ GF_Err txtin_initialize(GF_Filter *filter)
 
 void txtin_finalize(GF_Filter *filter)
 {
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 
 	ttxtin_reset(ctx);
 
@@ -4635,7 +4635,7 @@ void txtin_finalize(GF_Filter *filter)
 
 	if (ctx->text_descs) {
 		while (gf_list_count(ctx->text_descs)) {
-			GF_PropertyValue *p = gf_list_pop_back(ctx->text_descs);
+			GF_PropertyValue *p = (struct __gf_prop_val *)gf_list_pop_back(ctx->text_descs);
 			gf_free(p->value.data.ptr);
 			gf_free(p);
 		}
@@ -4651,7 +4651,7 @@ void txtin_finalize(GF_Filter *filter)
 	}
 	if (ctx->ttml_resources) {
 		while (gf_list_count(ctx->ttml_resources)) {
-			TTMLRes *ires = gf_list_pop_back(ctx->ttml_resources);
+			TTMLRes *ires = (TTMLRes *)gf_list_pop_back(ctx->ttml_resources);
 			gf_free(ires->data);
 			gf_free(ires);
 		}
@@ -4666,13 +4666,13 @@ void txtin_finalize(GF_Filter *filter)
 }
 
 
-static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
+static const char *txtin_probe_data(const u8 *_data, u32 data_size, GF_FilterProbeScore *score)
 {
 	char *dst = NULL;
-	char *res=NULL;
+	char *res=NULL, *data;
 	u32 res_size=0;
 
-	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, &res_size);
+	GF_Err e = gf_utf_get_string_from_bom(_data, data_size, &dst, &res, &res_size);
 	if (e) return NULL;
 
 	data = res;
@@ -4878,7 +4878,7 @@ const GF_FilterRegister *txtin_register(GF_FilterSession *session)
 
 static GF_Err vtt2tx3g_initialize(GF_Filter *filter)
 {
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 	txtin_initialize(filter);
 	ctx->vtt_to_tx3g = GF_TRUE;
 	return GF_OK;
@@ -4937,7 +4937,7 @@ const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session)
 
 static GF_Err rfsrt_initialize(GF_Filter *filter)
 {
-	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	GF_TXTIn *ctx = (GF_TXTIn *)gf_filter_get_udta(filter);
 	txtin_initialize(filter);
 	ctx->srt_to_tx3g = GF_TRUE;
 	return GF_OK;

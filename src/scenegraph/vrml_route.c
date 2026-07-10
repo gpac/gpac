@@ -162,7 +162,7 @@ void gf_sg_activate_routes(GF_SceneGraph *sg)
 			if (gf_sg_route_activate(r)) {
 #ifdef GF_SELF_REPLACE_ENABLE
 				if (sg->graph_has_been_reset) {
-					sg->graph_has_been_reset = 0;
+					sg->graph_has_been_reset = GF_FALSE;
 					return;
 				}
 #endif
@@ -284,11 +284,11 @@ Bool gf_sg_route_activate(GF_Route *r)
 	gf_assert(r->FromNode);
 	if (!r->is_setup) {
 		gf_sg_route_setup(r);
-		if (!r->is_setup) return 0;
+		if (!r->is_setup) return GF_FALSE;
 		/*special case when initing ISed routes on eventOuts: skip*/
 		if (r->IS_route) {
-			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
-			if (r->ToField.eventType == GF_SG_EVENT_OUT) return 0;
+			if (r->FromField.eventType == GF_SG_EVENT_OUT) return GF_FALSE;
+			if (r->ToField.eventType == GF_SG_EVENT_OUT) return GF_FALSE;
 		}
 		if (r->IS_route && ((r->ToNode->sgprivate->tag==TAG_MPEG4_Script)
 #ifndef GPAC_DISABLE_X3D
@@ -296,7 +296,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 #endif
 		                   ) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/)
 		        && r->FromField.eventType==GF_SG_EVENT_IN) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 #ifndef GPAC_DISABLE_LOG
@@ -316,7 +316,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 	}
 #endif
 
-	ret = 1;
+	ret = GF_TRUE;
 	switch (r->FromField.fieldType) {
 	case GF_SG_VRML_SFNODE:
 		if (* (GF_Node **) r->ToField.far_ptr != * (GF_Node **) r->FromField.far_ptr) {
@@ -352,7 +352,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 		if (r->ToField.fieldType==r->FromField.fieldType) {
 			/*if unchanged don't invalidate dst node*/
 			if (gf_sg_vrml_field_equal(r->ToField.far_ptr, r->FromField.far_ptr, r->FromField.fieldType)) {
-				ret = 0;
+				ret = GF_FALSE;
 			} else {
 				gf_sg_vrml_field_copy(r->ToField.far_ptr, r->FromField.far_ptr, r->FromField.fieldType);
 			}
@@ -366,7 +366,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 
 	//don't notify dest change for generic function since the dest is not a node
 	if (r->ToField.fieldType==GF_SG_VRML_GENERIC_FUNCTION) {
-		ret = 0;
+		ret = GF_FALSE;
 	}
 
 #ifndef GPAC_DISABLE_LOG

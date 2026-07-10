@@ -320,7 +320,7 @@ GF_Err RTSP_ParseResponseHeader(GF_RTSPSession *sess, GF_RTSPResponse *rsp, u32 
 	u32 Size;
 
 	Size = sess->CurrentSize - sess->CurrentPos;
-	buffer = sess->tcp_buffer + sess->CurrentPos;
+	buffer = (char*)sess->tcp_buffer + sess->CurrentPos;
 
 	//parse first line
 	ret = gf_token_get_line(buffer, 0, Size, LineBuffer, 1024);
@@ -382,7 +382,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		goto exit;
 
 	//this is interleaved data
-	if (!IsRTSPMessage(sess->tcp_buffer+sess->CurrentPos) ) {
+	if (!IsRTSPMessage((char*)sess->tcp_buffer+sess->CurrentPos) ) {
 		gf_rtsp_session_read(sess);
 		e = GF_IP_NETWORK_EMPTY;
 		goto exit;
@@ -394,7 +394,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//get the reply
 	gf_rtsp_get_body_info(sess, &BodyStart, &size, GF_FALSE);
 
-	if (!strncmp(sess->tcp_buffer+sess->CurrentPos, "HTTP", 4)) {
+	if (!strncmp((char*)sess->tcp_buffer+sess->CurrentPos, "HTTP", 4)) {
 		sess->CurrentPos += BodyStart + rsp->Content_Length;
 		e = GF_IP_NETWORK_EMPTY;
 		goto exit;
@@ -409,7 +409,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
 		}
-		rsp->body = (char *)gf_malloc(sizeof(char) * (rsp->Content_Length));
+		rsp->body = (char *)gf_malloc(rsp->Content_Length);
 		memcpy(rsp->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
 	}
 
@@ -697,7 +697,7 @@ GF_EXPORT
 GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 {
 	u32 size;
-	char *buffer;
+	u8 *buffer;
 	GF_Err e;
 
 	if (!sess || !rsp || !rsp->CSeq) return GF_BAD_PARAM;
@@ -705,7 +705,7 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	//check we're not sending something greater than the current CSeq
 	if (rsp->CSeq > sess->CSeq) return GF_BAD_PARAM;
 
-	e = RTSP_WriteResponse(sess, rsp, (unsigned char **) &buffer, &size);
+	e = RTSP_WriteResponse(sess, rsp, &buffer, &size);
 	if (!e) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Sending response %s", buffer));
 		//send buffer

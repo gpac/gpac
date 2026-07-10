@@ -115,7 +115,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	if (count) {
 		//don't let reservoir grow too large (may happen if burst of packets are stored/consumed in the upper chain)
 		while (count>30) {
-			GF_FilterPacket *head_pck = gf_fq_pop(pid->filter->pcks_alloc_reservoir);
+			GF_FilterPacket *head_pck = (struct __gf_filter_pck *)gf_fq_pop(pid->filter->pcks_alloc_reservoir);
 			gf_free(head_pck->data);
 			gf_free(head_pck);
 			count--;
@@ -138,7 +138,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	if (!pck && (count>=max_reservoir_size)) {
 		if (!closest) return NULL;
 		closest->alloc_size = data_size;
-		closest->data = gf_realloc(closest->data, closest->alloc_size);
+		closest->data = (u8 *)gf_realloc(closest->data, closest->alloc_size);
 		if (!closest->data) {
 			gf_free(closest);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet on PID %s of filter %s\n", pid->name, pid->filter->name));
@@ -156,7 +156,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet on PID %s of filter %s\n", pid->name, pid->filter->name));
 			return NULL;
 		}
-		pck->data = gf_malloc(sizeof(char)*data_size);
+		pck->data = (u8 *)gf_malloc(data_size);
 		if (!pck->data) {
 			gf_free(pck);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet on PID %s of filter %s\n", pid->name, pid->filter->name));
@@ -172,8 +172,8 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		//this may however imply that we don't get the best matching block size if new packets
 		//were added to the list
 
-		GF_FilterPacket *head_pck = gf_fq_pop(pid->filter->pcks_alloc_reservoir);
-		char *pck_data = pck->data;
+		GF_FilterPacket *head_pck = (struct __gf_filter_pck *)gf_fq_pop(pid->filter->pcks_alloc_reservoir);
+		u8 *pck_data = pck->data;
 		u32 alloc_size = pck->alloc_size;
 		pck->data = head_pck->data;
 		pck->alloc_size = head_pck->alloc_size;
@@ -208,7 +208,7 @@ static GF_FilterPacket *gf_filter_pck_new_dangling_packet(GF_FilterPacket *cache
 	if (cached_pck) {
 		if (data_length > cached_pck->alloc_size) {
 			cached_pck->alloc_size = data_length;
-			cached_pck->data = gf_realloc(cached_pck->data, cached_pck->alloc_size);
+			cached_pck->data = (u8 *)gf_realloc(cached_pck->data, cached_pck->alloc_size);
 			if (!cached_pck->data) {
 				gf_free(cached_pck);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to re-allocate dangling packet data\n"));
@@ -232,7 +232,7 @@ static GF_FilterPacket *gf_filter_pck_new_dangling_packet(GF_FilterPacket *cache
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new dangling packet\n"));
 		return NULL;
 	}
-	dst->data = gf_malloc(sizeof(char) * data_length);
+	dst->data = (u8 *)gf_malloc(data_length);
 	if (!dst->data) {
 		gf_free(dst);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new dangling packet\n"));
@@ -454,14 +454,14 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *
 		return NULL;
 	}
 
-	pck = gf_fq_pop(pid->filter->pcks_shared_reservoir);
+	pck = (struct __gf_filter_pck *)gf_fq_pop(pid->filter->pcks_shared_reservoir);
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
 		if (!pck)
 			return NULL;
 	}
 	pck->pck = pck;
-	pck->data = (char *) data;
+	pck->data = (u8 *) data;
 	pck->data_length = data_size;
 	pck->destructor = destruct;
 	pck->filter_owns_mem = 1;
@@ -598,7 +598,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		gf_assert(!pck->reference);
 
 		if (pck->info.cts != GF_FILTER_NO_TS) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Destroying packet property reference CTS "LLU" size %d\n", pck->info.cts, pck->data_length));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Destroying packet property reference CTS " LLU " size %d\n", pck->info.cts, pck->data_length));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Destroying packet property reference size %d\n", pck->data_length));
 		}
@@ -611,7 +611,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	if (!is_filter_destroyed && !pck->is_dangling) {
 		if (pck->pid && pck->pid->filter) {
 			if (pck->info.cts != GF_FILTER_NO_TS) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet CTS "LLU"\n", pck->pid->filter->name, pck->pid->name, pck->info.cts));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet CTS " LLU "\n", pck->pid->filter->name, pck->pid->name, pck->info.cts));
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
 			}
@@ -731,7 +731,7 @@ Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 	//single packet, update PID buffer and dispatch to packet queue
 	if (count==1) {
-		GF_FilterPacketInstance *pcki = gf_list_pop_back(dst->pck_reassembly);
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *)gf_list_pop_back(dst->pck_reassembly);
 		safe_int_inc(&dst->filter->pending_packets);
 		if (pcki->pck->info.duration && pcki->pck->pid_props->timescale) {
 			u64 duration = gf_timestamp_rescale(pcki->pck->info.duration, pcki->pck->pid_props->timescale, 1000000);
@@ -743,7 +743,7 @@ Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 	}
 
 	for (i=0; i<count; i++) {
-		GF_FilterPacketInstance *pck = gf_list_get(dst->pck_reassembly, i);
+		GF_FilterPacketInstance *pck = (GF_FilterPacketInstance *)gf_list_get(dst->pck_reassembly, i);
 		if (!pck) break;
 		gf_assert(! (pck->pck->info.flags & GF_PCKF_BLOCK_START) || ! (pck->pck->info.flags & GF_PCKF_BLOCK_END) );
 		size += pck->pck->data_length;
@@ -762,7 +762,7 @@ Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 	for (i=0; i<count; i++) {
 		GF_FilterPacket *pck;
-		GF_FilterPacketInstance *pcki = gf_list_get(dst->pck_reassembly, i);
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *)gf_list_get(dst->pck_reassembly, i);
 		if (!pcki) break;
 		pck = pcki->pck;
 
@@ -891,7 +891,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		return GF_OK;
 	}
 
-	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
+	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK) ? GF_TRUE : GF_FALSE;
 
 	//special case for source filters (no input pids), mark as playing once we have a packet sent
 	if (!is_cmd_pck && !pid->filter->num_input_pids && !pid->initial_play_done && !pid->is_playing) {
@@ -902,7 +902,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	pid->filter->nb_pck_io++;
 
-	cktype = ( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
+	cktype = (GF_FilterClockType) (( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS);
 
 	//send from filter, update flags
 	if (from_filter) {
@@ -956,7 +956,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		timescale = pck->pid_props->timescale;
 	} else {
 		//pid properties applying to this packet are the last defined ones
-		pck->pid_props = gf_list_last(pid->properties);
+		pck->pid_props = (GF_PropertyMap *)gf_list_last(pid->properties);
 		if (pck->pid_props) {
 			safe_int_inc(&pck->pid_props->reference_count);
 			timescale = pck->pid_props->timescale;
@@ -1105,13 +1105,13 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			u8 bend = (pck->info.flags & GF_PCKF_BLOCK_END) ? 1 : 0;
 
 			if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS " LLU " CTS " LLU " SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
 			else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS " LLU " SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
 			else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS " LLU " SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
@@ -1119,7 +1119,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 #endif
 	} else {
 		pck->info.duration = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent clock reference "LLU"%s\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, (cktype==GF_FILTER_CLOCK_PCR_DISC) ? " - discontinuity detected" : ""));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent clock reference " LLU "%s\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, (cktype==GF_FILTER_CLOCK_PCR_DISC) ? " - discontinuity detected" : ""));
 	}
 
 
@@ -1138,7 +1138,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	for (i=0; i<count; i++) {
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
-		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
+		GF_FilterPidInst *dst = (struct __gf_filter_pid_inst *)gf_list_get(pck->pid->destinations, i);
 		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process || dst->in_swap) continue;
 
 		if (dst->discard_inputs==GF_PIDI_DISCARD_ON) {
@@ -1180,7 +1180,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			continue;
 		}
 
-		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
+		inst = (GF_FilterPacketInstance *)gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 		if (!inst) {
 			GF_SAFEALLOC(inst, GF_FilterPacketInstance);
 			if (!inst) return GF_OUT_OF_MEM;
@@ -1204,7 +1204,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		safe_int_inc(&pck->reference_count);
 		nb_dispatch++;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer (" LLU " us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
 
 		u64 us_duration = 0;
 
@@ -1444,7 +1444,7 @@ GF_Err gf_filter_pck_ref_props(GF_FilterPacket **pck)
 	srcpck = (*pck)->pck;
 	pid = srcpck->pid;
 
-	npck = gf_fq_pop( pid->filter->session->pcks_refprops_reservoir);
+	npck = (struct __gf_filter_pck *)gf_fq_pop( pid->filter->session->pcks_refprops_reservoir);
 	if (!npck) {
 		GF_SAFEALLOC(npck, GF_FilterPacket);
 		if (!npck) return GF_OUT_OF_MEM;
@@ -1505,10 +1505,10 @@ const u8 *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
 	//get true packet pointer
 	pck=pck->pck;
 	*size = pck->data_length;
-	return (const char *)pck->data;
+	return (const u8 *)pck->data;
 }
 
-static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
+static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc, const char *prop_name, const char *dyn_name, const GF_PropertyValue *value)
 {
 	u32 hash;
 	gf_assert(pck);
@@ -1521,7 +1521,7 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 	pck=pck->pck;
 
 	if (prop_4cc && value && pck->pid && pck->pid->filter->session->check_props) {
-		u32 ptype = gf_props_4cc_get_type(prop_4cc);
+		GF_PropType ptype = gf_props_4cc_get_type(prop_4cc);
 		u8 c = prop_4cc>>24;
 		if ((c>='A') && (c<='Z')) {
 			if (gf_props_get_base_type(ptype) != gf_props_get_base_type(value->type)) {
@@ -1571,7 +1571,7 @@ GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, co
 }
 
 GF_EXPORT
-GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF_PropertyValue *value)
+GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, const char *name, const GF_PropertyValue *value)
 {
 	return gf_filter_pck_set_property_full(pck, 0, NULL, name, value);
 }
@@ -1596,7 +1596,7 @@ static GFINLINE const GF_PropertyValue *pck_check_prop(GF_FilterPacket *pck, u32
 		if (!pcki->pid->prop_dump) pcki->pid->prop_dump = gf_list_new();
 		count = gf_list_count(pcki->pid->prop_dump);
 		for (i=0;i<count; i++) {
-			p = gf_list_get(pcki->pid->prop_dump, i);
+			p = (GF_PropCheck *)gf_list_get(pcki->pid->prop_dump, i);
 			if (prop_4cc) {
 				if (p->p4cc==prop_4cc) return ret;
 			} else if (p->name && !strcmp(p->name, prop_name)) {
@@ -1946,7 +1946,7 @@ GF_EXPORT
 GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck)
 {
 	//get true packet pointer
-	return (pck->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
+	return (GF_FilterClockType) ((pck->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS);
 }
 
 GF_EXPORT
@@ -1977,7 +1977,7 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 
 	if (pck->data_length + nb_bytes_to_add > pck->alloc_size) {
 		pck->alloc_size = pck->data_length + nb_bytes_to_add;
-		pck->data = gf_realloc(pck->data, pck->alloc_size);
+		pck->data = (u8 *)gf_realloc(pck->data, pck->alloc_size);
 #ifdef GPAC_MEMORY_TRACKING
 		if (!pck->is_dangling)
 			pck->pid->filter->session->nb_realloc_pck++;

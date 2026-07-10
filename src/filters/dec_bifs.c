@@ -83,7 +83,7 @@ static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_FilterPid *out_pid;
-	GF_BIFSDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_BIFSDecCtx *ctx = (GF_BIFSDecCtx *)gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
 
 	//we must have streamtype SCENE
@@ -102,7 +102,7 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 
 	if (is_remove) {
-		out_pid = gf_filter_pid_get_udta(pid);
+		out_pid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 		if (ctx->out_pid==out_pid)
 			ctx->out_pid = NULL;
 		if (out_pid)
@@ -141,11 +141,11 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 	Double ts_offset;
 	u64 now, cts;
 	u32 i, count;
-	const char *data;
+	const u8 *data;
 	u32 size, ESID=0;
 	const GF_PropertyValue *prop;
 	GF_FilterPacket *pck;
-	GF_BIFSDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_BIFSDecCtx *ctx = (GF_BIFSDecCtx *)gf_filter_get_udta(filter);
 
 	GF_Scene *scene = ctx->scene;
 
@@ -164,9 +164,9 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(pid);
 
-		GF_ObjectManager *odm = gf_filter_pid_get_udta(opid);
+		GF_ObjectManager *odm = (struct _od_manager *)gf_filter_pid_get_udta(opid);
 		//object clock shall be valid
 		if (!odm || !odm->ck) continue;
 
@@ -198,7 +198,7 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 		e = gf_bifs_decode_au(ctx->bifs_dec, ESID, data, size, ts_offset);
 		now = gf_sys_clock_high_res() - now;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[BIFS] ODM%d #CH%d decoded AU TS %u in "LLU" us\n", odm->ID, ESID, cts, now));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[BIFS] ODM%d #CH%d decoded AU TS %u in " LLU " us\n", odm->ID, ESID, cts, now));
 
 		gf_filter_pid_drop_packet(pid);
 
@@ -211,7 +211,7 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 
 static void bifs_dec_finalize(GF_Filter *filter)
 {
-	GF_BIFSDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_BIFSDecCtx *ctx = (GF_BIFSDecCtx *)gf_filter_get_udta(filter);
 	if (ctx->bifs_dec) gf_bifs_decoder_del(ctx->bifs_dec);
 }
 
@@ -219,7 +219,7 @@ static void bifs_dec_finalize(GF_Filter *filter)
 static Bool bifs_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
-	GF_BIFSDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_BIFSDecCtx *ctx = (GF_BIFSDecCtx *)gf_filter_get_udta(filter);
 	//check for scene attach
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
@@ -238,11 +238,11 @@ static Bool bifs_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	count = gf_filter_get_ipid_count(filter);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_filter_pid_get_udta(ipid);
 		//we found our pid, set it up
 		if (opid == com->attach_scene.on_pid) {
 			if (!ctx->odm) {
-				ctx->odm = com->attach_scene.object_manager;
+				ctx->odm = (GF_ObjectManager *) com->attach_scene.object_manager;
 				ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 			}
 			bifs_dec_configure_bifs_dec(ctx, ipid);

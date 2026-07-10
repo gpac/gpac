@@ -115,13 +115,13 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 {
 	u32 i, count = gf_list_count(st->opids);
 	for (i=0; i<count; i++) {
-		GF_FilterPid *opid = gf_list_get(st->opids, i);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
 
 		if (st->ipid)
 			gf_filter_pid_copy_properties(opid, st->ipid);
 
-		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(ctx->segment_duration, 1000));
-		gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_DUR, &PROP_FRAC64_INT(ctx->period_duration, 1000));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT((s32)ctx->segment_duration, 1000));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_DUR, &PROP_FRAC64_INT((s64)ctx->period_duration, 1000));
 		gf_filter_pid_set_property(opid, GF_PROP_PID_URL, &PROP_STRING( gf_file_basename(st->res_url)) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_FILEPATH, &PROP_STRING( gf_file_basename(st->res_url)) );
 		if (st->track_id)
@@ -191,13 +191,13 @@ static void ghi_dmx_send_seg_times(GHIDmxCtx *ctx, GHIStream *st, GF_FilterPid *
 		u64 ts;
 #ifndef GPAC_DISABLE_MPD
 		if (st->segs_xml) {
-			GF_MPD_SegmentURL *surl = gf_list_get(st->segs_xml, i);
+			GF_MPD_SegmentURL *surl = (GF_MPD_SegmentURL *)gf_list_get(st->segs_xml, i);
 			ts = surl->first_tfdt + surl->split_first_dur;
 			dur = (u32) surl->duration;
 		} else
 #endif
 		{
-			GHISegInfo *si = gf_list_get(st->segs_bin, i);
+			GHISegInfo *si = (GHISegInfo *)gf_list_get(st->segs_bin, i);
 			ts = si->first_tfdt + si->split_first;
 			dur = (u32) si->seg_duration;
 		}
@@ -207,7 +207,7 @@ static void ghi_dmx_send_seg_times(GHIDmxCtx *ctx, GHIStream *st, GF_FilterPid *
 
 		dur = (u32) gf_timestamp_rescale(dur, st->mpd_timescale, st->pid_timescale);
 		gf_filter_pck_set_duration(pck, dur);
-		gf_filter_pck_set_sap(pck, st->starts_with_sap);
+		gf_filter_pck_set_sap(pck, (GF_FilterSAPType) st->starts_with_sap);
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 		gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 		gf_filter_pck_send(pck);
@@ -227,7 +227,7 @@ static void ghi_dmx_send_seg_times(GHIDmxCtx *ctx, GHIStream *st, GF_FilterPid *
 
 GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GHIDmxCtx *ctx = (GHIDmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -245,7 +245,7 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 	if (ctx->ipid == pid) return GF_OK;
 
-	GHIStream *st = gf_filter_pid_get_udta(pid);
+	GHIStream *st = (GHIStream *)gf_filter_pid_get_udta(pid);
 	if (!st) {
 		const GF_PropertyValue *url = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 		if (!url) return GF_SERVICE_ERROR;
@@ -253,7 +253,7 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (!p_id) return GF_SERVICE_ERROR;
 		u32 i;
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			st = gf_list_get(ctx->streams, i);
+			st = (GHIStream *)gf_list_get(ctx->streams, i);
 			if (!st->inactive && !gf_filter_pid_is_filter_in_parents(pid, st->filter_src)) {
 				st = NULL;
 				continue;
@@ -307,8 +307,8 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FilterEvent fevt;
-	GHIStream *st = evt->base.on_pid ? gf_filter_pid_get_udta(evt->base.on_pid) : NULL;
-	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GHIStream *st = evt->base.on_pid ? (GHIStream *)gf_filter_pid_get_udta(evt->base.on_pid) : NULL;
+	GHIDmxCtx *ctx = (GHIDmxCtx *)gf_filter_get_udta(filter);
 	if (!st) return GF_FALSE;
 
 	switch (evt->base.type) {
@@ -318,7 +318,7 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			return GF_TRUE;
 		}
 		if (st->empty_seg) {
-			GF_FilterPid *opid = gf_list_get(st->opids, 0);
+			GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
 			GF_FilterPacket *dst = gf_filter_pck_new_alloc(opid, 0, NULL);
 			gf_filter_pck_set_dts(dst, st->seg_info.first_tfdt);
 			gf_filter_pck_set_cts(dst, st->seg_info.first_tfdt);
@@ -398,21 +398,22 @@ static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 
 	u8 *obuf = NULL;
 	u32 obuf_alloc = 0;
-	GF_FilterPid *opid = gf_list_get(st->opids, 0);
+	GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
 	u32 i, nb_props = gf_list_count(st->x_children);
 	for (i=0; i<nb_props; i++) {
 		Bool is_str_list=GF_FALSE;
 		Bool do_reset=GF_TRUE;
-		u32 j=0, p4cc=0, ptype=0, vlen, obuf_size;
+		u32 j=0, p4cc=0, vlen, obuf_size;
+		GF_PropType ptype = GF_PROP_FORBIDDEN;
 		const char *pname=NULL;
 		char *value=NULL;
 		GF_XMLAttribute *att;
 		GF_PropertyValue p;
 
-		GF_XMLNode *n = gf_list_get(st->x_children, i);
+		GF_XMLNode *n = (GF_XMLNode *)gf_list_get(st->x_children, i);
 		if (n->type != GF_XML_NODE_TYPE) continue;
 		if (!n->name || strcmp(n->name, "prop")) continue;
-		while ( (att = gf_list_enum(n->attributes, &j))) {
+		while ( (att = (GF_XMLAttribute *)gf_list_enum(n->attributes, &j))) {
 			if (!strcmp(att->name, "type")) p4cc = gf_props_get_id(att->value);
 			else if (!strcmp(att->name, "name")) pname = att->value;
 			else if (!strcmp(att->name, "ptype")) ptype = gf_props_parse_type(att->value);
@@ -435,12 +436,12 @@ static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		case GF_PROP_CONST_DATA:
 			obuf_size = (vlen+1)*2;
 			if (obuf_alloc<obuf_size) {
-				obuf = gf_realloc(obuf, obuf_size);
+				obuf = (u8 *)gf_realloc(obuf, obuf_size);
 				obuf_alloc = obuf_size;
 			}
-			vlen = gf_base64_decode(value, vlen, obuf, obuf_size);
+			vlen = gf_base64_decode((u8*)value, vlen, obuf, obuf_size);
 			if (is_str_list) {
-				p = gf_props_parse_value(GF_PROP_STRING_LIST, pname, obuf, NULL, ',');
+				p = gf_props_parse_value(GF_PROP_STRING_LIST, pname, (char *)obuf, NULL, ',');
 			} else {
 				p.type = GF_PROP_DATA;
 				p.value.data.ptr = obuf;
@@ -473,7 +474,7 @@ static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 	if (obuf) gf_free(obuf);
 
 	for (i=1; i<gf_list_count(st->opids); i++) {
-		GF_FilterPid *a_opid = gf_list_get(st->opids, i);
+		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
 		gf_filter_pid_copy_properties(a_opid, opid);
 	}
 	set_opids_props(ctx, st);
@@ -496,7 +497,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		}
 	}
 
-	GF_FilterPid *opid = gf_list_get(st->opids, 0);
+	GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
 	gf_bs_seek(bs, st->props_offset);
 	u32 end = st->props_offset + st->props_size;
 	gf_bs_skip_bytes(bs, 4);
@@ -504,7 +505,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 	//parse props
 	while (1) {
 		char *pname=NULL;
-		u32 ptype;
+		GF_PropType ptype;
 		u32 pidx;
 		Bool do_reset=GF_TRUE;
 		GF_PropertyValue p;
@@ -512,7 +513,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		if (p4cc == 0xFFFFFFFF) break;
 		if (!p4cc) {
 			pname = gf_bs_read_utf8(bs);
-			ptype = gf_bs_read_u32(bs);
+			ptype = (GF_PropType) gf_bs_read_u32(bs);
 		} else {
 			ptype = gf_props_4cc_get_type(p4cc);
 			if (!ptype) {
@@ -532,7 +533,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 			p.value.longuint = gf_bs_read_u64(bs);
 			break;
 		case GF_PROP_BOOL:
-			p.value.boolean = gf_bs_read_u8(bs) ? 1 : 0;
+			p.value.boolean = gf_bs_read_u8(bs) ? GF_TRUE : GF_FALSE;
 			break;
 		case GF_PROP_FRACTION:
 			p.value.frac.num = gf_bs_read_u32(bs);
@@ -584,7 +585,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				gf_bs_mark_overflow(bs, GF_FALSE);
 				break;
 			}
-			p.value.data.ptr = gf_malloc(p.value.data.size);
+			p.value.data.ptr = (u8 *)gf_malloc(p.value.data.size);
 			gf_bs_read_data(bs, p.value.data.ptr, p.value.data.size);
 			p.type = GF_PROP_DATA_NO_COPY;
 			do_reset = GF_FALSE;
@@ -599,7 +600,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				gf_bs_mark_overflow(bs, GF_FALSE);
 				break;
 			}
-			p.value.string_list.vals = gf_malloc(sizeof(char*) * p.value.string_list.nb_items);
+			p.value.string_list.vals = (char **)gf_malloc(sizeof(char*) * p.value.string_list.nb_items);
 			for (pidx=0; pidx<p.value.string_list.nb_items; pidx++) {
 				p.value.string_list.vals[pidx] = gf_bs_read_utf8(bs);
 			}
@@ -616,7 +617,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				gf_bs_mark_overflow(bs, GF_FALSE);
 				break;
 			}
-			p.value.uint_list.vals = gf_malloc(sizeof(u32) * p.value.string_list.nb_items);
+			p.value.uint_list.vals = (u32 *)gf_malloc(sizeof(u32) * p.value.string_list.nb_items);
 			for (pidx=0; pidx<p.value.uint_list.nb_items; pidx++) {
 				p.value.uint_list.vals[pidx] = gf_bs_read_u32(bs);
 			}
@@ -629,7 +630,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 				gf_bs_mark_overflow(bs, GF_FALSE);
 				break;
 			}
-			p.value.v2i_list.vals = gf_malloc(sizeof(GF_PropVec2i) * p.value.v2i_list.nb_items);
+			p.value.v2i_list.vals = (GF_PropVec2i *)gf_malloc(sizeof(GF_PropVec2i) * p.value.v2i_list.nb_items);
 			for (pidx=0; pidx<p.value.v2i_list.nb_items; pidx++) {
 				p.value.v2i_list.vals[pidx].x = gf_bs_read_u32(bs);
 				p.value.v2i_list.vals[pidx].y = gf_bs_read_u32(bs);
@@ -655,7 +656,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 
 	//copy props to other
 	for (i=1; i<gf_list_count(st->opids); i++) {
-		GF_FilterPid *a_opid = gf_list_get(st->opids, i);
+		GF_FilterPid *a_opid = (struct __gf_filter_pid *)gf_list_get(st->opids, i);
 		gf_filter_pid_copy_properties(a_opid, opid);
 	}
 	set_opids_props(ctx, st);
@@ -676,7 +677,7 @@ static void ghi_dmx_unmark_muxed(GHIDmxCtx *ctx)
 	}
 
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		GHIStream *st = gf_list_get(ctx->streams, i);
+		GHIStream *st = (GHIStream *)gf_list_get(ctx->streams, i);
 		if (!st->inactive) continue;
 		if (!st->mux_dst.nb_items) continue;
 		u32 j;
@@ -812,7 +813,7 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 		st->sample_duration = gf_bs_read_u32(bs);
 		st->first_cts_offset = (s32) gf_bs_read_u32(bs);
 		st->nb_segs = gf_bs_read_u32(bs);
-		st->starts_with_sap = gf_bs_read_u8(bs);
+		st->starts_with_sap = (GF_FilterSAPType) gf_bs_read_u8(bs);
 		st->rep_flags = gf_bs_read_u8(bs);
 		gf_bs_read_u16(bs); //unused fo now
 
@@ -852,17 +853,17 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 		gf_bs_skip_bytes(bs, skip);
 		ghi_dmx_parse_seg(ctx, bs, st, (st->seg_num==st->nb_segs) ? 1 : 2);
 
-		GHISegInfo *surl = gf_list_get(st->segs_bin, 0);
+		GHISegInfo *surl = (GHISegInfo *)gf_list_get(st->segs_bin, 0);
 		st->seg_info = *surl;
 		st->nb_pck = -1;
-		st->empty_seg = 0;
+		st->empty_seg = GF_FALSE;
 		if (st->seg_info.frag_start_offset)
-			st->use_offsets=1;
+			st->use_offsets= GF_TRUE;
 
 		if (!st->seg_info.first_pck_seq) {
-			st->empty_seg = 1;
+			st->empty_seg = GF_TRUE;
 		} else {
-			surl = gf_list_get(st->segs_bin, 1);
+			surl = (GHISegInfo *)gf_list_get(st->segs_bin, 1);
 			if (surl) {
 				st->nb_pck = (u32) (surl->first_pck_seq - st->seg_info.first_pck_seq);
 				if (!ctx->max_end_start_offset_plus_one
@@ -874,7 +875,7 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 				if (surl->split_first) st->nb_pck++;
 
 				if (surl->frag_start_offset)
-					st->use_offsets=1;
+					st->use_offsets= GF_TRUE;
 			}
 		}
 
@@ -912,7 +913,7 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 	ctx->media_presentation_duration = mpd->media_presentation_duration;
 	ctx->segment_template = mpd->segment_template;
 	mpd->segment_template = NULL;
-	GF_MPD_Period *period = gf_list_get(mpd->periods, 0);
+	GF_MPD_Period *period = (GF_MPD_Period *)gf_list_get(mpd->periods, 0);
 	if (!period) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] No period in index file, aborting !\n"));
 		gf_mpd_del(mpd);
@@ -923,9 +924,9 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 	u32 i;
 	for (i=0; i<gf_list_count(period->adaptation_sets); i++) {
 		u32 j;
-		GF_MPD_AdaptationSet *as = gf_list_get(period->adaptation_sets, i);
+		GF_MPD_AdaptationSet *as = (GF_MPD_AdaptationSet *)gf_list_get(period->adaptation_sets, i);
 		for (j=0; j<gf_list_count(as->representations); j++) {
-			GF_MPD_Representation *rep = gf_list_get(as->representations, j);
+			GF_MPD_Representation *rep = (GF_MPD_Representation *)gf_list_get(as->representations, j);
 			if (!rep->res_url) continue;
 			GHIStream *st;
 			GF_SAFEALLOC(st, GHIStream);
@@ -971,7 +972,7 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 				st->seg_num = ctx->sn;
 			}
 
-			GF_MPD_SegmentURL *surl = gf_list_get(st->segs_xml, st->seg_num-1);
+			GF_MPD_SegmentURL *surl = (GF_MPD_SegmentURL *)gf_list_get(st->segs_xml, st->seg_num-1);
 			//in pid timescale units
 			st->seg_info.first_tfdt = surl->first_tfdt;
 			st->seg_info.first_pck_seq = surl->first_pck_seq;
@@ -983,14 +984,14 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 			st->seg_info.split_first = surl->split_first_dur;
 			st->seg_info.split_last = surl->split_last_dur;
 			st->nb_pck = -1;
-			st->empty_seg = 0;
+			st->empty_seg = GF_FALSE;
 			if (st->seg_info.frag_start_offset)
-				st->use_offsets=1;
+				st->use_offsets= GF_TRUE;
 
 			if (!st->seg_info.first_pck_seq) {
-				st->empty_seg = 1;
+				st->empty_seg = GF_TRUE;
 			} else {
-				surl = gf_list_get(st->segs_xml, st->seg_num);
+				surl = (GF_MPD_SegmentURL *)gf_list_get(st->segs_xml, st->seg_num);
 				if (surl) {
 					st->nb_pck = (u32) (surl->first_pck_seq - st->seg_info.first_pck_seq);
 					if (!ctx->max_end_start_offset_plus_one
@@ -1001,10 +1002,10 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 					//first packet of next seg is split, we need this packet in current segment
 					if (surl->split_first_dur) st->nb_pck++;
 					if (surl->frag_start_offset)
-						st->use_offsets=1;
+						st->use_offsets= GF_TRUE;
 				}
 			}
-			surl = gf_list_get(st->segs_xml, 0);
+			surl = (GF_MPD_SegmentURL *)gf_list_get(st->segs_xml, 0);
 			st->first_frag_start_offset = (u32) surl->frag_start_offset;
 		}
 	}
@@ -1027,11 +1028,11 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 		return GF_SERVICE_ERROR;
 	}
 	if ((data[0] == 'G') && (data[1] == 'H') && (data[2] == 'I') && (data[3] == 'D')) {
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 		e = ghi_dmx_init_bin(filter, ctx, bs);
 		if (!e && gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
 	} else if (gf_utf8_is_legal(data, size)) {
-		char *str = gf_malloc(size+1);
+		u8 *str = (u8 *)gf_malloc(size+1);
 		if (str) {
 			memcpy(str, data, size);
 			str[size]=0;
@@ -1055,11 +1056,11 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 
 	//declare pids
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		GHIStream *st = gf_list_get(ctx->streams, i);
+		GHIStream *st = (GHIStream *)gf_list_get(ctx->streams, i);
 
 		u32 k;
 		for (k=0; k<gf_list_count(ctx->streams); k++) {
-			GHIStream *st_a = gf_list_get(ctx->streams, k);
+			GHIStream *st_a = (GHIStream *)gf_list_get(ctx->streams, k);
 			if (!strcmp(st_a->res_url, st->res_url)) {
 				st->filter_src = st_a->filter_src;
 				break;
@@ -1144,7 +1145,7 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 
 GF_Err ghi_dmx_process(GF_Filter *filter)
 {
-	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GHIDmxCtx *ctx = (GHIDmxCtx *)gf_filter_get_udta(filter);
 	u32 i, count, nb_inactive=0;
 	GF_FilterPacket *pck;
 
@@ -1154,12 +1155,12 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
-		GHIStream *st = gf_list_get(ctx->streams, i);
+		GHIStream *st = (GHIStream *)gf_list_get(ctx->streams, i);
 		if (st->inactive || !st->ipid || st->empty_seg) {
 			nb_inactive++;
 			continue;
 		}
-		GF_FilterPid *opid = gf_list_get(st->opids, 0);
+		GF_FilterPid *opid = (struct __gf_filter_pid *)gf_list_get(st->opids, 0);
 		pck = gf_filter_pid_get_packet(st->ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(st->ipid)) {
@@ -1200,10 +1201,10 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 					gf_filter_pid_set_eos(opid);
 				}
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[GHIX] Packet dts "LLU" after segment range, discarding \n", dts));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[GHIX] Packet dts " LLU " after segment range, discarding \n", dts));
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[GHIX] Packet dts "LLU" before segment range, discarding \n", dts));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[GHIX] Packet dts " LLU " before segment range, discarding \n", dts));
 		}
 		gf_filter_pid_drop_packet(st->ipid);
 	}
@@ -1213,7 +1214,7 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 
 GF_Err ghi_dmx_initialize(GF_Filter *filter)
 {
-	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GHIDmxCtx *ctx = (GHIDmxCtx *)gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 
 	if (ctx->sn && ctx->rep)
@@ -1232,10 +1233,10 @@ GF_Err ghi_dmx_initialize(GF_Filter *filter)
 
 void ghi_dmx_finalize(GF_Filter *filter)
 {
-	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
+	GHIDmxCtx *ctx = (GHIDmxCtx *)gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->streams)) {
-		GHIStream *st = gf_list_pop_back(ctx->streams);
+		GHIStream *st = (GHIStream *)gf_list_pop_back(ctx->streams);
 		GF_PropertyValue p;
 		p.type = GF_PROP_STRING_LIST;
 		p.value.string_list = st->mux_dst;
@@ -1243,7 +1244,7 @@ void ghi_dmx_finalize(GF_Filter *filter)
 
 		if (st->segs_bin) {
 			while (gf_list_count(st->segs_bin)) {
-				GHISegInfo *s = gf_list_pop_back(st->segs_bin);
+				GHISegInfo *s = (GHISegInfo *)gf_list_pop_back(st->segs_bin);
 				gf_free(s);
 			}
 			gf_list_del(st->segs_bin);
@@ -1251,14 +1252,14 @@ void ghi_dmx_finalize(GF_Filter *filter)
 #ifndef GPAC_DISABLE_MPD
 		if (st->segs_xml) {
 			while (gf_list_count(st->segs_xml)) {
-				GF_MPD_SegmentURL *s = gf_list_pop_back(st->segs_xml);
+				GF_MPD_SegmentURL *s = (GF_MPD_SegmentURL *)gf_list_pop_back(st->segs_xml);
 				gf_mpd_segment_url_free(s);
 			}
 			gf_list_del(st->segs_xml);
 		}
 		if (st->x_children) {
 			while (gf_list_count(st->x_children)) {
-				GF_XMLNode *child = gf_list_pop_back(st->x_children);
+				GF_XMLNode *child = (GF_XMLNode *)gf_list_pop_back(st->x_children);
 				gf_xml_dom_node_del(child);
 			}
 			gf_list_del(st->x_children);

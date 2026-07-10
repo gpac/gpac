@@ -80,7 +80,7 @@ typedef struct
 
 	u32 resume_from;
 
-	char *buffer;
+	u8 *buffer;
 	u32 buf_size, alloc_size;
 
 	//ivf header for now
@@ -120,7 +120,7 @@ typedef struct
 GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
@@ -338,7 +338,7 @@ static void av1dmx_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 f
 			}
 		}
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("=\""LLD, field_val));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("=\"" LLD, field_val));
 	if ((ctx->bsdbg==2) && ((s32) nb_bits > 1) )
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("(%u)", nb_bits));
 
@@ -498,7 +498,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		if (!probe_size && frame_start && is_sap && (cur_dur > ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
-			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
+			ctx->indexes = (AV1Idx *)gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
 			ctx->indexes[ctx->index_size].pos = frame_start;
 			ctx->indexes[ctx->index_size].duration = (Double) duration;
 			ctx->indexes[ctx->index_size].duration /= ctx->cur_fps.num;
@@ -548,7 +548,7 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	u32 i;
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
-	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *)gf_filter_get_udta(filter);
 	if (!ctx->ipid) return GF_TRUE;
 
 	switch (evt->base.type) {
@@ -736,7 +736,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
 	if (!ctx->timescale) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT((u32)ctx->cur_fps.num));
 	}
 
 	//if we have a FPS prop, use it
@@ -831,7 +831,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			pts += ctx->cumulated_dur;
 			if (ctx->last_pts && (ctx->last_pts>pts)) {
 				pts -= ctx->cumulated_dur;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/AV1] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/AV1] Corrupted timestamp " LLU " less than previous timestamp " LLU ", assuming concatenation\n", pts, ctx->last_pts));
 				ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
 				ctx->cumulated_dur -= pts;
 				pts = ctx->cumulated_dur;
@@ -915,7 +915,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			pts += ctx->cumulated_dur;
 			if (ctx->last_pts && (ctx->last_pts-1>pts)) {
 				pts -= ctx->cumulated_dur;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts-1));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp " LLU " less than previous timestamp " LLU ", assuming concatenation\n", pts, ctx->last_pts-1));
 				ctx->cumulated_dur = ctx->last_pts-1 + ctx->cur_fps.den;
 				ctx->cumulated_dur -= pts;
 				pts = ctx->cumulated_dur;
@@ -944,12 +944,12 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		}
 		e = gf_bs_seek(ctx->bs, pos2 + frame_sizes[i]);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VP9Dmx] Seek bad param (offset "LLU") (1)", pos2 + frame_sizes[i]));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VP9Dmx] Seek bad param (offset " LLU ") (1)", pos2 + frame_sizes[i]));
 			return e;
 		}
 	}
 	if (gf_bs_get_position(ctx->bs) + superframe_index_size != pos + frame_size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VP9Dmx] Inconsistent IVF frame size of "LLU" bytes.\n", frame_size));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VP9Dmx] Inconsistent IVF frame size of " LLU " bytes.\n", frame_size));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("      Detected %d frames (+ %d bytes for the superframe index):\n", num_frames_in_superframe, superframe_index_size));
 		for (i = 0; i < num_frames_in_superframe; ++i) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("         superframe %d, size is %u bytes\n", i, frame_sizes[i]));
@@ -958,7 +958,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 	e = gf_bs_seek(ctx->bs, pos + frame_size);
 	if (e) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VP9Dmx] Seek bad param (offset "LLU") (2)", pos + frame_size));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[VP9Dmx] Seek bad param (offset " LLU ") (2)", pos + frame_size));
 		return e;
 	}
 
@@ -1053,7 +1053,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->is_iamf) {
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	} else {
-		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);
+		gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	}
 	gf_filter_pck_set_switch_frame(pck, ctx->state.frame_state.switch_frame);
 
@@ -1212,12 +1212,12 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	return e;
 }
 
-GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
+GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const u8 *data, u32 data_size, Bool is_copy)
 {
 	u32 last_obu_end = 0;
 	GF_Err e = GF_OK;
 
-	if (!ctx->bs) ctx->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	if (!ctx->bs) ctx->bs = gf_bs_new((u8*)data, data_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs, data, data_size);
 
 #ifndef GPAC_DISABLE_LOG
@@ -1265,9 +1265,9 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 GF_Err av1dmx_process(GF_Filter *filter)
 {
 	GF_Err e;
-	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *)gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
-	char *data;
+	const u8 *data;
 	u32 pck_size;
 
 	if (ctx->bsmode == UNSUPPORTED) return GF_EOS;
@@ -1309,7 +1309,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 			return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	data = gf_filter_pck_get_data(pck, &pck_size);
 
 	//input pid is muxed - we flushed pending data , update cts unless recomputing all times
 	if (ctx->timescale) {
@@ -1322,7 +1322,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 		if (!start) {
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
-				ctx->buffer = gf_realloc(ctx->buffer, ctx->alloc_size);
+				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -1356,7 +1356,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 		if (!end) {
 			if (ctx->alloc_size < ctx->buf_size + pck_size) {
 				ctx->alloc_size = ctx->buf_size + pck_size;
-				ctx->buffer = gf_realloc(ctx->buffer, ctx->alloc_size);
+				ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
 			}
 			memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 			ctx->buf_size += pck_size;
@@ -1374,7 +1374,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 	//not from framed stream, copy buffer
 	if (ctx->alloc_size < ctx->buf_size + pck_size) {
 		ctx->alloc_size = ctx->buf_size + pck_size;
-		ctx->buffer = gf_realloc(ctx->buffer, ctx->alloc_size);
+		ctx->buffer = (u8 *)gf_realloc(ctx->buffer, ctx->alloc_size);
 	}
 	memcpy(ctx->buffer+ctx->buf_size, data, pck_size);
 	ctx->buf_size += pck_size;
@@ -1385,7 +1385,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 
 static GF_Err av1dmx_initialize(GF_Filter *filter)
 {
-	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *)gf_filter_get_udta(filter);
 	gf_av1_init_state(&ctx->state);
 	if (ctx->temporal_delim)
 		ctx->state.keep_temporal_delim = GF_TRUE;
@@ -1396,7 +1396,7 @@ static GF_Err av1dmx_initialize(GF_Filter *filter)
 
 static void av1dmx_finalize(GF_Filter *filter)
 {
-	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
+	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *)gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 
@@ -1418,9 +1418,9 @@ static void av1dmx_finalize(GF_Filter *filter)
 
 static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((u8*)data, size, GF_BITSTREAM_READ);
 	Bool res;
-	u32 lt;
+	GF_LOG_Level lt;
 	const char *mime = "video/av1";
 	lt = gf_log_get_tool_level(GF_LOG_CODING);
 	gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);

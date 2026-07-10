@@ -288,7 +288,7 @@ void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, E
 		u32 *col;
 		p = dst + spans[i].x * surf->pitch_x;
 		len = spans[i].len;
-		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		col = (u32 *) surf->fill_run(surf->sten, rctx, &spans[i], y);
 		spanalpha = spans[i].coverage;
 		while (len--) {
 			//we must blend in all cases since we have to merge with the dst alpha
@@ -496,10 +496,10 @@ void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, E
 		u32 len;
 		u32 *col, _col;
 		len = spans[i].len;
-		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		col = (u32 *) surf->fill_run(surf->sten, rctx, &spans[i], y);
 		spanalpha = spans[i].coverage;
 		x = spans[i].x * surf->pitch_x;
-		
+
 		while (len--) {
 			_col = *col;
 			col_a = GF_COL_A(_col);
@@ -523,7 +523,7 @@ GF_Err evg_surface_clear_rgbx(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 	u32 x, y, w, h, sx, sy;
 	u8 r,g,b;
 	s32 st;
-	char *o_data;
+	u8 *o_data;
 	GF_EVGSurface *_this = (GF_EVGSurface *)surf;
 	st = _this->pitch_x;
 
@@ -692,7 +692,7 @@ void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 		u32 len;
 		u32 *col, _col;
 		len = spans[i].len;
-		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		col = (u32 *) surf->fill_run(surf->sten, rctx, &spans[i], y);
 		spanalpha = spans[i].coverage;
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {

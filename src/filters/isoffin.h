@@ -27,6 +27,10 @@
 #ifndef _ISMO_IN_H_
 #define _ISMO_IN_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>
 #include <gpac/filters.h>
@@ -122,7 +126,7 @@ typedef struct
 	Bool no_order_check;
 	u32 moov_not_loaded;
     Bool invalid_segment;
-    
+
 	u64 last_sender_ntp, ntp_at_last_sender_ntp, cts_for_last_sender_ntp;
 	Bool is_partial_download, wait_for_source;
 
@@ -132,7 +136,7 @@ typedef struct
 
 	Bool eos_signaled;
 	u32 mem_load_mode;
-	u8 *mem_url;
+	char *mem_url;
 	GF_Blob mem_blob;
 	u32 mem_blob_alloc;
 	u64 bytes_removed;
@@ -167,7 +171,7 @@ typedef struct
 	s32 roll;
 	u32 xps_mask;
 	u32 cts_offset;
-	
+
 	u32 sample_num, sample_last;
 	s64 ts_offset;
 
@@ -213,7 +217,7 @@ typedef struct
 
 	u32 key_info_crc;
 	const GF_PropertyValue *cenc_ki;
-	
+
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
@@ -253,6 +257,10 @@ void isor_declare_pssh(ISOMChannel *ch);
 void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_FilterPacket *pck);
 
 #endif /*GPAC_DISABLE_ISOM*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_ISMO_IN_H_*/
 

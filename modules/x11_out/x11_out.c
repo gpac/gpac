@@ -70,7 +70,7 @@ static void X11_DestroyOverlay(XWindow *xwin)
 
 static Bool is_same_yuv(u32 pf, u32 a_pf)
 {
-	if (pf==a_pf) return 1;
+	if (pf==a_pf) return GF_TRUE;
 #if 0
 	switch (pf) {
 	case GF_PIXEL_YV12:
@@ -80,9 +80,9 @@ static Bool is_same_yuv(u32 pf, u32 a_pf)
 		case GF_PIXEL_YV12:
 		case GF_PIXEL_I420:
 		case GF_PIXEL_IYUV:
-			return 1;
+			return GF_TRUE;
 		default:
-			return 0;
+			return GF_FALSE;
 		}
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_UYNV:
@@ -91,22 +91,22 @@ static Bool is_same_yuv(u32 pf, u32 a_pf)
 		case GF_PIXEL_UYVY:
 		case GF_PIXEL_UYNV:
 		case GF_PIXEL_Y422:
-			return 1;
+			return GF_TRUE;
 		default:
-			return 0;
+			return GF_FALSE;
 		}
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YUNV:
 		switch (a_pf) {
 		case GF_PIXEL_YUY2:
 		case GF_PIXEL_YUNV:
-			return 1;
+			return GF_TRUE;
 		default:
-			return 0;
+			return GF_FALSE;
 		}
 	}
 #endif
-	return 0;
+	return GF_FALSE;
 }
 static u32 X11_GetPixelFormat(u32 pf)
 {
@@ -115,7 +115,7 @@ static u32 X11_GetPixelFormat(u32 pf)
 static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_color)
 {
 	XWindow *xwin = (XWindow *)vout->opaque;
-	Bool has_color_key = 0;
+	Bool has_color_key = GF_FALSE;
 	XvAdaptorInfo *adaptors;
 	unsigned int i;
 	unsigned int nb_adaptors;
@@ -151,7 +151,7 @@ static int X11_GetXVideoPort(GF_VideoOutput *vout, u32 pixel_format, Bool check_
 					if (!strcmp(attr[k].name, "XV_COLORKEY")) {
 						const Atom ckey = XInternAtom(xwin->display, "XV_COLORKEY", False);
 						XvGetPortAttribute(xwin->display, port, ckey, &vout->overlay_color_key);
-						has_color_key = 1;
+						has_color_key = GF_TRUE;
 						vout->overlay_color_key |= 0xFF000000;
 					}
 					/*			        else if (!strcmp(attr[k].name, "XV_AUTOPAINT_COLORKEY")) {
@@ -192,9 +192,9 @@ static GF_Err X11_InitOverlay(GF_VideoOutput *vout, u32 VideoWidth, u32 VideoHei
 
 	X11_DestroyOverlay(xwin);
 
-	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
+	xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, GF_FALSE);
 	if (xwin->xvport<0)
-		xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YUY2, 0);
+		xwin->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YUY2, GF_FALSE);
 
 	if (xwin->xvport<0) {
 		return GF_NOT_SUPPORTED;
@@ -618,7 +618,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 
 				if (XGetWindowProperty(xWindow->display, owner, selection, 0, INT_MAX/4, False, AnyPropertyType, &stype, &sformat, &nb_bytes, &overflow, &data) == Success) {
 					if (stype == XA_STRING) {
-						char *text = gf_malloc(sizeof(char)*(nb_bytes+1));
+						char *text = (char *)gf_malloc(nb_bytes+1);
 						if (text) {
 							memcpy(text, data, nb_bytes);
 							text[nb_bytes] = 0;
@@ -769,7 +769,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	vout->on_event (vout->evt_cbk_hdl,&evt);
-	xWin->is_init = 1;
+	xWin->is_init = GF_TRUE;
 	return GF_OK;
 }
 
@@ -781,7 +781,7 @@ static void X11_ReleaseGL(XWindow *xWin)
 		glXDestroyContext(xWin->display, xWin->glx_context);
 		xWin->glx_context = NULL;
 	}
-	xWin->is_init = 0;
+	xWin->is_init = GF_FALSE;
 	XSync(xWin->display, False);
 }
 
@@ -883,7 +883,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 	} else
 #endif
 	{
-		xWindow->x_data = (char *) gf_malloc(sizeof(char)*size);
+		xWindow->x_data = (char *) gf_malloc(size);
 		xWindow->surface = XCreateImage (xWindow->display, xWindow->visual,
 		                                 xWindow->depth, ZPixmap,
 		                                 0,
@@ -1280,7 +1280,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		XSetClassHint(xWindow->display, xWindow->wnd, &hint);
 	}
 
-	autorepeat = 1;
+	autorepeat = GF_TRUE;
 	XkbSetDetectableAutoRepeat(xWindow->display, autorepeat, &supported);
 
 
@@ -1323,13 +1323,13 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 #ifdef GPAC_HAS_X11_XV
 	if (!gf_module_get_bool((GF_BaseInterface *)vout, "colorkey")) {
-		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, GF_FALSE);
 	} else {
-		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 1);
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, GF_TRUE);
 		if (xWindow->xvport<0) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
 			vout->overlay_color_key = 0;
-			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
+			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware uses color key %08x\n", vout->overlay_color_key));
 		}
@@ -1506,7 +1506,7 @@ retry_8bpp:
 
 
 	/*turn off xscreensaver*/
-	X11_XScreenSaverState(xWindow, 0);
+	X11_XScreenSaverState(xWindow, GF_FALSE);
 
 	XFree (Hints);
 }
@@ -1557,7 +1557,7 @@ void X11_Shutdown (struct _video_out *vout)
 #endif
 
 	/*restore xscreen saver*/
-	X11_XScreenSaverState(xWindow, 1);
+	X11_XScreenSaverState(xWindow, GF_TRUE);
 
 	XCloseDisplay (xWindow->display);
 	gf_free(xWindow);
@@ -1622,6 +1622,8 @@ DeleteX11VideoOutput (GF_VideoOutput * vout)
 	gf_free(vout);
 }
 
+GPAC_MODULE_EXPORT_START
+
 /*
  * interface query
  */
@@ -1661,5 +1663,7 @@ void ShutdownInterface (GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+GPAC_MODULE_EXPORT_END
 
 GPAC_MODULE_STATIC_DECLARATION( x11_out )

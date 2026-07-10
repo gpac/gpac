@@ -203,7 +203,7 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT
 } GF_FilterSchedulerType;
 
-/*! Filter session flags */
+/*! Filter session flag values */
 typedef enum
 {
 	/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various sub-filters.
@@ -242,7 +242,10 @@ typedef enum
 	/*! Flag set to ignore all PLAY events from sinks - use \ref gf_fs_send_deferred_play to start playback
 	*/
 	GF_FS_FLAG_PREVENT_PLAY = 1<<14
-} GF_FilterSessionFlags;
+} GF_FilterSessionFlagsValues;
+
+/*! Filter session flags */
+typedef u32 GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -699,7 +702,7 @@ typedef struct
 	/*!set to streamtype of output PID if single output, GF_STREAM_UNKNOWN otherwise*/
 	u32 stream_type;
 	/*!set to codecid of output PID if single output, GF_CODECID_NONE otherwise*/
-	u32 codecid;
+	GF_CodecID codecid;
 	/*! timestamp and timescale of last packet emitted on output pids*/
 	GF_Fraction64 last_ts_sent;
 	/*! timestamp and timescale of last packet dropped on input pids*/
@@ -730,14 +733,17 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, const char
 
 
 
-/*! Flags for argument update event*/
+/*! Flag values for argument update event*/
 typedef enum
 {
 	/*! the update event can be sent down the source chain*/
 	GF_FILTER_UPDATE_DOWNSTREAM = 1,
 	/*! the update event can be sent up the filter chain*/
 	GF_FILTER_UPDATE_UPSTREAM = 1<<1,
-} GF_EventPropagateType;
+} GF_EventPropagateFlag;
+
+/*! Flags for argument update event*/
+typedef u32 GF_EventPropagateType;
 
 /*! Enumerates filter and meta-filter arguments not matched in the session
 \param session filter session
@@ -854,7 +860,10 @@ typedef enum
 	GF_FS_DEBUG_ALL = 0x00FFFFFF,
 	/*! enable continuous reporting*/
 	GF_FS_DEBUG_CONTINUOUS = 0x80000000,
-} GF_SessionDebugFlag;
+} GF_SessionDebugFlags;
+
+/*! Flag for debug info*/
+typedef u32 GF_SessionDebugFlag;
 
 /*! prints session debug info on stderr
 
@@ -1514,7 +1523,7 @@ const char *gf_props_4cc_get_name(u32 prop_4cc);
 \param prop_4cc property built-in 4cc
 \return property name
 */
-u32 gf_props_4cc_get_type(u32 prop_4cc);
+GF_PropType gf_props_4cc_get_type(u32 prop_4cc);
 
 /*! Checks if two properties are equal
 \param p1 first property to compare - shall not be NULL
@@ -1569,7 +1578,7 @@ u32 gf_props_parse_enum(u32 type, const char *value);
 \param list_sep_char value of the list separator character to use
 \return the parsed property value
 */
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
+GF_PropertyValue gf_props_parse_value(GF_PropType type, const char *name, const char *value, const char *enum_values, char list_sep_char);
 
 /*! Get the name of a constant type property value
 \param type  property type
@@ -1588,7 +1597,7 @@ const char *gf_props_enum_all_names(u32 type);
 \param type  property type
 \return base property type
 */
-u32 gf_props_get_base_type(u32 type);
+GF_PropType gf_props_get_base_type(GF_PropType type);
 
 /*! Checks consistency of defined properties
 \return GF_TRUE if OK, GF_FALSE otherwise
@@ -1779,6 +1788,8 @@ The GF_FEVT_PAUSE and GF_FEVT_RESUME events are only used to trigger pause and r
 /*! Filter event types */
 typedef enum
 {
+	/*! No event */
+	GF_FEVT_NONE = 0,
 	/*! PID control, usually triggered by sink - see \ref GF_FilterPidPlaybackMode*/
 	GF_FEVT_PLAY = 1,
 	/*! PID speed control, usually triggered by sink - see \ref GF_FilterPidPlaybackMode*/
@@ -2046,7 +2057,9 @@ typedef enum
 	GF_TRANSPORT_HINTS_NONE = 0,
 	/*! event seen by an encoder */
 	GF_TRANSPORT_HINTS_SAW_ENCODER = 1<<0,
-} GF_TransportHintsFlags;
+} GF_TransportHintsFlagValues;
+
+typedef u32 GF_TransportHintsFlags;
 
 /*! Event structure for GF_FEVT_TRANSPORT_HINT*/
 typedef struct
@@ -2178,7 +2191,7 @@ The GF_PROP_PID_FILE_EXT and GF_PROP_PID_MIME are handled as alternate to each o
  */
 
 
-/*! Structure holding arguments for a filter*/
+/*! arguments flags values*/
 typedef enum
 {
 	/*! used for GUI config: regular argument type */
@@ -2205,7 +2218,10 @@ typedef enum
 	GF_FS_ARG_UPDATE_SYNC = 1<<8,
 	/*! internal flag used by meta filters (ffmpeg & co) to indicate the argument is an array of the indicated type*/
 	GF_FS_ARG_META_ARRAY = 1<<9,
-} GF_FSArgumentFlags;
+} GF_FSArgumentFlagValue;
+
+/*! arguments flags */
+typedef u32 GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
 typedef struct
@@ -2508,7 +2524,7 @@ typedef enum
 #define GF_FS_DEF_ARG(_name, _offset, _desc, _type, _default, _enum, _flags) {_name, _offset, _type, _default, _enum, _flags}
 #endif
 
-/*! Filter register flags*/
+/*! Filter register flag values*/
 typedef enum
 {
 	/*! when set indicates all calls shall take place in the main thread (running GL output) - to be refined*/
@@ -2563,7 +2579,10 @@ typedef enum
 
 	/*! flag dynamically set at runtime for custom filters*/
 	GF_FS_REG_CUSTOM = 0x40000000,
-} GF_FSRegisterFlags;
+} GF_FSRegisterFlag;
+
+/*! Filter register flags*/
+typedef u32 GF_FSRegisterFlags;
 
 /*! Filter class type hint - these are only informative, used to generate documentation - the order of the enum corresponds to order of section in wki*/
 typedef enum
@@ -3830,7 +3849,7 @@ GF_Err gf_filter_pid_set_property_str(GF_FilterPid *PID, const char *name, const
 \param value the new value to assign, or NULL if the property is to be removed
 \return error code if any
 */
-GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *PID, char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *PID, const char *name, const GF_PropertyValue *value);
 
 /*! Sets a new info property on an output PID for built-in property names.
 Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and do not trigger PID reconfiguration.
@@ -4813,7 +4832,7 @@ GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, co
 \param value the property value to set
 \return error code if any
 */
-GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, const char *name, const GF_PropertyValue *value);
 
 /*! Checks if a packet has properties other than packet built-in ones
 
@@ -5340,6 +5359,31 @@ GF_Err gf_filter_set_probe_data_cbk(GF_Filter *filter, const char * (*probe_data
 
 
 /*! @} */
+
+//! @cond Doxygen_Suppress
+GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
+		void (*period_reset)(void *udta, u32 type),
+		void (*new_group)(void *udta, u32 group_idx, void *dash),
+		s32 (*rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats),
+		s32 (*download_monitor)(void *udta, u32 group_idx, void *stats)
+);
+
+typedef struct __httpout_session GF_HTTPOutSession;
+GF_Err gf_filter_bind_httpout_callbacks(GF_Filter *filter, void *udta,
+	s32 (*on_request)(void *udta, GF_HTTPOutSession *session, const char *method, const char *url, u32 auth_code, u32 nb_hdrs, const char **hdrs)
+);
+GF_Err gf_httpout_send_request(GF_HTTPOutSession *sess, void *udta,
+	u32 reply,
+	char *body_or_file,
+	u32 nb_headers,
+	const char **headers,
+	u32 (*throttle)(void *udta, u64 done, u64 total),
+	s32 (*read)(void *udta, u8 *buffer, u32 buffer_size),
+	u32 (*write)(void *udta, const u8 *buffer, u32 buffer_size),
+	void (*close)(void *udta, GF_Err reason)
+);
+//! @endcond
+
 
 #ifdef __cplusplus
 }
