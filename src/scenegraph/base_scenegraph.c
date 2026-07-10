@@ -416,6 +416,29 @@ void gf_sg_reset(GF_SceneGraph *sg)
 #ifndef GPAC_DISABLE_VRML
 	if (!sg->pOwningProto && gf_list_count(sg->protos) && sg->GetExternProtoLib)
 		sg->GetExternProtoLib(sg->userpriv, NULL);
+
+	/* Drop node_code refs from all protos before force-freeing nodes below,
+	   preventing UAF when gf_sg_proto_del unregisters the same nodes */
+	{
+		u32 pi, pcount;
+		pcount = gf_list_count(sg->protos);
+		for (pi = 0; pi < pcount; pi++) {
+			GF_Proto* p = (GF_Proto*)gf_list_get(sg->protos, pi);
+			while (gf_list_count(p->node_code)) {
+				GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+				gf_node_unregister(n, NULL);
+			}
+		}
+		pcount = gf_list_count(sg->unregistered_protos);
+		for (pi = 0; pi < pcount; pi++) {
+			GF_Proto* p = (GF_Proto*)gf_list_get(sg->unregistered_protos, pi);
+			while (gf_list_count(p->node_code)) {
+				GF_Node* n = (GF_Node*)gf_list_pop_back(p->node_code);
+				gf_node_unregister(n, NULL);
+			}
+		}
+	}
+
 #endif
 
 	/*WATCHOUT: we may have cyclic dependencies due to
@@ -1609,6 +1632,11 @@ void gf_node_free(GF_Node *node)
 
 	if (node->sgprivate->interact) {
 		if (node->sgprivate->interact->routes) {
+			u32 i, count = gf_list_count(node->sgprivate->interact->routes);
+			for (i = 0; i < count; i++) {
+				GF_Route* r = (GF_Route*)gf_list_get(node->sgprivate->interact->routes, i);
+				r->FromNode = NULL;
+			}
 			gf_list_del(node->sgprivate->interact->routes);
 		}
 #ifndef GPAC_DISABLE_SVG
@@ -1629,6 +1657,28 @@ void gf_node_free(GF_Node *node)
 		}
 #endif
 		gf_free(node->sgprivate->interact);
+	}
+	if (node->sgprivate->scenegraph) {
+		NodeIDedItem* nid = node->sgprivate->scenegraph->id_node;
+		while (nid) {
+			GF_ParentList* pl = nid->node->sgprivate->parents;
+			GF_ParentList* prev_pl = NULL;
+			while (pl) {
+				if (pl->node == node) {
+					GF_ParentList* next_pl = pl->next;
+					if (prev_pl)
+						prev_pl->next = next_pl;
+					else
+						nid->node->sgprivate->parents = next_pl;
+					gf_free(pl);
+					pl = next_pl;
+				} else {
+					prev_pl = pl;
+					pl = pl->next;
+				}
+			}
+			nid = nid->next;
+		}
 	}
 	gf_assert(! node->sgprivate->parents);
 	gf_free(node->sgprivate);
