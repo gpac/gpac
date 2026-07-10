@@ -1278,8 +1278,7 @@ u32 gf_sg_proto_get_root_tag(GF_Proto *proto)
 	return n->sgprivate->tag;
 }
 
-GF_EXPORT
-Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
+static Bool gf_sg_proto_field_is_sftime_offset_internal(GF_Node *node, GF_FieldInfo *field, u32 depth)
 {
 	u32 i;
 	GF_Route *r;
@@ -1287,6 +1286,7 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 	GF_FieldInfo inf;
 	if (node->sgprivate->tag != TAG_ProtoNode) return 0;
 	if (field->fieldType != GF_SG_VRML_SFTIME) return 0;
+	if (depth > 255) return 0;
 
 	inst = (GF_ProtoInstance *) node;
 	/*check in interface if this is ISed */
@@ -1300,12 +1300,18 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 		/*IS to another proto*/
 		if (r->ToNode->sgprivate->tag == TAG_ProtoNode) {
 			if (r->ToNode==node) continue;
-			return gf_sg_proto_field_is_sftime_offset(r->ToNode, &inf);
+			return gf_sg_proto_field_is_sftime_offset_internal(r->ToNode, &inf, depth+1);
 		}
 		/*IS to a startTime/stopTime field*/
 		if (!stricmp(inf.name, "startTime") || !stricmp(inf.name, "stopTime")) return 1;
 	}
 	return 0;
+}
+
+GF_EXPORT
+Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
+{
+	return gf_sg_proto_field_is_sftime_offset_internal(node, field, 0);
 }
 
 GF_EXPORT
