@@ -781,8 +781,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 		sinf->info->piff_tenc->key_info[3] = key_info[3];
 		memcpy(sinf->info->piff_tenc->key_info+4, key_info+4, 16*sizeof(char));
 	}
-	//tenc only for mkey
-	else if (!key_info[0]) {
+	else {
 		if (key_info_size<20) return GF_BAD_PARAM;
 		sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new_parent(&sinf->info->child_boxes, GF_ISOM_BOX_TYPE_TENC);
 		if (!sinf->info->tenc) return GF_OUT_OF_MEM;
