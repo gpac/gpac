@@ -233,7 +233,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	Bool first=GF_TRUE;
 	s32 logl = GF_LOG_INFO;
 	Bool no_new_line = GF_FALSE;
-	JSValue v, g;
+	JSValue v, global;
 	const char *c_logname=NULL;
 	const char *log_name = "JS";
 
@@ -244,8 +244,8 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 	if (error_type)
 		logl = GF_LOG_ERROR;
-	g = JS_GetGlobalObject(ctx);
-	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
+	global = JS_GetGlobalObject(ctx);
+	v = JS_GetPropertyStr(ctx, global, "_gpac_log_name");
 	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
 		c_logname = JS_ToCString(ctx, v);
 		JS_FreeValue(ctx, v);
@@ -255,7 +255,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 				log_name = NULL;
 		}
 	}
-	JS_FreeValue(ctx, g);
+	JS_FreeValue(ctx, global);
 
 	if (log_name) {
 #ifndef GPAC_DISABLE_LOG

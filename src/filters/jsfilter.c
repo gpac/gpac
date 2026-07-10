@@ -526,21 +526,23 @@ const char *jsf_get_script_filename(JSContext *c)
 	GF_JSFilterCtx *jsf;
 	JSValue global = JS_GetGlobalObject(c);
 	JSValue filter_obj = JS_GetPropertyStr(c, global, "filter");
-	JS_FreeValue(c, global);
+
 	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) {
+		JS_FreeValue(c, global);
 		return NULL;
 	}
 
 	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
 	JS_FreeValue(c, filter_obj);
-	if (jsf) return jsf->js;
-
-	JSValue g = JS_GetGlobalObject(c);
-	JSValue v = JS_GetPropertyStr(c, g, "_gpac_script_src");
+	if (jsf) {
+		JS_FreeValue(c, global);
+		return jsf->js;
+	}
+	JSValue v = JS_GetPropertyStr(c, global, "_gpac_script_src");
 	const char *parent = NULL;
 	if (!JS_IsUndefined(v))
 		parent = JS_ToCString(c, v);
-	JS_FreeValue(c, g);
+	JS_FreeValue(c, global);
 	JS_FreeCString(c, parent);
 	JS_FreeValue(c, v);
 	return parent;
