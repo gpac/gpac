@@ -2843,3 +2843,17 @@ retry_char:
 		return GF_TRUE;
 	return GF_FALSE;
 }
+
+
+// sanitizer suppression list to avoid false-positives on gl calls
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/lsan_interface.h>
+__attribute__((visibility("default")))
+const char *__lsan_default_suppressions(void) {
+    return "leak:libgallium\n"
+           "leak:libGLX_mesa\n"
+           "leak:libGLX.so\n"
+           "leak:libGL\n"
+           "leak:libSDL2\n";
+}
+#endif

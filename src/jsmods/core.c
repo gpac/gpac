@@ -3259,7 +3259,7 @@ static Double amix_get_s16(u8 *data)
 static void amix_set_s16(u8 *data, Double val)
 {
 	val *= 65535;
-	u16 res = (u16) val;
+	u16 res = (u16) GF_FLOAT_TO_U32(val);
 	data[0] = res & 0xFF;
 	data[1] = (res>>8) & 0xFF;
 }
@@ -3278,7 +3278,7 @@ static Double amix_get_s32(u8 *data)
 static void amix_set_s32(u8 *data, Double val)
 {
 	val *= 0xFFFFFFFF;
-	u32 res = (u32) val;
+	u32 res = GF_FLOAT_TO_U32(val);
 	data[0] = res & 0xFF;
 	data[1] = (res>>8) & 0xFF;
 	data[2] = (res>>16) & 0xFF;
