@@ -4749,7 +4749,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				sai_d[0] = (cnt>>8) & 0xFF;
 				sai_d[1] = (cnt) & 0xFF;
 			} else {
-				u32 cnt = GF_4CC( sai_d[0], sai_d[1], sai_d[2], sai_d[3]);
+				u32 cnt = GF_4CC(sai_d[0], sai_d[1], sai_d[2], sai_d[3]);
 				cnt++;
 				sai_d[0] = (cnt>>24) & 0xFF;
 				sai_d[1] = (cnt>>16) & 0xFF;
@@ -4762,9 +4762,15 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	}
 
 	if (pck_is_encrypted && (sai_size>255)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CENC SAI size %u larger than max allowed size (255) in ISOBMFF - please reencode content\n", sai_size ));
-		e = GF_NOT_SUPPORTED;
-	} else if (act_type==CENC_ADD_FRAG) {
+		if (gf_igetenv("GPAC_CENC_SAIZ_VER") == 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CENC SAI size %u larger than 255 - forcing 'saiz' version 1\n", sai_size ));
+
+			// TEMP
+			setenv("GPAC_CENC_SAIZ_VER", "1", 1);
+		}
+	}
+
+	if (act_type==CENC_ADD_FRAG) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (pck_is_encrypted) {
 			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
@@ -4776,6 +4782,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 #endif
 	} else {
 		if (sai) {
+			//printf("Romain: adding sample info for track %d, sample %d, size %d\n", tkw->track_num, tkw->nb_samples+1, sai_size);
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
 		} else if (!pck_is_encrypted) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);

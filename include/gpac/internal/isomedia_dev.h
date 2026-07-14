@@ -2175,13 +2175,45 @@ typedef struct
 	u32 aux_info_type;
 	u32 aux_info_type_parameter;
 
-	u8 default_sample_info_size;
+	u32 default_sample_info_size;   // u8/u16/u32 for version 0/1/2 respectively
 	u32 sample_count, sample_alloc;
-	u8 *sample_info_size;
+	void *sample_info_size;         // u8/u16/u32 array for version 0/1/2 respectively: use getter/setter functions below
 
 	u32 cached_sample_num;
 	u32 cached_prev_size;
 } GF_SampleAuxiliaryInfoSizeBox;
+
+static GFINLINE u32 saiz_get_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *saiz, u32 idx)
+{
+	if (saiz->version == 0)
+		return ((u8*)saiz->sample_info_size)[idx];
+	else if (saiz->version == 1)
+		return ((u16 *)saiz->sample_info_size)[idx];
+	else if (saiz->version == 2)
+		return ((u32 *)saiz->sample_info_size)[idx];
+	else
+		return 0;
+}
+
+__attribute__((unused))
+static int gf_igetenv(const char *name)
+{
+	const char *val = getenv(name);
+	if (!val) return 0;
+	return atoi(val);
+}
+
+static GFINLINE void saiz_set_sample_info_size(GF_SampleAuxiliaryInfoSizeBox *saiz, u32 idx, u32 value)
+{
+	int version = gf_igetenv("GPAC_CENC_SAIZ_VER");
+
+	if (saiz->version == 1 || version == 1)
+		((u16 *)saiz->sample_info_size)[idx] = value;
+	else if (saiz->version == 2 || version == 2)
+		((u32 *)saiz->sample_info_size)[idx] = value;
+	else // version=0
+		((u8*)saiz->sample_info_size)[idx] = value;
+}
 
 typedef struct _gf_saio_box
 {
@@ -3828,6 +3860,15 @@ typedef struct
 typedef struct __cenc_tenc_box
 {
 	GF_ISOM_FULL_BOX
+
+	Bool use_subsample_encryption;
+	Bool use_multi_key;
+	Bool use_senc;
+	Bool use_sai;
+	Bool use_seig;
+	Bool use_encrypted_slice_header;
+
+	Bool isAES256;
 
 	u32 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
