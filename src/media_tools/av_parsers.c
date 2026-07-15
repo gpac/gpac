@@ -6293,7 +6293,7 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	*/
 
 	pps->weighted_pred_flag = gf_bs_read_int_log(bs, 1, "weighted_pred_flag");
-	gf_bs_read_int_log(bs, 2, "weighted_bipred_idc");
+	pps->weighted_bipred_idc = gf_bs_read_int_log(bs, 2, "weighted_bipred_idc");
 	gf_bs_read_se_log(bs, "init_qp_minus26");
 	gf_bs_read_se_log(bs, "init_qs_minus26");
 	gf_bs_read_se_log(bs, "chroma_qp_index_offset");
